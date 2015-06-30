@@ -1,5 +1,6 @@
 """
 Hans Roh 2015 -- http://sae.skitai.com
+License: BSD
 """
 import sys
 import os

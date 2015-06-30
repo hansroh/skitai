@@ -1,12 +1,11 @@
-This package includes only library.
+Skitai App Engien Library
 
-For getting full implementation example,
+	copyright (c) 2015 by Hans Roh
+	license: BSD
 
-visit https://gitlab.com/hansroh/skitaid
+Documentation
 
-or 
-
-pip install skitaid
+	https://gitlab.com/hansroh/skitai/wikis/home
 
 
 

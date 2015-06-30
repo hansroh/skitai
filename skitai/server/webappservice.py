@@ -47,11 +47,20 @@ class WAS:
 			cls.clusters_for_distcall [clustername] = cluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"))
 		cls.clusters [clustername] = cluster
 	
-	def map (self, clustername, req_type, params = None, login = None, encoding = None, multipart = False, filter = None):
-		return self.clusters_for_distcall [clustername].Server (req_type, params, login, encoding, multipart = multipart, mapreduce = True, callback = filter)
+	def __detect_reqtype (self, clustername):
+		try: 
+			clustername, reqtype = clustername.split ("/", 1)
+		except ValueError:
+			clustername, reqtype = clustername, "rpc2"			
+		return clustername, reqtype
+		
+	def map (self, clustername, params = None, login = None, encoding = None, multipart = False, filter = None):		
+		clustername, reqtype = self.__detect_reqtype (clustername)
+		return self.clusters_for_distcall [clustername].Server (reqtype, params, login, encoding, multipart = multipart, mapreduce = True, callback = filter)
 	
-	def lb (self, clustername, req_type, params = None, login = None, encoding = None, multipart = False, filter = None):
-		return self.clusters_for_distcall [clustername].Server (req_type, params, login, encoding, multipart = multipart, mapreduce = False, callback = filter)
+	def lb (self, clustername, params = None, login = None, encoding = None, multipart = False, filter = None):
+		clustername, reqtype = self.__detect_reqtype (clustername)
+		return self.clusters_for_distcall [clustername].Server (reqtype, params, login, encoding, multipart = multipart, mapreduce = False, callback = filter)
 		
 	def wget (self, uri, params = None, login = None, encoding = None, multipart = False, filter = None):
 		return self.lb ("__socketpool__", uri, params, login, encoding, multipart, filter)
