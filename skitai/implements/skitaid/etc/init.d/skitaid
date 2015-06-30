@@ -1,0 +1,37 @@
+#!/bin/sh
+# chkconfig: 123456 90 10
+# TTS Server for Speech Synthesis
+#
+workdir=/home/skitai/skitai
+ 
+start() {
+    #cd $workdir
+    #. .venv/bin/activate	
+    su - sa_master -c "cd $workdir;. .venv/bin/activate;python ./bin/skitaid.py &"
+    echo "Skitaid App Engine Started."
+}
+ 
+stop() {
+    pid=`ps -ef | grep '[p]ython ./bin/skitaid.py' | awk '{ print $2 }'`
+    #echo $pid
+    kill $pid
+    sleep 2
+    echo "Skitai App Engine Killed."
+}
+ 
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop   
+    ;;
+  restart)
+    stop
+    start
+    ;;
+  *)
+    echo "Usage: /etc/init.d/skitaid {start|stop|restart}"
+    exit 1
+esac
+exit 0

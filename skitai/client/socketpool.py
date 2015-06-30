@@ -1,0 +1,166 @@
+﻿import threading
+from skitai.server.threads import socket_map
+import time
+import asynconnect
+import urlparse
+import adns
+import copy
+
+class SocketPool:
+	maintern_interval = 60
+	object_timeout = 120
+	
+	def __init__ (self, logger):
+		self.__socketfarm = {}
+		self.__numget  = 0
+		self.__last_maintern = time.time ()
+		self.logger = logger
+		self.lock = threading.RLock ()
+		self.numobj = 0
+	
+	def match (self, request):
+		return False		
+	
+	def get_name (self):
+		return "socketpool"
+				
+	def status (self):
+		info = {}
+		cluster = {}
+		self.lock.acquire ()
+		info ["numget"] = self.__numget
+				
+		try:
+			try:	
+				for serverkey, node in self.__socketfarm.items ():	
+					nnode = {}
+					nnode ["numactives"] = len (filter (lambda x: x.isactive (), node.values ()))
+					nnode ["numconnecteds"] = len (filter (lambda x: x.isconnected (), node.values ()))
+					conns = []
+					for asyncon in node.values ():
+						stu = {
+							"class": asyncon.__class__.__name__, 
+							"connected": asyncon.isconnected (), 
+							"isactive": asyncon.isactive (), 
+							"request_count": asyncon.get_request_count (),
+							"event_time": time.asctime (time.localtime (asyncon.event_time)), 
+							"zombie_timeout": asyncon.zombie_timeout,								
+						}
+						try: stu ["has_result"] = asyncon.has_result
+						except AttributeError: pass						
+						conns.append (stu)
+													
+					nnode ["connections"] = conns
+					cluster [serverkey] = nnode
+					
+			finally:
+				self.lock.release ()
+				
+		except:
+			self.logger.trace ()
+					
+		info ["cluster"] = cluster
+		return info
+		
+	def report (self, asyncon, well_functioning):
+		pass # for competitable
+	
+	def get_nodes (self):
+		if not self.__socketfarm: return [None] # at least one item needs
+		return self.__socketfarm.items ()
+		
+	def maintern (self):
+		try:			
+			# close unused sockets
+			for serverkey, node in self.__socketfarm.items ():
+				for _id, asyncon in node.items ():					
+					if hasattr (asyncon, "maintern"):
+						asyncon.maintern ()
+						
+					try:
+						closed = asyncon.is_deletable (self.object_timeout) # keep 30 minutes						
+					except:
+						self.logger.trace ()
+						closed = False
+						
+					if closed:
+						del self.__socketfarm [serverkey][_id]
+						del asyncon
+						self.numobj -= 1
+						
+				if not self.__socketfarm [serverkey]:
+					del self.__socketfarm [serverkey]
+					
+		except:
+			self.logger.trace ()
+		
+		self.__last_maintern = time.time ()
+	
+	def _get (self, serverkey, server, *args):
+		asyncon = None
+			
+		self.lock.acquire ()
+		try:
+			try:
+				if time.time () - self.__last_maintern > self.maintern_interval:
+					self.maintern ()
+							
+				self.__numget += 1					
+				if not self.__socketfarm.has_key (serverkey):
+					asyncon = self.create_asyncon (server, *args)
+					self.__socketfarm [serverkey] = {}
+					self.__socketfarm [serverkey][id (asyncon)] = asyncon
+					
+				else:		
+					for each in self.__socketfarm [serverkey].values ():	
+						if not each.isactive ():
+							asyncon = each
+							break
+												
+					if not asyncon:
+						asyncon = self.create_asyncon (server, *args)
+						self.__socketfarm [serverkey][id (asyncon)] = asyncon
+				
+				asyncon.set_active (True, nolock = True)
+			
+			finally:
+				self.lock.release ()	
+		
+		except:
+			self.logger.trace ()
+		
+		return asyncon
+	
+	def create_asyncon (self, server, scheme):
+		if scheme == "https":
+			__conn_class = asynconnect.AsynSSLConnect
+			__dft_Port = 443
+		else:
+			__conn_class = asynconnect.AsynConnect
+			__dft_Port = 80
+		
+		try:
+			addr, port = server.split (":", 1)
+			port = int (port)
+		except ValueError:
+			addr, port = server, __dft_Port
+		
+		self.numobj += 1			
+		return __conn_class ((addr, port), self.lock, self.logger)	
+				
+	def get (self, uri):	
+		scheme, server, script, params, qs, fragment = urlparse.urlparse (uri)
+		serverkey = "%s://%s" % (scheme, server)
+		return self._get (serverkey, server, scheme)
+		
+	def cleanup (self):
+		self.lock.acquire ()
+		try:
+			try:
+				for server in self.__socketfarm.keys ():					
+					for asyncon in self.__socketfarm [server].values ():
+						asyncon.close (True)
+			finally:
+				self.lock.release ()
+		except:
+			self.logger.trace ()	
