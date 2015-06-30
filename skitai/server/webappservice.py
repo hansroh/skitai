@@ -5,7 +5,8 @@ from rpc import cluster_manager, cluster_dist_call
 from dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
 from handlers import default_handler
 import server_info
-
+import json
+import xmlrpclib
 
 class WAS:
 	version = VERSION
@@ -51,7 +52,7 @@ class WAS:
 		try: 
 			clustername, reqtype = clustername.split ("/", 1)
 		except ValueError:
-			clustername, reqtype = clustername, "rpc2"			
+			clustername, reqtype = clustername, "rpc3"	# json-rpc
 		return clustername, reqtype
 		
 	def map (self, clustername, params = None, login = None, encoding = None, multipart = False, filter = None):		
@@ -76,7 +77,13 @@ class WAS:
 	
 	def dmap (self, clustername, filter = None):
 		return self.clusters_for_distcall [clustername].Server (mapreduce = True, callback = filter)
-				
+	
+	def tojson (self, obj):
+		return json.dumps (obj)
+	
+	def toxml (self, obj):
+		return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")	
+					
 	def status (self, flt = None, fancy = True):
 		#reload (server_info)
 		return server_info.make (self, flt, fancy)
