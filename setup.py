@@ -58,19 +58,17 @@ package_data = {
 	"skitai": skitaid_files	
 }
 
-if os.name == "posix":
-	f = open('requirements.txt')
-	required = f.read().splitlines()
-	f.close ()
-else:
-	# win32, install manually
-	required = []
+with open('requirements.txt') as f:
+	required = f.read().splitlines()			
 
+with open ("skitai/README.TXT") as f:
+	ldesc = f.read ()
 
 setup(
 	name='skitai',
-	version='0.9.1.1',
+	version='0.9.1.3',
 	description='Skitai App Engine Library',
+	long_description = ldesc,
 	author='Hans Roh',
 	author_email='hansroh@gmail.com',
 	url='https://gitlab.com/hansroh/skitai',

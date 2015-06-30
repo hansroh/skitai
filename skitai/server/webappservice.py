@@ -53,7 +53,8 @@ class WAS:
 			clustername, reqtype = clustername.split ("/", 1)
 		except ValueError:
 			clustername, reqtype = clustername, "rpc3"	# json-rpc
-		return clustername, reqtype
+		assert (reqtype in ("rpc3", "rpc2"))	
+		return clustername, reqtype.lower ()
 		
 	def map (self, clustername, params = None, login = None, encoding = None, multipart = False, filter = None):		
 		clustername, reqtype = self.__detect_reqtype (clustername)
@@ -64,7 +65,7 @@ class WAS:
 		return self.clusters_for_distcall [clustername].Server (reqtype, params, login, encoding, multipart = multipart, mapreduce = False, callback = filter)
 		
 	def wget (self, uri, params = None, login = None, encoding = None, multipart = False, filter = None):
-		return self.lb ("__socketpool__", uri, params, login, encoding, multipart, filter)
+		return self.clusters_for_distcall ["__socketpool__"].Server (uri, params, login, encoding, multipart = multipart, mapreduce = False, callback = filter)
 		
 	def rpc (self, *args, **karg):
 		return self.wget (*args, **karg)
