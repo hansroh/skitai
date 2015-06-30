@@ -326,8 +326,7 @@ class Job:
 				trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done()))
 
 			elif hasattr (response, "more"): # producer (ex: producers.stream_producer)
-				if hasattr (response, "ready"):
-					request.channel.ready = response.ready					
+				if hasattr (response, "ready"):								
 					trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done(globbing = False, compress = False)))
 				else:
 					trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done()))

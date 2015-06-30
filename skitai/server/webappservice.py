@@ -7,6 +7,8 @@ from handlers import default_handler
 import server_info
 import json
 import xmlrpclib
+import producers
+import thread
 
 class WAS:
 	version = VERSION
@@ -84,12 +86,18 @@ class WAS:
 	
 	def toxml (self, obj):
 		return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")	
-					
+	
+	def tostream (self, func):
+		stream = producers.stream_producer ()
+		self.request.producer = stream
+		self.request.channel.ready = stream.ready
+		thread.start_new_thread (func, (self,))
+		return stream
+									
 	def status (self, flt = None, fancy = True):
-		#reload (server_info)
 		return server_info.make (self, flt, fancy)
 		
-
+	
 class Logger:
 	def __init__ (self, media, path):
 		self.media = media

@@ -264,8 +264,13 @@ class stream_producer:
 		self.channel = channel
 		self.buffer_size = buffer_size
 		self.closed = False
-		
+	
+	def abort (self):
+		self.close ()
+			
 	def push (self, data):
+		if self.closed:
+			raise Exception ("Channel Closed")
 		self.data.append (data)
 		trigger.wakeselect ()
 			

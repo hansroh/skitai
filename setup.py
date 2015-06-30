@@ -82,6 +82,10 @@ setup(
         'License :: OSI Approved :: BSD License',
         "Development Status :: 3 - Alpha",
         'Programming Language :: Python',        
-        'Programming Language :: Python :: 2.7'        
+        'Programming Language :: Python :: 2.7',
+        'Topic :: Internet :: WWW/HTTP',
+				'Topic :: Internet :: WWW/HTTP :: HTTP Servers',				
+				'Environment :: Console',
+				'Environment :: No Input/Output (Daemon)'
     ],
 )
