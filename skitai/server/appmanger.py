@@ -114,13 +114,19 @@ class ModuleManager:
 		self.add_path (directory)
 		self.register_module (route, package)
 	
-	def get_app (self, script_name):
-		route = self.has_route (script_name)
-		if route in (0, -1):
-			return None, None
+	def get_app (self, script_name, rootmatch = False):
+		if not rootmatch:
+			route = self.has_route (script_name)
+			if route in (0, -1):
+				return None, None
+		else:
+			route = "/"
 		
-		method, app = self.modules [route].get_app (script_name)
-		if method:
+		try:	
+			method, app = self.modules [route].get_app (script_name)
+		except KeyError:
+			return None, None
+		if method [0]: # == (method, karg), app
 			return method, app
 		
 		return None, None		
@@ -151,9 +157,9 @@ class ModuleManager:
 				return cands [0]
 			cands.sort (lambda x, y: cmp (len (x), len (y)))
 			return cands [-1]
-		elif self.modules.has_key ("/"):
+		elif self.modules.has_key ("/") and self.get_app (script_name, True) [0] is not None:
 			return "/"
-					
+						
 		return 0	
 	
 	def unload (self, route):

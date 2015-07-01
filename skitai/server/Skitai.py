@@ -93,8 +93,7 @@ class Loader:
 		
 	def config_certification (self, certfile, cafile, passphrase = None):
 		if not HTTPS:
-			raise SystemError, "Can't start SSL Web Server"
-		
+			return
 		if not os.path.isfile (certfile):
 			_certpath = os.path.join (os.path.split (os.path.split (self.config)[0])[0], "cert")
 			certfile = os.path.join (_certpath, certfile)	

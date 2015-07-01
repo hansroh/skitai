@@ -5,7 +5,12 @@ import re
 import urllib
 import time
 import os
-from jinja2 import Environment, PackageLoader
+
+JINJA2 = True
+try:
+	from jinja2 import Environment, PackageLoader
+except ImportError:
+	JINJA2 = False
 
 class vwas: 
 	request = {}
@@ -224,7 +229,8 @@ class Application (Package):
 	
 	def __init__ (self, package_name):
 		Package.__init__ (self)
-		self.env = Environment (loader = PackageLoader (package_name))
+		if JINJA2:
+			self.env = Environment (loader = PackageLoader (package_name))
 		self.lock = threading.RLock ()
 		self.cache_sorted = 0
 		self.cached_paths = {}
@@ -237,9 +243,11 @@ class Application (Package):
 			self.cached_paths = {}
 			self.cached_rules = []
 			self.lock.release ()
-			
+	
 	def get_template (self, name):
-		return self.env.get_template(name)
+		if JINJA2:
+			return self.env.get_template(name)
+		raise ImportError ("jinja2 required.")
 		
 	def get_lock (self):
 		return self.lock

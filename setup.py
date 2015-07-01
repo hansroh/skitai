@@ -23,12 +23,15 @@ if sys.version_info < (2, 7, 0) or sys.version_info >= (3, 0, 0):
 classifiers = [
         'License :: OSI Approved :: BSD License',
         "Development Status :: 3 - Alpha",
-        'Programming Language :: Python',        
-        'Programming Language :: Python :: 2.7',
         'Topic :: Internet :: WWW/HTTP',
 				'Topic :: Internet :: WWW/HTTP :: HTTP Servers',				
 				'Environment :: Console',
-				'Environment :: No Input/Output (Daemon)'
+				'Environment :: No Input/Output (Daemon)',
+				'Topic :: Software Development :: Libraries :: Python Modules',
+				'Intended Audience :: Developers',
+				'Intended Audience :: Science/Research',
+				'Programming Language :: Python',
+				'Programming Language :: Python :: 2.7'
 ]
     
 packages = [
@@ -68,17 +71,15 @@ package_data = {
 	"skitai": skitaid_files	
 }
 
-data_files=[('.', ['requirements.txt'])]
-                  
-with open('requirements.txt') as f:
-	required = f.read().splitlines()
-
+#required = ["jinja2", "jsonrpclib", "m2crypto", "psycopg2"]
+required = ["jinja2", "jsonrpclib"]
+	
 with open ("README.txt") as f:
 	ldesc = f.read ()
 
 setup(
 	name='skitai',
-	version='0.9.1.5',
+	version='0.9.1.12',
 	description='Skitai App Engine Library',
 	long_description = ldesc,
 	author='Hans Roh',
@@ -91,6 +92,6 @@ setup(
 	license='BSD',
 	platforms = ["nt", "posix"],
 	download_url = "https://pypi.python.org/pypi/skitai",
-	data_files=data_files,
 	classifiers=classifiers
 )
+

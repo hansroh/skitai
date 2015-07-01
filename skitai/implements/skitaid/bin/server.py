@@ -47,7 +47,7 @@ class	WAS (Skitai.Loader):
 		config = confparse.ConfParse (self.config)		
 		self.wasc.register ("config", config)
 		self.set_num_worker (config.getint ("server", "processes"))
-		if config.getopt ("certification", "certfile"):
+		if config.getopt ("server", "ssl") in ("yes", "1") and config.getopt ("certification", "certfile"):
 			self.config_certification (config.getopt ("certification", "certfile"), config.getopt ("certification", "cafile"), config.getopt ("certification", "passphrase"))			
 		self.config_cachefs (os.path.join (self.varpath, "cache"))
 		self.config_rcache (config.getint ("server", "num_result_cache_max"))
@@ -59,7 +59,7 @@ class	WAS (Skitai.Loader):
 			config.getint ("server", "port"), 
 			ip = config.getopt ("server", "ip"),
 			name = config.getopt ("server", "name"),
-			ssl = config.getopt ("server", "ssl") == "yes" or False
+			ssl = config.getopt ("server", "ssl") in ("yes", "1") or False
 		)
 
 		# after spawn

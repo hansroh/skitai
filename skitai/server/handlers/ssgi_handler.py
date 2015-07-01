@@ -190,8 +190,8 @@ class Handler:
 		if self.wasc.apps.has_route (path) == -1:
 			request ["Location"] = "%s/%s%s" % (
 				path, 
-				params,
-				query
+				params and params or "",
+				query and query or ""
 			)
 			if request.command in ('post', 'put'):
 				request.abort (301)
@@ -279,7 +279,7 @@ class Job:
 		
 		response = None
 		raise_error = False
-		
+			
 		[before, func, after, teardown], uargs = method
 		if before:
 			response = before (self.was)

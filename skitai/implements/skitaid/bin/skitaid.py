@@ -32,7 +32,7 @@ class Server:
 		self.logger = logger
 		self.child = None
 		self.config_path = os.path.join (CONFIGDIR, self.name + ".conf")		
-		self.flock = lock.Lock (os.path.join (VARDIR, "servers", self.name, "lock"))
+		self.flock = flock.Lock (os.path.join (VARDIR, "servers", self.name, "lock"))
 		self.start_time = None
 		self.backoff_start_time = None
 		self.backoff_interval = 5
@@ -82,7 +82,7 @@ class Servers:
 	
 	def __init__ (self, logger):
 		self.logger = logger
-		self.lock = lock.Lock (LOCKDIR)
+		self.lock = flock.Lock (LOCKDIR)
 		self.lock.unlockall ()
 		self.a = {}
 		self.last_slist = []
@@ -174,7 +174,7 @@ class Servers:
 			self.maintern ()
 			for name, server in self.a.items ():				
 				exitcode = server.child.poll ()
-				print name, exitcode
+				#print name, exitcode
 				if exitcode is None:
 					server.set_backoff (reset = True)
 					continue
@@ -228,22 +228,28 @@ Examples:
 	"""
 
 def _touch (req, name):
+	if name.endswith (".conf"):
+		name = name [:-5]
 	lockpath = os.path.join (VARDIR, "servers", name, "lock")
 	
-	if os.name == "nt":
-		lock.Lock (lockpath).lock ("signal", req)
+	if req == "start": 
+		req = "restart"
+	else:
+		if req not in ("terminate", "shutdown", "restart", "rotate"):
+			print "[error] unknown command"
+			sys.exit (1)
+				
+	if os.name == "nt":		
+		flock.Lock (lockpath).lock ("signal", req)
 	else:
 		pid	 = flock.PidFile (lockpath).getpid ()
 		if pid is None and req == "restart":
-			lock.Lock (lockpath).lock ("signal", req)
+			flock.Lock (lockpath).lock ("signal", req)
 		else:
 			if req == "terminate": sig = signal.SIGTERM
 			elif req == "shutdown": sig = signal.SIGQUIT
-			elif req == "restart": sig = signal.SIGHUP
-			elif req == "rotate": sig = signal.SIGUSR1			
-			else: 
-				print "[error] unknown command"
-				sys.exit (1)
+			elif req == "restart": sig = signal.SIGHUP				
+			elif req == "rotate": sig = signal.SIGUSR1
 			os.kill (pid, sig)
 	
 def touch (req, name = ""):
@@ -262,7 +268,7 @@ if __name__ == "__main__":
 	)
 	
 	# send signal to skitai
-	lck = lock.Lock (LOCKDIR)
+	lck = flock.Lock (LOCKDIR)
 	pidlock = lck.get_pidlock ()
 	if args:
 		if not pidlock.isalive ():
@@ -278,7 +284,7 @@ if __name__ == "__main__":
 		
 		elif "rotate" in args:		
 			if os.name == "nt":
-				lock.Lock (LOCKDIR).lock ("signal", "rotate")
+				flock.Lock (LOCKDIR).lock ("signal", "rotate")
 			else:
 				os.kill (pidlock.getpid (), signal.SIGUSR1)
 			exit (0)	

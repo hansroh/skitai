@@ -3,7 +3,10 @@ import re
 from skitai.server.rpc import http_request, http_response
 from skitai.client import adns
 from skitai.server import compressors, producers
-import ssl_tunnel
+try:
+	import ssl_tunnel
+except ImportError:
+	ssl_tunnel = None	
 import time
 
 class CollectError (Exception): pass
