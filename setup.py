@@ -5,6 +5,7 @@ License: BSD
 import sys
 import os
 from warnings import warn
+import setuptools
 
 try:
 	from setuptools import setup
@@ -18,7 +19,17 @@ if sys.argv[-1] == 'publish':
 if sys.version_info < (2, 7, 0) or sys.version_info >= (3, 0, 0):
 	warn("Skitai tested only in 2.7")
 	sys.exit()
-    
+
+classifiers = [
+        'License :: OSI Approved :: BSD License',
+        "Development Status :: 3 - Alpha",
+        'Programming Language :: Python',        
+        'Programming Language :: Python :: 2.7',
+        'Topic :: Internet :: WWW/HTTP',
+				'Topic :: Internet :: WWW/HTTP :: HTTP Servers',				
+				'Environment :: Console',
+				'Environment :: No Input/Output (Daemon)'
+]
     
 packages = [
 	'skitai',
@@ -41,7 +52,6 @@ package_dir = {
 }
 
 skitaid_files = [
-	"README.TXT", 
 	"implements/skitaid/app/*.*",
 	"implements/skitaid/app/static/*.*",
 	"implements/skitaid/bin/*.*", 
@@ -58,34 +68,29 @@ package_data = {
 	"skitai": skitaid_files	
 }
 
+data_files=[('.', ['requirements.txt'])]
+                  
 with open('requirements.txt') as f:
-	required = f.read().splitlines()			
+	required = f.read().splitlines()
 
-with open ("skitai/README.TXT") as f:
+with open ("README.txt") as f:
 	ldesc = f.read ()
 
 setup(
 	name='skitai',
-	version='0.9.1.3',
+	version='0.9.1.5',
 	description='Skitai App Engine Library',
 	long_description = ldesc,
 	author='Hans Roh',
 	author_email='hansroh@gmail.com',
-	url='https://gitlab.com/hansroh/skitai',
+	url='https://gitlab.com/hansroh/skitai/wikis/home',
 	packages=packages,
 	package_dir=package_dir,
 	package_data = package_data,
 	install_requires=required,
 	license='BSD',
-	zip_safe=False,
-	classifiers=[
-        'License :: OSI Approved :: BSD License',
-        "Development Status :: 3 - Alpha",
-        'Programming Language :: Python',        
-        'Programming Language :: Python :: 2.7',
-        'Topic :: Internet :: WWW/HTTP',
-				'Topic :: Internet :: WWW/HTTP :: HTTP Servers',				
-				'Environment :: Console',
-				'Environment :: No Input/Output (Daemon)'
-    ],
+	platforms = ["nt", "posix"],
+	download_url = "https://pypi.python.org/pypi/skitai",
+	data_files=data_files,
+	classifiers=classifiers
 )
