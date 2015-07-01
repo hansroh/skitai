@@ -55,6 +55,7 @@ package_dir = {
 }
 
 skitaid_files = [
+	"README.md",
 	"implements/skitaid/app/*.*",
 	"implements/skitaid/app/static/*.*",
 	"implements/skitaid/bin/*.*", 
@@ -73,13 +74,13 @@ package_data = {
 
 #required = ["jinja2", "jsonrpclib", "m2crypto", "psycopg2"]
 required = ["jinja2", "jsonrpclib"]
-	
+
 with open ("README.txt") as f:
 	ldesc = f.read ()
 
 setup(
 	name='skitai',
-	version='0.9.1.12',
+	version='0.9.1.13',
 	description='Skitai App Engine Library',
 	long_description = ldesc,
 	author='Hans Roh',

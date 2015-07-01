@@ -80,6 +80,8 @@ Documentation
 Change Log
 -------------
 	
+	0.9.1.13 - Add README.md
+  
   0.9.1.12 - Fix / App Routing
 	
   0.9.1.11 - Change sample configuration files and bug fix skitaid.py

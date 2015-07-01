@@ -117,7 +117,7 @@ class Loader:
 		else:	
 			server_class = http_server.http_server
 		
-		httpserver = server_class (ip, port, self.wasc.logger.get ("server"), self.wasc.logger.get ("request"))	
+		httpserver = server_class (ip and ip or "", port, self.wasc.logger.get ("server"), self.wasc.logger.get ("request"))	
 		httpserver.set_ssl_ctx (self.ctx)		
 		self.wasc.register ("httpserver", httpserver)
 		
