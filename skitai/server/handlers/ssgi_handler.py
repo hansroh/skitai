@@ -298,52 +298,70 @@ class Job:
 						response = func (self.was, **args)
 					else:
 						response = func (self.was, *args, **uargs)
-																										
+			
+			except MemoryError:
+				raise
+																											
 			except:
-				self.was.logger.trace ("app")
 				if teardown:
 					response = teardown (self.was)
 									
 				if raise_error:
 					raise
+				else:
+					self.was.logger.trace ("app")
 								
 			else:
 				if after: 
 					try: after (self.was)
 					except:	self.was.logger.trace ("app")
-					
-		return response	
 			
+		return response	
+	
+	def commit_all (self):
+		# keep commit order, session -> cookie
+		try: self.was.session.commit ()
+		except AttributeError: pass							
+		self.was.cookie.commit ()
+		
 	def __call__(self):
 		try:			
 			response = self.get_response (self.method, self.args)
-									
-			if not self.was.request.has_key ("content-type"):
-				self.was.request.update ('Content-Type', "text/html")
 			
-			if type (response) in _STRING_TYPES:			
-				self.was.request.update ('Content-Length', len (response))			
-				trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done()))
-
-			elif hasattr (response, "more"): # producer (ex: producers.stream_producer)
-				if hasattr (response, "ready"):								
-					trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done(globbing = False, compress = False)))
-				else:
-					trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done()))
-						
-			else:
-				raise ValueError, "Content should be string or producer type"
-
 		except MemoryError:
 			raise
 				
 		except:
-			self.was.logger.trace ("app")
-			self.was.request.update ('Content-Type', "text/html")
-			self.was.request.delete ('expires')
-			self.was.request.delete ('cache-control')
+			self.was.logger.trace ("app")			
 			trigger.wakeup (lambda p=self.was.request, d=catch(1): (p.error (500, d),))
+		
+		else:
+			try:
+				self.commit_all ()
+							
+			except:
+				self.was.logger.trace ("server")
+				trigger.wakeup (lambda p=self.was.request, d=catch(1): (p.error (500, d),))
 
+			else:
+				if not self.was.request.has_key ("content-type"):
+					self.was.request.update ('Content-Type', "text/html")				
+				
+				if type (response) in _STRING_TYPES:			
+					self.was.request.update ('Content-Length', len (response))			
+					trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done()))
+		
+				elif hasattr (response, "more"): # producer (ex: producers.stream_producer)
+					if hasattr (response, "ready"):
+						trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done(globbing = False, compress = False)))
+					else:
+						trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done()))
+							
+				else:
+					try:
+						raise ValueError, "Content should be string or producer type"
+					except:
+						self.was.logger.trace ("app")
+						trigger.wakeup (lambda p=self.was.request, d=catch(1): (p.error (500, d),))
+						
 		self.dealloc ()
-			
-			

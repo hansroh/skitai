@@ -80,7 +80,7 @@ with open ("README.txt") as f:
 
 setup(
 	name='skitai',
-	version='0.9.1.13',
+	version='0.9.1.14',
 	description='Skitai App Engine Library',
 	long_description = ldesc,
 	author='Hans Roh',
@@ -95,4 +95,3 @@ setup(
 	download_url = "https://pypi.python.org/pypi/skitai",
 	classifiers=classifiers
 )
-

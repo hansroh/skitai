@@ -22,13 +22,13 @@ for line in f:
 	d [host] = None
 
 L = [
-"ibizcast.skitai.com:5000/doc/db",
-"ibizcast.skitai.com:5000/doc/dlb",
-"ibizcast.skitai.com:5000/doc/dmap",
-"ibizcast.skitai.com:5000/doc/lb",
-"ibizcast.skitai.com:5000/doc/map",
-"ibizcast.skitai.com:5000/doc/rpc",
-"ibizcast.skitai.com:5000/doc/wget?url=http%3A//www.openfos.com/",
+"ibizcast.skitai.com:5000/test/db",
+"ibizcast.skitai.com:5000/test/dlb",
+"ibizcast.skitai.com:5000/test/dmap",
+"ibizcast.skitai.com:5000/test/lb",
+"ibizcast.skitai.com:5000/test/map",
+"ibizcast.skitai.com:5000/test/rpc",
+"ibizcast.skitai.com:5000/test/wget?url=http%3A//www.openfos.com/",
 "ibizcast.skitai.com:5000/openfos"
 ]
 

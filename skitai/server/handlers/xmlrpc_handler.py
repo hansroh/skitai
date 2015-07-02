@@ -75,7 +75,6 @@ class Job (ssgi_handler.Job):
 	def handle_error (self, code, msg = ""):
 		if self.was.request.command == "get":
 			self.responses = None
-			self.was.request.update ('Content-Type', "text/html")			
 			trigger.wakeup (lambda p=self.was.request, c=code, m=msg: (p.error (c, m),))
 		else:
 			self.responses.append (xmlrpclib.Fault (code, msg))
@@ -124,11 +123,19 @@ class Job (ssgi_handler.Job):
 			self.was.logger.trace ("app")
 			self.handle_error (500, ssgi_handler.catch(self.was.request.command == "get"))
 		
-		if self.responses is not None:
-			self.was.request.update ('Content-Type', 'text/xml')
-			self.was.request.update ('Content-Length', len (response))
-			trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done()))
+		else:
+			try:
+				self.commit_all ()
+				self.was.request.update ('Content-Type', 'text/xml')
+				self.was.request.update ('Content-Length', len (response))
 				
+			except:
+				self.was.logger.trace ("server")
+				self.handle_error (500, ssgi_handler.catch(self.was.request.command == "get"))
+			
+			else:
+				trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done()))
+					
 	def __call__(self):
 		if not self.ismulticall:
 			self.call (self.method, self.args)
@@ -137,7 +144,7 @@ class Job (ssgi_handler.Job):
 			for path, args in [("/" + each ["methodName"].replace (".", "/"), each ["params"]) for each in self.args [0]]:				
 				self.itercall (path, args)
 				
-		if self.responses is not None:			
+		if self.responses is not None:
 			self.handle_response ()
 			
 		self.dealloc ()

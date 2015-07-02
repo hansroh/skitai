@@ -9,6 +9,7 @@ import json
 import xmlrpclib
 import producers
 import thread
+from skitai import lifetime
 
 class WAS:
 	version = VERSION
@@ -96,6 +97,12 @@ class WAS:
 									
 	def status (self, flt = None, fancy = True):
 		return server_info.make (self, flt, fancy)
+	
+	def restart (self, fast = 0):
+		lifetime.shutdown (3, fast)
+	
+	def shutdown (self, fast = 0):
+		lifetime.shutdown (0, fast)
 		
 	
 class Logger:

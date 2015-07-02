@@ -201,7 +201,11 @@ class http_request:
 		
 		self.update ('Content-Length', len(s))
 		self.update ('Content-Type', 'text/html')
-		self.delete ('Content-Encoding')
+		self.delete ('content-encoding')
+		self.delete ('expires')
+		self.delete ('cache-control')
+		self.delete ('set-cookie')
+		
 		self.push (s)
 		self.done (True, True, force_close)
 

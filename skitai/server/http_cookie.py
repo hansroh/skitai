@@ -29,7 +29,8 @@ class Cookie:
 	secret_key = None
 	def __init__ (self, request):
 		self.request = request		
-		self.data = {}	
+		self.data = {}
+		self.uncommits = {}
 		self.session_cookie = None
 		self._parse ()
 	
@@ -56,7 +57,7 @@ class Cookie:
 	def keys (self):
 		return self.data.keys ()	
 	
-	def get (self, k, a):
+	def get (self, k, a = None):
 		return self.data.get (k, a)
 		
 	def values (self):
@@ -74,8 +75,10 @@ class Cookie:
 		cls.secret_key = secret_key
 	
 	def get_session (self, create = True):
-		if self.session_cookie:		
-				return SecuredCookieValue.unserialize (self.session_cookie, self.secret_key, self.set)						
+		if self.session_cookie:
+				sc = SecuredCookieValue.unserialize (self.session_cookie, self.secret_key, self.set)
+				self.session_cookie = None
+				return sc
 		elif create:
 			return SecuredCookieValue (None, self.secret_key, self.set, True)
 		raise KeyError, "no session found"
@@ -87,7 +90,11 @@ class Cookie:
 				self.session_cookie = v
 				continue
 			self.data [k] = v
-		
+	
+	def commit (self):
+		for cs in self.uncommits.values ():
+			self.request ["Set-Cookie"] = cs
+			
 	def set (self, name, val = "", expires = None, path = "/", domain = None):
 		# browser string cookie
 		cl = []
@@ -102,7 +109,7 @@ class Cookie:
 			cl.append ("path=%s" % path)
 		else:
 			if name == "SESSION":
-				cl.append ("%s=%s" % ("SESSION", val.serialize ()))
+				cl.append ("%s=%s" % ("SESSION", val))
 			else:
 				cl.append ("%s=%s" % (urllib.quote_plus (name), urllib.quote_plus (val)))
 			cl.append ("path=%s" % path)		
@@ -113,7 +120,7 @@ class Cookie:
 		if domain:
 			cl.append ("domain=%s" % domain)			
 		
-		self.request ["Set-Cookie"] = "; ".join (cl)
+		self.uncommits [name] = "; ".join (cl)
 		
 		# cookie data
 		if expires == 0:
@@ -154,11 +161,10 @@ class SecuredCookieValue (Cookie):
 		self.secret_key = secret_key
 		self.setfunc = setfunc
 		self.new = new
+		self.commited = False
 		
-	def __setitem__ (self, k, v):
-		if type (k) is not type (""):
-			raise TypeError, "Session key must be string type"
-		self.data [k] = v
+	def __setitem__ (self, k, v):		
+		self.set (k, v)
 	
 	def __delitem__ (self, k):
 		try:
@@ -167,12 +173,18 @@ class SecuredCookieValue (Cookie):
 			pass
 			
 	def set (self, k, v):
+		if type (k) is not type (""):
+			raise TypeError, "Session key must be string type"
 		self.data [k] = v
 		
 	def clear (self):
 		self.data = {}
-		
-	def commit (self, expires = None, path = "/", domain = None):
+	
+	def commit (self, expires = None, path = "/", domain = None):		
+		if self.commited:
+			return			
+		self.commited = True
+				
 		if expires is None:
 			expires = self.default_session_timeout
 		elif expires == "now":
@@ -183,7 +195,7 @@ class SecuredCookieValue (Cookie):
 			expires = min (int (expires), self.max_valid_session)
 			
 		self ["_expires"] = time.time () + expires
-		self.setfunc ("SESSION", self, expires, path, domain)
+		self.setfunc ("SESSION", self.serialize (), expires, path, domain)
 		
 	def set_default_session_timeout (self, timeout):
 		self.default_session_timeout = timeout

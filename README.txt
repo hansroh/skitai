@@ -80,10 +80,13 @@ Documentation
 Change Log
 -------------
 	
-	0.9.1.13 - Add README.md
+  0.9.1.14 - automation session commit
+	
+  0.9.1.13 - fix ip= config and add README.md (incompleted)
   
   0.9.1.12 - Fix / App Routing
 	
   0.9.1.11 - Change sample configuration files and bug fix skitaid.py
   
   0.9.1.10 - Found lots of requirements I didn't think
+  

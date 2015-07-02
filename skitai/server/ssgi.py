@@ -224,7 +224,7 @@ class Package:
 class Application (Package):
 	auto_reload = False
 	devel_mode = False
-	enable_session = True
+	enable_session = False
 	permission = []
 	
 	def __init__ (self, package_name):

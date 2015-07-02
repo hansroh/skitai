@@ -72,7 +72,6 @@ class Job (xmlrpc_handler.Job):
 	def handle_error (self, code, msg, rpcid, jsonrpc):
 		if self.was.request.command == "get":
 			self.responses = None
-			self.was.request.update ('Content-Type', "text/html")			
 			trigger.wakeup (lambda p=self.was.request, c=code, m=msg: (p.error (c, m),))
 		else:
 			self.responses.append (jsonrpclib.dumps (jsonrpclib.Fault (500, msg), rpcid = rpcid, version = jsonrpc))
@@ -124,11 +123,19 @@ class Job (xmlrpc_handler.Job):
 			self.was.logger.trace ("app", str (self))
 			self.handle_error (500, ssgi_handler.catch(self.was.request.command == "get"), rpcid, jsonrpc)
 		
-		if self.responses is not None:
-			self.was.request.update ('Content-Type', 'application/json-rpc')			
-			self.was.request.update ('Content-Length', len (response))
-			trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done()))
-						
+		else:
+			try:
+				self.commit_all ()
+				self.was.request.update ('Content-Type', 'application/json-rpc')			
+				self.was.request.update ('Content-Length', len (response))
+				
+			except:
+				self.was.logger.trace ("server", str (self))
+				self.handle_error (500, ssgi_handler.catch(self.was.request.command == "get"), rpcid, jsonrpc)
+			
+			else:
+				trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done()))
+			
 	def __call__(self):		
 		if not self.ismulticall:
 			self.call (self.method, self.args, self.rpcid, self.jsonrpc)
