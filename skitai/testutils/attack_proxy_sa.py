@@ -22,17 +22,18 @@ for line in f:
 	d [host] = None
 
 L = [
-#"http://125.209.193.164:5001/doc/db",
-#"http://125.209.193.164:5001/doc/dlb",
-#"http://125.209.193.164:5001/doc/dmap",
-"http://125.209.193.164:5001/doc/lb",
-"http://125.209.193.164:5001/doc/map",
-"http://125.209.193.164:5001/doc/rpc",
-"http://125.209.193.164:5001/doc/wget?url=http%3A//www.openfos.com/",
-"http://125.209.193.164:5001/openfos"
+"sadb.skitai.com:5001/test/db",
+"sadb.skitai.com:5001/test/dlb",
+"sadb.skitai.com:5001/test/dmap",
+"sadb.skitai.com:5001/test/lb",
+"sadb.skitai.com:5001/test/map",
+"sadb.skitai.com:5001/test/rpc",
+"sadb.skitai.com:5001/test/wget?url=http%3A//www.openfos.com/",
+"sadb.skitai.com:5001/openfos"
 ]
 
 HOSTS = d.keys ()
+HOSTS = []
 
 for each in L:
 	for i in range (200):
@@ -47,7 +48,7 @@ PORT = 5000
 	
 def d (host):
 	#print 'Connecting...', host
-	if not host.startswith ("ibizcast.skitai.com"):
+	if not host.startswith ("sadb.skitai.com"):
 		proxy = urllib2.ProxyHandler(proxies)
 		opener = urllib2.build_opener(proxy)
 		req = urllib2.Request("http://%s" % host)
@@ -93,6 +94,8 @@ def o ():
 
 clients = 300
 req = 2000 - 1900
+#req = 2000 - 1999
+
 hits = 0
 s = time.time ()
 t ()

@@ -80,7 +80,7 @@ with open ("README.txt") as f:
 
 setup(
 	name='skitai',
-	version='0.9.1.14',
+	version='0.9.1.15',
 	description='Skitai App Engine Library',
 	long_description = ldesc,
 	author='Hans Roh',

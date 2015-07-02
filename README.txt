@@ -44,8 +44,9 @@ It also influenced by Zope_ and Flask_ a lot.
 Requirements
 -------------
 
-*Currently only tested in Python 2.7*
+* *Currently only tested in Python 2.7*
 
+* Skitaid can find at least one DNS server from system configuration for Async-DNS query. Possibly it is only problem on dynamic IP allocated desktop, then set DNS manually, please.
 
 **Win 32**
 
@@ -79,7 +80,8 @@ Documentation
 
 Change Log
 -------------
-	
+  0.9.1.15 - improve consistency of handlers' exception handling
+  	
   0.9.1.14 - automation session commit
 	
   0.9.1.13 - fix ip= config and add README.md (incompleted)
@@ -89,4 +91,3 @@ Change Log
   0.9.1.11 - Change sample configuration files and bug fix skitaid.py
   
   0.9.1.10 - Found lots of requirements I didn't think
-  
