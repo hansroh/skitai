@@ -161,6 +161,8 @@ Documentation
 
 Change Log
 -------------
+  0.9.1.18 - ignore EWOULDBLOCK raised with multi-workers on posix
+  
   0.9.1.17 - Fix adns double callbacking on posix machine, external networking works fine
   
   0.9.1.16 - Add streaming response
