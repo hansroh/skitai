@@ -740,7 +740,8 @@ class http_server (asyncore.dispatcher):
 			self.log_info ('server accept() threw an exception', 'warn')
 			return
 		except TypeError:
-			self.log_info ('server accept() threw EWOULDBLOCK', 'warn')
+			if os.name == "nt":
+				self.log_info ('server accept() threw EWOULDBLOCK', 'warn')
 			return
 		#self.log_info ('client %s:%d accepted by %s' % (addr [0], addr [1], self.worker_ident))
 		http_channel (self, conn, addr)

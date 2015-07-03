@@ -33,7 +33,6 @@ L = [
 ]
 
 HOSTS = d.keys ()
-HOSTS = []
 
 for each in L:
 	for i in range (200):
