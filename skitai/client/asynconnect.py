@@ -20,7 +20,7 @@ class AsynConnect (asynchat.async_chat):
 	ac_out_buffer_size = 4096
 	zombie_timeout = 120
 	keep_alive = 300
-	
+		
 	def __init__ (self, address, lock = None, logger = None):
 		self.address = address
 		self.lock = lock
@@ -77,7 +77,10 @@ class AsynConnect (asynchat.async_chat):
 		if self.ready is not None:
 			return asynchat.async_chat.writable (self) and self.ready ()
 		return asynchat.async_chat.writable (self)	
-	
+		
+	def handle_write (self):		
+		self.initiate_send()
+        
 	def maintern (self):
 		if self.isactive () and time.time () - self.event_time > self.zombie_timeout:
 			# do not user close_socket (), this func might be called in the thread, and currently in select.select()
@@ -181,8 +184,8 @@ class AsynConnect (asynchat.async_chat):
 		self.event_time = time.time ()
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
 		
-		if adns.query:	
-			res = adns.get (self.address [0], "A")			
+		if adns.query:				
+			res = adns.get (self.address [0], "A")						
 			if res:				
 				ip = res [-1]["data"]
 				if ip:
@@ -217,11 +220,11 @@ class AsynConnect (asynchat.async_chat):
 			else:
 				raise
 	
-	def send (self, data):	
+	def send (self, data):		
 		self.event_time = time.time ()	
 		try:
-			result = self.socket.send(data)
-			return result
+			return self.socket.send(data)
+						
 		except socket.error, why:
 			if why[0] == EWOULDBLOCK:
 				return 0
@@ -261,7 +264,7 @@ class AsynConnect (asynchat.async_chat):
 	
 	# proxy POST need no init_send
 	def push (self, thing, init_send = True):
-		if type (thing) is type (""):
+		if type (thing) is type (""):			
 			asynchat.async_chat.push (self, thing)
 		else:
 			self.push_with_producer (thing, init_send)	

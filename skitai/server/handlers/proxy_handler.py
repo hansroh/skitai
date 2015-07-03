@@ -49,7 +49,7 @@ class Response (http_response.Response):
 				self.gzip_compressed = True
 			else:	
 				self.decompressor = compressors.GZipDecompressor ()
-	
+		
 	def is_gzip_compressed (self):
 		return self.gzip_compressed
 	
@@ -246,7 +246,7 @@ class Request (http_request.Request):
 		
 		if not self.client_request.channel:
 			return
-					
+		
 		self.asyncon.push (self.get_request_buffer ())
 		if self.collector:
 			self.push_collector ()
@@ -355,7 +355,7 @@ class Handler (ssgi_handler.Handler):
 		else:
 			request.error (405)
 					
-	def continue_request (self, request, collector):		
+	def continue_request (self, request, collector):	
 		request ["Proxy-Agent"] = "sae-asynconnect"
 		
 		if self.is_cached (request, collector is not None):
@@ -364,7 +364,7 @@ class Handler (ssgi_handler.Handler):
 		try:
 			req = http_request.HTTPRequest (request.uri, collector is not None, logger = self.wasc.logger.get ("server"))		
 			asyncon = self.clusters ["__socketpool__"].get (request.uri)
-			r = Request (asyncon, req, self.callback, request, collector)
+			r = Request (asyncon, req, self.callback, request, collector)			
 			if collector:
 				collector.asyncon = asyncon
 			r.start ()

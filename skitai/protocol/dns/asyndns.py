@@ -22,7 +22,7 @@ class async_dns (asyncore.dispatcher_with_send):
 		#self.servers = [("156.154.71.3", 513), ("156.154.71.9", 543)]
 		self.addr = self.servers.pop (0)
 		self.request = request
-		self.callback = callback
+		self.callback = callback		
 		self.args = args		
 		self.logger = logger
 		self.debug_level = debug_level
@@ -30,6 +30,7 @@ class async_dns (asyncore.dispatcher_with_send):
 		self.creation_time = time.time ()
 		self.event_time = time.time ()
 		self.ac_in_buffer = ""
+		self.closed = False
 		
 		asyncore.dispatcher_with_send.__init__ (self)		
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
@@ -86,7 +87,10 @@ class async_dns (asyncore.dispatcher_with_send):
 	def handle_expt (self):
 		self.handle_close ()
 	
-	def close (self):		
+	def close (self):
+		if self.closed:
+			return
+		self.closed = True	
 		asyncore.dispatcher_with_send.close (self)
 		self.callback (self.servers, self.request, self.args, self.ac_in_buffer)
 			
@@ -171,7 +175,7 @@ class Request:
 				reply = data
 			
 		except:
-			if server:
+			if server:				
 				async_dns (server, request, args, self.processReply, self.logger, self.debug_level)
 				return
 				
@@ -196,8 +200,9 @@ class Request:
 		if callback:
 			if type (callback) != type ([]):
 				callback = [callback]
-							
-			for cb in callback: cb (answers)
+			
+			for cb in callback:
+				cb (answers)
 			
 
 if __name__	== "__main__":

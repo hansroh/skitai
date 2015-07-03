@@ -304,7 +304,7 @@ class Request:
 			
 	def start (self):
 		if adns.query:
-			adns.query (self.asyncon.address [0], "A", callback = self.continue_start)			
+			adns.query (self.asyncon.address [0], "A", callback = self.continue_start)
 		else:
 			self.continue_start (True)
 		

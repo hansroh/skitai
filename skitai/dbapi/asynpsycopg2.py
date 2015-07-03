@@ -19,7 +19,7 @@ _STATE_OK = (POLL_OK, POLL_WRITE, POLL_READ)
 
 
 class AsynConnect (asyncore.dispatcher):
-	zombie_timeout = 120
+	zombie_timeout = 120	
 		
 	def __init__ (self, address, dbname, user, password, lock = None, logger = None):		
 		self.address = address
