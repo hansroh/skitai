@@ -417,6 +417,8 @@ class http_channel (asynchat.async_chat):
 	channel_count = counter.counter ()
 	ready = None
 	affluent = None
+	closed = False
+	is_rejected = False
 	abortables = []
 	zombie_timeout = MAX_KEEP_CONNECTION
 	
@@ -432,7 +434,6 @@ class http_channel (asynchat.async_chat):
 		self.in_buffer = ''
 		self.creation_time = int (time.time())
 		self.event_time = int (time.time())
-		self.is_rejected = False
 		
 	def reject (self):
 		self.is_rejected = True		
@@ -557,12 +558,15 @@ class http_channel (asynchat.async_chat):
 		self.abortables = things
 					
 	def close (self):
-		if self.current_request is not None:		
+		if self.closed:
+			return
+		self.closed = True	
+		if self.current_request is not None:
 			self.abortables.append (self.current_request.collector)
 			self.abortables.append (self.current_request.producer)
 			self.current_request.channel = None # break circ refs
 			self.current_request = None
-			
+		
 		for abortable in self.abortables:
 			if abortable:
 				abortable.abort ()

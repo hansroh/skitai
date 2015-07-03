@@ -240,69 +240,7 @@ class output_producer:
 			return result
 		else:
 			return ''
-			
 
-class stream_producer:
-	"""
-	In a threading, push data to channel directly until closed
-	But is it better ajax loop call?
-	
-	def route (was):
-		response = producers.stream_producer ()
-		threading.Thread (target = some_work, args = (response, ...)).start ()
-		return response
-	
-	def some_work (response):
-		response.push (str)
-		response.push (str)
-		...
-		response.close ()
-		
-	"""	
-	def __init__ (self, channel, buffer_size = 4096):
-		self.data = []
-		self.channel = channel
-		self.buffer_size = buffer_size
-		self.closed = False
-	
-	def abort (self):
-		self.close ()
-			
-	def push (self, data):
-		if self.closed:
-			raise Exception ("Channel Closed")
-		self.data.append (data)
-		trigger.wakeselect ()
-			
-	def ready (self):
-		return (len (self.data) > 0) or self.closed
-
-	def more (self):
-		if not self.data:
-			return ""
-		
-		require = self.buffer_size
-		d = ""
-		while self.data:
-			result = self.data.pop (0)
-			a, r = result [:require], result [require:]
-			
-			if r:
-				self.data.insert (0, r)
-				return a			
-			
-			d += a
-			require -= len (a)			
-			if require == 0:
-				return d
-				
-		return d			
-	
-	def close (self):
-		self.closed = True
-		self.channel.ready = None
-		self.data = []
-		
 		
 class composite_producer:
 	"combine a fifo of producers into one"

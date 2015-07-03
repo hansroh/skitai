@@ -87,14 +87,7 @@ class WAS:
 	
 	def toxml (self, obj):
 		return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")	
-	
-	def tostream (self, func):
-		stream = producers.stream_producer ()
-		self.request.producer = stream
-		self.request.channel.ready = stream.ready
-		thread.start_new_thread (func, (self,))
-		return stream
-									
+										
 	def status (self, flt = None, fancy = True):
 		return server_info.make (self, flt, fancy)
 	

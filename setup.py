@@ -2,6 +2,8 @@
 Hans Roh 2015 -- http://sae.skitai.com
 License: BSD
 """
+__VER__ = '0.9.1.16'
+
 import sys
 import os
 from warnings import warn
@@ -80,7 +82,7 @@ with open ("README.txt") as f:
 
 setup(
 	name='skitai',
-	version='0.9.1.15',
+	version=__VER__,
 	description='Skitai App Engine Library',
 	long_description = ldesc,
 	author='Hans Roh',
@@ -91,7 +93,7 @@ setup(
 	package_data = package_data,
 	install_requires=required,
 	license='BSD',
-	platforms = ["nt", "posix"],
+	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/skitai",
 	classifiers=classifiers
 )

@@ -6,19 +6,6 @@ Copyright (c) 2015 by Hans Roh
 License: BSD
 
 
-
-Apology
-----------
-
-I'm very sorry for lots of unstable releases. I never expect over a thousand downloads even within a day.
-
-Please forgive me, this is my first participating to PIP, then so confused and scared...
-
-I think version 0.9.1.11 can be worked with relatively less efforts. Please update skitai and recopy implements/skitaid.
-
-I hope basic documentation is written within this weekend.
-
-
 Introduce
 ----------
 
@@ -26,13 +13,105 @@ Skitai App Engine Library (SAEL) is a kind of branch of `Medusa Web Server`__ - 
 
 Medusa is different from most other servers because it runs as a single process, multiplexing I/O with its various client and server connections within a single process/thread.
 
-SAEL orients light-weight and strengthen networking operations with external resources - HTTP / HTTPS / RPC / PostgreSQL_ - keeping very low costs.
+SAEL orients light-weight,simplicity  and strengthen networking operations with external resources - HTTP / HTTPS / RPC / PostgreSQL_ - keeping very low costs.
 
 - It can run as XML/JSON-RPC & Web Server.
 - It can request massive RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily.
 - Provide asynchronous PostgreSQL query execution
 
 It also influenced by Zope_ and Flask_ a lot.
+
+**Basic Configure**
+
+.. code:: python
+
+    [server]
+    processes = 1
+    threads = 4
+    port = 5000
+
+    [routes:line]
+    / = /home/skitaid/app/static
+    / = /home/skitaid/app/webapp
+
+
+**Hello World**
+
+Then write /home/skitaid/app/webapp.py
+
+.. code:: python
+
+    from skitai.server import ssgi
+    
+    app = ssgi.Application (__name__)
+    app.set_devel (True)
+        
+    @app.route ("/hello")
+    def hello (was):
+        return 'Hello World'
+
+**For RPC Map-Reducing**
+
+.. code:: python
+
+    ; add mysearch members to config file
+    [@mysearch]
+    members = s1.yourserver.com:5000,s2.yourserver.com:5000,s3.yourserver.com:5000
+
+
+
+.. code:: python
+
+    @app.route ("/search")
+    def search (was, keyword = "Mozart"):
+      s = was.map ("mysearch/rpc2")
+      s.search (keyword)
+
+      results = s.getswait (timeout = 2)
+
+      all_results = []
+      for result in results:
+        if result.status == 3:
+          all_results.extend (result.data)
+      return all_results
+
+
+**RPC Load-Balancing**
+
+.. code:: python
+
+    @app.route ("/search")
+    def search (was, keyword = "Mozart"):
+      s = was.lb ("mysearch/rpc2")
+      s.search (keyword)
+
+      return s.getwait (timeout = 2)
+
+
+**For PostgreSQL Map-Reducing**
+
+.. code:: python
+
+    ; add mydb members to config file
+    [@mydb]
+    type = postresql
+    members = s1.yourserver.com:5432/mydb/user/passwd,s2.yourserver.com:5432/mydb/user/passwd
+
+
+.. code:: python
+
+    @app.route ("/query")
+    def query (was, keyword):
+      s = was.dmap ("mydb")
+      s.execute("SELECT * FROM CITIES;")
+
+      results = s.getswait (timeout = 2)
+
+      all_results = []
+      for result in results:
+        if result.status == 3:
+          all_results.append (result.data)
+      return all_results
 
 
 .. _Zope: http://www.zope.org/
@@ -48,16 +127,6 @@ Requirements
 
 * Skitaid can find at least one DNS server from system configuration for Async-DNS query. Possibly it is only problem on dynamic IP allocated desktop, then set DNS manually, please.
 
-**Win 32**
-
-- *pywin32 binary* - http://sourceforge.net/projects/pywin32/files/pywin32/Build%20219/
-- *psycopg2 binary* - http://www.stickpeople.com/projects/python/win-psycopg/
-
-*(Optional)*
-
-- *M2Crypto binary* - https://github.com/saltstack/salt-windows-install/tree/master/deps/win32-py2.7
-- *jsonrpclib* for serving JSON-RPC
-- *Jinja2* for HTML Rendering
 
 **Posix**
 
@@ -72,22 +141,36 @@ Requirements
 Use 'pip install ...'
 
 
+**Win 32**
+
+- *pywin32 binary* - http://sourceforge.net/projects/pywin32/files/pywin32/Build%20219/
+- *psycopg2 binary* - http://www.stickpeople.com/projects/python/win-psycopg/
+
+*(Optional)*
+
+- *M2Crypto binary* - https://github.com/saltstack/salt-windows-install/tree/master/deps/win32-py2.7
+- *jsonrpclib* for serving JSON-RPC
+- *Jinja2* for HTML Rendering
+
+
 Documentation
 -------------
 
-	Please visit https://gitlab.com/hansroh/skitai/wikis/home
+    Please visit https://gitlab.com/hansroh/skitai/wikis/home
 
 
 Change Log
 -------------
-  0.9.1.15 - improve consistency of handlers' exception handling
-  	
-  0.9.1.14 - automation session commit
-	
-  0.9.1.13 - fix ip= config and add README.md (incompleted)
+  0.9.1.16 - Add streaming response
+  
+  0.9.1.15 - Improve consistency of handlers' exception handling
+      
+  0.9.1.14 - Automation session commit
+    
+  0.9.1.13 - Fix ip= config and add README.md (incompleted)
   
   0.9.1.12 - Fix / App Routing
-	
+    
   0.9.1.11 - Change sample configuration files and bug fix skitaid.py
   
   0.9.1.10 - Found lots of requirements I didn't think

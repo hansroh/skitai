@@ -278,43 +278,38 @@ class Job:
 		# [b, [b, [b, func, a, t], a, t], a t]
 		
 		response = None
-		raise_error = False
 			
 		[before, func, after, teardown], uargs = method
 		if before:
 			response = before (self.was)
-			
-		if not response:			
-			try:
-				if type (func) is type ([]):
-					response = self.get_response ((func, uargs), args)
-														
-				else:
-					raise_error = True
-					if type (args)==type({}):
-						if uargs: # url args
-							for k, v in uargs.items ():
-								args [k] = v			
-						response = func (self.was, **args)
-					else:
-						response = func (self.was, *args, **uargs)
-			
-			except MemoryError:
-				raise
-																											
-			except:
-				if teardown:
-					response = teardown (self.was)
-									
-				if raise_error:
-					raise
-				else:
-					self.was.logger.trace ("app")
-								
+			if response:
+				return response
+		
+		try:
+			if type (func) is type ([]):
+				response = self.get_response ((func, uargs), args)					
+					
 			else:
-				if after: 
-					try: after (self.was)
-					except:	self.was.logger.trace ("app")
+				if type (args)==type({}):
+					if uargs: # url args
+						for k, v in uargs.items ():
+							args [k] = v			
+					response = func (self.was, **args)
+				else:
+					response = func (self.was, *args, **uargs)
+		
+		except MemoryError:
+			raise
+																										
+		except:
+			self.was.logger.trace ("app", str (self))
+			if teardown:
+				response = teardown (self.was)
+							
+		else:
+			if after: 
+				try: after (self.was)
+				except:	self.was.logger.trace ("app")
 			
 		return response	
 	
@@ -331,8 +326,8 @@ class Job:
 		except MemoryError:
 			raise
 				
-		except:
-			self.was.logger.trace ("app")			
+		except:	
+			self.was.logger.trace ("app", str (self))
 			trigger.wakeup (lambda p=self.was.request, d=catch(1): (p.error (500, d),))
 		
 		else:
@@ -352,10 +347,9 @@ class Job:
 					trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done()))
 		
 				elif hasattr (response, "more"): # producer (ex: producers.stream_producer)
-					if hasattr (response, "ready"):
-						trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done(globbing = False, compress = False)))
-					else:
-						trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done()))
+					if hasattr (response, "abort"):
+						self.was.request.producer = response
+					trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done()))
 							
 				else:
 					try:

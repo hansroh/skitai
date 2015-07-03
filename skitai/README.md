@@ -4,7 +4,7 @@ Skitai App Engine Library (SAEL) is a kind of branch of [Medusa Web Server](http
 
 Medusa is different from most other servers because it runs as a single process, multiplexing I/O with its various client and server connections within a single process/thread.
 
-SAEL orients light-weight and strengthen networking operations with external resources - HTTP / HTTPS / RPC / [PostgreSQL](http://www.postgresql.org/) - keeping low costs.
+SAEL orients light-weight,simplicity  and strengthen networking operations with external resources - HTTP / HTTPS / RPC / [PostgreSQL](http://www.postgresql.org/) - keeping low costs.
 
 - It can run as XML/JSON-RPC & Web Server.
 - It can request massive RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily.
@@ -45,10 +45,10 @@ edit /home/skitaid/app/webapp.py
     
     app = ssgi.Application (__name__)
     app.set_devel (True)
-    	
+        
     @app.route ("/hello")
     def hello (was):
-    	return 'Hello World'
+        return 'Hello World'
 
 It's similar to Flask App.
 
@@ -295,7 +295,7 @@ And you make app at /home/skitaid/app/webapp.py:
     
     @app.route ("/")
     def wget (was, url):
-    	return "Hello"
+        return "Hello"
 
 Done.
 
@@ -304,7 +304,7 @@ You can access, http://127.0.0.1:5000/test/
 
 ### Routing
 If you configure,
-				
+                
     /test = /home/skitaid/app/webapp
 
 /test/ is working like directory, but /test is like file.
@@ -328,7 +328,7 @@ Bottom line, always psysical file has priority.
 
     @app.route ("/hello/world")
     def wget (was, url):
-    	return "Hello"
+        return "Hello"
 
 /test is base url for /home/skitaid/app/webapp, then full translated to
 
@@ -346,15 +346,15 @@ and
 
     @app.route ("/hello/world")
     def wget (was, url):
-    	return "Hello"
-    	
+        return "Hello"
+        
 finally,
 
     http://127.0.0.1:5000/hello/world
     
     or as XML-RPC,    
     s.hello.world ()
-    	
+        
 ### Set App Development Mode
     
     app.set_devel (True)
@@ -375,69 +375,23 @@ All app method's 1st arg is 'was'.
 
 Imagine your app methods is App Server Class' methods.
 
-'was` provide some objects and methods below:
-
-#### Request Objects & Streaming
-##### was.app
-
-It's alias for:
-
-    app = ssgi.Application (__name__)
-
+'was` provide some objects related with request:
     
-##### was.request
-##### was.cookie
-##### was.session
-##### was.env
+- was.request
+- was.cookie
+- was.session
+-  was.environ
+  
+ And provide some asynchronous networking methods: 
+ 
+- was.wget()
+- was.map()
+- was.lb()
+- was.db()
+- was.dmap()
+- was.dlb()
 
-#### Server Resources
-##### was.apps
-##### was.cachefs
-##### was.rcache
-##### was.httpserver
-##### was.lifetime
-##### was.queue
-##### was.threads
-##### was.cluster[socketpool]
-##### was.cluster[dbpool]
-##### was.cluster[@user-configured-clusters]
-##### was.[user-registered-objects]
-
-#### View Server Status
-##### was.status()
-
-    Table of Content
-
-    APPS
-    CACHEFS
-    CLUSTER:__dbpool__
-    CLUSTER:__socketpool__
-    CLUSTER:blade
-    CLUSTER:openfos
-    CLUSTER:postgres
-    ENVIRON
-    HTTPSERVER
-    LIFETIME
-    QUEUE
-    RCACHE
-    THREADS
-        
-#### Object Serialize
-##### was.tojson ()
-##### was.toxml()
-
-#### Switch Streaming Response
-##### was.tostream()
-
-#### Asynchronous Network Related Services
-##### was.wget()
-##### was.map()
-##### was.lb()
-##### was.db()
-##### was.dmap()
-##### was.dlb()
-
-
+These will be explained detail continued chapters.
 
 ### Building Larger App
 
@@ -448,10 +402,10 @@ greetings.py:
     from skitai.server import ssgi
     
     package = ssgi.Package ()
-    	
+        
     @package.route ("/greeting/morning")
     def morning (was):
-    	return 'good Morning'
+        return 'good Morning'
 
 and some modified webapp.py is:
 
@@ -463,17 +417,17 @@ and some modified webapp.py is:
     
     @app.startup
     def startup (wasc, app):
-    	app.add_package (greetings)
+        app.add_package (greetings)
     
     @app.route ("/hello/world")
     def wget (was, url):
-    	return "Hello"
+        return "Hello"
  
 Added lines are:
 
     @app.startup
     def startup (wasc, app):
-    	app.add_package (greetings)
+        app.add_package (greetings)
 
 This means when app is initailized, add greetings sub-package.
 
@@ -484,11 +438,11 @@ There are 2 more app methods,
 
     @app.onreload
     def onreload (wasc, app):
-    	pass
-    	
+        pass
+        
     @app.shutdown
     def shutdown (wasc, app):
-    	pass
+        pass
 
 There are new variable 'wasc', not 'was', it's class object of 'was', you can call class method register(), register an object to sharing with all the other apps.
 
@@ -503,53 +457,548 @@ It's useful this case, some object should be alive with app engine's lifetime.
     # automatically called only once when app engine starts
     @app.startup
     def startup (wasc, app):
-    	app.searcher = Searcher ()
-    	# for sharing with other apps
-    	# all other apps can access as 'was.searcher'
-    	wasc.register ("searcher", app.searcher)
+        app.searcher = Searcher ()
+        # for sharing with other apps
+        # all other apps can access as 'was.searcher'
+        wasc.register ("searcher", app.searcher)
     
     # automatically called when you modify this file and if set_devel is True
     @app.onreload
     def onreload (wasc, app):
-    	# re-seting
-    	app.searcher = wasc.searcher
+        # re-seting
+        app.searcher = wasc.searcher
     
     # automatically called only once when app engine enters shutdown process
-    @app.shutdown		
+    @app.shutdown        
     def shutdown (wasc, app):
-    	# it's same as wasc.searcher.close ()
-    	app.searcher.close ()
-    	wasc.unregister ("searcher")
+        # it's same as wasc.searcher.close ()
+        app.searcher.close ()
+        wasc.unregister ("searcher")
 
-    	
+        
 ### Accessing Request
 
+    was.request.get_header ("content-length")
+    was.request ["Location"] = "/newloc"
+    if was.request.command == "get":
+         return "Not allowed get method for %s" % was.request.uri
+
 ### Getting Args
+
 #### Fancy URL
-#### URL Query String
-#### Form
+
+    @app.route ("/company/<int:cid>/<cname>")
+    def company (was, cid, cname):
+      return "%d - %s" % (cid, cname)
+ 
+ It can call, http://127.0.0.1:5000/company/555/Skitai+Corp
+     
+ Vaild types are int, float, path. If not specified, It is assumed string type.
+    
+#### URL Query String & Form Data
+
+    @app.route ("/company")
+    def company (was, cid, cname):
+      return "%d - %s" % (cid, cname)
+
+It can call by both *POST/GET*, 
+
+    http://127.0.0.1:5000/company?cid=555&cname=Skitai+Corp
+
+Actually, Args can be mixed with theses 3 methods.
+
+It means also possible:
+
+    @app.route ("/company/<int:cid>")
+    def company (was, cid, cname):
+      return "%d - %s" % (cid, cname)
+
+     http://127.0.0.1:5000/company/555&cname=Skitai+Corp
+
+ If args' name is duplicated like this: 
+ 
+     http://127.0.0.1:5000/company/555&cname=Skitai+Corp&cid=333
+ 
+Var name 'cid' will be convert to list type **["333", "444"].**
+
+If there's so many args, just get as dictionary:
+
+     def company (was, **form):
+         form.get ("cid")
+         form.get ("cname")
+
+
+### Requesting HTTP(S), RPC
+
+You can access HTTP/HTTPS Web page or RPC Server with asynchronously.
+
+HTTP/HTTPS
+
+    @app.route ("/test/wget")
+    def wget (was, url = "https://www.python.org"):
+        s = was.wget (url)
+                
+        rs = s.getwait (timeout = 2)
+        if rs.status == 3:
+            return "<pre>" + rs.data.replace ("<", "&lt;").replace ("<", "&gt;") + "</pre>"
+ 
+If POST Request,
+     
+     s = was.wget (url, {"cid": "555", "cname="Skitai Corp"})
+     
+ 
+ If File Upload Request,
+ 
+     s = was.wget (
+     	url, 
+     	{"cid": "555", "cname="Skitai Corp", "file": open ("/data/logo.gif")}, 
+     	multipart = True    
+     )
+    
+ RPC
+    
+    @app.route ("/test/rpc")
+    def rpc (was):
+        s = was.rpc ("https://www.python.org/rpc2")
+        s.query ( "Beethoven")
+        return str (s.getwait (timeout = 2))
+
 
 ### Map-Filter-Reduce (MFR) Operation
+ 
+ At first, you configure members like this:   
+    
+    [@myrpcs]
+    members = s1.yourserver.com:5000,s2.yourserver.com:5000,s3.yourserver.com:5000
 
+Then you can MFR operation using 'mysearch'.
+
+Fisrt example is simple Map-Reduce:
+
+    @app.route ("/test/map")
+    def map (was):
+        s = was.map ("myrpcs/rpc2")    
+        # we can expect [4.7,76,7,7]
+        s.generate_random_int_list (5)
+        
+        all = []
+        for rs in s.getswait (5):
+            if rs.status == 3:
+                all.extend (rs.data)
+        
+        return reduce (lambda x,y: x+y, all)    
+    
+If it maybe not need filter operation in ideal situaltion, at real world we sometimes need filter. 
+
+Here's Map-Filter-Reduce example:
+
+    @app.route ("/test/map")
+    def map (was):        
+        def select_func (rs):
+          if rs.status == 3:
+            rs.data =  filter (lambda x: x < 10, rs.data)
+          else:
+            rs.data = []  
+        
+        s = was.map ("myrpcs/rpc2", filter = select_func)
+        # we can expect [4.7,76,7,7]
+        s.generate_random_int_list (5)
+        
+        all = []
+        for rs in s.getswait (5):
+            all.extend (rs.data)
+        
+        return reduce (lambda x,y: x+y, all)    
+ 
+ 
+ Why dosen't do filter after getswait () ?
+ 
+ Because that way make  filter action be worked for waiting another results. We can save time.
+    
+    
 ### RPC Load-Balacing
 
-### Rendering HTML with Jinja2 Template
+You an load balncing to configures members with was.lb ():
 
+At config file:
+
+    [@mysearch]
+    ssl = no
+    members = s1.yourserver.com:5000,s2.yourserver.com:5000,s3.yourserver.com:5000
+
+Your app is:
+
+    @app.route ("/search")
+    def search (was, keyword = "Mozart"):
+      s = was.lb ("mysearch/rpc2")
+      s.search (keyword)
+      return s.getwait (timeout = 2)
+
+
+### PostgreSQL Map-Filter-Reduce (MFR) Operation
+ 
+At first, you configure members like this:   
+    
+    [@mydbs]
+    type = posgresql    
+    members = s1.yourserver.com:5432/mydb/user/pass,s2.yourserver.com:5432/mydb/user/pass
+
+Then you can MFR operation using 'mysearch'.
+
+Fisrt example is simple Map-Reduce for getting top population city:
+
+    @app.route ("/test/map")
+    def top_city (was):
+        s = was.dmap ("mydbs")    
+        # we expect [{"name": "Fairfax", "population": 23478}, ...]
+        s.execute ("SELECT name, population from CITIES;")
+        
+        all = []
+        for rs in s.getswait (5):
+            if rs.status != 3: continue
+            all.extend ([(each ["city"],each ["population"]) for each in rs.data])
+        all.sort (lambda x, y: cmp (y [0], x [0]))
+        return all [0]
+    
+And inspite of very foolish, here's Map-Filter-Reduce example:
+
+    @app.route ("/test/map")
+    def map (was):        
+        def filter_little (rs):
+          if rs.status == 3:
+          	rs.data =  filter (lambda x: x ["population"] >= 100000, rs.data)          	
+          else:
+            rs.data = []
+            
+        s = was.dmap ("mydbs", filter = filter_little)    
+        # we expect [{"name": "Fairfax", "population": 23478}, ...]
+        s.execute ("SELECT name, population from CITIES;")
+        
+        all = []
+        for rs in s.getswait (5):
+            all.extend ([(each ["city"],each ["population"]) for each in rs.data])        
+        all.sort (lambda x, y: cmp (y [0], x [0]))
+        return all [0]
+ 
+    
+### PostgreSQL Load-Balacing
+
+Same config file, and your app is:
+
+    s = was.dlb ("mydbs")    
+    s.execute ("SELECT name, population from CITIES;")
+    return s.getwait (2)
+      
+
+### Rendering HTML with Jinja2 Template
+Directory structure is:
+
+    /home/skitaid/app/webapp.py
+                     /static
+                     /tempates/index.html
+    
+Now you can get_template () from app:
+  
+    @app.route ("/")
+    def main (was):
+        template = was.app.get_template ('index.html')
+        d = {"url": urllib.quote ("https://pypi.python.org/pypi")}
+        return str (template.render (d))
+    
+    
 ### Cookie & Session
 
-### Streaming Response
+For using session, should be enabled first,
 
+    app = ssgi.Application (__name__)
+    app.set_devel (True)
+    app.use_session (True)
+
+Signin:
+
+    @app.route ("/test/signin")
+    def sesscookie (was, username):
+        if was.session.get ("logined"):
+            return 'Already Loggin as %s' % was.cookie.get ("username")
+            
+        if username == "hansroh":
+            was.cookie.set ("username", username)
+            was.session.set ("logined", True)        
+            return 'Welcome %s' % (was.cookie.get ("username"))
+        
+        else:
+            return 'Sorry, You have no permission'
+
+Sign Out:
+
+    @app.route ("/test/signout")
+    def sesscookie (was):
+        del was.session ["logined"]        
+        return '%s, Sign Out Success' % was.cookie.get ("username")    
+    
+### Before and After Request, Teardown (BAT) Automation
+
+Let's assume you require log in at your app.
+
+    @app.before_request
+    def before_request (was):
+    	if not is_logged_in ():
+    		return LOGIN_FORM
+    
+    @app.after_request
+    def after_request (was):
+    	log_user_behavior ()
+    
+    @app.teardown_request
+    def teardown_request (was):
+    	return SORRY_MSG
+
+Now, automatically called before/after/teardown functions in  all app's method.
+    
+     @route ("/myorders")
+     def myorders (self):
+        return ORDER_LIST (was.cookie ["userid"])
+     
+     @route ("/mycart")
+     def mycart (self):
+        return CART_LIST (was.cookie ["userid"])   
+
+Exactly call mechanism is:
+
+    if before_request:
+      response = before_request (was)
+      if response:
+        reply (response)
+        return
+    
+    try:
+      response = myorder(was)
+    except:
+      if teardown_request:
+        response = teardown_request(was)
+      else:
+        send 500 error to client
+        return
+    
+    reply (response)
+    
+
+Also ssgi.package has BAT. For more detail, see *Building Larger App* section again.
+
+greetings.py:
+
+    @package.before_request
+    def before_request (was):
+    	if not is_logged_in ():
+    		return LOGIN_FORM
+    
+    @package.route ("/morning")
+    def morning (was):
+      return "Good Morning"
+
+and register greetings.py at webaap.py    		
+    
+    import greetings
+    
+    @app.startup
+    def startup (wasc, app):
+        app.add_package (greetings)
+
+In this case calling sequence is:
+    
+    app.before_request()
+    package.before_request()
+    package.user_requested_method()
+    package.after_request() or package.teardown_request()
+    app.after_request() or app.teardown_request()
+
+            
+### Streaming Response
+  
+ You can return large data, but might be occured some problems - slow response, and occupying thread.
+ 
+ So you can make class has method 'more' and optional 'abort':
+    
+    @app.route ("/streaming")
+    def Stream (was, filename):
+      class Stream:
+        def __init__ (self, filename):          
+          self.f = open (filename, "rb")
+        
+        def close (self):
+          self.f.close ()
+        
+        def abort (self):
+          # it will be called slient channel is suddnely disconnected
+          self.close ()
+            
+        def more (self):
+          data = self.f.read (4096)
+          if not data:
+          	self.close ()
+          return data
+      
+      was.request ["Content-Type"] = "video/mp4"
+      was.request ["Cache-Control"] = "max-age=0"
+      return Stream (filename)
+      
+      
 ### File Upload
+
+    <form action = "/test/up" enctype="multipart/form-data" method="post">
+        <input type="hidden" name="submit-hidden" value="Hidden">   
+        <p></p>What is your name? <input type="text" name="submit-name" value="Hans Roh"></p>
+        <p></p>What files are you sending? <br />
+        <input type="file" name="file">        
+        </p>
+        <input type="submit" value="Send"> 
+        <input type="reset">
+    </form>
+
+
+    @app.route ("/test/up")
+    def up (was, **karg):
+        return str (karg) + "<hr>" + str (was.request.get_body ())
+        
+karg is like this:
+    
+    krgs = {
+    'submit-hidden': 'Hans Roh', 
+    'file': {'mimetype': 'application/octet-stream', 'local': '/tmp/tmposndlr', 'remote': 'study.sql', 'size': 511}
+    }
+
+        
 
 ### Load-Balancing Reverse Proxy
 
+Your congig file:
+    
+    [routes:line]
+    /viewinfo = @mywebservers
+    
+    [@mywebservers]
+    ssl = no
+    members = 192.168.1.100:5000,192.168.1.101:5000,192.168.1.102:5000 
+    
+You can call like this,
+
+    http://127.0.0.1/viewinfo/view?id=555
+
 ### (Forward) Proxy
+
+Proxy is maden just experimental purpose. 
+
+There's no way to control access to this server from anybody except your firewall setting.
+
+    [server]
+    proxy = yes
+
+then configuration your browser's proxy setting.
 
 ### Run HTTPS Server
 
+At config:
+
+    [certification]
+    certfile = skitai.com.server.pem
+    cafile = skitai.com.ca.pem
+    passphrase = [passphrase]
+    
+For generating certfile an cafile using openSSL, see /etc/skitaid/cert/generate/README.txt
+    
 ### Virtual Hosting with Nginx / Squid
 
+Skitai doesn't support virtual hosting, and currently no plan to.
+
+There're very wonderful tools like Nginx, Squid Server.
+
+
+If you want 2 different and totaly unrelated websites:
+
+- www.jeans.com
+- www.carsales.com
+
+And make two config in /etc/skitaid/servers-enabled
+
+- jeans.conf *using port 5000*
+- carsales.conf *using port 5001*
+
+Then you can reverse proxying using Nginx, Squid or many others.
+
+Example Squid config file (squid.conf) is like this:
+    
+    http_port 80 accel defaultsite=www.carsales.com
+    
+    cache_peer 192.168.1.100 parent 5000 0 no-query originserver name=jeans    
+    acl jeans-domain dstdomain www.jeans.com
+    http_access allow jeans-domain
+    cache_peer_access jeans allow jeans-domain
+    
+    cache_peer 192.168.1.100 parent 5001 0 no-query originserver name=carsales
+    acl carsales-domain dstdomain www.carsales.com
+    http_access allow carsales-domain
+    cache_peer_access carsales allow carsales-domain
+
+For Nginx might be 2 config files (I'm not sure):
+
+    ; /etc/nginx/sites-enabled/jean.com
+    server {
+	    listen 80;
+	    server_name www.jeans.com;
+      location / {
+        proxy_pass http://192.168.1.100:5000;
+      }
+    }
+    
+    ; /etc/nginx/sites-enabled/carsales.com    
+    server {
+	    listen 80;
+	    server_name www.carsales.com;
+      location / {
+        proxy_pass http://192.168.1.100:5001;
+      }
+    }
+    
 ### Developing and Deploying Process
+
+### Specification of 'was'
+
+#### Request Objects
+##### was.app
+##### was.request
+##### was.cookie
+##### was.session
+##### was.env
+
+#### View Server Status
+##### was.status()
+##### was.shutdown()
+##### was.restart()
+    
+#### Object Serialize
+##### was.tojson ()
+##### was.toxml()
+
+#### Asynchronous Network Related Services
+##### was.wget()
+##### was.map()
+##### was.lb()
+##### was.db()
+##### was.dmap()
+##### was.dlb()
+
+#### Server Resources
+##### was.apps
+##### was.cachefs
+##### was.rcache
+##### was.httpserver
+##### was.lifetime
+##### was.queue
+##### was.threads
+##### was.cluster[socketpool]
+##### was.cluster[dbpool]
+##### was.cluster[@user-configured-clusters]
+##### was.[user-registered-objects]
 
 ### Use Cases
 
