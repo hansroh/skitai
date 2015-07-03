@@ -159,13 +159,13 @@ class Request (http_request.Request):
 			ll = k.lower ()
 			if ll in ("expires", "date", "vary", "connection", "keep-alive", "content-length", "transfer-encoding", "content-encoding", "age"):							
 				continue
-			self.client_request [k] = v.strip ()
+			self.client_request.response [k] = v.strip ()
 	
 	def push_response (self):		
 		if self.is_pushed_response or not self.client_request.channel:
 			return
-		self.client_request.push (self.response)
-		self.client_request.done (globbing = False, compress = False)
+		self.client_request.response.push (self.response)
+		self.client_request.response.done (globbing = False, compress = False)
 		self.is_pushed_response = True
 			
 	def done (self, error, msg = ""):
@@ -227,11 +227,11 @@ class Request (http_request.Request):
 			# maybe response code is 100 continue
 			return
 		
-		self.client_request.set_reply_code (self.response.code, self.response.msg)
+		self.client_request.response.start (self.response.code, self.response.msg)
 		self.add_reply_headers ()
 		
 		if self.response.is_gzip_compressed ():
-			self.client_request ["Content-Encoding"] = "gzip"
+			self.client_request.response ["Content-Encoding"] = "gzip"
 	
 		# in relay mode, possibly delayed
 		self.client_request.channel.ready = self.response.ready
@@ -349,14 +349,14 @@ class Handler (ssgi_handler.Handler):
 			self.continue_request(request, collector)
 		
 		elif request.command == "connect":
-			request.error (501)
+			request.response.error (501)
 			#ssl_tunnel.AsynSSLConnect (request, self.wasc.logger.get ("server"))
 			
 		else:
-			request.error (405)
+			request.response.error (405)
 					
 	def continue_request (self, request, collector):	
-		request ["Proxy-Agent"] = "sae-asynconnect"
+		request.response ["Proxy-Agent"] = "sae-asynconnect"
 		
 		if self.is_cached (request, collector is not None):
 			return
@@ -371,7 +371,7 @@ class Handler (ssgi_handler.Handler):
 			
 		except:
 			self.wasc.logger.trace ("server")	
-			request.error (500, ssgi_handler.catch (1))
+			request.response.error (500, ssgi_handler.catch (1))
 	
 	def is_cached (self, request, has_data):
 		if has_data:
@@ -379,7 +379,7 @@ class Handler (ssgi_handler.Handler):
 		if request.get_header ("cookie") is not None:
 			return False
 		if request.get_header ("progma") == "no-cache" or request.get_header ("cache-control") == "no-cache":
-			request ["X-Cache-Lookup"] = "PASSED from bws"
+			request.response ["X-Cache-Lookup"] = "PASSED from bws"
 			return False
 		
 		if self.cachefs:
@@ -394,19 +394,19 @@ class Handler (ssgi_handler.Handler):
 			else:
 				if hit:
 					if hit == 1:
-						request ["X-Cache-Lookup"] = "MEM_HIT from bws"
+						request.response ["X-Cache-Lookup"] = "MEM_HIT from bws"
 					else:
-						request ["X-Cache-Lookup"] = "HIT from bws"
+						request.response ["X-Cache-Lookup"] = "HIT from bws"
 					if content_type:
-						request ["Content-Type"] = content_type					
-					request ["Cache-Control"] = "max-age=%d" % max_age
+						request.response ["Content-Type"] = content_type					
+					request.response ["Cache-Control"] = "max-age=%d" % max_age
 					if compressed:
-						request ["Content-Encoding"] = "gzip"
-					request.push (content)
-					request.done ()
+						request.response ["Content-Encoding"] = "gzip"
+					request.response.push (content)
+					request.response.done ()
 					return True
 					
-		request ["X-Cache-Lookup"] = "MISS from bws"
+		request.response ["X-Cache-Lookup"] = "MISS from bws"
 		return False
 	
 	def save_cache (self, request, handler):
@@ -415,27 +415,31 @@ class Handler (ssgi_handler.Handler):
 				self.cachefs.save (
 					request.uri, handler.request.data, 
 					handler.response.get_header ("content-type"), handler.response.get_content (), 
-					handler.response.max_age, request ["Content-Encoding"] == "gzip"
+					handler.response.max_age, request.response ["Content-Encoding"] == "gzip"
 				)
 				
 		except:
 			self.wasc.logger.trace ("server")
-					
+	
+	def dealloc (self, request, handler):
+		handler.callback = None				
+		handler.response = None
+		handler.collector = None
+		request.collector = None
+		request.producer = None
+		request.response = None # break back ref.		
+		del handler
+						
 	def callback (self, handler):
 		response, request = handler.response, handler.client_request
 		
 		if response.code < 100:
-			request.error (506, "%s (Code: 506.%d)" % (response.msg, response.code))		
+			request.response.error (506, "%s (Code: 506.%d)" % (response.msg, response.code))		
 		else:
 			try:	
 				self.save_cache (request, handler)					
 			except:
 				self.wasc.logger.trace ("server")
 		
-		handler.callback = None				
-		handler.response = None
-		handler.collector = None
-		request.collector = None
-		request.producer = None
-		del handler
+		self.dealloc (request, handler)
 		

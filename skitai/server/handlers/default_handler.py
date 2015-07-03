@@ -42,10 +42,10 @@ class Handler:
 					h.handle_request (request)
 				except:						
 					self.wasc.logger.trace("server")
-					try: request.error (500)
+					try: request.response.error (500)
 					except: pass
 				return
-		request.error (404)
+		request.response.error (404)
 		
 	def isprohibited (self, request, path):
 		dirname = os.path.split(path) [0]				
@@ -70,8 +70,8 @@ class Handler:
 		
 		if self.filesystem.isdir (path):
 			if path and path[-1] != '/':
-				request['Location'] = '/%s/' % path
-				request.error (301)
+				request.response['Location'] = '/%s/' % path
+				request.response.error (301)
 				return
 
 			found = False
@@ -120,8 +120,8 @@ class Handler:
 
 		if length_match and ims_date:
 			if mtime <= ims_date:
-				request.reply_code = 304
-				request.done()				
+				request.response.start_response (304)
+				request.response.done()				
 				return
 		try:
 			file = self.filesystem.open (path, 'rb')
@@ -129,20 +129,20 @@ class Handler:
 			self.handle_alternative (request)
 			return
 
-		request['Last-Modified'] = http_date.build_http_date (mtime)
-		request['Content-Length'] = file_length
-		request['Cache-Control'] = "max-age=%d" % self.max_age
+		request.response ['Last-Modified'] = http_date.build_http_date (mtime)
+		request.response ['Content-Length'] = file_length
+		request.response ['Cache-Control'] = "max-age=%d" % self.max_age
 		self.set_content_type (path, request)
 
 		if request.command == 'get':
-			request.push (producers.file_producer (file))
+			request.response.push (producers.file_producer (file))
 			
-		request.done()
+		request.response.done()
 
 	def set_content_type (self, path, request):
 		ext = get_extension (path).lower()
 		if mime_type_table.content_type_map.has_key (ext):
-			request['Content-Type'] = mime_type_table.content_type_map[ext]
+			request.response['Content-Type'] = mime_type_table.content_type_map[ext]
 		else:
-			request['Content-Type'] = 'text/plain'
+			request.response['Content-Type'] = 'text/plain'
 			

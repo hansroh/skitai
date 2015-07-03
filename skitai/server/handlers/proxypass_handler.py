@@ -23,7 +23,7 @@ class Handler (proxy_handler.Handler):
 			self.route (request, collector)			
 		except:
 			self.wasc.logger.trace ("server")	
-			request.error (500, ssgi_handler.catch (1))
+			request.response.error (500, ssgi_handler.catch (1))
 	
 	def route (self, request, collector):
 		current_cluster = self.find_cluster (request)
@@ -46,7 +46,7 @@ class Handler (proxy_handler.Handler):
 				request.uri, 
 				route
 				), 'warn')
-			return request.error (503)
+			return request.response.error (503)
 		
 		if request.loadbalance_retry > 1:
 			request.logger ("route call multiple retry, retry: %d, server: %s:%s (connected:%s), url: %s, cluster index: %d" % (
@@ -62,13 +62,6 @@ class Handler (proxy_handler.Handler):
 		r = proxy_handler.Request (asyncon, fetcher, self.callback, request, collector)
 		r.start ()
 	
-	def clean_resource (self, handler):
-		handler.response = None
-		handler.collector = None
-		handler.callback = None
-		del handler
-		
-	
 	def callback (self, handler):
 		request, response, collector = handler.client_request, handler.response, handler.collector
 		cluster = self.find_cluster (request)
@@ -76,7 +69,7 @@ class Handler (proxy_handler.Handler):
 		cluster.report (handler.asyncon, response.code)		
 		if response.code < 100:
 			if request.loadbalance_retry >= len (cluster):
-				request.error (506, "%s (Code: 506.%d)" % (response.msg, response.code))
+				request.response.error (506, "%s (Code: 506.%d)" % (response.msg, response.code))
 				
 			elif request.channel:
 				if not collector or (collector and collector.cached):
@@ -92,5 +85,5 @@ class Handler (proxy_handler.Handler):
 				self.wasc.logger.trace ("server")
 					
 		request.loadbalance_retry = 0		
-		self.clean_resource (handler)
+		self.dealloc (request, handler)
 		

@@ -80,8 +80,8 @@ class Collector:
 	def abort (self):
 		self.data = ""
 		self.request.collector = None  # break circ. ref
-		
-		
+	
+
 class Handler:
 	GATEWAY_INTERFACE = 'SSGI/0.9'
 	
@@ -155,6 +155,7 @@ class Handler:
 	def create_was (self, request, app):
 		was = self.wasc ()
 		was.request = request
+		was.response = was.request.response		
 		was.cookie = http_cookie.Cookie (request)
 		was.app = app
 		was.env = self.build_environ (request)
@@ -168,48 +169,48 @@ class Handler:
 	def make_collector (self, collector_class, request, max_cl = MAX_POST_SIZE, *args, **kargs):
 		collector = collector_class (self, request, *args, **kargs)
 		if collector.content_length is None:
-			request.error (411)
+			request.response.error (411)
 			return
 			
 		elif collector.content_length > max_cl: #5M
 			self.wasc.logger ("server", "too large request body (%d)" % collector.content_length, "wran")
 			if request.get_header ("expect") == "100-continue":							
-				request.error (413) # client doesn't send data any more, I wish.
+				request.response.error (413) # client doesn't send data any more, I wish.
 			else:
-				request.abort (413)	# forcely disconnect
+				request.response.abort (413)	# forcely disconnect
 			return
 		
 		# ok. allow form-data
 		if request.get_header ("expect") == "100-continue":
-			request.instant (100)
+			request.response.instant (100)
 
 		return collector
 
 	def handle_request (self, request):
 		path, params, query, fragment = request.split_uri ()
 		if self.wasc.apps.has_route (path) == -1:
-			request ["Location"] = "%s/%s%s" % (
+			request.response ["Location"] = "%s/%s%s" % (
 				path, 
 				params and params or "",
 				query and query or ""
 			)
 			if request.command in ('post', 'put'):
-				request.abort (301)
+				request.response.abort (301)
 			else:	
-				request.error (301)
+				request.response.error (301)
 				return
 		
 		if request.command in ('post', 'put'):
 			collector = self.make_collector (Collector, request, MAX_POST_SIZE)
 			if collector:
 				request.collector = collector
-				collector.start_collect ()				
+				collector.start_collect ()
 									
 		elif request.command in ('get', 'head'):
 			self.continue_request(request)
 			
 		else:
-			request.error (405)
+			request.response.error (405)
 	
 	def continue_request (self, request, data = None):
 		try:
@@ -218,10 +219,10 @@ class Handler:
 					
 		except:
 			self.wasc.logger.trace ("server",  request.uri)
-			return request.error (500, catch (1))
+			return request.response.error (500, catch (1))
 		
 		if not method:
-			return request.error (404)
+			return request.response.error (404)
 		
 		try:
 			ct = request.get_header ("content-type")
@@ -245,7 +246,7 @@ class Handler:
 							
 		except:
 			self.wasc.logger.trace ("server",  request.uri)
-			return request.error (500, catch (1))
+			return request.response.error (500, catch (1))
 			
 		self.wasc.queue.put (Job (was, path, method, args))
 				
@@ -268,9 +269,10 @@ class Job:
 	def dealloc (self):
 		self.was.cookie = None
 		self.was.session = None
+		self.was.request.response = None
 		self.was.request = None
 		self.was.environ = None
-		self.was.app = None
+		self.was.app = None		
 		del self.was
 	
 	def get_response (self, method, args):
@@ -328,34 +330,35 @@ class Job:
 				
 		except:	
 			self.was.logger.trace ("app", str (self))
-			trigger.wakeup (lambda p=self.was.request, d=catch(1): (p.error (500, d),))
+			trigger.wakeup (lambda p=self.was.response, d=catch(1): (p.error (500, d),))
 		
 		else:
-			try:
-				self.commit_all ()
-							
-			except:
-				self.was.logger.trace ("server")
-				trigger.wakeup (lambda p=self.was.request, d=catch(1): (p.error (500, d),))
-
-			else:
-				if not self.was.request.has_key ("content-type"):
-					self.was.request.update ('Content-Type', "text/html")				
-				
-				if type (response) in _STRING_TYPES:			
-					self.was.request.update ('Content-Length', len (response))			
-					trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done()))
-		
-				elif hasattr (response, "more"): # producer (ex: producers.stream_producer)
-					if hasattr (response, "abort"):
-						self.was.request.producer = response
-					trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done()))
-							
+			if not self.was.response.sent_error:
+				try:
+					self.commit_all ()
+								
+				except:
+					self.was.logger.trace ("server")
+					trigger.wakeup (lambda p=self.was.response, d=catch(1): (p.error (500, d),))
+	
 				else:
-					try:
-						raise ValueError, "Content should be string or producer type"
-					except:
-						self.was.logger.trace ("app")
-						trigger.wakeup (lambda p=self.was.request, d=catch(1): (p.error (500, d),))
-						
+					if not self.was.request.response.has_key ("content-type"):
+						self.was.request.response.update ('Content-Type', "text/html")				
+					
+					if type (response) in _STRING_TYPES:			
+						self.was.request.response.update ('Content-Length', len (response))			
+						trigger.wakeup (lambda p=self.was.response, d=response: (p.push(d), p.done()))
+			
+					elif hasattr (response, "more"): # producer (ex: producers.stream_producer)
+						if hasattr (response, "abort"):
+							self.was.request.producer = response
+						trigger.wakeup (lambda p=self.was.response, d=response: (p.push(d), p.done()))
+								
+					else:
+						try:
+							raise ValueError, "Content should be string or producer type"
+						except:
+							self.was.logger.trace ("app")
+							trigger.wakeup (lambda p=self.was.response, d=catch(1): (p.error (500, d),))
+							
 		self.dealloc ()

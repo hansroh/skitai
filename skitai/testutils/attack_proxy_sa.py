@@ -28,8 +28,8 @@ L = [
 "sadb.skitai.com:5001/test/lb",
 "sadb.skitai.com:5001/test/map",
 "sadb.skitai.com:5001/test/rpc",
-"sadb.skitai.com:5001/test/wget?url=http%3A//www.openfos.com/",
-"sadb.skitai.com:5001/openfos"
+#"sadb.skitai.com:5001/test/wget?url=http%3A//www.openfos.com/",
+#"sadb.skitai.com:5001/openfos"
 ]
 
 HOSTS = d.keys ()
@@ -92,7 +92,7 @@ def o ():
 
 
 clients = 300
-req = 2000 - 1900
+req = 2000 - 1950
 #req = 2000 - 1999
 
 hits = 0

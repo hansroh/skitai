@@ -9,4 +9,4 @@ class Handler:
 		return 0
 		
 	def handle_request (self, request):
-		request.error (404)			
+		request.response.error (404)			

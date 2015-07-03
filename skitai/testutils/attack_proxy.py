@@ -28,8 +28,8 @@ L = [
 "ibizcast.skitai.com:5000/test/lb",
 "ibizcast.skitai.com:5000/test/map",
 "ibizcast.skitai.com:5000/test/rpc",
-"ibizcast.skitai.com:5000/test/wget?url=http%3A//www.openfos.com/",
-"ibizcast.skitai.com:5000/openfos"
+#"ibizcast.skitai.com:5000/test/wget?url=http%3A//www.openfos.com/",
+#"ibizcast.skitai.com:5000/openfos"
 ]
 
 HOSTS = d.keys ()
@@ -92,7 +92,7 @@ def o ():
 
 
 clients = 300
-req = 2000 - 1900
+req = 2000 - 1950
 hits = 0
 s = time.time ()
 t ()

@@ -62,5 +62,5 @@ class AsynSSLConnect (asynconnect.AsynSSLConnect):
 		self.request = Request (self.proxy_request.channel)
 		self.proxy_request.producer = self.request
 		
-		self.proxy_request.set_reply_code (200, "Connection Established")			
+		self.proxy_request.start (200, "Connection Established")			
 		self.proxy_request.done ()

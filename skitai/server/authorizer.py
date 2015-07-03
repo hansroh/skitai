@@ -44,13 +44,13 @@ class Authorizer:
 	def has_permission (self, request, permission = None, push_error = 1):
 		group = self.get_authority ('Authorization', request)
 		if group is None:
-			request ['WWW-Authenticate'] = 'Basic realm="%s Secured"' % self.realm
+			request.response ['WWW-Authenticate'] = 'Basic realm="%s Secured"' % self.realm
 			if push_error:
-				request.error (401)
+				request.response.error (401)
 			return False
 		if not self._has_permission (group, permission):
 			if push_error: 
-				request.error (403, "You haven't permission for accessing this page")
+				request.response.error (403, "You haven't permission for accessing this page")
 			return False
 		return True
 

@@ -41,7 +41,7 @@ class Handler (xmlrpc_handler.Handler):
 		
 		except:
 			self.wasc.logger.trace ("server", request.uri)
-			return request.error (400)
+			return request.response.error (400)
 		
 		method, app = None, None
 		if not ismulticall:
@@ -49,8 +49,8 @@ class Handler (xmlrpc_handler.Handler):
 				method, app = self.wasc.apps.get_app (path)
 			except:
 				self.wasc.logger.trace ("server", request.uri)
-				return request.error (400)				
-			if not method: return request.error (404)
+				return request.response.error (400)				
+			if not method: return request.response.error (404)
 			if not self.has_permission (request, app): return				
 		
 		try:
@@ -58,7 +58,7 @@ class Handler (xmlrpc_handler.Handler):
 				
 		except:
 			self.wasc.logger.trace ("server", path)
-			return request.error (500, catch (1))
+			return request.response.error (500, catch (1))
 			
 		self.wasc.queue.put (Job (was, path, method, args, rpcid, jsonrpc, ismulticall))
 	
@@ -72,7 +72,7 @@ class Job (xmlrpc_handler.Job):
 	def handle_error (self, code, msg, rpcid, jsonrpc):
 		if self.was.request.command == "get":
 			self.responses = None
-			trigger.wakeup (lambda p=self.was.request, c=code, m=msg: (p.error (c, m),))
+			trigger.wakeup (lambda p=self.was.response, c=code, m=msg: (p.error (c, m),))
 		else:
 			self.responses.append (jsonrpclib.dumps (jsonrpclib.Fault (500, msg), rpcid = rpcid, version = jsonrpc))
 	
@@ -88,7 +88,7 @@ class Job (xmlrpc_handler.Job):
 
 		else:
 			response = jsonrpclib.dumps (response, methodresponse = True, 
-				encoding = self.was.request.has_key ("Encoding") and self.was.request ["Encoding"] or None, 
+				encoding = self.was.request.response.has_key ("Encoding") and self.was.requestresponse ["Encoding"] or None, 
 				rpcid = rpcid,	version = jsonrpc
 			)
 			self.responses.append (response)
@@ -126,15 +126,15 @@ class Job (xmlrpc_handler.Job):
 		else:
 			try:
 				self.commit_all ()
-				self.was.request.update ('Content-Type', 'application/json-rpc')			
-				self.was.request.update ('Content-Length', len (response))
+				self.was.request.response.update ('Content-Type', 'application/json-rpc')			
+				self.was.request.response.update ('Content-Length', len (response))
 				
 			except:
 				self.was.logger.trace ("server", str (self))
 				self.handle_error (500, ssgi_handler.catch(self.was.request.command == "get"), rpcid, jsonrpc)
 			
 			else:
-				trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done()))
+				trigger.wakeup (lambda p=self.was.response, d=response: (p.push(d), p.done()))
 			
 	def __call__(self):		
 		if not self.ismulticall:
@@ -144,7 +144,7 @@ class Job (xmlrpc_handler.Job):
 			for path, args, rpcid, jsonrpc in [( "/" + each ["method"].replace (".", "/"), each.get ("params", []), each ["id"], each ["jsonrpc"]) for each in self.args]:
 				self.itercall (path, args, rpcid, jsonrpc)				
 			
-		if self.responses is not None:			
+		if not self.was.response.sent_error and self.responses is not None:			
 			self.handle_response ()
 						
 		self.dealloc ()

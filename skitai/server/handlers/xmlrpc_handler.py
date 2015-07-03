@@ -29,7 +29,7 @@ class Handler (ssgi_handler.Handler):
 		
 		except:
 			self.wasc.logger.trace ("server", request.uri)
-			return request.error (400)
+			return request.response.error (400)
 		
 		method, app = None, None
 		if not ismulticall:
@@ -38,16 +38,16 @@ class Handler (ssgi_handler.Handler):
 				
 			except:
 				self.wasc.logger.trace ("server", path)
-				return request.error (500, catch (1))
+				return request.response.error (500, catch (1))
 								
-			if not method: return request.error (404)
+			if not method: return request.response.error (404)
 			if not self.has_permission (request, app): return			
 		
 		try:
 			was = self.create_was (request, app)				
 		except:
 			self.wasc.logger.trace ("server", path)
-			return request.error (500, catch (1))
+			return request.response.error (500, catch (1))
 			
 		self.wasc.queue.put (Job (was, path, method, args, ismulticall))
 	
@@ -75,7 +75,7 @@ class Job (ssgi_handler.Job):
 	def handle_error (self, code, msg = ""):
 		if self.was.request.command == "get":
 			self.responses = None
-			trigger.wakeup (lambda p=self.was.request, c=code, m=msg: (p.error (c, m),))
+			trigger.wakeup (lambda p=self.was.response, c=code, m=msg: (p.error (c, m),))
 		else:
 			self.responses.append (xmlrpclib.Fault (code, msg))
 			
@@ -111,13 +111,13 @@ class Job (ssgi_handler.Job):
 		self.was.app = app	
 		self.call (method, args)
 		
-	def handle_response (self):
+	def handle_response (self):		
 		try:
 			if len (self.responses) == 1:
 				fresp = tuple (self.responses)
 			else:
 				fresp = (self.responses,)	
-			response = xmlrpclib.dumps (fresp, methodresponse = True, allow_none = True, encoding = self.was.request.has_key ("Encoding") and self.was.request ["Encoding"] or None)
+			response = xmlrpclib.dumps (fresp, methodresponse = True, allow_none = True, encoding = self.was.request.response.has_key ("Encoding") and self.was.request ["Encoding"] or None)
 			
 		except:
 			self.was.logger.trace ("app")
@@ -126,15 +126,15 @@ class Job (ssgi_handler.Job):
 		else:
 			try:
 				self.commit_all ()
-				self.was.request.update ('Content-Type', 'text/xml')
-				self.was.request.update ('Content-Length', len (response))
+				self.was.request.response.update ('Content-Type', 'text/xml')
+				self.was.request.response.update ('Content-Length', len (response))
 				
 			except:
 				self.was.logger.trace ("server")
 				self.handle_error (500, ssgi_handler.catch(self.was.request.command == "get"))
 			
 			else:
-				trigger.wakeup (lambda p=self.was.request, d=response: (p.push(d), p.done()))
+				trigger.wakeup (lambda p=self.was.response, d=response: (p.push(d), p.done()))
 					
 	def __call__(self):
 		if not self.ismulticall:
@@ -144,7 +144,7 @@ class Job (ssgi_handler.Job):
 			for path, args in [("/" + each ["methodName"].replace (".", "/"), each ["params"]) for each in self.args [0]]:				
 				self.itercall (path, args)
 				
-		if self.responses is not None:
+		if not self.was.response.sent_error and self.responses is not None:
 			self.handle_response ()
 			
 		self.dealloc ()

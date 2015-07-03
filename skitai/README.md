@@ -478,10 +478,51 @@ It's useful this case, some object should be alive with app engine's lifetime.
         
 ### Accessing Request
 
+Get request infomation:
+    
     was.request.get_header ("content-length")
-    was.request ["Location"] = "/newloc"
+    was.request.get_raw_header ()
+    
+    path, param, querystring, fragment =  was.request.split_uri ()
+    # access raw form or multipart data (if <= 5MB)
+    was.request.get_body ()
+    # get/head/post/put ...
+    was.request.command
+    # HTTP version
+    was.request.version
+    was.request.uri
+    
     if was.request.command == "get":
-         return "Not allowed get method for %s" % was.request.uri
+      was.request.set_response (405, "Method Not Allowed")
+      return "Not allowed get method for %s" % was.request.uri
+
+
+Set response information:
+    
+    was.response.start (405, "Method Not Allowed")
+    
+    was.response ["Location"] = "/newloc"    
+    was.response.set ("Location", "/newloc")
+    was.response.update ("Content-Transfer-Encoding", "gzip")
+    was.response.delete ("Content-Length")
+    was.response.has_key ("Content-Type")
+    was.response.instant (100)
+    
+    return  was.response.error (307)
+    
+
+
+### Environment
+
+    was.env = {
+      "HTTP_ACCEPT": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=",
+      "HTTP_ACCEPT_ENCODING": "gzip",
+      "HTTP_ACCEPT_LANGUAGE": "ko-KR,ko;q=0.8,en-US;q=0.5,en;q=0.3",
+      "HTTP_CACHE_CONTROL": "max-age=0",
+      "HTTP_COOKIE": "SESSION=O5eMHORahMJqsYSiiF2iZLGK0eA=?_",
+      "HTTP_USER_AGENT": "Mozilla/5.0 (Windows NT 6.1; rv:38.0) Gecko/20100101 Fir/38.0",
+      ...
+    }
 
 ### Getting Args
 
@@ -634,7 +675,25 @@ Your app is:
       s.search (keyword)
       return s.getwait (timeout = 2)
 
+### Connect to PostgreSQL
 
+First of all you shuld know, there's some limitations, in asynchronous mode.
+
+> There are several limitations in using asynchronous connections: the connection is always in autocommit mode and it is not possible to change it. So a transaction is not implicitly started at the first query and is not possible to use methods commit() and rollback(): you can manually control transactions using execute() to send database commands such as BEGIN, COMMIT and ROLLBACK. Similarly set_session() can¡¯t be used but it is still possible to invoke the SET command with the proper default_transaction_... parameter.
+
+> With asynchronous connections it is also not possible to use set_client_encoding(), executemany(), large objects, named cursors.
+
+> COPY commands are not supported either in asynchronous mode, but this will be probably implemented in a future release.
+
+> from http://initd.org/psycopg/docs/advanced.html
+
+    @app.route ("/test/db")
+    def db (was):
+    	s = was.db ("127.0.0.1:5432", "mydb", "postgres", "password")
+    	s.execute ("SELECT * FROM weather;")
+    	rs = s.getwait (2)    	
+    	return "%s" % rs.data [0:10]
+	
 ### PostgreSQL Map-Filter-Reduce (MFR) Operation
  
 At first, you configure members like this:   
@@ -689,7 +748,25 @@ Same config file, and your app is:
     s.execute ("SELECT name, population from CITIES;")
     return s.getwait (2)
       
+### RPC/PosgreSQL Caching
 
+At config, 
+
+    num_result_cache_max = 2000
+    
+means  maximum number of  RPC/PosgreSQL Results
+
+    s = was.dlb ("mydbs")    
+    s.execute ("SELECT name, population from CITIES;")
+    result =  s.getwait (2)
+    # cache for 300 sec.
+    result.cache (timeout = 300)
+
+    s = was.map ("myrpcs/rpc2")    
+    s.generate_random_int_list (5)
+    results = s.getswait (5):
+    results.cache (timeout = 60)
+    
 ### Rendering HTML with Jinja2 Template
 Directory structure is:
 

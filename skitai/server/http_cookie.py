@@ -93,7 +93,7 @@ class Cookie:
 	
 	def commit (self):
 		for cs in self.uncommits.values ():
-			self.request ["Set-Cookie"] = cs
+			self.request.response ["Set-Cookie"] = cs
 			
 	def set (self, name, val = "", expires = None, path = "/", domain = None):
 		# browser string cookie
