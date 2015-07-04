@@ -161,6 +161,10 @@ Documentation
 
 Change Log
 -------------
+  0.9.1.20 - fix bug for static file response
+  
+  0.9.1.19 - new was member, was.response
+  
   0.9.1.18 - ignore EWOULDBLOCK raised with multi-workers on posix
   
   0.9.1.17 - Fix adns double callbacking on posix machine, external networking works fine
