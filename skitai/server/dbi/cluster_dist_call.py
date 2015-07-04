@@ -102,19 +102,13 @@ class Dispatcher:
 			return
 				
 		if expt_class:
-			self.set_status (2)
+			status = 2			
 		else:
-			self.set_status (3)
+			status = 3
 		
-		self.result = Result (self.id, self.get_status (), description, expt_class, expt_str, data, self.ident)
-		
-	def getswait (self, timeout = 3):
-		if self._cached_result is not None:
-			return self._cached_result			
-		self._wait (timeout)
-		return Results ([rs.get_result () for rs in self._results], ident = self.get_ident ())
-		
-   	        	     
+		self.result = Result (self.id, status, description, expt_class, expt_str, data, self.ident)
+		self.set_status (status)		
+		        	     
 #-----------------------------------------------------------
 # Cluster Base Call
 #-----------------------------------------------------------

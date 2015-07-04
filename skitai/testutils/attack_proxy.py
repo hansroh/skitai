@@ -28,11 +28,13 @@ L = [
 "ibizcast.skitai.com:5000/test/lb",
 "ibizcast.skitai.com:5000/test/map",
 "ibizcast.skitai.com:5000/test/rpc",
+"ibizcast.skitai.com:5000/images/concept.png",
 #"ibizcast.skitai.com:5000/test/wget?url=http%3A//www.openfos.com/",
 #"ibizcast.skitai.com:5000/openfos"
 ]
 
 HOSTS = d.keys ()
+HOSTS = []
 
 for each in L:
 	for i in range (200):

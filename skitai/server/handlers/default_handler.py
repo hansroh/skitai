@@ -120,8 +120,8 @@ class Handler:
 
 		if length_match and ims_date:
 			if mtime <= ims_date:
-				request.response.start_response (304)
-				request.response.done()				
+				request.response.start (304)
+				request.response.done()
 				return
 		try:
 			file = self.filesystem.open (path, 'rb')

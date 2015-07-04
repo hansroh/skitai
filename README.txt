@@ -15,11 +15,14 @@ Medusa is different from most other servers because it runs as a single process,
 
 SAEL orients light-weight,simplicity  and strengthen networking operations with external resources - HTTP / HTTPS / RPC / PostgreSQL_ - keeping very low costs.
 
-- It can run as XML/JSON-RPC & Web Server.
-- It can request massive RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily.
-- Provide asynchronous PostgreSQL query execution
-
 It also influenced by Zope_ and Flask_ a lot.
+
+- It can be run as XML/JSON-RPC, Web and Proxy & Loadbancing Server.
+- It can request massive RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily.
+- It provides asynchronous PostgreSQL query execution
+
+Skitai is not a framework for combinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your apps as both server and client.
+
 
 **Basic Configure**
 
@@ -161,6 +164,12 @@ Documentation
 
 Change Log
 -------------
+  0.9.1.23 - add some methods to was.request, add "X-Forwarded-For" to proxy_handler
+  
+  0.9.1.20 - fix bug for static file response
+  
+  0.9.1.19 - new was member, was.response
+  
   0.9.1.18 - ignore EWOULDBLOCK raised with multi-workers on posix
   
   0.9.1.17 - Fix adns double callbacking on posix machine, external networking works fine

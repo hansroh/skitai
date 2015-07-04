@@ -94,7 +94,28 @@ class http_request:
 			return None
 		else:
 			return hc[header]
-
+	
+	def get_content_type (self):
+		return self.get_header_with_params ("content-type") [0]
+				
+	def get_main_type (self):
+		ct = self.get_header_with_params ("content-type")
+		if ct is None:
+			return
+		return ct.split ("/", 1) [0]
+	
+	def get_sub_type (self):
+		ct = self.get_header_with_params ("content-type")
+		if ct is None:
+			return
+		return ct.split ("/", 1) [1]
+		
+	def get_user_agent (self):
+		return self.get_header ("user-agent")
+	
+	def get_remote_addr (self):
+		return self.channel.addr [0]
+			
 	def collect_incoming_data (self, data):
 		if self.collector:
 			self.collector.collect_incoming_data (data)			

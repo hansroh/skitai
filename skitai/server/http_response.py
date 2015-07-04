@@ -55,11 +55,6 @@ class http_response:
 		self.delete (key)
 		self.set (key, value)
 	
-	def abort (self, code):
-		self.request.channel.reject ()
-		message = self.responses [code]
-		self.error (code, message, force_close = True)
-	
 	def build_reply_header (self):		
 		return '\r\n'.join (
 			[self.response(self.reply_code, self.reply_message)] + map (
@@ -78,35 +73,39 @@ class http_response:
 		
 	def start (self, code, msg = "", headers = None):
 		self.reply_code = code
-		self.reply_message = msg
+		if not msg:
+			self.reply_message = self.responses [code]
+		else:	
+			self.reply_message = msg
+			
 		if headers:
 			for k, v in headers:
 				self.set (k, v)
 	
-	def push (self, thing):
-		if self.request.channel is None: return		
-		if type(thing) == type(''):
-			self.outgoing.push (producers.simple_producer (thing))
-		else:
-			self.outgoing.push (thing)
+	def reply (self, code, msg = "", headers = None):
+		self.start (code, msg, headers)
 	
 	def instant (self, code):
 		if self.request.version != "1.1": return		
 		message = self.responses [code]
 		self.request.channel.push (self.response (code, message) + "\r\n\r\n")
+	
+	def abort (self, code, why = ""):
+		self.request.channel.reject ()		
+		self.error (code, why, force_close = True)
 		
-	def error (self, code, detail = "", force_close = False):
+	def error (self, code, why = "", force_close = False):
 		if self.sent_error: return
 		self.sent_error = True
 		self.reply_code = code
 		message = self.responses [code]
-		if not detail:
-			detail = message
+		if not why:
+			why = message
 
 		s = self.DEFAULT_ERROR_MESSAGE % {
 			'code': code,
 			'message': message,
-			'info': detail
+			'info': why
 		}
 		
 		self.update ('Content-Length', len(s))
@@ -118,7 +117,14 @@ class http_response:
 		
 		self.push (s)
 		self.done (True, True, force_close)
-		
+	
+	def push (self, thing):
+		if self.request.channel is None: return		
+		if type(thing) == type(''):
+			self.outgoing.push (producers.simple_producer (thing))
+		else:
+			self.outgoing.push (thing)
+				
 	def done (self, globbing = True, compress = True, force_close = False):
 		if self.sent_error: return
 		if self.request.channel is None: return

@@ -94,13 +94,16 @@ class Dispatcher:
 			return
 	
 		response = handler.response		
-		if response.code >= 100:
-			self.set_status (3)
-		else:
-			self.set_status (2)
 		
 		# DON'T do_filter here, it blocks select loop
-		self.result = Result (self.id, self.get_status (), response, self.ident)				
+		
+		if response.code >= 100:
+			status = 3
+		else:
+			status = 2
+		
+		self.result = Result (self.id, status, response, self.ident)				
+		self.set_status (status)
 										
 		handler.asyncon = None
 		handler.callback = None
