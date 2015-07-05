@@ -152,13 +152,14 @@ if os.name == "nt":
 				select.select([fd], [], [], 0)
 			except select.error:
 				_select_errors += 1
-				obj = map [fd]
-				if obj:
-					try:
-						obj.handle_expt ()
-					except:
-						obj.handle_error ()						
-				del map[fd]
+				try:
+					obj = map [fd]					
+					if obj:
+						try: obj.handle_expt ()
+						except: obj.handle_error ()						
+					del map[fd]
+				except (KeyError, AttributeError):
+					pass	
 
 def poll_fun_wrap (timeout, map):
 	try:
