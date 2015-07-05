@@ -164,11 +164,11 @@ Documentation
 
 Change Log
 -------------
-<<<<<<< HEAD
+
+  0.9.1.24 - possibly fixed, "too many file descriptors in select()"
+  
   0.9.1.23 - add some methods to was.request, add "X-Forwarded-For" to proxy_handler
   
-=======
->>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
   0.9.1.20 - fix bug for static file response
   
   0.9.1.19 - new was member, was.response

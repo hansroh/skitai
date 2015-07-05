@@ -34,7 +34,7 @@ L = [
 ]
 
 HOSTS = d.keys ()
-HOSTS = []
+#HOSTS = []
 
 for each in L:
 	for i in range (200):

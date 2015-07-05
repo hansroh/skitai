@@ -159,7 +159,28 @@ if os.name == "nt":
 					except:
 						obj.handle_error ()						
 				del map[fd]
-				
+
+def poll_fun_wrap (timeout, map):
+	try:
+		poll_fun (timeout, map)
+	
+	except select.error, why:
+		if os.name == "nt" and why [0] == WSAENOTSOCK: # sometimes postgresql connection forcely closed
+			remove_notsocks (map)
+	
+	except ValueError:
+		# too many file descriptors in select()
+		# divide and conquer
+		len_map = len (map) / 2
+		tmap = {}
+		cc = 0
+		for k, v in map.items ():
+			tmap [k] = v
+			cc += 1
+			if cc == len_map:
+				poll_fun_wrap (timeout, tmap)
+				tmap = {}
+		poll_fun_wrap (timeout, tmap)
 				
 def lifetime_loop (timeout = 30.0):
 	global _last_maintern
@@ -170,15 +191,9 @@ def lifetime_loop (timeout = 30.0):
 		now = time.time()
 		if (now - _last_maintern) > _maintern_interval:
 			maintern (now)
-			_last_maintern = time.time ()
-			
-		try:
-			poll_fun(timeout, map)
-		except select.error, why:
-			if os.name == "nt" and why [0] == WSAENOTSOCK: # sometimes postgresql connection forcely closed
-				remove_notsocks (map)
-				
-
+			_last_maintern = time.time ()			
+		poll_fun_wrap (timeout, map)
+		
 def graceful_shutdown_loop ():
 	global _shutdown_phase
 	timestamp = time.time()
