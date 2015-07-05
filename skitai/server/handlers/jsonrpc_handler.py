@@ -11,7 +11,7 @@ import ssgi_handler
 class Handler (xmlrpc_handler.Handler):
 	GATEWAY_INTERFACE = 'JSONRPC/2.0'
 	def match (self, request):
-		if request.uri[:10].lower() == '/rpc3/' or (request.command == "post" and request.get_header ("content-type") == "application/json-rpc"):			
+		if request.uri[:10].lower() == '/rpc3/' or (request.command == "post" and request.get_header ("content-type").startswith ("application/json-rpc")):
 				return 1
 		return 0
 	
@@ -144,7 +144,7 @@ class Job (xmlrpc_handler.Job):
 			for path, args, rpcid, jsonrpc in [( "/" + each ["method"].replace (".", "/"), each.get ("params", []), each ["id"], each ["jsonrpc"]) for each in self.args]:
 				self.itercall (path, args, rpcid, jsonrpc)				
 			
-		if not self.was.response.sent_error and self.responses is not None:			
+		if not self.was.response.is_sent_response and self.responses is not None:			
 			self.handle_response ()
 						
 		self.dealloc ()

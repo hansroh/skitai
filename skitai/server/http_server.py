@@ -134,16 +134,6 @@ class http_request:
 				'warning'
 				)
 			
-	def log (self, bytes):		
-		self.channel.server.log_request (
-			'%s:%d %s %s %s %d'
-			% (self.channel.addr[0],
-			self.channel.addr[1],			
-			self.request,
-			self.requeststr,
-			self.reply_code,			
-			bytes)
-			)
 	
 #-------------------------------------------------------------------
 # server channel

@@ -157,7 +157,7 @@ class Request (http_request.Request):
 			try: k, v = line.split (": ", 1)
 			except:	continue
 			ll = k.lower ()
-			if ll in ("expires", "date", "vary", "connection", "keep-alive", "content-length", "transfer-encoding", "content-encoding", "age"):							
+			if ll in ("expires", "date", "vary", "connection", "keep-alive", "content-length", "transfer-encoding", "content-encoding", "age"):
 				continue
 			self.client_request.response [k] = v.strip ()
 	
@@ -180,7 +180,6 @@ class Request (http_request.Request):
 
 		# handle abnormally raised exceptions like network error etc.
 		error, msg = self.recalibrate_response (error, msg)
-		
 		# finally, push response, but do not bind ready func because all data had been recieved.
 		if not error:
 			self.push_response ()
@@ -255,7 +254,7 @@ class Request (http_request.Request):
 	def retry (self):
 		if self.retry_count: 
 			return False
-		if self.collector and not self.collector.cached: 
+		if self.collector and not self.collector.cached:
 			return False
 		if not self.client_request.channel:
 			return False

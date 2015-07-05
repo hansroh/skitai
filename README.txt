@@ -164,6 +164,8 @@ Documentation
 Change Log
 -------------
 
+  0.9.1.26 - fix response.error
+  
   0.9.1.25 - fix xmlrpc server uri, I misunderstoodd all xmlrpc uri is /rpc2
   
   0.9.1.24 - possibly fixed, "too many file descriptors in select()"

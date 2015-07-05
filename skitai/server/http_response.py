@@ -5,7 +5,7 @@ import time
 class http_response:
 	reply_code = 200
 	reply_message = ""
-	sent_error = False
+	is_sent_response = False
 		
 	def __init__ (self, request):
 		self.request = request
@@ -95,8 +95,6 @@ class http_response:
 		self.error (code, why, force_close = True)
 		
 	def error (self, code, why = "", force_close = False):
-		if self.sent_error: return
-		self.sent_error = True
 		self.reply_code = code
 		message = self.responses [code]
 		if not why:
@@ -114,7 +112,7 @@ class http_response:
 		self.delete ('expires')
 		self.delete ('cache-control')
 		self.delete ('set-cookie')
-		
+
 		self.push (s)
 		self.done (True, True, force_close)
 	
@@ -126,8 +124,10 @@ class http_response:
 			self.outgoing.push (thing)
 				
 	def done (self, globbing = True, compress = True, force_close = False):
-		if self.sent_error: return
 		if self.request.channel is None: return
+		if self.is_sent_response:
+			return
+		self.is_sent_response = True
 				
 		connection = utility.get_header (utility.CONNECTION, self.request.header).lower()
 		close_it = False
@@ -225,9 +225,9 @@ class http_response:
 		
 		try:
 			if globbing:				
-				self.request.channel.push_with_producer (producers.globbing_producer (producers.hooked_producer (outgoing_producer, self.request.log)))
+				self.request.channel.push_with_producer (producers.globbing_producer (producers.hooked_producer (outgoing_producer, self.log)))
 			else:
-				self.request.channel.push_with_producer (producers.hooked_producer (outgoing_producer, self.request.log))
+				self.request.channel.push_with_producer (producers.hooked_producer (outgoing_producer, self.log))
 			
 			self.request.channel.current_request = None
 			# proxy collector and producer is related to asynconnect
@@ -243,6 +243,18 @@ class http_response:
 				'channel maybe closed',
 				'warning'
 			)		
+	
+	def log (self, bytes):		
+		self.request.channel.server.log_request (
+			'%s:%d %s %s %s %d'
+			% (self.request.channel.addr[0],
+			self.request.channel.addr[1],			
+			self.request.request,
+			self.request.requeststr,
+			self.reply_code,			
+			bytes)
+			)
+	
 		
 	# Default error message
 	DEFAULT_ERROR_MESSAGE = '\r\n'.join (

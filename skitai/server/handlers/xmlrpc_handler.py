@@ -9,7 +9,7 @@ import xmlrpclib
 class Handler (ssgi_handler.Handler):
 	GATEWAY_INTERFACE = 'XMLRPC/2.0'
 	def match (self, request):
-		if request.uri[:6].lower() == '/rpc2/' or (request.command == "post" and request.get_header ("content-type") == "text/xml"):			
+		if request.uri[:6].lower() == '/rpc2/' or (request.command == "post" and request.get_header ("content-type").startswith ("text/xml")):			
 				return 1
 		return 0
 	
@@ -144,7 +144,7 @@ class Job (ssgi_handler.Job):
 			for path, args in [("/" + each ["methodName"].replace (".", "/"), each ["params"]) for each in self.args [0]]:				
 				self.itercall (path, args)
 				
-		if not self.was.response.sent_error and self.responses is not None:
+		if not self.was.response.is_sent_response and self.responses is not None:
 			self.handle_response ()
 			
 		self.dealloc ()

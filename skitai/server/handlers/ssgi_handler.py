@@ -333,7 +333,7 @@ class Job:
 			trigger.wakeup (lambda p=self.was.response, d=catch(1): (p.error (500, d),))
 		
 		else:
-			if not self.was.response.sent_error:
+			if not self.was.response.is_sent_response:
 				try:
 					self.commit_all ()
 								

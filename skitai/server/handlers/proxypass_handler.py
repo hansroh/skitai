@@ -66,7 +66,8 @@ class Handler (proxy_handler.Handler):
 		request, response, collector = handler.client_request, handler.response, handler.collector
 		cluster = self.find_cluster (request)
 		
-		cluster.report (handler.asyncon, response.code)		
+		cluster.report (handler.asyncon, response.code)	
+		
 		if response.code < 100:
 			if request.loadbalance_retry >= len (cluster):
 				request.response.error (506, "%s (Code: 506.%d)" % (response.msg, response.code))
@@ -76,14 +77,14 @@ class Handler (proxy_handler.Handler):
 					if collector:
 						collector.reuse_cache ()
 					self.route (request, collector)
-					return self.clean_resource (handler)
+					return self.dealloc (request, handler)
 					
 		else:
 			try:	
 				self.save_cache (request, handler)					
 			except:
 				self.wasc.logger.trace ("server")
-					
+		
 		request.loadbalance_retry = 0		
-		self.dealloc (request, handler)
+		self.dealloc (request, handler)		
 		
