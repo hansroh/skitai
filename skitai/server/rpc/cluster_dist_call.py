@@ -130,8 +130,9 @@ class _Method:
 class ClusterDistCall:
 	def __init__ (self, 
 		cluster, 
-		reqtype,
+		uri,
 		params = None,
+		rpctype = "xml",
 		login = None,
 		encoding = None,
 		multipart = False,
@@ -141,8 +142,9 @@ class ClusterDistCall:
 		):
 		
 		self._cluster = cluster
-		self._reqtype = reqtype
+		self._uri = uri
 		self._params = params
+		self._rpctype = rpctype
 			
 		self._login = login
 		self._encoding = encoding
@@ -169,9 +171,9 @@ class ClusterDistCall:
 			else: # anyone of nodes
 				self._nodes = [None]
 		
-		reqtype = self._reqtype.lower ()
-		if (reqtype.startswith ("http://") or reqtype.startswith ("https://")) and not reqtype.endswith ("/rpc2") and not reqtype.endswith ("/rpc3"):
-			self._request_url (self._reqtype, self._params)
+		_rpctype = self._rpctype.lower ()
+		if (self._uri.startswith ("http://") or self._uri.startswith ("https://")) and _rpctype not in ("xml", "json"):
+			self._request_url (self._uri, self._params)
 		
 	def __getattr__ (self, name):	  
 		return _Method(self._request, name)
@@ -183,9 +185,9 @@ class ClusterDistCall:
 	def get_ident (self):
 		cluster_name = self._cluster.get_name ()
 		if cluster_name == "socketpool":
-			_id = self._reqtype			
+			_id = self._uri			
 		else:
-			_id = "%s/%s" % (cluster_name, self._reqtype)
+			_id = "%s/%s/%s" % (cluster_name, self._uri, self._rpctype)
 		_id += "/%s/%s" % self._cached_request_args
 		_id += "%s%s" % (
 			self._mapreduce and "/M" or "",
@@ -201,22 +203,22 @@ class ClusterDistCall:
 				return
 		
 		while self._avails ():
-			if self._reqtype in ("rpc3", "rpc2"):
+			if self._cluster.get_name () != "__socketpool__":
 				asyncon = self._get_connection (None)
 			else:
-				asyncon = self._get_connection (self._reqtype)
-											
+				asyncon = self._get_connection (self._uri)
+			
 			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self.get_ident () or None, filterfunc = self._callback)
-			if self._reqtype in ("rpc2") or self._reqtype.lower ().endswith ("/rpc2"):
-				request = http_request.XMLRPCRequest (method, params, self._encoding, self._login, self._logger)
-			elif self._reqtype in ("rpc3") or self._reqtype.lower ().endswith ("/rpc3"):
-				request = http_request.JSONRPCRequest (method, params, self._encoding, self._login, self._logger)		
+			if self._rpctype in ("xml"):
+				request = http_request.XMLRPCRequest (self._uri, method, params, self._encoding, self._login, self._logger)				
+			elif self._rpctype in ("json"):
+				request = http_request.JSONRPCRequest (self._uri, method, params, self._encoding, self._login, self._logger)		
 			else:
 				if self._multipart:
 					request = http_request.HTTPMultipartRequest (method, params, self._login, self._logger)
 				else:	
 					request = http_request.HTTPRequest (method, params, self._login, self._logger)
-
+			
 			self._requests[rs] = asyncon
 			r = http_request.Request (asyncon, request, rs.handle_result)
 			r.start ()
@@ -225,7 +227,7 @@ class ClusterDistCall:
 	
 	def _request_url (self, uri = "", params = {}):
 		if uri == "":
-			uri = self._reqtype		
+			uri = self._uri		
 		self._request (uri, params) # HTTP
 		
 	def _avails (self):
@@ -306,9 +308,9 @@ class ClusterDistCallCreator:
 	def __getattr__ (self, name):	
 		return getattr (self.cluster, name)
 		
-	def Server (self, reqtype, params = None, login = None, encoding = None, multipart = False, mapreduce = False, callback = None):
-		# reqtype: xmlrpc, rpc2, json, jsonrpc, http
-		return ClusterDistCall (self.cluster, reqtype, params, login, encoding, multipart, mapreduce, callback, self.logger)
+	def Server (self, uri, params = None, rpctype="xml", login = None, encoding = None, multipart = False, mapreduce = False, callback = None):
+		# rpctype: xml, json, http
+		return ClusterDistCall (self.cluster, uri, params, rpctype, login, encoding, multipart, mapreduce, callback, self.logger)
 		
 	
 if __name__ == "__main__":

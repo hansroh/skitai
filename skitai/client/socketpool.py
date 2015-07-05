@@ -22,7 +22,7 @@ class SocketPool:
 		return False		
 	
 	def get_name (self):
-		return "socketpool"
+		return "__socketpool__"
 				
 	def status (self):
 		info = {}

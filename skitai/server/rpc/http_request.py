@@ -12,11 +12,15 @@ except ImportError:
 	JSONRPCLIB = False
 	
 class XMLRPCRequest:
-	url = "/rpc2"
 	content_type = "text/xml"
-	
-	def __init__ (self, method, params = (), encoding = "utf8", login = None, logger = None):
-		self.uri = self.method = method
+			
+	def __init__ (self, uri, method, params = (), encoding = "utf8", login = None, logger = None):
+		self.uri = uri
+		if uri.startswith ("http://") or uri.startswith ("https://"):
+			self.url = urlparse.urlparse (uri)[2]
+		else:	
+			self.url = uri
+		self.method = method
 		self.params = params
 		self.encoding = encoding
 		self.login = login
@@ -42,7 +46,6 @@ class XMLRPCRequest:
 
 if JSONRPCLIB:
 	class JSONRPCRequest (XMLRPCRequest):
-		url = "/rpc3"
 		content_type = "application/json-rpc"
 		
 		def serialize (self):
@@ -54,7 +57,7 @@ class HTTPRequest (XMLRPCRequest):
 	
 	def __init__ (self, uri, formdata = {}, login = None, logger = None):
 		self.uri = uri
-		scheme, server, script, params, qs, fragment = urlparse.urlparse (uri)		
+		scheme, server, script, params, qs, fragment = urlparse.urlparse (uri)
 		self.host = server.split (":", 1) [0]
 		if not script: script = "/"
 		self.url = script
@@ -167,7 +170,7 @@ class Request:
 			self.request.url,
 			self.http_version,
 			"\r\n".join (map (lambda x: "%s: %s" % x, hc.items ()))
-		)
+		)		
 		if is_data_producer:
 			return [req, data]
 		else:	

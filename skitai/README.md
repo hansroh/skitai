@@ -75,7 +75,7 @@ Your app:
 
     @app.route ("/search")
     def search (was, keyword = "Mozart"):
-      s = was.map ("mysearch/rpc2")
+      s = was.map ("@mysearch/rpc2")
       s.search (keyword)
 
       results = s.getswait (timeout = 2)
@@ -109,7 +109,7 @@ Your app:
 
     @app.route ("/query")
     def query (was, keyword):
-      s = was.dmap ("mydb")
+      s = was.dmap ("@mydb")
       s.execute("SELECT * FROM CITIES;")
 
       results = s.getswait (timeout = 2)
@@ -825,7 +825,7 @@ Fisrt example is simple Map-Reduce:
 
     @app.route ("/test/map")
     def map (was):
-        s = was.map ("myrpcs/rpc2")    
+        s = was.map ("@myrpcs/rpc2")    
         # we can expect [4.7,76,7,7]
         s.generate_random_int_list (5)
         
@@ -848,7 +848,7 @@ Here's Map-Filter-Reduce example:
           else:
             rs.data = []  
         
-        s = was.map ("myrpcs/rpc2", filter = select_func)
+        s = was.map ("@myrpcs/rpc2", filter = select_func)
         # we can expect [4.7,76,7,7]
         s.generate_random_int_list (5)
         
@@ -862,14 +862,11 @@ Here's Map-Filter-Reduce example:
 Why dosen't do filter after getswait () ?
  
 Because that way make  filter action be worked for waiting another results. We can save time.
-<<<<<<< HEAD
     
 - getswait(timeout) used for multiple results returned from was.map(), was.dmap()
     
 - getwait(timeout) used for a result returned from was.lb(), was.dlb(), was.db(), was.wget()
     
-=======
->>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
     
     
 ### RPC Load-Balacing
@@ -886,7 +883,7 @@ Your app is:
 
     @app.route ("/search")
     def search (was, keyword = "Mozart"):
-      s = was.lb ("myrpcs/rpc2")
+      s = was.lb ("@myrpcs/rpc2")
       s.search (keyword)
       return s.getwait (timeout = 2)
 
@@ -927,7 +924,7 @@ First example is simple Map-Reduce for getting top population city:
     @app.route ("/test/get_top_city")
     def get_top_city (was):
     
-        s = was.dmap ("mydbs")
+        s = was.dmap ("@mydbs")
          
         # we expect [{"name": "Fairfax", "population": 23478}, ...]
         s.execute ("SELECT name, population from CITIES;")
@@ -951,7 +948,7 @@ And inspite of foolish, here's Map-Filter-Reduce example:
           else:
             rs.data = []
             
-        s = was.dmap ("mydbs", filter = remove_too_little)    
+        s = was.dmap ("@mydbs", filter = remove_too_little)    
         s.execute ("SELECT name, population from CITIES;")
         
         all = []
@@ -966,7 +963,7 @@ And inspite of foolish, here's Map-Filter-Reduce example:
 
 Same config file, and your app is:
 
-    s = was.dlb ("mydbs")    
+    s = was.dlb ("@mydbs")    
     s.execute ("SELECT name, population from CITIES;")
     return s.getwait (2)
     
@@ -979,14 +976,14 @@ At config,
     
 means  maximum number of  RPC/PosgreSQL results
 
-    s = was.dlb ("mydbs")    
+    s = was.dlb ("@mydbs")    
     s.execute ("SELECT name, population from CITIES;")
     result =  s.getwait (2)
     
     # cache for 300 sec.
     result.cache (timeout = 300)
 
-    s = was.map ("myrpcs/rpc2")    
+    s = was.map ("@myrpcs/rpc2")    
     s.generate_random_int_list (5)
     results = s.getswait (5):
     
@@ -1288,7 +1285,7 @@ For Nginx might be 2 config files (I'm not sure):
     }
 
 
-<<<<<<< HEAD
+
 ### Developing and Deploy
 
 #### Coding
@@ -1299,7 +1296,7 @@ Finally call getswait(timeout) / getwait(timeout) and use the result.
 
 It's the way for getting maximum speed and benefit from Skitai framework.
 
-#### Propose 2 Server System
+#### Propose Double Servers System
 
 I'm not sure the most efficient process for developing & deploying yet.
 
@@ -1337,10 +1334,6 @@ sandbox.conf can be run in console with outputing debug msg and viewing error ms
 
 If you multiple webservers for loadbalancing/clustering, also can make network deploying app your own with using Skitais's powerful and simple communicating capability, or might be added to Skitai 'was' methods as basic service later.
 
-=======
-
-### Developing and Deploying Process
->>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
 
 
 ### Specification of 'was'
@@ -1356,114 +1349,68 @@ These object is already explained above.
 - was.session
 - was.env
 
-<<<<<<< HEAD
+
 
 #### Asynchronous Network Related Services
 
 For HTTP / HTTPS / RPC
 
-- was.wget() : On-Demand connection managed by socket pool
+was.wget : On-Demand HTTP(S) managed by socket pool
 
     wget (uri, params = None, login = None, encoding = None, multipart = False, filter = None)
-    
-- was.map() : Map-Filter-Reducing
-    
-    map (clustername, params = None, login = None, encoding = None, multipart = False, filter = None)
 
-- was.lb() : Load Bancing
+was.rpc: On-Demand XML/JSON-RPC managed by socket pool  
 
-    lb (clustername, params = None, login = None, encoding = None, multipart = False, filter = None)
-   
+    rpc(clustername, params = None, rpctype = "xml", login = None, encoding = None, multipart = False, filter = None)   
+    
+    rpctype: xml or json
+    login: username/password - currently suported only Basic Authorization
+      
+was.map : Map-Filter-Reducing
+    
+    map (clustername, params = None, rpctype = "xml", login = None, encoding = None, multipart = False, filter = None)
+
+was.lb : Load Bancing
+
+    lb (clustername, params = None, rpctype = "xml", login = None, encoding = None, multipart = False, filter = None)
+    
+  
 For PostgreSQL
 
-- was.db() : On-Demand connection managed by db connection pool
+was.db : On-Demand connection managed by db connection pool
     
     db (server, dbname, user, password, dbtype = "postgresql", filter = None)    
 
-- was.dmap() : Map-Filter-Reducing
+was.dmap : Map-Filter-Reducing
 
     dmap (self, clustername, filter = None)
        
-- was.dlb() : Load Bancing
+was.dlb : Load Bancing
 
     dlb (self, clustername, filter = None)
 
+
 #### Server Status
+
+was.status()
 
 This methods is reliable when run with single process for app development. 
 
 But in multi processes, don't believe most all nuber and objects status.
 
-- was.status()
+Display all server resources has status () method.
 
-Display all server components has status () method.
-
-    * was.apps
-    * was.cachefs
-    * was.rcache
-    * was.httpserver
-    * was.lifetime
-    * was.queue
-    * was.threads
-    * was.cluster[socketpool]
-    * was.cluster[dbpool]
-    * was.cluster[@user-configured-clusters]
-    * was.[user-registered-objects]
-
-These are applied only current sample.conf instance worker. also for developing aid.
-
-- was.shutdown()
-- was.restart()
-    
-
-#### Object Serialize
-
-- was.tojson ()
-- was.toxml(): to XMLRPC
-=======
-
-#### Asynchronous Network Related Services
-
-For HTTP / HTTPS / RPC
-
-- was.wget() : On-Demand connection managed by socket pool
-- was.map() : Map-Filter-Reducing
-- was.lb() : Load Bancing
-
-For PostgreSQL
-
-- was.db() : On-Demand connection managed by db connection pool
-- was.dmap() : Map-Filter-Reducing
-- was.dlb() : Load Bancing
-
-
-
-#### Server Status
-
-This methods is reliable when run with single process for app development. 
-
-But in multi processes, don't believe most all nuber and objects status.
-
-- was.status()
-
-Display all server components has status () method.
-
-    * was.apps
-    * was.cachefs
-    * was.rcache
-    * was.httpserver
-    * was.lifetime
-    * was.queue
-    * was.threads
-    * was.cluster[socketpool]
-    * was.cluster[dbpool]
-    * was.cluster[@user-configured-clusters]
-    * was.[user-registered-objects]
-
-These are applied only current sample.conf instance worker. also for developing aid.
-
-- was.shutdown()
-- was.restart()
+- was.apps
+- was.cachefs
+- was.rcache
+- was.httpserver
+- was.lifetime
+- was.queue
+- was.threads
+- was.cluster[socketpool]
+- was.cluster[dbpool]
+- was.cluster[@user-configured-clusters]
+- was.[user-registered-objects]
     
 
 #### Object Serialize
@@ -1472,52 +1419,4 @@ These are applied only current sample.conf instance worker. also for developing 
 - was.toxml(): to XMLRPC
 
 
-### Developing and Deploy
-
-#### Coding
-
-The most important thing is, RPC/DB requests willbe positioned top of the method as possible for background execution, then do antother jobs you need in the middle of code. 
-
-Finally call getswiat(timeout) / getwait(timeout).
-
-It's the way for getting maximum speed and benefit from Skitai framework.
-
-#### Propose 2 Server System
-
-I'm not sure the most efficient process for developing & deploying yet.
-
-Currently I suggest like this,
-
-**Directory structure**
-
-    /home/apps/project1/deploy/webapp.py
-                              /static
-                              /tempaltes
-                              /packages
-
-    /home/apps/project1/sandbox/webapp.py
-                               /static
-                               /tempaltes
-                               /packages
-
-Application automatically set_devel (True) mode, if detected app's path contains 'sandbox'
-
-Then if done developing just copy to deploy, and restart deploy server.
-
-And need 2 configure files:
-
-    project1.conf in /etc/skitaid/servers-enabled/
-   
-    sandbox.conf in /etc/skitaid/servers-available/
-   
-project1.conf will be runs as service with system starting.
-
-sandbox.conf can be run in console with outputing debug msg and viewing error msg.
-
-    python server.py -c -f a/sandbox
-
-'a/sandbox' means '/etc/skitaid/servers-available/sandbox.conf'
-
-If you multiple webser for loadbalacing/clustering, also can write network deploying app with master-slaves way, or might be added to Skitai 'was' methods as basic service later.
->>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
 

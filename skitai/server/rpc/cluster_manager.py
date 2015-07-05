@@ -142,7 +142,10 @@ class ClusterManager:
 			host, port = member.split (":", 1)
 			server = (host, int (port))
 		except ValueError: 
-			server	= (member, 80)			
+			if not self._use_ssl:
+				server	= (member, 80)			
+			else:	
+				server	= (member, 443)
 		asyncon = self._conn_class (server, self.lock, self.logger)
 		return server, asyncon # nodeid, asyncon
 		

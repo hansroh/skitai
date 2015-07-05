@@ -53,25 +53,26 @@ class WAS:
 	
 	def __detect_reqtype (self, clustername):
 		try: 
-			clustername, reqtype = clustername.split ("/", 1)
+			clustername, uri = clustername.split ("/", 1)
 		except ValueError:
-			clustername, reqtype = clustername, "rpc3"	# json-rpc
-		assert (reqtype in ("rpc3", "rpc2"))	
-		return clustername, reqtype.lower ()
+			clustername, uri = clustername, ""
+		if clustername [0] == "@":
+			clustername = clustername [1:]
+		return clustername, "/" + uri
 		
-	def map (self, clustername, params = None, login = None, encoding = None, multipart = False, filter = None):		
-		clustername, reqtype = self.__detect_reqtype (clustername)
-		return self.clusters_for_distcall [clustername].Server (reqtype, params, login, encoding, multipart = multipart, mapreduce = True, callback = filter)
+	def map (self, clustername, params = None, rpctype = "xml", login = None, encoding = None, multipart = False, filter = None):		
+		clustername, uri = self.__detect_reqtype (clustername)
+		return self.clusters_for_distcall [clustername].Server (uri, params, rpctype, login, encoding, multipart = multipart, mapreduce = True, callback = filter)
 	
-	def lb (self, clustername, params = None, login = None, encoding = None, multipart = False, filter = None):
-		clustername, reqtype = self.__detect_reqtype (clustername)
-		return self.clusters_for_distcall [clustername].Server (reqtype, params, login, encoding, multipart = multipart, mapreduce = False, callback = filter)
+	def lb (self, clustername, params = None, rpctype = "xml", login = None, encoding = None, multipart = False, filter = None):
+		clustername, uri = self.__detect_reqtype (clustername)
+		return self.clusters_for_distcall [clustername].Server (uri, params, rpctype, login, encoding, multipart = multipart, mapreduce = False, callback = filter)
 		
 	def wget (self, uri, params = None, login = None, encoding = None, multipart = False, filter = None):
-		return self.clusters_for_distcall ["__socketpool__"].Server (uri, params, login, encoding, multipart = multipart, mapreduce = False, callback = filter)
+		return self.clusters_for_distcall ["__socketpool__"].Server (uri, params, "http", login, encoding, multipart = multipart, mapreduce = False, callback = filter)
 		
-	def rpc (self, *args, **karg):
-		return self.wget (*args, **karg)
+	def rpc (self, uri, params = None, rpctype = "xml", login = None, encoding = None, multipart = False, filter = None):
+		return self.clusters_for_distcall ["__socketpool__"].Server (uri, params, rpctype, login, encoding, multipart = multipart, mapreduce = False, callback = filter)
 	
 	def db (self, server, dbname, user, password, dbtype = "postgresql", filter = None):
 		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, user, password, dbtype, mapreduce = False, callback = filter)

@@ -58,16 +58,15 @@ Then write /home/skitaid/app/webapp.py
 .. code:: python
 
     ; add mysearch members to config file
-    [@mysearch]
-    members = s1.yourserver.com:5000,s2.yourserver.com:5000,s3.yourserver.com:5000
-
-
+    [@mypypi]
+    ssl = yes
+    members = pypi1.python.org:443, pypi2.python.org:443
 
 .. code:: python
 
     @app.route ("/search")
     def search (was, keyword = "Mozart"):
-      s = was.map ("mysearch/rpc2")
+      s = was.map ("@mypypi/pypi")
       s.search (keyword)
 
       results = s.getswait (timeout = 2)
@@ -85,7 +84,7 @@ Then write /home/skitaid/app/webapp.py
 
     @app.route ("/search")
     def search (was, keyword = "Mozart"):
-      s = was.lb ("mysearch/rpc2")
+      s = was.lb ("@mypypi/pypi")
       s.search (keyword)
 
       return s.getwait (timeout = 2)
@@ -105,7 +104,7 @@ Then write /home/skitaid/app/webapp.py
 
     @app.route ("/query")
     def query (was, keyword):
-      s = was.dmap ("mydb")
+      s = was.dmap ("@mydb")
       s.execute("SELECT * FROM CITIES;")
 
       results = s.getswait (timeout = 2)
@@ -165,6 +164,8 @@ Documentation
 Change Log
 -------------
 
+  0.9.1.25 - fix xmlrpc server uri, I misunderstoodd all xmlrpc uri is /rpc2
+  
   0.9.1.24 - possibly fixed, "too many file descriptors in select()"
   
   0.9.1.23 - add some methods to was.request, add "X-Forwarded-For" to proxy_handler

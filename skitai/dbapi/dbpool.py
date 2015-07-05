@@ -6,7 +6,10 @@ from __init__ import DB_PGSQL
 
 class DBPool (socketpool.SocketPool):
 	object_timeout = 300
-		
+	
+	def get_name (self):
+		return "__dbpool__"
+			
 	def create_asyncon (self, server, dbname, user, password, dbtype):
 		if dbtype == DB_PGSQL:
 			try: 
