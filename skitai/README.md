@@ -169,6 +169,7 @@ like /home/skitaid, c:\skitaid
 
 Review and edit: 
 
+<<<<<<< HEAD
 **/etc/skitaid/skitaid.conf**
 
     [global]
@@ -181,9 +182,79 @@ Review and edit:
     ; on windows can like c:\python27]python.exe        
     python = python
 
+=======
+- /etc/skitaid/etc/skitaid/skitaid.conf
+- /etc/skitaid/etc/skitaid/servers-enabled/sample.conf
+
+
+### Startup Skitaid
+
+#### Run in console output for develop or debug
+
+    cd /home/skitaid/bin
+    python server.py -c -f sample
+
+or silent run
+
+    python server.py -f sample &
+    
+For more detail switch,
+
+    python server.py --help
+
+Then go to http://127.0.0.1:5000/ using your web browser
+
+
+#### Run as Service
+
+There's two scripts for starting Skitaid server.
+
+bin/skitaid.py will start multiple server instances in all /etc/skitaid/servers-enabled directory.
+
+bin/server.py will start single server instance by command line switch -f [config file name (do not write .conf)]
+
+Here's some example for running skitaid.py as service.
+
+##### Liunx
+Edit example script under skitaid/etc/init (Ubuntu) & init.d (CentOS)
+
+then copy /etc/init or /etc/init.d by your OS env.
+
+##### Win32
+
+Go to skitaid/bin/win32service
+
+    install_win32_service.py --startup auto install
+
+
+### Shutdown Skitaid
+
+If you start with server.py, Ctrl-C is good.
+
+else if run with skitaid.py
+
+    python skitaid.py stop
+
+or restarting sample.conf server,
+    
+    python skitaid.py -k restart -n sample
+
+for more detail switch, 
+
+    python skitaid.py --help
+
+if runnig as service on posix,
+>>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
 
 **/etc/skitaid/servers-enabled/sample.conf**
 
+<<<<<<< HEAD
+=======
+in win32, control Service contrl Manager
+  
+
+### Configuration Detail
+>>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
 
     [server]
     threads = 4
@@ -244,6 +315,7 @@ processes and threads value is usally recommended,
 
 
 
+<<<<<<< HEAD
 ### Startup Skitaid
 
 #### Run in console output for develop or debug
@@ -309,6 +381,8 @@ if runnig as service on posix,
 in win32, control Service contrl Manager
   
 
+=======
+>>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
 
 
 ## Quick Start
@@ -509,11 +583,18 @@ Get request infomation:
     
     path, param, querystring, fragment =  was.request.split_uri ()
     
+<<<<<<< HEAD
+=======
+    # access raw form or multipart data (if <= 5MB)
+    was.request.get_body ()
+    
+>>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
     # get/head/post/put ...
     was.request.command
     
     # HTTP version
     was.request.version
+<<<<<<< HEAD
     
     was.request.uri
     
@@ -599,7 +680,37 @@ Actually, you can serve any of them in one method.
       else:
          return was.app.get_template ("multi_purpose.html").render (OBJECT)
          
+=======
+    
+    was.request.uri
 
+      
+Set response information:
+    
+    was.response ["Location"] = "/newloc"    
+    was.response.set ("Location", "/newloc")
+    
+    was.response.update ("Content-Transfer-Encoding", "gzip")
+    
+    was.response.delete ("Content-Length")
+    
+    was.response.has_key ("Content-Type")
+    
+    was.response.instant (100)
+    
+Example for check request method:
+
+    if was.request.command == "get":
+      was.response.start (405, "Method Not Allowed")
+      return "Not allowed get method for %s" % was.request.uri
+>>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
+
+More simply:
+
+    if was.request.command == "get":
+      return was.response.error (405)
+      
+      
 ### Environment
 
     was.env = {
@@ -751,11 +862,14 @@ Here's Map-Filter-Reduce example:
 Why dosen't do filter after getswait () ?
  
 Because that way make  filter action be worked for waiting another results. We can save time.
+<<<<<<< HEAD
     
 - getswait(timeout) used for multiple results returned from was.map(), was.dmap()
     
 - getwait(timeout) used for a result returned from was.lb(), was.dlb(), was.db(), was.wget()
     
+=======
+>>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
     
     
 ### RPC Load-Balacing
@@ -889,9 +1003,13 @@ Directory structure is like this:
                      /tempates/index.html
     
 Now you can get_template ():
+<<<<<<< HEAD
     from skitai.server import ssgi
     app = ssgi.Application (__name__)
     
+=======
+  
+>>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
     @app.route ("/")
     def main (was):
         template = was.app.get_template ('index.html')
@@ -1170,6 +1288,7 @@ For Nginx might be 2 config files (I'm not sure):
     }
 
 
+<<<<<<< HEAD
 ### Developing and Deploy
 
 #### Coding
@@ -1218,6 +1337,11 @@ sandbox.conf can be run in console with outputing debug msg and viewing error ms
 
 If you multiple webservers for loadbalancing/clustering, also can make network deploying app your own with using Skitais's powerful and simple communicating capability, or might be added to Skitai 'was' methods as basic service later.
 
+=======
+
+### Developing and Deploying Process
+>>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
+
 
 ### Specification of 'was'
 
@@ -1232,6 +1356,7 @@ These object is already explained above.
 - was.session
 - was.env
 
+<<<<<<< HEAD
 
 #### Asynchronous Network Related Services
 
@@ -1295,4 +1420,104 @@ These are applied only current sample.conf instance worker. also for developing 
 
 - was.tojson ()
 - was.toxml(): to XMLRPC
+=======
+
+#### Asynchronous Network Related Services
+
+For HTTP / HTTPS / RPC
+
+- was.wget() : On-Demand connection managed by socket pool
+- was.map() : Map-Filter-Reducing
+- was.lb() : Load Bancing
+
+For PostgreSQL
+
+- was.db() : On-Demand connection managed by db connection pool
+- was.dmap() : Map-Filter-Reducing
+- was.dlb() : Load Bancing
+
+
+
+#### Server Status
+
+This methods is reliable when run with single process for app development. 
+
+But in multi processes, don't believe most all nuber and objects status.
+
+- was.status()
+
+Display all server components has status () method.
+
+    * was.apps
+    * was.cachefs
+    * was.rcache
+    * was.httpserver
+    * was.lifetime
+    * was.queue
+    * was.threads
+    * was.cluster[socketpool]
+    * was.cluster[dbpool]
+    * was.cluster[@user-configured-clusters]
+    * was.[user-registered-objects]
+
+These are applied only current sample.conf instance worker. also for developing aid.
+
+- was.shutdown()
+- was.restart()
+    
+
+#### Object Serialize
+
+- was.tojson ()
+- was.toxml(): to XMLRPC
+
+
+### Developing and Deploy
+
+#### Coding
+
+The most important thing is, RPC/DB requests willbe positioned top of the method as possible for background execution, then do antother jobs you need in the middle of code. 
+
+Finally call getswiat(timeout) / getwait(timeout).
+
+It's the way for getting maximum speed and benefit from Skitai framework.
+
+#### Propose 2 Server System
+
+I'm not sure the most efficient process for developing & deploying yet.
+
+Currently I suggest like this,
+
+**Directory structure**
+
+    /home/apps/project1/deploy/webapp.py
+                              /static
+                              /tempaltes
+                              /packages
+
+    /home/apps/project1/sandbox/webapp.py
+                               /static
+                               /tempaltes
+                               /packages
+
+Application automatically set_devel (True) mode, if detected app's path contains 'sandbox'
+
+Then if done developing just copy to deploy, and restart deploy server.
+
+And need 2 configure files:
+
+    project1.conf in /etc/skitaid/servers-enabled/
+   
+    sandbox.conf in /etc/skitaid/servers-available/
+   
+project1.conf will be runs as service with system starting.
+
+sandbox.conf can be run in console with outputing debug msg and viewing error msg.
+
+    python server.py -c -f a/sandbox
+
+'a/sandbox' means '/etc/skitaid/servers-available/sandbox.conf'
+
+If you multiple webser for loadbalacing/clustering, also can write network deploying app with master-slaves way, or might be added to Skitai 'was' methods as basic service later.
+>>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
 

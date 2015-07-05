@@ -2,7 +2,11 @@
 Hans Roh 2015 -- http://sae.skitai.com
 License: BSD
 """
+<<<<<<< HEAD
 __VER__ = '0.9.1.23'
+=======
+__VER__ = '0.9.1.20'
+>>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
 
 import sys
 import os
