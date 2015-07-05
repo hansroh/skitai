@@ -88,7 +88,13 @@ class WAS:
 	
 	def toxml (self, obj):
 		return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")	
-										
+	
+	def fromjson (self, obj):
+		return json.loads (obj)
+	
+	def fromxml (self, obj, use_datetime=0):
+		return xmlrpclib.loads (obj)	
+											
 	def status (self, flt = None, fancy = True):
 		return server_info.make (self, flt, fancy)
 	

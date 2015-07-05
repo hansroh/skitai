@@ -21,7 +21,7 @@ It also influenced by Zope_ and Flask_ a lot.
 - It can request massive RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily.
 - It provides asynchronous PostgreSQL query execution
 
-Skitai is not a framework for combinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your apps as both server and client.
+Skitai is not a framework for convinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your apps as both server and client.
 
 
 **Basic Configure**
@@ -164,6 +164,8 @@ Documentation
 Change Log
 -------------
 
+  0.9.1.27 - support Map-Reduce, Load_Balanace for (json & xml serialized object over) HTTP Call
+  
   0.9.1.26 - fix response.error
   
   0.9.1.25 - fix xmlrpc server uri, I misunderstoodd all xmlrpc uri is /rpc2

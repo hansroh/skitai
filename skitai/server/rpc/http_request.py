@@ -17,7 +17,7 @@ class XMLRPCRequest:
 	def __init__ (self, uri, method, params = (), encoding = "utf8", login = None, logger = None):
 		self.uri = uri
 		if uri.startswith ("http://") or uri.startswith ("https://"):
-			self.url = urlparse.urlparse (uri)[2]
+			self.url = self.make_url (uri)
 		else:	
 			self.url = uri
 		self.method = method
@@ -27,6 +27,14 @@ class XMLRPCRequest:
 		self.logger = logger
 		self.data = self.serialize ()
 	
+	def make_url (self, uri):
+		scheme, server, script, params, qs, fragment = urlparse.urlparse (uri)
+		if not script: script = "/"
+		url = script
+		if params: url += ";" + params
+		if qs: url += "?" + qs
+		return url
+		
 	def serialize (self):
 		return xmlrpclib.dumps (self.params, self.method, encoding=self.encoding, allow_none=1)
 		
@@ -57,12 +65,11 @@ class HTTPRequest (XMLRPCRequest):
 	
 	def __init__ (self, uri, formdata = {}, login = None, logger = None):
 		self.uri = uri
-		scheme, server, script, params, qs, fragment = urlparse.urlparse (uri)
-		self.host = server.split (":", 1) [0]
-		if not script: script = "/"
-		self.url = script
-		if params: self.url += ";" + params
-		if qs: self.url += "?" + qs			
+		if uri.startswith ("http://") or uri.startswith ("https://"):
+			self.url = self.make_url (uri)
+		else:	
+			self.url = uri
+		
 		self.formdata = formdata
 		self.login = login
 		self.logger = logger

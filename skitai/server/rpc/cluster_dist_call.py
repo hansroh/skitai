@@ -172,7 +172,8 @@ class ClusterDistCall:
 				self._nodes = [None]
 		
 		_rpctype = self._rpctype.lower ()
-		if (self._uri.startswith ("http://") or self._uri.startswith ("https://")) and _rpctype not in ("xml", "json"):
+		#if (self._uri.startswith ("http://") or self._uri.startswith ("https://")) and _rpctype not in ("xml", "json"):
+		if _rpctype == "http":
 			self._request_url (self._uri, self._params)
 		
 	def __getattr__ (self, name):	  
@@ -213,11 +214,11 @@ class ClusterDistCall:
 				request = http_request.XMLRPCRequest (self._uri, method, params, self._encoding, self._login, self._logger)				
 			elif self._rpctype in ("json"):
 				request = http_request.JSONRPCRequest (self._uri, method, params, self._encoding, self._login, self._logger)		
-			else:
+			else: # http
 				if self._multipart:
-					request = http_request.HTTPMultipartRequest (method, params, self._login, self._logger)
+					request = http_request.HTTPMultipartRequest (self._uri, params, self._login, self._logger)
 				else:	
-					request = http_request.HTTPRequest (method, params, self._login, self._logger)
+					request = http_request.HTTPRequest (self._uri, params, self._login, self._logger)
 			
 			self._requests[rs] = asyncon
 			r = http_request.Request (asyncon, request, rs.handle_result)

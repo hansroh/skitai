@@ -94,7 +94,7 @@ def o ():
 
 
 clients = 300
-req = 2000 - 1950
+req = 2000 - 1900
 hits = 0
 s = time.time ()
 t ()

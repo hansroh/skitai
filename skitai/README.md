@@ -12,7 +12,7 @@ It also influenced by [Zope](http://www.zope.org) and [Flask](http://flask.pocoo
 - It can request massive RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily.
 - It provides asynchronous PostgreSQL query execution
 
-Skitai is not a framework for combinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your apps as both server and client.
+Skitai is not a framework for convinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your apps as both server and client.
 
 ## At Glance
 
@@ -169,7 +169,6 @@ like /home/skitaid, c:\skitaid
 
 Review and edit: 
 
-<<<<<<< HEAD
 **/etc/skitaid/skitaid.conf**
 
     [global]
@@ -182,79 +181,7 @@ Review and edit:
     ; on windows can like c:\python27]python.exe        
     python = python
 
-=======
-- /etc/skitaid/etc/skitaid/skitaid.conf
-- /etc/skitaid/etc/skitaid/servers-enabled/sample.conf
-
-
-### Startup Skitaid
-
-#### Run in console output for develop or debug
-
-    cd /home/skitaid/bin
-    python server.py -c -f sample
-
-or silent run
-
-    python server.py -f sample &
-    
-For more detail switch,
-
-    python server.py --help
-
-Then go to http://127.0.0.1:5000/ using your web browser
-
-
-#### Run as Service
-
-There's two scripts for starting Skitaid server.
-
-bin/skitaid.py will start multiple server instances in all /etc/skitaid/servers-enabled directory.
-
-bin/server.py will start single server instance by command line switch -f [config file name (do not write .conf)]
-
-Here's some example for running skitaid.py as service.
-
-##### Liunx
-Edit example script under skitaid/etc/init (Ubuntu) & init.d (CentOS)
-
-then copy /etc/init or /etc/init.d by your OS env.
-
-##### Win32
-
-Go to skitaid/bin/win32service
-
-    install_win32_service.py --startup auto install
-
-
-### Shutdown Skitaid
-
-If you start with server.py, Ctrl-C is good.
-
-else if run with skitaid.py
-
-    python skitaid.py stop
-
-or restarting sample.conf server,
-    
-    python skitaid.py -k restart -n sample
-
-for more detail switch, 
-
-    python skitaid.py --help
-
-if runnig as service on posix,
->>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
-
 **/etc/skitaid/servers-enabled/sample.conf**
-
-<<<<<<< HEAD
-=======
-in win32, control Service contrl Manager
-  
-
-### Configuration Detail
->>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
 
     [server]
     threads = 4
@@ -315,7 +242,6 @@ processes and threads value is usally recommended,
 
 
 
-<<<<<<< HEAD
 ### Startup Skitaid
 
 #### Run in console output for develop or debug
@@ -373,16 +299,6 @@ for more detail switch,
     python skitaid.py --help
 
 if runnig as service on posix,
-
-    sudo skitaid stop
-    or
-    sudo service skitaid stop
-
-in win32, control Service contrl Manager
-  
-
-=======
->>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
 
 
 ## Quick Start
@@ -583,18 +499,14 @@ Get request infomation:
     
     path, param, querystring, fragment =  was.request.split_uri ()
     
-<<<<<<< HEAD
-=======
     # access raw form or multipart data (if <= 5MB)
     was.request.get_body ()
     
->>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
     # get/head/post/put ...
     was.request.command
     
     # HTTP version
     was.request.version
-<<<<<<< HEAD
     
     was.request.uri
     
@@ -680,37 +592,7 @@ Actually, you can serve any of them in one method.
       else:
          return was.app.get_template ("multi_purpose.html").render (OBJECT)
          
-=======
-    
-    was.request.uri
-
-      
-Set response information:
-    
-    was.response ["Location"] = "/newloc"    
-    was.response.set ("Location", "/newloc")
-    
-    was.response.update ("Content-Transfer-Encoding", "gzip")
-    
-    was.response.delete ("Content-Length")
-    
-    was.response.has_key ("Content-Type")
-    
-    was.response.instant (100)
-    
-Example for check request method:
-
-    if was.request.command == "get":
-      was.response.start (405, "Method Not Allowed")
-      return "Not allowed get method for %s" % was.request.uri
->>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
-
-More simply:
-
-    if was.request.command == "get":
-      return was.response.error (405)
-      
-      
+  
 ### Environment
 
     was.env = {
@@ -805,11 +687,16 @@ form-data post request,
  RPC request
     
     @app.route ("/test/rpc")
-    def rpc (was):
+    def rpc (was):            
+        # rpctype default is "xml"        
         s = was.rpc ("https://www.python.org/rpc2")
         s.query ( "Beethoven")
         return s.getwait (timeout = 2)
 
+If you want JSON-RPC request,
+    
+    s = was.rpc ("https://www.python.org/rpc2", rpctype = "json")
+    
 
 ### RPC Map-Filter-Reduce (MFR) Operation
  
@@ -835,6 +722,12 @@ Fisrt example is simple Map-Reduce:
                 all.extend (rs.data)
         
         return reduce (lambda x,y: x+y, all)    
+
+
+If you want JSON-RPC request,
+    
+     s = was.map ("@myrpcs/rpc2", rpctype = "json")
+
     
 If it maybe not need filter operation in ideal situaltion, at real world we sometimes need filter. 
 
@@ -1000,13 +893,9 @@ Directory structure is like this:
                      /tempates/index.html
     
 Now you can get_template ():
-<<<<<<< HEAD
     from skitai.server import ssgi
     app = ssgi.Application (__name__)
     
-=======
-  
->>>>>>> c1681884e6de5fb048145a582b87b0f68a3a0ede
     @app.route ("/")
     def main (was):
         template = was.app.get_template ('index.html')
@@ -1361,18 +1250,26 @@ was.wget : On-Demand HTTP(S) managed by socket pool
 
 was.rpc: On-Demand XML/JSON-RPC managed by socket pool  
 
-    rpc(clustername, params = None, rpctype = "xml", login = None, encoding = None, multipart = False, filter = None)   
+    rpc (uri, params = None, rpctype = "xml", login = None, encoding = None, multipart = False, filter = None)   
     
-    rpctype: xml or json
+    rpctype: default: xml, can be json, http
     login: username/password - currently suported only Basic Authorization
       
+*Note:* wget (url, param) is convinient alias for rpc (uri, param, "http"). It's very helpful remebering that Skitai treats HTTP requests as a kind of RPC.
+    
 was.map : Map-Filter-Reducing
     
     map (clustername, params = None, rpctype = "xml", login = None, encoding = None, multipart = False, filter = None)
+    
+    rpctype: default: xml, can be json, http
+    multipart: can be yes only rpctype == http
 
 was.lb : Load Bancing
 
     lb (clustername, params = None, rpctype = "xml", login = None, encoding = None, multipart = False, filter = None)
+    
+    rpctype: default: xml, can be json, http
+    multipart: can be yes only rpctype == http
     
   
 For PostgreSQL
@@ -1413,10 +1310,10 @@ Display all server resources has status () method.
 - was.[user-registered-objects]
     
 
-#### Object Serialize
+#### Object Serialization / Deserialization
 
-- was.tojson ()
-- was.toxml(): to XMLRPC
+- was.tojson (), was.fromjson ()
+- was.toxml(), fromxml (): to XMLRPC
 
 
 
