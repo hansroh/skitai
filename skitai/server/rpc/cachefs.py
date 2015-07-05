@@ -84,8 +84,8 @@ class CacheFileSystem:
 
 		memhit = False
 		try:			
-			f = self.memcache [initial][path]
-			memhit = True			
+			m = self.memcache [initial][path]
+			memhit = True
 		except KeyError:			
 			if not os.path.isfile (path): 
 				self.lock.acquire ()
@@ -94,7 +94,7 @@ class CacheFileSystem:
 				return None, None, None, None, None
 		
 		if memhit:
-			mtime, size, max_age = f [0:3]			
+			mtime, size, max_age = m [0:3]			
 		else:	
 			mtime = os.stat (path).st_mtime
 			f = open (path, "rb")
@@ -116,7 +116,7 @@ class CacheFileSystem:
 		self.numhits.inc ()
 		self.lock.release ()
 		if memhit:
-			compressed, content_type, content = f [3:6]
+			compressed, content_type, content = m [3:6]
 				
 		else:	
 			compressed = int (f.read (1))

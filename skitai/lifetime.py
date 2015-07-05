@@ -171,17 +171,17 @@ def poll_fun_wrap (timeout, map):
 	except ValueError:
 		# too many file descriptors in select()
 		# divide and conquer
-		len_map = len (map) / 2
+		half = len (map) / 2
 		tmap = {}
 		cc = 0
 		for k, v in map.items ():
 			tmap [k] = v
 			cc += 1
-			if cc == len_map:
+			if cc == half:
 				poll_fun_wrap (timeout, tmap)
 				tmap = {}
 		poll_fun_wrap (timeout, tmap)
-				
+
 def lifetime_loop (timeout = 30.0):
 	global _last_maintern
 	global _maintern_interval
