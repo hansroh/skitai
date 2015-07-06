@@ -11,4 +11,3 @@ class Handler:
 	def handle_request (self, request):
 		request.response ["Allow"] = "GET,HEAD,POST,DELETE,PUT,OPTIONS"
 		request.response.error (200)
-

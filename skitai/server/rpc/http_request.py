@@ -27,6 +27,9 @@ class XMLRPCRequest:
 		self.logger = logger
 		self.data = self.serialize ()
 	
+	def get_method (self):
+		return "POST"
+		
 	def make_url (self, uri):
 		scheme, server, script, params, qs, fragment = urlparse.urlparse (uri)
 		if not script: script = "/"
@@ -63,8 +66,9 @@ if JSONRPCLIB:
 class HTTPRequest (XMLRPCRequest):
 	content_type = "application/x-www-form-urlencoded"
 	
-	def __init__ (self, uri, formdata = {}, login = None, logger = None):
+	def __init__ (self, uri, method, formdata = {}, login = None, logger = None):
 		self.uri = uri
+		self.method = method
 		if uri.startswith ("http://") or uri.startswith ("https://"):
 			self.url = self.make_url (uri)
 		else:	
@@ -74,15 +78,41 @@ class HTTPRequest (XMLRPCRequest):
 		self.login = login
 		self.logger = logger
 		self.data = self.serialize ()
-				
+	
+	def get_method (self):
+		return self.method.upper ()
+					
 	def serialize (self):
 		if not self.formdata:
 			return ""
 		if type (self.formdata) is type ({}):
 			return "&".join (["%s=%s" % (urllib.quote (k), urllib.quote (v)) for k, v in self.formdata.items ()])
 		return self.formdata
-	
 
+	
+class HTTPPutRequest (HTTPRequest):
+	content_type = None
+		
+	def __init__ (self, uri, method, formdata = "", login = None, logger = None):
+		self.uri = uri
+		self.method = method
+		if uri.startswith ("http://") or uri.startswith ("https://"):
+			self.url = self.make_url (uri)
+		else:	
+			self.url = uri
+		
+		self.formdata = formdata
+		self.login = login
+		self.logger = logger
+		self.data = self.serialize ()
+	
+	def get_method (self):
+		return "PUT"
+					
+	def serialize (self):		
+		return self.formdata
+		
+		
 class HTTPMultipartRequest (HTTPRequest):
 	boundary = "-------------------SAE-20150614204358"
 	
@@ -90,7 +120,10 @@ class HTTPMultipartRequest (HTTPRequest):
 		HTTPRequest.__init__ (self, uri, formdata, login, logger)
 		if type (self.formdata) is type (""):
 			self.find_boundary ()
-		
+	
+	def get_method (self):
+		return "POST"
+						
 	def get_content_type (self):
 		return "multipart/form-data; boundary=" + self.boundary
 			
@@ -158,22 +191,25 @@ class Request:
 			
 		hc ["Accept"] = "*/*"		
 		hc ["Accept-Encoding"] = "gzip"
-		method = "GET"
-		if data:
-			method = "POST"
+		
+		if data:			
 			try:
 				cl = data.get_content_length ()
 				is_data_producer = True
 			except AttributeError:
 				cl = len (data)				
 			hc ["Content-Length"] = cl
-			hc ["Content-Type"] = self.request.get_content_type ()			
+		
+		ct = self.request.get_content_type ()		
+		if ct:
+			hc ["Content-Type"] = self.request.get_content_type ()
+			
 		auth = self.request.get_auth ()
 		if auth:
 			hc ["Authorization"] = "Basic %s" % auth
 		
 		req = "%s %s HTTP/%s\r\n%s\r\n\r\n" % (
-			method,
+			self.request.get_method (),
 			self.request.url,
 			self.http_version,
 			"\r\n".join (map (lambda x: "%s: %s" % x, hc.items ()))

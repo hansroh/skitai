@@ -359,7 +359,7 @@ class Handler (ssgi_handler.Handler):
 			return
 		
 		try:
-			req = http_request.HTTPRequest (request.uri, collector is not None, logger = self.wasc.logger.get ("server"))		
+			req = http_request.HTTPRequest (request.uri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))		
 			asyncon = self.clusters ["__socketpool__"].get (request.uri)
 			r = Request (asyncon, req, self.callback, request, collector)			
 			if collector:

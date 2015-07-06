@@ -395,6 +395,7 @@ Imagine your app methods is App Server Class' methods.
  And provide some asynchronous networking methods: 
  
 - was.wget()
+- was.rpc()
 - was.map()
 - was.lb()
 - was.db()
@@ -659,7 +660,7 @@ If there's so many args, just get as dictionary:
 
 You can access HTTP/HTTPS Web page or RPC Server with asynchronously.
 
-HTTP/HTTPS
+HTTP/HTTPS GET
 
     @app.route ("/test/wget")
     def wget (was, url = "https://www.python.org"):
@@ -671,32 +672,38 @@ HTTP/HTTPS
         else:
           return "Error"
           
-form-data post request,
+POST form-data request,
      
-     s = was.wget (url, {"cid": "555", "cname="Skitai Corp"})
+     s = was.wget (url, "post", {"cid": "555", "cname": "Skitai Corp"})
      
  
  multipart file upload request,
  
-     s = was.wget (
-     	url, 
-     	{"cid": "555", "cname="Skitai Corp", "file": open ("/data/logo.gif")}, 
-     	multipart = True    
-     )
+     s = was.wget (url, "upload", {"cid": "555", "cname="Skitai Corp", "file": open ("/data/logo.gif")})
+ 
+ PUT method,
+    
+    s = was.wget (url, "put", 'This is put content.')
+ 
+ DELETE, HEAD method,   
+    
+    s = was.wget (url, "delete")
+    s = was.wget (url, "head")
     
  RPC request
     
     @app.route ("/test/rpc")
     def rpc (was):            
-        # rpctype default is "xml"        
         s = was.rpc ("https://www.python.org/rpc2")
         s.query ( "Beethoven")
         return s.getwait (timeout = 2)
 
 If you want JSON-RPC request,
     
-    s = was.rpc ("https://www.python.org/rpc2", rpctype = "json")
+    s = was.rpc ("https://www.python.org/rpc2", "jsonrpc")
     
+*Note:* was.wget() and was.rpc() is basically same, except 2nd arg's default value. First one's is "get", the other's "xmlrpc".
+
 
 ### RPC Map-Filter-Reduce (MFR) Operation
  
@@ -726,7 +733,7 @@ Fisrt example is simple Map-Reduce:
 
 If you want JSON-RPC request,
     
-     s = was.map ("@myrpcs/rpc2", rpctype = "json")
+     s = was.map ("@myrpcs/rpc2", "jsonrpc")
 
     
 If it maybe not need filter operation in ideal situaltion, at real world we sometimes need filter. 
@@ -760,6 +767,22 @@ Because that way make  filter action be worked for waiting another results. We c
     
 - getwait(timeout) used for a result returned from was.lb(), was.dlb(), was.db(), was.wget()
     
+
+If members are not RPC servers but generic HTTP, you can use get, post, head, put, delete (if server allows).
+
+For example, it will be useful for file uploading to multiple servers at once.
+
+    s = was.map ("@myrpcs/resource/new", "post", {"cid": "555", "cname="Skitai Corp"})
+    
+    s = was.map ("@myrpcs/resource/document/555", "put", "Document Number #5")
+    
+    s = was.map ("@myrpcs/resource/document/555", "get")
+    
+    s = was.map ("@myrpcs/resource/document/555", "delete")
+    
+    s = was.map ("@myrpcs/resorce/upload", "upload", {"file": open ("myvideo.mp4")})
+
+And These are same to RPC Load-Balacing.
     
     
 ### RPC Load-Balacing
@@ -1244,33 +1267,28 @@ These object is already explained above.
 
 For HTTP / HTTPS / RPC
 
-was.wget : On-Demand HTTP(S) managed by socket pool
+was.wget: On-Demand HTTP managed by socket pool
 
-    wget (uri, params = None, login = None, encoding = None, multipart = False, filter = None)
-
-was.rpc: On-Demand XML/JSON-RPC managed by socket pool  
-
-    rpc (uri, params = None, rpctype = "xml", login = None, encoding = None, multipart = False, filter = None)   
+    wget (url, reqtype = "get", params = None, login = None, encoding = None, filter = None)   
     
-    rpctype: default: xml, can be json, http
+    reqtype: default: get, get, post, put, delete, head, jsonrpc, xmlrpc
     login: username/password - currently suported only Basic Authorization
-      
-*Note:* wget (url, param) is convinient alias for rpc (uri, param, "http"). It's very helpful remebering that Skitai treats HTTP requests as a kind of RPC.
+
+was.rpc: On-Demand XML/JSON-RPC managed by socket pool
+
+    wget (url, reqtype = "xmlrpc", params = None, login = None, encoding = None, filter = None)
     
 was.map : Map-Filter-Reducing
     
-    map (clustername, params = None, rpctype = "xml", login = None, encoding = None, multipart = False, filter = None)
+    map (@cluster/uri, reqtype = "xmlrpc", params = None, login = None, encoding = None, filter = None)
     
-    rpctype: default: xml, can be json, http
-    multipart: can be yes only rpctype == http
+   reqtype: default: get, get, post, put, delete, head, jsonrpc, xmlrpc
 
 was.lb : Load Bancing
 
-    lb (clustername, params = None, rpctype = "xml", login = None, encoding = None, multipart = False, filter = None)
+    lb (@cluster/uri, reqtype = "xmlrpc", params = None, login = None, encoding = None, filter = None)
     
-    rpctype: default: xml, can be json, http
-    multipart: can be yes only rpctype == http
-    
+    reqtype: default: get, get, post, put, delete, head, jsonrpc, xmlrpc
   
 For PostgreSQL
 
@@ -1280,11 +1298,11 @@ was.db : On-Demand connection managed by db connection pool
 
 was.dmap : Map-Filter-Reducing
 
-    dmap (self, clustername, filter = None)
+    dmap (@cluster, filter = None)
        
 was.dlb : Load Bancing
 
-    dlb (self, clustername, filter = None)
+    dlb (@cluster, filter = None)
 
 
 #### Server Status

@@ -164,6 +164,8 @@ Documentation
 Change Log
 -------------
 
+  0.9.1.29 - was.wget, was.rpc, was.map, was.lb specification changed. see Documentation.
+  
   0.9.1.28 - add HEAD, DELETE, OPTIONS methods
   
   0.9.1.27 - support Map-Reduce, Load_Balanace for (json & xml serialized object over) HTTP Call
