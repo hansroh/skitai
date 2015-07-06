@@ -1,0 +1,51 @@
+[Win32]
+
+T
+300 clients
+50 hits/client
+total hits:15000
+total errors:952
+314.950 seconds
+total hits/sec:47.627
+Max. number of concurrent sessions: 300
+HTTP Response Code Stats
+  200: 14048
+  900: 952
+
+A
+300 clients
+50 hits/client
+total hits:15004
+total errors:536
+403.798 seconds
+total hits/sec:37.157
+Max. number of concurrent sessions: 300
+HTTP Response Code Stats
+
+
+
+[Linux]
+T
+300 clients
+50 hits/client
+total hits:15000
+total errors:27
+116.325 seconds
+total hits/sec:128.949
+Max. number of concurrent sessions: 300
+HTTP Response Code Stats
+  200: 14973
+  900: 27
+  
+A
+300 clients
+50 hits/client
+total hits:15076
+total errors:220
+116.623 seconds
+total hits/sec:129.271
+Max. number of concurrent sessions: 303
+HTTP Response Code Stats
+  200: 14856
+  900: 220
+  

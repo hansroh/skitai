@@ -300,9 +300,8 @@ class Request (http_request.Request):
 				if ll in ("connection", "keep-alive", "accept-encoding", "host"):
 					continue
 				hc [k] = v		
-		
 		hc ["X-Forwarded-For"] = "%s" % self.client_request.get_remote_addr ()
-		
+				
 		req = "%s %s HTTP/%s\r\n%s\r\n\r\n" % (
 			method,
 			self.request.url,
