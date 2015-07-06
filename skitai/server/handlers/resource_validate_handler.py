@@ -5,7 +5,7 @@ class Handler:
 		self.code = 404
 		
 	def match (self, request):
-		exists_resource = self.wasc.apps.has_route (request.uri)
+		exists_resource = self.wasc.apps.has_route (request.split_uri() [0])
 		
 		if exists_resource == 0:
 			self.code = 404

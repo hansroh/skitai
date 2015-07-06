@@ -38,7 +38,7 @@ L = [
 ]
 
 HOSTS = d.keys ()
-#HOSTS = []
+HOSTS = []
 
 for each in L:
 	for i in range (200):
@@ -97,7 +97,7 @@ def o ():
 	d (host)
 
 
-clients = 300
+clients = 10
 req = 2000 - 1900
 hits = 0
 s = time.time ()
