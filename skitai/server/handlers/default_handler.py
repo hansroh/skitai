@@ -135,8 +135,7 @@ class Handler:
 		self.set_content_type (path, request)
 
 		if request.command == 'get':
-			request.response.push (producers.file_producer (file))
-			
+			request.response.push (producers.file_producer (file))		
 		request.response.done()
 
 	def set_content_type (self, path, request):

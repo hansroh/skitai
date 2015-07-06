@@ -26,11 +26,15 @@ L = [
 "ibizcast.skitai.com:5000/test/dlb",
 "ibizcast.skitai.com:5000/test/dmap",
 "ibizcast.skitai.com:5000/test/lb",
+"ibizcast.skitai.com:5000/test/lb2",
+"ibizcast.skitai.com:5000/test/lb3",
 "ibizcast.skitai.com:5000/test/map",
-"ibizcast.skitai.com:5000/test/rpc",
+"ibizcast.skitai.com:5000/test/map2",
+"ibizcast.skitai.com:5000/test/map3",
 "ibizcast.skitai.com:5000/images/concept.png",
-#"ibizcast.skitai.com:5000/test/wget?url=http%3A//www.openfos.com/",
-#"ibizcast.skitai.com:5000/openfos"
+"ibizcast.skitai.com:5000/test/rpc",
+"ibizcast.skitai.com:5000/test/wget?url=http%3A//www.openfos.com/",
+"ibizcast.skitai.com:5000/openfos"
 ]
 
 HOSTS = d.keys ()

@@ -164,6 +164,8 @@ Documentation
 Change Log
 -------------
 
+  0.9.1.28 - add HEAD, DELETE, OPTIONS methods
+  
   0.9.1.27 - support Map-Reduce, Load_Balanace for (json & xml serialized object over) HTTP Call
   
   0.9.1.26 - fix response.error

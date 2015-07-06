@@ -28,7 +28,7 @@ else:
 		
 from handlers import default_handler, ssgi_handler, \
 	xmlrpc_handler, proxypass_handler, proxy_handler, \
-	multipart_handler, check404_handler
+	multipart_handler, resource_validate_handler, options_handler
 from threads import threadlib, trigger
 from skitai.lib import logger, confparse, pathtool, flock
 from rpc import cluster_dist_call, cachefs		
@@ -178,16 +178,18 @@ class Loader:
 			
 	def install_handler (self, routes = {}, proxy = False, static_max_age = 300, max_file_size = 0):		
 		clusters = self.wasc.clusters		
+		
 		if proxy:
-			self.wasc.add_handler (1, proxy_handler.Handler, clusters, self.wasc.cachefs)			
-			
-		apps = appmanger.ModuleManager(self.wasc)		
-		self.wasc.register ("apps", apps)
+			self.wasc.add_handler (1, proxy_handler.Handler, clusters, self.wasc.cachefs)
 		self.wasc.add_handler (1, proxypass_handler.Handler, clusters, self.wasc.cachefs)
-				
+		
+		self.wasc.add_handler (1, options_handler.Handler)		
 		routes_directory = {}
 		alternative_handlers = []
 		self.wasc.add_handler (1, default_handler.Handler, routes_directory, static_max_age, alternative_handlers)
+		
+		apps = appmanger.ModuleManager(self.wasc)		
+		self.wasc.register ("apps", apps)
 		
 		for line in routes:
 			route, target = map (lambda x: x.strip (), line.split ("=", 1))
@@ -206,7 +208,7 @@ class Loader:
 				fullpath = os.path.split (target.strip())
 				apps.add_module (route, os.sep.join (fullpath[:-1]), fullpath [-1])
 			
-		#alternative_handlers.append (check404_handler.Handler (self.wasc))
+		alternative_handlers.append (resource_validate_handler.Handler (self.wasc))
 		alternative_handlers.append (multipart_handler.Handler (self.wasc, max_file_size))		
 		alternative_handlers.append (xmlrpc_handler.Handler (self.wasc))
 		if JSONRPBLIB:

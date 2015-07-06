@@ -333,9 +333,13 @@ class Handler (ssgi_handler.Handler):
 		return 0
 	
 	def handle_request (self, request):
-		if request.command in ('post', 'put', 'get', 'put'):
+		if request.command == "connect":
+			request.response.error (405)
+			# GIVE UP :-(
+			#ssl_tunnel.AsynSSLConnect (request, self.wasc.logger.get ("server"))
+		
+		else:
 			collector = None
-												
 			if request.command in ('post', 'put'):
 				ct = request.get_header ("content-type")
 				if not ct: ct = ""
@@ -346,15 +350,8 @@ class Handler (ssgi_handler.Handler):
 					collector.start_collect ()					
 				else:
 					return # not allowed
-			
-			self.continue_request(request, collector)
-		
-		elif request.command == "connect":
-			request.response.error (501)
-			#ssl_tunnel.AsynSSLConnect (request, self.wasc.logger.get ("server"))
-			
-		else:
-			request.response.error (405)
+								
+			self.continue_request(request, collector)			
 					
 	def continue_request (self, request, collector):	
 		request.response ["Proxy-Agent"] = "sae-asynconnect"
