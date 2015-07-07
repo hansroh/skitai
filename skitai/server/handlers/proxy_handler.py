@@ -279,6 +279,12 @@ class Request (http_request.Request):
 	def get_request_buffer (self):
 		data = self.request.get_data ()
 		hc = {}
+		
+		if self.asyncon.address [1] in (80, 443):
+			hc ["Host"] = "%s" % self.asyncon.address [0]
+		else:
+			hc ["Host"] = "%s:%d" % self.asyncon.address
+			
 		hc ["Connection"] = self.connection
 		hc ["Accept-Encoding"] = "gzip"
 		
@@ -289,7 +295,7 @@ class Request (http_request.Request):
 			for line in additional_headers:
 				k, v = line.split (": ", 1)
 				ll = k.lower ()
-				if ll in ("connection", "keep-alive", "accept-encoding"):
+				if ll in ("connection", "keep-alive", "accept-encoding", "host"):
 					continue
 				hc [k] = v
 				

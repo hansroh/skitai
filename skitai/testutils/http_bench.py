@@ -116,12 +116,16 @@ def make_testset (testproxy):
 	global HOSTS
 	
 	if testproxy:
-		PTEST = {}	
-		f = open ("hosts.txt")
-		for line in f:			
-			host = line.lower ().strip ()
-			PTEST [host] = None
-		HOSTS = PTEST.keys ()	
+		PTEST = {}
+		try:
+			f = open ("hosts.txt")
+		except (IOError, OSError):
+			print "[error] no hosts.txt file, ignore proxy test"
+		else:	
+			for line in f:			
+				host = line.lower ().strip ()
+				PTEST [host] = None
+			HOSTS = PTEST.keys ()
 	
 	L = [
 			"/test/db",
@@ -135,8 +139,8 @@ def make_testset (testproxy):
 			"/test/map3",
 			"/images/concept.png",
 			"/test/rpc",
-			"/test/wget?url=http%3A//www.openfos.com/",
-			"/openfos",
+			"/test/wget",
+			"/reverseproxy",
 			"/test/options"
 	]	
 	

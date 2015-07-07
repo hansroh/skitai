@@ -197,7 +197,7 @@ class Loader:
 			if target.startswith ("@"):
 				if route [-1] == "/":
 					route = route [:-1]
-				clusters [target [1:].strip ()].set_route (route)
+				clusters [target [1:].strip ()].set_route (route)				
 			
 			elif os.path.isdir (target):
 				if route [-1] == "/":
