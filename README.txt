@@ -18,7 +18,7 @@ SAEL orients light-weight,simplicity  and strengthen networking operations with 
 It also influenced by Zope_ and Flask_ a lot.
 
 - It can be run as XML/JSON-RPC, Web and Proxy & Loadbancing Server.
-- It can request massive RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily.
+- It can request massive RESTful api/RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily.
 - It provides asynchronous PostgreSQL query execution
 
 Skitai is not a framework for convinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your apps as both server and client.
