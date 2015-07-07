@@ -227,22 +227,21 @@ class Handler:
 		try:
 			ct = request.get_header ("content-type")
 			if ct is None: ct = ""
-				
-			if request.command == "get" or ct.startswith ("application/x-www-form-urlencoded"):
+			
+			if request.command == "get":
+				args = self.parse_args (query, None)				
+			elif request.command == "post" and ct.startswith ("application/x-www-form-urlencoded"):
 				args = self.parse_args (query, data)
-				was = self.create_was (request, app)
-				
 			elif ct.startswith ("multipart/form-data"):
 				args = data
 				# cached form data string if size < 10 MB
 				# it used for relay small files to the others				
 				for k, v in self.parse_args (query, None).items ():
-					args [k] = v				
-				was = self.create_was (request, app)
-				
-			else:	# xml, json
+					args [k] = v
+			else:	# xml, json should use request.get_body ()
 				args = {}
-				was = self.create_was (request, app)
+			
+			was = self.create_was (request, app)
 							
 		except:
 			self.wasc.logger.trace ("server",  request.uri)

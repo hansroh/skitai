@@ -282,24 +282,17 @@ class Request (http_request.Request):
 		hc ["Connection"] = self.connection
 		hc ["Accept-Encoding"] = "gzip"
 		
-		if self.asyncon.address [1] in (80, 443):
-			hc ["Host"] = "%s" % self.asyncon.address [0]
-		else:
-			hc ["Host"] = "%s:%d" % self.asyncon.address
-		
-		if not data:
-			method = "GET"
-		else:	
-			method = "POST"
-			
+		method = self.request.get_method ()			
 		additional_headers = self.client_request.get_headers ()
+		
 		if additional_headers:
 			for line in additional_headers:
 				k, v = line.split (": ", 1)
 				ll = k.lower ()
-				if ll in ("connection", "keep-alive", "accept-encoding", "host"):
+				if ll in ("connection", "keep-alive", "accept-encoding"):
 					continue
-				hc [k] = v		
+				hc [k] = v
+				
 		hc ["X-Forwarded-For"] = "%s" % self.client_request.get_remote_addr ()
 				
 		req = "%s %s HTTP/%s\r\n%s\r\n\r\n" % (

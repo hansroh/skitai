@@ -60,21 +60,22 @@ class WAS:
 			clustername = clustername [1:]
 		return clustername, "/" + uri
 		
-	def map (self, clustername, reqtype = "xmlrpc", params = None, login = None, encoding = None, filter = None):		
+	def map (self, clustername, method = "XMLRPC", data = None, filter = None, headers = None, login = None, encoding = None):		
 		clustername, uri = self.__detect_cluster (clustername)
-		return self.clusters_for_distcall [clustername].Server (uri, params, reqtype, login, encoding, mapreduce = True, callback = filter)
+		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, login, encoding, mapreduce = True, callback = filter)
 	
-	def lb (self, clustername, reqtype = "xmlrpc", params = None, login = None, encoding = None, filter = None):
+	def lb (self, clustername, method = "XMLRPC", data = None, filter = None, headers = None, login = None, encoding = None):
 		clustername, uri = self.__detect_cluster (clustername)
-		return self.clusters_for_distcall [clustername].Server (uri, params, reqtype, login, encoding, mapreduce = False, callback = filter)
+		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, login, encoding, mapreduce = False, callback = filter)
 	
-	def rpc (self, uri, reqtype = "xmlrpc", params = None, login = None, encoding = None, filter = None):
-		return self.clusters_for_distcall ["__socketpool__"].Server (uri, params, reqtype, login, encoding, mapreduce = False, callback = filter)
+	def rest (self, uri, method = "XMLRPC", data = None, filter = None, headers = None, login = None, encoding = None):
+		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, headers, login, encoding, mapreduce = False, callback = filter)
+	rpc = rest
 	
-	def wget (self, uri, reqtype = "get", params = None, *args, **kargs):
-		if reqtype == "get" and params: 
-			reqtype = "post"
-		return self.rpc (uri, reqtype, params, *args, **kargs)	
+	def wget (self, uri, data = None, *args, **kargs):
+		if data: method = "POST"
+		else: method = "GET"
+		return self.rpc (uri, method, data, *args, **kargs)
 	
 	def db (self, server, dbname, user, password, dbtype = "postgresql", filter = None):
 		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, user, password, dbtype, mapreduce = False, callback = filter)

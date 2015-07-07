@@ -14,7 +14,7 @@ except ImportError:
 class XMLRPCRequest:
 	content_type = "text/xml"
 			
-	def __init__ (self, uri, method, params = (), encoding = "utf8", login = None, logger = None):
+	def __init__ (self, uri, method, params = (), headers = None, encoding = "utf8", login = None, logger = None):
 		self.uri = uri
 		if uri.startswith ("http://") or uri.startswith ("https://"):
 			self.url = self.make_url (uri)
@@ -22,6 +22,7 @@ class XMLRPCRequest:
 			self.url = uri
 		self.method = method
 		self.params = params
+		self.headers = headers
 		self.encoding = encoding
 		self.login = login
 		self.logger = logger
@@ -52,8 +53,19 @@ class XMLRPCRequest:
 		return self.data
 			
 	def get_content_type (self):
+		if self.headers:
+			for k, v in self.headers.items ():
+				if k.lower () == "content-type":
+					self.content_type = v
+					del self.headers [k]					
 		return self.content_type
-		
+	
+	def get_headers (self):
+		if self.headers:
+			return self.headers.items ()
+		else:
+			return []	
+			
 
 if JSONRPCLIB:
 	class JSONRPCRequest (XMLRPCRequest):
@@ -66,7 +78,7 @@ if JSONRPCLIB:
 class HTTPRequest (XMLRPCRequest):
 	content_type = "application/x-www-form-urlencoded"
 	
-	def __init__ (self, uri, method, formdata = {}, login = None, logger = None):
+	def __init__ (self, uri, method, formdata = {}, headers = None, login = None, logger = None):
 		self.uri = uri
 		self.method = method
 		if uri.startswith ("http://") or uri.startswith ("https://"):
@@ -75,49 +87,48 @@ class HTTPRequest (XMLRPCRequest):
 			self.url = uri
 		
 		self.formdata = formdata
+		self.headers = headers
 		self.login = login
 		self.logger = logger
+			
 		self.data = self.serialize ()
 	
 	def get_method (self):
 		return self.method.upper ()
 					
 	def serialize (self):
+		# formdata type can be string, dict, boolean
 		if not self.formdata:
+			# no content, no content-type
+			self.content_type = None		
 			return ""
-		if type (self.formdata) is type ({}):
-			return "&".join (["%s=%s" % (urllib.quote (k), urllib.quote (v)) for k, v in self.formdata.items ()])
-		return self.formdata
 
+		if type (self.formdata) is type ({}):
+			if self.get_content_type () != "application/x-www-form-urlencoded":
+				raise TypeError ("POST Body should be string or can be encodable")
+			return "&".join (["%s=%s" % (urllib.quote (k), urllib.quote (v)) for k, v in self.formdata.items ()])
+			
+		return self.formdata
+		
 	
 class HTTPPutRequest (HTTPRequest):
+	# PUT content-type hasn't got default type
 	content_type = None
-		
-	def __init__ (self, uri, method, formdata = "", login = None, logger = None):
-		self.uri = uri
-		self.method = method
-		if uri.startswith ("http://") or uri.startswith ("https://"):
-			self.url = self.make_url (uri)
-		else:	
-			self.url = uri
-		
-		self.formdata = formdata
-		self.login = login
-		self.logger = logger
-		self.data = self.serialize ()
-	
+			
 	def get_method (self):
 		return "PUT"
 					
-	def serialize (self):		
+	def serialize (self):
+		if type (self.formdata) is not type (""):
+			raise TypeError ("PUT body must be string")
 		return self.formdata
 		
 		
 class HTTPMultipartRequest (HTTPRequest):
 	boundary = "-------------------SAE-20150614204358"
 	
-	def __init__ (self, uri, formdata = {}, login = None, logger = None):
-		HTTPRequest.__init__ (self, uri, formdata, login, logger)
+	def __init__ (self, uri, formdata = {}, headers = None, login = None, logger = None):
+		HTTPRequest.__init__ (self, uri, formdata, headers, login, logger)
 		if type (self.formdata) is type (""):
 			self.find_boundary ()
 	
@@ -125,6 +136,7 @@ class HTTPMultipartRequest (HTTPRequest):
 		return "POST"
 						
 	def get_content_type (self):
+		HTTPRequest.get_content_type () # for remove content-type header
 		return "multipart/form-data; boundary=" + self.boundary
 			
 	def find_boundary (self):
@@ -207,6 +219,9 @@ class Request:
 		auth = self.request.get_auth ()
 		if auth:
 			hc ["Authorization"] = "Basic %s" % auth
+		
+		for k, v in self.request.get_headers ():
+			hc [k] = v
 		
 		req = "%s %s HTTP/%s\r\n%s\r\n\r\n" % (
 			self.request.get_method (),

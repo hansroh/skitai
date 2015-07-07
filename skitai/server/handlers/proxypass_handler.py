@@ -58,7 +58,7 @@ class Handler (proxy_handler.Handler):
 				route
 			), 'warn')
 		
-		fetcher = http_request.HTTPRequest (psysicaluri, collector is not None, logger = self.wasc.logger.get ("server"))		
+		fetcher = http_request.HTTPRequest (psysicaluri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))		
 		r = proxy_handler.Request (asyncon, fetcher, self.callback, request, collector)
 		r.start ()
 	

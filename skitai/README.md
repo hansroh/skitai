@@ -395,7 +395,7 @@ Imagine your app methods is App Server Class' methods.
  And provide some asynchronous networking methods: 
  
 - was.wget()
-- was.rpc()
+- was.rest()
 - was.map()
 - was.lb()
 - was.db()
@@ -656,15 +656,15 @@ If there's so many args, just get as dictionary:
 
 
 
-### Requesting HTTP(S), RPC
+### Requesting HTTP(S) Data
 
 You can access HTTP/HTTPS Web page or RPC Server with asynchronously.
 
-HTTP/HTTPS GET
+**HTTP/HTTPS GET, POST**
 
     @app.route ("/test/wget")
-    def wget (was, url = "https://www.python.org"):
-        s = was.wget (url)
+    def wget (was):
+        s = was.wget ("https://www.python.org")
                 
         rs = s.getwait (timeout = 2)
         if rs.status == 3:
@@ -672,46 +672,69 @@ HTTP/HTTPS GET
         else:
           return "Error"
           
-POST form-data request,
+**POST form-data request,**
      
-     s = was.wget (url, "post", {"cid": "555", "cname": "Skitai Corp"})
+     s = was.wget (url,{"cid": "555", "cname": "Skitai Corp"})
      
+
+
+### Requesting HTTP(S) Data / RPC with other various methods
+
+Use **was.rest**, not was.wget
  
- multipart file upload request,
- 
-     s = was.wget (url, "upload", {"cid": "555", "cname="Skitai Corp", "file": open ("/data/logo.gif")})
- 
- PUT method,
-    
-    s = was.wget (url, "put", 'This is put content.')
- 
- DELETE, HEAD method,   
-    
-    s = was.wget (url, "delete")
-    s = was.wget (url, "head")
-    
- RPC request
+**XML-RPC request**
     
     @app.route ("/test/rpc")
     def rpc (was):            
-        s = was.rpc ("https://www.python.org/rpc2")
+        s = was.rest ("https://www.python.org/rpc2")
         s.query ( "Beethoven")
         return s.getwait (timeout = 2)
 
-If you want JSON-RPC request,
+**JSON-RPC request,**
     
-    s = was.rpc ("https://www.python.org/rpc2", "jsonrpc")
+    s = was.rest ("https://www.python.org/rpc2", "JSONRPC")
+
+ 
+**multipart file upload request,**
+ 
+     s = was.rest (url, "UPLOAD", {"cid": "555", "file": open ("img/logo.gif")})
+ 
+  *Note:* It will be ignored 'Content-Type' key on headers arg, if you even set.
+
+**PUT method,**
     
-*Note:* was.wget() and was.rpc() is basically same, except 2nd arg's default value. First one's is "get", the other's "xmlrpc".
+    s = was.rest (url, "PUT", 'This is put content.', headers = {"Content-Type": "text/plain"})
+
+  *Note:* PUT data doesn't have default Content-Type. If you doesn't specify, it will not be sent Content-Type header.
+ 
+**DELETE, HEAD method,**   
+    
+    s = was.rest (url, "DELETE")
+    s = was.rest (url, "HEAD")
+    
+**GET, POST method,**
+
+was.rest() and was.wget() is basically same except one ARGS (see Spec). 
+
+was.wget is just  for your convinient.
+        
+    was.rest (url, "GET") is equivalent to was.wget (url)
+    
+    was.rest (url, "POST", {"cid": "555", "cname": "Skitai Corp"})  is equivalent to:
+      
+      was.wget (url, {"cid": "555", "cname": "Skitai Corp"})
+
 
 
 ### RPC Map-Filter-Reduce (MFR) Operation
  
- At first, you configure members like this:   
+ At first, you configure alias like this:   
     
     [@myrpcs]
     ssl = yes
     members = s1.yourserver.com:5000,s2.yourserver.com:5000,s3.yourserver.com:5000
+
+*Note:* You can create alias has only one member for your need or later addition.
 
 Then you can MFR operation using 'myrpcs'.
 
@@ -733,7 +756,7 @@ Fisrt example is simple Map-Reduce:
 
 If you want JSON-RPC request,
     
-     s = was.map ("@myrpcs/rpc2", "jsonrpc")
+     s = was.map ("@myrpcs/rpc2", "JSONRPC")
 
     
 If it maybe not need filter operation in ideal situaltion, at real world we sometimes need filter. 
@@ -772,18 +795,18 @@ If members are not RPC servers but generic HTTP, you can use get, post, head, pu
 
 For example, it will be useful for file uploading to multiple servers at once.
 
-    s = was.map ("@myrpcs/resource/new", "post", {"cid": "555", "cname="Skitai Corp"})
+    s = was.map ("@myrpcs/resource/new", "POST", {"cid": "555", "cname="Skitai Corp"})
     
-    s = was.map ("@myrpcs/resource/document/555", "put", "Document Number #5")
+    s = was.map ("@myrpcs/resource/document/555", "PUT", "Document Number #5")
     
-    s = was.map ("@myrpcs/resource/document/555", "get")
+    s = was.map ("@myrpcs/resource/document/555", "GET")
     
-    s = was.map ("@myrpcs/resource/document/555", "delete")
+    s = was.map ("@myrpcs/resource/document/555", "DELETE")
     
-    s = was.map ("@myrpcs/resorce/upload", "upload", {"file": open ("myvideo.mp4")})
+    s = was.map ("@myrpcs/resorce/upload", "UPLOAD", {"file": open ("myvideo.mp4")})
 
 And These are same to RPC Load-Balacing.
-    
+
     
 ### RPC Load-Balacing
 
@@ -827,7 +850,7 @@ There're no was.db.close (), db connections are managed by was' db pool. Just qu
 
 ### PostgreSQL Map-Filter-Reduce (MFR) Operation
  
-At first, you configure members like this:   
+At first, you configure alias like this:   
     
     [@mydbs]
     type = posgresql    
@@ -1267,42 +1290,68 @@ These object is already explained above.
 
 For HTTP / HTTPS / RPC
 
-was.wget: On-Demand HTTP managed by socket pool
+**was.wget**: On-Demand HTTP managed by socket pool
 
-    wget (url, reqtype = "get", params = None, login = None, encoding = None, filter = None)   
+    wget (url, data = None, filter = None, headers = None, login = None, encoding = None)   
+      
+    data: 
+      dictionary
     
-    reqtype: default: get, get, post, put, delete, head, jsonrpc, xmlrpc
-    login: username/password - currently suported only Basic Authorization
+    filter:
+      function (resiult)
+         
+    login: 
+      username/password - for Basic Authorization
+      
+    headers:
+      dictionary ex. {"Content-Range": "-512"}
 
-was.rpc: On-Demand XML/JSON-RPC managed by socket pool
+*Note*: was.wget is just convinient alias for was.rest
 
-    wget (url, reqtype = "xmlrpc", params = None, login = None, encoding = None, filter = None)
+    was.wget ("http://localhost/") is equivalent to was.rest ("http://localhost/", "GET")
     
-was.map : Map-Filter-Reducing
+    was.wget ("http://localhost/", {"username": "hansroh"}) is equivalent to was.rest ("http://localhost/", "POST", {"username": "hansroh"})
     
-    map (@cluster/uri, reqtype = "xmlrpc", params = None, login = None, encoding = None, filter = None)
-    
-   reqtype: default: get, get, post, put, delete, head, jsonrpc, xmlrpc
 
-was.lb : Load Bancing
+**was.rest**: On-Demand XML/JSON-RPC managed by socket pool
 
-    lb (@cluster/uri, reqtype = "xmlrpc", params = None, login = None, encoding = None, filter = None)
+    rest (url, method = "XMLRPC", data = None, filter = None, headers = None, login = None, encoding = None)
     
-    reqtype: default: get, get, post, put, delete, head, jsonrpc, xmlrpc
-  
+    method:
+      XMLRPC (default), GET, POST, PUT, DELETE, HEAD, JSONRPC and all methods supported by target server    
+      
+    * the other args is same as was.wget  
+    
+*Note*: If your POST data is not "application/x-www-form-urlencoded", you should be notify with headers.
+
+    was.rest ("http://localhost/", "POST", JSONDATA, headers = {"Content-Type": "application/json"})
+    
+    
+**was.map**: Map-Filter-Reducing
+    
+    map (@alias/uri, method = "XMLRPC", data = None, filter = None, headers = None, login = None, encoding = None)
+    
+    method: XMLRPC (default), GET, POST, PUT, DELETE, HEAD, JSONRPC and all methods supported by target server
+
+**was.lb**: Load Bancing
+
+    lb (@alias/uri, method = "XMLRPC", data = None, filter = None, headers = None, login = None, encoding = None)
+    
+    method: XMLRPC (default), GET, POST, PUT, DELETE, HEAD, JSONRPC and all methods supported by target server
+
 For PostgreSQL
 
-was.db : On-Demand connection managed by db connection pool
+**was.db**: On-Demand connection managed by db connection pool
     
     db (server, dbname, user, password, dbtype = "postgresql", filter = None)    
 
-was.dmap : Map-Filter-Reducing
+**was.dmap**: Map-Filter-Reducing
 
-    dmap (@cluster, filter = None)
+    dmap (@alias, filter = None)
        
-was.dlb : Load Bancing
+**was.dlb**: Load Bancing
 
-    dlb (@cluster, filter = None)
+    dlb (@alias, filter = None)
 
 
 #### Server Status

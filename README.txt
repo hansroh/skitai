@@ -163,7 +163,9 @@ Documentation
 
 Change Log
 -------------
-
+  
+  0.9.1.30 - was.wget, was.rest (former was.rpc), was.map, was.lb specification changed. see Documentation.
+  
   0.9.1.29 - was.wget, was.rpc, was.map, was.lb specification changed. see Documentation.
   
   0.9.1.28 - add HEAD, DELETE, OPTIONS methods
