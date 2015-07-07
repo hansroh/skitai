@@ -1,0 +1,7 @@
+*.pyc
+*.o
+*.a
+hosts.txt
+build/
+dist/
+skitai.egg-info/
