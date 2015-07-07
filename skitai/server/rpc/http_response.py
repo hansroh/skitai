@@ -80,14 +80,18 @@ class Response:
 		
 		request_content_type = request.get_content_type ()
 		current_content_type = self.get_header ("content-type")
-		if current_content_type.startswith ("text/xml") or request_content_type == "text/xml": # by blade rpc2
-			self.reqtype = "rpc2"
+		if current_content_type is None:
+			current_content_type = ""
+			
+		if current_content_type.startswith ("text/xml") or request_content_type == "text/xml":
+			self.reqtype = "XMLRPC"
 			self.p, self.u = xmlrpclib.getparser()
 		elif current_content_type.startswith ("apllication/json-rpc"):
-			self.reqtype = "rpc3"
-			self.p, self.u = getfakeparser ()
+			self.reqtype = "JSONRPC"
+			self.p, self.u = getfakeparser ()				
+		
 		else:
-			self.reqtype = "html"			
+			self.reqtype = "HTTP"			
 			self.set_max_age ()			
 			self.p, self.u = getfakeparser (cache = self.max_age)			
 					
@@ -196,11 +200,11 @@ class Response:
 		result = self.u.close()
 		
 		if 200 <= self.code < 300:
-			if self.reqtype == "rpc2":
+			if self.reqtype == "XMLRPC":
 				if len(result) == 1:
 					result = result [0]
 				return result
-			elif JSONRPCLIB and self.reqtype == "rpc3":
+			elif JSONRPCLIB and self.reqtype == "JSONRPC":
 				result = jsonrpclib.loads (result)
 				return result
 		return result
@@ -208,7 +212,7 @@ class Response:
 
 class FailedResponse (Response):
 	def __init__ (self, errcode, msg, request = None):
-		self.version, self.code, self.msg = "1.0", errcode, msg
+		self.version, self.code, self.msg, self.header = "1.0", errcode, msg, []
 		self.request = request
 		self.buffer = None
 		self.got_all_data = True

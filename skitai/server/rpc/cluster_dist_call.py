@@ -15,8 +15,10 @@ class Result (rcache.Result):
 		
 	def set_result(self):
 		self.data = self._response.get_content ()
+		self.header = self._response.header
 		self.code = self._response.code
 		self.msg = self._response.msg
+		self.version = self._response.version
 			
 	def cache (self, timeout = 300):
 		self._response = None
@@ -171,8 +173,7 @@ class ClusterDistCall:
 			else: # anyone of nodes
 				self._nodes = [None]
 		
-		_reqtype = self._reqtype.lower ()
-		if _reqtype in ("get", "post", "put", "delete"):
+		if not self._reqtype.lower ().endswith ("rpc"):
 			self._request ("", self._params)
 		
 	def __getattr__ (self, name):	  

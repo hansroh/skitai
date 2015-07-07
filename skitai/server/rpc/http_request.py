@@ -55,7 +55,9 @@ class XMLRPCRequest:
 	def get_content_type (self):
 		if self.headers:
 			for k, v in self.headers.items ():
-				if k.lower () == "content-type":
+				if k.lower () == "content-length":
+					del self.headers [k]
+				elif k.lower () == "content-type":
 					self.content_type = v
 					del self.headers [k]					
 		return self.content_type

@@ -826,7 +826,6 @@ Your app is:
       s.search (keyword)
       return s.getwait (timeout = 2)
 
-
 ### Connect to PostgreSQL
 
 First of all you should know, there're some limitations in asynchronous query execution mode.
@@ -929,6 +928,79 @@ means  maximum number of  RPC/PosgreSQL results
     # cache for 60 sec.
     results.cache (timeout = 60)
 
+
+### Handling Result
+    
+    s = was.lb ("@myrpcs/rpc2")
+    result = s.getwait (5)
+
+
+#### Result of wget, rest, lb, map    
+
+**result.status**
+
+ - 0: Network Connection Failed
+ - 1: Network Timeout
+ - 2: Netowrk Error Occured During Communication
+ - 3: Everything is OK
+ 
+*CAUTION*: Even status is '3', you should check HTTP response code if you want
+
+**result.data**
+
+  Result Data
+
+**result.code**
+  
+  HTTP Response Code
+
+**result.msg**
+  
+  HTTP Response Code Msg
+  
+**result.version**
+  
+  HTTP Response Version
+
+**result.header**
+  
+  HTTP Response Header List
+  
+**result.cache (timeout)**
+  
+  Cache for timout if only status is 3 and code is 200
+
+
+#### Result of db, dlb, dmap    
+
+**result.status**
+
+ - 0: Network Connection Failed
+ - 1: Network Timeout
+ - 2: Server Returned Error
+ - 3: Everything is OK
+
+**result.data**
+
+  Result Data
+
+**result.description**
+
+  Cursor's Description
+  
+**result.throw ()**
+  
+  raise Raise Error
+
+**result.show_error ()**	
+	
+	Error as String
+  
+**result.cache (timeout)**
+  
+  Cache for timout if only status is 3
+  
+  
     
 ### Rendering HTML with Jinja2 Template
 
@@ -1286,65 +1358,87 @@ These object is already explained above.
 
 
 
-#### Asynchronous Network Related Services
+#### HTTP(S) GET/POST Requests
 
-For HTTP / HTTPS / RPC
-
-**was.wget**: On-Demand HTTP managed by socket pool
+**was.wget**: On-Demand HTTP GET/POST Reuest managed by socket pool
 
     wget (url, data = None, filter = None, headers = None, login = None, encoding = None)   
       
     data: 
-      dictionary
+      string
+      dictionary if content-type is application/x-www-form-urlencoded (ans it's default)      
     
     filter:
-      function (resiult)
-         
-    login: 
-      username/password - for Basic Authorization
-      
+      function (result)
+    
     headers:
       dictionary ex. {"Content-Range": "-512"}
+     
+    login: 
+      username/password - for Basic Authorization
 
-*Note*: was.wget is just convinient alias for was.rest
+    encoding:
+      character set
+    
+  *Note*: was.wget is just convinient alias for was.rest
 
     was.wget ("http://localhost/") is equivalent to was.rest ("http://localhost/", "GET")
     
-    was.wget ("http://localhost/", {"username": "hansroh"}) is equivalent to was.rest ("http://localhost/", "POST", {"username": "hansroh"})
+    was.wget ("http://localhost/", {"username": "hansroh"}) is equivalent to
+      was.rest ("http://localhost/", "POST", {"username": "hansroh"})
     
 
-**was.rest**: On-Demand XML/JSON-RPC managed by socket pool
+#### XML/JSON-RPC & HTTP(S) Various Method Requests
+
+**was.rest**: On-Demand XML/JSON-RPC & Various HTTP Methods Reuest managed by socket pool
 
     rest (url, method = "XMLRPC", data = None, filter = None, headers = None, login = None, encoding = None)
     
     method:
-      XMLRPC (default), GET, POST, PUT, DELETE, HEAD, JSONRPC and all methods supported by target server    
+      XMLRPC (default), GET, POST, PUT, DELETE, HEAD, JSONRPC and 
+      all methods supported by target server    
       
-    * the other args is same as was.wget  
-    
+    data: 
+      It should be None in case XMLRPC, JSONRPC
+      It should be string in case POST, PUT but if POST content-type is 
+        application/x-www-form-urlencoded, will be allowed dictionary.
+      
+    * Refer was.wget for details of rest of args 
+      
 *Note*: If your POST data is not "application/x-www-form-urlencoded", you should be notify with headers.
 
     was.rest ("http://localhost/", "POST", JSONDATA, headers = {"Content-Type": "application/json"})
     
+#### Map-Filter-Reducing Request
     
 **was.map**: Map-Filter-Reducing
     
     map (@alias/uri, method = "XMLRPC", data = None, filter = None, headers = None, login = None, encoding = None)
     
-    method: XMLRPC (default), GET, POST, PUT, DELETE, HEAD, JSONRPC and all methods supported by target server
+    * Refer was.rest for details of rest of args 
+
+
+#### Load-Banlacing Request
 
 **was.lb**: Load Bancing
 
     lb (@alias/uri, method = "XMLRPC", data = None, filter = None, headers = None, login = None, encoding = None)
     
-    method: XMLRPC (default), GET, POST, PUT, DELETE, HEAD, JSONRPC and all methods supported by target server
+    * Refer was.rest for details of rest of args 
 
-For PostgreSQL
+
+#### PostgreSQL
 
 **was.db**: On-Demand connection managed by db connection pool
     
     db (server, dbname, user, password, dbtype = "postgresql", filter = None)    
-
+    
+    server:
+      adress:port ex.127.0.0.1:5432
+    
+    filter:
+      function (result)
+      
 **was.dmap**: Map-Filter-Reducing
 
     dmap (@alias, filter = None)
@@ -1356,13 +1450,19 @@ For PostgreSQL
 
 #### Server Status
 
-was.status()
-
-This methods is reliable when run with single process for app development. 
-
-But in multi processes, don't believe most all nuber and objects status.
+**was.status(flt = None, fancy = True)**
 
 Display all server resources has status () method.
+
+    flt:
+      filter by object alias
+    
+    fancy:
+      return HTMKL Format if True, else return dictionary  
+
+This is mostly for server developing purpose, but all apps can access them.
+
+It is reliable when run with single process, but in multi processes (workers) don't believe most all numbers and objects status.
 
 - was.apps
 - was.cachefs

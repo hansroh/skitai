@@ -136,7 +136,8 @@ def make_testset (testproxy):
 			"/images/concept.png",
 			"/test/rpc",
 			"/test/wget?url=http%3A//www.openfos.com/",
-			"/openfos"
+			"/openfos",
+			"/test/options"
 	]	
 	
 	for each in L:

@@ -40,6 +40,7 @@ class	Result (rcache.Result):
 				i += 1
 			d.append (drow)
 		self.data = d
+		self.description = description
 		
 	def get_result (self):	
 		return self.data
