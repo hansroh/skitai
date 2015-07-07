@@ -164,6 +164,8 @@ Documentation
 Change Log
 -------------
   
+  0.9.1.32 - fix revers proxy Host header
+  
   0.9.1.31 - update documentation abount Asyncall Result Handling
   
   0.9.1.30 - was.wget, was.rest (former was.rpc), was.map, was.lb specification changed. see Documentation.

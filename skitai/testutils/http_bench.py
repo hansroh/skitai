@@ -202,6 +202,7 @@ def runthread ():
 def usage ():
 	print "%s [options]" % sys.argv[0]
 	print """
+	--help
 	-c num client
 	-r num request per client
 	-h sadb, default is ibiz
