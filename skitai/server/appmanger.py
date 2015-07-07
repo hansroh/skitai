@@ -23,7 +23,7 @@ class Module:
 		self.module = sys.modules [self.libpath]
 		self.app = self.module.app
 		
-		if self.abspath [-4:] == ".pyc":
+		if self.abspath [-4:] in (".pyc", ".pyo"):
 			self.abspath = self.abspath [:-1]		
 		self.update_file_info ()
 		
@@ -53,7 +53,7 @@ class Module:
 		
 	def start_application (self, packages = None):
 		if "sandbox" in self.abspath.split (os.sep):
-			self.app.set_devel ()
+			self.app.set_devel (True)
 		self.app.run (self.wasc, self.get_route (), packages)	
 	
 	def set_route (self, route):
