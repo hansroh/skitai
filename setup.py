@@ -3,12 +3,11 @@ Hans Roh 2015 -- http://sae.skitai.com
 License: BSD
 """
 
-__VER__ = '0.9.1.32'
+__VER__ = '0.9.2'
 
 import sys
 import os
 from warnings import warn
-import setuptools
 
 try:
 	from setuptools import setup
@@ -24,17 +23,17 @@ if sys.version_info < (2, 7, 0) or sys.version_info >= (3, 0, 0):
 	sys.exit()
 
 classifiers = [
-        'License :: OSI Approved :: BSD License',
-        "Development Status :: 3 - Alpha",
-        'Topic :: Internet :: WWW/HTTP',
-				'Topic :: Internet :: WWW/HTTP :: HTTP Servers',				
-				'Environment :: Console',
-				'Environment :: No Input/Output (Daemon)',
-				'Topic :: Software Development :: Libraries :: Python Modules',
-				'Intended Audience :: Developers',
-				'Intended Audience :: Science/Research',
-				'Programming Language :: Python',
-				'Programming Language :: Python :: 2.7'
+  'License :: OSI Approved :: BSD License',
+  "Development Status :: 3 - Alpha",
+  'Topic :: Internet :: WWW/HTTP',
+	'Topic :: Internet :: WWW/HTTP :: HTTP Servers',				
+	'Environment :: Console',
+	'Environment :: No Input/Output (Daemon)',
+	'Topic :: Software Development :: Libraries :: Python Modules',
+	'Intended Audience :: Developers',
+	'Intended Audience :: Science/Research',
+	'Programming Language :: Python',
+	'Programming Language :: Python :: 2.7'
 ]
     
 packages = [
@@ -53,8 +52,8 @@ packages = [
 ]
 
 package_dir = {
-		'skitai': 'skitai',
-		'skitai.server': 'skitai/server'
+	'skitai': 'skitai',
+	'skitai.server': 'skitai/server'
 }
 
 skitaid_files = [

@@ -164,7 +164,9 @@ Documentation
 Change Log
 -------------
   
-  0.9.1.32 - fix revers proxy Host header
+  0.9.2 - update documentation
+  
+  0.9.1.32 - fix reverse proxy Host header
   
   0.9.1.31 - update documentation abount Asyncall Result Handling
   

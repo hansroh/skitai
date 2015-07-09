@@ -906,29 +906,6 @@ Same config file, and your app is:
     return s.getwait (2)
     
       
-### RPC/PosgreSQL Caching
-
-At config, 
-
-    num_result_cache_max = 2000
-    
-means  maximum number of  RPC/PosgreSQL results
-
-    s = was.dlb ("@mydbs")    
-    s.execute ("SELECT name, population from CITIES;")
-    result =  s.getwait (2)
-    
-    # cache for 300 sec.
-    result.cache (timeout = 300)
-
-    s = was.map ("@myrpcs/rpc2")    
-    s.generate_random_int_list (5)
-    results = s.getswait (5):
-    
-    # cache for 60 sec.
-    results.cache (timeout = 60)
-
-
 ### Handling Result
     
     s = was.lb ("@myrpcs/rpc2")
@@ -990,17 +967,39 @@ means  maximum number of  RPC/PosgreSQL results
   
 **result.throw ()**
   
-  raise Raise Error
+  If status is 2, raise raised PostgeSQL error
 
 **result.show_error ()**	
-	
-	Error as String
+
+  If status is 2. show error as string
   
 **result.cache (timeout)**
   
   Cache for timout if only status is 3
   
-  
+
+### More About Result Caching
+
+At config, 
+
+    num_result_cache_max = 2000
+    
+means  maximum number of  RPC/PosgreSQL results
+
+    s = was.dlb ("@mydbs")    
+    s.execute ("SELECT name, population from CITIES;")
+    result =  s.getwait (2)
+    
+    # cache for 300 sec.
+    result.cache (timeout = 300)
+
+    s = was.map ("@myrpcs/rpc2")    
+    s.generate_random_int_list (5)
+    results = s.getswait (5):
+    
+    # cache for 60 sec.
+    results.cache (timeout = 60)
+      
     
 ### Rendering HTML with Jinja2 Template
 
@@ -1011,6 +1010,7 @@ Directory structure is like this:
                      /tempates/index.html
     
 Now you can get_template ():
+
     from skitai.server import ssgi
     app = ssgi.Application (__name__)
     
@@ -1020,6 +1020,8 @@ Now you can get_template ():
         
         d = {"url": urllib.quote ("https://pypi.python.org/pypi")}
         return template.render (d)
+
+More details for Jinja2, see [Jinja2 documentation](http://jinja.pocoo.org/docs/dev/)
     
     
 ### Cookie & Session
@@ -1027,7 +1029,6 @@ Now you can get_template ():
 For using session, should be enabled first,
 
     app = ssgi.Application (__name__)
-    app.set_devel (True)
     app.use_session (True)
 
 Sign In:
@@ -1196,7 +1197,7 @@ karg is like this:
 
 ### Load-Balancing Reverse Proxy For WEB / RPC
 
-Your congig file:
+Your config file:
     
     [routes:line]
     /articles = @mywebservers
