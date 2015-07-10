@@ -164,7 +164,7 @@ Documentation
 Change Log
 -------------
   
-  0.9.2 - update documentation
+  0.9.2 - fix multipart file upload
   
   0.9.1.32 - fix reverse proxy Host header
   

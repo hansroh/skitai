@@ -140,29 +140,34 @@ class multipart_producer:
 	def __init__ (self, data, boundary):
 		# self.data = {"name": "Hans Roh", "file1": <open (path, "rb")>}
 		self.data = data
-		serf.dlist = []
+		self.dlist = []
 		self.boundary = boundary
 		self.current_file = None
 		self.content_length = self.calculate_size ()
+		#self.bytes_out = 0
 		
 	def calculate_size (self):
-		size = (len (self.boundary) + 2) * (len (self.data) + 1) + 2 # first -- and last --
+		size = (len (self.boundary) + 4) * (len (self.data) + 1) # --boundary + (\r\n or last --)
 		for name, value in self.data.items ():
 			size += (41 + len (name)) #Content-Disposition: form-data; name=""\r\n
 			if type (value) is not type (""):
-				fsize = os.path.getsize (f.name)
+				fsize = os.path.getsize (value.name)
 				size += (fsize + 2) # file size + \r\n
-				fn = os.path.split (f.name) [-1]
+				fn = os.path.split (value.name) [-1]
 				size += len (fn) + 13 # ; filename=""
 				mimetype = mimetypes.guess_type (fn) [0]
 				if not mimetype:
 					mimetype = "application/octet-stream"
 				size += (16 + len (mimetype)) # Content-Type: application/octet-stream\r\n				
+				self.dlist.append ((1, name, (value.name, fn, mimetype)))
 				value.close ()
-				self.dlist.append (1, name, (fn, mimetype))
+			
 			else:
-				self.dlist.append (0, name, value)				
-			size += 2 # header end
+				size += len (value) + 2 # value + \r\n
+				self.dlist.append ((0, name, value))
+							
+			size += 2 # header end \r\n	
+			
 		return size	
 
 	def get_content_length (self):
@@ -181,6 +186,7 @@ class multipart_producer:
 				d = "\r\n"
 				if not self.dlist:
 					d += "--%s--" % self.boundary					
+			#self.bytes_out += len (d)
 			return d
 			
 		if self.dlist:
@@ -190,12 +196,16 @@ class multipart_producer:
 				self.dlist.pop (0)
 				if not self.dlist:
 					d += "--%s--" % self.boundary
+				#self.bytes_out += len (d)
 				return d	
 			else:				
-				self.current_file = open (fisrt [2], "rb")
-				return '--%s\r\nContent-Disposition: form-data; name="%s"; filename="%s"\r\n\r\n%s\r\nContent-Type: %s\r\n\r\n' % (
-					self.boundary, first [1], first [2][0], first [2][1]
+				path, filename, mimetype = first [2]
+				self.current_file = open (path, "rb")
+				return '--%s\r\nContent-Disposition: form-data; name="%s"; filename="%s"\r\nContent-Type: %s\r\n\r\n' % (
+					self.boundary, first [1], filename, mimetype
 				)
+				#self.bytes_out += len (d)
+				#return d
 		
 
 # A simple output producer.  This one does not [yet] have

@@ -152,9 +152,10 @@ class Collector (ssgi_handler.Collector):
 									
 		self.trackable_tail = None
 		self.top_boundary = self.parts.get_boundary ()
-		self.request.channel.set_terminator (self.top_boundary)
+		self.request.channel.set_terminator (self.top_boundary [2:]) # exclude \r\n
 		
 	def collect_incoming_data (self, data):
+		#print data
 		#print "multipart_handler.collector << %d" % len (data), id (self)
 		if self.cached:
 			self.cache.append (data)
@@ -181,7 +182,7 @@ class Collector (ssgi_handler.Collector):
 			if part.is_multipart ():
 				parts = part.value # some browser, same name-multi value data encode to mutipart/mixed
 			else:
-				parts = [part]
+				parts = [part]				
 				for part in parts:
 					if part.is_file ():
 						d = {
@@ -243,7 +244,7 @@ class Collector (ssgi_handler.Collector):
 			
 		else:
 			self.trackable_tail = current_terminator
-			c.set_terminator ("\r\n\r\n")			
+			c.set_terminator ("\r\n\r\n")
 			if self.current_part:
 				self.current_part.end ()			
 			self.current_part = None

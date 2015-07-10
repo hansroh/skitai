@@ -129,8 +129,8 @@ class HTTPPutRequest (HTTPRequest):
 class HTTPMultipartRequest (HTTPRequest):
 	boundary = "-------------------SAE-20150614204358"
 	
-	def __init__ (self, uri, formdata = {}, headers = None, login = None, logger = None):
-		HTTPRequest.__init__ (self, uri, formdata, headers, login, logger)
+	def __init__ (self, uri, method, formdata = {}, headers = None, login = None, logger = None):
+		HTTPRequest.__init__ (self, uri, method, formdata, headers, login, logger)
 		if type (self.formdata) is type (""):
 			self.find_boundary ()
 	
@@ -138,7 +138,7 @@ class HTTPMultipartRequest (HTTPRequest):
 		return "POST"
 						
 	def get_content_type (self):
-		HTTPRequest.get_content_type () # for remove content-type header
+		HTTPRequest.get_content_type (self) # for remove content-type header
 		return "multipart/form-data; boundary=" + self.boundary
 			
 	def find_boundary (self):

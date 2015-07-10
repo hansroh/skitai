@@ -95,10 +95,15 @@ class EURL:
 		if _params: self ['params'] = _params
 		if _query: self ['querystring'] = _query
 		if _fragment: self ['fragment'] = _fragment
+		
+		if self ["method"] == "post" and self ["form"] is None:
+			self ["form"] = self ['querystring']
+			self ['querystring'] = ""
 					
 		if self ['scheme'] not in ("http", "https"):
 			self ['scheme'] = "http"
-		if not self ['script']: self ['script'] = '/'
+		if not self ['script']: 
+			self ['script'] = '/'
 		if self ['querystring']:
 			try: self ['querystring'] = uitl.queryencode (self ['querystring'])
 			except: pass
@@ -140,6 +145,12 @@ class EURL:
 		try: self ['port'] = int (self ['port'])
 		except: self ['port'] = 80
 		
+		self ['headerhost'] = self ['netloc']
+		if self ['scheme'] == "https" and self ['port'] != 443:
+			self ['headerhost'] += ":" + self ['port']
+		elif self ['scheme'] == "http" and self ['port'] != 80:
+			self ['headerhost'] += ":" + self ['port']
+		
 		netloc = self ['netloc']
 		netloc2 = netloc.split (".")
 		if len (netloc2 [-1]) == 3:
@@ -176,7 +187,7 @@ class EURL:
 			request.append ("%s %s HTTP/%s" % (self ["method"].upper (), self ["rfc"], self ["ver"]))			
 		else:	
 			request.append ("%s %s HTTP/%s" % (self ["method"].upper (), self ["uri"], self ["ver"]))
-		request.append ("Host: %s" % self ["netloc"])
+		request.append ("Host: %s" % self ["headerhost"])
 		if self ["keep-alive"]:
 			request.append ("Keep-Alive: %s" % self ["keep-alive"])
 			request.append ("Connection: keep-alive")
@@ -187,9 +198,6 @@ class EURL:
 		request.append ("Cache-Control: max-age=0")
 		request.append ("Accept: */*")
 		
-		if self ["form"]:
-			request.append ("Content-Length: %d" % len (self ["form"]))
-	
 		# set cookie
 		cookie = self ["cookie"]
 		if cookie and localstorage:
@@ -201,13 +209,14 @@ class EURL:
 			
 		# set referer
 		referer = self ["referer"]
-		if not referer:	
-			referer = "https://www.google.com/search?q=http&ie=utf-8&oe=utf-8"
-		request.append ("Referer: %s" % referer)
+		if referer:	
+			request.append ("Referer: %s" % referer)
 		
 		# set user agent
 		if self ["ua"]:
 			request.append ("User-Agent: %s" % ua)
+		else:
+			request.append ("User-Agent: Mozilla/5.0 (Windows NT 6.1; rv:39.0) Gecko/20100101 Firefox/39.0")	
 		
 		# set authorization info.
 		if self ["auth"]:
@@ -216,7 +225,7 @@ class EURL:
 		# post method header	
 		if self ["form"]:
 			request.append ("Content-Type: application/x-www-form-urlencoded")
-			request.append ("Content-length: %d" % len (self ["data"]))
+			request.append ("Content-Length: %d" % len (self ["form"]))
 		
 		# additional request header
 		if self ["header"]:
@@ -226,7 +235,8 @@ class EURL:
 		
 		request = '\r\n'.join (request) + '\r\n\r\n'
 		# form data		
-		if self ["method"] == 'post': request += self ["form"]		
+		if self ["method"] == 'post':
+			request += self ["form"]
 		return request
 		
 	def __sort_args (self, data):
