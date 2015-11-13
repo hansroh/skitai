@@ -7,12 +7,11 @@ __VER__ = '0.9.3.0'
 
 import sys
 import os
-import shutil
+import shutil, glob
 from warnings import warn
-
 try:
 	from setuptools import setup
-except ImportError:
+except ImportError:	
 	from distutils.core import setup
 
 if sys.argv[-1] == 'publish':
@@ -59,13 +58,15 @@ package_dir = {
 
 skitaid_files = [
 	"README.md",
-	"install-data/bin/*.*",	
-	"install-data/etc/init/skitaid.conf", 
-	"install-data/etc/init.d/skitaid", 
-	"install-data/etc/skitaid/skitaid.conf",
-	"install-data/etc/skitaid/servers-available/README.TXT", 
-	"install-data/etc/skitaid/servers-enabled/default.conf",
-	"install-data/etc/skitaid/cert/generate/*.*"
+	"skitaid/bin/*.*",	
+	"skitaid/pub/default/*.py",	
+	"skitaid/pub/default/static/*.*",	
+	"skitaid/etc/init/skitaid.conf",
+	"skitaid/etc/init.d/skitaid", 
+	"skitaid/etc/skitaid/skitaid.conf",
+	"skitaid/etc/skitaid/servers-available/README.TXT", 
+	"skitaid/etc/skitaid/servers-enabled/default.conf",
+	"skitaid/etc/skitaid/cert/generate/*.*"
 ]
 
 package_data = {
@@ -99,12 +100,18 @@ setup(
 if "install" in sys.argv or "develop" in sys.argv:
 	if os.name == "nt":
 		if not os.path.isdir ("c:\\skitaid"):
+			shutil.copytree ("skitai\\skitaid\\etc\\skitaid", "c:\\skitaid\\etc")
 			os.mkdir ("c:\\skitaid")
 			os.mkdir ("c:\\skitaid\\var")
 			os.mkdir ("c:\\skitaid\\log")
-			shutil.copytree ("skitai\\install-data\\etc\\skitaid", "c:\\skitaid\\etc")
-			shutil.copytree ("skitai\\install-data\\bin", "c:\\skitaid\\bin")
-			shutil.copytree ("skitai\\install-data\\pub", "c:\\skitaid\\pub")
+		
+		if os.path.isdir ("c:\\skitaid\\bin"):
+			for each in glob.glob ("c:\\skitaid\\bin\\*"):
+				os.remove (each)
+			os.rmdir ("c:\\skitaid\\bin")	
+		shutil.copytree ("skitai\\skitaid\\bin", "c:\\skitaid\\bin")
+		if not os.path.isdir ("c:\\skitaid\\pub"):
+			shutil.copytree ("skitai\\skitaid\\pub", "c:\\skitaid\\pub")
 			
 		print "\n\n======================================"
 		print "Installation Complete"
@@ -123,12 +130,10 @@ if "install" in sys.argv or "develop" in sys.argv:
 			"""
 		
 			if not os.path.isdir ("/etc/skitaid"):
-				shutil.copytree ("skitai/install-data/etc/skitaid", "/etc/skitaid")			
+				shutil.copytree ("skitai/skitaid/etc/skitaid", "/etc/skitaid")			
 				os.remove ("/etc/skitaid/servers-enabled/default.conf")
-				with open ("skitai/install-data/etc/skitaid/servers-enabled/default.conf") as f:
-					data = f.read ()
-					data = data.replace ("c:\\skitaid\\pub\default\\static", "/var/local/skitaid-pub/default/static")
-					data = data.replace ("c:\\skitaid\\pub\default\\app\\", "/var/local/skitaid-pub/default/app/")			
+				with open ("skitai/skitaid/etc/skitaid/servers-enabled/default.conf") as f:
+					data = f.read ().replace ("c:\\skitaid\\pub\default\\", "/var/local/skitaid-pub/default/")
 				with open ("/etc/skitaid/servers-enabled/default.conf", "w") as f:
 					f.write (data)
 				
@@ -141,16 +146,16 @@ if "install" in sys.argv or "develop" in sys.argv:
 	
 			if os.path.isfile ("/etc/init/skitaid.conf"):
 				os.remove ("/etc/init/skitaid.conf")
-			shutil.copyfile ("skitai/install-data/etc/init/skitaid.conf", "/etc/init/skitaid.conf")		
+			shutil.copyfile ("skitai/skitaid/etc/init/skitaid.conf", "/etc/init/skitaid.conf")		
 			if os.path.isfile ("/usr/local/bin/skitaid.py"):
 				os.remove ("/usr/local/bin/skitaid.py")		
 			if os.path.isfile ("/usr/local/bin/skitaid-instance.py"):
 				os.remove ("/usr/local/bin/skitaid-instance.py")	
-			shutil.copyfile ("skitai/install-data/bin/skitaid.py", "/usr/local/bin/skitaid.py")
-			shutil.copyfile ("skitai/install-data/bin/skitaid-instance.py", "/usr/local/bin/skitaid-instance.py")
+			shutil.copyfile ("skitai/skitaid/bin/skitaid.py", "/usr/local/bin/skitaid.py")
+			shutil.copyfile ("skitai/skitaid/bin/skitaid-instance.py", "/usr/local/bin/skitaid-instance.py")
 			
 			if not os.path.isdir ("/var/local/skitaid-pub"):
-				shutil.copytree ("skitai/install-data/pub", "/var/local/skitaid-pub")
+				shutil.copytree ("skitai/skitaid/pub", "/var/local/skitaid-pub")
 			
 			os.chmod ("/usr/local/bin/skitaid.py", 0755)
 			os.chmod ("/usr/local/bin/skitaid-instance.py", 0755)
@@ -161,4 +166,6 @@ if "install" in sys.argv or "develop" in sys.argv:
 			print "Please run below command in your command prompt\n"
 			print "  sudo skitaid start"
 			print "  wget http://www.localhost:5000"
-		
+	
+
+	
