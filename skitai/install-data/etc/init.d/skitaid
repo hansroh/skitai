@@ -5,14 +5,12 @@
 workdir=/home/skitai/skitai
  
 start() {
-    #cd $workdir
-    #. .venv/bin/activate	
-    /usr/local/bin/skitaid.py &
+    skitaid.py &
     echo "Skitaid App Engine Started."
 }
  
 stop() {
-    pid=`ps -ef | grep '[p]ython ./bin/skitaid.py' | awk '{ print $2 }'`
+    pid=`ps -ef | grep '[s]kitaid.py' | awk '{ print $2 }'`
     #echo $pid
     kill $pid
     sleep 2

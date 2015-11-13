@@ -30,13 +30,13 @@ Skitai is not a framework for convinient developing, module reusability and plug
     ssl = no
 
     [routes:line]
-    / = /home/skitaid/app/static
-    / = /home/skitaid/app/webapp
+    / = /var/local/skitaid-pub/default/static
+    /hello = /var/local/skitaid-pub/default/app/webapp
 
 Save this to 'devel.conf'
 
-### Run Skitaid
-    python server.py -f devel -c
+### Run Skitaid in Console
+    skitaid-instance.py -f devel -v
 
 ### Hello World
 
@@ -150,20 +150,6 @@ or download from
 
   https://pypi.python.org/pypi/skitai
 
-
-### Install Skitaid
-
-__Skitaid is an example implementation server using SAEL__.
-
-In your install dir (ex: .venv/lib/python27/site-packages/skitai)
-
-copy all files from implements/sktaid to any location you want 
-
-like /home/skitaid, c:\skitaid
-
-    cp -rf .venv/lib/python27/site-packages/skitai/implements/skitaid /home/
-    
-    sudo mv /home/skitaid/etc/skitaid /etc/ (On Win32 move to c:\etc\)
     
 ### Configure Skitaid
 
@@ -172,16 +158,13 @@ Review and edit:
 **/etc/skitaid/skitaid.conf**
 
     [global]
-    home = /home/skitaid
-    
-    ; location to save logs, locks, cache files
-    var_path = /home/var
-    
-    ; python path
-    ; on windows can like c:\python27]python.exe        
-    python = python
+    ;log_path = /var/log/skitaid
+    ;var_path = /var/local/skitaid
+        
+    ;for windows
+    ;python = c:\payhon27\python.exe
 
-**/etc/skitaid/servers-enabled/sample.conf**
+**/etc/skitaid/servers-enabled/default.conf**
 
     [server]
     threads = 4
@@ -247,15 +230,15 @@ processes and threads value is usally recommended,
 #### Run in console output for develop or debug
 
     cd /home/skitaid/bin
-    python server.py -c -f sample
+    skitaid-instance.py -v -f default
 
 or silent run
 
-    python server.py -f sample &
+    skitaid-instance.py -f default &
     
 For more detail switch,
 
-    python server.py --help
+    skitaid-instance.py --help
 
 Then go to http://127.0.0.1:5000/ using your web browser
 
@@ -266,14 +249,15 @@ There's two scripts for starting Skitaid server.
 
 bin/skitaid.py will start multiple server instances in all /etc/skitaid/servers-enabled directory.
 
-bin/server.py will start single server instance by command line switch -f [config file name (do not write .conf)]
+bin/skitaid-instance.py will start single server instance by command line switch -f [config file name (do not write .conf)]
 
 Here's some example for running skitaid.py as service.
 
-##### Liunx
-Edit example script under skitaid/etc/init (Ubuntu) & init.d (CentOS)
+##### Liunx (Ubutu)
 
-then copy /etc/init or /etc/init.d by your OS env.
+    sudo start skitaid
+
+    sudo stop skitaid
 
 ##### Win32
 
@@ -284,19 +268,19 @@ Go to skitaid/bin/win32service
 
 ### Shutdown Skitaid
 
-If you start with server.py, Ctrl-C is good.
+If you start with skitaid-instance.py, Ctrl-C is good.
 
 else if run with skitaid.py
 
-    python skitaid.py stop
+    skitaid.py stop
 
 or restarting sample.conf server,
     
-    python skitaid.py -k restart -n sample
+    skitaid.py -k restart -n sample
 
 for more detail switch, 
 
-    python skitaid.py --help
+    skitaid.py --help
 
 if runnig as service on posix,
 
@@ -1336,7 +1320,7 @@ project1.conf will be runs as service with system starting.
 
 sandbox.conf can be run in console with outputing debug msg and viewing error msg.
 
-    python server.py -c -f a/sandbox
+    skitaid-instance.py -v -f a/sandbox
 
 'a/sandbox' means '/etc/skitaid/servers-available/sandbox.conf'
 

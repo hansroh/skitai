@@ -164,6 +164,8 @@ Documentation
 Change Log
 -------------
   
+  0.9.3 - works as standalone server with Python 2.7
+    
   0.9.2 - fix multipart file upload
   
   0.9.1.32 - fix reverse proxy Host header
