@@ -1,4 +1,3 @@
-#!/usr/bin/python2
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
 import sys
@@ -11,18 +10,35 @@ import time
 
 cf = confparse.ConfParse ()
 if os.name == "nt":
-	CONFIGPATH = r"c:\etc\skitaid"	
+	CONFIGPATH = r"c:\skitaid\etc"	
+	SKITAI_BIN = r"c:\skitaid\bin"
+	LOCKDIR = SKITAI_BIN
+	
 else:
 	CONFIGPATH = "/etc/skitaid"
+	SKITAI_BIN = r"/usr/bin/local"
+	LOCKDIR = "/var/lock/skitaid"	
+		
 cf.read (os.path.join (CONFIGPATH, "skitaid.conf"))
 
-SKITAI_HOME = cf.getopt ("global", "home")
-VARDIR = cf.getopt ("global", "var_path")
 PYTHON = cf.getopt ("global", "python")
+if not PYTHON:
+	PYTHON = "python.exe"
+VARDIR = cf.getopt ("global", "var_path")
+if not VARDIR:
+	if os.name == "posix":
+		VARDIR = "/var/local/skitaid"
+	else:
+		VARDIR = r"c:\skitaid\var"
+			
+LOGDIR = cf.getopt ("global", "log_path")
+if not LOGDIR:
+	if os.name == "posix":
+		LOGDIR = "/var/log/skitaid"
+	else:
+		LOGDIR = r"c:\skitaid\log"
 
 CONFIGDIR = os.path.join (CONFIGPATH, "servers-enabled")
-LOGDIR = os.path.join (VARDIR, "logs")
-LOCKDIR = os.path.join (VARDIR, "lock")
 
 LOOP = True
 DIRTY_DIRS = []
@@ -33,7 +49,7 @@ class Server:
 		self.logger = logger
 		self.child = None
 		self.config_path = os.path.join (CONFIGDIR, self.name + ".conf")		
-		self.flock = flock.Lock (os.path.join (VARDIR, "servers", self.name, "lock"))
+		self.flock = flock.Lock (os.path.join (VARDIR, self.name, "lock"))
 		self.start_time = None
 		self.backoff_start_time = None
 		self.backoff_interval = 5
@@ -52,9 +68,13 @@ class Server:
 				
 	def start (self):
 		self.start_time = time.time ()
-		cmd = "%s %s --conf=%s" % (PYTHON, os.path.join (SKITAI_HOME, "bin", "skitaid-instance.py"), self.name)
+		if os.name == "nt":
+			cmd = "%s %s --conf=%s" % (PYTHON, os.path.join (SKITAI_BIN, "skitaid-instance.py"), self.name)
+		else:
+			cmd = "%s --conf=%s" % (PYTHON, os.path.join (SKITAI_BIN, "skitaid-instance.py"), self.name)
+				
 		if not IS_SERVICE:
-			cmd += " --consol"
+			cmd += " --verbose"
 		self.logger ("[info] starting server with option: %s" % cmd)
 		if os.name == "nt":
 			self.child = subprocess.Popen (
@@ -207,7 +227,7 @@ Usage:
 	skitaid.py [stop|rotate] [options...]
 
 Options:
-	--consol or -c : run in consol (default run as service)
+	--verbose or -v : verbiose (default run as service)
 	--name or -n [server name]
 	--command or -k	[command]	
 		command is one of below:
@@ -222,7 +242,7 @@ Options:
 
 Examples:
 	ex. skitaid.py : run as service
-	ex. skitaid.py --consol
+	ex. skitaid.py --verbose
 	ex. skitaid.py stop
 	ex. skitaid.py -k shutdown -n (server-name) 
 	ex. skitaid.py -k restart-all
@@ -231,7 +251,7 @@ Examples:
 def _touch (req, name):
 	if name.endswith (".conf"):
 		name = name [:-5]
-	lockpath = os.path.join (VARDIR, "servers", name, "lock")
+	lockpath = os.path.join (VARDIR, name, "lock")
 	
 	if req == "start": 
 		req = "restart"
@@ -264,8 +284,8 @@ if __name__ == "__main__":
 	import getopt	
 	optlist, args = getopt.getopt(
 		sys.argv[1:], 
-		"n:k:hc", 
-		["help", "consol", "name=", "--command"]
+		"n:k:hv", 
+		["help", "verbose", "name=", "--command"]
 	)
 	
 	# send signal to skitai
@@ -298,7 +318,7 @@ if __name__ == "__main__":
 	name = ""
 	command = ""
 	for k, v in optlist:
-		if k == "--consol" or k =="-c":
+		if k == "--verbose" or k == "-v":
 			IS_SERVICE = False
 		elif k == "--name" or k == "-n":
 			name = v
@@ -328,7 +348,7 @@ if __name__ == "__main__":
 		sys.exit ()
 	
 	l = logger.multi_logger ()
-	l.add_logger (logger.rotate_logger (LOGDIR, "skitai", "monthly"))
+	l.add_logger (logger.rotate_logger (LOGDIR, "monthly"))
 	
 	def hTERM (signum, frame):
 		ServerMamager.stop_all ()
@@ -344,7 +364,7 @@ if __name__ == "__main__":
 		signal.signal(signal.SIGUSR1, hUSR1)
 	
 	if IS_SERVICE:
-		from skitai.lib import devnull		
+		from skitai.lib import devnull
 		sys.stdout = devnull.devnull ()
 		sys.stderr = open (os.path.join (LOGDIR, "skitai_stderr.log"), "a")
 

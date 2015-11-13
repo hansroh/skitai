@@ -59,13 +59,12 @@ package_dir = {
 
 skitaid_files = [
 	"README.md",
-	"install-data/bin/*.*", 
-	"install-data/bin/win32service/*.*",
+	"install-data/bin/*.*",	
 	"install-data/etc/init/skitaid.conf", 
 	"install-data/etc/init.d/skitaid", 
-	"install-data/etc/skitaid/skitaid.conf", 
+	"install-data/etc/skitaid/skitaid.conf",
 	"install-data/etc/skitaid/servers-available/README.TXT", 
-	"install-data/etc/skitaid/servers-enabled/sample.conf",
+	"install-data/etc/skitaid/servers-enabled/default.conf",
 	"install-data/etc/skitaid/cert/generate/*.*"
 ]
 
@@ -97,21 +96,47 @@ setup(
 	classifiers=classifiers
 )
 
-if not os.path.isdir ("c:\\skitaid"):
-	if os.name == "nt":
-			os.mkdir ("c:\\skitaid")
-			os.mkdir ("c:\\skitaid\\var")
-			shutil.copytree ("skitai\\install-data\\etc\\skitaid", "c:\\skitaid\\etc")
-			shutil.copytree ("skitai\\install-data\\bin", "c:\\skitaid\\bin")
-	
-	else:	
-			os.mkdir ("/etc/skitaid")
-			os.mkdir ("/var/log/skitaid")
-			os.mkdir ("/var/local/skitaid")
+
+if os.name == "nt":
+	if not os.path.isdir ("c:\\skitaid"):
+		os.mkdir ("c:\\skitaid")
+		os.mkdir ("c:\\skitaid\\var")
+		os.mkdir ("c:\\skitaid\\log")
+		shutil.copytree ("skitai\\install-data\\etc\\skitaid", "c:\\skitaid\\etc")
+		shutil.copytree ("skitai\\install-data\\bin", "c:\\skitaid\\bin")
+		shutil.copytree ("skitai\\install-data\\pub", "c:\\skitaid\\pub")
+		
+	print "\n\n======================================"
+	print "Installation Complete"
+	print "--------------------------------------"	
+	print "Please run below command in your command prompt with administator privilege\n"
+	print "  cd /d c:\\skitaid\\bin"
+	print "  python install-win32-service.py --startup auto install"
+	print "  python install-win32-service.py start"
+
+else:
+		if not os.path.isdir ("/etc/skitaid"):
+			try: 
+				os.mkdir ("/var/log/skitaid")
+				os.mkdir ("/var/local/skitaid")
+				
+			except OSError, why:
+				if why [0] != 17: 
+					raise
+
 			shutil.copytree ("skitai/install-data/etc/skitaid", "/etc/skitaid")
 			shutil.copyfile ("skitai/install-data/bin/skitaid.py", "/usr/local/bin/skitaid.py")
 			shutil.copyfile ("skitai/install-data/bin/skitaid-instance.py", "/usr/local/bin/skitaid-instance.py")
-			shutil.copyfile ("skitai/install-data/etc/init/skitaid.conf", "/etc/init/skitaid.conf")
 			shutil.copyfile ("skitai/install-data/bin/skitaid.py", "/usr/local/bin/skitaid.py")
 			shutil.copyfile ("skitai/install-data/bin/skitaid-instance.py", "/usr/local/bin/skitaid-instance.py")
+			shutil.copytree ("skitai/install-data/pub", "/var/local/skitaid-pub")
+			shutil.copyfile ("skitai/install-data/etc/init/skitaid.conf", "/etc/init/skitaid.conf")
+						
+			with open ("skitai/install-data/etc/init/skitaid.conf") as f:
+				data = f.read ()
+				data = data.replace ("c:\\skitaid\\pub\default\\", "/var/local/skitaid-pub/default/")			
+			with open ("/etc/skitaid/skitaid.conf", "w") as f:
+				f.write (data)
 			
+			os.chmod ("/usr/local/bin/skitaid.py", 0755)
+			os.chmod ("/usr/local/bin/skitaid-instance.py", 0755)

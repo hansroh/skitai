@@ -1,4 +1,3 @@
-#!/usr/bin/python2
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
 import sys, os, getopt
@@ -57,7 +56,7 @@ class	WAS (Skitai.Loader):
 		
 		# spawn
 		self.config_webserver (
-			config.getint ("server", "port"), 
+			config.getint ("server", "port"),
 			ip = config.getopt ("server", "ip"),
 			name = config.getopt ("server", "name"),
 			ssl = config.getopt ("server", "ssl") in ("yes", "1") or False
@@ -108,16 +107,16 @@ Usage:
 
 Options:
 	--conf or -f [ea]/yekeulus
-	--consol or -c
+	--verbose or -v
 
 Examples:
-	ex. server.py -c -f default
+	ex. server.py -v -f default
 	ex. server.py -f default	
 	"""
 
 
 if __name__ == "__main__":
-	argopt = getopt.getopt(sys.argv[1:], "f:v:hct", ["help", "conf=", "consol", "test"])
+	argopt = getopt.getopt(sys.argv[1:], "f:hvt", ["help", "conf=", "verbose", "test"])
 	_conf = ""
 	_varpath = None
 	_consol = False
@@ -126,7 +125,7 @@ if __name__ == "__main__":
 	for k, v in argopt [0]:
 		if k == "--conf" or k == "-f":
 			_conf = v
-		elif k == "--consol" or k == "-c":	
+		elif k == "--verbose" or k == "-v":	
 			_consol = True
 		elif k == "--test" or k == "-t":	
 			_test = True	
@@ -156,7 +155,8 @@ if __name__ == "__main__":
 	
 	import skitaid
 	_config = os.path.join (skitaid.CONFIGPATH, loc, "%s.conf" % name)
-	_varpath = os.path.join (skitaid.VARDIR, "servers", name)
+	_varpath = os.path.join (skitaid.VARDIR, name)
+	_logpath = os.path.join (skitaid.LOGDIR, name)
 	
 	if not (os.path.isfile (_config) or os.path.islink (_config)):
 		print "[error] no server config file"
@@ -174,8 +174,7 @@ if __name__ == "__main__":
 	if pidlock.isalive ():
 		print "[error] already running"
 		sys.exit (1)
-		
-	_logpath = os.path.join (_varpath, "logs")
+	
 	pathtool.mkdir (_logpath)
 	if not _consol: # service mode
 		from skitai.lib import devnull		

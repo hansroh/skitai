@@ -12,18 +12,18 @@ import signal
 from skitai.lib import confparse
 
 cf = confparse.ConfParse ()
-if os.name == "nt":
-	CONFIGPATH = r"c:\etc\skitaid"	
-else:
-	CONFIGPATH = "/etc/skitaid"
+CONFIGPATH = r"c:\skitaid\etc"
+
 cf.read (os.path.join (CONFIGPATH, "skitaid.conf"))
 
-SKITAI_HOME = cf.getopt ("global", "home")
+SKITAI_BIN = r"c:\skitaid\bin"
 PYTHON = cf.getopt ("global", "python")
+if not PYTHON:
+	PYTHON = "python.exe"
 
 NAME = "Skitai"
-DSIPLAY_NAME = "Skitai Web Application Server"
-DESCRIPTION = "Skitai Web Application Server Based on Blade Library"
+DSIPLAY_NAME = "Skitai App Engine"
+DESCRIPTION = "Provide Web, REST Services Over Asynchronous Socket Framework"
 
 BACKOFF_MAX = 300
 BACKOFF_CLEAR_TIME = 30
@@ -41,8 +41,8 @@ class Service (win32serviceutil.ServiceFramework):
 	
 	def makeEnvirion (self):
 		os.environ["PYTHONPATH"] = ""
-		os.chdir (SKITAI_HOME)		
-		self.cmd = "%s %s"  % (PYTHON, os.path.join (SKITAI_HOME, "bin", "skitaid.py"))		
+		os.chdir (SKITAI_BIN)
+		self.cmd = "%s %s"  % (PYTHON, os.path.join (SKITAI_BIN, "skitaid.py"))		
 		
 	def createProcess(self, cmd):
 		info  = win32process.CreateProcess(None, cmd, None, None, 0, win32process.CREATE_NEW_PROCESS_GROUP, None, None, win32process.STARTUPINFO())
@@ -50,7 +50,7 @@ class Service (win32serviceutil.ServiceFramework):
 	
 	def SvcStop(self):
 		self.ReportServiceStatus (win32service.SERVICE_STOP_PENDING)
-		self.createProcess ("%s %s stop"  % (PYTHON, os.path.join (SKITAI_HOME, "bin", "skitaid.py")))
+		self.createProcess ("%s %s stop"  % (PYTHON, os.path.join (SKITAI_BIN, "skitaid.py")))
 		"""
 		try:
 			win32process.TerminateProcess (self.hZope, 0)

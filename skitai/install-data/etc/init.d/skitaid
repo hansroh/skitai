@@ -7,7 +7,7 @@ workdir=/home/skitai/skitai
 start() {
     #cd $workdir
     #. .venv/bin/activate	
-    su - sa_master -c "cd $workdir;. .venv/bin/activate;python ./bin/skitaid.py &"
+    /usr/local/bin/skitaid.py &
     echo "Skitaid App Engine Started."
 }
  
