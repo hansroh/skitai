@@ -3,7 +3,7 @@ Hans Roh 2015 -- http://sae.skitai.com
 License: BSD
 """
 
-__VER__ = '0.9.2'
+__VER__ = '0.9.3.0'
 
 import sys
 import os
@@ -81,7 +81,7 @@ with open ("README.txt") as f:
 setup(
 	name='skitai',
 	version=__VER__,
-	description='Skitai App Engine Library',
+	description='Skitai App Engine',
 	long_description = ldesc,
 	author='Hans Roh',
 	author_email='hansroh@gmail.com',
@@ -96,47 +96,69 @@ setup(
 	classifiers=classifiers
 )
 
-
-if os.name == "nt":
-	if not os.path.isdir ("c:\\skitaid"):
-		os.mkdir ("c:\\skitaid")
-		os.mkdir ("c:\\skitaid\\var")
-		os.mkdir ("c:\\skitaid\\log")
-		shutil.copytree ("skitai\\install-data\\etc\\skitaid", "c:\\skitaid\\etc")
-		shutil.copytree ("skitai\\install-data\\bin", "c:\\skitaid\\bin")
-		shutil.copytree ("skitai\\install-data\\pub", "c:\\skitaid\\pub")
+if "install" in sys.argv or "develop" in sys.argv:
+	if os.name == "nt":
+		if not os.path.isdir ("c:\\skitaid"):
+			os.mkdir ("c:\\skitaid")
+			os.mkdir ("c:\\skitaid\\var")
+			os.mkdir ("c:\\skitaid\\log")
+			shutil.copytree ("skitai\\install-data\\etc\\skitaid", "c:\\skitaid\\etc")
+			shutil.copytree ("skitai\\install-data\\bin", "c:\\skitaid\\bin")
+			shutil.copytree ("skitai\\install-data\\pub", "c:\\skitaid\\pub")
+			
+		print "\n\n======================================"
+		print "Installation Complete"
+		print "--------------------------------------"	
+		print "Please run below command in your command prompt with administator privilege\n"
+		print "  cd /d c:\\skitaid\\bin"
+		print "  python install-win32-service.py --startup auto install"
+		print "  python install-win32-service.py start"
+	
+	else:
+			"""
+			sudo rm -rf /etc/skitaid
+			sudo rm -f /etc/init/skitaid.conf
+			sudo rm -f /usr/local/bin/skitaid*
+			sudo rm -rf /var/local/skitaid-pub
+			"""
 		
-	print "\n\n======================================"
-	print "Installation Complete"
-	print "--------------------------------------"	
-	print "Please run below command in your command prompt with administator privilege\n"
-	print "  cd /d c:\\skitaid\\bin"
-	print "  python install-win32-service.py --startup auto install"
-	print "  python install-win32-service.py start"
-
-else:
-		if not os.path.isdir ("/etc/skitaid"):
+			if not os.path.isdir ("/etc/skitaid"):
+				shutil.copytree ("skitai/install-data/etc/skitaid", "/etc/skitaid")			
+				os.remove ("/etc/skitaid/servers-enabled/default.conf")
+				with open ("skitai/install-data/etc/skitaid/servers-enabled/default.conf") as f:
+					data = f.read ()
+					data = data.replace ("c:\\skitaid\\pub\default\\static", "/var/local/skitaid-pub/default/static")
+					data = data.replace ("c:\\skitaid\\pub\default\\app\\", "/var/local/skitaid-pub/default/app/")			
+				with open ("/etc/skitaid/servers-enabled/default.conf", "w") as f:
+					f.write (data)
+				
 			try: 
 				os.mkdir ("/var/log/skitaid")
-				os.mkdir ("/var/local/skitaid")
-				
+				os.mkdir ("/var/local/skitaid")				
 			except OSError, why:
-				if why [0] != 17: 
+				if why [0] != 17:
 					raise
-
-			shutil.copytree ("skitai/install-data/etc/skitaid", "/etc/skitaid")
+	
+			if os.path.isfile ("/etc/init/skitaid.conf"):
+				os.remove ("/etc/init/skitaid.conf")
+			shutil.copyfile ("skitai/install-data/etc/init/skitaid.conf", "/etc/init/skitaid.conf")		
+			if os.path.isfile ("/usr/local/bin/skitaid.py"):
+				os.remove ("/usr/local/bin/skitaid.py")		
+			if os.path.isfile ("/usr/local/bin/skitaid-instance.py"):
+				os.remove ("/usr/local/bin/skitaid-instance.py")	
 			shutil.copyfile ("skitai/install-data/bin/skitaid.py", "/usr/local/bin/skitaid.py")
 			shutil.copyfile ("skitai/install-data/bin/skitaid-instance.py", "/usr/local/bin/skitaid-instance.py")
-			shutil.copyfile ("skitai/install-data/bin/skitaid.py", "/usr/local/bin/skitaid.py")
-			shutil.copyfile ("skitai/install-data/bin/skitaid-instance.py", "/usr/local/bin/skitaid-instance.py")
-			shutil.copytree ("skitai/install-data/pub", "/var/local/skitaid-pub")
-			shutil.copyfile ("skitai/install-data/etc/init/skitaid.conf", "/etc/init/skitaid.conf")
-						
-			with open ("skitai/install-data/etc/init/skitaid.conf") as f:
-				data = f.read ()
-				data = data.replace ("c:\\skitaid\\pub\default\\", "/var/local/skitaid-pub/default/")			
-			with open ("/etc/skitaid/skitaid.conf", "w") as f:
-				f.write (data)
+			
+			if not os.path.isdir ("/var/local/skitaid-pub"):
+				shutil.copytree ("skitai/install-data/pub", "/var/local/skitaid-pub")
 			
 			os.chmod ("/usr/local/bin/skitaid.py", 0755)
 			os.chmod ("/usr/local/bin/skitaid-instance.py", 0755)
+		
+			print "\n\n======================================"
+			print "Installation Complete"
+			print "--------------------------------------"	
+			print "Please run below command in your command prompt\n"
+			print "  sudo skitaid start"
+			print "  wget http://www.localhost:5000"
+		

@@ -1,3 +1,4 @@
+#!/usr/bin/python2
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
 import sys
@@ -16,7 +17,7 @@ if os.name == "nt":
 	
 else:
 	CONFIGPATH = "/etc/skitaid"
-	SKITAI_BIN = r"/usr/bin/local"
+	SKITAI_BIN = r"/usr/local/bin"
 	LOCKDIR = "/var/lock/skitaid"	
 		
 cf.read (os.path.join (CONFIGPATH, "skitaid.conf"))
@@ -71,7 +72,7 @@ class Server:
 		if os.name == "nt":
 			cmd = "%s %s --conf=%s" % (PYTHON, os.path.join (SKITAI_BIN, "skitaid-instance.py"), self.name)
 		else:
-			cmd = "%s --conf=%s" % (PYTHON, os.path.join (SKITAI_BIN, "skitaid-instance.py"), self.name)
+			cmd = "%s --conf=%s" % (os.path.join (SKITAI_BIN, "skitaid-instance.py"), self.name)
 				
 		if not IS_SERVICE:
 			cmd += " --verbose"
