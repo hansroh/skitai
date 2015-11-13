@@ -1,3 +1,4 @@
+#!/usr/bin/python2
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
 import sys
@@ -51,7 +52,7 @@ class Server:
 				
 	def start (self):
 		self.start_time = time.time ()
-		cmd = "%s %s --conf=%s" % (PYTHON, os.path.join (SKITAI_HOME, "bin", "server.py"), self.name)
+		cmd = "%s %s --conf=%s" % (PYTHON, os.path.join (SKITAI_HOME, "bin", "skitaid-instance.py"), self.name)
 		if not IS_SERVICE:
 			cmd += " --consol"
 		self.logger ("[info] starting server with option: %s" % cmd)

@@ -7,6 +7,7 @@ __VER__ = '0.9.2'
 
 import sys
 import os
+import shutil
 from warnings import warn
 
 try:
@@ -58,20 +59,18 @@ package_dir = {
 
 skitaid_files = [
 	"README.md",
-	"implements/skitaid/app/*.*",
-	"implements/skitaid/app/static/*.*",
-	"implements/skitaid/bin/*.*", 
-	"implements/skitaid/bin/win32service/*.*",
-	"implements/skitaid/etc/init/skitaid.conf", 
-	"implements/skitaid/etc/init.d/skitaid", 
-	"implements/skitaid/etc/skitaid/skitaid.conf", 
-	"implements/skitaid/etc/skitaid/servers-available/README.TXT", 
-	"implements/skitaid/etc/skitaid/servers-enabled/sample.conf",
-	"implements/skitaid/etc/skitaid/cert/generate/*.*"
+	"install-data/bin/*.*", 
+	"install-data/bin/win32service/*.*",
+	"install-data/etc/init/skitaid.conf", 
+	"install-data/etc/init.d/skitaid", 
+	"install-data/etc/skitaid/skitaid.conf", 
+	"install-data/etc/skitaid/servers-available/README.TXT", 
+	"install-data/etc/skitaid/servers-enabled/sample.conf",
+	"install-data/etc/skitaid/cert/generate/*.*"
 ]
 
 package_data = {
-	"skitai": skitaid_files	
+	"skitai": skitaid_files
 }
 
 #required = ["jinja2", "jsonrpclib", "m2crypto", "psycopg2"]
@@ -97,3 +96,22 @@ setup(
 	download_url = "https://pypi.python.org/pypi/skitai",
 	classifiers=classifiers
 )
+
+if not os.path.isdir ("c:\\skitaid"):
+	if os.name == "nt":
+			os.mkdir ("c:\\skitaid")
+			os.mkdir ("c:\\skitaid\\var")
+			shutil.copytree ("skitai\\install-data\\etc\\skitaid", "c:\\skitaid\\etc")
+			shutil.copytree ("skitai\\install-data\\bin", "c:\\skitaid\\bin")
+	
+	else:	
+			os.mkdir ("/etc/skitaid")
+			os.mkdir ("/var/log/skitaid")
+			os.mkdir ("/var/local/skitaid")
+			shutil.copytree ("skitai/install-data/etc/skitaid", "/etc/skitaid")
+			shutil.copyfile ("skitai/install-data/bin/skitaid.py", "/usr/local/bin/skitaid.py")
+			shutil.copyfile ("skitai/install-data/bin/skitaid-instance.py", "/usr/local/bin/skitaid-instance.py")
+			shutil.copyfile ("skitai/install-data/etc/init/skitaid.conf", "/etc/init/skitaid.conf")
+			shutil.copyfile ("skitai/install-data/bin/skitaid.py", "/usr/local/bin/skitaid.py")
+			shutil.copyfile ("skitai/install-data/bin/skitaid-instance.py", "/usr/local/bin/skitaid-instance.py")
+			
