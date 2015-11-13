@@ -3,7 +3,7 @@ Hans Roh 2015 -- http://sae.skitai.com
 License: BSD
 """
 
-__VER__ = '0.9.3.0'
+__VER__ = '0.9.3.1'
 
 import sys
 import os
@@ -15,7 +15,10 @@ except ImportError:
 	from distutils.core import setup
 
 if sys.argv[-1] == 'publish':
-	os.system('python setup.py sdist bdist_wininst --target-version=2.7 upload') # bdist_wininst
+	if os.name == "nt":
+		os.system('python setup.py sdist bdist_wininst --target-version=2.7 upload') # bdist_wininst
+	else:		
+		os.system('python setup.py sdist upload')
 	sys.exit()
 
 if sys.version_info < (2, 7, 0) or sys.version_info >= (3, 0, 0):
