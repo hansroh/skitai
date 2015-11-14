@@ -2,15 +2,16 @@
 # chkconfig: 123456 90 10
 # TTS Server for Speech Synthesis
 #
-workdir=/home/skitai/skitai
- 
+
 start() {
     skitaid.py &
     echo "Skitaid App Engine Started."
 }
  
 stop() {
-    pid=`ps -ef | grep '[s]kitaid.py' | awk '{ print $2 }'`
+    pidfile="/var/lock/skitaid/pid"
+    pid=`cat $pidfile`
+    #pid=`ps -ef | grep '/usr/local/bin/skitaid.py' | awk '{ print $2 }'`
     #echo $pid
     kill $pid
     sleep 2

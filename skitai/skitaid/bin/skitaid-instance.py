@@ -180,7 +180,7 @@ if __name__ == "__main__":
 	if not _consol: # service mode
 		from skitai.lib import devnull		
 		sys.stdout = devnull.devnull ()		
-		sys.stderr = open (os.path.join (_logpath, "instances", "stderr.log"), "a")
+		sys.stderr = open (os.path.join (_logpath, "stderr.log"), "a")
 	
 	pidlock.make ()
 	service = None

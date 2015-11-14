@@ -3,7 +3,7 @@ Hans Roh 2015 -- http://sae.skitai.com
 License: BSD
 """
 
-__VER__ = '0.9.3.2'
+__VER__ = '0.9.3.2a'
 
 import sys
 import os
@@ -149,8 +149,14 @@ if "install" in sys.argv or "develop" in sys.argv:
 					raise
 	
 			if os.path.isfile ("/etc/init/skitaid.conf"):
-				os.remove ("/etc/init/skitaid.conf")
+				os.remove ("/etc/init/skitaid.conf")				
 			shutil.copyfile ("skitai/skitaid/etc/init/skitaid.conf", "/etc/init/skitaid.conf")		
+			
+			if os.path.isfile ("/etc/init.d/skitaid"):
+				os.remove ("/etc/init.d/skitaid")				
+			shutil.copyfile ("skitai/skitaid/etc/init.d/skitaid", "/etc/init.d/skitaid")
+			os.chmod ("/etc/init.d/skitaid", 0755)
+			
 			if os.path.isfile ("/usr/local/bin/skitaid.py"):
 				os.remove ("/usr/local/bin/skitaid.py")		
 			if os.path.isfile ("/usr/local/bin/skitaid-instance.py"):
