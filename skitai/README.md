@@ -255,9 +255,9 @@ Here's some example for running skitaid.py as service.
 
 ##### Liunx (Ubutu)
 
-    sudo start skitaid
+    sudo service skitaid start
 
-    sudo stop skitaid
+    sudo service skitaid stop
 
 ##### Win32
 

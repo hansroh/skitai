@@ -163,6 +163,8 @@ Documentation
 
 Change Log
 -------------
+  0.9.3.3 - modify init.d script
+  
   0.9.3.2 - change default log and var path 
 
   0.9.3 - works as standalone server with Python 2.7

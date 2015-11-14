@@ -3,7 +3,7 @@ Hans Roh 2015 -- http://sae.skitai.com
 License: BSD
 """
 
-__VER__ = '0.9.3.2a'
+__VER__ = '0.9.3.3'
 
 import sys
 import os
@@ -129,6 +129,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 			"""
 			sudo rm -rf /etc/skitaid
 			sudo rm -f /etc/init/skitaid.conf
+			sudo rm -f /etc/init.d/skitaid
 			sudo rm -f /usr/local/bin/skitaid*
 			sudo rm -rf /var/local/skitaid-pub
 			"""
@@ -149,9 +150,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 					raise
 	
 			if os.path.isfile ("/etc/init/skitaid.conf"):
-				os.remove ("/etc/init/skitaid.conf")				
-			shutil.copyfile ("skitai/skitaid/etc/init/skitaid.conf", "/etc/init/skitaid.conf")		
-			
+				os.remove ("/etc/init/skitaid.conf")
 			if os.path.isfile ("/etc/init.d/skitaid"):
 				os.remove ("/etc/init.d/skitaid")				
 			shutil.copyfile ("skitai/skitaid/etc/init.d/skitaid", "/etc/init.d/skitaid")
@@ -174,7 +173,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 			print "Installation Complete"
 			print "--------------------------------------"	
 			print "Please run below commands\n"
-			print "  sudo start skitaid"
+			print "  sudo service skitaid start"
 			print "  wget http://localhost:5000\n\n"
 	
 
