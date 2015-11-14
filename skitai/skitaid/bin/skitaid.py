@@ -43,14 +43,14 @@ CONFIGDIR = os.path.join (CONFIGPATH, "servers-enabled")
 
 LOOP = True
 DIRTY_DIRS = []
-		
+
 class Server:
 	def __init__ (self, name, logger):
 		self.name = name
 		self.logger = logger
 		self.child = None
 		self.config_path = os.path.join (CONFIGDIR, self.name + ".conf")		
-		self.flock = flock.Lock (os.path.join (VARDIR, self.name, "lock"))
+		self.flock = flock.Lock (os.path.join (VARDIR, "instances", self.name, "lock"))
 		self.start_time = None
 		self.backoff_start_time = None
 		self.backoff_interval = 5
@@ -252,7 +252,7 @@ Examples:
 def _touch (req, name):
 	if name.endswith (".conf"):
 		name = name [:-5]
-	lockpath = os.path.join (VARDIR, name, "lock")
+	lockpath = os.path.join (VARDIR, "instances", name, "lock")
 	
 	if req == "start": 
 		req = "restart"
@@ -349,7 +349,7 @@ if __name__ == "__main__":
 		sys.exit ()
 	
 	l = logger.multi_logger ()
-	l.add_logger (logger.rotate_logger (LOGDIR, "monthly"))
+	l.add_logger (logger.rotate_logger (LOGDIR, "skitaid", "monthly"))
 	
 	def hTERM (signum, frame):
 		ServerMamager.stop_all ()
@@ -367,7 +367,7 @@ if __name__ == "__main__":
 	if IS_SERVICE:
 		from skitai.lib import devnull
 		sys.stdout = devnull.devnull ()
-		sys.stderr = open (os.path.join (LOGDIR, "skitai_stderr.log"), "a")
+		sys.stderr = open (os.path.join (LOGDIR, "stderr.log"), "a")
 
 	else:		
 		l.add_logger (logger.screen_logger ())

@@ -156,8 +156,8 @@ if __name__ == "__main__":
 	
 	import skitaid
 	_config = os.path.join (skitaid.CONFIGPATH, loc, "%s.conf" % name)
-	_varpath = os.path.join (skitaid.VARDIR, name)
-	_logpath = os.path.join (skitaid.LOGDIR, name)
+	_varpath = os.path.join (skitaid.VARDIR, "instances", name)
+	_logpath = os.path.join (skitaid.LOGDIR, "instances", name)
 	
 	if not (os.path.isfile (_config) or os.path.islink (_config)):
 		print "[error] no server config file"
@@ -180,7 +180,7 @@ if __name__ == "__main__":
 	if not _consol: # service mode
 		from skitai.lib import devnull		
 		sys.stdout = devnull.devnull ()		
-		sys.stderr = open (os.path.join (_logpath, "stderr.log"), "a")
+		sys.stderr = open (os.path.join (_logpath, "instances", "stderr.log"), "a")
 	
 	pidlock.make ()
 	service = None
