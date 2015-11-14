@@ -1,4 +1,4 @@
-Skitai App Engien Library
+Skitai App Engien
 ==========================
 
 Copyright (c) 2015 by Hans Roh
@@ -9,11 +9,11 @@ License: BSD
 Introduce
 ----------
 
-Skitai App Engine Library (SAEL) is a kind of branch of `Medusa Web Server`__ - A High-Performance Internet Server Architecture.
+Skitai App Engine (SAE) is a kind of branch of `Medusa Web Server`__ - A High-Performance Internet Server Architecture.
 
 Medusa is different from most other servers because it runs as a single process, multiplexing I/O with its various client and server connections within a single process/thread.
 
-SAEL orients light-weight,simplicity  and strengthen networking operations with external resources - HTTP / HTTPS / RPC / PostgreSQL_ - keeping very low costs.
+SAE orients light-weight,simplicity  and strengthen networking operations with external resources - HTTP / HTTPS / RPC / PostgreSQL_ - keeping very low costs.
 
 It also influenced by Zope_ and Flask_ a lot.
 
@@ -155,6 +155,15 @@ Use 'pip install ...'
 - *Jinja2* for HTML Rendering
 
 
+Installation & Start Skitai Server
+----------------------------------
+
+.. code:: python
+
+    sudo pip install skitai    
+    sudo service skitaid start
+
+
 Documentation
 -------------
 
@@ -163,6 +172,9 @@ Documentation
 
 Change Log
 -------------
+
+  0.9.3.5 - update documentation (README.md)
+  
   0.9.3.3 - modify init.d script
   
   0.9.3.2 - change default log and var path 

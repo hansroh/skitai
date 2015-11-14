@@ -1,10 +1,10 @@
-# Skitai App Engine Library
+# Skitai App Engine
 
-Skitai App Engine Library (SAEL) is a kind of branch of [Medusa Web Server](http://www.nightmare.com/medusa/medusa.html) - A High-Performance Internet Server Architecture.
+Skitai App Engine(SAE) is a kind of branch of [Medusa Web Server](http://www.nightmare.com/medusa/medusa.html) - A High-Performance Internet Server Architecture.
 
 Medusa is different from most other servers because it runs as a single process, multiplexing I/O with its various client and server connections within a single process/thread.
 
-SAEL orients light-weight,simplicity  and strengthen networking operations with external resources - HTTP / HTTPS / RPC / [PostgreSQL](http://www.postgresql.org/) - keeping low costs.
+SAE orients light-weight,simplicity  and strengthen networking operations with external resources - HTTP / HTTPS / RPC / [PostgreSQL](http://www.postgresql.org/) - keeping low costs.
 
 It also influenced by [Zope](http://www.zope.org) and [Flask](http://flask.pocoo.org) a lot.
 
@@ -18,8 +18,8 @@ Skitai is not a framework for convinient developing, module reusability and plug
 
 ### Installation
 
-    pip install skitai
-
+    sudo pip install skitai    
+    sudo service skitaid start
 
 ### Configuration
 
@@ -33,14 +33,12 @@ Skitai is not a framework for convinient developing, module reusability and plug
     / = /var/local/skitaid-pub/default/static
     /hello = /var/local/skitaid-pub/default/app/webapp
 
-Save this to 'devel.conf'
+Save this to '/etc/skitaid/servers-enabled/devel.conf'.
 
-### Run Skitaid in Console
-    skitaid-instance.py -f devel -v
-
+    
 ### Hello World
 
-edit /home/skitaid/app/webapp.py
+Edit /var/local/skitaid-pub/default/app/webapp.py
 
     from skitai.server import ssgi
     
@@ -52,6 +50,10 @@ edit /home/skitaid/app/webapp.py
         return 'Hello World'
 
 It's similar to Flask App.
+
+Restart skitaid.
+
+    sudo service skitaid restart
 
 ### Now Call
 
@@ -71,6 +73,10 @@ Add this lines to your config file
 
 Let's assume those servers are serving XML-RPC.
 
+Restart skitaid.
+
+    sudo service skitaid restart
+    
 Your app:
 
     @app.route ("/search")
@@ -161,7 +167,7 @@ Review and edit:
     ;log_path = /var/log/skitaid
     ;var_path = /var/local/skitaid
         
-    ;for windows
+    ;for windows, specify python
     ;python = c:\payhon27\python.exe
 
 **/etc/skitaid/servers-enabled/default.conf**
@@ -224,12 +230,32 @@ processes and threads value is usally recommended,
 * _Note 2: On win32 processes should be '1'. I don't know how to create multi-workers at win32._
 
 
-
 ### Startup Skitaid
 
+#### Run as Service
+
+There's two scripts for starting Skitaid server.
+
+bin/skitaid.py will start multiple server instances in all /etc/skitaid/servers-enabled directory.
+
+bin/skitaid-instance.py will start single server instance by command line switch -f [config file name (do not write .conf)]
+
+Here's some example for running skitaid.py as service.
+
+##### Liunx
+
+    sudo service skitaid start
+
+##### Win32
+
+Go to skitaid/bin/win32service
+
+    install_win32_service.py --startup auto install
+    
+Then you can start service at Widnow Service Manager
+    
 #### Run in console output for develop or debug
 
-    cd /home/skitaid/bin
     skitaid-instance.py -v -f default
 
 or silent run
@@ -243,46 +269,34 @@ For more detail switch,
 Then go to http://127.0.0.1:5000/ using your web browser
 
 
-#### Run as Service
 
-There's two scripts for starting Skitaid server.
+### Shutdown Skitaid
 
-bin/skitaid.py will start multiple server instances in all /etc/skitaid/servers-enabled directory.
-
-bin/skitaid-instance.py will start single server instance by command line switch -f [config file name (do not write .conf)]
-
-Here's some example for running skitaid.py as service.
-
-##### Liunx (Ubutu)
-
-    sudo service skitaid start
+##### Liunx
 
     sudo service skitaid stop
 
 ##### Win32
 
-Go to skitaid/bin/win32service
+You can stop service at Widnow Service Manager
 
-    install_win32_service.py --startup auto install
+    install_win32_service.py stop    
 
-
-### Shutdown Skitaid
-
+##### Console Mode
+    
 If you start with skitaid-instance.py, Ctrl-C is good.
 
 else if run with skitaid.py
 
     skitaid.py stop
 
-or restarting sample.conf server,
+or restarting devel.conf server,
     
-    skitaid.py -k restart -n sample
+    skitaid.py -k restart -n devel
 
 for more detail switch, 
 
     skitaid.py --help
-
-if runnig as service on posix,
 
 
 ## Quick Start
@@ -345,7 +359,6 @@ Bottom line, always psysical directory/file has priority.
     or as XML-RPC,    
     
     s.test.hello.world ()
-    
 
         
 ### Set App Development Mode
