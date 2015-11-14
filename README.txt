@@ -163,7 +163,8 @@ Documentation
 
 Change Log
 -------------
-  
+  0.9.3.2 - change default log and var path 
+
   0.9.3 - works as standalone server with Python 2.7
     
   0.9.2 - fix multipart file upload
