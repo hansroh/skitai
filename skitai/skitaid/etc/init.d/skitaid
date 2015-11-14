@@ -3,34 +3,79 @@
 # TTS Server for Speech Synthesis
 #
 
+SNAME="Skitai App Engine"
+check() {
+    pidfile="/var/lock/skitaid/pid"
+    if [ ! -f $pidfile ]
+    then
+        return 0
+    fi
+
+    pid1=`cat $pidfile`
+    pid2=`ps -ef | grep '[/]usr/bin/python2 /usr/local/bin/skitaid.py' | awk '{ print $2 }'`
+    if [ $pid1 -eq $pid2 ]
+    then
+        return 1
+    else
+        return 0
+    fi
+}
+
 start() {
-    skitaid.py &
-    echo "Skitaid App Engine Started."
+    check
+    if [ $? -eq 0 ]
+    then
+        skitaid.py &        
+        echo "$SNAME started"
+    else
+        echo "$SNAME already started"
+    fi  
 }
  
 stop() {
-    pidfile="/var/lock/skitaid/pid"
-    pid=`cat $pidfile`
-    #pid=`ps -ef | grep '/usr/local/bin/skitaid.py' | awk '{ print $2 }'`
-    #echo $pid
-    kill $pid
-    sleep 2
-    echo "Skitai App Engine Killed."
+    check
+    if [ $? -eq 1 ]
+    then
+        pidfile="/var/lock/skitaid/pid"
+        pid=`cat $pidfile`
+        echo "$SNAME stopping..."
+        kill $pid
+        sleep 2
+        echo "$SNAME stopped"
+    else
+        echo "$SNAME already stopped"
+    fi  
 }
- 
+
+status() {
+    check
+    if [ $? -eq 1 ]
+    then
+        echo "$SNAME running"
+        return 1
+    else
+        echo "$SNAME stopped"
+        return 0
+    fi
+}
+
 case "$1" in
   start)
-    start
-    ;;
+     start
+     ;;
   stop)
-    stop   
-    ;;
+     stop   
+     ;;
+  status)
+    status
+    ;;  
   restart)
     stop
     start
     ;;
   *)
-    echo "Usage: /etc/init.d/skitaid {start|stop|restart}"
+    echo "Usage: service skitaid {start|stop|restart|status}"
     exit 1
 esac
 exit 0
+
