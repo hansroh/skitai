@@ -119,10 +119,11 @@ if "install" in sys.argv or "develop" in sys.argv:
 		print "\n\n======================================"
 		print "Installation Complete"
 		print "--------------------------------------"	
-		print "Please run below command in your command prompt with administator privilege\n"
+		print "Please run below command in your commands prompt with administator privilege\n"
 		print "  cd /d c:\\skitaid\\bin"
 		print "  python install-win32-service.py --startup auto install"
 		print "  python install-win32-service.py start"
+		print "  then check http://localhost:5000\n\n"
 	
 	else:
 			"""
@@ -166,9 +167,9 @@ if "install" in sys.argv or "develop" in sys.argv:
 			print "\n\n======================================"
 			print "Installation Complete"
 			print "--------------------------------------"	
-			print "Please run below command in your command prompt\n"
-			print "  sudo skitaid start"
-			print "  wget http://www.localhost:5000"
+			print "Please run below commands\n"
+			print "  sudo start skitaid"
+			print "  wget http://localhost:5000\n\n"
 	
 
 	
