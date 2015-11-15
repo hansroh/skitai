@@ -61,6 +61,7 @@ package_dir = {
 
 skitaid_files = [
 	"README.md",
+	"install-requirements.sh",
 	"skitaid/bin/*.*",	
 	"skitaid/pub/default/*.py",	
 	"skitaid/pub/default/static/*.*",	
@@ -168,6 +169,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 			
 			os.chmod ("/usr/local/bin/skitaid.py", 0755)
 			os.chmod ("/usr/local/bin/skitaid-instance.py", 0755)
+			os.chmod ("skitai/install-requirements.sh", 0755)
 		
 			print "\n\n======================================"
 			print "Installation Complete"
