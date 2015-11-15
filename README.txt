@@ -160,9 +160,28 @@ Installation & Start Skitai Server
 
 .. code:: python
 
-    sudo pip install skitai    
+**Posix**
+
+    sudo pip install skitai
+    skitaid-install-requirements.sh
+    skitaid.py -v &
+    skitaid.py stop
+
+    ;if everythig is OK,
+    
     sudo service skitaid start
 
+**Win32**
+
+    sudo pip install skitai
+    cd c:\skitaid\bin
+    skitaid.py -v
+    skitaid.py stop (in another command prompt)
+    
+    ;if everythig is OK,
+    
+    install-win32-service install
+    install-win32-service start    
 
 Documentation
 -------------
