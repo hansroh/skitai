@@ -41,7 +41,9 @@ import socket
 import signal
 import multiprocessing
 import webappservice
-from dbi import cluster_dist_call as dcluster_dist_call
+
+if PSYCOPG:
+	from dbi import cluster_dist_call as dcluster_dist_call
 
 class Loader:
 	def __init__ (self, config, logpath, varpath, debug = 0):
