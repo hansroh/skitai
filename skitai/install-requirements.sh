@@ -24,7 +24,7 @@ PATCH="
  %rename(ssl_get_alert_desc_v) SSL_alert_desc_string_long;
  extern const char *SSL_alert_desc_string_long(int);
 
-+#ifdef OPENSSL_NO_SSL2
++#ifndef OPENSSL_NO_SSL2
  %rename(sslv2_method) SSLv2_method;
  extern SSL_METHOD *SSLv2_method(void);
 +#endif
@@ -38,5 +38,5 @@ rm M2Crypto-*.tar.gz
 cd M2Crypto-*
 echo "$PATCH" | patch -p0
 python setup.py install
-rm -rf M2Crypto-*
+rm -rf M2Crypto-0.21.1
 
