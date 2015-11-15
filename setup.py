@@ -3,7 +3,7 @@ Hans Roh 2015 -- http://sae.skitai.com
 License: BSD
 """
 
-__VER__ = '0.9.3.5'
+__VER__ = '0.9.3.6'
 
 import sys
 import os

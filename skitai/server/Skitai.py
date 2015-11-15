@@ -11,6 +11,7 @@ JSONRPBLIB = True
 import sys, time, os, threading
 import http_server, authorizer, appmanger, http_cookie, rcache
 from skitai import lifetime
+from warnings import warn
 
 if os.name == "nt":	
 	import schedule
@@ -19,10 +20,13 @@ try: from handlers import jsonrpc_handler
 except ImportError: JSONRPBLIB = False
 	
 try: import https_server
-except ImportError: HTTPS = False
-
+except ImportError: 
+	HTTPS = False
+	warn ("M2Crypto is not installed")
 try: import psycopg2
-except ImportError: PSYCOPG = False
+except ImportError: 
+	PSYCOPG = False
+	warn ("psycopg2 is not installed")
 else:			
 	from skitai.dbapi import dbpool	
 		

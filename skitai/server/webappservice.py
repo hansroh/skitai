@@ -2,7 +2,15 @@ from skitai import VERSION
 import multiprocessing
 from skitai.lib import pathtool, logger
 from rpc import cluster_manager, cluster_dist_call
-from dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
+
+PSYCOPG2_ENABLED = True
+try: 
+	import psycopg2
+except ImportError: 
+	PSYCOPG2_ENABLED = False
+else:	
+	from dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
+	
 from handlers import default_handler
 import server_info
 import json
@@ -43,7 +51,7 @@ class WAS:
 					
 	@classmethod
 	def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0):
-		if clustertype == "postgresql":
+		if PSYCOPG2_ENABLED and clustertype == "postgresql":
 			cluster = dcluster_manager.ClusterManager (clustername, clusterlist, ssl, cls.logger.get ("server"))
 			cls.clusters_for_distcall [clustername] = dcluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"))
 		else:
