@@ -3,7 +3,7 @@ Hans Roh 2015 -- http://sae.skitai.com
 License: BSD
 """
 
-__VER__ = '0.9.3.6'
+__VER__ = '0.9.3.7'
 
 import sys
 import os
@@ -61,7 +61,6 @@ package_dir = {
 
 skitaid_files = [
 	"README.md",
-	"install-requirements.sh",
 	"skitaid/bin/*.*",	
 	"skitaid/pub/default/*.py",	
 	"skitaid/pub/default/static/*.*",	
@@ -149,7 +148,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 			except OSError, why:
 				if why [0] != 17:
 					raise
-	
+			
 			if os.path.isfile ("/etc/init/skitaid.conf"):
 				os.remove ("/etc/init/skitaid.conf")
 			if os.path.isfile ("/etc/init.d/skitaid"):
@@ -158,19 +157,23 @@ if "install" in sys.argv or "develop" in sys.argv:
 			os.chmod ("/etc/init.d/skitaid", 0755)
 			
 			if os.path.isfile ("/usr/local/bin/skitaid.py"):
-				os.remove ("/usr/local/bin/skitaid.py")		
+				os.remove ("/usr/local/bin/skitaid.py")
 			if os.path.isfile ("/usr/local/bin/skitaid-instance.py"):
 				os.remove ("/usr/local/bin/skitaid-instance.py")	
+			if os.path.isfile ("/usr/local/bin/skitaid-install-requirements.sh"):
+				os.remove ("/usr/local/bin/skitaid-install-requirements.sh")
+
 			shutil.copyfile ("skitai/skitaid/bin/skitaid.py", "/usr/local/bin/skitaid.py")
 			shutil.copyfile ("skitai/skitaid/bin/skitaid-instance.py", "/usr/local/bin/skitaid-instance.py")
+			shutil.copyfile ("skitai/skitaid/bin/install-requirements.sh", "/usr/local/bin/skitaid-install-requirements.sh")
 			
 			if not os.path.isdir ("/var/local/skitaid-pub"):
 				shutil.copytree ("skitai/skitaid/pub", "/var/local/skitaid-pub")
 			
 			os.chmod ("/usr/local/bin/skitaid.py", 0755)
 			os.chmod ("/usr/local/bin/skitaid-instance.py", 0755)
-			os.chmod ("skitai/install-requirements.sh", 0755)
-		
+			os.chmod ("/usr/local/bin/skitaid-install-requirements.sh", 0755)
+			
 			print "\n\n======================================"
 			print "Installation Complete"
 			print "--------------------------------------"	

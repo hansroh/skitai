@@ -172,7 +172,8 @@ Documentation
 
 Change Log
 -------------
-
+  0.9.3.7 - add skitaid-install-requirements.sh for psycopg2 and M2Crypto
+	
   0.9.3.5 - update documentation (README.md)
   
   0.9.3.3 - modify init.d script

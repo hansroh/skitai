@@ -1,9 +1,3 @@
-sudo apt-get update
-sudo apt-get upgrade
-sudo apt-get install gcc
-sudo apt-get install libpython2.7-dev
-sudo apt-get install swig
-sudo apt-get install python-pip
-sudo apt-get install libpq-dev python-dev
-sudo ln -s  /usr/include/x86_64-linux-gnu/openssl/opensslconf.h /usr/include/openssl/
 sudo pip install skitai
+sudo skitaid-install-requirements.sh
+sudo service skitaid start
