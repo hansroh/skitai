@@ -155,12 +155,12 @@ Use 'pip install ...'
 - *Jinja2* for HTML Rendering
 
 
-Installation & Start Skitai Server
-----------------------------------
-
-.. code:: python
+Install & Start Skitai Server
+------------------------------
 
 **Posix**
+
+.. code:: python
 
     sudo pip install skitai
     skitaid-install-requirements.sh
@@ -171,7 +171,10 @@ Installation & Start Skitai Server
     
     sudo service skitaid start
 
+
 **Win32**
+
+.. code:: python
 
     sudo pip install skitai
     cd c:\skitaid\bin
