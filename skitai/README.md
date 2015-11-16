@@ -18,7 +18,7 @@ Skitai is not a framework for convinient developing, module reusability and plug
 
 ### Installation
 
-    sudo pip install skitai    
+    sudo pip install skitai
     sudo service skitaid start
 
 ### Configuration
@@ -255,12 +255,12 @@ Go to skitaid/bin/win32service
 Then you can start service at Widnow Service Manager
     
 #### Run in console output for develop or debug
-
+    
+    skitaid.py -v
+    
+    or for running spechfic instance
+    
     skitaid-instance.py -v -f default
-
-or silent run
-
-    skitaid-instance.py -f default &
     
 For more detail switch,
 

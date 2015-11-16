@@ -163,9 +163,9 @@ Install & Start Skitai Server
 .. code:: python
 
     sudo pip install skitai
-    skitaid-install-requirements.sh
-    skitaid.py -v &
-    skitaid.py stop
+    sudo skitaid-install-requirements.sh
+    sudo skitaid.py -v &
+    sudo skitaid.py stop
 
     ;if everythig is OK,
     

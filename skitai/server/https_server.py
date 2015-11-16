@@ -95,7 +95,7 @@ if __name__ == "__main__":
 	
 	server_logger = framework.ServerLogger('%slog2/' % os.environ ['ALEPH_HOME'])
 	modules = module_loader.ModuleLoader('%smod/' % os.environ ['ALEPH_HOME'], ['hello', 'iserver', 'system'], logger = server_logger)
-	ctx = init_context('sslv23', 'cert/server.csr', 'cert/ca.crt', 'fatalbug')
+	ctx = init_context('sslv3', 'cert/server.csr', 'cert/ca.crt', 'fatalbug')
 	sv = https_server ('', 9443, ctx, https_channel, server_logger)
 	
 	class ServerComponent:

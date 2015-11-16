@@ -4,18 +4,18 @@
 # openssl 1.0 does not have sslv2, which is not disabled in m2crypto
 # therefore this workaround is required
 
-apt-get update
 apt-get install gcc
 apt-get install libpython2.7-dev
 apt-get install swig
 apt-get install python-pip
-apt-get install libpq-dev python-dev
-if [ ! -f /usr/include/openssl/ opensslconf.h]
-then
-	sudo ln -s  /usr/include/x86_64-linux-gnu/openssl/opensslconf.h /usr/include/openssl/
-fi
 
+apt-get install libpq-dev python-dev
 pip install psycopg2
+
+if [ ! -f /usr/include/openssl/opensslconf.h]
+then
+	ln -s  /usr/include/x86_64-linux-gnu/openssl/opensslconf.h /usr/include/openssl/
+fi
 
 PATCH="
 --- SWIG/_ssl.i 2011-01-15 20:10:06.000000000 +0100
@@ -34,9 +34,10 @@ PATCH="
 
 pip install --download="." m2crypto==0.21.1
 tar -xf M2Crypto-*.tar.gz
-rm M2Crypto-*.tar.gz
-cd M2Crypto-*
+rm M2Crypto-0.21.1.tar.gz
+cd M2Crypto-0.21.1
 echo "$PATCH" | patch -p0
 python setup.py install
+cd ..
 rm -rf M2Crypto-0.21.1
 
