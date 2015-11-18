@@ -4,17 +4,13 @@
 # openssl 1.0 does not have sslv2, which is not disabled in m2crypto
 # therefore this workaround is required
 
-apt-get install gcc
-apt-get install libpython2.7-dev
 apt-get install swig
-apt-get install python-pip
-
 apt-get install libpq-dev python-dev
 pip install psycopg2
 
-if [ ! -f /usr/include/openssl/opensslconf.h]
+if [ ! -e /usr/include/openssl/opensslconf.h ]
 then
-	ln -s  /usr/include/x86_64-linux-gnu/openssl/opensslconf.h /usr/include/openssl/
+	ln -s /usr/include/x86_64-linux-gnu/openssl/opensslconf.h /usr/include/openssl/
 fi
 
 PATCH="

@@ -41,7 +41,7 @@ class request_thread (threading.Thread):
 			
 	def getId (self):
 		return self.id
-				
+
 	def status (self):
 		self.lock.acquire ()
 		idle = self.idle

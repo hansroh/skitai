@@ -1,3 +1,0 @@
-sudo pip install skitai
-sudo skitaid-install-requirements.sh
-sudo service skitaid start
