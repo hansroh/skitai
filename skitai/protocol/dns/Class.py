@@ -30,8 +30,8 @@ for _name in _names:
     if _name[0] != '_': classmap[eval(_name)] = _name
 
 def classstr(klass):
-    if classmap.has_key(klass): return classmap[klass]
-    else: return `klass`
+    if klass in classmap: return classmap[klass]
+    else: return repr(klass)
 
 #
 # $Log: Class.py,v $

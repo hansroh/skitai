@@ -1,9 +1,9 @@
 ﻿import threading
 from skitai.server.threads import socket_map
 import time
-import asynconnect
-import urlparse
-import adns
+from . import asynconnect
+import urllib.parse
+from . import adns
 import copy
 
 class SocketPool:
@@ -32,12 +32,12 @@ class SocketPool:
 				
 		try:
 			try:	
-				for serverkey, node in self.__socketfarm.items ():	
+				for serverkey, node in list(self.__socketfarm.items ()):	
 					nnode = {}
-					nnode ["numactives"] = len (filter (lambda x: x.isactive (), node.values ()))
-					nnode ["numconnecteds"] = len (filter (lambda x: x.isconnected (), node.values ()))
+					nnode ["numactives"] = len ([x for x in list(node.values ()) if x.isactive ()])
+					nnode ["numconnecteds"] = len ([x for x in list(node.values ()) if x.isconnected ()])
 					conns = []
-					for asyncon in node.values ():
+					for asyncon in list(node.values ()):
 						stu = {
 							"class": asyncon.__class__.__name__, 
 							"connected": asyncon.isconnected (), 
@@ -67,13 +67,13 @@ class SocketPool:
 	
 	def get_nodes (self):
 		if not self.__socketfarm: return [None] # at least one item needs
-		return self.__socketfarm.items ()
+		return list(self.__socketfarm.items ())
 		
 	def maintern (self):
 		try:			
 			# close unused sockets
-			for serverkey, node in self.__socketfarm.items ():
-				for _id, asyncon in node.items ():					
+			for serverkey, node in list(self.__socketfarm.items ()):
+				for _id, asyncon in list(node.items ()):					
 					if hasattr (asyncon, "maintern"):
 						asyncon.maintern ()
 						
@@ -106,13 +106,13 @@ class SocketPool:
 					self.maintern ()
 							
 				self.__numget += 1					
-				if not self.__socketfarm.has_key (serverkey):
+				if serverkey not in self.__socketfarm:
 					asyncon = self.create_asyncon (server, *args)
 					self.__socketfarm [serverkey] = {}
 					self.__socketfarm [serverkey][id (asyncon)] = asyncon
 					
 				else:		
-					for each in self.__socketfarm [serverkey].values ():	
+					for each in list(self.__socketfarm [serverkey].values ()):	
 						if not each.isactive ():
 							asyncon = each
 							break
@@ -149,7 +149,7 @@ class SocketPool:
 		return __conn_class ((addr, port), self.lock, self.logger)	
 				
 	def get (self, uri):	
-		scheme, server, script, params, qs, fragment = urlparse.urlparse (uri)
+		scheme, server, script, params, qs, fragment = urllib.parse.urlparse (uri)
 		serverkey = "%s://%s" % (scheme, server)
 		return self._get (serverkey, server, scheme)
 		
@@ -157,8 +157,8 @@ class SocketPool:
 		self.lock.acquire ()
 		try:
 			try:
-				for server in self.__socketfarm.keys ():					
-					for asyncon in self.__socketfarm [server].values ():
+				for server in list(self.__socketfarm.keys ()):					
+					for asyncon in list(self.__socketfarm [server].values ()):
 						asyncon.close (True)
 			finally:
 				self.lock.release ()

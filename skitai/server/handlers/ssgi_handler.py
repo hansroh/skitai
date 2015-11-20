@@ -1,5 +1,5 @@
 import sys, os
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import sys
 from skitai.server import utility, http_cookie
 from skitai.server.threads import trigger
@@ -13,7 +13,7 @@ header2env = {
 
 
 MAX_POST_SIZE = 5242880
-MAX_UPLOAD_SIZE = 2147483648L
+MAX_UPLOAD_SIZE = 2147483648
 
 def catch (htmlformating = 0):
 	t, v, tb = sys.exc_info()
@@ -99,7 +99,7 @@ class Handler:
 		while path and path[0] == '/':
 			path = path[1:]
 		
-		if '%' in path: path = urllib.unquote (path)		
+		if '%' in path: path = urllib.parse.unquote (path)		
 		if query: query = query[1:]
 
 		server_inst = self.wasc.httpserver
@@ -120,15 +120,15 @@ class Handler:
 			key, value = header.split(":", 1)
 			key = key.lower()
 			value = value.strip ()
-			if header2env.has_key (key) and value:
+			if key in header2env and value:
 				env [header2env [key]] = value				
 			else:
 				key = 'HTTP_%s' % ("_".join (key.split ( "-"))).upper()
-				if value and not env.has_key (key):
+				if value and key not in env:
 					env [key] = value
 		
-		for k, v in os.environ.items ():
-			if not env.has_key (k):
+		for k, v in list(os.environ.items ()):
+			if k not in env:
 				env [k] = v
 				
 		return env
@@ -143,8 +143,8 @@ class Handler:
 		args = {}
 		if query: args = utility.crack_query (query)
 		if data:
-			for k, v in utility.crack_query (data).items ():
-				if args.has_key (k):
+			for k, v in list(utility.crack_query (data).items ()):
+				if k in args:
 					if type (args [k]) is not type ([]):
 						args [v] = [args [k]]
 					args [v].append (v)
@@ -236,7 +236,7 @@ class Handler:
 				args = data
 				# cached form data string if size < 10 MB
 				# it used for relay small files to the others				
-				for k, v in self.parse_args (query, None).items ():
+				for k, v in list(self.parse_args (query, None).items ()):
 					args [k] = v
 			else:	# xml, json should use request.get_body ()
 				args = {}
@@ -250,7 +250,7 @@ class Handler:
 		self.wasc.queue.put (Job (was, path, method, args))
 				
 		
-_STRING_TYPES = (type (""), type (u""))
+_STRING_TYPES = (type (""), type (""))
 	
 class Job:
 	def __init__(self, was, muri, method, args):
@@ -293,7 +293,7 @@ class Job:
 			else:
 				if type (args)==type({}):
 					if uargs: # url args
-						for k, v in uargs.items ():
+						for k, v in list(uargs.items ()):
 							args [k] = v			
 					response = func (self.was, **args)
 				else:
@@ -341,7 +341,7 @@ class Job:
 					trigger.wakeup (lambda p=self.was.response, d=catch(1): (p.error (500, d),))
 	
 				else:
-					if not self.was.request.response.has_key ("content-type"):
+					if "content-type" not in self.was.request.response:
 						self.was.request.response.update ('Content-Type', "text/html")				
 					
 					if type (response) in _STRING_TYPES:			
@@ -355,7 +355,7 @@ class Job:
 								
 					else:
 						try:
-							raise ValueError, "Content should be string or producer type"
+							raise ValueError("Content should be string or producer type")
 						except:
 							self.was.logger.trace ("app")
 							trigger.wakeup (lambda p=self.was.response, d=catch(1): (p.error (500, d),))

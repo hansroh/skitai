@@ -135,14 +135,14 @@ class os_filesystem:
 		# I think we should glob, but limit it to the current
 		# directory only.
 		ld = os.listdir (p)
-		if not long:
+		if not int:
 			return list_producer (ld, 0, None)
 		else:
 			old_dir = os.getcwd()
 			try:
 				os.chdir (p)
 				# if os.stat fails we ignore that file.
-				result = filter (None, map (safe_stat, ld))
+				result = [_f for _f in map (safe_stat, ld) if _f]
 			finally:
 				os.chdir (old_dir)
 			return list_producer (result, 1, self.longify)
@@ -188,7 +188,8 @@ class os_filesystem:
 		p = self.normalize (self.path_module.join (self.root, p[1:]))
 		return p
 
-	def longify (self, (path, stat_info)):
+	def longify (self, xxx_todo_changeme):
+		(path, stat_info) = xxx_todo_changeme
 		return unix_longify (path, stat_info)
 
 	def __repr__ (self):
@@ -221,7 +222,7 @@ class mapped_filesystem (os_filesystem):
 			else:
 				optk, optv = maybe_pair[0].strip (), maybe_pair[1].strip ()
 				if optv [:5] == "list:":
-					conf [optk] = map (lambda x: x.strip (), optv [5:].split(","))
+					conf [optk] = [x.strip () for x in optv [5:].split(",")]
 				else:	
 					conf [optk] = optv		
 		self.maps [alias] = conf
@@ -242,7 +243,7 @@ class mapped_filesystem (os_filesystem):
 			current_depth += 1
 			maybe_alias += "/" + each			
 			
-			if self.maps.has_key (maybe_alias):
+			if maybe_alias in self.maps:
 				latest_alias = maybe_alias
 				latest_depth = current_depth
 								
@@ -265,10 +266,10 @@ class mapped_filesystem (os_filesystem):
 		
 		for each in patheach [1:]:
 			maybe_alias += "/" + each			
-			if self.maps.has_key (maybe_alias):
+			if maybe_alias in self.maps:
 				collected_permissions.append (self.maps [maybe_alias].get ("permission", []))
 		
-		collected_permissions = filter (None, collected_permissions)		
+		collected_permissions = [_f for _f in collected_permissions if _f]		
 		if not collected_permissions:
 			permission = []
 		else:
@@ -330,7 +331,7 @@ if os.name == 'posix':
 		def listdir (self, path, long=0):
 			try:
 				self.become_persona()
-				return os_filesystem.listdir (self, path, long)
+				return os_filesystem.listdir (self, path, int)
 			finally:
 				self.become_nobody()
 
@@ -399,7 +400,8 @@ if os.name == 'posix':
 # [yes, I think something like this "\\.\c\windows"]
 
 class msdos_filesystem (os_filesystem):
-	def longify (self, (path, stat_info)):
+	def longify (self, xxx_todo_changeme1):
+		(path, stat_info) = xxx_todo_changeme1
 		return msdos_longify (path, stat_info)
 
 # A merged filesystem will let you plug other filesystems together.
@@ -469,12 +471,12 @@ import time
 def unix_longify (file, stat_info):
 	# for now, only pay attention to the lower bits
 	mode = ('%o' % stat_info[stat.ST_MODE])[-3:]
-	mode = string.join (map (lambda x: mode_table[x], mode), '')
+	mode = string.join ([mode_table[x] for x in mode], '')
 	if stat.S_ISDIR (stat_info[stat.ST_MODE]):
 		dirchar = 'd'
 	else:
 		dirchar = '-'
-	date = ls_date (long(time.time()), stat_info[stat.ST_MTIME])
+	date = ls_date (int(time.time()), stat_info[stat.ST_MTIME])
 	return '%s%s %3d %-8d %-8d %8d %s %s' % (
 		dirchar,
 		mode,
@@ -520,7 +522,7 @@ def ls_date (now, t):
 class list_producer:
 	def __init__ (self, file_list, long, longify):
 		self.file_list = file_list
-		self.long = long
+		self.long = int
 		self.longify = longify
 		self.done = 0
 
@@ -541,7 +543,7 @@ class list_producer:
 			# do a few at a time
 			bunch = self.file_list[:50]
 			if self.long:
-				bunch = map (self.longify, bunch)
+				bunch = list(map (self.longify, bunch))
 			self.file_list = self.file_list[50:]
 			return string.joinfields (bunch, '\r\n') + '\r\n'
 

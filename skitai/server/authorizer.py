@@ -13,7 +13,7 @@ class Authorizer:
 		authinfo = request.get_header (authkey)		
 		if not authinfo: return None
 		
-		if self.cache.has_key (authinfo):
+		if authinfo in self.cache:
 			return self.cache [authinfo]
 		
 		basic = base64.decodestring (authinfo [6:])
@@ -103,7 +103,7 @@ class FileAuthorizer (Authorizer):
 			
 	def save (self, fn = None):
 		f = open (self.userfile, "w")
-		for username, (image, grp) in self.users.items ():
+		for username, (image, grp) in list(self.users.items ()):
 			f.write ("%s:%s:%s\n" % (username, grp, image))
 		f.close ()
 			
@@ -111,7 +111,7 @@ class FileAuthorizer (Authorizer):
 		authinfo = request.get_header (authkey)		
 		if not authinfo: return None
 		
-		if self.cache.has_key (authinfo):
+		if authinfo in self.cache:
 			return self.cache [authinfo]
 		
 		basic = base64.decodestring (authinfo [6:])

@@ -1,5 +1,5 @@
 import re, sys, os
-from urllib import unquote, unquote_plus
+from urllib.parse import unquote, unquote_plus
 import json
 
 ####################################################################################
@@ -12,7 +12,7 @@ def crack_query (r):
 	if not r: return {}
 	if r[0]=='?': r=r[1:]	
 	arg={}
-	q = map(lambda x: x.split('=', 1), r.split('&'))	
+	q = [x.split('=', 1) for x in r.split('&')]	
 	
 	for each in q:
 		k = unquote_plus (each[0])
@@ -51,7 +51,7 @@ def crack_query (r):
 			elif t == "json":
 				v = {}
 				
-		if arg.has_key (k):
+		if k in arg:
 			if type (arg [k]) is not type ([]):
 				arg[k] = [arg[k]]
 			arg[k].append (v)

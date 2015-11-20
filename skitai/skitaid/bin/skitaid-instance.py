@@ -28,17 +28,17 @@ class	WAS (Skitai.Loader):
 		assert (len (config.getopt ("server", "admin_password")) >= 6)
 		assert (config.getint ("server", "sessiontimeout") >= 0)
 		
-		for sect in config.keys ():
+		for sect in list(config.keys ()):
 			if sect.startswith ("cluster-"):
 				name = sect [8:]
 				assert (len (name) > 0)
 				assert (config.getint (sect, "cache_timeout") >= 0)
-				members = filter (None, map (lambda x: x.strip (), config.getopt (sect, "members").split (",")))
+				members = [_f for _f in [x.strip () for x in config.getopt (sect, "members").split (",")] if _f]
 				assert (len (members) > 0)
 				assert (config.getopt (sect, "ssl")	in ("yes", "no", None, ""))
 				
 	def to_list (self, text, delim = ","):
-		return filter (None, map (lambda x: x.strip (), text.split (",")))
+		return [_f for _f in [x.strip () for x in text.split (",")] if _f]
 			
 	def configure (self):
 		if self.consol:
@@ -66,11 +66,11 @@ class	WAS (Skitai.Loader):
 		# after spawn
 		self.config_threads (config.getint ("server", "threads"))
 		
-		for sect in config.keys ():
+		for sect in list(config.keys ()):
 			if sect.startswith ("@"):
 				name = sect [1:]
 				ctype = config.getopt (sect, "type")				
-				members = filter (None, map (lambda x: x.strip (), config.getopt (sect, "members").split (",")))
+				members = [_f for _f in [x.strip () for x in config.getopt (sect, "members").split (",")] if _f]
 				ssl = config.getopt (sect, "ssl")
 				self.add_cluster (ctype, name, members, ssl)
 				
@@ -102,7 +102,7 @@ class	WAS (Skitai.Loader):
 
 
 def usage ():
-		print """
+		print("""
 Usage:
 	server.py [options...]
 
@@ -113,7 +113,7 @@ Options:
 Examples:
 	ex. server.py -v -f default
 	ex. server.py -f default	
-	"""
+	""")
 
 
 if __name__ == "__main__":
@@ -135,7 +135,7 @@ if __name__ == "__main__":
 			sys.exit ()
 	
 	if not _conf:
-		print "[error] config is required, use --conf or -f"		
+		print("[error] config is required, use --conf or -f")		
 		usage ()
 		sys.exit (1)
 	
@@ -150,7 +150,7 @@ if __name__ == "__main__":
 	elif subdir == "e":
 		loc = "servers-enabled"
 	else:
-		print "[error] config type is unknown, should be e or a (default: e)"		
+		print("[error] config type is unknown, should be e or a (default: e)")		
 		usage ()
 		sys.exit (1)
 	
@@ -160,20 +160,20 @@ if __name__ == "__main__":
 	_logpath = os.path.join (skitaid.LOGDIR, "instances", name)
 	
 	if not (os.path.isfile (_config) or os.path.islink (_config)):
-		print "[error] no server config file"
+		print("[error] no server config file")
 		usage ()
 		sys.exit (1)
 	
 	if _test:
 		WAS.test_config (_config)
-		print "[ok] config file is good"
+		print("[ok] config file is good")
 		sys.exit (0)
 		
 	lck = flock.Lock (os.path.join (_varpath, "lock"))
 	pidlock = lck.get_pidlock ()
 	
 	if pidlock.isalive ():
-		print "[error] already running"
+		print("[error] already running")
 		sys.exit (1)
 	
 	pathtool.mkdir (_logpath)

@@ -1,6 +1,7 @@
 import asyncore, asynchat
 import re, socket, sys
 from skitai.client.asynlib import asyncon
+import collections
 
 # get port number from pasv response
 pasv_pattern = re.compile("[-\d]+,[-\d]+,[-\d]+,[-\d]+,([-\d]+),([-\d]+)")
@@ -60,7 +61,7 @@ class asyncftp(asyncon.asyncon):
 		# send next command from queue
 		try:
 			command = self.commands.pop(0)
-			if self.commands and callable(self.commands[0]):
+			if self.commands and isinstance(self.commands[0], collections.Callable):
 				self.conhdr = self.commands.pop(0)
 			#print "C:", command
 			self.push(command + "\r\n")

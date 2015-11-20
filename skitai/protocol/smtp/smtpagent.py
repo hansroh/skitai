@@ -1,15 +1,15 @@
-import threading, time, Queue, asyncore, os, sys
-import async_smtp
-import dummy_smtpserver, composer
+import threading, time, queue, asyncore, os, sys
+from . import async_smtp
+from . import dummy_smtpserver, composer
 import types
 
-class ExQueue (Queue.Queue):
+class ExQueue (queue.Queue):
 	def get(self, block=True, timeout=None, exclude = {}):
 		self.not_empty.acquire()
 		try:
 			if not block:
 				if self._empty():
-					raise Queue.Empty
+					raise queue.Empty
 			elif timeout is None:
 				while self._empty():
 					self.not_empty.wait()
@@ -20,7 +20,7 @@ class ExQueue (Queue.Queue):
 				while self._empty():
 					remaining = endtime - _time()
 					if remaining <= 0.0:
-						raise Queue.Empty
+						raise queue.Empty
 					self.not_empty.wait(remaining)
 			item = self._get(exclude)			
 			self.not_full.notify()
@@ -80,21 +80,21 @@ class SMTPAgent:
 		self.result.append (r)
 		
 	def put (self, item):
-		if type (item) is types.StringType:
+		if type (item) is bytes:
 			msg = self.create_composer (item)
 			if msg: self.q.put (msg)
 		else:
 			self.q.put (item)
 	
 	def maintern (self):	
-		for obj in asyncore.socket_map.values ():
+		for obj in list(asyncore.socket_map.values ()):
 			if isinstance (obj, async_smtp.SMTPClient):
 				_ltime = obj.get_time ()
 				if time.time () - _ltime > 60:
 					obj.handle_timeout ()
 				
 		dup = {}
-		for obj in self.composers.keys ():
+		for obj in list(self.composers.keys ()):
 			r = obj.get_response ()
 			if not r:
 				host = obj.get_HOST ()

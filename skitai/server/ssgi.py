@@ -1,8 +1,8 @@
 import threading 
 import asyncore
-import urlparse
+import urllib.parse
 import re
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import time
 import os
 
@@ -51,7 +51,7 @@ class Package:
 	def set_devel (self, flag = True):
 		self.devel_mode = flag
 		self.set_auto_reload (flag)
-		for module in self.packages.keys ():
+		for module in list(self.packages.keys ()):
 			module.package.set_devel (flag)
 		
 	def is_devel (self):
@@ -160,14 +160,14 @@ class Package:
 			elif a [i].startswith ("float:"):		
 				kargs [a[i][6:]] = float (arglist [i])
 			elif a [i].startswith ("path:"):		
-				kargs [a[i][5:]] = urllib.unquote_plus (arglist [i])
+				kargs [a[i][5:]] = urllib.parse.unquote_plus (arglist [i])
 			else:		
-				kargs [a[i]] = urllib.unquote_plus (arglist [i]).replace ("_", " ")
+				kargs [a[i]] = urllib.parse.unquote_plus (arglist [i]).replace ("_", " ")
 						
 		return f, kargs
 	
 	def check_reload (self):		
-		for module, (mtime, size) in self.packages.items ():
+		for module, (mtime, size) in list(self.packages.items ()):
 			fn = module.__file__
 			if fn [-1] == "c": fn = fn [:-1]				
 			if mtime != os.path.getmtime (fn) or size != os.path.getsize (fn):
@@ -184,7 +184,7 @@ class Package:
 		try:			
 			method = self.route_map [uri][0]
 		except KeyError: 
-			for rulepack in self.route_map.items ():
+			for rulepack in list(self.route_map.items ()):
 				method, kargs = self.try_rule (uri, rulepack)
 				if method: 
 					match = rulepack
@@ -195,7 +195,7 @@ class Package:
 			matchtype = 1
 										
 		if method is None and self.packages:
-			for module, (mtime, size) in self.packages.items ():
+			for module, (mtime, size) in list(self.packages.items ()):
 				method, kargs, match, matchtype = module.package.get_package_method (uri)				
 				if method:
 					break
@@ -215,7 +215,7 @@ class Package:
 				self._onreload (self.wasc, self)
 																
 		else:
-			for module in self.packages.keys ():
+			for module in list(self.packages.keys ()):
 				module.package.run (self.wasc, self.get_base_route ())
 			if self._startup:
 				self._startup (self.wasc, self)

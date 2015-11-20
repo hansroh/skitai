@@ -32,7 +32,7 @@ def lock (root, redirect_error = 1):
 	
 	pidfile = os.path.join (root, "var/lock/pid")
 	if os.path.isfile (pidfile):
-		raise AssertionError, "process is runnig. terminated."
+		raise AssertionError("process is runnig. terminated.")
 				
 	f = open (pidfile, "w")
 	f.write ("%s" % os.getpid ())
@@ -45,8 +45,8 @@ def unlock (root):
 		os.remove (pidfile)
 	
 def usage ():
-	print (
+	print((
 		"Usage:\n"
 		"  %s [--root=path] [--shutdown]\n" % os.path.split (sys.argv [0])[-1]
-	)
+	))
 

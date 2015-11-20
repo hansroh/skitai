@@ -2,7 +2,7 @@ import threading
 from skitai.server.threads import socket_map
 from skitai.client import asynconnect, adns
 import time
-import urlparse
+import urllib.parse
 import re
 import copy
 import random
@@ -77,8 +77,8 @@ class ClusterManager:
 			try:	
 				for node in self._cluster:
 					_node = copy.copy (self._cluster [node])
-					_node ["numactives"] = len (filter (lambda x: x.isactive (), _node ["connection"]))
-					_node ["numconnected"] = len (filter (lambda x: x.isconnected (), _node ["connection"]))
+					_node ["numactives"] = len ([x for x in _node ["connection"] if x.isactive ()])
+					_node ["numconnected"] = len ([x for x in _node ["connection"] if x.isconnected ()])
 					
 					conns = []
 					for asyncon in _node ["connection"]:
@@ -95,8 +95,8 @@ class ClusterManager:
 					cluster ["%s:%d" % node] = _node				
 				info ["cluster"] = cluster
 				
-				actives = len (filter (lambda x: x.isactive (), self._close_desires))
-				connecteds = len (filter (lambda x: x.isconnected (), self._close_desires))
+				actives = len ([x for x in self._close_desires if x.isactive ()])
+				connecteds = len ([x for x in self._close_desires if x.isconnected ()])
 				info ["close_pending"] = "%d (active: %d, connected: %d)" % (len (self._close_desires), actives, connecteds)
 				info ["numget"] = self._numget
 				info ["nummget"] = self._nummget
@@ -113,7 +113,7 @@ class ClusterManager:
 		self.lock.acquire ()
 		try:
 			try:
-				for node in self._cluster.keys ():
+				for node in list(self._cluster.keys ()):
 					self._cluster [node]["stoped"] = True
 					for asyncon in self._cluster [node]["connection"]:
 						asyncon.close_socket ()
@@ -127,7 +127,7 @@ class ClusterManager:
 		self.lock.acquire ()
 		try:
 			try:
-				nodes = [k for k, v in self._cluster.items () if not v ["stoped"]]
+				nodes = [k for k, v in list(self._cluster.items ()) if not v ["stoped"]]
 			finally:	
 				self.lock.release ()
 		except:
@@ -159,7 +159,7 @@ class ClusterManager:
 		node, asyncon = self.create_asyncon (member)
 		
 		self.lock.acquire ()
-		exists = self._cluster.has_key (node)
+		exists = node in self._cluster
 		self.lock.release ()		
 		if exists: 
 			self._cluster [node]["weight"] = weight
@@ -179,7 +179,7 @@ class ClusterManager:
 		self.lock.acquire ()
 		try:
 			try:	
-				if self._cluster.has_key (node):
+				if node in self._cluster:
 					self._close_desires += self._cluster [node]["connection"]
 					del self._cluster [node]
 					del self._clusterlist [self._clusterlist.index (node)]					
@@ -194,7 +194,7 @@ class ClusterManager:
 		self.lock.acquire ()
 		try:
 			try:
-				if self._cluster.has_key (node):
+				if node in self._cluster:
 					self._cluster [node]["stoped"] = stop
 					if stop is False:
 						self._cluster [node]["deadcount"] = 0
@@ -242,7 +242,7 @@ class ClusterManager:
 	def maintern (self):
 		try:
 			# close unused sockets
-			for _node in self._cluster.values ():
+			for _node in list(self._cluster.values ()):
 				survived = []
 				for asyncon in _node ["connection"]:
 					if hasattr (asyncon, "maintern"):
@@ -258,7 +258,7 @@ class ClusterManager:
 			
 			# checking dead nodes
 			if self._havedeadnode:
-				for node in [k for k, v in self._cluster.items () if v ["check"] is not None and not v ["stoped"]]:
+				for node in [k for k, v in list(self._cluster.items ()) if v ["check"] is not None and not v ["stoped"]]:
 					if time.time () > self._cluster [node]["check"]:
 						self._cluster [node]["check"] = None
 			
@@ -297,15 +297,15 @@ class ClusterManager:
 						nodes = [self._clusterlist [-1]]
 						
 				else:	
-					nodes = [k for k, v in self._cluster.items () if v ["check"] is None and not v ["stoped"]]
+					nodes = [k for k, v in list(self._cluster.items ()) if v ["check"] is None and not v ["stoped"]]
 					self._havedeadnode = len (self._cluster) - len (nodes)
 					if not nodes:
 						#assume all live...
-						nodes = [k for k, v in self._cluster.items () if not v ["stoped"]]
+						nodes = [k for k, v in list(self._cluster.items ()) if not v ["stoped"]]
 										
 				cluster = []
 				for node in nodes:
-					avails = filter (lambda x: not x.isactive (), self._cluster [node]["connection"])
+					avails = [x for x in self._cluster [node]["connection"] if not x.isactive ()]
 					if not avails: 
 						continue
 					weight = self._cluster [node]["weight"]

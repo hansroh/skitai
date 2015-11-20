@@ -10,7 +10,7 @@ conn = psycopg2.connect (
 cur = conn.cursor()
 cur.execute ("SELECT city, temp_lo, temp_hi, prcp, date FROM weather;")
 
-print cur.fetchall ()
+print(cur.fetchall ())
 
 
 

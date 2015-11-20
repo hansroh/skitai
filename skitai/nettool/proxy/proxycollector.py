@@ -1,4 +1,4 @@
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import re
 import time
 from skitai.client.http import ClientCookie
@@ -8,7 +8,7 @@ import tempfile
 import os
 import random
 from skitai.lib import pathtool
-import __init__
+from . import __init__
 import math
 
 n, p = pathtool.modpath (__init__)
@@ -31,7 +31,7 @@ RX_PROXY = [
 
 def unhide_text (data):
 	t=''
-	s = urllib.unquote (data)
+	s = urllib.parse.unquote (data)
 	x = int (round(math.sqrt(49)))
 	for c in s: 		
  		t += chr (ord(c)^x)
@@ -40,7 +40,7 @@ def unhide_text (data):
 
 def unhide_text2 (data):
 	t=''
-	s = urllib.unquote (data)
+	s = urllib.parse.unquote (data)
 	for c in s: 		
  		t += chr (ord(c)^4) 	
  	return t
@@ -55,7 +55,7 @@ class ProxyCollector:
 	def save (self, output = None):
 		if output is None:
 			output = os.path.join (os.environ ["systemroot"], "sharedproxy.dat")
-		proxies = self.proxies.keys ()
+		proxies = list(self.proxies.keys ())
 		f = open (output, "w")		
 		for proxy in proxies:
 			f.write ("%s:%s\n" % proxy)
@@ -78,7 +78,7 @@ class ProxyCollector:
 	
 	def find_various (self, data):
 		self.find (data)
-		self.find (urllib.unquote (data))
+		self.find (urllib.parse.unquote (data))
 		self.find (unhide_text2 (data))
 		self.find (unhide_text (data))		
 	

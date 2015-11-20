@@ -1,4 +1,8 @@
-import re, filesys, stat, mime_type_table, os
+import re
+import stat
+from . import mime_type_table
+import os
+from . import filesys
 from skitai.server import http_date, producers
 from skitai.server.utility import *
 
@@ -26,7 +30,7 @@ class Handler:
 		self.alt_handlers = alt_handlers
 		self.permit_cache = {}
 		self.filesystem = filesys.mapped_filesystem ()
-		for k, v in pathmap.items ():
+		for k, v in list(pathmap.items ()):
 			self.add_route (k, v)
 				
 	def match (self, request):
@@ -140,7 +144,7 @@ class Handler:
 
 	def set_content_type (self, path, request):
 		ext = get_extension (path).lower()
-		if mime_type_table.content_type_map.has_key (ext):
+		if ext in mime_type_table.content_type_map:
 			request.response['Content-Type'] = mime_type_table.content_type_map[ext]
 		else:
 			request.response['Content-Type'] = 'text/plain'

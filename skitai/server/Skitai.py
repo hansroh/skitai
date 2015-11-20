@@ -9,17 +9,17 @@ PSYCOPG = True
 JSONRPBLIB = True
 
 import sys, time, os, threading
-import http_server, authorizer, appmanger, http_cookie, rcache
+from . import http_server, authorizer, appmanger, http_cookie, rcache
 from skitai import lifetime
 from warnings import warn
 
 if os.name == "nt":	
-	import schedule
+	from . import schedule
 
-try: from handlers import jsonrpc_handler
+try: from .handlers import jsonrpc_handler
 except ImportError: JSONRPBLIB = False
 	
-try: import https_server
+try: from . import https_server
 except ImportError:
 	HTTPS = False
 	warn ("M2Crypto is not installed")
@@ -30,20 +30,20 @@ except ImportError:
 else:			
 	from skitai.dbapi import dbpool	
 		
-from handlers import default_handler, ssgi_handler, \
+from .handlers import default_handler, ssgi_handler, \
 	xmlrpc_handler, proxypass_handler, proxy_handler, \
 	multipart_handler, resource_validate_handler, options_handler
-from threads import threadlib, trigger
+from .threads import threadlib, trigger
 from skitai.lib import logger, confparse, pathtool, flock
-from rpc import cluster_dist_call, cachefs		
+from .rpc import cluster_dist_call, cachefs		
 from skitai.client import socketpool
 import socket
 import signal
 import multiprocessing
-import webappservice
+from . import webappservice
 
 if PSYCOPG:
-	from dbi import cluster_dist_call as dcluster_dist_call
+	from .dbi import cluster_dist_call as dcluster_dist_call
 
 class Loader:
 	def __init__ (self, config, logpath, varpath, debug = 0):
@@ -63,7 +63,7 @@ class Loader:
 		self.WAS_finalize ()
 	
 	def configure (self):
-		raise SystemExit, "configure must be overided"
+		raise SystemExit("configure must be overided")
 	
 	def set_num_worker (self, num):	
 		if os.name == "nt":
@@ -110,13 +110,13 @@ class Loader:
 	def config_webserver (self, port, ip = "", name = "", ssl = False):
 		# maybe be configured	at first.
 		if ssl and not HTTPS:
-			raise SystemError, "Can't start SSL Web Server"
+			raise SystemError("Can't start SSL Web Server")
 		
 		if not name:
 			name = self.instance_name
 		http_server.http_server.SERVER_IDENT = name
 		if ssl and self.ctx is None:
-			raise ValueError, "SSL ctx not setup"
+			raise ValueError("SSL ctx not setup")
 		
 		if ssl:
 			server_class = https_server.https_server			
@@ -198,7 +198,7 @@ class Loader:
 		self.wasc.register ("apps", apps)
 		
 		for line in routes:
-			route, target = map (lambda x: x.strip (), line.split ("=", 1))
+			route, target = [x.strip () for x in line.split ("=", 1)]
 
 			if target.startswith ("@"):
 				if route [-1] == "/":
@@ -236,7 +236,7 @@ class Loader:
 		return None # worker process
 		
 	def close (self):
-		for attr, obj in self.wasc.objects.items ():
+		for attr, obj in list(self.wasc.objects.items ()):
 			if attr == "logger": continue
 			try:
 				self.wasc.logger ("server", "[info] clenaup %s" % attr)

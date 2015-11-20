@@ -1,5 +1,5 @@
 import re
-import xmlrpclib
+import xmlrpc.client
 from skitai.server import compressors, http_date
 import time
 
@@ -85,7 +85,7 @@ class Response:
 			
 		if current_content_type.startswith ("text/xml") or request_content_type == "text/xml":
 			self.reqtype = "XMLRPC"
-			self.p, self.u = xmlrpclib.getparser()
+			self.p, self.u = xmlrpc.client.getparser()
 		elif current_content_type.startswith ("apllication/json-rpc"):
 			self.reqtype = "JSONRPC"
 			self.p, self.u = getfakeparser ()				
@@ -176,7 +176,7 @@ class Response:
 	def get_header (self, header):
 		header = header.lower()
 		hc = self._header_cache
-		if not hc.has_key (header):
+		if header not in hc:
 			h = header + ':'
 			hl = len(h)
 			for line in self.header:
@@ -219,7 +219,7 @@ class FailedResponse (Response):
 		self.max_age = 0
 				
 	def collect_incoming_data (self, data):
-		raise IOError, "This Is Failed Response"
+		raise IOError("This Is Failed Response")
 	
 	def more (self):
 		return ""

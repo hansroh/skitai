@@ -1,4 +1,4 @@
-import xmlrpclib as x
+import xmlrpc.client as x
 
 s=x.Server("http://admin:whddlgkr@localhost:3426/rpc2")
 
@@ -9,7 +9,7 @@ m.admin()
 m.admin.test1([1,2,3],1)
 m.admin.test2([4,5])
 
-print m().results
+print(m().results)
 	
 
 

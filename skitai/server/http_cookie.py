@@ -1,22 +1,22 @@
-import cPickle as pickle
-import http_date
+import pickle as pickle
+from . import http_date
 import time
 import random
 from skitai.lib import pathtool
 from skitai.lib import udict
 import os, sys
 import md5
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 def crack_cookie (r):
 	if not r: return {}
 	arg={}
-	q = map(lambda x: x.split('=', 1), r.split('; '))	
+	q = [x.split('=', 1) for x in r.split('; ')]	
 	for k in q:
-		key = urllib.unquote_plus (k [0])
+		key = urllib.parse.unquote_plus (k [0])
 		if len (k) == 2:			
 			if key != "SESSION":
-				arg[key] = urllib.unquote_plus (k[1])
+				arg[key] = urllib.parse.unquote_plus (k[1])
 			else:
 				arg[key] = k[1]	
 		else:
@@ -49,22 +49,22 @@ class Cookie:
 			self.set (k, expires = 0)
 	
 	def has_key (self, k):
-		return self.data.has_key (k)
+		return k in self.data
 	
 	def items (self):
-		return self.data.items ()
+		return list(self.data.items ())
 	
 	def keys (self):
-		return self.data.keys ()	
+		return list(self.data.keys ())	
 	
 	def get (self, k, a = None):
 		return self.data.get (k, a)
 		
 	def values (self):
-		return self.data.values ()	
+		return list(self.data.values ())	
 			
 	def clear (self):
-		for k, v in self.data.items ():			
+		for k, v in list(self.data.items ()):			
 			if k == "SESSION": 
 				continue
 			self.set (k, expires = 0)
@@ -81,18 +81,18 @@ class Cookie:
 				return sc
 		elif create:
 			return SecuredCookieValue (None, self.secret_key, self.set, True)
-		raise KeyError, "no session found"
+		raise KeyError("no session found")
 	
 	def _parse (self):
 		cookie = crack_cookie (self.request.get_header ("cookie"))			
-		for k, v in cookie.items ():
+		for k, v in list(cookie.items ()):
 			if k == "SESSION":
 				self.session_cookie = v
 				continue
 			self.data [k] = v
 	
 	def commit (self):
-		for cs in self.uncommits.values ():
+		for cs in list(self.uncommits.values ()):
 			self.request.response ["Set-Cookie"] = cs
 			
 	def set (self, name, val = "", expires = None, path = "/", domain = None):
@@ -111,7 +111,7 @@ class Cookie:
 			if name == "SESSION":
 				cl.append ("%s=%s" % ("SESSION", val))
 			else:
-				cl.append ("%s=%s" % (urllib.quote_plus (name), urllib.quote_plus (val)))
+				cl.append ("%s=%s" % (urllib.parse.quote_plus (name), urllib.parse.quote_plus (val)))
 			cl.append ("path=%s" % path)		
 		
 		if expires is not None:
@@ -139,7 +139,7 @@ if sys.version_info >= (2, 5):
 if _default_hash is None:
 	import sha as _default_hash
 	
-import cPickle as pickle
+import pickle as pickle
 from hmac import new as hmac
 
 class UnquoteError(Exception):
@@ -174,7 +174,7 @@ class SecuredCookieValue (Cookie):
 			
 	def set (self, k, v):
 		if type (k) is not type (""):
-			raise TypeError, "Session key must be string type"
+			raise TypeError("Session key must be string type")
 		self.data [k] = v
 		
 	def clear (self):
@@ -190,7 +190,7 @@ class SecuredCookieValue (Cookie):
 		elif expires == "now":
 			expires = 0
 		elif expires == "never":
-			raise ValueError, "session must be specified expires seconds"
+			raise ValueError("session must be specified expires seconds")
 		else:
 			expires = min (int (expires), self.max_valid_session)
 			
@@ -227,7 +227,7 @@ class SecuredCookieValue (Cookie):
 		mac = hmac(self.secret_key, None, self.hash_method)
 		for key, value in sorted (self.items()):
 			result.append('%s=%s' % (
-				urllib.quote_plus (key),
+				urllib.parse.quote_plus (key),
 				self.quote(value)
 			))
 			mac.update('|' + result[-1])
@@ -239,7 +239,7 @@ class SecuredCookieValue (Cookie):
 	
 	@classmethod
 	def unserialize(cls, string, secret_key, setfunc):
-		if isinstance(string, unicode):
+		if isinstance(string, str):
 			string = string.encode('utf-8', 'ignore')
 		
 		items = {}
@@ -257,7 +257,7 @@ class SecuredCookieValue (Cookie):
 			key, value = item.split('=', 1)
 			# try to make the key a string
 			try:
-				key = urllib.unquote_plus (str(key))
+				key = urllib.parse.unquote_plus (str(key))
 			except UnicodeError:
 				pass
 			items[key] = value
@@ -269,7 +269,7 @@ class SecuredCookieValue (Cookie):
 		
 		if items is not None and client_hash == mac.digest():
 			try:
-				for key, value in items.iteritems():
+				for key, value in items.items():
 					items[key] = cls.unquote(value)
 			except UnquoteError:
 				items = {}

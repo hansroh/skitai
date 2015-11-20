@@ -1,12 +1,12 @@
-import cPickle as pickle
-import http_date
+import pickle as pickle
+from . import http_date
 import time
 import random
 from skitai.lib import pathtool
 from skitai.lib import udict
 import os, sys
 import md5
-import urllib
+import urllib.request, urllib.parse, urllib.error
 		
 class Session:
 	def __init__ (self, path, timeout, bsid):
@@ -20,7 +20,7 @@ class Session:
 	def __check_timeout (self):
 		if time.time () - self.__last_used > self.__timeout:
 			self.truncate ()
-			raise KeyError, "session variable had been timeouted"
+			raise KeyError("session variable had been timeouted")
 			
 	def __setitem__ (self, k, v):
 		self.data [k] = v
@@ -49,9 +49,9 @@ class SessionStorage:
 	
 	def check_directory (self):
 		if not self.path: return
-		for h in range (48,58) + range (97,103):
-			for i in range (48,58) + range (97,103):
-				for j in range (48,58) + range (97,103):
+		for h in list(range(48,58)) + list(range(97,103)):
+			for i in list(range(48,58)) + list(range(97,103)):
+				for j in list(range(48,58)) + list(range(97,103)):
 					initial = "0" + chr (h) + "/" + chr (i) + chr (j)
 					pathtool.mkdir (os.path.join (self.path, initial))
 	
@@ -101,7 +101,7 @@ class Sessions:
 			)).hexdigest ()
 		
 	def maintern (self):
-		for bsid in self.sessions.keys ():
+		for bsid in list(self.sessions.keys ()):
 			session = self.sessions [bsid]
 			if time.time () - session.last_used > self.timeout:
 				self.remove (bsid)
@@ -115,19 +115,19 @@ class Sessions:
 			bsid = self.make_bsid (cookie)
 			cookie.set ("BSID", bsid, "never")
 			
-		if self.sessions.has_key (bsid):			
+		if bsid in self.sessions:			
 			session = self.sessions [bsid] 
 			if time.time () - session.last_used > self.timeout:
 				self.remove (bsid)
 		
-		if not self.sessions.has_key (bsid):
+		if bsid not in self.sessions:
 			self.sessions [bsid] = Session (self.path, self.timeout, bsid)
 		
 		session = self.sessions [bsid]
 		return session
 
 	def remove (self, bsid):
-		if self.sessions.has_key (bsid):
+		if bsid in self.sessions:
 			session = self.sessions [bsid] 
 			self.session_storage.remove (session)
 			del session
@@ -156,7 +156,7 @@ class Sessions:
 if __name__ == "__main__":
 	def set (name, val = "", expires=None, path = "/", domain = None):
 		# browser string cookie
-		print val.serialize ()
+		print(val.serialize ())
 		
 	
 	sess = SecuredCookieValue ({}, "ASDF34x5=DFu$3FD45i&*YTnU+7", set, True)
@@ -164,9 +164,9 @@ if __name__ == "__main__":
 	sess.save ()
 	
 	sess = SecuredCookieValue.unserialize ("zKHqC0mZfX7qyGzVcGGyu3VklHQ=?a=STEKLg==&b=STIKLg==&c=KGxwMQpJMwphSTQKYS4=", "ASDF34x5=DFu$3FD45i&*YTnU+7", set)
-	print sess
+	print(sess)
 	
 	sess = SecuredCookieValue.unserialize ("K05TrqlZvmHtcL461KbiYR+cvjM=?lalala=KEkzCkk0CnRwMQou", "ASDF34x5=DFu$3FD45i&*YTnU+7", set)
-	print sess
+	print(sess)
 	
 	

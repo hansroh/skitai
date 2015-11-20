@@ -8,7 +8,7 @@ import string
 import sys
 import random
 import time
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 from asyncore import socket_map, poll
 	
 
@@ -20,7 +20,7 @@ class timer:
 
 
 def maintern ():
-	for fd, obj in socket_map.items ():
+	for fd, obj in list(socket_map.items ()):
 		if time.time () - obj.event_time > 20:
 			obj.handle_close ()
 			#blurt ('d')
@@ -120,12 +120,12 @@ def make_testset (testproxy):
 		try:
 			f = open ("hosts.txt")
 		except (IOError, OSError):
-			print "[error] no hosts.txt file, ignore proxy test"
+			print("[error] no hosts.txt file, ignore proxy test")
 		else:	
 			for line in f:			
 				host = line.lower ().strip ()
 				PTEST [host] = None
-			HOSTS = PTEST.keys ()
+			HOSTS = list(PTEST.keys ())
 	
 	L = [
 			"/test/db",
@@ -149,19 +149,19 @@ def make_testset (testproxy):
 		for i in range (770):
 			HOSTS.append (each)
 	
-	print len (HOSTS)
+	print(len (HOSTS))
 	
 
 LOCK = threading.Lock ()
 def use_urllib (host):
 	#print 'Connecting...', host
 	if host[0] != "/":
-		proxy = urllib2.ProxyHandler(PROXIES)
-		opener = urllib2.build_opener(proxy)
-		req = urllib2.Request("http://%s" % host)
+		proxy = urllib.request.ProxyHandler(PROXIES)
+		opener = urllib.request.build_opener(proxy)
+		req = urllib.request.Request("http://%s" % host)
 		f =	opener.open (req, timeout = 20)
 	else:	
-		f = urllib2.urlopen("http://%s:%d%s" % (HOST, PORT, host), timeout = 20)
+		f = urllib.request.urlopen("http://%s:%d%s" % (HOST, PORT, host), timeout = 20)
 	f.close ()
 		
 def gets (func):
@@ -174,7 +174,7 @@ def gets (func):
 		try:
 			func (host)
 			
-		except Exception, why:
+		except Exception as why:
 			LOCK.acquire ()
 			try:
 				code = why.getcode ()
@@ -201,15 +201,15 @@ def runthread ():
 
 
 def usage ():
-	print "%s [options]" % sys.argv[0]
-	print """
+	print("%s [options]" % sys.argv[0])
+	print("""
 	--help
 	-c num client
 	-r num request per client
 	-h sadb, default is ibiz
 	-p enable proxy test
 	-t threading mode, default is async mode
-	"""
+	""")
 	
 	
 if __name__ == '__main__':
@@ -249,7 +249,7 @@ if __name__ == '__main__':
 	
 	t = timer()
 	if async:
-		map (lambda x: http_client (HOST, PORT, random.choice (HOSTS), req-1), range(clients))
+		list(map (lambda x: http_client (HOST, PORT, random.choice (HOSTS), req-1), list(range(clients))))
 		loop()
 	else:		
 		runthread ()
@@ -258,7 +258,7 @@ if __name__ == '__main__':
 	
 	total_time = t.end()
 	
-	print (
+	print((
 					'\n%d clients\n%d hits/client\n'
 					'total hits:%d\n'
 					'total errors:%d\n%.3f seconds\ntotal hits/sec:%.3f' % (
@@ -269,15 +269,15 @@ if __name__ == '__main__':
 									total_time,
 									total_sessions / total_time
 									)
-					)
+					))
 					
-	print 'Max. number of concurrent sessions: %d' % (MAX)
-	codes = resp_codes.items ()
+	print('Max. number of concurrent sessions: %d' % (MAX))
+	codes = list(resp_codes.items ())
 	codes.sort ()
 	
-	print "HTTP Response Code Stats"
+	print("HTTP Response Code Stats")
 	for k, v in codes:
-		print "  %s: %d" % (k, v)
+		print("  %s: %d" % (k, v))
 
 # linux 2.x, talking to medusa
 # 50 clients

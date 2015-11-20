@@ -63,7 +63,7 @@ class Response:
 		self.size += len (data)		
 		if self.size > self.SIZE_LIMIT:
 			self.buffer = None
-			raise RepsonseError, "Content Oversize Error"		
+			raise RepsonseError("Content Oversize Error")		
 		self.buffer += data
 		
 	def get_content (self):
@@ -94,5 +94,5 @@ class FailedResponse (Response):
 		return 
 		
 	def collect_incoming_data (self, data):
-		raise IOError, "This Is Failed Response"
+		raise IOError("This Is Failed Response")
 	

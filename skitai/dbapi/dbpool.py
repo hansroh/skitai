@@ -1,8 +1,8 @@
 import threading
 import time
-import asynpsycopg2
+from . import asynpsycopg2
 from skitai.client import socketpool
-from __init__ import DB_PGSQL
+from .__init__ import DB_PGSQL
 
 class DBPool (socketpool.SocketPool):
 	object_timeout = 300
@@ -35,15 +35,15 @@ if __name__ == "__main__":
 		conn = pool.get ("mydb.c25zyujwtzky.us-east-1.rds.amazonaws.com:5432", "mydb", "postgres", "!kms2000")
 		conn.execute ("SELECT * FROM cities;")
 		rs = conn.fetchwait (5)
-		print rs.status, rs.result
+		print(rs.status, rs.result)
 		
 		conn.execute ("INSERT INTO weather VALUES ('San Francisco', 46, 50, 0.25, '1994-11-27');")		
 		rs = conn.wait (5)
-		print rs.status, rs.result
+		print(rs.status, rs.result)
 		
 		conn.execute ("INSERT INTO weather VALUES ('San Francisco', 54, 67, 0.25, '1994-11-27');")		
 		rs = conn.wait (5)
-		print rs.status, rs.result
+		print(rs.status, rs.result)
 		
 		
 	threading.Thread (target = query).start ()	

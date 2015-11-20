@@ -1,8 +1,8 @@
 import asyncore
 from skitai.client.http import httprequest
 from skitai.client.asynlib import asyncon
-import asyncftp
-import response
+from . import asyncftp
+from . import response
 
 class asyncftp_download (asyncore.dispatcher):
 	def __init__ (self, handler, host, port):

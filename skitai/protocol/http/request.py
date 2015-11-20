@@ -1,14 +1,14 @@
-﻿import response
-import urllib
-import eurl
+﻿from . import response
+import urllib.request, urllib.parse, urllib.error
+from . import eurl
 from .. import socketpool, adns
-import localstorage
+from . import localstorage
 
 
 def encode_form (data):
 	cdata = []
 	for k, v in data.itmes ():
-		cdata.append ("%s=%s" % (k, urllib.quote_plus (v)))
+		cdata.append ("%s=%s" % (k, urllib.parse.quote_plus (v)))
 	return "&".join (cdata)
 
 def init (logger):

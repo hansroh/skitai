@@ -1,10 +1,10 @@
-import urlparse
+import urllib.parse
 import base64
 import md5
 import re
 import time
-import xmlrpclib
-import util
+import xmlrpc.client
+from . import util
 
 class EURL:
 	keywords = ('get', 'post', 'head', 'put', 'from')
@@ -21,7 +21,7 @@ class EURL:
 		del self.info [k]
 		
 	def __getitem__ (self, k):
-		if k == "pid" and not self.has_key ("pid"):
+		if k == "pid" and "pid" not in self:
 			self ["pid"] = self.hexdigest ()
 			return self ["pid"]
 			
@@ -34,26 +34,26 @@ class EURL:
 		return self.info.get (k, d)
 		
 	def items (self):
-		return self.info.items ()
+		return list(self.info.items ())
 	
 	def has_key (self, k):
-		return self.info.has_key (k)
+		return k in self.info
 			
 	def __str__ (self):
 		return self ["url"]
 	
 	def advance (self, surl, **karg):
 		eurl = EURL (surl)
-		for k, v in self.items ():
+		for k, v in list(self.items ()):
 			if k in ("querystring", "form", "framgment", "params", "referer", "pid"):
 				continue
-			if eurl.has_key (k): # not overwrite
+			if k in eurl: # not overwrite
 				continue
 			eurl [k] = v
 		eurl ["referer"] = self ["url"]
 		eurl ["surf"] = self ["surf"] + 1
 		
-		for k, v in karg.items ():
+		for k, v in list(karg.items ()):
 			eurl [k] = v
 			
 		return eurl
@@ -82,7 +82,7 @@ class EURL:
 		self._set (d)
 
 	def	_set (self, d):
-		for k, v in d.items ():
+		for k, v in list(d.items ()):
 			if k == "from":
 				k = "referer"
 			elif k in ("get", "post", "head", "put"):
@@ -91,7 +91,7 @@ class EURL:
 				continue
 			self [k] = v
 		
-		self ['scheme'], self ['netloc'], self ['script'], _params, _query, _fragment = urlparse.urlparse (self ['url'])
+		self ['scheme'], self ['netloc'], self ['script'], _params, _query, _fragment = urllib.parse.urlparse (self ['url'])
 		if _params: self ['params'] = _params
 		if _query: self ['querystring'] = _query
 		if _fragment: self ['fragment'] = _fragment
@@ -109,7 +109,7 @@ class EURL:
 			except: pass
 		if self["mehotd"] == "post":
 			if not self ['form']:
-				raise ValueError, "post method but no form data"		
+				raise ValueError("post method but no form data")		
 			try: self ['form'] = uitl.queryencode (self ['form'])
 			except: pass
 		
@@ -247,7 +247,7 @@ class EURL:
 			if v:
 				args [k] = v
 						
-		args = args.items ()
+		args = list(args.items ())
 		args.sort ()
 		
 		argslist = []
@@ -266,8 +266,8 @@ class EURL:
 		return md5.new (signature).hexdigest ()
 	
 	def show (self):
-		for k, v in self.info.items():
-			print "-%s: %s" % (k.upper(), v)
+		for k, v in list(self.info.items()):
+			print("-%s: %s" % (k.upper(), v))
 
 
 def test_crack_uql():
@@ -276,7 +276,7 @@ def test_crack_uql():
 		  "with-ua ELAB robotec. with-sid 34543"
 		  )
 	EURL (d).show()
-	print "------------"
+	print("------------")
 	d = "post http://www.dsfds.com/asdsa.aps?asdas=1&sdfds=1 with-form a=a&b=432432"
 	EURL (d).show()
 	

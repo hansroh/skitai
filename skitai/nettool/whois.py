@@ -38,11 +38,11 @@ class WhoisConsumer:
         self.text = self.text + text
 
     def abort(self):
-        print self.host, "=>", "failed"
+        print(self.host, "=>", "failed")
 
     def close(self):
-        print self.host, "=>"
-        print self.text
+        print(self.host, "=>")
+        print(self.text)
 
 #
 # try it out

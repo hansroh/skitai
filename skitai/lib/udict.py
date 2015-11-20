@@ -36,16 +36,16 @@ class UDict:
 		del self.__d__ [key]
 		
 	def keys (self):
-		return self.__d__.keys ()
+		return list(self.__d__.keys ())
 
 	def items (self):
-		return self.__d__.items ()
+		return list(self.__d__.items ())
 
 	def has_key (self, key):
-		return self.__d__.has_key (key)
+		return key in self.__d__
 
 	def get (self, key, default):
-		if not self.__d__.has_key (key):
+		if key not in self.__d__:
 			return default
 		else:
 			return self.__d__ [key]

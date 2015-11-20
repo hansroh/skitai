@@ -32,7 +32,7 @@ def service_control(service, action, machine=''):
 			return False
 	
 	else:
-		raise ValueError, "Unknown Command"
+		raise ValueError("Unknown Command")
 
 
 

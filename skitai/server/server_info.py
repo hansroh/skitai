@@ -12,7 +12,7 @@ def _make (was, flt):
 		elif flt == "ENVIRON":
 			return {"ENVIRON": was.env.as_dict ()}	
 	else:
-		for name, cluster in was.clusters.items ():
+		for name, cluster in list(was.clusters.items ()):
 			if name is None: 
 				g ["SOCKETPOOL"] = cluster.status ()
 				continue
@@ -37,14 +37,14 @@ def format_object (o):
 			if type (each) is type ({}):
 				b.append ("%s" % format_object (each))
 			elif type (each) is type ([]):
-				b.append (", ".join (map (lambda x: str (x), each)))
+				b.append (", ".join ([str (x) for x in each]))
 			else:					
 				b.append (str (each))	
 			b.append ("</div>")				
 		return "".join (b)
 
 	b.append ("<table width='100%%' border='1'>")
-	ii = o.items ()
+	ii = list(o.items ())
 	ii.sort ()
 	
 	for k1, v1 in ii:
@@ -60,7 +60,7 @@ def format_object (o):
 	
 def formatting (was, info, flt):	
 	b = []
-	l = info.items ()
+	l = list(info.items ())
 	l.sort ()
 	if not flt:
 		b.append ('<a name="TOC"></a><h3>Table of Content</h3>')

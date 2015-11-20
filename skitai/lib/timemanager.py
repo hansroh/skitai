@@ -2,6 +2,7 @@ from skitai.lib import confparse
 import os
 import time
 import threading
+from functools import reduce
 
 class TimeManager:
 	def __init__ (self, confpath, logger = None):
@@ -31,9 +32,9 @@ class TimeManager:
 	def get_hour (self):
 		ch = time.strftime ("%Y%m%d%H", time.localtime (time.time ()))
 		self.lock.acquire ()
-		if not self.attain_status.has_key (ch):
+		if ch not in self.attain_status:
 			self.attain_status [ch] = 0
-		has_mission = self.missions.has_key (ch)
+		has_mission = ch in self.missions
 		self.lock.release ()
 		if not has_mission:
 			self.set_mission (ch)
@@ -42,7 +43,7 @@ class TimeManager:
 	def get_date (self):
 		cd = time.strftime ("%Y%m%d", time.localtime (time.time ()))
 		self.lock.acquire ()
-		if not self.attain_status.has_key (cd):
+		if cd not in self.attain_status:
 			self.attain_status [cd] = 0
 		self.lock.release ()
 		return cd	
@@ -125,7 +126,7 @@ class TimeManager:
 	def maintern (self):
 		h = self.get_hour ()
 		self.lock.acquire ()
-		for hour in self.missions.keys ():
+		for hour in list(self.missions.keys ()):
 			if hour != h: 
 				del self.missions [hour]
 		self.lock.release ()
@@ -180,7 +181,7 @@ class TimeManager:
 		self.todayplan = self.dayplan [weekday]
 		
 	def gapfill (self, lst, default):
-		hasval = filter (lambda x: x != -1, lst)
+		hasval = [x for x in lst if x != -1]
 		if not hasval:
 			for i in range (len (lst)):
 				lst [i] = default
@@ -218,7 +219,7 @@ class TimeManager:
 				j += 1
 				lst [i] = int (fval + (step * j))
 		
-		while filter (lambda x: x == -1, lst):
+		while [x for x in lst if x == -1]:
 			for index in range (len (lst)):
 				if lst [index] == -1: 
 					fval = lst [index - 1]
@@ -253,17 +254,17 @@ class TimeManager:
 		self.default_dayplan = self.conf.getint ("setting", "default_dayplan")
 		self.dayplan = [-1] * 7
 		self.timeplan = [-1] * 24		
-		for k, v in self.conf.getopt ("dayplan").items ():
+		for k, v in list(self.conf.getopt ("dayplan").items ()):
 			self.dayplan [self.WEEK.index (k.lower ())] = calc_dayplan (v)		
 		self.gapfill (self.dayplan, self.default_dayplan)
 		
-		for k, v in self.conf.getopt ("timeplan").items ():
+		for k, v in list(self.conf.getopt ("timeplan").items ()):
 			self.timeplan [int (k [:-1])] = v.count ("-") * 10
 			
 		self.gapfill (self.timeplan, 100)
 		sum = reduce (lambda x, y: x + y, self.timeplan)
 		if sum != 0:
-			self.timeplan = map (lambda x: float (x) / sum, self.timeplan)				
+			self.timeplan = [float (x) / sum for x in self.timeplan]				
 		self.set_user_config ()
 		self.set_todayplan () 
 		self.refresh_mission ()

@@ -1,4 +1,4 @@
-import threading, time, sys, Queue
+import threading, time, sys, queue
 from skitai import lifetime
 import threading
 			
@@ -75,7 +75,7 @@ class thread_pool:
 				
 	def status (self):		
 		d = {}
-		for child_id, child in self.tpool.items():
+		for child_id, child in list(self.tpool.items()):
 			d [child_id] = child.status ()
 		return d
 			
@@ -94,7 +94,7 @@ class request_queue:
 			self.queue.append (item)
 		self.cv.notify ()
 		self.cv.release ()		
-		print self.queue
+		print(self.queue)
 		
 	def get (self):
 		self.cv.acquire()
@@ -113,19 +113,19 @@ class request_queue:
 	def status(self):
 		return {
 			"qsize": len (self.queue), 
-			"in_queue": map(lambda x: str(x [1]), self.queue)
+			"in_queue": [str(x [1]) for x in self.queue]
 		}	
 
 
-class request_queue2 (Queue.Queue):
+class request_queue2 (queue.Queue):
 	def __init__(self, maxsize=0):
-		Queue.Queue.__init__ (self, maxsize)
+		queue.Queue.__init__ (self, maxsize)
 		self.maxq = 0
 		
 	def cleanup (self):
 		while 1:
 			try: item = self.get_nowait ()
-			except Queue.Empty: break
+			except queue.Empty: break
 			del item
 		
 		for i in range (1024):
@@ -133,7 +133,7 @@ class request_queue2 (Queue.Queue):
 		
 		while 1:
 			try: self.get_nowait ()
-			except Queue.Empty: break			
+			except queue.Empty: break			
 	
 	def put(self, item, block=True, timeout=None):
 		qsize = self.qsize ()
@@ -141,7 +141,7 @@ class request_queue2 (Queue.Queue):
 		if qsize > self.maxq:
 			self.maxq = qsize
 		self.mutex.release()	
-		Queue.Queue.put(self, item, block, timeout)
+		queue.Queue.put(self, item, block, timeout)
 		
 			
 	def status(self):

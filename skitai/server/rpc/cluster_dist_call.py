@@ -1,8 +1,8 @@
 import time
 from skitai.server.threads import trigger
 import threading
-import http_request
-import http_response
+from . import http_request
+from . import http_response
 from skitai.server import rcache
 
 
@@ -40,7 +40,7 @@ class Results (rcache.Result):
 			return
 		if rcache.the_rcache is None or not self.ident: 
 			return
-		if filter (None, [rs.status != 3 or rs.code != 200 for rs in self.results]):
+		if [_f for _f in [rs.status != 3 or rs.code != 200 for rs in self.results] if _f]:
 			return
 		
 		rcache.Result.__timeout = timeout
@@ -247,7 +247,7 @@ class ClusterDistCall:
 			
 		self._wait (timeout)
 		if len (self._results) > 1:
-			raise ValueError, "Multiple Results, Use getswait"
+			raise ValueError("Multiple Results, Use getswait")
 		return self._results [0].get_result ()
 	
 	def getswait (self, timeout = 3):
@@ -258,7 +258,7 @@ class ClusterDistCall:
 		return Results ([rs.get_result () for rs in self._results], ident = self.get_ident ())
 	
 	def _collect_result (self):
-		for rs, asyncon in self._requests.items ():
+		for rs, asyncon in list(self._requests.items ()):
 			status = rs.get_status ()
 			if not self._mapreduce and status == 2 and self._retry < self._numnodes:
 				self._logger ("cluster response error, switch to another...", "info")
@@ -288,7 +288,7 @@ class ClusterDistCall:
 			self._collect_result ()
 		
 		# timeouts	
-		for rs, asyncon in self._requests.items ():
+		for rs, asyncon in list(self._requests.items ()):
 			asyncon.set_timeout (0) # make zombie channel
 			asyncon.handle_timeout ()
 			rs.set_status (1)
@@ -312,7 +312,7 @@ class ClusterDistCallCreator:
 	
 if __name__ == "__main__":
 	from skitai.lib  import logger
-	import cluster_manager
+	from . import cluster_manager
 	import sys
 	import asyncore
 	import time
@@ -320,7 +320,7 @@ if __name__ == "__main__":
 	
 	def _reduce (asyncall):
 		for rs in asyncall.getswait (5):
-			print "Result:", rs.id, rs.status, rs.code, `rs.result [:60]`
+			print("Result:", rs.id, rs.status, rs.code, repr(rs.result [:60]))
 					
 	def testCluster ():	
 		sc = cluster_manager.ClusterManager ("tt", ["210.116.122.187:3424 1", "210.116.122.184:3424 1", "175.115.53.148:3424 1"], logger= logger.screen_logger ())
@@ -347,7 +347,7 @@ if __name__ == "__main__":
 		
 		while 1:
 			asyncore.loop (timeout = 1, count = 2)
-			print asyncore.socket_map
+			print(asyncore.socket_map)
 			if len (asyncore.socket_map) == 1:
 				break
 	

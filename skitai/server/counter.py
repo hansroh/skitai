@@ -15,7 +15,7 @@ class counter:
 		try:
 			self.value = self.value + delta
 		except OverflowError:
-			self.value = long(self.value) + delta
+			self.value = int(self.value) + delta
 		return result
 
 	def decrement (self, delta=1):
@@ -23,20 +23,20 @@ class counter:
 		try:
 			self.value = self.value - delta
 		except OverflowError:
-			self.value = long(self.value) - delta
+			self.value = int(self.value) - delta
 		return result
 
 	def as_long (self):
-		return long (self.value)
+		return int (self.value)
 
-	def __nonzero__ (self):
+	def __bool__ (self):
 		return self.value != 0
 
 	def __repr__ (self):
 		return '<counter value=%s at %x>' % (self.value, id(self))
 
 	def __str__ (self):
-		return str(long(self.value))
+		return str(int(self.value))
 
 
 class mpcounter:
@@ -57,7 +57,7 @@ class mpcounter:
 			try:
 				self.value.value = self.value.value + delta
 			except OverflowError:
-				self.value.value = long(self.value.value) + delta
+				self.value.value = int(self.value.value) + delta
 		finally:
 			self.lock.release ()					
 		return result
@@ -69,7 +69,7 @@ class mpcounter:
 			try:
 				self.value.value = self.value.value - delta
 			except OverflowError:
-				self.value.value = long(self.value.value) - delta
+				self.value.value = int(self.value.value) - delta
 		finally:
 			self.lock.release ()		
 		return result
@@ -78,9 +78,9 @@ class mpcounter:
 		self.lock.acquire ()
 		result = self.value.value
 		self.lock.release ()
-		return long (result)
+		return int (result)
 
-	def __nonzero__ (self):
+	def __bool__ (self):
 		self.lock.acquire ()
 		result = self.value.value
 		self.lock.release ()
@@ -96,18 +96,18 @@ class mpcounter:
 		self.lock.acquire ()
 		result = self.value.value
 		self.lock.release ()
-		return str(long(result))
+		return str(int(result))
 
 if __name__ == "__main__":
 	f = mpcounter (0)
-	print f.increment ()
-	print f.increment ()
-	print f.increment ()
-	print f.as_long ()
-	print str (f)
-	print f.decrement ()
-	print f.as_long ()
-	print str (f)
+	print(f.increment ())
+	print(f.increment ())
+	print(f.increment ())
+	print(f.as_long ())
+	print(str (f))
+	print(f.decrement ())
+	print(f.as_long ())
+	print(str (f))
 	
 	
 	

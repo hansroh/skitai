@@ -1,7 +1,7 @@
-import xmlrpclib
+import xmlrpc.client
 import base64
-import urlparse
-import http_response
+import urllib.parse
+from . import http_response
 from skitai.client import adns, asynconnect
 from skitai.server import producers
 
@@ -32,7 +32,7 @@ class XMLRPCRequest:
 		return "POST"
 		
 	def make_url (self, uri):
-		scheme, server, script, params, qs, fragment = urlparse.urlparse (uri)
+		scheme, server, script, params, qs, fragment = urllib.parse.urlparse (uri)
 		if not script: script = "/"
 		url = script
 		if params: url += ";" + params
@@ -40,7 +40,7 @@ class XMLRPCRequest:
 		return url
 		
 	def serialize (self):
-		return xmlrpclib.dumps (self.params, self.method, encoding=self.encoding, allow_none=1)
+		return xmlrpc.client.dumps (self.params, self.method, encoding=self.encoding, allow_none=1)
 		
 	def set_address (self, address):
 		self.address = address
@@ -54,7 +54,7 @@ class XMLRPCRequest:
 			
 	def get_content_type (self):
 		if self.headers:
-			for k, v in self.headers.items ():
+			for k, v in list(self.headers.items ()):
 				if k.lower () == "content-length":
 					del self.headers [k]
 				elif k.lower () == "content-type":
@@ -64,7 +64,7 @@ class XMLRPCRequest:
 	
 	def get_headers (self):
 		if self.headers:
-			return self.headers.items ()
+			return list(self.headers.items ())
 		else:
 			return []	
 			
@@ -108,7 +108,7 @@ class HTTPRequest (XMLRPCRequest):
 		if type (self.formdata) is type ({}):
 			if self.get_content_type () != "application/x-www-form-urlencoded":
 				raise TypeError ("POST Body should be string or can be encodable")
-			return "&".join (["%s=%s" % (urllib.quote (k), urllib.quote (v)) for k, v in self.formdata.items ()])
+			return "&".join (["%s=%s" % (urllib.parse.quote (k), urllib.parse.quote (v)) for k, v in list(self.formdata.items ())])
 			
 		return self.formdata
 		
@@ -144,10 +144,10 @@ class HTTPMultipartRequest (HTTPRequest):
 	def find_boundary (self):
 		s = self.formdata.find ("\r\n")
 		if s == -1:
-			raise ValueError, "boundary not found"
+			raise ValueError("boundary not found")
 		b = self.formdata [:s]			
 		if b [:2] != "--":
-			raise ValueError, "invalid multipart/form-data"
+			raise ValueError("invalid multipart/form-data")
 		self.boundary = b [2:s]
 		
 	def serialize (self):
@@ -229,7 +229,7 @@ class Request:
 			self.request.get_method (),
 			self.request.url,
 			self.http_version,
-			"\r\n".join (map (lambda x: "%s: %s" % x, hc.items ()))
+			"\r\n".join (["%s: %s" % x for x in list(hc.items ())])
 		)		
 		if is_data_producer:
 			return [req, data]

@@ -158,7 +158,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 				self._nodes = [None]
 	
 	def __getattr__ (self, name):	
-		raise AttributeError, "%s not found" % name
+		raise AttributeError("%s not found" % name)
 		
 	def get_ident (self):
 		cluster_name = self._cluster.get_name ()
@@ -222,7 +222,7 @@ class ClusterDistCallCreator:
 	
 if __name__ == "__main__":
 	from skitai.lib  import logger
-	import cluster_manager
+	from . import cluster_manager
 	import sys
 	import asyncore
 	import time
@@ -230,7 +230,7 @@ if __name__ == "__main__":
 	
 	def _reduce (asyncall):
 		for rs in asyncall.getswait (5):
-			print "Result:", rs.id, rs.status, rs.code, `rs.result [:60]`
+			print("Result:", rs.id, rs.status, rs.code, repr(rs.result [:60]))
 					
 	def testCluster ():	
 		sc = cluster_manager.ClusterManager ("tt", ["210.116.122.187:3424 1", "210.116.122.184:3424 1", "175.115.53.148:3424 1"], logger= logger.screen_logger ())
@@ -257,7 +257,7 @@ if __name__ == "__main__":
 		
 		while 1:
 			asyncore.loop (timeout = 1, count = 2)
-			print asyncore.socket_map
+			print(asyncore.socket_map)
 			if len (asyncore.socket_map) == 1:
 				break
 	

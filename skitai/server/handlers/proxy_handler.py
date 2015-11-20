@@ -1,10 +1,10 @@
-import ssgi_handler
+from . import ssgi_handler
 import re
 from skitai.server.rpc import http_request, http_response
 from skitai.client import adns
 from skitai.server import compressors, producers
 try:
-	import ssl_tunnel
+	from . import ssl_tunnel
 except ImportError:
 	ssl_tunnel = None	
 import time
@@ -305,7 +305,7 @@ class Request (http_request.Request):
 			method,
 			self.request.url,
 			self.http_version,
-			"\r\n".join (map (lambda x: "%s: %s" % x, hc.items ()))			
+			"\r\n".join (["%s: %s" % x for x in list(hc.items ())])			
 		)
 		
 		#print "#################################"

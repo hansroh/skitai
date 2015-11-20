@@ -118,7 +118,7 @@ class AsynConnect (asyncore.dispatcher):
 		fd = self._fileno
 		if map is None:
 			map = self._map
-		if map.has_key(fd):
+		if fd in map:
 			del map[fd]
 	
 	def reconnect (self):
@@ -201,7 +201,7 @@ class AsynConnect (asyncore.dispatcher):
 		fd = self._fileno
 		if map is None:
 			map = self._map
-		if map.has_key(fd):
+		if fd in map:
 			del map[fd]			
 	  	
 	def connect (self, force = 0):

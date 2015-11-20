@@ -116,14 +116,14 @@ if "install" in sys.argv or "develop" in sys.argv:
 		if not os.path.isdir ("c:\\skitaid\\pub"):
 			shutil.copytree ("skitai\\skitaid\\pub", "c:\\skitaid\\pub")
 			
-		print "\n\n======================================"
-		print "Installation Complete"
-		print "--------------------------------------"	
-		print "Please run below command in your commands prompt with administator privilege\n"
-		print "  cd /d c:\\skitaid\\bin"
-		print "  python install-win32-service.py --startup auto install"
-		print "  python install-win32-service.py start"
-		print "  then check http://localhost:5000\n\n"
+		print("\n\n======================================")
+		print("Installation Complete")
+		print("--------------------------------------")	
+		print("Please run below command in your commands prompt with administator privilege\n")
+		print("  cd /d c:\\skitaid\\bin")
+		print("  python install-win32-service.py --startup auto install")
+		print("  python install-win32-service.py start")
+		print("  then check http://localhost:5000\n\n")
 	
 	else:
 			"""
@@ -145,7 +145,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 			try: 
 				os.mkdir ("/var/log/skitaid")
 				os.mkdir ("/var/local/skitaid")				
-			except OSError, why:
+			except OSError as why:
 				if why [0] != 17:
 					raise
 			
@@ -154,7 +154,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 			if os.path.isfile ("/etc/init.d/skitaid"):
 				os.remove ("/etc/init.d/skitaid")				
 			shutil.copyfile ("skitai/skitaid/etc/init.d/skitaid", "/etc/init.d/skitaid")
-			os.chmod ("/etc/init.d/skitaid", 0755)
+			os.chmod ("/etc/init.d/skitaid", 0o755)
 			
 			if os.path.isfile ("/usr/local/bin/skitaid.py"):
 				os.remove ("/usr/local/bin/skitaid.py")
@@ -170,16 +170,16 @@ if "install" in sys.argv or "develop" in sys.argv:
 			if not os.path.isdir ("/var/local/skitaid-pub"):
 				shutil.copytree ("skitai/skitaid/pub", "/var/local/skitaid-pub")
 			
-			os.chmod ("/usr/local/bin/skitaid.py", 0755)
-			os.chmod ("/usr/local/bin/skitaid-instance.py", 0755)
-			os.chmod ("/usr/local/bin/skitaid-install-requirements.sh", 0755)
+			os.chmod ("/usr/local/bin/skitaid.py", 0o755)
+			os.chmod ("/usr/local/bin/skitaid-instance.py", 0o755)
+			os.chmod ("/usr/local/bin/skitaid-install-requirements.sh", 0o755)
 			
-			print "\n\n======================================"
-			print "Installation Complete"
-			print "--------------------------------------"	
-			print "Please run below commands\n"
-			print "  sudo service skitaid start"
-			print "  wget http://localhost:5000\n\n"
+			print("\n\n======================================")
+			print("Installation Complete")
+			print("--------------------------------------")	
+			print("Please run below commands\n")
+			print("  sudo service skitaid start")
+			print("  wget http://localhost:5000\n\n")
 	
 
 	

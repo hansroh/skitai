@@ -1,10 +1,10 @@
 import sys, os
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import sys
 from skitai.server import utility
 from skitai.server.threads import trigger
-import ssgi_handler
-import xmlrpclib
+from . import ssgi_handler
+import xmlrpc.client
 		
 class Handler (ssgi_handler.Handler):
 	GATEWAY_INTERFACE = 'XMLRPC/2.0'
@@ -17,7 +17,7 @@ class Handler (ssgi_handler.Handler):
 		ismulticall = False	
 		try:
 			if data:
-				args, methodname = xmlrpclib.loads (data)
+				args, methodname = xmlrpc.client.loads (data)
 				if methodname == "system.multicall":
 					ismulticall = True
 				path = "/" + methodname.replace (".", "/")
@@ -77,7 +77,7 @@ class Job (ssgi_handler.Job):
 			self.responses = None
 			trigger.wakeup (lambda p=self.was.response, c=code, m=msg: (p.error (c, m),))
 		else:
-			self.responses.append (xmlrpclib.Fault (code, msg))
+			self.responses.append (xmlrpc.client.Fault (code, msg))
 			
 	def call (self, method, args):
 		response = None
@@ -117,7 +117,7 @@ class Job (ssgi_handler.Job):
 				fresp = tuple (self.responses)
 			else:
 				fresp = (self.responses,)	
-			response = xmlrpclib.dumps (fresp, methodresponse = True, allow_none = True, encoding = self.was.request.response.has_key ("Encoding") and self.was.request ["Encoding"] or None)
+			response = xmlrpc.client.dumps (fresp, methodresponse = True, allow_none = True, encoding = "Encoding" in self.was.request.response and self.was.request ["Encoding"] or None)
 			
 		except:
 			self.was.logger.trace ("app")

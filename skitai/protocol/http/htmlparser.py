@@ -1,7 +1,7 @@
 ﻿from wissen import _wissen
 import sgmlop
-import urllib
-import urlparse
+import urllib.request, urllib.parse, urllib.error
+import urllib.parse
 import types
 import re
 
@@ -50,7 +50,7 @@ class FastParser:
 	def finish_starttag (self, tag, attr):
 		tag = tag.lower ()		
 		nattr= {}
-		for k, v in attr.items ():
+		for k, v in list(attr.items ()):
 			nattr [k.lower ()] = v			
 		attr = nattr
 		try: 
@@ -127,21 +127,21 @@ class FastParser:
 		self.gettitle = False
 					
 	def handle_start_base (self, attr):	
-		if attr.has_key ("href"):
-			self.url = urlparse.urljoin (self.url, attr ["href"])
+		if "href" in attr:
+			self.url = urllib.parse.urljoin (self.url, attr ["href"])
 	
 	def handle_start_frameset (self, attr):			
 		self.frame = True
 	
 	def handle_start_frame (self, attr):	
-		if attr.has_key ("src"):
+		if "src" in attr:
 			self.anchors.append (["frame", attr ["src"]])
 	
 	def handle_start_iframe (self, attr):	
 		self.handle_start_frame (attr)
 		
 	def handle_start_meta (self, attr):
-		if not self.in_noscript and attr.has_key ("http-equiv"):
+		if not self.in_noscript and "http-equiv" in attr:
 			content = attr.get ("content", "")
 			dcontent = {}
 			if content:
@@ -161,26 +161,26 @@ class FastParser:
 			elif attr ["http-equiv"].lower () == "refresh":
 				nl = dcontent.get ("url", "")			
 				if nl != self.url:
-					self.refresh = urlparse.urljoin (self.url, nl)
+					self.refresh = urllib.parse.urljoin (self.url, nl)
 						
 	
 	def handle_start_img (self, attr):		
-		if attr.has_key ("src"):
+		if "src" in attr:
 			self.images.append (attr ["src"])
 	
 	def handle_start_a (self, attr):		
 		self.commit_linktext ()				
-		if attr.has_key ("href"):
+		if "href" in attr:
 			self.anchors.append (["", attr ["href"]])				
 			self.getlinktext = True
 	
 	def handle_start_link (self, attr):		
-		if attr.has_key ("href"):
+		if "href" in attr:
 			self.links.append ([attr.get ("title", ""), attr ["href"]])
 			
 	def handle_start_form (self, attr):		
 		self.form = {
-			"action": urlparse.urljoin (self.url, attr.get ("action", self.url)),
+			"action": urllib.parse.urljoin (self.url, attr.get ("action", self.url)),
 			"method": attr.get ("method", "get").lower (),
 			"name": attr.get ("name", ""),
 			"data": {}
@@ -208,7 +208,7 @@ class FastParser:
 		if t in ("text", "hidden", "submit", "button", "image", "password"):
 			data [name]	 = attr.get ("value", "")
 		elif t in ("radio", "checkbox"):
-			if attr.has_key ("checked"):
+			if "checked" in attr:
 				data [name] = attr.get ("value", "")
 	
 	
@@ -303,19 +303,19 @@ class HtmlEntity:
 		if not resolve:
 			return self.sax.images
 		else:
-			return map (lambda x: urlparse.urljoin (self.sax.url, x), self.sax.images)	
+			return [urllib.parse.urljoin (self.sax.url, x) for x in self.sax.images]	
 
 	def getLinks (self, resolve = 1):
 		if not resolve:
 			return self.sax.links
 		else:
-			return map (lambda x: (x [0], urlparse.urljoin (self.sax.url, x [1])), self.sax.links)
+			return [(x [0], urllib.parse.urljoin (self.sax.url, x [1])) for x in self.sax.links]
 		
 	def getAnchors (self, resolve = 1):
 		if not resolve:
 			return self.sax.anchors
 		else:
-			return map (lambda x: (x [0], urlparse.urljoin (self.sax.url, x [1])), self.sax.anchors)
+			return [(x [0], urllib.parse.urljoin (self.sax.url, x [1])) for x in self.sax.anchors]
 
 	def getForms (self):
 		return self.sax.forms
@@ -333,7 +333,7 @@ class HtmlEntity:
 		self.sax.url = url
 		
 	def getForm (self, index):
-		if type (index) is types.StringType:
+		if type (index) is bytes:
 			for form in self.sax.forms:
 				if index == form ["name"]:
 					return form
@@ -350,18 +350,18 @@ def parse (content, url):
 
 
 if __name__ == "__main__":
-	import urllib
+	import urllib.request, urllib.parse, urllib.error
 	htm = """\
 	"""
-	f = urllib.urlopen ("http://www.lagrandeobserver.com/")
+	f = urllib.request.urlopen ("http://www.lagrandeobserver.com/")
 	htm = f.read ()
 	
 	f = parse (htm, "http://www.lagrandeobserver.com/")
-	print f.getForms ()
-	print f.getForm ("supplier_search")
-	print f.getLinks (1)
-	print f.getImages (1)
-	print f.isFrame ()
-	print f.isMove ()
+	print(f.getForms ())
+	print(f.getForm ("supplier_search"))
+	print(f.getLinks (1))
+	print(f.getImages (1))
+	print(f.isFrame ())
+	print(f.isMove ())
 	
 	

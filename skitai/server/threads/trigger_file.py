@@ -1,5 +1,5 @@
 import re, asyncore
-import trigger
+from . import trigger
 
 class ConnectionError (Exception): pass
 class AlreadyClosed (Exception): pass

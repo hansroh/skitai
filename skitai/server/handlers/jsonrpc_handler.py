@@ -1,11 +1,11 @@
 import sys, os
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import sys
 from skitai.server import utility
 from skitai.server.threads import trigger
-import xmlrpc_handler
+from . import xmlrpc_handler
 import jsonrpclib
-import ssgi_handler
+from . import ssgi_handler
 
 
 class Handler (xmlrpc_handler.Handler):
@@ -88,7 +88,7 @@ class Job (xmlrpc_handler.Job):
 
 		else:
 			response = jsonrpclib.dumps (response, methodresponse = True, 
-				encoding = self.was.request.response.has_key ("Encoding") and self.was.requestresponse ["Encoding"] or None, 
+				encoding = "Encoding" in self.was.request.response and self.was.requestresponse ["Encoding"] or None, 
 				rpcid = rpcid,	version = jsonrpc
 			)
 			self.responses.append (response)

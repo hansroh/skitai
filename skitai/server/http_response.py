@@ -1,5 +1,6 @@
-import http_date, producers, utility
-import compressors, zlib
+from . import http_date, producers, utility
+from . import compressors
+import zlib
 import time
 
 class http_response:
@@ -26,7 +27,7 @@ class http_response:
 	
 	def has_key (self, key):
 		key = key.lower ()
-		return key in map (lambda x: x [0].lower (), self.reply_headers)		
+		return key in [x [0].lower () for x in self.reply_headers]		
 			
 	def set (self, key, value):
 		self.reply_headers.append ((key, value))
@@ -57,10 +58,7 @@ class http_response:
 	
 	def build_reply_header (self):		
 		return '\r\n'.join (
-			[self.response(self.reply_code, self.reply_message)] + map (
-				lambda x: '%s: %s' % x,
-				self.reply_headers
-				)
+			[self.response(self.reply_code, self.reply_message)] + ['%s: %s' % x for x in self.reply_headers]
 			) + '\r\n\r\n'
 	
 	def response (self, code, msg):
@@ -140,7 +138,7 @@ class http_response:
 		else:
 			if self.request.version == '1.0':
 				if connection == 'keep-alive':
-					if not self.has_key ('Content-Length'):
+					if 'Content-Length' not in self:
 						close_it = True
 				else:
 					close_it = True
@@ -148,7 +146,7 @@ class http_response:
 			elif self.request.version == '1.1':
 				if connection == 'close':
 					close_it = True
-				elif not self.has_key ('Content-Length'):
+				elif 'Content-Length' not in self:
 					wrap_in_chunking = True
 					
 			elif self.request.version is None:
@@ -159,22 +157,22 @@ class http_response:
 		else:
 			self.update ('Connection', 'keep-alive')
 			
-		if compress and not self.has_key ('Content-Encoding'):
+		if compress and 'Content-Encoding' not in self:
 			maybe_compress = self.request.get_header ("Accept-Encoding")
-			if maybe_compress and self.has_key ("Content-Length") and self ["Content-Length"] < 1024:
+			if maybe_compress and "Content-Length" in self and self ["Content-Length"] < 1024:
 				maybe_compress = ""
 			
 			else:	
 				content_type = self ["Content-Type"]
 				if maybe_compress and content_type and (content_type.startswith ("text/") or content_type.endswith ("/json-rpc")):
-					accept_encoding = map (lambda x: x.strip (), maybe_compress.split (","))
+					accept_encoding = [x.strip () for x in maybe_compress.split (",")]
 					if "gzip" in accept_encoding:
 						way_to_compress = "gzip"
 					elif "deflate" in accept_encoding:
 						way_to_compress = "deflate"
 		
 			if way_to_compress:
-				if self.has_key ('Content-Length'):
+				if 'Content-Length' in self:
 					self.delete ("Content-Length") # rebuild
 					wrap_in_chunking = True
 				self.update ('Content-Encoding', way_to_compress)
