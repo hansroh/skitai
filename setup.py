@@ -16,7 +16,7 @@ except ImportError:
 
 if sys.argv[-1] == 'publish':
 	if os.name == "nt":
-		os.system('python setup.py bdist_wininst --target-version=2.7 upload') # bdist_wininst
+		os.system('python setup.py sdist bdist_wininst --target-version=2.7 upload') # bdist_wininst
 	else:		
 		os.system('python setup.py sdist upload')
 	sys.exit()
@@ -103,10 +103,10 @@ setup(
 if "install" in sys.argv or "develop" in sys.argv:
 	if os.name == "nt":
 		if not os.path.isdir ("c:\\skitaid"):
-			shutil.copytree ("skitai\\skitaid\\etc\\skitaid", "c:\\skitaid\\etc")
 			os.mkdir ("c:\\skitaid")
 			os.mkdir ("c:\\skitaid\\var")
 			os.mkdir ("c:\\skitaid\\log")
+			shutil.copytree ("skitai\\skitaid\\etc\\skitaid", "c:\\skitaid\\etc")
 		
 		if os.path.isdir ("c:\\skitaid\\bin"):
 			for each in glob.glob ("c:\\skitaid\\bin\\*"):
