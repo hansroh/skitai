@@ -36,7 +36,7 @@ class https_channel (http_server.http_channel):
 			lifetime.shutdown (1, 1)
 			
 		except SSL.SSLError as why:
-			if why[0] == "unexpected eof": # unexpected client's disconnection?
+			if why.errno == "unexpected eof": # unexpected client's disconnection?
 				self.handle_close()
 				return ''			
 			raise

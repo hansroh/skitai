@@ -190,7 +190,7 @@ class TimeoutSocket:
 		try:
 			self.connect(addr)
 		except Error as why:
-			errcode = why[0]
+			errcode = why.errno
 		return errcode
 	# end connect_ex
 		
@@ -218,7 +218,7 @@ class TimeoutSocket:
 			
 			# If we are already connected, then return success.
 			# If we got a genuine error, re-raise it.
-			errcode = why[0]
+			errcode = why.errno
 			if dumbhack and errcode in _IsConnected:
 				return
 			elif errcode not in _ConnectBusy:
@@ -263,7 +263,7 @@ class TimeoutSocket:
 				raise
 			
 			# If we got a genuine error, re-raise it.
-			errcode = why[0]
+			errcode = why.errno
 			if errcode not in _AcceptBusy:
 				raise
 			

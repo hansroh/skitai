@@ -6,6 +6,7 @@ import urllib.parse
 import re
 import copy
 import random
+from operator import itemgetter
 
 class ClusterManager:
 	object_timeout = 1200
@@ -26,7 +27,7 @@ class ClusterManager:
 		self._clusterlist = []
 		self._cluster = {}	
 		self._last_maintern = time.time ()
-		self._close_desires = []
+		self._close_desires = []		
 		 
 		if cluster:
 			self.create_pool (cluster)
@@ -234,11 +235,6 @@ class ClusterManager:
 		except:
 			self.logger.trace ()		
 	
-	def sortfunc (self, a, b):
-		r = cmp (b [1], a [1])
-		if r != 0: return r
-		return cmp (b [2], a [2])
-	
 	def maintern (self):
 		try:
 			# close unused sockets
@@ -312,7 +308,8 @@ class ClusterManager:
 					cluster.append ((avails [0], len (avails) / float (weight), weight))
 				
 				if cluster:
-					cluster.sort (self.sortfunc)
+					cluster.sort (key = self.sortkey)
+					cluster.sort (key = itemgetter(1, 2), reverse = True)
 					asyncon = cluster [0][0]					
 				else:
 					t = [(len (self._cluster [node]["connection"]), node) for node in nodes]
@@ -330,4 +327,8 @@ class ClusterManager:
 			self.logger.trace ()
 					
 		return asyncon
-
+	
+	def sortfunc (self, a, b):
+		r = b [1] - a [1]
+		if r != 0: return r
+		return b [2] - a [2]		

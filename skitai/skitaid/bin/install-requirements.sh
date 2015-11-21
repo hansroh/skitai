@@ -5,6 +5,8 @@
 # therefore this workaround is required
 
 apt-get install swig
+pip install jinja2
+pip install jsonrpclib
 apt-get install libpq-dev python-dev
 pip install psycopg2
 

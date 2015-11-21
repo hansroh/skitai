@@ -294,6 +294,7 @@ class Application (Package):
 					self.cached_rules.append ([match, 1])
 					if time.time () - self.cache_sorted > 300:
 						self.cached_rules.sort (lambda x, y: cmp (y[1], x[1]))
+						self.cached_rules.sort (key = lambda x: x[1], reverse = True)
 						self.cache_sorted = time.time ()			
 				self.lock.release ()
 				

@@ -209,7 +209,7 @@ class AsynConnect (asynchat.async_chat):
 				return data
 		
 		except socket.error as why:
-			if why[0] in asyncore._DISCONNECTED:
+			if why.errno in asyncore._DISCONNECTED:
 				if not self.got_data: # disconnected by server
 					self.log ("_DISCONNECTED Error in recv (), retry connect...", "info")					
 					if self.reconnect ():
@@ -226,7 +226,7 @@ class AsynConnect (asynchat.async_chat):
 			return self.socket.send(data)
 						
 		except socket.error as why:
-			if why[0] == EWOULDBLOCK:
+			if why.errno == EWOULDBLOCK:
 				return 0
 			elif why.args[0] in asyncore._DISCONNECTED:
 				self.close_it = True
@@ -359,10 +359,10 @@ class AsynSSLConnect (AsynConnect):
 				return data
 
 		except ssl.SSLError as why:
-			if why[0] == ssl.SSL_ERROR_WANT_READ:
+			if why.errno == ssl.SSL_ERROR_WANT_READ:
 				return '' # retry
 			# closed connection
-			elif why[0] == ssl.SSL_ERROR_ZERO_RETURN:
+			elif why.errno == ssl.SSL_ERROR_ZERO_RETURN:
 				if not self.got_data: # disconnected by server
 					self.log ("SSL_ERROR_ZERO_RETURN Error Occurred in recv (), retry connect...", "info")
 					if self.reconnect ():
@@ -372,7 +372,7 @@ class AsynSSLConnect (AsynConnect):
 				return ''	
 				
 			# eof error
-			elif why[0] == ssl.SSL_ERROR_EOF:
+			elif why.errno == ssl.SSL_ERROR_EOF:
 				self.log ("SSL_ERROR_EOF Error Occurred in recv ()", "warn")
 				self.close_it = True
 				self.handle_close ()
@@ -386,7 +386,7 @@ class AsynSSLConnect (AsynConnect):
 			return self.socket.send(data)
 
 		except ssl.SSLError as why:
-			if why[0] == ssl.SSL_ERROR_WANT_WRITE:
+			if why.errno == ssl.SSL_ERROR_WANT_WRITE:
 				return 0			
 			else:
 				raise

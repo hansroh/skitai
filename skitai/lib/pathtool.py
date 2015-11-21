@@ -18,7 +18,7 @@ def mkdir (tdir, mod = -1):
 			if os.name == "posix" and mod != -1: 
 				os.chmod (dir, mod)
 		except OSError as why:
-			if why [0] in (17, 183): continue
+			if why.errno in (17, 183): continue
 			else: raise
 
 

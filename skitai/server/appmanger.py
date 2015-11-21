@@ -155,7 +155,7 @@ class ModuleManager:
 		if cands:
 			if len (cands) == 1:
 				return cands [0]
-			cands.sort (lambda x, y: cmp (len (x), len (y)))
+			cands.sort (key = lambda x: len (x))
 			return cands [-1]
 		elif "/" in self.modules and self.get_app (script_name, True) [0] is not None:
 			return "/"

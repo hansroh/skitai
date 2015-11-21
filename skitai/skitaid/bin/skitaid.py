@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
 import sys

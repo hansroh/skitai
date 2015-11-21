@@ -170,7 +170,7 @@ def poll_fun_wrap (timeout, map):
 		poll_fun (timeout, map)
 	
 	except select.error as why:
-		if os.name == "nt" and why [0] == WSAENOTSOCK: # sometimes postgresql connection forcely closed
+		if os.name == "nt" and why.errno == WSAENOTSOCK: # sometimes postgresql connection forcely closed
 			remove_notsocks (map)
 	
 	except ValueError:
@@ -222,7 +222,7 @@ def graceful_shutdown_loop ():
 			try:
 				poll_fun(timeout, map)
 			except select.error as why:
-				if os.name == "nt" and why [0] == WSAENOTSOCK: # sometimes postgresql connection forcely closed
+				if os.name == "nt" and why.errno == WSAENOTSOCK: # sometimes postgresql connection forcely closed
 					remove_notsocks (map)
 					
 		else:

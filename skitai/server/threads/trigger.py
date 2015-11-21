@@ -13,7 +13,7 @@ def wakeup (thunk = None):
 	try:
 		the_trigger.pull_trigger(thunk)
 	except OSError as why:
-		if why[0] == 32:
+		if why.errno == 32:
 			the_trigger.close ()
 			the_trigger = trigger ()
 			the_trigger.pull_trigger(thunk)

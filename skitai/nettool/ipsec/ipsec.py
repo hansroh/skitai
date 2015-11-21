@@ -25,7 +25,7 @@ class IPSEC:
 		try:
 			r = execute ('netsh ipsec static show policy all')
 		except IPSECError as why:	
-			if why[0].find ("[05072]") != -1 or why[0].find ("No Policies") != -1: # no policies
+			if why.errno.find ("[05072]") != -1 or why.errno.find ("No Policies") != -1: # no policies
 				return
 												
 		for each in r.data.split ("\n\n") [:-2]:

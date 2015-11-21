@@ -869,7 +869,7 @@ First example is simple Map-Reduce for getting top population city:
             if rs.status != 3: continue
             all.extend ([(each ["city"], each ["population"]) for each in rs.data])
             
-        all.sort (lambda x, y: cmp (y [1], x [1]))
+        all.sort (key = lambda x: x [1], reverse = True)
         return all [0]
     
 And inspite of foolish, here's Map-Filter-Reduce example:
@@ -890,7 +890,7 @@ And inspite of foolish, here's Map-Filter-Reduce example:
         for rs in s.getswait (5):
             all.extend ([(each ["city"],each ["population"]) for each in rs.data])
             
-        all.sort (lambda x, y: cmp (y [1], x [1]))
+        all.sort (key = lambda x: x [1], reverse = True)
         return all [0]
  
     

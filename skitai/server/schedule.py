@@ -322,7 +322,7 @@ class Scheduler (sched.scheduler):
 				win32api.TerminateProcess (handle, 0)
 				win32api.CloseHandle (handle)		
 			except pywintypes.error as why:
-				if why [0] == 87:
+				if why.errno == 87:
 					pass
 				else:	
 					return why, "", "killing %s(pid:%d) has been failed" % (job_name, proc.pid)
