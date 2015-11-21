@@ -1,4 +1,4 @@
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import re
 import time
 from skitai.client.http import ClientCookie
@@ -8,7 +8,7 @@ import tempfile
 import os
 import random
 from skitai.lib import pathtool
-import __init__
+from . import __init__
 import math
 
 n, p = pathtool.modpath (__init__)
@@ -31,7 +31,7 @@ RX_PROXY = [
 
 def unhide_text (data):
 	t=''
-	s = urllib.unquote (data)
+	s = urllib.parse.unquote (data)
 	x = int (round(math.sqrt(49)))
 	for c in s: 		
  		t += chr (ord(c)^x)
@@ -40,7 +40,7 @@ def unhide_text (data):
 
 def unhide_text2 (data):
 	t=''
-	s = urllib.unquote (data)
+	s = urllib.parse.unquote (data)
 	for c in s: 		
  		t += chr (ord(c)^4) 	
  	return t
@@ -85,7 +85,7 @@ class ProxyFinder:
 	
 	def find_various (self, data):
 		self.find (data)
-		self.find (urllib.unquote (data))
+		self.find (urllib.parse.unquote (data))
 		self.find (unhide_text2 (data))
 		self.find (unhide_text (data))		
 	
@@ -113,7 +113,7 @@ class ProxyFinder:
 
 	def save (self):
 		f = open (self.fn, "w")
-		proxies = self.proxies.keys ()		
+		proxies = list(self.proxies.keys ())		
 		for proxy in proxies:
 			f.write ("%s:%s\n" % proxy)
 		f.close ()
@@ -148,7 +148,7 @@ class ProxyFinder:
 	def get (self, trying = 1):
 		if trying > 10: return None
 		if self.proxies:
-			l = self.proxies.keys ()
+			l = list(self.proxies.keys ())
 			proxy = random.choice (l)
 			try: del self.proxies [proxy]
 			except KeyError: pass

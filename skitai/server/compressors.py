@@ -1,6 +1,6 @@
 import zlib
 import gzip
-import cStringIO
+import io
 import time
 import struct
 
@@ -16,7 +16,7 @@ class DeflateCompressor:
 		
 
 class GZipCompressor:
-	HEADER = "\037\213\010" + chr (0) + struct.pack ("<L", long (time.time ())) + "\002\377"
+	HEADER = "\037\213\010" + chr (0) + struct.pack ("<L", int (time.time ())) + "\002\377"
 	def __init__ (self, level = 5):
 		self.size = 0
 		self.crc = zlib.crc32("")
@@ -34,12 +34,12 @@ class GZipCompressor:
 	
 	def flush (self):
 		d = self.compressor.flush ()
-		return d + struct.pack ("<l", self.crc) + struct.pack ("<L", self.size & 0xFFFFFFFFL)
+		return d + struct.pack ("<l", self.crc) + struct.pack ("<L", self.size & 0xFFFFFFFF)
 		
 
 def U32(i):
 	if i < 0:
-		i += 1L << 32
+		i += 1 << 32
 	return i
     
 class GZipDecompressor:	
@@ -73,15 +73,15 @@ class GZipDecompressor:
 		crc32 = struct.unpack ("<l", crcs)[0]
 		isize = U32 (struct.unpack ("<L", isizes)[0])
 		if U32 (crc32) != U32 (self.crc):
-			raise IOError, "CRC check failed"
-		elif isize != (self.size & 0xFFFFFFFFL):
-			raise IOError, "Incorrect length of data produced"
+			raise IOError("CRC check failed")
+		elif isize != (self.size & 0xFFFFFFFF):
+			raise IOError("Incorrect length of data produced")
 		return ""
 			
 
 if __name__ == "__main__":
-	import urllib
-	f =urllib.urlopen ("http://www.gmarket.co.kr/index.asp/")
+	import urllib.request, urllib.parse, urllib.error
+	f =urllib.request.urlopen ("http://www.gmarket.co.kr/index.asp/")
 	d = f.read ()
 	
 	a = GZipCompressor ()
@@ -90,9 +90,9 @@ if __name__ == "__main__":
 	while x:
 		k, x = x [:10], x [10:]		
 		b.decompress (k)
-	print 		`b.flush ()`
-	print 		`b.flush ()`
-	print 		`b.flush ()`	
+	print(repr(b.flush ()))
+	print(repr(b.flush ()))
+	print(repr(b.flush ()))	
 	a = zlib.compressobj ()
 	x = a.compress (d) + a.flush ()	
 	b = zlib.decompressobj ()	
@@ -101,7 +101,7 @@ if __name__ == "__main__":
 		b.decompress (k)
 	b.decompress ("")	
 	b.decompress ("")	
-	print 		`b.flush ()`
-	print 		`b.flush ()`
-	print 		`b.flush ()`
+	print(repr(b.flush ()))
+	print(repr(b.flush ()))
+	print(repr(b.flush ()))
 	

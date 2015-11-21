@@ -9,7 +9,7 @@ import ssl
 from errno import ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EWOULDBLOCK
 import select
 import threading
-import adns
+from . import adns
 
 class SocketPanic (Exception): pass
 class TimeOut (Exception): pass
@@ -97,7 +97,7 @@ class AsynConnect (asynchat.async_chat):
 		fd = self._fileno
 		if map is None:
 			map = self._map
-		if map.has_key(fd):
+		if fd in map:
 			del map[fd]		
 					
 	def close_socket (self):
@@ -109,7 +109,7 @@ class AsynConnect (asynchat.async_chat):
 		if self.socket:
 			try:
 				self.socket.close()
-			except socket.error, why:
+			except socket.error as why:
 				if why.args[0] not in (ENOTCONN, EBADF):
 					raise
 
@@ -208,7 +208,7 @@ class AsynConnect (asynchat.async_chat):
 			else:								
 				return data
 		
-		except socket.error, why:
+		except socket.error as why:
 			if why[0] in asyncore._DISCONNECTED:
 				if not self.got_data: # disconnected by server
 					self.log ("_DISCONNECTED Error in recv (), retry connect...", "info")					
@@ -225,7 +225,7 @@ class AsynConnect (asynchat.async_chat):
 		try:
 			return self.socket.send(data)
 						
-		except socket.error, why:
+		except socket.error as why:
 			if why[0] == EWOULDBLOCK:
 				return 0
 			elif why.args[0] in asyncore._DISCONNECTED:
@@ -335,10 +335,10 @@ class AsynSSLConnect (AsynConnect):
 			
 		try:
 			self.socket.do_handshake ()
-		except ssl.SSLError, why:
+		except ssl.SSLError as why:
 			if why.args[0] in (ssl.SSL_ERROR_WANT_READ, ssl.SSL_ERROR_WANT_WRITE):
 				return # retry handshake
-			raise ssl.SSLError, why
+			raise ssl.SSLError(why)
 		
 		# handshaking done
 		self.handle_connect()
@@ -358,7 +358,7 @@ class AsynSSLConnect (AsynConnect):
 			else:
 				return data
 
-		except ssl.SSLError, why:
+		except ssl.SSLError as why:
 			if why[0] == ssl.SSL_ERROR_WANT_READ:
 				return '' # retry
 			# closed connection
@@ -385,7 +385,7 @@ class AsynSSLConnect (AsynConnect):
 		try:
 			return self.socket.send(data)
 
-		except ssl.SSLError, why:
+		except ssl.SSLError as why:
 			if why[0] == ssl.SSL_ERROR_WANT_WRITE:
 				return 0			
 			else:

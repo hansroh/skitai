@@ -1,6 +1,6 @@
 import os
 import re
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import types
 import sys
 
@@ -17,13 +17,13 @@ def mkdir (tdir, mod = -1):
 			os.mkdir (dir)
 			if os.name == "posix" and mod != -1: 
 				os.chmod (dir, mod)
-		except OSError, why:
+		except OSError as why:
 			if why [0] in (17, 183): continue
 			else: raise
 
 
 def modpath (mod_name):
-	if type (mod_name) is types.StringType:		
+	if type (mod_name) is bytes:		
 		try:
 				mod = sys.modules [mod_name]
 		except KeyError: 
@@ -33,6 +33,6 @@ def modpath (mod_name):
 			
 NAFN = re.compile (r"[\\/:*?\"<>|]+")
 def mkfn (text):
-	text = urllib.unquote (text)
+	text = urllib.parse.unquote (text)
 	return NAFN.sub ("_", text)
 

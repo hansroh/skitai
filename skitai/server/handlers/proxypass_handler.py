@@ -1,4 +1,4 @@
-import ssgi_handler, proxy_handler
+from . import ssgi_handler, proxy_handler
 from skitai.server.rpc import http_request
 import re
 	
@@ -10,7 +10,7 @@ class Handler (proxy_handler.Handler):
 			return 0
 			
 	def find_cluster (self, request):
-		for cluster in self.clusters.values ():
+		for cluster in list(self.clusters.values ()):
 			if cluster.match (request):
 				return cluster
 						

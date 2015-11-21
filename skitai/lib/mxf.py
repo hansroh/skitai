@@ -36,13 +36,13 @@ class odbcf:
 		if self.logger:
 			self.logger.log (line)
 		else:
-			print line	
+			print(line)	
 	
 	def trace (self, name = ""):
 		if self.logger:
 			self.logger.trace (name)
 		else:
-			print asyncore.compact_traceback ()
+			print(asyncore.compact_traceback ())
 				
 	#----------------------------------------------------------------
 	# database connect
@@ -98,12 +98,12 @@ class odbcf:
 			self.cx.execute (query)			
 		
 		except odbc.OperationalError:
-			raise DBServerError, "mxODBC.OperationalError, %s %s %s %s" % tuple (why [:4])
+			raise DBServerError("mxODBC.OperationalError, %s %s %s %s" % tuple (why [:4]))
 			
-		except Exception, why:
+		except Exception as why:
 			errstr = "%s %s %s %s" % tuple (why [:4])
 			if self.log_query: self.quqeylogger (errstr, query)
 			try: raise
-			except: what = sys.exc_type
-			raise QueryError, "%s, %s" % (what, errstr)
+			except: what = sys.exc_info()[0]
+			raise QueryError("%s, %s" % (what, errstr))
 	

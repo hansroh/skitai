@@ -15,7 +15,7 @@ class LogIIS:
 		l.code = info [-3]
 		l.host = info [-4].split (":")[0]
 		l.ua = " ".join (info [2:-4])		
-		tpack = map (lambda x: int (x), l.date.split ("-") + l.time.split (":"))
+		tpack = [int (x) for x in l.date.split ("-") + l.time.split (":")]
 		tpack [3] += 9
 		l.timeint = int (time.mktime (tuple (tpack) + (0,0,0)))
 		return l
@@ -47,5 +47,5 @@ if __name__ == "__main__":
 	f = LogIIS ()
 	l = f.parse ("2009-06-20 14:59:16 192.168.1.188 GET /governmentbid-education-higher-statistics-E01032.htm - 80 - 192.168.1.185 HTTP/1.0 Mozilla/5.0+(compatible;+DotBot/1.1;+http://www.dotnetdotcom.org/,+crawler@dotnetdotcom.org) www.govcb.com 200 0 2")
 	for k in dir (l):
-		print k, eval ("l." + k)
+		print(k, eval ("l." + k))
 

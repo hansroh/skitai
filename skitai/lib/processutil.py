@@ -38,8 +38,8 @@ def get_child_pid (cpid):
 			instance_dict[instance] = 0
 	
 	processinfos = []		
-	for instance, max_instances in instance_dict.items():
-		for inum in xrange(max_instances+1):
+	for instance, max_instances in list(instance_dict.items()):
+		for inum in range(max_instances+1):
 			processinfo = []
 			hq = win32pdh.OpenQuery()
 			hcs = []
@@ -71,6 +71,6 @@ def get_child_pid (cpid):
 	return pids
 
 if __name__ == "__main__":
-	print get_child_pid (3172)
+	print(get_child_pid (3172))
 	
 

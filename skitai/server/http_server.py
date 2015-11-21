@@ -3,12 +3,12 @@
 import sys
 import asyncore, asynchat
 import re, socket, time, threading, os
-import http_date, http_response, producers, utility, counter
-from threads import threadlib
+from . import http_date, http_response, producers, utility, counter
+from .threads import threadlib
 from types import StringTypes
 from skitai import lifetime
-import zlib, gzip, cStringIO
-import compressors
+import zlib, gzip, io
+from . import compressors
 import signal
 import ssl
 from skitai import VERSION
@@ -61,7 +61,7 @@ class http_request:
 		if self._split_uri is None:
 			m = self.path_regex.match (self.uri)
 			if m.end() != len(self.uri):
-				raise ValueError, "Broken URI"
+				raise ValueError("Broken URI")
 			else:
 				self._split_uri = m.groups()				
 		return self._split_uri
@@ -82,7 +82,7 @@ class http_request:
 	def get_header (self, header):
 		header = header.lower()
 		hc = self._header_cache
-		if not hc.has_key (header):
+		if header not in hc:
 			h = header + ':'
 			hl = len(h)
 			for line in self.header:

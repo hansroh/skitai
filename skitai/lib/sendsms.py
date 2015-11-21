@@ -1,5 +1,5 @@
 import base64
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from skitai.lib import timeoutsocket
 
 timeoutsocket.setDefaultSocketTimeout (60)
@@ -18,10 +18,10 @@ def send (uid, password, rp, msg = "", sp = "02-581-3424"):
 	for i in range (len (sp)):
 		smsurl += "&sphone%d=%s" % (i + 1, base64.encodestring (sp [i])[:-1])
 	
-	smsurl += "&msg=%s" % urllib.quote (base64.encodestring (msg)[:-1])
-	print smsurl
-	f = urllib.urlopen (smsurl)
-	print `f.read ()`
+	smsurl += "&msg=%s" % urllib.parse.quote (base64.encodestring (msg)[:-1])
+	print(smsurl)
+	f = urllib.request.urlopen (smsurl)
+	print(repr(f.read ()))
 	
 	#http://sms.iwizkrsms.cafe24.com/sms_send_new.php?user_id=aXdpemtyc21z&passwd=cmVtZW0wNTIz&mode=MQ==&rphone=MDEwNDYwMjExNjU=&sphone1=MDI=&sphone2=NTgx&sphone3=MzQyNA==&msg=vsiz58fPvLy%2F5LOqtMLAscXCx%2FbA1LTPtNk%3D
 

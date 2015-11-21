@@ -3,7 +3,7 @@ import multiprocessing
 import time
 import sys
 import os
-import pathtool
+from . import pathtool
 import types
 import codecs
 
@@ -100,7 +100,7 @@ class pipe_logger (screen_logger):
 	
 	def log (self, line, type = "info", name = ""):		
 		# do not write datetime
-		if isinstance (line, unicode):
+		if isinstance (line, str):
 			line = line.encode ("ascii", "ignore")
 			
 		line = str (line).strip ()
@@ -192,7 +192,7 @@ class rotate_logger (base_logger):
 			self.cv.release ()
 			
 	def log (self, line, type="info", name=""):
-		if isinstance (line, unicode):
+		if isinstance (line, str):
 			line = line.encode ("ascii", "ignore")
 					
 		line = "%s %s%s\n" % (now(), self.tag (type, name), str (line).strip ())		

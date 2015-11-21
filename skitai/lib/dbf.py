@@ -1,7 +1,7 @@
 import os
-import cPickle as translator
+import pickle as translator
 from bsddb import db
-import pathtool
+from . import pathtool
 
 #--------------------------------------------------------------
 # DB creation func
@@ -18,10 +18,10 @@ def _checkflag(flag):
 	elif flag == 'n':
 		flags = db.DB_CREATE | db.DB_TRUNCATE
 	else:
-		raise error, "flags should be one of 'r', 'w', 'c' or 'n'"
+		raise error("flags should be one of 'r', 'w', 'c' or 'n'")
 	return flags | db.DB_THREAD
 
-def btopen(file, flag='c', mode=0666,
+def btopen(file, flag='c', mode=0o666,
 			btflags=0, cachesize=None, maxkey=None, minkey=None,
 			pgsize=None, lorder=None):
 
@@ -63,7 +63,7 @@ class ZCursor:
 	def get(self, *args):
 		count = len(args)  # a method overloading hack
 		method = getattr(self, 'get_%d' % count)
-		apply(method, args)
+		method(*args)
 
 	def get_1(self, flags):
 		rec = self.dbc.get(flags)
@@ -135,13 +135,13 @@ class ZObject:
 		return translator.loads (self.db [key])
 		
 	def values (self):
-		return map (translator.loads, self.db.values ())
+		return list(map (translator.loads, list(self.db.values ())))
 		
 	def items (self):
-		return [(k, translator.loads (v)) for k, v in self.db.items ()]
+		return [(k, translator.loads (v)) for k, v in list(self.db.items ())]
 	
 	def get (self, *args, **kw):
-		data = apply(self.db.get, args, kw)
+		data = self.db.get(*args, **kw)
 		if data:
 			return translator.loads (data)
 		else:
@@ -235,16 +235,16 @@ if __name__ == "__main__":
 	z = d.open ("test", "r")
 	z ['a'] = [0,1,2,3,4,5,6]
 	z ['b'] = {}
-	print z ['a']
-	print z ['b']
-	print z.keys ()
-	print z.items ()
-	print z.values ()
+	print(z ['a'])
+	print(z ['b'])
+	print(list(z.keys ()))
+	print(list(z.items ()))
+	print(list(z.values ()))
 	c = z.cursor ()
 	while 1:
-		r =  c.next ()
+		r =  next(c)
 		if not r: break
-		print r
-		print c.current ()
+		print(r)
+		print(c.current ())
 	c.close ()	
 	d.close ()

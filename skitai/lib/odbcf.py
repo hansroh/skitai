@@ -1,5 +1,5 @@
 import odbc, dbi
-import logger
+from . import logger
 import sys
 import threading
 import re
@@ -73,13 +73,13 @@ class odbcf:
 		if self.logger:
 			self.logger.log (line, type, name)
 		else:
-			print line
+			print(line)
 
 	def trace (self, name = ""):
 		if self.logger:
 			self.logger.trace (name)
 		else:
-			print logger.trace ()
+			print(logger.trace ())
 
 	#----------------------------------------------------------------
 	# database connect
@@ -100,12 +100,12 @@ class odbcf:
 			self.execute ("set ANSI_NULLS ON; SET ANSI_WARNINGS ON;")
 			self.commit ()
 			
-		except (dbi.opError, dbi.internalError), why:
-			raise DBServerError, str (sys.exc_type) + ", " + str (why)
+		except (dbi.opError, dbi.internalError) as why:
+			raise DBServerError(str (sys.exc_info()[0]) + ", " + str (why))
 		
-		except (dbi.noError, dbi.integrityError, dbi.progError), why:
+		except (dbi.noError, dbi.integrityError, dbi.progError) as why:
 			self.close ()
-			raise DBServerError, str (sys.exc_type) + ", " + str (why)
+			raise DBServerError(str (sys.exc_info()[0]) + ", " + str (why))
 		
 	def reconnect (self):
 		self.close ()
@@ -154,28 +154,28 @@ class odbcf:
 		
 	def execute (self, query):
 		if not self.connected: 
-			raise DBServerError, "Not Connected"
+			raise DBServerError("Not Connected")
 			
 		try:
 			self.cx.execute (query)
 		
-		except dbi.opError, why:
+		except dbi.opError as why:
 			errmsg = self.handle_expt (why, query)
-			raise OperationError, errmsg
+			raise OperationError(errmsg)
 		
-		except dbi.internalError, why:
+		except dbi.internalError as why:
 			errmsg = self.handle_expt (why, query)
-			raise InternalError, errmsg
+			raise InternalError(errmsg)
 			
-		except dbi.noError, why:
+		except dbi.noError as why:
 			errmsg = self.handle_expt (why, query)
-			raise NoError, errmsg
+			raise NoError(errmsg)
 			
-		except dbi.integrityError, why:
+		except dbi.integrityError as why:
 			errmsg = self.handle_expt (why, query)
-			raise IntegrityError, errmsg
+			raise IntegrityError(errmsg)
 		
-		except dbi.progError, why:
+		except dbi.progError as why:
 			errmsg = self.handle_expt (why, query)
-			raise ProgramError, errmsg
+			raise ProgramError(errmsg)
 

@@ -1,5 +1,5 @@
-import xmlrpclib
-import timeoutsocket
+import xmlrpc.client
+from . import timeoutsocket
 
 timeoutsocket.setDefaultSocketTimeout(3)
 
@@ -18,7 +18,7 @@ def call (method, args):
 
 	for server in servers:
 		try:
-			s = xmlrpclib.Server ("http://" + server)
+			s = xmlrpc.client.Server ("http://" + server)
 			resp = getattr (s, method) (*args)
 			return resp
 		except:

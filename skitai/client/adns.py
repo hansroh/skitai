@@ -14,9 +14,9 @@ class DNSCache:
 			answer = answers [-1]			
 			for each in answers:
 				name = each ["name"]
-				if not self.cache.has_key (name):
+				if name not in self.cache:
 					self.cache [name] = {}			
-				if answer.has_key ("ttl"):
+				if "ttl" in answer:
 					answer ["valid"]	= time.time () + answer ["ttl"]
 				self.cache [name][answer ["typename"]] = [answer]
 			
@@ -28,7 +28,7 @@ class DNSCache:
 		try: answers = self.cache [host][qtype]
 		except KeyError: return []
 		answer = answers [0]
-		if not answer.has_key ("valid"):
+		if "valid" not in answer:
 			return [answer]
 		else:
 			if check_ttl and answer ["valid"] < time.time ():
@@ -40,7 +40,7 @@ class DNSCache:
 	def is_ip (self, name):
 		arr = name.split (".")
 		if len (arr) != 4: return False
-		try: arr = filter (lambda x: x & 255 == x, map (int, arr))
+		try: arr = [x for x in map (int, arr) if x & 255 == x]
 		except ValueError: 
 			return False
 		if len (arr) != 4: return False

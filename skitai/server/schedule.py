@@ -5,8 +5,8 @@ from skitai.lib  import confparse, logger as logger_module, processutil
 import subprocess
 import signal
 import win32process, win32api, win32con, pywintypes
-import urlparse
-import urllib2
+import urllib.parse
+import urllib.request, urllib.error, urllib.parse
 import tempfile
 				
 class Scheduler (sched.scheduler):
@@ -167,12 +167,12 @@ class Scheduler (sched.scheduler):
 		self.cv.release ()
 	
 	def enable (self, job_id, enable = 1, runafter = 0):		
-		if not self.actions.has_key (job_id): return
+		if job_id not in self.actions: return
 		self.actions [job_id][-3] = enable
 		self.renter (job_id, runafter)
 			
 	def renter (self, job_id, runafter = 0):
-		if not self.actions.has_key (job_id): return		
+		if job_id not in self.actions: return		
 		job_name, args, interval, date, enable, startat, timeouttokil = self.actions [job_id]
 		self.enter (job_id, job_name, args, interval, date, enable, runafter, startat, timeouttokil)
 		
@@ -198,7 +198,7 @@ class Scheduler (sched.scheduler):
 			self.enterabs (nextrun, job_id)
 		else:
 			self.actions [job_id] = self.actions [job_id][-3] = 0 # disable
-			self.enterabs (sys.maxint, job_id)
+			self.enterabs (sys.maxsize, job_id)
 	
 	RX_ENV = re.compile ("(%([_a-zA-Z]+)%)")
 	def replace_env (self, text):
@@ -213,7 +213,7 @@ class Scheduler (sched.scheduler):
 		job_name = self.actions [job_id][0]
 		self.logger ("[info] schedule %s started" % job_name)
 		try:
-			scheme, netloc, script, params, qs, fragment = urlparse.urlparse (url)
+			scheme, netloc, script, params, qs, fragment = urllib.parse.urlparse (url)
 			call = self.wasc.rcall.Server ("%s://%s" % (scheme, netloc))
 			uri = script
 			if params: uri += ";" + params
@@ -237,7 +237,7 @@ class Scheduler (sched.scheduler):
 		self.logger ("[info] schedule %s started" % job_name)
 		try:
 			self.jobs [job_id] = [None, None, 0, time.time ()]
-			rs = urllib2.urlopen (url, timeout = timeout)			
+			rs = urllib.request.urlopen (url, timeout = timeout)			
 			self.logger ("[info] schedule %s result status: %s %s" % (job_name, rs.code, rs.msg))		
 		except:
 			self.logger.trace (job_name)
@@ -290,7 +290,7 @@ class Scheduler (sched.scheduler):
 			self.jobs [job_id] = [proc, fh, 0, time.time ()]
 	
 	def isrunning (self, job_id):		
-		if not self.jobs.has_key (job_id): return 0
+		if job_id not in self.jobs: return 0
 		proc, fh, sizef, lastmodified = self.jobs [job_id]
 		if proc:
 			status = proc.poll ()
@@ -307,7 +307,7 @@ class Scheduler (sched.scheduler):
 			return 1 # maybe url request
 	
 	def kill (self, job_id):	
-		if not self.jobs.has_key (job_id): 
+		if job_id not in self.jobs: 
 			return 0, "", "no such job %s" % job_id
 		job_name = self.actions [job_id][0]
 		proc, fh, sizef, lastmodified = self.jobs [job_id]
@@ -321,7 +321,7 @@ class Scheduler (sched.scheduler):
 				handle = win32api.OpenProcess (win32con.PROCESS_TERMINATE, 0, cpid)
 				win32api.TerminateProcess (handle, 0)
 				win32api.CloseHandle (handle)		
-			except pywintypes.error, why:
+			except pywintypes.error as why:
 				if why [0] == 87:
 					pass
 				else:	
@@ -332,7 +332,7 @@ class Scheduler (sched.scheduler):
 		return 0, "", "%s(pid:%d) was killed" % (job_name, proc.pid)
 	
 	def maintern (self):	
-		for job_id in self.jobs.keys ():
+		for job_id in list(self.jobs.keys ()):
 			job_name = self.actions [job_id][0]
 			lastmodified = self.jobs [job_id][-1]
 			timeouttokill = self.actions [job_id][-1]
@@ -392,7 +392,7 @@ class Scheduler (sched.scheduler):
 		if not os.path.isfile (fo): return []
 		
 		size = os.stat (fo).st_size		
-		if self.jobs.has_key (job_id):		
+		if job_id in self.jobs:		
 			self.jobs [job_id][-2] = size
 			self.jobs [job_id][-1] = time.time ()
 					
@@ -422,9 +422,9 @@ class Scheduler (sched.scheduler):
 		
 		k = []
 		for sched, job_id in self.queue:
-			if not self.actions.has_key (job_id): continue
+			if job_id not in self.actions: continue
 			job_name, args, interval, date, enable, startat, timeouttokill = self.actions [job_id]
-			if sched == sys.maxint:
+			if sched == sys.maxsize:
 				asctime = "Not Scheduled"
 			else:
 				asctime = time.asctime (time.localtime (sched))				
@@ -457,13 +457,13 @@ class Scheduler (sched.scheduler):
 		
 	def enter_from_config (self, config_path):
 		self.config = confparse.ConfParse (config_path)
-		for job_id in self.config.keys ():
+		for job_id in list(self.config.keys ()):
 			self.add_job (job_id)
 		
 	def remove_config (self, job_id):
 		self.remove (job_id)
 		
-		if self.config.has_key (job_id):
+		if job_id in self.config:
 			del self.config [job_id]
 			self.config.update ()			
 		
@@ -473,20 +473,20 @@ class Scheduler (sched.scheduler):
 	valid_keys = ['name','args','date','interval','enable','runatstart','timeouttokill','startat']
 	def new_config (self, job_id, dict):
 		self.config.makesect (job_id)
-		for k, v in dict.items ():
+		for k, v in list(dict.items ()):
 			if k not in self.valid_keys: continue
 			self.config.setopt (job_id, k, v)
 		self.config.update ()
 		self.add_job (job_id)
 	
 	def has_key (self, job_id):
-		return self.config.has_key (job_id)
+		return job_id in self.config
 	
 	def get_config (self):
 		return self.config
 			
 	def update_config (self, job_id, dict):
-		for k, v in dict.items ():
+		for k, v in list(dict.items ()):
 			if k not in self.valid_keys: continue
 			self.config.setopt (job_id, k, v)
 		self.config.update ()

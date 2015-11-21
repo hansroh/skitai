@@ -1,7 +1,7 @@
 from skitai import VERSION
 import multiprocessing
 from skitai.lib import pathtool, logger
-from rpc import cluster_manager, cluster_dist_call
+from .rpc import cluster_manager, cluster_dist_call
 
 PSYCOPG2_ENABLED = True
 try: 
@@ -9,14 +9,14 @@ try:
 except ImportError: 
 	PSYCOPG2_ENABLED = False
 else:	
-	from dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
+	from .dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
 	
-from handlers import default_handler
-import server_info
+from .handlers import default_handler
+from . import server_info
 import json
-import xmlrpclib
-import producers
-import thread
+import xmlrpc.client
+from . import producers
+import _thread
 from skitai import lifetime
 
 class WAS:
@@ -29,7 +29,7 @@ class WAS:
 	def register (cls, name, obj):
 		cls.objects [name] = obj
 		if hasattr (cls, name):
-			raise KeyError, "server object `%s` is already exists"
+			raise KeyError("server object `%s` is already exists")
 		setattr (cls, name, obj)
 	
 	@classmethod
@@ -98,13 +98,13 @@ class WAS:
 		return json.dumps (obj)
 	
 	def toxml (self, obj):
-		return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")	
+		return xmlrpc.client.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")	
 	
 	def fromjson (self, obj):
 		return json.loads (obj)
 	
 	def fromxml (self, obj, use_datetime=0):
-		return xmlrpclib.loads (obj)	
+		return xmlrpc.client.loads (obj)	
 											
 	def status (self, flt = None, fancy = True):
 		return server_info.make (self, flt, fancy)
@@ -130,10 +130,10 @@ class Logger:
 
 	def make_logger (self, prefix, freq = "daily"):
 		self.lock.acquire ()
-		has_prefix = self.logger_factory.has_key (prefix)
+		has_prefix = prefix in self.logger_factory
 		if has_prefix:
 			self.lock.release ()
-			raise TypeError, "%s is already used" % prefix
+			raise TypeError("%s is already used" % prefix)
 								
 		_logger = logger.multi_logger ()		
 		_logger.add_logger (logger.rotate_logger (self.path, prefix, freq))
@@ -142,7 +142,7 @@ class Logger:
 		self.lock.release ()	
 	
 	def add_screen_logger (self):
-		for prefix, _logger in self.logger_factory.items ():
+		for prefix, _logger in list(self.logger_factory.items ()):
 			_logger.add_logger (logger.screen_logger ())
 		
 	def get (self, prefix):
@@ -156,7 +156,7 @@ class Logger:
 	
 	def rotate (self):
 		self.lock.acquire ()
-		loggers = self.logger_factory.items ()
+		loggers = list(self.logger_factory.items ())
 		self.lock.release ()
 		
 		for mlogger in loggers:

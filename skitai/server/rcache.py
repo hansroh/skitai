@@ -63,7 +63,7 @@ class RCache:
 	
 	def maintern (self):
 		# remove 20% if reach max count
-		t = self.__cache.items ()	
+		t = list(self.__cache.items ())	
 		t.sort (lambda x, y: cmp (x [1].remain_secs, y [1].remain_secs))
 		for h, obj in t [:self.num_clear]:
 			del self.__cache [h]			
@@ -78,7 +78,7 @@ class RCache:
 			
 		h = self.hash (obj.ident)
 		with self.lock:
-			if not self.__cache.has_key (h):
+			if h not in self.__cache:
 				obj.remain_secs = obj.timeout
 				self.__cache [h] = obj
 				self.cached += 1

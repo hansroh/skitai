@@ -4,11 +4,11 @@ import time
 import types
 import random
 import types
-import Base
-import Type
-import Class
-import Lib
-import Opcode
+from . import Base
+from . import Type
+from . import Class
+from . import Lib
+from . import Opcode
 import random
 
 defaults = Base.defaults
@@ -100,7 +100,7 @@ class async_dns (asyncore.dispatcher_with_send):
 	
 class Request:
 	def __init__(self, logger, server = [], debug_level = 1):
-		if type (server) is types.StringType:
+		if type (server) is bytes:
 			server = [server]
 		
 		defaults ["server"] += server
@@ -109,14 +109,14 @@ class Request:
 		
 	def argparse (self, name, args):
 		args['name']=name			
-		for i in defaults.keys():
-			if not args.has_key(i):
+		for i in list(defaults.keys()):
+			if i not in args:
 				if i == "server": 
 					args[i]=defaults[i][:]
 				else:	
 					args[i]=defaults[i]
 				
-		if type (args['server']) == types.StringType:
+		if type (args['server']) == bytes:
 			args ['server'] = [args['server']]
 			
 		return args
@@ -130,11 +130,11 @@ class Request:
 		rd = args ['rd']
 		server = args ['server'][:]
 		
-		if type(args['qtype']) == types.StringType:
+		if type(args['qtype']) == bytes:
 			try:
 				qtype = getattr (Type, args ['qtype'].upper ())
 			except AttributeError:
-				raise Base.DNSError, '%s unknown query type' % name
+				raise Base.DNSError('%s unknown query type' % name)
 				
 		else:
 			qtype = args ['qtype']
@@ -152,7 +152,7 @@ class Request:
 		request = m.getbuf ()
 		request = Lib.pack16bit (len(request)) + request
 		
-		server = map (lambda x: (x, args ["port"]), server)
+		server = [(x, args ["port"]) for x in server]
 		async_dns (server, request, args, self.processReply, self.logger, self.debug_level)
 			
 	def processReply(self, server, request, args, data):		
@@ -160,16 +160,16 @@ class Request:
 		
 		try:
 			if not data:
-				raise Base.DNSError,'%s, no working nameservers found' % args ['name']
+				raise Base.DNSError('%s, no working nameservers found' % args ['name'])
 		
 			if args ["protocol"] == "tcp":
 				header = data [:2]
 				if len (header) < 2:
-					raise Base.DNSError,'%s, EOF' % args ['name']
+					raise Base.DNSError('%s, EOF' % args ['name'])
 				count = Lib.unpack16bit(header)		
 				reply = data [2: 2 + count]					
 				if len (reply) != count:
-					raise Base.DNSError, '%s, incomplete reply' % args ['name']						
+					raise Base.DNSError('%s, incomplete reply' % args ['name'])						
 			
 			else:
 				reply = data

@@ -1,6 +1,9 @@
-import _winreg
+import winreg
 from sys import exit
-import time, win32api, win32con, win32service
+import time 
+import win32api
+import win32con
+from . import win32service
 wa, wc, ws = win32api, win32con, win32service
 
 class WService:
@@ -81,22 +84,22 @@ class WService:
 		self.stat = ws.QueryServiceStatus(self.handle)
 		if self.stat[1]==ws.SERVICE_STOPPED:
 			if prn == 1:
-				print "The", self.lserv, "service is stopped."
+				print("The", self.lserv, "service is stopped.")
 			else:
 				return "STOPPED"
 		elif self.stat[1]==ws.SERVICE_START_PENDING:
 			if prn == 1:
-				print "The", self.lserv, "service is starting."
+				print("The", self.lserv, "service is starting.")
 			else:
 				return "STARTING"
 		elif self.stat[1]==ws.SERVICE_STOP_PENDING:
 			if prn == 1:
-				print "The", self.lserv, "service is stopping."		
+				print("The", self.lserv, "service is stopping.")		
 			else:
 				return "STOPPING"
 		elif self.stat[1]==ws.SERVICE_RUNNING:
 			if prn == 1:
-				print "The", self.lserv, "service is running."		
+				print("The", self.lserv, "service is running.")		
 			else:
 				return "RUNNING"
 				
@@ -151,20 +154,20 @@ class WService:
 	def infotype(self):
 		self.stat = ws.QueryServiceStatus(self.handle)
 		if self.stat[0] & ws.SERVICE_WIN32_OWN_PROCESS:
-			print "The", self.lserv, "service runs in its own process."
+			print("The", self.lserv, "service runs in its own process.")
 		if self.stat[0] & ws.SERVICE_WIN32_SHARE_PROCESS:
-			print "The", self.lserv, "service shares a process with other services."
+			print("The", self.lserv, "service shares a process with other services.")
 		if self.stat[0] & ws.SERVICE_INTERACTIVE_PROCESS:
-			print "The", self.lserv, "service can interact with the desktop."
+			print("The", self.lserv, "service can interact with the desktop.")
 		
 	def infoctrl(self):
 		self.stat = ws.QueryServiceStatus(self.handle)
 		if self.stat[2] & ws.SERVICE_ACCEPT_PAUSE_CONTINUE:
-			print "The", self.lserv, "service can be paused."
+			print("The", self.lserv, "service can be paused.")
 		if self.stat[2] & ws.SERVICE_ACCEPT_STOP:
-			print "The", self.lserv, "service can be stopped."
+			print("The", self.lserv, "service can be stopped.")
 		if self.stat[2] & ws.SERVICE_ACCEPT_SHUTDOWN:
-			print "The", self.lserv, "service can be shutdown."	
+			print("The", self.lserv, "service can be shutdown.")	
 
 	def infostartup(self):
 		self.isuphandle = wa.RegOpenKeyEx(wc.HKEY_LOCAL_MACHINE, self.sccss + self.sserv, 0, wc.KEY_READ)
@@ -204,7 +207,7 @@ class WService:
 				return i[0], i[1]; break
 			if i[1].lower() == self.userv.lower():
 				return i[0], i[1]; break				
-		print "Error: The", self.userv, "service doesn't seem to exist."
+		print("Error: The", self.userv, "service doesn't seem to exist.")
 		return None, None
 
 		
@@ -214,7 +217,7 @@ if __name__ == "__main__":
 	try:
 		ipaddr = sys.argv [1]
 	except IndexError:
-		print "IP Address is not provided"
+		print("IP Address is not provided")
 		sys.exit (1)
 
 	

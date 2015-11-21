@@ -4,10 +4,10 @@ RCS_ID = '$Id: producers.py,v 1.10 1999/02/01 03:08:46 rushing Exp $'
 
 import string
 import time
-import cStringIO
+import io
 import gzip
-import compressors
-from threads import trigger
+from . import compressors
+from .threads import trigger
 import mimetypes
 import os
 
@@ -148,7 +148,7 @@ class multipart_producer:
 		
 	def calculate_size (self):
 		size = (len (self.boundary) + 4) * (len (self.data) + 1) # --boundary + (\r\n or last --)
-		for name, value in self.data.items ():
+		for name, value in list(self.data.items ()):
 			size += (41 + len (name)) #Content-Disposition: form-data; name=""\r\n
 			if type (value) is not type (""):
 				fsize = os.path.getsize (value.name)

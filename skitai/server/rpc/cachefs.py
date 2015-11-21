@@ -6,6 +6,7 @@ import time
 import threading
 import glob
 import threading
+from functools import reduce
 
 class CacheFileSystem:
 	def __init__ (self, path, memmax = 64, timeout = 86400):
@@ -26,15 +27,15 @@ class CacheFileSystem:
 		r = {
 			"numhits": self.numhits.as_long (),
 			"numfails": self.numfails.as_long (),			
-			"numchachedfiles": reduce (lambda x, y: x + y, self.files.values ())
+			"numchachedfiles": reduce (lambda x, y: x + y, list(self.files.values ()))
 		}
 		self.lock.release ()
 		return r
 
 	def check_dir (self):
-		for h in range (48,58) + range (97,103):
-			for i in range (48,58) + range (97,103):
-				for j in range (48,58) + range (97,103):
+		for h in list(range(48,58)) + list(range(97,103)):
+			for i in list(range(48,58)) + list(range(97,103)):
+				for j in list(range(48,58)) + list(range(97,103)):
 					initial = "0" + chr (h) + "/" + chr (i) + chr (j)
 					pathtool.mkdir (os.path.join (self.path, initial))
 					self.hits [initial] = 1
@@ -51,7 +52,7 @@ class CacheFileSystem:
 	
 	def truncate (self):
 		self.lock.acquire ()
-		files = self.files.keys ()
+		files = list(self.files.keys ())
 		self.lock.release ()
 		for initial in files:
 			d = self.maintern (initial, True)
@@ -194,5 +195,5 @@ class CacheFileSystem:
 if __name__ == "__main__":
 	f = ReverseProxy ("g:\\ttt")
 	f.save ("a", "b", "asdasda")
-	print f.get ("a", "b")
-	print f.status ()
+	print(f.get ("a", "b"))
+	print(f.status ())

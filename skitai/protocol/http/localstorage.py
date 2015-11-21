@@ -1,8 +1,8 @@
 ﻿import base64
 import random
-import urlparse
-import urllib
-import util
+import urllib.parse
+import urllib.request, urllib.parse, urllib.error
+from . import util
 
 localstorage = None
 
@@ -18,7 +18,7 @@ class LocalStorage:
 		self.cookie_protected = {}
 				
 	def get_host (self, url):
-		return urlparse.urlparse (url) [1].split (":") [0]
+		return urllib.parse.urlparse (url) [1].split (":") [0]
 		
 	def set_protect_cookie (self, url, name, flag = 1):
 		host = self.get_host (url)
@@ -40,11 +40,11 @@ class LocalStorage:
 		url = url.lower ()
 		cookie = []
 		for domain in self.cookie:
-			scheme, netloc, script, params, query, frag = urlparse.urlparse (url)
+			scheme, netloc, script, params, query, frag = urllib.parse.urlparse (url)
 			if ("."+netloc).find (domain) > -1:
 				for path in self.cookie [domain]:
 					if script.find (path) > -1:
-						cookie += self.cookie [domain][path].items ()
+						cookie += list(self.cookie [domain][path].items ())
 		return cookie
 	
 	def get_cookie_string (self, url):	
@@ -74,7 +74,7 @@ class LocalStorage:
 	
 	def clear_cookie (self, url):
 		url = url.lower ()
-		for domain in self.cookie.keys ():
+		for domain in list(self.cookie.keys ()):
 			if url.find (domain) > -1:
 				del self.cookie [domain]				
 		
@@ -91,7 +91,7 @@ class LocalStorage:
 			
 			if v:
 				_cookie = self.get_cookie_dict (url)
-				if _cookie.has_key (k):					
+				if k in _cookie:					
 					if self.is_protected_cookie (url, k): return					
 			
 			if count == 0:			

@@ -1,4 +1,4 @@
-import ssgi_handler
+from . import ssgi_handler
 import tempfile
 import os
 
@@ -12,7 +12,7 @@ class File:
 		self.descriptor.write (data)
 		self.size += len (data)
 		if self.max_size and self.size > self.max_size:
-			raise ValueError, "file size is over %d MB" % (self.size/1024./1024,)
+			raise ValueError("file size is over %d MB" % (self.size/1024./1024,))
 	
 	def close (self):
 		self.descriptor.close ()
@@ -38,7 +38,7 @@ class Part:
 			val, attr =	self.get_header_with_attr ("Content-Disposition")
 			if val:
 				self.name = attr ["name"].replace ('"', "")
-				if attr.has_key ("filename") and attr ["filename"]:
+				if "filename" in attr and attr ["filename"]:
 					self.filename = attr ["filename"].replace ('"', "")
 					if self.filename:	
 						self.value = File (self.max_size)
@@ -194,7 +194,7 @@ class Collector (ssgi_handler.Collector):
 					else:
 						d = part.value
 							
-				 	if data.has_key (part.name):
+				 	if part.name in data:
 				 		if type (data [part.name]) is not type ([]):
 				 			data [part.name] = [data [part.name]]				 		
 				 		data [part.name].append (d)

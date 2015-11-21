@@ -58,7 +58,7 @@ class Module:
 	
 	def set_route (self, route):
 		if not route or route [0] != "/":
-			raise TypeError, "route url must be abs path"
+			raise TypeError("route url must be abs path")
 		while route and route [-1] == "/":
 			route = route [:-1]
 		self.route = route
@@ -89,7 +89,7 @@ class ModuleManager:
 		self.pathes_added = {}
 	
 	def add_path (self, path):
-		if self.pathes_added.has_key (path): return
+		if path in self.pathes_added: return
 		self.pathes_added [path] = None
 		sys.path.insert(0, path)
 			
@@ -106,7 +106,7 @@ class ModuleManager:
 		else: 
 			route = module.get_route ()
 			self.wasc.logger ("app", "[info] application %s imported." % route)
-			if self.modules.has_key (route):
+			if route in self.modules:
 				self.wasc.logger ("app", "[info] application route collision detected: %s at %s <-> %s" % (route, module.abspath, self.modules [route].abspath), "warn")
 			self.modules [route] = module
 			
@@ -134,7 +134,7 @@ class ModuleManager:
 	def has_route (self, script_name):
 		# return redirect
 		if script_name == "":
-			if self.modules.has_key ("/"):				
+			if "/" in self.modules:				
 				return -1
 			else:
 				return 0
@@ -157,7 +157,7 @@ class ModuleManager:
 				return cands [0]
 			cands.sort (lambda x, y: cmp (len (x), len (y)))
 			return cands [-1]
-		elif self.modules.has_key ("/") and self.get_app (script_name, True) [0] is not None:
+		elif "/" in self.modules and self.get_app (script_name, True) [0] is not None:
 			return "/"
 						
 		return 0	
@@ -176,7 +176,7 @@ class ModuleManager:
 		del self.modules [route]
 	
 	def cleanup (self):
-		for route, module in self.modules.items ():
+		for route, module in list(self.modules.items ()):
 			try: 
 				self.wasc.logger ("app", "[info] ..cleanup app: %s" % route)					
 				module.application.cleanup ()
@@ -190,7 +190,7 @@ class ModuleManager:
 	
 	def status (self):
 		d = {}
-		for path, module in self.modules.items ():
+		for path, module in list(self.modules.items ()):
 			d ['<a href="%s">%s</a>' % (path, path)] = module.abspath
 		return d
 

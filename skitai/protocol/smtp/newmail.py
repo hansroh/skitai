@@ -77,7 +77,7 @@ class NewMail:
 		self.contents.append (msg)
 
 	def send (self, server, login = None, debug = 0):
-		body = "\r\n".join (["%s: %s" % (k, v) for k, v in self.H.items ()]) + "\r\n"
+		body = "\r\n".join (["%s: %s" % (k, v) for k, v in list(self.H.items ())]) + "\r\n"
 
 		if len (self.contents) == 0:
 			raise AttributeError

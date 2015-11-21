@@ -32,7 +32,7 @@ class Composer:
 		if self.snd: self.set_header ('From', self.snd.strip ())
 		
 		if header:
-			for k, v in header.items (): 
+			for k, v in list(header.items ()): 
 				self.set_header (k, v)
 	
 	def rfc_date (self):
@@ -60,17 +60,17 @@ class Composer:
 	#----------------------------------------------------------------
 	def parseFile (self, fn):
 		if self.__got_file:
-			raise AssertionError, "file already parsed"
+			raise AssertionError("file already parsed")
 		
 		self.fn = fn		
 		f = open (fn)
 		_uid = f.readline ().strip ()
 		_snd = f.readline ().strip ()		
 		if _snd.find ("@") == -1:
-			raise InvalidEmail, "sender address is not valid"
+			raise InvalidEmail("sender address is not valid")
 		_rcpt = f.readline ().strip ()
 		if _rcpt.find ("@") == -1:
-			raise InvalidEmail, "reciever address is not valid"
+			raise InvalidEmail("reciever address is not valid")
 		_subject = f.readline ().strip ()
 		
 		if not self.uid: 		
@@ -177,7 +177,7 @@ class Composer:
 		return self.parse_address (self.rcpt) [1].split ("@") [-1]
 		
 	def get_DATA (self):
-		msg = "\r\n".join (["%s: %s" % (k, v) for k, v in self.H.items ()]) + "\r\n"
+		msg = "\r\n".join (["%s: %s" % (k, v) for k, v in list(self.H.items ())]) + "\r\n"
 		
 		if len (self.contents) == 0:
 			raise AttributeError
@@ -206,7 +206,7 @@ if __name__=="__main__":
 	file = "g:\\project\\nlcli\\temp\\aapla@aol.com.html"
 	m = Composer ("Tester<hansroh@lufex.com>", fn = file)
 	
-	print m.getTO ()
-	print m.getFROM ()
-	print `m.getDATA () [:500]`
+	print(m.getTO ())
+	print(m.getFROM ())
+	print(repr(m.getDATA () [:500]))
 	

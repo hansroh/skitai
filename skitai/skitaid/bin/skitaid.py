@@ -110,7 +110,7 @@ class Servers:
 		self.last_slist = []
 	
 	def has_key (self, name):
-		return self.a.has_key (name)
+		return name in self.a
 	
 	def get_servers_enabled (self):
 		want_to_start = {}
@@ -120,8 +120,8 @@ class Servers:
 		for name in slist:
 			if name [-5:] != ".conf": continue
 			name = name [:-5]
-			if not self.a.has_key (name):
-				if not self.CLEAN_SHUTDOWNED.has_key (name):
+			if name not in self.a:
+				if name not in self.CLEAN_SHUTDOWNED:
 					want_to_start [name] = None
 					continue
 				
@@ -144,7 +144,7 @@ class Servers:
 				want_to_shutdown [name] = None				
 		
 		self.last_slist = slist
-		return want_to_start.keys (), want_to_shutdown.keys ()
+		return list(want_to_start.keys ()), list(want_to_shutdown.keys ())
 	
 	def send_signal (self, name, sig):		
 		self.a [name].send_signal (sig)
@@ -152,7 +152,7 @@ class Servers:
 	def stop_all (self):
 		global LOOP
 		LOOP = False
-		for name, server in self.a.items ():
+		for name, server in list(self.a.items ()):
 			server.send_stop_signal ()
 
 		if os.name == "posix":
@@ -170,12 +170,12 @@ class Servers:
 		#print want_to_start, want_to_shutdown
 				
 		for name in want_to_start:
-			if self.a.has_key (name): continue
+			if name in self.a: continue
 			self.logger ("[info] try starting up server `%s`" % name)
 			self.add_server (name)
 		
 		for name in want_to_shutdown:
-			if not self.a.has_key (name): continue
+			if name not in self.a: continue
 			self.logger ("[info] try shutdown server `%s`" % name)
 			self.a [name].send_stop_signal ()
 	
@@ -194,7 +194,7 @@ class Servers:
 					self.rotate ()
 				
 			self.maintern ()
-			for name, server in self.a.items ():				
+			for name, server in list(self.a.items ()):				
 				exitcode = server.child.poll ()
 				#print name, exitcode
 				if exitcode is None:
@@ -223,7 +223,7 @@ class Servers:
 
 
 def usage ():
-	print """
+	print("""
 Usage:
 	skitaid.py [stop|rotate] [options...]
 
@@ -247,7 +247,7 @@ Examples:
 	ex. skitaid.py stop
 	ex. skitaid.py -k shutdown -n (server-name) 
 	ex. skitaid.py -k restart-all
-	"""
+	""")
 
 def _touch (req, name):
 	if name.endswith (".conf"):
@@ -258,7 +258,7 @@ def _touch (req, name):
 		req = "restart"
 	else:
 		if req not in ("terminate", "shutdown", "restart", "rotate"):
-			print "[error] unknown command"
+			print("[error] unknown command")
 			sys.exit (1)
 				
 	if os.name == "nt":		
@@ -294,7 +294,7 @@ if __name__ == "__main__":
 	pidlock = lck.get_pidlock ()
 	if args:
 		if not pidlock.isalive ():
-			print "[error] not running"
+			print("[error] not running")
 			sys.exit (1)
 			
 		if "stop" in args:		
@@ -312,7 +312,7 @@ if __name__ == "__main__":
 			exit (0)	
 		
 		else:
-			print "[error] unknown argument"
+			print("[error] unknown argument")
 			sys.exit (1)
 			
 	IS_SERVICE = True
@@ -330,17 +330,17 @@ if __name__ == "__main__":
 			sys.exit ()
 	
 	if not command and pidlock.isalive ():
-		print "[error] already running"
+		print("[error] already running")
 		sys.exit (1)
 	
 	# send signal to sub servers
 	if command:		
 		if not pidlock.isalive ():
-			print "[error] not running"
+			print("[error] not running")
 			sys.exit (1)
 					
 		if not command.endswith ("-all") and not name:
-			print "[error] server name must defined. use --name or -n"
+			print("[error] server name must defined. use --name or -n")
 			sys.exit (1)
 		
 		if command.endswith ("-all"):

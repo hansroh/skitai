@@ -49,8 +49,8 @@ for _name in _names:
     if _name[0] != '_': typemap[eval(_name)] = _name
 
 def typestr(type):
-    if typemap.has_key(type): return typemap[type]
-    else: return `type`
+    if type in typemap: return typemap[type]
+    else: return repr(type)
 #
 # $Log: Type.py,v $
 # Revision 1.6  2002/03/19 12:41:33  anthonybaxter

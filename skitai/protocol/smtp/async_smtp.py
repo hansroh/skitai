@@ -56,7 +56,7 @@ class SMTP (asynchat.async_chat):
 	
 	def mxlookup(self, host, qtype = "mx"):
 		a = DNS.DnsRequest(host, qtype = qtype, server=self.DNSHOST, timeout = 3).req().answers
-		l = map(lambda x:x['data'], a)
+		l = [x['data'] for x in a]
 		l.sort()
 		return l
 	
@@ -91,7 +91,7 @@ class SMTP (asynchat.async_chat):
 		
 		resolved = self.mxlookup(_toHost)
 		if not resolved:
-			resolved = map (lambda x: (0, x), self.mxlookup(_toHost, 'a'))
+			resolved = [(0, x) for x in self.mxlookup(_toHost, 'a')]
 			
 		return resolved
 
@@ -110,7 +110,7 @@ class SMTP (asynchat.async_chat):
 		return code, resp
 	
 	def has_extn(self, opt):
-		return self.esmtp_features.has_key(opt.lower())
+		return opt.lower() in self.esmtp_features
 			
 	def found_terminator(self):
 		line = "".join(self.__line)
@@ -167,7 +167,7 @@ class SMTP (asynchat.async_chat):
 				
 			self.__stat = 3
 			if self.does_esmtp and self.has_extn('size'):
-				option = "size=" + `len(self.composer.get_DATA ())`				
+				option = "size=" + repr(len(self.composer.get_DATA ()))				
 				self.push ("mail FROM:%s %s" % (quoteaddr (self.composer.get_FROM ()), option))
 			else:
 				self.push ("mail FROM:%s" % (quoteaddr (self.composer.get_FROM ())))
@@ -236,7 +236,7 @@ class SMTP (asynchat.async_chat):
 		if self.logger:
 			self.logger.trace ()
 		else:
-			print asnycore.compact_traceback ()
+			print(asnycore.compact_traceback ())
 		self.close()
 		
 	def handle_close (self):

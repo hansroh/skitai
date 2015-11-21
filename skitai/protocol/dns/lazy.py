@@ -7,7 +7,7 @@
 #
 
 # routines for lazy people.
-import Base
+from . import Base
 import string
 
 def revlookup(name):
@@ -24,7 +24,7 @@ def mxlookup(name):
     sorted list of (preference, mail exchanger) records
     """
     a = Base.DnsRequest(name, qtype = 'mx').req().answers
-    l = map(lambda x:x['data'], a)
+    l = [x['data'] for x in a]
     l.sort()
     return l
 

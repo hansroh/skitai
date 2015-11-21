@@ -1,12 +1,12 @@
 import os
-import pathtool
+from . import pathtool
 
 def isCurrentProcess (pid, cmd = "python"):
 	if os.name == "nt":
 		import win32process, win32api, win32con, pywintypes
 		if pid in win32process.EnumProcesses ():			
 			try:
-				handle = win32api.OpenProcess (win32con.PROCESS_QUERY_INFORMATION | win32con.PROCESS_VM_READ, 0, long (pid))
+				handle = win32api.OpenProcess (win32con.PROCESS_QUERY_INFORMATION | win32con.PROCESS_VM_READ, 0, int (pid))
 				exefilename = win32process.GetModuleFileNameEx (handle, 0)
 				if exefilename.find (cmd) != -1:
 					return True		
@@ -32,7 +32,7 @@ class PidFile:
 	def make (self):
 		import os, sys		
 		if self.isalive ():
-			raise AssertionError, "process is runnig. terminated."
+			raise AssertionError("process is runnig. terminated.")
 					
 		pathtool.mkdir (self.path)
 		pidfile = os.path.join (self.path, "pid")			
@@ -102,7 +102,7 @@ class Lock:
 	
 	def isplocked (self, name):
 		try:
-			return filter (lambda x: x > -1, [lock.find ("lock." + name) for lock in os.listdir (self.home)])
+			return [x for x in [lock.find ("lock." + name) for lock in os.listdir (self.home)] if x > -1]
 		except (WindowsError, IOError, OSError):
 			return False
 
@@ -136,8 +136,8 @@ class Lock:
 
 
 if __name__ == "__main__":
-	f = Lock ("d:/")
-	print f.isplocked ("dup")
+	f = Lock ("d://")
+	print(f.isplocked ("dup"))
 	
 	
 	

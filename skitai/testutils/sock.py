@@ -15,20 +15,20 @@ Connection: keep-alive
 req = req.strip ().replace ("\n", "\r\n") + "\r\n\r\n"
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect(("image.moneta.co.kr", 80))
-print s.send(req)	
+print(s.send(req))	
 data = s.recv(65535)
-print len (data), `data`
+print(len (data), repr(data))
 data = s.recv(65535)
-print len (data), `data [:30]`
+print(len (data), repr(data [:30]))
 
 time.sleep (10)
 
 
-print s.send(req)	
+print(s.send(req))	
 data = s.recv(65535)
-print len (data), `data`
+print(len (data), repr(data))
 data = s.recv(65535)
-print len (data), `data [:30]`
+print(len (data), repr(data [:30]))
 
 
 s.close()

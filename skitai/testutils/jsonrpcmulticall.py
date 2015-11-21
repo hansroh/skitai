@@ -10,8 +10,8 @@ m.admin.test1([1,2,3],3)
 m.admin.test2([4,5])
 
 tt = m().results
-print tt
-print type (tt)
+print(tt)
+print(type (tt))
 	
 
 

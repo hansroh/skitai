@@ -24,11 +24,11 @@ iso2ascii = {
 rx_non_ascii = re.compile ("[^\x01-\x80]")
 def decode (k):	
 	if rx_non_ascii.search (k):
-		for u, a in iso2ascii.items ():
+		for u, a in list(iso2ascii.items ()):
 			k = k.replace (u, a)	
 	return k
 	
 	
 	
 if __name__ == "__main__":	
-	print decode ("Norra Ågatan 10")
+	print(decode ("Norra Agatan 10"))

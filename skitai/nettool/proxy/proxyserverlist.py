@@ -1,4 +1,4 @@
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import re
 import time
 from skitai.lib import logger as loggerfactory

@@ -8,7 +8,7 @@ import asynchat
 import os
 import socket
 import string
-import thread
+import _thread
 	
 if os.name == 'posix':
 
@@ -47,7 +47,7 @@ if os.name == 'posix':
 			r, w = os.pipe()
 			self.trigger = w
 			asyncore.file_dispatcher.__init__ (self, r)
-			self.lock = thread.allocate_lock()
+			self.lock = _thread.allocate_lock()
 			self.thunks = []
 
 		def __repr__ (self):
@@ -124,7 +124,7 @@ else:
 			self.trigger = w
 
 			asyncore.dispatcher.__init__ (self, r)
-			self.lock = thread.allocate_lock()
+			self.lock = _thread.allocate_lock()
 			self.thunks = []
 			self._trigger_connected = 0
 
@@ -158,7 +158,7 @@ else:
 						thunk ()
 					except:
 						(file, fun, line), t, v, tbinfo = asyncore.compact_traceback()
-						print file, fun, line, t, v, tbinfo
+						print(file, fun, line, t, v, tbinfo)
 				self.thunks = []
 				
 			finally:
@@ -169,14 +169,14 @@ if __name__ == '__main__':
 	import time
 
 	def thread_function (output_file, i, n):
-		print 'entering thread_function'
+		print('entering thread_function')
 		while n:
 			time.sleep (5)
 			output_file.write ('%2d.%2d %s\r\n' % (i, n, output_file))
 			output_file.flush()
 			n = n - 1
 		output_file.close()
-		print 'exiting thread_function'
+		print('exiting thread_function')
 
 	class thread_parent (asynchat.async_chat):
 		
@@ -194,12 +194,12 @@ if __name__ == '__main__':
 			data, self.buffer = self.buffer, ''
 			if not data:
 				asyncore.close_all()
-				print "done"
+				print("done")
 				return
 			n = string.atoi (string.split (data)[0])
 			tf = trigger_file (self)
 			self.count = self.count + 1
-			thread.start_new_thread (thread_function, (tf, self.count, n))
+			_thread.start_new_thread (thread_function, (tf, self.count, n))
 
 	class thread_server (asyncore.dispatcher):
 		

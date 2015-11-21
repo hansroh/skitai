@@ -36,8 +36,8 @@ for _name in _names:
     if _name[0] != '_': statusmap[eval(_name)] = _name
 
 def statusstr(status):
-    if statusmap.has_key(status): return statusmap[status]
-    else: return `status`
+    if status in statusmap: return statusmap[status]
+    else: return repr(status)
 
 #
 # $Log: Status.py,v $

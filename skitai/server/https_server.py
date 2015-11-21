@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import http_server
-from counter import counter
+from . import http_server
+from .counter import counter
 import socket, time, asyncore
 from M2Crypto import SSL
 from skitai import lifetime
@@ -35,7 +35,7 @@ class https_channel (http_server.http_channel):
 		except MemoryError:
 			lifetime.shutdown (1, 1)
 			
-		except SSL.SSLError, why:
+		except SSL.SSLError as why:
 			if why[0] == "unexpected eof": # unexpected client's disconnection?
 				self.handle_close()
 				return ''			
@@ -63,7 +63,7 @@ class https_server (http_server.http_server):
 			ssl_conn.accept_ssl ()
 			https_channel (self, ssl_conn, addr)
 			
-		except SSL.SSLError, why:
+		except SSL.SSLError as why:
 			pass
 		
 		
@@ -83,7 +83,7 @@ def init_context(protocol, certfile, cafile, passphrase = None):
 		
 if __name__ == "__main__":
 	import module_loader
-	from threads import threadlib
+	from .threads import threadlib
 	import file_handler, xmlrpc_handler, soap_handler, cgi_handler, graph_handler, proxy_handler, logger
 	
 	pools = threadlib.request_queue()	

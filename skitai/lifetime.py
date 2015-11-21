@@ -1,5 +1,5 @@
 import sys, asyncore, time
-from server.threads import trigger
+from .server.threads import trigger
 import gc
 import select
 import os
@@ -22,7 +22,7 @@ _select_errors = 0
 
 def status ():
 	fds = []
-	for fdno, channel in asyncore.socket_map.items ():
+	for fdno, channel in list(asyncore.socket_map.items ()):
 		try:
 			d = {}
 			d ["name"] = "%s.%s" % (channel.__module__, channel.__class__.__name__)
@@ -90,7 +90,7 @@ def maintern_gc (now):
 def maintern_zombie_channel (now):
 	global _killed_zombies
 		
-	for channel in asyncore.socket_map.values():
+	for channel in list(asyncore.socket_map.values()):
 		if hasattr (channel, "handle_timeout"):
 			try:
 				iszombie = (now - channel.event_time) > channel.zombie_timeout				
@@ -151,7 +151,7 @@ if os.name == "nt":
 		
 		# on Windows we can get WSAENOTSOCK if the client
 		# rapidly connect and disconnects
-		for fd in map.keys():
+		for fd in list(map.keys()):
 			try:
 				select.select([fd], [], [], 0)
 			except select.error:
@@ -169,7 +169,7 @@ def poll_fun_wrap (timeout, map):
 	try:
 		poll_fun (timeout, map)
 	
-	except select.error, why:
+	except select.error as why:
 		if os.name == "nt" and why [0] == WSAENOTSOCK: # sometimes postgresql connection forcely closed
 			remove_notsocks (map)
 	
@@ -179,7 +179,7 @@ def poll_fun_wrap (timeout, map):
 		half = len (map) / 2
 		tmap = {}
 		cc = 0
-		for k, v in map.items ():
+		for k, v in list(map.items ()):
 			tmap [k] = v
 			cc += 1
 			if cc == half:
@@ -207,7 +207,7 @@ def graceful_shutdown_loop ():
 	while map and _shutdown_phase < 4:
 		time_in_this_phase = time.time() - timestamp
 		veto = 0
-		for fd,obj in map.items():
+		for fd,obj in list(map.items()):
 			try:
 				fn = getattr (obj,'clean_shutdown_control')
 			except AttributeError:
@@ -221,7 +221,7 @@ def graceful_shutdown_loop ():
 		if veto and time_in_this_phase < _shutdown_timeout:
 			try:
 				poll_fun(timeout, map)
-			except select.error, why:
+			except select.error as why:
 				if os.name == "nt" and why [0] == WSAENOTSOCK: # sometimes postgresql connection forcely closed
 					remove_notsocks (map)
 					

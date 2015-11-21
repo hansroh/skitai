@@ -1,7 +1,7 @@
 from email import Parser
 from email import Message
 from email import Errors
-import cStringIO
+import io
 import re
 from string import *
 import rfc822, time
@@ -22,8 +22,8 @@ def decode(value):
 			value=value[match.end():]
 			encoding=upper(match.group(1))
 			buffer=rx_remove.sub('',buffer)[:-2]			
-			input=cStringIO.StringIO()
-			output=cStringIO.StringIO()	
+			input=io.StringIO()
+			output=io.StringIO()	
 			input.write(buffer)
 			input.seek(0)
 			if encoding == 'B':
@@ -81,7 +81,7 @@ class smart_Parser(Parser.Parser):
 		return root
 
 	def parsestr(self, text):
-		return self.parse(cStringIO.StringIO(text))
+		return self.parse(io.StringIO(text))
 	
 	def _parseheaders(self, container, fp):
 		# Parse the headers, returning a list of header/value pairs.  None as

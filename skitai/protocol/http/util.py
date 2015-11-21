@@ -1,6 +1,6 @@
-﻿import urllib
+﻿import urllib.request, urllib.parse, urllib.error
 
-quote = urllib.quote_plus
+quote = urllib.parse.quote_plus
 
 def queryencode (data):
 	if not data: return data

@@ -10,7 +10,7 @@ def execute (cmd):
 	r.data = f.read ()
 	r.exitcode = f.close ()
 	if r.exitcode is not None or r.data.find ("ERR") != -1:
-		raise IPSECError, "[%s] %s" % (r.exitcode, r.data)
+		raise IPSECError("[%s] %s" % (r.exitcode, r.data))
 	return r
 
 	
@@ -24,20 +24,20 @@ class IPSEC:
 		self.allpoicies = {}
 		try:
 			r = execute ('netsh ipsec static show policy all')
-		except IPSECError, why:	
+		except IPSECError as why:	
 			if why[0].find ("[05072]") != -1 or why[0].find ("No Policies") != -1: # no policies
 				return
 												
 		for each in r.data.split ("\n\n") [:-2]:
 			for line in each.strip ().split ("\n"):
-				k, v = map (lambda x: x.strip (), line.split (":", 1))
+				k, v = [x.strip () for x in line.split (":", 1)]
 				if k == "Policy Name":
 					curkey = v
 					self.allpoicies [curkey] = {}
 				self.allpoicies [curkey][k] = v
 					
 	def hasPolicy (self, name):
-		return self.allpoicies.has_key (name)
+		return name in self.allpoicies
 	
 	def importPolicy (self, file):
 		r = execute ('netsh ipsec static importpolicy file="%s"' % file)		
@@ -62,10 +62,10 @@ class IPSEC:
 		
 	def addFilterAction (self, name, action, description = "N/A"):
 		if action not in ("permit", "block", "negotiate"):
-			raise ValueError, "Must be one of permit, block, negotiate"
+			raise ValueError("Must be one of permit, block, negotiate")
 		try: 
 			r = execute ('netsh ipsec static add filteraction name="%s" action=%s description="%s"' % (name, action, description))
-		except Exception, why:
+		except Exception as why:
 			if str (why).find ("05014") != -1:
 				pass
 			else:
@@ -73,7 +73,7 @@ class IPSEC:
 	
 	def setFilterAction (self, name, newname, action, description = "N/A"):
 		if action not in ("permit", "block", "negotiate"):
-			raise ValueError, "Must be one of permit, block, negotiate"
+			raise ValueError("Must be one of permit, block, negotiate")
 		r = execute ('netsh ipsec static add filteraction name="%s" newname="%s" action=%s description="%s"' % (name, newname, action, description))
 		
 	def deleteFilterAction (self, name):
@@ -89,7 +89,7 @@ class IPSEC:
 	def addFilterList (self, name, description = "N/A"):
 		try:	
 			r = execute ('netsh ipsec static add filterlist name="%s" description="%s"' % (name, description))		
-		except Exception, why:
+		except Exception as why:
 			if str (why).find ("05010") != -1:
 				pass
 			else:
@@ -124,7 +124,7 @@ class IPSEC:
 		dstMask = "255.255.255.255"
 		for each in data.split ("\n\n") [:-1]:
 			for line in each.strip ().split ("\n"):				
-				k, v = map (lambda x: x.strip (), line.split (":", 1))				
+				k, v = [x.strip () for x in line.split (":", 1)]				
 				if k == "Source IP Address":
 					if v == "<My IP Address>": v = "Me"
 					srcAddr = v						

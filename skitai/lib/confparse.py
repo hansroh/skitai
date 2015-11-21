@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import re, cStringIO, os
+import re, io, os
 
 # exception classes
 class NotFileError (Exception): pass
@@ -60,19 +60,19 @@ class ConfParse:
 			self.sectionlist.append (sector)		
 
 	def has_key (self, key):
-		return self.conf.has_key (key)
+		return key in self.conf
 
 	def set_conf (self, conf):
 		self.conf = conf
 
 	def matched (self, search):
-		return [ sect for sect in self.conf.keys () if sect.find (search) == 0 ]
+		return [ sect for sect in list(self.conf.keys ()) if sect.find (search) == 0 ]
 
 	def keys (self):
-		return self.conf.keys ()
+		return list(self.conf.keys ())
 
 	def items (self):
-		return self.conf.items ()
+		return list(self.conf.items ())
 
 	def _secttype (self, secttype):
 		if secttype == TPAIR: return {}
@@ -90,7 +90,7 @@ class ConfParse:
 		fp.close ()
 
 	def read_from_string (self, data):
-		fp = cStringIO.StringIO ()
+		fp = io.StringIO ()
 		fp.write (data)
 		fp.seek (0)
 		self._read (fp)
@@ -129,13 +129,13 @@ class ConfParse:
 			if match:
 				cursect = match.group(1)
 				try:
-					[ cursect, secttype ] = map (lambda x: x.strip(), cursect.split(':'))
+					[ cursect, secttype ] = [x.strip() for x in cursect.split(':')]
 				except ValueError:
 					[ cursect, secttype ] = cursect.strip(), TPAIR
 				secttype = secttype.strip()
 
 				if secttype not in (TPAIR, TLINE, TDATA):
-					raise UnknownSectorType, "%s:%s" % (cursect, secttype)
+					raise UnknownSectorType("%s:%s" % (cursect, secttype))
 				self.conf [cursect] = self._secttype (secttype)
 				self.sectionlist.append (cursect)
 
@@ -172,7 +172,7 @@ class ConfParse:
 		fp.close ()
 
 	def sections (self):
-		return self.conf.keys()
+		return list(self.conf.keys())
 
 	def getboolean (self, section, option = None):
 		if not option:
@@ -208,7 +208,7 @@ class ConfParse:
 			if type (opt) == type (''):
 				opt = opt.replace ('\r', '').strip () + '\n'
 			elif type (opt) == type ([]):
-				opt = filter (lambda x: x and x [0] not in "#;", opt)
+				opt = [x for x in opt if x and x [0] not in "#;"]
 			return opt
 
 		try:
@@ -218,12 +218,12 @@ class ConfParse:
 			raise OptionNotFound
 
 	def makesect (self, section, secttype = TPAIR):
-		if not self.conf.has_key (section):
+		if section not in self.conf:
 			self.sectionlist.append (section)
 		self.conf[section] = self._secttype (secttype)
 
 	def setsect (self, section, data):
-		if not self.conf.has_key (section):
+		if section not in self.conf:
 			self.sectionlist.append (section)
 		self.conf[section] = data		
 
@@ -254,7 +254,7 @@ class ConfParse:
 			if option is None: option = []
 			if type (option) == type (""):
 				option = LINESPLIT.split (option)
-				option = filter (None, map (lambda x: x.strip(), option))
+				option = [_f for _f in [x.strip() for x in option] if _f]
 			self.conf[section] = option
 
 	def write (self, fp):
@@ -265,7 +265,7 @@ class ConfParse:
 				continue													
 			if type (data) == type ({}):
 				fp.write ("[%s]\n" % sect)
-				for k, v in data.items (): fp.write ("%s = %s\n" % (k, v))
+				for k, v in list(data.items ()): fp.write ("%s = %s\n" % (k, v))
 				fp.write ("\n\n")
 
 			elif type (data) == type ([]):
@@ -299,7 +299,7 @@ class ConfParse:
 if __name__ == '__main__':
 	import os
 	for file in os.listdir('../def/')[1:2]:
-		print file
+		print(file)
 		if file[0] == '#': continue
 		config = ConfParse('../def/' + file)
-		print config.conf
+		print(config.conf)
