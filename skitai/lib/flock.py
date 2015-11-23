@@ -136,7 +136,7 @@ class Lock:
 
 
 if __name__ == "__main__":
-	f = Lock ("d://")
+	f = Lock ("d:/")
 	print(f.isplocked ("dup"))
 	
 	

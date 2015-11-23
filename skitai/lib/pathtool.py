@@ -1,6 +1,12 @@
 import os
 import re
-import urllib.request, urllib.parse, urllib.error
+try:
+	import urllib.parse
+	unquote = urllib.parse.unquote
+except ImportError:
+	import urlparse
+	unquote = urlparse.unquote
+		
 import types
 import sys
 
@@ -15,8 +21,8 @@ def mkdir (tdir, mod = -1):
 	for dir in chain [1:]:
 		try: 
 			os.mkdir (dir)
-			if os.name == "posix" and mod != -1: 
-				os.chmod (dir, mod)
+			if os.name == "posix" and mod != -1:
+				os.chmod (dir, mod)				
 		except OSError as why:
 			if why.errno in (17, 183): continue
 			else: raise
@@ -33,6 +39,6 @@ def modpath (mod_name):
 			
 NAFN = re.compile (r"[\\/:*?\"<>|]+")
 def mkfn (text):
-	text = urllib.parse.unquote (text)
+	text = unquote (text)
 	return NAFN.sub ("_", text)
 

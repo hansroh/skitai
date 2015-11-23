@@ -32,7 +32,7 @@ if __name__ == "__main__":
 	pool = DBPool (logger.screen_logger ())
 	
 	def query ():
-		conn = pool.get ("mydb.c25zyujwtzky.us-east-1.rds.amazonaws.com:5432", "mydb", "postgres", "!kms2000")
+		conn = pool.get ("mydb.us-east-1.rds.amazonaws.com:5432", "mydb", "postgres", "")
 		conn.execute ("SELECT * FROM cities;")
 		rs = conn.fetchwait (5)
 		print(rs.status, rs.result)
