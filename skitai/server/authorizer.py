@@ -1,11 +1,11 @@
 import base64
-import md5
+from hashlib import md5
 
 class Authorizer:
 	def __init__ (self, realm, magic, password):
 		self.realm = realm
-		self.magic = magic
-		self.md5_magic = md5.new (self.magic).hexdigest ()
+		self.magic = magic.encode ("utf8")
+		self.md5_magic = md5 (self.magic).hexdigest ()
 		self.password = password
 		self.cache = {}
 	

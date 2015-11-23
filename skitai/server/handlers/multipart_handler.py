@@ -194,12 +194,12 @@ class Collector (ssgi_handler.Collector):
 					else:
 						d = part.value
 							
-				 	if part.name in data:
-				 		if type (data [part.name]) is not type ([]):
-				 			data [part.name] = [data [part.name]]				 		
-				 		data [part.name].append (d)
-				 	else:
-				 		data [part.name] = d
+					if part.name in data:
+						if type (data [part.name]) is not type ([]):
+							data [part.name] = [data [part.name]]						
+						data [part.name].append (d)
+					else:
+						data [part.name] = d
 		
 		# cached string data if size < 5 MB
 		self.request.collector = None # break circ. ref

@@ -16,7 +16,8 @@ class DeflateCompressor:
 		
 
 class GZipCompressor:
-	HEADER = "\037\213\010" + chr (0) + struct.pack ("<L", int (time.time ())) + "\002\377"
+	#HEADER = b"\037\213\010" + chr (0) + struct.pack ("<L", int (time.time ())) + b"\002\377"
+	HEADER = b"\037\213\010" + b'\000' + struct.pack ("<L", int (time.time ())) + b"\002\377"	
 	def __init__ (self, level = 5):
 		self.size = 0
 		self.crc = zlib.crc32("")

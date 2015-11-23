@@ -28,8 +28,8 @@ def mkdir (tdir, mod = -1):
 			else: raise
 
 
-def modpath (mod_name):
-	if type (mod_name) is bytes:		
+def modpath (mod_name):	
+	if type (mod_name) in (str, bytes):		
 		try:
 				mod = sys.modules [mod_name]
 		except KeyError: 

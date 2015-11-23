@@ -1,4 +1,4 @@
-import md5
+from hashlib import md5
 import time
 import threading
 
@@ -59,7 +59,7 @@ class RCache:
 		self.hits = 0
 		
 	def hash (self, hashable):
-		return md5.new (hashable).hexdigest ()
+		return md5 (hashable.encode ("utf8")).hexdigest ()
 	
 	def maintern (self):
 		# remove 20% if reach max count

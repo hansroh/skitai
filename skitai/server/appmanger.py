@@ -19,7 +19,7 @@ class Module:
 	
 	def import_app (self):
 		__import__ (self.libpath, globals ())
-		self.libpath, self.abspath = pathtool.modpath (self.libpath)		
+		self.libpath, self.abspath = pathtool.modpath (self.libpath)
 		self.module = sys.modules [self.libpath]
 		self.app = self.module.app
 		

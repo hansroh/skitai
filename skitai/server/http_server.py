@@ -5,7 +5,6 @@ import asyncore, asynchat
 import re, socket, time, threading, os
 from . import http_date, http_response, producers, utility, counter
 from .threads import threadlib
-from types import StringTypes
 from skitai import lifetime
 import zlib, gzip, io
 from . import compressors

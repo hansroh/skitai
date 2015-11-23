@@ -1,5 +1,5 @@
 from skitai.server import counter, compressors
-import md5
+from hashlib import md5
 from skitai.lib import pathtool
 import os
 import time
@@ -63,12 +63,13 @@ class CacheFileSystem:
 	def getpath (self, uri, data):
 		if not data: 
 			data = "" # to make standard type
-		file = md5.new (uri + ":" + str (data)).hexdigest ()
+		key = uri + ":" + str (data)
+		file = md5 (key.encode ("utf8")).hexdigest ()
 		initial = "0" + file [0] + "/" + file [1:3]
 		self.hits [initial] += 1
 		if self.hits [initial] % 1000 == 0:
 			c = self.maintern (initial)
-			self.lock.acquire ()	
+			self.lock.acquire ()
 			self.files [initial] = c
 			self.lock.release ()	
 		return os.path.join (self.path, initial, file), initial

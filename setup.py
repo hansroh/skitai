@@ -139,7 +139,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 				os.mkdir ("/var/log/skitaid")
 				os.mkdir ("/var/local/skitaid")				
 			except OSError as why:
-				if why [0] != 17:
+				if why.errno != 17:
 					raise
 			
 			if os.path.isfile ("/etc/init/skitaid.conf"):

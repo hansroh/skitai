@@ -5,7 +5,6 @@ import random
 from skitai.lib import pathtool
 from skitai.lib import udict
 import os, sys
-import md5
 import urllib.request, urllib.parse, urllib.error
 
 def crack_cookie (r):
