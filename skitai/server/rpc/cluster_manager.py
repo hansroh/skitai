@@ -307,7 +307,7 @@ class ClusterManager:
 					cluster.append ((avails [0], len (avails) / float (weight), weight))
 				
 				if cluster:
-					cluster.sort (key = self.sortkey)
+					#cluster.sort (key = self.sortkey)
 					cluster.sort (key = itemgetter(1, 2), reverse = True)
 					asyncon = cluster [0][0]					
 				else:
