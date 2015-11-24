@@ -10,7 +10,7 @@ This code is covered by the standard Python License.
 """
 
 import socket, string, types, time
-from . import Type,Class,Opcode
+import Type,Class,Opcode
 import asyncore
 
 class DNSError(Exception): pass
@@ -45,7 +45,7 @@ def ParseResolvConf(resolv_path="/etc/resolv.conf"):
 def DiscoverNameServers():
 	import sys
 	if sys.platform in ('win32', 'nt'):
-		from . import win32dns
+		import win32dns
 		defaults['server'] = win32dns.RegistryResolve()
 	else:
 		return ParseResolvConf()
@@ -62,7 +62,7 @@ class DnsRequest:
 	def argparse(self,name,args):
 		if not name and 'name' in self.defaults:
 			args['name'] = self.defaults['name']
-		if type(name) is bytes:
+		if type(name) in (str, bytes):
 			args['name']=name
 		else:
 			if len(name) == 1:
@@ -94,7 +94,7 @@ class DnsRequest:
 
 	def processTCPReply(self):
 		import time
-		from . import Lib
+		import Lib
 		self.f = self.s.makefile('r')
 		header = self.f.read(2)
 		if len(header) < 2:
@@ -108,7 +108,7 @@ class DnsRequest:
 		return self.processReply()
 
 	def processReply(self):
-		from . import Lib
+		import Lib
 		self.args['elapsed']=(self.time_finish-self.time_start)*1000
 		u = Lib.Munpacker(self.reply)
 		r = Lib.DnsResult(u,self.args)
@@ -140,7 +140,7 @@ class DnsRequest:
 	def req (self,*name,**args):
 		" needs a refactoring "
 		import time
-		from . import Lib
+		import Lib
 		self.argparse(name,args)
 		#if not self.args:
 		#	raise DNSError,'reinitialize request before reuse'

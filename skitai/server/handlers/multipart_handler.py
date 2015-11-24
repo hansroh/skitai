@@ -205,7 +205,7 @@ class Collector (ssgi_handler.Collector):
 		self.request.collector = None # break circ. ref
 		self.request.set_body (self.get_cache ())
 		self.handler.continue_request (self.request, data)
-		self.request.channel.set_terminator ('\r\n\r\n')
+		self.request.channel.set_terminator (b'\r\n\r\n')
 				
 	def found_terminator (self):
 		c = self.request.channel
@@ -244,7 +244,7 @@ class Collector (ssgi_handler.Collector):
 			
 		else:
 			self.trackable_tail = current_terminator
-			c.set_terminator ("\r\n\r\n")
+			c.set_terminator (b"\r\n\r\n")
 			if self.current_part:
 				self.current_part.end ()			
 			self.current_part = None

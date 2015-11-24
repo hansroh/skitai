@@ -74,7 +74,7 @@ class Collector:
 		# prepare got recving next request header
 		self.request.collector = None  # break circ. ref
 		self.request.set_body (self.data)
-		self.request.channel.set_terminator ('\r\n\r\n')
+		self.request.channel.set_terminator (b'\r\n\r\n')
 		self.handler.continue_request (self.request, self.data)
 	
 	def abort (self):

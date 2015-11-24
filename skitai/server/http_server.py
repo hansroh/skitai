@@ -157,8 +157,8 @@ class http_channel (asynchat.async_chat):
 		asynchat.async_chat.__init__ (self, conn)		
 		self.server = server
 		self.addr = addr		
-		self.set_terminator ('\r\n\r\n')
-		self.in_buffer = ''
+		self.set_terminator (b'\r\n\r\n')
+		self.in_buffer = b''
 		self.creation_time = int (time.time())
 		self.event_time = int (time.time())
 		
@@ -227,7 +227,7 @@ class http_channel (asynchat.async_chat):
 	def collect_incoming_data (self, data):
 		if self.current_request:			
 			self.current_request.collect_incoming_data (data)
-		else:			
+		else:
 			self.in_buffer = self.in_buffer + data
 				
 	def found_terminator (self):
@@ -239,8 +239,8 @@ class http_channel (asynchat.async_chat):
 			
 		else:
 			header = self.in_buffer
-			self.in_buffer = ''
-			lines = header.split('\r\n')
+			self.in_buffer = b''
+			lines = header.split(b'\r\n')
 			
 			while lines and not lines[0]:
 				lines = lines[1:]
@@ -253,11 +253,11 @@ class http_channel (asynchat.async_chat):
 			try:
 				command, uri, version = utility.crack_request (request)							
 			except:
+				raise
 				self.log_info ("channel-%s invaild request header" % self.channel_number, "fail")
 				return self.close ()			
 				
 			header = utility.join_headers (lines[1:])
-			
 			r = http_request (self, request, command, uri, version, header)
 			
 			self.request_counter.inc()

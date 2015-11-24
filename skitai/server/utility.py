@@ -5,50 +5,50 @@ import json
 ####################################################################################
 # Utitlities
 ####################################################################################
-REQUEST = re.compile ('([^ ]+) ([^ ]+)(( HTTP/([0-9.]+))$|$)')
-CONNECTION = re.compile ('Connection: (.*)', re.IGNORECASE)
+REQUEST = re.compile (b'([^ ]+) ([^ ]+)(( HTTP/([0-9.]+))$|$)')
+CONNECTION = re.compile (b'Connection: (.*)', re.IGNORECASE)
 
 def crack_query (r):
 	if not r: return {}
-	if r[0]=='?': r=r[1:]	
+	if r[0]==b'?': r=r[1:]	
 	arg={}
-	q = [x.split('=', 1) for x in r.split('&')]	
+	q = [x.split(b'=', 1) for x in r.split(b'&')]	
 	
 	for each in q:
 		k = unquote_plus (each[0])
 		try: 
-			t, k = k.split (":", 1)
+			t, k = k.split (b":", 1)
 		except ValueError:
-			t = "str"
+			t = b"str"
 			
 		if len (each) == 2:		
 			v = unquote_plus(each[1])
-			if t == "str":
+			if t == b"str":
 				pass
-			elif t == "int":
+			elif t == b"int":
 				v = int (v)
-			elif t == "float":
+			elif t == b"float":
 				v = float (v)
-			elif t == "list":
-				v = v.split (",")
-			elif t == "bit":
-				v = v.lower () in ("1", "true", "yes")
-			elif t == "json":
+			elif t == b"list":
+				v = v.split (b",")
+			elif t == b"bit":
+				v = v.lower () in (b"1", b"true", b"yes")
+			elif t == b"json":
 				v = json.loads (v)
 				
 		else:
 			v = ""			
-			if t == "str":
+			if t == b"str":
 				pass
-			elif t == "int":
+			elif t == b"int":
 				v = 0
-			elif t == "float":
+			elif t == b"float":
 				v = 0.0
-			elif t == "list":
+			elif t == b"list":
 				v = []
-			elif t == "bit":
+			elif t == b"bit":
 				v = False
-			elif t == "json":
+			elif t == b"json":
 				v = {}
 				
 		if k in arg:
@@ -76,7 +76,7 @@ def crack_request (r):
 def join_headers (headers):
 	r = []
 	for i in range(len(headers)):
-		if headers[i][0] in ' \t':	
+		if headers[i][0] in b' \t':	
 			r[-1] = r[-1] + headers[i][1:]
 		else:
 			r.append (headers[i])
@@ -87,20 +87,20 @@ def get_header (head_reg, lines, group=1):
 		m = head_reg.match (line)
 		if m and m.end() == len(line):
 			return m.group (group)
-	return ''
+	return b''
 
 def get_header_match (head_reg, lines):
 	for line in lines:
 		m = head_reg.match (line)
 		if m and m.end() == len(line):
 			return m
-	return ''		
+	return b''		
 
 def get_extension (path):
-	dirsep = path.rfind ('/')
-	dotsep = path.rfind ('.')
+	dirsep = path.rfind (b'/')
+	dotsep = path.rfind (b'.')
 	if dotsep > dirsep:
 		return path[dotsep+1:]
 	else:
-		return ''
+		return b''
 	

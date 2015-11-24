@@ -102,10 +102,12 @@ if "install" in sys.argv or "develop" in sys.argv:
 			shutil.copytree ("skitai\\skitaid\\etc\\skitaid", "c:\\skitaid\\etc")
 		
 		if os.path.isdir ("c:\\skitaid\\bin"):
-			for each in glob.glob ("c:\\skitaid\\bin\\*"):
-				os.remove (each)
-			os.rmdir ("c:\\skitaid\\bin")	
-		shutil.copytree ("skitai\\skitaid\\bin", "c:\\skitaid\\bin")
+			for fn in os.listdir ("skitai\\skitaid\\bin"):
+				try: os.remove (os.path.join ("c:\\skitaid\\bin", fn))
+				except WindowsError as why:
+					if why.errno == 2: pass	
+				shutil.copyfile (os.path.join ("skitai\\skitaid\\bin", fn), os.path.join ("c:\\skitaid\\bin", fn))
+		
 		if not os.path.isdir ("c:\\skitaid\\pub"):
 			shutil.copytree ("skitai\\skitaid\\pub", "c:\\skitaid\\pub")
 			

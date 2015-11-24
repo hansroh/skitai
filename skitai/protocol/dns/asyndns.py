@@ -4,11 +4,11 @@ import time
 import types
 import random
 import types
-from . import Base
-from . import Type
-from . import Class
-from . import Lib
-from . import Opcode
+import Base
+import Type
+import Class
+import Lib
+import Opcode
 import random
 
 defaults = Base.defaults
@@ -29,7 +29,7 @@ class async_dns (asyncore.dispatcher_with_send):
 		
 		self.creation_time = time.time ()
 		self.event_time = time.time ()
-		self.ac_in_buffer = ""
+		self.ac_in_buffer = b""
 		self.closed = False
 		
 		asyncore.dispatcher_with_send.__init__ (self)		
@@ -108,7 +108,7 @@ class Request:
 		self.debug_level = debug_level		
 		
 	def argparse (self, name, args):
-		args['name']=name			
+		args['name']=name
 		for i in list(defaults.keys()):
 			if i not in args:
 				if i == "server": 
@@ -122,6 +122,7 @@ class Request:
 		return args
 		
 	def req (self, name, **args):
+		name = name.encode ("utf8")
 		args = self.argparse (name, args)
 		
 		protocol = args ['protocol']
@@ -130,7 +131,7 @@ class Request:
 		rd = args ['rd']
 		server = args ['server'][:]
 		
-		if type(args['qtype']) == bytes:
+		if type(args['qtype']) in (bytes, str):
 			try:
 				qtype = getattr (Type, args ['qtype'].upper ())
 			except AttributeError:
@@ -195,7 +196,7 @@ class Request:
 			except:
 				if self.debug_level: self.logger.trace ()
 				answers = []	
-		
+
 		callback = args.get ("callback", None)
 		if callback:
 			if type (callback) != type ([]):

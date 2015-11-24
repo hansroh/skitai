@@ -20,7 +20,10 @@
 """
 
 import string, re
-import winreg
+try: 
+	import winreg
+except ImportError:
+	import _winreg	as winreg
 
 def binipdisplay(s):
     "convert a binary array of ip adresses to a python list"

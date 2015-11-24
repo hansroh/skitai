@@ -68,7 +68,9 @@ class Maintern:
 		
 	def sched (self, interval, func, args = None):
 		now = time.time ()
-		bisect.insort (self.q, (now + interval, interval, func, args))
+		self.q.append ((now + interval, interval, func, args))
+		self.q.sort (key = lambda x: x [0])
+		#bisect.insort (self.q, (now + interval, interval, func, args))
 	
 	def __call__ (self, now):
 		excutes = 0
@@ -82,7 +84,9 @@ class Maintern:
 		
 		for i in range (excutes):
 			exetime, interval, func, args = self.q.pop (0)
-			bisect.insort (self.q, (now + interval, interval, func, args))
+			#bisect.insort (self.q, (now + interval, interval, func, args))
+			self.q.append ((now + interval, interval, func, args))
+			self.q.sort (key = lambda x: x [0])
 
 def maintern_gc (now):
 	gc.collect ()

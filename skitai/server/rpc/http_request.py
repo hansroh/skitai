@@ -171,7 +171,7 @@ class Request:
 		self.connection = connection		
 		self.retry_count = 0
 		self.response = None	
-		self.asyncon.set_terminator ("\r\n\r\n")	
+		self.asyncon.set_terminator (b"\r\n\r\n")	
 	
 	def _del_ (self):
 		self.callback = None
@@ -291,7 +291,7 @@ class Request:
 			
 			if self.wrap_in_chunk:
 				if self.asyncon.get_terminator () == 0:
-					self.asyncon.set_terminator ("\r\n")
+					self.asyncon.set_terminator (b"\r\n")
 					self.buffer = ""
 					return
 						
@@ -303,7 +303,7 @@ class Request:
 				
 				if chunked_size == 0:
 					self.end_of_data = True
-					self.asyncon.set_terminator ("\r\n")
+					self.asyncon.set_terminator (b"\r\n")
 					
 				elif chunked_size > 0:
 					self.asyncon.set_terminator (chunked_size)
@@ -327,7 +327,7 @@ class Request:
 			self.asyncon.close_it = self.will_be_close ()			
 			if self.used_chunk ():
 				self.wrap_in_chunk = True
-				self.asyncon.set_terminator ("\r\n") #chunked transfer
+				self.asyncon.set_terminator (b"\r\n") #chunked transfer
 			
 			else:			
 				try:
@@ -361,7 +361,7 @@ class Request:
 		# ignore, wait next message	
 		if self.response.code == 100:			
 			self.response = None
-			self.asyncon.set_terminator ("\r\n\r\n")
+			self.asyncon.set_terminator (b"\r\n\r\n")
 			return True
 		return False	
 			

@@ -19,7 +19,7 @@ class Response (http_response.Response):
 		self.asyncon = asyncon
 		self.accept_gzip = accept_gzip		
 		self.request = request
-		header = header.split ("\r\n")
+		header = header.split (b"\r\n")
 		self.response = header [0]
 		self.header = header [1:]
 		self._header_cache = {}
@@ -31,7 +31,7 @@ class Response (http_response.Response):
 		self.got_all_data = False
 		self.reqtype = "html"
 		
-		if self.client_request.get_header ("cookie"):
+		if self.client_request.get_header (b"cookie"):
 			self.max_age = 0
 		else:	
 			self.set_max_age ()			
@@ -42,9 +42,9 @@ class Response (http_response.Response):
 	def set_decompressor (self):
 		self.decompressor = None
 		self.gzip_compressed = False		
-		content_encoding = self.get_header ("Content-Encoding")
+		content_encoding = self.get_header (b"Content-Encoding")
 			
-		if content_encoding == "gzip":
+		if content_encoding == b"gzip":
 			if self.accept_gzip:
 				self.gzip_compressed = True
 			else:	
@@ -112,7 +112,7 @@ class Collector (ssgi_handler.Collector):
 		self.data.append (data)
 
 	def found_terminator (self):
-		self.request.channel.set_terminator ('\r\n\r\n')
+		self.request.channel.set_terminator (b'\r\n\r\n')
 		self.got_all_data = True
 		# don't request.collector = None => do it at callback ()
 		# because this collector will be used in Request.continue_start() later
@@ -146,8 +146,8 @@ class Collector (ssgi_handler.Collector):
 		
 
 class Request (http_request.Request):
-	def __init__ (self, asyncon, request, callback, client_request, collector, connection = "keep-alive"):
-		http_request.Request.__init__ (self, asyncon, request, callback, "1.1", connection)
+	def __init__ (self, asyncon, request, callback, client_request, collector, connection = b"keep-alive"):
+		http_request.Request.__init__ (self, asyncon, request, callback, b"1.1", connection)
 		self.collector = collector
 		self.client_request = client_request
 		self.is_pushed_response = False
@@ -157,7 +157,7 @@ class Request (http_request.Request):
 			try: k, v = line.split (": ", 1)
 			except:	continue
 			ll = k.lower ()
-			if ll in ("expires", "date", "vary", "connection", "keep-alive", "content-length", "transfer-encoding", "content-encoding", "age"):
+			if ll in (b"expires", b"date", b"vary", b"connection", b"keep-alive", b"content-length", b"transfer-encoding", b"content-encoding", b"age"):
 				continue
 			self.client_request.response [k] = v.strip ()
 	
@@ -194,11 +194,11 @@ class Request (http_request.Request):
 		http_request.Request.collect_incoming_data (self, data)
 		
 	def is_continue_response (self):
-		if self.response.code == 100 and self.client_request.get_header ("Expect") != "100-continue":
+		if self.response.code == 100 and self.client_request.get_header (b"Expect") != b"100-continue":
 			# ignore, wait next message
 			# if expect header exist on client, it's treated normal response
 			self.response = None
-			self.asyncon.set_terminator ("\r\n\r\n")
+			self.asyncon.set_terminator (b"\r\n\r\n")
 			return True
 		return False
 			
@@ -210,11 +210,11 @@ class Request (http_request.Request):
 		if not self.client_request.channel:
 			return
 				
-		buffer, self.buffer = self.buffer, ""		
-		accept_gzip = ""
-		accept_encoding = self.client_request.get_header ("Accept-Encoding")
-		if accept_encoding and accept_encoding.find ("gzip") != -1:
-			accept_gzip = "gzip"
+		buffer, self.buffer = self.buffer, b""		
+		accept_gzip = b""
+		accept_encoding = self.client_request.get_header (b"Accept-Encoding")
+		if accept_encoding and accept_encoding.find (b"gzip") != -1:
+			accept_gzip = b"gzip"
 		
 		try:
 			self.response = Response (self.request, buffer, accept_gzip, self.client_request, self.asyncon)
@@ -230,7 +230,7 @@ class Request (http_request.Request):
 		self.add_reply_headers ()
 		
 		if self.response.is_gzip_compressed ():
-			self.client_request.response ["Content-Encoding"] = "gzip"
+			self.client_request.response [b"Content-Encoding"] = b"gzip"
 	
 		# in relay mode, possibly delayed
 		self.client_request.channel.ready = self.response.ready
@@ -281,31 +281,31 @@ class Request (http_request.Request):
 		hc = {}
 		
 		if self.asyncon.address [1] in (80, 443):
-			hc ["Host"] = "%s" % self.asyncon.address [0]
+			hc [b"Host"] = b"%s" % self.asyncon.address [0]
 		else:
-			hc ["Host"] = "%s:%d" % self.asyncon.address
+			hc [b"Host"] = b"%s:%d" % self.asyncon.address
 			
-		hc ["Connection"] = self.connection
-		hc ["Accept-Encoding"] = "gzip"
+		hc [b"Connection"] = self.connection
+		hc [b"Accept-Encoding"] = b"gzip"
 		
 		method = self.request.get_method ()			
 		additional_headers = self.client_request.get_headers ()
 		
 		if additional_headers:
 			for line in additional_headers:
-				k, v = line.split (": ", 1)
+				k, v = line.split (b": ", 1)
 				ll = k.lower ()
-				if ll in ("connection", "keep-alive", "accept-encoding", "host"):
+				if ll in (b"connection", b"keep-alive", b"accept-encoding", b"host"):
 					continue
 				hc [k] = v
 				
-		hc ["X-Forwarded-For"] = "%s" % self.client_request.get_remote_addr ()
+		hc [b"X-Forwarded-For"] = b"%s" % self.client_request.get_remote_addr ()
 				
-		req = "%s %s HTTP/%s\r\n%s\r\n\r\n" % (
+		req = b"%s %s HTTP/%s\r\n%s\r\n\r\n" % (
 			method,
 			self.request.url,
 			self.http_version,
-			"\r\n".join (["%s: %s" % x for x in list(hc.items ())])			
+			b"\r\n".join ([b"%s: %s" % x for x in list(hc.items ())])			
 		)
 		
 		#print "#################################"
@@ -324,24 +324,24 @@ class Handler (ssgi_handler.Handler):
 				
 	def match (self, request):		
 		uri = request.uri.lower ()
-		if uri.startswith ("http://") or uri.startswith ("https://"):
+		if uri.startswith (b"http://") or uri.startswith (b"https://"):
 			return 1
-		if request.command == "connect":
+		if request.command == b"connect":
 			return 1
 		return 0
 	
 	def handle_request (self, request):
-		if request.command == "connect":
+		if request.command == b"connect":
 			request.response.error (405)
 			# GIVE UP :-(
 			#ssl_tunnel.AsynSSLConnect (request, self.wasc.logger.get ("server"))
 		
 		else:
 			collector = None
-			if request.command in ('post', 'put'):
-				ct = request.get_header ("content-type")
+			if request.command in (b'post', b'put'):
+				ct = request.get_header (b"content-type")
 				if not ct: ct = ""
-				post_max_size = ct.startswith ("multipart/form-data") and ssgi_handler.MAX_UPLOAD_SIZE or ssgi_handler.MAX_POST_SIZE
+				post_max_size = ct.startswith (b"multipart/form-data") and ssgi_handler.MAX_UPLOAD_SIZE or ssgi_handler.MAX_POST_SIZE
 				collector = self.make_collector (Collector, request, post_max_size)
 				if collector:
 					request.collector = collector
@@ -352,7 +352,7 @@ class Handler (ssgi_handler.Handler):
 			self.continue_request(request, collector)			
 					
 	def continue_request (self, request, collector):	
-		request.response ["Proxy-Agent"] = "sae-asynconnect"
+		request.response [b"Proxy-Agent"] = b"sae-asynconnect"
 		
 		if self.is_cached (request, collector is not None):
 			return
@@ -372,16 +372,16 @@ class Handler (ssgi_handler.Handler):
 	def is_cached (self, request, has_data):
 		if has_data:
 			return False
-		if request.get_header ("cookie") is not None:
+		if request.get_header (b"cookie") is not None:
 			return False
-		if request.get_header ("progma") == "no-cache" or request.get_header ("cache-control") == "no-cache":
-			request.response ["X-Cache-Lookup"] = "PASSED from bws"
+		if request.get_header (b"progma") == b"no-cache" or request.get_header (b"cache-control") == b"no-cache":
+			request.response [b"X-Cache-Lookup"] = b"PASSED from bws"
 			return False
 		
 		if self.cachefs:
 			try:
-				accept_encoding = request.get_header ("accept-encoding")
-				hit, compressed, max_age, content_type, content = self.cachefs.get (request.uri, "", accept_encoding and accept_encoding.find ("gzip") != -1)
+				accept_encoding = request.get_header (b"accept-encoding")
+				hit, compressed, max_age, content_type, content = self.cachefs.get (request.uri, b"", accept_encoding and accept_encoding.find ("gzip") != -1)
 						
 			except:
 				self.wasc.logger.trace ("server")	
@@ -390,19 +390,19 @@ class Handler (ssgi_handler.Handler):
 			else:
 				if hit:
 					if hit == 1:
-						request.response ["X-Cache-Lookup"] = "MEM_HIT from bws"
+						request.response [b"X-Cache-Lookup"] = b"MEM_HIT from bws"
 					else:
-						request.response ["X-Cache-Lookup"] = "HIT from bws"
+						request.response [b"X-Cache-Lookup"] = b"HIT from bws"
 					if content_type:
-						request.response ["Content-Type"] = content_type					
-					request.response ["Cache-Control"] = "max-age=%d" % max_age
+						request.response [b"Content-Type"] = content_type					
+					request.response [b"Cache-Control"] = b"max-age=%d" % max_age
 					if compressed:
-						request.response ["Content-Encoding"] = "gzip"
+						request.response [b"Content-Encoding"] = b"gzip"
 					request.response.push (content)
 					request.response.done ()
 					return True
 					
-		request.response ["X-Cache-Lookup"] = "MISS from bws"
+		request.response [b"X-Cache-Lookup"] = b"MISS from bws"
 		return False
 	
 	def save_cache (self, request, handler):
@@ -410,8 +410,8 @@ class Handler (ssgi_handler.Handler):
 			if self.cachefs and handler.response.max_age:
 				self.cachefs.save (
 					request.uri, handler.request.data, 
-					handler.response.get_header ("content-type"), handler.response.get_content (), 
-					handler.response.max_age, request.response ["Content-Encoding"] == "gzip"
+					handler.response.get_header (b"content-type"), handler.response.get_content (), 
+					handler.response.max_age, request.response [b"Content-Encoding"] == b"gzip"
 				)
 				
 		except:

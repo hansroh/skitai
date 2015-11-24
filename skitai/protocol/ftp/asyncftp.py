@@ -10,7 +10,7 @@ class asyncftp(asyncon.asyncon):
 	def __init__(self, handler):
 		asyncon.asyncon.__init__(self, handler)
 		
-		self.set_terminator("\n")
+		self.set_terminator(b"\n")
 		self.data = ""
 		self.response = []
 		

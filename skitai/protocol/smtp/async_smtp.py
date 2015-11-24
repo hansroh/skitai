@@ -1,7 +1,7 @@
 import asynchat, asyncore, DNS, socket, re, rfc822, sys, time
 
 OLDSTYLE_AUTH = re.compile(r"auth=(.*)", re.I)
-CRLF = "\r\n"
+CRLF = b"\r\n"
 
 class DNSNotFound (Exception): pass
 

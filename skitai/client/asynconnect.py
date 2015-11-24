@@ -60,7 +60,7 @@ class AsynConnect (asynchat.async_chat):
 		self.close_it = True
 		self.errcode = 0
 		self.errmsg = ""
-		self.request_buffer = ""
+		self.request_buffer = b""
 		
 	def clean_shutdown_control (self, phase, time_in_this_phase):
 		if phase == 2:

@@ -14,7 +14,7 @@ class WhoisRequest(asyncore.dispatcher_with_send):
         self.connect((host, port))
 
     def handle_connect(self):
-        self.send(self.query + "\r\n")
+        self.send(self.query.encode ("utf8") + b"\r\n")
 
     def handle_expt(self):
         self.close() # connection failed, shutdown

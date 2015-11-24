@@ -10,7 +10,7 @@ import codecs
 def trace ():
 	(file,fun,line), t, v, tbinfo = asyncore.compact_traceback()
 	try: v = str (v)
-	except UnicodeEncodeError: v = v.encode ("ascii", "ignore")
+	except UnicodeEncodeError: v = v.encode ("utf8", "ignore")
 	return "%s %s %s" % (t, v.strip (), tbinfo)
 		
 def now (detail = 1):

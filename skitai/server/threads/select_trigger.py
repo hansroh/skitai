@@ -8,7 +8,10 @@ import asynchat
 import os
 import socket
 import string
-import _thread
+try:
+	import _thread
+except ImportError:
+	import thread as _thread
 	
 if os.name == 'posix':
 
@@ -183,7 +186,7 @@ if __name__ == '__main__':
 		def __init__ (self, conn, addr):
 			self.addr = addr
 			asynchat.async_chat.__init__ (self, conn)
-			self.set_terminator ('\r\n')
+			self.set_terminator (b'\r\n')
 			self.buffer = ''
 			self.count = 0
 
