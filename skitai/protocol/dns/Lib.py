@@ -24,14 +24,10 @@
 
 import types
 import sys
-import Type
-import Class
-import Opcode
-import Status
+from . import Type, Class, Opcode, Status
+from .Base import DNSError
 
 PY_MAJOR_VERSION = sys.version_info.major
-
-from Base import DNSError
 
 class UnpackError(DNSError): pass
 class PackError(DNSError): pass

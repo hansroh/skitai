@@ -15,7 +15,7 @@ from .handlers import default_handler
 from . import server_info
 import json
 try:
-	import xmlrpclib as xmlrpclib
+	import xmlrpc.client as xmlrpclib
 except ImportError:
 	import xmlrpclib
 	

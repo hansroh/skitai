@@ -1,8 +1,8 @@
 import threading
 import time
-import asynpsycopg2
+from . import asynpsycopg2
 from skitai.client import socketpool
-from __init__ import DB_PGSQL
+from .__init__ import DB_PGSQL
 
 class DBPool (socketpool.SocketPool):
 	object_timeout = 300

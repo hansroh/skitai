@@ -1,5 +1,5 @@
 try:
-	import xmlrpclib as xmlrpclib
+	import xmlrpc.client as xmlrpclib
 except ImportError:
 	import xmlrpclib
 	

@@ -1,12 +1,11 @@
 ﻿import threading
 from skitai.server.threads import socket_map
+from . import asynconnect
 import time
-import asynconnect
 try:
 	from urllib.parse import urlparse
 except ImportError:
 	from urlparse import urlparse	
-import adns
 import copy
 
 class SocketPool:

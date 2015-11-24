@@ -1,6 +1,6 @@
 import re
 try:
-	import xmlrpclib as xmlrpclib
+	import xmlrpc.client as xmlrpclib
 except ImportError:
 	import xmlrpclib
 from skitai.server import compressors, http_date

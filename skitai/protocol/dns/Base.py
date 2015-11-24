@@ -10,7 +10,7 @@ This code is covered by the standard Python License.
 """
 
 import socket, string, types, time
-import Type,Class,Opcode
+from . import Type,Class,Opcode
 import asyncore
 
 class DNSError(Exception): pass
@@ -45,7 +45,7 @@ def ParseResolvConf(resolv_path="/etc/resolv.conf"):
 def DiscoverNameServers():
 	import sys
 	if sys.platform in ('win32', 'nt'):
-		import win32dns
+		from . import win32dns
 		defaults['server'] = win32dns.RegistryResolve()
 	else:
 		return ParseResolvConf()

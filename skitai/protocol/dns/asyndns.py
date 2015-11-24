@@ -4,11 +4,7 @@ import time
 import types
 import random
 import types
-import Base
-import Type
-import Class
-import Lib
-import Opcode
+from . import Base, Type, Class, Lib, Opcode
 import random
 
 defaults = Base.defaults
