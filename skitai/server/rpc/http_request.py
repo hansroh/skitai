@@ -1,6 +1,15 @@
-import xmlrpc.client
+try:
+	import xmlrpclib as xmlrpclib
+except ImportError:
+	import xmlrpclib
+	
 import base64
-import urllib.parse
+try: 
+	from urllib.parse import urlparse, quote
+except ImportError:
+	from urllib import quote
+	from urlparse import urlparse
+				
 from . import http_response
 from skitai.client import adns, asynconnect
 from skitai.server import producers
@@ -32,7 +41,7 @@ class XMLRPCRequest:
 		return "POST"
 		
 	def make_url (self, uri):
-		scheme, server, script, params, qs, fragment = urllib.parse.urlparse (uri)
+		scheme, server, script, params, qs, fragment = urlparse (uri)
 		if not script: script = "/"
 		url = script
 		if params: url += ";" + params
@@ -40,7 +49,7 @@ class XMLRPCRequest:
 		return url
 		
 	def serialize (self):
-		return xmlrpc.client.dumps (self.params, self.method, encoding=self.encoding, allow_none=1)
+		return xmlrpclib.dumps (self.params, self.method, encoding=self.encoding, allow_none=1)
 		
 	def set_address (self, address):
 		self.address = address
@@ -108,7 +117,7 @@ class HTTPRequest (XMLRPCRequest):
 		if type (self.formdata) is type ({}):
 			if self.get_content_type () != "application/x-www-form-urlencoded":
 				raise TypeError ("POST Body should be string or can be encodable")
-			return "&".join (["%s=%s" % (urllib.parse.quote (k), urllib.parse.quote (v)) for k, v in list(self.formdata.items ())])
+			return "&".join (["%s=%s" % (quote (k), quote (v)) for k, v in list(self.formdata.items ())])
 			
 		return self.formdata
 		

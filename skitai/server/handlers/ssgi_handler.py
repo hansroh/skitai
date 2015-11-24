@@ -1,5 +1,8 @@
 import sys, os
-import urllib.request, urllib.parse, urllib.error
+try:
+	from urllib.parse import unquote
+except ImportError:
+	from urllib import unquote	
 import sys
 from skitai.server import utility, http_cookie
 from skitai.server.threads import trigger
@@ -124,11 +127,11 @@ class Handler:
 				env [header2env [key]] = value				
 			else:
 				key = 'HTTP_%s' % ("_".join (key.split ( "-"))).upper()
-				if value and key not in env:
+				if value and not env.has_key (key):
 					env [key] = value
 		
 		for k, v in list(os.environ.items ()):
-			if k not in env:
+			if not env.has_key (k):
 				env [k] = v
 				
 		return env
@@ -248,9 +251,7 @@ class Handler:
 			return request.response.error (500, catch (1))
 			
 		self.wasc.queue.put (Job (was, path, method, args))
-				
-		
-_STRING_TYPES = (type (""), type (""))
+
 	
 class Job:
 	def __init__(self, was, muri, method, args):
@@ -271,7 +272,7 @@ class Job:
 		self.was.request.response = None
 		self.was.request = None
 		self.was.environ = None
-		self.was.app = None		
+		self.was.app = None
 		del self.was
 	
 	def get_response (self, method, args):
@@ -341,10 +342,10 @@ class Job:
 					trigger.wakeup (lambda p=self.was.response, d=catch(1): (p.error (500, d),))
 	
 				else:
-					if "content-type" not in self.was.request.response:
+					if not self.was.request.response.has_key ("content-type"):
 						self.was.request.response.update ('Content-Type', "text/html")				
 					
-					if type (response) in _STRING_TYPES:			
+					if type (response) is bytes:			
 						self.was.request.response.update ('Content-Length', len (response))			
 						trigger.wakeup (lambda p=self.was.response, d=response: (p.push(d), p.done()))
 			

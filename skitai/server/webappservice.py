@@ -14,9 +14,17 @@ else:
 from .handlers import default_handler
 from . import server_info
 import json
-import xmlrpc.client
+try:
+	import xmlrpclib as xmlrpclib
+except ImportError:
+	import xmlrpclib
+	
 from . import producers
-import _thread
+try: 
+	import _thread
+except ImportError:
+	import thread as _thread	
+	
 from skitai import lifetime
 
 class WAS:
@@ -98,13 +106,13 @@ class WAS:
 		return json.dumps (obj)
 	
 	def toxml (self, obj):
-		return xmlrpc.client.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")	
+		return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")	
 	
 	def fromjson (self, obj):
 		return json.loads (obj)
 	
 	def fromxml (self, obj, use_datetime=0):
-		return xmlrpc.client.loads (obj)	
+		return xmlrpclib.loads (obj)	
 											
 	def status (self, flt = None, fancy = True):
 		return server_info.make (self, flt, fancy)

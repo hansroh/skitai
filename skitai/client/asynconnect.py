@@ -9,7 +9,7 @@ import ssl
 from errno import ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EWOULDBLOCK
 import select
 import threading
-from . import adns
+import adns
 
 class SocketPanic (Exception): pass
 class TimeOut (Exception): pass

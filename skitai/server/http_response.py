@@ -146,7 +146,7 @@ class http_response:
 			elif self.request.version == '1.1':
 				if connection == 'close':
 					close_it = True
-				elif 'Content-Length' not in self:
+				elif not self.has_key ('Content-Length'):
 					wrap_in_chunking = True
 					
 			elif self.request.version is None:
@@ -157,9 +157,9 @@ class http_response:
 		else:
 			self.update ('Connection', 'keep-alive')
 			
-		if compress and 'Content-Encoding' not in self:
+		if compress and not self.has_key ('Content-Encoding'):
 			maybe_compress = self.request.get_header ("Accept-Encoding")
-			if maybe_compress and "Content-Length" in self and self ["Content-Length"] < 1024:
+			if maybe_compress and self.has_key ("Content-Length") and self ["Content-Length"] < 1024:
 				maybe_compress = ""
 			
 			else:	
@@ -172,7 +172,7 @@ class http_response:
 						way_to_compress = "deflate"
 		
 			if way_to_compress:
-				if 'Content-Length' in self:
+				if self.has_key ('Content-Length'):
 					self.delete ("Content-Length") # rebuild
 					wrap_in_chunking = True
 				self.update ('Content-Encoding', way_to_compress)

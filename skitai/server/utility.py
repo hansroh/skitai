@@ -1,5 +1,9 @@
 import re, sys, os
-from urllib.parse import unquote, unquote_plus
+try:
+	from urllib.parse import unquote, unquote_plus
+except ImportError:
+	from urlparse import unquote
+	from urllib import unquote_plus	
 import json
 
 ####################################################################################

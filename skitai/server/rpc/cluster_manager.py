@@ -2,7 +2,6 @@ import threading
 from skitai.server.threads import socket_map
 from skitai.client import asynconnect, adns
 import time
-import urllib.parse
 import re
 import copy
 import random

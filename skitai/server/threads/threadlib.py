@@ -1,6 +1,11 @@
-import threading, time, sys, queue
+import threading, time, sys
 from skitai import lifetime
 import threading
+try:
+	import queue
+except ImportError:
+	import Queue as queue
+	
 			
 class request_thread (threading.Thread):
 	def __init__ (self, queue, logger, id = 0):

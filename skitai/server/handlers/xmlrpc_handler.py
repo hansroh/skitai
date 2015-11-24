@@ -1,10 +1,12 @@
 import sys, os
-import urllib.request, urllib.parse, urllib.error
 import sys
 from skitai.server import utility
 from skitai.server.threads import trigger
 from . import ssgi_handler
-import xmlrpc.client
+try:
+	import xmlrpc.client as xmlrpclib
+except ImportError:
+	import xmlrpclib
 		
 class Handler (ssgi_handler.Handler):
 	GATEWAY_INTERFACE = 'XMLRPC/2.0'

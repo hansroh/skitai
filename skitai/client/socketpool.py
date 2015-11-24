@@ -1,9 +1,12 @@
 ﻿import threading
 from skitai.server.threads import socket_map
 import time
-from . import asynconnect
-import urllib.parse
-from . import adns
+import asynconnect
+try:
+	from urllib.parse import urlparse
+except ImportError:
+	from urlparse import urlparse	
+import adns
 import copy
 
 class SocketPool:
@@ -149,7 +152,7 @@ class SocketPool:
 		return __conn_class ((addr, port), self.lock, self.logger)	
 				
 	def get (self, uri):	
-		scheme, server, script, params, qs, fragment = urllib.parse.urlparse (uri)
+		scheme, server, script, params, qs, fragment = urlparse (uri)
 		serverkey = "%s://%s" % (scheme, server)
 		return self._get (serverkey, server, scheme)
 		

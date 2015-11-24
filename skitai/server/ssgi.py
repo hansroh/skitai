@@ -1,8 +1,10 @@
 import threading 
 import asyncore
-import urllib.parse
 import re
-import urllib.request, urllib.parse, urllib.error
+try:
+	from urllib.parse import unquote_plus
+except ImportError:
+	from urllib import unquote_plus	
 import time
 import os
 
@@ -160,9 +162,9 @@ class Package:
 			elif a [i].startswith ("float:"):		
 				kargs [a[i][6:]] = float (arglist [i])
 			elif a [i].startswith ("path:"):		
-				kargs [a[i][5:]] = urllib.parse.unquote_plus (arglist [i])
+				kargs [a[i][5:]] = unquote_plus (arglist [i])
 			else:		
-				kargs [a[i]] = urllib.parse.unquote_plus (arglist [i]).replace ("_", " ")
+				kargs [a[i]] = unquote_plus (arglist [i]).replace ("_", " ")
 						
 		return f, kargs
 	

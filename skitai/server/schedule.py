@@ -5,8 +5,13 @@ from skitai.lib  import confparse, logger as logger_module, processutil
 import subprocess
 import signal
 import win32process, win32api, win32con, pywintypes
-import urllib.parse
-import urllib.request, urllib.error, urllib.parse
+try:
+	from urllib.request import urlopen
+	from urllib.parse import urlparse
+except ImportError:
+	from urllib import urlopen	
+	from urlparse import urlparse
+	
 import tempfile
 				
 class Scheduler (sched.scheduler):
@@ -213,7 +218,7 @@ class Scheduler (sched.scheduler):
 		job_name = self.actions [job_id][0]
 		self.logger ("[info] schedule %s started" % job_name)
 		try:
-			scheme, netloc, script, params, qs, fragment = urllib.parse.urlparse (url)
+			scheme, netloc, script, params, qs, fragment = urlparse (url)
 			call = self.wasc.rcall.Server ("%s://%s" % (scheme, netloc))
 			uri = script
 			if params: uri += ";" + params
@@ -237,7 +242,7 @@ class Scheduler (sched.scheduler):
 		self.logger ("[info] schedule %s started" % job_name)
 		try:
 			self.jobs [job_id] = [None, None, 0, time.time ()]
-			rs = urllib.request.urlopen (url, timeout = timeout)			
+			rs = urlopen (url, timeout = timeout)			
 			self.logger ("[info] schedule %s result status: %s %s" % (job_name, rs.code, rs.msg))		
 		except:
 			self.logger.trace (job_name)

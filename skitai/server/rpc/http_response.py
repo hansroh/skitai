@@ -1,5 +1,8 @@
 import re
-import xmlrpc.client
+try:
+	import xmlrpclib as xmlrpclib
+except ImportError:
+	import xmlrpclib
 from skitai.server import compressors, http_date
 import time
 
@@ -85,7 +88,7 @@ class Response:
 			
 		if current_content_type.startswith ("text/xml") or request_content_type == "text/xml":
 			self.reqtype = "XMLRPC"
-			self.p, self.u = xmlrpc.client.getparser()
+			self.p, self.u = xmlrpclib.getparser()
 		elif current_content_type.startswith ("apllication/json-rpc"):
 			self.reqtype = "JSONRPC"
 			self.p, self.u = getfakeparser ()				

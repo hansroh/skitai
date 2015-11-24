@@ -5,17 +5,20 @@ import random
 from skitai.lib import pathtool
 from skitai.lib import udict
 import os, sys
-import urllib.request, urllib.parse, urllib.error
+try:
+	from urllib.parse import quote_plus, unquote_plus
+except ImportError:
+	from urllib import quote_plus, unquote_plus	
 
 def crack_cookie (r):
 	if not r: return {}
 	arg={}
 	q = [x.split('=', 1) for x in r.split('; ')]	
 	for k in q:
-		key = urllib.parse.unquote_plus (k [0])
+		key = unquote_plus (k [0])
 		if len (k) == 2:			
 			if key != "SESSION":
-				arg[key] = urllib.parse.unquote_plus (k[1])
+				arg[key] = unquote_plus (k[1])
 			else:
 				arg[key] = k[1]	
 		else:
@@ -110,7 +113,7 @@ class Cookie:
 			if name == "SESSION":
 				cl.append ("%s=%s" % ("SESSION", val))
 			else:
-				cl.append ("%s=%s" % (urllib.parse.quote_plus (name), urllib.parse.quote_plus (val)))
+				cl.append ("%s=%s" % (quote_plus (name), quote_plus (val)))
 			cl.append ("path=%s" % path)		
 		
 		if expires is not None:
@@ -226,7 +229,7 @@ class SecuredCookieValue (Cookie):
 		mac = hmac(self.secret_key, None, self.hash_method)
 		for key, value in sorted (self.items()):
 			result.append('%s=%s' % (
-				urllib.parse.quote_plus (key),
+				quote_plus (key),
 				self.quote(value)
 			))
 			mac.update('|' + result[-1])
@@ -256,7 +259,7 @@ class SecuredCookieValue (Cookie):
 			key, value = item.split('=', 1)
 			# try to make the key a string
 			try:
-				key = urllib.parse.unquote_plus (str(key))
+				key = unquote_plus (str(key))
 			except UnicodeError:
 				pass
 			items[key] = value
