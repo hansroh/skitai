@@ -169,7 +169,7 @@ class Request:
 	def __init__ (self, asyncon, request, callback, http_version = "1.1", connection = "keep-alive"):
 		self.asyncon = asyncon
 		request.set_address (self.asyncon.address)
-		self.buffer = ""	
+		self.buffer = b""	
 		self.wrap_in_chunk = False
 		self.end_of_data = False		
 		
@@ -247,7 +247,7 @@ class Request:
 	
 	def recalibrate_response (self, error, msg):
 		if self.response is None and not error and self.buffer: 
-			s = self.buffer.find ("\n\n")
+			s = self.buffer.find (b"\n\n")
 			if s != -1:
 				body = self.buffer [s+2:]
 				self.buffer = self.buffer [:s]
@@ -301,14 +301,14 @@ class Request:
 			if self.wrap_in_chunk:
 				if self.asyncon.get_terminator () == 0:
 					self.asyncon.set_terminator (b"\r\n")
-					self.buffer = ""
+					self.buffer = b""
 					return
 						
 				if not self.buffer:
 					return
 										
-				chunked_size = int (self.buffer.split (";") [0], 16)
-				self.buffer = ""
+				chunked_size = int (self.buffer.split (b";") [0], 16)
+				self.buffer = b""
 				
 				if chunked_size == 0:
 					self.end_of_data = True
@@ -357,7 +357,7 @@ class Request:
 
 	def create_response (self):
 		# overide for new Response
-		buffer, self.buffer = self.buffer, ""
+		buffer, self.buffer = self.buffer, b""
 		try:
 			self.response = http_response.Response (self.request, buffer)		
 		except:

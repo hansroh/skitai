@@ -10,11 +10,11 @@ from errno import ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EWOULDBLOCK
 import select
 import threading
 from . import adns
+from warnings import warn
 
 class SocketPanic (Exception): pass
 class TimeOut (Exception): pass
 
-			
 class AsynConnect (asynchat.async_chat):
 	ac_in_buffer_size = 4096
 	ac_out_buffer_size = 4096
@@ -41,7 +41,7 @@ class AsynConnect (asynchat.async_chat):
 		elif self.logger:
 			self.logger (msg, logtype)
 		else:
-			print ("WARN: no logger")
+			warn ("No logger")
 			
 	def trace (self):		
 		if self.request is not None and hasattr (self.request, "trace"):
@@ -49,7 +49,7 @@ class AsynConnect (asynchat.async_chat):
 		elif self.logger:
 			self.logger.trace ()
 		else:
-			print ("WARN: no logger for traceback")
+			warn ("No logger for traceback")
 				
 	def duplicate (self):
 		return self.__class__ (self.address, self.lock, self.logger)
@@ -202,9 +202,9 @@ class AsynConnect (asynchat.async_chat):
 				if not self.got_data: # disconnected by server
 					self.log ("connection closed by remote server maybe caused by keep-alive timeout, retry connect...", "info")
 					if self.reconnect ():
-						return ''
+						return b''
 				self.handle_close ()
-				return ''
+				return b''
 			else:								
 				return data
 		
@@ -213,10 +213,10 @@ class AsynConnect (asynchat.async_chat):
 				if not self.got_data: # disconnected by server
 					self.log ("_DISCONNECTED Error in recv (), retry connect...", "info")					
 					if self.reconnect ():
-						return ''
+						return b''
 				self.close_it = True
 				self.handle_close ()
-				return ''
+				return b''
 			else:
 				raise
 	
@@ -352,31 +352,31 @@ class AsynSSLConnect (AsynConnect):
 				if not self.got_data: # disconnected by server
 					self.log ("SSL connection closed by remote server maybe caused by keep-alive timeout, retry connect...", "info")
 					if self.reconnect ():
-						return ''
+						return b''
 				self.handle_close ()
-				return ''
+				return b''
 			else:
 				return data
 
 		except ssl.SSLError as why:
 			if why.errno == ssl.SSL_ERROR_WANT_READ:
-				return '' # retry
+				return b'' # retry
 			# closed connection
 			elif why.errno == ssl.SSL_ERROR_ZERO_RETURN:
 				if not self.got_data: # disconnected by server
 					self.log ("SSL_ERROR_ZERO_RETURN Error Occurred in recv (), retry connect...", "info")
 					if self.reconnect ():
-						return ''
+						return b''
 				self.close_it = True
 				self.handle_close ()
-				return ''	
+				return b''	
 				
 			# eof error
 			elif why.errno == ssl.SSL_ERROR_EOF:
 				self.log ("SSL_ERROR_EOF Error Occurred in recv ()", "warn")
 				self.close_it = True
 				self.handle_close ()
-				return ''
+				return b''
 			else:
 				raise
 

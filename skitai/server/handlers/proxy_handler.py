@@ -25,7 +25,7 @@ class Response (http_response.Response):
 		self._header_cache = {}
 		self.flushed_time = 0
 		self.client_request.producer = self
-		self.version, self.code, self.msg = http_response.crack_response (self.response.decode ("utf8"))
+		self.version, self.code, self.msg = http_response.crack_response (self.response)
 				
 		self.size = 0
 		self.got_all_data = False
@@ -118,7 +118,7 @@ class Collector (ssgi_handler.Collector):
 		# because this collector will be used in Request.continue_start() later
 	
 	def get_cache (self):
-		return "".join (self.cache)
+		return b"".join (self.cache)
 	
 	def affluent (self):
 		# if channel doesn't consume data, delay recv data		
@@ -129,7 +129,7 @@ class Collector (ssgi_handler.Collector):
 	
 	def more (self):
 		if not self.data:
-			return ""
+			return b""
 						
 		data = []
 		tl = 0
@@ -142,7 +142,7 @@ class Collector (ssgi_handler.Collector):
 			self.cache += data
 		
 		#print "proxy_handler.collector.more >> %d" % tl, id (self)
-		return "".join (data)
+		return b"".join (data)
 		
 
 class Request (http_request.Request):
@@ -311,7 +311,7 @@ class Request (http_request.Request):
 		#print "#################################"
 		#print req
 		#print "---------------------------------"
-		return req
+		return req.encode ("utf8")
 
 			
 class Handler (ssgi_handler.Handler):
@@ -352,7 +352,7 @@ class Handler (ssgi_handler.Handler):
 			self.continue_request(request, collector)			
 					
 	def continue_request (self, request, collector):	
-		request.response ["Proxy-Agent"] = "sae-asynconnect"
+		request.response ["Proxy-Agent"] = "sae-pa"
 		
 		if self.is_cached (request, collector is not None):
 			return

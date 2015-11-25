@@ -217,7 +217,7 @@ class http_channel (asynchat.async_chat):
 			self.server.bytes_in.inc (len (result))
 			if not result:
 				self.handle_close ()
-				return ""			
+				return b""			
 			return result
 			
 		except MemoryError:

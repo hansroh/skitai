@@ -29,7 +29,7 @@ class GZipCompressor:
 			
 	def compress (self, buf):
 		self.size = self.size + len(buf)
-		self.crc = zlib.crc32(buf, self.crc) & 0xffffffff
+		self.crc = zlib.crc32(buf, self.crc)
 		d = self.compressor.compress (buf)
 		if self.first_data:
 			d = self.HEADER + d
@@ -70,7 +70,7 @@ class GZipDecompressor:
 								
 		d = self.decompressor.decompress (buf)		
 		self.size += len (d)
-		self.crc = zlib.crc32(d, self.crc) & 0xffffffff
+		self.crc = zlib.crc32(d, self.crc)
 		if d == "":
 			return self.decompressor.flush ()
 		return d
@@ -86,7 +86,7 @@ class GZipDecompressor:
 			raise IOError("CRC check failed")
 		elif isize != (self.size & 0xFFFFFFFF):
 			raise IOError("Incorrect length of data produced")
-		return ""
+		return b""
 			
 
 if __name__ == "__main__":

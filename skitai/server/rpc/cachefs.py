@@ -96,7 +96,7 @@ class CacheFileSystem:
 				return None, None, None, None, None
 		
 		if memhit:
-			mtime, size, max_age = m [0:3]			
+			mtime, size, max_age = m [0:3]
 		else:	
 			mtime = os.stat (path).st_mtime
 			f = open (path, "rb")
@@ -105,7 +105,7 @@ class CacheFileSystem:
 		if os.stat (path).st_mtime < time.time () - max_age:
 			if memhit:
 				del self.memcache [initial][path]
-				self.memusage -= (size + size * 0.2)				
+				self.memusage -= (size + size * 0.2)
 			else:	
 				f.close ()
 			self.lock.acquire ()

@@ -225,10 +225,10 @@ class FailedResponse (Response):
 		raise IOError("This Is Failed Response")
 	
 	def more (self):
-		return ""
+		return b""
 		
 	def get_content (self):
-		return ""
+		return b""
 	
 	def done (self):
 		pass

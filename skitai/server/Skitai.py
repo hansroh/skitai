@@ -22,7 +22,7 @@ except ImportError: JSONRPBLIB = False
 try: from . import https_server
 except ImportError:
 	HTTPS = False
-	warn ("M2Crypto is not installed")
+
 try: import psycopg2
 except ImportError: 
 	PSYCOPG = False
