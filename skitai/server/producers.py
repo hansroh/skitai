@@ -33,7 +33,7 @@ class simple_producer:
 			return result
 		else:
 			result = self.data
-			self.data = ''
+			self.data = b''
 			return result
 
 class scanning_producer:
@@ -54,7 +54,7 @@ class scanning_producer:
 			self.pos = self.pos + len(result)
 			return result
 		else:
-			return ''
+			return b''
 
 class lines_producer:
 	"producer for a list of lines"
@@ -69,9 +69,9 @@ class lines_producer:
 		if self.lines:
 			chunk = self.lines[:50]
 			self.lines = self.lines[50:]
-			return string.join (chunk, '\r\n') + '\r\n'
+			return b'\r\n'.join (chunk) + b'\r\n'
 		else:
-			return ''
+			return b''
 
 class buffer_list_producer:
 	"producer for a list of buffers"
@@ -85,7 +85,7 @@ class buffer_list_producer:
 
 	def more (self):
 		if self.index >= len(self.buffers):
-			return ''
+			return b''
 		else:
 			data = self.buffers[self.index]
 			self.index = self.index + 1
@@ -103,14 +103,14 @@ class file_producer:
 
 	def more (self):
 		if self.done:
-			return ''
+			return b''
 		else:
 			data = self.file.read (self.out_buffer_size)
 			if not data:
 				self.file.close()
 				del self.file
 				self.done = 1
-				return ''
+				return b''
 			else:
 				return data
 
@@ -157,7 +157,7 @@ class multipart_producer:
 				size += len (fn) + 13 # ; filename=""
 				mimetype = mimetypes.guess_type (fn) [0]
 				if not mimetype:
-					mimetype = "application/octet-stream"
+					mimetype = b"application/octet-stream"
 				size += (16 + len (mimetype)) # Content-Type: application/octet-stream\r\n				
 				self.dlist.append ((1, name, (value.name, fn, mimetype)))
 				value.close ()
@@ -175,7 +175,7 @@ class multipart_producer:
 		
 	def more (self):
 		if not self.dlist: 
-			return ''
+			return b''
 			
 		if self.current_file:
 			d = self.current_file.read (self.ac_out_buffer_size)
@@ -183,25 +183,25 @@ class multipart_producer:
 				self.current_file.close ()
 				self.current_file = None
 				self.dlist.pop (0)
-				d = "\r\n"
+				d = b"\r\n"
 				if not self.dlist:
-					d += "--%s--" % self.boundary					
+					d += b"--%s--" % self.boundary					
 			#self.bytes_out += len (d)
 			return d
 			
 		if self.dlist:
 			first = self.dlist [0]
 			if first [0] == 0: # formvalue
-				d = '--%s\r\nContent-Disposition: form-data; name="%s"\r\n\r\n%s\r\n' % (self.boundary, first [1], first [2])
+				d = b'--%s\r\nContent-Disposition: form-data; name="%s"\r\n\r\n%s\r\n' % (self.boundary, first [1], first [2])
 				self.dlist.pop (0)
 				if not self.dlist:
-					d += "--%s--" % self.boundary
+					d += b"--%s--" % self.boundary
 				#self.bytes_out += len (d)
 				return d	
 			else:				
 				path, filename, mimetype = first [2]
 				self.current_file = open (path, "rb")
-				return '--%s\r\nContent-Disposition: form-data; name="%s"; filename="%s"\r\nContent-Type: %s\r\n\r\n' % (
+				return b'--%s\r\nContent-Disposition: form-data; name="%s"; filename="%s"\r\nContent-Type: %s\r\n\r\n' % (
 					self.boundary, first [1], filename, mimetype
 				)
 				#self.bytes_out += len (d)
@@ -221,18 +221,18 @@ class output_producer:
 		self.data = ''
 			
 	def write (self, data):
-		lines = string.splitfields (data, '\n')
-		data = string.join (lines, '\r\n')
+		lines = data.split (b'\n')
+		data = b'\r\n'.join (lines)
 		self.data = self.data + data
 		
 	def writeline (self, line):
-		self.data = self.data + line + '\r\n'
+		self.data = self.data + line + b'\r\n'
 		
 	def writelines (self, lines):
 		self.data = self.data + string.joinfields (
 			lines,
-			'\r\n'
-			) + '\r\n'
+			b'\r\n'
+			) + b'\r\n'
 
 	def ready (self):
 		return (len (self.data) > 0)
@@ -249,7 +249,7 @@ class output_producer:
 			self.data = self.data[512:]
 			return result
 		else:
-			return ''
+			return b''
 
 		
 class composite_producer:
@@ -259,14 +259,14 @@ class composite_producer:
 
 	def more (self):
 		while len(self.producers):
-			p = self.producers.first()
+			p = self.producers.first()			
 			d = p.more()
 			if d:
 				return d
 			else:
 				self.producers.pop()
 		else:
-			return ''
+			return b''
 
 class globbing_producer:
 	"""
@@ -277,7 +277,7 @@ class globbing_producer:
 
 	def __init__ (self, producer, buffer_size = 4096):
 		self.producer = producer
-		self.buffer = ''
+		self.buffer = b''
 		self.buffer_size = buffer_size
 
 	def more (self):
@@ -288,7 +288,7 @@ class globbing_producer:
 			else:
 				break
 		r = self.buffer
-		self.buffer = ''
+		self.buffer = b''
 		return r
 
 
@@ -315,7 +315,7 @@ class hooked_producer:
 				self.bytes = self.bytes + len(result)
 			return result
 		else:
-			return ''
+			return b''
 
 # HTTP 1.1 emphasizes that an advertised Content-Length header MUST be
 # correct.  In the face of Strange Files, it is conceivable that
@@ -344,18 +344,18 @@ class chunked_producer:
 			data = self.producer.more()
 			#print "------------", len (data)
 			if data:
-				return '%x\r\n%s\r\n' % (len(data), data)
+				dlen = '%x' % len (data)
+				return dlen.encode ("utf8") + b"\r\n" + data + b'\r\n'
 			else:				
 				self.producer = None
 				if self.footers:
-					return string.join (
-						['0'] + self.footers,
-						'\r\n'
-						) + '\r\n\r\n'
+					return b'\r\n'.join (
+						[b'0'] + self.footers
+					) + b'\r\n\r\n'
 				else:
-					return '0\r\n\r\n'
+					return b'0\r\n\r\n'
 		else:
-			return ''
+			return b''
 
 # Unfortunately this isn't very useful right now (Aug 97), because
 # apparently the browsers don't do on-the-fly decompression.  Which
@@ -387,7 +387,7 @@ class compressed_producer:
 			
 	def more (self):
 		if self.producer:
-			cdata = ''
+			cdata = b''
 			# feed until we get some output
 			while not cdata:
 				data = self.producer.more()
@@ -398,7 +398,7 @@ class compressed_producer:
 					cdata = self.compressor.compress (data)					
 			return cdata
 		else:
-			return ''
+			return b''
 
 
 class gzipped_producer (compressed_producer):
@@ -416,7 +416,7 @@ class escaping_producer:
 		self.producer = producer
 		self.esc_from = esc_from
 		self.esc_to = esc_to
-		self.buffer = ''
+		self.buffer = b''
 		from asynchat import find_prefix_at_end
 		self.find_prefix_at_end = find_prefix_at_end
 
@@ -435,7 +435,7 @@ class escaping_producer:
 				return buffer[:-i]
 			else:
 				# no prefix, return it all
-				self.buffer = ''
+				self.buffer = b''
 				return buffer
 		else:
 			return buffer

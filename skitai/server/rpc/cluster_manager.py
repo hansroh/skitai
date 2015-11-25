@@ -40,7 +40,7 @@ class ClusterManager:
 	def set_route (self, route):
 		self._route = route
 		self._routelen = len (route)
-		self._route_rx = re.compile ("%s(?P<rti>[0-9]*)" % route, re.I)
+		self._route_rx = re.compile (route + "(?P<rti>[0-9]*)", re.I)
 			
 	def is_ssl_cluster (self):
 		return self._use_ssl

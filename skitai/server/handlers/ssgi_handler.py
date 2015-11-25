@@ -197,7 +197,7 @@ class Handler:
 				params and params or "",
 				query and query or ""
 			)
-			if request.command in ('post', 'put'):
+			if request.command in (b'post', b'put'):
 				request.response.abort (301)
 			else:	
 				request.response.error (301)
@@ -233,9 +233,9 @@ class Handler:
 			
 			if request.command == "get":
 				args = self.parse_args (query, None)				
-			elif request.command == "post" and ct.startswith ("application/x-www-form-urlencoded"):
+			elif request.command == "post" and ct.startswith (b"application/x-www-form-urlencoded"):
 				args = self.parse_args (query, data)
-			elif ct.startswith ("multipart/form-data"):
+			elif ct.startswith (b"multipart/form-data"):
 				args = data
 				# cached form data string if size < 10 MB
 				# it used for relay small files to the others				

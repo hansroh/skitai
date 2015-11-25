@@ -2,6 +2,9 @@ from . import http_date, producers, utility
 from . import compressors
 import zlib
 import time
+import os
+
+UNCOMPRESS_MAX = 2048
 
 class http_response:
 	reply_code = 200
@@ -58,8 +61,8 @@ class http_response:
 	
 	def build_reply_header (self):		
 		return '\r\n'.join (
-			[self.response(self.reply_code, self.reply_message)] + ['%s: %s' % x for x in self.reply_headers]
-			) + '\r\n\r\n'
+				[self.response(self.reply_code, self.reply_message)] + ['%s: %s' % x for x in self.reply_headers]
+				) + '\r\n\r\n'			
 	
 	def response (self, code, msg):
 		if not msg:
@@ -94,16 +97,14 @@ class http_response:
 		
 	def error (self, code, why = "", force_close = False):
 		self.reply_code = code
-		message = self.responses [code]
-		if not why:
-			why = message
-
+		message = self.responses [code]		
 		s = self.DEFAULT_ERROR_MESSAGE % {
 			'code': code,
 			'message': message,
-			'info': why
-		}
-		
+			'info': why,
+			'gentime': http_date.build_http_date (time.time ()),
+			'url': "http://%s%s" % (self.request.get_header ("host"), self.request.uri)
+			}		
 		self.update ('Content-Length', len(s))
 		self.update ('Content-Type', 'text/html')
 		self.delete ('content-encoding')
@@ -111,12 +112,12 @@ class http_response:
 		self.delete ('cache-control')
 		self.delete ('set-cookie')
 
-		self.push (s)
+		self.push (s.encode ("utf8"))
 		self.done (True, True, force_close)
 	
 	def push (self, thing):
 		if self.request.channel is None: return		
-		if type(thing) == type(''):
+		if type(thing) is bytes:
 			self.outgoing.push (producers.simple_producer (thing))
 		else:
 			self.outgoing.push (thing)
@@ -159,7 +160,7 @@ class http_response:
 			
 		if compress and not self.has_key ('Content-Encoding'):
 			maybe_compress = self.request.get_header ("Accept-Encoding")
-			if maybe_compress and self.has_key ("Content-Length") and self ["Content-Length"] < 1024:
+			if maybe_compress and self.has_key ("Content-Length") and self ["Content-Length"] <= UNCOMPRESS_MAX:
 				maybe_compress = ""
 			
 			else:	
@@ -192,7 +193,7 @@ class http_response:
 				outgoing_producer = producers.composite_producer (self.outgoing)				
 				
 			outgoing_producer = producers.chunked_producer (outgoing_producer)
-			outgoing_header = producers.simple_producer (self.build_reply_header())
+			outgoing_header = producers.simple_producer (self.build_reply_header().encode ("utf8"))
 			outgoing_producer = producers.composite_producer (
 				producers.fifo([outgoing_header, outgoing_producer])
 			)
@@ -217,7 +218,7 @@ class http_response:
 				self.update ("Content-Length", len (cdata))
 				self.outgoing = producers.fifo ([producers.simple_producer (cdata)])
 			
-			outgoing_header = producers.simple_producer (self.build_reply_header())
+			outgoing_header = producers.simple_producer (self.build_reply_header().encode ("utf8"))
 			self.outgoing.push_front (outgoing_header)
 			outgoing_producer = producers.composite_producer (self.outgoing)
 		
@@ -244,39 +245,39 @@ class http_response:
 	
 	def log (self, bytes):		
 		self.request.channel.server.log_request (
-			'%s:%d %s %s %s %d'
+			'%s:%d %s %s %d'
 			% (self.request.channel.addr[0],
 			self.request.channel.addr[1],			
 			self.request.request,
-			self.request.requeststr,
 			self.reply_code,			
 			bytes)
 			)
 	
 		
 	# Default error message
-	DEFAULT_ERROR_MESSAGE = '\r\n'.join (
-		[
-		 '<!DOCTYPE html>',
-		 '<html>',
-		 '<head>',
-		 '<title>%(code)d %(message)s</title>',
-		 '<style>',
-		 'body, p {font-family: "arial"; font-size: 12px;}',
-		 'h1 {font-family: "arial black"; font-weight: bold; font-size: 24px;}',		 
-		 '</style>',
-		 '</head>',
-		 '<body>',
-		 '<h1>%(code)d %(message)s</h1>',
-		 '<p>Error code %(code)d.',
-		 '<br>Message: %(message)s.',		 
-		 '<p><strong>%(info)s</strong>',
-		 '</body>',
-		 '</html>',
-		 ''
-		 ]
-	)
-	
+	DEFAULT_ERROR_MESSAGE = """
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>ERROR: %(code)d %(message)s</title>
+<style type="text/css"><!-- * {font-family: verdana, sans-serif;}html body {margin: 0;padding: 0;background: #efefef;font-size: 12px;color: #1e1e1e;}#titles {margin-left: 15px;padding: 10px;}#titles h1 {color: #000000;}#titles h2 {color: #000000;} #content {padding: 10px;background: #ffffff;}p {}#error p, h3, b { font-size: 11px;}#error{margin: 0; padding: 0;} hr {margin:0; padding:0;} #error hr {border-top:#888888 1px solid;} #error li, i { font-weight: normal;}#footer {font-size: 9px;padding-left: 10px;}body :lang(fa) { direction: rtl; font-size: 100%%; font-family: Tahoma, Roya, sans-serif; float: right; } :lang(he) { direction: rtl; } --></style>
+</head>
+<body>
+<div id="titles"><h1>ERROR</h1><h2>%(code)d %(message)s</h2></div>
+<hr />
+<div id="content">
+<p>The following error was encountered while trying to retrieve the URL:
+<a href="%(url)s">%(url)s</a></p> 
+<div id="error"><p><b>%(code)d %(message)s</p><p>%(info)s</p></div><br />
+</div> 
+<hr />
+<div id="footer">
+<p>Generated %(gentime)s</p>
+</div>
+</body>
+</html>"""
+
 	responses = {
 		100: "Continue",
 		101: "Switching Protocols",

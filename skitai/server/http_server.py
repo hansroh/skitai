@@ -37,7 +37,6 @@ class http_request:
 		self.reply_message = ""		
 		self._split_uri = None
 		self._header_cache = {}
-		self.requeststr = ''
 		self.gzip_encoded = False
 		self.set_keep_alive ()
 	
@@ -240,8 +239,8 @@ class http_channel (asynchat.async_chat):
 		else:
 			header = self.in_buffer
 			self.in_buffer = b''
-			lines = header.split(b'\r\n')
 			
+			lines = header.decode ("utf8").split('\r\n')
 			while lines and not lines[0]:
 				lines = lines[1:]
 
@@ -253,7 +252,6 @@ class http_channel (asynchat.async_chat):
 			try:
 				command, uri, version = utility.crack_request (request)							
 			except:
-				raise
 				self.log_info ("channel-%s invaild request header" % self.channel_number, "fail")
 				return self.close ()			
 				

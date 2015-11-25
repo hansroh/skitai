@@ -7,14 +7,14 @@ from skitai.server import http_date, producers
 from skitai.server.utility import *
 
 IF_MODIFIED_SINCE = re.compile (
-	'If-Modified-Since: ([^;]+)((; length=([0-9]+)$)|$)',
+	b'If-Modified-Since: ([^;]+)((; length=([0-9]+)$)|$)',
 	re.IGNORECASE
 	)
 
-USER_AGENT = re.compile ('User-Agent: (.*)', re.IGNORECASE)
+USER_AGENT = re.compile (b'User-Agent: (.*)', re.IGNORECASE)
 
 CONTENT_TYPE = re.compile (
-	r"Content-Type: ([^;]+)((; boundary=([A-Za-z0-9'\(\)+_,./:=?-]+)$)|$)",
+	br"Content-Type: ([^;]+)((; boundary=([A-Za-z0-9'\(\)+_,./:=?-]+)$)|$)",
 	re.IGNORECASE
 	)
 

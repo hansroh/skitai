@@ -57,6 +57,7 @@ class Module:
 		self.app.run (self.wasc, self.get_route (), packages)	
 	
 	def set_route (self, route):
+		route = route
 		if not route or route [0] != "/":
 			raise TypeError("route url must be abs path")
 		while route and route [-1] == "/":
@@ -75,7 +76,7 @@ class Module:
 			self.reload_app ()
 		if script_name [0] != "/":
 			script_name = "/" + script_name
-		
+					
 		#remove base path	
 		return self.app.get_method (script_name [self.rm_len:]), self.app
 		
@@ -132,6 +133,9 @@ class ModuleManager:
 		return None, None		
 		
 	def has_route (self, script_name):
+		if type (script_name) is bytes:
+			script_name = script_name.decode ("utf8")
+			
 		# return redirect
 		if script_name == "":
 			if "/" in self.modules:				

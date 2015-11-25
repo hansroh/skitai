@@ -3,6 +3,9 @@ import gzip
 import io
 import time
 import struct
+import sys
+
+PY_MAJOR_VERSION = sys.version_info.major
 
 class DeflateCompressor:
 	def __init__ (self, level = 5):
@@ -17,16 +20,16 @@ class DeflateCompressor:
 
 class GZipCompressor:
 	#HEADER = b"\037\213\010" + chr (0) + struct.pack ("<L", int (time.time ())) + b"\002\377"
-	HEADER = b"\037\213\010" + b'\000' + struct.pack ("<L", int (time.time ())) + b"\002\377"	
+	HEADER = b"\037\213\010" + b'\x00' + struct.pack ("<L", int (time.time ())) + b"\002\377"	
 	def __init__ (self, level = 5):
 		self.size = 0
-		self.crc = zlib.crc32("")
+		self.crc = zlib.crc32(b"")
 		self.compressor = zlib.compressobj (level, zlib.DEFLATED, -zlib.MAX_WBITS, zlib.DEF_MEM_LEVEL, 0)
 		self.first_data = True
 			
-	def compress (self, buf):	
+	def compress (self, buf):
 		self.size = self.size + len(buf)
-		self.crc = zlib.crc32(buf, self.crc)
+		self.crc = zlib.crc32(buf, self.crc) & 0xffffffff
 		d = self.compressor.compress (buf)
 		if self.first_data:
 			d = self.HEADER + d
@@ -35,7 +38,10 @@ class GZipCompressor:
 	
 	def flush (self):
 		d = self.compressor.flush ()
-		return d + struct.pack ("<l", self.crc) + struct.pack ("<L", self.size & 0xFFFFFFFF)
+		if PY_MAJOR_VERSION	>= 3:
+			return d + struct.pack ("<L", self.crc) + struct.pack ("<L", self.size & 0xFFFFFFFF)
+		else:
+			return d + struct.pack ("<l", self.crc) + struct.pack ("<L", self.size & 0xFFFFFFFF)	
 		
 
 def U32(i):
@@ -46,7 +52,7 @@ def U32(i):
 class GZipDecompressor:	
 	def __init__ (self, level = 5):
 		self.size = 0
-		self.crc = zlib.crc32("")
+		self.crc = zlib.crc32(b"")
 		self.decompressor = zlib.decompressobj(-zlib.MAX_WBITS)
 		self.first_data = True
 		self.maybe_eof = ""
@@ -64,14 +70,17 @@ class GZipDecompressor:
 								
 		d = self.decompressor.decompress (buf)		
 		self.size += len (d)
-		self.crc = zlib.crc32(d, self.crc)
+		self.crc = zlib.crc32(d, self.crc) & 0xffffffff
 		if d == "":
 			return self.decompressor.flush ()
 		return d
 	
 	def flush (self):
 		crcs, isizes = self.maybe_eof [:4], self.maybe_eof [4:]
-		crc32 = struct.unpack ("<l", crcs)[0]
+		if PY_MAJOR_VERSION	>= 3:
+			crc32 = struct.unpack ("<L", crcs)[0]
+		else:
+			crc32 = struct.unpack ("<l", crcs)[0]	
 		isize = U32 (struct.unpack ("<L", isizes)[0])
 		if U32 (crc32) != U32 (self.crc):
 			raise IOError("CRC check failed")
