@@ -13,10 +13,13 @@ REQUEST = re.compile ('([^ ]+) ([^ ]+)(( HTTP/([0-9.]+))$|$)')
 CONNECTION = re.compile ('Connection: (.*)', re.IGNORECASE)
 
 def crack_query (r):
+	if type (r) is bytes:
+		r = r.decode ("utf8")
+
 	if not r: return {}
 	if r[0]=='?': r=r[1:]	
 	arg={}
-	q = [x.split('=', 1) for x in r.split('&')]	
+	q = [x.split('=', 1) for x in r.split('&')]
 	
 	for each in q:
 		k = unquote_plus (each[0])

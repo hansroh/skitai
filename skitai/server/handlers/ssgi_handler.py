@@ -8,6 +8,8 @@ from skitai.server import utility, http_cookie
 from skitai.server.threads import trigger
 from skitai.lib import udict
 
+PY_MAJOR_VERSION = sys.version_info.major
+
 header2env = {
 	'content-length'	: 'CONTENT_LENGTH',
 	'content-type'	  : 'CONTENT_TYPE',
@@ -53,7 +55,7 @@ class Collector:
 	def __init__ (self, handler, request):
 		self.handler = handler
 		self.request = request
-		self.data = ''
+		self.data = b''
 		self.content_length = self.get_content_length ()
 	
 	def get_content_length (self):
@@ -81,7 +83,7 @@ class Collector:
 		self.handler.continue_request (self.request, self.data)
 	
 	def abort (self):
-		self.data = ""
+		self.data = b""
 		self.request.collector = None  # break circ. ref
 	
 
@@ -197,7 +199,7 @@ class Handler:
 				params and params or "",
 				query and query or ""
 			)
-			if request.command in (b'post', b'put'):
+			if request.command in ('post', 'put'):
 				request.response.abort (301)
 			else:	
 				request.response.error (301)
@@ -233,9 +235,9 @@ class Handler:
 			
 			if request.command == "get":
 				args = self.parse_args (query, None)				
-			elif request.command == "post" and ct.startswith (b"application/x-www-form-urlencoded"):
+			elif request.command == "post" and ct.startswith ("application/x-www-form-urlencoded"):
 				args = self.parse_args (query, data)
-			elif ct.startswith (b"multipart/form-data"):
+			elif ct.startswith ("multipart/form-data"):
 				args = data
 				# cached form data string if size < 10 MB
 				# it used for relay small files to the others				
@@ -345,7 +347,12 @@ class Job:
 					if not self.was.request.response.has_key ("content-type"):
 						self.was.request.response.update ('Content-Type', "text/html")				
 					
-					if type (response) is bytes:			
+					type_of_response = type (response)					
+					if PY_MAJOR_VERSION >=3 and type_of_response is str:
+							response = response.encode ("utf8")
+							type_of_response = bytes
+					
+					if type_of_response is bytes:			
 						self.was.request.response.update ('Content-Length', len (response))			
 						trigger.wakeup (lambda p=self.was.response, d=response: (p.push(d), p.done()))
 			

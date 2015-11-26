@@ -9,6 +9,7 @@ try:
 	from urllib.parse import quote_plus, unquote_plus
 except ImportError:
 	from urllib import quote_plus, unquote_plus	
+import base64
 
 def crack_cookie (r):
 	if not r: return {}
@@ -43,13 +44,8 @@ class Cookie:
 		return self.data [k]
 	
 	def __delitem__ (self, k):
-		try:
-			del self.data [k]
-		except KeyError:
-			pass
-		else:		
-			self.set (k, expires = 0)
-	
+		return self.remove (k)
+		
 	def has_key (self, k):
 		return k in self.data
 	
@@ -64,7 +60,15 @@ class Cookie:
 		
 	def values (self):
 		return list(self.data.values ())	
-			
+	
+	def remove (self, k):
+		try:
+			del self.data [k]
+		except KeyError:
+			pass
+		else:		
+			self.set (k, expires = 0)	
+		
 	def clear (self):
 		for k, v in list(self.data.items ()):			
 			if k == "SESSION": 
@@ -74,11 +78,11 @@ class Cookie:
 			
 	@classmethod
 	def set_secret_key (cls, secret_key):	
-		cls.secret_key = secret_key
+		cls.secret_key = secret_key.encode ("utf8")
 	
 	def get_session (self, create = True):
 		if self.session_cookie:
-				sc = SecuredCookieValue.unserialize (self.session_cookie, self.secret_key, self.set)
+				sc = SecuredCookieValue.unserialize (self.session_cookie.encode ("utf8"), self.secret_key, self.set)
 				self.session_cookie = None
 				return sc
 		elif create:
@@ -169,6 +173,9 @@ class SecuredCookieValue (Cookie):
 		self.set (k, v)
 	
 	def __delitem__ (self, k):
+		return self.remove (k)
+	
+	def remove (self, k):
 		try:
 			del self.data [k]
 		except KeyError:
@@ -182,11 +189,10 @@ class SecuredCookieValue (Cookie):
 	def clear (self):
 		self.data = {}
 	
-	def commit (self, expires = None, path = "/", domain = None):		
+	def commit (self, expires = None, path = "/", domain = None):
 		if self.commited:
 			return			
-		self.commited = True
-				
+						
 		if expires is None:
 			expires = self.default_session_timeout
 		elif expires == "now":
@@ -195,9 +201,10 @@ class SecuredCookieValue (Cookie):
 			raise ValueError("session must be specified expires seconds")
 		else:
 			expires = min (int (expires), self.max_valid_session)
-			
+		
 		self ["_expires"] = time.time () + expires
 		self.setfunc ("SESSION", self.serialize (), expires, path, domain)
+		self.commited = True
 		
 	def set_default_session_timeout (self, timeout):
 		self.default_session_timeout = timeout
@@ -205,16 +212,17 @@ class SecuredCookieValue (Cookie):
 	@classmethod
 	def quote (cls, value):		
 		if cls.serialization_method is not None:
-			value = cls.serialization_method.dumps(value)
+			value = cls.serialization_method.dumps(value)			
 		if cls.quote_base64:
-			value = ''.join(value.encode('base64').splitlines()).strip()
+			value = base64.b64encode (value)
+			value = b''.join(value.splitlines()).strip()
 		return value
 	
 	@classmethod
 	def unquote(cls, value):
 		try:
 			if cls.quote_base64:
-				value = value.decode('base64')
+				value = base64.b64decode(value)
 			if cls.serialization_method is not None:
 				value = cls.serialization_method.loads(value)
 			return value
@@ -227,51 +235,41 @@ class SecuredCookieValue (Cookie):
 		
 		result = []
 		mac = hmac(self.secret_key, None, self.hash_method)
-		for key, value in sorted (self.items()):
-			result.append('%s=%s' % (
-				quote_plus (key),
-				self.quote(value)
-			))
-			mac.update('|' + result[-1])
-			
-		return '%s?%s' % (
-			mac.digest().encode('base64').strip(),
-			'&'.join(result)
-		)
+		for key, value in sorted (self.items(), key = lambda x: x[0]):
+			result.append (quote_plus (key).encode ("utf8") + b"=" + self.quote(value))
+			mac.update(b'|' + result[-1])			
+		return (base64.b64encode(mac.digest()).strip() + b"?" + b'&'.join(result)).decode ("utf8")
 	
 	@classmethod
 	def unserialize(cls, string, secret_key, setfunc):
-		if isinstance(string, str):
-			string = string.encode('utf-8', 'ignore')
-		
 		items = {}
 		try:
-			base64_hash, data = string.split('?', 1)
+			base64_hash, data = string.split(b'?', 1)
 		except:
-			base64_hash, data, items = "", "", None
+			base64_hash, data, items = b"", b"", None
 		
 		mac = hmac(secret_key, None, cls.hash_method)
-		for item in data.split('&'):
-			mac.update('|' + item)
-			if not '=' in item:
+		for item in data.split(b'&'):
+			mac.update(b'|' + item)
+			if not b'=' in item:
 				items = None
 				break
-			key, value = item.split('=', 1)
+			key, value = item.split(b'=', 1)
 			# try to make the key a string
 			try:
-				key = unquote_plus (str(key))
+				key = unquote_plus (key.decode ("utf8"))
 			except UnicodeError:
 				pass
 			items[key] = value
 		
 		try:
-			client_hash = base64_hash.decode('base64')
+			client_hash = base64.b64decode(base64_hash)
 		except Exception:
 			items = client_hash = None
 		
 		if items is not None and client_hash == mac.digest():
 			try:
-				for key, value in items.items():
+				for key, value in items.items():					
 					items[key] = cls.unquote(value)
 			except UnquoteError:
 				items = {}

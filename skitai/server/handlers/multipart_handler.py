@@ -130,18 +130,18 @@ class Collector (ssgi_handler.Collector):
 		self.handler = handler
 		self.request = request
 		self.max_size = max_size
-		self.end_of_data = ""
+		self.end_of_data = b""
 		self.cached = False
 		self.cache = []
-		self.parts = Part (self.request.header, max_size)
+		self.parts = Part (self.request.header.encode ("utf8"), max_size)
 		self.current_part = None
-		self.buffer = ""		
+		self.buffer = b""		
 		self.content_length = self.get_content_length ()
 	
 	def get_cache (self):
 		if not self.cached:
 			return None
-		return "".join (self.cache)
+		return b"".join (self.cache)
 								
 	def start_collect (self):						
 		if self.content_length == 0: 
@@ -164,13 +164,13 @@ class Collector (ssgi_handler.Collector):
 			self.current_part.collect_incoming_data (data)			
 		else:	
 			self.buffer += data
-			if self.buffer == "--" and self.trackable_tail == self.top_boundary:
+			if self.buffer == b"--" and self.trackable_tail == self.top_boundary:
 				self.stop_collect ()
 		
 		self.trackable_tail = None		
 	
 	def abort (self):
-		self.buffer = ""
+		self.buffer = b""
 		self.parts = None
 		self.cache = []
 		self.request.collector = None
@@ -214,12 +214,12 @@ class Collector (ssgi_handler.Collector):
 		if self.cached:
 			self.cache.append (current_terminator)
 			
-		if current_terminator == "\r\n\r\n":
+		if current_terminator == b"\r\n\r\n":
 			self.trackable_tail = None
 			if not self.buffer:
 				return
 								
-			if self.buffer [:2] == "--":
+			if self.buffer [:2] == b"--":
 				self.parts.end_part ()
 				pointer = 4
 			else:
@@ -227,12 +227,12 @@ class Collector (ssgi_handler.Collector):
 					
 			bl = len (self.buffer)
 			while pointer < bl:
-				if self.buffer [pointer] not in "\n\r\t ":
+				if self.buffer [pointer] not in b"\n\r\t ":
 					break
 				pointer += 1					
-			data, self.buffer = self.buffer [pointer:], ""
+			data, self.buffer = self.buffer [pointer:], b""
 									
-			p = Part (data, self.max_size)			
+			p = Part (data.encode ("utf8"), self.max_size)			
 			self.parts.add_new_part (p)
 			
 			if p.is_multipart ():

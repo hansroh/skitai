@@ -1,6 +1,7 @@
 import os, sys, re, types
 from skitai.lib  import pathtool
 import threading
+import importlib
 
 RXFUNC = re.compile (r"^def\s+([_a-z][_a-z0-9]*)\s*(\(.+?\))\s*:", re.I|re.M|re.S)
 
@@ -28,7 +29,7 @@ class Module:
 		self.update_file_info ()
 		
 	def reload_app (self):
-		reload (self.module)
+		importlib.reload (self.module)
 		self.reload_application ()				
 		self.update_file_info ()
 		

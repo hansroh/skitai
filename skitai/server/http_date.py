@@ -55,7 +55,7 @@ rfc822_reg = re.compile (rfc822_date)
 
 def unpack_rfc822 (m):
 	g = m.group
-	a = string.atoi
+	a = int
 	return (
 		a(g(4)),	   	# year
 		monmap[g(3)],	# month
@@ -88,7 +88,7 @@ rfc850_reg = re.compile (rfc850_date)
 # they actually unpack the same way
 def unpack_rfc850 (m):
 	g = m.group
-	a = string.atoi
+	a = int
 	return (
 		a(g(4)),	   	# year
 		monmap[g(3)],	# month
@@ -108,7 +108,7 @@ def build_http_date (when):
 	return time.strftime ('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(when))
 
 def parse_http_date (d):
-	d = string.lower (d)
+	d = d.lower ()
 	tz = time.timezone
 	m = rfc850_reg.match (d)
 	if m and m.end() == len(d):

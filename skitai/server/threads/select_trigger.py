@@ -73,7 +73,7 @@ if os.name == 'posix':
 					self.thunks.append (thunk)
 				finally:
 					self.lock.release()
-			os.write (self.trigger, 'x')			
+			os.write (self.trigger, b'x')			
 			
 		def handle_read (self):			
 			self.recv (8192)
@@ -150,7 +150,7 @@ else:
 					self.thunks.append (thunk)
 				finally:
 					self.lock.release()
-			self.trigger.send ('x')
+			self.trigger.send (b'x')
 
 		def handle_read (self):
 			self.recv (8192)			
