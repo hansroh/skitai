@@ -91,8 +91,7 @@ class Response:
 			self.p, self.u = xmlrpclib.getparser()
 		elif current_content_type.startswith ("apllication/json-rpc"):
 			self.reqtype = "JSONRPC"
-			self.p, self.u = getfakeparser ()				
-		
+			self.p, self.u = getfakeparser ()		
 		else:
 			self.reqtype = "HTTP"			
 			self.set_max_age ()			
@@ -177,7 +176,7 @@ class Response:
 		
 		if data:
 			# sometimes decopressor return "",
-			# null byte is signal of producer's ending, so ignore.			
+			# null byte is signal of producer's ending, so ignore.
 			if self.reqtype == "HTTP":
 				self.p.feed (data)
 			else:

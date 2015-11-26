@@ -194,6 +194,8 @@ Documentation
 
 Change Log
 -------------
+  0.9.4 - works on Python 3, but unstable
+  
   0.9.3.7 - add skitaid-install-requirements.sh for psycopg2 and M2Crypto
 	
   0.9.3.5 - update documentation (README.md)

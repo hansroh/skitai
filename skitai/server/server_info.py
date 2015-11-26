@@ -20,10 +20,10 @@ def _make (was, flt):
 			g ["ENVIRON"] = was.env.as_dict ()
 			
 	for attr in dir (was):
-		if attr == "config": continue
+		if attr.startswith ("__") or attr == "config": continue
 		if flt and flt != attr.upper (): continue
 		obj = eval ("was." + attr)
-		if hasattr (obj, "status"):
+		if hasattr (obj, "status"):			
 			g [attr.upper ()] = obj.status ()
 	
 	return g

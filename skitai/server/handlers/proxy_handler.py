@@ -19,6 +19,7 @@ class Response (http_response.Response):
 		self.asyncon = asyncon
 		self.accept_gzip = accept_gzip		
 		self.request = request
+		self.header_s = header		
 		header = header.split ("\r\n")
 		self.response = header [0]
 		self.header = header [1:]
@@ -29,8 +30,8 @@ class Response (http_response.Response):
 				
 		self.size = 0
 		self.got_all_data = False
-		self.reqtype = "html"
 		
+		self.reqtype = "HTTP"				
 		if self.client_request.get_header ("cookie"):
 			self.max_age = 0
 		else:	
@@ -38,7 +39,27 @@ class Response (http_response.Response):
 				
 		self.p, self.u = http_response.getfakeparser (cache = self.max_age)		
 		self.set_decompressor ()
-						
+	
+	def body_expected (self):
+		cl = self.get_header ("Content-Length")
+		if cl == 0:
+			self.got_all_data = True
+			return False
+		
+		te = self.get_header ("Transfer-Encoding")
+		if cl is None and te != "chunked":
+			hv = self.version
+			cn = self.get_header ("Connection")			
+			if cn is None:
+				if hv == "1.0": cn = "close"
+				else: cn = "keep-alive"	
+			else:
+				cn = cn.lower ()			
+			if cn == "keep-alive":				
+				self.got_all_data = True
+				return False
+		return True
+	
 	def set_decompressor (self):
 		self.decompressor = None
 		self.gzip_compressed = False		
@@ -157,14 +178,15 @@ class Request (http_request.Request):
 			try: k, v = line.split (": ", 1)
 			except:	continue
 			ll = k.lower ()
-			if ll in ("expires", "date", "vary", "connection", "keep-alive", "content-length", "transfer-encoding", "content-encoding", "age"):
+			if ll in ("expires", "date", "connection", "keep-alive", "content-length", "transfer-encoding", "content-encoding", "age"):
 				continue
 			self.client_request.response [k] = v.strip ()
 	
 	def push_response (self):		
 		if self.is_pushed_response or not self.client_request.channel:
 			return
-		self.client_request.response.push (self.response)
+		if self.response.body_expected ():
+			self.client_request.response.push (self.response)
 		self.client_request.response.done (globbing = False, compress = False)
 		self.is_pushed_response = True
 			

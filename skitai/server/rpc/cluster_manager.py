@@ -82,15 +82,15 @@ class ClusterManager:
 					
 					conns = []
 					for asyncon in _node ["connection"]:
-						conns.append (
-							{
+						conn = {
 								"connected": asyncon.isconnected (), 
 								"isactive": asyncon.isactive (), 
 								"request_count": asyncon.get_request_count (),
 								"event_time": time.asctime (time.localtime (asyncon.event_time)),
 								"zombie_timeout": asyncon.zombie_timeout,	
 							}
-						)
+						conns.append (conn)
+								
 					_node ["connection"] = conns
 					cluster ["%s:%d" % node] = _node				
 				info ["cluster"] = cluster

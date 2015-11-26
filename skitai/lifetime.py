@@ -44,8 +44,9 @@ def status ():
 				d ["request_counter"] = channel.request_counter
 			if hasattr (channel, "event_time"):
 				d ["last_event_time"] = time.asctime (time.localtime (channel.event_time))
+
 			try:
-				d ["uri"] = channel.request.request.uri
+				d ["uri"] = channel.current_request.uri				
 			except AttributeError:
 				pass	
 

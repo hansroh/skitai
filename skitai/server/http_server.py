@@ -203,6 +203,15 @@ class http_channel (asynchat.async_chat):
 		self.close ()
 				
 	def send (self, data):
+		"""
+		if data [:5] == b"HTTP/":
+			s = data.find (b"\r\n\r\n")
+			print ("=" * 79)
+			print (data [:s+14].decode ("utf8"))
+			print ("-" * 79)
+		else:
+			print (repr (data [:70]))
+		"""	
 		self.event_time = int (time.time())
 		result = asynchat.async_chat.send (self, data)
 		self.server.bytes_out.inc (result)

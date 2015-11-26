@@ -117,7 +117,7 @@ class http_response:
 	
 	def push (self, thing):
 		if self.request.channel is None: return		
-		if type(thing) is bytes:
+		if type(thing) is bytes:			
 			self.outgoing.push (producers.simple_producer (thing))
 		else:
 			self.outgoing.push (thing)
@@ -178,49 +178,55 @@ class http_response:
 					wrap_in_chunking = True
 				self.update ('Content-Encoding', way_to_compress)
 		
-		if wrap_in_chunking:
-			self.delete ('Content-Length')
-			self.update ('Transfer-Encoding', 'chunked')
+		if len (self.outgoing) == 0:
+			self.delete ('Transfer-Encoding')
+			self.delete ('Content-Length')			
+			self.outgoing.push_front (producers.simple_producer (self.build_reply_header().encode ("utf8")))
+			outgoing_producer = producers.composite_producer (self.outgoing)
 			
-			if way_to_compress:
-				if way_to_compress == "gzip": 
-					producer = producers.gzipped_producer
-				else: # deflate
-					producer = producers.compressed_producer
-				outgoing_producer = producer (producers.composite_producer (self.outgoing))
+		else:	
+			if wrap_in_chunking:
+				self.delete ('Content-Length')
+				self.update ('Transfer-Encoding', 'chunked')
+				
+				if way_to_compress:
+					if way_to_compress == "gzip": 
+						producer = producers.gzipped_producer
+					else: # deflate
+						producer = producers.compressed_producer
+					outgoing_producer = producer (producers.composite_producer (self.outgoing))
+					
+				else:
+					outgoing_producer = producers.composite_producer (self.outgoing)				
+					
+				outgoing_producer = producers.chunked_producer (outgoing_producer)
+				outgoing_header = producers.simple_producer (self.build_reply_header().encode ("utf8"))
+				outgoing_producer = producers.composite_producer (
+					producers.fifo([outgoing_header, outgoing_producer])
+				)
 				
 			else:
-				outgoing_producer = producers.composite_producer (self.outgoing)				
+				self.delete ('Transfer-Encoding')				
+				if way_to_compress:
+					if way_to_compress == "gzip":
+						compressor = compressors.GZipCompressor ()
+					else: # deflate
+						compressor = zlib.compressobj (6, zlib.DEFLATED)
+					
+					cdata = ""
+					has_producer = 1
+					while 1:
+						has_producer, producer = self.outgoing.pop ()
+						if not has_producer: break
+						cdata += compressor.compress (producer.data)				
+					cdata += compressor.flush ()
+					
+					self.update ("Content-Length", len (cdata))
+					self.outgoing = producers.fifo ([producers.simple_producer (cdata)])
 				
-			outgoing_producer = producers.chunked_producer (outgoing_producer)
-			outgoing_header = producers.simple_producer (self.build_reply_header().encode ("utf8"))
-			outgoing_producer = producers.composite_producer (
-				producers.fifo([outgoing_header, outgoing_producer])
-			)
-			
-		else:
-			self.delete ('Transfer-Encoding')
-			
-			if way_to_compress:
-				if way_to_compress == "gzip":
-					compressor = compressors.GZipCompressor ()
-				else: # deflate
-					compressor = zlib.compressobj (6, zlib.DEFLATED)
-				
-				cdata = ""
-				has_producer = 1
-				while 1:
-					has_producer, producer = self.outgoing.pop ()
-					if not has_producer: break
-					cdata += compressor.compress (producer.data)				
-				cdata += compressor.flush ()
-				
-				self.update ("Content-Length", len (cdata))
-				self.outgoing = producers.fifo ([producers.simple_producer (cdata)])
-			
-			outgoing_header = producers.simple_producer (self.build_reply_header().encode ("utf8"))
-			self.outgoing.push_front (outgoing_header)
-			outgoing_producer = producers.composite_producer (self.outgoing)
+				outgoing_header = producers.simple_producer (self.build_reply_header().encode ("utf8"))
+				self.outgoing.push_front (outgoing_header)
+				outgoing_producer = producers.composite_producer (self.outgoing)
 		
 		try:
 			if globbing:				
