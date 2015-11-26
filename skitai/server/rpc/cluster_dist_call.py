@@ -210,16 +210,17 @@ class ClusterDistCall:
 			
 			_reqtype = self._reqtype.lower ()
 			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self.get_ident () or None, filterfunc = self._callback)
+			
 			if _reqtype == "xmlrpc":
 				request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._encoding, self._login, self._logger)				
 			elif _reqtype == "jsonrpc":
 				request = http_request.JSONRPCRequest (self._uri, method, params, self._headers, self._encoding, self._login, self._logger)		
 			elif _reqtype == "upload": 
-				request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._login, self._logger)
+				request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._login, self._logger)
 			elif _reqtype == "put":
-				request = http_request.HTTPPutRequest (self._uri, _reqtype, params, self._headers, self._login, self._logger)
+				request = http_request.HTTPPutRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._login, self._logger)
 			else: # "get", "post", "delete", ...
-				request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._login, self._logger)
+				request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._login, self._logger)
 			
 			self._requests[rs] = asyncon
 			r = http_request.Request (asyncon, request, rs.handle_result)

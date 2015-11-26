@@ -91,7 +91,7 @@ class WAS:
 	def wget (self, uri, data = None, *args, **kargs):
 		if data: method = "POST"
 		else: method = "GET"
-		return self.rpc (uri, method, data, *args, **kargs)
+		return self.rest (uri, method, data, *args, **kargs)
 	
 	def db (self, server, dbname, user, password, dbtype = "postgresql", filter = None):
 		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, user, password, dbtype, mapreduce = False, callback = filter)

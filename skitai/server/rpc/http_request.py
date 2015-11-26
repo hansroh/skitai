@@ -87,9 +87,9 @@ if JSONRPCLIB:
 
 	
 class HTTPRequest (XMLRPCRequest):
-	content_type = "application/x-www-form-urlencoded"
+	content_type = "application/x-www-form-urlencoded; charset=utf-8"
 	
-	def __init__ (self, uri, method, formdata = {}, headers = None, login = None, logger = None):
+	def __init__ (self, uri, method, formdata = {}, headers = None, encoding = None, login = None, logger = None):
 		self.uri = uri
 		self.method = method
 		if uri.startswith ("http://") or uri.startswith ("https://"):
@@ -99,11 +99,12 @@ class HTTPRequest (XMLRPCRequest):
 		
 		self.formdata = formdata
 		self.headers = headers
+		self.encoding = encoding
 		self.login = login
 		self.logger = logger
 			
 		self.data = self.serialize ()
-	
+		
 	def get_method (self):
 		return self.method.upper ()
 					
@@ -117,8 +118,13 @@ class HTTPRequest (XMLRPCRequest):
 		if type (self.formdata) is type ({}):
 			if self.get_content_type () != "application/x-www-form-urlencoded":
 				raise TypeError ("POST Body should be string or can be encodable")
-			return ("&".join (["%s=%s" % (quote (k), quote (v)) for k, v in list(self.formdata.items ())])).encode ("utf8")
-			
+			fm = []
+			for k, v in list(self.formdata.items ()):
+				if self.encoding:
+					v = v.decode (self.encoding)					
+				fm.append ("%s=%s" % (quote (k), quote (v)))
+			return "&".join (fm).encode ("utf8")
+						
 		return self.formdata
 		
 	
@@ -132,14 +138,16 @@ class HTTPPutRequest (HTTPRequest):
 	def serialize (self):
 		if type (self.formdata) is not str:
 			raise TypeError ("PUT body must be string")
-		return self.formdata
+		if self.encoding:
+			return self.formdata.decode (self.encoding).encode ("utf8")
+		return self.formdata.encode ("utf8")
 		
 		
 class HTTPMultipartRequest (HTTPRequest):
 	boundary = "-------------------SAE-20150614204358"
 	
-	def __init__ (self, uri, method, formdata = {}, headers = None, login = None, logger = None):
-		HTTPRequest.__init__ (self, uri, method, formdata, headers, login, logger)
+	def __init__ (self, uri, method, formdata = {}, headers = None, encoding = None, login = None, logger = None):
+		HTTPRequest.__init__ (self, uri, method, formdata, headers, encoding, login, logger)
 		if type (self.formdata) is bytes:
 			self.find_boundary ()
 	
@@ -161,7 +169,7 @@ class HTTPMultipartRequest (HTTPRequest):
 		
 	def serialize (self):
 		if type (self.formdata) is type ({}):
-			return producers.multipart_producer (self.formdata, self.boundary)
+			return producers.multipart_producer (self.formdata, self.boundary, self.encoding)
 		return self.formdata
 
 
