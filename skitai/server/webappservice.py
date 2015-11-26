@@ -108,6 +108,9 @@ class WAS:
 	def toxml (self, obj):
 		return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")	
 	
+	def tostream (self, obj, buffer_size = 4096):
+		return Stream (obj, buffer_size)
+				
 	def fromjson (self, obj):
 		return json.loads (obj)
 	
@@ -122,7 +125,29 @@ class WAS:
 	
 	def shutdown (self, fast = 0):
 		lifetime.shutdown (0, fast)
+	
+
+class Stream:
+		def __init__ (self, obj, buffer_size = 4096):
+			self.obj = obj
+			self.buffer_size = buffer_size
+			if not hasattr (self.obj, "read"):
+				raise AttributeError ("stream object should have `read()` returns bytes object and optional 'close()'")
+			
+		def close (self):
+			try: self.obj.close ()
+			except AttributeError: pass	
 		
+		def abort (self):			
+			# it will be called slient channel is suddnely disconnected			
+			self.close ()
+				
+		def more (self):
+			data = self.obj.read (self.buffer_size)
+			if not data:
+				self.close ()
+			return data
+					
 	
 class Logger:
 	def __init__ (self, media, path):
