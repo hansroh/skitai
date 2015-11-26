@@ -36,8 +36,8 @@ def catch (htmlformating = 0):
 	file, function, line = tbinfo [-1]
 	
 	if htmlformating:
-		buf = ["<hr><h3 style='color:#d90000;'>%s <span style='color:#666666;'>%s</span></h3>" % (str (t).replace (">", "&gt;").replace ("<", "&lt;"), v)]
-		buf.append ("<b>In %s at line %s, %s</b>" % (file, line, function == "?" and "__main__" or "function " + function))
+		buf = ["<hr><div style='color:#d90000; font-weight: bold; margin-top: 5px;'>%s</div><div style='color:#666666; font-weight: bold;'>%s</div>" % (t.__name__.replace (">", "&gt;").replace ("<", "&lt;"), v)]
+		buf.append ("<b>at %s at line %s, %s</b>" % (file, line, function == "?" and "__main__" or "function " + function))
 		buf.append ("<ul type='square'>")
 		buf += ["<li><i>%s</i> &nbsp;&nbsp;<font color='#d90000'>%s</font> <font color='#003366'><b>%s</b></font></li>" % x for x in tbinfo]
 		buf.append ("</ul>")		
@@ -284,12 +284,12 @@ class Job:
 		response = None
 			
 		[before, func, after, teardown], uargs = method
-		if before:
-			response = before (self.was)
-			if response:
-				return response
-		
 		try:
+			if before:
+				response = before (self.was)
+				if response:
+					return response
+					
 			if type (func) is type ([]):
 				response = self.get_response ((func, uargs), args)					
 					
@@ -305,16 +305,37 @@ class Job:
 		except MemoryError:
 			raise
 																										
-		except:
+		except Exception as expt:
 			self.was.logger.trace ("app", str (self))
+			
+			if after:
+				try:
+					after (self.was)		
+				except:
+					self.was.logger.trace ("app", str (self))
+					raise
+						
 			if teardown:
-				response = teardown (self.was)
-							
+				try:
+					response = teardown (self.was)
+				except:
+					self.was.logger.trace ("app", str (self))
+					raise expt
+						
+				if response is None:
+					raise expt
+					
+			else:
+				raise expt
+		
 		else:
 			if after: 
-				try: after (self.was)
-				except:	self.was.logger.trace ("app")
-			
+				try:
+					after (self.was)
+				except:
+					self.was.logger.trace ("app", str (self))
+					raise	
+		
 		return response	
 	
 	def commit_all (self):
@@ -330,8 +351,7 @@ class Job:
 		except MemoryError:
 			raise
 				
-		except:	
-			self.was.logger.trace ("app", str (self))
+		except:			
 			trigger.wakeup (lambda p=self.was.response, d=catch(1): (p.error (500, d),))
 		
 		else:
