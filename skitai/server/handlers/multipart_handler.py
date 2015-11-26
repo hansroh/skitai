@@ -24,14 +24,14 @@ class Part:
 			header = header.split ("\r\n")
 		self.header =	header
 		self.max_size = max_size		
-		self.value = ""
+		self.value = b""
 		self.filename = None
 		self.boundary = None
 		self.subpart = None		
 		
 		self.content_type, attr = self.get_header_with_attr ("Content-Type")
 		if self.content_type.startswith ("multipart/"):			
-			self.boundary = attr ["boundary"]
+			self.boundary = attr ["boundary"].encode ("utf8")
 			self.value = []
 		
 		else:
@@ -103,7 +103,7 @@ class Part:
 			return self.subpart.get_boundary ()
 		b = self.boundary
 		if b:
-			return "\r\n--" + b
+			return b"\r\n--" + b
 		
 	def is_multipart (self):
 		return self.boundary
@@ -133,7 +133,7 @@ class Collector (ssgi_handler.Collector):
 		self.end_of_data = b""
 		self.cached = False
 		self.cache = []
-		self.parts = Part (self.request.header.encode ("utf8"), max_size)
+		self.parts = Part (self.request.header, max_size)
 		self.current_part = None
 		self.buffer = b""		
 		self.content_length = self.get_content_length ()
@@ -232,7 +232,7 @@ class Collector (ssgi_handler.Collector):
 				pointer += 1					
 			data, self.buffer = self.buffer [pointer:], b""
 									
-			p = Part (data.encode ("utf8"), self.max_size)			
+			p = Part (data.decode ("utf8"), self.max_size)			
 			self.parts.add_new_part (p)
 			
 			if p.is_multipart ():

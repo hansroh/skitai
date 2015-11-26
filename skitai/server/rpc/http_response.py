@@ -45,7 +45,7 @@ class FakeTarget(object):
 		self.data.append(data)
 	
 	def read (self):
-		d = ""
+		d = b""
 		if self.data:
 			d = self.data.pop (0)
 		if self.cache:
@@ -54,8 +54,8 @@ class FakeTarget(object):
 	
 	def close(self):
 		if self.cdata:
-			return ''.join(self.cdata)
-		return ''.join(self.data)
+			return b''.join(self.cdata)
+		return b''.join(self.data)
 	
 	def no_cache (self):
 		self.cache = False
@@ -71,8 +71,8 @@ class Response:
 	SIZE_LIMIT = 2**19
 	
 	def __init__ (self, request, header):		
-		self.request = request
-		header = header.split ("\r\n")
+		self.request = request		
+		header = header.split ("\r\n")		
 		self.response = header [0]
 		self.header = header [1:]
 		self._header_cache = {}
@@ -154,7 +154,11 @@ class Response:
 			except:
 				pass
 			else:		
-				self.p.feed (data)
+				if self.reqtype == "HTTP":
+					self.p.feed (data)
+				else:
+					self.p.feed (data.decode ("utf8"))
+					
 			self.decompressor = None
 			
 	def set_decompressor (self):	
@@ -174,7 +178,10 @@ class Response:
 		if data:
 			# sometimes decopressor return "",
 			# null byte is signal of producer's ending, so ignore.			
-			self.p.feed (data)
+			if self.reqtype == "HTTP":
+				self.p.feed (data)
+			else:
+				self.p.feed (data.decode ("utf8"))
 			
 	def get_header (self, header):
 		header = header.lower()

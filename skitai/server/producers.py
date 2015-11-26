@@ -147,14 +147,14 @@ class multipart_producer:
 		#self.bytes_out = 0
 		
 	def calculate_size (self):
-		size = (len (self.boundary) + 4) * (len (self.data) + 1) # --boundary + (\r\n or last --)
+		size = (len (self.boundary.encode ("utf8")) + 4) * (len (self.data) + 1) # --boundary + (\r\n or last --)
 		for name, value in list(self.data.items ()):
-			size += (41 + len (name)) #Content-Disposition: form-data; name=""\r\n
+			size += (41 + len (name.encode ("utf8"))) #Content-Disposition: form-data; name=""\r\n
 			if type (value) is not type (""):
 				fsize = os.path.getsize (value.name)
 				size += (fsize + 2) # file size + \r\n
 				fn = os.path.split (value.name) [-1]
-				size += len (fn) + 13 # ; filename=""
+				size += len (fn.encode ("utf8")) + 13 # ; filename=""
 				mimetype = mimetypes.guess_type (fn) [0]
 				if not mimetype:
 					mimetype = b"application/octet-stream"
@@ -179,31 +179,33 @@ class multipart_producer:
 			
 		if self.current_file:
 			d = self.current_file.read (self.ac_out_buffer_size)
-			if not d:
+			if d:
+				return d				
+			else:
 				self.current_file.close ()
 				self.current_file = None
 				self.dlist.pop (0)
-				d = b"\r\n"
+				d = "\r\n"
 				if not self.dlist:
-					d += b"--%s--" % self.boundary					
-			#self.bytes_out += len (d)
-			return d
+					d += "--%s--" % self.boundary
+				#self.bytes_out += len (d)
+				return d.encode ("utf8")
 			
 		if self.dlist:
 			first = self.dlist [0]
 			if first [0] == 0: # formvalue
-				d = b'--%s\r\nContent-Disposition: form-data; name="%s"\r\n\r\n%s\r\n' % (self.boundary, first [1], first [2])
+				d = '--%s\r\nContent-Disposition: form-data; name="%s"\r\n\r\n%s\r\n' % (self.boundary, first [1], first [2])
 				self.dlist.pop (0)
 				if not self.dlist:
-					d += b"--%s--" % self.boundary
+					d += "--%s--" % self.boundary
 				#self.bytes_out += len (d)
-				return d	
+				return d.encode ("utf8")	
 			else:				
 				path, filename, mimetype = first [2]
 				self.current_file = open (path, "rb")
-				return b'--%s\r\nContent-Disposition: form-data; name="%s"; filename="%s"\r\nContent-Type: %s\r\n\r\n' % (
+				return ('--%s\r\nContent-Disposition: form-data; name="%s"; filename="%s"\r\nContent-Type: %s\r\n\r\n' % (
 					self.boundary, first [1], filename, mimetype
-				)
+				)).encode ("utf8")
 				#self.bytes_out += len (d)
 				#return d
 		

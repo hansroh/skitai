@@ -49,7 +49,7 @@ class XMLRPCRequest:
 		return url
 		
 	def serialize (self):
-		return xmlrpclib.dumps (self.params, self.method, encoding=self.encoding, allow_none=1)
+		return xmlrpclib.dumps (self.params, self.method, encoding=self.encoding, allow_none=1).encode ("utf8")
 		
 	def set_address (self, address):
 		self.address = address
@@ -83,7 +83,7 @@ if JSONRPCLIB:
 		content_type = "application/json-rpc"
 		
 		def serialize (self):
-			return jsonrpclib.dumps (self.params, self.method, encoding=self.encoding, rpcid=None, version = "2.0")		
+			return jsonrpclib.dumps (self.params, self.method, encoding=self.encoding, rpcid=None, version = "2.0").encode ("utf8")
 
 	
 class HTTPRequest (XMLRPCRequest):
@@ -112,12 +112,12 @@ class HTTPRequest (XMLRPCRequest):
 		if not self.formdata:
 			# no content, no content-type
 			self.content_type = None		
-			return ""
+			return b""
 
 		if type (self.formdata) is type ({}):
 			if self.get_content_type () != "application/x-www-form-urlencoded":
 				raise TypeError ("POST Body should be string or can be encodable")
-			return "&".join (["%s=%s" % (quote (k), quote (v)) for k, v in list(self.formdata.items ())])
+			return ("&".join (["%s=%s" % (quote (k), quote (v)) for k, v in list(self.formdata.items ())])).encode ("utf8")
 			
 		return self.formdata
 		
@@ -130,7 +130,7 @@ class HTTPPutRequest (HTTPRequest):
 		return "PUT"
 					
 	def serialize (self):
-		if type (self.formdata) is not type (""):
+		if type (self.formdata) is not str:
 			raise TypeError ("PUT body must be string")
 		return self.formdata
 		
@@ -140,7 +140,7 @@ class HTTPMultipartRequest (HTTPRequest):
 	
 	def __init__ (self, uri, method, formdata = {}, headers = None, login = None, logger = None):
 		HTTPRequest.__init__ (self, uri, method, formdata, headers, login, logger)
-		if type (self.formdata) is type (""):
+		if type (self.formdata) is bytes:
 			self.find_boundary ()
 	
 	def get_method (self):
@@ -151,11 +151,11 @@ class HTTPMultipartRequest (HTTPRequest):
 		return "multipart/form-data; boundary=" + self.boundary
 			
 	def find_boundary (self):
-		s = self.formdata.find ("\r\n")
+		s = self.formdata.find (b"\r\n")
 		if s == -1:
 			raise ValueError("boundary not found")
 		b = self.formdata [:s]			
-		if b [:2] != "--":
+		if b [:2] != b"--":
 			raise ValueError("invalid multipart/form-data")
 		self.boundary = b [2:s]
 		
@@ -234,12 +234,13 @@ class Request:
 		for k, v in self.request.get_headers ():
 			hc [k] = v
 		
-		req = "%s %s HTTP/%s\r\n%s\r\n\r\n" % (
+		req = ("%s %s HTTP/%s\r\n%s\r\n\r\n" % (
 			self.request.get_method (),
 			self.request.url,
 			self.http_version,
 			"\r\n".join (["%s: %s" % x for x in list(hc.items ())])
-		)		
+		)).encode ("utf8")
+		
 		if is_data_producer:
 			return [req, data]
 		else:	
@@ -283,7 +284,7 @@ class Request:
 			self.callback (self)
 		
 	def collect_incoming_data (self, data):		
-		if not self.response or self.asyncon.get_terminator () == "\r\n":
+		if not self.response or self.asyncon.get_terminator () == b"\r\n":
 			self.buffer += data
 		else:
 			try:
@@ -298,7 +299,7 @@ class Request:
 				self.asyncon.handle_close ()
 				return
 			
-			if self.wrap_in_chunk:
+			if self.wrap_in_chunk:			
 				if self.asyncon.get_terminator () == 0:
 					self.asyncon.set_terminator (b"\r\n")
 					self.buffer = b""
@@ -306,8 +307,8 @@ class Request:
 						
 				if not self.buffer:
 					return
-										
-				chunked_size = int (self.buffer.split (b";") [0], 16)
+				
+				chunked_size = int (self.buffer.split (b";") [0], 16)				
 				self.buffer = b""
 				
 				if chunked_size == 0:
@@ -359,9 +360,9 @@ class Request:
 		# overide for new Response
 		buffer, self.buffer = self.buffer, b""
 		try:
-			self.response = http_response.Response (self.request, buffer)		
+			self.response = http_response.Response (self.request, buffer.decode ("utf8"))		
 		except:
-			self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
+			self.log ("response header error: `%s`" % repr (buffer.decode ("utf8") [:80]), "error")
 			raise		
 		self.is_continue_response ()
 		
