@@ -102,7 +102,7 @@ class Package:
 	
 	def teardown_request (self, f):
 		self._teardown_request = f
-			
+	
 	def route (self, rule, *t, **k):		
 		def decorator(f):
 			self.add_route (rule, f, *t, **k)

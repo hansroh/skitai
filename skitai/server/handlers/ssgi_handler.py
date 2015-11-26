@@ -313,14 +313,14 @@ class Job:
 					after (self.was)		
 				except:
 					self.was.logger.trace ("app", str (self))
-					raise
+					raise expt
 						
 			if teardown:
 				try:
 					response = teardown (self.was)
 				except:
 					self.was.logger.trace ("app", str (self))
-					raise expt
+					raise
 						
 				if response is None:
 					raise expt
