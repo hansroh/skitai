@@ -79,26 +79,10 @@ class Response:
 		self.version, self.code, self.msg = crack_response (self.response)
 		self.size = 0
 		self.got_all_data = False
+		self.reqtype = None
 		self.max_age = 0
+		self.decompressor = None
 		
-		request_content_type = request.get_content_type ()
-		current_content_type = self.get_header ("content-type")
-		if current_content_type is None:
-			current_content_type = ""
-			
-		if current_content_type.startswith ("text/xml") or request_content_type == "text/xml":
-			self.reqtype = "XMLRPC"
-			self.p, self.u = xmlrpclib.getparser()
-		elif current_content_type.startswith ("apllication/json-rpc"):
-			self.reqtype = "JSONRPC"
-			self.p, self.u = getfakeparser ()		
-		else:
-			self.reqtype = "HTTP"			
-			self.set_max_age ()			
-			self.p, self.u = getfakeparser (cache = self.max_age)			
-					
-		self.set_decompressor ()
-	
 	def set_max_age (self):
 		self.max_age = 0
 		if self.code != 200:
@@ -152,20 +136,34 @@ class Response:
 				data = self.decompressor.flush ()
 			except:
 				pass
-			else:		
-				if self.reqtype == "HTTP":
-					self.p.feed (data)
-				else:
-					self.p.feed (data.decode ("utf8"))
-					
+			else:
+				self.p.feed (data)				
 			self.decompressor = None
+	
+	def init_buffer (self):
+		request_content_type = self.request.get_content_type ()
+		current_content_type = self.get_header ("content-type")
+		if current_content_type is None:
+			current_content_type = ""
 			
-	def set_decompressor (self):	
-		self.decompressor = None
+		if current_content_type.startswith ("text/xml") or request_content_type == "text/xml":
+			self.reqtype = "XMLRPC"
+			self.p, self.u = xmlrpclib.getparser()
+		elif current_content_type.startswith ("apllication/json-rpc"):
+			self.reqtype = "JSONRPC"
+			self.p, self.u = getfakeparser ()		
+		else:
+			self.reqtype = "HTTP"			
+			self.set_max_age ()			
+			self.p, self.u = getfakeparser (cache = self.max_age)					
+		
 		if self.get_header ("Content-Encoding") == "gzip":
 			self.decompressor = compressors.GZipDecompressor ()
 			
 	def collect_incoming_data (self, data):
+		if self.size == 0:
+			self.init_buffer ()
+			
 		if self.decompressor:
 			data = self.decompressor.decompress (data)
 			
@@ -177,10 +175,7 @@ class Response:
 		if data:
 			# sometimes decopressor return "",
 			# null byte is signal of producer's ending, so ignore.
-			if self.reqtype == "HTTP":
-				self.p.feed (data)
-			else:
-				self.p.feed (data.decode ("utf8"))
+			self.p.feed (data)			
 			
 	def get_header (self, header):
 		header = header.lower()
@@ -204,7 +199,10 @@ class Response:
 	def get_content (self):
 		if self.code < 100:
 			return
-			
+		
+		if self.size == 0:
+			return
+				
 		self.p.close ()
 		result = self.u.close()
 		

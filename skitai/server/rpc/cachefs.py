@@ -122,7 +122,7 @@ class CacheFileSystem:
 				
 		else:	
 			compressed = int (f.read (1))
-			content_type = f.read (64).strip ()
+			content_type = f.read (64).strip ().decode ("utf8")
 			content = f.read ()
 			f.close ()
 			
@@ -170,8 +170,10 @@ class CacheFileSystem:
 			compressed = 1
 		
 		if not content_type:
-			content_type = ""	
-		f.write ("%12s%d%64s%s" % (max_age, compressed, content_type, content))
+			content_type = b""	
+		
+		f.write (("%12s%d%64s" % (max_age, compressed, content_type)).encode ("utf8"))
+		f.write (content)
 		f.close ()
 		
 		if self.memusage < self.memmax:

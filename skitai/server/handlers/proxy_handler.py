@@ -27,7 +27,18 @@ class Response (http_response.Response):
 		self.flushed_time = 0
 		self.client_request.producer = self
 		self.version, self.code, self.msg = http_response.crack_response (self.response)
-				
+		self.p, self.u = None, None
+		self.decompressor = None
+		self.gzip_compressed = False	
+		self.make_decompressor = False
+		
+		content_encoding = self.get_header ("Content-Encoding")			
+		if content_encoding == "gzip":
+			if self.accept_gzip:
+				self.gzip_compressed = True
+			else:	
+				self.make_decompressor = True
+						
 		self.size = 0
 		self.got_all_data = False
 		
@@ -35,10 +46,7 @@ class Response (http_response.Response):
 		if self.client_request.get_header ("cookie"):
 			self.max_age = 0
 		else:	
-			self.set_max_age ()			
-				
-		self.p, self.u = http_response.getfakeparser (cache = self.max_age)		
-		self.set_decompressor ()
+			self.set_max_age ()
 	
 	def body_expected (self):
 		cl = self.get_header ("Content-Length")
@@ -58,18 +66,17 @@ class Response (http_response.Response):
 			if cn == "keep-alive":				
 				self.got_all_data = True
 				return False
-		return True
-	
-	def set_decompressor (self):
-		self.decompressor = None
-		self.gzip_compressed = False		
-		content_encoding = self.get_header ("Content-Encoding")
-			
-		if content_encoding == "gzip":
-			if self.accept_gzip:
-				self.gzip_compressed = True
-			else:	
+		
+		if self.p is None:
+			self.p, self.u = http_response.getfakeparser (cache = self.max_age)
+			if self.make_decompressor:
 				self.decompressor = compressors.GZipDecompressor ()
+			
+		return True
+		
+	def init_buffer (self):
+		# do this job will be executed in body_expected ()
+		pass
 		
 	def is_gzip_compressed (self):
 		return self.gzip_compressed
@@ -89,7 +96,7 @@ class Response (http_response.Response):
 		return len (self.u.data) or self.got_all_data
 		
 	def more (self):
-		self.flushed_time = time.time ()
+		self.flushed_time = time.time ()		
 		return self.u.read ()
 		
 
