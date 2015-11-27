@@ -1,14 +1,65 @@
-import asynchat, asyncore, DNS, socket, re, rfc822, sys, time
+r"""
+D:\apps\skitai\skitai\protocol\smtp>D:\apps\xlmail\lib\sendlufex.py
+send: 'ehlo [192.168.1.120]\r\n'
+reply: '250-smtp.gmail.com at your service, [14.33.246.211]\r\n'
+reply: '250-SIZE 35882577\r\n'
+reply: '250-8BITMIME\r\n'
+reply: '250-AUTH LOGIN PLAIN XOAUTH2 PLAIN-CLIENTTOKEN OAUTHBEARER XOAUTH\r\n'
+reply: '250-ENHANCEDSTATUSCODES\r\n'
+reply: '250-PIPELINING\r\n'
+reply: '250-CHUNKING\r\n'
+reply: '250 SMTPUTF8\r\n'
+reply: retcode (250); Msg: smtp.gmail.com at your service, [14.33.246.211]
+send: 'AUTH PLAIN AGV1bmhlZW1heEBnbWFpbC5jb20AIWttczIwMDA=\r\n'
+reply: '235 2.7.0 Accepted\r\n'
+reply: retcode (235); Msg: 2.7.0 Accepted
+send: 'mail FROM:<test@govbidopps.com> size=370\r\n'
+reply: '250 2.1.0 OK lg14sm30993621pab.45 - gsmtp\r\n'
+reply: retcode (250); Msg: 2.1.0 OK lg14sm30993621pab.45 - gsmtp
+send: 'rcpt TO:<hansroh@gmail.com>\r\n'
+reply: '250 2.1.5 OK lg14sm30993621pab.45 - gsmtp\r\n'
+reply: retcode (250); Msg: 2.1.5 OK lg14sm30993621pab.45 - gsmtp
+send: 'data\r\n'
+reply: '354  Go ahead lg14sm30993621pab.45 - gsmtp\r\n'
+reply: retcode (354); Msg: Go ahead lg14sm30993621pab.45 - gsmtp
+data: (354, 'Go ahead lg14sm30993621pab.45 - gsmtp')
+send: 'Date: Fri, 27 Nov 2015 12:47:42 +0900\r\nTo: Hans Roh <hansroh@gmail.com>
+\r\nSubject: e-Mail Test\r\nFrom: Tester <test@govbidopps.com>\r\nMIME-Version:
+1.0\r\nContent-type: text/html; \r\n\tcharset="UTF-8"\r\nContent-Transfer-Encodi
+ng: quoted-printable\r\n\r\n<h1>Hi</h1>,=20\r\nI recieved your message today.\r\
+nI promise your request is processed with very high priority.\r\n<p>\r\nThanks.\
+r\n</p>\r\n=09\r\n.\r\n'
+reply: '250 2.0.0 OK 1448596061 lg14sm30993621pab.45 - gsmtp\r\n'
+reply: retcode (250); Msg: 2.0.0 OK 1448596061 lg14sm30993621pab.45 - gsmtp
+data: (250, '2.0.0 OK 1448596061 lg14sm30993621pab.45 - gsmtp')
+send: 'quit\r\n'
+reply: '221 2.0.0 closing connection lg14sm30993621pab.45 - gsmtp\r\n'
+reply: retcode (221); Msg: 2.0.0 closing connection lg14sm30993621pab.45 - gsmtp
+"""
+
+import asynchat, asyncore, re, sys, time
+import base64, hmac
+import socket, ssl
+
+try:
+	from rfc822 import parseaddr
+except ImportError:
+	from email.utils import parseaddr
+from email.base64mime import body_encode as encode_base64
+from . import composer
+from skitai.server import producers
 
 OLDSTYLE_AUTH = re.compile(r"auth=(.*)", re.I)
+FEATURE = re.compile (r'(?P<feature>[A-Za-z0-9][A-Za-z0-9\-]*)')
 CRLF = b"\r\n"
 
 class DNSNotFound (Exception): pass
-
+class SMTPException(OSError): pass
+	
 def quoteaddr(addr):
 	m = (None, None)
 	try:
-		m=rfc822.parseaddr(addr)[1]
+		m=parseaddr(addr)[1]
 	except AttributeError:
 		pass
 	if m == (None, None):
@@ -22,81 +73,62 @@ def quotedata(data):
 				
 
 class SMTP (asynchat.async_chat):
-	DNSHOST='164.124.101.2'
-	def __init__(self, composer, logger = None):
+	zombie_timeout = 120
+	
+	def __init__(self, composer, logger = None, callback = None):
 		self.composer = composer						
+		self.callback = callback
 		self.logger = logger
 		
-		self.__ltime = time.time ()
 		self.__line = []
 		self.__mline = []
 		self.__code = 900
-		self.__resp = ""
+		self.__resp = "Connection Failed"
 		self.__stat = 0		
 		self.__sent = 0
 		self.__panic = 0
 		self.does_esmtp = 1
 		self.esmtp_features = {}
+		self.is_esmtp = True
+		self.event_time = time.time ()
 		
-		asynchat.async_chat.__init__(self)
-		
+		asynchat.async_chat.__init__(self)		
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
 		self.set_terminator (CRLF)
 		
 		self.sendmail ()
 	
+	def connect (self, adrr):
+		self.event_time = time.time ()
+		try: asynchat.async_chat.connect (self, adrr)
+		except: self.handle_error ()	
+			
 	def get_time (self):
-		return self.__ltime
+		return self.event_time
 		
 	def push (self, msg):
-		asynchat.async_chat.push(self, msg + '\r\n')
+		print ("SEND:", msg)	
+		asynchat.async_chat.push(self, (msg + '\r\n').encode ("utf8"))
 	
-	def compact_traceback(self):	
-		return str (sys.exc_info() [0])
+	def trace (self):	
+		return self.logger.trace ("%s -> %s" % (self.composer.snd, self.composer.rcpt))
 	
-	def mxlookup(self, host, qtype = "mx"):
-		a = DNS.DnsRequest(host, qtype = qtype, server=self.DNSHOST, timeout = 3).req().answers
-		l = [x['data'] for x in a]
-		l.sort()
-		return l
-	
+	def log (self, msg, lt = "info"):
+		self.logger ("[%s] %s %s -> %s (%1.1f Kb)" % (lt, msg, self.composer.snd, self.composer.rcpt, self.__sent / 1024))
+		
 	def sendmail (self):
 		try:
-			hostlist = self.get_mx ()
-					
-			if not hostlist:
-				self.__code, self.__resp = 901, "DNS Not Found"
-				raise DNSNotFound
-			
-			hostcount = len (hostlist)
-			
-			for i in range (len (hostlist)):
-				prior, host = hostlist [i]
-				try:
-					self.connect ((host, 25))
-					self.address = host
-					return
-					
-				except:
-					if i == hostcount - 1:
-						self.__code, self.__resp = 900, "SMTP Connection Failed"			
-						raise
-					else:
-						continue
+			host, port = self.composer.get_SMTP ()
+			self.connect ((host, port))
+			self.address = host
+			return						
 		except:
-			self.handle_error ()
+			self.__code, self.__resp = 900, "SMTP Connection Failed"			
+			raise					
 	
-	def get_mx(self):
-		_toHost = self.composer.get_HOST ()
-		
-		resolved = self.mxlookup(_toHost)
-		if not resolved:
-			resolved = [(0, x) for x in self.mxlookup(_toHost, 'a')]
-			
-		return resolved
-
 	def collect_incoming_data (self, data):
-		self.__line.append(data)
+		print ("RECV:", data.decode ("utf8"))
+		self.__line.append(data.decode ("utf8"))
 	
 	def get_reply (self, line):
 		code = line [:3]		
@@ -105,13 +137,63 @@ class SMTP (asynchat.async_chat):
 			resp = line [4:]
 		except:	
 			code = -1
-			resp = ""
-		
+			resp = ""		
 		return code, resp
 	
 	def has_extn(self, opt):
 		return opt.lower() in self.esmtp_features
+	
+	def send_from (self):
+		if self.is_esmtp and self.does_esmtp and self.has_extn('size'):
+			option = "size=" + repr(len(self.composer.get_DATA ()))
+			self.push ("mail FROM:%s %s" % (quoteaddr (self.composer.get_FROM ()), option))
+		else:
+			self.push ("mail FROM:%s" % (quoteaddr (self.composer.get_FROM ())))
+	
+	def login (self, phase = 1, resp = None):		
+		def encode_cram_md5(challenge, user, password):
+			challenge = base64.decodebytes(challenge)
+			response = user + " " + hmac.HMAC(password.encode('ascii'),
+											challenge, 'md5').hexdigest()
+			return encode_base64(response.encode('ascii'), eol='')
+	
+		def encode_plain(user, password):
+			s = "\0%s\0%s" % (user, password)
+			return encode_base64(s.encode('ascii'), eol='')
+		
+		user, password = self.composer.get_LOGIN ()
+		
+		AUTH_PLAIN = "PLAIN"
+		AUTH_CRAM_MD5 = "CRAM-MD5"
+		AUTH_LOGIN = "LOGIN"
+		
+		advertised_authlist = self.esmtp_features["auth"].split()
+		preferred_auths = [AUTH_CRAM_MD5, AUTH_PLAIN, AUTH_LOGIN]
+		
+		authlist = [auth for auth in preferred_auths if auth in advertised_authlist]
+		if not authlist:
+			raise SMTPException("No suitable authentication method found.")
+		
+		if AUTH_PLAIN in authlist:
+			self.push ("AUTH %s %s" % (AUTH_PLAIN, encode_plain (user, password)))
+			self.__stat = 3
 			
+		elif AUTH_LOGIN in authlist:
+			if phase == 1:
+				self.push ("AUTH %s %s" % (AUTH_LOGIN, encode_base64(user.encode('ascii'), eol='')))
+				self.__stat = 2.5
+			else:
+				self.push (encode_base64(password.encode('ascii'), eol=''))	
+				self.__stat = 3
+			
+		else:
+			if phase == 1:
+				self.push ("AUTH %s" % (AUTH_CRAM_MD5,))
+				self.__stat = 2.5
+			else:	
+				self.push (encode_cram_md5 (resp, user, password))
+				self.__stat = 3
+						
 	def found_terminator(self):
 		line = "".join(self.__line)
 		self.__line = []				
@@ -134,9 +216,10 @@ class SMTP (asynchat.async_chat):
 				if auth_match:
 					self.esmtp_features["auth"] = self.esmtp_features.get("auth", "") \
 							+ " " + auth_match.groups(0)[0]
+					print (self.esmtp_features)
 					continue
 	
-				m=re.match(r'(?P<feature>[A-Za-z0-9][A-Za-z0-9\-]*)',each)
+				m=FEATURE.match(each)
 				if m:
 					feature=m.group("feature").lower()
 					params=m.string[m.end("feature"):].strip()
@@ -162,83 +245,99 @@ class SMTP (asynchat.async_chat):
 			if not (200 <= code <= 299):
 				self.__code, self.__resp = code, resp
 				self.__stat = 2
+				self.is_esmtp = False
 				self.push ("helo %s" % socket.getfqdn())
 				return
-				
-			self.__stat = 3
-			if self.does_esmtp and self.has_extn('size'):
-				option = "size=" + repr(len(self.composer.get_DATA ()))				
-				self.push ("mail FROM:%s %s" % (quoteaddr (self.composer.get_FROM ()), option))
+			
+			if self.composer.get_LOGIN ():
+				self.login ()
+							
 			else:
-				self.push ("mail FROM:%s" % (quoteaddr (self.composer.get_FROM ())))
+				self.__stat = 4
+				self.send_from ()
 
 		elif self.__stat == 2:	
 			if not (200 <= code <= 299):
 				self.__code, self.__resp = code, resp
-				self.__stat = 9
+				self.__stat = 10 # not SMTP, close immediatly
 				return
-			self.__stat = 3
-			self.push ("mail FROM:%s" % quoteaddr (self.composer.get_FROM ()))
+			self.__stat = 4
+			self.send_from ()
+		
+		elif self.__stat == 2.5:
+			if code != 334:
+				self.__code, self.__resp = code, resp
+				self.__stat = 9
+				self.push ("rset")
+				return
+			self.login (2, resp)
 			
 		elif self.__stat == 3:
+			if code not in (235, 503):
+				self.__code, self.__resp = code, resp
+				self.__stat = 9
+				self.push ("rset")
+				return
+			self.__stat = 4
+			self.send_from ()
+				
+		elif self.__stat == 4:
 			if not (200 <= code <= 299):
 				self.__code, self.__resp = code, resp
-				self.__stat = 8
+				self.__stat = 9
 				self.push ("rset")
 				return				
-			self.__stat = 4
+			self.__stat = 5
 			self.push ("rcpt TO:%s" % quoteaddr (self.composer.get_TO ()))
 			
-		elif self.__stat == 4:
+		elif self.__stat == 5:
 			if not (250 <= code <= 251):				
 				self.__code, self.__resp = code, resp
-				self.__stat = 8
+				self.__stat = 9
 				self.push ("rset")
 				return
-			self.__stat = 5
+			self.__stat = 6
 			self.push ("data")
 		
-		elif self.__stat == 5:
+		elif self.__stat == 6:
 			if code != 354:
 				self.__code, self.__resp = code, resp
-				self.__stat = 8
+				self.__stat = 9
 				self.push ("rset")
 				return
-			self.__stat = 8
+			self.__stat = 9
 			
-			q = quotedata(self.composer.get_DATA ())
-			if q[-2:] != CRLF:
-				q = q + CRLF
-			q = q + "."
-			self.__sent = 1
-			self.push (q)
+			q = quotedata (self.composer.get_DATA ()) + ".\r\n"
+			self.push_with_producer (producers.simple_producer (q.encode ("utf8")))
+			#self.push (q.encode ("utf8"))
+			self.__sent = len (q)
 				
-		elif self.__stat == 8:
+		elif self.__stat == 9:
 			if self.__sent and code == 250:
 				self.__code, self.__resp = -250, "OK"
 			elif self.__sent:
 				self.__code, self.__resp = code, resp								
-			self.__stat = 9
+			self.__stat = 10
 			self.push ("quit")
 			
 		else:
 			self.handle_close ()	
 		
 	def handle_connect (self):
-		self.__ltime = time.time ()
+		self.event_time = time.time ()
 	
 	def close (self):
-		self.composer.set_response (self.__code, self.__resp)
+		self.log ("%s %s" % (self.__code, self.__resp), self.__code == -250 and "info" or "fail")
+		if self.callback:
+			self.callback (self.composer, self.__code, self.__resp)		
 		asynchat.async_chat.close (self)
 		
 	def handle_error (self):
-		self.__resp = self.compact_traceback ()		
-		if self.logger:
-			self.logger.trace ()
-		else:
-			print(asnycore.compact_traceback ())
+		self.trace ()
+		self.__code = 900
+		self.__resp = asyncore.compact_traceback() [1].__name__
 		self.close()
-		
+	
 	def handle_close (self):
 		self.close()
 			
@@ -250,21 +349,91 @@ class SMTP (asynchat.async_chat):
 			self.close ()
 	
 	def handle_read (self):
-		self.__ltime = time.time ()
+		self.event_time = time.time ()
 		return asynchat.async_chat.handle_read (self)
 
 	def handle_write(self):
-		self.__ltime = time.time ()
+		self.event_time = time.time ()
 		return asynchat.async_chat.handle_write (self)
     
 	def handle_timeout (self):
 		self.__code, self.__resp = 800, "Timeout"
 		self.close ()
+		
+
+class SMTP_SSL (SMTP):
+	def connect (self, addr):
+		self.handshaking = False
+		SMTP.connect (self, addr)
+					
+	def handle_connect_event(self):
+		if not self.handshaking:
+			err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+			if err != 0:
+				raise socket.error(err, _strerror(err))
+				
+			self.socket = ssl.wrap_socket (self.socket, do_handshake_on_connect = False)			
+			self.handshaking = True
 			
-			
+		try:
+			self.socket.do_handshake ()
+		except ssl.SSLError as why:
+			if why.args[0] in (ssl.SSL_ERROR_WANT_READ, ssl.SSL_ERROR_WANT_WRITE):
+				return # retry handshake
+			raise ssl.SSLError(why)
+		
+		# handshaking done
+		self.handle_connect()
+		self.connected = True
+		
+	def recv (self, buffer_size):
+		self.event_time = time.time ()
+		try:
+			data = self.socket.recv (buffer_size)
+			if not data:
+				if not self.got_data: # disconnected by server
+					self.log ("SSL connection closed by remote server maybe caused by keep-alive timeout, retry connect...", "info")
+					if self.reconnect ():
+						return b''
+				self.handle_close ()
+				return b''
+			else:
+				return data
+
+		except ssl.SSLError as why:
+			if why.errno == ssl.SSL_ERROR_WANT_READ:
+				return b'' # retry
+			# closed connection
+			elif why.errno == ssl.SSL_ERROR_EOF:
+				self.log ("SSL_ERROR_EOF Error Occurred in recv ()", "warn")				
+				self.handle_close ()
+				return b''
+			else:
+				raise
+
+	def send (self, data):
+		self.event_time = time.time ()
+		try:
+			return self.socket.send(data)
+
+		except ssl.SSLError as why:
+			if why.errno == ssl.SSL_ERROR_WANT_WRITE:
+				return 0			
+			else:
+				raise
+	
+
 if __name__ == "__main__":		
-	for i in range (2):
-		SMTP ("hansroh@gmail.com", "hansroh@_lufexx.com", "jh ghjgjh gjh gjhgjh  kkjhkjhkjhk")
+	from skitai.lib import logger
+	from skitai import lifetime
+	
+	log = logger.screen_logger ()
+	m = composer.Composer ("SMTP TEST", "@gmail.com", "@gmail.com")
+	m.add_text ("Hello World<div><img src='cid:A'></div>", "text/html")
+	#m.add_attachment (r"1.png", cid="A")
+	
+	for i in range (1):
+		SMTP_SSL (m, log)
 		
 	asyncore.loop ()
 

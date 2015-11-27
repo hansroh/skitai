@@ -44,6 +44,7 @@ packages = [
 	'skitai.protocol',
 	'skitai.protocol.dns',
 	'skitai.protocol.http',	
+	'skitai.protocol.smtp',
 	'skitai.server',
 	'skitai.server.dbi',
 	'skitai.server.handlers',

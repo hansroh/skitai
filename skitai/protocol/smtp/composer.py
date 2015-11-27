@@ -1,212 +1,187 @@
-import os
-import base64, quopri, re, sys
+from email.base64mime import body_encode as encode_base64
+try:
+	from rfc822 import parseaddr
+except ImportError:
+	from email.utils import parseaddr
+import pickle
+import time, os
 import mimetypes
-import time
-import email, rfc822
-
-class InvalidEmail (Exception): pass
+from hashlib import md5
+import shutil
 
 class Composer:
-	def __init__ (self, subject = None, snd = None, rcpt = None, uid = None, fn = None, header = None):
+	def __init__ (self, subject, snd, rcpt):		
 		self.H = {}
 		self.contents = []
-		self.subject = subject
-		self.snd = snd
-		self.rcpt = rcpt
-		self.fn = fn
-		self.uid = uid
-		self.__responsed = 0
-		self.__got_file = 0
-		
-		self.set_default_header (header)
-		if fn: 
-			self.parseFile (fn)
-		 	
-	def set_default_header (self, header):
-		self.set_header ('MIME-Version', '1.0')
-		self.set_header ('X-Priority', '3')
-		self.set_header ('X-Mailer', 'Email Delivery System')
-		self.set_header ('Date', self.rfc_date ())		
-		if self.subject: self.set_header ('Subject', self.subject.strip ())
-		if self.rcpt: self.set_header ('To', self.rcpt.strip ())
-		if self.snd: self.set_header ('From', self.snd.strip ())
-		
-		if header:
-			for k, v in list(header.items ()): 
-				self.set_header (k, v)
+		self.H ['MIME-Version'] = '1.0'
+		self.H ['Date'] = self.rfc_date ()
+		self.H ['X-Priority'] = '3'
+		self.H ['X-Mailer'] = 'Skitai SMTP Delivery Agent'
+		self.H ['Subject'] = subject.strip ()
+		self.H ['From'] = self.snd = snd.strip ()
+		self.H ['To'] = self.rcpt = rcpt.strip ()
+		self.attachments = []
+		self.content_map = {}
+		self.smtp_server = None
+		self.ssl = False
+		self.login = None
+		self.saved_name = None
+		self.created_time = time.time ()
 	
-	def rfc_date (self):
-		return time.strftime ("%a, %d %b %Y %H:%m:%S -0500", time.localtime (time.time () - 3600 * 14))
-	
-	def parse_address (self, addr):
-		try:
-			return rfc822.parseaddr(addr)
-		except AttributeError:
-			return ("", addr)
-				
-	def encode (self, encoding, data):
-		if encoding == "base64":
-			data = base64.encodestring (data)
-		elif encoding == "qp":
-			data = quori.encodestring (data)
-		return data	
+	def set_smtp (self, server, user = None, password = None, ssl = False):
+		try: 
+			s, p = server.split (":")
+			p = int (p)
+		except ValueError:
+			s, p = server, 25				
+		self.smtp_server = (s, p)
+		self.ssl = ssl
+		if user and password:
+			self.login = (user, password)
 	
 	def set_header (self, name, value):
 		self.H [name] = value
 		
+	def rfc_date (self):
+		return time.strftime ('%a, %d %b %Y %H:%M:%S +0900', time.localtime (time.time ()))
+	
+	def parse_address (self, addr):
+		try:
+			return parseaddr(addr)
+		except AttributeError:
+			return ("", addr)
+				
+	def encode (self, data):
+		return encode_base64 (data)
 		
-	#----------------------------------------------------------------
-	# human interface
-	#----------------------------------------------------------------
-	def parseFile (self, fn):
-		if self.__got_file:
-			raise AssertionError("file already parsed")
-		
-		self.fn = fn		
-		f = open (fn)
-		_uid = f.readline ().strip ()
-		_snd = f.readline ().strip ()		
-		if _snd.find ("@") == -1:
-			raise InvalidEmail("sender address is not valid")
-		_rcpt = f.readline ().strip ()
-		if _rcpt.find ("@") == -1:
-			raise InvalidEmail("reciever address is not valid")
-		_subject = f.readline ().strip ()
-		
-		if not self.uid: 		
-			self.uid = _uid
-		if not self.snd: 		
-			self.snd = _snd		
-			self.set_header ('From', self.snd)
-		if not self.rcpt:
-			self.rcpt = _rcpt
-			self.set_header ("To", self.rcpt)
-		if not self.subject:
-			self.subject = _subject
-			self.set_header ("Subject", self.subject)
-		
-		data = f.read ()
-		
-		if fn [-4:] in (".htm", "html"):
-			self.addText (data, "text/html")
-		else:	
-			self.addText (data, "text/plain")
-			
-		f.close ()
-		
-		self.__got_file = 1		
-			
-	def removeFile (self):
-		if self.fn:
-			try: os.remove (self.fn)
-			except: pass
-		
-	def addText (self, data, mimetype, charset = 'us-asc', encoding = "base64"):
-		if encoding not in ("base64", "qp", "8bit"): encoding = "base64"
-						
+	def add_text (self, data, mimetype, charset = 'utf8'):
 		msg = (
-			"Content-type: %s; charset=\"%s\"\r\n"
-			"Content-Transfer-Encoding: %s\r\n"
-			"\r\n" % (mimetype, charset, encoding)
+			"Content-type: %s; \r\n\tcharset=\"%s\"\r\n"
+			"Content-Transfer-Encoding: base64\r\n"
+			"\r\n" % (mimetype, charset)
 			)		
-		msg += self.encode (encoding, data)
+		msg += self.encode (data)
 		self.contents.append (msg)
 		
-	def addFile (self, filename, mimetype):
-		name = os.path.split (filename) [-1]
-		msg = (
-			"Content-Type: %s; name=\"%s\"\r\n"
-			"Content-transfer-encoding: base64\r\n"
-			"Content-Disposition: attachment; filename=\"%s\"\r\n"
-			"\r\n" % (name, mimetype, name)
-			)
-			
-		data = open (filename, "rb").read ()
-		msg += self.encode ("base64", data)
-		self.contents.append (msg)
+	def add_attachment (self, filename, name = None, cid = None):
+		if not name:
+			name = os.path.split (filename) [-1]			
+		if cid:
+			self.content_map [name] = cid
+		self.attachments.append ((cid, name, filename, mimetypes.guess_type (filename) [0]))
 	
-	def addInline (self, filename, mimetype, cid):
-		name = os.path.split (filename) [-1]
-		msg = (
-			"Content-Type: %s; name=\"%s\"\r\n"
-			"Content-transfer-encoding: base64\r\n"
+	def encode_attachment (self, cid, name, data, mimetype):
+		if cid: 
+			msg = (
+			"Content-ID: <%s>\r\n"
 			"Content-Disposition: inline; filename=\"%s\"\r\n"
-			"Content-ID: %s\r\n"
-			"\r\n" % (mimetype, name, name, cid)
+			"X-Attachment-Id: %s\r\n"
+			% (cid, name, cid)
+		)
+		
+		else:
+			msg = (
+				"Content-Disposition: attachment; filename=\"%s\"\r\n" % name
 			)
-		
-		data = open (filename, "rb").read ()
-		msg += self.encode ("base64", data)
-		self.contents.append (msg)
-	
-	
-	#----------------------------------------------------------------
-	# communicate from async client and agent
-	#----------------------------------------------------------------
-	def set_response	(self, code, resp):
-		self.__code, self.__resp = code, resp
-		self.__responsed = 1
-	
-	def get_response	(self):
-		if self.__responsed:
-			return self.uid, self.__code, self.__resp, self.get_TO ()
-	
-	
-	#----------------------------------------------------------------
-	# for AsyncSmtp
-	#----------------------------------------------------------------
-	def get_filename (self):
-		return self.fn
-	
-	def get_sender (self):
-		return self.snd
-	
-	def get_reciever (self):
-		return self.rcpt
-		
-	def get_UID (self):
-		return self.uid
 			
+		msg += (
+			"MIME-Version: 1.0\r\n"
+			"Content-Type: %s; name=\"%s\"\r\n"
+			"Content-transfer-encoding: base64\r\n"			
+			"\r\n" % (mimetype, name)
+			)
+		msg += self.encode (data)
+		return msg
+	
+	def remove (self):
+		try: os.remove (self.get_FILENAME ())
+		except FileNotFoundError: pass
+	
+	def move (self, path):
+		self.save (path)
+		self.remove ()		
+			
+	def save (self, path):
+		while 1:
+			d = md5 (self.get_FROM () + self.get_TO () + str (time.time ()))
+			fn = os.path.join (path, d.hexdigest ().upper())
+			if not os.path.isfile (fn):
+				self.saved_name = fn
+				with open (fn, "wb") as f:
+					pickle.dump (self, f)				
+				break
+	
+	def is_SSL (self):
+		return self.ssl
+					
+	def get_CREATED_TIME (self):
+		return self.created_time
+				
 	def get_TO (self):
 		return self.parse_address (self.rcpt) [1]
 	
 	def get_FROM (self):
 		return self.parse_address (self.snd) [1]
 	
-	def get_HOST (self):
-		return self.parse_address (self.rcpt) [1].split ("@") [-1]
-		
-	def get_DATA (self):
-		msg = "\r\n".join (["%s: %s" % (k, v) for k, v in list(self.H.items ())]) + "\r\n"
-		
-		if len (self.contents) == 0:
-			raise AttributeError
-			
-		elif len (self.contents) == 1:
-			msg += self.contents [0]
-			
-		else:
-			boundary = '__________' + self.se.replace ('@', '_') + str (time.time ())
-			msg += "Content-type: multipart/mixed; boundary=\"%s\"\r\n\r\n" % boundary
-			for content in self.contents:
-				msg += "--%s\r\n%s\r\n\r\n" % (boundary, content)
-			msg += "--%s--\r\n" % boundary
-		
-		return msg
+	def get_SMTP (self):
+		return self.smtp_server
 	
+	def get_LOGIN (self):
+		return self.login
 	
-		
+	def get_FILENAME (self):
+		return self.saved_name
 				
-if __name__=="__main__":
-	data="""
-<b>testing!!!</b>
-<img src="cid:x" border="3">
-<br>
-	"""
-	file = "g:\\project\\nlcli\\temp\\aapla@aol.com.html"
-	m = Composer ("Tester<hansroh@lufex.com>", fn = file)
+	def get_DATA (self):
+		body = "\r\n".join (["%s: %s" % (k, v) for k, v in self.H.items ()]) + "\r\n"		
+		
+		if len (self.contents) == 0: 
+			raise AttributeError		
+		
+		elif len (self.contents) == 1 and not self.attachments:
+			body += self.contents [0]
+		
+		else:
+			sndemail = self.get_FROM ()
+			boundary = '__________' + sndemail.replace ('@', '_') + "_" + str (time.time ())
+			body += "Content-type: multipart/mixed; \r\n\tboundary=\"%s\"\r\n\r\n" % boundary
+			body += "This is a multi-part message in MIME format.\r\n\r\n"
+			
+			for cid, name, filename, mimetype in self.attachments:
+				f = open (filename, "rb")
+				data = f.read ()
+				f.close ()
+				self.contents.append (self.encode_attachment (cid, name, data, mimetype))
+				
+			for content in self.contents:
+				body += "--%s\r\n%s\r\n\r\n" % (boundary, content)
+			body += "--%s--\r\n" % boundary
+			
+		return body
+
+
+def load (fn):
+	with open (fn, "rb") as f:
+		m = pickle.load (f)		
+	return m
+
 	
-	print(m.getTO ())
-	print(m.getFROM ())
-	print(repr(m.getDATA () [:500]))
+if __name__ == "__main__":
+	data="""Hi, 
+I recieved your message today.
+
+I promise your request is processed with very high priority.
+
+Thanks.
+	"""
+	m = Composer ("e-Mail Test", '"Tester"<hansroh@lufex.com>', '"Hans Roh"<hansroh@gmail.com>')
+	m.set_smtp ("smtp.gmail.com:465", "eunheemax@gmail.com", "!kms2000", True)
+	m.add_text (data, "text/html", "utf8")
+	m.add_attachment (r"d:/download/setup.py", cid="AAA")
+	m.save (r"d:/download")
+	
+	load (m.get_FILENAME ())
+	print (m.get_DATA ())
+	print (m.get_FILENAME ())
+	m.remove ()
 	
