@@ -59,8 +59,8 @@ class Composer:
 			"Content-type: %s; \r\n\tcharset=\"%s\"\r\n"
 			"Content-Transfer-Encoding: base64\r\n"
 			"\r\n" % (mimetype, charset)
-			)		
-		msg += self.encode (data)
+			)
+		msg += self.encode (data.encode ("utf8"))
 		self.contents.append (msg)
 		
 	def add_attachment (self, filename, name = None, cid = None):

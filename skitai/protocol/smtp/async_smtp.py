@@ -1,7 +1,7 @@
 r"""
 D:\apps\skitai\skitai\protocol\smtp>D:\apps\xlmail\lib\sendlufex.py
-send: 'ehlo [192.168.1.120]\r\n'
-reply: '250-smtp.gmail.com at your service, [14.33.246.211]\r\n'
+send: 'ehlo [127.0.0.1]\r\n'
+reply: '250-smtp.gmail.com at your service, [xx.xx.xx.xx]\r\n'
 reply: '250-SIZE 35882577\r\n'
 reply: '250-8BITMIME\r\n'
 reply: '250-AUTH LOGIN PLAIN XOAUTH2 PLAIN-CLIENTTOKEN OAUTHBEARER XOAUTH\r\n'
@@ -10,21 +10,21 @@ reply: '250-PIPELINING\r\n'
 reply: '250-CHUNKING\r\n'
 reply: '250 SMTPUTF8\r\n'
 reply: retcode (250); Msg: smtp.gmail.com at your service, [14.33.246.211]
-send: 'AUTH PLAIN AGV1bmhlZW1heEBnbWFpbC5jb20AIWttczIwMDA=\r\n'
+send: 'AUTH PLAIN RGDSsdRRO=\r\n'
 reply: '235 2.7.0 Accepted\r\n'
 reply: retcode (235); Msg: 2.7.0 Accepted
-send: 'mail FROM:<test@govbidopps.com> size=370\r\n'
+send: 'mail FROM:<test@abc.com> size=370\r\n'
 reply: '250 2.1.0 OK lg14sm30993621pab.45 - gsmtp\r\n'
 reply: retcode (250); Msg: 2.1.0 OK lg14sm30993621pab.45 - gsmtp
-send: 'rcpt TO:<hansroh@gmail.com>\r\n'
+send: 'rcpt TO:<hhh@gmail.com>\r\n'
 reply: '250 2.1.5 OK lg14sm30993621pab.45 - gsmtp\r\n'
 reply: retcode (250); Msg: 2.1.5 OK lg14sm30993621pab.45 - gsmtp
 send: 'data\r\n'
 reply: '354  Go ahead lg14sm30993621pab.45 - gsmtp\r\n'
 reply: retcode (354); Msg: Go ahead lg14sm30993621pab.45 - gsmtp
 data: (354, 'Go ahead lg14sm30993621pab.45 - gsmtp')
-send: 'Date: Fri, 27 Nov 2015 12:47:42 +0900\r\nTo: Hans Roh <hansroh@gmail.com>
-\r\nSubject: e-Mail Test\r\nFrom: Tester <test@govbidopps.com>\r\nMIME-Version:
+send: 'Date: Fri, 27 Nov 2015 12:47:42 +0900\r\nTo: Hans Roh <hhh@gmail.com>
+\r\nSubject: e-Mail Test\r\nFrom: Tester <test@abc.com>\r\nMIME-Version:
 1.0\r\nContent-type: text/html; \r\n\tcharset="UTF-8"\r\nContent-Transfer-Encodi
 ng: quoted-printable\r\n\r\n<h1>Hi</h1>,=20\r\nI recieved your message today.\r\
 nI promise your request is processed with very high priority.\r\n<p>\r\nThanks.\
@@ -53,9 +53,6 @@ OLDSTYLE_AUTH = re.compile(r"auth=(.*)", re.I)
 FEATURE = re.compile (r'(?P<feature>[A-Za-z0-9][A-Za-z0-9\-]*)')
 CRLF = b"\r\n"
 
-class DNSNotFound (Exception): pass
-class SMTPException(OSError): pass
-	
 def quoteaddr(addr):
 	m = (None, None)
 	try:
@@ -69,7 +66,7 @@ def quoteaddr(addr):
 
 def quotedata(data):
 	return re.sub (r'(?m)^\.', '..',
-		re.sub(r'(?:\r\n|\n|\r(?!\n))', CRLF, data))
+		re.sub(r'(?:\r\n|\n|\r(?!\n))', "\r\n", data))
 				
 
 class SMTP (asynchat.async_chat):
@@ -100,14 +97,13 @@ class SMTP (asynchat.async_chat):
 	
 	def connect (self, adrr):
 		self.event_time = time.time ()
-		try: asynchat.async_chat.connect (self, adrr)
-		except: self.handle_error ()	
+		asynchat.async_chat.connect (self, adrr)
 			
 	def get_time (self):
 		return self.event_time
 		
 	def push (self, msg):
-		print ("SEND:", msg)	
+		if self.debug: print ("SEND:", msg)	
 		asynchat.async_chat.push(self, (msg + '\r\n').encode ("utf8"))
 	
 	def trace (self):	
@@ -120,14 +116,12 @@ class SMTP (asynchat.async_chat):
 		try:
 			host, port = self.composer.get_SMTP ()
 			self.connect ((host, port))
-			self.address = host
-			return						
+			self.address = host			
 		except:
-			self.__code, self.__resp = 900, "SMTP Connection Failed"			
-			raise					
+			self.handle_error ()		
 	
 	def collect_incoming_data (self, data):
-		print ("RECV:", data.decode ("utf8"))
+		if self.debug: print ("RECV:", data.decode ("utf8"))
 		self.__line.append(data.decode ("utf8"))
 	
 	def get_reply (self, line):
@@ -172,7 +166,10 @@ class SMTP (asynchat.async_chat):
 		
 		authlist = [auth for auth in preferred_auths if auth in advertised_authlist]
 		if not authlist:
-			raise SMTPException("No suitable authentication method found.")
+			self.__code, self.__resp = 900, "No Suitable Authentication Method"			
+			self.__stat = 9
+			self.push ("rset")
+			return
 		
 		if AUTH_PLAIN in authlist:
 			self.push ("AUTH %s %s" % (AUTH_PLAIN, encode_plain (user, password)))
@@ -216,7 +213,7 @@ class SMTP (asynchat.async_chat):
 				if auth_match:
 					self.esmtp_features["auth"] = self.esmtp_features.get("auth", "") \
 							+ " " + auth_match.groups(0)[0]
-					print (self.esmtp_features)
+					if self.debug: print (self.esmtp_features)
 					continue
 	
 				m=FEATURE.match(each)

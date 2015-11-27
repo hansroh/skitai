@@ -12,7 +12,7 @@ async_smtp.SMTP_SSL (m, log)
 """	
 
 m = composer.Composer ("LUFEX SMTP TEST", "technical@lufex.com", "hansroh@gmail.com")
-m.set_smtp ("mail.lufex.com", "technical", "whddlgkr", True)
+m.set_smtp ("mail.lufex.com:25", "technical", "whddlgkr", True)
 m.add_text ("Hello World<div><img src='cid:A'></div>", "text/html")
 m.add_attachment (r"D:\itunes-incoming-ebook\picpick\001.png", cid="A")
 async_smtp.SMTP (m, log)
