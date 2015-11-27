@@ -129,7 +129,7 @@ def shutdown (exit_code, fast = 0):
 		
 	trigger.wakeselect ()
 
-def loop ():
+def loop (timeout = 30.0):
 	global _shutdown_phase
 	global _shutdown_timeout
 	global _exit_code
@@ -142,7 +142,7 @@ def loop ():
 	_shutdown_timeout = 30
 	_exit_code = 0	
 
-	lifetime_loop()
+	lifetime_loop(timeout)
 	graceful_shutdown_loop()
 
 if hasattr(select, 'poll'):

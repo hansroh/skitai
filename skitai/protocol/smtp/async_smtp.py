@@ -91,8 +91,7 @@ class SMTP (asynchat.async_chat):
 		
 		asynchat.async_chat.__init__(self)		
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
-		self.set_terminator (CRLF)
-		
+		self.set_terminator (CRLF)		
 		self.sendmail ()
 	
 	def connect (self, adrr):
@@ -317,9 +316,15 @@ class SMTP (asynchat.async_chat):
 			self.__stat = 10
 			self.push ("quit")
 			
-		else:
+		else:			
 			self.handle_close ()	
-		
+	
+	def clean_shutdown_control (self, phase, time_in_this_phase):
+		if phase == 3:
+			if self._stat < 99 or self.writable ():
+				return 1
+		return 0
+	
 	def handle_connect (self):
 		self.event_time = time.time ()
 	
@@ -328,6 +333,7 @@ class SMTP (asynchat.async_chat):
 		if self.callback:
 			self.callback (self.composer, self.__code, self.__resp)		
 		asynchat.async_chat.close (self)
+		self.__stat = 99
 		
 	def handle_error (self):
 		self.trace ()

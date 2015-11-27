@@ -27,7 +27,11 @@ class Composer:
 		self.login = None
 		self.saved_name = None
 		self.created_time = time.time ()
+		self.retrys = 0
 	
+	def inc_retry (self):
+		self.retrys += 1
+		
 	def set_smtp (self, server, user = None, password = None, ssl = False):
 		try: 
 			s, p = server.split (":")
@@ -93,18 +97,25 @@ class Composer:
 		msg += self.encode (data)
 		return msg
 	
-	def remove (self):
-		try: os.remove (self.get_FILENAME ())
+	def remove (self, fn = None):
+		if fn is None:
+			fn = self.get_FILENAME ()						
+		try: os.remove (fn)
 		except FileNotFoundError: pass
 	
-	def move (self, path):
-		self.save (path)
-		self.remove ()		
+	def moveto (self, path):
+		old_path = self.get_FILENAME ()
+		try: 
+			self.save (path)
+		except:
+			self.trace ()
+		else:		
+			self.remove (old_path)
 			
 	def save (self, path):
 		while 1:
 			d = md5 (self.get_FROM () + self.get_TO () + str (time.time ()))
-			fn = os.path.join (path, d.hexdigest ().upper())
+			fn = os.path.join (path, "%d.%s" % (self.get_RETRYS (), d.hexdigest ().upper()))
 			if not os.path.isfile (fn):
 				self.saved_name = fn
 				with open (fn, "wb") as f:
@@ -129,6 +140,9 @@ class Composer:
 	def get_LOGIN (self):
 		return self.login
 	
+	def get_RETRYS (self):
+		rturn self.retrys - 1
+		
 	def get_FILENAME (self):
 		return self.saved_name
 				
@@ -163,6 +177,7 @@ class Composer:
 def load (fn):
 	with open (fn, "rb") as f:
 		m = pickle.load (f)		
+	m.inc_retry ()	
 	return m
 
 	
