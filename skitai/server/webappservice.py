@@ -2,6 +2,7 @@ from skitai import VERSION
 import multiprocessing
 from skitai.lib import pathtool, logger
 from .rpc import cluster_manager, cluster_dist_call
+from skitai.protocol.smtp import composer
 
 PSYCOPG2_ENABLED = True
 try: 
@@ -110,7 +111,10 @@ class WAS:
 	
 	def tostream (self, obj, buffer_size = 4096):
 		return Stream (obj, buffer_size)
-				
+	
+	def email (self, subject, snd, rcpt):
+		return composer.Composer (subject, snd, rcpt)
+		
 	def fromjson (self, obj):
 		return json.loads (obj)
 	

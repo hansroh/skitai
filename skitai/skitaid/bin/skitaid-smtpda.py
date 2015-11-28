@@ -1,12 +1,14 @@
 #!/usr/bin/python
-# 2014. 12. 9 by Hans Roh hansroh@gmail.com
+# 2015. 11. 27 by Hans Roh hansroh@gmail.com
 
 import sys, os, getopt
 from skitai import lifetime
 from skitai.lib import flock, pathtool, logger
+from skitai.server.threads import select_trigger
 from skitai.protocol.smtp import async_smtp, composer
 import signal
 import time
+import glob
 
 def hTERM (signum, frame):			
 	lifetime.shutdown (0, 1)
@@ -17,14 +19,18 @@ def hQUIT (signum, frame):
 def hHUP (signum, frame):			
 	lifetime.shutdown (3, 0)
 
-	
+
 class	SMTPDeliverAgent:
+	CONCURRENTS = 4
+	MAX_RETRY = 10
+	UNDELIVERS_KEEP_MAX = 2592000
+
 	def __init__ (self, config, logpath, varpath, consol):
-		self.consol = consol
 		self.config = config
 		self.logpath = logpath
 		self.varpath = varpath
-		
+		self.consol = consol
+		self.last_maintern = 0
 		self.que = {}
 		self.actives = {}
 		self.flock = None
@@ -35,7 +41,7 @@ class	SMTPDeliverAgent:
 	def maintern_shutdown_request (self, now):
 		req = self.flock.lockread ("signal")
 		if not req: return
-		self.wasc.logger ("server", "[info] got signal - %s" % req)
+		self.logger ("[info] got signal - %s" % req)
 		if req == "terminate":			
 			lifetime.shutdown (0, 1)
 		elif req == "restart":			
@@ -53,9 +59,10 @@ class	SMTPDeliverAgent:
 			self.shutdown_in_progress = True
 	
 	def close (self):
-		pass
+		self.logger ("[info] smtpda closed")
 						
 	def run (self):
+		self.logger ("[info] smtpda started")
 		try:
 			try:
 				lifetime.loop (3.0)
@@ -65,8 +72,27 @@ class	SMTPDeliverAgent:
 			self.close ()		
 					
 	def setup (self):
+		val = self.config.getint ("smtpda", "max_retry")
+		if val: self.MAX_RETRY = val
+		val = self.config.getint ("smtpda", "undelivers_keep_max_days")
+		if val: self.UNDELIVERS_KEEP_MAX = val * 3600 * 24
+
+		self.default_smtp = (
+			self.config.getopt ("smtpda", "smtpserver"),
+			self.config.getopt ("smtpda", "user"),
+			self.config.getopt ("smtpda", "password"),
+			self.config.getopt ("smtpda", "ssl") in ("1", "yes") and True or False
+		)
+		
+		# dummy file like object for keeping lifetime loop
+		if os.name == "nt":
+			select_trigger.trigger.address = ('127.9.9.9', 19998)
+		select_trigger.trigger ()
+		
 		self.path_spool = os.path.join (self.varpath, "mail", "spool")
 		pathtool.mkdir (self.path_spool)
+		composer.Composer.SAVE_PATH = self.path_spool
+		
 		self.path_undeliver = os.path.join (self.varpath, "mail", "undeliver")
 		pathtool.mkdir (self.path_undeliver)
 		
@@ -77,7 +103,7 @@ class	SMTPDeliverAgent:
 		
 		lifetime.init ()		
 		lifetime.maintern.sched (3.0, self.handle_spool)
-		if os.name == "nt":			
+		if os.name == "nt":
 			self.flock = flock.Lock (os.path.join (self.varpath, "lock"))
 			self.flock.unlockall ()
 			lifetime.maintern.sched (10.0, self.maintern_shutdown_request)
@@ -92,61 +118,82 @@ class	SMTPDeliverAgent:
 			signal.signal(signal.SIGQUIT, hQUIT)		
 	
 	def send (self):
-		while self.que:		
+		if self.shutdown_in_progress:
+			return
+			
+		while self.que:
 			fn = self.que.popitem () [0]
 			if fn in self.actives: continue
+
 			self.actives [fn] = time.time ()
 			path = os.path.join (self.path_spool, fn)
 			cmps = composer.load (path)
-			if cmps.get_SLL ():
-				request = async_smtp.SMTP_SLL
+			if cmps.get_SMTP () is None:
+				cmps.set_smtp (*self.default_smtp)
+			if cmps.is_SSL ():
+				request = async_smtp.SMTP_SSL
 			else:	
-				request = async_smtp.SMTP			
+				request = async_smtp.SMTP
 			request (cmps, self.logger, self.when_done)					
 			break
 	
-	def when_done (self, code, reps, cmps):
-		fn = cmps.get_FILENAME ()
+	def when_done (self, cmps, code, reps):
+		fn = os.path.split (cmps.get_FILENAME ()) [-1]
+		
 		if code == -250:
 			cmps.remove ()
 		else:
-			if cmps.get_RETRYS () > 10:				
+			if cmps.get_RETRYS () > self.MAX_RETRY:
 				cmps.moveto (self.path_undeliver)
 			else:	
 				cmps.moveto (self.path_spool)		
 		del self.actives [fn]
-		
-		if self.shutdown_in_progress:
-			return
-		
 		self.send ()
 	
-	def handle_spool (self):
+	def maintern (self, current_time):
+		for path in glob.glob (os.path.join (self.path_undeliver, "*.*")):
+			mtime = os.path.getmtime (path)
+			if mtime + self.UNDELIVERS_KEEP_MAX > current_time: # over a month
+				try: os.remove (path)
+				except: self.logger.trace ()
+		self.last_maintern = time.time ()
+		
+	def handle_spool (self, current_time):
 		if self.shutdown_in_progress:
 			return
 		
-		current_time - time.time ()
-		self.que = []
-		for path in glob.glob (os.path.join (self.path_spool, "*.*")):
-			try:
-				retrys, fn = os.path.split (path)[-1].split (".")
-				assert (len (fn) == 32)
-				retrys = int (retrys)
-			except (ValueError, AssertionError):
-				continue
-				
-			ctime = os.get_ctime (path)
-			if retrys > 7:
-				delta = 21600
-			else:
-				delta = 4 ** retrys					
-			if ctime + delta >= current_time and fn not in self.que and fn not in self.actives:
-				self.que [fn] = None
+		if self.last_maintern + 3600 >  current_time:
+			self.maintern (current_time)
 		
-		for i in range (4 - len (self.actives)):
+		if not self.que: # previous que has priority			
+			for path in glob.glob (os.path.join (self.path_spool, "*.*")):
+				try:
+					fn = os.path.split (path)[-1]
+					retrys, digest = fn.split (".")
+					assert (len (digest) == 32)
+					retrys = int (retrys)
+				except (ValueError, AssertionError):
+					continue
+				except:
+					self.logger.trace ()
+					continue
+						
+				mtime = os.path.getmtime (path)
+				if retrys > 7:
+					delta = 21600
+				elif retrys == 0:
+					delta = 0
+				else:
+					delta = 4 ** retrys
+				
+				if retrys >= self.MAX_RETRY:
+					self.que [fn] = None
+				elif mtime + delta <= current_time and fn not in self.que and fn not in self.actives:
+					self.que [fn] = None
+		
+		for i in range (self.CONCURRENTS - len (self.actives)):
 			self.send ()
 	
-
 		
 def usage ():
 		print("""
@@ -167,10 +214,11 @@ if __name__ == "__main__":
 	argopt = getopt.getopt(sys.argv[1:], "hvs", ["help", "verbose", "status"])
 	_varpath = None
 	_consol = False
+	_status = False
 	
 	for k, v in argopt [0]:
 		if k == "--staus" or k == "-s":
-			_conf = v
+			_status = True
 		elif k == "--verbose" or k == "-v":	
 			_consol = True
 		elif k == "--help" or k == "-h":	
@@ -181,6 +229,12 @@ if __name__ == "__main__":
 	_config = skitaid.cf
 	_varpath = os.path.join (skitaid.VARDIR, "daemons", "smtpda")
 	_logpath = os.path.join (skitaid.LOGDIR, "daemons", "smtpda")
+	
+	if _status:
+		print ("=" * 40)
+		print ("Skitai SMTP Delivery Agent Status")
+		print ("=" * 40)
+		sys.exit (0)
 		
 	lck = flock.Lock (os.path.join (_varpath, "lock"))
 	pidlock = lck.get_pidlock ()
@@ -196,14 +250,13 @@ if __name__ == "__main__":
 		sys.stderr = open (os.path.join (_logpath, "stderr.log"), "a")
 	
 	pidlock.make ()
-	service = SMTPDeliverAgent ()
+	service = SMTPDeliverAgent (_config, _logpath, _varpath, _consol)
 		
 	try:
 		service.run ()		
 	finally:	
 		pidlock.remove ()
 		if not _consol:
-			sys.etderr.close ()	
+			sys.stderr.close ()	
 		sys.exit (lifetime._exit_code)
-		
 		

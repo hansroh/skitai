@@ -156,16 +156,20 @@ if "install" in sys.argv or "develop" in sys.argv:
 				os.remove ("/usr/local/bin/skitaid.py")
 			if os.path.isfile ("/usr/local/bin/skitaid-instance.py"):
 				os.remove ("/usr/local/bin/skitaid-instance.py")	
+			if os.path.isfile ("/usr/local/bin/skitaid-smtpda.py"):
+				os.remove ("/usr/local/bin/skitaid-smtpda.py")	
 			if os.path.isfile ("/usr/local/bin/skitaid-install-requirements.sh"):
 				os.remove ("/usr/local/bin/skitaid-install-requirements.sh")
 
 			shutil.copyfile ("skitai/skitaid/bin/skitaid.py", "/usr/local/bin/skitaid.py")
 			shutil.copyfile ("skitai/skitaid/bin/skitaid-instance.py", "/usr/local/bin/skitaid-instance.py")
+			shutil.copyfile ("skitai/skitaid/bin/skitaid-instance.py", "/usr/local/bin/skitaid-smtpda.py")
 			shutil.copyfile ("skitai/skitaid/bin/install-requirements.sh", "/usr/local/bin/skitaid-install-requirements.sh")
 			
 			if not os.path.isdir ("/var/local/skitaid-pub"):
 				shutil.copytree ("skitai/skitaid/pub", "/var/local/skitaid-pub")
 			
+			os.chmod ("/etc/skitaid/skitaid.conf", 0o600)
 			os.chmod ("/usr/local/bin/skitaid.py", 0o755)
 			os.chmod ("/usr/local/bin/skitaid-instance.py", 0o755)
 			os.chmod ("/usr/local/bin/skitaid-install-requirements.sh", 0o755)

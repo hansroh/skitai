@@ -9,8 +9,6 @@ import codecs
 
 def trace ():
 	(file,fun,line), t, v, tbinfo = asyncore.compact_traceback()
-	try: v = str (v)
-	except UnicodeEncodeError: v = v.encode ("utf8", "ignore")
 	return "%s %s %s" % (t, v.strip (), tbinfo)
 		
 def now (detail = 1):
@@ -191,11 +189,9 @@ class rotate_logger (base_logger):
 		finally:	
 			self.cv.release ()
 			
-	def log (self, line, type="info", name=""):
-		if isinstance (line, str):
-			line = line.encode ("ascii", "ignore")
-					
-		line = "%s %s%s\n" % (now(), self.tag (type, name), str (line).strip ())		
+	def log (self, line, ltype="info", name=""):
+		line = "%s %s%s\n" % (now(), self.tag (ltype, name), line)
+		
 		if self.filter and type not in self.filter:
 			return line
 		

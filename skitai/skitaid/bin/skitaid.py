@@ -97,10 +97,46 @@ class Server:
 		else:
 			os.kill (self.child.pid, signal.SIGTERM)
 
+
+class SMTPDA (Server):
+	def __init__ (self, name, logger):
+		self.name = name
+		self.logger = logger
+		self.child = None
+		self.flock = flock.Lock (os.path.join (VARDIR, "daemons", self.name, "lock"))
+		self.start_time = None
+		self.backoff_start_time = None
+		self.backoff_interval = 5
+	
+	def start (self):
+		self.start_time = time.time ()
+		if os.name == "nt":
+			cmd = "%s %s" % (PYTHON, os.path.join (SKITAI_BIN, "skitaid-smtpda.py"))
+		else:
+			cmd = "%s" % (os.path.join (SKITAI_BIN, "skitaid-smtpda.py"),)
+				
+		if not IS_SERVICE:
+			cmd += " --verbose"
+		self.logger ("[info] starting server with option: %s" % cmd)
+		if os.name == "nt":
+			self.child = subprocess.Popen (
+				cmd, 
+				shell = True,
+				creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
+			)
+						
+		else:
+			self.child = subprocess.Popen (
+				"exec " + cmd, 
+				shell = True
+			)
+			
+
 class Servers:
 	BACKOFF_MAX_INTERVAL = 600	
 	CLEAN_SHUTDOWNED = {}
 	RESTART_QUEUE = {}
+	DAEMONS = ("smtpda",)
 	
 	def __init__ (self, logger):
 		self.logger = logger
@@ -120,6 +156,10 @@ class Servers:
 		for name in slist:
 			if name [-5:] != ".conf": continue
 			name = name [:-5]
+			
+			if name in self.DAEMONS:
+				raise NameError ("%s is system reserved, change config name, please" % name)
+				
 			if name not in self.a:
 				if name not in self.CLEAN_SHUTDOWNED:
 					want_to_start [name] = None
@@ -140,7 +180,7 @@ class Servers:
 						except KeyError: pass
 		
 		for name in self.a:
-			if name + ".conf" not in slist:
+			if name not in (self.DAEMONS) and name + ".conf" not in slist:
 				want_to_shutdown [name] = None				
 		
 		self.last_slist = slist
@@ -181,8 +221,15 @@ class Servers:
 	
 	def rotate (self):
 		self.logger.rotate ()
+	
+	def start_daemons (self):			
+		name = "smtpda"
+		self.a [name] = SMTPDA (name, self.logger)
+		self.a [name].start ()
 				
 	def start (self):
+		self.start_daemons ()
+						
 		while self.a or LOOP:
 			if os.name == "nt":
 				sig = self.lock.lockread ("signal")
@@ -252,7 +299,12 @@ Examples:
 def _touch (req, name):
 	if name.endswith (".conf"):
 		name = name [:-5]
-	lockpath = os.path.join (VARDIR, "instances", name, "lock")
+	if name in Servers.DAEMONS:
+		midpath = "daemons"
+	else:
+		midpath = "instances"
+			
+	lockpath = os.path.join (VARDIR, midpath, name, "lock")
 	
 	if req == "start": 
 		req = "restart"

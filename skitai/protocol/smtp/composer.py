@@ -10,6 +10,7 @@ from hashlib import md5
 import shutil
 
 class Composer:
+	SAVE_PATH = None
 	def __init__ (self, subject, snd, rcpt):		
 		self.H = {}
 		self.contents = []
@@ -27,7 +28,7 @@ class Composer:
 		self.login = None
 		self.saved_name = None
 		self.created_time = time.time ()
-		self.retrys = 0
+		self.retrys = 1
 	
 	def inc_retry (self):
 		self.retrys += 1
@@ -105,16 +106,12 @@ class Composer:
 	
 	def moveto (self, path):
 		old_path = self.get_FILENAME ()
-		try: 
-			self.save (path)
-		except:
-			self.trace ()
-		else:		
-			self.remove (old_path)
+		self.save (path)
+		self.remove (old_path)
 			
 	def save (self, path):
 		while 1:
-			d = md5 (self.get_FROM () + self.get_TO () + str (time.time ()))
+			d = md5 ((self.get_FROM () + self.get_TO () + str (time.time ())).encode ("utf8"))
 			fn = os.path.join (path, "%d.%s" % (self.get_RETRYS (), d.hexdigest ().upper()))
 			if not os.path.isfile (fn):
 				self.saved_name = fn
@@ -122,6 +119,9 @@ class Composer:
 					pickle.dump (self, f)				
 				break
 	
+	def send (self):
+		self.save (self.SAVE_PATH)
+		
 	def is_SSL (self):
 		return self.ssl
 					
@@ -141,7 +141,7 @@ class Composer:
 		return self.login
 	
 	def get_RETRYS (self):
-		rturn self.retrys - 1
+		return self.retrys - 1
 		
 	def get_FILENAME (self):
 		return self.saved_name

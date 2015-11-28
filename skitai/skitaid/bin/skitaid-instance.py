@@ -94,7 +94,7 @@ class	WAS (Skitai.Loader):
 		elif req == "shutdown":
 			lifetime.shutdown (0, 0)		
 		elif req == "rotate":
-			self.wasc.log.rotate ()
+			self.wasc.logger.rotate ()
 		else:
 			self.wasc.logger ("server", "[error] unknown signal - %s" % req)
 		self.flock.unlock ("signal")
@@ -104,15 +104,15 @@ class	WAS (Skitai.Loader):
 def usage ():
 		print("""
 Usage:
-	server.py [options...]
+	skitaid-instance.py [options...]
 
 Options:
 	--conf or -f [ea]/yekeulus
 	--verbose or -v
 
 Examples:
-	ex. server.py -v -f default
-	ex. server.py -f default	
+	ex. skitaid-instance.py -v -f default
+	ex. skitaid-instance.py -f default	
 	""")
 
 
@@ -183,7 +183,6 @@ if __name__ == "__main__":
 		sys.stderr = open (os.path.join (_logpath, "stderr.log"), "a")
 	
 	pidlock.make ()
-	service = None
 	service = WAS (_config, _logpath, _varpath, _consol)
 	
 	try:
@@ -194,7 +193,7 @@ if __name__ == "__main__":
 		if _exit_code is not None: # master process
 			pidlock.remove ()
 			if not _consol:
-				sys.etderr.close ()	
+				sys.stderr.close ()	
 			sys.exit (_exit_code)
 		
 		else: # worker process
