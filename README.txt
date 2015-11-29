@@ -194,6 +194,8 @@ Documentation
 
 Change Log
 -------------
+  0.9.4.1 - fix init.d script
+
   0.9.4 - (1)works on Python 3, but unstable yet (2)add was.email() (3)improve rpc & proxy performence
   
   0.9.3.7 - add skitaid-install-requirements.sh for psycopg2 and M2Crypto
