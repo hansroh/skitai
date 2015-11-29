@@ -7,14 +7,19 @@ from . import pathtool
 import types
 import codecs
 
+PY_MAJOR_VERSION = sys.version_info.major
+
 def trace ():
 	(file,fun,line), t, v, tbinfo = asyncore.compact_traceback()
-	return "%s %s %s" % (t, v.strip (), tbinfo)
+	try:
+		v = str (v)
+	except UnicodeEncodeError:
+		pass
+	return "%s %s %s" % (t, v, tbinfo)
 		
 def now (detail = 1):
 	if detail: return time.strftime("%Y.%m.%d %H:%M:%S", time.localtime(time.time()))
 	else: return time.strftime("%Y%m%d", time.localtime(time.time()))
-	
 	
 class base_logger:
 	def __init__(self, out, cacheline = 100, flushnow = 0):
@@ -49,9 +54,14 @@ class base_logger:
 			self.__cache = self.__cache [:self.cacheline]
 	
 	def tag (self, type, name):
+		try:
+			name = str (name)
+		except UnicodeEncodeError:
+			pass
+			
 		tag = ""
 		if type: 
-			tag = "[%s%s] " % (type, name and ":" + str (name) or "")
+			tag = "[%s%s] " % (type, name and ":" + name or "")
 		return tag
 		
 	def log (self, line, type = "info", name = ""):
@@ -189,25 +199,29 @@ class rotate_logger (base_logger):
 		finally:	
 			self.cv.release ()
 			
-	def log (self, line, ltype="info", name=""):
-		line = "%s %s%s\n" % (now(), self.tag (ltype, name), line)
+	def log (self, line, type="info", name=""):
+		try:
+			line = str (line)
+		except UnicodeEncodeError:
+			pass
 		
+		lline = "%s %s%s\n" % (now(), self.tag (type, name), line)		
 		if self.filter and type not in self.filter:
-			return line
+			return lline
 		
 		self.cv.acquire ()
 		self.using = 1		
 		try:
-			self.out.write (line)
+			self.out.write (lline)
 			if self.flushnow: self.flush ()
 			self.cache (line)
 		except:
-			pass
+			self.out.write ("%s %%s\n", (now(), self.tag (type, name), repr (line)))
 			
 		self.using = 0
 		self.numlog += 1
 		numlog = self.numlog
-		self.cv.notify_all ()		
+		self.cv.notify_all ()
 		self.cv.release ()
 		
 		if numlog % 1000 == 0:
