@@ -42,7 +42,7 @@ class Service (win32serviceutil.ServiceFramework):
 	def makeEnvirion (self):
 		os.environ["PYTHONPATH"] = ""
 		os.chdir (SKITAI_BIN)
-		self.cmd = "%s %s"  % (PYTHON, os.path.join (SKITAI_BIN, "skitaid.py"))		
+		self.cmd = "%s %s" % (PYTHON, os.path.join (SKITAI_BIN, "skitaid.py"))		
 		
 	def createProcess(self, cmd):
 		info  = win32process.CreateProcess(None, cmd, None, None, 0, win32process.CREATE_NEW_PROCESS_GROUP, None, None, win32process.STARTUPINFO())

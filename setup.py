@@ -163,7 +163,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 
 			shutil.copyfile ("skitai/skitaid/bin/skitaid.py", "/usr/local/bin/skitaid.py")
 			shutil.copyfile ("skitai/skitaid/bin/skitaid-instance.py", "/usr/local/bin/skitaid-instance.py")
-			shutil.copyfile ("skitai/skitaid/bin/skitaid-instance.py", "/usr/local/bin/skitaid-smtpda.py")
+			shutil.copyfile ("skitai/skitaid/bin/skitaid-smtpda.py", "/usr/local/bin/skitaid-smtpda.py")
 			shutil.copyfile ("skitai/skitaid/bin/install-requirements.sh", "/usr/local/bin/skitaid-install-requirements.sh")
 			
 			if not os.path.isdir ("/var/local/skitaid-pub"):

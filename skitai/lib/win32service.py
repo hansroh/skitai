@@ -8,16 +8,16 @@ def is_service_running (service, machine=''):
 	
 def service_control(service, action, machine=''):
 	if action == 'stop':
-		 try:
+		try:
 			win32serviceutil.StopService(service, machine)
 			return True
-		 except:
+		except:
 			return False
 	elif action == 'start':
-		 try:
+		try:
 			win32serviceutil.StartService(service, machine)
 			return True
-		 except:
+		except:
 			return False             
 	elif action == 'restart':
 		try:
@@ -36,4 +36,4 @@ def service_control(service, action, machine=''):
 
 
 
-	     
+	    
