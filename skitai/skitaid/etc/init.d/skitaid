@@ -12,8 +12,8 @@ check() {
     fi
 
     pid1=`cat $pidfile`
-    pid2=`ps -ef | grep '[/]usr/bin/python2 /usr/local/bin/skitaid.py' | awk '{ print $2 }'`
-    if [ $pid1 -eq $pid2 ]
+    pid2=`ps -ef | grep '[/]usr/bin/python /usr/local/bin/skitaid.py' | awk '{ print $2 }'`
+    if [ "$pid1" = "$pid2" ]
     then
         return 1
     else
@@ -40,7 +40,15 @@ stop() {
         pid=`cat $pidfile`
         echo "$SNAME stopping..."
         kill $pid
-        sleep 2
+        while [ 1 -eq 1 ] 
+	do 
+		sleep 1
+		check
+		if [ $? -eq 0 ] 
+		then
+			break
+		fi
+	done
         echo "$SNAME stopped"
     else
         echo "$SNAME already stopped"
