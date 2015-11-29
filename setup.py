@@ -172,6 +172,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 			os.chmod ("/etc/skitaid/skitaid.conf", 0o600)
 			os.chmod ("/usr/local/bin/skitaid.py", 0o755)
 			os.chmod ("/usr/local/bin/skitaid-instance.py", 0o755)
+			os.chmod ("/usr/local/bin/skitaid-smtpda.py", 0o755)
 			os.chmod ("/usr/local/bin/skitaid-install-requirements.sh", 0o755)
 			
 			print("\n\n======================================")
