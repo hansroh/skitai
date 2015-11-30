@@ -24,7 +24,7 @@ It also influenced by Zope_ and Flask_ a lot.
 Skitai is not a framework for convinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your apps as both server and client.
 
 
-Chnages
+Changes
 ---------
 
 New services added
