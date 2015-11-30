@@ -248,7 +248,8 @@ class Request (http_request.Request):
 		try:
 			self.response = Response (self.request, buffer.decode ("utf8"), accept_gzip, self.client_request, self.asyncon)
 		except:
-			self.log ("response header error: `%s`" % repr (buffer.decode ("utf8") [:80]), "error")
+			#print (buffer)
+			self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
 			raise
 		
 		if self.is_continue_response ():
@@ -372,13 +373,13 @@ class Handler (ssgi_handler.Handler):
 				collector = self.make_collector (Collector, request, post_max_size)
 				if collector:
 					request.collector = collector
-					collector.start_collect ()					
+					collector.start_collect ()
 				else:
-					return # not allowed
-								
+					return # error was already called in make_collector ()
+			
 			self.continue_request(request, collector)			
 					
-	def continue_request (self, request, collector):	
+	def continue_request (self, request, collector):		
 		request.response ["Proxy-Agent"] = "sae-pa"
 		
 		if self.is_cached (request, collector is not None):

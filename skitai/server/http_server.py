@@ -284,6 +284,7 @@ class http_channel (asynchat.async_chat):
 						self.server.trace()
 						try: r.error (500)
 						except: pass
+							
 					return
 					
 			r.error (404)

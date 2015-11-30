@@ -228,37 +228,26 @@ Documentation
 
 Change Log
 -------------
-  0.9.4.2 - fix asyndns, asynconnect
+
+  0.9.4.5 - fix asyndns, asyncon reconnect
   
   0.9.4.1 - fix init.d script
 
   0.9.4 - (1)works on Python 3, but unstable yet (2)add was.email() (3)improve rpc & proxy performance
   
   0.9.3.7 - add skitaid-install-requirements.sh for psycopg2 and M2Crypto
-	
-  0.9.3.5 - update documentation (README.md)
-  
-  0.9.3.3 - modify init.d script
-  
+	  
   0.9.3.2 - change default log and var path 
-
-  0.9.3 - works as standalone server with Python 2.7
-    
+ 
   0.9.2 - fix multipart file upload
   
   0.9.1.32 - fix reverse proxy Host header
-  
-  0.9.1.31 - update documentation abount Asyncall Result Handling
-  
+
   0.9.1.30 - was.wget, was.rest (former was.rpc), was.map, was.lb specification changed. see Documentation.
-  
-  0.9.1.29 - was.wget, was.rpc, was.map, was.lb specification changed. see Documentation.
   
   0.9.1.28 - add HEAD, DELETE, OPTIONS methods
   
   0.9.1.27 - support Map-Reduce, Load_Balanace for (json & xml serialized object over) HTTP Call
-  
-  0.9.1.26 - fix response.error
   
   0.9.1.25 - fix xmlrpc server uri, I misunderstood all xmlrpc uri is /rpc2
   
@@ -266,24 +255,8 @@ Change Log
   
   0.9.1.23 - add some methods to was.request, add "X-Forwarded-For" to proxy_handler
   
-  0.9.1.20 - fix bug for static file response
-  
   0.9.1.19 - new was member, was.response
-  
-  0.9.1.18 - ignore EWOULDBLOCK raised with multi-workers on posix
-  
-  0.9.1.17 - Fix adns double callbacking on posix machine, external networking works fine
-  
-  0.9.1.16 - Add streaming response
-  
-  0.9.1.15 - Improve consistency of handlers' exception handling
       
   0.9.1.14 - Automation session commit
-    
-  0.9.1.13 - Fix ip= config and add README.md (incompleted)
   
   0.9.1.12 - Fix / App Routing
-    
-  0.9.1.11 - Change sample configuration files and bug fix skitaid.py
-  
-  0.9.1.10 - Found lots of requirements I didn't think

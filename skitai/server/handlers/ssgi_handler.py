@@ -367,12 +367,12 @@ class Job:
 					if not self.was.request.response.has_key ("content-type"):
 						self.was.request.response.update ('Content-Type', "text/html")				
 					
-					type_of_response = type (response)					
-					if PY_MAJOR_VERSION >=3 and type_of_response is str:
+					type_of_response = type (response)
+					if (PY_MAJOR_VERSION >=3 and type_of_response is str) or (PY_MAJOR_VERSION <3 and type_of_response is unicode):
 							response = response.encode ("utf8")
 							type_of_response = bytes
 					
-					if type_of_response is bytes:			
+					if type_of_response is bytes:
 						self.was.request.response.update ('Content-Length', len (response))			
 						trigger.wakeup (lambda p=self.was.response, d=response: (p.push(d), p.done()))
 			

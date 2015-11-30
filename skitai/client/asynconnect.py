@@ -56,8 +56,7 @@ class AsynConnect (asynchat.async_chat):
 			
 	def initialize (self):
 		self.request = None
-		self.recieved = False
-		self.sent = False
+		self.received = False
 		self.close_it = True
 		self.errcode = 0
 		self.errmsg = ""
@@ -198,13 +197,13 @@ class AsynConnect (asynchat.async_chat):
 					return
 		
 		asynchat.async_chat.connect (self, self.address)
-			
+	
 	def recv (self, buffer_size):
 		self.event_time = time.time ()
 		try:
 			data = self.socket.recv(buffer_size)			
 			if not data:
-				if not self.recieved and self.reconnect (): # disconnected by server
+				if self.reconnect (): # disconnected by server
 					self.log ("Connection Closed in recv (), Try Reconnect...", "info")
 					return b''
 				self.handle_close ()
@@ -212,9 +211,9 @@ class AsynConnect (asynchat.async_chat):
 			else:
 				return data
 		
-		except socket.error as why:			
+		except socket.error as why:
 			if why.errno in asyncore._DISCONNECTED:
-				if not self.recieved and self.reconnect (): # disconnected by server
+				if self.reconnect (): # disconnected by server
 					self.log ("Connection Closed By _DISCONNECTED in recv (), Try Reconnect...", "info")
 					return b''
 				self.close_it = True
@@ -226,25 +225,26 @@ class AsynConnect (asynchat.async_chat):
 	def send (self, data):
 		self.event_time = time.time ()
 		try:
-			sent = self.socket.send (data)
-			self.sent = True
-			return sent
+			return self.socket.send (data)
 						
 		except socket.error as why:
 			if why.errno == EWOULDBLOCK:
 				return 0
 				
 			elif why.errno in asyncore._DISCONNECTED:
-				if not self.sent and self.reconnect ():
+				if self.reconnect ():
 					self.log ("Connection Closed in send (), Try Reconnect...", "info")
 					return 0
 				self.close_it = True
 				self.handle_close ()
 				return 0
+				
 			else:
 				raise
 	
-	def reconnect (self):		
+	def reconnect (self):	
+		if self.received:
+			return False
 		self.close_socket ()
 		return self.request.retry ()		
 
@@ -290,7 +290,7 @@ class AsynConnect (asynchat.async_chat):
 	def collect_incoming_data (self, data):
 		if not self.request: 
 			return # already closed
-		self.recieved = True
+		self.received = True
 		self.request.collect_incoming_data (data)
 	
 	def found_terminator (self):
@@ -362,10 +362,9 @@ class AsynSSLConnect (AsynConnect):
 		try:
 			data = self.socket.recv (buffer_size)
 			if not data:
-				if not self.recieved: # disconnected by server
-					self.log ("SSL Connection Closed in recv (), Retry Connect...", "info")
-					if self.reconnect ():
-						return b''
+				if self.reconnect ():
+					self.log ("SSL Connection Closed in recv (), Retry Connect...", "info")					
+					return b''					
 				self.handle_close ()
 				return b''
 			else:
@@ -377,7 +376,7 @@ class AsynSSLConnect (AsynConnect):
 			
 			# closed connection
 			elif why.errno == ssl.SSL_ERROR_ZERO_RETURN:
-				if not self.recieved and self.reconnect (): # disconnected by server
+				if self.reconnect (): # disconnected by server
 					self.log ("Connection Closed (SSL_ERROR_ZERO_RETURN) in recv (), Try Reconnect...", "info")
 					return b''
 				self.close_it = True
@@ -397,15 +396,13 @@ class AsynSSLConnect (AsynConnect):
 	def send (self, data):
 		self.event_time = time.time ()
 		try:
-			sent = self.socket.send(data)
-			self.sent = True
-			return sent
+			return self.socket.send(data)			
 
 		except ssl.SSLError as why:
 			if why.errno == ssl.SSL_ERROR_WANT_WRITE:
 				return 0
 			elif why.errno == ssl.SSL_ERROR_ZERO_RETURN:
-				if not self.sent and self.reconnect ():
+				if self.reconnect ():
 					self.log ("Connection Closed (SSL_ERROR_ZERO_RETURN) in send (), Try Reconnect...", "info")
 					return 0
 				self.close_it = True	

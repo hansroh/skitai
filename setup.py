@@ -1,9 +1,9 @@
 """
-Hans Roh 2015 -- http://sae.skitai.com
+Hans Roh 2015 -- http://osp.skitai.com
 License: BSD
 """
 
-__VER__ = '0.9.4.4'
+__VER__ = '0.9.4.5'
 
 import sys
 import os
