@@ -56,7 +56,8 @@ class AsynConnect (asynchat.async_chat):
 			
 	def initialize (self):
 		self.request = None
-		self.got_data = False
+		self.recieved = False
+		self.sent = False
 		self.close_it = True
 		self.errcode = 0
 		self.errmsg = ""
@@ -203,22 +204,20 @@ class AsynConnect (asynchat.async_chat):
 		try:
 			data = self.socket.recv(buffer_size)			
 			if not data:
-				if not self.got_data: # disconnected by server
-					self.log ("connection closed by remote server maybe caused by keep-alive timeout, retry connect...", "info")
-					if self.reconnect ():
-						return b''
+				if not self.recieved and self.reconnect (): # disconnected by server
+					self.log ("Connection Closed in recv (), Try Reconnect...", "info")
+					return b''
 				self.handle_close ()
 				return b''
-			else:								
+			else:
 				return data
 		
 		except socket.error as why:			
 			if why.errno in asyncore._DISCONNECTED:
-				if not self.got_data: # disconnected by server
-					self.log ("_DISCONNECTED Error in recv (), retry connect...", "info")					
-					if self.reconnect ():
-						return b''
-				self.close_it = True				
+				if not self.recieved and self.reconnect (): # disconnected by server
+					self.log ("Connection Closed By _DISCONNECTED in recv (), Try Reconnect...", "info")
+					return b''
+				self.close_it = True
 				self.handle_close ()
 				return b''
 			else:
@@ -227,12 +226,19 @@ class AsynConnect (asynchat.async_chat):
 	def send (self, data):
 		self.event_time = time.time ()
 		try:
-			return self.socket.send(data)									
+			sent = self.socket.send (data)
+			self.sent = True
+			return sent
+						
 		except socket.error as why:
 			if why.errno == EWOULDBLOCK:
 				return 0
+				
 			elif why.errno in asyncore._DISCONNECTED:
-				self.close_it = True				
+				if not self.sent and self.reconnect ():
+					self.log ("Connection Closed in send (), Try Reconnect...", "info")
+					return 0
+				self.close_it = True
 				self.handle_close ()
 				return 0
 			else:
@@ -267,7 +273,7 @@ class AsynConnect (asynchat.async_chat):
 	
 	def initiate_send (self):
 		if self.is_channel_in_map ():
-			asynchat.async_chat.initiate_send (self)		
+			return asynchat.async_chat.initiate_send (self)		
 		
 	# proxy POST need no init_send
 	def push (self, thing, init_send = True):
@@ -284,7 +290,7 @@ class AsynConnect (asynchat.async_chat):
 	def collect_incoming_data (self, data):
 		if not self.request: 
 			return # already closed
-		self.got_data = True
+		self.recieved = True
 		self.request.collect_incoming_data (data)
 	
 	def found_terminator (self):
@@ -356,8 +362,8 @@ class AsynSSLConnect (AsynConnect):
 		try:
 			data = self.socket.recv (buffer_size)
 			if not data:
-				if not self.got_data: # disconnected by server
-					self.log ("SSL connection closed by remote server maybe caused by keep-alive timeout, retry connect...", "info")
+				if not self.recieved: # disconnected by server
+					self.log ("SSL Connection Closed in recv (), Retry Connect...", "info")
 					if self.reconnect ():
 						return b''
 				self.handle_close ()
@@ -368,12 +374,12 @@ class AsynSSLConnect (AsynConnect):
 		except ssl.SSLError as why:
 			if why.errno == ssl.SSL_ERROR_WANT_READ:
 				return b'' # retry
+			
 			# closed connection
 			elif why.errno == ssl.SSL_ERROR_ZERO_RETURN:
-				if not self.got_data: # disconnected by server
-					self.log ("SSL_ERROR_ZERO_RETURN Error Occurred in recv (), retry connect...", "info")
-					if self.reconnect ():						
-						return b''
+				if not self.recieved and self.reconnect (): # disconnected by server
+					self.log ("Connection Closed (SSL_ERROR_ZERO_RETURN) in recv (), Try Reconnect...", "info")
+					return b''
 				self.close_it = True
 				self.handle_close ()
 				return b''	
@@ -384,17 +390,27 @@ class AsynSSLConnect (AsynConnect):
 				self.close_it = True
 				self.handle_close ()
 				return b''
+				
 			else:
 				raise
 
 	def send (self, data):
 		self.event_time = time.time ()
 		try:
-			return self.socket.send(data)
+			sent = self.socket.send(data)
+			self.sent = True
+			return sent
 
 		except ssl.SSLError as why:
 			if why.errno == ssl.SSL_ERROR_WANT_WRITE:
-				return 0			
+				return 0
+			elif why.errno == ssl.SSL_ERROR_ZERO_RETURN:
+				if not self.sent and self.reconnect ():
+					self.log ("Connection Closed (SSL_ERROR_ZERO_RETURN) in send (), Try Reconnect...", "info")
+					return 0
+				self.close_it = True	
+				self.handle_close ()
+				return 0
 			else:
 				raise
 		
