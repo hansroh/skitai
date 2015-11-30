@@ -3,7 +3,7 @@ Hans Roh 2015 -- http://sae.skitai.com
 License: BSD
 """
 
-__VER__ = '0.9.4.2'
+__VER__ = '0.9.4.3'
 
 import sys
 import os
@@ -16,7 +16,7 @@ except ImportError:
 
 if sys.argv[-1] == 'publish':
 	if os.name == "nt":
-		os.system('python setup.py sdist bdist_wininst --target-version=2.7 upload') # bdist_wininst
+		os.system('python setup.py sdist upload') # bdist_wininst --target-version=2.7
 	else:		
 		os.system('python setup.py sdist upload')
 	sys.exit()
@@ -67,7 +67,9 @@ skitaid_files = [
 	"skitaid/etc/skitaid/skitaid.conf",
 	"skitaid/etc/skitaid/servers-available/README.TXT", 
 	"skitaid/etc/skitaid/servers-enabled/default.conf",
-	"skitaid/etc/skitaid/cert/generate/*.*"
+	"skitaid/etc/skitaid/cert/generate/*.*",
+	"protocol/dns/*.txt",
+	"protocol/dns/pydns/*.txt"	
 ]
 
 package_data = {
