@@ -93,7 +93,7 @@ class AsynConnect (asynchat.async_chat):
 				return True
 		return False
 	
-	def is_in_channel (self, map = None):
+	def is_channel_in_map (self, map = None):
 		if map is None:
 			map = self._map
 		return self._fileno in map
@@ -266,7 +266,7 @@ class AsynConnect (asynchat.async_chat):
 			self.handle_error ()
 	
 	def initiate_send (self):
-		if self.is_in_channel ():
+		if self.is_channel_in_map ():
 			asynchat.async_chat.initiate_send (self)		
 		
 	# proxy POST need no init_send
