@@ -115,7 +115,7 @@ class Collector (ssgi_handler.Collector):
 		self.content_length = self.get_content_length ()
 	
 	def reuse_cache (self):
-		self.data = self.cache + self.data
+		self.data = self.cache + self.data		
 		self.cache = []
 			
 	def start_collect (self):	
@@ -166,9 +166,9 @@ class Collector (ssgi_handler.Collector):
 			if tl > self.ac_in_buffer_size:
 				break
 			data.append (self.data.pop (0))
-		if self.cached:
-			self.cache += data
 		
+		if self.cached:			
+			self.cache += data
 		#print "proxy_handler.collector.more >> %d" % tl, id (self)
 		return b"".join (data)
 		
@@ -232,9 +232,9 @@ class Request (http_request.Request):
 		return False
 			
 	def create_response (self):
-		#print "#################################"
-		#print self.buffer
-		#print "---------------------------------"		
+		#print ("#################################")
+		#print (self.buffer)
+		#print ("---------------------------------")
 		
 		if not self.client_request.channel:
 			return
@@ -306,9 +306,7 @@ class Request (http_request.Request):
 		self.asyncon.push_with_producer (self.collector, init_send = False)
 								
 	def get_request_buffer (self):
-		data = self.request.get_data ()
-		hc = {}
-		
+		hc = {}		
 		if self.asyncon.address [1] in (80, 443):
 			hc ["Host"] = "%s" % self.asyncon.address [0]
 		else:
@@ -337,9 +335,9 @@ class Request (http_request.Request):
 			"\r\n".join (["%s: %s" % x for x in list(hc.items ())])			
 		)
 		
-		#print "#################################"
-		#print req
-		#print "---------------------------------"
+		#print ("#################################")
+		#print (req)
+		#print ("---------------------------------")
 		return req.encode ("utf8")
 
 			

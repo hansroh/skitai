@@ -291,7 +291,7 @@ class Request:
 		if self.callback:
 			self.callback (self)
 		
-	def collect_incoming_data (self, data):		
+	def collect_incoming_data (self, data):
 		if not self.response or self.asyncon.get_terminator () == b"\r\n":
 			self.buffer += data
 		else:

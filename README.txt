@@ -24,6 +24,42 @@ It also influenced by Zope_ and Flask_ a lot.
 Skitai is not a framework for convinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your apps as both server and client.
 
 
+Chnages
+---------
+
+New services added
+
+.. code:: python
+
+    # streaming response for stream objects like file, large string list...
+    # object should have read() method
+    return was.tostream (f = open ("large-movie.mp4", "rb"))
+    
+    # email delivery service
+    e = was.email (subject, snd, rcpt)
+    e.set_smtp ("127.0.0.1:465", "username", "password", ssl = True)
+    e.add_text ("Hello World<div><img src='cid:ID_A'></div>", "text/html")
+    e.add_attachment (r"001.png", cid="ID_A")
+    e.send ()    
+
+With asynchronous email delivery service, can add default SMTP Server config to skitaid.conf (/etc/skitaid/skitaid.conf or c:\skitaid\etc\skitaid.conf).
+If it is configured, you can skip e.set_smtp(). But be careful for keeping your smtp password.
+
+.. code:: python
+
+    [smtpda]
+    smtpserver = 127.0.0.1:25
+    user = 
+    password = 
+    ssl = no
+    max_retry = 10
+    undelivers_keep_max_days = 30
+
+
+
+At a Glance
+------------
+
 **Basic Configure**
 
 .. code:: python
@@ -125,8 +161,6 @@ Then write /home/skitaid/app/webapp.py
 Requirements
 -------------
 
-* *Currently only tested in Python 2.7*
-
 * Skitaid can find at least one DNS server from system configuration for Async-DNS query. Possibly it is only problem on dynamic IP allocated desktop, then set DNS manually, please.
 
 
@@ -150,8 +184,8 @@ Use 'pip install ...'
 
 *(Optional)*
 
-- *M2Crypto binary* - https://github.com/saltstack/salt-windows-install/tree/master/deps/win32-py2.7
-- *jsonrpclib* for serving JSON-RPC
+- *M2Crypto binary* - https://github.com/saltstack/salt-windows-install/tree/master/deps/win32-py2.7 (It seems not support 3.x yet)
+- *jsonrpclib* for serving JSON-RPC (It seems not support 3.x yet)
 - *Jinja2* for HTML Rendering
 
 
@@ -194,9 +228,11 @@ Documentation
 
 Change Log
 -------------
+  0.9.4.2 - fix asyndns, asynconnect
+  
   0.9.4.1 - fix init.d script
 
-  0.9.4 - (1)works on Python 3, but unstable yet (2)add was.email() (3)improve rpc & proxy performence
+  0.9.4 - (1)works on Python 3, but unstable yet (2)add was.email() (3)improve rpc & proxy performance
   
   0.9.3.7 - add skitaid-install-requirements.sh for psycopg2 and M2Crypto
 	

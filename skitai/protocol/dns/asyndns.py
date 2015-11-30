@@ -1,10 +1,14 @@
+"""
+2008 added for asynchronous DNS query by Hans Roh
+"""
+
 import asyncore
 import socket
 import time
 import types
 import random
 import types
-from . import Base, Type, Class, Lib, Opcode
+from .pydns import Base, Type, Class, Lib, Opcode
 import random
 
 defaults = Base.defaults

@@ -180,6 +180,8 @@ class Unpacker:
 	def getstring(self):
 		return self.getbytes(ord(self.getbyte()))
 	def getname(self):
+		return self._getname ().decode ("utf8")
+	def _getname(self):
 		# Domain name unpacking (section 4.1.4)
 		if PY_MAJOR_VERSION >= 3:
 			i = self.getbyte()			
@@ -196,18 +198,18 @@ class Unpacker:
 			save_offset = self.offset
 			try:
 				self.offset = pointer
-				domain = self.getname()
+				domain = self._getname()
 			finally:
 				self.offset = save_offset
 			return domain
 		if i == 0:
 			return ''
 		domain = self.getbytes(i)
-		remains = self.getname()
+		remains = self._getname()
 		if not remains:
 			return domain
 		else:
-			return domain + b'.' + remains
+			return (domain + b'.' + remains)
 
 
 # Test program for packin/unpacking (section 4.1.4)
@@ -369,7 +371,7 @@ class RRunpacker(Unpacker):
 		self.rdend = None
 	def getRRheader(self):
 		if PY_MAJOR_VERSION >= 3:
-			name = self.getname().decode ("utf8")
+			name = self.getname()
 		else:
 			name = self.getname()
 				

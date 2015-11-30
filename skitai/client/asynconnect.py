@@ -54,7 +54,7 @@ class AsynConnect (asynchat.async_chat):
 	def duplicate (self):
 		return self.__class__ (self.address, self.lock, self.logger)
 			
-	def initialize (self):		
+	def initialize (self):
 		self.request = None
 		self.got_data = False
 		self.close_it = True
@@ -92,7 +92,12 @@ class AsynConnect (asynchat.async_chat):
 				self.abort ()
 				return True
 		return False
-				
+	
+	def is_in_channel (self, map = None):
+		if map is None:
+			map = self._map
+		return self._fileno in map
+					
 	def del_channel (self, map=None):
 		fd = self._fileno
 		if map is None:
@@ -120,9 +125,9 @@ class AsynConnect (asynchat.async_chat):
 		if self.request:
 			self.request.done (self.errcode, self.errmsg)		
 			
-		if self.close_it and self.connected:			
+		if self.connected and self.close_it:
 			self.close_socket ()
-		else:
+		else:	
 			self.del_channel ()
 		
 		self.request = None
@@ -170,8 +175,7 @@ class AsynConnect (asynchat.async_chat):
 	def get_request_count (self):	
 		return self.request_count
 	
-	def add_channel (self, map = None):
-		self.event_time = time.time ()
+	def add_channel (self, map = None):		
 		return asynchat.async_chat.add_channel (self, map)
 			
 	def create_socket (self, family, type):
@@ -208,28 +212,27 @@ class AsynConnect (asynchat.async_chat):
 			else:								
 				return data
 		
-		except socket.error as why:
+		except socket.error as why:			
 			if why.errno in asyncore._DISCONNECTED:
 				if not self.got_data: # disconnected by server
 					self.log ("_DISCONNECTED Error in recv (), retry connect...", "info")					
 					if self.reconnect ():
 						return b''
-				self.close_it = True
+				self.close_it = True				
 				self.handle_close ()
 				return b''
 			else:
 				raise
 	
-	def send (self, data):		
-		self.event_time = time.time ()	
+	def send (self, data):
+		self.event_time = time.time ()
 		try:
-			return self.socket.send(data)
-						
+			return self.socket.send(data)									
 		except socket.error as why:
 			if why.errno == EWOULDBLOCK:
 				return 0
-			elif why.args[0] in asyncore._DISCONNECTED:
-				self.close_it = True
+			elif why.errno in asyncore._DISCONNECTED:
+				self.close_it = True				
 				self.handle_close ()
 				return 0
 			else:
@@ -237,22 +240,22 @@ class AsynConnect (asynchat.async_chat):
 	
 	def reconnect (self):		
 		self.close_socket ()
-		return self.request.retry ()
-		
+		return self.request.retry ()		
+
 	def close_if_over_keep_live (self):
-		if time.time () - self.event_time > self.keep_alive:
-			if self.connected:
+		if time.time () - self.event_time > self.keep_alive:			
+			if self.connected:				
 				self.close_socket ()
 			return True
 		return False
-			
+		
 	def start_request (self, request):
 		self.initialize ()
 		self.request = request
 		
 		if self.connected:
 			self.close_if_over_keep_live () # check keep-alive
-
+		
 		try:
 			if not self.connected:
 				self.connect ()
@@ -262,9 +265,13 @@ class AsynConnect (asynchat.async_chat):
 		except:
 			self.handle_error ()
 	
+	def initiate_send (self):
+		if self.is_in_channel ():
+			asynchat.async_chat.initiate_send (self)		
+		
 	# proxy POST need no init_send
 	def push (self, thing, init_send = True):
-		if type (thing) is type (""):			
+		if type (thing) is type (""):
 			asynchat.async_chat.push (self, thing)
 		else:
 			self.push_with_producer (thing, init_send)	
@@ -365,7 +372,7 @@ class AsynSSLConnect (AsynConnect):
 			elif why.errno == ssl.SSL_ERROR_ZERO_RETURN:
 				if not self.got_data: # disconnected by server
 					self.log ("SSL_ERROR_ZERO_RETURN Error Occurred in recv (), retry connect...", "info")
-					if self.reconnect ():
+					if self.reconnect ():						
 						return b''
 				self.close_it = True
 				self.handle_close ()
