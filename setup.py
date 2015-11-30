@@ -3,7 +3,7 @@ Hans Roh 2015 -- http://sae.skitai.com
 License: BSD
 """
 
-__VER__ = '0.9.4.3'
+__VER__ = '0.9.4.4'
 
 import sys
 import os
@@ -43,6 +43,7 @@ packages = [
 	'skitai.lib',	
 	'skitai.protocol',
 	'skitai.protocol.dns',
+	'skitai.protocol.dns.pydns',
 	'skitai.protocol.http',	
 	'skitai.protocol.smtp',
 	'skitai.server',

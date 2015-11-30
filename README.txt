@@ -32,7 +32,7 @@ New services added
 .. code:: python
 
     # streaming response for stream objects like file, large string list...
-    # object should have read() method
+    # object should have read() and optioanl close() method
     return was.tostream (f = open ("large-movie.mp4", "rb"))
     
     # email delivery service
@@ -40,7 +40,7 @@ New services added
     e.set_smtp ("127.0.0.1:465", "username", "password", ssl = True)
     e.add_text ("Hello World<div><img src='cid:ID_A'></div>", "text/html")
     e.add_attachment (r"001.png", cid="ID_A")
-    e.send ()    
+    e.send ()
 
 With asynchronous email delivery service, can add default SMTP Server config to skitaid.conf (/etc/skitaid/skitaid.conf or c:\skitaid\etc\skitaid.conf).
 If it is configured, you can skip e.set_smtp(). But be careful for keeping your smtp password.
