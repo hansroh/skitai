@@ -112,7 +112,7 @@ class AsynConnect (asynchat.async_chat):
 		self.accepting = False		
 		self.del_channel ()
 		self._fineno = None
-		self.producer_fifo = asynchat.deque()
+		#self.producer_fifo = asynchat.deque()
 		
 		if self.socket:
 			try:
@@ -131,7 +131,7 @@ class AsynConnect (asynchat.async_chat):
 		if self.connected and self.close_it:
 			self.close_socket ()
 		else:	
-			self.producer_fifo = asynchat.deque()
+			#self.producer_fifo = asynchat.deque()
 			self.del_channel ()
 		
 		self.request = None
@@ -288,6 +288,7 @@ class AsynConnect (asynchat.async_chat):
 				self.connect ()
 			else:
 				self.add_channel ()
+				self.initiate_send ()
 			
 		except:
 			self.handle_error ()
