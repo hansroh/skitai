@@ -24,6 +24,16 @@ It also influenced by Zope_ and Flask_ a lot.
 Skitai is not a framework for convinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your apps as both server and client.
 
 
+Purpose
+--------
+
+Skitai App Engine's earlier purpose is to serve python fulltext search engine Wissen_ which is my another pypi work. And recently I found that it is possibly useful for building and serving python written websites like Flask and Django (But I barely use them). I think you already use them, you really don't need use Skitai.
+
+Anyway, I am modifying my codes to optimizing for enabling service on Linux machine with relatvely poor H/W and easy to auto-scaling provided cloud computing service like AWS_.
+
+If you need lot of http(s) connectign jobs and use PostgreSQL, it might be worth testing and participating this project.
+
+
 Changes
 ---------
 
@@ -33,7 +43,7 @@ New services added
 
     # streaming response for stream objects like file, large string list...
     # object should have read() and optioanl close() method
-    return was.tostream (f = open ("large-movie.mp4", "rb"))
+    return was.tostream (open ("large-movie.mp4", "rb"))
     
     # email delivery service
     e = was.email (subject, snd, rcpt)
@@ -156,23 +166,22 @@ Then write /home/skitaid/app/webapp.py
 .. _Flask: http://flask.pocoo.org/
 .. _PostgreSQL: http://www.postgresql.org/
 .. __: http://www.nightmare.com/medusa/medusa.html
+.. _Wissen: https://pypi.python.org/pypi/wissen
+.. _AWS: https://aws.amazon.com
 
-
-Requirements
--------------
+Optional Requirements
+------------------------
 
 * Skitaid can find at least one DNS server from system configuration for Async-DNS query. Possibly it is only problem on dynamic IP allocated desktop, then set DNS manually, please.
 
 
 **Posix**
 
-- *psycopg2* for PostgreSQL
-
-*(Optional)*
-
-- *M2Crypto* for HTTPS Web Server
-- *jsonrpclib* for serving JSON-RPC
+- *psycopg2* for querying PostgreSQL asynchronously
 - *Jinja2* for HTML Rendering
+- *M2Crypto* for HTTPS Web Server (It seems not support 3.x yet)
+- *jsonrpclib* for serving JSON-RPC  (It seems not support 3.x yet)
+
 
 Use 'pip install ...'
 
@@ -181,12 +190,9 @@ Use 'pip install ...'
 
 - *pywin32 binary* - http://sourceforge.net/projects/pywin32/files/pywin32/Build%20219/
 - *psycopg2 binary* - http://www.stickpeople.com/projects/python/win-psycopg/
-
-*(Optional)*
-
+- *Jinja2* for HTML Rendering
 - *M2Crypto binary* - https://github.com/saltstack/salt-windows-install/tree/master/deps/win32-py2.7 (It seems not support 3.x yet)
 - *jsonrpclib* for serving JSON-RPC (It seems not support 3.x yet)
-- *Jinja2* for HTML Rendering
 
 
 Install & Start Skitai Server
@@ -204,7 +210,12 @@ Install & Start Skitai Server
     ;if everythig is OK,
     
     sudo service skitaid start
-
+    
+    #For auto run on boot,
+    sudo update-rc.d skitaid defaults
+    or
+    sudo chkconfig skitaid on
+    
 
 **Win32**
 
@@ -218,7 +229,12 @@ Install & Start Skitai Server
     ;if everythig is OK,
     
     install-win32-service install
+    
+    #For auto run on boot,
+    install-win32-service --startup auto install
+    
     install-win32-service start    
+    
 
 Documentation
 -------------
