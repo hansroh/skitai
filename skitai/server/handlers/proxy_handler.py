@@ -20,6 +20,8 @@ class Response (http_response.Response):
 		self.accept_gzip = accept_gzip		
 		self.request = request
 		self.header_s = header		
+		if header [:2] == "\r\n":
+			header = header [2:]
 		header = header.split ("\r\n")
 		self.response = header [0]
 		self.header = header [1:]

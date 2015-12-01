@@ -29,9 +29,9 @@ Purpose
 
 Skitai App Engine's earlier purpose is to serve python fulltext search engine Wissen_ which is my another pypi work. And recently I found that it is possibly useful for building and serving python written websites like Flask and Django (But I barely use them). I think you already use them, you really don't need use Skitai.
 
-Anyway, I am modifying my codes to optimizing for enabling service on Linux machine with relatvely poor H/W and easy to auto-scaling provided cloud computing service like AWS_.
+Anyway, I am modifying my codes to optimizing for enabling service on Linux machine with relatvely poor H/W and making easy to auto-scaling provided cloud computing service like AWS_.
 
-If you need lot of http(s) connectign jobs and use PostgreSQL, it might be worth testing and participating this project.
+If you need lot of outside http(s) resources connecting jobs and use PostgreSQL, it might be worth testing and participating this project.
 
 
 Changes
