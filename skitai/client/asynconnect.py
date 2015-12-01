@@ -60,6 +60,7 @@ class AsynConnect (asynchat.async_chat):
 		self.close_it = True
 		self.errcode = 0
 		self.errmsg = ""
+		self.raised_ENOTCONN = 0
 		self.request_buffer = b""
 		
 	def clean_shutdown_control (self, phase, time_in_this_phase):
@@ -110,13 +111,14 @@ class AsynConnect (asynchat.async_chat):
 		self.accepting = False		
 		self.del_channel ()
 		self._fineno = None
+		self.producer_fifo = asynchat.deque()
 		
 		if self.socket:
 			try:
 				self.socket.close()
 			except socket.error as why:
 				if why.args[0] not in (ENOTCONN, EBADF):
-					raise
+					raise					
 
 	def close (self, force = False):
 		if force:
@@ -128,6 +130,7 @@ class AsynConnect (asynchat.async_chat):
 		if self.connected and self.close_it:
 			self.close_socket ()
 		else:	
+			self.producer_fifo = asynchat.deque()
 			self.del_channel ()
 		
 		self.request = None
@@ -232,10 +235,17 @@ class AsynConnect (asynchat.async_chat):
 				return 0
 				
 			elif why.errno in asyncore._DISCONNECTED:
+				print ("++++++++++++++", why.errno)
+				if os.name == "nt" and why.errno == 10057:
+					if self.raised_ENOTCONN <= 3:
+						self.raised_ENOTCONN += 1
+						return 0				
+				self.raised_ENOTCONN = 0
 				if self.reconnect ():
 					self.log ("Connection Closed in send (), Try Reconnect...", "info")
 					return 0
 				self.close_it = True
+				print ("+++++++++++++++++3", self.is_channel_in_map ())
 				self.handle_close ()
 				return 0
 				
@@ -245,7 +255,6 @@ class AsynConnect (asynchat.async_chat):
 	def reconnect (self):	
 		if self.received:
 			return False
-		self.close_socket ()
 		return self.request.retry ()		
 
 	def close_if_over_keep_live (self):
@@ -277,7 +286,7 @@ class AsynConnect (asynchat.async_chat):
 		
 	# proxy POST need no init_send
 	def push (self, thing, init_send = True):
-		if type (thing) is type (""):
+		if type (thing) is bytes:
 			asynchat.async_chat.push (self, thing)
 		else:
 			self.push_with_producer (thing, init_send)	
@@ -288,9 +297,10 @@ class AsynConnect (asynchat.async_chat):
 			self.initiate_send ()
 					
 	def collect_incoming_data (self, data):
-		if not self.request: 
+		if not self.request:
 			return # already closed
 		self.received = True
+		#print (repr (data[:79]))
 		self.request.collect_incoming_data (data)
 	
 	def found_terminator (self):

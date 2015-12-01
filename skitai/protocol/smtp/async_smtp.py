@@ -394,10 +394,6 @@ class SMTP_SSL (SMTP):
 		try:
 			data = self.socket.recv (buffer_size)
 			if not data:
-				if not self.got_data: # disconnected by server
-					self.log ("SSL connection closed by remote server maybe caused by keep-alive timeout, retry connect...", "info")
-					if self.reconnect ():
-						return b''
 				self.handle_close ()
 				return b''
 			else:

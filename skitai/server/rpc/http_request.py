@@ -399,8 +399,10 @@ class Request:
 		self.asyncon.start_request (self)
 	
 	def retry (self):
-		if self.retry_count: 
+		if self.retry_count:
 			return False		
+		
+		self.asyncon.close_socket ()
 		self.asyncon.request = None # unlink back ref.		
 		self.retry_count = 1
 		for buf in self.get_request_buffer ():

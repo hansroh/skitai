@@ -289,10 +289,11 @@ class Request (http_request.Request):
 		if not self.client_request.channel:
 			return False
 		
+		self.asyncon.close_socket ()
 		self.asyncon.request = None # unlink back ref.		
 		self.retry_count = 1
-		
 		self.asyncon.push (self.get_request_buffer ())
+		print ("retry......", self.get_request_buffer (), self.collector)
 		if self.collector:
 			self.collector.reuse_cache ()
 			self.push_collector ()
