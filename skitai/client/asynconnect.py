@@ -1,6 +1,7 @@
 import asynchat
 import asyncore
 import re
+import os
 import socket
 import time
 import sys
@@ -216,6 +217,15 @@ class AsynConnect (asynchat.async_chat):
 		
 		except socket.error as why:
 			if why.errno in asyncore._DISCONNECTED:
+				if os.name == "nt":
+					# winsock sometimes raise ENOTCONN and sometimes recovered.
+					if why.errno == asyncore.ENOTCONN:
+						if self.raised_ENOTCONN <= 3:
+							self.raised_ENOTCONN += 1
+							return b''
+					else:
+						self.raised_ENOTCONN = 0
+						
 				if self.reconnect (): # disconnected by server
 					self.log ("Connection Closed By _DISCONNECTED in recv (), Try Reconnect...", "info")
 					return b''
@@ -234,18 +244,20 @@ class AsynConnect (asynchat.async_chat):
 			if why.errno == EWOULDBLOCK:
 				return 0
 				
-			elif why.errno in asyncore._DISCONNECTED:
-				print ("++++++++++++++", why.errno)
-				if os.name == "nt" and why.errno == 10057:
-					if self.raised_ENOTCONN <= 3:
-						self.raised_ENOTCONN += 1
-						return 0				
-				self.raised_ENOTCONN = 0
+			elif why.errno in asyncore._DISCONNECTED:				
+				if os.name == "nt":
+					# winsock sometimes raise ENOTCONN and sometimes recovered.
+					if why.errno == asyncore.ENOTCONN:
+						if self.raised_ENOTCONN <= 3:
+							self.raised_ENOTCONN += 1
+							return 0
+					else:
+						self.raised_ENOTCONN = 0
+						
 				if self.reconnect ():
 					self.log ("Connection Closed in send (), Try Reconnect...", "info")
 					return 0
-				self.close_it = True
-				print ("+++++++++++++++++3", self.is_channel_in_map ())
+				self.close_it = True				
 				self.handle_close ()
 				return 0
 				

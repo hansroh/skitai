@@ -293,7 +293,7 @@ class Request (http_request.Request):
 		self.asyncon.request = None # unlink back ref.		
 		self.retry_count = 1
 		self.asyncon.push (self.get_request_buffer ())
-		print ("retry......", self.get_request_buffer (), self.collector)
+		#print ("retry......", self.get_request_buffer (), self.collector)
 		if self.collector:
 			self.collector.reuse_cache ()
 			self.push_collector ()

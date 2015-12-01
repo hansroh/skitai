@@ -228,7 +228,8 @@ Documentation
 
 Change Log
 -------------
-
+  0.9.4.6 - improve handling winsock ENOTCONN
+  
   0.9.4.5 - fix asyndns, asyncon reconnect
   
   0.9.4.1 - fix init.d script
