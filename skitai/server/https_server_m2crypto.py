@@ -11,7 +11,7 @@ class https_channel (http_server.http_channel):
 		http_server.http_channel.__init__(self, server, conn, addr)
 	
 	def send(self, data):	
-		result = self.socket.send(data)
+		result = self.socket._write_nbio(data)
 		if result <= 0:
 			return 0
 		else:
@@ -20,7 +20,7 @@ class https_channel (http_server.http_channel):
 		
 	def recv(self, buffer_size):
 		try:			
-			result = self.socket.recv(buffer_size)
+			result = self.socket._read_nbio(buffer_size)
 			if result is None:
 				return ''
 				
@@ -35,16 +35,14 @@ class https_channel (http_server.http_channel):
 		except MemoryError:
 			lifetime.shutdown (1, 1)
 			
-		except ssl.SSLEOFError:
-			self.handle_close()
-			return ''			
-		
+		except SSL.SSLError as why:
+			if why [0] == "unexpected eof": # unexpected client's disconnection?
+				self.handle_close()
+				return ''			
+			raise
+
 
 class https_server (http_server.http_server):
-	def __init__ (self, ip, port, server_logger = None, request_logger = None, certfile = None):
-		http_server.http_server.__init__ (self, ip, port, server_logger, request_logger)
-		self.socket = ssl.wrap_socket (self.socket, certfile = certfile, server_sode = True)
-	
 	def handle_accept (self):
 		self.total_clients.inc()
 		
@@ -59,7 +57,14 @@ class https_server (http_server.http_server):
 		except:
 			self.trace()
 		
-		https_channel (self, ssl_conn, addr)			
+		try:
+			ssl_conn=SSL.Connection(self.ssl_ctx, conn)
+			ssl_conn._setup_ssl(addr)
+			ssl_conn.accept_ssl ()
+			https_channel (self, ssl_conn, addr)
+			
+		except SSL.SSLError as why:
+			pass
 		
 		
 def init_context(protocol, certfile, cafile, passphrase = None):

@@ -327,7 +327,6 @@ class http_server (asyncore.dispatcher):
 		self.handlers = []
 		self.ip = ip
 		self.port = port
-		self.ssl_ctx = None
 		asyncore.dispatcher.__init__ (self)
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)		
 		self.set_reuse_addr ()
@@ -355,9 +354,6 @@ class http_server (asyncore.dispatcher):
 			self.server_name = ip		
 		self.server_port = port
 	
-	def set_ssl_ctx (self, ssl_ctx):
-		self.ssl_ctx = ssl_ctx
-		
 	def fork_and_serve (self, numworker = 1):
 		global ACTIVE_WORKERS, SURVAIL, PID, EXITCODE
 		
