@@ -31,7 +31,7 @@ Skitai App Engine's earlier purpose is to serve python fulltext search engine Wi
 
 Anyway, I am modifying my codes to optimizing for enabling service on Linux machine with relatvely poor H/W and making easy to auto-scaling provided cloud computing service like AWS_.
 
-If you need lot of outside http(s) resources connecting jobs and use PostgreSQL, it might be worth testing and participating this project.
+If you need lots of outside http(s) resources connecting jobs and use PostgreSQL, it might be worth testing and participating this project.
 
 
 Changes
@@ -169,6 +169,16 @@ Then write /home/skitaid/app/webapp.py
 .. _Wissen: https://pypi.python.org/pypi/wissen
 .. _AWS: https://aws.amazon.com
 
+
+Requirements
+--------------
+
+**Win 32**
+
+- *pywin32 binary* - http://sourceforge.net/projects/pywin32/files/pywin32/Build%20219/
+
+
+
 Optional Requirements
 ------------------------
 
@@ -180,19 +190,15 @@ Optional Requirements
 - *psycopg2* for querying PostgreSQL asynchronously
 - *Jinja2* for HTML Rendering
 - *M2Crypto* for HTTPS Web Server (It seems not support 3.x yet)
-- *jsonrpclib* for serving JSON-RPC  (It seems not support 3.x yet)
-
 
 Use 'pip install ...'
 
 
 **Win 32**
 
-- *pywin32 binary* - http://sourceforge.net/projects/pywin32/files/pywin32/Build%20219/
 - *psycopg2 binary* - http://www.stickpeople.com/projects/python/win-psycopg/
 - *Jinja2* for HTML Rendering
 - *M2Crypto binary* - https://github.com/saltstack/salt-windows-install/tree/master/deps/win32-py2.7 (It seems not support 3.x yet)
-- *jsonrpclib* for serving JSON-RPC (It seems not support 3.x yet)
 
 
 Install & Start Skitai Server
