@@ -184,7 +184,7 @@ class Unpacker:
 	def _getname(self):
 		# Domain name unpacking (section 4.1.4)
 		if PY_MAJOR_VERSION >= 3:
-			i = self.getbyte()			
+			i = self.getbyte()
 		else:	
 			c = self.getbyte()
 			i = ord(c)		
@@ -203,7 +203,7 @@ class Unpacker:
 				self.offset = save_offset
 			return domain
 		if i == 0:
-			return ''
+			return b''
 		domain = self.getbytes(i)
 		remains = self._getname()
 		if not remains:
