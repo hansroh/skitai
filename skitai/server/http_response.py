@@ -86,10 +86,13 @@ class http_response:
 	def reply (self, code, msg = "", headers = None):
 		self.start (code, msg, headers)
 	
-	def instant (self, code):
-		if self.request.version != "1.1": return		
-		message = self.responses [code]
-		self.request.channel.push (self.response (code, message) + "\r\n\r\n")
+	def instant (self, code, message = None, headers = None):
+		#if self.request.version != "1.1": return		
+		reply = [self.response (code, message)]
+		if headers:
+			for header in headers:
+				reply.append ("%s: %s" % header)
+		self.request.channel.push (("\r\n".join (reply) + "\r\n\r\n").encode ("utf8"))
 	
 	def abort (self, code, why = ""):
 		self.request.channel.reject ()		
@@ -321,7 +324,8 @@ class http_response:
 		502: "Bad Gateway",
 		503: "Service Unavailable",
 		504: "Gateway Time-out",
-		505: "HTTP Version not supported",
-		506: "Proxy Error"
+		505: "HTTP Version Not Supported",
+		506: "Proxy Error",
+		507: "Failed Establishing Connection",
 	}		
 		

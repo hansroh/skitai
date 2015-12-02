@@ -244,13 +244,16 @@ Documentation
 
 Change Log
 -------------
+  
+  0.9.4.8 - fix error handling for asynconnect.connect 
+  
   0.9.4.6 - improve handling winsock ENOTCONN
   
   0.9.4.5 - fix asyndns, asyncon reconnect
   
   0.9.4.1 - fix init.d script
 
-  0.9.4 - (1)works on Python 3, but unstable yet (2)add was.email() (3)improve rpc & proxy performance
+  0.9.4 - (1)works on Python 3, but unstable yet (2)add was.email() (3)improve rpc performance
   
   0.9.3.7 - add skitaid-install-requirements.sh for psycopg2 and M2Crypto
 	  

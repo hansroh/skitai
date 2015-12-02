@@ -1,66 +1,58 @@
-from skitai.client import asynconnect
-import time
-from M2Crypto import SSL
-from skitai.server import https_server
-import ssl
+from skitai.server.threads import trigger
 
-class Collector:
+
+class ClientToServer:
+	collector = None
+	producer = None
 	def __init__ (self, asyncon):
 		self.asyncon = asyncon
+		self.bytes = 0
 		
 	def collect_incoming_data (self, data):
+		self.bytes += len (data)
 		self.asyncon.push (data)
 	
 	def abort (self):
+		self.close ()
+			
+	def close (self):
 		self.asyncon.close_socket ()
 
 		
-class Request:
-	def __init__ (self, channel):
-		self.channel = channel		
+class ServerToClient:
+	def __init__ (self, channel, asyncon):
+		self.channel = channel
+		self.asyncon = asyncon
+		
+		self.bytes = 0				
+		self.asyncon.set_terminator (None)
+		self.channel.set_terminator (None)						
+		self.cli2srv = ClientToServer (self.asyncon)
+		self.channel.current_request = self.cli2srv
 	
 	def collect_incoming_data (self, data):
+		self.bytes += len (data)		
 		self.channel.push (data)
-
+	
+	def retry (self):
+		return False
+	
+	def log (self):
+		self.channel.server.log_request (
+			'%s:%d CONNECT tunnel://%s:%d HTTP/1.1 200 %d/%d'
+			% (self.channel.addr[0],
+			self.channel.addr[1],			
+			self.asyncon.address [0],
+			self.asyncon.address [1],
+			self.cli2srv.bytes,
+			self.bytes)
+			)
+	
+	def done (self, *args, **kargs):
+		self.abort ()
+				
 	def abort (self):
+		self.log ()
+		#self.cli2srv.close ()
 		self.channel.close ()
 		
-
-class AsynSSLConnect (asynconnect.AsynSSLConnect):	
-	def __init__ (self, proxy_request, logger):
-		self.proxy_request = proxy_request		
-		
-		#convert to https proxy socket
-		addr = proxy_request.channel.addr		
-		conn = proxy_request.channel.socket
-		server = proxy_request.channel.server
-		#ssl_ctx = server.ssl_ctx
-		ssl_ctx = SSL.Context ("sslv23")
-		
-		ssl_conn = SSL.Connection (ssl_ctx, conn)
-		ssl_conn._setup_ssl (addr)
-		ssl_conn.set_connect_state ()
-		ssl_conn.connect_ssl ()		
-		
-		proxy_request.channel.del_channel ()
-		proxy_request.channel = https_server.https_channel (server, ssl_conn, addr)
-		proxy_request.channel.current_request = proxy_request
-					
-		self.proxy_request.collector = Collector (self)
-		self.proxy_request.channel.set_terminator (None)		
-		
-		addr, port = proxy_request.uri.split (":")
-		port = int (port)
-		
-		asynconnect.AsynSSLConnect.__init__ (self, (addr, port), logger = logger)
-		self.set_terminator (None)
-		self.connect ()
-		
-	def handle_connect (self):
-		asynconnect.AsynSSLConnect.handle_connect (self)	
-		
-		self.request = Request (self.proxy_request.channel)
-		self.proxy_request.producer = self.request
-		
-		self.proxy_request.start (200, "Connection Established")			
-		self.proxy_request.done ()

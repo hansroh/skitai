@@ -203,7 +203,6 @@ class http_channel (asynchat.async_chat):
 		self.close ()
 				
 	def send (self, data):
-		#print ("send_data", repr (data [:180]))
 		self.event_time = int (time.time())
 		result = asynchat.async_chat.send (self, data)
 		self.server.bytes_out.inc (result)
@@ -223,7 +222,7 @@ class http_channel (asynchat.async_chat):
 			
 		except MemoryError:
 			lifetime.shutdown (1, 1)
-		
+			
 	def collect_incoming_data (self, data):
 		#print ("collect_incoming_data", repr (data [:180]))
 		if self.current_request:			

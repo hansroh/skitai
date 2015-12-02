@@ -33,6 +33,7 @@ class AsynConnect (asynchat.async_chat):
 		self.active = 0
 		self.ready = None
 		self.affluent = None
+		self.handle_connect_hook = None
 		self.initialize ()
 		asynchat.async_chat.__init__ (self)
 	
@@ -112,7 +113,6 @@ class AsynConnect (asynchat.async_chat):
 		self.accepting = False		
 		self.del_channel ()
 		self._fineno = None
-		#self.producer_fifo = asynchat.deque()
 		
 		if self.socket:
 			try:
@@ -131,18 +131,22 @@ class AsynConnect (asynchat.async_chat):
 		if self.connected and self.close_it:
 			self.close_socket ()
 		else:	
-			#self.producer_fifo = asynchat.deque()
 			self.del_channel ()
 		
 		self.request = None
-		self.set_active (False)	
+		self.set_active (False)
 	
 	def abort (self):
 		self.close_socket ()
 		self.request = None
-		self.set_active (False)	
+		self.set_active (False)
 			
 	def error (self, code, msg):
+		if self.handle_connect_hook:
+			func, retrun_call_args = self.handle_connect_hook
+			func (self, "%d %s" % (code, msg), *retrun_call_args)
+			self.handle_connect_hook = None
+			
 		self.close_it = True
 		self.errcode = code
 		self.errmsg = msg		
@@ -187,20 +191,34 @@ class AsynConnect (asynchat.async_chat):
 		sock = socket.socket (family, type)
 		sock.setblocking (0)
 		self.set_socket (sock)
+	
+	def hooked_connect (self, hook, *return_call_args):
+		self.handle_connect_hook = (hook, return_call_args)
+		if adns.query:
+			adns.query (self.address [0], "A", callback = self.connect)
+		else:
+			self.connect ()
 		
 	def connect (self, force = 0):
 		self.event_time = time.time ()
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
 		
-		if adns.query:				
-			res = adns.get (self.address [0], "A")						
-			if res:				
-				ip = res [-1]["data"]
-				if ip:
-					asynchat.async_chat.connect (self, (ip, self.address [1]))
-					return
-		
-		asynchat.async_chat.connect (self, self.address)
+		try:
+			if not adns.query:				
+				asynchat.async_chat.connect (self, self.address)
+				
+			else:	
+				res = adns.get (self.address [0], "A")						
+				if res:				
+					ip = res [-1]["data"]
+					if ip:
+						asynchat.async_chat.connect (self, (ip, self.address [1]))																		
+				else:
+					self.error (15, "DNS Not Found")
+					self.handle_close ()					
+					
+		except:	
+			self.handle_error ()
 	
 	def recv (self, buffer_size):
 		self.event_time = time.time ()
@@ -325,8 +343,11 @@ class AsynConnect (asynchat.async_chat):
 		self.zombie_timeout = timeout
 	
 	def handle_connect (self):
-		pass
-	
+		if self.handle_connect_hook:
+			func, retrun_call_args = self.handle_connect_hook
+			func (self, None, *retrun_call_args)
+			self.handle_connect_hook = None
+			
 	def handle_timeout (self):
 		self.log ("socket timeout", "fail")
 		self.error (13, "Socket Timeout")
@@ -355,7 +376,7 @@ class AsynConnect (asynchat.async_chat):
 class AsynSSLConnect (AsynConnect):	
 	ac_in_buffer_size = 65535 # generally safe setting 65535 for SSL
 	ac_out_buffer_size = 65535
-	
+		
 	def connect (self, force = 0):
 		self.handshaking = False
 		AsynConnect.connect (self, force)
@@ -364,9 +385,8 @@ class AsynSSLConnect (AsynConnect):
 		if not self.handshaking:
 			err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
 			if err != 0:
-				raise socket.error(err, _strerror(err))
-				
-			self.socket = ssl.wrap_socket (self.socket, do_handshake_on_connect = False)			
+				raise socket.error(err, _strerror(err))	
+			self.socket = ssl.wrap_socket (self.socket, do_handshake_on_connect = False)
 			self.handshaking = True
 			
 		try:
@@ -379,11 +399,18 @@ class AsynSSLConnect (AsynConnect):
 		# handshaking done
 		self.handle_connect()
 		self.connected = True
-		
+	
+	def _recv (self, buffer_size):	
+		return self.socket.recv (buffer_size)
+	
+	def _send (self, data):
+		return self.socket.send (data)
+			
 	def recv (self, buffer_size):
 		self.event_time = time.time ()
 		try:
-			data = self.socket.recv (buffer_size)
+			data = self._recv (buffer_size)
+			
 			if not data:
 				if self.reconnect ():
 					self.log ("SSL Connection Closed in recv (), Retry Connect...", "info")					
@@ -419,7 +446,7 @@ class AsynSSLConnect (AsynConnect):
 	def send (self, data):
 		self.event_time = time.time ()
 		try:
-			return self.socket.send(data)			
+			return self._send(data)
 
 		except ssl.SSLError as why:
 			if why.errno == ssl.SSL_ERROR_WANT_WRITE:
@@ -433,4 +460,4 @@ class AsynSSLConnect (AsynConnect):
 				return 0
 			else:
 				raise
-		
+

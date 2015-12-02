@@ -137,6 +137,9 @@ class SocketPool:
 		if scheme == "https":
 			__conn_class = asynconnect.AsynSSLConnect
 			__dft_Port = 443
+		elif scheme == "tunnel":
+			__conn_class = asynconnect.AsynConnect
+			__dft_Port = 443			
 		else:
 			__conn_class = asynconnect.AsynConnect
 			__dft_Port = 80

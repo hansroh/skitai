@@ -8,6 +8,7 @@ try:
 except ImportError:
 	ssl_tunnel = None	
 import time
+from . import ssl_tunnel
 
 class CollectError (Exception): pass
 	
@@ -361,12 +362,21 @@ class Handler (ssgi_handler.Handler):
 			return 1
 		return 0
 	
+	def handle_tunnel_connect (self, asyncon, err, request):
+		if not err:		
+			request.response.instant (200, "Connection Established", [("Proxy-Agent", "sae-pa")])						
+			asyncon.request = ssl_tunnel.ServerToClient (request.channel, asyncon)
+		else:
+			request.response.error (507, err)
+		
 	def handle_request (self, request):
 		if request.command == "connect":
-			request.response.error (405)
-			# GIVE UP :-(
-			#ssl_tunnel.AsynSSLConnect (request, self.wasc.logger.get ("server"))
-		
+			uri = "tunnel://" + request.uri + "/"
+			asyncon = self.clusters ["__socketpool__"].get (uri)
+			if not asyncon.connected:
+				asyncon.hooked_connect (self.handle_tunnel_connect, request)
+			self.wasc.logger ("server", "[info] connection maden to %s" % request.uri)
+				
 		else:
 			collector = None
 			if request.command in ('post', 'put'):
@@ -379,10 +389,10 @@ class Handler (ssgi_handler.Handler):
 					collector.start_collect ()
 				else:
 					return # error was already called in make_collector ()
-			
-			self.continue_request(request, collector)			
+								
+			self.continue_request(request, collector)
 					
-	def continue_request (self, request, collector):		
+	def continue_request (self, request, collector, asyncon = None):		
 		request.response ["Proxy-Agent"] = "sae-pa"
 		
 		if self.is_cached (request, collector is not None):
@@ -390,7 +400,8 @@ class Handler (ssgi_handler.Handler):
 		
 		try:
 			req = http_request.HTTPRequest (request.uri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))		
-			asyncon = self.clusters ["__socketpool__"].get (request.uri)
+			if asyncon is None:
+				asyncon = self.clusters ["__socketpool__"].get (request.uri)
 			r = Request (asyncon, req, self.callback, request, collector)			
 			if collector:
 				collector.asyncon = asyncon
