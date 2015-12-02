@@ -304,7 +304,10 @@ class http_channel (asynchat.async_chat):
 			
 	def log (self, message, type = "info"):
 		self.server.log (message, type)
-		
+	
+	def trace (self, id = None):
+		self.server.trace (id)
+			
 	def log_info (self, message, type='info'):
 		self.server.log (message, type)
 		

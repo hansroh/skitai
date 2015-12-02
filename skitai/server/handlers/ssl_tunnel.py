@@ -30,14 +30,21 @@ class ServerToClient:
 		self.cli2srv = ClientToServer (self.asyncon)
 		self.channel.current_request = self.cli2srv
 	
+	def trace (self, name = None):
+		self.channle.trace (name)
+		
+	def log (self, message, type = "info"):
+		uri = "tunnel://%s:%d" % self.asyncon.address
+		self.channel.log ("%s - %s" % (uri, message), type)
+		
 	def collect_incoming_data (self, data):
 		self.bytes += len (data)		
 		self.channel.push (data)
 	
 	def retry (self):
 		return False
-	
-	def log (self):
+		
+	def log_request (self):
 		self.channel.server.log_request (
 			'%s:%d CONNECT tunnel://%s:%d HTTP/1.1 200 %d/%d'
 			% (self.channel.addr[0],
@@ -52,7 +59,7 @@ class ServerToClient:
 		self.abort ()
 				
 	def abort (self):
-		self.log ()
+		self.log_request ()
 		#self.cli2srv.close ()
 		self.channel.close ()
 		
