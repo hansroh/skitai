@@ -42,9 +42,9 @@ class https_channel (http_server.http_channel):
 			
 
 class https_server (http_server.http_server):
-	def __init__ (self, ip, port, certfile, server_logger = None, request_logger = None):
+	def __init__ (self, ip, port, certfile, keyfile, server_logger = None, request_logger = None):
 		http_server.http_server.__init__ (self, ip, port, server_logger, request_logger)	
-		self.socket = ssl.wrap_socket (self.socket, certfile = certfile, server_side = True)
+		self.socket = ssl.wrap_socket (self.socket, keyfile = keyfile, certfile = certfile, server_side = True)
 		
 	def handle_accept (self):
 		self.total_clients.inc()
