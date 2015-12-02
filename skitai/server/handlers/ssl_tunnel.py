@@ -31,7 +31,7 @@ class ServerToClient:
 		self.channel.current_request = self.cli2srv
 	
 	def trace (self, name = None):
-		self.channle.trace (name)
+		self.channel.trace (name)
 		
 	def log (self, message, type = "info"):
 		uri = "tunnel://%s:%d" % self.asyncon.address
