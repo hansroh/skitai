@@ -55,7 +55,7 @@ class Loader:
 		self.num_worker = 1
 		self.wasc = webappservice.WAS
 		self.ssl = False
-		self.ctx = None
+		self.certfile = None
 		self._exit_code = None
 		self.config_logger (self.logpath)
 		self.WAS_initialize ()
@@ -97,14 +97,13 @@ class Loader:
 		rcache.start_rcache (maxobj)
 		self.wasc.register ("rcache", rcache.the_rcache)		
 		
-	def config_certification (self, certfile, cafile, passphrase = None):
+	def config_certification (self, certfile):
 		if not HTTPS:
 			return
 		if not os.path.isfile (certfile):
 			_certpath = os.path.join (os.path.split (os.path.split (self.config)[0])[0], "cert")
-			certfile = os.path.join (_certpath, certfile)	
-			cafile = os.path.join (_certpath, cafile)
-		self.ctx = https_server.init_context ('sslv23', certfile, cafile, passphrase)
+			certfile = os.path.join (_certpath, certfile)			
+		self.certfile = certfile
 		self.ssl = True
 				
 	def config_webserver (self, port, ip = "", name = "", ssl = False):
@@ -115,7 +114,7 @@ class Loader:
 		if not name:
 			name = self.instance_name
 		http_server.http_server.SERVER_IDENT = name
-		if ssl and self.ctx is None:
+		if ssl and self.certfile is None:
 			raise ValueError("SSL ctx not setup")
 		
 		if ssl:
@@ -123,8 +122,11 @@ class Loader:
 		else:	
 			server_class = http_server.http_server
 		
-		httpserver = server_class (ip and ip or "", port, self.wasc.logger.get ("server"), self.wasc.logger.get ("request"))	
-		httpserver.set_ssl_ctx (self.ctx)		
+		if self.ssl:
+			httpserver = server_class (ip and ip or "", port, self.certfile, self.wasc.logger.get ("server"), self.wasc.logger.get ("request"))	
+		else:
+			httpserver = server_class (ip and ip or "", port, self.wasc.logger.get ("server"), self.wasc.logger.get ("request"))	
+		
 		self.wasc.register ("httpserver", httpserver)
 		
 		#fork here 

@@ -3,8 +3,9 @@
 from . import http_server
 from .counter import counter
 import socket, time, asyncore
-from M2Crypto import SSL
+import ssl
 from skitai import lifetime
+import os
 
 class https_channel (http_server.http_channel):
 	def __init__(self, server, conn, addr):
@@ -38,13 +39,13 @@ class https_channel (http_server.http_channel):
 		except ssl.SSLEOFError:
 			self.handle_close()
 			return ''			
-		
+			
 
 class https_server (http_server.http_server):
-	def __init__ (self, ip, port, server_logger = None, request_logger = None, certfile = None):
-		http_server.http_server.__init__ (self, ip, port, server_logger, request_logger)
-		self.socket = ssl.wrap_socket (self.socket, certfile = certfile, server_sode = True)
-	
+	def __init__ (self, ip, port, certfile, server_logger = None, request_logger = None):
+		http_server.http_server.__init__ (self, ip, port, server_logger, request_logger)	
+		self.socket = ssl.wrap_socket (self.socket, certfile = certfile, server_side = True)
+		
 	def handle_accept (self):
 		self.total_clients.inc()
 		
@@ -54,26 +55,14 @@ class https_server (http_server.http_server):
 			self.log_info ('server accept() threw an exception', 'warning')
 			return
 		except TypeError:
-			self.log_info ('server accept() threw EWOULDBLOCK', 'warning')
+			if os.name == "nt":
+				self.log_info ('server accept() threw EWOULDBLOCK', 'warning')
 			return		
 		except:
 			self.trace()
 		
-		https_channel (self, ssl_conn, addr)			
+		https_channel (self, conn, addr)
 		
-		
-def init_context(protocol, certfile, cafile, passphrase = None):
-	ctx=SSL.Context(protocol)
-	if not passphrase:
-		ctx.load_cert(certfile)
-	else:
-		ctx.load_cert(certfile, callback = lambda x: passphrase)
-	ctx.load_client_ca(cafile)
-	ctx.load_verify_info(cafile)
-	ctx.set_verify(SSL.verify_none, 10)
-	ctx.set_allow_unknown_ca(1)
-	ctx.set_session_id_ctx('https_srv')	
-	return ctx
 	
 		
 if __name__ == "__main__":

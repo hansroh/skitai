@@ -3,7 +3,7 @@ Hans Roh 2015 -- http://osp.skitai.com
 License: BSD
 """
 
-__VER__ = '0.9.4.8'
+__VER__ = '0.9.4.9'
 
 import sys
 import os
@@ -66,11 +66,11 @@ skitaid_files = [
 	"skitaid/etc/init/skitaid.conf",
 	"skitaid/etc/init.d/skitaid", 
 	"skitaid/etc/skitaid/skitaid.conf",
-	"skitaid/etc/skitaid/servers-available/README.TXT", 
+	"skitaid/etc/skitaid/servers-available/README.txt", 
 	"skitaid/etc/skitaid/servers-enabled/default.conf",
-	"skitaid/etc/skitaid/cert/generate/*.*",
+	"skitaid/etc/skitaid/cert/*.*",
 	"protocol/dns/*.txt",
-	"protocol/dns/pydns/*.txt"	
+	"protocol/dns/pydns/*.txt"
 ]
 
 package_data = {
@@ -161,13 +161,10 @@ if "install" in sys.argv or "develop" in sys.argv:
 				os.remove ("/usr/local/bin/skitaid-instance.py")	
 			if os.path.isfile ("/usr/local/bin/skitaid-smtpda.py"):
 				os.remove ("/usr/local/bin/skitaid-smtpda.py")	
-			if os.path.isfile ("/usr/local/bin/skitaid-install-requirements.sh"):
-				os.remove ("/usr/local/bin/skitaid-install-requirements.sh")
-
+			
 			shutil.copyfile ("skitai/skitaid/bin/skitaid.py", "/usr/local/bin/skitaid.py")
 			shutil.copyfile ("skitai/skitaid/bin/skitaid-instance.py", "/usr/local/bin/skitaid-instance.py")
 			shutil.copyfile ("skitai/skitaid/bin/skitaid-smtpda.py", "/usr/local/bin/skitaid-smtpda.py")
-			shutil.copyfile ("skitai/skitaid/bin/install-requirements.sh", "/usr/local/bin/skitaid-install-requirements.sh")
 			
 			if not os.path.isdir ("/var/local/skitaid-pub"):
 				shutil.copytree ("skitai/skitaid/pub", "/var/local/skitaid-pub")
@@ -176,7 +173,6 @@ if "install" in sys.argv or "develop" in sys.argv:
 			os.chmod ("/usr/local/bin/skitaid.py", 0o755)
 			os.chmod ("/usr/local/bin/skitaid-instance.py", 0o755)
 			os.chmod ("/usr/local/bin/skitaid-smtpda.py", 0o755)
-			os.chmod ("/usr/local/bin/skitaid-install-requirements.sh", 0o755)
 			
 			print("\n\n======================================")
 			print("Installation Complete")

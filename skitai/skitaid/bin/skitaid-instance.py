@@ -20,9 +20,7 @@ class	WAS (Skitai.Loader):
 		assert (config.getint ("server", "processes") > 0)
 		assert (config.getint ("server", "threads") > 0)
 		if config.getopt ("server", "ssl") == "yes":
-			assert (config.getopt ("certification", "certfile"))
-			assert (config.getopt ("certification", "cafile"))
-			assert (config.getopt ("certification", "passphrase"))
+			assert (config.getopt ("server", "certfile"))			
 		assert (config.getint ("server", "port") > 0)
 		assert (len (config.getopt ("server", "securekey")) >= 6)
 		assert (len (config.getopt ("server", "admin_password")) >= 6)
@@ -48,8 +46,8 @@ class	WAS (Skitai.Loader):
 		config = confparse.ConfParse (self.config)		
 		self.wasc.register ("config", config)
 		self.set_num_worker (config.getint ("server", "processes"))
-		if config.getopt ("server", "ssl") in ("yes", "1") and config.getopt ("certification", "certfile"):
-			self.config_certification (config.getopt ("certification", "certfile"), config.getopt ("certification", "cafile"), config.getopt ("certification", "passphrase"))			
+		if config.getopt ("server", "ssl") in ("yes", "1") and config.getopt ("server", "certfile"):
+			self.config_certification (config.getopt ("server", "certfile"))
 		self.config_cachefs (os.path.join (self.varpath, "cache"))
 		self.config_rcache (config.getint ("server", "num_result_cache_max"))
 		self.config_session (os.path.join (self.varpath, "sessions"), config.getint ("server", "sessiontimeout"), config.getopt ("server", "securekey"))
@@ -74,7 +72,7 @@ class	WAS (Skitai.Loader):
 				ssl = config.getopt (sect, "ssl")
 				self.add_cluster (ctype, name, members, ssl)
 				
-		self.install_handler (config.getopt ("routes"), config.getopt ("server", "proxy") == "yes",  config.getint ("server", "static_max_age"))
+		self.install_handler (config.getopt ("routes"), config.getopt ("server", "enable_proxy") == "yes",  config.getint ("server", "static_max_age"))
 		
 		lifetime.init ()
 		

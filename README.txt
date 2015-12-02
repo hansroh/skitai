@@ -189,7 +189,6 @@ Optional Requirements
 
 - *psycopg2* for querying PostgreSQL asynchronously
 - *Jinja2* for HTML Rendering
-- *M2Crypto* for HTTPS Web Server (It seems not support 3.x yet)
 
 Use 'pip install ...'
 
@@ -198,7 +197,6 @@ Use 'pip install ...'
 
 - *psycopg2 binary* - http://www.stickpeople.com/projects/python/win-psycopg/
 - *Jinja2* for HTML Rendering
-- *M2Crypto binary* - https://github.com/saltstack/salt-windows-install/tree/master/deps/win32-py2.7 (It seems not support 3.x yet)
 
 
 Install & Start Skitai Server
@@ -208,8 +206,7 @@ Install & Start Skitai Server
 
 .. code:: python
 
-    sudo pip install skitai
-    sudo skitaid-install-requirements.sh
+    sudo pip install skitai    
     sudo skitaid.py -v &
     sudo skitaid.py stop
 
@@ -251,7 +248,9 @@ Documentation
 Change Log
 -------------
   
-  0.9.4.8 - fix error handling for asynconnect.connect 
+  0.9.4.9 - remove dependency M2Crypto
+  
+  0.9.4.8 - fix error handling for asynconnect.connect
   
   0.9.4.6 - improve handling winsock ENOTCONN
   
