@@ -20,7 +20,7 @@ class	WAS (Skitai.Loader):
 		assert (config.getint ("server", "processes") > 0)
 		assert (config.getint ("server", "threads") > 0)
 		if config.getopt ("server", "ssl") == "yes":
-			assert (config.getopt ("server", "certfile"))			
+			assert (config.getopt ("server", "certfile"))
 		assert (config.getint ("server", "port") > 0)
 		assert (len (config.getopt ("server", "securekey")) >= 6)
 		assert (len (config.getopt ("server", "admin_password")) >= 6)
@@ -47,7 +47,7 @@ class	WAS (Skitai.Loader):
 		self.wasc.register ("config", config)
 		self.set_num_worker (config.getint ("server", "processes"))
 		if config.getopt ("server", "ssl") in ("yes", "1") and config.getopt ("server", "certfile"):
-			self.config_certification (config.getopt ("server", "certfile"))
+			self.config_certification (config.getopt ("server", "certfile"), config.getopt ("server", "keyfile"))
 		self.config_cachefs (os.path.join (self.varpath, "cache"))
 		self.config_rcache (config.getint ("server", "num_result_cache_max"))
 		self.config_session (os.path.join (self.varpath, "sessions"), config.getint ("server", "sessiontimeout"), config.getopt ("server", "securekey"))
