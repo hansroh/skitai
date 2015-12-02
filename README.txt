@@ -39,7 +39,9 @@ Changes
 
 **Config changed**
 
-M2Crypto dependency has been removed, then [certification] section had been entirely removed.
+1. In [server] section, from proxy = yes|no, to enable_proxy = yes|no
+
+2. M2Crypto dependency has been removed, then [certification] section had been entirely removed.
 
 .. code:: python
 

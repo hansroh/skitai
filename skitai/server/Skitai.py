@@ -25,8 +25,7 @@ except ImportError:
 
 try: import psycopg2
 except ImportError: 
-	PSYCOPG = False
-	warn ("psycopg2 is not installed")
+	PSYCOPG = False	
 else:			
 	from skitai.dbapi import dbpool	
 		
@@ -188,6 +187,7 @@ class Loader:
 		clusters = self.wasc.clusters		
 		
 		if proxy:
+			self.wasc.logger ("server", "[warn] HTTP/HTTPS Proxy Service Enabled")
 			self.wasc.add_handler (1, proxy_handler.Handler, clusters, self.wasc.cachefs)
 		self.wasc.add_handler (1, proxypass_handler.Handler, clusters, self.wasc.cachefs)
 		
