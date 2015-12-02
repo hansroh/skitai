@@ -37,7 +37,26 @@ If you need lots of outside http(s) resources connecting jobs and use PostgreSQL
 Changes
 ---------
 
-New services added
+**Config changed**
+
+M2Crypto dependency has been removed, then [certification] section had been entirely removed.
+
+.. code:: python
+
+    [server]
+    ssl = yes
+    ; added new key
+    certfile = server.pem
+
+
+To genrate self-signed certification file:
+
+.. code:: python
+
+    openssl req -new -newkey rsa:2048 -x509 -keyout server.pem -out server.pem -days 365 -nodes
+    
+
+**New services added**
 
 .. code:: python
 
