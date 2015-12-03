@@ -41,7 +41,7 @@ Changes
 
 1. In [server] section, from proxy = yes|no, to enable_proxy = yes|no
 
-2. M2Crypto dependency has been removed, then [certification] section had been entirely removed.
+2. M2Crypto dependency has been removed, and [certification] section had been entirely removed.
 
 .. code:: python
 
@@ -51,6 +51,7 @@ Changes
     certfile = server.pem
     ; you can combine to certfile
     ; keyfile = private.key
+    ; pass_phrase = 
 
 
 To genrate self-signed certification file:
@@ -270,6 +271,8 @@ Documentation
 
 Change Log
 -------------
+  
+  0.9.4.13 - enable pass phrase on CA signed certification
   
   0.9.4.9 - remove dependency M2Crypto
   

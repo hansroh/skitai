@@ -42,9 +42,10 @@ class https_channel (http_server.http_channel):
 			
 
 class https_server (http_server.http_server):
-	def __init__ (self, ip, port, certfile, keyfile, server_logger = None, request_logger = None):
+	def __init__ (self, ip, port, ctx, server_logger = None, request_logger = None):
 		http_server.http_server.__init__ (self, ip, port, server_logger, request_logger)	
-		self.socket = ssl.wrap_socket (self.socket, keyfile = keyfile, certfile = certfile, server_side = True)
+		self.ctx = ctx
+		self.socket = self.ctx.wrap_socket (self.socket, server_side = True)
 		
 	def handle_accept (self):
 		self.total_clients.inc()
@@ -63,6 +64,12 @@ class https_server (http_server.http_server):
 		
 		https_channel (self, conn, addr)
 		
+
+def init_context (certfile, keyfile, pass_phrase):
+	ctx = ssl.SSLContext (ssl.PROTOCOL_SSLv23)
+	ctx.load_cert_chain (certfile, keyfile, pass_phrase)
+	ctx.check_hostname = False
+	return ctx
 	
 		
 if __name__ == "__main__":
