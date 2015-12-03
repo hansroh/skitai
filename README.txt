@@ -51,7 +51,7 @@ Changes
     certfile = server.pem
     ; you can combine to certfile
     ; keyfile = private.key
-    ; pass_phrase = 
+    ; passphrase = 
 
 
 To genrate self-signed certification file:
