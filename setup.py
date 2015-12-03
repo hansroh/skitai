@@ -169,7 +169,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 			if not os.path.isdir ("/var/local/skitaid-pub"):
 				shutil.copytree ("skitai/skitaid/pub", "/var/local/skitaid-pub")
 			
-			os.chmod ("/etc/skitaid/skitaid.conf", 0o600)
+			os.chmod ("/etc/skitaid/skitaid.conf", 0o660)
 			os.chmod ("/usr/local/bin/skitaid.py", 0o755)
 			os.chmod ("/usr/local/bin/skitaid-instance.py", 0o755)
 			os.chmod ("/usr/local/bin/skitaid-smtpda.py", 0o755)
