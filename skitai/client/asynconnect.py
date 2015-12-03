@@ -33,7 +33,6 @@ class AsynConnect (asynchat.async_chat):
 		self.active = 0
 		self.ready = None
 		self.affluent = None
-		self.handle_connect_hook = None
 		self.initialize ()
 		asynchat.async_chat.__init__ (self)
 	
@@ -142,11 +141,6 @@ class AsynConnect (asynchat.async_chat):
 		self.set_active (False)
 			
 	def error (self, code, msg):
-		if self.handle_connect_hook:
-			func, retrun_call_args = self.handle_connect_hook
-			func (self, "%d %s" % (code, msg), *retrun_call_args)
-			self.handle_connect_hook = None
-			
 		self.close_it = True
 		self.errcode = code
 		self.errmsg = msg		
@@ -192,13 +186,12 @@ class AsynConnect (asynchat.async_chat):
 		sock.setblocking (0)
 		self.set_socket (sock)
 	
-	def hooked_connect (self, hook, *return_call_args):
-		self.handle_connect_hook = (hook, return_call_args)
+	def connect_with_adns (self):
 		if adns.query:
 			adns.query (self.address [0], "A", callback = self.connect)
 		else:
 			self.connect ()
-		
+				
 	def connect (self, force = 0):
 		self.event_time = time.time ()
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
@@ -343,10 +336,10 @@ class AsynConnect (asynchat.async_chat):
 		self.zombie_timeout = timeout
 	
 	def handle_connect (self):
-		if self.handle_connect_hook:
-			func, retrun_call_args = self.handle_connect_hook
-			func (self, None, *retrun_call_args)
-			self.handle_connect_hook = None
+		try: 
+			self.request.when_connected ()
+		except AttributeError:
+			pass
 			
 	def handle_timeout (self):
 		self.log ("socket timeout", "fail")
@@ -373,10 +366,11 @@ class AsynConnect (asynchat.async_chat):
 			self.handle_expt ()
 
 
+
 class AsynSSLConnect (AsynConnect):	
 	ac_in_buffer_size = 65535 # generally safe setting 65535 for SSL
 	ac_out_buffer_size = 65535
-		
+	
 	def connect (self, force = 0):
 		self.handshaking = False
 		AsynConnect.connect (self, force)

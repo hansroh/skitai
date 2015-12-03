@@ -49,6 +49,8 @@ Changes
     ssl = yes
     ; added new key
     certfile = server.pem
+    ; you can combine to certfile
+    ; keyfile = private.key
 
 
 To genrate self-signed certification file:

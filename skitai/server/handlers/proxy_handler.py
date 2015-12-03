@@ -3,16 +3,260 @@ import re
 from skitai.server.rpc import http_request, http_response
 from skitai.client import adns
 from skitai.server import compressors, producers
-try:
-	from . import ssl_tunnel
-except ImportError:
-	ssl_tunnel = None	
 import time
-from . import ssl_tunnel
 
-class CollectError (Exception): pass
+
+class TunnelForClientToServer:
+	collector = None
+	producer = None
+	def __init__ (self, asyncon):
+		self.asyncon = asyncon
+		self.bytes = 0
+		
+		self.asyncon.set_terminator (None)
+		
+	def collect_incoming_data (self, data):
+		self.bytes += len (data)
+		self.asyncon.push (data)
 	
-class Response (http_response.Response):
+	def abort (self):
+		self.close ()
+			
+	def close (self):
+		self.asyncon.close_socket ()
+		self.asyncon.request = None # unlink back ref
+
+
+class TunnelForServerToClient:
+	def __init__ (self, request, asyncon):
+		self.request = request
+		self.channel = request.channel
+		self.asyncon = asyncon
+		
+		self.bytes = 0				
+		self.cli2srv = None
+		
+		if not self.asyncon.connected:
+			self.asyncon.connect_with_adns ()
+				
+	def trace (self, name = None):
+		if name is None:
+			name = "tunnel://%s:%d" % self.asyncon.address
+		self.channel.trace (name)
+		
+	def log (self, message, type = "info"):
+		uri = "tunnel://%s:%d" % self.asyncon.address
+		self.channel.log ("%s - %s" % (uri, message), type)
+	
+	def when_connected (self):
+		self.channel.set_terminator (None)
+		self.cli2srv = TunnelForClientToServer (self.asyncon)
+		self.channel.current_request = self.cli2srv		
+		self.log ("connection maden to %s" % self.request.uri)
+		self.request.response.instant (200, "Connection Established", [("Proxy-Agent", "sae-pa")])
+		
+	def done (self, code, msg):
+		if code and self.bytes == 0:
+			self.asyncon.request = None # unlink back ref
+			self.request.response.error (507, "%s %s" % (code, msg))			
+		else:
+			self.abort ()
+			
+	def collect_incoming_data (self, data):
+		self.bytes += len (data)		
+		self.channel.push (data)
+	
+	def retry (self):
+		return False
+		
+	def log_request (self):
+		self.channel.server.log_request (
+			'%s:%d CONNECT tunnel://%s:%d HTTP/1.1 200 %d/%d'
+			% (self.channel.addr[0],
+			self.channel.addr[1],			
+			self.asyncon.address [0],
+			self.asyncon.address [1],
+			self.cli2srv is not None and self.cli2srv.bytes or 0,
+			self.bytes)
+			)
+				
+	def abort (self):
+		self.log_request ()
+		self.cli2srv and self.cli2srv.close ()
+		self.channel.close ()
+
+
+class ProxyRequest (http_request.Request):
+	def __init__ (self, asyncon, request, callback, client_request, collector, connection = "keep-alive"):
+		http_request.Request.__init__ (self, asyncon, request, callback, "1.1", connection)
+		self.collector = collector
+		self.client_request = client_request
+		self.is_pushed_response = False
+			
+	def add_reply_headers (self):
+		for line in self.response.get_headers ():
+			try: k, v = line.split (": ", 1)
+			except:	continue
+			ll = k.lower ()
+			if ll in ("expires", "date", "connection", "keep-alive", "content-length", "transfer-encoding", "content-encoding", "age"):
+				continue
+			self.client_request.response [k] = v.strip ()
+	
+	def push_response (self):		
+		if self.is_pushed_response or not self.client_request.channel:
+			return
+		if self.response.body_expected ():
+			self.client_request.response.push (self.response)
+		self.client_request.response.done (globbing = False, compress = False)
+		self.is_pushed_response = True
+			
+	def done (self, error, msg = ""):
+		# unbind readable/writable methods
+		self.asyncon.ready = None
+		self.asyncon.affluent = None		
+		if self.client_request.channel:			
+			self.client_request.channel.ready = None
+			self.client_request.channel.affluent = None
+		else:
+			return
+
+		# handle abnormally raised exceptions like network error etc.
+		error, msg = self.recalibrate_response (error, msg)
+		# finally, push response, but do not bind ready func because all data had been recieved.
+		if not error:
+			self.push_response ()
+		
+		if self.asyncon:
+			self.asyncon.request = None
+							
+		if self.callback:
+			self.callback (self)
+			
+	def collect_incoming_data (self, data):
+		http_request.Request.collect_incoming_data (self, data)
+		
+	def is_continue_response (self):
+		if self.response.code == 100 and self.client_request.get_header ("Expect") != "100-continue":
+			# ignore, wait next message
+			# if expect header exist on client, it's treated normal response
+			self.response = None
+			self.asyncon.set_terminator (b"\r\n\r\n")
+			return True
+		return False
+			
+	def create_response (self):
+		#print ("#################################")
+		#print (self.buffer)
+		#print ("---------------------------------")
+		
+		if not self.client_request.channel:
+			return
+				
+		buffer, self.buffer = self.buffer, b""		
+		accept_gzip = ""
+		accept_encoding = self.client_request.get_header ("Accept-Encoding")
+		if accept_encoding and accept_encoding.find ("gzip") != -1:
+			accept_gzip = "gzip"
+		
+		try:
+			self.response = ProxyResponse (self.request, buffer.decode ("utf8"), accept_gzip, self.client_request, self.asyncon)
+		except:
+			#print (buffer)
+			self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
+			raise
+		
+		if self.is_continue_response ():
+			# maybe response code is 100 continue
+			return
+		
+		self.client_request.response.start (self.response.code, self.response.msg)
+		self.add_reply_headers ()
+		
+		if self.response.is_gzip_compressed ():
+			self.client_request.response ["Content-Encoding"] = "gzip"
+	
+		# in relay mode, possibly delayed
+		self.client_request.channel.ready = self.response.ready
+		self.asyncon.affluent = self.response.affluent
+		
+		self.push_response ()
+	
+	def continue_start (self, answer):
+		if not answer:
+			self.log ("DNS not found - %s" % self.asyncon.address [0], "error")
+			return self.done (20, "DNS Not Found")
+		
+		if not self.client_request.channel:
+			return
+		
+		self.asyncon.push (self.get_request_buffer ())
+		if self.collector:
+			self.push_collector ()
+		self.asyncon.start_request (self)
+	
+	def retry (self):
+		if self.retry_count: 
+			return False
+		if self.collector and not self.collector.cached:
+			return False
+		if not self.client_request.channel:
+			return False
+		
+		self.asyncon.close_socket ()
+		self.asyncon.request = None # unlink back ref.		
+		self.retry_count = 1
+		self.asyncon.push (self.get_request_buffer ())
+		#print ("retry......", self.get_request_buffer (), self.collector)
+		if self.collector:
+			self.collector.reuse_cache ()
+			self.push_collector ()
+		self.asyncon.start_request (self)
+		return True
+	
+	def push_collector (self):
+		if not self.collector.got_all_data:
+			self.asyncon.ready = self.collector.ready
+			self.client_request.channel.affluent = self.collector.affluent		
+			# don't init_send cause of producer has no data yet
+		self.asyncon.push_with_producer (self.collector, init_send = False)
+								
+	def get_request_buffer (self):
+		hc = {}		
+		if self.asyncon.address [1] in (80, 443):
+			hc ["Host"] = "%s" % self.asyncon.address [0]
+		else:
+			hc ["Host"] = "%s:%d" % self.asyncon.address
+			
+		hc ["Connection"] = self.connection
+		hc ["Accept-Encoding"] = "gzip"
+		
+		method = self.request.get_method ()			
+		additional_headers = self.client_request.get_headers ()
+		
+		if additional_headers:
+			for line in additional_headers:
+				k, v = line.split (": ", 1)
+				ll = k.lower ()
+				if ll in ("connection", "keep-alive", "accept-encoding", "host"):
+					continue
+				hc [k] = v
+				
+		hc ["X-Forwarded-For"] = "%s" % self.client_request.get_remote_addr ()
+				
+		req = "%s %s HTTP/%s\r\n%s\r\n\r\n" % (
+			method,
+			self.request.url,
+			self.http_version,
+			"\r\n".join (["%s: %s" % x for x in list(hc.items ())])			
+		)
+		
+		#print ("#################################")
+		#print (req)
+		#print ("---------------------------------")
+		return req.encode ("utf8")
+
+	
+class ProxyResponse (http_response.Response):
 	SIZE_LIMIT = 2**24
 	
 	def __init__ (self, request, header, accept_gzip, client_request, asyncon):		
@@ -175,176 +419,6 @@ class Collector (ssgi_handler.Collector):
 		#print "proxy_handler.collector.more >> %d" % tl, id (self)
 		return b"".join (data)
 		
-
-class Request (http_request.Request):
-	def __init__ (self, asyncon, request, callback, client_request, collector, connection = "keep-alive"):
-		http_request.Request.__init__ (self, asyncon, request, callback, "1.1", connection)
-		self.collector = collector
-		self.client_request = client_request
-		self.is_pushed_response = False
-			
-	def add_reply_headers (self):
-		for line in self.response.get_headers ():
-			try: k, v = line.split (": ", 1)
-			except:	continue
-			ll = k.lower ()
-			if ll in ("expires", "date", "connection", "keep-alive", "content-length", "transfer-encoding", "content-encoding", "age"):
-				continue
-			self.client_request.response [k] = v.strip ()
-	
-	def push_response (self):		
-		if self.is_pushed_response or not self.client_request.channel:
-			return
-		if self.response.body_expected ():
-			self.client_request.response.push (self.response)
-		self.client_request.response.done (globbing = False, compress = False)
-		self.is_pushed_response = True
-			
-	def done (self, error, msg = ""):
-		# unbind readable/writable methods
-		self.asyncon.ready = None
-		self.asyncon.affluent = None		
-		if self.client_request.channel:			
-			self.client_request.channel.ready = None
-			self.client_request.channel.affluent = None
-		else:
-			return
-
-		# handle abnormally raised exceptions like network error etc.
-		error, msg = self.recalibrate_response (error, msg)
-		# finally, push response, but do not bind ready func because all data had been recieved.
-		if not error:
-			self.push_response ()
-		
-		if self.asyncon:
-			self.asyncon.request = None
-							
-		if self.callback:
-			self.callback (self)
-			
-	def collect_incoming_data (self, data):
-		http_request.Request.collect_incoming_data (self, data)
-		
-	def is_continue_response (self):
-		if self.response.code == 100 and self.client_request.get_header ("Expect") != "100-continue":
-			# ignore, wait next message
-			# if expect header exist on client, it's treated normal response
-			self.response = None
-			self.asyncon.set_terminator (b"\r\n\r\n")
-			return True
-		return False
-			
-	def create_response (self):
-		#print ("#################################")
-		#print (self.buffer)
-		#print ("---------------------------------")
-		
-		if not self.client_request.channel:
-			return
-				
-		buffer, self.buffer = self.buffer, b""		
-		accept_gzip = ""
-		accept_encoding = self.client_request.get_header ("Accept-Encoding")
-		if accept_encoding and accept_encoding.find ("gzip") != -1:
-			accept_gzip = "gzip"
-		
-		try:
-			self.response = Response (self.request, buffer.decode ("utf8"), accept_gzip, self.client_request, self.asyncon)
-		except:
-			#print (buffer)
-			self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
-			raise
-		
-		if self.is_continue_response ():
-			# maybe response code is 100 continue
-			return
-		
-		self.client_request.response.start (self.response.code, self.response.msg)
-		self.add_reply_headers ()
-		
-		if self.response.is_gzip_compressed ():
-			self.client_request.response ["Content-Encoding"] = "gzip"
-	
-		# in relay mode, possibly delayed
-		self.client_request.channel.ready = self.response.ready
-		self.asyncon.affluent = self.response.affluent
-		
-		self.push_response ()
-	
-	def continue_start (self, answer):
-		if not answer:
-			self.log ("DNS not found - %s" % self.asyncon.address [0], "error")
-			return self.done (20, "DNS Not Found")
-		
-		if not self.client_request.channel:
-			return
-		
-		self.asyncon.push (self.get_request_buffer ())
-		if self.collector:
-			self.push_collector ()
-		self.asyncon.start_request (self)
-	
-	def retry (self):
-		if self.retry_count: 
-			return False
-		if self.collector and not self.collector.cached:
-			return False
-		if not self.client_request.channel:
-			return False
-		
-		self.asyncon.close_socket ()
-		self.asyncon.request = None # unlink back ref.		
-		self.retry_count = 1
-		self.asyncon.push (self.get_request_buffer ())
-		#print ("retry......", self.get_request_buffer (), self.collector)
-		if self.collector:
-			self.collector.reuse_cache ()
-			self.push_collector ()
-		self.asyncon.start_request (self)
-		return True
-	
-	def push_collector (self):
-		if not self.collector.got_all_data:
-			self.asyncon.ready = self.collector.ready
-			self.client_request.channel.affluent = self.collector.affluent		
-			# don't init_send cause of producer has no data yet
-		self.asyncon.push_with_producer (self.collector, init_send = False)
-								
-	def get_request_buffer (self):
-		hc = {}		
-		if self.asyncon.address [1] in (80, 443):
-			hc ["Host"] = "%s" % self.asyncon.address [0]
-		else:
-			hc ["Host"] = "%s:%d" % self.asyncon.address
-			
-		hc ["Connection"] = self.connection
-		hc ["Accept-Encoding"] = "gzip"
-		
-		method = self.request.get_method ()			
-		additional_headers = self.client_request.get_headers ()
-		
-		if additional_headers:
-			for line in additional_headers:
-				k, v = line.split (": ", 1)
-				ll = k.lower ()
-				if ll in ("connection", "keep-alive", "accept-encoding", "host"):
-					continue
-				hc [k] = v
-				
-		hc ["X-Forwarded-For"] = "%s" % self.client_request.get_remote_addr ()
-				
-		req = "%s %s HTTP/%s\r\n%s\r\n\r\n" % (
-			method,
-			self.request.url,
-			self.http_version,
-			"\r\n".join (["%s: %s" % x for x in list(hc.items ())])			
-		)
-		
-		#print ("#################################")
-		#print (req)
-		#print ("---------------------------------")
-		return req.encode ("utf8")
-
 			
 class Handler (ssgi_handler.Handler):
 	def __init__ (self, wasc, clusters, cachefs = None):
@@ -361,22 +435,13 @@ class Handler (ssgi_handler.Handler):
 		if request.command == "connect":
 			return 1
 		return 0
-	
-	def handle_tunnel_connect (self, asyncon, err, request):
-		if not err:		
-			request.response.instant (200, "Connection Established", [("Proxy-Agent", "sae-pa")])						
-			asyncon.request = ssl_tunnel.ServerToClient (request.channel, asyncon)
-		else:
-			request.response.error (507, err)
 		
 	def handle_request (self, request):
 		if request.command == "connect":
 			uri = "tunnel://" + request.uri + "/"
 			asyncon = self.clusters ["__socketpool__"].get (uri)
-			if not asyncon.connected:
-				asyncon.hooked_connect (self.handle_tunnel_connect, request)
-			self.wasc.logger ("server", "[info] connection maden to %s" % request.uri)
-				
+			asyncon.request = TunnelForServerToClient (request, asyncon)
+
 		else:
 			collector = None
 			if request.command in ('post', 'put'):
@@ -402,7 +467,7 @@ class Handler (ssgi_handler.Handler):
 			req = http_request.HTTPRequest (request.uri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))		
 			if asyncon is None:
 				asyncon = self.clusters ["__socketpool__"].get (request.uri)
-			r = Request (asyncon, req, self.callback, request, collector)			
+			r = ProxyRequest (asyncon, req, self.callback, request, collector)			
 			if collector:
 				collector.asyncon = asyncon
 			r.start ()

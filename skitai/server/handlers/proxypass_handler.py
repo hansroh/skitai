@@ -59,7 +59,7 @@ class Handler (proxy_handler.Handler):
 			), 'warn')
 		
 		fetcher = http_request.HTTPRequest (psysicaluri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))		
-		r = proxy_handler.Request (asyncon, fetcher, self.callback, request, collector)
+		r = proxy_handler.ProxyRequest (asyncon, fetcher, self.callback, request, collector)
 		r.start ()
 	
 	def callback (self, handler):

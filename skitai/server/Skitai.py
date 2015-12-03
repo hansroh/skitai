@@ -103,7 +103,8 @@ class Loader:
 		if not os.path.isfile (certfile):
 			_certpath = os.path.join (os.path.split (os.path.split (self.config)[0])[0], "cert")
 			self.certfile = os.path.join (_certpath, certfile)
-			self.keyfile = os.path.join (_certpath, keyfile)
+			if keyfile:
+				self.keyfile = os.path.join (_certpath, keyfile)
 		self.ssl = True
 				
 	def config_webserver (self, port, ip = "", name = "", ssl = False):
