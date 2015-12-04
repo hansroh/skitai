@@ -139,7 +139,13 @@ class SocketPool:
 			__dft_Port = 443
 		elif scheme == "tunnel":
 			__conn_class = asynconnect.AsynConnect
-			__dft_Port = 443			
+			__dft_Port = 443
+		elif scheme == "proxy":
+			__conn_class = asynconnect.AsynConnect			
+			__dft_Port = 5000
+		elif scheme == "proxys":
+			__conn_class = asynconnect.AsynSSLConnect
+			__dft_Port = 5000				
 		else:
 			__conn_class = asynconnect.AsynConnect
 			__dft_Port = 80
@@ -151,7 +157,10 @@ class SocketPool:
 			addr, port = server, __dft_Port
 		
 		self.numobj += 1			
-		return __conn_class ((addr, port), self.lock, self.logger)	
+		asyncon = __conn_class ((addr, port), self.lock, self.logger)	
+		if scheme in ("proxy", "proxys"):
+			asyncon.set_proxy (True)
+		return asyncon
 				
 	def get (self, uri):	
 		scheme, server, script, params, qs, fragment = urlparse (uri)

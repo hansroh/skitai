@@ -1,5 +1,5 @@
 from . import ssgi_handler, proxy_handler
-from skitai.server.rpc import http_request
+from skitai.protocol.http import request as http_request
 import re
 	
 class Handler (proxy_handler.Handler):
@@ -59,7 +59,7 @@ class Handler (proxy_handler.Handler):
 			), 'warn')
 		
 		fetcher = http_request.HTTPRequest (psysicaluri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))		
-		r = proxy_handler.ProxyRequest (asyncon, fetcher, self.callback, request, collector)
+		r = proxy_handler.ProxyRequestHandler (asyncon, fetcher, self.callback, request, collector)
 		r.start ()
 	
 	def callback (self, handler):

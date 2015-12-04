@@ -1,18 +1,28 @@
-﻿import urllib.request, urllib.parse, urllib.error
+﻿try:
+	from urllib.parse import urlparse, quote_plus	
+except ImportError:
+	from urlparse import urlparse
+	from urllib import quote_plus	
 
-quote = urllib.parse.quote_plus
 
-def queryencode (data):
+def dictencode (data):
+	cdata = []
+	for k, v in list (data.items ()):
+		cdata.append ("%s=%s" % (k, quote_plus (v)))
+	return "&".join (cdata)
+	
+def strencode (data):
 	if not data: return data
-	if data.find ('%') > -1 or data.find ('+') > -1:
-		return data
 
+	if data.find ('%') != -1 or (data.find ('+') != -1 and data.find (' ') == -1):
+		return data
+	
 	d = []
 	for x in data.split('&'):
 		try: k, v = x.split('=', 1)
 		except ValueError: d.append ((k, None))
 		else:
-			v = quote (v)
+			v = quote_plus (v)
 			d.append ((k, v))
 	d2 = []
 	for k, v in d:
@@ -24,7 +34,7 @@ def queryencode (data):
 	return '&'.join (d2)
 
 
-def strparse (data, value_quote = 0):
+def strdecode (data, value_quote = 0):
 	if not data: return []
 	do_quote = 1
 	if data.find('%') > -1 or data.find('+') > -1:
@@ -38,6 +48,6 @@ def strparse (data, value_quote = 0):
 		except ValueError: pass
 		else:
 			if do_quote:
-				v = quote (v.strip())
+				v = quote_plus (v.strip())
 			d.append((k.strip(), v.strip()))
 	return d

@@ -32,10 +32,17 @@ class AsynConnect (asynchat.async_chat):
 		self._cv = threading.Condition ()		
 		self.active = 0
 		self.ready = None
+		self.proxy = False
 		self.affluent = None
 		self.initialize ()
 		asynchat.async_chat.__init__ (self)
 	
+	def set_proxy (self, flag = True):
+		self.proxy = flag
+	
+	def is_proxy (self):
+		return self.proxy
+			
 	def log (self, msg, logtype):
 		if self.request is not None and hasattr (self.request, "log"):
 			self.request.log (msg, logtype)

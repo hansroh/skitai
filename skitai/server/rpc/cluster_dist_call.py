@@ -1,8 +1,9 @@
 import time
 from skitai.server.threads import trigger
 import threading
-from . import http_request
-from . import http_response
+from skitai.protocol.http import request as http_request
+from skitai.protocol.http import request_handler as http_request_handler
+from skitai.protocol.http import response as http_response
 from skitai.server import rcache
 
 
@@ -223,7 +224,7 @@ class ClusterDistCall:
 				request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._login, self._logger)
 			
 			self._requests[rs] = asyncon
-			r = http_request.Request (asyncon, request, rs.handle_result)
+			r = http_request_handler.RequestHandler (asyncon, request, rs.handle_result)
 			r.start ()
 			
 		trigger.wakeup ()

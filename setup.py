@@ -110,7 +110,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 				try: os.remove (os.path.join ("c:\\skitaid\\bin", fn))
 				except WindowsError as why:
 					if why.errno == 2: pass	
-				shutil.copyfile (os.path.join ("skitai\\skitaid\\bin", fn), os.path.join ("c:\\skitaid\\bin", fn))
+		shutil.copyfile (os.path.join ("skitai\\skitaid\\bin", fn), os.path.join ("c:\\skitaid\\bin", fn))
 		
 		if not os.path.isdir ("c:\\skitaid\\pub"):
 			shutil.copytree ("skitai\\skitaid\\pub", "c:\\skitaid\\pub")

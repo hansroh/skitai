@@ -1,107 +1,171 @@
-﻿from . import response
-import urllib.request, urllib.parse, urllib.error
-from . import eurl
-from .. import socketpool, adns
-from . import localstorage
-
-
-def encode_form (data):
-	cdata = []
-	for k, v in data.itmes ():
-		cdata.append ("%s=%s" % (k, urllib.parse.quote_plus (v)))
-	return "&".join (cdata)
-
-def init (logger):
-	socketpool.create (logger)
-	localstorage.create (logger)
-
-def end ():
-	socketpool.cleanup ()
+try:
+	import xmlrpc.client as xmlrpclib
+except ImportError:
+	import xmlrpclib
+	
+import base64
+try: 
+	from urllib.parse import urlparse, quote
+except ImportError:
+	from urllib import quote
+	from urlparse import urlparse
 				
+from skitai.server import producers
+
+JSONRPCLIB = True
+try:
+	import jsonrpclib
+except ImportError:
+	JSONRPCLIB = False
+
+class XMLRPCRequest:
+	content_type = "text/xml"
 			
-class Request:
-	keep_alive = 5
-	request_timeout = 30
-		
-	def __init__ (self, surl, callback = None, logger = None):
-		if localstorage.localstorage is None:
-			init (logger)
-			
-		self.localstorage = localstorage.localstorage
-		if type (surl) is type (""):
-			self.eurl = eurl.EURL (surl)
-		else:
-			self.eurl = surl
-			
-		self.callback = callback
+	def __init__ (self, uri, method, params = (), headers = None, encoding = "utf8", login = None, logger = None):
+		self.uri = uri
+		self.method = method
+		self.address = None
+		self.params = params
+		self.headers = headers
+		self.encoding = encoding
+		self.login = login
 		self.logger = logger
-		self.response = None
-		self.buffer = ""
-					
-	def log (self, message, type = "info"):
-		self.logger ("server", type, message)
-
-	def log_info (self, message, type='info'):
-		self.log (message, type)
-
-	def trace (self):
-		self.logger.trace (self.eurl ["url"])
 		
-	def collect_incoming_data (self, data):
-		self.response.collect_incoming_data (data)
+		if uri.startswith ("http://") or uri.startswith ("https://"):
+			self.path = self.get_path (uri)
+		else:	
+			self.path = uri
+		self.data = self.serialize ()
+	
+	def set_address (self, address):
+		self.address = address
 		
-	def will_be_close (self):
-		close_it = True
-		connection = self.response.get_header ("connection")
-		if self.response.version in ("1.1", "1.x"):
-			if not connection or connection.lower () == "keep-alive":
-				close_it = False			
-		else:
-			if connection and connection.lower () == "keep-alive":
-				close_it = False
-		return close_it
-	
-	def used_chunk (self):
-		transfer_encoding = self.response.get_header ("transfer-encoding")
-		return transfer_encoding and transfer_encoding.lower () == "chunked"
-	
-	def get_content_length (self):
-		return int (self.response.get_header ("content-length"))
-	
-	def get_content_type (self):
-		return self.response.get_header ("content-type")
-	
-	def start (self):
-		adns.query (self.eurl["netloc"], "A", callback = self.continue_start)
+	def get_address (self):
+		return self.address
 		
-	def continue_start (self, answer):
-		if not answer:
-			return self.handle_complete (903, "DNS Error")
-		asyncon = socketpool.socketpool.get (self.eurl["proxy"] and self.eurl["proxy"] or self.eurl["netloc"], self.eurl["scheme"])
-		asyncon.start_request (self)
-	
-	#------------------------------------------------
-	# handler must provide these methods
-	#------------------------------------------------
-	def get_request_buffer (self):
-		rh = self.eurl.make_request_header (self.localstorage)
-		return rh
+	def get_method (self):
+		return "POST"
 		
-	def handle_complete (self, error, msg = "Network Error"):
-		if self.response is None:
-			self.response = response.FailedResponse (900, msg, self.eurl)			
-		elif error:
-			if self.response:
-				self.response.done ()				
-			self.response = response.FailedResponse (error, msg, self.eurl)
+	def get_path (self, uri):
+		scheme, address, script, params, qs, fragment = urlparse (uri)
+		if not script: script = "/"
+		url = script
+		if params: url += ";" + params
+		if qs: url += "?" + qs
+		
+		try: 
+			host, port = address.split (":", 1)
+			port = int (port)
+		except ValueError:
+			host = address
+			if scheme == "http":
+				port = 80
+			else:
+				port = 443	
+		self.address = (host, port)	
+		return url
+		
+	def serialize (self):
+		return xmlrpclib.dumps (self.params, self.method, encoding=self.encoding, allow_none=1).encode ("utf8")
+	
+	def get_auth (self):
+		if self.login:
+			return base64.encodestring (self.login) [:-1]
+		
+	def get_data (self):
+		return self.data
 			
-		if self.callback:
-			self.callback (self.response)
+	def get_content_type (self):
+		if self.headers:
+			for k, v in list(self.headers.items ()):
+				if k.lower () == "content-length":
+					del self.headers [k]
+				elif k.lower () == "content-type":
+					self.content_type = v
+					del self.headers [k]					
+		return self.content_type
 	
-	def handle_response (self, buffer):
-		try:
-			self.response = response.Response (self.eurl, buffer, self.localstorage)
-		except:
-			self.trace ()
-			raise			
+	def get_headers (self):
+		if self.headers:
+			return list(self.headers.items ())
+		else:
+			return []	
+			
+
+if JSONRPCLIB:
+	class JSONRPCRequest (XMLRPCRequest):
+		content_type = "application/json-rpc"
+		
+		def serialize (self):
+			return jsonrpclib.dumps (self.params, self.method, encoding=self.encoding, rpcid=None, version = "2.0").encode ("utf8")
+
 	
+class HTTPRequest (XMLRPCRequest):
+	content_type = "application/x-www-form-urlencoded; charset=utf-8"
+	def get_method (self):
+		return self.method.upper ()
+					
+	def serialize (self):
+		# formdata type can be string, dict, boolean
+		if not self.params:
+			# no content, no content-type
+			self.content_type = None		
+			return b""
+
+		if type (self.params) is type ({}):
+			if self.get_content_type () != "application/x-www-form-urlencoded":
+				raise TypeError ("POST Body should be string or can be encodable")
+			fm = []
+			for k, v in list(self.params.items ()):
+				if self.encoding:
+					v = v.decode (self.encoding)					
+				fm.append ("%s=%s" % (quote (k), quote (v)))
+			return "&".join (fm).encode ("utf8")
+						
+		return self.params
+		
+	
+class HTTPPutRequest (HTTPRequest):
+	# PUT content-type hasn't got default type
+	content_type = None
+			
+	def get_method (self):
+		return "PUT"
+					
+	def serialize (self):
+		if type (self.params) is not str:
+			raise TypeError ("PUT body must be string")
+		if self.encoding:
+			return self.params.decode (self.encoding).encode ("utf8")
+		return self.params.encode ("utf8")
+		
+		
+class HTTPMultipartRequest (HTTPRequest):
+	boundary = "-------------------SAE-20150614204358"
+	
+	def __init__ (self, uri, method, params = {}, headers = None, encoding = None, login = None, logger = None):
+		HTTPRequest.__init__ (self, uri, method, params, headers, encoding, login, logger)
+		if type (self.params) is bytes:
+			self.find_boundary ()
+	
+	def get_method (self):
+		return "POST"
+						
+	def get_content_type (self):
+		HTTPRequest.get_content_type (self) # for remove content-type header
+		return "multipart/form-data; boundary=" + self.boundary
+			
+	def find_boundary (self):
+		s = self.params.find (b"\r\n")
+		if s == -1:
+			raise ValueError("boundary not found")
+		b = self.params [:s]			
+		if b [:2] != b"--":
+			raise ValueError("invalid multipart/form-data")
+		self.boundary = b [2:s]
+		
+	def serialize (self):
+		if type (self.params) is type ({}):
+			return producers.multipart_producer (self.params, self.boundary, self.encoding)
+		return self.params
+

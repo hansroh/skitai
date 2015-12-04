@@ -1,7 +1,9 @@
 ﻿import base64
 import random
-import urllib.parse
-import urllib.request, urllib.parse, urllib.error
+try:
+	from urllib.parse import urlparse
+except ImportError:
+	from urlparse import urlparse	
 from . import util
 
 localstorage = None
@@ -15,11 +17,25 @@ class LocalStorage:
 	def __init__ (self, logger):
 		self.logger = logger
 		self.cookie = {}
+		self.data = {}
 		self.cookie_protected = {}
-				
+	
 	def get_host (self, url):
-		return urllib.parse.urlparse (url) [1].split (":") [0]
-		
+		return urlparse (url) [1].split (":") [0]
+	
+	def set_item (self, url, key, val):
+		host = self.get_host (url)
+		if host not in self.data:
+			self.data = {}
+		self.data [key] = val
+	
+	def get_item (self, url, key):
+		host = self.get_host (url)
+		try:
+			return self.data [host][key]
+		except KeyError:
+			return 
+				
 	def set_protect_cookie (self, url, name, flag = 1):
 		host = self.get_host (url)
 		try:
@@ -40,8 +56,8 @@ class LocalStorage:
 		url = url.lower ()
 		cookie = []
 		for domain in self.cookie:
-			scheme, netloc, script, params, query, frag = urllib.parse.urlparse (url)
-			if ("."+netloc).find (domain) > -1:
+			host = self.get_host (url)
+			if ("." + host).find (domain) > -1:
 				for path in self.cookie [domain]:
 					if script.find (path) > -1:
 						cookie += list(self.cookie [domain][path].items ())
@@ -67,7 +83,7 @@ class LocalStorage:
 		self.cookie [host]["/"] = {}
 		
 		if type (cookie) != type ([]):
-			cookie = util.strparse (cookie, 1)
+			cookie = util.strdecode (cookie, 1)
 					
 		for k, v in cookie:
 			self.cookie [host]["/"][k] = v

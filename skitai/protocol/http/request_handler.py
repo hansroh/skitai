@@ -1,182 +1,10 @@
-try:
-	import xmlrpc.client as xmlrpclib
-except ImportError:
-	import xmlrpclib
-	
-import base64
-try: 
-	from urllib.parse import urlparse, quote
-except ImportError:
-	from urllib import quote
-	from urlparse import urlparse
-				
-from . import http_response
-from skitai.client import adns, asynconnect
-from skitai.server import producers
-
-JSONRPCLIB = True
-try:
-	import jsonrpclib
-except ImportError:
-	JSONRPCLIB = False
-	
-class XMLRPCRequest:
-	content_type = "text/xml"
-			
-	def __init__ (self, uri, method, params = (), headers = None, encoding = "utf8", login = None, logger = None):
-		self.uri = uri
-		if uri.startswith ("http://") or uri.startswith ("https://"):
-			self.url = self.make_url (uri)
-		else:	
-			self.url = uri
-		self.method = method
-		self.params = params
-		self.headers = headers
-		self.encoding = encoding
-		self.login = login
-		self.logger = logger
-		self.data = self.serialize ()
-	
-	def get_method (self):
-		return "POST"
-		
-	def make_url (self, uri):
-		scheme, server, script, params, qs, fragment = urlparse (uri)
-		if not script: script = "/"
-		url = script
-		if params: url += ";" + params
-		if qs: url += "?" + qs
-		return url
-		
-	def serialize (self):
-		return xmlrpclib.dumps (self.params, self.method, encoding=self.encoding, allow_none=1).encode ("utf8")
-		
-	def set_address (self, address):
-		self.address = address
-			
-	def get_auth (self):
-		if self.login:
-			return base64.encodestring (self.login) [:-1]
-		
-	def get_data (self):
-		return self.data
-			
-	def get_content_type (self):
-		if self.headers:
-			for k, v in list(self.headers.items ()):
-				if k.lower () == "content-length":
-					del self.headers [k]
-				elif k.lower () == "content-type":
-					self.content_type = v
-					del self.headers [k]					
-		return self.content_type
-	
-	def get_headers (self):
-		if self.headers:
-			return list(self.headers.items ())
-		else:
-			return []	
-			
-
-if JSONRPCLIB:
-	class JSONRPCRequest (XMLRPCRequest):
-		content_type = "application/json-rpc"
-		
-		def serialize (self):
-			return jsonrpclib.dumps (self.params, self.method, encoding=self.encoding, rpcid=None, version = "2.0").encode ("utf8")
-
-	
-class HTTPRequest (XMLRPCRequest):
-	content_type = "application/x-www-form-urlencoded; charset=utf-8"
-	
-	def __init__ (self, uri, method, formdata = {}, headers = None, encoding = None, login = None, logger = None):
-		self.uri = uri
-		self.method = method
-		if uri.startswith ("http://") or uri.startswith ("https://"):
-			self.url = self.make_url (uri)
-		else:	
-			self.url = uri
-		
-		self.formdata = formdata
-		self.headers = headers
-		self.encoding = encoding
-		self.login = login
-		self.logger = logger
-			
-		self.data = self.serialize ()
-		
-	def get_method (self):
-		return self.method.upper ()
-					
-	def serialize (self):
-		# formdata type can be string, dict, boolean
-		if not self.formdata:
-			# no content, no content-type
-			self.content_type = None		
-			return b""
-
-		if type (self.formdata) is type ({}):
-			if self.get_content_type () != "application/x-www-form-urlencoded":
-				raise TypeError ("POST Body should be string or can be encodable")
-			fm = []
-			for k, v in list(self.formdata.items ()):
-				if self.encoding:
-					v = v.decode (self.encoding)					
-				fm.append ("%s=%s" % (quote (k), quote (v)))
-			return "&".join (fm).encode ("utf8")
-						
-		return self.formdata
-		
-	
-class HTTPPutRequest (HTTPRequest):
-	# PUT content-type hasn't got default type
-	content_type = None
-			
-	def get_method (self):
-		return "PUT"
-					
-	def serialize (self):
-		if type (self.formdata) is not str:
-			raise TypeError ("PUT body must be string")
-		if self.encoding:
-			return self.formdata.decode (self.encoding).encode ("utf8")
-		return self.formdata.encode ("utf8")
-		
-		
-class HTTPMultipartRequest (HTTPRequest):
-	boundary = "-------------------SAE-20150614204358"
-	
-	def __init__ (self, uri, method, formdata = {}, headers = None, encoding = None, login = None, logger = None):
-		HTTPRequest.__init__ (self, uri, method, formdata, headers, encoding, login, logger)
-		if type (self.formdata) is bytes:
-			self.find_boundary ()
-	
-	def get_method (self):
-		return "POST"
-						
-	def get_content_type (self):
-		HTTPRequest.get_content_type (self) # for remove content-type header
-		return "multipart/form-data; boundary=" + self.boundary
-			
-	def find_boundary (self):
-		s = self.formdata.find (b"\r\n")
-		if s == -1:
-			raise ValueError("boundary not found")
-		b = self.formdata [:s]			
-		if b [:2] != b"--":
-			raise ValueError("invalid multipart/form-data")
-		self.boundary = b [2:s]
-		
-	def serialize (self):
-		if type (self.formdata) is type ({}):
-			return producers.multipart_producer (self.formdata, self.boundary, self.encoding)
-		return self.formdata
+from . import response as http_response
+from skitai.client import adns
 
 
-class Request:
+class RequestHandler:
 	def __init__ (self, asyncon, request, callback, http_version = "1.1", connection = "keep-alive"):
 		self.asyncon = asyncon
-		request.set_address (self.asyncon.address)
 		self.buffer = b""	
 		self.wrap_in_chunk = False
 		self.end_of_data = False		
@@ -188,6 +16,9 @@ class Request:
 		self.connection = connection		
 		self.retry_count = 0
 		self.response = None	
+		
+		if request.get_address () is None:
+			request.set_address (self.asyncon.address)		
 		self.asyncon.set_terminator (b"\r\n\r\n")	
 	
 	def _del_ (self):
@@ -215,11 +46,12 @@ class Request:
 		hc = {}		
 		hc ["Connection"] = self.connection
 		
+		address = self.request.get_address ()
 		if self.asyncon.address [1] in (80, 443):			
 			hc ["Host"] = "%s" % self.asyncon.address [0]
 		else:
 			hc ["Host"] = "%s:%d" % self.asyncon.address
-			
+
 		hc ["Accept"] = "*/*"		
 		hc ["Accept-Encoding"] = "gzip"
 		
@@ -244,7 +76,7 @@ class Request:
 		
 		req = ("%s %s HTTP/%s\r\n%s\r\n\r\n" % (
 			self.request.get_method (),
-			self.request.url,
+			self.asyncon.is_proxy () and self.request.uri or self.request.path,
 			self.http_version,
 			"\r\n".join (["%s: %s" % x for x in list(hc.items ())])
 		)).encode ("utf8")

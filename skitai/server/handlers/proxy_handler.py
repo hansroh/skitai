@@ -1,6 +1,8 @@
 from . import ssgi_handler
 import re
-from skitai.server.rpc import http_request, http_response
+from skitai.protocol.http import request as http_request
+from skitai.protocol.http import request_handler as http_request_handler
+from skitai.protocol.http import response as http_response
 from skitai.client import adns
 from skitai.server import compressors, producers
 import time
@@ -86,9 +88,9 @@ class TunnelForServerToClient:
 		self.channel.close ()
 
 
-class ProxyRequest (http_request.Request):
+class ProxyRequestHandler (http_request_handler.RequestHandler):
 	def __init__ (self, asyncon, request, callback, client_request, collector, connection = "keep-alive"):
-		http_request.Request.__init__ (self, asyncon, request, callback, "1.1", connection)
+		http_request_handler.RequestHandler.__init__ (self, asyncon, request, callback, "1.1", connection)
 		self.collector = collector
 		self.client_request = client_request
 		self.is_pushed_response = False
@@ -133,7 +135,7 @@ class ProxyRequest (http_request.Request):
 			self.callback (self)
 			
 	def collect_incoming_data (self, data):
-		http_request.Request.collect_incoming_data (self, data)
+		http_request_handler.RequestHandler.collect_incoming_data (self, data)
 		
 	def is_continue_response (self):
 		if self.response.code == 100 and self.client_request.get_header ("Expect") != "100-continue":
@@ -467,7 +469,7 @@ class Handler (ssgi_handler.Handler):
 			req = http_request.HTTPRequest (request.uri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))		
 			if asyncon is None:
 				asyncon = self.clusters ["__socketpool__"].get (request.uri)
-			r = ProxyRequest (asyncon, req, self.callback, request, collector)			
+			r = ProxyRequestHandler (asyncon, req, self.callback, request, collector)			
 			if collector:
 				collector.asyncon = asyncon
 			r.start ()
