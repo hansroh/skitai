@@ -24,17 +24,13 @@ class XMLRPCRequest:
 	def __init__ (self, uri, method, params = (), headers = None, encoding = "utf8", login = None, logger = None):
 		self.uri = uri
 		self.method = method
-		self.address = None
 		self.params = params
 		self.headers = headers
 		self.encoding = encoding
 		self.login = login
 		self.logger = logger
 		
-		if uri.startswith ("http://") or uri.startswith ("https://"):
-			self.path = self.get_path (uri)
-		else:	
-			self.path = uri
+		self.address, self.path = self.split (uri)
 		self.data = self.serialize ()
 	
 	def set_address (self, address):
@@ -46,12 +42,15 @@ class XMLRPCRequest:
 	def get_method (self):
 		return "POST"
 		
-	def get_path (self, uri):
+	def split (self, uri):
+		if not (uri.startswith ("http://") or uri.startswith ("https://")):
+			return None, uri
+			
 		scheme, address, script, params, qs, fragment = urlparse (uri)
 		if not script: script = "/"
-		url = script
-		if params: url += ";" + params
-		if qs: url += "?" + qs
+		path = script
+		if params: path += ";" + params
+		if qs: path += "?" + qs
 		
 		try: 
 			host, port = address.split (":", 1)
@@ -62,8 +61,8 @@ class XMLRPCRequest:
 				port = 80
 			else:
 				port = 443	
-		self.address = (host, port)	
-		return url
+		
+		return (host, port)	, path
 		
 	def serialize (self):
 		return xmlrpclib.dumps (self.params, self.method, encoding=self.encoding, allow_none=1).encode ("utf8")

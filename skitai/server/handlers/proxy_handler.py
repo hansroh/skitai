@@ -223,11 +223,12 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		self.asyncon.push_with_producer (self.collector, init_send = False)
 								
 	def get_request_buffer (self):
-		hc = {}		
-		if self.asyncon.address [1] in (80, 443):
-			hc ["Host"] = "%s" % self.asyncon.address [0]
+		hc = {}
+		address = self.request.get_address ()
+		if address [1] in (80, 443):
+			hc ["Host"] = "%s" % address [0]
 		else:
-			hc ["Host"] = "%s:%d" % self.asyncon.address
+			hc ["Host"] = "%s:%d" % address
 			
 		hc ["Connection"] = self.connection
 		hc ["Accept-Encoding"] = "gzip"
@@ -247,7 +248,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 				
 		req = "%s %s HTTP/%s\r\n%s\r\n\r\n" % (
 			method,
-			self.request.url,
+			self.request.path,
 			self.http_version,
 			"\r\n".join (["%s: %s" % x for x in list(hc.items ())])			
 		)

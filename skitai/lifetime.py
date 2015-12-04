@@ -7,9 +7,10 @@ import bisect
 import socket
 import time
 
+PY_MAJOR_VERSION = sys.version_info.major
+
 if os.name == "nt":
 	from errno import WSAENOTSOCK
-	
 	
 _shutdown_phase = 0
 _shutdown_timeout = 30 # seconds per phase
@@ -175,8 +176,11 @@ def poll_fun_wrap (timeout, map):
 		poll_fun (timeout, map)
 	
 	except select.error as why:
-		if os.name == "nt" and why.errno == WSAENOTSOCK: # sometimes postgresql connection forcely closed
-			remove_notsocks (map)
+		if os.name == "nt" :
+			if PY_MAJOR_VERSION >= 3: errno = why.errno
+			else: errno = why [0]
+			if errno == WSAENOTSOCK: # sometimes postgresql connection forcely closed
+				remove_notsocks (map)
 	
 	except ValueError:
 		# too many file descriptors in select()
@@ -227,8 +231,11 @@ def graceful_shutdown_loop ():
 			try:
 				poll_fun(timeout, map)
 			except select.error as why:
-				if os.name == "nt" and why.errno == WSAENOTSOCK: # sometimes postgresql connection forcely closed
-					remove_notsocks (map)
+				if os.name == "nt":
+					if PY_MAJOR_VERSION >= 3: errno = why.errno
+					else: errno = why [0]
+					if errno == WSAENOTSOCK: # sometimes postgresql connection forcely closed
+						remove_notsocks (map)
 					
 		else:
 			_shutdown_phase += 1

@@ -31,9 +31,8 @@ class Request (http_request.HTTPRequest):
 			logger = logger
 			)
 			
-	def get_path (self, uri):
-		self.address = 	(self.el ["netloc"], self.el ["port"])
-		return self.el ["uri"]
+	def split (self, uri):
+		return (self.el ["netloc"], self.el ["port"]), self.el ["uri"]
 		
 	def serialize (self):
 		pass

@@ -47,10 +47,10 @@ class RequestHandler:
 		hc ["Connection"] = self.connection
 		
 		address = self.request.get_address ()
-		if self.asyncon.address [1] in (80, 443):			
-			hc ["Host"] = "%s" % self.asyncon.address [0]
+		if address [1] in (80, 443):			
+			hc ["Host"] = "%s" % address [0]
 		else:
-			hc ["Host"] = "%s:%d" % self.asyncon.address
+			hc ["Host"] = "%s:%d" % address
 
 		hc ["Accept"] = "*/*"		
 		hc ["Accept-Encoding"] = "gzip"
