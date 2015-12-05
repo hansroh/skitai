@@ -6,14 +6,34 @@ from . import request_handler
 from . import localstorage
 from skitai.client import socketpool
 from skitai import lifetime
+import asyncore
 
+_map = asyncore.socket_map
 _logger = None
+_que = []
+_numpool = 3
 
-def init (logger):
-	global _logger
+def init (numpool = 3, logger = None):
+	global _logger, _numpool
+	_numpool = numpool
 	_logger = logger
 	socketpool.create (logger)
 	localstorage.create (logger)
+	
+def add (thing, callback, logger = None):
+	global _que
+	_que.append ((thing, callback, logger))
+	pop ()
+
+def pop ():	
+	lm = len (_map)
+	while lm < _numpool and _que:
+		item = _que.pop (0)
+		Item (*item)
+		lm += 1
+	
+def get_all ():
+	lifetime.loop (3.0)
 
 def close ():
 	socketpool.cleanup ()
@@ -112,7 +132,7 @@ class SSLProxyRequestHandler:
 		pass
 
 					
-class add:
+class Item:
 	def __init__ (self, thing, callback, logger = None):
 		global _logger
 		if logger:
@@ -120,15 +140,15 @@ class add:
 		else:
 			self.logger = _logger
 		self.callback = callback
-
+	
 		request = Request (thing, logger = self.logger)
 		sp = socketpool.socketpool
-		if request.el ["http-connect"]:		
+		if request.el ["http-tunnel"]:		
 			request.el ["http-version"] = "1.1"
 			try: del request.el ["connection"]
 			except KeyError: pass
 			request.el.del_header ("connection")
-			asyncon = sp.get ("proxys://%s" % request.el ["http-connect"])				
+			asyncon = sp.get ("proxys://%s" % request.el ["http-tunnel"])				
 			if not asyncon.connected:
 				asyncon.request = SSLProxyRequestHandler (asyncon, request, self.callback_wrap)
 				return				
@@ -156,8 +176,4 @@ class add:
 		handler.response = None
 		handler.request = None
 		del handler
-
-
-def get_all ():
-	lifetime.loop (3.0)
-
+		pop ()
