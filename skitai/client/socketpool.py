@@ -158,7 +158,7 @@ class SocketPool:
 		
 		self.numobj += 1			
 		asyncon = __conn_class ((addr, port), self.lock, self.logger)	
-		if scheme in ("proxy", "proxys"):
+		if scheme == "proxy":
 			asyncon.set_proxy (True)
 		return asyncon
 				

@@ -63,14 +63,18 @@ class RequestHandler:
 				cl = len (data)				
 			hc ["Content-Length"] = cl
 		
-		ct = self.request.get_content_type ()		
-		if ct:
-			hc ["Content-Type"] = self.request.get_content_type ()
-			
+			ct = self.request.get_content_type ()		
+			if ct:
+				hc ["Content-Type"] = self.request.get_content_type ()
+				
 		auth = self.request.get_auth ()
 		if auth:
 			hc ["Authorization"] = "Basic %s" % auth
 		
+		ua = self.request.get_useragent ()
+		if auth:
+			hc ["User-Agent"] = ua
+			
 		for k, v in self.request.get_headers ():
 			hc [k] = v
 		
@@ -80,7 +84,7 @@ class RequestHandler:
 			self.http_version,
 			"\r\n".join (["%s: %s" % x for x in list(hc.items ())])
 		)).encode ("utf8")
-		
+
 		if is_data_producer:
 			return [req, data]
 		else:	

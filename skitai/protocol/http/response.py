@@ -177,7 +177,7 @@ class Response:
 		if data:
 			# sometimes decopressor return "",
 			# null byte is signal of producer's ending, so ignore.
-			self.p.feed (data)			
+			self.p.feed (data)
 			
 	def get_header (self, header):
 		header = header.lower()
@@ -197,7 +197,16 @@ class Response:
 	
 	def get_headers (self):
 		return self.header		
-				
+	
+	def save_to (self, path):
+		content = self.get_content ()
+		if type (content) is bytes:
+			f = open (path, "wb")
+			f.write (content)
+			f.close ()
+		else:
+			raise TypeError ("Content is not bytes")
+		
 	def get_content (self):
 		if self.code < 100:
 			return

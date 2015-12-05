@@ -15,18 +15,23 @@ class EURL:
 	keywords = ('from',)
 	methods = ("get", "post", "head", "put", "delete", "options", "trace", "connect")
 	dft_port_map = {'http': 80, 'https': 443, 'ftp': 21}
-	DEFAULT_USER_AGENT = "Mozilla/5.0 (compatible; Skitaibot/0.1a"	
+	DEFAULT_USER_AGENT = "Mozilla/5.0 (compatible; Skitaibot/0.1a)"	
 	
 	def __init__ (self, surl, data = {}):
 		self.surl = surl
 		self.data = data
-		self.info = {"surf": 0, "http-version": "1.1"}
+		self.info = {"surf": 0, "http-version": "1.0"}
 		self.header = {}
 		self.parse ()
 	
 	def set_header (self, k, v):
 		self.header [k] = v
-			
+	
+	def del_header (self, key):
+		for k, v in list (self.header.items ()):
+			if key.lower () == k.lower ():
+				del self.header [k]
+				
 	def get_header (self, key = None):
 		if key:
 			for k, v in list (self.header.items ()):
@@ -211,20 +216,28 @@ class EURL:
 		
 		connection = self.get_header ("connection")
 		if self ["http-version"] == "1.1":
-			if connection is None:
-				self ["connection"] = "keep-alive"
-			else:
+			if connection is not None:
 				self ["connection"] = connection
 		else:
-			if connection is None:
-				self ["connection"] = "close"
-			else:
+			if connection is not None:
 				self ["connection"] = connection			
+		
+		if self.get_header ("user-agent") is None:
+			self.header ["User-Agent"] = self.DEFAULT_USER_AGENT
 			
+	def get_connection (self):
+		cn = self ["connection"]
+		if cn is not None:
+			return cn
+		else:
+			if self ["http-version"] == "1.1":
+				return "keep-alive"
+			return "close"
+				
 	def get_useragent (self):
 		ua = self.get_header ("user-agent")
 		return ua is not None and ua or self.DEFAULT_USER_AGENT
-			
+		
 	def make_request_header (self):
 		request = []
 		if self ["http-proxy"]:

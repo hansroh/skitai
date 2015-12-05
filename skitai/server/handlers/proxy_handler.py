@@ -18,6 +18,7 @@ class TunnelForClientToServer:
 		self.asyncon.set_terminator (None)
 		
 	def collect_incoming_data (self, data):
+		#print (repr(data))
 		self.bytes += len (data)
 		self.asyncon.push (data)
 	

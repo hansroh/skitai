@@ -73,7 +73,10 @@ class XMLRPCRequest:
 		
 	def get_data (self):
 		return self.data
-			
+	
+	def get_useragent (self):
+		return "Mozilla/5.0 (compatible; Skitaibot/0.1a)"
+				
 	def get_content_type (self):
 		if self.headers:
 			for k, v in list(self.headers.items ()):
