@@ -209,6 +209,22 @@ class EURL:
 		
 		self ["pageid"] = self.get_pageid ()
 		
+		connection = self.get_header ("connection")
+		if self ["http-version"] == "1.1":
+			if connection is None:
+				self ["connection"] = "keep-alive"
+			else:
+				self ["connection"] = connection
+		else:
+			if connection is None:
+				self ["connection"] = "close"
+			else:
+				self ["connection"] = connection			
+			
+	def get_useragent (self):
+		ua = self.get_header ("user-agent")
+		return ua is not None and ua or self.DEFAULT_USER_AGENT
+			
 	def make_request_header (self):
 		request = []
 		if self ["http-proxy"]:

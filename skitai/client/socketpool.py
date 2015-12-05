@@ -144,7 +144,7 @@ class SocketPool:
 			__conn_class = asynconnect.AsynConnect			
 			__dft_Port = 5000
 		elif scheme == "proxys":
-			__conn_class = asynconnect.AsynSSLConnect
+			__conn_class = asynconnect.AsynSSLProxyConnect
 			__dft_Port = 5000				
 		else:
 			__conn_class = asynconnect.AsynConnect
@@ -178,3 +178,14 @@ class SocketPool:
 				self.lock.release ()
 		except:
 			self.logger.trace ()	
+
+
+socketpool = None
+
+def create (logger):
+	global socketpool
+	socketpool = SocketPool (logger)
+
+def cleanup ():
+	socketpool.cleanup ()
+		

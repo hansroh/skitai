@@ -7,7 +7,6 @@ import bisect
 import socket
 import time
 
-PY_MAJOR_VERSION = sys.version_info.major
 
 if os.name == "nt":
 	from errno import WSAENOTSOCK
@@ -177,9 +176,7 @@ def poll_fun_wrap (timeout, map):
 	
 	except select.error as why:
 		if os.name == "nt" :
-			if PY_MAJOR_VERSION >= 3: errno = why.errno
-			else: errno = why [0]
-			if errno == WSAENOTSOCK: # sometimes postgresql connection forcely closed
+			if why.args [0] == WSAENOTSOCK: # sometimes postgresql connection forcely closed
 				remove_notsocks (map)
 	
 	except ValueError:
@@ -232,9 +229,7 @@ def graceful_shutdown_loop ():
 				poll_fun(timeout, map)
 			except select.error as why:
 				if os.name == "nt":
-					if PY_MAJOR_VERSION >= 3: errno = why.errno
-					else: errno = why [0]
-					if errno == WSAENOTSOCK: # sometimes postgresql connection forcely closed
+					if whay.args [0] == WSAENOTSOCK: # sometimes postgresql connection forcely closed
 						remove_notsocks (map)
 					
 		else:

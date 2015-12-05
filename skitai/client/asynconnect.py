@@ -373,16 +373,16 @@ class AsynConnect (asynchat.async_chat):
 			self.handle_expt ()
 
 
-
 class AsynSSLConnect (AsynConnect):	
 	ac_in_buffer_size = 65535 # generally safe setting 65535 for SSL
 	ac_out_buffer_size = 65535
 	
 	def connect (self, force = 0):
 		self.handshaking = False
+		self.handshaked = False
 		AsynConnect.connect (self, force)
-					
-	def handle_connect_event(self):
+	
+	def handshake (self):
 		if not self.handshaking:
 			err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
 			if err != 0:
@@ -393,24 +393,23 @@ class AsynSSLConnect (AsynConnect):
 		try:
 			self.socket.do_handshake ()
 		except ssl.SSLError as why:
-			if why.args[0] in (ssl.SSL_ERROR_WANT_READ, ssl.SSL_ERROR_WANT_WRITE):
-				return # retry handshake
-			raise ssl.SSLError(why)
-		
+			if why.args [0] in (ssl.SSL_ERROR_WANT_READ, ssl.SSL_ERROR_WANT_WRITE):
+				return False
+			raise ssl.SSLError(why)		
+		self.handshaked = True	
+		return True
+							
+	def handle_connect_event(self):
+		if not self.handshaked and not self.handshake ():
+			return	
 		# handshaking done
 		self.handle_connect()
 		self.connected = True
-	
-	def _recv (self, buffer_size):	
-		return self.socket.recv (buffer_size)
-	
-	def _send (self, data):
-		return self.socket.send (data)
-			
+		
 	def recv (self, buffer_size):
 		self.event_time = time.time ()
 		try:
-			data = self._recv (buffer_size)
+			data = self.socket.recv (buffer_size)
 			
 			if not data:
 				if self.reconnect ():
@@ -447,7 +446,7 @@ class AsynSSLConnect (AsynConnect):
 	def send (self, data):
 		self.event_time = time.time ()
 		try:
-			return self._send(data)
+			return self.socket.send (data)
 
 		except ssl.SSLError as why:
 			if why.errno == ssl.SSL_ERROR_WANT_WRITE:
@@ -462,3 +461,26 @@ class AsynSSLConnect (AsynConnect):
 			else:
 				raise
 
+
+class AsynSSLProxyConnect (AsynSSLConnect, AsynConnect):
+	def handle_connect_event (self):	
+		self.proxy_accepted = False	
+		AsynConnect.handle_connect_event (self)
+		
+	def handle_write_event (self):
+		if self.proxy_accepted and not self.handshaked:
+			if not self.handshake ():
+				return
+		self.AsynConnect.handle_write_event ()
+	
+	def recv (self, buffer_size):
+		if self.hanshaked or self.hanshaking:
+			AsynSSLConnect.recv (self, buffer_size)				
+		else:
+			AsynConnect.recv (self, buffer_size)
+		
+	def send (self, data):
+		if self.hanshaked or self.hanshaking:
+			AsynSSLConnect.send (self, data)
+		else:
+			AsynConnect.send (self, data)
