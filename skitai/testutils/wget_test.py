@@ -1,13 +1,11 @@
 from skitai.protocol.http import wget
 from skitai.lib import logger
 
-
-wget.init (3, logger.screen_logger ())
-
+wget.configure (logger.screen_logger (), 3)
 
 def handle_response (response):
 	print (response.request.get_eurl () ["rfc"])
-
+			
 wget.add ("GET http://www.openfos.com --http-proxy hq.lufex.com:5000", handle_response)
 wget.add ("GET https://pypi.python.org/pypi --http-proxy hq.lufex.com:5000", handle_response)
 wget.add ("GET http://hellkorea.com/xe/", handle_response)
@@ -16,7 +14,3 @@ wget.add ("GET http://mailtemplate.lufex.com/search.cfm?k=rachmani+weissen", han
 wget.add ("GET http://paxnet.moneta.co.kr/stock/intro/analysis.jsp", handle_response)
 
 wget.get_all ()
-
-wget.close ()
-
-

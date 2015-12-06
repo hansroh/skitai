@@ -1,9 +1,8 @@
 from . import eurl
-from . import request as http_request
-from . import response as http_response
-from . import request_handler as http_request_handler
-from . import request_handler
 from . import localstorage
+from .. import request as http_request
+from .. import response as http_response
+from .. import request_handler as http_request_handler
 from skitai.client import socketpool
 from skitai import lifetime
 import asyncore
@@ -11,21 +10,29 @@ import asyncore
 _map = asyncore.socket_map
 _logger = None
 _que = []
-_numpool = 3
+_numpool = 4
+_default_header = ""
 
-def init (numpool = 3, logger = None):
-	global _logger, _numpool
-	_numpool = numpool
+def configure (logger = None, numpool = 3, default_header = ""):
+	global _logger, _numpool, _default_header
+	
+	_default_header = default_header
+	_numpool = numpool + 1
 	_logger = logger
 	socketpool.create (logger)
 	localstorage.create (logger)
-	
+
 def add (thing, callback, logger = None):
-	global _que
+	global _que, _default_header
+	
+	if type (thing) is str:
+		thing = thing + " " + _default_header
 	_que.append ((thing, callback, logger))
 	pop ()
 
 def pop ():	
+	global _numpool, _que
+	
 	lm = len (_map)
 	while lm < _numpool and _que:
 		item = _que.pop (0)
@@ -33,10 +40,10 @@ def pop ():
 		lm += 1
 	
 def get_all ():
-	lifetime.loop (3.0)
-
-def close ():
-	socketpool.cleanup ()
+	try:
+		lifetime.loop (3.0)
+	finally:	
+		socketpool.cleanup ()
 
 
 class Request (http_request.HTTPRequest):
@@ -144,10 +151,7 @@ class Item:
 		request = Request (thing, logger = self.logger)
 		sp = socketpool.socketpool
 		if request.el ["http-tunnel"]:		
-			request.el ["http-version"] = "1.1"
-			try: del request.el ["connection"]
-			except KeyError: pass
-			request.el.del_header ("connection")
+			request.el.to_version_11 ()
 			asyncon = sp.get ("proxys://%s" % request.el ["http-tunnel"])				
 			if not asyncon.connected:
 				asyncon.request = SSLProxyRequestHandler (asyncon, request, self.callback_wrap)

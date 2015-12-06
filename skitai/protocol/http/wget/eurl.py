@@ -7,7 +7,7 @@ except ImportError:
 	from urlparse import urlparse
 	from urllib import quote_plus	
 import time
-from . import util
+from .. import util
 from . import localstorage
 
 
@@ -64,6 +64,12 @@ class EURL:
 	def __str__ (self):
 		return self ["url"]
 	
+	def to_version_11 (self):
+		self ["http-version"] = "1.1"
+		try: del self ["connection"]
+		except KeyError: pass
+		self.del_header ("connection")
+		
 	def advance (self, surl, **karg):
 		eurl = EURL (surl)
 		for k, v in list(self.items ()):
