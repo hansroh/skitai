@@ -3,7 +3,7 @@ from . import localstorage
 from .. import request as http_request
 from .. import response as http_response
 from .. import request_handler as http_request_handler
-from skitai.client import socketpool
+from skitai.client import socketpool, asynconnect
 from skitai import lifetime
 import asyncore
 
@@ -13,9 +13,10 @@ _que = []
 _numpool = 4
 _default_header = ""
 
-def configure (logger = None, numpool = 3, default_header = ""):
+def configure (logger = None, numpool = 3, default_timeout = 30, default_header = ""):
 	global _logger, _numpool, _default_header
 	
+	asynconnect.set_timeout (default_timeout)
 	_default_header = default_header
 	_numpool = numpool + 1
 	_logger = logger

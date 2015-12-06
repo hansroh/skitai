@@ -1,7 +1,7 @@
 from skitai.protocol.http import wget
 from skitai.lib import logger
 
-wget.configure (logger.screen_logger (), 3)
+wget.configure (logger.screen_logger (), 3, 2)
 
 def handle_response (response):
 	print (response.request.get_eurl () ["rfc"])
@@ -14,3 +14,4 @@ wget.add ("GET http://mailtemplate.lufex.com/search.cfm?k=rachmani+weissen", han
 wget.add ("GET http://paxnet.moneta.co.kr/stock/intro/analysis.jsp", handle_response)
 
 wget.get_all ()
+

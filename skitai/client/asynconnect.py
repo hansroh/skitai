@@ -16,6 +16,11 @@ from warnings import warn
 class SocketPanic (Exception): pass
 class TimeOut (Exception): pass
 
+def set_timeout (timeout):
+	for each in (AsynConnect, AsynSSLConnect, AsynSSLProxyConnect):
+		each.zombie_timeout = timeout
+		
+
 class AsynConnect (asynchat.async_chat):
 	ac_in_buffer_size = 4096
 	ac_out_buffer_size = 4096
