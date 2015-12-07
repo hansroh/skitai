@@ -34,7 +34,7 @@ class GZipCompressor:
 		if self.first_data:
 			d = self.HEADER + d
 			self.first_data = False
-		return d	
+		return d
 	
 	def flush (self):
 		d = self.compressor.flush ()
@@ -55,23 +55,23 @@ class GZipDecompressor:
 		self.crc = zlib.crc32(b"")
 		self.decompressor = zlib.decompressobj(-zlib.MAX_WBITS)
 		self.first_data = True
-		self.maybe_eof = ""
+		self.maybe_eof = b""
 			
 	def decompress (self, buf):
 		if self.first_data:
 			buf = buf [10:]
-			self.first_data = False		
+			self.first_data = False
 		
 		if len (buf) > 8:
-			self.maybe_eof = buf [-8:]	
+			self.maybe_eof = buf [-8:]
 		else:
 			self.maybe_eof += buf
 			self.maybe_eof = self.maybe_eof [-8:]
-								
-		d = self.decompressor.decompress (buf)		
+		
+		d = self.decompressor.decompress (buf)
 		self.size += len (d)
 		self.crc = zlib.crc32(d, self.crc)
-		if d == "":
+		if d == b"":
 			return self.decompressor.flush ()
 		return d
 	

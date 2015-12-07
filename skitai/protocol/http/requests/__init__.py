@@ -14,13 +14,21 @@ _que = []
 _numpool = 4
 _default_header = ""
 
-def configure (logger = None, numpool = 3, default_timeout = 30, default_header = ""):
+def configure (
+	logger = None, 
+	numpool = 3, 
+	default_timeout = 30, 
+	default_header = "", 
+	response_max_size = 100000000
+	):
+
 	global _logger, _numpool, _default_header
 	
 	asynconnect.set_timeout (default_timeout)
 	_default_header = default_header
 	_numpool = numpool + 1
 	_logger = logger
+	http_response.Response.SIZE_LIMIT = response_max_size
 	socketpool.create (logger)
 	localstorage.create (logger)
 

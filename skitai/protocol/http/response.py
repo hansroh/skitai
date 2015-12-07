@@ -74,7 +74,7 @@ class Response:
 		self.request = request		
 		if header [:2] == "\r\n":
 			header = header [2:]
-		header = header.split ("\r\n")		
+		header = header.split ("\r\n")	
 		self.response = header [0]
 		self.header = header [1:]
 		self._header_cache = {}
@@ -158,18 +158,18 @@ class Response:
 			self.reqtype = "HTTP"			
 			self.set_max_age ()			
 			self.p, self.u = getfakeparser (cache = self.max_age)					
-		
-		if self.get_header ("Content-Encoding") == "gzip":
+
+		if self.get_header ("Content-Encoding") == "gzip":			
 			self.decompressor = compressors.GZipDecompressor ()
 			
 	def collect_incoming_data (self, data):
 		if self.size == 0:
-			self.init_buffer ()
+			self.init_buffer ()		
+		self.size += len (data)
 			
 		if self.decompressor:
 			data = self.decompressor.decompress (data)
-			
-		self.size += len (data)
+		
 		if self.max_age and self.size > self.SIZE_LIMIT:
 			self.max_age = 0
 			self.u.no_cache ()
