@@ -1,17 +1,23 @@
-from skitai.protocol.http import wget
+from skitai.protocol.http import requests
 from skitai.lib import logger
 
-wget.configure (logger.screen_logger (), 3, 2)
+requests.configure (logger.screen_logger (), 3, 2)
 
-def handle_response (response):
-	print (response.request.get_eurl () ["rfc"])
+def handle_response (rc):
+	print (rc.uinfo.rfc, rc.response.encoding)
+	print ("-" * 79)
+	#print ("\r\n".join (rc.response.header))
+	#print ("-" * 79)
+	#print (rc.request.uri, rc.request.version)
+	#print ("\r\n".join (rc.request.header))
+	print ("=" * 79)
 			
-wget.add ("GET http://www.openfos.com --http-proxy hq.lufex.com:5000", handle_response)
-wget.add ("GET https://pypi.python.org/pypi --http-proxy hq.lufex.com:5000", handle_response)
-wget.add ("GET http://hellkorea.com/xe/", handle_response)
-wget.add ("GET http://www.hungryboarder.com/index.php?mid=Rnews&category=470", handle_response)
-wget.add ("GET http://mailtemplate.lufex.com/search.cfm?k=rachmani+weissen", handle_response)
-wget.add ("GET http://paxnet.moneta.co.kr/stock/intro/analysis.jsp", handle_response)
+requests.add ("GET http://www.openfos.com --http-proxy hq.lufex.com:5000", handle_response)
+requests.add ("GET https://pypi.python.org/pypi --http-proxy hq.lufex.com:5000", handle_response)
+requests.add ("GET http://hellkorea.com/xe/", handle_response)
+requests.add ("GET http://www.hungryboarder.com/index.php?mid=Rnews&category=470", handle_response)
+requests.add ("GET http://mailtemplate.lufex.com/search.cfm?k=rachmani+weissen", handle_response)
+requests.add ("GET http://paxnet.moneta.co.kr/stock/intro/analysis.jsp", handle_response)
 
-wget.get_all ()
+requests.get_all ()
 

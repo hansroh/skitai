@@ -13,17 +13,31 @@ from . import localstorage
 
 class EURL:
 	keywords = ('from',)
-	methods = ("get", "post", "head", "put", "delete", "options", "trace", "connect")
+	methods = ("get", "post", "head", "put", "delete", "options", "trace", "connect", "upload")
 	dft_port_map = {'http': 80, 'https': 443, 'ftp': 21}
 	DEFAULT_USER_AGENT = "Mozilla/5.0 (compatible; Skitaibot/0.1a)"	
 	
 	def __init__ (self, surl, data = {}):
 		self.surl = surl
 		self.data = data
-		self.info = {"surf": 0, "http-version": "1.0"}
-		self.header = {}
+		self.user = {}
+		self.http = {"http-version": "1.1", "http-connection": "close"}
+		self.info = {"surf": 0}
+		self.header = {"Cache-Control": "max-age=0"}
 		self.parse ()
 	
+	def set_header_from_option (self, k, v):
+		"Possibles: http-[form|version|connection|cookie|content-type|user-agent|proxy|tunnel]"
+		if k [:5] == "head-":
+			self.set_header (k [5:], v)		
+		elif k ==	"http-cookie":
+			self.set_header ("Cookie", v)
+		elif k ==	"http-content-type":
+			self.set_header ("Content-Type", v)
+		elif k ==	"http-referer":
+			self.set_header ("Referer", v)		
+		self.http [k [2:]] = v
+				
 	def set_header (self, k, v):
 		self.header [k] = v
 	
@@ -41,7 +55,10 @@ class EURL:
 		return self.header
 						
 	def __setitem__ (self, k, v):
-		self.info [k] = v
+		if k [:7] in ("http-", "head-"):
+			self.set_header_from_option (k, v)
+		else:	
+			self.info [k] = v
 	
 	def __delitem__ (self, k):
 		del self.info [k]
@@ -50,7 +67,10 @@ class EURL:
 		try:
 			return self.info [k]
 		except KeyError:
-			return None	
+			try:
+				return self.http [k]
+			except KeyError:	
+				return None
 	
 	def get (self, k, d):
 		return self.info.get (k, d)
@@ -66,27 +86,33 @@ class EURL:
 	
 	def to_version_11 (self):
 		self ["http-version"] = "1.1"
-		try: del self ["connection"]
-		except KeyError: pass
 		self.del_header ("connection")
 		
-	def advance (self, surl, **karg):
+	def advance (self, surl, repost = False):
 		eurl = EURL (surl)
-		for k, v in list(self.items ()):
-			if k in ("querystring", "http-form", "framgment", "params", "referer", "rid"):
-				continue
-			elif k == "pageid":
-				self ["refererid"] = v
-				continue
-			if k in eurl: # not overwrite
-				continue
-			eurl [k] = v
-		eurl ["referer"] = self ["url"]
+				
+		# inherit user-data
+		for k, v in list(self.user.items ()):
+			if k not in eurl.user: # prevent overwriting
+				eurl.user [k] = v
+		
+		# inherit info
+		eurl ["auth"] = self ["auth"]
+		eurl ["http-referer"] = self ["rfc"]
+		eurl ["referer_id"] = self ["page_id"]
 		eurl ["surf"] = self ["surf"] + 1
 		
-		for k, v in list(karg.items ()):
-			eurl [k] = v
-		
+		# inherit http, header
+		for k, v in list(self.http.items ()):
+			if k [:5] == "head-":
+				eurl [k] = v
+			else:
+				if k [5:] in ("cookie", "referer"):
+					continue
+				elif k in ("content-type", "form") and not repost:
+					eurl ["method"] = self ["method"]
+					continue
+				eurl [k] = v
 		return eurl
 		
 	def parse (self):
@@ -120,35 +146,32 @@ class EURL:
 
 	def	_set (self, d):
 		for k, v in list(d.items ()):
-			if k == "from":
-				k = "referer"
+			if k [:7] == "--with-":
+				k = k [7:]
+				self.user [k] = v				
 			elif k in self.methods:
 				self ['method'] = k
-				self ['url'] = v
-				continue
-			elif k [:7] == "--http-":
+				self ['url'] = v				
+			elif k == "from":
+				self ["http-referer"] = v				
+			elif k [:7] in ("--http-", "--head-"):
 				self [k [2:]] = v
-				continue
-			elif k [:7] == "--head-":
-				self.set_header (k [7:], v)
-				continue
-			elif k [:7] == "--with-":
-				k = k [7:]
-			self [k] = v
 			
-		self ['scheme'], self ['netloc'], self ['script'], _params, _query, _fragment = urlparse (self ['url'])
+		self ['scheme'], self ['netloc'], self ['script'], _params, _query, _fragment = urlparse (self ['url'])		
+		if self ['scheme'] not in ("http", "https"):
+			raise ValueError("Unknown protocol: %s" % self ['scheme'])		
+		if self ["http-form"] and self ['method'] not in ("post", "put"):
+			raise ValueError("Form exists but method isn't post or get")
+		if self ["method"] in ("post", "put") and not self ["http-form"]:
+			raise ValueError("No form data")
+		if not self ["http-form"] and self ["http-content-type"]:
+			raise ValueError("Needn't content-type")
+		if self ["http-form"] and self ["method"] == "post" and self.get_header ("content-type") is None:
+			self ["http-content-type"] = "application/x-www-form-urlencoded; charset=utf-8"		
 		if _params: self ['params'] = _params
 		if _query: self ['querystring'] = _query
 		if _fragment: self ['fragment'] = _fragment
-		
-		if self ["http-form"] and self ['method'] not in ("post", "put"):
-			raise ValueError("Recieved form but method is not post or get")
-		
-		if self ["method"] in ("post", "put") and not self ["http-form"]:
-			raise ValueError("No form data")
-				
-		if self ['scheme'] not in ("http", "https"):
-			self ['scheme'] = "http"
+			
 		if not self ['script']: 
 			self ['script'] = '/'
 		if self ['querystring']:
@@ -182,14 +205,9 @@ class EURL:
 		try: self ['port'] = int (self ['port'])
 		except: self ['port'] = 80
 		
-		self ['headerhost'] = self ['netloc']
-		if self ['scheme'] == "https" and self ['port'] != 443:
-			self ['headerhost'] += ":" + self ['port']
-		elif self ['scheme'] == "http" and self ['port'] != 80:
-			self ['headerhost'] += ":" + str (self ['port'])
-		
 		netloc = self ['netloc']
 		netloc2 = netloc.split (".")
+		
 		if len (netloc2 [-1]) == 3:
 			self ['domain'] = ".".join (netloc2 [-2:])
 			self ['host'] = ".".join (netloc2 [:-2])
@@ -218,88 +236,27 @@ class EURL:
 			else:
 				self ['rfc'] = '%s://%s:%d%s' % (self ['scheme'], self ['netloc'], self ['port'], self ['uri'])
 		
-		self ["pageid"] = self.get_pageid ()
+		self ["page_id"] = self.geneate_page_id ()
 		
-		connection = self.get_header ("connection")
-		if self ["http-version"] == "1.1":
-			if connection is not None:
-				self ["connection"] = connection
-		else:
-			if connection is not None:
-				self ["connection"] = connection			
-		
-		if self.get_header ("user-agent") is None:
-			self.header ["User-Agent"] = self.DEFAULT_USER_AGENT
-			
-	def get_connection (self):
-		cn = self ["connection"]
-		if cn is not None:
-			return cn
-		else:
-			if self ["http-version"] == "1.1":
-				return "keep-alive"
-			return "close"
-				
-	def get_useragent (self):
-		ua = self.get_header ("user-agent")
-		return ua is not None and ua or self.DEFAULT_USER_AGENT
-		
-	def make_request_header (self):
-		request = []
-		if self ["http-proxy"]:
-			request.append ("%s %s HTTP/%s" % (self ["method"].upper (), self ["rfc"], self ["http-version"]))			
-		else:	
-			request.append ("%s %s HTTP/%s" % (self ["method"].upper (), self ["uri"], self ["http-version"]))
-		
-		if self.get_header ("host") is None:
-			request.append ("Host: %s" % self ["headerhost"])
-		
-		request.append ("Accept-Encoding: gzip, deflate")
-		#request.append ("Accept-Encoding: identity")
-		request.append ("Cache-Control: max-age=0")
-		request.append ("Accept: */*")
+		ua = self ["http-user-agent"]
+		if ua is None:			
+			self ["http-user-agent"] = self.DEFAULT_USER_AGENT
 		
 		# set cookie
-		if self.get_header ("cookie") is None:
-			ls = localstorage.localstorage
-			cookie = self ["cookie"]
-			if cookie and ls:
-				ls.set_default_cookie (self ["rfc"], cookie)		
-			if ls:
-				cookie = ls.get_cookie_string (self ["rfc"])			
-			if cookie:
-				request.append ("Cookie: %s" % cookie)
-			
-		# set referer
-		if self.get_header ("referer") is None:
-			referer = self ["referer"]
-			if referer:	
-				request.append ("Referer: %s" % referer)
+		ls = localstorage.localstorage
+		cookie = self ["http-cookie"]
+		if cookie:
+			ls.set_cookie_from_data (self ["rfc"], cookie)					
+		cookie = ls.get_cookie_as_string (self ["rfc"])		
+		if cookie:
+			self ["http-cookie"] = cookie
 		
-		# set user agent
-		if self.get_header ("user-agent") is None:
-			request.append ("User-Agent: %s" % self.DEFAULT_USER_AGENT)	
-		
-		# set authorization info.
-		if self ["auth"]:
-			request.append ("Authorization: Basic %s" % self ["auth"])
-		
-		# post method header	
-		if self ["http-form"]:			
-			if self.get_header ("content-type") is None:
-				request.append ("Content-Type: application/x-www-form-urlencoded; charset=utf8")
-			request.append ("Content-Length: %d" % len (self ["http-form"]))
-		
-		# additional request header
-		for k, v in list (self.get_header ().items ()):
-			request.append ("%s: %s" % (k.strip (), v.strip ()))
-		
-		request = '\r\n'.join (request) + '\r\n\r\n'
-		# form data		
-		if self ["method"] == 'post':
-			request += self ["http-form"]
-		return request
-		
+	def get_connection (self):
+		return self ["http-connection"]
+				
+	def get_useragent (self):
+		return self ["http-user-agent"]
+	
 	def __sort_args (self, data):
 		args = {}
 		for arg in data.split ("&"):
@@ -318,7 +275,7 @@ class EURL:
 		argslist.sort ()		
 		return "&".join (argslist)
 
-	def get_pageid (self):		
+	def geneate_page_id (self):		
 		signature = self ['netloc'] + "|" + str (self ["port"]) + "|" + self ['script']
 		if self ['querystring']:
 			signature += "|" + self.__sort_args (self ['querystring'])

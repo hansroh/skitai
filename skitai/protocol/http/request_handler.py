@@ -17,8 +17,14 @@ class RequestHandler:
 		self.retry_count = 0
 		self.response = None	
 		
+		self.method, self.uri = (
+			self.request.get_method (),			
+			self.asyncon.is_proxy () and self.request.uri or self.request.path
+		)
+		self.header = []
 		if request.get_address () is None:
-			request.set_address (self.asyncon.address)		
+			request.set_address (self.asyncon.address)
+		
 		self.asyncon.set_terminator (b"\r\n\r\n")	
 	
 	def _del_ (self):
@@ -72,17 +78,18 @@ class RequestHandler:
 			hc ["Authorization"] = "Basic %s" % auth
 		
 		ua = self.request.get_useragent ()
-		if auth:
+		if ua:
 			hc ["User-Agent"] = ua
 			
 		for k, v in self.request.get_headers ():
 			hc [k] = v
 		
+		self.header = ["%s: %s" % x for x in list(hc.items ())]					
 		req = ("%s %s HTTP/%s\r\n%s\r\n\r\n" % (
-			self.request.get_method (),
-			self.asyncon.is_proxy () and self.request.uri or self.request.path,
+			self.method,
+			self.uri,
 			self.http_version,
-			"\r\n".join (["%s: %s" % x for x in list(hc.items ())])
+			"\r\n".join (self.header)
 		)).encode ("utf8")
 
 		if is_data_producer:
