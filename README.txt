@@ -272,6 +272,8 @@ Documentation
 Change Log
 -------------
   
+  0.9.4.16 - fix GZIP decompressing
+  
   0.9.4.13 - enable pass phrase on CA signed certification
   
   0.9.4.9 - remove dependency M2Crypto

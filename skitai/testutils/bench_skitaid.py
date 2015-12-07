@@ -30,7 +30,7 @@ L = [
 def handle_response (rc):
 	global TREQ, CLI, REQ	
 	TREQ += 1
-	print (rc.response.code, end = " ")
+	print (rc.response.code)
 	#print ("\r\n".join (rc.response.header))
 	if TREQ <= CLI * REQ:
 		requests.add ("http://hq.lufex.com:5000%s" % random.choice (L), handle_response)
