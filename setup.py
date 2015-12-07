@@ -182,9 +182,9 @@ if "install" in sys.argv or "develop" in sys.argv:
 				os.remove (os.path.join ("/etc/skitaid", path))
 			except OSError as why:
 				if why.errno == 2: pass
-			shutil.copyfile (os.path.join ("skitai/skitaid/etc/skitiad", path), os.path.join ("/etc/skitaid", path))
+			shutil.copyfile (os.path.join ("skitai/skitaid/etc/skitaid", path), os.path.join ("/etc/skitaid", path))
 		
-		for fn in ("skitaid.py", "/skitaid-instance.py", "skitaid-smtpda.py"):
+		for fn in ("skitaid.py", "skitaid-instance.py", "skitaid-smtpda.py"):
 			target = os.path.join ("/usr/local/bin", fn)
 			try:
 				os.remove (target)
@@ -196,9 +196,9 @@ if "install" in sys.argv or "develop" in sys.argv:
 		for fn in ("webapp.py", "static/index.html"):
 			target = os.path.join ("/var/local/skitaid-pub/default", fn)
 			try: os.remove (target)
-			except WindowsError as why:
+			except OSError as why:
 				if why.errno == 2: pass
-			shutil.copytree (os.path.join ("skitai/skitaid/pub/default", fn), target)
+			shutil.copyfile (os.path.join ("skitai/skitaid/pub/default", fn), target)
 		
 		if os.path.isfile ("/etc/init.d/skitaid"):
 			os.remove ("/etc/init.d/skitaid")
@@ -211,3 +211,4 @@ if "install" in sys.argv or "develop" in sys.argv:
 		print("Please run below commands\n")
 		print("  sudo service skitaid start")
 		print("  wget http://localhost:5000\n\n")
+		
