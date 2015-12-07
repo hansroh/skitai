@@ -91,9 +91,6 @@ class AsynConnect (asynchat.async_chat):
 		if self.ready is not None:
 			return asynchat.async_chat.writable (self) and self.ready ()
 		return asynchat.async_chat.writable (self)	
-		
-	def handle_write (self):		
-		self.initiate_send()
         
 	def maintern (self):
 		if self.isactive () and time.time () - self.event_time > self.zombie_timeout:
@@ -310,15 +307,15 @@ class AsynConnect (asynchat.async_chat):
 			if not self.connected:
 				self.connect ()
 			else:
-				self.add_channel ()
 				self.initiate_send ()
+				self.add_channel ()				
 			
 		except:
 			self.handle_error ()
 	
 	def initiate_send (self):
 		if self.is_channel_in_map ():
-			return asynchat.async_chat.initiate_send (self)		
+			return asynchat.async_chat.initiate_send (self)
 		
 	# proxy POST need no init_send
 	def push (self, thing, init_send = True):

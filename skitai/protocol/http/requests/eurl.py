@@ -22,7 +22,7 @@ class EURL:
 		self.data = data
 		self.user = {}
 		self.http = {"http-version": "1.1", "http-connection": "close"}
-		self.info = {"surf": 0}
+		self.info = {"depth": 0}
 		self.header = {"Cache-Control": "max-age=0"}
 		self.parse ()
 	
@@ -35,7 +35,7 @@ class EURL:
 		elif k ==	"http-content-type":
 			self.set_header ("Content-Type", v)
 		elif k ==	"http-referer":
-			self.set_header ("Referer", v)		
+			self.set_header ("Referer", v)
 		self.http [k [2:]] = v
 				
 	def set_header (self, k, v):
@@ -88,7 +88,7 @@ class EURL:
 		self ["http-version"] = "1.1"
 		self.del_header ("connection")
 		
-	def advance (self, surl, repost = False):
+	def inherit (self, surl):
 		eurl = EURL (surl)
 				
 		# inherit user-data
@@ -98,21 +98,19 @@ class EURL:
 		
 		# inherit info
 		eurl ["auth"] = self ["auth"]
-		eurl ["http-referer"] = self ["rfc"]
+		eurl ["referer"] = eurl ["http-referer"] = self ["rfc"]
 		eurl ["referer_id"] = self ["page_id"]
-		eurl ["surf"] = self ["surf"] + 1
+		eurl ["depth"] = self ["depth"] + 1
 		
 		# inherit http, header
 		for k, v in list(self.http.items ()):
 			if k [:5] == "head-":
 				eurl [k] = v
 			else:
-				if k [5:] in ("cookie", "referer"):
+				if k [5:] in ("cookie", "referer", "content-type", "form"):
 					continue
-				elif k in ("content-type", "form") and not repost:
-					eurl ["method"] = self ["method"]
-					continue
-				eurl [k] = v
+				if not eurl.http.has_key ():					
+					eurl [k] = v
 		return eurl
 		
 	def parse (self):
@@ -151,8 +149,9 @@ class EURL:
 				self.user [k] = v				
 			elif k in self.methods:
 				self ['method'] = k
-				self ['url'] = v				
+				self ['url'] = v.strip ()
 			elif k == "from":
+				self ["referer"] = v
 				self ["http-referer"] = v				
 			elif k [:7] in ("--http-", "--head-"):
 				self [k [2:]] = v

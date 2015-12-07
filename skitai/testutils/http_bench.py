@@ -1,6 +1,3 @@
-#! /usr/local/bin/python1.4
-# -*- Mode: Python -*-
-
 import threading
 import asyncore
 import socket
@@ -80,7 +77,7 @@ class http_client (asyncore.dispatcher_with_send):
 		"Connection: close",
 		"Cache-Control: max-age=0"
 		]
-		self.send ("\r\n".join (b) + "\r\n\r\n")
+		self.send (("\r\n".join (b) + "\r\n\r\n").encode ("utf8"))
 		
 	def handle_read (self):
 		self.event_time = time.time ()
@@ -102,7 +99,7 @@ class http_client (asyncore.dispatcher_with_send):
 			code = self.data [9:12]
 			#blurt ('[%s]' % (code))
 		else:
-			code = "900"
+			code = b"900"
 			
 		try: resp_codes [code] += 1
 		except KeyError: resp_codes [code] = 1	

@@ -4,7 +4,7 @@ from skitai.lib import logger
 requests.configure (logger.screen_logger (), 3, 2)
 
 def handle_response (rc):
-	print (rc.uinfo.rfc, rc.response.encoding)
+	print (repr (rc.uinfo.rfc), repr (rc.response.encoding))
 	print ("-" * 79)
 	#print ("\r\n".join (rc.response.header))
 	#print ("-" * 79)
