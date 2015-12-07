@@ -45,7 +45,7 @@ packages = [
 	'skitai.protocol.dns',
 	'skitai.protocol.dns.pydns',
 	'skitai.protocol.http',	
-	'skitai.protocol.http.wget',
+	'skitai.protocol.http.requests',
 	'skitai.protocol.smtp',
 	'skitai.server',
 	'skitai.server.dbi',
@@ -98,23 +98,59 @@ setup(
 	classifiers=classifiers
 )
 
+def mkdir (tdir, mod = -1):
+	if os.path.isdir (tdir): return
+	chain = [tdir]
+	while 1:
+		tdir, last = os.path.split (tdir)			
+		if not last: break
+		chain.insert (0, tdir)
+	
+	for dir in chain [1:]:
+		try: 
+			os.mkdir (dir)
+			if os.name == "posix" and mod != -1:
+				os.chmod (dir, mod)				
+		except OSError as why:
+			if why.errno in (17, 183): continue
+			else: raise
+
 if "install" in sys.argv or "develop" in sys.argv:
 	if os.name == "nt":
-		if not os.path.isdir ("c:\\skitaid"):
-			os.mkdir ("c:\\skitaid")
-			os.mkdir ("c:\\skitaid\\var")
-			os.mkdir ("c:\\skitaid\\log")
-			shutil.copytree ("skitai\\skitaid\\etc\\skitaid", "c:\\skitaid\\etc")
+		mkdir ("c:\\skitaid")
+		mkdir ("c:\\skitaid\\var")
+		mkdir ("c:\\skitaid\\bin")
+		mkdir ("c:\\skitaid\\log")
+		mkdir ("c:\\skitaid\\pub\\default\\static")
+		mkdir ("c:\\skitaid\\etc\\cert")
+		mkdir ("c:\\skitaid\\etc\\servers-available")
+		mkdir ("c:\\skitaid\\etc\\servers-enabled")		
 		
-		if os.path.isdir ("c:\\skitaid\\bin"):
-			for fn in os.listdir ("skitai\\skitaid\\bin"):
-				try: os.remove (os.path.join ("c:\\skitaid\\bin", fn))
-				except WindowsError as why:
-					if why.errno == 2: pass	
-		shutil.copyfile (os.path.join ("skitai\\skitaid\\bin", fn), os.path.join ("c:\\skitaid\\bin", fn))
+		conf = "c:\\skitaid\\etc\\skitaid.conf"
+		if not os.path.isfile (conf):
+			shutil.copyfile ("skitai\\skitaid\\etc\\skitaid\\skitaid.conf", conf)
 		
-		if not os.path.isdir ("c:\\skitaid\\pub"):
-			shutil.copytree ("skitai\\skitaid\\pub", "c:\\skitaid\\pub")
+		for path in ("cert\\README.txt", "servers-enabled\\default.conf", "servers-available\\README.txt"):
+			target = os.path.join ("c:\\skitaid\\etc", path)
+			try: 
+				os.remove (target)
+			except WindowsError as why:
+				if why.errno == 2: pass
+			shutil.copyfile (os.path.join ("skitai\\skitaid\\etc\\skitaid", path), target)
+		
+		for fn in os.listdir ("skitai\\skitaid\\bin"):
+			target = os.path.join ("c:\\skitaid\\bin", fn)
+			try: os.remove (target)
+			except WindowsError as why:
+				if why.errno == 2: pass	
+			shutil.copyfile (os.path.join ("skitai\\skitaid\\bin", fn), target)
+		
+		for fn in ("webapp.py", "static\\index.html"):
+			target = os.path.join ("c:\\skitaid\\pub\\default", fn)
+			try: os.remove (target)
+			except WindowsError as why:
+				if why.errno == 2: pass	
+			shutil.copyfile (os.path.join ("skitai\\skitaid\\pub\\default", fn), target)
 			
 		print("\n\n======================================")
 		print("Installation Complete")
@@ -126,61 +162,52 @@ if "install" in sys.argv or "develop" in sys.argv:
 		print("  then check http://localhost:5000\n\n")
 	
 	else:
-			"""
-			sudo rm -rf /etc/skitaid
-			sudo rm -f /etc/init/skitaid.conf
-			sudo rm -f /etc/init.d/skitaid
-			sudo rm -f /usr/local/bin/skitaid*
-			sudo rm -rf /var/local/skitaid-pub
-			"""
+		mkdir ("/etc/skitaid")
+		mkdir ("/etc/skitaid/cert")
+		mkdir ("/etc/skitaid/servers-enabled")
+		mkdir ("/etc/skitaid/servers-available")
+		mkdir ("/var/log/skitaid")
+		mkdir ("/var/local/skitaid")		
+		mkdir ("/var/local/skitaid-pub")
+			
+		conf = "/etc/skitaid/skitaid.conf"
+		if not os.path.isfile (conf) and not os.path.islink (conf):
+			with open ("skitai/skitaid/etc/skitaid/servers-enabled/default.conf") as f:
+				data = f.read ().replace ("c:\\skitaid\\pub\default\\", "/var/local/skitaid-pub/default/")
+			with open ("/etc/skitaid/servers-enabled/default.conf", "w") as f:
+				f.write (data)
 		
-			if not os.path.isdir ("/etc/skitaid"):
-				shutil.copytree ("skitai/skitaid/etc/skitaid", "/etc/skitaid")			
-				os.remove ("/etc/skitaid/servers-enabled/default.conf")
-				with open ("skitai/skitaid/etc/skitaid/servers-enabled/default.conf") as f:
-					data = f.read ().replace ("c:\\skitaid\\pub\default\\", "/var/local/skitaid-pub/default/")
-				with open ("/etc/skitaid/servers-enabled/default.conf", "w") as f:
-					f.write (data)
-				
+		for path in ("cert/README.txt", "servers-enabled/default.conf", "servers-available/README.txt"):
 			try: 
-				os.mkdir ("/var/log/skitaid")
-				os.mkdir ("/var/local/skitaid")				
+				os.remove (os.path.join ("/etc/skitaid", path))
 			except OSError as why:
-				if why.errno != 17:
-					raise
+				if why.errno == 2: pass
+			shutil.copyfile (os.path.join ("skitai/skitaid/etc/skitiad", path), os.path.join ("/etc/skitaid", path))
+		
+		for fn in ("skitaid.py", "/skitaid-instance.py", "skitaid-smtpda.py"):
+			target = os.path.join ("/usr/local/bin", fn)
+			try:
+				os.remove (target)
+			except OSError as why:
+				if why.errno == 2: pass	
+			shutil.copyfile (os.path.join ("skitai/skitaid/bin", fn), target)
+			os.chmod (target, 0o755)
+		
+		for fn in ("webapp.py", "static/index.html"):
+			target = os.path.join ("/var/local/skitaid-pub/default", fn)
+			try: os.remove (target)
+			except WindowsError as why:
+				if why.errno == 2: pass
+			shutil.copytree (os.path.join ("skitai/skitaid/pub/default", fn), target)
+		
+		if os.path.isfile ("/etc/init.d/skitaid"):
+			os.remove ("/etc/init.d/skitaid")
+		shutil.copyfile ("skitai/skitaid/etc/init.d/skitaid", "/etc/init.d/skitaid")
+		os.chmod ("/etc/init.d/skitaid", 0o755)
 			
-			if os.path.isfile ("/etc/init/skitaid.conf"):
-				os.remove ("/etc/init/skitaid.conf")
-			if os.path.isfile ("/etc/init.d/skitaid"):
-				os.remove ("/etc/init.d/skitaid")				
-			shutil.copyfile ("skitai/skitaid/etc/init.d/skitaid", "/etc/init.d/skitaid")
-			os.chmod ("/etc/init.d/skitaid", 0o755)
-			
-			if os.path.isfile ("/usr/local/bin/skitaid.py"):
-				os.remove ("/usr/local/bin/skitaid.py")
-			if os.path.isfile ("/usr/local/bin/skitaid-instance.py"):
-				os.remove ("/usr/local/bin/skitaid-instance.py")	
-			if os.path.isfile ("/usr/local/bin/skitaid-smtpda.py"):
-				os.remove ("/usr/local/bin/skitaid-smtpda.py")	
-			
-			shutil.copyfile ("skitai/skitaid/bin/skitaid.py", "/usr/local/bin/skitaid.py")
-			shutil.copyfile ("skitai/skitaid/bin/skitaid-instance.py", "/usr/local/bin/skitaid-instance.py")
-			shutil.copyfile ("skitai/skitaid/bin/skitaid-smtpda.py", "/usr/local/bin/skitaid-smtpda.py")
-			
-			if not os.path.isdir ("/var/local/skitaid-pub"):
-				shutil.copytree ("skitai/skitaid/pub", "/var/local/skitaid-pub")
-			
-			os.chmod ("/etc/skitaid/skitaid.conf", 0o660)
-			os.chmod ("/usr/local/bin/skitaid.py", 0o755)
-			os.chmod ("/usr/local/bin/skitaid-instance.py", 0o755)
-			os.chmod ("/usr/local/bin/skitaid-smtpda.py", 0o755)
-			
-			print("\n\n======================================")
-			print("Installation Complete")
-			print("--------------------------------------")	
-			print("Please run below commands\n")
-			print("  sudo service skitaid start")
-			print("  wget http://localhost:5000\n\n")
-	
-
-	
+		print("\n\n======================================")
+		print("Installation Complete")
+		print("--------------------------------------")	
+		print("Please run below commands\n")
+		print("  sudo service skitaid start")
+		print("  wget http://localhost:5000\n\n")
