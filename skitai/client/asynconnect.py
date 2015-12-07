@@ -307,6 +307,7 @@ class AsynConnect (asynchat.async_chat):
 			if not self.connected:
 				self.connect ()
 			else:
+				# should keep order
 				self.initiate_send ()
 				self.add_channel ()				
 			
