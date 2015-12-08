@@ -18,14 +18,14 @@ def configure (
 	logger = None, 
 	numpool = 3, 
 	default_timeout = 30, 
-	default_header = "", 
+	default_option = "", 
 	response_max_size = 100000000
 	):
 
-	global _logger, _numpool, _default_header
+	global _logger, _numpool, _default_option
 	
 	asynconnect.set_timeout (default_timeout)
-	_default_header = default_header
+	_default_option = default_option
 	_numpool = numpool + 1
 	_logger = logger
 	http_response.Response.SIZE_LIMIT = response_max_size
@@ -36,7 +36,7 @@ def add (thing, callback, logger = None):
 	global _que, _default_header
 	
 	if type (thing) is str:
-		thing = thing + " " + _default_header
+		thing = thing + " " + _default_option
 	_que.append ((thing, callback, logger))
 	maybe_pop ()
 

@@ -172,12 +172,14 @@ if "install" in sys.argv or "develop" in sys.argv:
 			
 		conf = "/etc/skitaid/skitaid.conf"
 		if not os.path.isfile (conf) and not os.path.islink (conf):
-			with open ("skitai/skitaid/etc/skitaid/servers-enabled/default.conf") as f:
-				data = f.read ().replace ("c:\\skitaid\\pub\default\\", "/var/local/skitaid-pub/default/")
-			with open ("/etc/skitaid/servers-enabled/default.conf", "w") as f:
-				f.write (data)
+			shutil.copyfile (os.path.join ("skitai/skitaid/etc/skitaid/skitaid.conf"), "/etc/skitaid.conf")
+			
+		with open ("skitai/skitaid/etc/skitaid/servers-enabled/default.conf") as f:
+			data = f.read ().replace ("c:\\skitaid\\pub\default\\", "/var/local/skitaid-pub/default/")
+		with open ("/etc/skitaid/servers-enabled/default.conf", "w") as f:
+			f.write (data)
 		
-		for path in ("cert/README.txt", "servers-enabled/default.conf", "servers-available/README.txt"):
+		for path in ("cert/README.txt", "servers-available/README.txt"):
 			try: 
 				os.remove (os.path.join ("/etc/skitaid", path))
 			except OSError as why:
