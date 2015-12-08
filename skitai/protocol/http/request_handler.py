@@ -49,8 +49,9 @@ class RequestHandler:
 		data = self.request.get_data ()		
 		is_data_producer = False
 		
-		hc = {}		
-		hc ["Connection"] = self.connection
+		hc = {}
+		if (self.http_version == "1.1" and self.connection == "close") or (self.http_version == "1.0" and self.connection == "keep-alive"):
+			hc ["Connection"] = self.connection
 		
 		address = self.request.get_address ()
 		if address [1] in (80, 443):			

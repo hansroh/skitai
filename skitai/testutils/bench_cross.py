@@ -8,6 +8,7 @@ req = 3
 total_sessions = 0
 total_errors = 0
 resp_codes = {}
+port = 5000
 
 requests.configure (logger.screen_logger (), clients, 60, default_option = "--http-connection keep-alive")
 L = ["/"]
@@ -22,6 +23,8 @@ class timer:
 def handle_response (rc):
 	global total_sessions, clients, req, total_errors, resp_codes
 	
+	print (rc.response.header)
+	
 	total_sessions += 1
 	try: resp_codes [rc.response.code] += 1
 	except KeyError: resp_codes [rc.response.code] = 1
@@ -30,10 +33,10 @@ def handle_response (rc):
 	print (total_sessions, end = " ")
 	#print ("\r\n".join (rc.response.header))
 	if total_sessions <= clients * req - clients:
-		requests.add ("http://54.67.113.190:5000/", handle_response)
+		requests.add ("http://54.67.113.190:%d/" % port, handle_response)
 
 for i in range (clients):
-	requests.add ("http://54.67.113.190:5000/", handle_response)
+	requests.add ("http://54.67.113.190:%d/" % port, handle_response)
 
 t = timer()
 requests.get_all ()

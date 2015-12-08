@@ -144,22 +144,22 @@ class http_response:
 				if connection == 'keep-alive':
 					if 'Content-Length' not in self:
 						close_it = True
+						self.update ('Connection', 'close')
+					else:
+						self.update ('Connection', 'keep-alive')
 				else:
 					close_it = True
 			
 			elif self.request.version == '1.1':
 				if connection == 'close':
 					close_it = True
+					self.update ('Connection', 'close')
 				elif not self.has_key ('Content-Length'):
 					wrap_in_chunking = True
 					
-			elif self.request.version is None:
+			else:
+				self.update ('Connection', 'close')
 				close_it = True
-		
-		if close_it:
-			self.update ('Connection', 'close')
-		else:
-			self.update ('Connection', 'keep-alive')
 			
 		if compress and not self.has_key ('Content-Encoding'):
 			maybe_compress = self.request.get_header ("Accept-Encoding")
