@@ -60,11 +60,10 @@ class Handler (xmlrpc_handler.Handler):
 			self.wasc.logger.trace ("server", path)
 			return request.response.error (500, catch (1))
 		
-		if len (self.wasc.threads) == 0:
-			Job (was, path, method, args, rpcid, jsonrpc, ismulticall) ()
-		else:		
+		if self.use_thread:
 			self.wasc.queue.put (Job (was, path, method, args, rpcid, jsonrpc, ismulticall))
-	
+		else:
+			Job (was, path, method, args, rpcid, jsonrpc, ismulticall) ()
 			
 class Job (xmlrpc_handler.Job):
 	def __init__ (self, was, muri, method, args, rpcid, jsonrpc, ismulticall):

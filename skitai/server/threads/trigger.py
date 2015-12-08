@@ -17,7 +17,7 @@ def wakeup (thunk = None):
 				thunk ()
 			except:
 				(file, fun, line), t, v, tbinfo = asyncore.compact_traceback()
-			return		
+		return		
 			
 	try:
 		the_trigger.pull_trigger(thunk)

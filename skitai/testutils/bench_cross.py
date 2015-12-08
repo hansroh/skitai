@@ -8,7 +8,7 @@ req = 3
 total_sessions = 0
 total_errors = 0
 resp_codes = {}
-port = 5001
+port = 5000
 
 requests.configure (logger.screen_logger (), clients, 60, default_option = "--http-connection keep-alive")
 L = ["/"]
