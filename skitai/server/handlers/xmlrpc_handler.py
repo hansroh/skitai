@@ -50,8 +50,12 @@ class Handler (ssgi_handler.Handler):
 		except:
 			self.wasc.logger.trace ("server", path)
 			return request.response.error (500, catch (1))
+		
+		if len (self.wasc.threads) == 0:	
+			Job (was, path, method, args, ismulticall) ()
+		else:
+			self.wasc.queue.put (Job (was, path, method, args, ismulticall))
 			
-		self.wasc.queue.put (Job (was, path, method, args, ismulticall))
 	
 			
 class Job (ssgi_handler.Job):

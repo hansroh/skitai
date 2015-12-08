@@ -168,7 +168,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 		mkdir ("/etc/skitaid/servers-available")
 		mkdir ("/var/log/skitaid")
 		mkdir ("/var/local/skitaid")		
-		mkdir ("/var/local/skitaid-pub")
+		mkdir ("/var/local/skitaid-pub/default")
 			
 		conf = "/etc/skitaid/skitaid.conf"
 		if not os.path.isfile (conf) and not os.path.islink (conf):
