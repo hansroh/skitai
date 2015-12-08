@@ -13,4 +13,4 @@ def application(environ, start_response):
 	return [data]
 
 print('Serving on 5001...')	
-WSGIServer(('0.0.0.0', 5001), application).serve_forever()
+WSGIServer(('0.0.0.0', 5001), application, log = None).serve_forever()
