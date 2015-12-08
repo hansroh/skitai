@@ -36,7 +36,7 @@ classifiers = [
 	'Programming Language :: Python :: 2.7',
 	'Programming Language :: Python :: 3'
 ]
-    
+
 packages = [
 	'skitai',
 	'skitai.client',
@@ -131,7 +131,10 @@ if "install" in sys.argv or "develop" in sys.argv:
 		if not os.path.isfile (conf):
 			shutil.copyfile ("skitai\\skitaid\\etc\\skitaid\\skitaid.conf", conf)
 		
-		for path in ("cert\\README.txt", "servers-enabled\\default.conf", "servers-available\\README.txt"):
+		pathes = ["cert\\README.txt", "servers-available\\README.txt"]
+		if not os.listdir ("c:\\skitaid\\etc\\servers-enabled"):
+			pathes.append ("servers-enabled\\default.conf")
+		for path in pathes:
 			target = os.path.join ("c:\\skitaid\\etc", path)
 			try: 
 				os.remove (target)
@@ -174,11 +177,12 @@ if "install" in sys.argv or "develop" in sys.argv:
 		conf = "/etc/skitaid/skitaid.conf"
 		if not os.path.isfile (conf) and not os.path.islink (conf):
 			shutil.copyfile (os.path.join ("skitai/skitaid/etc/skitaid/skitaid.conf"), "/etc/skitaid.conf")
-			
-		with open ("skitai/skitaid/etc/skitaid/servers-enabled/default.conf") as f:
-			data = f.read ().replace ("c:\\skitaid\\pub\default\\", "/var/local/skitaid-pub/default/")
-		with open ("/etc/skitaid/servers-enabled/default.conf", "w") as f:
-			f.write (data)
+		
+		if not os.listdir ("/etc/skitaid/servers-enabled"):				
+			with open ("skitai/skitaid/etc/skitaid/servers-enabled/default.conf") as f:
+				data = f.read ().replace ("c:\\skitaid\\pub\default\\", "/var/local/skitaid-pub/default/")
+			with open ("/etc/skitaid/servers-enabled/default.conf", "w") as f:
+				f.write (data)
 		
 		for path in ("cert/README.txt", "servers-available/README.txt"):
 			try: 

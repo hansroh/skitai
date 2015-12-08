@@ -14,8 +14,7 @@ class timer:
 def handle_response (rc):
 	global total_sessions, clients, req, total_errors, resp_codes
 	
-	print (rc.response.header)
-	
+	#print (rc.response.header)	
 	total_sessions += 1
 	try: resp_codes [rc.response.code] += 1
 	except KeyError: resp_codes [rc.response.code] = 1
@@ -58,11 +57,19 @@ if __name__ == '__main__':
 			clients = int (v)
 		elif k == "-r":	
 			req = int (v)
+		elif k == "-k":	
+			use_keep_alive = True
 		elif k == "--help":		
 			usage ()
 			sys.exit ()
 	
-	requests.configure (logger.screen_logger (), clients, 60, default_option = "--http-connection " + (use_keep_alive and "keep-alive" or "close"))
+	requests.configure (
+		logger.screen_logger (), 
+		clients, 
+		5, 
+		default_option = "--http-connection " + (use_keep_alive and "keep-alive" or "close")
+	)
+	
 	for i in range (clients):
 		requests.add (url, handle_response)
 	
