@@ -232,7 +232,7 @@ class Loader:
 		if JSONRPBLIB:
 			alternative_handlers.append (jsonrpc_handler.Handler (self.wasc))
 		alternative_handlers.append (ssgi_handler.Handler (self.wasc))
-		
+			
 	def run (self):
 		if self._exit_code is not None: 
 			return self._exit_code # master process

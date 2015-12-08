@@ -78,18 +78,20 @@ if __name__ == '__main__':
 	total_time = t.end()
 	
 	print((
-						'\n%d clients\n%d hits/client\n'
-						'total hits:%d\n'
-						'total errors:%d\n%.3f seconds\ntotal hits/sec:%.3f' % (
-										clients,
-										req,
-										total_sessions,
-										total_errors,
-										total_time,
-										total_sessions / total_time
-										)
-						))
+		'\n%d clients\n%d hits/client\n'
+		'total hits:%d\n'
+		'total errors:%d\n%.3f seconds\ntotal hits/sec:%.3f' % (
+			clients,
+			req,
+			total_sessions,
+			total_errors,
+			total_time,
+			total_sessions / total_time
+		)
+	))
 						
 	codes = list(resp_codes.items ())
-	codes.sort ()
-	
+	codes.sort (key = lambda x: x [1], reverse = True)
+	print ("----------------------------\nresponse codes status")
+	for each in codes:
+		print ("%d: 	%d" % each)
