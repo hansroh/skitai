@@ -256,7 +256,6 @@ class Handler:
 		if self.use_thread:
 			self.wasc.queue.put (Job (was, path, method, args))			
 		else:
-			print ("no thread")
 			Job (was, path, method, args) ()
 
 	
