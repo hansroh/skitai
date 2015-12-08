@@ -161,7 +161,7 @@ class Handler:
 	def create_was (self, request, app):
 		was = self.wasc ()
 		was.request = request
-		was.response = was.request.response		
+		was.response = was.request.response
 		was.cookie = http_cookie.Cookie (request)
 		was.app = app
 		was.env = self.build_environ (request)

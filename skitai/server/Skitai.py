@@ -31,7 +31,8 @@ else:
 		
 from .handlers import default_handler, ssgi_handler, \
 	xmlrpc_handler, proxypass_handler, proxy_handler, \
-	multipart_handler, resource_validate_handler, options_handler
+	multipart_handler, resource_validate_handler, options_handler, \
+	pingpong_handler
 from .threads import threadlib, trigger
 from skitai.lib import logger, confparse, pathtool, flock
 from .rpc import cluster_dist_call, cachefs		
@@ -190,8 +191,8 @@ class Loader:
 		self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl)
 			
 	def install_handler (self, routes = {}, proxy = False, static_max_age = 300, max_file_size = 0):		
+		self.wasc.add_handler (1, pingpong_handler.Handler)
 		clusters = self.wasc.clusters		
-		
 		if proxy:
 			self.wasc.logger ("server", "[warn] ----------------------------------------------------")
 			self.wasc.logger ("server", "[warn] HTTP/HTTPS proxy service enabled")
@@ -200,7 +201,7 @@ class Loader:
 			self.wasc.add_handler (1, proxy_handler.Handler, clusters, self.wasc.cachefs)
 		self.wasc.add_handler (1, proxypass_handler.Handler, clusters, self.wasc.cachefs)
 		
-		self.wasc.add_handler (1, options_handler.Handler)		
+		self.wasc.add_handler (1, options_handler.Handler)
 		routes_directory = {}
 		alternative_handlers = []
 		self.wasc.add_handler (1, default_handler.Handler, routes_directory, static_max_age, alternative_handlers)

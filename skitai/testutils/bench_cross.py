@@ -3,15 +3,6 @@ from skitai.protocol.http import requests
 from skitai.lib import logger
 import time
 
-clients = 2000
-req = 3
-total_sessions = 0
-total_errors = 0
-resp_codes = {}
-port = 5001
-
-requests.configure (logger.screen_logger (), clients, 60, default_option = "--http-connection keep-alive")
-L = ["/"]
 
 class timer:
 	def __init__ (self):
@@ -33,27 +24,65 @@ def handle_response (rc):
 	print (total_sessions, end = " ")
 	#print ("\r\n".join (rc.response.header))
 	if total_sessions <= clients * req - clients:
-		requests.add ("http://54.67.113.190:%d/" % port, handle_response)
+		requests.add (url, handle_response)
 
-for i in range (clients):
-	requests.add ("http://54.67.113.190:%d/" % port, handle_response)
 
-t = timer()
-requests.get_all ()
-total_time = t.end()
+def usage ():
+	print ("%s [options] url" % sys.argv [0])
+	print (" -c		concurrent clients (default: 1)")
+	print (" -r		reuqests per clients (default: 1)")
+	print (" -k		use keep-alive (default: no)")
+	print (" --help		show help")
+	
 
-print((
-					'\n%d clients\n%d hits/client\n'
-					'total hits:%d\n'
-					'total errors:%d\n%.3f seconds\ntotal hits/sec:%.3f' % (
-									clients,
-									req,
-									total_sessions,
-									total_errors,
-									total_time,
-									total_sessions / total_time
-									)
-					))
-					
-codes = list(resp_codes.items ())
-codes.sort ()
+if __name__ == '__main__':
+	import getopt, sys
+	argopt, args = getopt.getopt (sys.argv[1:], "c:r:", ["help"])
+		
+	clients = 1
+	req = 1
+	
+	total_sessions = 0
+	total_errors = 0
+	resp_codes = {}
+	use_keep_alive = False
+	
+	try:
+		url = args [0]
+	except IndexError:
+		usage ()
+		sys.exit ()	
+	
+	for k, v in argopt:
+		if k == "-c": 
+			clients = int (v)
+		elif k == "-r":	
+			req = int (v)
+		elif k == "--help":		
+			usage ()
+			sys.exit ()
+	
+	requests.configure (logger.screen_logger (), clients, 60, default_option = "--http-connection " + (use_keep_alive and "keep-alive" or "close"))
+	for i in range (clients):
+		requests.add (url, handle_response)
+	
+	t = timer()
+	requests.get_all ()
+	total_time = t.end()
+	
+	print((
+						'\n%d clients\n%d hits/client\n'
+						'total hits:%d\n'
+						'total errors:%d\n%.3f seconds\ntotal hits/sec:%.3f' % (
+										clients,
+										req,
+										total_sessions,
+										total_errors,
+										total_time,
+										total_sessions / total_time
+										)
+						))
+						
+	codes = list(resp_codes.items ())
+	codes.sort ()
+	

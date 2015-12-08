@@ -71,6 +71,11 @@ class http_response:
 			except KeyError: 
 				msg = "Undefined"	
 		return 'HTTP/%s %d %s' % (self.request.version, code, msg)
+	
+	def start_response (self, status, headers = None, exc_info = None):
+		# WSGI compet
+		code, msg = status.split (" ", 1)
+		self.start (int (code), msg, headers)
 		
 	def start (self, code, msg = "", headers = None):
 		self.reply_code = code
