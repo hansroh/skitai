@@ -45,13 +45,18 @@ class	WAS (Skitai.Loader):
 			self.wasc.logger.add_screen_logger ()
 		
 		# before spawn
-		config = confparse.ConfParse (self.config)		
+		config = confparse.ConfParse (self.config)
 		self.wasc.register ("config", config)
+		
 		if _profile:
-			self.wasc.logger ("server", "Profiling is turned on, set to single worker mode forcely", "warn")
+			self.wasc.logger ("server", "perf profiling is turned on, set to single worker mode forcely", "warn")
 			self.set_num_worker (1)
 		else:	
 			self.set_num_worker (config.getint ("server", "processes"))
+		
+		if config.getint ("server", "threads") == 0:
+			self.wasc.logger ("server", "multi-threading is disabled, all asynchronous remote call services will be also disabled.", "warn")
+		
 		if config.getopt ("server", "ssl") in ("yes", "1") and config.getopt ("server", "certfile"):
 			self.config_certification (config.getopt ("server", "certfile"), config.getopt ("server", "keyfile"), config.getopt ("server", "passphrase"))
 		self.config_cachefs (os.path.join (self.varpath, "cache"))
@@ -66,7 +71,7 @@ class	WAS (Skitai.Loader):
 			name = config.getopt ("server", "name"),
 			ssl = config.getopt ("server", "ssl") in ("yes", "1") or False
 		)
-
+		
 		# after spawn
 		self.config_threads (config.getint ("server", "threads"))
 		
@@ -77,7 +82,7 @@ class	WAS (Skitai.Loader):
 				members = [_f for _f in [x.strip () for x in config.getopt (sect, "members").split (",")] if _f]
 				ssl = config.getopt (sect, "ssl")
 				self.add_cluster (ctype, name, members, ssl)
-				
+
 		self.install_handler (config.getopt ("routes"), config.getopt ("server", "enable_proxy") == "yes",  config.getint ("server", "static_max_age"))
 		
 		lifetime.init ()
