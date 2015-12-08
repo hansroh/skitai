@@ -6,7 +6,7 @@ from skitai.server import Skitai
 from skitai import lifetime
 from skitai.lib import confparse, flock, pathtool
 import signal
-
+import hotshot
 
 class	WAS (Skitai.Loader):
 	def __init__ (self, config, logpath, varpath, consol):
@@ -39,13 +39,19 @@ class	WAS (Skitai.Loader):
 		return [_f for _f in [x.strip () for x in text.split (",")] if _f]
 			
 	def configure (self):
+		global _profile
+		
 		if self.consol:
 			self.wasc.logger.add_screen_logger ()
 		
 		# before spawn
 		config = confparse.ConfParse (self.config)		
 		self.wasc.register ("config", config)
-		self.set_num_worker (config.getint ("server", "processes"))
+		if _profile:
+			self.wasc.logger ("server", "Profiling is turned on, set to single worker mode forcely", "warn")
+			self.set_num_worker (1)
+		else:	
+			self.set_num_worker (config.getint ("server", "processes"))
 		if config.getopt ("server", "ssl") in ("yes", "1") and config.getopt ("server", "certfile"):
 			self.config_certification (config.getopt ("server", "certfile"), config.getopt ("server", "keyfile"), config.getopt ("server", "passphrase"))
 		self.config_cachefs (os.path.join (self.varpath, "cache"))
@@ -115,17 +121,20 @@ Examples:
 
 
 if __name__ == "__main__":
-	argopt = getopt.getopt(sys.argv[1:], "f:hvt", ["help", "conf=", "verbose", "test"])
+	argopt = getopt.getopt(sys.argv[1:], "f:hvtp", ["help", "conf=", "verbose", "test", "profile"])
 	_conf = ""
 	_varpath = None
 	_consol = False
 	_test = False
+	_profile = False
 	
 	for k, v in argopt [0]:
 		if k == "--conf" or k == "-f":
 			_conf = v
 		elif k == "--verbose" or k == "-v":	
 			_consol = True
+		elif k == "--profile" or k == "-p":	
+			_profile = True	
 		elif k == "--test" or k == "-t":	
 			_test = True	
 		elif k == "--help" or k == "-h":	
@@ -184,9 +193,15 @@ if __name__ == "__main__":
 	service = WAS (_config, _logpath, _varpath, _consol)
 	
 	try:
+		if _profile:
+			prof = hotshot.Profile ("skitaid-instance.prof")
+			prof.start ()
 		service.run ()
 		
 	finally:	
+		if _profile:
+			prof.stop ()
+			prof.close ()
 		_exit_code = service.get_exit_code ()
 		if _exit_code is not None: # master process
 			pidlock.remove ()
