@@ -7,6 +7,7 @@ import sys
 from skitai.server import utility, http_cookie
 from skitai.server.threads import trigger
 from skitai.lib import udict
+import skitai
 
 PY_MAJOR_VERSION = sys.version_info.major
 
@@ -88,8 +89,7 @@ class Collector:
 	
 
 class Handler:
-	GATEWAY_INTERFACE = 'SSGI/0.9'
-	
+	GATEWAY_INTERFACE = 'CGI/1.1'
 	def __init__(self, wasc):
 		self.wasc = wasc
 		self.use_thread = hasattr (self.wasc, "threads")
@@ -113,7 +113,7 @@ class Handler:
 		env ['REQUEST_METHOD'] = request.command.upper()
 		env ['SERVER_PORT'] = str (server_inst.port)
 		env ['SERVER_NAME'] = server_inst.server_name
-		env ['SERVER_SOFTWARE'] = server_inst.SERVER_IDENT
+		env ['SERVER_SOFTWARE'] = "Skitai App Engine/%s.%s Python/%d.%d" % (skitai.version_info [:2] + sys.version_info[:2])
 		env ['SERVER_PROTOCOL'] = "HTTP/" + request.version
 		env ['CHANNEL_CREATED'] = request.channel.creation_time
 		env ['SCRIPT_NAME'] = '/' + path

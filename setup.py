@@ -3,7 +3,10 @@ Hans Roh 2015 -- http://osp.skitai.com
 License: BSD
 """
 
-__VER__ = '0.9.4.16'
+import skitai
+__VER__ = skitai.VERSION
+
+raise OSError
 
 import sys
 import os
