@@ -6,8 +6,6 @@ License: BSD
 import skitai
 __VER__ = skitai.VERSION
 
-raise OSError
-
 import sys
 import os
 import shutil, glob
