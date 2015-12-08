@@ -88,6 +88,10 @@ class Loader:
 			self.wasc.clusters ["__dbpool__"] = dp
 			self.wasc.clusters_for_distcall ["__dbpool__"] = dcluster_dist_call.ClusterDistCallCreator (dp, self.wasc.logger.get ("server"))
 		
+		if not hasattr (self.wasc, "threads"):
+			for attr in ("map", "rpc", "rest", "wget", "lb", "db", "dlb", "dmap"):
+				delattr (self.wasc, attr)
+		
 	def config_cachefs (self, cache_dir): 
 		if cache_dir:
 			self.wasc.register ("cachefs",  cachefs.CacheFileSystem (cache_dir))
@@ -180,7 +184,7 @@ class Loader:
 				http_cookie.Cookie.set_secret_key (secret_key)
 		#self.wasc.register ("sessions", http_session.Sessions (path, timeout))
 					
-	def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0):	
+	def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0):
 		if ssl in ("1", "yes"): ssl = 1
 		else: ssl = 0
 		self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl)
@@ -189,7 +193,10 @@ class Loader:
 		clusters = self.wasc.clusters		
 		
 		if proxy:
-			self.wasc.logger ("server", "[warn] HTTP/HTTPS Proxy Service Enabled")
+			self.wasc.logger ("server", "[warn] ----------------------------------------------------")
+			self.wasc.logger ("server", "[warn] HTTP/HTTPS proxy service enabled")
+			self.wasc.logger ("server", "[warn] proxy is for testing purpose only, check your config")
+			self.wasc.logger ("server", "[warn] ----------------------------------------------------")
 			self.wasc.add_handler (1, proxy_handler.Handler, clusters, self.wasc.cachefs)
 		self.wasc.add_handler (1, proxypass_handler.Handler, clusters, self.wasc.cachefs)
 		
