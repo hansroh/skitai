@@ -271,7 +271,9 @@ Documentation
 
 Change Log
 -------------
-  
+
+  0.9.4.17 - fix application reload in py27
+ 
   0.9.4.16 - fix GZIP decompressing
   
   0.9.4.13 - enable pass phrase on CA signed certification
