@@ -18,7 +18,7 @@ class	WAS (Skitai.Loader):
 	def test_config (cls, conf):
 		config = confparse.ConfParse (conf)
 		assert (config.getint ("server", "processes") > 0)
-		assert (config.getint ("server", "threads") > 0)
+		assert (config.getint ("server", "threads") >= 0)
 		if config.getopt ("server", "ssl") == "yes":
 			assert (config.getopt ("server", "certfile"))
 		assert (config.getint ("server", "port") > 0)

@@ -59,8 +59,11 @@ class Handler (xmlrpc_handler.Handler):
 		except:
 			self.wasc.logger.trace ("server", path)
 			return request.response.error (500, catch (1))
-			
-		self.wasc.queue.put (Job (was, path, method, args, rpcid, jsonrpc, ismulticall))
+		
+		if len (self.wasc.threads) == 0:
+			Job (was, path, method, args, rpcid, jsonrpc, ismulticall) ()
+		else:		
+			self.wasc.queue.put (Job (was, path, method, args, rpcid, jsonrpc, ismulticall))
 	
 			
 class Job (xmlrpc_handler.Job):
@@ -109,7 +112,7 @@ class Job (xmlrpc_handler.Job):
 			self.handle_error (500, ssgi_handler.catch(), rpcid, jsonrpc)
 			return
 							
-		self.was.app = app	
+		self.was.app = app
 		self.call (method, args, rpcid, jsonrpc)
 		
 	def handle_response (self):

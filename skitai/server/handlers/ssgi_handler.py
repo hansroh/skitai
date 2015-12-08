@@ -251,8 +251,11 @@ class Handler:
 		except:
 			self.wasc.logger.trace ("server",  request.uri)
 			return request.response.error (500, catch (1))
-			
-		self.wasc.queue.put (Job (was, path, method, args))
+		
+		if len (self.wasc.threads) == 0:
+			Job (was, path, method, args) ()
+		else:	
+			self.wasc.queue.put (Job (was, path, method, args))
 
 	
 class Job:

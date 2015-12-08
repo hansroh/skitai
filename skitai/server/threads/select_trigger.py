@@ -96,10 +96,7 @@ else:
 	class trigger (asyncore.dispatcher):
 		address = ('127.9.9.9', 19999)
 		def __init__ (self):
-			if hasattr (socket, "_no_timeoutsocket"):
-				sock_class = socket._no_timeoutsocket
-			else:
-				sock_class = socket.socket
+			sock_class = socket.socket
 			a = sock_class (socket.AF_INET, socket.SOCK_STREAM)
 			w = sock_class (socket.AF_INET, socket.SOCK_STREAM)
 			
@@ -161,7 +158,6 @@ else:
 						thunk ()
 					except:
 						(file, fun, line), t, v, tbinfo = asyncore.compact_traceback()
-						print(file, fun, line, t, v, tbinfo)
 				self.thunks = []
 				
 			finally:
