@@ -92,6 +92,7 @@ class Handler:
 	
 	def __init__(self, wasc):
 		self.wasc = wasc
+		self.use_thread = hasattr (self.wasc, "threads")
 		
 	def match (self, request):
 		return 1
@@ -252,10 +253,11 @@ class Handler:
 			self.wasc.logger.trace ("server",  request.uri)
 			return request.response.error (500, catch (1))
 		
-		if len (self.wasc.threads) == 0:
+		if self.use_thread:
+			self.wasc.queue.put (Job (was, path, method, args))			
+		else:
+			print ("no thread")
 			Job (was, path, method, args) ()
-		else:	
-			self.wasc.queue.put (Job (was, path, method, args))
 
 	
 class Job:

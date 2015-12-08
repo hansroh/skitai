@@ -169,10 +169,10 @@ class Loader:
 	def config_threads (self, numthreads = 0):
 		if numthreads > 0:
 			trigger.start_trigger ()
-		queue = threadlib.request_queue2 ()
-		tpool = threadlib.thread_pool (queue, numthreads, self.wasc.logger.get ("server"))
-		self.wasc.register ("queue",  queue)
-		self.wasc.register ("threads", tpool)
+			queue = threadlib.request_queue2 ()
+			tpool = threadlib.thread_pool (queue, numthreads, self.wasc.logger.get ("server"))
+			self.wasc.register ("queue",  queue)
+			self.wasc.register ("threads", tpool)
 		
 	def config_session (self, path, timeout, secret_key = ""):
 		if not timeout: timeout = 1200
