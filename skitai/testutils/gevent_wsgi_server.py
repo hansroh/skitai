@@ -1,12 +1,16 @@
+#!/usr/bin/python
+"""WSGI server example"""
+from __future__ import print_function
+from gevent.pywsgi import WSGIServer
+
+
 def application(environ, start_response):
-	status = '200 OK'
-	output = b'Pong!'
- 
-	response_headers = [('Content-type', 'text/plain'),
-						('Content-Length', str(len(output)))]
-	start_response(status, response_headers)
-	return [output]
-	
-from gevent import wsgi
-wsgi.WSGIServer(('', 5001), application, spawn=None).serve_forever()
-	
+	start_response('200 OK', [('Content-Type', 'text/plain')])
+	#f = open ("/var/local/skitaid-pub/test/static/test.htm", "rb")	
+	#data = f.read ()
+	#f.close ()
+	data = b"Pong"
+	return [data]
+
+print('Serving on 5001...')	
+WSGIServer(('0.0.0.0', 5001), application, log = None).serve_forever()
