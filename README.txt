@@ -34,61 +34,12 @@ Anyway, I am modifying my codes to optimizing for enabling service on Linux mach
 If you need lots of outside http(s) resources connecting jobs and use PostgreSQL, it might be worth testing and participating this project.
 
 
-Changes
----------
+Performance
+--------------
 
-**Config changed**
+I roughly benchmarked with uwsgi+nginx & gevent WSGI server by ping-pong request-reply test. I affort to making same conditions for each servers as possible. All testing tools, readme and results is in:
 
-1. In [server] section, from proxy = yes|no, to enable_proxy = yes|no
-
-2. M2Crypto dependency has been removed, and [certification] section had been entirely removed.
-
-.. code:: python
-
-    [server]
-    ssl = yes
-    ; added new key
-    certfile = server.pem
-    ; you can combine to certfile
-    ; keyfile = private.key
-    ; passphrase = 
-
-
-To genrate self-signed certification file:
-
-.. code:: python
-
-    openssl req -new -newkey rsa:2048 -x509 -keyout server.pem -out server.pem -days 365 -nodes
-    
-
-**New services added**
-
-.. code:: python
-
-    # streaming response for stream objects like file, large string list...
-    # object should have read() and optioanl close() method
-    return was.tostream (open ("large-movie.mp4", "rb"))
-    
-    # email delivery service
-    e = was.email (subject, snd, rcpt)
-    e.set_smtp ("127.0.0.1:465", "username", "password", ssl = True)
-    e.add_text ("Hello World<div><img src='cid:ID_A'></div>", "text/html")
-    e.add_attachment (r"001.png", cid="ID_A")
-    e.send ()
-
-With asynchronous email delivery service, can add default SMTP Server config to skitaid.conf (/etc/skitaid/skitaid.conf or c:\skitaid\etc\skitaid.conf).
-If it is configured, you can skip e.set_smtp(). But be careful for keeping your smtp password.
-
-.. code:: python
-
-    [smtpda]
-    smtpserver = 127.0.0.1:25
-    user = 
-    password = 
-    ssl = no
-    max_retry = 10
-    undelivers_keep_max_days = 30
-
+[skitai-install-dir]/tools/benchmark
 
 
 At a Glance
@@ -263,6 +214,62 @@ Install & Start Skitai Server
     install-win32-service start    
     
 
+Changes
+---------
+
+**Config changed**
+
+1. In [server] section, from proxy = yes|no, to enable_proxy = yes|no
+
+2. M2Crypto dependency has been removed, and [certification] section had been entirely removed.
+
+.. code:: python
+
+    [server]
+    ssl = yes
+    ; added new key
+    certfile = server.pem
+    ; you can combine to certfile
+    ; keyfile = private.key
+    ; passphrase = 
+
+
+To genrate self-signed certification file:
+
+.. code:: python
+
+    openssl req -new -newkey rsa:2048 -x509 -keyout server.pem -out server.pem -days 365 -nodes
+    
+
+**New services added**
+
+.. code:: python
+
+    # streaming response for stream objects like file, large string list...
+    # object should have read() and optioanl close() method
+    return was.tostream (open ("large-movie.mp4", "rb"))
+    
+    # email delivery service
+    e = was.email (subject, snd, rcpt)
+    e.set_smtp ("127.0.0.1:465", "username", "password", ssl = True)
+    e.add_text ("Hello World<div><img src='cid:ID_A'></div>", "text/html")
+    e.add_attachment (r"001.png", cid="ID_A")
+    e.send ()
+
+With asynchronous email delivery service, can add default SMTP Server config to skitaid.conf (/etc/skitaid/skitaid.conf or c:\skitaid\etc\skitaid.conf).
+If it is configured, you can skip e.set_smtp(). But be careful for keeping your smtp password.
+
+.. code:: python
+
+    [smtpda]
+    smtpserver = 127.0.0.1:25
+    user = 
+    password = 
+    ssl = no
+    max_retry = 10
+    undelivers_keep_max_days = 30
+    
+    
 Documentation
 -------------
 
