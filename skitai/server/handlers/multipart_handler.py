@@ -1,4 +1,4 @@
-from . import ssgi_handler
+from . import ssgi_handler, wsgi_handler
 import tempfile
 import os
 
@@ -268,4 +268,8 @@ class Handler (ssgi_handler.Handler):
 		if collector:
 			request.collector = collector
 			collector.start_collect ()
-			
+
+
+class HandlerForWSGI (Handler, wsgi_handler.Handler):
+	pass
+	

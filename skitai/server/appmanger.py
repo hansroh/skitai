@@ -202,3 +202,35 @@ class ModuleManager:
 		return d
 
 		
+class WSGIAppManager:
+	def __init__ (self, wasc, path, module):
+		module, appname = module.split (":", 1)			
+		sys.path.insert(0, path)
+		__import__ (module, globals ())
+		libpath, self.abspath = pathtool.modpath (module)
+		self.module = sys.modules [libpath]
+		self.wsgi_app = getattr (self.module, appname)
+		
+		if self.abspath [-4:] in (".pyc", ".pyo"):
+			self.abspath = self.abspath [:-1]		
+		try:
+			self.auto_reload = getattr (self.module, "__DEBUG__")
+		except AttributeError:
+			self.auto_reload = False
+		
+		self.update_file_info ()
+	
+	def update_file_info (self):
+		stat = os.stat (self.abspath)
+		self.size_file, self.last_modified = stat.st_size, stat.st_mtime	
+	
+	def ischanged (self):
+		stat = os.stat (self.abspath)
+		return stat.st_size != self.size_file or stat.st_mtime != self.last_modified
+				
+	def __call__ (self, *args):
+		if self.auto_reload and self.ischanged ():
+			reloader (self.module)		
+			self.update_file_info ()			
+		return self.wsgi_app (*args)
+	

@@ -3,6 +3,7 @@ from . import compressors
 import zlib
 import time
 import os
+from skitai.lib.reraise import reraise 
 
 UNCOMPRESS_MAX = 2048
 
@@ -73,7 +74,14 @@ class http_response:
 		return 'HTTP/%s %d %s' % (self.request.version, code, msg)
 	
 	def start_response (self, status, headers = None, exc_info = None):
-		# WSGI compet
+		# WSGI compet.
+		if exc_info is not None:
+			try:
+				if self.is_sent_response:
+					reraise (*exc_info)
+			finally:
+				exc_info = None
+					
 		code, msg = status.split (" ", 1)
 		self.start (int (code), msg, headers)
 		
@@ -104,6 +112,7 @@ class http_response:
 		self.error (code, why, force_close = True)
 		
 	def error (self, code, why = "", force_close = False):
+		self.outgoing = producers.fifo () # discard prev contents
 		self.reply_code = code
 		message = self.responses [code]		
 		s = self.DEFAULT_ERROR_MESSAGE % {

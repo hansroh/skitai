@@ -47,7 +47,7 @@ sudo service nginx restart
 
 2. gevent
 
-./gevent_wsgi_server.py > gent.log 2>&1
+./gevent_wsgi_server.py > gevent.log 2>&1
 
 Note: default gevent_wsgi_server.py'port is 5001.
 

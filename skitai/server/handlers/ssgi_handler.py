@@ -6,7 +6,6 @@ except ImportError:
 import sys
 from skitai.server import utility, http_cookie
 from skitai.server.threads import trigger
-from skitai.lib import udict
 import skitai
 
 PY_MAJOR_VERSION = sys.version_info.major
@@ -87,12 +86,25 @@ class Collector:
 		self.data = b""
 		self.request.collector = None  # break circ. ref
 	
+	
 
 class Handler:
 	GATEWAY_INTERFACE = 'CGI/1.1'
+	ENV = {
+			'GATEWAY_INTERFACE': 'CGI/1.1',
+			'SERVER_SOFTWARE': "Skitai App Engine/%s.%s Python/%d.%d" % (skitai.version_info [:2] + sys.version_info[:2]),
+			"wsgi.version": (1, 0),
+			"wsgi.errors": sys.stderr,
+			"wsgi.run_once": False,
+			"wsgi.input": None
+	}
+		
 	def __init__(self, wasc):
 		self.wasc = wasc
-		self.use_thread = hasattr (self.wasc, "threads")
+		self.ENV ["url_scheme"] = hasattr (self.wasc.httpserver, "ctx") == "https" or "http"
+		self.ENV ["wsgi.multithread"] = hasattr (self.wasc, "threads")
+		self.ENV ["wsgi.multiprocess"] = self.wasc.config.getint ("server", "processes") > 1 and os.name != "nt"
+		self.use_thread = self.ENV ["wsgi.multithread"]
 		
 	def match (self, request):
 		return 1
@@ -109,11 +121,10 @@ class Handler:
 		if query: query = query[1:]
 
 		server_inst = self.wasc.httpserver
-		env = udict.UDict ()
+		env = self.ENV.copy ()
 		env ['REQUEST_METHOD'] = request.command.upper()
 		env ['SERVER_PORT'] = str (server_inst.port)
 		env ['SERVER_NAME'] = server_inst.server_name
-		env ['SERVER_SOFTWARE'] = "Skitai App Engine/%s.%s Python/%d.%d" % (skitai.version_info [:2] + sys.version_info[:2])
 		env ['SERVER_PROTOCOL'] = "HTTP/" + request.version
 		env ['CHANNEL_CREATED'] = request.channel.creation_time
 		env ['SCRIPT_NAME'] = '/' + path
@@ -136,7 +147,9 @@ class Handler:
 		for k, v in list(os.environ.items ()):
 			if not env.has_key (k):
 				env [k] = v
-				
+		
+		for k, v in list(env.items ()):
+			print k, v
 		return env
 	
 	def has_permission (self, request, app):
@@ -165,7 +178,6 @@ class Handler:
 		was.cookie = http_cookie.Cookie (request)
 		was.app = app
 		was.env = self.build_environ (request)
-		was.env ['GATEWAY_INTERFACE'] = self.GATEWAY_INTERFACE		
 		if app.is_session_enabled ():
 			was.session = was.cookie.get_session ()
 		else:

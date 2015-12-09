@@ -32,7 +32,7 @@ else:
 from .handlers import default_handler, ssgi_handler, \
 	xmlrpc_handler, proxypass_handler, proxy_handler, \
 	multipart_handler, resource_validate_handler, options_handler, \
-	pingpong_handler
+	pingpong_handler, wsgi_handler
 from .threads import threadlib, trigger
 from skitai.lib import logger, confparse, pathtool, flock
 from .rpc import cluster_dist_call, cachefs		
@@ -202,9 +202,14 @@ class Loader:
 		alternative_handlers = []
 		self.wasc.add_handler (1, default_handler.Handler, routes_directory, static_max_age, alternative_handlers)
 		
+		wsgi_app = None
+		wsgi_mode = False
+		for line in routes:
+			if line.strip ().startswith ("wsgi"):
+				wsgi_mode = True
+				
 		apps = appmanger.ModuleManager(self.wasc)		
-		self.wasc.register ("apps", apps)
-		
+		self.wasc.register ("apps", apps)		
 		for line in routes:
 			route, target = [x.strip () for x in line.split ("=", 1)]
 
@@ -217,17 +222,30 @@ class Loader:
 				if route [-1] == "/":
 					route = route [:-1]
 				self.wasc.add_route (route, target)
+			
+			elif route == "wsgi":				
+				fullpath = os.path.split (target.strip())
+				path, module = os.sep.join (fullpath[:-1]), fullpath [-1]
+				wsgi_app = appmanager.WSGIAppManager (self.wasc, path, module)
 				
-			else:
+			elif not wsgi_mode:
 				fullpath = os.path.split (target.strip())
 				apps.add_module (route, os.sep.join (fullpath[:-1]), fullpath [-1])
 			
 		alternative_handlers.append (resource_validate_handler.Handler (self.wasc))
-		alternative_handlers.append (multipart_handler.Handler (self.wasc, max_file_size))		
+		if wsgi_mode:
+			alternative_handlers.append (multipart_handler.HandlerForWSGI (self.wasc, max_file_size))					
+		else:	
+			alternative_handlers.append (multipart_handler.Handler (self.wasc, max_file_size))
+		
 		alternative_handlers.append (xmlrpc_handler.Handler (self.wasc))
 		if JSONRPBLIB:
 			alternative_handlers.append (jsonrpc_handler.Handler (self.wasc))
-		alternative_handlers.append (ssgi_handler.Handler (self.wasc))
+		
+		if wsgi_mode:
+			alternative_handlers.append (wsgi_handler.Handler (self.wasc, wsgi_app))
+		else:	
+			alternative_handlers.append (ssgi_handler.Handler (self.wasc))
 		
 	def run (self):
 		if self._exit_code is not None: 
