@@ -193,11 +193,7 @@ class Loader:
 	def install_handler (self, routes = {}, proxy = False, static_max_age = 300, max_file_size = 0):		
 		self.wasc.add_handler (1, pingpong_handler.Handler)
 		clusters = self.wasc.clusters		
-		if proxy:
-			self.wasc.logger ("server", "[warn] ----------------------------------------------------")
-			self.wasc.logger ("server", "[warn] HTTP/HTTPS proxy service enabled")
-			self.wasc.logger ("server", "[warn] proxy is for testing purpose only, check your config")
-			self.wasc.logger ("server", "[warn] ----------------------------------------------------")
+		if proxy:			
 			self.wasc.add_handler (1, proxy_handler.Handler, clusters, self.wasc.cachefs)
 		self.wasc.add_handler (1, proxypass_handler.Handler, clusters, self.wasc.cachefs)
 		
@@ -232,7 +228,7 @@ class Loader:
 		if JSONRPBLIB:
 			alternative_handlers.append (jsonrpc_handler.Handler (self.wasc))
 		alternative_handlers.append (ssgi_handler.Handler (self.wasc))
-			
+		
 	def run (self):
 		if self._exit_code is not None: 
 			return self._exit_code # master process
