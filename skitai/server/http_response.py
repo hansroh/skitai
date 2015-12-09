@@ -124,7 +124,7 @@ class http_response:
 		self.done (True, True, force_close)
 	
 	def push (self, thing):
-		if self.request.channel is None: return		
+		if self.request.channel is None: return
 		if type(thing) is bytes:			
 			self.outgoing.push (producers.simple_producer (thing))
 		else:
@@ -168,7 +168,7 @@ class http_response:
 			
 		if compress and not self.has_key ('Content-Encoding'):
 			maybe_compress = self.request.get_header ("Accept-Encoding")
-			if maybe_compress and self.has_key ("Content-Length") and self ["Content-Length"] <= UNCOMPRESS_MAX:
+			if maybe_compress and self.has_key ("Content-Length") and int (self ["Content-Length"]) <= UNCOMPRESS_MAX:
 				maybe_compress = ""
 			
 			else:	

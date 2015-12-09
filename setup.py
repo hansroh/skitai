@@ -62,7 +62,7 @@ package_dir = {
 
 skitaid_files = [
 	"README.md",
-	"skitaid/bin/*.*",	
+	"skitaid/bin/*.py",
 	"skitaid/pub/default/*.py",	
 	"skitaid/pub/default/static/*.*",	
 	"skitaid/etc/init/skitaid.conf",
@@ -72,7 +72,10 @@ skitaid_files = [
 	"skitaid/etc/skitaid/servers-enabled/default.conf",
 	"skitaid/etc/skitaid/cert/*.*",
 	"protocol/dns/*.txt",
-	"protocol/dns/pydns/*.txt"
+	"protocol/dns/pydns/*.txt",
+	"tools/benchmark/*.py",
+	"tools/benchmark/*.txt",
+	"tools/benchmark/*.ini",
 ]
 
 package_data = {
@@ -178,7 +181,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 		if not os.path.isfile (conf) and not os.path.islink (conf):
 			shutil.copyfile (os.path.join ("skitai/skitaid/etc/skitaid/skitaid.conf"), "/etc/skitaid.conf")
 		
-		if not os.listdir ("/etc/skitaid/servers-enabled"):				
+		if not os.listdir ("/etc/skitaid/servers-enabled"):
 			with open ("skitai/skitaid/etc/skitaid/servers-enabled/default.conf") as f:
 				data = f.read ().replace ("c:\\skitaid\\pub\default\\", "/var/local/skitaid-pub/default/")
 			with open ("/etc/skitaid/servers-enabled/default.conf", "w") as f:
@@ -211,7 +214,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 			os.remove ("/etc/init.d/skitaid")
 		shutil.copyfile ("skitai/skitaid/etc/init.d/skitaid", "/etc/init.d/skitaid")
 		os.chmod ("/etc/init.d/skitaid", 0o755)
-			
+
 		print("\n\n======================================")
 		print("Installation Complete")
 		print("--------------------------------------")	

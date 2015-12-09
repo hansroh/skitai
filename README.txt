@@ -272,6 +272,8 @@ Documentation
 Change Log
 -------------
 
+  0.9.4.21 - add tools
+  
   0.9.4.19 - no threads mode, then can config threads=0, but cannot use all async restful requests
   
   0.9.4.17 - fix application reload in py27

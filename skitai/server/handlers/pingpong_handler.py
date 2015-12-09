@@ -8,13 +8,11 @@ class Handler (ssgi_handler.Handler):
 		return request.split_uri() [0] == "/ping"
 		
 	def handle_request (self, request):
-		# WSGI emulating
+		# WSGI Emulating
 		env = self.build_environ (request)
 		start_response = request.response.start_response
 		
-		start_response ("200 OK")
-		request.response ["Content-Type"] = "text/plain"
-		request.response ["Content-Length"] = "4"
+		start_response ("200 OK", [("Content-Type", "text/plain"), ("Content-Length", "4")])
 		request.response.push (b"pong")
 		request.response.done ()
 		

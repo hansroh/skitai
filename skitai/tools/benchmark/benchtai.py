@@ -66,7 +66,7 @@ if __name__ == '__main__':
 	requests.configure (
 		logger.screen_logger (), 
 		clients, 
-		5, 
+		10, 
 		default_option = "--http-connection " + (use_keep_alive and "keep-alive" or "close")
 	)
 	
