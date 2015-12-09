@@ -9,11 +9,9 @@ from skitai.server.threads import trigger
 import skitai
 
 try:
-	from cStringIO import StringIO as sio
-	bio = sio
+	from cStringIO import StringIO as BytesIO
 except ImportError:
-	from io import BytesIO as bio
-	from io import StringIO as sio
+	from io import BytesIO
 
 
 PY_MAJOR_VERSION = sys.version_info.major
@@ -181,16 +179,20 @@ class Handler:
 		was = self.wasc ()
 		was.request = request
 		was.response = was.request.response
-		was.cookie = http_cookie.Cookie (request)
 		was.env = self.build_environ (request)
 		was.env ["SCRIPT_NAME"] = app.script_name
+		was.env ['PATH_INFO'] = was.env ['PATH_INFO'][app.rm_len:] # remove base route
 		
 		if app.is_ssgi ():		
+			was.cookie = http_cookie.Cookie (request)
 			was.app = app
 			if app.is_session_enabled ():
 				was.session = was.cookie.get_session ()
 			else:
 				was.session = None
+		else:
+			was.env ['wsgi.x.was'] = was
+					
 		return was
 	
 	def make_collector (self, collector_class, request, max_cl = MAX_POST_SIZE, *args, **kargs):
@@ -272,11 +274,7 @@ class Handler:
 				
 			else:
 				if data:
-					if ct.startswith ("text/"):
-						_input = sio (data)
-					else:
-						_input = bio (data)
-					was.env ["wsgi.input"] = _input
+					was.env ["wsgi.input"] = BytesIO (data)
 				args = (was.env, request.response.start_response)
 								
 		except:
@@ -304,11 +302,13 @@ class Job:
 		return "%s %s HTTP/%s" % (self.was.request.command.upper (), self.was.request.uri, self.was.request.version)
 		
 	def dealloc (self):
+		if self.was.env ["wsgi.input"]:
+			self.was.env ["wsgi.input"].close ()
 		self.was.cookie = None
 		self.was.session = None
 		self.was.request.response = None
 		self.was.request = None
-		self.was.environ = None
+		self.was.env = None
 		self.was.app = None
 		del self.was
 	

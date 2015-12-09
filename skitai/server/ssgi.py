@@ -114,8 +114,9 @@ class Package:
 	def set_route_map (self, route_map):
 		self.route_map = route_map
 		
-	def set_base_route (self, base):
+	def set_base_route (self, base, rm_len):
 		self.base_route = base
+		self.rm_len = rm_len
 	
 	def get_base_route (self):
 		return self.base_route
@@ -207,10 +208,10 @@ class Package:
 																	
 		return ([self._before_request, method, self._after_request, self._teardown_request], kargs, match, matchtype)
 	
-	def run (self, wasc, script_name, base_route, packages = None):
+	def run (self, wasc, script_name, base_route, rm_len = 0, packages = None):
 		self.wasc = wasc
-		self.script_name = script_name
-		self.set_base_route (base_route)
+		self.script_name = script_name		
+		self.set_base_route (base_route, rm_len)
 		self.logger = self.wasc.logger.get ("app")
 		if packages:
 			self.packages = packages

@@ -19,9 +19,10 @@ class Application:
 	def do_auto_reload (self):
 		return self.devel
 		
-	def run (self, wasc, script_name, route, *args, **karg):
+	def run (self, wasc, script_name, route, rm_len, *args, **karg):
 		self.script_name = script_name
-		self.route = route
+		self.route = route		
+		self.rm_len = rm_len
 	
 	def get_method (self, *args):	
 		return ([None, self.app, None, None], None)

@@ -14,7 +14,7 @@ class Module:
 		if self.route [-1] == "/":
 			self.rm_len = len (self.route) - 1
 		else:
-			self.rm_len = len (self.route)	
+			self.rm_len = len (self.route)
 		
 		try:
 			libpath, self.appname = libpath.split (":", 1)		
@@ -67,13 +67,13 @@ class Module:
 		self.app = getattr (self.module, self.appname) # new app
 		if not isinstance (self.app, ssgi.Application):
 			self.ssgi_app = False
-			self.app = wsgi.Application (self.module, self.app)		
+			self.app = wsgi.Application (self.module, self.app)
 		self.start_application (packages)
 		
 	def start_application (self, packages = None):
 		if "sandbox" in self.abspath.split (os.sep):
 			self.app.set_devel (True)			
-		self.app.run (self.wasc, "%s.py" % self.libpath, self.get_route (), packages)	
+		self.app.run (self.wasc, "%s.py" % self.libpath, self.get_route (), self.rm_len, packages)	
 	
 	def set_route (self, route):
 		route = route
