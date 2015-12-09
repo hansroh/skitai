@@ -174,7 +174,7 @@ class http_response:
 			else:
 				self.update ('Connection', 'close')
 				close_it = True
-			
+		
 		if compress and not self.has_key ('Content-Encoding'):
 			maybe_compress = self.request.get_header ("Accept-Encoding")
 			if maybe_compress and self.has_key ("Content-Length") and int (self ["Content-Length"]) <= UNCOMPRESS_MAX:

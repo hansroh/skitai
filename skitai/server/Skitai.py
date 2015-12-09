@@ -32,7 +32,7 @@ else:
 from .handlers import default_handler, ssgi_handler, \
 	xmlrpc_handler, proxypass_handler, proxy_handler, \
 	multipart_handler, resource_validate_handler, options_handler, \
-	pingpong_handler, wsgi_handler
+	pingpong_handler
 from .threads import threadlib, trigger
 from skitai.lib import logger, confparse, pathtool, flock
 from .rpc import cluster_dist_call, cachefs		
@@ -192,6 +192,7 @@ class Loader:
 			
 	def install_handler (self, routes = {}, proxy = False, static_max_age = 300, max_file_size = 0):		
 		self.wasc.add_handler (1, pingpong_handler.Handler)
+		
 		clusters = self.wasc.clusters		
 		if proxy:			
 			self.wasc.add_handler (1, proxy_handler.Handler, clusters, self.wasc.cachefs)
@@ -233,19 +234,11 @@ class Loader:
 				apps.add_module (route, os.sep.join (fullpath[:-1]), fullpath [-1])
 			
 		alternative_handlers.append (resource_validate_handler.Handler (self.wasc))
-		if wsgi_mode:
-			alternative_handlers.append (multipart_handler.HandlerForWSGI (self.wasc, max_file_size))					
-		else:	
-			alternative_handlers.append (multipart_handler.Handler (self.wasc, max_file_size))
-		
+		alternative_handlers.append (multipart_handler.Handler (self.wasc, max_file_size))		
 		alternative_handlers.append (xmlrpc_handler.Handler (self.wasc))
 		if JSONRPBLIB:
 			alternative_handlers.append (jsonrpc_handler.Handler (self.wasc))
-		
-		if wsgi_mode:
-			alternative_handlers.append (wsgi_handler.Handler (self.wasc, wsgi_app))
-		else:	
-			alternative_handlers.append (ssgi_handler.Handler (self.wasc))
+		alternative_handlers.append (ssgi_handler.Handler (self.wasc))
 		
 	def run (self):
 		if self._exit_code is not None: 

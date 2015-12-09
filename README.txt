@@ -53,9 +53,14 @@ At a Glance
     port = 5000
 
     [routes:line]
-    / = /home/skitaid/app/static
-    / = /home/skitaid/app/webapp
-
+    ; mount filesystem directory for static files
+    /images = /home/skitaid/app/images
+    
+    ; mount skitai apps, path/module:callable
+    / = /home/skitaid/app/webapp:app
+		
+		; mount WSGI apps, path/module:callable
+    /wsgi-hello = /home/skitaid/app/wsgiapp:app
 
 **Hello World**
 
@@ -150,26 +155,15 @@ Requirements
 
 - *pywin32 binary* - http://sourceforge.net/projects/pywin32/files/pywin32/Build%20219/
 
-
-
 Optional Requirements
 ------------------------
 
 * Skitaid can find at least one DNS server from system configuration for Async-DNS query. Possibly it is only problem on dynamic IP allocated desktop, then set DNS manually, please.
 
-
-**Posix**
-
-- *psycopg2* for querying PostgreSQL asynchronously
+- *psycopg2* for querying PostgreSQL asynchronously (`win32 binary`_)
 - *Jinja2* for HTML Rendering
 
-Use 'pip install ...'
-
-
-**Win 32**
-
-- *psycopg2 binary* - http://www.stickpeople.com/projects/python/win-psycopg/
-- *Jinja2* for HTML Rendering
+.. _`win32 binary`: http://www.stickpeople.com/projects/python/win-psycopg/
 
 
 Install & Start Skitai Server
@@ -215,6 +209,26 @@ Install & Start Skitai Server
 Changes
 ---------
 
+**Support WSGI Apps**
+
+/home/skitaid/app/webapp.py
+
+.. code:: python
+    
+    #__norealod__ = False            
+    def mywsgi (env, start_response):
+	    start_response ("200 OK", [("Content-Type", "text/plain")])
+	    return ['pong']
+
+At /etc/skitaid/servers-enabled/default.conf:
+
+.. code:: python
+
+    [routes:line]
+    ; WSGI app, path/module:callable
+    /mywsgi = /home/skitaid/app/webapp:mywsgi
+
+	
 **Config changed**
 
 1. In [server] section, from proxy = yes|no, to enable_proxy = yes|no
@@ -277,6 +291,8 @@ Documentation
 Change Log
 -------------
 
+  0.9.5 - strengthen WSGI support.
+  
   0.9.4.21 - add tools
   
   0.9.4.19 - no threads mode, then can config threads=0, but cannot use all async restful requests

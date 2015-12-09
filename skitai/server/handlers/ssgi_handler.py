@@ -8,6 +8,14 @@ from skitai.server import utility, http_cookie
 from skitai.server.threads import trigger
 import skitai
 
+try:
+	from cStringIO import StringIO as sio
+	bio = sio
+except ImportError:
+	from io import BytesIO as bio
+	from io import StringIO as sio
+
+
 PY_MAJOR_VERSION = sys.version_info.major
 
 header2env = {
@@ -49,7 +57,7 @@ def catch (htmlformating = 0):
 		buf.append ("In %s at line %s, %s" % (file, line, function == "?" and "__main__" or "function " + function))
 		buf += ["%s %s %s" % x for x in tbinfo]
 		return "\n".join (buf)
-		
+
 
 class Collector:
 	def __init__ (self, handler, request):
@@ -132,7 +140,6 @@ class Handler:
 		env ['REMOTE_ADDR'] = request.channel.addr [0]
 		env ['REMOTE_SERVER'] = request.channel.addr [0]
 		
-		env_has = env.has_key
 		for header in request.header:
 			key, value = header.split(":", 1)
 			key = key.lower()
@@ -141,15 +148,13 @@ class Handler:
 				env [header2env [key]] = value				
 			else:
 				key = 'HTTP_%s' % ("_".join (key.split ( "-"))).upper()
-				if value and not env.has_key (key):
+				if value and key not in env:
 					env [key] = value
 		
 		for k, v in list(os.environ.items ()):
-			if not env.has_key (k):
+			if k not in env:
 				env [k] = v
 		
-		for k, v in list(env.items ()):
-			print k, v
 		return env
 	
 	def has_permission (self, request, app):
@@ -176,12 +181,13 @@ class Handler:
 		was.request = request
 		was.response = was.request.response
 		was.cookie = http_cookie.Cookie (request)
-		was.app = app
-		was.env = self.build_environ (request)
-		if app.is_session_enabled ():
-			was.session = was.cookie.get_session ()
-		else:
-			was.session = None
+		was.env = self.build_environ (request)	
+		if app:
+			was.app = app
+			if app.is_session_enabled ():
+				was.session = was.cookie.get_session ()
+			else:
+				was.session = None
 		return was
 	
 	def make_collector (self, collector_class, request, max_cl = MAX_POST_SIZE, *args, **kargs):
@@ -233,7 +239,7 @@ class Handler:
 	def continue_request (self, request, data = None):
 		try:
 			path, params, query, fragment = request.split_uri ()
-			method, app = self.wasc.apps.get_app (path)
+			method, app = self.wasc.apps.get_app (path, include_wsgi = True)
 					
 		except:
 			self.wasc.logger.trace ("server",  request.uri)
@@ -243,40 +249,50 @@ class Handler:
 			return request.response.error (404)
 		
 		try:
+			was = self.create_was (request, app)
 			ct = request.get_header ("content-type")
 			if ct is None: ct = ""
 			
-			if request.command == "get":
-				args = self.parse_args (query, None)				
-			elif request.command == "post" and ct.startswith ("application/x-www-form-urlencoded"):
-				args = self.parse_args (query, data)
-			elif ct.startswith ("multipart/form-data"):
-				args = data
-				# cached form data string if size < 10 MB
-				# it used for relay small files to the others				
-				for k, v in list(self.parse_args (query, None).items ()):
-					args [k] = v
-			else:	# xml, json should use request.get_body ()
-				args = {}
-			
-			was = self.create_was (request, app)
-							
+			if app: #ssgi	
+				if request.command == "get":
+					args = self.parse_args (query, None)				
+				elif request.command == "post" and ct.startswith ("application/x-www-form-urlencoded"):
+					args = self.parse_args (query, data)
+				elif ct.startswith ("multipart/form-data"):
+					args = data
+					# cached form data string if size < 10 MB
+					# it used for relay small files to the others				
+					for k, v in list(self.parse_args (query, None).items ()):
+						args [k] = v
+				else:	# xml, json should use request.get_body ()
+					args = {}				
+				
+			else:
+				if data:
+					if ct.startswith ("text/"):
+						_input = sio (data)
+					else:
+						_input = bio (data)
+					was.env ["wsgi.input"] = _input
+				args = (was.env, request.response.start_response)
+								
 		except:
 			self.wasc.logger.trace ("server",  request.uri)
 			return request.response.error (500, catch (1))
 		
 		if self.use_thread:
-			self.wasc.queue.put (Job (was, path, method, args))			
+			self.wasc.queue.put (Job (was, path, method, args, app is not None))			
 		else:
-			Job (was, path, method, args) ()
+			Job (was, path, method, args, app is not None) ()
 
 	
 class Job:
-	def __init__(self, was, muri, method, args):
+	def __init__(self, was, muri, method, args, ssgi = True):
 		self.was = was
 		self.muri = muri
 		self.method = method
 		self.args = args
+		self.is_ssgi = ssgi
 		
 	def __repr__(self):
 		return "<Job %s %s HTTP/%s>" % (self.was.request.command.upper (), self.was.request.uri, self.was.request.version)
@@ -310,13 +326,16 @@ class Job:
 				response = self.get_response ((func, uargs), args)					
 					
 			else:
-				if type (args)==type({}):
-					if uargs: # url args
-						for k, v in list(uargs.items ()):
-							args [k] = v			
-					response = func (self.was, **args)
-				else:
-					response = func (self.was, *args, **uargs)
+				if not self.is_ssgi:
+					response = func (*args)
+				else:	
+					if type (args)==type({}):
+						if uargs: # url args
+							for k, v in list(uargs.items ()):
+								args [k] = v			
+						response = func (self.was, **args)
+					else:
+						response = func (self.was, *args, **uargs)
 		
 		except MemoryError:
 			raise
@@ -352,6 +371,11 @@ class Job:
 					self.was.logger.trace ("app", str (self))
 					raise	
 		
+		if type (response) is list:
+			try: 
+				response = "".join (response)
+			except TypeError:
+				response = b"".join (response)						
 		return response	
 	
 	def commit_all (self):
@@ -373,7 +397,8 @@ class Job:
 		else:
 			if not self.was.response.is_sent_response:
 				try:
-					self.commit_all ()
+					if self.is_ssgi:
+						self.commit_all ()
 								
 				except:
 					self.was.logger.trace ("server")
@@ -385,10 +410,9 @@ class Job:
 					
 					type_of_response = type (response)
 					if (PY_MAJOR_VERSION >=3 and type_of_response is str) or (PY_MAJOR_VERSION <3 and type_of_response is unicode):
-							response = response.encode ("utf8")
-							type_of_response = bytes
+						response = response.encode ("utf8")
 					
-					if type_of_response is bytes:
+					if type (response) is bytes:
 						self.was.request.response.update ('Content-Length', len (response))			
 						trigger.wakeup (lambda p=self.was.response, d=response: (p.push(d), p.done()))
 			

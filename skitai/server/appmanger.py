@@ -4,8 +4,30 @@ import threading
 import importlib
 try: reloader = importlib.reload
 except AttributeError: reloader = reload	
-
+from . import ssgi
 RXFUNC = re.compile (r"^def\s+([_a-z][_a-z0-9]*)\s*(\(.+?\))\s*:", re.I|re.M|re.S)
+
+class WSGIAppWrapper:
+	def __init__ (self, module, app):
+		self.module = module
+		self.app = app
+		try:
+			self.devel = not getattr (self.module, "__noreload__")
+		except:
+			self.devel = True
+		
+	def set_devel (self, flag):	
+		self.devel = True
+	
+	def do_auto_reload (self):
+		return self.devel
+		
+	def run (self, wasc, route, *args, **karg):
+		pass
+	
+	def get_method (self, *args):	
+		return ([None, self.app, None, None], None)
+		
 
 class Module:
 	def __init__ (self, wasc, route, libpath):
@@ -14,7 +36,13 @@ class Module:
 			self.rm_len = len (self.route) - 1
 		else:
 			self.rm_len = len (self.route)	
-			
+		
+		try:
+			libpath, self.appname = libpath.split (":", 1)		
+		except ValueError:
+			libpath, self.appname = libpath, "app"
+
+		self.ssgi_app = True
 		self.libpath = libpath
 		self.wasc = wasc
 		self.import_app ()		
@@ -24,7 +52,11 @@ class Module:
 		__import__ (self.libpath, globals ())
 		self.libpath, self.abspath = pathtool.modpath (self.libpath)
 		self.module = sys.modules [self.libpath]
-		self.app = self.module.app
+		
+		self.app = getattr (self.module, self.appname)
+		if not isinstance (self.app, ssgi.Application):
+			self.ssgi_app = False
+			self.app = WSGIAppWrapper (self.module, self.app)
 		
 		if self.abspath [-4:] in (".pyc", ".pyo"):
 			self.abspath = self.abspath [:-1]		
@@ -32,7 +64,8 @@ class Module:
 		
 	def reload_app (self):
 		reloader (self.module)
-		self.reload_application ()				
+		if self.ssgi_app:
+			self.reload_application ()
 		self.update_file_info ()
 		
 	def update_file_info (self):
@@ -51,7 +84,7 @@ class Module:
 		except:
 			self.wasc.logger.trace ("app")			
 		del self.app
-		self.app = self.module.app # new app
+		self.app = getattr (self.module, self.appname) # new app
 		self.start_application (packages)
 		
 	def start_application (self, packages = None):
@@ -77,11 +110,12 @@ class Module:
 	def get_app (self, script_name):
 		if self.app.do_auto_reload () and self.ischanged ():
 			self.reload_app ()
+			
 		if script_name [0] != "/":
 			script_name = "/" + script_name
 					
 		#remove base path	
-		return self.app.get_method (script_name [self.rm_len:]), self.app
+		return self.app.get_method (script_name [self.rm_len:]), self.ssgi_app and self.app or None
 		
 		
 class ModuleManager:
@@ -118,7 +152,7 @@ class ModuleManager:
 		self.add_path (directory)
 		self.register_module (route, package)
 	
-	def get_app (self, script_name, rootmatch = False):
+	def get_app (self, script_name, rootmatch = False, include_wsgi = False):
 		if not rootmatch:
 			route = self.has_route (script_name)
 			if route in (0, -1):
@@ -130,6 +164,10 @@ class ModuleManager:
 			method, app = self.modules [route].get_app (script_name)
 		except KeyError:
 			return None, None
+			
+		if app is None and not include_wsgi:
+			return None, None
+			
 		if method [0]: # == (method, karg), app
 			return method, app
 		
@@ -164,6 +202,7 @@ class ModuleManager:
 				return cands [0]
 			cands.sort (key = lambda x: len (x))
 			return cands [-1]
+
 		elif "/" in self.modules and self.get_app (script_name, True) [0] is not None:
 			return "/"
 						
@@ -202,35 +241,4 @@ class ModuleManager:
 		return d
 
 		
-class WSGIAppManager:
-	def __init__ (self, wasc, path, module):
-		module, appname = module.split (":", 1)			
-		sys.path.insert(0, path)
-		__import__ (module, globals ())
-		libpath, self.abspath = pathtool.modpath (module)
-		self.module = sys.modules [libpath]
-		self.wsgi_app = getattr (self.module, appname)
-		
-		if self.abspath [-4:] in (".pyc", ".pyo"):
-			self.abspath = self.abspath [:-1]		
-		try:
-			self.auto_reload = getattr (self.module, "__DEBUG__")
-		except AttributeError:
-			self.auto_reload = False
-		
-		self.update_file_info ()
-	
-	def update_file_info (self):
-		stat = os.stat (self.abspath)
-		self.size_file, self.last_modified = stat.st_size, stat.st_mtime	
-	
-	def ischanged (self):
-		stat = os.stat (self.abspath)
-		return stat.st_size != self.size_file or stat.st_mtime != self.last_modified
-				
-	def __call__ (self, *args):
-		if self.auto_reload and self.ischanged ():
-			reloader (self.module)		
-			self.update_file_info ()			
-		return self.wsgi_app (*args)
-	
+

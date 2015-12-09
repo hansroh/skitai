@@ -98,13 +98,19 @@ class os_filesystem:
 		return self.wd
 
 	def isfile (self, path):
-		p = self.normalize (self.path_module.join (self.wd, path))		
-		return self.path_module.isfile (self.translate(p))
+		p = self.normalize (self.path_module.join (self.wd, path))				
+		try:
+			return self.path_module.isfile (self.translate(p))
+		except TypeError:
+			return False	
 
 	def isdir (self, path):
 		p = self.normalize (self.path_module.join (self.wd, path))
-		return self.path_module.isdir (self.translate(p))
-
+		try:
+			return self.path_module.isdir (self.translate(p))
+		except TypeError:
+			return False
+				
 	def cwd (self, path):
 		p = self.normalize (self.path_module.join (self.wd, path))
 		translated_path = self.translate(p)
@@ -231,6 +237,9 @@ class mapped_filesystem (os_filesystem):
 			os_filesystem.__init__ (self, None) # init forcely
 			
 	def translate (self, path):
+		if not self.maps: 
+			return None
+		
 		p = self.normalize (self.path_module.join (self.wd, path))
 		path = p.split (os.sep)
 		
@@ -248,9 +257,9 @@ class mapped_filesystem (os_filesystem):
 				latest_depth = current_depth
 								
 		if latest_alias:			
-			return self.normalize (self.path_module.join (self.maps [latest_alias]["path"], '/'.join (path [latest_depth + 1:])))				
+			return self.normalize (self.path_module.join (self.maps [latest_alias]["path"], '/'.join (path [latest_depth + 1:])))
 		if self.root is None:
-			return "" # no psysical root
+			return None # no psysical root
 		return self.normalize (self.path_module.join (self.root, p[1:]))
 			
 	def get_permission (self, path):

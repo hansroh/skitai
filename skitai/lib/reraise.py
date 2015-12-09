@@ -19,6 +19,6 @@ else:
 	integer_types = (int, __builtin__.long)
 	xrange = __builtin__.xrange
 	
-	def reraise(type, value, tb):
-		raise type, value, tb
+	from py2utils import reraise
+	
 		
