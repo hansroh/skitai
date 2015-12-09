@@ -1,19 +1,28 @@
+###########################################
+Benchmarking Results
 
-Server: AWS t1.micro Ubuntu Linux
+2015.12.09 by Hans Roh
+###########################################
+
+Server Machine: AWS t1.micro Ubuntu Linux
 Testing Client: My office's Windows 2007 desktop
 Protocol: HTTP/1.1 keep-alive
+Result Choice: run 5 times for each testing, get a best result
+
+
+Testing Server Softwares
 
 A: flask + uwsgi + nginx (uwsgi worker: 1)
-B: gevent
+B: gevent (maybe worker: 1)
 C: skitai (worker: 1)
 
 
------------------------------------
+-------------------------------------------
 Tool: WeigHTTP
 Clients 200
 Requests per client: 30
 Total hits:6000
------------------------------------
+-------------------------------------------
 
 A:
 Finished in 5 sec, 121 millisec and 0 microsec,
@@ -38,12 +47,12 @@ Requests: 6000 total, 6000 started, 6000 done,
 
           
 
------------------------------------
+-------------------------------------------
 Tool: WeigHTTP
 Clients 1000
 Requests per client: 6
 Total hits:6000
------------------------------------
+-------------------------------------------
 
 A:
 Finished in 6 sec, 797 millisec and 0 microsec,
@@ -68,12 +77,12 @@ Requests: 6000 total, 6000 started, 6000 done,
 
 
 
------------------------------------
+-------------------------------------------
 Tool: Benchtai (using Skitai Library)
 Clients: 2000
 Requests per client: 3
 Total hits:6000
------------------------------------
+-------------------------------------------
 
 A:
 total errors:3184

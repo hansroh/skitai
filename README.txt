@@ -27,7 +27,7 @@ Skitai is not a framework for convinient developing, module reusability and plug
 Purpose
 --------
 
-Skitai App Engine's earlier purpose is to serve python fulltext search engine Wissen_ which is my another pypi work. And recently I found that it is possibly useful for building and serving python written websites like Flask and Django (But I barely use them). I think you already use them, you really don't need use Skitai.
+Skitai App Engine's original purpose is to serve python fulltext search engine Wissen_ which is my another pypi work. And recently I found that it is possibly useful for building and serving python written websites like Flask and Django (But I barely use them). I think you already use them, you really don't need use Skitai.
 
 Anyway, I am modifying my codes to optimizing for enabling service on Linux machine with relatvely poor H/W and making easy to auto-scaling provided cloud computing service like AWS_.
 
@@ -37,9 +37,7 @@ If you need lots of outside http(s) resources connecting jobs and use PostgreSQL
 Performance
 --------------
 
-I roughly benchmarked with uwsgi+nginx & gevent WSGI server by ping-pong request-reply test. I affort to making same conditions for each servers as possible. All testing tools, readme and results is in:
-
-[skitai-install-dir]/tools/benchmark
+I roughly benchmarked with uwsgi+nginx & gevent WSGI server by ping-pong (simple request-reply) test. In spite doubting needs for benchmarking results, I do all affort to making same conditions for each servers as possible. All testing tools, readme and results is in: [skitai-install-dir]/tools/benchmark/ or at GitLab_.
 
 
 At a Glance
@@ -143,7 +141,7 @@ Then write /home/skitaid/app/webapp.py
 .. __: http://www.nightmare.com/medusa/medusa.html
 .. _Wissen: https://pypi.python.org/pypi/wissen
 .. _AWS: https://aws.amazon.com
-
+.. _GitLab: https://gitlab.com/hansroh/skitai/tree/master/skitai/tools/benchmark
 
 Requirements
 --------------
