@@ -4,31 +4,8 @@ import threading
 import importlib
 try: reloader = importlib.reload
 except AttributeError: reloader = reload	
-from . import ssgi
+from . import ssgi, wsgi
 RXFUNC = re.compile (r"^def\s+([_a-z][_a-z0-9]*)\s*(\(.+?\))\s*:", re.I|re.M|re.S)
-
-class WSGIAppWrapper:
-	def __init__ (self, module, app):
-		self.module = module
-		self.app = app
-		self.devel = False
-		
-		try:
-			self.devel = self.module.__DEBUG__
-		except AttributeError:
-			self.devel = self.module.__DEBUG__ = False
-				
-	def set_devel (self, flag):			
-		self.devel = self.module.__DEBUG__ = flag
-	
-	def do_auto_reload (self):
-		return self.devel
-		
-	def run (self, wasc, route, *args, **karg):
-		pass
-	
-	def get_method (self, *args):	
-		return ([None, self.app, None, None], None)
 		
 
 class Module:
@@ -58,7 +35,7 @@ class Module:
 		self.app = getattr (self.module, self.appname)
 		if not isinstance (self.app, ssgi.Application):
 			self.ssgi_app = False
-			self.app = WSGIAppWrapper (self.module, self.app)		
+			self.app = wsgi.Application (self.module, self.app)		
 		if self.abspath [-4:] in (".pyc", ".pyo"):
 			self.abspath = self.abspath [:-1]		
 		self.update_file_info ()
@@ -90,13 +67,13 @@ class Module:
 		self.app = getattr (self.module, self.appname) # new app
 		if not isinstance (self.app, ssgi.Application):
 			self.ssgi_app = False
-			self.app = WSGIAppWrapper (self.module, self.app)						
+			self.app = wsgi.Application (self.module, self.app)		
 		self.start_application (packages)
 		
 	def start_application (self, packages = None):
 		if "sandbox" in self.abspath.split (os.sep):
-			self.app.set_devel (True)
-		self.app.run (self.wasc, self.get_route (), packages)	
+			self.app.set_devel (True)			
+		self.app.run (self.wasc, "%s.py" % self.libpath, self.get_route (), packages)	
 	
 	def set_route (self, route):
 		route = route
@@ -120,8 +97,8 @@ class Module:
 		if script_name [0] != "/":
 			script_name = "/" + script_name
 					
-		#remove base path	
-		return self.app.get_method (script_name [self.rm_len:]), self.ssgi_app and self.app or None
+		#remove base path
+		return self.app.get_method (script_name [self.rm_len:]), self.app
 		
 		
 class ModuleManager:

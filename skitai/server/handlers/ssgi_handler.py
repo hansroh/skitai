@@ -109,7 +109,7 @@ class Handler:
 		
 	def __init__(self, wasc):
 		self.wasc = wasc
-		self.ENV ["url_scheme"] = hasattr (self.wasc.httpserver, "ctx") == "https" or "http"
+		self.ENV ["wsgi.url_scheme"] = hasattr (self.wasc.httpserver, "ctx") == "https" or "http"
 		self.ENV ["wsgi.multithread"] = hasattr (self.wasc, "threads")
 		self.ENV ["wsgi.multiprocess"] = self.wasc.config.getint ("server", "processes") > 1 and os.name != "nt"
 		self.use_thread = self.ENV ["wsgi.multithread"]
@@ -125,7 +125,7 @@ class Handler:
 		while path and path[0] == '/':
 			path = path[1:]
 		
-		if '%' in path: path = urllib.parse.unquote (path)		
+		if '%' in path: path = urllib.parse.unquote (path)			
 		if query: query = query[1:]
 
 		server_inst = self.wasc.httpserver
@@ -135,7 +135,8 @@ class Handler:
 		env ['SERVER_NAME'] = server_inst.server_name
 		env ['SERVER_PROTOCOL'] = "HTTP/" + request.version
 		env ['CHANNEL_CREATED'] = request.channel.creation_time
-		env ['SCRIPT_NAME'] = '/' + path
+		env ['SCRIPT_NAME'] = ''
+		env ['PATH_INFO'] = '/' + path
 		if query: env['QUERY_STRING'] = query		
 		env ['REMOTE_ADDR'] = request.channel.addr [0]
 		env ['REMOTE_SERVER'] = request.channel.addr [0]
@@ -181,8 +182,10 @@ class Handler:
 		was.request = request
 		was.response = was.request.response
 		was.cookie = http_cookie.Cookie (request)
-		was.env = self.build_environ (request)	
-		if app:
+		was.env = self.build_environ (request)
+		was.env ["SCRIPT_NAME"] = app.script_name
+		
+		if app.is_ssgi ():		
 			was.app = app
 			if app.is_session_enabled ():
 				was.session = was.cookie.get_session ()
@@ -253,7 +256,7 @@ class Handler:
 			ct = request.get_header ("content-type")
 			if ct is None: ct = ""
 			
-			if app: #ssgi	
+			if app.is_ssgi (): #ssgi	
 				if request.command == "get":
 					args = self.parse_args (query, None)				
 				elif request.command == "post" and ct.startswith ("application/x-www-form-urlencoded"):
@@ -281,7 +284,7 @@ class Handler:
 			return request.response.error (500, catch (1))
 		
 		if self.use_thread:
-			self.wasc.queue.put (Job (was, path, method, args, app is not None))			
+			self.wasc.queue.put (Job (was, path, method, args, app.is_ssgi ()))
 		else:
 			Job (was, path, method, args, app is not None) ()
 

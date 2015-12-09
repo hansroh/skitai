@@ -10,14 +10,14 @@ def _make (was, flt):
 		elif flt == "SOCKETPOOL":
 			return {flt: was.clusters [None].status ()}
 		elif flt == "ENVIRON":
-			return {"ENVIRON": was.env.as_dict ()}	
+			return {"ENVIRON": was.env}	
 	else:
 		for name, cluster in list(was.clusters.items ()):
 			if name is None: 
 				g ["SOCKETPOOL"] = cluster.status ()
 				continue
 			g ["CLUSTER:" + name] = cluster.status ()
-			g ["ENVIRON"] = was.env.as_dict ()
+			g ["ENVIRON"] = was.env
 			
 	for attr in dir (was):
 		if attr.startswith ("__") or attr == "config": continue

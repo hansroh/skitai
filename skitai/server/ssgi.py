@@ -207,8 +207,9 @@ class Package:
 																	
 		return ([self._before_request, method, self._after_request, self._teardown_request], kargs, match, matchtype)
 	
-	def run (self, wasc, base_route, packages = None):
+	def run (self, wasc, script_name, base_route, packages = None):
 		self.wasc = wasc
+		self.script_name = script_name
 		self.set_base_route (base_route)
 		self.logger = self.wasc.logger.get ("app")
 		if packages:
@@ -238,6 +239,9 @@ class Application (Package):
 		self.cached_paths = {}
 		self.cached_rules = []
 	
+	def is_ssgi (self):
+		return True
+		
 	def set_devel (self, flag = True):
 		Package.set_devel (self, flag)
 		if flag == True:
