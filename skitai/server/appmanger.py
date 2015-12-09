@@ -11,13 +11,15 @@ class WSGIAppWrapper:
 	def __init__ (self, module, app):
 		self.module = module
 		self.app = app
-		try:
-			self.devel = not getattr (self.module, "__noreload__")
-		except:
-			self.devel = True
+		self.devel = False
 		
-	def set_devel (self, flag):	
-		self.devel = True
+		try:
+			self.devel = self.module.__DEBUG__
+		except AttributeError:
+			self.devel = self.module.__DEBUG__ = False
+				
+	def set_devel (self, flag):			
+		self.devel = self.module.__DEBUG__ = flag
 	
 	def do_auto_reload (self):
 		return self.devel
@@ -56,16 +58,14 @@ class Module:
 		self.app = getattr (self.module, self.appname)
 		if not isinstance (self.app, ssgi.Application):
 			self.ssgi_app = False
-			self.app = WSGIAppWrapper (self.module, self.app)
-		
+			self.app = WSGIAppWrapper (self.module, self.app)		
 		if self.abspath [-4:] in (".pyc", ".pyo"):
 			self.abspath = self.abspath [:-1]		
 		self.update_file_info ()
 		
 	def reload_app (self):
 		reloader (self.module)
-		if self.ssgi_app:
-			self.reload_application ()
+		self.reload_application ()
 		self.update_file_info ()
 		
 	def update_file_info (self):
@@ -78,13 +78,19 @@ class Module:
 	
 	def reload_application (self):
 		# save packages before reload
-		packages = self.app.packages
-		try:
-			self.app.cleanup ()
-		except:
-			self.wasc.logger.trace ("app")			
+		packages = None
+		if self.ssgi_app:
+			packages = self.app.packages
+			try:
+				self.app.cleanup ()
+			except:
+				self.wasc.logger.trace ("app")			
+		
 		del self.app
 		self.app = getattr (self.module, self.appname) # new app
+		if not isinstance (self.app, ssgi.Application):
+			self.ssgi_app = False
+			self.app = WSGIAppWrapper (self.module, self.app)						
 		self.start_application (packages)
 		
 	def start_application (self, packages = None):

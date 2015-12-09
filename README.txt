@@ -209,13 +209,14 @@ Install & Start Skitai Server
 Changes
 ---------
 
-**Support WSGI Apps**
+**Support Lower Level WSGI Apps**
 
 /home/skitaid/app/webapp.py
 
 .. code:: python
     
-    #__norealod__ = False            
+    __DEBUG__ = True # for auto reload on change
+            
     def mywsgi (env, start_response):
 	    start_response ("200 OK", [("Content-Type", "text/plain")])
 	    return ['pong']
