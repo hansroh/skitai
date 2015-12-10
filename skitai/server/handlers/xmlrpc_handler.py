@@ -2,13 +2,13 @@ import sys, os
 import sys
 from skitai.server import utility
 from skitai.server.threads import trigger
-from . import ssgi_handler
+from . import wsgi_handler
 try:
 	import xmlrpc.client as xmlrpclib
 except ImportError:
 	import xmlrpclib
 		
-class Handler (ssgi_handler.Handler):
+class Handler (wsgi_handler.Handler):
 	GATEWAY_INTERFACE = 'XMLRPC/2.0'
 	def match (self, request):
 		if request.uri[:6].lower() == '/rpc2/' or (request.command == "post" and request.get_header ("content-type").startswith ("text/xml")):			
@@ -57,7 +57,7 @@ class Handler (ssgi_handler.Handler):
 			Job (was, path, method, args, ismulticall) ()
 		
 			
-class Job (ssgi_handler.Job):
+class Job (wsgi_handler.Job):
 	def __init__ (self, was, muri, method, args, ismulticall):
 		self.was = was
 		self.muri = muri
@@ -92,7 +92,7 @@ class Job (ssgi_handler.Job):
 			raise				
 		except:
 			self.was.logger.trace ("app", str (self))
-			self.handle_error (500, ssgi_handler.catch(self.was.request.command == "get"))
+			self.handle_error (500, wsgi_handler.catch(self.was.request.command == "get"))
 
 		else:
 			self.responses.append (response)
@@ -110,7 +110,7 @@ class Job (ssgi_handler.Job):
 			
 		except:
 			self.was.logger.trace ("app")
-			self.handle_error (500, ssgi_handler.catch())
+			self.handle_error (500, wsgi_handler.catch())
 			return
 							
 		self.was.app = app	
@@ -126,7 +126,7 @@ class Job (ssgi_handler.Job):
 			
 		except:
 			self.was.logger.trace ("app")
-			self.handle_error (500, ssgi_handler.catch(self.was.request.command == "get"))
+			self.handle_error (500, wsgi_handler.catch(self.was.request.command == "get"))
 		
 		else:
 			try:
@@ -136,7 +136,7 @@ class Job (ssgi_handler.Job):
 				
 			except:
 				self.was.logger.trace ("server")
-				self.handle_error (500, ssgi_handler.catch(self.was.request.command == "get"))
+				self.handle_error (500, wsgi_handler.catch(self.was.request.command == "get"))
 			
 			else:
 				trigger.wakeup (lambda p=self.was.response, d=response: (p.push(d), p.done()))

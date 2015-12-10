@@ -36,6 +36,30 @@ class simple_producer:
 			self.data = b''
 			return result
 
+class list_producer (simple_producer):
+	def __init__ (self, data):
+		self.data = data
+		
+	def more (self):
+		if not self.data:
+			return b''			
+		data = self.data.pop (0)
+		if type (data) is str:
+			return data.encode ("utf8")
+		return data
+
+
+class iter_producer (list_producer):
+	def more (self):
+		try:			
+			data = self.data.next ()
+			if type (data) is str:
+				return data.encode ("utf8")
+			return data	
+		except StopIteration:		
+			return b""
+		
+			
 class scanning_producer:
 	"like simple_producer, but more efficient for large strings"
 	def __init__ (self, data, buffer_size = 4096):

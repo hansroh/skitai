@@ -1,4 +1,4 @@
-from . import ssgi_handler
+from . import wsgi_handler, collectors
 import re
 from skitai.protocol.http import request as http_request
 from skitai.protocol.http import request_handler as http_request_handler
@@ -351,7 +351,7 @@ class ProxyResponse (http_response.Response):
 		return self.u.read ()
 		
 
-class Collector (ssgi_handler.Collector):
+class Collector (collectors.FormCollector):
 	# same as asyncon ac_in_buffer_size
 	ac_in_buffer_size = 4096
 	asyncon = None
@@ -373,7 +373,7 @@ class Collector (ssgi_handler.Collector):
 		if self.content_length == 0:
 			return self.found_terminator ()
 			
-		if self.content_length <= ssgi_handler.MAX_POST_SIZE: #5M
+		if self.content_length <= wsgi_handler.MAX_POST_SIZE: #5M
 			self.cached = True
 		
 		self.request.channel.set_terminator (self.content_length)
@@ -424,7 +424,7 @@ class Collector (ssgi_handler.Collector):
 		return b"".join (data)
 		
 			
-class Handler (ssgi_handler.Handler):
+class Handler (wsgi_handler.Handler):
 	def __init__ (self, wasc, clusters, cachefs = None):
 		self.wasc = wasc
 		self.clusters = clusters
@@ -451,7 +451,7 @@ class Handler (ssgi_handler.Handler):
 			if request.command in ('post', 'put'):
 				ct = request.get_header ("content-type")
 				if not ct: ct = ""
-				post_max_size = ct.startswith ("multipart/form-data") and ssgi_handler.MAX_UPLOAD_SIZE or ssgi_handler.MAX_POST_SIZE
+				post_max_size = ct.startswith ("multipart/form-data") and wsgi_handler.MAX_UPLOAD_SIZE or wsgi_handler.MAX_POST_SIZE
 				collector = self.make_collector (Collector, request, post_max_size)
 				if collector:
 					request.collector = collector
@@ -478,7 +478,7 @@ class Handler (ssgi_handler.Handler):
 			
 		except:
 			self.wasc.logger.trace ("server")	
-			request.response.error (500, ssgi_handler.catch (1))
+			request.response.error (500, wsgi_handler.catch (1))
 	
 	def is_cached (self, request, has_data):
 		if has_data:

@@ -1,80 +1,52 @@
 import os, sys, re, types
-from skitai.lib  import pathtool
+from skitai.lib  import pathtool, importer
 import threading
-import importlib
-try: reloader = importlib.reload
-except AttributeError: reloader = reload	
-from . import ssgi, wsgi
-RXFUNC = re.compile (r"^def\s+([_a-z][_a-z0-9]*)\s*(\(.+?\))\s*:", re.I|re.M|re.S)
-		
+from types import FunctionType as function
+
 
 class Module:
-	def __init__ (self, wasc, route, libpath):
-		self.route = route
-		if self.route [-1] == "/":
-			self.rm_len = len (self.route) - 1
-		else:
-			self.rm_len = len (self.route)
-		
+	def __init__ (self, wasc, route, directory, libpath):
+		self.wasc = wasc
 		try:
 			libpath, self.appname = libpath.split (":", 1)		
 		except ValueError:
 			libpath, self.appname = libpath, "app"
 
-		self.ssgi_app = True
-		self.libpath = libpath
-		self.wasc = wasc
-		self.import_app ()		
-		self.start_application ()
-	
-	def import_app (self):
-		__import__ (self.libpath, globals ())
-		self.libpath, self.abspath = pathtool.modpath (self.libpath)
-		self.module = sys.modules [self.libpath]
+		self.script_name = "%s.py" % libpath
+		self.module, self.abspath = importer.importer (directory, libpath)				
+		self.set_route (route)
+		self.start_app ()
 		
-		self.app = getattr (self.module, self.appname)
-		if not isinstance (self.app, ssgi.Application):
-			self.ssgi_app = False
-			self.app = wsgi.Application (self.module, self.app)		
-		if self.abspath [-4:] in (".pyc", ".pyo"):
-			self.abspath = self.abspath [:-1]		
+	def start_app (self):					
+		self.set_reloader ()		
 		self.update_file_info ()
+		try:			
+			getattr (self.module, self.appname).start (self.wasc)
+		except AttributeError:
+			pass	
 		
-	def reload_app (self):
-		reloader (self.module)
-		self.reload_application ()
-		self.update_file_info ()
+	def set_reloader (self):	
+		try:
+			if type (getattr (self.module, self.appname)) is function:
+				self.use_reloader = getattr (self.module, "DEBUG")
+			else:
+				self.use_reloader = getattr (self.module, self.appname).use_reloader
+		except AttributeError:			
+			self.use_reloader = False
 		
 	def update_file_info (self):
 		stat = os.stat (self.abspath)
-		self.size_file, self.last_modified = stat.st_size, stat.st_mtime	
+		self.file_info = (stat.st_mtime, stat.st_size)	
 	
-	def ischanged (self):
+	def maybe_reload (self):
 		stat = os.stat (self.abspath)
-		return stat.st_size != self.size_file or stat.st_mtime != self.last_modified
-	
-	def reload_application (self):
-		# save packages before reload
-		packages = None
-		if self.ssgi_app:
-			packages = self.app.packages
-			try:
-				self.app.cleanup ()
-			except:
-				self.wasc.logger.trace ("app")			
-		
-		del self.app
-		self.app = getattr (self.module, self.appname) # new app
-		if not isinstance (self.app, ssgi.Application):
-			self.ssgi_app = False
-			self.app = wsgi.Application (self.module, self.app)
-		self.start_application (packages)
-		
-	def start_application (self, packages = None):
-		if "sandbox" in self.abspath.split (os.sep):
-			self.app.set_devel (True)			
-		self.app.run (self.wasc, "%s.py" % self.libpath, self.get_route (), self.rm_len, packages)	
-	
+		reloadable = self.file_info != (stat.st_mtime, stat.st_size)		
+		if reloadable and self.use_reloader:
+			importer.reloader (self.module)
+			self.start_app ()
+			return True
+		return False
+				
 	def set_route (self, route):
 		route = route
 		if not route or route [0] != "/":
@@ -86,43 +58,34 @@ class Module:
 		
 	def get_route (self):
 		return self.route
-	
-	def get_admin_links (self):
-		return self.app.get_admin_links ()
-		
-	def get_app (self, script_name):
-		if self.app.do_auto_reload () and self.ischanged ():
-			self.reload_app ()
-			
-		if script_name [0] != "/":
-			script_name = "/" + script_name
 					
-		#remove base path
-		return self.app.get_method (script_name [self.rm_len:]), self.app
-		
-		
+	def get_path_info (self, path):
+		return path [self.route_len:]
+	
+	def cleanup (self):
+		try: getattr (self.module, self.appname).cleanup ()
+		except AttributeError: pass	
+	
+	def __call__ (self, env, start_response):
+		self.use_reloader and self.maybe_reload ()
+		return getattr (self.module, self.appname) (env, start_response)
+
+
 class ModuleManager:
 	modules = {}	
 	def __init__(self, wasc):
 		self.wasc = wasc		
-		self.modules = {}
-		self.admin_links = {}
-		self.pathes_added = {}
-	
-	def add_path (self, path):
-		if path in self.pathes_added: return
-		self.pathes_added [path] = None
-		sys.path.insert(0, path)
+		self.modules = {}		
 			
-	def register_module (self, route, libpath):
+	def add_module (self, route, directory, modname):
 		if not route:
 			route = "/"
 
 		try: 
-			module = Module (self.wasc, route, libpath)			
+			module = Module (self.wasc, route, directory, modname)			
 		except: 
 			self.wasc.logger.trace ("app")
-			self.wasc.logger ("app", "[error] application load failed: %s" % libpath)
+			self.wasc.logger ("app", "[error] application load failed: %s" % modname)
 			
 		else: 
 			route = module.get_route ()
@@ -130,31 +93,21 @@ class ModuleManager:
 			if route in self.modules:
 				self.wasc.logger ("app", "[info] application route collision detected: %s at %s <-> %s" % (route, module.abspath, self.modules [route].abspath), "warn")
 			self.modules [route] = module
-			
-	def add_module (self, route, directory, package = ""):
-		self.add_path (directory)
-		self.register_module (route, package)
 	
-	def get_app (self, script_name, rootmatch = False, include_wsgi = False):
+	def get_app (self, script_name, rootmatch = False):
 		if not rootmatch:
 			route = self.has_route (script_name)
 			if route in (0, -1):
-				return None, None
+				return None
 		else:
 			route = "/"
 		
 		try:	
-			method, app = self.modules [route].get_app (script_name)
+			app = self.modules [route]
 		except KeyError:
-			return None, None
-			
-		if app is None and not include_wsgi:
-			return None, None
-			
-		if method [0]: # == (method, karg), app
-			return method, app
+			return None
 		
-		return None, None		
+		return app	
 		
 	def has_route (self, script_name):
 		if type (script_name) is bytes:
@@ -186,17 +139,17 @@ class ModuleManager:
 			cands.sort (key = lambda x: len (x))
 			return cands [-1]
 
-		elif "/" in self.modules and self.get_app (script_name, True) [0] is not None:
+		elif "/" in self.modules:
 			return "/"
 						
-		return 0	
+		return 0
 	
 	def unload (self, route):
 		module = self.modules [route]
 		self.wasc.logger ("app", "[info] unloading app: %s" % route)
 		try: 
 			self.wasc.logger ("app", "[info] ..cleanup app: %s" % route)
-			module.application.cleanup ()
+			module.cleanup ()
 		except AttributeError:
 			pass
 		except:
@@ -208,14 +161,11 @@ class ModuleManager:
 		for route, module in list(self.modules.items ()):
 			try: 
 				self.wasc.logger ("app", "[info] ..cleanup app: %s" % route)					
-				module.application.cleanup ()
+				module.cleanup ()
 			except AttributeError:
 				pass
 			except:
 				self.wasc.logger.trace ("app")			
-	
-	def get_admin_pages (self):
-		return self.admin_links		
 	
 	def status (self):
 		d = {}

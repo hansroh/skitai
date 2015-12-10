@@ -3,9 +3,44 @@ from . import compressors
 import zlib
 import time
 import os
+import sys
 from skitai.lib.reraise import reraise 
+from skitai.server.threads import trigger
 
 UNCOMPRESS_MAX = 2048
+
+def catch (htmlformating = 0, exc_info = None):
+	if exc_info is None:
+		exc_info = sys.exc_info()
+	t, v, tb = exc_info
+	tbinfo = []
+	assert tb # Must have a traceback
+	while tb:
+		tbinfo.append((
+			tb.tb_frame.f_code.co_filename,
+			tb.tb_frame.f_code.co_name,
+			str(tb.tb_lineno)
+			))
+		tb = tb.tb_next
+
+	del tb
+	file, function, line = tbinfo [-1]
+	
+	if htmlformating:
+		buf = ["<hr><div style='color:#d90000; font-weight: bold; margin-top: 5px;'>%s</div><div style='color:#666666; font-weight: bold;'>%s</div>" % (t.__name__.replace (">", "&gt;").replace ("<", "&lt;"), v)]
+		buf.append ("<b>at %s at line %s, %s</b>" % (file, line, function == "?" and "__main__" or "function " + function))
+		buf.append ("<ul type='square'>")
+		buf += ["<li><i>%s</i> &nbsp;&nbsp;<font color='#d90000'>%s</font> <font color='#003366'><b>%s</b></font></li>" % x for x in tbinfo]
+		buf.append ("</ul>")		
+		return "\n".join (buf)
+		
+	else:
+		buf = []
+		buf.append ("%s %s" % (t, v))
+		buf.append ("In %s at line %s, %s" % (file, line, function == "?" and "__main__" or "function " + function))
+		buf += ["%s %s %s" % x for x in tbinfo]
+		return "\n".join (buf)
+
 
 class http_response:
 	reply_code = 200
@@ -19,7 +54,10 @@ class http_response:
 			('Date', http_date.build_http_date (time.time()))
 		]
 		self.outgoing = producers.fifo ()
-		
+	
+	def __len__ (self):
+		return len (self.outgoing)
+			
 	def __setitem__ (self, key, value):
 		self.set (key, value)
 
@@ -79,6 +117,8 @@ class http_response:
 			try:
 				if self.is_sent_response:
 					reraise (*exc_info)
+				else:
+					self.push (catch(1, exc_info))
 			finally:
 				exc_info = None
 					
@@ -112,7 +152,7 @@ class http_response:
 		self.error (code, why, force_close = True)
 		
 	def error (self, code, why = "", force_close = False):
-		self.outgoing = producers.fifo () # discard prev contents
+		if self.is_sent_response: return		
 		self.reply_code = code
 		message = self.responses [code]		
 		s = self.DEFAULT_ERROR_MESSAGE % {
@@ -141,8 +181,7 @@ class http_response:
 				
 	def done (self, globbing = True, compress = True, force_close = False):
 		if self.request.channel is None: return
-		if self.is_sent_response:
-			return
+		if self.is_sent_response: return
 		self.is_sent_response = True
 				
 		connection = utility.get_header (utility.CONNECTION, self.request.header).lower()

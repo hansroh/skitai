@@ -3,9 +3,9 @@ This module is copy of skitai.handler.pingpong_handler.py.
 It's not actually used by skitai, but for just your reference
 """
 
-from . import ssgi_handler
+from . import wsgi_handler
 
-class Handler (ssgi_handler.Handler):
+class Handler (wsgi_handler.Handler):
 	def __init__(self, wasc):
 		self.wasc = wasc		
 		

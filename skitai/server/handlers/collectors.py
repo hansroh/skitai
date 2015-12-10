@@ -1,6 +1,41 @@
-from . import ssgi_handler
 import tempfile
 import os
+
+class FormCollector:
+	def __init__ (self, handler, request):
+		self.handler = handler
+		self.request = request
+		self.buffer = BytesIO ()
+		self.content_length = self.get_content_length ()
+	
+	def get_content_length (self):
+		cl = self.request.get_header ('content-length')
+		if cl is not None:
+			try:
+				cl = int  (cl)
+			except (ValueError, TypeError):
+				cl = None
+		return cl
+		
+	def start_collect (self):	
+			if self.content_length == 0: 
+				return self.found_terminator()
+			self.request.channel.set_terminator (self.content_length)
+
+	def collect_incoming_data (self, data):
+		self.buffer.write (data)
+
+	def found_terminator (self):
+		# prepare got recving next request header
+		self.request.collector = None  # break circ. ref
+		self.request.set_body (self.data.getvalue ())
+		self.request.channel.set_terminator (b'\r\n\r\n')
+		self.handler.continue_request (self.request, self.buffer)
+	
+	def abort (self):
+		self.buffer.close ()
+		self.request.collector = None  # break circ. ref
+					
 
 class File:
 	def __init__ (self, max_size):
@@ -123,17 +158,18 @@ class Part:
 	def end (self):
 		if self.filename:
 			self.value.close ()			
-			
-	
-class Collector (ssgi_handler.Collector):
-	def __init__ (self, handler, request, max_size):
+
+				
+class SaddleMultipartCollector (FormCollector):
+	def __init__ (self, handler, request, file_max_size, max_cache_size):
 		self.handler = handler
 		self.request = request
-		self.max_size = max_size
+		self.file_max_size = file_max_size
+		self.max_cache_size = max_cache_size
 		self.end_of_data = b""
 		self.cached = False
 		self.cache = []
-		self.parts = Part (self.request.header, max_size)
+		self.parts = Part (self.request.header, file_max_size)
 		self.current_part = None
 		self.buffer = b""		
 		self.content_length = self.get_content_length ()
@@ -143,11 +179,11 @@ class Collector (ssgi_handler.Collector):
 			return None
 		return b"".join (self.cache)
 								
-	def start_collect (self):						
+	def start_collect (self):
 		if self.content_length == 0: 
 			return self.found_terminator()
 		
-		if self.content_length <= ssgi_handler.MAX_POST_SIZE: #5M
+		if self.content_length <= self.max_cache_size: #5M
 			self.cached = True
 									
 		self.trackable_tail = None
@@ -250,21 +286,27 @@ class Collector (ssgi_handler.Collector):
 			self.current_part = None
 		
 
-class Handler (ssgi_handler.Handler):
-	def __init__(self, wasc, max_size = 0):
-		self.max_size = max_size
-		ssgi_handler.Handler.__init__(self, wasc)		
+class WSGIMultipartCollector (FormCollector):
+	def __init__ (self, handler, request, upload_max_size):
+		self.handler = handler
+		self.request = request
+		self.upload_max_size = upload_max_size		
+		self.content_length = self.get_content_length ()
+		self.buffer = File (self.upload_max_size)
+								
+	def start_collect (self):						
+		if self.content_length == 0: 
+			return self.found_terminator()		
+		self.request.channel.set_terminator (self.content_length)
 		
-	def match (self, request):
-		if request.command != "post":
-			return 0
-		ct = request.get_header ("content-type")
-		if ct and ct.startswith ("multipart/form-data"):
-			return 1
-		return 0
+	def collect_incoming_data (self, data):
+		self.buffer.write (data)
 		
-	def handle_request (self, request):
-		collector = self.make_collector (Collector, request, ssgi_handler.MAX_UPLOAD_SIZE, self.max_size)
-		if collector:
-			request.collector = collector
-			collector.start_collect ()
+	def abort (self):
+		self.buffer.close ()
+		self.request.collector = None
+				
+	def found_terminator (self):
+		self.handler.continue_request (self.request, self.buffer.descriptor)
+		self.request.channel.set_terminator (b'\r\n\r\n')
+		

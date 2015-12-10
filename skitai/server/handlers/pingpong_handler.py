@@ -1,7 +1,7 @@
-from . import ssgi_handler
+from . import wsgi_handler
 
 
-class Handler (ssgi_handler.Handler):
+class Handler (wsgi_handler.Handler):
 	def match (self, request):
 		return request.uri == "/ping"
 		

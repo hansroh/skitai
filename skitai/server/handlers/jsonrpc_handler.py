@@ -5,7 +5,7 @@ from skitai.server import utility
 from skitai.server.threads import trigger
 from . import xmlrpc_handler
 import jsonrpclib
-from . import ssgi_handler
+from . import wsgi_handler
 
 
 class Handler (xmlrpc_handler.Handler):
@@ -86,7 +86,7 @@ class Job (xmlrpc_handler.Job):
 			raise				
 		except:
 			self.was.logger.trace ("app", str (self))
-			self.handle_error (500, ssgi_handler.catch(self.was.request.command == "get"), rpcid, jsonrpc)
+			self.handle_error (500, wsgi_handler.catch(self.was.request.command == "get"), rpcid, jsonrpc)
 
 		else:
 			response = jsonrpclib.dumps (response, methodresponse = True, 
@@ -108,7 +108,7 @@ class Job (xmlrpc_handler.Job):
 			
 		except:
 			self.was.logger.trace ("app", str (self))
-			self.handle_error (500, ssgi_handler.catch(), rpcid, jsonrpc)
+			self.handle_error (500, wsgi_handler.catch(), rpcid, jsonrpc)
 			return
 							
 		self.was.app = app
@@ -123,7 +123,7 @@ class Job (xmlrpc_handler.Job):
 
 		except:
 			self.was.logger.trace ("app", str (self))
-			self.handle_error (500, ssgi_handler.catch(self.was.request.command == "get"), rpcid, jsonrpc)
+			self.handle_error (500, wsgi_handler.catch(self.was.request.command == "get"), rpcid, jsonrpc)
 		
 		else:
 			try:
@@ -133,7 +133,7 @@ class Job (xmlrpc_handler.Job):
 				
 			except:
 				self.was.logger.trace ("server", str (self))
-				self.handle_error (500, ssgi_handler.catch(self.was.request.command == "get"), rpcid, jsonrpc)
+				self.handle_error (500, wsgi_handler.catch(self.was.request.command == "get"), rpcid, jsonrpc)
 			
 			else:
 				trigger.wakeup (lambda p=self.was.response, d=response: (p.push(d), p.done()))

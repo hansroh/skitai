@@ -1,5 +1,0 @@
-sendmail
-	- save email to file
-	- lifetime scheduling with interval 10 sec.
-	- send email via async_smpt
-	- if fail move to fail dir, retry later

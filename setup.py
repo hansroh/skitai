@@ -52,7 +52,8 @@ packages = [
 	'skitai.server.dbi',
 	'skitai.server.handlers',
 	'skitai.server.rpc',
-	'skitai.server.threads'
+	'skitai.server.threads',
+	'skitai.saddle'
 ]
 
 package_dir = {

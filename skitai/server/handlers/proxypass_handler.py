@@ -1,4 +1,4 @@
-from . import ssgi_handler, proxy_handler
+from . import wsgi_handler, proxy_handler
 from skitai.protocol.http import request as http_request
 import re
 	
@@ -23,7 +23,7 @@ class Handler (proxy_handler.Handler):
 			self.route (request, collector)			
 		except:
 			self.wasc.logger.trace ("server")	
-			request.response.error (500, ssgi_handler.catch (1))
+			request.response.error (500, wsgi_handler.catch (1))
 	
 	def route (self, request, collector):
 		current_cluster = self.find_cluster (request)
