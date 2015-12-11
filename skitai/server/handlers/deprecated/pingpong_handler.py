@@ -1,5 +1,6 @@
 from . import wsgi_handler
 
+
 class Handler (wsgi_handler.Handler):
 	def match (self, request):
 		return request.uri == "/ping"

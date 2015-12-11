@@ -6,11 +6,6 @@ except ImportError:
 from skitai.server import compressors, http_date
 import time
 
-JSONRPCLIB = True
-try:
-	import jsonrpclib
-except ImportError:
-	JSONRPCLIB = False
 
 class RepsonseError (Exception): 
 	pass
@@ -212,10 +207,7 @@ class Response:
 			if self.reqtype == "XMLRPC":
 				if len(result) == 1:
 					result = result [0]
-				return result
-			elif JSONRPCLIB and self.reqtype == "JSONRPC":
-				result = jsonrpclib.loads (result)
-				return result
+				return result			
 		return result
 	
 

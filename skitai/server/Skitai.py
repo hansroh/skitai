@@ -9,7 +9,7 @@ PSYCOPG = True
 JSONRPBLIB = True
 
 import sys, time, os, threading
-from . import http_server, authorizer, appmanger, http_cookie, rcache
+from . import http_server, authorizer, wsgi_apps, rcache
 from skitai import lifetime
 from warnings import warn
 
@@ -29,10 +29,7 @@ except ImportError:
 else:			
 	from skitai.dbapi import dbpool	
 		
-from .handlers import default_handler, wsgi_handler, \
-	xmlrpc_handler, proxypass_handler, proxy_handler, \
-	resource_validate_handler, options_handler, \
-	pingpong_handler
+from .handlers import default_handler, wsgi_handler, proxypass_handler, proxy_handler, pingpong_handler
 from .threads import threadlib, trigger
 from skitai.lib import logger, confparse, pathtool, flock
 from .rpc import cluster_dist_call, cachefs		
@@ -178,32 +175,23 @@ class Loader:
 			tpool = threadlib.thread_pool (queue, numthreads, self.wasc.logger.get ("server"))
 			self.wasc.register ("queue",  queue)
 			self.wasc.register ("threads", tpool)
-		
-	def config_session (self, path, timeout, secret_key = ""):
-		if not timeout: timeout = 1200
-		if secret_key:
-				http_cookie.Cookie.set_secret_key (secret_key)
-		#self.wasc.register ("sessions", http_session.Sessions (path, timeout))
 					
 	def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0):
 		if ssl in ("1", "yes"): ssl = 1
 		else: ssl = 0
 		self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl)
 			
-	def install_handler (self, routes = {}, proxy = False, static_max_age = 300, max_file_size = 0):		
-		self.wasc.add_handler (1, pingpong_handler.Handler)
-		
+	def install_handler (self, routes = {}, proxy = False, static_max_age = 300, upload_max_size = 0):		
+		self.wasc.add_handler (1, pingpong_handler.Handler)		
 		clusters = self.wasc.clusters		
 		if proxy:			
 			self.wasc.add_handler (1, proxy_handler.Handler, clusters, self.wasc.cachefs)
 		self.wasc.add_handler (1, proxypass_handler.Handler, clusters, self.wasc.cachefs)
-		
-		self.wasc.add_handler (1, options_handler.Handler)
 		routes_directory = {}
-		alternative_handlers = []
+		alternative_handlers = [wsgi_handler.Handler (self.wasc, upload_max_size)]
 		self.wasc.add_handler (1, default_handler.Handler, routes_directory, static_max_age, alternative_handlers)
 			
-		apps = appmanger.ModuleManager(self.wasc)		
+		apps = wsgi_apps.ModuleManager(self.wasc)
 		self.wasc.register ("apps", apps)		
 		for line in routes:
 			route, target = [x.strip () for x in line.split ("=", 1)]
@@ -221,13 +209,7 @@ class Loader:
 			else:
 				fullpath = os.path.split (target.strip())
 				apps.add_module (route, os.sep.join (fullpath[:-1]), fullpath [-1])
-			
-		#alternative_handlers.append (resource_validate_handler.Handler (self.wasc))
-		#alternative_handlers.append (xmlrpc_handler.Handler (self.wasc))
-		#if JSONRPBLIB:
-		#	alternative_handlers.append (jsonrpc_handler.Handler (self.wasc))
-		alternative_handlers.append (wsgi_handler.Handler (self.wasc, max_file_size))
-		
+
 	def run (self):
 		if self._exit_code is not None: 
 			return self._exit_code # master process

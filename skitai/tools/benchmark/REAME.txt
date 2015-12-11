@@ -61,7 +61,7 @@ sudo skitaid-instance.py -f default -v > skitaid.log 2>&1
 or
 sudo service skitaid restart
 
-Note: skitaid has pingpong_handler, so /ping is always return 'pong' as plain text. If you want to remove, modify skitai/server/Skitai.py
+Note: skitai_pingpong_handler.py was temporary installed.
 
 
 

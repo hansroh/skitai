@@ -161,7 +161,7 @@ class Package:
 		# 1st, try find in self
 		method, kargs, match, matchtype = None, {}, None, 0
 		try:			
-			method = self.route_map [path_info][0]			
+			method = self.route_search (path_info)
 		except KeyError: 
 			for rulepack in list(self.route_map.items ()):
 				method, kargs = self.try_rule (path_info, rulepack)
@@ -170,7 +170,7 @@ class Package:
 					break
 				matchtype = 2
 		else:
-			if type (method) is str:
+			if type (method) is str: # 301 move
 				return method, None, None, 3
 			match = path_info
 			matchtype = 1

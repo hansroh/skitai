@@ -4,20 +4,17 @@ try:
 except ImportError:
 	from urllib import unquote	
 import sys
-from skitai.server import utility, http_cookie, producers
+from skitai.server import utility, producers
 from skitai.server.http_response import catch
 from skitai.server.threads import trigger
 from . import collectors
 import skitai
-from skitai.saddle import Saddle
 
 try:
 	from cStringIO import StringIO as BytesIO
 except ImportError:
 	from io import BytesIO
 
-MAX_POST_SIZE = 5242880
-MAX_UPLOAD_SIZE = 2147483648
 PY_MAJOR_VERSION = sys.version_info.major
 
 header2env = {
@@ -31,25 +28,33 @@ class Handler:
 	GATEWAY_INTERFACE = 'CGI/1.1'
 	ENV = {
 			'GATEWAY_INTERFACE': 'CGI/1.1',
-			'SERVER_SOFTWARE': "Skitai App Engine/%s.%s Python/%d.%d" % (skitai.version_info [:2] + sys.version_info[:2]),
+			'SERVER_SOFTWARE': "Skitai App Engine/%s.%s.%s Python/%d.%d" % (skitai.version_info [:3] + sys.version_info[:2]),
+			'skitai.version': tuple (skitai.version_info [:3]),			
 			"wsgi.version": (1, 0),
 			"wsgi.errors": sys.stderr,
 			"wsgi.run_once": False,
 			"wsgi.input": None
 	}
-		
-	def __init__(self, wasc, max_file_size = 0):
+	
+	post_max_size = 5 * 1024 * 1024	
+	upload_max_size = 100 * 1024 * 1024
+	
+	def __init__(self, wasc, post_max_size = 0, upload_max_size = 0):
 		self.wasc = wasc
-		self.max_file_size = max_file_size
+		if post_max_size: self.post_max_size = post_max_size
+		if upload_max_size: self.upload_max_size = upload_max_size
+		
+		self.ENV ["skitai.threads"] = (self.wasc.config.getint ("server", "processes"), self.wasc.config.getint ("server", "threads")),
 		self.ENV ["wsgi.url_scheme"] = hasattr (self.wasc.httpserver, "ctx") == "https" or "http"
 		self.ENV ["wsgi.multithread"] = hasattr (self.wasc, "threads")
 		self.ENV ["wsgi.multiprocess"] = self.wasc.config.getint ("server", "processes") > 1 and os.name != "nt"
-		self.use_thread = self.ENV ["wsgi.multithread"]
+		self.ENV ['SERVER_PORT'] = str (self.wasc.httpserver.port)
+		self.ENV ['SERVER_NAME'] = self.wasc.httpserver.server_name
 		
 	def match (self, request):
 		return 1
 			
-	def build_environ (self, request, app):
+	def build_environ (self, request, route):
 		(path, params, query, fragment) = request.split_uri()
 		if params: path = path + params
 		while path and path[0] == '/':
@@ -58,24 +63,19 @@ class Handler:
 		if query: query = query[1:]
 
 		env = self.ENV.copy ()
-		server_inst = self.wasc.httpserver
 		was = self.wasc ()
 		was.request = request	
-		was.app = app
-		env ['wsgi.x_was'] = was
+		was.route = route		
+		env ['skitai.was'] = was		
 		
-		env ['REQUEST_METHOD'] = request.command.upper()
-		env ['SERVER_PORT'] = str (server_inst.port)
-		env ['SERVER_NAME'] = server_inst.server_name
+		env ['REQUEST_METHOD'] = request.command.upper()		
 		env ['SERVER_PROTOCOL'] = "HTTP/" + request.version
 		env ['CHANNEL_CREATED'] = request.channel.creation_time
 		if query: env['QUERY_STRING'] = query		
 		env ['REMOTE_ADDR'] = request.channel.addr [0]
 		env ['REMOTE_SERVER'] = request.channel.addr [0]		
-		env ['SCRIPT_NAME'] = app.script_name		
-		path_info = app.get_path_info ("/" + path)
-		if not path_info: path_info = u"/"
-		env ['PATH_INFO'] = path_info
+		env ['SCRIPT_NAME'] = route.script_name		
+		env ['PATH_INFO'] = route.get_path_info ("/" + path)
 				
 		for header in request.header:
 			key, value = header.split(":", 1)
@@ -94,7 +94,7 @@ class Handler:
 		
 		return env
 	
-	def make_collector (self, collector_class, request, max_cl = MAX_POST_SIZE, *args, **kargs):
+	def make_collector (self, collector_class, request, max_cl, *args, **kargs):
 		collector = collector_class (self, request, *args, **kargs)
 		if collector.content_length is None:
 			request.response.error (411)
@@ -120,13 +120,8 @@ class Handler:
 		has_route = self.wasc.apps.has_route (path)
 		if has_route == 0:
 			return request.response.error (404)
-					
-		elif has_route == -1:
-			request.response ["Location"] = "%s/%s%s" % (
-				path, 
-				params and params or "",
-				query and query or ""
-			)
+		elif has_route == 1:
+			request.response ["Location"] = "%s/" % path
 			if request.command in ('post', 'put'):
 				return request.response.abort (301)
 			else:	
@@ -134,16 +129,26 @@ class Handler:
 		
 		ct = request.get_header ("content-type")
 		if request.command == 'post' and ct and ct.startswith ("multipart/form-data"):
-			if isinstance (app, Saddle):
-				collector = self.make_collector (collectors.SaddleMultipartCollector, request, MAX_UPLOAD_SIZE, self.max_file_size, MAX_POST_SIZE)
+			# handle stream by app
+			# shoud have constructor __init__ (self, handler, request, upload_max_size = 100000000)
+			try:
+				#self.wasc.apps.get_app (has_route) - module (that has callable) wrapper
+				#.get_callable() - callable, like WSGI function, Saddle or Falsk app
+				AppCollector = self.wasc.apps.get_app (has_route).get_callable().get_multipart_collector ()
+			except AttributeError:
+				AppCollector = None
+					
+			if AppCollector:
+				collector = self.make_collector (AppCollector, request, self.upload_max_size, self.upload_max_size)
 			else:
-				collector = self.make_collector (collectors.WSGIMultipartCollector, request, MAX_UPLOAD_SIZE, MAX_UPLOAD_SIZE)	
+				collector = self.make_collector (collectors.MultipartCollector, request, self.upload_max_size, self.upload_max_size)	
+
 			if collector:
 				request.collector = collector
 				collector.start_collect ()
 			
-		elif request.command in ('post', 'put'):		
-			collector = self.make_collector (collectors.FormCollector, request, MAX_POST_SIZE)
+		elif request.command in ('post', 'put'):
+			collector = self.make_collector (collectors.FormCollector, request, self.post_max_size)
 			if collector:
 				request.collector = collector
 				collector.start_collect ()
@@ -157,33 +162,33 @@ class Handler:
 	def continue_request (self, request, data = None):
 		try:
 			path, params, query, fragment = request.split_uri ()
-			app = self.wasc.apps.get_app (path)
+			route = self.wasc.apps.get_app (path)
 					
 		except:
 			self.wasc.logger.trace ("server",  request.uri)
 			return request.response.error (500, catch (1))
 		
 		try:
-			env = self.build_environ (request, app)
+			env = self.build_environ (request, route)
 			if data:
-				env ["wsgi.input"] = data				
+				env ["wsgi.input"] = data
 			args = (env, request.response.start_response)
 								
 		except:
 			self.wasc.logger.trace ("server",  request.uri)
 			return request.response.error (500, catch (1))
 		
-		if self.use_thread:
-			self.wasc.queue.put (Job (request, app, args, self.wasc.logger))
+		if env ["wsgi.multithread"]:
+			self.wasc.queue.put (Job (request, route, args, self.wasc.logger))
 		else:
-			Job (request, app, args, self.wasc.logger) ()
+			Job (request, route, args, self.wasc.logger) ()
 
 
 
 class Job:
-	def __init__(self, request, app, args, logger):
+	def __init__(self, request, route, args, logger):
 		self.request = request
-		self.app = app
+		self.route = route
 		self.args = args
 		self.logger = logger
 		
@@ -195,12 +200,13 @@ class Job:
 	
 	def exec_app (self):
 		try:			
-			content = self.app (*self.args)
+			content = self.route (*self.args)
 			
 		except MemoryError:
 			raise
 				
 		except:			
+			self.logger.trace ("app")
 			trigger.wakeup (lambda p=self.request.response, d=catch(1): (p.error (500, d),))
 		
 		else:
@@ -241,13 +247,17 @@ class Job:
 	
 	def deallocate (self):
 		env = self.args [0]
-		try:
-			env ["wsgi.input"].close ()
-		except AttributeError:
-			pass
+		
+		_input = env ["wsgi.input"]
+		if _input:
+			try: _input.close ()
+			except AttributeError: pass
+			if hasattr (_input, "name"):
+				try: os.remove (_input.name)
+				except: self.logger.trace ("app")
 		
 		try:	
-			was = env ["wsgi.x_was"]
+			was = env ["skitai.was"]
 		except KeyError:
 			pass
 		else:		
@@ -257,8 +267,9 @@ class Job:
 				was.response = None
 				was.request.response = None
 			was.request = None				
-			was.env = None		
-			was.app = None			
+			was.env = None
+			was.route = None
+			was.app = None
 			del was	
 								
 	def __call__(self):

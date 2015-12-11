@@ -5,8 +5,13 @@ import sys, os, getopt
 from skitai.server import Skitai
 from skitai import lifetime
 from skitai.lib import confparse, flock, pathtool
+from skitai.saddle import cookie, multipart_collector
+
 import signal
-import hotshot
+try:
+	import hotshot
+except ImportError:
+	import profile as hotshot
 
 class	WAS (Skitai.Loader):
 	def __init__ (self, config, logpath, varpath, consol):
@@ -22,9 +27,11 @@ class	WAS (Skitai.Loader):
 		if config.getopt ("server", "ssl") == "yes":
 			assert (config.getopt ("server", "certfile"))
 		assert (config.getint ("server", "port") > 0)
-		assert (len (config.getopt ("server", "securekey")) >= 6)
-		assert (len (config.getopt ("server", "admin_password")) >= 6)
-		assert (config.getint ("server", "sessiontimeout") >= 0)
+		assert (len (config.getopt ("saddler", "securekey")) >= 6)
+		assert (len (config.getopt ("saddler", "admin_password")) >= 6)
+		assert (config.getint ("saddler", "sessiontimeout") >= 0)		
+		assert (config.getint ("saddler", "max_upload_each_file_size") >= 0)
+		assert (config.getint ("saddler", "max_cache_size") > 0) # should have value for memory protection
 		
 		for sect in list(config.keys ()):
 			if sect.startswith ("cluster-"):
@@ -36,7 +43,16 @@ class	WAS (Skitai.Loader):
 				assert (config.getopt (sect, "ssl")	in ("yes", "no", None, ""))
 				
 	def to_list (self, text, delim = ","):
-		return [_f for _f in [x.strip () for x in text.split (",")] if _f]
+		return [_f for _f in [x.strip () for x in text.split (",")] if _f]	
+	
+	def config_multipart_collector (self, file_max_size, cache_max_size):
+		multipart_collector.MultipartCollector.file_max_size = (file_max_size == 0 and 20 * 1024 * 1024 or file_max_size)
+		multipart_collector.MultipartCollector.cache_max_size = (cache_max_size == 0 and 5 * 1024 * 1024 or cache_max_size)
+		
+	def config_session (self, timeout, secret_key = ""):
+		if not timeout: timeout = 1200
+		if secret_key:
+				cookie.Cookie.set_secret_key (secret_key)
 			
 	def configure (self):
 		global _profile
@@ -67,8 +83,11 @@ class	WAS (Skitai.Loader):
 			self.config_certification (config.getopt ("server", "certfile"), config.getopt ("server", "keyfile"), config.getopt ("server", "passphrase"))
 		self.config_cachefs (os.path.join (self.varpath, "cache"))
 		self.config_rcache (config.getint ("server", "num_result_cache_max"))
-		self.config_session (os.path.join (self.varpath, "sessions"), config.getint ("server", "sessiontimeout"), config.getopt ("server", "securekey"))
-		self.config_authorizer (config.getopt ("server", "securekey"), config.getopt ("server", "admin_password"))
+		
+		# saddler config
+		self.config_multipart_collector (config.getint ("saddler", "max_upload_each_file_size"), config.getint ("saddler", "max_cache_size"))
+		self.config_session (config.getint ("saddler", "sessiontimeout"), config.getopt ("saddler", "securekey"))
+		self.config_authorizer (config.getopt ("saddler", "securekey"), config.getopt ("saddler", "admin_password"))
 		
 		# spawn
 		self.config_webserver (

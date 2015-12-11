@@ -1,5 +1,5 @@
 import pickle as pickle
-from . import http_date
+from skitai.server import http_date
 import time
 import random
 from skitai.lib import pathtool

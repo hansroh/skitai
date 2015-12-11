@@ -7,6 +7,8 @@ from skitai.client import adns
 from skitai.server import compressors, producers
 import time
 
+post_max_size = wsgi_handler.Handler.post_max_size
+upload_max_size = wsgi_handler.Handler.upload_max_size
 
 class TunnelForClientToServer:
 	collector = None
@@ -373,7 +375,7 @@ class Collector (collectors.FormCollector):
 		if self.content_length == 0:
 			return self.found_terminator ()
 			
-		if self.content_length <= wsgi_handler.MAX_POST_SIZE: #5M
+		if self.content_length <= post_max_size: #5M
 			self.cached = True
 		
 		self.request.channel.set_terminator (self.content_length)
@@ -451,7 +453,7 @@ class Handler (wsgi_handler.Handler):
 			if request.command in ('post', 'put'):
 				ct = request.get_header ("content-type")
 				if not ct: ct = ""
-				post_max_size = ct.startswith ("multipart/form-data") and wsgi_handler.MAX_UPLOAD_SIZE or wsgi_handler.MAX_POST_SIZE
+				post_max_size = ct.startswith ("multipart/form-data") and upload_max_size or post_max_size
 				collector = self.make_collector (Collector, request, post_max_size)
 				if collector:
 					request.collector = collector

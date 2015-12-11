@@ -124,6 +124,7 @@ class http_response:
 					
 		code, msg = status.split (" ", 1)
 		self.start (int (code), msg, headers)
+		return self.push #by WSGI Spec.
 		
 	def start (self, code, msg = "", headers = None):
 		self.reply_code = code

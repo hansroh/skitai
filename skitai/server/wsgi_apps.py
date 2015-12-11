@@ -16,6 +16,9 @@ class Module:
 		self.module, self.abspath = importer.importer (directory, libpath)				
 		self.set_route (route)
 		self.start_app ()
+	
+	def get_callable (self):
+		return getattr (self.module, self.appname)
 		
 	def start_app (self):					
 		self.set_reloader ()		
@@ -60,12 +63,14 @@ class Module:
 		return self.route
 					
 	def get_path_info (self, path):
-		return path [self.route_len:]
+		path_info = path [self.route_len:]
+		if not path_info: path_info = u"/"
+		return path_info	
 	
 	def cleanup (self):
 		try: getattr (self.module, self.appname).cleanup ()
 		except AttributeError: pass	
-	
+			
 	def __call__ (self, env, start_response):
 		self.use_reloader and self.maybe_reload ()
 		return getattr (self.module, self.appname) (env, start_response)
@@ -97,7 +102,7 @@ class ModuleManager:
 	def get_app (self, script_name, rootmatch = False):
 		if not rootmatch:
 			route = self.has_route (script_name)
-			if route in (0, -1):
+			if route in (0, 1): # 404, 301
 				return None
 		else:
 			route = "/"
@@ -110,13 +115,16 @@ class ModuleManager:
 		return app	
 		
 	def has_route (self, script_name):
+		# 0: 404
+		# 1: 301
+		# route string
 		if type (script_name) is bytes:
 			script_name = script_name.decode ("utf8")
 			
 		# return redirect
 		if script_name == "":
 			if "/" in self.modules:				
-				return -1
+				return 1
 			else:
 				return 0
 			
@@ -131,7 +139,7 @@ class ModuleManager:
 						cands.append (route)
 						
 					elif script_name == route [:-1]:
-						return -1
+						return 1
 		
 		if cands:
 			if len (cands) == 1:

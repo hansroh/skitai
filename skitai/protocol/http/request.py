@@ -12,11 +12,6 @@ except ImportError:
 				
 from skitai.server import producers
 
-JSONRPCLIB = True
-try:
-	import jsonrpclib
-except ImportError:
-	JSONRPCLIB = False
 
 class XMLRPCRequest:
 	content_type = "text/xml"
@@ -93,14 +88,6 @@ class XMLRPCRequest:
 		else:
 			return []	
 			
-
-if JSONRPCLIB:
-	class JSONRPCRequest (XMLRPCRequest):
-		content_type = "application/json-rpc"
-		
-		def serialize (self):
-			return jsonrpclib.dumps (self.params, self.method, encoding=self.encoding, rpcid=None, version = "2.0").encode ("utf8")
-
 	
 class HTTPRequest (XMLRPCRequest):
 	content_type = "application/x-www-form-urlencoded; charset=utf-8"
