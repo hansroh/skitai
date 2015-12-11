@@ -20,23 +20,31 @@ class Module:
 	def get_callable (self):
 		return getattr (self.module, self.appname)
 		
-	def start_app (self):					
-		self.set_reloader ()		
+	def start_app (self, reloded = False):					
+		self.set_devel_env ()
 		self.update_file_info ()
 		try:			
-			getattr (self.module, self.appname).start (self.wasc)
+			if not reloded:
+				getattr (self.module, self.appname).start (self.wasc, self.route)
+			else:
+				getattr (self.module, self.appname).restart (self.wasc, self.route)
 		except AttributeError:
 			pass	
 		
-	def set_reloader (self):	
-		try:
-			if type (getattr (self.module, self.appname)) is function:
-				self.use_reloader = getattr (self.module, "DEBUG")
-			else:
-				self.use_reloader = getattr (self.module, self.appname).use_reloader
-		except AttributeError:			
-			self.use_reloader = False
-		
+	def set_devel_env (self):
+		self.debug = False
+		self.use_reloader = False
+		if type (getattr (self.module, self.appname)) is function:
+			try: self.debug = getattr (self.module, "DEBUG")				
+			except AttributeError: pass
+			try: self.use_reloader = getattr (self.module, "USE_RELOADER")	
+			except AttributeError: pass
+		else:
+			try: self.debug = getattr (self.module, self.appname).debug
+			except AttributeError: pass
+			try: self.use_reloader = getattr (self.module, self.appname).use_reloader
+			except AttributeError: pass
+
 	def update_file_info (self):
 		stat = os.stat (self.abspath)
 		self.file_info = (stat.st_mtime, stat.st_size)	
@@ -46,7 +54,7 @@ class Module:
 		reloadable = self.file_info != (stat.st_mtime, stat.st_size)		
 		if reloadable and self.use_reloader:
 			importer.reloader (self.module)
-			self.start_app ()
+			self.start_app (reloded = True)
 			return True
 		return False
 				
@@ -56,6 +64,8 @@ class Module:
 			raise TypeError("route url must be abs path")
 		while route and route [-1] == "/":
 			route = route [:-1]
+		if not route:
+			route = "/"
 		self.route = route
 		self.route_len = len (route)
 		
@@ -72,7 +82,7 @@ class Module:
 		except AttributeError: pass	
 			
 	def __call__ (self, env, start_response):
-		self.use_reloader and self.maybe_reload ()
+		self.use_reloader and self.maybe_reload ()		
 		return getattr (self.module, self.appname) (env, start_response)
 
 
@@ -88,6 +98,7 @@ class ModuleManager:
 
 		try: 
 			module = Module (self.wasc, route, directory, modname)			
+			
 		except: 
 			self.wasc.logger.trace ("app")
 			self.wasc.logger ("app", "[error] application load failed: %s" % modname)
@@ -128,18 +139,18 @@ class ModuleManager:
 			else:
 				return 0
 			
-		cands = []		
+		cands = []
 		for route in self.modules:
-				if route == "/":
-					if script_name == "/":
-						return "/"
-																		
-				else:
-					if script_name == route or script_name.startswith (route [-1] != "/" and route + "/" or route):
-						cands.append (route)
-						
-					elif script_name == route [:-1]:
-						return 1
+			if route == "/":
+				if script_name == "/":
+					return "/"
+																	
+			else:				
+				if script_name == route or script_name.startswith (route [-1] != "/" and route + "/" or route):
+					cands.append (route)
+					
+				elif script_name == route [:-1]:
+					return 1
 		
 		if cands:
 			if len (cands) == 1:

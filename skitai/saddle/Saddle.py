@@ -4,6 +4,8 @@ import os
 import sys
 from . import package, multipart_collector
 from . import wsgi_executor, xmlrpc_executor
+from skitai.server import producers
+from skitai.server.threads import trigger
 
 try:
 	import xmlrpc.client as xmlrpclib
@@ -16,14 +18,13 @@ try:
 except ImportError:
 	JINJA2 = False
 
-
 class Saddle (package.Package):
 	use_reloader = False
 	debug = False
 	
 	def __init__ (self, package_name):
-		env = JINJA2 and Environment (loader = PackageLoader (package_name)) or None
-		package.Package.__init__ (self, env, None, None)	
+		self.template_env = JINJA2 and Environment (loader = PackageLoader (package_name)) or None
+		package.Package.__init__ (self)	
 		self.lock = threading.RLock ()
 		self.cache_sorted = 0
 		self.cached_paths = {}
@@ -35,7 +36,7 @@ class Saddle (package.Package):
 	
 	def get_template (self, name):
 		if JINJA2:
-			return self.env.get_template(name)
+			return self.template_env.get_template (name)
 		raise ImportError ("jinja2 required.")
 	
 	def get_multipart_collector (self):
@@ -58,7 +59,7 @@ class Saddle (package.Package):
 			if self.use_reloader:
 				self.lock.acquire ()																
 			try:	
-				method, kargs, match, matchtype = self.get_package_method (path_info)
+				method, kargs, match, matchtype = self.get_package_method (path_info, self.use_reloader)
 			finally:	
 				if self.use_reloader: 
 					self.lock.release ()
@@ -73,16 +74,25 @@ class Saddle (package.Package):
 						self.cached_rules.sort (lambda x, y: cmp (y[1], x[1]))
 						self.cached_rules.sort (key = lambda x: x[1], reverse = True)
 						self.cache_sorted = time.time ()
-				elif matchtype == 3:
-					return method, 301													
 				self.lock.release ()
+					
+			if matchtype == 3:
+				return method, 301
 		
 		return method, kargs
-					
-	def __call__ (self, env, start_response):
-		ct = env.get ("HTTP_CONTENT_TYPE", "")
-		if ct.startswith ("text/xml") or ct.startswith ("application/xml+rpc"):
-			return xmlrpc_executor.Executor (env, start_response, self.get_method) ()
+	
+	def restart (self, wasc, route):
+		self.wasc = wasc
+		self.route = route
+		if self._onreload:
+			self._onreload (self.wasc, self)		
+							
+	def __call__ (self, env, start_response):	
+		env ["skitai.was"].app = self # set was.app		
+		content_type = env.get ("CONTENT_TYPE", "")				
+		if content_type.startswith ("text/xml") or content_type.startswith ("application/xml+rpc"):
+			return xmlrpc_executor.Executor (env, self.get_method) ()
 		else:	
-			return wsgi_executor.Executor (env, start_response, self.get_method) ()
+			return wsgi_executor.Executor (env, self.get_method) ()		
 			
+	

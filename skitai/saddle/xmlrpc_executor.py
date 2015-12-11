@@ -14,27 +14,28 @@ class Executor (wsgi_executor.Executor):
 			thunks = [(methodname, args)]
 		else:
 			thunks = []
-			for _methodname, _args in [(each ["methodName"], each ["params"]) for each in args]:
-				thunks.append ((methodname, _args))
+			for _methodname, _args in [(each ["methodName"], each ["params"]) for each in args [0]]:
+				thunks.append ((_methodname, _args))
 		
 		results = []
 		for _method, _args in thunks:
 			path_info = self.env ["PATH_INFO"] = "/" + _method.replace (".", "/")
 			thing, param = self.get_method (path_info)
 			if not thing or param == 301:
-				results.append (xmlrpclib.Fault (404, "Method Not Found"))
-				continue							
+				try: raise Exception('Method "%s" is not supported' % _method)
+				except: results.append ({'faultCode' : 1, 'faultString' : wsgi_executor.traceback ()})
+				continue
+
 			try:
-				result = self.generate_content (thing, param)				
+				result = self.generate_content (thing, _args, {})
 			except:
-				results.append (xmlrpclib.Fault (500, wsgi_executor.traceback ()))
+				results.append ({'faultCode' : 1, 'faultString' : wsgi_executor.traceback ()})
 			else:
-				results.append (result)
+				results.append ([result])
 		
-		self.commit ()
-		
+		self.commit ()		
 		if len (results) == 1: results = tuple (results)
 		else: results = (results,)
 			
-		return xmlrpclib.dumps (results, methodresponse = True, allow_none = True, encoding = "utf8").encoding ("utf8")
+		return self.was, xmlrpclib.dumps (results, methodresponse = True, allow_none = True, encoding = "utf8").encode ("utf8")
 		

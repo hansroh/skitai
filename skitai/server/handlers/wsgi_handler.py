@@ -15,14 +15,13 @@ try:
 except ImportError:
 	from io import BytesIO
 
-PY_MAJOR_VERSION = sys.version_info.major
-
 header2env = {
 	'content-length'	: 'CONTENT_LENGTH',
 	'content-type'	  : 'CONTENT_TYPE',
 	'connection'		: 'CONNECTION_TYPE'
 	}
-	
+
+PY_MAJOR_VERSION = sys.version_info.major
 
 class Handler:
 	GATEWAY_INTERFACE = 'CGI/1.1'
@@ -54,7 +53,7 @@ class Handler:
 	def match (self, request):
 		return 1
 			
-	def build_environ (self, request, route):
+	def build_environ (self, request, apph):
 		(path, params, query, fragment) = request.split_uri()
 		if params: path = path + params
 		while path and path[0] == '/':
@@ -64,9 +63,7 @@ class Handler:
 
 		env = self.ENV.copy ()
 		was = self.wasc ()
-		was.request = request	
-		was.route = route		
-		env ['skitai.was'] = was		
+		was.request = request
 		
 		env ['REQUEST_METHOD'] = request.command.upper()		
 		env ['SERVER_PROTOCOL'] = "HTTP/" + request.version
@@ -74,8 +71,8 @@ class Handler:
 		if query: env['QUERY_STRING'] = query		
 		env ['REMOTE_ADDR'] = request.channel.addr [0]
 		env ['REMOTE_SERVER'] = request.channel.addr [0]		
-		env ['SCRIPT_NAME'] = route.script_name		
-		env ['PATH_INFO'] = route.get_path_info ("/" + path)
+		env ['SCRIPT_NAME'] = apph.route		
+		env ['PATH_INFO'] = apph.get_path_info ("/" + path)
 				
 		for header in request.header:
 			key, value = header.split(":", 1)
@@ -92,6 +89,7 @@ class Handler:
 			if k not in env:
 				env [k] = v
 		
+		env ['skitai.was'] = was
 		return env
 	
 	def make_collector (self, collector_class, request, max_cl, *args, **kargs):
@@ -162,33 +160,33 @@ class Handler:
 	def continue_request (self, request, data = None):
 		try:
 			path, params, query, fragment = request.split_uri ()
-			route = self.wasc.apps.get_app (path)
+			apph = self.wasc.apps.get_app (path)
 					
 		except:
 			self.wasc.logger.trace ("server",  request.uri)
-			return request.response.error (500, catch (1))
+			return request.response.error (500, why = apph.debug and catch (1) or "")
 		
 		try:
-			env = self.build_environ (request, route)
+			env = self.build_environ (request, apph)
 			if data:
 				env ["wsgi.input"] = data
 			args = (env, request.response.start_response)
 								
 		except:
 			self.wasc.logger.trace ("server",  request.uri)
-			return request.response.error (500, catch (1))
+			return request.response.error (500, why = apph.debug and catch (1) or "")
 		
 		if env ["wsgi.multithread"]:
-			self.wasc.queue.put (Job (request, route, args, self.wasc.logger))
+			self.wasc.queue.put (Job (request, apph, args, self.wasc.logger))
 		else:
-			Job (request, route, args, self.wasc.logger) ()
+			Job (request, apph, args, self.wasc.logger) ()
 
 
 
 class Job:
-	def __init__(self, request, route, args, logger):
+	def __init__(self, request, apph, args, logger):
 		self.request = request
-		self.route = route
+		self.apph = apph
 		self.args = args
 		self.logger = logger
 		
@@ -198,85 +196,74 @@ class Job:
 	def __str__ (self):
 		return "%s %s HTTP/%s" % (self.request.command.upper (), self.request.uri, self.request.version)
 	
-	def exec_app (self):
+	def exec_app (self):		
+		was = self.args [0] ["skitai.was"]
+		request = was.request		
+		response = request.response		
+		
 		try:			
-			content = self.route (*self.args)
+			content = self.apph (*self.args)			
+			if not response.responsable (): # already called response.done ()
+				return
+			
+			if response.get_header ("content-type") is None:
+				response ["Content-Type"] = "text/html"
+
+			type_of_content = type (content)
+			if type_of_content is list:
+				content = producers.list_producer (content)
+			elif hasattr (content, "next") or hasattr (content, "more"):
+				if hasattr (content, "next"):
+					content = producers.iter_producer (content) # next => more
+				if hasattr (content, "abort") or hasattr (content, "close"):
+					request.producer = content # finally call abort close
+			else:					
+				if (PY_MAJOR_VERSION >=3 and type_of_content is str) or (PY_MAJOR_VERSION <3 and type_of_content is unicode):
+					content = content.encode ("utf8")
+					type_of_content = bytes
+				if type_of_content is bytes:
+					response.update ('Content-Length', len (content))					
+				else:
+					raise ValueError ("Content should be string or producer type")
 			
 		except MemoryError:
 			raise
-				
-		except:			
-			self.logger.trace ("app")
-			trigger.wakeup (lambda p=self.request.response, d=catch(1): (p.error (500, d),))
-		
+			
+		except:
+			was.logger.trace ("app")
+			trigger.wakeup (lambda p=response, d=self.apph.debug and sys.exc_info () or "": (p.error (500, "", d),))			
 		else:
+			trigger.wakeup (lambda p=response, d=content: (p.push(d), p.done()))
+											
+	def __call__(self):
+		try:
 			try:
-				resp_code = self.request.response.reply_code
-				if not content and resp_code >= 300:
-					trigger.wakeup (lambda p=self.request.response: (p.error (resp_code),))
-										
-				else:	
-					if not self.request.response.has_key ("content-type"):
-						self.request.response.update ('Content-Type', "text/html")				
-					
-					type_of_content = type (content)
-					if type_of_content is list:
-						trigger.wakeup (lambda p=self.request.response, d=producers.list_producer (content): (p.push(d), p.done()))
-					elif hasattr (content, "next"):						
-						trigger.wakeup (lambda p=self.request.response, d=producers.iter_producer (content): (p.push(d), p.done()))						
-					else:	
-						if (PY_MAJOR_VERSION >=3 and type_of_content is str) or (PY_MAJOR_VERSION <3 and type_of_content is unicode):
-							content = content.encode ("utf8")
-							type_of_content = bytes
-						
-						if type_of_content is bytes:
-							self.request.response.update ('Content-Length', len (content))			
-							trigger.wakeup (lambda p=self.request.response, d=content: (p.push(d), p.done()))
-				
-						elif hasattr (content, "more"): # producer (ex: producers.stream_producer)
-							if hasattr (content, "abort"):
-								self.request.producer = content								
-							trigger.wakeup (lambda p=self.request.response, d=content: (p.push(d), p.done()))
-									
-						else:					
-							raise ValueError ("Content should be string or producer type")
-								
-			except:
-				self.logger.trace ("app")
-				trigger.wakeup (lambda p=self.request.response, d=catch(1): (p.error (500, d),))
+				self.exec_app ()				
+			finally:
+				self.deallocate	()
+		except:
+			self.logger.trace ("server",  self.request.uri)
+			return self.request.response.error (500, why = self.apph.debug and catch (1) or "")		
 	
 	def deallocate (self):
-		env = self.args [0]
-		
+		env = self.args [0]		
 		_input = env ["wsgi.input"]
 		if _input:
 			try: _input.close ()
 			except AttributeError: pass
 			if hasattr (_input, "name"):
 				try: os.remove (_input.name)
-				except: self.logger.trace ("app")
+				except: self.was.logger.trace ("app")
 		
-		try:	
-			was = env ["skitai.was"]
-		except KeyError:
-			pass
-		else:		
-			if hasattr (was, "cookie"): # Saddle
-				was.cookie = None
-				was.session = None
-				was.response = None
-				was.request.response = None
-			was.request = None				
+		was = env ["skitai.was"]
+		if hasattr (was, "cookie"): # Saddle
+			was.cookie = None
+			was.session = None
+			was.response = None
 			was.env = None
-			was.route = None
-			was.app = None
-			del was	
-								
-	def __call__(self):
-		try:
-			self.exec_app ()
-		finally:
-			self.deallocate ()
+			was.app = None	
+		was.request.response = None
+		was.request = None	
+		del was
 		
-	
 			

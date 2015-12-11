@@ -207,7 +207,7 @@ class Loader:
 				self.wasc.add_route (route, target)
 				
 			else:
-				fullpath = os.path.split (target.strip())
+				fullpath = os.path.split (target.strip())				
 				apps.add_module (route, os.sep.join (fullpath[:-1]), fullpath [-1])
 
 	def run (self):

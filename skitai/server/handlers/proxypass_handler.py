@@ -23,7 +23,7 @@ class Handler (proxy_handler.Handler):
 			self.route (request, collector)			
 		except:
 			self.wasc.logger.trace ("server")	
-			request.response.error (500, wsgi_handler.catch (1))
+			request.response.error (500, "", "Routing failed. Please contact administator.")
 	
 	def route (self, request, collector):
 		current_cluster = self.find_cluster (request)
@@ -70,7 +70,7 @@ class Handler (proxy_handler.Handler):
 		
 		if response.code < 100:
 			if request.loadbalance_retry >= len (cluster):
-				request.response.error (506, "%s (Code: 506.%d)" % (response.msg, response.code))
+				request.response.error (506, "", "%s (Code: 506.%d)" % (response.msg, response.code))
 				
 			elif request.channel:
 				if not collector or (collector and collector.cached):

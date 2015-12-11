@@ -7,15 +7,8 @@ app = Saddle (__name__)
 app.debug = True
 app.use_reloader = True
 
-@app.route('/')
-def hello_world (was, **form):
-	if was.request.command == 'post':		
-		file = form ["file1"]
-		file.save ("d:\\var\\upload", dup = "o")		
-		return str (form)
-                            
-	return """
-  <form action = "/skitai/" enctype="multipart/form-data" method="post">
+MULTIPART = """
+<form action = "/" enctype="multipart/form-data" method="post">
 	<input type="hidden" name="submit-hidden" value="Genious">   
 	<p></p>What is your name? <input type="text" name="submit-name" value="Hans Roh"></p>
 	<p></p>What files are you sending? <br />
@@ -24,9 +17,39 @@ def hello_world (was, **form):
 	</p>
 	<input type="submit" value="Send"> 
 	<input type="reset">
-	</form>
-	"""
+</form>
+"""
 
+FORMDATA = """
+<form action = "/" method="post">
+	<input type="hidden" name="submit-hidden" value="Genious">   
+	<p></p>What is your name? <input type="text" name="submit-name" value="Hans Roh"></p>	
+	<input type="submit" value="Send"> 
+	<input type="reset">
+</form>
+"""
+import skitaipackage
+
+app.add_package (skitaipackage, "package")
+
+@app.route('/')
+def hello_world (was, **form):
+	if was.request.command == 'post':		
+		file = form.get ("file1")
+		if file:
+			file.save ("d:\\var\\upload", dup = "o")
+		return str (form)
+	return MULTIPART
+
+@app.route('/indians')
+def hello_world (was, num = 8):
+	if was.request.command == 'get':		
+		was.response ["Content-Type"] = "text/xml"
+		return was.toxml ((num,))
+	else:
+		return num	
+
+	
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5002)
 

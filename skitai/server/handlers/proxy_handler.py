@@ -24,9 +24,6 @@ class TunnelForClientToServer:
 		self.bytes += len (data)
 		self.asyncon.push (data)
 	
-	def abort (self):
-		self.close ()
-			
 	def close (self):
 		self.asyncon.close_socket ()
 		self.asyncon.request = None # unlink back ref
@@ -63,9 +60,9 @@ class TunnelForServerToClient:
 	def done (self, code, msg):
 		if code and self.bytes == 0:
 			self.asyncon.request = None # unlink back ref
-			self.request.response.error (507, "%s %s" % (code, msg))			
+			self.request.response.error (507, "", "%s %s" % (code, msg))			
 		else:
-			self.abort ()
+			self.close ()
 			
 	def collect_incoming_data (self, data):
 		self.bytes += len (data)		
@@ -85,7 +82,7 @@ class TunnelForServerToClient:
 			self.bytes)
 			)
 				
-	def abort (self):
+	def close (self):
 		self.log_request ()
 		self.cli2srv and self.cli2srv.close ()
 		self.channel.close ()
@@ -334,7 +331,7 @@ class ProxyResponse (http_response.Response):
 	def is_gzip_compressed (self):
 		return self.gzip_compressed
 	
-	def abort (self):
+	def close (self):
 		self.client_request.producer = None		
 		try: self.u.data = []
 		except AttributeError: pass
@@ -453,8 +450,8 @@ class Handler (wsgi_handler.Handler):
 			if request.command in ('post', 'put'):
 				ct = request.get_header ("content-type")
 				if not ct: ct = ""
-				post_max_size = ct.startswith ("multipart/form-data") and upload_max_size or post_max_size
-				collector = self.make_collector (Collector, request, post_max_size)
+				current_post_max_size = ct.startswith ("multipart/form-data") and upload_max_size or post_max_size
+				collector = self.make_collector (Collector, request, current_post_max_size)
 				if collector:
 					request.collector = collector
 					collector.start_collect ()
@@ -477,10 +474,10 @@ class Handler (wsgi_handler.Handler):
 			if collector:
 				collector.asyncon = asyncon
 			r.start ()
-			
+						
 		except:
-			self.wasc.logger.trace ("server")	
-			request.response.error (500, wsgi_handler.catch (1))
+			self.wasc.logger.trace ("server")
+			request.response.error (500, "", "Proxy request has been failed.")
 	
 	def is_cached (self, request, has_data):
 		if has_data:
@@ -543,7 +540,7 @@ class Handler (wsgi_handler.Handler):
 		response, request = handler.response, handler.client_request
 		
 		if response.code < 100:
-			request.response.error (506, "%s (Code: 506.%d)" % (response.msg, response.code))		
+			request.response.error (506, "", "%s (Code: 506.%d)" % (response.msg, response.code))		
 		else:
 			try:	
 				self.save_cache (request, handler)					

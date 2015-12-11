@@ -1,5 +1,9 @@
 import tempfile
 import os
+try:
+	from StringIO import StringIO as BytesIO
+except ImportError:
+	from io import BytesIO	
 
 class FormCollector:
 	def __init__ (self, handler, request):
@@ -30,11 +34,13 @@ class FormCollector:
 	def found_terminator (self):
 		# prepare got recving next request header
 		self.request.collector = None  # break circ. ref
-		self.request.set_body (self.data.getvalue ())
 		self.request.channel.set_terminator (b'\r\n\r\n')
+		
+		self.request.set_body (self.buffer)
+		self.buffer.seek (0)
 		self.handler.continue_request (self.request, self.buffer)
 	
-	def abort (self):
+	def close (self):
 		self.buffer.close ()
 		self.request.collector = None  # break circ. ref
 
@@ -59,7 +65,7 @@ class MultipartCollector (FormCollector):
 			raise ValueError("file size is over %d MB" % (self.size/1024./1024,))
 		self.buffer.write (data)
 		
-	def abort (self):
+	def close (self):
 		self.buffer.close ()
 		self.request.collector = None
 				

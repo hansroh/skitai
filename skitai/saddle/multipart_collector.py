@@ -226,7 +226,7 @@ class MultipartCollector (collectors.FormCollector):
 		
 		self.trackable_tail = None		
 	
-	def abort (self):
+	def close (self):
 		self.buffer = b""
 		self.parts = None
 		self.cache = []

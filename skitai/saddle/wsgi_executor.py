@@ -4,7 +4,7 @@ from skitai.lib.reraise import reraise
 import sys
 	
 def traceback ():	
-	t, v, tb = exc_info
+	t, v, tb = sys.exc_info ()
 	tbinfo = []
 	assert tb # Must have a traceback
 	while tb:
@@ -26,17 +26,15 @@ def traceback ():
 
 		
 class Executor:
-	def __init__ (self, env, start_response, get_method):
-		self.env = env
-		self.start_response = start_response
+	def __init__ (self, env, get_method):
+		self.env = env	
 		self.get_method = get_method
 		
-		_was = self.env.get ("skitai.was")
-		if _was:
-			_was.app = _was.route.get_callable ()
-			_was.response = _was.request.response
-			_was.cookie = cookie.Cookie (_was.request)
-			_was.session = _was.cookie.get_session ()
+		_was = self.env.get ("skitai.was")	
+		_was.env = env
+		_was.response = _was.request.response
+		_was.cookie = cookie.Cookie (_was.request)
+		_was.session = _was.cookie.get_session ()
 		self.was = _was
 			
 	def commit (self):
@@ -50,7 +48,7 @@ class Executor:
 		# [b, [b, [b, func, s, f, t], s, f, t], s, f, t]
 		
 		response = None
-		exc_info = None
+		first_expt = None
 		
 		[before, func, success, failed, teardown] = method
 		
@@ -61,7 +59,7 @@ class Executor:
 					return response
 			
 			if type (func) is list:
-				response = self.chained_exec (self.was, func, args, karg)					
+				response = self.chained_exec (func, args, karg)					
 					
 			else:
 				response = func (self.was, *args, **karg)
@@ -71,44 +69,41 @@ class Executor:
 																										
 		except Exception as expt:
 			self.was.logger.trace ("app")
-			exc_info = sys.exc_info ()
+			if first_expt is None: first_expt = sys.exc_info ()
 			if failed:
 				try:
 					failed (self.was)		
-				except:
+				except Exception as expt:
 					self.was.logger.trace ("app")
-					exc_info = sys.exc_info ()
+					if first_expt is None: first_expt = sys.exc_info ()
 			
 		else:
 			if success: 
 				try:
 					success (self.was)
-				except:
+				except Exception as expt:
 					self.was.logger.trace ("app")
-					exc_info = sys.exc_info ()
+					if first_expt is None: first_expt = sys.exc_info ()
 		
 		if teardown:
 			try:
 				response = teardown (self.was)
-			except:
+			except Exception as expt:
 				self.was.logger.trace ("app")
-				exc_info = sys.exc_info ()
+				if first_expt is None: first_expt = sys.exc_info ()
 		
-		if exc_info:
-			reraise (*exc_info)
-		
+		if first_expt:
+			reraise (*first_expt)
+				
 		return response
 		
-	def generate_content (self, method, karg):		
-		_args, _karg = self.parse_args (karg)		
+	def generate_content (self, method, _args, karg):		
+		_karg = self.parse_kargs (karg)		
 		response = self.chained_exec (method, _args, _karg)
-		
 		return response
 	
-	def parse_args (self, kargs):
-		allargs = {}
+	def parse_kargs (self, kargs):
 		allkarg = {}
-		
 		query = self.env.get ("QUERY_STRING")
 		data = None
 		_input = self.env ["wsgi.input"]
@@ -117,12 +112,12 @@ class Executor:
 				self.merge_args (allkarg, _input)
 			else:
 				data = _input.read ()
-				
+		
 		if query: 
 			self.merge_args (allkarg, utility.crack_query (query))
 		if data:
 			self.merge_args (allkarg, utility.crack_query (data))
-		return allargs, allkarg
+		return allkarg
 		
 	def merge_args (self, s, n):
 		for k, v in list(n.items ()):
@@ -136,12 +131,16 @@ class Executor:
 	def __call__ (self):	
 		thing, param = self.get_method (self.env ["PATH_INFO"])
 		if thing is None:
-			self.start_response ("404 Not Found", [])
-			return None		
+			self.was.response.error (404)
+			return
+		
 		if param == 301:
-			self.start_response ("301 Moved Permanently", [("Location", thing)])
-			return None
+			location = self.env ["SCRIPT_NAME"] + thing
+			self.was.response ["Location"] = location
+			self.was.response.error (301, why = 'Object Moved To <a href="%s">Here</a>' % location)
+			return 
+		
+		content = self.generate_content (thing, (), param)
 		self.commit ()
-		return self.generate_content (thing, param)
-					
-				
+		return content
+		

@@ -4,20 +4,20 @@ try:
 except ImportError:
 	from urllib import unquote_plus	
 import os
-
+from skitai.lib import importer
+from types import FunctionType as function
 
 RX_RULE = re.compile ("(/<(.+?)>)")
 
 class Package:
-	def __init__ (self, env, module = None, packagename = None):
-		self.env = env
-		self.module = module
-		self.packagename = packagename
+	def __init__ (self):
+		self.module = None
+		self.packagename = None
 		self.wasc = None		
-		self.logger = None
-		self.route_map = {}
 		self.packages = {}
 		
+		self.logger = None
+		self.route_map = {}
 		self._before_request = None
 		self._success_request = None
 		self._teardown_request = None
@@ -26,12 +26,27 @@ class Package:
 		self._shutdown = None
 		self._onreload = None
 		
+	def init (self, module, packagename):
+		self.module = module
+		self.packagename = packagename
+		
 		if self.module:
 			self.abspath = self.module.__file__
 			if self.abspath [-3:] != ".py":
 				self.abspath = self.abspath [:-1]
 			self.update_file_info	()
-		
+	
+	def absurl (self, url):
+		base = self.route
+		if base [-1] == "/":
+			if url [0] == "/":		
+				return base + url [1:]			
+			return base + url
+		else:
+			if url [0] == "/":
+				return base + url
+			return base +"/" + url
+				
 	def cleanup (self):
 		if self._shutdown:
 			self._shutdown (self.wasc, self)
@@ -46,7 +61,7 @@ class Package:
 		self.logger.trace ()
 		
 	def reload_package (self):
-		impoter.reloader (self.module)
+		importer.reloader (self.module)
 		self.update_file_info	()
 	
 	def is_reloadable (self):
@@ -109,20 +124,10 @@ class Package:
 	
 	def set_route_map (self, route_map):
 		self.route_map = route_map
-		
-	def absurl (self, f):
-		if not f:
-			return self.base_route						
-		if self.base_route [-1] == "/":
-			if f [0] == "/":
-				return self.base_route + f [1:]
-		else:
-			if f [0] != "/":
-				return self.base_route + "/" + f					
-		return self.base_route + f
 	
 	def add_package (self, module, packagename):
-		p = Package (self.env, module, packagename)
+		p = getattr (module, packagename)
+		p.init (module, packagename)
 		self.packages [id (p)] = p
 	
 	def try_rule (self, path_info, rulepack):
@@ -170,7 +175,7 @@ class Package:
 					break
 				matchtype = 2
 		else:
-			if type (method) is str: # 301 move
+			if type (method) is not function: # 301 move
 				return method, None, None, 3
 			match = path_info
 			matchtype = 1
@@ -182,10 +187,11 @@ class Package:
 				subapp = getattr (package.module, package.packagename)
 				if use_reloader and subapp.is_reloadable ():
 					del self.packages [pid]
-					args, old_p = (package.module, package.packagename), package.packages
+					args, its_packages = (package.module, package.packagename), package.packages
 					subapp.reload_package ()
 					self.add_package (*args)
-					p.start (self.wasc, old_p)
+					package.start (self.wasc, self.route, its_packages)
+					subapp = getattr (package.module, package.packagename)
 					
 				method, kargs, match, matchtype = subapp.get_package_method (path_info, use_reloader)
 				if method:
@@ -205,18 +211,21 @@ class Package:
 			kargs, match, matchtype
 		)
 	
-	def start (self, wasc, packages = None):
+	def start (self, wasc, route, packages = None):
 		self.wasc = wasc
-		if self._startup and packages is None:
+		self.route = route
+		
+		if packages is None:
 			# initing app & packages
 			if self._startup:
 				self._startup (self.wasc, self)
 			
 			for p in list (self.packages.values ()):
-				p.start (self.wasc)
+				p.start (self.wasc, route)
 				
-		elif packages and	self._onreload:
-			self._onreload (self.wasc, self)
+		else:
+			if self._onreload:
+				self._onreload (self.wasc, self)
 			self.packages = packages
 
 

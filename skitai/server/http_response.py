@@ -54,6 +54,7 @@ class http_response:
 			('Date', http_date.build_http_date (time.time()))
 		]
 		self.outgoing = producers.fifo ()
+		self.is_done = False
 	
 	def __len__ (self):
 		return len (self.outgoing)
@@ -79,7 +80,8 @@ class http_response:
 		for k, v in self.reply_headers:
 			if k.lower () == key:
 				return v
-		
+	get_header = get
+			
 	def delete (self, key):
 		index = 0
 		found = 0
@@ -103,66 +105,83 @@ class http_response:
 				[self.response(self.reply_code, self.reply_message)] + ['%s: %s' % x for x in self.reply_headers]
 				) + '\r\n\r\n'			
 	
-	def response (self, code, msg):
-		if not msg:
-			try:
-				msg = self.responses [code]
-			except KeyError: 
-				msg = "Undefined"	
-		return 'HTTP/%s %d %s' % (self.request.version, code, msg)
+	def get_status_msg (self, code):
+		try:
+			status = self.responses [code]
+		except KeyError: 
+			status = "Undefined"
+		return status	
 	
-	def start_response (self, status, headers = None, exc_info = None):
-		# WSGI compet.
-		if exc_info is not None:
-			try:
-				if self.is_sent_response:
-					reraise (*exc_info)
-				else:
-					self.push (catch(1, exc_info))
-			finally:
-				exc_info = None
-					
-		code, msg = status.split (" ", 1)
-		self.start (int (code), msg, headers)
-		return self.push #by WSGI Spec.
-		
-	def start (self, code, msg = "", headers = None):
+	def response (self, code, status):	
+		return 'HTTP/%s %d %s' % (self.request.version, code, status)
+	
+	def instant (self, code, status = "", headers = None):
+		# instance messaging
 		self.reply_code = code
-		if not msg:
-			self.reply_message = self.responses [code]
-		else:	
-			self.reply_message = msg
-			
-		if headers:
-			for k, v in headers:
-				self.set (k, v)
-	
-	def reply (self, code, msg = "", headers = None):
-		self.start (code, msg, headers)
-	
-	def instant (self, code, message = None, headers = None):
-		#if self.request.version != "1.1": return		
-		reply = [self.response (code, message)]
+		if status: self.reply_message = status
+		else:	self.reply_message = self.get_status_msg (code)
+				
+		reply = [self.response (self.reply_code, self.reply_message)]
 		if headers:
 			for header in headers:
 				reply.append ("%s: %s" % header)
 		self.request.channel.push (("\r\n".join (reply) + "\r\n\r\n").encode ("utf8"))
 	
-	def abort (self, code, why = ""):
+	def abort (self, code, status = "", why = ""):
 		self.request.channel.reject ()		
-		self.error (code, why, force_close = True)
+		self.error (code, status, why, force_close = True)
+	
+	def responsable (self):
+		if self.is_done: return False
+		if self.request.channel is None: return False
+		return True
+				
+	def start_response (self, status, headers = None, exc_info = None):
+		if not self.responsable ():
+			if exc_info:
+				try:
+					reraise (*exc_info)
+				finally:
+					exc_info = None	
+			else:
+				raise AssertionError ("Relponse already sent!")		
+			return
+			
+		code, status = status.split (" ", 1)		
+		if exc_info:
+			self.error (int (code), status, exc_info)
+		else:
+			self.start (int (code), status, headers)			
+			return self.push #by WSGI Spec.
 		
-	def error (self, code, why = "", force_close = False):
-		if self.is_sent_response: return		
+	def start (self, code, status = "", headers = None):
+		if not self.responsable (): return
 		self.reply_code = code
-		message = self.responses [code]		
+		if status: self.reply_message = status
+		else:	self.reply_message = self.get_status_msg (code)
+			
+		if headers:
+			for k, v in headers:
+				self.set (k, v)
+	reply = start
+	
+	def error (self, code, status = "", why = "", force_close = False):
+		if not self.responsable (): return
+		self.reply_code = code
+		if status: self.reply_message = status
+		else:	self.reply_message = self.get_status_msg (code)
+			
+		if type (why) is tuple: # sys.exc_info ()
+			why = catch (1, why)
+		
 		s = self.DEFAULT_ERROR_MESSAGE % {
-			'code': code,
-			'message': message,
+			'code': self.reply_code,
+			'message': self.reply_message,
 			'info': why,
 			'gentime': http_date.build_http_date (time.time ()),
 			'url': "http://%s%s" % (self.request.get_header ("host"), self.request.uri)
-			}		
+			}
+
 		self.update ('Content-Length', len(s))
 		self.update ('Content-Type', 'text/html')
 		self.delete ('content-encoding')
@@ -174,16 +193,15 @@ class http_response:
 		self.done (True, True, force_close)
 	
 	def push (self, thing):
-		if self.request.channel is None: return
+		if not self.responsable (): return
 		if type(thing) is bytes:			
 			self.outgoing.push (producers.simple_producer (thing))
 		else:
 			self.outgoing.push (thing)
 				
 	def done (self, globbing = True, compress = True, force_close = False):
-		if self.request.channel is None: return
-		if self.is_sent_response: return
-		self.is_sent_response = True
+		if not self.responsable (): return
+		self.is_done = True
 				
 		connection = utility.get_header (utility.CONNECTION, self.request.header).lower()
 		close_it = False
@@ -295,7 +313,7 @@ class http_response:
 			# proxy collector and producer is related to asynconnect
 			# and relay data with channel
 			# then if request is suddenly stopped, make sure close them
-			self.request.channel.abort_when_close ([self.request.collector, self.request.producer])
+			self.request.channel.close_when_close ([self.request.collector, self.request.producer])
 			if close_it:
 				self.request.channel.close_when_done()
 		

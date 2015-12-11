@@ -111,8 +111,8 @@ class SSLProxyRequestHandler:
 	def retry (self):
 		return False
 
-	def abort (self):
-		pass
+	def close (self):
+		self.buffer = b""
 
 
 class Request (http_request.HTTPRequest):

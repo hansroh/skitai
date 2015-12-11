@@ -141,10 +141,6 @@ class Stream:
 		def close (self):
 			try: self.obj.close ()
 			except AttributeError: pass	
-		
-		def abort (self):			
-			# it will be called slient channel is suddnely disconnected			
-			self.close ()
 				
 		def more (self):
 			data = self.obj.read (self.buffer_size)
