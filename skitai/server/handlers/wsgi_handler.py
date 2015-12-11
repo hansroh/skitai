@@ -123,7 +123,7 @@ class Handler:
 			if request.command in ('post', 'put'):
 				return request.response.abort (301)
 			else:	
-				return request.response.error (301)
+				return request.response.error (301)				
 		
 		ct = request.get_header ("content-type")
 		if request.command == 'post' and ct and ct.startswith ("multipart/form-data"):

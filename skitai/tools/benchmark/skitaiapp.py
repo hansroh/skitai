@@ -40,6 +40,7 @@ def hello_world (was, **form):
 			file.save ("d:\\var\\upload", dup = "o")
 		return str (form)
 	return MULTIPART
+	
 
 @app.route('/indians')
 def hello_world (was, num = 8):
