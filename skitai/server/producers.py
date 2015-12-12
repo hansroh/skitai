@@ -48,18 +48,44 @@ class list_producer (simple_producer):
 			return data.encode ("utf8")
 		return data
 
-
-class iter_producer (list_producer):
+class closing_iter_producer (list_producer):
+	def  __init__ (self, data):
+		list_producer.__init__ (self, data)
+		self.closed = False
+		
 	def more (self):
+		if self.closed: 
+			return b""
 		try:			
 			data = self.data.next ()
 			if type (data) is str:
 				return data.encode ("utf8")
-			return data	
+			return data
 		except StopIteration:		
+			self.close ()
 			return b""
-		
-			
+	
+	def close (self):
+		if self.closed: return			
+		try: self.data.close ()
+		except AttributeError: pass	
+		self.closed = True
+
+class stream_producer (simple_producer):
+		def __init__ (self, data, buffer_size = 4096):
+			if not hasattr (data, "read"):
+				raise AttributeError ("stream object should have `read()` returns bytes object and optional 'close()'")			
+			closing_iter_producer.__init__ (self, data)
+			self.buffer_size = buffer_size
+				
+		def more (self):
+			if self.closed: 
+				return b""
+			data = self.obj.read (self.buffer_size)
+			if not data:
+				self.close ()
+			return data
+						
 class scanning_producer:
 	"like simple_producer, but more efficient for large strings"
 	def __init__ (self, data, buffer_size = 4096):

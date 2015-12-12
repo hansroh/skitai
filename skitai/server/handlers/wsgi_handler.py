@@ -220,36 +220,29 @@ class Job:
 			if content in ("", b"", []): # explicit empty string / iter
 				trigger.wakeup (lambda p=response: (p.done(),))
 			
-			vaild_content = []			
-			type_of_content = type (content)
-			if not (type_of_content is list or hasattr (content, "_next")):
-				content = [content]
+			if hasattr (content, "_next"): # flask etc.
+				content = [producers.closing_iter_producer (content)]
 			
-			will_be_push = []
+			will_be_push = []				
 			for part in content:
-				type_of_part = type (part)
-				
 				if isinstance (part, producers.simple_producer):
 					# streaming obj
-					if hasattr (part, "close"):						
-						response.add_closable (part) # automatic close	when channel closing
+					if hasattr (part, "close"):
+						# automatic close	when channel closing
+						response.add_closable (part)
 					will_be_push.append (part)
-					continue
 				
-				if (PY_MAJOR_VERSION >=3 and type_of_part is str) or (PY_MAJOR_VERSION <3 and type_of_part is unicode):
-					part = part.encode ("utf8")
-					type_of_part = bytes
-					
-				if type_of_part is bytes:
-					will_be_push.append (part)	
 				else:
-					raise AssertionError ("Streaming content should be single element")
-				
-				if hasattr (part, "next") and hasattr (part, "_next"):
-					# possible closingiterator
-					try: part.close ()
-					except AttributeError: pass
-				
+					type_of_part = type (part)
+					if (PY_MAJOR_VERSION >=3 and type_of_part is str) or (PY_MAJOR_VERSION <3 and type_of_part is unicode):
+						part = part.encode ("utf8")
+						type_of_part = bytes
+						
+					if type_of_part is bytes:
+						will_be_push.append (part)
+					else:
+						raise AssertionError ("Streaming content should be single element")
+					
 		except MemoryError:
 			raise
 			

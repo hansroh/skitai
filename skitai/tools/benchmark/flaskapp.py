@@ -29,7 +29,15 @@ FORMDATA = """
 	<input type="reset">
 </form>
 """
+from flask import Response
 
+@app.route('/stream')
+def generate_large_csv():
+	def generate():
+		for row in range (100):
+			yield str(row) + '\n'
+	return Response(generate(), mimetype='text/plain')
+    
 
 @app.route('/was')
 def wastest ():
