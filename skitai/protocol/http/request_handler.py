@@ -92,7 +92,6 @@ class RequestHandler:
 			self.http_version,
 			"\r\n".join (self.header)
 		)).encode ("utf8")
-
 		if is_data_producer:
 			return [req, data]
 		else:	

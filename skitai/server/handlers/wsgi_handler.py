@@ -177,7 +177,6 @@ class Handler:
 			self.wasc.logger.trace ("server",  request.uri)
 			return request.response.error (500, why = apph.debug and catch (1) or "")
 		
-		env ["skitai.was"] = self.wasc ()
 		if env ["wsgi.multithread"]:
 			self.wasc.queue.put (Job (request, apph, args, self.wasc.logger))
 		else:
@@ -199,17 +198,28 @@ class Job:
 		return "%s %s HTTP/%s" % (self.request.command.upper (), self.request.uri, self.request.version)
 	
 	def exec_app (self):		
-		self.args[0]["skitai.was"].request = request = self.request		
+		was = the_was.get ()
+		self.args [0]["skitai.was"] = was
+		
+		request = was.request = self.request
 		response = request.response
-				
+		
 		try:
 			content = self.apph (*self.args)
-			if not response.responsable (): # already called response.done ()
-				return
 			
-			if response.get ("content-type") is None:
+			if not response.responsable ():
+				# already called response.done () or dicinnected channel
+				return
+				
+			if content is None: # Possibly no return mistake
+				raise AssertionError ("Content or part should not be None")
+			
+			if response.get ("content-type") is None: 
 				response ["Content-Type"] = "text/html"	
 			
+			if len (content) == 0: # explicit empty string / iter
+				trigger.wakeup (lambda p=response: (p.done(),))
+					
 			vaild_content = []			
 			type_of_content = type (content)
 			if not (type_of_content is list or hasattr (content, "next")):
@@ -243,14 +253,14 @@ class Job:
 			
 		except:
 			self.logger.trace ("app")
-			trigger.wakeup (lambda p=response, d=self.apph.debug and sys.exc_info () or "": (p.error (500, "", d),))
+			trigger.wakeup (lambda p=response, d=self.apph.debug and sys.exc_info () or "": (p.error(500, "", d),))			
 				
 		else:
-			for part in will_be_push:
-				if len (will_be_push) == 1 and type (part) is bytes:
+			for part in will_be_push:				
+				if len (will_be_push) == 1 and type (part) is bytes and len (response) == 0:
 					response.update ("Content-Length", len (part))
 				response.push (part)					
-			trigger.wakeup (lambda p=response: (p.done(),))			
+			trigger.wakeup (lambda p=response: (p.done(),))
 											
 	def __call__(self):
 		try:
@@ -259,8 +269,8 @@ class Job:
 			finally:
 				self.deallocate	()
 		except:
-			self.logger.trace ("server",  self.request.uri)
-			return self.request.response.error (500, why = self.apph.debug and catch (1) or "")		
+			self.logger.trace ("server",  self.request.uri)			
+			self.request.response.trigger_error (500, why = self.apph.debug and catch (1) or "")
 	
 	def deallocate (self):
 		env = self.args [0]		
@@ -272,15 +282,15 @@ class Job:
 				try: os.remove (_input.name)
 				except: self.logger.trace ("app")
 		
-		was = env ["skitai.was"]
-		if hasattr (was, "app"): # Saddle
-			was.cookie = None
-			was.session = None
-			was.response = None
-			was.env = None
-			was.app = None
+		was = env.get ("skitai.was")
+		if was:
+			if hasattr (was, "app"): # Saddle
+				was.cookie = None
+				was.session = None
+				was.response = None
+				was.env = None
+				was.app = None
 			
-		if was.request:
-			was.request.response = None
-			was.request = None
-
+			if was.request:
+				was.request.response = None
+				was.request = None

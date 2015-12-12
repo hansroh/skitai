@@ -5,7 +5,6 @@ import time
 import os
 import sys
 from skitai.lib.reraise import reraise 
-from skitai.server.threads import trigger
 
 UNCOMPRESS_MAX = 2048
 
@@ -161,12 +160,8 @@ class http_response:
 		self.start (code, status, headers)		
 		if exc_info:
 			ct = self.get ("conetnt-type")
-			content = catch (ct and ct.startswith ("text/html"), exc_info)
-			
-			if len (self.outgoing) > 0:
-				self.push (content)
-			else:
-				self.error (int (code), status, content, push_only = True)
+			content = catch (0, exc_info)
+			self.push (content)
 			
 		return self.push #by WSGI Spec.
 		
@@ -204,14 +199,13 @@ class http_response:
 			self.delete ('set-cookie')
 			self.delete ('expires')
 			self.delete ('cache-control')
-		
+				
 		self.push (s)
 		if not push_only:
 			self.done (True, True, force_close)
-		
 	
 	#--------------------------------------------			
-	def push (self, thing):
+	def push (self, thing):		
 		if not self.responsable (): return
 		if type(thing) is bytes:			
 			self.outgoing.push (producers.simple_producer (thing))
@@ -273,8 +267,10 @@ class http_response:
 					wrap_in_chunking = True
 				self.update ('Content-Encoding', way_to_compress)	
 		
+		#lock.acquire ()
 		#print (self.build_reply_header())
-				
+		#print self.request.uri, len (self.outgoing), self.outgoing.list
+		#lock.release ()
 		if len (self.outgoing) == 0:
 			self.delete ('transfer-encoding')
 			self.delete ('content-length')			
@@ -303,7 +299,7 @@ class http_response:
 				)
 				
 			else:						
-				self.delete ('Transfer-Encoding')
+				self.delete ('transfer-encoding')
 				if way_to_compress:					
 					if way_to_compress == "gzip":
 						compressor = compressors.GZipCompressor ()
@@ -326,7 +322,7 @@ class http_response:
 				outgoing_producer = producers.composite_producer (self.outgoing)
 		
 		try:
-			if globbing:				
+			if globbing:
 				self.request.channel.push_with_producer (producers.globbing_producer (producers.hooked_producer (outgoing_producer, self.log)))
 			else:
 				self.request.channel.push_with_producer (producers.hooked_producer (outgoing_producer, self.log))
@@ -336,10 +332,11 @@ class http_response:
 			# and relay data with channel
 			# then if request is suddenly stopped, make sure close them
 			self.request.channel.close_when_close ([self.request.collector, self.request.producer])
+
 			if close_it:
 				self.request.channel.close_when_done()
 		
-		except:			
+		except:
 			self.request.logger.trace ()
 			self.request.logger.log (
 				'channel maybe closed',

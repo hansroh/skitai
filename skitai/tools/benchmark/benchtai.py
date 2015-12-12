@@ -36,7 +36,7 @@ def usage ():
 
 if __name__ == '__main__':
 	import getopt, sys
-	argopt, args = getopt.getopt (sys.argv[1:], "c:r:", ["help"])
+	argopt, args = getopt.getopt (sys.argv[1:], "c:r:k", ["help"])
 		
 	clients = 1
 	req = 1

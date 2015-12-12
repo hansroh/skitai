@@ -123,7 +123,7 @@ class http_request:
 				'warning'
 				)
 
-	def found_terminator (self):
+	def found_terminator (self):		
 		if self.collector:
 			self.collector.found_terminator()			
 		else:

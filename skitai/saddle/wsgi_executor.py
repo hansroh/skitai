@@ -2,6 +2,7 @@ from skitai.server  import utility
 from . import cookie
 from skitai.lib.reraise import reraise 
 import sys
+from skitai.server.threads import trigger
 
 def traceback ():	
 	t, v, tb = sys.exc_info ()
@@ -133,15 +134,15 @@ class Executor:
 	def __call__ (self):	
 		thing, param = self.get_method (self.env ["PATH_INFO"])
 		if thing is None:
-			self.env[ "skitai.was"].request.response.error (404)
-			return
+			self.env[ "skitai.was"].request.response.error (404, push_only = True)
+			return b""
 		
 		if param == 301:
 			response = self.env ["skitai.was"].request.response
 			location = self.env ["SCRIPT_NAME"] + thing
 			response ["Location"] = location
-			response.error (301, why = 'Object Moved To <a href="%s">Here</a>' % location)
-			return 
+			response.error (301, why = 'Object Moved To <a href="%s">Here</a>' % location, push_only = True)
+			return b""
 		
 		self.build_was ()
 		content = self.generate_content (thing, (), param)
