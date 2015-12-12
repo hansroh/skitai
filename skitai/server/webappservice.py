@@ -3,6 +3,7 @@ import multiprocessing
 from skitai.lib import pathtool, logger
 from .rpc import cluster_manager, cluster_dist_call
 from skitai.protocol.smtp import composer
+from . import producers
 
 PSYCOPG2_ENABLED = True
 try: 
@@ -129,20 +130,25 @@ class WAS:
 	
 	def shutdown (self, fast = 0):
 		lifetime.shutdown (0, fast)
-	
 
-class Stream:
+
+class Stream (producers.simple_producer):
 		def __init__ (self, obj, buffer_size = 4096):
 			self.obj = obj
 			self.buffer_size = buffer_size
+			self.closed = False
 			if not hasattr (self.obj, "read"):
 				raise AttributeError ("stream object should have `read()` returns bytes object and optional 'close()'")
 			
 		def close (self):
+			if self.closed: return
 			try: self.obj.close ()
 			except AttributeError: pass	
+			self.closed = True	
 				
 		def more (self):
+			if self.closed: 
+				return b""
 			data = self.obj.read (self.buffer_size)
 			if not data:
 				self.close ()

@@ -137,10 +137,10 @@ class ModuleManager:
 		# 2: 301 => /skitai/ => /skitai
 		
 		# route string
-		script_name = script_name.encode ("utf8")
+		#script_name = script_name.encode ("utf8")
 		if script_name == "/" and "/" in self.modules:
 			return "/"
-
+		
 		cands = []
 		for route in self.modules:
 			if script_name == route:

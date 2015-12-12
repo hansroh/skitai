@@ -213,30 +213,30 @@ class Job:
 				
 			if content is None: # Possibly no return mistake
 				raise AssertionError ("Content or part should not be None")
-			
+
 			if response.get ("content-type") is None: 
 				response ["Content-Type"] = "text/html"	
 			
 			if content in ("", b"", []): # explicit empty string / iter
 				trigger.wakeup (lambda p=response: (p.done(),))
-					
+			
 			vaild_content = []			
 			type_of_content = type (content)
-			if not (type_of_content is list or hasattr (content, "next")):
+			if not (type_of_content is list or hasattr (content, "_next")):
 				content = [content]
 			
 			will_be_push = []
-			should_be_single = False
 			for part in content:
 				type_of_part = type (part)
-				if hasattr (part, "more"):
+				
+				if isinstance (part, producers.simple_producer):
+					# streaming obj
 					if hasattr (part, "close"):						
-						request.producer = part # finally call abort close
-						should_be_single = True
+						response.add_closable (part) # automatic close	when channel closing
 					will_be_push.append (part)
 					continue
 				
-				if (PY_MAJOR_VERSION >=3 and type_of_content is str) or (PY_MAJOR_VERSION <3 and type_of_content is unicode):
+				if (PY_MAJOR_VERSION >=3 and type_of_part is str) or (PY_MAJOR_VERSION <3 and type_of_part is unicode):
 					part = part.encode ("utf8")
 					type_of_part = bytes
 					
@@ -245,8 +245,10 @@ class Job:
 				else:
 					raise AssertionError ("Streaming content should be single element")
 				
-			if should_be_single and len (will_be_push) > 1:
-				raise AssertionError ("Content or part should be string or producer type")
+				if hasattr (part, "next") and hasattr (part, "_next"):
+					# possible closingiterator
+					try: part.close ()
+					except AttributeError: pass
 				
 		except MemoryError:
 			raise

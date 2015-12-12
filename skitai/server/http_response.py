@@ -211,7 +211,10 @@ class http_response:
 			self.outgoing.push (producers.simple_producer (thing))
 		else:
 			self.outgoing.push (thing)
-				
+	
+	def add_closable (self, thing):
+		self.request.channel.closables.append (thing)
+					
 	def done (self, globbing = True, compress = True, force_close = False):
 		if not self.responsable (): return
 		self.is_done = True
@@ -331,7 +334,8 @@ class http_response:
 			# proxy collector and producer is related to asynconnect
 			# and relay data with channel
 			# then if request is suddenly stopped, make sure close them
-			self.request.channel.close_when_close ([self.request.collector, self.request.producer])
+			self.add_closable (self.request.collector)
+			self.add_closable (self.request.producer)
 
 			if close_it:
 				self.request.channel.close_when_done()

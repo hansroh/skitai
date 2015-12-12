@@ -280,9 +280,6 @@ class http_channel (asynchat.async_chat):
 					return
 					
 			r.error (404)
-	
-	def close_when_close (self, things):
-		self.closables = things
 					
 	def close (self):
 		if self.closed:
