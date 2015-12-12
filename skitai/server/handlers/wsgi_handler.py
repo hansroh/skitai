@@ -217,7 +217,7 @@ class Job:
 			if response.get ("content-type") is None: 
 				response ["Content-Type"] = "text/html"	
 			
-			if len (content) == 0: # explicit empty string / iter
+			if content in ("", b"", []): # explicit empty string / iter
 				trigger.wakeup (lambda p=response: (p.done(),))
 					
 			vaild_content = []			

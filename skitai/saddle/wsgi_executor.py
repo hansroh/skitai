@@ -134,6 +134,7 @@ class Executor:
 	def __call__ (self):	
 		thing, param = self.get_method (self.env ["PATH_INFO"])
 		if thing is None:
+			# Middleware Just push (), Skitai DO done().
 			self.env[ "skitai.was"].request.response.error (404, push_only = True)
 			return b""
 		

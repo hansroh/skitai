@@ -17,6 +17,9 @@ class Module:
 		self.set_route (route)
 		self.start_app ()
 	
+	def __repr__ (self):
+		return "<Module routing to %s at %x>" % (self.route, id(self))
+		
 	def get_callable (self):
 		return getattr (self.module, self.appname)
 		
@@ -92,13 +95,20 @@ class ModuleManager:
 	modules = {}	
 	def __init__(self, wasc):
 		self.wasc = wasc		
-		self.modules = {}		
+		self.modules = {}
+		self.modnames = {}
 			
 	def add_module (self, route, directory, modname):
+		if modname in self.modnames:
+			self.wasc.logger ("app", "Collision detected '%s'" % modname, "error")
+			self.wasc.logger ("app", "Couldn't import '%s'" % modname, "error")
+			return
+		
+		self.modnames [modname] = None		
 		if not route:
 			route = "/"
 		try: 
-			module = Module (self.wasc, route, directory, modname)			
+			module = Module (self.wasc, route, directory, modname)
 			
 		except: 
 			self.wasc.logger.trace ("app")
@@ -119,7 +129,6 @@ class ModuleManager:
 			app = self.modules [route]
 		except KeyError:
 			return None
-		
 		return app	
 		
 	def has_route (self, script_name):
@@ -131,7 +140,7 @@ class ModuleManager:
 		script_name = script_name.encode ("utf8")
 		if script_name == "/" and "/" in self.modules:
 			return "/"
-		
+
 		cands = []
 		for route in self.modules:
 			if script_name == route:

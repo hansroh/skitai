@@ -39,7 +39,7 @@ def hello_world (was, **form):
 		if file:
 			file.save ("d:\\var\\upload", dup = "o")
 		return str (form)
-	return MULTIPART
+	return [FORMDATA, "<hr />", MULTIPART]
 
 @app.route('/indians')
 def hello_world (was, num = 8):
