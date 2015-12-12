@@ -135,14 +135,14 @@ class Executor:
 		thing, param = self.get_method (self.env ["PATH_INFO"])
 		if thing is None:
 			# Middleware Just push (), Skitai DO done().
-			self.env[ "skitai.was"].request.response.error (404, push_only = True)
+			self.env[ "skitai.was"].request.response.send_error ("404 Not Found")
 			return b""
 		
 		if param == 301:
 			response = self.env ["skitai.was"].request.response
 			location = self.env ["SCRIPT_NAME"] + thing
 			response ["Location"] = location
-			response.error (301, why = 'Object Moved To <a href="%s">Here</a>' % location, push_only = True)
+			response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % location)
 			return b""
 		
 		self.build_was ()

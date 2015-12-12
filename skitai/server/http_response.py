@@ -138,8 +138,29 @@ class http_response:
 	def abort (self, code, status = "", why = ""):
 		self.request.channel.reject ()		
 		self.error (code, status, why, force_close = True)
-					
-	def start_response (self, status, headers = None, exc_info = None):
+	
+	def parse_ststus (self, status):
+		try:	
+			code, status = status.split (" ", 1)
+			code = int (code)
+		except:
+			raise AssertionError ("Can't understand given status code")		
+		return code, status	
+		
+	def send_error (self, status, why = ""):
+		# for WSGI App
+		if not self.responsable ():
+			raise AssertionError ("Relponse already sent!")			
+		if len (self.outgoing):
+			self.outgoing.list = []
+		
+		self ["Content-Type"] = "text/html"		
+		if type (why) is tuple: # render exc_info
+			why = catch (1, why)			
+		code, status = self.parse_ststus (status)	
+		self.error (code, status, why, push_only = True)
+	
+	def start_response (self, status, headers = None, exc_info = None):		
 		# for WSGI App
 		if not self.responsable ():
 			if exc_info:
@@ -151,15 +172,11 @@ class http_response:
 				raise AssertionError ("Relponse already sent!")		
 			return
 		
-		try:	
-			code, status = status.split (" ", 1)
-			code = int (code)
-		except:
-			raise AssertionError ("Can't understand given status code")
-			
-		self.start (code, status, headers)		
+		code, status = self.parse_ststus (status)
+		self.start (code, status, headers)
+		
 		if exc_info:
-			ct = self.get ("conetnt-type")
+			# expect plain/text, send exception info to developers
 			content = catch (0, exc_info)
 			self.push (content)
 			
@@ -175,7 +192,7 @@ class http_response:
 			for k, v in headers:
 				self.set (k, v)
 	reply = start
-		
+			
 	def error (self, code, status = "", why = "", force_close = False, push_only = False):
 		if not self.responsable (): return
 		self.reply_code = code
@@ -193,13 +210,10 @@ class http_response:
 			'url': "http://%s%s" % (self.request.get_header ("host"), self.request.uri)
 			}).encode ("utf8")
 		
-		if not push_only:
-			self.update ('Content-Length', len(s))
-			self.update ('Content-Type', 'text/html')
-			self.delete ('set-cookie')
-			self.delete ('expires')
-			self.delete ('cache-control')
-				
+		self.update ('Content-Length', len(s))
+		self.update ('Content-Type', 'text/html')
+		self.update ('Cache-Control', 'max-age=0')
+			
 		self.push (s)
 		if not push_only:
 			self.done (True, True, force_close)

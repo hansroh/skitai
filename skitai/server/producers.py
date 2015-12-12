@@ -52,12 +52,16 @@ class closing_iter_producer (list_producer):
 	def  __init__ (self, data):
 		list_producer.__init__ (self, data)
 		self.closed = False
-		
+		try:
+			self.next = getattr (self.data, "_next")
+		except AttributeError:
+			self.next = getattr (self.data, "next")
+			
 	def more (self):
 		if self.closed: 
 			return b""
-		try:			
-			data = self.data.next ()
+		try:
+			data = self.next ()
 			if type (data) is str:
 				return data.encode ("utf8")
 			return data

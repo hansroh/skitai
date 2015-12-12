@@ -220,7 +220,7 @@ class Job:
 			if content in ("", b"", []): # explicit empty string / iter
 				trigger.wakeup (lambda p=response: (p.done(),))
 			
-			if hasattr (content, "_next"): # flask etc.
+			if hasattr (content, "_next") or hasattr (content, "next"): # flask etc.
 				content = [producers.closing_iter_producer (content)]
 			
 			will_be_push = []				
@@ -248,7 +248,7 @@ class Job:
 			
 		except:
 			self.logger.trace ("app")
-			trigger.wakeup (lambda p=response, d=self.apph.debug and sys.exc_info () or "": (p.error(500, "", d),))			
+			trigger.wakeup (lambda p=response, d=self.apph.debug and catch (1) or "": (p.send_error ("500 Internal Server Error", d), p.done ()) )			
 				
 		else:
 			for part in will_be_push:				
@@ -260,12 +260,12 @@ class Job:
 	def __call__(self):
 		try:
 			try:
-				self.exec_app ()				
+				self.exec_app ()
 			finally:
 				self.deallocate	()
 		except:
-			self.logger.trace ("server",  self.request.uri)			
-			self.request.response.trigger_error (500, why = self.apph.debug and catch (1) or "")
+			# no response, alredy done. just log
+			self.logger.trace ("server",  self.request.uri)
 	
 	def deallocate (self):
 		env = self.args [0]		
