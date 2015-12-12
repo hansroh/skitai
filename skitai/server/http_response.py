@@ -3,6 +3,9 @@ from . import compressors
 import zlib
 import time
 import os
+import sys
+from skitai.lib.reraise import reraise 
+from skitai.server.threads import trigger
 
 UNCOMPRESS_MAX = 2048
 
@@ -51,7 +54,11 @@ class http_response:
 			('Date', http_date.build_http_date (time.time()))
 		]
 		self.outgoing = producers.fifo ()
-		
+		self.is_done = False
+	
+	def __len__ (self):
+		return len (self.outgoing)
+			
 	def __setitem__ (self, key, value):
 		self.set (key, value)
 
@@ -66,6 +73,8 @@ class http_response:
 		return key in [x [0].lower () for x in self.reply_headers]		
 			
 	def set (self, key, value):
+		if key.lower () != "set-cookie":
+			self.delete (key)
 		self.reply_headers.append ((key, value))
 			
 	def get (self, key):
@@ -73,7 +82,8 @@ class http_response:
 		for k, v in self.reply_headers:
 			if k.lower () == key:
 				return v
-		
+	get_header = get
+			
 	def delete (self, key):
 		index = 0
 		found = 0
@@ -97,79 +107,120 @@ class http_response:
 				[self.response(self.reply_code, self.reply_message)] + ['%s: %s' % x for x in self.reply_headers]
 				) + '\r\n\r\n'			
 	
-	def response (self, code, msg):
-		if not msg:
-			try:
-				msg = self.responses [code]
-			except KeyError: 
-				msg = "Undefined"	
-		return 'HTTP/%s %d %s' % (self.request.version, code, msg)
+	def get_status_msg (self, code):
+		try:
+			status = self.responses [code]
+		except KeyError: 
+			status = "Undefined"
+		return status	
 	
-	def start_response (self, status, headers = None, exc_info = None):
-		# WSGI compet
-		code, msg = status.split (" ", 1)
-		self.start (int (code), msg, headers)
+	def response (self, code, status):	
+		return 'HTTP/%s %d %s' % (self.request.version, code, status)
+	
+	
+	#--------------------------------------------
+	def responsable (self):
+		if self.is_done: return False
+		if self.request.channel is None: return False
+		return True
 		
-	def start (self, code, msg = "", headers = None):
+	def instant (self, code, status = "", headers = None):
+		# instance messaging
 		self.reply_code = code
-		if not msg:
-			self.reply_message = self.responses [code]
-		else:	
-			self.reply_message = msg
-			
-		if headers:
-			for k, v in headers:
-				self.set (k, v)
-	
-	def reply (self, code, msg = "", headers = None):
-		self.start (code, msg, headers)
-	
-	def instant (self, code, message = None, headers = None):
-		#if self.request.version != "1.1": return		
-		reply = [self.response (code, message)]
+		if status: self.reply_message = status
+		else:	self.reply_message = self.get_status_msg (code)
+				
+		reply = [self.response (self.reply_code, self.reply_message)]
 		if headers:
 			for header in headers:
 				reply.append ("%s: %s" % header)
 		self.request.channel.push (("\r\n".join (reply) + "\r\n\r\n").encode ("utf8"))
 	
-	def abort (self, code, why = ""):
+	def abort (self, code, status = "", why = ""):
 		self.request.channel.reject ()		
-		self.error (code, why, force_close = True)
+		self.error (code, status, why, force_close = True)
+					
+	def start_response (self, status, headers = None, exc_info = None):
+		# for WSGI App
+		if not self.responsable ():
+			if exc_info:
+				try:
+					reraise (*exc_info)
+				finally:
+					exc_info = None	
+			else:
+				raise AssertionError ("Relponse already sent!")		
+			return
 		
-	def error (self, code, why = "", force_close = False):
+		try:	
+			code, status = status.split (" ", 1)
+			code = int (code)
+		except:
+			raise AssertionError ("Can't understand given status code")
+			
+		self.start (code, status, headers)		
+		if exc_info:
+			ct = self.get ("conetnt-type")
+			content = catch (ct and ct.startswith ("text/html"), exc_info)
+			
+			if len (self.outgoing) > 0:
+				self.push (content)
+			else:
+				self.error (int (code), status, content, push_only = True)
+			
+		return self.push #by WSGI Spec.
+		
+	def start (self, code, status = "", headers = None):
+		if not self.responsable (): return
 		self.reply_code = code
-		message = self.responses [code]		
-		s = self.DEFAULT_ERROR_MESSAGE % {
-			'code': code,
-			'message': message,
+		if status: self.reply_message = status
+		else:	self.reply_message = self.get_status_msg (code)
+			
+		if headers:
+			for k, v in headers:
+				self.set (k, v)
+	reply = start
+		
+	def error (self, code, status = "", why = "", force_close = False, push_only = False):
+		if not self.responsable (): return
+		self.reply_code = code
+		if status: self.reply_message = status
+		else:	self.reply_message = self.get_status_msg (code)
+			
+		if type (why) is tuple: # sys.exc_info ()
+			why = catch (1, why)
+		
+		s = (self.DEFAULT_ERROR_MESSAGE % {
+			'code': self.reply_code,
+			'message': self.reply_message,
 			'info': why,
 			'gentime': http_date.build_http_date (time.time ()),
 			'url': "http://%s%s" % (self.request.get_header ("host"), self.request.uri)
-			}		
-		self.update ('Content-Length', len(s))
-		self.update ('Content-Type', 'text/html')
-		self.delete ('content-encoding')
-		self.delete ('expires')
-		self.delete ('cache-control')
-		self.delete ('set-cookie')
-
-		self.push (s.encode ("utf8"))
-		self.done (True, True, force_close)
+			}).encode ("utf8")
+		
+		if not push_only:
+			self.update ('Content-Length', len(s))
+			self.update ('Content-Type', 'text/html')
+			self.delete ('set-cookie')
+			self.delete ('expires')
+			self.delete ('cache-control')
+		
+		self.push (s)
+		if not push_only:
+			self.done (True, True, force_close)
+		
 	
+	#--------------------------------------------			
 	def push (self, thing):
-		if self.request.channel is None: return
+		if not self.responsable (): return
 		if type(thing) is bytes:			
 			self.outgoing.push (producers.simple_producer (thing))
 		else:
 			self.outgoing.push (thing)
-	
-	def responsable (self):
-		return not self.is_sent_response
-		
+				
 	def done (self, globbing = True, compress = True, force_close = False):
-		if self.request.channel is None: return
-		if self.is_sent_response: return
-		self.is_sent_response = True
+		if not self.responsable (): return
+		self.is_done = True
 				
 		connection = utility.get_header (utility.CONNECTION, self.request.header).lower()
 		close_it = False
@@ -182,7 +233,7 @@ class http_response:
 		else:
 			if self.request.version == '1.0':
 				if connection == 'keep-alive':
-					if 'Content-Length' not in self:
+					if not self.has_key ('content-length'):
 						close_it = True
 						self.update ('Connection', 'close')
 					else:
@@ -194,16 +245,17 @@ class http_response:
 				if connection == 'close':
 					close_it = True
 					self.update ('Connection', 'close')
-				elif not self.has_key ('Content-Length'):
+				if not self.has_key ('content-length'):
 					wrap_in_chunking = True
 					
 			else:
+				# unknown close
 				self.update ('Connection', 'close')
 				close_it = True
-			
+		
 		if compress and not self.has_key ('Content-Encoding'):
 			maybe_compress = self.request.get_header ("Accept-Encoding")
-			if maybe_compress and self.has_key ("Content-Length") and int (self ["Content-Length"]) <= UNCOMPRESS_MAX:
+			if maybe_compress and self.has_key ("content-length") and int (self ["Content-Length"]) <= UNCOMPRESS_MAX:
 				maybe_compress = ""
 			
 			else:	
@@ -217,19 +269,21 @@ class http_response:
 		
 			if way_to_compress:
 				if self.has_key ('Content-Length'):
-					self.delete ("Content-Length") # rebuild
+					self.delete ("content-length") # rebuild
 					wrap_in_chunking = True
-				self.update ('Content-Encoding', way_to_compress)
+				self.update ('Content-Encoding', way_to_compress)	
 		
+		#print (self.build_reply_header())
+				
 		if len (self.outgoing) == 0:
-			self.delete ('Transfer-Encoding')
-			self.delete ('Content-Length')			
+			self.delete ('transfer-encoding')
+			self.delete ('content-length')			
 			self.outgoing.push_front (producers.simple_producer (self.build_reply_header().encode ("utf8")))
 			outgoing_producer = producers.composite_producer (self.outgoing)
 			
 		else:	
 			if wrap_in_chunking:
-				self.delete ('Content-Length')
+				self.delete ('content-length')
 				self.update ('Transfer-Encoding', 'chunked')
 				
 				if way_to_compress:
@@ -248,9 +302,9 @@ class http_response:
 					producers.fifo([outgoing_header, outgoing_producer])
 				)
 				
-			else:
-				self.delete ('Transfer-Encoding')				
-				if way_to_compress:
+			else:						
+				self.delete ('Transfer-Encoding')
+				if way_to_compress:					
 					if way_to_compress == "gzip":
 						compressor = compressors.GZipCompressor ()
 					else: # deflate
@@ -281,11 +335,11 @@ class http_response:
 			# proxy collector and producer is related to asynconnect
 			# and relay data with channel
 			# then if request is suddenly stopped, make sure close them
-			self.request.channel.abort_when_close ([self.request.collector, self.request.producer])
+			self.request.channel.close_when_close ([self.request.collector, self.request.producer])
 			if close_it:
 				self.request.channel.close_when_done()
 		
-		except:
+		except:			
 			self.request.logger.trace ()
 			self.request.logger.log (
 				'channel maybe closed',
@@ -304,13 +358,12 @@ class http_response:
 	
 		
 	# Default error message
-	DEFAULT_ERROR_MESSAGE = """
-<!DOCTYPE html>
+	DEFAULT_ERROR_MESSAGE = """<!DOCTYPE html>
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>ERROR: %(code)d %(message)s</title>
-<style type="text/css"><!-- * {font-family: verdana, sans-serif;}html body {margin: 0;padding: 0;background: #efefef;font-size: 12px;color: #1e1e1e;}#titles {margin-left: 15px;padding: 10px;}#titles h1 {color: #000000;}#titles h2 {color: #000000;} #content {padding: 10px;background: #ffffff;}p {}#error p, h3, b { font-size: 11px;}#error{margin: 0; padding: 0;} hr {margin:0; padding:0;} #error hr {border-top:#888888 1px solid;} #error li, i { font-weight: normal;}#footer {font-size: 9px;padding-left: 10px;}body :lang(fa) { direction: rtl; font-size: 100%%; font-family: Tahoma, Roya, sans-serif; float: right; } :lang(he) { direction: rtl; } --></style>
+<style type="text/css"><!-- *{font-family:verdana,sans-serif;}body{margin:0;padding:0;background:#efefef;font-size:12px;color:#1e1e1e;} #titles{margin-left:15px;padding:10px;}#titles h1,h2{color: #000000;} #content{padding:10px;background:#ffffff;} #error p,h3,b{font-size:11px;}#error{margin:0;padding:0;} hr{margin:0;padding:0;} #error hr{border-top:#888888 1px solid;} #error li,i{font-weight:normal;}#footer {font-size:9px;padding-left:10px;} --></style>
 </head>
 <body>
 <div id="titles"><h1>ERROR</h1><h2>%(code)d %(message)s</h2></div>

@@ -1,4 +1,4 @@
-from . import ssgi_handler
+from . import wsgi_handler, collectors
 import re
 from skitai.protocol.http import request as http_request
 from skitai.protocol.http import request_handler as http_request_handler
@@ -7,6 +7,8 @@ from skitai.client import adns
 from skitai.server import compressors, producers
 import time
 
+post_max_size = wsgi_handler.Handler.post_max_size
+upload_max_size = wsgi_handler.Handler.upload_max_size
 
 class TunnelForClientToServer:
 	collector = None
@@ -22,9 +24,6 @@ class TunnelForClientToServer:
 		self.bytes += len (data)
 		self.asyncon.push (data)
 	
-	def abort (self):
-		self.close ()
-			
 	def close (self):
 		self.asyncon.close_socket ()
 		self.asyncon.request = None # unlink back ref
@@ -61,9 +60,9 @@ class TunnelForServerToClient:
 	def done (self, code, msg):
 		if code and self.bytes == 0:
 			self.asyncon.request = None # unlink back ref
-			self.request.response.error (507, "%s %s" % (code, msg))			
+			self.request.response.error (507, "", "%s %s" % (code, msg))			
 		else:
-			self.abort ()
+			self.close ()
 			
 	def collect_incoming_data (self, data):
 		self.bytes += len (data)		
@@ -83,7 +82,7 @@ class TunnelForServerToClient:
 			self.bytes)
 			)
 				
-	def abort (self):
+	def close (self):
 		self.log_request ()
 		self.cli2srv and self.cli2srv.close ()
 		self.channel.close ()
@@ -271,7 +270,7 @@ class ProxyResponse (http_response.Response):
 		self.header_s = header		
 		if header [:2] == "\r\n":
 			header = header [2:]
-		header = header.split ("\r\n")
+		header = header.split ("\r\n")		
 		self.response = header [0]
 		self.header = header [1:]
 		self._header_cache = {}
@@ -332,11 +331,11 @@ class ProxyResponse (http_response.Response):
 	def is_gzip_compressed (self):
 		return self.gzip_compressed
 	
-	def abort (self):
+	def close (self):
 		self.client_request.producer = None		
 		try: self.u.data = []
-		except AttributeError: pass
-		self.asyncon.abort ()	
+		except AttributeError: pass		
+		self.asyncon.abort ()
 			
 	def affluent (self):
 		# if channel doesn't consume data, delay recv data		
@@ -347,11 +346,10 @@ class ProxyResponse (http_response.Response):
 		return len (self.u.data) or self.got_all_data
 		
 	def more (self):
-		self.flushed_time = time.time ()		
-		return self.u.read ()
-		
+		self.flushed_time = time.time ()
+		return self.u.read ()		
 
-class Collector (ssgi_handler.Collector):
+class Collector (collectors.FormCollector):
 	# same as asyncon ac_in_buffer_size
 	ac_in_buffer_size = 4096
 	asyncon = None
@@ -373,12 +371,12 @@ class Collector (ssgi_handler.Collector):
 		if self.content_length == 0:
 			return self.found_terminator ()
 			
-		if self.content_length <= ssgi_handler.MAX_POST_SIZE: #5M
+		if self.content_length <= post_max_size: #5M
 			self.cached = True
 		
 		self.request.channel.set_terminator (self.content_length)
 	
-	def abort (self):
+	def close (self):
 		self.data = []
 		self.cache = []
 		self.request.collector = None
@@ -424,7 +422,7 @@ class Collector (ssgi_handler.Collector):
 		return b"".join (data)
 		
 			
-class Handler (ssgi_handler.Handler):
+class Handler (wsgi_handler.Handler):
 	def __init__ (self, wasc, clusters, cachefs = None):
 		self.wasc = wasc
 		self.clusters = clusters
@@ -451,8 +449,8 @@ class Handler (ssgi_handler.Handler):
 			if request.command in ('post', 'put'):
 				ct = request.get_header ("content-type")
 				if not ct: ct = ""
-				post_max_size = ct.startswith ("multipart/form-data") and ssgi_handler.MAX_UPLOAD_SIZE or ssgi_handler.MAX_POST_SIZE
-				collector = self.make_collector (Collector, request, post_max_size)
+				current_post_max_size = ct.startswith ("multipart/form-data") and upload_max_size or post_max_size
+				collector = self.make_collector (Collector, request, current_post_max_size)
 				if collector:
 					request.collector = collector
 					collector.start_collect ()
@@ -475,10 +473,10 @@ class Handler (ssgi_handler.Handler):
 			if collector:
 				collector.asyncon = asyncon
 			r.start ()
-			
+						
 		except:
-			self.wasc.logger.trace ("server")	
-			request.response.error (500, ssgi_handler.catch (1))
+			self.wasc.logger.trace ("server")
+			request.response.error (500, "", "Proxy request has been failed.")
 	
 	def is_cached (self, request, has_data):
 		if has_data:
@@ -541,7 +539,7 @@ class Handler (ssgi_handler.Handler):
 		response, request = handler.response, handler.client_request
 		
 		if response.code < 100:
-			request.response.error (506, "%s (Code: 506.%d)" % (response.msg, response.code))		
+			request.response.error (506, "", "%s (Code: 506.%d)" % (response.msg, response.code))		
 		else:
 			try:	
 				self.save_cache (request, handler)					
@@ -549,5 +547,4 @@ class Handler (ssgi_handler.Handler):
 				self.wasc.logger.trace ("server")
 		
 		self.dealloc (request, handler)
-		
 		
