@@ -68,8 +68,18 @@ class Handler:
 		path, params, query, fragment = request.split_uri()
 		if '%' in path:
 			path = unquote (path)
-			
-		while path and path[0] == '/':
+		
+		# return redirect
+		if path == "":
+			request.response['Location'] = '/'
+			request.response.error (301)
+			return
+		
+		if path.find ("./") != -1 or path.find ("//") != -1:
+			request.response.error (404)
+			return
+				
+		while path and path [0] == '/':
 			path = path[1:]
 		
 		if self.filesystem.isdir (path):

@@ -36,6 +36,7 @@ class Executor (wsgi_executor.Executor):
 		self.commit ()		
 		if len (results) == 1: results = tuple (results)
 		else: results = (results,)
-			
+		
+		self.was.response ["Content-Type"] = "text/xml"
 		return self.was, xmlrpclib.dumps (results, methodresponse = True, allow_none = True, encoding = "utf8").encode ("utf8")
 		

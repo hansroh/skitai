@@ -6,22 +6,17 @@
 
 HTTPS = True
 PSYCOPG = True
-JSONRPBLIB = True
 
 import sys, time, os, threading
 from . import http_server, authorizer, wsgi_apps, rcache
 from skitai import lifetime
 from warnings import warn
+from . import https_server
+from skitai import was as THE_WAS
+from skitai.wasp import _WASPool
 
 if os.name == "nt":	
 	from . import schedule
-
-try: from .handlers import jsonrpc_handler
-except ImportError: JSONRPBLIB = False
-	
-try: from . import https_server
-except ImportError:
-	HTTPS = False
 
 try: import psycopg2
 except ImportError: 
@@ -89,6 +84,8 @@ class Loader:
 		if not hasattr (self.wasc, "threads"):
 			for attr in ("map", "rpc", "rest", "wget", "lb", "db", "dlb", "dmap"):
 				delattr (self.wasc, attr)
+		
+		THE_WAS = _WASPool (self.wasc)
 		
 	def config_cachefs (self, cache_dir): 
 		if cache_dir:

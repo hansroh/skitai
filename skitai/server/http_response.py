@@ -37,7 +37,7 @@ def catch (htmlformating = 0, exc_info = None):
 	else:
 		buf = []
 		buf.append ("%s %s" % (t, v))
-		buf.append ("In %s at line %s, %s" % (file, line, function == "?" and "__main__" or "function " + function))
+		buf.append ("in file %s at line %s, %s" % (file, line, function == "?" and "__main__" or "function " + function))
 		buf += ["%s %s %s" % x for x in tbinfo]
 		return "\n".join (buf)
 
@@ -73,6 +73,8 @@ class http_response:
 		return key in [x [0].lower () for x in self.reply_headers]		
 			
 	def set (self, key, value):
+		if key.lower () != "set-cookie":
+			self.delete (key)
 		self.reply_headers.append ((key, value))
 			
 	def get (self, key):
@@ -115,6 +117,13 @@ class http_response:
 	def response (self, code, status):	
 		return 'HTTP/%s %d %s' % (self.request.version, code, status)
 	
+	
+	#--------------------------------------------
+	def responsable (self):
+		if self.is_done: return False
+		if self.request.channel is None: return False
+		return True
+		
 	def instant (self, code, status = "", headers = None):
 		# instance messaging
 		self.reply_code = code
@@ -130,13 +139,9 @@ class http_response:
 	def abort (self, code, status = "", why = ""):
 		self.request.channel.reject ()		
 		self.error (code, status, why, force_close = True)
-	
-	def responsable (self):
-		if self.is_done: return False
-		if self.request.channel is None: return False
-		return True
-				
+					
 	def start_response (self, status, headers = None, exc_info = None):
+		# for WSGI App
 		if not self.responsable ():
 			if exc_info:
 				try:
@@ -146,13 +151,24 @@ class http_response:
 			else:
 				raise AssertionError ("Relponse already sent!")		
 			return
+		
+		try:	
+			code, status = status.split (" ", 1)
+			code = int (code)
+		except:
+			raise AssertionError ("Can't understand given status code")
 			
-		code, status = status.split (" ", 1)		
+		self.start (code, status, headers)		
 		if exc_info:
-			self.error (int (code), status, exc_info)
-		else:
-			self.start (int (code), status, headers)			
-			return self.push #by WSGI Spec.
+			ct = self.get ("conetnt-type")
+			content = catch (ct and ct.startswith ("text/html"), exc_info)
+			
+			if len (self.outgoing) > 0:
+				self.push (content)
+			else:
+				self.error (int (code), status, content, push_only = True)
+			
+		return self.push #by WSGI Spec.
 		
 	def start (self, code, status = "", headers = None):
 		if not self.responsable (): return
@@ -164,8 +180,8 @@ class http_response:
 			for k, v in headers:
 				self.set (k, v)
 	reply = start
-	
-	def error (self, code, status = "", why = "", force_close = False):
+		
+	def error (self, code, status = "", why = "", force_close = False, push_only = False):
 		if not self.responsable (): return
 		self.reply_code = code
 		if status: self.reply_message = status
@@ -181,17 +197,20 @@ class http_response:
 			'gentime': http_date.build_http_date (time.time ()),
 			'url': "http://%s%s" % (self.request.get_header ("host"), self.request.uri)
 			}
-
-		self.update ('Content-Length', len(s))
-		self.update ('Content-Type', 'text/html')
-		self.delete ('content-encoding')
-		self.delete ('expires')
-		self.delete ('cache-control')
-		self.delete ('set-cookie')
-
+		
+		if not push_only:
+			self.update ('Content-Length', len(s))
+			self.update ('Content-Type', 'text/html')
+			self.delete ('set-cookie')
+			self.delete ('expires')
+			self.delete ('cache-control')			
+			
 		self.push (s.encode ("utf8"))
-		self.done (True, True, force_close)
+		if not push_only:
+			self.done (True, True, force_close)
+		
 	
+	#--------------------------------------------			
 	def push (self, thing):
 		if not self.responsable (): return
 		if type(thing) is bytes:			
@@ -214,7 +233,7 @@ class http_response:
 		else:
 			if self.request.version == '1.0':
 				if connection == 'keep-alive':
-					if 'Content-Length' not in self:
+					if not self.has_key ('content-length'):
 						close_it = True
 						self.update ('Connection', 'close')
 					else:
@@ -226,16 +245,17 @@ class http_response:
 				if connection == 'close':
 					close_it = True
 					self.update ('Connection', 'close')
-				elif not self.has_key ('Content-Length'):
+				if not self.has_key ('content-length'):
 					wrap_in_chunking = True
 					
 			else:
+				# unknown close
 				self.update ('Connection', 'close')
 				close_it = True
 		
 		if compress and not self.has_key ('Content-Encoding'):
 			maybe_compress = self.request.get_header ("Accept-Encoding")
-			if maybe_compress and self.has_key ("Content-Length") and int (self ["Content-Length"]) <= UNCOMPRESS_MAX:
+			if maybe_compress and self.has_key ("content-length") and int (self ["Content-Length"]) <= UNCOMPRESS_MAX:
 				maybe_compress = ""
 			
 			else:	
@@ -249,22 +269,21 @@ class http_response:
 		
 			if way_to_compress:
 				if self.has_key ('Content-Length'):
-					self.delete ("Content-Length") # rebuild
+					self.delete ("content-length") # rebuild
 					wrap_in_chunking = True
-				self.update ('Content-Encoding', way_to_compress)
-		
+				
 		if len (self.outgoing) == 0:
-			self.delete ('Transfer-Encoding')
-			self.delete ('Content-Length')			
+			self.delete ('content-length')
 			self.outgoing.push_front (producers.simple_producer (self.build_reply_header().encode ("utf8")))
 			outgoing_producer = producers.composite_producer (self.outgoing)
 			
 		else:	
 			if wrap_in_chunking:
-				self.delete ('Content-Length')
+				self.delete ('content-length')
 				self.update ('Transfer-Encoding', 'chunked')
 				
 				if way_to_compress:
+					self.update ('Content-Encoding', way_to_compress)
 					if way_to_compress == "gzip": 
 						producer = producers.gzipped_producer
 					else: # deflate
@@ -280,9 +299,9 @@ class http_response:
 					producers.fifo([outgoing_header, outgoing_producer])
 				)
 				
-			else:
-				self.delete ('Transfer-Encoding')				
+			else:						
 				if way_to_compress:
+					self.update ('Content-Encoding', way_to_compress)
 					if way_to_compress == "gzip":
 						compressor = compressors.GZipCompressor ()
 					else: # deflate

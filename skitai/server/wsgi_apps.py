@@ -60,15 +60,17 @@ class Module:
 				
 	def set_route (self, route):
 		route = route
-		if not route or route [0] != "/":
-			raise TypeError("route url must be abs path")
 		while route and route [-1] == "/":
-			route = route [:-1]
+			route = route [:-1]				
 		if not route:
-			route = "/"
+			route = "/"			
 		self.route = route
-		self.route_len = len (route)
 		
+		if route == "/":
+			self.route_len = 0
+		else:	
+			self.route_len = len (route)
+			
 	def get_route (self):
 		return self.route
 					
@@ -95,7 +97,6 @@ class ModuleManager:
 	def add_module (self, route, directory, modname):
 		if not route:
 			route = "/"
-
 		try: 
 			module = Module (self.wasc, route, directory, modname)			
 			
@@ -104,20 +105,16 @@ class ModuleManager:
 			self.wasc.logger ("app", "[error] application load failed: %s" % modname)
 			
 		else: 
-			route = module.get_route ()
 			self.wasc.logger ("app", "[info] application %s imported." % route)
 			if route in self.modules:
 				self.wasc.logger ("app", "[info] application route collision detected: %s at %s <-> %s" % (route, module.abspath, self.modules [route].abspath), "warn")
 			self.modules [route] = module
 	
-	def get_app (self, script_name, rootmatch = False):
-		if not rootmatch:
-			route = self.has_route (script_name)
-			if route in (0, 1): # 404, 301
-				return None
-		else:
-			route = "/"
-		
+	def get_app (self, script_name):	
+		route = self.has_route (script_name)
+		if route in (0, 1, 2): # 404, 301
+			return None
+
 		try:	
 			app = self.modules [route]
 		except KeyError:
@@ -127,31 +124,25 @@ class ModuleManager:
 		
 	def has_route (self, script_name):
 		# 0: 404
-		# 1: 301
+		# 1: 301 => /skitai => /skitai/
+		# 2: 301 => /skitai/ => /skitai
+		
 		# route string
-		if type (script_name) is bytes:
-			script_name = script_name.decode ("utf8")
-			
-		# return redirect
-		if script_name == "":
-			if "/" in self.modules:				
-				return 1
-			else:
-				return 0
-			
+		script_name = script_name.encode ("utf8")
+		if script_name == "/" and "/" in self.modules:
+			return "/"
+		
 		cands = []
 		for route in self.modules:
-			if route == "/":
-				if script_name == "/":
-					return "/"
-																	
-			else:				
-				if script_name == route or script_name.startswith (route [-1] != "/" and route + "/" or route):
-					cands.append (route)
-					
-				elif script_name == route [:-1]:
-					return 1
-		
+			if script_name == route:
+				cands.append (route)				
+			elif script_name [-1] == "/" and script_name [:-1] == route:
+				return 2				
+			elif script_name + "/" == route:
+				return 1
+			elif script_name.startswith (route [-1] != "/" and route + "/" or route):
+				cands.append (route)
+				
 		if cands:
 			if len (cands) == 1:
 				return cands [0]

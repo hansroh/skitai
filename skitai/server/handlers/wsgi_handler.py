@@ -118,8 +118,13 @@ class Handler:
 		has_route = self.wasc.apps.has_route (path)
 		if has_route == 0:
 			return request.response.error (404)
-		elif has_route == 1:
-			request.response ["Location"] = "%s/" % path
+		elif has_route in (1, 2):
+			if has_route == 1:
+				location = "%s/" % path
+			else:
+				location = path	[:-1]
+			request.response ["Location"] = location
+			
 			if request.command in ('post', 'put'):
 				return request.response.abort (301)
 			else:	
@@ -207,33 +212,44 @@ class Job:
 				return
 			
 			if response.get_header ("content-type") is None:
-				response ["Content-Type"] = "text/html"
-
-			type_of_content = type (content)
-			if type_of_content is list:
-				content = producers.list_producer (content)
-			elif hasattr (content, "next") or hasattr (content, "more"):
-				if hasattr (content, "next"):
-					content = producers.iter_producer (content) # next => more
-				if hasattr (content, "abort") or hasattr (content, "close"):
-					request.producer = content # finally call abort close
-			else:					
-				if (PY_MAJOR_VERSION >=3 and type_of_content is str) or (PY_MAJOR_VERSION <3 and type_of_content is unicode):
-					content = content.encode ("utf8")
-					type_of_content = bytes
-				if type_of_content is bytes:
-					response.update ('Content-Length', len (content))					
-				else:
-					raise ValueError ("Content should be string or producer type")
+				response ["Content-Type"] = "text/html"	
 			
+			vaild_content = []			
+			type_of_content = type (content)
+			if not (type_of_content is list or hasattr (content, "next")):
+				content = [content]
+			
+			will_be_push = []
+			for part in content:
+				type_of_part = type (part)
+				if hasattr (content, "more"):
+					if hasattr (content, "close"):
+						request.producer = content # finally call abort close
+					will_be_push.append (part)
+					continue
+			
+				if (PY_MAJOR_VERSION >=3 and type_of_content is str) or (PY_MAJOR_VERSION <3 and type_of_content is unicode):
+					part = part.encode ("utf8")
+					type_of_part = bytes
+					
+				if type_of_part is bytes:
+					will_be_push.append (part)	
+				else:
+					raise ValueError ("Content or part should be string or producer type")
+					
 		except MemoryError:
 			raise
 			
 		except:
 			was.logger.trace ("app")
-			trigger.wakeup (lambda p=response, d=self.apph.debug and sys.exc_info () or "": (p.error (500, "", d),))			
+			trigger.wakeup (lambda p=response, d=self.apph.debug and sys.exc_info () or "": (p.error (500, "", d),))
+				
 		else:
-			trigger.wakeup (lambda p=response, d=content: (p.push(d), p.done()))
+			for part in will_be_push:
+				if len (will_be_push) == 1 and type (part) is bytes:
+					response.update ("Content-Length", len (part))
+				response.push (part)					
+			trigger.wakeup (lambda p=response: (p.done(),))			
 											
 	def __call__(self):
 		try:
