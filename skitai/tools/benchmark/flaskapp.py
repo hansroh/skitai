@@ -2,14 +2,14 @@
 
 from flask import Flask, request, url_for
 import os
+from skitai import was
 
 app = Flask(__name__)
 app.debug = True
 app.use_reloader = True
 
-
 MULTIPART = """
-<form action = "/skitai/" enctype="multipart/form-data" method="post">
+<form action = "" enctype="multipart/form-data" method="post">
 	<input type="hidden" name="submit-hidden" value="Genious">   
 	<p></p>What is your name? <input type="text" name="submit-name" value="Hans Roh"></p>
 	<p></p>What files are you sending? <br />
@@ -22,7 +22,7 @@ MULTIPART = """
 """
 
 FORMDATA = """
-<form action = "/flask/" method="post">
+<form action = "" method="post">
 	<input type="hidden" name="submit-hidden" value="Genious">   
 	<p></p>What is your name? <input type="text" name="submit-name" value="Hans Roh"></p>	
 	<input type="submit" value="Send"> 
@@ -30,21 +30,16 @@ FORMDATA = """
 </form>
 """
 
-@app.route('/asdf')
-def asdf ():	 
-	if request.method == 'POST':		
-		if request.files:
-			file = request.files ['file1']
-			filename = file.filename
-			file.save (os.path.join("d:\\var\\upload", filename))
-			return os.path.join("d:\\var\\upload", filename)
-		else:
-			return str (url_for ("hello_world"))
-	return FORMDATA
-	
-	
+
+@app.route('/was')
+def wastest ():
+	s = was.rest ("http://210.116.122.184:3424/rpc2")
+	s.bladese ("adsense.websearch", "computer", 0, 3)
+	rs = s.getwait ()
+	return str (rs.data)
+
 @app.route('/', methods=['GET', 'POST'])
-def hello_world():	 
+def index ():	 
 	if request.method == 'POST':		
 		if request.files:
 			file = request.files ['file1']
@@ -52,9 +47,8 @@ def hello_world():
 			file.save (os.path.join("d:\\var\\upload", filename))
 			return os.path.join("d:\\var\\upload", filename)
 		else:
-			return str (url_for ("asdf"))
-	return str (url_for ("asdf"))		
-	#return FORMDATA
+			return str (request.form)
+	return FORMDATA+"<hr>"+MULTIPART
 
 	
 if __name__ == '__main__':

@@ -145,7 +145,7 @@ class http_channel (asynchat.async_chat):
 	affluent = None
 	closed = False
 	is_rejected = False
-	closables = []
+	abortables = []
 	zombie_timeout = MAX_KEEP_CONNECTION
 	
 	def __init__ (self, server, conn, addr):
@@ -281,24 +281,22 @@ class http_channel (asynchat.async_chat):
 					
 			r.error (404)
 	
-	def close_when_close (self, things):
-		self.closables = things
+	def abort_when_close (self, things):
+		self.abortables = things
 					
 	def close (self):
 		if self.closed:
 			return
-		self.closed = True
-		
+		self.closed = True	
 		if self.current_request is not None:
-			self.closables.append (self.current_request.collector)
-			self.closables.append (self.current_request.producer)
+			self.abortables.append (self.current_request.collector)
+			self.abortables.append (self.current_request.producer)
 			self.current_request.channel = None # break circ refs
 			self.current_request = None
 		
-		for closable in self.closables:
-			if closable:				
-				try: closable.close ()
-				except AttributeError: pass
+		for abortable in self.abortables:
+			if abortable:
+				abortable.abort ()
 		
 		self.discard_buffers ()
 		asynchat.async_chat.close (self)

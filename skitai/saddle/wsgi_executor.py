@@ -2,7 +2,7 @@ from skitai.server  import utility
 from . import cookie
 from skitai.lib.reraise import reraise 
 import sys
-	
+
 def traceback ():	
 	t, v, tb = sys.exc_info ()
 	tbinfo = []
@@ -29,19 +29,7 @@ class Executor:
 	def __init__ (self, env, get_method):
 		self.env = env	
 		self.get_method = get_method
-		
-		_was = self.env.get ("skitai.was")	
-		_was.env = env
-		_was.response = _was.request.response
-		_was.cookie = cookie.Cookie (_was.request)
-		_was.session = _was.cookie.get_session ()
-		self.was = _was
-			
-	def commit (self):
-		# keep commit order, session -> cookie
-		try: self.was.session.commit ()
-		except AttributeError: pass							
-		self.was.cookie.commit ()
+		self.was = None
 	
 	def chained_exec (self, method, args, karg):
 		# recursive before, after, teardown
@@ -54,7 +42,7 @@ class Executor:
 		
 		try:
 			if before:
-				response = before (was)
+				response = before (self.was)
 				if response:
 					return response
 			
@@ -87,7 +75,7 @@ class Executor:
 		
 		if teardown:
 			try:
-				response = teardown (self.was)
+				teardown (self.was)
 			except Exception as expt:
 				self.was.logger.trace ("app")
 				if first_expt is None: first_expt = sys.exc_info ()
@@ -128,19 +116,36 @@ class Executor:
 			else:	 
 				s [k] = v
 	
+	def build_was (self):
+		_was = self.env["skitai.was"]
+		_was.env = self.env
+		_was.response = _was.request.response
+		_was.cookie = cookie.Cookie (_was.request)
+		_was.session = _was.cookie.get_session ()
+		self.was = _was		
+	
+	def commit (self):
+		# keep commit order, session -> cookie
+		try: self.was.session.commit ()
+		except AttributeError: pass							
+		self.was.cookie.commit ()
+			
 	def __call__ (self):	
 		thing, param = self.get_method (self.env ["PATH_INFO"])
 		if thing is None:
-			self.was.response.error (404)
+			self.env[ "skitai.was"].request.response.error (404)
 			return
 		
 		if param == 301:
+			response = self.env ["skitai.was"].request.response
 			location = self.env ["SCRIPT_NAME"] + thing
-			self.was.response ["Location"] = location
-			self.was.response.error (301, why = 'Object Moved To <a href="%s">Here</a>' % location)
+			response ["Location"] = location
+			response.error (301, why = 'Object Moved To <a href="%s">Here</a>' % location)
 			return 
 		
+		self.build_was ()
 		content = self.generate_content (thing, (), param)
 		self.commit ()
+		
 		return content
 		

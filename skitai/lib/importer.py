@@ -15,6 +15,11 @@ def importer (directory, libpath):
 	sys.path.pop (0)		
 	return module, abspath
 
+def reimporter (module):
+	directory, libpath = os.path.split (module.__file__)[0], module.__name__
+	del sys.modules [module.__name__]
+	importer (directory, libpath)
+	
 def reloader (module):
 	directory = os.path.split (module.__file__) [0]
 	sys.path.insert(0, directory)

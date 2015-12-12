@@ -7,6 +7,7 @@ from . import wsgi_executor, xmlrpc_executor
 from skitai.server import producers
 from skitai.server.threads import trigger
 
+
 try:
 	import xmlrpc.client as xmlrpclib
 except ImportError:
@@ -87,8 +88,8 @@ class Saddle (package.Package):
 		if self._onreload:
 			self._onreload (self.wasc, self)		
 							
-	def __call__ (self, env, start_response):	
-		env ["skitai.was"].app = self # set was.app		
+	def __call__ (self, env, start_response):
+		env ["skitai.was"].app = self
 		content_type = env.get ("CONTENT_TYPE", "")				
 		if content_type.startswith ("text/xml") or content_type.startswith ("application/xml+rpc"):
 			return xmlrpc_executor.Executor (env, self.get_method) ()

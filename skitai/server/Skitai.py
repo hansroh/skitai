@@ -12,8 +12,7 @@ from . import http_server, authorizer, wsgi_apps, rcache
 from skitai import lifetime
 from warnings import warn
 from . import https_server
-from skitai import was as THE_WAS
-from skitai.wasp import _WASPool
+from skitai import start_was
 
 if os.name == "nt":	
 	from . import schedule
@@ -69,6 +68,8 @@ class Loader:
 		self.wasc.register ("clusters_for_distcall",  {})
 		
 	def WAS_finalize (self):
+		global the_was
+		
 		self.wasc.register ("lock", threading.RLock ())
 		self.wasc.register ("lifetime", lifetime)		
 		
@@ -85,7 +86,7 @@ class Loader:
 			for attr in ("map", "rpc", "rest", "wget", "lb", "db", "dlb", "dmap"):
 				delattr (self.wasc, attr)
 		
-		THE_WAS = _WASPool (self.wasc)
+		start_was (self.wasc)
 		
 	def config_cachefs (self, cache_dir): 
 		if cache_dir:

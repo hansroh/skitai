@@ -1,4 +1,4 @@
-from . import wsgi_handler, collectors
+from . import ssgi_handler
 import re
 from skitai.protocol.http import request as http_request
 from skitai.protocol.http import request_handler as http_request_handler
@@ -7,8 +7,6 @@ from skitai.client import adns
 from skitai.server import compressors, producers
 import time
 
-post_max_size = wsgi_handler.Handler.post_max_size
-upload_max_size = wsgi_handler.Handler.upload_max_size
 
 class TunnelForClientToServer:
 	collector = None
@@ -24,6 +22,9 @@ class TunnelForClientToServer:
 		self.bytes += len (data)
 		self.asyncon.push (data)
 	
+	def abort (self):
+		self.close ()
+			
 	def close (self):
 		self.asyncon.close_socket ()
 		self.asyncon.request = None # unlink back ref
@@ -60,9 +61,9 @@ class TunnelForServerToClient:
 	def done (self, code, msg):
 		if code and self.bytes == 0:
 			self.asyncon.request = None # unlink back ref
-			self.request.response.error (507, "", "%s %s" % (code, msg))			
+			self.request.response.error (507, "%s %s" % (code, msg))			
 		else:
-			self.close ()
+			self.abort ()
 			
 	def collect_incoming_data (self, data):
 		self.bytes += len (data)		
@@ -82,7 +83,7 @@ class TunnelForServerToClient:
 			self.bytes)
 			)
 				
-	def close (self):
+	def abort (self):
 		self.log_request ()
 		self.cli2srv and self.cli2srv.close ()
 		self.channel.close ()
@@ -331,7 +332,7 @@ class ProxyResponse (http_response.Response):
 	def is_gzip_compressed (self):
 		return self.gzip_compressed
 	
-	def close (self):
+	def abort (self):
 		self.client_request.producer = None		
 		try: self.u.data = []
 		except AttributeError: pass
@@ -350,7 +351,7 @@ class ProxyResponse (http_response.Response):
 		return self.u.read ()
 		
 
-class Collector (collectors.FormCollector):
+class Collector (ssgi_handler.Collector):
 	# same as asyncon ac_in_buffer_size
 	ac_in_buffer_size = 4096
 	asyncon = None
@@ -372,7 +373,7 @@ class Collector (collectors.FormCollector):
 		if self.content_length == 0:
 			return self.found_terminator ()
 			
-		if self.content_length <= post_max_size: #5M
+		if self.content_length <= ssgi_handler.MAX_POST_SIZE: #5M
 			self.cached = True
 		
 		self.request.channel.set_terminator (self.content_length)
@@ -423,7 +424,7 @@ class Collector (collectors.FormCollector):
 		return b"".join (data)
 		
 			
-class Handler (wsgi_handler.Handler):
+class Handler (ssgi_handler.Handler):
 	def __init__ (self, wasc, clusters, cachefs = None):
 		self.wasc = wasc
 		self.clusters = clusters
@@ -450,8 +451,8 @@ class Handler (wsgi_handler.Handler):
 			if request.command in ('post', 'put'):
 				ct = request.get_header ("content-type")
 				if not ct: ct = ""
-				current_post_max_size = ct.startswith ("multipart/form-data") and upload_max_size or post_max_size
-				collector = self.make_collector (Collector, request, current_post_max_size)
+				post_max_size = ct.startswith ("multipart/form-data") and ssgi_handler.MAX_UPLOAD_SIZE or ssgi_handler.MAX_POST_SIZE
+				collector = self.make_collector (Collector, request, post_max_size)
 				if collector:
 					request.collector = collector
 					collector.start_collect ()
@@ -474,10 +475,10 @@ class Handler (wsgi_handler.Handler):
 			if collector:
 				collector.asyncon = asyncon
 			r.start ()
-						
+			
 		except:
-			self.wasc.logger.trace ("server")
-			request.response.error (500, "", "Proxy request has been failed.")
+			self.wasc.logger.trace ("server")	
+			request.response.error (500, ssgi_handler.catch (1))
 	
 	def is_cached (self, request, has_data):
 		if has_data:
@@ -540,7 +541,7 @@ class Handler (wsgi_handler.Handler):
 		response, request = handler.response, handler.client_request
 		
 		if response.code < 100:
-			request.response.error (506, "", "%s (Code: 506.%d)" % (response.msg, response.code))		
+			request.response.error (506, "%s (Code: 506.%d)" % (response.msg, response.code))		
 		else:
 			try:	
 				self.save_cache (request, handler)					
@@ -548,4 +549,5 @@ class Handler (wsgi_handler.Handler):
 				self.wasc.logger.trace ("server")
 		
 		self.dealloc (request, handler)
+		
 		

@@ -125,7 +125,7 @@ class Package:
 	def set_route_map (self, route_map):
 		self.route_map = route_map
 	
-	def add_package (self, module, packagename):
+	def add_package (self, module, packagename = "package"):
 		p = getattr (module, packagename)
 		p.init (module, packagename)
 		self.packages [id (p)] = p
