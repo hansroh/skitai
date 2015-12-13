@@ -206,10 +206,15 @@ class Servers:
 		self.a [name].start ()
 	
 	def maintern (self):
+		global LOOP
+		
 		want_to_start, want_to_shutdown = self.get_servers_enabled ()
 		#print want_to_start, want_to_shutdown
-				
+		
 		for name in want_to_start:
+			if not LOOP: 
+				try: del self.a [name]
+				except KeyError: continue	
 			if name in self.a: continue
 			self.logger ("[info] try starting up server `%s`" % name)
 			self.add_server (name)
@@ -243,7 +248,7 @@ class Servers:
 			self.maintern ()
 			for name, server in list(self.a.items ()):				
 				exitcode = server.child.poll ()
-				#print name, exitcode
+				#print (name, exitcode)
 				if exitcode is None:
 					server.set_backoff (reset = True)
 					continue
@@ -254,10 +259,20 @@ class Servers:
 					del self.a [name]
 					
 				elif exitcode == 3:
+					if not LOOP:
+						try: del self.a [name]
+						except KeyError: pass	
+						continue						
 					self.logger ("[info] try re-starting up server `%s` by admin" % name)
 					self.a [name].start ()
 					
-				else: # unexpected error					
+				else:
+					if not LOOP:
+						try: del self.a [name]
+						except KeyError: pass	
+						continue
+						# unexpected error
+						
 					server.set_backoff ()
 					if time.time() - server.backoff_start_time >= server.backoff_interval:
 						self.logger ("[fail] `%s` server encountered unexpected error and terminated, try re-starting up (current backoff interval is %d)" % (name, server.backoff_interval))
@@ -265,7 +280,7 @@ class Servers:
 						if server.backoff_interval > self.BACKOFF_MAX_INTERVAL:
 							server.backoff_interval = self.BACKOFF_MAX_INTERVAL
 						self.a [name].start ()
-						
+					
 			time.sleep (1)
 
 

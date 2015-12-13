@@ -1,8 +1,8 @@
 import re
 try:
-	from urllib.parse import unquote_plus
+	from urllib.parse import unquote_plus, quote_plus
 except ImportError:
-	from urllib import unquote_plus	
+	from urllib import unquote_plus, quote_plus	
 import os
 from skitai.lib import importer
 from types import FunctionType as function
@@ -35,17 +35,6 @@ class Package:
 			if self.abspath [-3:] != ".py":
 				self.abspath = self.abspath [:-1]
 			self.update_file_info	()
-	
-	def absurl (self, url):
-		base = self.route
-		if base [-1] == "/":
-			if url [0] == "/":		
-				return base + url [1:]			
-			return base + url
-		else:
-			if url [0] == "/":
-				return base + url
-			return base +"/" + url
 				
 	def cleanup (self):
 		if self._shutdown:
@@ -72,26 +61,6 @@ class Package:
 	def update_file_info (self):
 		stat = os.stat (self.abspath)
 		self.file_info = (stat.st_mtime, stat.st_size)
-		
-	def add_route (self, rule, func, *t, **k):
-		s = rule.find ("/<")
-		if s == -1:	
-			self.route_map [rule] = (func, None)
-		else:
-			rulenames = []
-			for r, n in RX_RULE.findall (rule):
-				rulenames.append (n)
-				if n.startswith ("int:"):
-					rule = rule.replace (r, "/([0-9]+)")
-				elif n.startswith ("float:"):
-					rule = rule.replace (r, "/([\.0-9]+)")
-				elif n.startswith ("path:"):
-					rule = rule.replace (r, "/(.+)")	
-				else:
-					rule = rule.replace (r, "/([^/]+)")
-			rule = rule.replace (".", "\.") + "$"
-			re_rule = re.compile (rule)				
-			self.route_map [re_rule] = (func, tuple (rulenames))
 	
 	def onreload (self, f):
 		self._onreload = f
@@ -130,9 +99,54 @@ class Package:
 		p.init (module, packagename)
 		self.packages [id (p)] = p
 	
+	def url_for (self, thing, *args, **kargs):
+		if thing.startswith ("/"):
+			base = self.route
+			if base [-1] == "/":				
+				return base [:-1] + thing
+			return base + thing			
+	
+		for func, name, fuvars, favars, str_rule in self.route_map.values ():			 
+			if thing != name: continue
+			params = {}
+			for i in range (len (args)):
+				if fuvars [i] in kargs:
+					raise AssertionError ("Collision detected on keyword argument '%s'" % fuvars [i])
+				params [fuvars [i]] = args [i]				
+			
+			for k, v in kargs.items ():
+				params [k] = v
+			
+			url = str_rule
+			if favars: #fancy [(name, type),...]. /fancy/<int:cid>/<cname>
+				for n, t in favars:
+					if n not in params:
+						raise AssertionError ("Argument '%s' missing" % n)
+					value = quote_plus (str (params [n]))
+					if t == "string":
+						value = value.replace ("+", "_")
+					elif t == "path":
+						value = value.replace ("%2F", "/")
+					url = url.replace ("<%s%s>" % (t != "string" and t + ":" or "", n), value)
+					del params [n]
+			
+			if params:
+				url = url + "?" + "&".join (["%s=%s" % (k, quote_plus (str(v))) for k, v in params.items ()])
+				
+			return self.url_for (url)
+	
+	def build_url (self, thing, *args, **kargs):
+		url = self.url_for (thing, *args, **kargs)
+		if url:
+			return url						
+		for p in self.packages:
+			url = p.build_url (thing, *args, **kargs)
+			if url:
+				return url
+								
 	def try_rule (self, path_info, rulepack):
-		rule, (f, a) = rulepack		
-		if type (rule) is type (""): 
+		rule, (f, n, l, a, s) = rulepack		
+		if type (rule) is str: 
 			return None, None
 			
 		arglist = rule.findall (path_info)
@@ -142,17 +156,44 @@ class Package:
 		arglist = arglist [0]
 		kargs = {}
 		for i in range(len(arglist)):
-			if a [i].startswith ("int:"):
-				kargs [a[i][4:]] = int (arglist [i])
-			elif a [i].startswith ("float:"):		
-				kargs [a[i][6:]] = float (arglist [i])
-			elif a [i].startswith ("path:"):		
-				kargs [a[i][5:]] = unquote_plus (arglist [i])
+			an, at = a [i]			 
+			if at == "int":
+				kargs [an] = int (arglist [i])
+			elif at == "float":
+				kargs [an] = float (arglist [i])
+			elif at == "path":
+				kargs [an] = unquote_plus (arglist [i])
 			else:		
-				kargs [a[i]] = unquote_plus (arglist [i]).replace ("_", " ")
-						
+				kargs [an] = unquote_plus (arglist [i]).replace ("_", " ")
 		return f, kargs
 	
+	def add_route (self, rule, func, *t, **k):
+		if not rule or rule [0] != "/":
+			raise AssertionError ("Url rule should be starts with '/'")
+			
+		s = rule.find ("/<")
+		if s == -1:	
+			self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:], None, rule)
+		else:
+			s_rule = rule
+			rulenames = []
+			for r, n in RX_RULE.findall (rule):
+				if n.startswith ("int:"):
+					rulenames.append ((n[4:], n[:3]))
+					rule = rule.replace (r, "/([0-9]+)")
+				elif n.startswith ("float:"):
+					rulenames.append ((n[6:], n [:5]))
+					rule = rule.replace (r, "/([\.0-9]+)")
+				elif n.startswith ("path:"):
+					rulenames.append ((n[5:], n [:4]))
+					rule = rule.replace (r, "/(.+)")	
+				else:
+					rulenames.append ((n, "string"))
+					rule = rule.replace (r, "/([^/]+)")
+			rule = rule.replace (".", "\.") + "$"
+			re_rule = re.compile (rule)				
+			self.route_map [re_rule] = (func, func.__name__, func.__code__.co_varnames [1:], tuple (rulenames), s_rule)
+			
 	def route_search (self, path_info):
 		if path_info in self.route_map:			
 			return self.route_map [path_info][0]

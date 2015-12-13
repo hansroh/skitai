@@ -55,7 +55,7 @@ class TunnelForServerToClient:
 		self.cli2srv = TunnelForClientToServer (self.asyncon)
 		self.channel.current_request = self.cli2srv		
 		self.log ("connection maden to %s" % self.request.uri)
-		self.request.response.instant (200, "Connection Established", [("Proxy-Agent", "sae-pa")])
+		self.request.response.instant ("200 Connection Established", [("Proxy-Agent", "sae-pa")])
 		
 	def done (self, code, msg):
 		if code and self.bytes == 0:

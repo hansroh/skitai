@@ -89,7 +89,7 @@ with open ("README.txt") as f:
 setup(
 	name='skitai',
 	version=__VER__,
-	description='Skitai App Engine',
+	description='Skitai WSGI App Engine',
 	long_description = ldesc,
 	author='Hans Roh',
 	author_email='hansroh@gmail.com',

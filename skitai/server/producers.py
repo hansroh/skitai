@@ -79,13 +79,14 @@ class stream_producer (simple_producer):
 		def __init__ (self, data, buffer_size = 4096):
 			if not hasattr (data, "read"):
 				raise AttributeError ("stream object should have `read()` returns bytes object and optional 'close()'")			
-			closing_iter_producer.__init__ (self, data)
+			self.data = data
 			self.buffer_size = buffer_size
+			self.closed = False
 				
 		def more (self):
 			if self.closed: 
 				return b""
-			data = self.obj.read (self.buffer_size)
+			data = self.data.read (self.buffer_size)
 			if not data:
 				self.close ()
 			return data

@@ -104,7 +104,7 @@ class Handler:
 		
 		# ok. allow form-data
 		if request.get_header ("expect") == "100-continue":
-			request.response.instant (100)
+			request.response.instant ("100 Continue")
 
 		return collector
 
@@ -185,6 +185,7 @@ class Handler:
 
 
 class Job:
+	# Multi-Threaded Jobs
 	def __init__(self, request, apph, args, logger):
 		self.request = request
 		self.apph = apph
@@ -221,11 +222,20 @@ class Job:
 				trigger.wakeup (lambda p=response: (p.done(),))
 			
 			if hasattr (content, "_next") or hasattr (content, "next"): # flask etc.
-				content = [producers.closing_iter_producer (content)]
+				content = producers.closing_iter_producer (content)
 			
-			will_be_push = []				
+			if isinstance (content, producers.simple_producer):
+				content = [content]
+				
+			will_be_push = []
+			if len (response) == 0:
+				content_length = 0
+			else:
+				content_length = None
+					
 			for part in content:
 				if isinstance (part, producers.simple_producer):
+					content_length = None
 					# streaming obj
 					if hasattr (part, "close"):
 						# automatic close	when channel closing
@@ -234,15 +244,21 @@ class Job:
 				
 				else:
 					type_of_part = type (part)
-					if (PY_MAJOR_VERSION >=3 and type_of_part is str) or (PY_MAJOR_VERSION <3 and type_of_part is unicode):
+					#if (PY_MAJOR_VERSION >=3 and type_of_part is str) or (PY_MAJOR_VERSION <3 and type_of_part is unicode):
+					if type_of_part is not bytes: # unicode
 						part = part.encode ("utf8")
 						type_of_part = bytes
 						
 					if type_of_part is bytes:
-						will_be_push.append (part)
+						if content_length is not None:
+							content_length += len (part)
+						will_be_push.append (part)						
 					else:
 						raise AssertionError ("Streaming content should be single element")
-					
+			
+			if content_length is not None:
+				response ["Content-Length"]	= content_length
+				
 		except MemoryError:
 			raise
 			
@@ -284,7 +300,8 @@ class Job:
 				was.session = None
 				was.response = None
 				was.env = None
-				was.app = None
+				was.ab = None
+				was.app = None				
 			
 			if was.request:
 				was.request.response = None

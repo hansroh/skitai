@@ -13,6 +13,27 @@ try:
 except ImportError:
 	import profile as hotshot
 
+def traceback ():
+	t, v, tb = sys.exc_info()
+	tbinfo = []
+	assert tb # Must have a traceback
+	while tb:
+		tbinfo.append((
+			tb.tb_frame.f_code.co_filename,
+			tb.tb_frame.f_code.co_name,
+			str(tb.tb_lineno)
+			))
+		tb = tb.tb_next
+
+	del tb
+	file, function, line = tbinfo [-1]
+	buf = []
+	buf.append ("%s %s" % (t, v))
+	buf.append ("in file %s at line %s, %s" % (file, line, function == "?" and "__main__" or "function " + function))
+	buf += ["%s %s %s" % x for x in tbinfo]
+	return "\n".join (buf)
+	
+		
 class	WAS (Skitai.Loader):
 	def __init__ (self, config, logpath, varpath, consol):
 		self.test_config (config)
@@ -22,6 +43,7 @@ class	WAS (Skitai.Loader):
 	@classmethod
 	def test_config (cls, conf):
 		config = confparse.ConfParse (conf)
+		
 		assert (config.getint ("server", "processes") > 0)
 		assert (config.getint ("server", "threads") >= 0)
 		if config.getopt ("server", "ssl") == "yes":
@@ -220,18 +242,17 @@ if __name__ == "__main__":
 		sys.stderr = open (os.path.join (_logpath, "stderr.log"), "a")
 	
 	pidlock.make ()
-	service = WAS (_config, _logpath, _varpath, _consol)
-	
 	try:
-		if _profile:
-			prof = hotshot.Profile ("skitaid-instance.prof")
-			prof.start ()
+		service = WAS (_config, _logpath, _varpath, _consol)
+	except:
+		sys.stderr.write (traceback ())	
+		sys.stderr.flush ()
+		sys.exit (0)		
+	
+	try:		
 		service.run ()
 		
-	finally:	
-		if _profile:
-			prof.stop ()
-			prof.close ()
+	finally:			
 		_exit_code = service.get_exit_code ()
 		if _exit_code is not None: # master process
 			pidlock.remove ()

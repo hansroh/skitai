@@ -1,9 +1,21 @@
-Skitai App Engien
+
+Skitai WSGI App Engine
 ==========================
 
 Copyright (c) 2015 by Hans Roh
 
 License: BSD
+
+Announcement
+---------------
+
+From version 0.10, Skitai App Engine follows WSGI specification. So previous Skitai apps need to a few modifications.
+
+Conceptually, SAE has been seperated to two components: 
+
+1. Skitai App Engine Server, for WSGI apps
+
+2. Saddle, the small WSGI middleware integrated with SAE. But you can also mount any WSGI apps and frameworks like Flask.
 
 
 Introduce
@@ -13,112 +25,163 @@ Skitai App Engine (SAE) is a kind of branch of `Medusa Web Server`__ - A High-Pe
 
 Medusa is different from most other servers because it runs as a single process, multiplexing I/O with its various client and server connections within a single process/thread.
 
-SAE orients light-weight,simplicity  and strengthen networking operations with external resources - HTTP / HTTPS / RPC / PostgreSQL_ - keeping very low costs.
+SAE orients light-weight, simplicity  and strengthen networking operations with external resources - HTTP / HTTPS / XML-RPC / PostgreSQL_ - keeping very low costs.
 
-It also influenced by Zope_ and Flask_ a lot.
+It is influenced by Zope_ and Flask_ a lot.
 
-- It can be run as XML/JSON-RPC, Web and Proxy & Loadbancing Server.
-- It can request massive RESTful api/RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily.
-- It provides asynchronous PostgreSQL query execution
+- SAE can be run as XML/JSON-RPC, Web and Reverse Proxy Loadbancing Server
+- SAE can handle massive RESTful API/RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily
+- SAE provides asynchronous connection to PostgreSQL
 
-Skitai is not a framework for convinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your apps as both server and client.
-
-
-Purpose
---------
-
-Skitai App Engine's original purpose is to serve python fulltext search engine Wissen_ which is my another pypi work. And recently I found that it is possibly useful for building and serving python written websites like Flask and Django (But I barely use them). I think you already use them, you really don't need use Skitai.
-
-Anyway, I am modifying my codes to optimizing for enabling service on Linux machine with relatvely poor H/W and making easy to auto-scaling provided cloud computing service like AWS_.
-
-If you need lots of outside http(s) resources connecting jobs and use PostgreSQL, it might be worth testing and participating this project.
+Skitai is not a framework for convinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your WSGI apps as both server and client.
 
 
-Performance
---------------
+.. _Zope: http://www.zope.org/
+.. _Flask: http://flask.pocoo.org/
+.. _PostgreSQL: http://www.postgresql.org/
+.. __: http://www.nightmare.com/medusa/medusa.html
 
-I roughly benchmarked with uwsgi+nginx & gevent WSGI server by ping-pong (simple request-reply) test. In spite doubting needs for benchmarking results, I do all affort to making same conditions for each servers as possible. All testing tools, readme and results is in: [skitai-install-dir]/tools/benchmark/ or at GitLab_.
 
 
-At a Glance
-------------
+Mounting WSGI Apps
+--------------------
 
-**Basic Configure**
+Here's three WSGI app samples:
+
+*WSGI App* at /var/wsgi/wsgiapp.py
+
+.. code:: python
+  
+  def app (env, start_response):
+    start_response ("200 OK", [("Content-Type", "text/plain")])
+    return ['Hello World']
+
+
+*Flask App* at /var/wsgi/flaskapp.py
 
 .. code:: python
 
-    [server]
-    processes = 1
-    threads = 4
-    port = 5000
+  from flask import Flask
+  app = Flask(__name__)  
+  @app.route("/")
 
-    [routes:line]
-    ; mount filesystem directory for static files
-    /images = /home/skitaid/app/images
-    
-    ; mount skitai apps, path/module:callable
-    / = /home/skitaid/app/webapp:app
-		
-		; mount WSGI apps, path/module:callable
-    /wsgi-hello = /home/skitaid/app/wsgiapp:app
+  def index ():	 
+    return "Hello World"
 
-**Hello World**
 
-Then write /home/skitaid/app/webapp.py
+*Skitai-Saddle App* at /var/wsgi/skitaiapp.py
 
 .. code:: python
 
-    from skitai.server import ssgi
-    
-    app = ssgi.Application (__name__)
-    app.set_devel (True)
+  from skitai.saddle import Saddle
+  app = Saddle (__name__)
+  @app.route('/')
+
+  def index (was):	 
+    return "Hello World"
+
+For mounting to SAE, modify config file in /etc/skitaid/servers-enabled/default.conf
+
+.. code:: python
+  
+  [routes:line]
+  
+  ; for files like images, css
+  / = /var/wsgi/static
+  
+  ; app mount syntax is path/module:callable
+  / = /var/wsgi/wsgiapp:app
+  /aboutus = /var/wsgi/flaskapp:app
+  /services = /var/wsgi/skitaiapp:app
+  
+That's it.
+
+You can access Falsk app from http://www.domain.com/aboutus and other apps are same.
+
+
+
+Using Asynchronous Requests Provide by SAE
+----------------------------------------------------------
+
+**Simple HTTP GET Request**
+
+*Flask Style:*
+
+.. code:: python
+
+  from flask import Flask
+  from skitai import was
+  
+  app = Flask (__name__)        
+  @app.route ("/get")
+  def get (url):
+    s = was.wget (url)
+    result = s.getwait (5) # timeout
+    return result.data
+
+
+*Skitai-Saddle Style*
+
+.. code:: python
+
+  from skitai.saddle import Saddle
+  app = Saddle (__name__)
         
-    @app.route ("/hello")
-    def hello (was):
-        return 'Hello World'
+  @app.route ("/get")
+  def get (was, url):
+    s = was.rest (url)
+    result = s.getwait (5) # timeout
+    return result.data
 
-**For RPC Map-Reducing**
+
+**XMLRPC Load-Balancing**
+
+Add mysearch members to config file,
 
 .. code:: python
 
-    ; add mysearch members to config file
-    [@mypypi]
+    [@mysearch]
     ssl = yes
-    members = pypi1.python.org:443, pypi2.python.org:443
+    members = search1.mayserver.com:443, search2.mayserver.com:443
+    
+
+Then SAE will request result from one of mysearch members.
+   
+.. code:: python
+
+    @app.route ("/search")
+    def search (was, keyword = "Mozart"):
+      s = was.map ("@mysearch/rpc2", "XMLRPC")
+      s.search (keyword)
+      results = s.getwait (2)      
+			return result.data
+
+
+**For XMLRPC Map-Reducing**
+
+Basically same with load_balancing except SAE requests to all members.
 
 .. code:: python
 
     @app.route ("/search")
     def search (was, keyword = "Mozart"):
-      s = was.map ("@mypypi/pypi")
+      s = was.map ("@mysearch/rpc2", "XMLRPC")
       s.search (keyword)
-
-      results = s.getswait (timeout = 2)
-
-      all_results = []
+      results = s.getswait (2)
+			
+			all_results = []
       for result in results:
-        if result.status == 3:
-          all_results.extend (result.data)
+         all_results.extend (result.data)
       return all_results
 
 
-**RPC Load-Balancing**
+**PostgreSQL Map-Reducing**
+
+Also similiar with above.
+Add mydb members to config file.
 
 .. code:: python
 
-    @app.route ("/search")
-    def search (was, keyword = "Mozart"):
-      s = was.lb ("@mypypi/pypi")
-      s.search (keyword)
-
-      return s.getwait (timeout = 2)
-
-
-**For PostgreSQL Map-Reducing**
-
-.. code:: python
-
-    ; add mydb members to config file
     [@mydb]
     type = postresql
     members = s1.yourserver.com:5432/mydb/user/passwd,s2.yourserver.com:5432/mydb/user/passwd
@@ -138,36 +201,26 @@ Then write /home/skitaid/app/webapp.py
         if result.status == 3:
           all_results.append (result.data)
       return all_results
+      
 
 
-.. _Zope: http://www.zope.org/
-.. _Flask: http://flask.pocoo.org/
-.. _PostgreSQL: http://www.postgresql.org/
-.. __: http://www.nightmare.com/medusa/medusa.html
+Project Purpose
+-----------------
+
+Skitai App Engine's original purpose is to serve python fulltext search engine Wissen_ which is my another pypi work. And recently I found that it is possibly useful for building and serving websites.
+
+Anyway, I am modifying my codes to optimizing for enabling service on Linux machine with relatvely poor H/W and making easy to auto-scaling provided cloud computing service like AWS_.
+
+If you need lots of outside http(s) resources connecting jobs and use PostgreSQL, it might be worth testing and participating this project.
+
+
 .. _Wissen: https://pypi.python.org/pypi/wissen
 .. _AWS: https://aws.amazon.com
-.. _GitLab: https://gitlab.com/hansroh/skitai/tree/master/skitai/tools/benchmark
 
-Requirements
---------------
+    
 
-**Win 32**
-
-- *pywin32 binary* - http://sourceforge.net/projects/pywin32/files/pywin32/Build%20219/
-
-Optional Requirements
-------------------------
-
-* Skitaid can find at least one DNS server from system configuration for Async-DNS query. Possibly it is only problem on dynamic IP allocated desktop, then set DNS manually, please.
-
-- *psycopg2* for querying PostgreSQL asynchronously (`win32 binary`_)
-- *Jinja2* for HTML Rendering
-
-.. _`win32 binary`: http://www.stickpeople.com/projects/python/win-psycopg/
-
-
-Install & Start Skitai Server
-------------------------------
+Installation and Startup
+---------------------------
 
 **Posix**
 
@@ -203,97 +256,44 @@ Install & Start Skitai Server
     #For auto run on boot,
     install-win32-service --startup auto install
     
-    install-win32-service start    
+    install-win32-service start
     
 
-Changes
----------
 
-**Support Lower Level WSGI Apps**
+Requirements
+--------------
 
-/home/skitaid/app/webapp.py
+**Win 32**
 
-.. code:: python
-    
-    __DEBUG__ = True # for auto reload on change
-            
-    def mywsgi (env, start_response):
-	    start_response ("200 OK", [("Content-Type", "text/plain")])
-	    return ['pong']
+- *pywin32 binary* - http://sourceforge.net/projects/pywin32/files/pywin32/Build%20219/
 
-At /etc/skitaid/servers-enabled/default.conf:
+Optional Requirements
+------------------------
 
-.. code:: python
+* Skitaid can find at least one DNS server from system configuration for Async-DNS query. Possibly it is only problem on dynamic IP allocated desktop, then set DNS manually, please.
 
-    [routes:line]
-    ; WSGI app, path/module:callable
-    /mywsgi = /home/skitaid/app/webapp:mywsgi
+- *psycopg2* for querying PostgreSQL asynchronously (`win32 binary`_)
+- *Jinja2* for HTML Rendering
 
-	
-**Config changed**
-
-1. In [server] section, from proxy = yes|no, to enable_proxy = yes|no
-
-2. M2Crypto dependency has been removed, and [certification] section had been entirely removed.
-
-.. code:: python
-
-    [server]
-    ssl = yes
-    ; added new key
-    certfile = server.pem
-    ; you can combine to certfile
-    ; keyfile = private.key
-    ; passphrase = 
+.. _`win32 binary`: http://www.stickpeople.com/projects/python/win-psycopg/
 
 
-To genrate self-signed certification file:
-
-.. code:: python
-
-    openssl req -new -newkey rsa:2048 -x509 -keyout server.pem -out server.pem -days 365 -nodes
-    
-
-**New services added**
-
-.. code:: python
-
-    # streaming response for stream objects like file, large string list...
-    # object should have read() and optioanl close() method
-    return was.tostream (open ("large-movie.mp4", "rb"))
-    
-    # email delivery service
-    e = was.email (subject, snd, rcpt)
-    e.set_smtp ("127.0.0.1:465", "username", "password", ssl = True)
-    e.add_text ("Hello World<div><img src='cid:ID_A'></div>", "text/html")
-    e.add_attachment (r"001.png", cid="ID_A")
-    e.send ()
-
-With asynchronous email delivery service, can add default SMTP Server config to skitaid.conf (/etc/skitaid/skitaid.conf or c:\skitaid\etc\skitaid.conf).
-If it is configured, you can skip e.set_smtp(). But be careful for keeping your smtp password.
-
-.. code:: python
-
-    [smtpda]
-    smtpserver = 127.0.0.1:25
-    user = 
-    password = 
-    ssl = no
-    max_retry = 10
-    undelivers_keep_max_days = 30
-    
     
 Documentation
 -------------
-
-    Please visit https://gitlab.com/hansroh/skitai/wikis/home
+  
+  I'm so sorry, there's only very old documentation.
+  
+  https://gitlab.com/hansroh/skitai/wikis/home
+  
+  Fundemental concept and structure is not so changed, so it's better than none.
 
 
 Change Log
 -------------
-
-  0.9.5 - strengthen WSGI support.
   
+  0.10.0 - WSGI support
+    
   0.9.4.21 - add tools
   
   0.9.4.19 - no threads mode, then can config threads=0, but cannot use all async restful requests

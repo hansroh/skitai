@@ -102,10 +102,13 @@ class Executor:
 			else:
 				data = _input.read ()
 		
+		if kargs:
+			self.merge_args (allkarg, kargs)
 		if query: 
 			self.merge_args (allkarg, utility.crack_query (query))
 		if data:
 			self.merge_args (allkarg, utility.crack_query (data))
+			
 		return allkarg
 		
 	def merge_args (self, s, n):

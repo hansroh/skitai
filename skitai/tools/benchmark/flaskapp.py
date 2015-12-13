@@ -58,6 +58,9 @@ def index ():
 			return str (request.form)
 	return FORMDATA+"<hr>"+MULTIPART
 
+@app.route('/ping')
+def ping ():
+	return "pong"
 	
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5002)

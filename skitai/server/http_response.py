@@ -116,28 +116,10 @@ class http_response:
 	def response (self, code, status):	
 		return 'HTTP/%s %d %s' % (self.request.version, code, status)
 	
-	
-	#--------------------------------------------
 	def responsable (self):
 		if self.is_done: return False
 		if self.request.channel is None: return False
 		return True
-		
-	def instant (self, code, status = "", headers = None):
-		# instance messaging
-		self.reply_code = code
-		if status: self.reply_message = status
-		else:	self.reply_message = self.get_status_msg (code)
-				
-		reply = [self.response (self.reply_code, self.reply_message)]
-		if headers:
-			for header in headers:
-				reply.append ("%s: %s" % header)
-		self.request.channel.push (("\r\n".join (reply) + "\r\n\r\n").encode ("utf8"))
-	
-	def abort (self, code, status = "", why = ""):
-		self.request.channel.reject ()		
-		self.error (code, status, why, force_close = True)
 	
 	def parse_ststus (self, status):
 		try:	
@@ -146,9 +128,20 @@ class http_response:
 		except:
 			raise AssertionError ("Can't understand given status code")		
 		return code, status	
-		
-	def send_error (self, status, why = ""):
-		# for WSGI App
+
+	#--------------------------------------------		
+	# for WSGI & Saddle Apps
+	#--------------------------------------------		
+	def set_reply (self, status):
+		# for Saddle App
+		self.reply_code, self.reply_message = self.parse_ststus (status)
+	
+	def get_reply (self):
+		# for Saddle App
+		return self.reply_code, self.reply_message
+				
+	def send_error (self, status, why = "", disconnect = False):
+		# for Saddle App
 		if not self.responsable ():
 			raise AssertionError ("Relponse already sent!")			
 		if len (self.outgoing):
@@ -158,8 +151,17 @@ class http_response:
 		if type (why) is tuple: # render exc_info
 			why = catch (1, why)			
 		code, status = self.parse_ststus (status)	
-		self.error (code, status, why, push_only = True)
+		self.error (code, status, why, force_close = disconnect, push_only = True)
 	
+	def instant (self, status = "", headers = None):
+		# instance messaging		
+		code, msg = self.parse_ststus (status)
+		reply = [self.response (code, msg)]
+		if headers:
+			for header in headers:
+				reply.append ("%s: %s" % header)
+		self.request.channel.push (("\r\n".join (reply) + "\r\n\r\n").encode ("utf8"))
+		
 	def start_response (self, status, headers = None, exc_info = None):		
 		# for WSGI App
 		if not self.responsable ():
@@ -181,13 +183,19 @@ class http_response:
 			self.push (content)
 			
 		return self.push #by WSGI Spec.
+	
+	#----------------------------------------	
+	# Internal Rsponse Methods.
+	#----------------------------------------	
+	def abort (self, code, status = "", why = ""):
+		self.request.channel.reject ()
+		self.error (code, status, why, force_close = True)
 		
 	def start (self, code, status = "", headers = None):
 		if not self.responsable (): return
 		self.reply_code = code
 		if status: self.reply_message = status
-		else:	self.reply_message = self.get_status_msg (code)
-			
+		else:	self.reply_message = self.get_status_msg (code)			
 		if headers:
 			for k, v in headers:
 				self.set (k, v)
@@ -218,16 +226,18 @@ class http_response:
 		if not push_only:
 			self.done (True, True, force_close)
 	
-	#--------------------------------------------			
+	#--------------------------------------------
+	# Send Response
+	#--------------------------------------------	
+	def add_closable (self, thing):
+		self.request.channel.closables.append (thing)
+	
 	def push (self, thing):		
 		if not self.responsable (): return
 		if type(thing) is bytes:			
 			self.outgoing.push (producers.simple_producer (thing))
 		else:
 			self.outgoing.push (thing)
-	
-	def add_closable (self, thing):
-		self.request.channel.closables.append (thing)
 					
 	def done (self, globbing = True, compress = True, force_close = False):
 		if not self.responsable (): return

@@ -90,6 +90,7 @@ class Saddle (package.Package):
 							
 	def __call__ (self, env, start_response):
 		env ["skitai.was"].app = self
+		env ["skitai.was"].ab = self.build_url
 		content_type = env.get ("CONTENT_TYPE", "")				
 		if content_type.startswith ("text/xml") or content_type.startswith ("application/xml+rpc"):
 			return xmlrpc_executor.Executor (env, self.get_method) ()
