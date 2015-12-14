@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.10.0b1"
+VERSION = "0.10.0b2"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
 
 import threading
@@ -18,7 +18,7 @@ class _WASPool:
 		return "<class wasp.WASPool at %x>" % id (self)
 			
 	def __getattr__ (self, attr):
-		_was = self.get ()
+		_was = self._get ()
 		# it will be called WSGI middlewares except Saddle,
 		# So request object not need
 		_was.request = None
@@ -37,10 +37,10 @@ class _WASPool:
 		for _id in self.__p:
 			delattr (self.__p [_id], attr, value)
 	
-	def set (self, wasc):
+	def _set (self, wasc):
 		self.__wasc = wasc
 		
-	def get (self):
+	def _get (self):
 		_id = self.__get_id ()
 		try:
 			return self.__p [_id]
@@ -49,8 +49,9 @@ class _WASPool:
 			self.__p [_id] = _was
 			return _was
 
+
 was = _WASPool ()
 def start_was (wasc):
 	global was
-	was.set (wasc)	
+	was._set (wasc)	
 

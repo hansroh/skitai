@@ -38,9 +38,9 @@ class Module:
 		self.debug = False
 		self.use_reloader = False
 		if type (getattr (self.module, self.appname)) is function:
-			try: self.debug = getattr (self.module, "DEBUG")				
+			try: self.debug = self.appname.debug
 			except AttributeError: pass
-			try: self.use_reloader = getattr (self.module, "USE_RELOADER")	
+			try: self.use_reloader = self.appname.use_reloader
 			except AttributeError: pass
 		else:
 			try: self.debug = getattr (self.module, self.appname).debug

@@ -1,10 +1,10 @@
-from . import http_date, producers, utility
-from . import compressors
+from . import http_date, utility
 import zlib
 import time
 import os
 import sys
 from skitai.lib.reraise import reraise 
+from skitai.lib import producers, compressors
 
 UNCOMPRESS_MAX = 2048
 

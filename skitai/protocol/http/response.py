@@ -3,7 +3,8 @@ try:
 	import xmlrpc.client as xmlrpclib
 except ImportError:
 	import xmlrpclib
-from skitai.server import compressors, http_date
+from skitai.server import http_date
+from skitai.lib import compressors
 import time
 
 

@@ -115,7 +115,7 @@ Using Asynchronous Requests Provide by SAE
   app = Flask (__name__)        
   @app.route ("/get")
   def get (url):
-    s = was.wget (url)
+    s = was.get (url)
     result = s.getwait (5) # timeout
     return result.data
 
@@ -129,7 +129,7 @@ Using Asynchronous Requests Provide by SAE
         
   @app.route ("/get")
   def get (was, url):
-    s = was.rest (url)
+    s = was.get (url)
     result = s.getwait (5) # timeout
     return result.data
 
@@ -151,7 +151,7 @@ Then SAE will request result from one of mysearch members.
 
     @app.route ("/search")
     def search (was, keyword = "Mozart"):
-      s = was.map ("@mysearch/rpc2", "XMLRPC")
+      s = was.rpc.map ("@mysearch/rpc2", "XMLRPC")
       s.search (keyword)
       results = s.getwait (2)      
 			return result.data

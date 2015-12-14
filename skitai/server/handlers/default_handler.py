@@ -3,7 +3,8 @@ import stat
 from . import mime_type_table
 import os
 from . import filesys
-from skitai.server import http_date, producers
+from skitai.server import http_date
+from skitai.lib import producers
 from skitai.server.utility import *
 
 IF_MODIFIED_SINCE = re.compile (

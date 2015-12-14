@@ -3,11 +3,10 @@
 import sys
 import asyncore, asynchat
 import re, socket, time, threading, os
-from . import http_date, http_response, producers, utility, counter
+from . import http_date, http_response, utility, counter
 from .threads import threadlib
 from skitai import lifetime
-import zlib, gzip, io
-from . import compressors
+from skitai.lib import producers, compressors
 import signal
 import ssl
 from skitai import VERSION

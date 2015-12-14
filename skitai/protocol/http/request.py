@@ -10,7 +10,7 @@ except ImportError:
 	from urllib import quote
 	from urlparse import urlparse
 				
-from skitai.server import producers
+from skitai.lib import producers
 
 
 class XMLRPCRequest:

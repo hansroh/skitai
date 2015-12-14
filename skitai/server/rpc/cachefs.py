@@ -1,4 +1,5 @@
-from skitai.server import counter, compressors
+from skitai.server import counter
+from skitai.lib import compressors
 from hashlib import md5
 from skitai.lib import pathtool
 import os

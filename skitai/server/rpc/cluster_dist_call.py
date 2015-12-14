@@ -212,7 +212,7 @@ class ClusterDistCall:
 			_reqtype = self._reqtype.lower ()
 			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self.get_ident () or None, filterfunc = self._callback)
 			
-			if _reqtype == "xmlrpc":
+			if _reqtype == "rpc":
 				request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._encoding, self._login, self._logger)				
 			elif _reqtype == "jsonrpc":
 				request = http_request.JSONRPCRequest (self._uri, method, params, self._headers, self._encoding, self._login, self._logger)		
@@ -307,8 +307,8 @@ class ClusterDistCallCreator:
 	def __getattr__ (self, name):	
 		return getattr (self.cluster, name)
 		
-	def Server (self, uri, params = None, reqtype="xml", headers = None, login = None, encoding = None, mapreduce = False, callback = None):
-		# reqtype: xmlrpc, jsonrpc, get, post, head, put, delete
+	def Server (self, uri, params = None, reqtype="rpc", headers = None, login = None, encoding = None, mapreduce = False, callback = None):
+		# reqtype: rpc, get, post, head, put, delete
 		return ClusterDistCall (self.cluster, uri, params, reqtype, headers, login, encoding, mapreduce, callback, self.logger)
 		
 	

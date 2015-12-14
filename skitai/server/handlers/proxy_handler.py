@@ -4,7 +4,8 @@ from skitai.protocol.http import request as http_request
 from skitai.protocol.http import request_handler as http_request_handler
 from skitai.protocol.http import response as http_response
 from skitai.client import adns
-from skitai.server import compressors, producers
+from skitai.lib import compressors
+from skitai.lib import producers
 import time
 
 post_max_size = wsgi_handler.Handler.post_max_size

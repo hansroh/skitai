@@ -20,13 +20,25 @@ try:
 except ImportError:
 	import xmlrpclib
 	
-from . import producers
 try: 
 	import _thread
 except ImportError:
 	import thread as _thread	
 	
 from skitai import lifetime
+
+
+class _Method:
+	def __init__(self, send, name):
+		self.__send = send
+		self.__name = name
+		
+	def __getattr__(self, name):
+		return _Method(self.__send, "%s.%s" % (self.__name, name))
+		
+	def __call__(self, *args, **karg):
+		return self.__send(self.__name, args, karg)
+		
 
 class WAS:
 	version = VERSION
@@ -68,6 +80,12 @@ class WAS:
 			cls.clusters_for_distcall [clustername] = cluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"))
 		cls.clusters [clustername] = cluster
 	
+	def __dir__ (self):
+		return self.objects.keys ()
+	
+	def __str__ (self):
+		return "was: Skitai WSGI Appliation Service"
+	
 	def __detect_cluster (self, clustername):
 		try: 
 			clustername, uri = clustername.split ("/", 1)
@@ -76,45 +94,63 @@ class WAS:
 		if clustername [0] == "@":
 			clustername = clustername [1:]
 		return clustername, "/" + uri
+	
+	def __getattr__ (self, name):
+		return _Method(self._call, name)
+	
+	VALID_COMMANDS = ["get", "post", "rpc", "put", "upload", "delete", "options", "db"]
+	def _call (self, method, args, karg):
+		# was.db, 		was.get, 			was.post,			was.put, ...
+		# was.db.lb, 	was.get.lb,		was.post.lb,	was.put.lb, ...
+		# was.db.map,	was.get.map,	was.post.map,	was.put.map, ...
+				
+		try: 
+			command, fn = method.split (".")
+		except ValueError: 
+			command = method
+			fn = (command == "db" and "db" or "rest")
 		
-	def map (self, clustername, method = "XMLRPC", data = None, filter = None, headers = None, login = None, encoding = None):		
-		clustername, uri = self.__detect_cluster (clustername)
+		if command == "db":
+			return getattr (self, "_d" + fn) (*args, **karg)
+		if command not in self.VALID_COMMANDS:
+			raise AttributeError ("WAS instance doesn't have '%s'" % method)			
+		
+		uri = None
+		if args:		uri = args [0]
+		elif karg:	uri = karg.get ("uri", "")
+		if not uri:	raise AssertionError ("missing param 'uri'")
+		if uri [0] == "@": fn = "lb"
+		return getattr (self, "_" + fn) (command, *args, **karg)
+	
+	def _rest (self, method, uri, data = None, filter = None, headers = None, login = None, encoding = None):
+		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, headers, login, encoding, mapreduce = False, callback = filter)
+			
+	def _map (self, method, uri, data = None, filter = None, headers = None, login = None, encoding = None):		
+		clustername, uri = self.__detect_cluster (uri)
 		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, login, encoding, mapreduce = True, callback = filter)
 	
-	def lb (self, clustername, method = "XMLRPC", data = None, filter = None, headers = None, login = None, encoding = None):
-		clustername, uri = self.__detect_cluster (clustername)
+	def _lb (self, method, uri, data = None, filter = None, headers = None, login = None, encoding = None):
+		clustername, uri = self.__detect_cluster (uri)
 		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, login, encoding, mapreduce = False, callback = filter)
 	
-	def rest (self, uri, method = "XMLRPC", data = None, filter = None, headers = None, login = None, encoding = None):
-		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, headers, login, encoding, mapreduce = False, callback = filter)
-	rpc = rest
-	
-	def wget (self, uri, data = None, *args, **kargs):
-		if data: method = "POST"
-		else: method = "GET"
-		return self.rest (uri, method, data, *args, **kargs)
-	
-	def db (self, server, dbname, user, password, dbtype = "postgresql", filter = None):
+	def _ddb (self, server, dbname, user = "", password = "", dbtype = "postgresql", filter = None):
 		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, user, password, dbtype, mapreduce = False, callback = filter)
 	
-	def dlb (self, clustername, filter = None):
+	def _dlb (self, clustername, filter = None):
 		return self.clusters_for_distcall [clustername].Server (mapreduce = False, callback = filter)
 	
-	def dmap (self, clustername, filter = None):
+	def _dmap (self, clustername, filter = None):
 		return self.clusters_for_distcall [clustername].Server (mapreduce = True, callback = filter)
 	
+	def email (self, subject, snd, rcpt):
+		return composer.Composer (subject, snd, rcpt)
+		
 	def tojson (self, obj):
 		return json.dumps (obj)
 	
 	def toxml (self, obj):
 		return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")	
 	
-	def tostream (self, obj, buffer_size = 4096):
-		return producers.stream_producer (obj, buffer_size)
-	
-	def email (self, subject, snd, rcpt):
-		return composer.Composer (subject, snd, rcpt)
-		
 	def fromjson (self, obj):
 		return json.loads (obj)
 	

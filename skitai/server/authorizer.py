@@ -2,10 +2,10 @@ import base64
 from hashlib import md5
 
 class Authorizer:
-	def __init__ (self, realm, magic, password):
+	def __init__ (self, realm, apikey, password):
 		self.realm = realm
-		self.magic = magic.encode ("utf8")
-		self.md5_magic = md5 (self.magic).hexdigest ()
+		self.apikey = apikey.encode ("utf8")
+		self.md5_apikey = md5 (self.apikey).hexdigest ()
 		self.password = password
 		self.cache = {}
 	
@@ -17,7 +17,7 @@ class Authorizer:
 			return self.cache [authinfo]
 		
 		basic = base64.decodestring (authinfo [6:])
-		if basic == self.md5_magic:
+		if basic == self.md5_apikey:
 			self.cache [authinfo] = "app"
 			return "app"
 		
@@ -54,13 +54,13 @@ class Authorizer:
 			return False
 		return True
 
-			
+
 class FileAuthorizer (Authorizer):
 	cache = {}
-	def __init__ (self, realm, magic):
+	def __init__ (self, realm, apikey):
 		self.realm = realm
-		self.magic = magic
-		self.md5_magic = md5.new (self.magic).hexdigest ()
+		self.apikey = apikey
+		self.md5_apikey = md5.new (self.apikey).hexdigest ()
 		self.userfile = None
 		self.users = {}		
 		
@@ -115,7 +115,7 @@ class FileAuthorizer (Authorizer):
 			return self.cache [authinfo]
 		
 		basic = base64.decodestring (authinfo [6:])
-		if basic == self.md5_magic:
+		if basic == self.md5_apikey:
 			return "app"
 		
 		username, password = basic.split (":")				
@@ -138,7 +138,7 @@ class FileAuthorizer (Authorizer):
 		if not authinfo: return None
 		
 		basic = base64.decodestring (authinfo [6:])
-		if basic == self.md5_magic:
+		if basic == self.md5_apikey:
 			return None, "app"
 		
 		username, password = basic.split (":")				

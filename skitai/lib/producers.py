@@ -7,7 +7,6 @@ import time
 import io
 import gzip
 from . import compressors
-from .threads import trigger
 import mimetypes
 import os
 
@@ -75,7 +74,7 @@ class closing_iter_producer (list_producer):
 		except AttributeError: pass	
 		self.closed = True
 
-class stream_producer (simple_producer):
+class closing_stream_producer (closing_iter_producer):
 		def __init__ (self, data, buffer_size = 4096):
 			if not hasattr (data, "read"):
 				raise AttributeError ("stream object should have `read()` returns bytes object and optional 'close()'")			
@@ -90,7 +89,7 @@ class stream_producer (simple_producer):
 			if not data:
 				self.close ()
 			return data
-						
+
 class scanning_producer:
 	"like simple_producer, but more efficient for large strings"
 	def __init__ (self, data, buffer_size = 4096):

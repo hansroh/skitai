@@ -4,8 +4,7 @@ import os
 import sys
 from . import package, multipart_collector
 from . import wsgi_executor, xmlrpc_executor
-from skitai.server import producers
-from skitai.server.threads import trigger
+from skitai.lib import producers
 
 
 try:

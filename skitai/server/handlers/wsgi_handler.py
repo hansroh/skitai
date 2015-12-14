@@ -4,7 +4,8 @@ try:
 except ImportError:
 	from urllib import unquote	
 import sys
-from skitai.server import utility, producers
+from skitai.server import utility
+from skitai.lib import producers
 from skitai.server.http_response import catch
 from skitai.server.threads import trigger
 from . import collectors
@@ -199,7 +200,7 @@ class Job:
 		return "%s %s HTTP/%s" % (self.request.command.upper (), self.request.uri, self.request.version)
 	
 	def exec_app (self):		
-		was = the_was.get ()
+		was = the_was._get ()
 		self.args [0]["skitai.was"] = was
 		
 		request = was.request = self.request
@@ -218,13 +219,14 @@ class Job:
 			if response.get ("content-type") is None: 
 				response ["Content-Type"] = "text/html"	
 			
-			if content in ("", b"", []): # explicit empty string / iter
+			if content in ("", b"", [], ()): # explicit empty string / iter
 				trigger.wakeup (lambda p=response: (p.done(),))
 			
-			if hasattr (content, "_next") or hasattr (content, "next"): # flask etc.
-				content = producers.closing_iter_producer (content)
-			
-			if isinstance (content, producers.simple_producer):
+			if hasattr (content, "read"):
+				content = [producers.closing_stream_producer (content)]			
+			elif hasattr (content, "_next") or hasattr (content, "next"): # flask etc.
+				content = [producers.closing_iter_producer (content)]
+			elif type (content) not in (list, tuple):
 				content = [content]
 				
 			will_be_push = []
@@ -294,7 +296,7 @@ class Job:
 				except: self.logger.trace ("app")
 		
 		was = env.get ("skitai.was")
-		if was:
+		if was is not None:
 			if hasattr (was, "app"): # Saddle
 				was.cookie = None
 				was.session = None
