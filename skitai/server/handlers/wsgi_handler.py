@@ -222,11 +222,7 @@ class Job:
 			if content in ("", b"", [], ()): # explicit empty string / iter
 				trigger.wakeup (lambda p=response: (p.done(),))
 			
-			if hasattr (content, "read"):
-				content = [producers.closing_stream_producer (content)]			
-			elif hasattr (content, "_next") or hasattr (content, "next"): # flask etc.
-				content = [producers.closing_iter_producer (content)]
-			elif type (content) not in (list, tuple):
+			if type (content) not in (list, tuple):
 				content = [content]
 				
 			will_be_push = []
@@ -236,6 +232,11 @@ class Job:
 				content_length = None
 					
 			for part in content:
+				if hasattr (part, "read"):
+					part = producers.closing_stream_producer (part)	
+				elif hasattr (part, "_next") or hasattr (part, "next"): # flask etc.
+					part = producers.closing_iter_producer (part)
+					
 				if isinstance (part, producers.simple_producer):
 					content_length = None
 					# streaming obj
@@ -254,7 +255,8 @@ class Job:
 					if type_of_part is bytes:
 						if content_length is not None:
 							content_length += len (part)
-						will_be_push.append (part)						
+						will_be_push.append (part)
+						
 					else:
 						raise AssertionError ("Streaming content should be single element")
 			
