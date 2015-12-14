@@ -105,7 +105,7 @@ class Response:
 		if not cache_control:
 			return
 			
-		for each in cache_control.split (","):
+		for each in cache_control.split (","):			
 			try: 
 				k, v = each.split("=")					
 				if k.strip () == "max-age":

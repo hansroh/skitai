@@ -147,7 +147,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		return False
 			
 	def create_response (self):
-		#print ("#################################")
+		#print ("####### SERVER => SKITAI ##########################")
 		#print (self.buffer)
 		#print ("---------------------------------")
 		
@@ -207,6 +207,8 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		self.asyncon.close_socket ()
 		self.asyncon.request = None # unlink back ref.		
 		self.retry_count = 1
+		
+		self.asyncon.cancel_request ()
 		self.asyncon.push (self.get_request_buffer ())
 		#print ("retry......", self.get_request_buffer (), self.collector)
 		if self.collector:
@@ -253,7 +255,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 			"\r\n".join (["%s: %s" % x for x in list(hc.items ())])			
 		)
 		
-		#print ("#################################")
+		#print ("####### SKITAI => SERVER ##########################")
 		#print (req)
 		#print ("---------------------------------")
 		return req.encode ("utf8")
@@ -478,7 +480,7 @@ class Handler (wsgi_handler.Handler):
 			self.wasc.logger.trace ("server")
 			request.response.error (500, "", "Proxy request has been failed.")
 	
-	def is_cached (self, request, has_data):
+	def is_cached (self, request, has_data):		
 		if has_data:
 			return False
 		if request.get_header ("cookie") is not None:
@@ -541,7 +543,7 @@ class Handler (wsgi_handler.Handler):
 		if response.code < 100:
 			request.response.error (506, "", "%s (Code: 506.%d)" % (response.msg, response.code))		
 		else:
-			try:	
+			try:
 				self.save_cache (request, handler)					
 			except:
 				self.wasc.logger.trace ("server")

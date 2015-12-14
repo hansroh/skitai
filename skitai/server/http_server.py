@@ -239,8 +239,10 @@ class http_channel (asynchat.async_chat):
 			
 		else:
 			header = self.in_buffer
-			self.in_buffer = b''
-			
+			#print ("####### CLIENT => SKITAI ##########################")
+			#print (header)
+			#print ("------------------------------------------------")
+			self.in_buffer = b''			
 			lines = header.decode ("utf8").split('\r\n')
 			while lines and not lines[0]:
 				lines = lines[1:]

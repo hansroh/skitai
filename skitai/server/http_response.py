@@ -72,8 +72,8 @@ class http_response:
 		return key in [x [0].lower () for x in self.reply_headers]		
 			
 	def set (self, key, value):
-		if key.lower () != "set-cookie":
-			self.delete (key)
+		#if key.lower () != "set-cookie":
+		#	self.delete (key)
 		self.reply_headers.append ((key, value))
 			
 	def get (self, key):
@@ -102,9 +102,14 @@ class http_response:
 		self.set (key, value)
 	
 	def build_reply_header (self):		
-		return '\r\n'.join (
+		h = '\r\n'.join (
 				[self.response(self.reply_code, self.reply_message)] + ['%s: %s' % x for x in self.reply_headers]
 				) + '\r\n\r\n'			
+		
+		#print ("####### SKITAI => CLIENT ##########################")
+		#print (h)
+		#print ("-------------------------------------------")
+		return h		
 	
 	def get_status_msg (self, code):
 		try:
@@ -117,9 +122,7 @@ class http_response:
 		return 'HTTP/%s %d %s' % (self.request.version, code, status)
 	
 	def responsable (self):
-		if self.is_done: return False
-		if self.request.channel is None: return False
-		return True
+		return not self.is_done		
 	
 	def parse_ststus (self, status):
 		try:	
@@ -155,6 +158,8 @@ class http_response:
 	
 	def instant (self, status = "", headers = None):
 		# instance messaging		
+		if self.request.channel is None:
+			return
 		code, msg = self.parse_ststus (status)
 		reply = [self.response (code, msg)]
 		if headers:
@@ -242,7 +247,8 @@ class http_response:
 	def done (self, globbing = True, compress = True, force_close = False):
 		if not self.responsable (): return
 		self.is_done = True
-				
+		if self.request.channel is None: return
+					
 		connection = utility.get_header (utility.CONNECTION, self.request.header).lower()
 		close_it = False
 		way_to_compress = ""
@@ -294,10 +300,6 @@ class http_response:
 					wrap_in_chunking = True
 				self.update ('Content-Encoding', way_to_compress)	
 		
-		#lock.acquire ()
-		#print (self.build_reply_header())
-		#print self.request.uri, len (self.outgoing), self.outgoing.list
-		#lock.release ()
 		if len (self.outgoing) == 0:
 			self.delete ('transfer-encoding')
 			self.delete ('content-length')			

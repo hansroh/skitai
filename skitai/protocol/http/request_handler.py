@@ -92,6 +92,7 @@ class RequestHandler:
 			self.http_version,
 			"\r\n".join (self.header)
 		)).encode ("utf8")
+		
 		if is_data_producer:
 			return [req, data]
 		else:	
@@ -247,7 +248,8 @@ class RequestHandler:
 		
 		self.asyncon.close_socket ()
 		self.asyncon.request = None # unlink back ref.		
-		self.retry_count = 1
+		self.retry_count = 1		
+		self.asyncon.cancel_request ()
 		for buf in self.get_request_buffer ():
 			self.asyncon.push (buf)
 		self.asyncon.start_request (self)
