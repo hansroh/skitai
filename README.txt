@@ -11,7 +11,7 @@ Announcement
 
 From version 0.10, Skitai App Engine follows WSGI specification. So existing Skitai apps need to lots of modifications.
 
-Conceptually, SAE has been seperated to two components:
+Conceptually, SAE has been seperated into two components:
 
 1. Skitai App Engine Server, for WSGI apps
 
@@ -63,8 +63,8 @@ Here's three WSGI app samples:
 
   from flask import Flask
   app = Flask(__name__)  
+  
   @app.route("/")
-
   def index ():	 
     return "Hello World"
 
@@ -75,8 +75,8 @@ Here's three WSGI app samples:
 
   from skitai.saddle import Saddle
   app = Saddle (__name__)
+  
   @app.route('/')
-
   def index (was):	 
     return "Hello World"
 
@@ -155,9 +155,9 @@ Asynchronous Requests Using Skitai WAS
 
 Both can access to http://127.0.0.1:5000/get?url=https%3A//pypi.python.org/pypi .
 
-If you are familar to Falsk then use it, otherwise choose any WSGI middle ware you like include Skitai-Saddle.
+If you are familar to Flask then use it, otherwise choose any WSGI middle ware you like include Skitai-Saddle.
 
-Also note that if you want to use WAS services in your WSGI middle wares except Skitai-Saddle, you shoul import was.
+Also note that if you want to use WAS services in your WSGI middle wares except Skitai-Saddle, you should import was.
 
 .. code:: python
 
@@ -374,13 +374,6 @@ Flask and other WSGI middle ware have their own way to handle request. So If you
   app.use_reloader = True # auto realod on file changed
   
 
-.. code:: python
-
-  app = Saddle (__name__)
-  app.debug = True # output exception information
-  app.use_reloader = True # auto realod on file changed
-
-
 For output message & error in console:  
 
 *Posix*
@@ -408,7 +401,7 @@ c:\skitaid\bin\skitai-instance.py -v -f default
   was.request.get_user_agent ()
 
 
-**Response**
+**Handle Response**
 
 .. code:: python
 
@@ -436,7 +429,7 @@ Available return types are:
 - Something object has 'more()' method, optional 'close ()'
 - Classes of skitai.lib.producers
 - List/Tuple contains above objects
-- XMLRPC dumpable object
+- XMLRPC dumpable object for if you want to response to XMLRPC
 
 The object has 'close ()' method, will be called when all data consumed, or socket is disconnected with client by any reasons.
 
@@ -446,14 +439,12 @@ The object has 'close ()' method, will be called when all data consumed, or sock
 .. code:: python
   
   @app.route ("/hello")
-
   def hello_world (was, num = 8):	
     return num
   # http://127.0.0.1:5000/hello?num=100
 	
 	
   @app.route ("/hello/<int:num>")
-
   def hello_world (was, num = 8):
     return str (num)
     # http://127.0.0.1:5000/hello/100
@@ -472,7 +463,7 @@ Available fancy URL param types:
 .. code:: python
 
   @app.route ("/hello")
-  def hello_world (was, \*\*form):
+  def hello_world (was, **form):
   	return str (int (form.get ("num1", 0)) + int (form.get ("num2", 0)))
   	
   @app.route ("/hello")
@@ -494,14 +485,12 @@ Available fancy URL param types:
 
 .. code:: python
 
-  was.app.debug
-  was.app.use_reloader  
   was.app.get_template ("index.html") # getting Jinja template
 
 Directory structure sould be:
 
-app.py
-templates/index.html
+- app.py
+- templates/index.html
 
 
 **Access Cookie**
@@ -532,7 +521,7 @@ To enable session for app, random string formatted securekey should be set for e
   @app.route ("/session")
   def hello_world (was, **form):  
     if was.session.get ("login") is None:
-  	  was.session.set ("user_id", form.get ("hansroh"))
+      was.session.set ("user_id", form.get ("hansroh"))
   
 - was.session.set (key, val)
 - was.session.get (key)
@@ -561,7 +550,7 @@ To enable session for app, random string formatted securekey should be set for e
   def hello (was, name = "Hans Roh"):
     return "Hello, %s" % name
 	
-  was.ab ("hello", "Your Name") # returned '/hello/<Your_Name>'
+  was.ab ("hello", "Your Name") # returned '/hello/Your_Name'
 
 
 **Chained Execution**
