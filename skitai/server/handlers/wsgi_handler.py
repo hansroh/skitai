@@ -125,7 +125,16 @@ class Handler:
 			if request.command in ('post', 'put'):
 				return request.response.abort (301)
 			else:	
-				return request.response.error (301)				
+				return request.response.error (301)
+		
+		app = self.wasc.apps.get_app (has_route).get_callable()
+		try: 
+			www_authenticate = app.authorize (request.get_header ("Authorization"), request.command, request.uri)
+			if www_authenticate:
+				request.response ['WWW-Authenticate'] = www_authenticate
+				return request.response.error (401)
+		except AttributeError: 
+			pass
 		
 		ct = request.get_header ("content-type")
 		if request.command == 'post' and ct and ct.startswith ("multipart/form-data"):
@@ -134,7 +143,7 @@ class Handler:
 			try:
 				#self.wasc.apps.get_app (has_route) - module (that has callable) wrapper
 				#.get_callable() - callable, like WSGI function, Saddle or Falsk app
-				AppCollector = self.wasc.apps.get_app (has_route).get_callable().get_multipart_collector ()
+				AppCollector = app.get_multipart_collector ()
 			except AttributeError:
 				AppCollector = None
 					
@@ -216,14 +225,15 @@ class Job:
 			if content is None: # Possibly no return mistake
 				raise AssertionError ("Content or part should not be None")
 
-			if response.get ("content-type") is None: 
+			if response ["content-type"] is None: 
 				response ["Content-Type"] = "text/html"	
 			
-			if content in ("", b"", [], ()): # explicit empty string / iter
+			if content in ("", u"", b"", [], ()): # explicit empty string / iter
 				trigger.wakeup (lambda p=response: (p.done(),))
+				return
 			
 			if type (content) not in (list, tuple):
-				content = [content]
+				content = tuple (content)
 				
 			will_be_push = []
 			if len (response) == 0:
@@ -237,7 +247,7 @@ class Job:
 				elif hasattr (part, "_next") or hasattr (part, "next"): # flask etc.
 					part = producers.closing_iter_producer (part)
 					
-				if isinstance (part, producers.simple_producer):
+				if isinstance (part, producers.simple_producer) or hasattr (part, "more"):
 					content_length = None
 					# streaming obj
 					if hasattr (part, "close"):

@@ -9,9 +9,9 @@ License: BSD
 Announcement
 ---------------
 
-From version 0.10, Skitai App Engine follows WSGI specification. So previous Skitai apps need to a few modifications.
+From version 0.10, Skitai App Engine follows WSGI specification. So existing Skitai apps need to lots of modifications.
 
-Conceptually, SAE has been seperated to two components: 
+Conceptually, SAE has been seperated to two components:
 
 1. Skitai App Engine Server, for WSGI apps
 
@@ -94,27 +94,47 @@ For mounting to SAE, modify config file in /etc/skitaid/servers-enabled/default.
   /aboutus = /var/wsgi/flaskapp:app
   /services = /var/wsgi/skitaiapp:app
   
-That's it.
-
-You can access Falsk app from http://www.domain.com/aboutus and other apps are same.
+You can access Flask app from http://127.0.0.1:5000/aboutus and other apps are same.
 
 
+**Note: Mount point & App routing**
 
-Using Asynchronous Requests Provide by SAE
-----------------------------------------------------------
+If app is mounted to '/flaskapp',
 
-**Simple HTTP GET Request**
+.. code:: python
+   
+  from flask import Flask    
+  app = Flask (__name__)       
+  
+  @app.route ("/hello")
+  def hello ():
+    return "Hello"
+
+Above /hello can called, http://127.0.0.1:5000/flaskapp/hello
+
+Also app should can handle mount point. 
+In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Skitai-Saddle can handle obiously. But I don't know other WSGI middle wares will work properly.
+
+
+
+Asynchronous Requests Using Skitai WAS
+-----------------------------------------------------------------
+
+'WAS' means (Skitai) *WSGI Application Service*.
+
+**Simple HTTP Request**
 
 *Flask Style:*
 
 .. code:: python
 
-  from flask import Flask
+  from flask import Flask, request
   from skitai import was
   
   app = Flask (__name__)        
   @app.route ("/get")
-  def get (url):
+  def get ():
+    url = request.args.get('url', 'http://www.python.org')
     s = was.get (url)
     result = s.getwait (5) # timeout
     return result.data
@@ -128,15 +148,60 @@ Using Asynchronous Requests Provide by SAE
   app = Saddle (__name__)
         
   @app.route ("/get")
-  def get (was, url):
+  def get (was, url = "http://www.python.org"):
     s = was.get (url)
     result = s.getwait (5) # timeout
     return result.data
 
+Both can access to http://127.0.0.1:5000/get?url=https%3A//pypi.python.org/pypi .
 
-**XMLRPC Load-Balancing**
+If you are familar to Falsk then use it, otherwise choose any WSGI middle ware you like include Skitai-Saddle.
 
-Add mysearch members to config file,
+Also note that if you want to use WAS services in your WSGI middle wares except Skitai-Saddle, you shoul import was.
+
+.. code:: python
+
+  from skitai import was
+
+
+There're post, put, delete method examples:
+
+.. code:: python
+
+  s1 = was.post (url, {"user": "Hans Roh", "comment": "Hello"})
+  s2 = was.upload (url, {"user": "Hans Roh", "file": open (r"logo.png", "rb")})
+  
+  result = s1.getwait (5)
+  result = s2.getwait (5)
+
+
+Here's XMLRPC request for example:
+
+.. code:: python
+
+  s = was.rpc (url)
+  s.get_prime_number_gt (10000)
+  result = s.getwait (5)
+
+
+Avaliable methods are:
+
+- was.get ()
+- was.post ()
+- was.put ()
+- was.delete ()
+- was.upload () # For clarity to multipart POST
+- was.rpc () # XMLRPC
+- and other RESTful methods supported by target servers.
+
+
+
+
+**Load-Balancing**
+
+If server members are pre defined, skitai choose one automatically per each request supporting *fail-over*.
+
+At first, let's add mysearch members to config file (ex. /etc/skitaid/servers-enabled/default.conf),
 
 .. code:: python
 
@@ -145,27 +210,57 @@ Add mysearch members to config file,
     members = search1.mayserver.com:443, search2.mayserver.com:443
     
 
-Then SAE will request result from one of mysearch members.
+Then let's request XMLRPC result to one of mysearch members.
    
 .. code:: python
 
     @app.route ("/search")
     def search (was, keyword = "Mozart"):
-      s = was.rpc.map ("@mysearch/rpc2", "XMLRPC")
+      s = was.rpc.lb ("@mysearch/rpc2", "XMLRPC")
       s.search (keyword)
-      results = s.getwait (2)      
+      results = s.getwait (5)
 			return result.data
 
+It just small change from was.rpc () to was.rpc.lb ()
 
-**For XMLRPC Map-Reducing**
+Avaliable methods are:
 
-Basically same with load_balancing except SAE requests to all members.
+- was.get.lb ()
+- was.post.lb ()
+- was.upload.lb ()
+- was.rpc.lb ()
+- was.put.lb ()
+- was.delete.lb ()
+- and other RESTful methods supported by target servers.
+
+*Note:* If @mysearch member is only one, was.get.lb ("@mydb") is equal to was.get ("@mydb").
+
+*Note2:* You can mount cluster @mysearch to specific path as proxypass like this:
+
+At config file
+
+.. code:: python
+  
+  [routes:line]  
+  ; for files like images, css
+  / = /var/wsgi/static
+  
+  ; app mount syntax is path/module:callable
+  /search = @mysearch  
+  
+It can be accessed from http://127.0.0.1:5000/search, and handled as load-balanced proxypass.
+
+  
+
+**Map-Reducing**
+
+Basically same with load_balancing except SAE requests to all members per each request.
 
 .. code:: python
 
     @app.route ("/search")
     def search (was, keyword = "Mozart"):
-      s = was.map ("@mysearch/rpc2", "XMLRPC")
+      s = was.rpc.map ("@mysearch/rpc2")
       s.search (keyword)
       results = s.getswait (2)
 			
@@ -174,35 +269,393 @@ Basically same with load_balancing except SAE requests to all members.
          all_results.extend (result.data)
       return all_results
 
+There are 2 changes:
+
+	1. from was.rpc.lb () to was.rpc.map ()
+	2. form s.getwait () to s.getswait () for multiple results
+
+Avaliable methods are:
+
+- was.get.map ()
+- was.post.map ()
+- was.upload.map ()
+- was.rpc.map ()
+- was.put.map ()
+- was.delete.map ()
+- and other RESTful methods supported by target servers.
+
 
 **PostgreSQL Map-Reducing**
 
-Also similiar with above.
+This sample is to show querying sharded database.
 Add mydb members to config file.
 
 .. code:: python
 
     [@mydb]
     type = postresql
-    members = s1.yourserver.com:5432/mydb/user/passwd,s2.yourserver.com:5432/mydb/user/passwd
+    members = s1.yourserver.com:5432/mydb/user/passwd, s2.yourserver.com:5432/mydb/user/passwd
 
 
 .. code:: python
 
     @app.route ("/query")
     def query (was, keyword):
-      s = was.dmap ("@mydb")
+      s = was.db.map ("@mydb")
       s.execute("SELECT * FROM CITIES;")
 
       results = s.getswait (timeout = 2)
-
       all_results = []
       for result in results:
         if result.status == 3:
           all_results.append (result.data)
       return all_results
-      
 
+
+Basically same usage concept with above HTTP Requests.
+
+Avaliable methods are:
+
+- was.db = ("127.0.0.1:5432", "mydb", "postgres", "password")
+- was.db = ("@mydb")
+- was.db.lb = ("@mydb")
+- was.db.map = ("@mydb")
+
+*Note:* if @mydb member is only one, was.db.lb ("@mydb") is equal to was.db ("@mydb").
+
+
+**Sending e-Mails**
+
+.. code:: python
+
+    # email delivery service
+    e = was.email (subject, snd, rcpt)
+    e.set_smtp ("127.0.0.1:465", "username", "password", ssl = True)
+    e.add_text ("Hello World<div><img src='cid:ID_A'></div>", "text/html")
+    e.add_attachment (r"001.png", cid="ID_A")
+    e.send ()
+
+With asynchronous email delivery service, can add default SMTP Server config to skitaid.conf (/etc/skitaid/skitaid.conf or c:\skitaid\etc\skitaid.conf).
+If it is configured, you can skip e.set_smtp(). But be careful for keeping your smtp password.
+
+.. code:: python
+
+    [smtpda]
+    smtpserver = 127.0.0.1:25
+    user = 
+    password = 
+    ssl = no
+    max_retry = 10
+    undelivers_keep_max_days = 30
+    
+
+**Other Utility Service**
+
+- was.tojson ()
+- was.fromjson ()
+- was.toxml () # XMLRPC
+- was.fromxml () # XMLRPC
+
+
+Request Handling for Saddle
+----------------------------
+
+*Saddle* is WSGI middle ware integrated with Skitai App Engine.
+
+Flask and other WSGI middle ware have their own way to handle request. So If you choose them, see their documentation. And note that below objects will *NOT* be avaliable on other WSGI middle wares.
+
+
+**Debugging**
+
+.. code:: python
+
+  app = Saddle (__name__)
+  app.debug = True # output exception information
+  app.use_reloader = True # auto realod on file changed
+  
+
+.. code:: python
+
+  app = Saddle (__name__)
+  app.debug = True # output exception information
+  app.use_reloader = True # auto realod on file changed
+  
+  
+  
+**Access Request**
+
+.. code:: python
+
+  was.request.get_header ("content-type") # case insensitive
+  was.request.get_header () # retrun header all list
+  was.request.command # lower case get, post, put, ...
+  was.request.version # HTTP Version, 1.0, 1.1
+  was.request.uri  
+  was.request.get_body ()
+  was.request.get_remote_addr ()
+  was.request.get_user_agent ()
+
+
+**Response**
+
+.. code:: python
+
+  was.response ["Content-Type"] = "text/plain"
+  was.response.set_status ("200 OK") # default value
+  return "Hello"
+    
+  was.response.send_error ("500 Server Error", why = "It's not my fault")
+  return "" # should null string/bytes after call send_error ()
+  
+  was.response ["Content-Type"] = "video/mp4"
+  return open ("mypicnic.mp4", "rb")
+  
+  was.response ["Content-Type"] = "text/csv"  
+  def generate():
+    for row in iter_all_rows():
+      yield ','.join(row) + '\n'  
+  return generate()
+  
+Available return types are:
+
+- String, Bytes, Unicode
+- File-like object has 'read (buffer_size)' method, optional 'close ()'
+- Iterator/Generator object has 'next() or _next()' method, optional 'close ()' and shoud raise StopIteration if no more data exists.
+- Something object has 'more()' method, optional 'close ()'
+- Classes of skitai.lib.producers
+- List/Tuple contains above objects
+- XMLRPC dumpable object
+
+The object has 'close ()' method, will be called when all data consumed, or socket is disconnected with client by any reasons.
+
+
+**Getting URL Parameters**
+
+.. code:: python
+  
+  @app.route ("/hello")
+
+  def hello_world (was, num = 8):	
+    return num
+  # http://127.0.0.1:5000/hello?num=100
+	
+	
+  @app.route ("/hello/<int:num>")
+
+  def hello_world (was, num = 8):
+    return str (num)
+    # http://127.0.0.1:5000/hello/100
+
+
+Available fancy URL param types:
+
+- int
+- float
+- path: /download/<int:major_ver>/<path>, should be positioned at last like /download/1/version/1.1/win32
+- If not provided, assume as string. and all space char replaced to "_'
+
+
+**Getting Form Parameters**
+
+.. code:: python
+
+  @app.route ("/hello")
+  def hello_world (was, \*\*form):
+  	return str (int (form.get ("num1", 0)) + int (form.get ("num2", 0)))
+  	
+  @app.route ("/hello")
+  def hello_world (was, num, **form):
+  	return str (int (num) + int (form.get ("num2", 0)))
+  	
+	# http://127.0.0.1:5000/hello/100
+	
+
+**Access Environment Variables**
+
+.. code:: python
+
+  was.env.keys ()
+  was.env.get ("CONTENT_TYPE")
+
+
+**Access Environment App & Jinja Templates**
+
+.. code:: python
+
+  was.app.debug
+  was.app.use_reloader  
+  was.app.get_template ("index.html") # getting Jinja template
+
+Directory structure sould be:
+
+app.py
+templates/index.html
+
+
+**Access Cookie**
+
+.. code:: python
+
+  if was.cookie.get ("user_id") is None:
+  	was.cookie.set ("user_id", "hansroh")
+  	
+- was.cookie.set (key, val)
+- was.cookie.get (key)
+- was.cookie.remove (key)
+- was.cookie.clear ()
+- was.cookie.kyes ()
+- was.cookie.values ()
+- was.cookie.items ()
+
+
+**Access Session**
+
+To enable session for app, random string formatted securekey should be set for encrypt/decrypt session values.
+
+.. code:: python
+
+  app.securekey = "ds8fdsflksdjf9879dsf;?<>Asda"
+  app.session_timeout = 1200 # sec
+  
+  @app.route ("/session")
+  def hello_world (was, **form):  
+    if was.session.get ("login") is None:
+  	  was.session.set ("user_id", form.get ("hansroh"))
+  
+- was.session.set (key, val)
+- was.session.get (key)
+- was.session.remove (key)
+- was.session.clear ()
+- was.session.kyes ()
+- was.session.values ()
+- was.session.items ()
+
+
+**Building URL**
+
+.. code:: python
+
+  @app.route ("/add")
+  def add (was, num1, num2):  
+    return int (num1) + int (num2)
+    
+  was.app.build_url ("add", 10, 40) # returned '/add?num1=10&num2=40'
+  # BUT it's too long to use practically,
+  # was.ab is acronym for was.app.build_url
+  was.ab ("add", 10, 40) # returned '/add?num1=10&num2=40'
+  was.ab ("add", 10, num2=60) # returned '/add?num1=10&num2=60'
+  
+  @app.route ("/hello/<name>")
+  def hello (was, name = "Hans Roh"):
+    return "Hello, %s" % name
+	
+  was.ab ("hello", "Your Name") # returned '/hello/<Your_Name>'
+
+
+**Using WWW-Authenticate**
+
+Saddle provide simple authenticate for administration or perform access control from other system's call.
+
+.. code:: python
+
+  app = Saddle (__name__)
+  
+  app.authorization = "digest"
+  app.realm = "Partner App Area of mysite.com"
+  app.user = "app"
+  app.password = "iamyourpartnerapp"
+	
+  @app.route ("/hello/<name>")
+  def hello (was, name = "Hans Roh"):
+    return "Hello, %s" % name
+
+If your server run with SSL, you can use app.authorization = "basic", otherwise use "digest" for your server's security.
+
+
+
+**Packaging for Larger App**
+
+app.py
+
+.. code:: python
+
+  from skitai.saddle import Saddle
+  from . import sub
+  
+  app = Saddle (__name__)
+  app.debug = True
+  app.use_reloader = True
+  
+  app.add_package (sub, "package")
+  
+  @app.route ("/")
+  def index (was, num1, num2):  
+    return was.ab ("hello") # url building
+
+
+sub.py
+  
+.. code:: python
+
+  from skitai.saddle import Package
+  package = Package ()
+  
+  @package.route ("/hello/<name>")
+  def hello (was):		
+		# can build other module's method url
+		return was.ab ("index", 1, 2) 
+	  
+You shoud mount only app.py. App's debug & use_reloader, etc. attributes will be applied to packages as same.
+
+
+**Implementing XMLRPC Service**
+
+Client Side:
+
+.. code:: python
+
+  import xmlrpc.client as rpc
+  
+  s = rpc.Server ("http://127.0.0.1:5000/rpc") # RPC App mount point
+  result = s.add (10000, 5000)  
+  
+  
+Server Side:
+
+.. code:: python
+
+  @app.route ("/add")
+  def index (was, num1, num2):  
+    return num1 + num2
+
+Is there nothing to diffrence? Yes. Saddle app methods are also used for XMLRPC service if return values are XMLRPC dumpable.
+
+
+
+Running Skitai as HTTPS Server
+-------------------------------
+
+Simply config your certification files to config file (ex. /etc/skitaid/servers-enabled/default.conf). 
+
+.. code:: python
+
+    [server]
+    ssl = yes
+    ; added new key
+    certfile = server.pem
+    ; you can combine to certfile
+    ; keyfile = private.key
+    ; passphrase = 
+
+
+To genrate self-signed certification file:
+
+.. code:: python
+
+    openssl req -new -newkey rsa:2048 -x509 -keyout server.pem -out server.pem -days 365 -nodes
+    
+For more detail please read REAME.txt in /etc/skitaid/cert/README.txt
+    	
 
 Project Purpose
 -----------------
@@ -213,10 +666,12 @@ Anyway, I am modifying my codes to optimizing for enabling service on Linux mach
 
 If you need lots of outside http(s) resources connecting jobs and use PostgreSQL, it might be worth testing and participating this project.
 
+Also note it might be more efficient that circumstance using `Gevent WSGI Server`_ + Flask. They have well documentation and already tested by lots of users.
+
 
 .. _Wissen: https://pypi.python.org/pypi/wissen
 .. _AWS: https://aws.amazon.com
-
+.. _`Gevent WSGI Server`: http://www.gevent.org/
     
 
 Installation and Startup
@@ -341,3 +796,4 @@ Change Log
   0.9.1.14 - Automation session commit
   
   0.9.1.12 - Fix / App Routing
+

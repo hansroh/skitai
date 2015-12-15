@@ -5,7 +5,6 @@ import sys, os, getopt
 from skitai.server import Skitai
 from skitai import lifetime
 from skitai.lib import confparse, flock, pathtool
-from skitai.saddle import cookie, multipart_collector
 
 import signal
 try:
@@ -44,37 +43,23 @@ class	WAS (Skitai.Loader):
 	def test_config (cls, conf):
 		config = confparse.ConfParse (conf)
 		
-		assert (config.getint ("server", "processes") > 0)
-		assert (config.getint ("server", "threads") >= 0)
+		assert config.getint ("server", "processes") > 0, "processes should be int > 0"
+		assert config.getint ("server", "threads") >= 0, "processes should be int >= 0"
 		if config.getopt ("server", "ssl") == "yes":
-			assert (config.getopt ("server", "certfile"))
-		assert (config.getint ("server", "port") > 0)
-		assert (len (config.getopt ("saddler", "securekey")) >= 6)
-		assert (len (config.getopt ("saddler", "admin_password")) >= 6)
-		assert (config.getint ("saddler", "sessiontimeout") >= 0)		
-		assert (config.getint ("saddler", "max_upload_each_file_size") >= 0)
-		assert (config.getint ("saddler", "max_cache_size") > 0) # should have value for memory protection
+			assert config.getopt ("server", "certfile"), "enable ssl but certfile is not given"
+		assert config.getint ("server", "port") > 0, "posrt should br int > 0"		
+		assert config.getint ("server", "static_max_age") is not None, "static_max_age should be int >= 0"
+		assert config.getint ("server", "num_result_cache_max") is not None, "num_result_cache_max should be int >= 0"
 		
 		for sect in list(config.keys ()):
-			if sect.startswith ("cluster-"):
-				name = sect [8:]
-				assert (len (name) > 0)
-				assert (config.getint (sect, "cache_timeout") >= 0)
+			if sect.startswith ("@"):
+				name = sect [1:]
+				assert len (name) > 0, "cluster name should be provided"
 				members = [_f for _f in [x.strip () for x in config.getopt (sect, "members").split (",")] if _f]
-				assert (len (members) > 0)
-				assert (config.getopt (sect, "ssl")	in ("yes", "no", None, ""))
+				assert len (members) > 0, "cluster should have al least one member"				
 				
 	def to_list (self, text, delim = ","):
 		return [_f for _f in [x.strip () for x in text.split (",")] if _f]	
-	
-	def config_multipart_collector (self, file_max_size, cache_max_size):
-		multipart_collector.MultipartCollector.file_max_size = (file_max_size == 0 and 20 * 1024 * 1024 or file_max_size)
-		multipart_collector.MultipartCollector.cache_max_size = (cache_max_size == 0 and 5 * 1024 * 1024 or cache_max_size)
-		
-	def config_session (self, timeout, secret_key = ""):
-		if not timeout: timeout = 1200
-		if secret_key:
-				cookie.Cookie.set_secret_key (secret_key)
 			
 	def configure (self):
 		global _profile
@@ -105,11 +90,6 @@ class	WAS (Skitai.Loader):
 			self.config_certification (config.getopt ("server", "certfile"), config.getopt ("server", "keyfile"), config.getopt ("server", "passphrase"))
 		self.config_cachefs (os.path.join (self.varpath, "cache"))
 		self.config_rcache (config.getint ("server", "num_result_cache_max"))
-		
-		# saddler config
-		self.config_multipart_collector (config.getint ("saddler", "max_upload_each_file_size"), config.getint ("saddler", "max_cache_size"))
-		self.config_session (config.getint ("saddler", "sessiontimeout"), config.getopt ("saddler", "securekey"))
-		self.config_authorizer (config.getopt ("saddler", "securekey"), config.getopt ("saddler", "admin_password"))
 		
 		# spawn
 		self.config_webserver (
@@ -245,8 +225,12 @@ if __name__ == "__main__":
 	try:
 		service = WAS (_config, _logpath, _varpath, _consol)
 	except:
-		sys.stderr.write (traceback ())	
-		sys.stderr.flush ()
+		tb = traceback ()
+		if not _consol: # service mode
+			sys.stderr.write (tb)	
+			sys.stderr.flush ()
+		else:
+			print (tb)	
 		sys.exit (0)		
 	
 	try:		

@@ -29,9 +29,10 @@ def crack_cookie (r):
 
 class Cookie:
 	DOUBLEDECADE = 630720000
-	secret_key = None
-	def __init__ (self, request):
+	def __init__ (self, request, secret_key = None, session_timeout = 1200):
 		self.request = request		
+		self.secret_key = secret_key
+		self.session_timeout = session_timeout
 		self.data = {}
 		self.uncommits = {}
 		self.session_cookie = None
@@ -81,13 +82,14 @@ class Cookie:
 		cls.secret_key = secret_key.encode ("utf8")
 	
 	def get_session (self, create = True):
-		if self.session_cookie:
-				sc = SecuredCookieValue.unserialize (self.session_cookie.encode ("utf8"), self.secret_key, self.set)
+		if self.secret_key:
+			if self.session_cookie:
+				sc = SecuredCookieValue.unserialize (self.session_cookie.encode ("utf8"), self.secret_key, self.set, self.session_timeout)
 				self.session_cookie = None
 				return sc
-		elif create:
-			return SecuredCookieValue (None, self.secret_key, self.set, True)
-		raise KeyError("no session found")
+			elif create:
+				return SecuredCookieValue (None, self.secret_key, self.set, self.session_timeout, True)
+		return None
 	
 	def _parse (self):
 		cookie = crack_cookie (self.request.get_header ("cookie"))			
@@ -159,13 +161,14 @@ class SecuredCookieValue (Cookie):
 	default_session_timeout = 1200 # 20 min.
 	max_valid_session = 7200 # 2hours
 		
-	def __init__ (self, data, secret_key, setfunc, new = True):
+	def __init__ (self, data, secret_key, setfunc, session_timeout = 0, new = True):
 		if new:
 			self.data = {}
 		else:
 			self.data = data				
 		self.secret_key = secret_key
 		self.setfunc = setfunc
+		self.session_timeout = session_timeout and session_timeout or self.default_session_timeout
 		self.new = new
 		self.commited = False
 		
@@ -191,10 +194,10 @@ class SecuredCookieValue (Cookie):
 	
 	def commit (self, expires = None, path = "/", domain = None):
 		if self.commited:
-			return			
+			return
 						
 		if expires is None:
-			expires = self.default_session_timeout
+			expires = self.session_timeout
 		elif expires == "now":
 			expires = 0
 		elif expires == "never":
@@ -241,7 +244,7 @@ class SecuredCookieValue (Cookie):
 		return (base64.b64encode(mac.digest()).strip() + b"?" + b'&'.join(result)).decode ("utf8")
 	
 	@classmethod
-	def unserialize(cls, string, secret_key, setfunc):
+	def unserialize(cls, string, secret_key, setfunc, session_timeout):
 		items = {}
 		try:
 			base64_hash, data = string.split(b'?', 1)
@@ -284,6 +287,6 @@ class SecuredCookieValue (Cookie):
 		else:
 			items = {}
 						
-		return cls (items, secret_key, setfunc, False)
+		return cls (items, secret_key, setfunc, session_timeout, False)
 
 		

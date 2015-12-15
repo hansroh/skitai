@@ -247,7 +247,7 @@ class RequestHandler:
 			return False		
 		
 		self.asyncon.close_socket ()
-		self.asyncon.request = None # unlink back ref.		
+		self.asyncon.request = None # unlink back ref.
 		self.retry_count = 1		
 		self.asyncon.cancel_request ()
 		for buf in self.get_request_buffer ():

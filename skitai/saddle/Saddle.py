@@ -2,10 +2,20 @@ import threading
 import time
 import os
 import sys
-from . import package, multipart_collector
+from . import package, multipart_collector, cookie
 from . import wsgi_executor, xmlrpc_executor
 from skitai.lib import producers
+from hashlib import md5
+import random
+import base64
 
+ALNUM = b'0123456789abcdefghijklmnopqrstuvwxyz'
+def md5uniqid (length = 13):	
+	global ALNUM
+	_id = ''
+	for i in range (0, length):
+		_id += random.choice(ALNUM)
+	return md5 (_id).hexdigest ()[length:]
 
 try:
 	import xmlrpc.client as xmlrpclib
@@ -18,9 +28,25 @@ try:
 except ImportError:
 	JINJA2 = False
 
+multipart_collector.MultipartCollector.file_max_size = 20 * 1024 * 1024
+multipart_collector.MultipartCollector.cache_max_size = 5 * 1024 * 1024
+cookie.SecuredCookieValue.default_session_timeout = 1200
+
 class Saddle (package.Package):
 	use_reloader = False
 	debug = False
+	
+	# Session
+	securekey = None
+	session_timeout = None
+	
+	#WWW-Authenticate
+	authorization = "digest"
+	realm = None
+	user = None
+	password = None
+	
+	opaque = None
 	
 	def __init__ (self, package_name):
 		self.template_env = JINJA2 and Environment (loader = PackageLoader (package_name)) or None
@@ -29,7 +55,70 @@ class Saddle (package.Package):
 		self.cache_sorted = 0
 		self.cached_paths = {}
 		self.cached_rules = []
+		
+	def __setattr__ (self, name, attr):
+		if name == "upload_file_max_size":
+			multipart_collector.MultipartCollector.file_max_size = attr
+		self.__dict__ [name] = attr
 	
+	def get_www_authenticate (self):
+		if self.authorization == "basic":
+			return 'Basic realm="%s"' % self.realm
+		else:	
+			if self.opaque is None:
+				print md5 (self.realm.encode ("utf8")).hexdigest ()
+				self.opaque = md5 (self.realm.encode ("utf8")).hexdigest ()
+			return 'Digest realm="%s", qop="auth", nonce="%s", opaque="%s"' % (
+				self.realm, md5uniqid (), self.opaque
+			)
+			
+	def authorize (self, auth, method, uri):
+		if self.realm is None or self.user is None or self.password is None:
+			return		
+		if auth is None:
+			return self.get_www_authenticate ()
+		# check validate: https://evertpot.com/223/
+		amethod, authinfo = auth.split (" ", 1)
+		if amethod.lower () != self.authorization:
+			return self.get_www_authenticate ()
+			
+		if self.authorization == "basic":
+			basic = base64.decodestring (authinfo)
+			if basic == "%s:%s" % (self.username, self.password):
+				return
+				
+		else:
+			method = method.upper ()
+			infod = {}
+			for info in authinfo.split (","):
+				k, v = info.strip ().split ("=", 1)
+				if not v: return self.get_www_authenticate ()
+				if v[0] == '"': v = v [1:-1]
+				infod [k]	 = v
+							
+			try:
+				if uri != infod ["uri"]:
+					return self.get_www_authenticate ()
+					
+				A1 = md5 ("%s:%s:%s" % (self.username, self.realm, self.password))
+				A2 = md5 ("%s:%s" % (method, infod ["uri"]))
+				Hash = md5 ("%s:%s:%s:%s:%s:%s" % (
+					A1, 
+					infod ["nounce"],
+					infod ["nc"],
+					infod ["cnounce"],
+					infod ["qop"],
+					A2
+					)
+				)
+				if Hash == infod ["response"]:
+					return
+					
+			except KeyError:
+				pass
+		
+		return self.get_www_authenticate ()
+			
 	def set_devel (self, debug = True, use_reloader = True):
 		self.debug = debug
 		self.use_reloader = use_reloader

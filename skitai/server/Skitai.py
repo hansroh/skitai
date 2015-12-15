@@ -8,7 +8,7 @@ HTTPS = True
 PSYCOPG = True
 
 import sys, time, os, threading
-from . import http_server, wsgi_apps, rcache, authorizer
+from . import http_server, wsgi_apps, rcache
 from skitai import lifetime
 from warnings import warn
 from . import https_server
@@ -161,10 +161,6 @@ class Loader:
 			def hUSR1 (signum, frame):	
 				self.wasc.logger.rotate ()
 			signal.signal(signal.SIGUSR1, hUSR1)
-		
-	def config_authorizer (self, apikey, password):
-		auth = authorizer.Authorizer (self.instance_name, apikey, password)		
-		self.wasc.register ("authorizer", auth)
 	
 	def config_threads (self, numthreads = 0):
 		if numthreads > 0:

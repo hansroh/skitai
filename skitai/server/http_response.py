@@ -75,13 +75,12 @@ class http_response:
 		#if key.lower () != "set-cookie":
 		#	self.delete (key)
 		self.reply_headers.append ((key, value))
-			
+	
 	def get (self, key):
 		key = key.lower ()
 		for k, v in self.reply_headers:
 			if k.lower () == key:
 				return v
-	get_header = get
 			
 	def delete (self, key):
 		index = 0

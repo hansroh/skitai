@@ -137,7 +137,7 @@ class ClusterDistCall:
 		params = None,
 		reqtype = "get",
 		headers = None,
-		login = None,
+		auth = None,
 		encoding = None,		
 		mapreduce = True,
 		callback = None,
@@ -150,7 +150,7 @@ class ClusterDistCall:
 		self._headers = headers
 		self._reqtype = reqtype
 			
-		self._login = login
+		self._auth = auth
 		self._encoding = encoding
 		self._mapreduce = mapreduce
 		self._callback = callback
@@ -213,15 +213,15 @@ class ClusterDistCall:
 			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self.get_ident () or None, filterfunc = self._callback)
 			
 			if _reqtype == "rpc":
-				request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._encoding, self._login, self._logger)				
+				request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)				
 			elif _reqtype == "jsonrpc":
-				request = http_request.JSONRPCRequest (self._uri, method, params, self._headers, self._encoding, self._login, self._logger)		
+				request = http_request.JSONRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)		
 			elif _reqtype == "upload": 
-				request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._login, self._logger)
+				request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
 			elif _reqtype == "put":
-				request = http_request.HTTPPutRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._login, self._logger)
+				request = http_request.HTTPPutRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
 			else: # "get", "post", "delete", ...
-				request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._login, self._logger)
+				request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
 			
 			self._requests[rs] = asyncon
 			r = http_request_handler.RequestHandler (asyncon, request, rs.handle_result)
@@ -262,7 +262,7 @@ class ClusterDistCall:
 	def _collect_result (self):
 		for rs, asyncon in list(self._requests.items ()):
 			status = rs.get_status ()
-			if not self._mapreduce and status == 2 and self._retry < self._numnodes:
+			if not self._mapreduce and status == 2 and self._retry < (self._numnodes - 1):
 				self._logger ("cluster response error, switch to another...", "info")
 				self._cluster.report (asyncon, False) # exception occured
 				del self._requests [rs]

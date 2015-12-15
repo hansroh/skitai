@@ -76,7 +76,9 @@ class http_request:
 	def get_body (self):
 		return self.body
 			
-	def get_header (self, header):
+	def get_header (self, header = None):
+		if header is None:
+			return self.header
 		header = header.lower()
 		hc = self._header_cache
 		if header not in hc:

@@ -124,7 +124,7 @@ class Executor:
 		_was = self.env["skitai.was"]
 		_was.env = self.env
 		_was.response = _was.request.response
-		_was.cookie = cookie.Cookie (_was.request)
+		_was.cookie = cookie.Cookie (_was.request, _was.app.securekey, _was.app.session_timeout)
 		_was.session = _was.cookie.get_session ()
 		self.was = _was		
 	

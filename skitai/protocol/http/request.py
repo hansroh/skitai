@@ -16,13 +16,13 @@ from skitai.lib import producers
 class XMLRPCRequest:
 	content_type = "text/xml"
 			
-	def __init__ (self, uri, method, params = (), headers = None, encoding = "utf8", login = None, logger = None):
+	def __init__ (self, uri, method, params = (), headers = None, encoding = "utf8", auth = None, logger = None):
 		self.uri = uri
 		self.method = method
 		self.params = params
 		self.headers = headers
 		self.encoding = encoding
-		self.login = login
+		self.auth = (type (auth) is tuple and ("%s:%s" % auth) or auth)
 		self.logger = logger
 		
 		self.address, self.path = self.split (uri)
@@ -63,8 +63,8 @@ class XMLRPCRequest:
 		return xmlrpclib.dumps (self.params, self.method, encoding=self.encoding, allow_none=1).encode ("utf8")
 	
 	def get_auth (self):
-		if self.login:
-			return base64.encodestring (self.login) [:-1]
+		if self.auth:
+			return base64.encodestring (self.auth) [:-1]
 		
 	def get_data (self):
 		return self.data
@@ -132,8 +132,8 @@ class HTTPPutRequest (HTTPRequest):
 class HTTPMultipartRequest (HTTPRequest):
 	boundary = "-------------------SAE-20150614204358"
 	
-	def __init__ (self, uri, method, params = {}, headers = None, encoding = None, login = None, logger = None):
-		HTTPRequest.__init__ (self, uri, method, params, headers, encoding, login, logger)
+	def __init__ (self, uri, method, params = {}, headers = None, encoding = None, auth = None, logger = None):
+		HTTPRequest.__init__ (self, uri, method, params, headers, encoding, auth, logger)
 		if type (self.params) is bytes:
 			self.find_boundary ()
 	

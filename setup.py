@@ -66,6 +66,7 @@ skitaid_files = [
 	"skitaid/bin/*.py",
 	"skitaid/pub/default/*.py",	
 	"skitaid/pub/default/static/*.*",	
+	"skitaid/pub/default/templates/*.*",	
 	"skitaid/etc/init/skitaid.conf",
 	"skitaid/etc/init.d/skitaid", 
 	"skitaid/etc/skitaid/skitaid.conf",
@@ -127,6 +128,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 		mkdir ("c:\\skitaid\\bin")
 		mkdir ("c:\\skitaid\\log")
 		mkdir ("c:\\skitaid\\pub\\default\\static")
+		mkdir ("c:\\skitaid\\pub\\default\\templates")
 		mkdir ("c:\\skitaid\\etc\\cert")
 		mkdir ("c:\\skitaid\\etc\\servers-available")
 		mkdir ("c:\\skitaid\\etc\\servers-enabled")		
@@ -153,7 +155,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 				if why.errno == 2: pass	
 			shutil.copyfile (os.path.join ("skitai\\skitaid\\bin", fn), target)
 		
-		for fn in ("webapp.py", "static\\index.html"):
+		for fn in ("webapp.py", "static\\reindeer.jpg", "templates\\index.html"):
 			target = os.path.join ("c:\\skitaid\\pub\\default", fn)
 			try: os.remove (target)
 			except WindowsError as why:
@@ -177,6 +179,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 		mkdir ("/var/log/skitaid")
 		mkdir ("/var/local/skitaid")		
 		mkdir ("/var/local/skitaid-pub/default/static")
+		mkdir ("/var/local/skitaid-pub/default/templates")
 			
 		conf = "/etc/skitaid/skitaid.conf"
 		if not os.path.isfile (conf) and not os.path.islink (conf):
@@ -204,7 +207,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 			shutil.copyfile (os.path.join ("skitai/skitaid/bin", fn), target)
 			os.chmod (target, 0o755)
 		
-		for fn in ("webapp.py", "static/index.html"):
+		for fn in ("webapp.py", "templates/index.html", "static/reindeer.jpg"):
 			target = os.path.join ("/var/local/skitaid-pub/default", fn)
 			try: os.remove (target)
 			except OSError as why:
