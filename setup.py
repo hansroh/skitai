@@ -43,7 +43,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 		if os.path.isfile ("skitai/lib/py2utils.py"):
 			os.remove ("skitai/lib/py2utils.py")
 			try: os.remove ("skitai/lib/py2utils.pyc")
-			except OSerror: pass
+			except OSError: pass
 	else:
 		if not os.path.isfile ("skitai/lib/py2utils.py"):
 			with open ("skitai/lib/py2utils.py", "w") as f:
@@ -113,6 +113,7 @@ setup(
 	license='BSD',
 	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/skitai",
+	install_requires = ["jinja2"],
 	classifiers=classifiers
 )
 
@@ -195,7 +196,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 			
 		conf = "/etc/skitaid/skitaid.conf"
 		if not os.path.isfile (conf) and not os.path.islink (conf):
-			shutil.copyfile (os.path.join ("skitai/skitaid/etc/skitaid/skitaid.conf"), "/etc/skitaid.conf")
+			shutil.copyfile (os.path.join ("skitai/skitaid/etc/skitaid/skitaid.conf"), "/etc/skitaid/skitaid.conf")
 		
 		if not os.listdir ("/etc/skitaid/servers-enabled"):
 			with open ("skitai/skitaid/etc/skitaid/servers-enabled/default.conf") as f:
