@@ -26,3 +26,9 @@ def index (was):
 				pypi_content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></h4>" + content [s:e]
 		
 	return t.render ({"content": pypi_content})
+
+
+@app.route ("/hello")
+def hello (was, num = 1):
+	was.response ["Content-Type"] = "text/plain"
+	return "\n".join (["hello" for i in range (int(num))])
