@@ -564,6 +564,74 @@ To enable session for app, random string formatted securekey should be set for e
   was.ab ("hello", "Your Name") # returned '/hello/<Your_Name>'
 
 
+**Chained Execution**
+
+.. code:: python
+
+  @app.before_request
+  def before_request (was):
+    if not login ():
+      return "Not Authorized"
+  
+  @app.after_request
+  def after_request (was):
+    log_user ()
+  
+  @app.failed_request
+  def failed_request (was):
+    log_fail ()
+  
+  @app.teardown_request
+  def teardown_request (was):
+    log_fail ()  
+  
+  @app.route ("/view-account")
+  def view_account (was, userid):
+    ...
+    return ...
+    
+If view_account is called, Saddle execute these sequence:
+
+.. code:: python
+  
+  try:
+    try: 
+      content = before_request
+      if content: 
+        return content
+      content = view_account
+    except:
+      failed_request
+    else:
+      after_request
+  finally:
+    teardown_request      
+
+
+Also there're another kind of method group,
+
+.. code:: python
+
+  @app.startup
+  def startup (wasc, app):
+    object = SomeClass ()
+    wasc.registerObject ("myobject", object)
+  
+  @app.onreload  
+  def onreload (wasc, app):
+    wasc.myobject.reset ()
+  
+  @app.shutdown    
+  def shutdown (wasc, app):
+    wasc.myobject.close ()
+  
+'wasc' is class object of 'was' and mainly used for sharing Skitai server-wide object. these methods will be called,
+
+1. startup: when app imported on skitai server started
+2. onreload: when app.use_reloader is True and app is reloaded
+3. shutdown: when skitai server is shutdowned
+  
+
 **Using WWW-Authenticate**
 
 Saddle provide simple authenticate for administration or perform access control from other system's call.

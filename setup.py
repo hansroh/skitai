@@ -168,6 +168,12 @@ if "install" in sys.argv or "develop" in sys.argv:
 				if why.errno == 2: pass	
 			shutil.copyfile (os.path.join ("skitai\\skitaid\\bin", fn), target)
 		
+		for fn in ("static\\index.html",):
+			target = os.path.join ("c:\\skitaid\\pub\\default", fn)
+			try: os.remove (target)			
+			except WindowsError as why:
+				if why.errno == 2: pass	
+					
 		for fn in ("webapp.py", "static\\reindeer.jpg", "templates\\index.html"):
 			target = os.path.join ("c:\\skitaid\\pub\\default", fn)
 			try: os.remove (target)
@@ -220,6 +226,12 @@ if "install" in sys.argv or "develop" in sys.argv:
 			shutil.copyfile (os.path.join ("skitai/skitaid/bin", fn), target)
 			os.chmod (target, 0o755)
 		
+		for fn in ("static/index.html",):
+			target = os.path.join ("/var/local/skitaid-pub/default", fn)
+			try: os.remove (target)
+			except OSError as why:
+				if why.errno == 2: pass
+					
 		for fn in ("webapp.py", "templates/index.html", "static/reindeer.jpg"):
 			target = os.path.join ("/var/local/skitaid-pub/default", fn)
 			try: os.remove (target)
