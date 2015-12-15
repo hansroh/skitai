@@ -66,7 +66,6 @@ class Saddle (package.Package):
 			return 'Basic realm="%s"' % self.realm
 		else:	
 			if self.opaque is None:
-				print md5 (self.realm.encode ("utf8")).hexdigest ()
 				self.opaque = md5 (self.realm.encode ("utf8")).hexdigest ()
 			return 'Digest realm="%s", qop="auth", nonce="%s", opaque="%s"' % (
 				self.realm, md5uniqid (), self.opaque

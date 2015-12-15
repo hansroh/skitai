@@ -379,8 +379,20 @@ Flask and other WSGI middle ware have their own way to handle request. So If you
   app = Saddle (__name__)
   app.debug = True # output exception information
   app.use_reloader = True # auto realod on file changed
+
+
+For output message & error in console:  
+
+*Posix*
+
+sudo /usr/local/bin/skitai-instance.py -v -f default
   
-  
+
+*Win32*
+
+c:\skitaid\bin\skitai-instance.py -v -f default
+
+
   
 **Access Request**
 
