@@ -97,12 +97,11 @@ class SSLProxyRequestHandler:
 				self.request.el.get_connection ()
 			).start ()
 		else:
-			self.done (31, "%d %s Occured" % (code, msg))
+			self.done (code, msg)
 	
 	def done (self, code, msg):
 		if code:			
-			self.asyncon.request = None # unlink back ref
-			self.asyncon.set_active (False)		
+			self.asyncon.request = None # unlink back ref			
 			self.respone = http_response.FailedResponse (code, msg, self.request)
 			self.callback (self)
 			

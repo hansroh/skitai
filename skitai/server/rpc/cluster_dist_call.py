@@ -100,10 +100,10 @@ class Dispatcher:
 		
 		# DON'T do_filter here, it blocks select loop
 		
-		if response.code >= 100:
-			status = 3
-		else:
+		if response.code >= 900:
 			status = 2
+		else:
+			status = 3
 		
 		self.result = Result (self.id, status, response, self.ident)				
 		self.set_status (status)

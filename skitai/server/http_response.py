@@ -446,5 +446,15 @@ class http_response:
 		505: "HTTP Version Not Supported",
 		506: "Proxy Error",
 		507: "Failed Establishing Connection",
+		900: "Socket Error",
+		901: "Exception Occured",
+		902: "Socket Timeout",
+		903: "Socket Panic",
+		904: "DNS Not Found",
+		905: "Server Entered Shutdown Process",
+		906: "Unknown Authedentification Method",
+		907: "HTTP Header/Body Error",
+		908: "No Data Recieved",
+		909: "Invalid Content"
 	}		
 		

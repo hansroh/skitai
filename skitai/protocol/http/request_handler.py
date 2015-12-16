@@ -10,7 +10,8 @@ class Authorizer:
 	
 	def get (self, netloc, auth, method, uri, data):
 		if netloc not in self.db:
-			return None
+			return ""
+			
 		infod = self.db [netloc]
 		if infod ["meth"] == "basic":
 			return "Basic " + base64.encodestring ("%s:%s" % auth) [:-1]	
@@ -148,6 +149,8 @@ class RequestHandler:
 		if auth:
 			uri = self.asyncon.is_proxy () and self.request.uri or self.request.path
 			auth_header = authorizer.get (self.request.get_address (), auth, self.method, uri, data)
+			if auth_header is None:
+				raise AssertionError ("Unknown authedentification method")
 			if auth_header:
 				hc ["Authorization"] = auth_header
 		
@@ -183,14 +186,14 @@ class RequestHandler:
 				except:
 					self.trace ()
 					self.response = None
-					error, msg = 40, "HTTP Header or Body Error"
-					self.log ("%d %s" % (error, msg), "error")				
+					error, msg = 907, "HTTP Header or Body Error"
+					self.log ("%d %s" % (error, msg), "error")
 						
 		if self.response is None:
 			if error:
 				self.response = http_response.FailedResponse (error, msg, self.request)
 			else:
-				error, msg = 41, "No Data"
+				error, msg = 908, "No Data Recieved"
 				self.response = http_response.FailedResponse (error, msg, self.request)	
 				self.log ("%d %s" % (error, msg), "error")
 		
@@ -199,18 +202,24 @@ class RequestHandler:
 		return error, msg
 		
 	def done (self, error = 0, msg = ""):		
+		# handle abnormally raised exceptions like network error etc.
+		self.recalibrate_response (error, msg)		
+		
 		if self.reauth_count == 0 and self.response.code == 401:
 			self.reauth_count = 1		
-			authorizer.set (self.request.get_address (), self.response.get_header ("WWW-Authenticate"), self.request.get_auth ())
-			for buf in self.get_request_buffer ():
-				self.asyncon.push (buf)				
-			self.response = None
-			self.asyncon.set_terminator (b"\r\n\r\n")
-			self.asyncon.start_request (self)
-			return 1
-		
-		# handle abnormally raised exceptions like network error etc.
-		self.recalibrate_response (error, msg)
+			try: 
+				authorizer.set (self.request.get_address (), self.response.get_header ("WWW-Authenticate"), self.request.get_auth ())
+				bufs = self.get_request_buffer ()
+			except:
+				self.trace ()				
+				self.response = http_response.FailedResponse (906, "Unknown Authedentification Method", self.request)
+			else:
+				for buf in bufs:
+					self.asyncon.push (buf)				
+				self.response = None
+				self.asyncon.set_terminator (b"\r\n\r\n")
+				self.asyncon.start_request (self)
+				return 401
 		
 		if self.asyncon:
 			self.asyncon.request = None		
@@ -225,7 +234,7 @@ class RequestHandler:
 			try:
 				self.response.collect_incoming_data (data)
 			except:
-				self.response = http_response.FailedResponse (30, "Invalid Content", self.request)
+				self.response = http_response.FailedResponse (909, "Invalid Content", self.request)
 				raise
 			
 	def found_terminator (self):
@@ -298,7 +307,7 @@ class RequestHandler:
 			self.response = http_response.Response (self.request, buffer.decode ("utf8"))		
 		except:
 			self.log ("response header error: `%s`" % repr (buffer.decode ("utf8") [:80]), "error")
-			raise		
+			raise
 		self.is_continue_response ()
 		
 	def is_continue_response (self):	
@@ -319,7 +328,7 @@ class RequestHandler:
 	def continue_start (self, answer):
 		if not answer:
 			self.log ("DNS not found - %s" % self.asyncon.address [0], "error")
-			return self.done (20, "DNS Not Found")			
+			return self.done (904, "DNS Not Found")
 		
 		for buf in self.get_request_buffer ():
 			self.asyncon.push (buf)

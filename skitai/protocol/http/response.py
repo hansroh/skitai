@@ -197,7 +197,7 @@ class Response:
 		return self.header
 	
 	def get_content (self):
-		if self.code < 100:
+		if self.code >= 900:
 			return
 		
 		if self.size == 0:

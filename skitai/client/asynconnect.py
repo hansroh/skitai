@@ -83,7 +83,7 @@ class AsynConnect (asynchat.async_chat):
 		
 	def clean_shutdown_control (self, phase, time_in_this_phase):
 		if phase == 2:
-			self.error (12, "Server Entered Shutdown Process")
+			self.error (905, "Server Entered Shutdown Process")
 			self.handle_close ()
 		return 0
 		
@@ -142,8 +142,7 @@ class AsynConnect (asynchat.async_chat):
 			self.close_it = True
 		
 		if self.request:
-			res = self.request.done (self.errcode, self.errmsg)
-			if res is not None: # request continue cause of 401 error
+			if self.request.done (self.errcode, self.errmsg) is not None: # request continue cause of 401 error
 				return
 			
 		if self.connected and self.close_it:
@@ -226,7 +225,7 @@ class AsynConnect (asynchat.async_chat):
 					if ip:
 						asynchat.async_chat.connect (self, (ip, self.address [1]))																		
 				else:
-					self.error (15, "DNS Not Found")
+					self.error (904, "DNS Not Found")
 					self.handle_close ()					
 					
 		except:	
@@ -367,24 +366,24 @@ class AsynConnect (asynchat.async_chat):
 			
 	def handle_timeout (self):
 		self.log ("socket timeout", "fail")
-		self.error (13, "Socket Timeout")
+		self.error (902, "Socket Timeout")
 		self.handle_close ()
 		
 	def handle_expt (self):
 		self.loggger ("socket panic", "fail")
-		self.error (14, "Socket Panic")
+		self.error (903, "Socket Panic")
 		self.handle_close ()
 	
 	def handle_error (self):
 		self.trace ()
-		self.error (11, "Exception")
+		self.error (901, "Exception")
 		self.handle_close()
 	
 	def handle_expt_event(self):
 		err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
 		if err != 0:
 			self.log ("SO_ERROR %d Occurred" % err, "warn")
-			self.error (10, "Socket %d Error" % err)			
+			self.error (900, "Socket %d Error" % err)			
 			self.handle_close ()
 		else:
 			self.handle_expt ()
