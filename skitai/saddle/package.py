@@ -108,10 +108,11 @@ class Package:
 	
 		for func, name, fuvars, favars, str_rule in self.route_map.values ():			 
 			if thing != name: continue
+				
+			assert len (args) <= len (fuvars), "Too many params, this has only %d params(s)" % len (fuvars)						
 			params = {}
 			for i in range (len (args)):
-				if fuvars [i] in kargs:
-					raise AssertionError ("Collision detected on keyword argument '%s'" % fuvars [i])
+				assert fuvars [i] not in kargs, "Collision detected on keyword param '%s'" % fuvars [i]
 				params [fuvars [i]] = args [i]				
 			
 			for k, v in kargs.items ():
@@ -173,7 +174,7 @@ class Package:
 			
 		s = rule.find ("/<")
 		if s == -1:	
-			self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:], None, rule)
+			self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, rule)
 		else:
 			s_rule = rule
 			rulenames = []
@@ -192,7 +193,7 @@ class Package:
 					rule = rule.replace (r, "/([^/]+)")
 			rule = rule.replace (".", "\.") + "$"
 			re_rule = re.compile (rule)				
-			self.route_map [re_rule] = (func, func.__name__, func.__code__.co_varnames [1:], tuple (rulenames), s_rule)
+			self.route_map [re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), s_rule)
 			
 	def route_search (self, path_info):
 		if path_info in self.route_map:			

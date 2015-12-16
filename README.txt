@@ -1,4 +1,3 @@
-
 Skitai WSGI App Engine
 ==========================
 
@@ -29,7 +28,7 @@ SAE orients light-weight, simplicity  and strengthen networking operations with 
 
 It is influenced by Zope_ and Flask_ a lot.
 
-- SAE can be run as XML/JSON-RPC, Web and Reverse Proxy Loadbancing Server
+- SAE can be run as Web, XML-RPC and Reverse Proxy Loadbancing Server
 - SAE can handle massive RESTful API/RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily
 - SAE provides asynchronous connection to PostgreSQL
 
@@ -205,21 +204,21 @@ At first, let's add mysearch members to config file (ex. /etc/skitaid/servers-en
 
 .. code:: python
 
-    [@mysearch]
-    ssl = yes
-    members = search1.mayserver.com:443, search2.mayserver.com:443
+  [@mysearch]
+  ssl = yes
+  members = search1.mayserver.com:443, search2.mayserver.com:443
     
 
 Then let's request XMLRPC result to one of mysearch members.
    
 .. code:: python
 
-    @app.route ("/search")
-    def search (was, keyword = "Mozart"):
-      s = was.rpc.lb ("@mysearch/rpc2", "XMLRPC")
-      s.search (keyword)
-      results = s.getwait (5)
-			return result.data
+  @app.route ("/search")
+  def search (was, keyword = "Mozart"):
+    s = was.rpc.lb ("@mysearch/rpc2")
+    s.search (keyword)
+    results = s.getwait (5)
+    return result.data
 
 It just small change from was.rpc () to was.rpc.lb ()
 
@@ -264,7 +263,7 @@ Basically same with load_balancing except SAE requests to all members per each r
       s.search (keyword)
       results = s.getswait (2)
 			
-			all_results = []
+      all_results = []
       for result in results:
          all_results.extend (result.data)
       return all_results
@@ -316,10 +315,10 @@ Basically same usage concept with above HTTP Requests.
 
 Avaliable methods are:
 
-- was.db = ("127.0.0.1:5432", "mydb", "postgres", "password")
-- was.db = ("@mydb")
-- was.db.lb = ("@mydb")
-- was.db.map = ("@mydb")
+- was.db ("127.0.0.1:5432", "mydb", "postgres", "password")
+- was.db ("@mydb")
+- was.db.lb ("@mydb")
+- was.db.map ("@mydb")
 
 *Note:* if @mydb member is only one, was.db.lb ("@mydb") is equal to was.db ("@mydb").
 
@@ -357,7 +356,7 @@ If it is configured, you can skip e.set_smtp(). But be careful for keeping your 
 - was.fromxml () # XMLRPC
 
 
-Request Handling for Saddle
+Request Handling with Saddle
 ----------------------------
 
 *Saddle* is WSGI middle ware integrated with Skitai App Engine.
@@ -472,6 +471,47 @@ Available fancy URL param types:
   	
 	# http://127.0.0.1:5000/hello/100
 	
+**File Upload**
+
+.. code:: python
+  
+  FORM = """
+    <form enctype="multipart/form-data" method="post">
+    <input type="hidden" name="submit-hidden" value="Genious">   
+    <p></p>What is your name? <input type="text" name="submit-name" value="Hans Roh"></p>
+    <p></p>What files are you sending? <br />
+    <input type="file" name="file">
+    </p>
+    <input type="submit" value="Send"> 
+    <input type="reset">
+  </form>
+  """
+  
+  @app.route ("/upload")
+  def upload (was, *form):
+    if was.request.command == "get":
+      return FORM
+    else:
+      file = form.get ("file")
+      if file:
+        file.save ("d:\\var\\upload", dup = "o") # overwrite
+			  
+file object has these attributes:
+
+- file.file: temporary saved file full path
+- file.name: original file name posted
+- file.size
+- file.mimetype
+- file.save (into, name = None, mkdir = False, dup = "u")
+- file.remove ()
+
+  * if name is None, used file.name
+  * dup: 
+    
+    + u - make unique (default)
+    + o - overwrite
+
+
 
 **Access Environment Variables**
 
@@ -481,11 +521,14 @@ Available fancy URL param types:
   was.env.get ("CONTENT_TYPE")
 
 
-**Access Environment App & Jinja Templates**
+**Access App & Jinja Templates**
 
 .. code:: python
 
-  was.app.get_template ("index.html") # getting Jinja template
+  if was.app.debug:
+    was.app.get_template ("index-debug.html") # getting Jinja template
+  else:  
+    was.app.get_template ("index.html") # getting Jinja template
 
 Directory structure sould be:
 
@@ -638,7 +681,7 @@ Saddle provide simple authenticate for administration or perform access control 
   def hello (was, name = "Hans Roh"):
     return "Hello, %s" % name
 
-If your server run with SSL, you can use app.authorization = "basic", otherwise use "digest" for your server's security.
+If your server run with SSL, you can use app.authorization = "basic", otherwise use "digest" for your password security.
 
 
 
@@ -659,7 +702,7 @@ app.py
   
   @app.route ("/")
   def index (was, num1, num2):  
-    return was.ab ("hello") # url building
+    return was.ab ("hello", "Hans Roh") # url building
 
 
 sub.py
@@ -671,8 +714,8 @@ sub.py
   
   @package.route ("/hello/<name>")
   def hello (was):		
-		# can build other module's method url
-		return was.ab ("index", 1, 2) 
+    # can build other module's method url
+    return was.ab ("index", 1, 2) 
 	  
 You shoud mount only app.py. App's debug & use_reloader, etc. attributes will be applied to packages as same.
 
@@ -865,4 +908,3 @@ Change Log
   0.9.1.14 - Automation session commit
   
   0.9.1.12 - Fix / App Routing
-

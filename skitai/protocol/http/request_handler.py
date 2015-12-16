@@ -1,6 +1,75 @@
 from . import response as http_response
 from skitai.client import adns
+import base64
+from skitai.server import utility
+from hashlib import md5
 
+class Authorizer:
+	def __init__ (self):
+		self.db = {}
+	
+	def get (self, netloc, auth, method, uri, data):
+		if netloc not in self.db:
+			return None
+		infod = self.db [netloc]
+		if infod ["meth"] == "basic":
+			return "Basic " + base64.encodestring ("%s:%s" % auth) [:-1]	
+		else:
+			infod ["nc"] += 1
+			hexnc = hex (infod ["nc"])[2:].zfill (8)
+			
+			A1 = md5 (("%s:%s:%s" % (auth [0], infod ["realm"], auth [1])).encode ("utf8")).hexdigest ()
+			if infod ["qop"] == "auth":
+				A2 = md5 (("%s:%s" % (method, uri)).encode ("utf8")).hexdigest ()
+			elif type (data) is bytes:
+				entity = md5 (data).hexdigest ()
+				A2 = md5 (("%s:%s" % (method, uri)).encode ("utf8")).hexdigest ()
+			else:
+				return # sorry data is not bytes
+						
+			Hash = md5 (("%s:%s:%s:%s:%s:%s" % (
+				A1,
+				infod ["nonce"],
+				hexnc,
+				infod ["cnonce"],
+				infod ["qop"],
+				A2
+				)).encode ("utf8")
+			).hexdigest ()
+			
+			return (
+				'Digest username="%s", realm="%s", nonce="%s", '
+				'uri="%s", response="%s", opaque="%s", qop=%s, nc=%s, cnonce="%s"' % (
+					auth [0], infod ["realm"], infod ["nonce"], uri, Hash, 
+					infod ["opaque"], infod ["qop"], hexnc, infod ["cnonce"]
+				)
+			)
+			
+	def set (self, netloc, authreq, auth):
+		if auth is None:
+			return
+			
+		amethod, authinfo = authreq.split (" ", 1)
+		infod = {"meth": amethod.lower ()}
+		infod ["cnonce"] = utility.md5uniqid ()
+		infod ["nc"] = 0
+		for info in authinfo.split (","):
+			k, v = info.strip ().split ("=", 1)
+			if not v: return self.get_www_authenticate ()
+			if v[0] == '"': v = v [1:-1]
+			infod [k]	 = v
+		
+		if "qop" in infod:
+			qop = list (map (lambda x: x.strip (), infod ["qop"].split (",")))
+			if "auth" in qop:
+				infod ["qop"] = "auth"
+			else:
+				infod ["qop"] = "auth-int"
+				
+		self.db [netloc] = infod
+		
+
+authorizer = Authorizer ()
 
 class RequestHandler:
 	def __init__ (self, asyncon, request, callback, http_version = "1.1", connection = "keep-alive"):
@@ -15,6 +84,7 @@ class RequestHandler:
 		self.logger = request.logger
 		self.connection = connection		
 		self.retry_count = 0
+		self.reauth_count = 0
 		self.response = None	
 		
 		self.method, self.uri = (
@@ -76,7 +146,10 @@ class RequestHandler:
 				
 		auth = self.request.get_auth ()
 		if auth:
-			hc ["Authorization"] = "Basic %s" % auth
+			uri = self.asyncon.is_proxy () and self.request.uri or self.request.path
+			auth_header = authorizer.get (self.request.get_address (), auth, self.method, uri, data)
+			if auth_header:
+				hc ["Authorization"] = auth_header
 		
 		ua = self.request.get_useragent ()
 		if ua:
@@ -128,7 +201,17 @@ class RequestHandler:
 	def done (self, error = 0, msg = ""):		
 		# handle abnormally raised exceptions like network error etc.
 		self.recalibrate_response (error, msg)
-				
+		
+		if self.reauth_count == 0 and self.response.code == 401:
+			self.reauth_count = 1		
+			authorizer.set (self.request.get_address (), self.response.get_header ("WWW-Authenticate"), self.request.get_auth ())
+			for buf in self.get_request_buffer ():
+				self.asyncon.push (buf)				
+			self.response = None
+			self.asyncon.set_terminator (b"\r\n\r\n")
+			self.asyncon.start_request (self)
+			return self
+					
 		if self.asyncon:
 			self.asyncon.request = None		
 						

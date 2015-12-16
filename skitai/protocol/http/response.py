@@ -175,7 +175,9 @@ class Response:
 			# null byte is signal of producer's ending, so ignore.
 			self.p.feed (data)
 			
-	def get_header (self, header):
+	def get_header (self, header = None):
+		if header is None:
+			return self.header
 		header = header.lower()
 		hc = self._header_cache
 		if header not in hc:
@@ -192,7 +194,7 @@ class Response:
 			return hc[header]
 	
 	def get_headers (self):
-		return self.header		
+		return self.header
 	
 	def get_content (self):
 		if self.code < 100:

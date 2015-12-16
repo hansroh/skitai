@@ -7,9 +7,7 @@ app.use_reloader = True
 @app.route ("/")
 def index (was):
 	req = was.get ("https://pypi.python.org/pypi/skitai")
-	rs = req.getwait (10)	
-	t = was.app.get_template ("index.html")
-	
+	t = was.app.get_template ("index.html")	
 	pypi_content = (
 			"<h4>"
 			"<p>It seems some problem at <a href='https://pypi.python.org/pypi/skitai'>PyPi</a>.</p>"
@@ -17,6 +15,7 @@ def index (was):
 			"<p>Please visit <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></p>"
 		)
 	
+	rs = req.getwait (10)	
 	if rs.data	:
 		content = rs.data.decode ("utf8")
 		s = content.find ('<div class="section">')

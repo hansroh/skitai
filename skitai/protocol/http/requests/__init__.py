@@ -100,8 +100,9 @@ class SSLProxyRequestHandler:
 			self.done (31, "%d %s Occured" % (code, msg))
 	
 	def done (self, code, msg):
-		if code:
+		if code:			
 			self.asyncon.request = None # unlink back ref
+			self.asyncon.set_active (False)		
 			self.respone = http_response.FailedResponse (code, msg, self.request)
 			self.callback (self)
 			
@@ -112,7 +113,7 @@ class SSLProxyRequestHandler:
 		return False
 
 	def close (self):
-		self.buffer = b""
+		self.buffer = b""		
 
 
 class Request (http_request.HTTPRequest):
@@ -169,12 +170,12 @@ class Item:
 		
 		elif request.el ["http-proxy"]:
 			asyncon = sp.get ("proxy://%s" % request.el ["http-proxy"])
-		
+
 		else:
 			asyncon = sp.get (request.el ["rfc"])			
-			
+		
 		http_request_handler.RequestHandler (
-			asyncon, 
+			asyncon,
 			request, 
 			self.callback_wrap,
 			request.el ["http-version"],

@@ -5,6 +5,8 @@ except ImportError:
 	from urlparse import unquote
 	from urllib import unquote_plus	
 import json
+from hashlib import md5
+import random
 
 ####################################################################################
 # Utitlities
@@ -110,4 +112,12 @@ def get_extension (path):
 		return path[dotsep+1:]
 	else:
 		return ''
+
+ALNUM = '0123456789abcdefghijklmnopqrstuvwxyz'
+def md5uniqid (length = 13):	
+	global ALNUM
+	_id = ''
+	for i in range (0, length):
+		_id += random.choice(ALNUM)
+	return md5 (_id.encode ("utf8")).hexdigest ()[length:]
 	

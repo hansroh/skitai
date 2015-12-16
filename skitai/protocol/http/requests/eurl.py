@@ -193,7 +193,7 @@ class EURL:
 			except ValueError:	
 				pass
 			else:	
-				self ['auth'] = base64.encodestring ('%s:%s' % (self ['username'], self ['password']))[:-1]
+				self ['auth'] = (self ['username'], self ['password'])
 				
 		try:
 			self ['netloc'], self ['port'] = self ['netloc'].split (':', 1)

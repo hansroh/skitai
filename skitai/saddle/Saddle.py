@@ -5,17 +5,11 @@ import sys
 from . import package, multipart_collector, cookie
 from . import wsgi_executor, xmlrpc_executor
 from skitai.lib import producers
+from skitai.server import utility
 from hashlib import md5
 import random
 import base64
 
-ALNUM = b'0123456789abcdefghijklmnopqrstuvwxyz'
-def md5uniqid (length = 13):	
-	global ALNUM
-	_id = ''
-	for i in range (0, length):
-		_id += random.choice(ALNUM)
-	return md5 (_id).hexdigest ()[length:]
 
 try:
 	import xmlrpc.client as xmlrpclib
@@ -68,7 +62,7 @@ class Saddle (package.Package):
 			if self.opaque is None:
 				self.opaque = md5 (self.realm.encode ("utf8")).hexdigest ()
 			return 'Digest realm="%s", qop="auth", nonce="%s", opaque="%s"' % (
-				self.realm, md5uniqid (), self.opaque
+				self.realm, utility.md5uniqid (), self.opaque
 			)
 			
 	def authorize (self, auth, method, uri):
@@ -76,13 +70,14 @@ class Saddle (package.Package):
 			return		
 		if auth is None:
 			return self.get_www_authenticate ()
+		
 		# check validate: https://evertpot.com/223/
 		amethod, authinfo = auth.split (" ", 1)
 		if amethod.lower () != self.authorization:
 			return self.get_www_authenticate ()
 			
 		if self.authorization == "basic":
-			basic = base64.decodestring (authinfo)
+			basic = base64.decodestring (authinfo.encode ("utf8"))
 			if basic == "%s:%s" % (self.username, self.password):
 				return
 				
@@ -94,23 +89,23 @@ class Saddle (package.Package):
 				if not v: return self.get_www_authenticate ()
 				if v[0] == '"': v = v [1:-1]
 				infod [k]	 = v
-							
+			
 			try:
-				if uri != infod ["uri"]:
+				if uri != infod ["uri"]:					
 					return self.get_www_authenticate ()
-					
-				A1 = md5 ("%s:%s:%s" % (self.username, self.realm, self.password))
-				A2 = md5 ("%s:%s" % (method, infod ["uri"]))
-				Hash = md5 ("%s:%s:%s:%s:%s:%s" % (
+				A1 = md5 (("%s:%s:%s" % (self.user, self.realm, self.password)).encode ("utf8")).hexdigest ()
+				A2 = md5 (("%s:%s" % (method, infod ["uri"])).encode ("utf8")).hexdigest ()
+				Hash = md5 (("%s:%s:%s:%s:%s:%s" % (
 					A1, 
-					infod ["nounce"],
+					infod ["nonce"],
 					infod ["nc"],
-					infod ["cnounce"],
+					infod ["cnonce"],
 					infod ["qop"],
 					A2
-					)
-				)
-				if Hash == infod ["response"]:
+					)).encode ("utf8")
+				).hexdigest ()
+
+				if Hash == infod ["response"]:				
 					return
 					
 			except KeyError:

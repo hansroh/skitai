@@ -161,7 +161,7 @@ class ResponseContainer:
 		self.request = RCRequest (handler)
 		self.response = RCResponse (handler)
 		
-		for header in handler.response.get_headers ():
+		for header in handler.response.get_header ():
 			if header.lower ().startswith ("set-cookie: "):
 				localstorage.localstorage.set_cookie_from_string (
 					handler.response.request.el ["rfc"],

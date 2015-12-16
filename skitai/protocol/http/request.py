@@ -22,7 +22,7 @@ class XMLRPCRequest:
 		self.params = params
 		self.headers = headers
 		self.encoding = encoding
-		self.auth = (type (auth) is tuple and ("%s:%s" % auth) or auth)
+		self.auth = (auth and type (auth) is not tuple and tuple (auth.split (":", 1)) or auth)
 		self.logger = logger
 		
 		self.address, self.path = self.split (uri)
