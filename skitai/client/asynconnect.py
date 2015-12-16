@@ -142,7 +142,9 @@ class AsynConnect (asynchat.async_chat):
 			self.close_it = True
 		
 		if self.request:
-			self.request.done (self.errcode, self.errmsg)		
+			res = self.request.done (self.errcode, self.errmsg)
+			if res is not None: # request continue cause of 401 error
+				return
 			
 		if self.connected and self.close_it:
 			self.close_socket ()
@@ -233,7 +235,7 @@ class AsynConnect (asynchat.async_chat):
 	def recv (self, buffer_size):		
 		self.event_time = time.time ()
 		try:
-			data = self.socket.recv(buffer_size)
+			data = self.socket.recv(buffer_size)			
 			#print ("+++++DATA", len (data), repr (data [:40]))				
 			if not data:
 				if self.reconnect (): # disconnected by server
@@ -266,6 +268,7 @@ class AsynConnect (asynchat.async_chat):
 				raise
 	
 	def send (self, data):
+		#print self.request, data
 		self.event_time = time.time ()
 		try:
 			sent = self.socket.send (data)

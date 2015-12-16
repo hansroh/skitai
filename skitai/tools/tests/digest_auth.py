@@ -12,7 +12,7 @@ requests.configure (
 	logger.screen_logger (), 
 	2, 
 	10, 
-	default_option = "--http-connection close"
+	default_option = "--http-connection keep-alive"
 )
 
 requests.add ("http://app:1111@hq.lufex.com:5000/hello", handle_response)

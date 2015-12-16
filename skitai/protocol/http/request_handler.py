@@ -199,9 +199,6 @@ class RequestHandler:
 		return error, msg
 		
 	def done (self, error = 0, msg = ""):		
-		# handle abnormally raised exceptions like network error etc.
-		self.recalibrate_response (error, msg)
-		
 		if self.reauth_count == 0 and self.response.code == 401:
 			self.reauth_count = 1		
 			authorizer.set (self.request.get_address (), self.response.get_header ("WWW-Authenticate"), self.request.get_auth ())
@@ -210,8 +207,11 @@ class RequestHandler:
 			self.response = None
 			self.asyncon.set_terminator (b"\r\n\r\n")
 			self.asyncon.start_request (self)
-			return self
-					
+			return 1
+		
+		# handle abnormally raised exceptions like network error etc.
+		self.recalibrate_response (error, msg)
+		
 		if self.asyncon:
 			self.asyncon.request = None		
 						

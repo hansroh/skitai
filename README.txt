@@ -462,14 +462,13 @@ Available fancy URL param types:
 .. code:: python
 
   @app.route ("/hello")
-  def hello_world (was, **form):
-  	return str (int (form.get ("num1", 0)) + int (form.get ("num2", 0)))
+  def hello (was, **form):  	
+  	return "Post %s %s" % (form.get ("userid", ""), form.get ("comment", ""))
   	
   @app.route ("/hello")
-  def hello_world (was, num, **form):
-  	return str (int (num) + int (form.get ("num2", 0)))
-  	
-	# http://127.0.0.1:5000/hello/100
+  def hello_world (was, userid, **form):
+  	return "Post %s %s" % (userid, form.get ("comment", ""))
+
 	
 **File Upload**
 
