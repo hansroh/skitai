@@ -270,8 +270,8 @@ Basically same with load_balancing except SAE requests to all members per each r
 
 There are 2 changes:
 
-	1. from was.rpc.lb () to was.rpc.map ()
-	2. form s.getwait () to s.getswait () for multiple results
+1. from was.rpc.lb () to was.rpc.map ()
+2. form s.getwait () to s.getswait () for multiple results
 
 Avaliable methods are:
 
@@ -858,6 +858,8 @@ Documentation
 Change Log
 -------------
   
+  0.10.0.2 - emergency patch for str responses, add Digest auth method for was remote call
+
   0.10.0 - WSGI support
     
   0.9.4.21 - add tools

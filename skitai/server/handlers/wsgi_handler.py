@@ -226,14 +226,14 @@ class Job:
 				raise AssertionError ("Content or part should not be None")
 
 			if response ["content-type"] is None: 
-				response ["Content-Type"] = "text/html"	
+				response ["Content-Type"] = "text/html"
 			
-			if content in ("", u"", b"", [], ()): # explicit empty string / iter
+			if not content: # explicit empty not content
 				trigger.wakeup (lambda p=response: (p.done(),))
 				return
 			
 			if type (content) not in (list, tuple):
-				content = tuple (content)
+				content = (content,) # make iterable
 				
 			will_be_push = []
 			if len (response) == 0:

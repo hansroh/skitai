@@ -68,7 +68,7 @@ class Handler (proxy_handler.Handler):
 		
 		cluster.report (handler.asyncon, response.code)	
 		
-		if response.code >= 900:
+		if response.code >= 700:
 			if request.loadbalance_retry >= len (cluster):
 				request.response.error (506, response.msg)
 				

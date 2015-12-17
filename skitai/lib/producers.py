@@ -320,7 +320,7 @@ class composite_producer:
 	def more (self):
 		while len(self.producers):
 			p = self.producers.first()
-			d = p.more()
+			d = p.more()			
 			if d:
 				return d
 			else:

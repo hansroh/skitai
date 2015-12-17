@@ -11,11 +11,11 @@ import signal
 import ssl
 from skitai import VERSION
 
-MAX_KEEP_CONNECTION = 60 * 30
 PID = []
 ACTIVE_WORKERS = 0
 SURVAIL = True
 EXITCODE = 0
+DEBUG = False
 
 class http_request:
 	version = "1.1"
@@ -37,17 +37,7 @@ class http_request:
 		self._split_uri = None
 		self._header_cache = {}
 		self.gzip_encoded = False
-		self.set_keep_alive ()
-	
-	def set_keep_alive (self):
-		keep_alive = None		
-		try:
-			keep_alive = int (self.get_header ("keep-alive"))
-		except (ValueError, TypeError):
-			return
-		else:
-			if keep_alive > MAX_KEEP_CONNECTION: keep_alive = MAX_KEEP_CONNECTION
-			self.channel.zombie_timeout = keep_alive
+		#self.set_keep_alive ()
 	
 	def get_raw_header (self):
 		return self.header	
@@ -147,7 +137,10 @@ class http_channel (asynchat.async_chat):
 	closed = False
 	is_rejected = False
 	closables = []
-	zombie_timeout = MAX_KEEP_CONNECTION
+	
+	zombie_timeout = 10
+	network_delay_timeout = 30
+	keep_alive = 10	
 	
 	def __init__ (self, server, conn, addr):
 		self.channel_number = http_channel.channel_count.inc ()
@@ -161,11 +154,13 @@ class http_channel (asynchat.async_chat):
 		self.in_buffer = b''
 		self.creation_time = int (time.time())
 		self.event_time = int (time.time())
+		self.debug_info = None
+		self.debug_buffer = b""
 		
 	def reject (self):
 		self.is_rejected = True		
 		
-	def readable (self):
+	def readable (self):		
 		if self.affluent is not None:
 			return not self.is_rejected and asynchat.async_chat.readable (self)	and self.affluent ()
 		return not self.is_rejected and asynchat.async_chat.readable (self)
@@ -202,23 +197,35 @@ class http_channel (asynchat.async_chat):
 	def handle_timeout (self):
 		self.log ("zombie channel %s killed." % ":".join (map (str, self.addr)))
 		self.close ()
+	
+	def handle_read (self):
+		self.zombie_timeout = self.network_delay_timeout
+		asynchat.async_chat.handle_read (self)
+		
+	def handle_write (self):
+		asynchat.async_chat.handle_write (self)
+		if len (self.producer_fifo) == 0:
+			self.zombie_timeout = self.keep_alive		
 				
 	def send (self, data):
+		if DEBUG:
+			self.debug_buffer += str (data)
 		self.event_time = int (time.time())
 		result = asynchat.async_chat.send (self, data)
+		
 		self.server.bytes_out.inc (result)
 		self.bytes_out.inc (result)
 		return result
 	
 	def recv (self, buffer_size):
-		self.event_time = int (time.time())
-		
+		self.event_time = int (time.time())		
 		try:
 			result = asynchat.async_chat.recv (self, buffer_size)
 			self.server.bytes_in.inc (len (result))
 			if not result:
 				self.handle_close ()
 				return b""			
+			#print ("*****************", result)	
 			return result
 			
 		except MemoryError:
@@ -254,11 +261,14 @@ class http_channel (asynchat.async_chat):
 
 			request = lines[0]
 			try:
-				command, uri, version = utility.crack_request (request)							
+				command, uri, version = utility.crack_request (request)
 			except:
 				self.log_info ("channel-%s invaild request header" % self.channel_number, "fail")
-				return self.close ()			
-				
+				return self.close ()
+			
+			self.debug_info = (command, uri, version)
+			self.debug_buffer = b""
+			
 			header = utility.join_headers (lines[1:])
 			r = http_request (self, request, command, uri, version, header)
 			

@@ -26,6 +26,7 @@ class TunnelForClientToServer:
 		self.asyncon.push (data)
 	
 	def close (self):
+		self.asyncon.set_timeout () # make default
 		self.asyncon.close_socket ()
 		self.asyncon.request = None # unlink back ref
 
@@ -35,7 +36,7 @@ class TunnelForServerToClient:
 		self.request = request
 		self.channel = request.channel
 		self.asyncon = asyncon
-		
+			
 		self.bytes = 0				
 		self.cli2srv = None
 		
@@ -61,11 +62,14 @@ class TunnelForServerToClient:
 	def done (self, code, msg):
 		if code and self.bytes == 0:
 			self.asyncon.request = None # unlink back ref
-			self.request.response.error (507, "", "%s %s" % (code, msg))			
+			self.request.response.error (507, msg)			
 		else:
 			self.close ()
 			
 	def collect_incoming_data (self, data):
+		if self.channel.zombie_timeout != 300:
+			self.channel.zombie_timeout = 300
+			self.asyncon.set_timeout (300)
 		self.bytes += len (data)		
 		self.channel.push (data)
 	
@@ -101,7 +105,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 			try: k, v = line.split (": ", 1)
 			except:	continue
 			ll = k.lower ()
-			if ll in ("expires", "date", "connection", "keep-alive", "content-length", "transfer-encoding", "content-encoding", "age"):
+			if ll in ("expires", "date", "connection", "keep-alive", "content-length", "transfer-encoding", "content-encoding", "age", "vary"):
 				continue
 			self.client_request.response [k] = v.strip ()
 	
@@ -187,7 +191,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 	def continue_start (self, answer):
 		if not answer:
 			self.log ("DNS not found - %s" % self.asyncon.address [0], "error")
-			return self.done (904, "DNS Not Found")
+			return self.done (704, "DNS Not Found")
 		
 		if not self.client_request.channel:
 			return
@@ -445,7 +449,7 @@ class Handler (wsgi_handler.Handler):
 		if request.command == "connect":
 			uri = "tunnel://" + request.uri + "/"
 			asyncon = self.clusters ["__socketpool__"].get (uri)
-			asyncon.request = TunnelForServerToClient (request, asyncon)
+			asyncon.request = TunnelForServerToClient (request, asyncon)			
 
 		else:
 			collector = None
@@ -463,24 +467,24 @@ class Handler (wsgi_handler.Handler):
 			self.continue_request(request, collector)
 					
 	def continue_request (self, request, collector, asyncon = None):		
-		request.response ["Proxy-Agent"] = "sae-pa"
-		
+		request.response ["Proxy-Agent"] = "sae-pa"		
 		if self.is_cached (request, collector is not None):
 			return
 		
 		try:
 			req = http_request.HTTPRequest (request.uri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))		
-			if asyncon is None:
+			if asyncon is None:		
 				asyncon = self.clusters ["__socketpool__"].get (request.uri)
+				
 			r = ProxyRequestHandler (asyncon, req, self.callback, request, collector)			
 			if collector:
 				collector.asyncon = asyncon
 			r.start ()
 						
 		except:
-			self.wasc.logger.trace ("server")
+			self.wasc.logger.trace ("server")			
 			request.response.error (500, "", "Proxy request has been failed.")
-	
+		
 	def is_cached (self, request, has_data):		
 		if has_data:
 			return False
@@ -540,7 +544,7 @@ class Handler (wsgi_handler.Handler):
 						
 	def callback (self, handler):
 		response, request = handler.response, handler.client_request
-		if response.code >= 900:			
+		if response.code >= 700:			
 			request.response.error (506, response.msg)
 		else:
 			try:

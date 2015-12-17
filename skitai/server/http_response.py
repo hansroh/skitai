@@ -43,7 +43,7 @@ def catch (htmlformating = 0, exc_info = None):
 
 class http_response:
 	reply_code = 200
-	reply_message = ""
+	reply_message = "OK"
 	is_sent_response = False
 		
 	def __init__ (self, request):
@@ -234,7 +234,8 @@ class http_response:
 	# Send Response
 	#--------------------------------------------	
 	def add_closable (self, thing):
-		self.request.channel.closables.append (thing)
+		if self.request.channel:
+			self.request.channel.closables.append (thing)
 	
 	def push (self, thing):		
 		if not self.responsable (): return
@@ -256,7 +257,7 @@ class http_response:
 		if force_close:
 			close_it = True
 		
-		else:
+		else:			
 			if self.request.version == '1.0':
 				if connection == 'keep-alive':
 					if not self.has_key ('content-length'):
@@ -264,6 +265,7 @@ class http_response:
 						self.update ('Connection', 'close')
 					else:
 						self.update ('Connection', 'keep-alive')
+						self.update ('Keep-Alive', 'timeout=%d' % self.request.channel.keep_alive)
 				else:
 					close_it = True
 			
@@ -271,6 +273,8 @@ class http_response:
 				if connection == 'close':
 					close_it = True
 					self.update ('Connection', 'close')
+				else:
+					self.update ('Keep-Alive', 'timeout=%d' % self.request.channel.keep_alive)	
 				if not self.has_key ('content-length'):
 					wrap_in_chunking = True
 					
@@ -301,7 +305,8 @@ class http_response:
 		
 		if len (self.outgoing) == 0:
 			self.delete ('transfer-encoding')
-			self.delete ('content-length')			
+			self.delete ('content-length')
+			#self.update ('Content-Length', 0)
 			self.outgoing.push_front (producers.simple_producer (self.build_reply_header().encode ("utf8")))
 			outgoing_producer = producers.composite_producer (self.outgoing)
 			
@@ -446,15 +451,15 @@ class http_response:
 		505: "HTTP Version Not Supported",
 		506: "Proxy Error",
 		507: "Failed Establishing Connection",
-		900: "Socket Error",
-		901: "Exception Occured",
-		902: "Socket Timeout",
-		903: "Socket Panic",
-		904: "DNS Not Found",
-		905: "Server Entered Shutdown Process",
-		906: "Unknown Authedentification Method",
-		907: "HTTP Header/Body Error",
-		908: "No Data Recieved",
-		909: "Invalid Content"
+		700: "Socket Error",
+		701: "Exception Occured",
+		702: "Socket Timeout",
+		703: "Socket Panic",
+		704: "DNS Not Found",
+		705: "Server Entered Shutdown Process",
+		706: "Unknown Authedentification Method",
+		707: "HTTP Header/Body Error",
+		708: "No Data Recieved",
+		709: "Invalid Content"
 	}		
 		

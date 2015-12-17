@@ -89,6 +89,12 @@ class ClusterManager:
 								"event_time": time.asctime (time.localtime (asyncon.event_time)),
 								"zombie_timeout": asyncon.zombie_timeout,	
 							}
+						try: 
+							di = asyncon.debug_info
+							if di:
+								conn ["debug_info"] = "%s %s HTTP/%s" % asyncon.debug_info
+						except AttributeError: pass
+								
 						conns.append (conn)
 								
 					_node ["connection"] = conns

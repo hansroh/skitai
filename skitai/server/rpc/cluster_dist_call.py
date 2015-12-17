@@ -100,7 +100,7 @@ class Dispatcher:
 		
 		# DON'T do_filter here, it blocks select loop
 		
-		if response.code >= 900:
+		if response.code >= 700:
 			status = 2
 		else:
 			status = 3
