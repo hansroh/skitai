@@ -54,6 +54,7 @@ class http_response:
 		]
 		self.outgoing = producers.fifo ()
 		self.is_done = False
+		self.stime = time.time ()
 	
 	def __len__ (self):
 		return len (self.outgoing)
@@ -379,12 +380,13 @@ class http_response:
 	
 	def log (self, bytes):		
 		self.request.channel.server.log_request (
-			'%s:%d %s %s %d'
+			'%s:%d %s %s %d %dms'
 			% (self.request.channel.addr[0],
 			self.request.channel.addr[1],			
 			self.request.request,
 			self.reply_code,			
-			bytes)
+			bytes,
+			(time.time () - self.stime) * 1000)
 			)
 	
 		

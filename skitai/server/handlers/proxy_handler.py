@@ -37,7 +37,8 @@ class TunnelForServerToClient:
 		self.channel = request.channel
 		self.asyncon = asyncon
 			
-		self.bytes = 0				
+		self.bytes = 0
+		self.stime = time.time ()
 		self.cli2srv = None
 		
 		if not self.asyncon.connected:
@@ -59,7 +60,7 @@ class TunnelForServerToClient:
 		self.log ("connection maden to %s" % self.request.uri)
 		self.request.response.instant ("200 Connection Established", [("Proxy-Agent", "sae-pa"), ("Keep-Alive", "timeout=%d" % self.keep_alive)])
 		self.channel.keep_alive = self.keep_alive # SSL Proxy timeout
-		self.asyncon.default_timeout = self.keep_alive
+		self.asyncon.default_timeout = self.keep_alive		
 		
 	def done (self, code, msg):
 		if code and self.bytes == 0:
@@ -77,13 +78,14 @@ class TunnelForServerToClient:
 		
 	def log_request (self):
 		self.channel.server.log_request (
-			'%s:%d CONNECT tunnel://%s:%d HTTP/1.1 200 %d/%d'
+			'%s:%d CONNECT tunnel://%s:%d HTTP/1.1 200 %d/%d %dms'
 			% (self.channel.addr[0],
 			self.channel.addr[1],			
 			self.asyncon.address [0],
 			self.asyncon.address [1],
 			self.cli2srv is not None and self.cli2srv.bytes or 0,
-			self.bytes)
+			self.bytes,
+			(time.time () - self.stime) * 1000)
 			)
 				
 	def close (self):
