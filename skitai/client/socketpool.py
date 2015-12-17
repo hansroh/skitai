@@ -50,6 +50,14 @@ class SocketPool:
 						}
 						try: stu ["has_result"] = asyncon.has_result
 						except AttributeError: pass						
+						
+						try: 
+							di = asyncon.debug_info
+							if di:
+								stu ["debug_info"] = "%s %s HTTP/%s" % asyncon.debug_info
+						except AttributeError: pass
+						stu ["in_map"] = asyncon.is_channel_in_map ()
+							
 						conns.append (stu)
 													
 					nnode ["connections"] = conns

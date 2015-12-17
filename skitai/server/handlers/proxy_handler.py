@@ -61,7 +61,7 @@ class TunnelForServerToClient:
 	def done (self, code, msg):
 		if code and self.bytes == 0:
 			self.asyncon.request = None # unlink back ref
-			self.request.response.error (507, "", "%s %s" % (code, msg))			
+			self.request.response.error (507, msg)			
 		else:
 			self.close ()
 			
@@ -187,7 +187,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 	def continue_start (self, answer):
 		if not answer:
 			self.log ("DNS not found - %s" % self.asyncon.address [0], "error")
-			return self.done (904, "DNS Not Found")
+			return self.done (704, "DNS Not Found")
 		
 		if not self.client_request.channel:
 			return
@@ -540,7 +540,7 @@ class Handler (wsgi_handler.Handler):
 						
 	def callback (self, handler):
 		response, request = handler.response, handler.client_request
-		if response.code >= 900:			
+		if response.code >= 700:			
 			request.response.error (506, response.msg)
 		else:
 			try:

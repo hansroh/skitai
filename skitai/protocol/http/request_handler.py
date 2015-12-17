@@ -18,6 +18,7 @@ class Authorizer:
 		else:
 			infod ["nc"] += 1
 			hexnc = hex (infod ["nc"])[2:].zfill (8)
+			infod ["cnonce"] = utility.md5uniqid ()
 			
 			A1 = md5 (("%s:%s:%s" % (auth [0], infod ["realm"], auth [1])).encode ("utf8")).hexdigest ()
 			if infod ["qop"] == "auth":
@@ -51,8 +52,7 @@ class Authorizer:
 			return
 			
 		amethod, authinfo = authreq.split (" ", 1)
-		infod = {"meth": amethod.lower ()}
-		infod ["cnonce"] = utility.md5uniqid ()
+		infod = {"meth": amethod.lower ()}		
 		infod ["nc"] = 0
 		for info in authinfo.split (","):
 			k, v = info.strip ().split ("=", 1)
@@ -186,14 +186,14 @@ class RequestHandler:
 				except:
 					self.trace ()
 					self.response = None
-					error, msg = 907, "HTTP Header or Body Error"
+					error, msg = 707, "HTTP Header or Body Error"
 					self.log ("%d %s" % (error, msg), "error")
 						
 		if self.response is None:
 			if error:
 				self.response = http_response.FailedResponse (error, msg, self.request)
 			else:
-				error, msg = 908, "No Data Recieved"
+				error, msg = 708, "No Data Recieved"
 				self.response = http_response.FailedResponse (error, msg, self.request)	
 				self.log ("%d %s" % (error, msg), "error")
 		
@@ -212,7 +212,7 @@ class RequestHandler:
 				bufs = self.get_request_buffer ()
 			except:
 				self.trace ()				
-				self.response = http_response.FailedResponse (906, "Unknown Authedentification Method", self.request)
+				self.response = http_response.FailedResponse (706, "Unknown Authedentification Method", self.request)
 			else:
 				for buf in bufs:
 					self.asyncon.push (buf)				
@@ -234,7 +234,7 @@ class RequestHandler:
 			try:
 				self.response.collect_incoming_data (data)
 			except:
-				self.response = http_response.FailedResponse (909, "Invalid Content", self.request)
+				self.response = http_response.FailedResponse (709, "Invalid Content", self.request)
 				raise
 			
 	def found_terminator (self):
@@ -328,7 +328,7 @@ class RequestHandler:
 	def continue_start (self, answer):
 		if not answer:
 			self.log ("DNS not found - %s" % self.asyncon.address [0], "error")
-			return self.done (904, "DNS Not Found")
+			return self.done (704, "DNS Not Found")
 		
 		for buf in self.get_request_buffer ():
 			self.asyncon.push (buf)

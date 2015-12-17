@@ -16,6 +16,7 @@ PID = []
 ACTIVE_WORKERS = 0
 SURVAIL = True
 EXITCODE = 0
+DEBUG = False
 
 class http_request:
 	version = "1.1"
@@ -161,6 +162,8 @@ class http_channel (asynchat.async_chat):
 		self.in_buffer = b''
 		self.creation_time = int (time.time())
 		self.event_time = int (time.time())
+		self.debug_info = None
+		self.debug_buffer = b""
 		
 	def reject (self):
 		self.is_rejected = True		
@@ -204,6 +207,8 @@ class http_channel (asynchat.async_chat):
 		self.close ()
 				
 	def send (self, data):
+		if DEBUG:
+			self.debug_buffer += str (data)
 		self.event_time = int (time.time())
 		result = asynchat.async_chat.send (self, data)
 		self.server.bytes_out.inc (result)
@@ -254,11 +259,14 @@ class http_channel (asynchat.async_chat):
 
 			request = lines[0]
 			try:
-				command, uri, version = utility.crack_request (request)							
+				command, uri, version = utility.crack_request (request)
 			except:
 				self.log_info ("channel-%s invaild request header" % self.channel_number, "fail")
-				return self.close ()			
-				
+				return self.close ()
+
+			self.debug_info = (command, uri, version)
+			self.debug_buffer = b""
+			
 			header = utility.join_headers (lines[1:])
 			r = http_request (self, request, command, uri, version, header)
 			

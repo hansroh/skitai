@@ -36,7 +36,7 @@ def status ():
 			if channel.addr is not None:
 				try: addr = "%s:%d" % channel.addr
 				except TypeError: addr = "%s" % repr (channel.addr)
-			if addr:		
+			if addr:
 				d ["address"] = addr			
 			if hasattr (channel, "channel_number"):
 				d ["channel_number"] = channel.channel_number
@@ -44,13 +44,12 @@ def status ():
 				d ["request_counter"] = channel.request_counter
 			if hasattr (channel, "event_time"):
 				d ["last_event_time"] = time.asctime (time.localtime (channel.event_time))
-
-			try:
-				d ["uri"] = channel.current_request.uri				
-			except AttributeError:
-				pass	
-
+			if hasattr (channel, "debug_info") and channel.debug_info is not None:
+				d ["debug_info"] = "%s %s HTTP/%s" % channel.debug_info
+			if hasattr (channel, "debug_buffer"):
+				d ["debug_buffer"] = repr(channel.debug_buffer).replace ("<", "&lt;").replace ("<", "&gt;")				
 		except:
+			raise
 			pass
 		
 		else:		

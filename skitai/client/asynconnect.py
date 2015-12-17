@@ -39,6 +39,8 @@ class AsynConnect (asynchat.async_chat):
 		self.ready = None
 		self.proxy = False
 		self.affluent = None
+		self.debug_info = None
+		
 		asynchat.async_chat.__init__ (self)
 		self.initialize ()
 	
@@ -83,7 +85,7 @@ class AsynConnect (asynchat.async_chat):
 		
 	def clean_shutdown_control (self, phase, time_in_this_phase):
 		if phase == 2:
-			self.error (905, "Server Entered Shutdown Process")
+			self.error (705, "Server Entered Shutdown Process")
 			self.handle_close ()
 		return 0
 		
@@ -141,22 +143,27 @@ class AsynConnect (asynchat.async_chat):
 		if force:
 			self.close_it = True
 		
-		if self.request:
-			if self.request.done (self.errcode, self.errmsg) is not None: # request continue cause of 401 error
-				return
+		try:
+			if self.connected and self.close_it:
+				self.close_socket ()
+			else:			
+				self.del_channel ()
 			
-		if self.connected and self.close_it:
-			self.close_socket ()
-		else:			
-			self.del_channel ()
-		
-		self.request = None
-		self.set_active (False)
+			if self.request:
+				# request continue cause of 401 error
+				if self.request.done (self.errcode, self.errmsg) is not None:
+					return
+									
+		finally:
+			self.request = None			
+			self.set_active (False)
 	
 	def abort (self):
-		self.close_socket ()
-		self.request = None
-		self.set_active (False)
+		try:
+			self.close_socket ()
+		finally:	
+			self.request = None
+			self.set_active (False)
 			
 	def error (self, code, msg):
 		self.close_it = True
@@ -225,7 +232,7 @@ class AsynConnect (asynchat.async_chat):
 					if ip:
 						asynchat.async_chat.connect (self, (ip, self.address [1]))																		
 				else:
-					self.error (904, "DNS Not Found")
+					self.error (704, "DNS Not Found")
 					self.handle_close ()					
 					
 		except:	
@@ -313,6 +320,7 @@ class AsynConnect (asynchat.async_chat):
 	def start_request (self, request):
 		self.initialize ()
 		self.request = request
+		self.debug_info = (request.method, request.uri, request.http_version)
 		
 		if self.connected:
 			self.close_if_over_keep_live () # check keep-alive
@@ -366,24 +374,24 @@ class AsynConnect (asynchat.async_chat):
 			
 	def handle_timeout (self):
 		self.log ("socket timeout", "fail")
-		self.error (902, "Socket Timeout")
+		self.error (702, "Socket Timeout")
 		self.handle_close ()
 		
 	def handle_expt (self):
 		self.loggger ("socket panic", "fail")
-		self.error (903, "Socket Panic")
+		self.error (703, "Socket Panic")
 		self.handle_close ()
 	
 	def handle_error (self):
 		self.trace ()
-		self.error (901, "Exception")
+		self.error (701, "Exception")
 		self.handle_close()
 	
 	def handle_expt_event(self):
 		err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
 		if err != 0:
 			self.log ("SO_ERROR %d Occurred" % err, "warn")
-			self.error (900, "Socket %d Error" % err)			
+			self.error (700, "Socket %d Error" % err)			
 			self.handle_close ()
 		else:
 			self.handle_expt ()

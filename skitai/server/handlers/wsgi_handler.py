@@ -233,7 +233,7 @@ class Job:
 				return
 			
 			if type (content) not in (list, tuple):
-				content = tuple (content)
+				content = (content,) # make iterable
 				
 			will_be_push = []
 			if len (response) == 0:
