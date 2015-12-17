@@ -77,16 +77,19 @@ class TunnelForServerToClient:
 		return False
 		
 	def log_request (self):
+		htime = (time.time () - self.stime) * 1000
 		self.channel.server.log_request (
-			'%s:%d CONNECT tunnel://%s:%d HTTP/1.1 200 %d/%d %dms'
+			'%s:%d CONNECT tunnel://%s:%d HTTP/1.1 200 %d/%d %dms %dms'
 			% (self.channel.addr[0],
 			self.channel.addr[1],			
 			self.asyncon.address [0],
 			self.asyncon.address [1],
 			self.cli2srv is not None and self.cli2srv.bytes or 0,
 			self.bytes,
-			(time.time () - self.stime) * 1000)
+			htime,
+			htime
 			)
+		)
 				
 	def close (self):
 		self.log_request ()

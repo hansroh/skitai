@@ -56,7 +56,9 @@ class SocketPool:
 							if di:
 								stu ["debug_info"] = "%s %s HTTP/%s" % asyncon.debug_info
 						except AttributeError: pass
-						stu ["in_map"] = asyncon.is_channel_in_map ()
+						try:
+							stu ["in_map"] = asyncon.is_channel_in_map ()
+						except AttributeError: pass	
 							
 						conns.append (stu)
 													

@@ -55,6 +55,7 @@ class http_response:
 		self.outgoing = producers.fifo ()
 		self.is_done = False
 		self.stime = time.time ()
+		self.htime = 0
 	
 	def __len__ (self):
 		return len (self.outgoing)
@@ -246,6 +247,9 @@ class http_response:
 			self.outgoing.push (thing)
 					
 	def done (self, globbing = True, compress = True, force_close = False):
+		self.htime = (time.time () - self.stime) * 1000
+		self.stime = time.time () #for delivery time
+		
 		if not self.responsable (): return
 		self.is_done = True
 		if self.request.channel is None: return
@@ -380,15 +384,16 @@ class http_response:
 	
 	def log (self, bytes):		
 		self.request.channel.server.log_request (
-			'%s:%d %s %s %d %dms'
+			'%s:%d %s %s %d %dms %dms'
 			% (self.request.channel.addr[0],
 			self.request.channel.addr[1],			
 			self.request.request,
 			self.reply_code,			
 			bytes,
-			(time.time () - self.stime) * 1000)
+			self.htime,
+			(time.time () - self.stime) * 1000
 			)
-	
+		)
 		
 	# Default error message
 	DEFAULT_ERROR_MESSAGE = """<!DOCTYPE html>
