@@ -265,7 +265,11 @@ class http_channel (asynchat.async_chat):
 			except:
 				self.log_info ("channel-%s invaild request header" % self.channel_number, "fail")
 				return self.close ()
+<<<<<<< HEAD
 			
+=======
+
+>>>>>>> 4d353de2f1e0f652f92c1302604c4962893619e6
 			self.debug_info = (command, uri, version)
 			self.debug_buffer = b""
 			
