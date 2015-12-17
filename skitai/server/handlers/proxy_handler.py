@@ -26,12 +26,12 @@ class TunnelForClientToServer:
 		self.asyncon.push (data)
 	
 	def close (self):
-		self.asyncon.set_timeout () # make default
 		self.asyncon.close_socket ()
 		self.asyncon.request = None # unlink back ref
 
 
 class TunnelForServerToClient:
+	keep_alive = 60
 	def __init__ (self, request, asyncon):
 		self.request = request
 		self.channel = request.channel
@@ -57,7 +57,9 @@ class TunnelForServerToClient:
 		self.cli2srv = TunnelForClientToServer (self.asyncon)
 		self.channel.current_request = self.cli2srv		
 		self.log ("connection maden to %s" % self.request.uri)
-		self.request.response.instant ("200 Connection Established", [("Proxy-Agent", "sae-pa")])
+		self.request.response.instant ("200 Connection Established", [("Proxy-Agent", "sae-pa"), ("Keep-Alive", "timeout=%d" % self.keep_alive)])
+		self.channel.keep_alive = self.keep_alive # SSL Proxy timeout
+		self.asyncon.default_timeout = self.keep_alive
 		
 	def done (self, code, msg):
 		if code and self.bytes == 0:
@@ -66,10 +68,7 @@ class TunnelForServerToClient:
 		else:
 			self.close ()
 			
-	def collect_incoming_data (self, data):
-		if self.channel.zombie_timeout != 300:
-			self.channel.zombie_timeout = 300
-			self.asyncon.set_timeout (300)
+	def collect_incoming_data (self, data):		
 		self.bytes += len (data)		
 		self.channel.push (data)
 	
@@ -449,8 +448,8 @@ class Handler (wsgi_handler.Handler):
 		if request.command == "connect":
 			uri = "tunnel://" + request.uri + "/"
 			asyncon = self.clusters ["__socketpool__"].get (uri)
-			asyncon.request = TunnelForServerToClient (request, asyncon)			
-
+			asyncon.request = TunnelForServerToClient (request, asyncon)
+			
 		else:
 			collector = None
 			if request.command in ('post', 'put'):

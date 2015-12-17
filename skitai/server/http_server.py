@@ -37,7 +37,6 @@ class http_request:
 		self._split_uri = None
 		self._header_cache = {}
 		self.gzip_encoded = False
-		#self.set_keep_alive ()
 	
 	def get_raw_header (self):
 		return self.header	
@@ -140,7 +139,7 @@ class http_channel (asynchat.async_chat):
 	
 	zombie_timeout = 10
 	network_delay_timeout = 30
-	keep_alive = 10	
+	keep_alive = 10
 	
 	def __init__ (self, server, conn, addr):
 		self.channel_number = http_channel.channel_count.inc ()
@@ -265,11 +264,7 @@ class http_channel (asynchat.async_chat):
 			except:
 				self.log_info ("channel-%s invaild request header" % self.channel_number, "fail")
 				return self.close ()
-<<<<<<< HEAD
-			
-=======
 
->>>>>>> 4d353de2f1e0f652f92c1302604c4962893619e6
 			self.debug_info = (command, uri, version)
 			self.debug_buffer = b""
 			

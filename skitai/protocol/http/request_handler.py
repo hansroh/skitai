@@ -373,7 +373,9 @@ class RequestHandler:
 						continue
 					
 					if k.strip () == "timeout": 
-						self.asyncon.zombie_timeout = int (v)
+						timeout = int (v)
+						if self.asyncon.default_timeout < timeout:
+							self.asyncon.default_timeout = timeout
 					elif k.strip () == "max" and int (v) == 0:
 						close_it = True
 		

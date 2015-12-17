@@ -24,8 +24,9 @@ def set_timeout (timeout):
 class AsynConnect (asynchat.async_chat):
 	ac_in_buffer_size = 4096
 	ac_out_buffer_size = 4096
-	zombie_timeout = 30
-	default_timeout = 30
+	zombie_timeout = 10
+	default_timeout = 10
+	network_delay_timeout = 30
 		
 	def __init__ (self, address, lock = None, logger = None):
 		self.address = address
@@ -122,6 +123,8 @@ class AsynConnect (asynchat.async_chat):
 			map = self._map
 		if fd in map:
 			del map[fd]		
+		# make default and sometimes reset server'stimeout	
+		self.zombie_timeout =  self.default_timeout
 	
 	def cancel_request (self):
 		self.producer_fifo.clear()	
@@ -203,6 +206,7 @@ class AsynConnect (asynchat.async_chat):
 		return self.request_count
 	
 	def add_channel (self, map = None):		
+		self.zombie_timeout =  self.network_delay_timeout
 		return asynchat.async_chat.add_channel (self, map)
 			
 	def create_socket (self, family, type):
@@ -367,7 +371,7 @@ class AsynConnect (asynchat.async_chat):
 			timeout = self.default_timeout
 		self.zombie_timeout = timeout
 	
-	def handle_connect (self):
+	def handle_connect (self):		
 		try: 
 			self.request.when_connected ()
 		except AttributeError:
