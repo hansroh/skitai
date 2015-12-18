@@ -350,7 +350,7 @@ class ProxyResponse (http_response.Response):
 			
 	def affluent (self):
 		# if channel doesn't consume data, delay recv data		
-		return len (self.u.data) < 2000
+		return len (self.u.data) < 1000
 		
 	def ready (self):
 		# if exist consumable data or wait
@@ -410,7 +410,7 @@ class Collector (collectors.FormCollector):
 	
 	def affluent (self):
 		# if channel doesn't consume data, delay recv data		
-		return len (self.data) < 2000
+		return len (self.data) < 1000
 		
 	def ready (self):
 		return len (self.data) or self.got_all_data
