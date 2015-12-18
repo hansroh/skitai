@@ -31,7 +31,7 @@ class TunnelForClientToServer:
 
 
 class TunnelForServerToClient:
-	keep_alive = 60
+	keep_alive = 120			
 	def __init__ (self, request, asyncon):
 		self.request = request
 		self.channel = request.channel

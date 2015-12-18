@@ -138,7 +138,7 @@ class http_channel (asynchat.async_chat):
 	closables = []
 	
 	zombie_timeout = 10
-	network_delay_timeout = 30
+	network_delay_timeout = 120
 	keep_alive = 10
 	
 	def __init__ (self, server, conn, addr):
@@ -164,7 +164,7 @@ class http_channel (asynchat.async_chat):
 			return not self.is_rejected and asynchat.async_chat.readable (self)	and self.affluent ()
 		return not self.is_rejected and asynchat.async_chat.readable (self)
 			
-	def writable (self):
+	def writable (self):								
 		if self.ready is not None:
 			return asynchat.async_chat.writable (self) and self.ready ()
 		return asynchat.async_chat.writable (self)
@@ -202,10 +202,14 @@ class http_channel (asynchat.async_chat):
 		asynchat.async_chat.handle_read (self)
 		
 	def handle_write (self):
-		asynchat.async_chat.handle_write (self)
+		asynchat.async_chat.handle_write (self)		
+	
+	def initiate_send (self):		
+		ret = asynchat.async_chat.initiate_send (self)		
 		if len (self.producer_fifo) == 0:
-			self.zombie_timeout = self.keep_alive		
-				
+			self.zombie_timeout = self.keep_alive
+		return ret	
+						
 	def send (self, data):
 		if DEBUG:
 			self.debug_buffer += str (data)
