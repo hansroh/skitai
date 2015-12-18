@@ -139,22 +139,25 @@ class AsynConnect (asynchat.async_chat):
 			self.close_it = True
 		
 		self.ready = None
-		self.affluent = None
+		self.affluent = None		
+		
+		if self.connected and self.close_it:
+			self.close_socket ()
+		else:			
+			self.del_channel ()
 		
 		try:
-			if self.connected and self.close_it:
-				self.close_socket ()
-			else:			
-				self.del_channel ()
-			
 			if self.request:
 				# request continue cause of 401 error
-				if self.request.done (self.errcode, self.errmsg) is not None:
-					return
-									
-		finally:
-			self.request = None			
-			self.set_active (False)
+				ret = self.request.done (self.errcode, self.errmsg)					
+		except:
+			self.trace ()
+		else:
+			if ret is not None:
+				return
+						
+		self.request = None			
+		self.set_active (False)
 	
 	def abort (self):
 		try:
