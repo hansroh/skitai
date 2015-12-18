@@ -163,7 +163,7 @@ Also note that if you want to use WAS services in your WSGI middle wares except 
   from skitai import was
 
 
-There're post, put, delete method examples:
+Here're post, file upload method examples:
 
 .. code:: python
 
@@ -857,6 +857,8 @@ Documentation
 
 Change Log
 -------------
+  
+  0.10.0.4 - add execution time & delivery time to request log file
   
   0.10.0.2 - emergency patch for str responses, add Digest auth method for was remote call
 
