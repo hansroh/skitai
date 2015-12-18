@@ -270,7 +270,7 @@ class http_response:
 						self.update ('Connection', 'close')
 					else:
 						self.update ('Connection', 'keep-alive')
-						#self.update ('Keep-Alive', 'timeout=%d' % self.request.channel.keep_alive)
+						self.update ('Keep-Alive', 'timeout=%d' % self.request.channel.keep_alive)
 				else:
 					close_it = True
 			
@@ -278,8 +278,8 @@ class http_response:
 				if connection == 'close':
 					close_it = True
 					self.update ('Connection', 'close')
-				#else:
-					#self.update ('Keep-Alive', 'timeout=%d' % self.request.channel.keep_alive)	
+				else:
+					self.update ('Keep-Alive', 'timeout=%d' % self.request.channel.keep_alive)	
 				if not self.has_key ('content-length'):
 					wrap_in_chunking = True
 					
