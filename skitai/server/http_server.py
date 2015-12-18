@@ -214,9 +214,15 @@ class http_channel (asynchat.async_chat):
 	def initiate_send (self):		
 		ret = asynchat.async_chat.initiate_send (self)		
 		if len (self.producer_fifo) == 0:
-			self.zombie_timeout = self.keep_alive
+			self.done_request ()
 		return ret	
-						
+	
+	def done_request (self):	
+		self.zombie_timeout = self.keep_alive
+		self.closables = [] # all producers are finished
+		self.ready = None
+		self.affluent = None
+							
 	def send (self, data):
 		if DEBUG:
 			self.debug_buffer += str (data)

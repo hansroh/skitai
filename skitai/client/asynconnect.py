@@ -26,21 +26,21 @@ class AsynConnect (asynchat.async_chat):
 	ac_out_buffer_size = 4096
 	zombie_timeout = 10
 	default_timeout = 10
-	network_delay_timeout = 120
-		
+	network_delay_timeout = 120	
+	ready = None
+	affluent = None	
+	
+	request_count = 0
+	active = 0
+	proxy = False		
+	debug_info = None
+			
 	def __init__ (self, address, lock = None, logger = None):
 		self.address = address
 		self.lock = lock
 		self.logger = logger
-		
-		self.request_count = 0
 		self.event_time = time.time ()
 		self._cv = threading.Condition ()		
-		self.active = 0
-		self.ready = None
-		self.proxy = False
-		self.affluent = None
-		self.debug_info = None
 		
 		asynchat.async_chat.__init__ (self)
 		self.initialize ()
@@ -101,7 +101,8 @@ class AsynConnect (asynchat.async_chat):
 		return asynchat.async_chat.writable (self)	
         
 	def maintern (self):
-		if self.isactive () and time.time () - self.event_time > self.zombie_timeout:
+		# if self.is_channel_in_map (), mainterned by lifetime
+		if not self.is_channel_in_map () and  self.isactive () and time.time () - self.event_time > self.zombie_timeout:
 			# do not user close_socket (), this func might be called in the thread, and currently in select.select()
 			self.handle_close ()
 	
@@ -136,6 +137,9 @@ class AsynConnect (asynchat.async_chat):
 	def close (self, force = False):
 		if force:
 			self.close_it = True
+		
+		self.ready = None
+		self.affluent = None
 		
 		try:
 			if self.connected and self.close_it:

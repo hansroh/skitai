@@ -98,7 +98,8 @@ def maintern_zombie_channel (now):
 	for channel in list(asyncore.socket_map.values()):
 		if hasattr (channel, "handle_timeout"):
 			try:
-				iszombie = (now - channel.event_time) > channel.zombie_timeout				
+				# +3 is make gap between server & client
+				iszombie = (now - channel.event_time) > channel.zombie_timeout + 3
 			except AttributeError:
 				continue				
 			if iszombie:

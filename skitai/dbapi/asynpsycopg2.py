@@ -96,13 +96,17 @@ class AsynConnect (asyncore.dispatcher):
 		
 	def readable (self):
 		return self.connected and not self.out_buffer
-		
-	def maintern (self):	
-		if self.isactive () and time.time () - self.event_time > self.zombie_timeout:
+	
+	def is_channel_in_map (self, map = None):
+		if map is None:
+			map = self._map
+		return self._fileno in map
+			
+	def maintern (self):
+		# if self.is_channel_in_map (), mainterned by lifetime
+		if not self.is_channel_in_map () and self.isactive () and time.time () - self.event_time > self.zombie_timeout:
 			if not self.has_result:
-				# really error, disconnect
-				self.error (psycopg2.OperationalError, "zombie psycopg2, enter shutdown process")
-				self.handle_close ()
+				self.handle_timeout ()
 				
 			else:
 				# Auto Release For,
