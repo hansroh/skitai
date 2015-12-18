@@ -381,7 +381,21 @@ class AsynConnect (asynchat.async_chat):
 		self.log ("socket timeout", "fail")
 		self.error (702, "Socket Timeout")
 		self.handle_close ()
+	
+	def set_timeout_by_case (self):
+		if self.affluent or self.ready:
+			self.zombie_timeout = self.network_delay_timeout * 4
+		else:	
+			self.zombie_timeout = self.network_delay_timeout
 		
+	def handle_read (self):
+		self.set_timeout_by_case ()
+		asynchat.async_chat.handle_read (self)
+		
+	def handle_write (self):
+		self.set_timeout_by_case ()
+		asynchat.async_chat.handle_write (self)
+			
 	def handle_expt (self):
 		self.loggger ("socket panic", "fail")
 		self.error (703, "Socket Panic")
