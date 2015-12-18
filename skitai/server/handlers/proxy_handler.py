@@ -495,7 +495,7 @@ class Handler (wsgi_handler.Handler):
 		if request.get_header ("cookie") is not None:
 			return False
 		if request.get_header ("progma") == "no-cache" or request.get_header ("cache-control") == "no-cache":
-			request.response ["X-Cache-Lookup"] = "PASSED from bws"
+			request.response ["X-Cache-Lookup"] = "PASSED"
 			return False
 		
 		if self.cachefs:
@@ -510,9 +510,9 @@ class Handler (wsgi_handler.Handler):
 			else:
 				if hit:
 					if hit == 1:
-						request.response ["X-Cache-Lookup"] = "MEM_HIT from bws"
+						request.response ["X-Cache-Lookup"] = "MEM_HIT"
 					else:
-						request.response ["X-Cache-Lookup"] = "HIT from bws"
+						request.response ["X-Cache-Lookup"] = "HIT"
 					if content_type:
 						request.response ["Content-Type"] = content_type					
 					request.response ["Cache-Control"] = "max-age=%d" % max_age
@@ -522,7 +522,7 @@ class Handler (wsgi_handler.Handler):
 					request.response.done ()
 					return True
 					
-		request.response ["X-Cache-Lookup"] = "MISS from bws"
+		request.response ["X-Cache-Lookup"] = "MISS"
 		return False
 	
 	def save_cache (self, request, handler):
