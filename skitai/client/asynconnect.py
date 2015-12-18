@@ -146,6 +146,7 @@ class AsynConnect (asynchat.async_chat):
 		else:			
 			self.del_channel ()
 		
+		ret = None
 		try:
 			if self.request:
 				# request continue cause of 401 error
