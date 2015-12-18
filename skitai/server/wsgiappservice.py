@@ -122,16 +122,17 @@ class WAS:
 		if uri [0] == "@": fn = "lb"
 		return getattr (self, "_" + fn) (command, *args, **karg)
 	
-	def _rest (self, method, uri, data = None, filter = None, headers = None, login = None, encoding = None):
-		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, headers, login, encoding, mapreduce = False, callback = filter)
+	def _rest (self, method, uri, data = None, auth = None, headers = None, filter = None, encoding = None):
+		#auth = (user, password)
+		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, headers, auth, encoding, mapreduce = False, callback = filter)
 			
-	def _map (self, method, uri, data = None, filter = None, headers = None, login = None, encoding = None):		
+	def _map (self, method, uri, data = None, auth = None, headers = None, filter = None, encoding = None):		
 		clustername, uri = self.__detect_cluster (uri)
-		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, login, encoding, mapreduce = True, callback = filter)
+		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, auth, encoding, mapreduce = True, callback = filter)
 	
-	def _lb (self, method, uri, data = None, filter = None, headers = None, login = None, encoding = None):
+	def _lb (self, method, uri, data = None, auth = None, headers = None, filter = None, encoding = None):
 		clustername, uri = self.__detect_cluster (uri)
-		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, login, encoding, mapreduce = False, callback = filter)
+		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, auth, encoding, mapreduce = False, callback = filter)
 	
 	def _ddb (self, server, dbname, user = "", password = "", dbtype = "postgresql", filter = None):
 		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, user, password, dbtype, mapreduce = False, callback = filter)

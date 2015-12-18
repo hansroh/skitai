@@ -31,7 +31,7 @@ from skitai.client import socketpool
 import socket
 import signal
 import multiprocessing
-from . import webappservice
+from . import wsgiappservice
 
 if PSYCOPG:
 	from .dbi import cluster_dist_call as dcluster_dist_call
@@ -44,7 +44,7 @@ class Loader:
 		self.varpath = varpath
 		self.debug = debug
 		self.num_worker = 1
-		self.wasc = webappservice.WAS
+		self.wasc = wsgiappservice.WAS
 		self.ssl = False
 		self.ctx = None
 		self._exit_code = None
@@ -155,7 +155,7 @@ class Loader:
 			media = ["file"]
 		else:
 			media = ["screen"]	
-		self.wasc.register ("logger", webappservice.Logger (media, path))
+		self.wasc.register ("logger", wsgiappservice.Logger (media, path))
 		
 		if os.name != "nt":
 			def hUSR1 (signum, frame):	
