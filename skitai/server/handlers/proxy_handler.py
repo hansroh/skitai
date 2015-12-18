@@ -431,6 +431,27 @@ class Collector (collectors.FormCollector):
 			self.cache += data
 		#print "proxy_handler.collector.more >> %d" % tl, id (self)
 		return b"".join (data)
+
+
+class ConnectionPool:
+	def __init__ (self, request):
+		self.maxconn = 2
+		if request.version == "1.0":
+			self.maxconn = 4
+		self.requests = [request]
+		self.current_requests = 0
+	
+	def add (self, request)	:
+		self.requests.append (request)
+		
+	def get (self):
+		while self.requests and self.current_requests <= self.maxconn:
+			self.current_requests += 1
+			return self.requests.pop (0)
+		return len (self.requests) and 1 or 0
+	
+	def done (self):
+		self.current_requests -= 1
 		
 			
 class Handler (wsgi_handler.Handler):
@@ -439,9 +460,10 @@ class Handler (wsgi_handler.Handler):
 		self.clusters = clusters
 		self.cachefs = cachefs
 		#self.cachefs = None # DELETE IT!
-		adns.init (self.wasc.logger.get ("server"))
+		adns.init (self.wasc.logger.get ("server"))		
+		self.q = {}
 				
-	def match (self, request):		
+	def match (self, request):
 		uri = request.uri.lower ()
 		if uri.startswith ("http://") or uri.startswith ("https://"):
 			return 1
@@ -450,6 +472,31 @@ class Handler (wsgi_handler.Handler):
 		return 0
 		
 	def handle_request (self, request):
+		addr = request.channel.addr[0]
+		host = request.get_header ("host")
+		if addr not in self.q:
+			self.q [addr] = {}			
+		try: 
+			self.q [addr][host].add (request)			
+		except KeyError: 
+			self.q [addr][host] = ConnectionPool (request)
+		self.handle_queue ()	
+	
+	def handle_queue (self):
+		for addr in self.q.keys ():
+			for host, cp in self.q [addr].items ():
+				request = cp.get ()
+				if request == 0:
+					del self.q [addr][host]
+				elif request == 1:
+					continue
+				else:
+					self.handle_queued_request (request)
+								
+			if not self.q [addr]:
+				del self.q [addr]
+				
+	def handle_queued_request (self, request):
 		if request.command == "connect":
 			uri = "tunnel://" + request.uri + "/"
 			asyncon = self.clusters ["__socketpool__"].get (uri)
@@ -557,4 +604,10 @@ class Handler (wsgi_handler.Handler):
 				self.wasc.logger.trace ("server")
 		
 		self.dealloc (request, handler)
+		
+		addr = request.channel.addr[0]
+		host = request.get_header ("host")		
+		try: self.q [addr][host].done () # decrease current_requests
+		except KeyError: pass
+		self.handle_queue ()
 		
