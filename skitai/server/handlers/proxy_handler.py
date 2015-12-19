@@ -446,8 +446,11 @@ class ConnectionPool:
 		
 	def get (self):
 		while self.requests and self.current_requests <= self.maxconn:
+			request = self.requests.pop (0)
+			if request.channel is None:
+				continue
 			self.current_requests += 1
-			return self.requests.pop (0)
+			return request
 		return len (self.requests) and 1 or 0
 	
 	def done (self):
@@ -480,7 +483,7 @@ class Handler (wsgi_handler.Handler):
 			self.q [addr][host].add (request)			
 		except KeyError: 
 			self.q [addr][host] = ConnectionPool (request)
-		self.handle_queue ()	
+		self.handle_queue ()
 	
 	def handle_queue (self):
 		for addr in self.q.keys ():
