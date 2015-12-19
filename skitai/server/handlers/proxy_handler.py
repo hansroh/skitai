@@ -435,7 +435,7 @@ class Collector (collectors.FormCollector):
 
 class ConnectionPool:
 	def __init__ (self, request):
-		self.maxconn = 2
+		self.maxconn = 3
 		if request.version == "1.0":
 			self.maxconn = 4
 		self.requests = [request]
