@@ -24,7 +24,9 @@ def configure (
 
 	global _logger, _numpool, _default_option
 	
-	asynconnect.set_timeout (default_timeout)
+	asynconnect.default_timeout = default_timeout
+	asynconnect.network_delay_timeout = default_timeout	
+		
 	_default_option = default_option
 	_numpool = numpool + 1
 	_logger = logger

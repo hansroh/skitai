@@ -138,7 +138,7 @@ class http_channel (asynchat.async_chat):
 	closables = []
 	
 	zombie_timeout = 10
-	network_delay_timeout = 30
+	network_delay_timeout = 10
 	keep_alive = 10
 	
 	def __init__ (self, server, conn, addr):
@@ -199,7 +199,7 @@ class http_channel (asynchat.async_chat):
 	
 	def set_timeout_by_case (self):
 		if self.affluent or self.ready:
-			self.zombie_timeout = self.network_delay_timeout * 4
+			self.zombie_timeout = self.network_delay_timeout * 2
 		else:	
 			self.zombie_timeout = self.network_delay_timeout
 		

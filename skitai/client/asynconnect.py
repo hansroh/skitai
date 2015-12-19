@@ -26,7 +26,7 @@ class AsynConnect (asynchat.async_chat):
 	ac_out_buffer_size = 4096
 	zombie_timeout = 10
 	default_timeout = 10
-	network_delay_timeout = 120	
+	network_delay_timeout = 10	
 	ready = None
 	affluent = None	
 	
@@ -392,7 +392,7 @@ class AsynConnect (asynchat.async_chat):
 	
 	def set_timeout_by_case (self):
 		if self.affluent or self.ready:
-			self.zombie_timeout = self.network_delay_timeout * 4
+			self.zombie_timeout = self.network_delay_timeout * 2
 		else:	
 			self.zombie_timeout = self.network_delay_timeout
 		

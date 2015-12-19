@@ -607,10 +607,8 @@ class Handler (wsgi_handler.Handler):
 				self.wasc.logger.trace ("server")
 		
 		self.dealloc (request, handler)
-		
-		addr = request.channel.addr[0]
-		host = request.get_header ("host")		
-		try: self.q [addr][host].done () # decrease current_requests
+
+		try: self.q [request.channel.addr[0]][request.get_header ("host")].done () # decrease current_requests
 		except KeyError: pass
 		self.handle_queue ()
 		
