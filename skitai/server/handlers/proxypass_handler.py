@@ -13,7 +13,10 @@ class Handler (proxy_handler.Handler):
 		for cluster in list(self.clusters.values ()):
 			if cluster.match (request):
 				return cluster
-						
+	
+	def handle_request (self, request):
+		proxy_handler.Handler.handle_queued_request (self, request)
+							
 	def continue_request (self, request, collector):
 		request.loadbalance_retry = 0
 		if self.is_cached (request, collector is not None):
