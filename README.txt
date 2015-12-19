@@ -858,6 +858,8 @@ Documentation
 Change Log
 -------------
   
+  0.10.1 - enter 0.10 beta state
+  
   0.10.0.5 - keep-alive & data transfer dealy timeout was reset
   
   0.10.0.4 - add execution time & delivery time to request log file

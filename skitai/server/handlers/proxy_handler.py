@@ -487,6 +487,10 @@ class Handler (wsgi_handler.Handler):
 	
 	def handle_queue (self):
 		for addr in self.q.keys ():
+			if not self.q [addr]:
+				del self.q [addr]
+				continue
+				
 			for host, cp in self.q [addr].items ():
 				request = cp.get ()
 				if request == 0:
@@ -494,9 +498,7 @@ class Handler (wsgi_handler.Handler):
 				elif request == 1:
 					continue
 				else:
-					self.handle_queued_request (request)										
-			if not self.q [addr]:
-				del self.q [addr]			
+					self.handle_queued_request (request)
 				
 	def handle_queued_request (self, request):
 		if request.command == "connect":
