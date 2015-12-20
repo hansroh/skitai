@@ -188,7 +188,7 @@ class Saddle (package.Package):
 		was.env = None
 		was.app = None
 		was.ab = None
-		was.temp = {}
+		was.temp = None
 		was.request.response = None
 		
 		return result

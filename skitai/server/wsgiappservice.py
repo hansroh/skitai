@@ -79,9 +79,6 @@ class WAS:
 			cluster = cluster_manager.ClusterManager (clustername, clusterlist, ssl, cls.logger.get ("server"))
 			cls.clusters_for_distcall [clustername] = cluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"))
 		cls.clusters [clustername] = cluster
-	
-	def __init__ (self):
-		self.temp = {}
 			
 	def __dir__ (self):
 		return self.objects.keys ()

@@ -350,6 +350,7 @@ If it is configured, you can skip e.set_smtp(). But be careful for keeping your 
 
 **Other Utility Service**
 
+- was.status ()
 - was.tojson ()
 - was.fromjson ()
 - was.toxml () # XMLRPC
@@ -606,32 +607,63 @@ To enable session for app, random string formatted securekey should be set for e
   
   @app.after_request
   def after_request (was):
-    was.temp ["user_id"]
-    was.temp ["user_status"]
+    was.temp.user_id    
+    was.temp.user_status
     ...
   
   @app.failed_request
   def failed_request (was):
-    was.temp ["user_id"]
-    was.temp ["user_status"]
+    was.temp.user_id    
+    was.temp.user_status
     ...
   
   @app.teardown_request
   def teardown_request (was):
-    was.temp ["user_id"]    
-    was.temp ["user_status"]
+    was.temp.resouce.close ()
     ...
   
   @app.route ("/view-account")
   def view_account (was, userid):
-    was.temp ["user_id"] = "jerry"
-    was.temp ["user_status"] = "active"
+    was.temp.user_id = "jerry"
+    was.temp.user_status = "active"
+    was.temp.resouce = open ()
     return ...
 
 
-For thease situation, was provide temp dictionary object. this temp is valid only in cuurent request. After end of current request, was.temp is reset to empty dictionary.
+For this situation, 'was' provide was.temp that is empty class instance. was.temp is valid only in cuurent request. After end of current request, was.temp is reset to empty.
 
+Also it is possible to bind temporary hooked methods except 'before_request'. 
+
+.. code:: python
+
+  @app.route ("/view-account")
+
+  def view_account (was, userid):
+    def on_success (was):
+    	was.temp.user_id
+    	was.temp.user_status
     
+    def on_failed (was):
+    	was.temp.user_id
+    	was.temp.user_status
+    
+    def on_teardown (was):
+    	was.temp.resouce.close ()
+    
+    was.temp.bind ("after_request", on_success)
+    was.temp.bind ("failed_request", on_failed)
+    was.temp.bind ("teardown_request", on_teardown)
+    			
+    was.temp.user_id = "jerry"
+    was.temp.user_status = "active"
+    was.temp.resouce = open ()
+    
+    return ...
+
+
+*Note:* These temporary hooked methods are replace previous one, and will NOT be executed both.
+
+
 If view_account is called, Saddle execute these sequence:
 
 .. code:: python
@@ -868,6 +900,8 @@ Documentation
 
 Change Log
 -------------
+  
+  0.10.1.2 - change was.temp type from dictionary to class, and add bind () method
   
   0.10.1.1 - add was.temp for setting temporary data during current request
   

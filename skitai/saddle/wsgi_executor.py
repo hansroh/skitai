@@ -53,6 +53,10 @@ class Executor:
 			else:
 				response = func (self.was, *args, **karg)
 				
+				if hasattr (self.was.temp, "_on_after_request"): success = self.was.temp.after_request
+				if hasattr (self.was.temp, "_on_failed_request"): failed = self.was.temp.failed_request
+				if hasattr (self.was.temp, "_on_teardown_request"): teardown = self.was.temp.teardown_request
+				
 		except MemoryError:
 			raise
 																										
@@ -121,8 +125,14 @@ class Executor:
 				s [k] = v
 	
 	def build_was (self):
+		class Temp:
+			def bind (self, when, method):
+				assert when in ("after_request", "failed_request", "teardown_request"), "Cannot understand bidn method"
+				setattr (self, "_on_" + when, method)
+			
 		_was = self.env["skitai.was"]
 		_was.env = self.env
+		_was.temp = Temp ()
 		_was.response = _was.request.response
 		_was.cookie = cookie.Cookie (_was.request, _was.app.securekey, _was.app.session_timeout)
 		_was.session = _was.cookie.get_session ()
