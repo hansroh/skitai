@@ -185,12 +185,12 @@ Here's XMLRPC request for example:
 
 Avaliable methods are:
 
-- was.get ()
-- was.post ()
-- was.put ()
-- was.delete ()
-- was.upload () # For clarity to multipart POST
-- was.rpc () # XMLRPC
+- was.get (url, auth = (username, password))
+- was.post (url, data = data, auth = (username, password))
+- was.put (url, data = data, auth = (username, password))
+- was.delete (url)
+- was.upload (url, data = data, auth = (username, password)) # For clarity to multipart POST
+- was.rpc (url, auth = (username, password)) # XMLRPC
 - and other RESTful methods supported by target servers.
 
 
@@ -606,20 +606,31 @@ To enable session for app, random string formatted securekey should be set for e
   
   @app.after_request
   def after_request (was):
-    log_user ()
+    was.temp ["user_id"]
+    was.temp ["user_status"]
+    ...
   
   @app.failed_request
   def failed_request (was):
-    log_fail ()
+    was.temp ["user_id"]
+    was.temp ["user_status"]
+    ...
   
   @app.teardown_request
   def teardown_request (was):
-    log_fail ()  
+    was.temp ["user_id"]    
+    was.temp ["user_status"]
+    ...
   
   @app.route ("/view-account")
   def view_account (was, userid):
-    ...
+    was.temp ["user_id"] = "jerry"
+    was.temp ["user_status"] = "active"
     return ...
+
+
+For thease situation, was provide temp dictionary object. this temp is valid only in cuurent request. After end of current request, was.temp is reset to empty dictionary.
+
     
 If view_account is called, Saddle execute these sequence:
 
@@ -627,16 +638,16 @@ If view_account is called, Saddle execute these sequence:
   
   try:
     try: 
-      content = before_request
+      content = before_request (was)
       if content: 
         return content
-      content = view_account
+      content = view_account (was, *args, **karg)
     except:
-      failed_request
+      failed_request (was)
     else:
-      after_request
+      after_request (was)
   finally:
-    teardown_request      
+    teardown_request (was)
 
 
 Also there're another kind of method group,
@@ -858,7 +869,9 @@ Documentation
 Change Log
 -------------
   
-  0.10.1 - enter 0.10 beta state
+  0.10.1.1 - add was.temp for setting temporary data during current request
+  
+  0.10.1.0 - enter 0.10 beta state
   
   0.10.0.5 - keep-alive & data transfer dealy timeout was reset
   

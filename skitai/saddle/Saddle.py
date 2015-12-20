@@ -26,6 +26,7 @@ multipart_collector.MultipartCollector.file_max_size = 20 * 1024 * 1024
 multipart_collector.MultipartCollector.cache_max_size = 5 * 1024 * 1024
 cookie.SecuredCookieValue.default_session_timeout = 1200
 
+	
 class Saddle (package.Package):
 	use_reloader = False
 	debug = False
@@ -171,12 +172,24 @@ class Saddle (package.Package):
 			self._onreload (self.wasc, self)		
 							
 	def __call__ (self, env, start_response):
-		env ["skitai.was"].app = self
-		env ["skitai.was"].ab = self.build_url
+		was = env ["skitai.was"]		
+		was.app = self
+		was.ab = self.build_url
+		
 		content_type = env.get ("CONTENT_TYPE", "")				
 		if content_type.startswith ("text/xml") or content_type.startswith ("application/xml+rpc"):
-			return xmlrpc_executor.Executor (env, self.get_method) ()
+			result = xmlrpc_executor.Executor (env, self.get_method) ()
 		else:	
-			return wsgi_executor.Executor (env, self.get_method) ()		
-			
-	
+			result = wsgi_executor.Executor (env, self.get_method) ()		
+		
+		was.cookie = None
+		was.session = None
+		was.response = None
+		was.env = None
+		was.app = None
+		was.ab = None
+		was.temp = {}
+		was.request.response = None
+		
+		return result
+		

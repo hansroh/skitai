@@ -309,14 +309,4 @@ class Job:
 		
 		was = env.get ("skitai.was")
 		if was is not None:
-			if hasattr (was, "app"): # Saddle
-				was.cookie = None
-				was.session = None
-				was.response = None
-				was.env = None
-				was.ab = None
-				was.app = None				
-			
-			if was.request:
-				was.request.response = None
-				was.request = None
+			was.request = None

@@ -38,7 +38,7 @@ class _Method:
 		
 	def __call__(self, *args, **karg):
 		return self.__send(self.__name, args, karg)
-		
+
 
 class WAS:
 	version = VERSION
@@ -80,6 +80,9 @@ class WAS:
 			cls.clusters_for_distcall [clustername] = cluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"))
 		cls.clusters [clustername] = cluster
 	
+	def __init__ (self):
+		self.temp = {}
+			
 	def __dir__ (self):
 		return self.objects.keys ()
 	
