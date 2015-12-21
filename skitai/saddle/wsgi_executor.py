@@ -49,7 +49,7 @@ class Executor:
 		first_expt = None
 		
 		[before, func, success, failed, teardown] = method
-		_success, _failed, _teardown = None, None, None
+		_ok, _exception, _teardown = None, None, None
 		
 		try:
 			if before:

@@ -9,9 +9,9 @@ app.use_reloader = True
 
 app.securekey = "iodfjksdfkjsdhkfjsd0987987sdf"
 app.realm = "Skitai API"
-app.user = "app"
-app.password = "1111"
-app.authorization = "digest"
+#app.user = "app"
+#app.password = "1111"
+#app.authorization = "digest"
 
 MULTIPART = """
 <form action = "/" enctype="multipart/form-data" method="post">
