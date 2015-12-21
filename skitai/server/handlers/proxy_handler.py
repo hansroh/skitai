@@ -482,7 +482,7 @@ class Handler (wsgi_handler.Handler):
 		try: 
 			self.q [addr][host].add (request)			
 		except KeyError: 
-			self.q [addr][host] = ConnectionPool (request)
+			self.q [addr][host] = ConnectionPool (request)		
 		self.handle_queue ()
 	
 	def handle_queue (self):

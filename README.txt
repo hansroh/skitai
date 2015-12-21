@@ -632,37 +632,6 @@ To enable session for app, random string formatted securekey should be set for e
 
 For this situation, 'was' provide was.temp that is empty class instance. was.temp is valid only in cuurent request. After end of current request, was.temp is reset to empty.
 
-Also it is possible to bind temporary hooked methods except 'before_request'. 
-
-.. code:: python
-
-  @app.route ("/view-account")
-
-  def view_account (was, userid):
-    def on_success (was):
-    	was.temp.user_id
-    	was.temp.user_status
-    
-    def on_failed (was):
-    	was.temp.user_id
-    	was.temp.user_status
-    
-    def on_teardown (was):
-    	was.temp.resouce.close ()
-    
-    was.temp.bind ("after_request", on_success)
-    was.temp.bind ("failed_request", on_failed)
-    was.temp.bind ("teardown_request", on_teardown)
-    			
-    was.temp.user_id = "jerry"
-    was.temp.user_status = "active"
-    was.temp.resouce = open ()
-    
-    return ...
-
-
-*Note:* These temporary hooked methods are replace previous one, and will NOT be executed both.
-
 
 If view_account is called, Saddle execute these sequence:
 
@@ -680,6 +649,28 @@ If view_account is called, Saddle execute these sequence:
       after_request (was)
   finally:
     teardown_request (was)
+    
+
+Also it is possible to bind some events with temporary handling methods.
+
+.. code:: python
+
+  @app.route ("/view-account")
+
+  def view_account (was, userid):
+    def handle_ok (was):
+    	was.temp.user_id
+    	was.temp.user_status
+    
+    was.temp.bind ("EVENT_OK", handle_ok)
+    was.temp.bind ("EVENT_EXCEPTION", handle_except)
+    was.temp.bind ("EVENT_TEARDOWN", handle_end)
+   
+    was.temp.user_id = "jerry"
+    was.temp.user_status = "active"
+    was.temp.resouce = open ()
+    
+    return ...
 
 
 Also there're another kind of method group,
@@ -901,7 +892,7 @@ Documentation
 Change Log
 -------------
   
-  0.10.1.2 - change was.temp type from dictionary to class, and add bind () method
+  0.10.1.3 - add was.temp.bind for event handling
   
   0.10.1.1 - add was.temp for setting temporary data during current request
   

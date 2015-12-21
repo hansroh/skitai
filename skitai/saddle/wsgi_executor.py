@@ -32,6 +32,15 @@ class Executor:
 		self.get_method = get_method
 		self.was = None
 	
+	def exec_chain (self, func, first_expt = None):
+		try:
+			func (self.was)		
+		except Exception as expt:
+			self.was.logger.trace ("app")
+			if first_expt is None: 
+				return sys.exc_info ()		
+		return first_expt
+				
 	def chained_exec (self, method, args, karg):
 		# recursive before, after, teardown
 		# [b, [b, [b, func, s, f, t], s, f, t], s, f, t]
@@ -40,6 +49,7 @@ class Executor:
 		first_expt = None
 		
 		[before, func, success, failed, teardown] = method
+		_success, _failed, _teardown = None, None, None
 		
 		try:
 			if before:
@@ -52,10 +62,10 @@ class Executor:
 					
 			else:
 				response = func (self.was, *args, **karg)
-				
-				if hasattr (self.was.temp, "_on_after_request"): success = self.was.temp.after_request
-				if hasattr (self.was.temp, "_on_failed_request"): failed = self.was.temp.failed_request
-				if hasattr (self.was.temp, "_on_teardown_request"): teardown = self.was.temp.teardown_request
+				if type (response) is not list:
+					response = [response]											
+				# ok, exception, teardown
+				_ok, _exception, _teardown = self.was.temp._binds [:3]
 				
 		except MemoryError:
 			raise
@@ -63,28 +73,17 @@ class Executor:
 		except Exception as expt:
 			self.was.logger.trace ("app")
 			if first_expt is None: first_expt = sys.exc_info ()
-			if failed:
-				try:
-					failed (self.was)		
-				except Exception as expt:
-					self.was.logger.trace ("app")
-					if first_expt is None: first_expt = sys.exc_info ()
 			
+			if _exception:		self.exec_chain (_exception)
+			if failed:		self.exec_chain (failed)
+							
 		else:
-			if success: 
-				try:
-					success (self.was)
-				except Exception as expt:
-					self.was.logger.trace ("app")
-					if first_expt is None: first_expt = sys.exc_info ()
+			if _ok: 	first_expt = self.exec_chain (_ok)
+			if success: 	first_expt = self.exec_chain (success)
 		
-		if teardown:
-			try:
-				teardown (self.was)
-			except Exception as expt:
-				self.was.logger.trace ("app")
-				if first_expt is None: first_expt = sys.exc_info ()
-		
+		if _teardown: 	first_expt = self.exec_chain (_teardown, first_expt)
+		if teardown: 		first_expt = self.exec_chain (teardown, first_expt)
+			
 		if first_expt:
 			reraise (*first_expt)
 				
@@ -126,10 +125,17 @@ class Executor:
 	
 	def build_was (self):
 		class Temp:
+			VALIDS = ("EVENT_OK", "EVENT_EXCEPTION", "EVENT_TEARDOWN")
+			def __init__ (self):
+				self._binds = [None] * 3
+				
 			def bind (self, when, method):
-				assert when in ("after_request", "failed_request", "teardown_request"), "Cannot understand bidn method"
-				setattr (self, "_on_" + when, method)
-			
+				try:
+					index = VALIDS.index (when)
+				except ValueError:	
+					raise AssertionError ("Cannot understand bidn method")
+				self._binds [index] = method
+				
 		_was = self.env["skitai.was"]
 		_was.env = self.env
 		_was.temp = Temp ()
@@ -161,6 +167,5 @@ class Executor:
 		self.build_was ()
 		content = self.generate_content (thing, (), param)
 		self.commit ()
-		
 		return content
 		

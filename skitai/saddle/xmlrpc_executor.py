@@ -7,15 +7,17 @@ except ImportError:
 
 class Executor (wsgi_executor.Executor):
 	def __call__ (self):
-		data = self.env ["wsgi.input"].read ()	
-					
+		data = self.env ["wsgi.input"].read ()		
 		args, methodname = xmlrpclib.loads (data)
+		
 		if methodname != "system.multicall":
 			thunks = [(methodname, args)]
 		else:
 			thunks = []
 			for _methodname, _args in [(each ["methodName"], each ["params"]) for each in args [0]]:
 				thunks.append ((_methodname, _args))
+		
+		self.build_was ()
 		
 		results = []
 		for _method, _args in thunks:
@@ -33,10 +35,10 @@ class Executor (wsgi_executor.Executor):
 			else:
 				results.append ([result])
 		
-		self.commit ()		
 		if len (results) == 1: results = tuple (results)
 		else: results = (results,)
 		
+		self.commit ()
 		self.was.response ["Content-Type"] = "text/xml"
-		return self.was, xmlrpclib.dumps (results, methodresponse = True, allow_none = True, encoding = "utf8").encode ("utf8")
+		return xmlrpclib.dumps (results, methodresponse = True, allow_none = True, encoding = "utf8").encode ("utf8")
 		
