@@ -60,7 +60,7 @@ Here's three WSGI app samples:
 
 .. code:: python
 
-  from flask import Flask
+  from flask import Flask  
   app = Flask(__name__)  
   
   @app.route("/")
@@ -72,7 +72,7 @@ Here's three WSGI app samples:
 
 .. code:: python
 
-  from skitai.saddle import Saddle
+  from skitai.saddle import Saddle  
   app = Saddle (__name__)
   
   @app.route('/')
@@ -654,7 +654,8 @@ If view_account is called, Saddle execute these sequence:
 Also it is possible to bind some events with temporary handling methods.
 
 .. code:: python
-
+  from skitai.saddle import EVOK, EVEXCEPT, EVREQEND
+  
   @app.route ("/view-account")
 
   def view_account (was, userid):
@@ -662,9 +663,9 @@ Also it is possible to bind some events with temporary handling methods.
     	was.temp.user_id
     	was.temp.user_status
     
-    was.temp.bind ("EVENT_OK", handle_ok)
-    was.temp.bind ("EVENT_EXCEPTION", handle_except)
-    was.temp.bind ("EVENT_TEARDOWN", handle_end)
+    was.temp.bind (EVOK, handle_ok)
+    was.temp.bind (EVEXCEPT, handle_except)
+    was.temp.bind (EVREQEND, handle_end)
    
     was.temp.user_id = "jerry"
     was.temp.user_status = "active"

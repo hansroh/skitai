@@ -125,15 +125,10 @@ class Executor:
 	
 	def build_was (self):
 		class Temp:
-			VALIDS = ("EVENT_OK", "EVENT_EXCEPTION", "EVENT_TEARDOWN")
 			def __init__ (self):
 				self._binds = [None] * 3
 				
-			def bind (self, when, method):
-				try:
-					index = VALIDS.index (when)
-				except ValueError:	
-					raise AssertionError ("Cannot understand bidn method")
+			def bind (self, index, method):
 				self._binds [index] = method
 				
 		_was = self.env["skitai.was"]
