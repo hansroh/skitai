@@ -654,6 +654,7 @@ If view_account is called, Saddle execute these sequence:
 Also it is possible to bind some events with temporary handling methods.
 
 .. code:: python
+
   from skitai.saddle import EVOK, EVEXCEPT, EVREQEND
   
   @app.route ("/view-account")
