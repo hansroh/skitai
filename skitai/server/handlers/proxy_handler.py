@@ -58,7 +58,7 @@ class TunnelForServerToClient:
 		self.cli2srv = TunnelForClientToServer (self.asyncon)
 		self.channel.current_request = self.cli2srv		
 		self.log ("connection maden to %s" % self.request.uri)
-		self.request.response.instant ("200 Connection Established", [("Proxy-Agent", "sae-pa"), ("Keep-Alive", "timeout=%d" % self.keep_alive)])
+		self.request.response.instant ("200 Connection Established", [("Keep-Alive", "timeout=%d" % self.keep_alive)])
 		self.channel.keep_alive = self.keep_alive # SSL Proxy timeout
 		self.asyncon.default_timeout = self.keep_alive		
 		
@@ -522,7 +522,6 @@ class Handler (wsgi_handler.Handler):
 			self.continue_request(request, collector)
 					
 	def continue_request (self, request, collector, asyncon = None):		
-		request.response ["Proxy-Agent"] = "sae-pa"		
 		if self.is_cached (request, collector is not None):
 			return
 		

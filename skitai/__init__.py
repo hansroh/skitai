@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.10.1.5"
+VERSION = "0.10.1.7"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
 
 import threading
@@ -15,7 +15,7 @@ class _WASPool:
 		return id (threading.currentThread ())
 	
 	def __repr__ (self):
-		return "<class wasp.WASPool at %x>" % id (self)
+		return "<class skitai.WASPool at %x>" % id (self)
 			
 	def __getattr__ (self, attr):
 		_was = self._get ()
