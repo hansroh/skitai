@@ -81,7 +81,7 @@ skitaid_files = [
 	"skitaid/pub/default/templates/*.*",	
 	"skitaid/etc/init/skitaid.conf",
 	"skitaid/etc/init.d/skitaid", 
-	"skitaid/protocol/http/requests/README.txt",
+	"protocol/http/requests/README.txt",
 	"skitaid/etc/skitaid/skitaid.conf",
 	"skitaid/etc/skitaid/servers-available/README.txt", 
 	"skitaid/etc/skitaid/servers-enabled/default.conf",
