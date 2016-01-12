@@ -16,18 +16,20 @@ _que = []
 _numpool = 4
 _concurrents = 2
 _default_header = ""
+trigger.start_trigger () # for keeping lifetime loop
 
 def configure (
 	logger = None, 
 	numpool = 3,
+	timeout = 30,
 	concurrents = 2,
-	default_timeout = 30,
 	default_option = "", 
 	response_max_size = 100000000
 	):
 
-	global _logger, _numpool, _concurrents, _default_option	
-	asynconnect.set_timeout (default_timeout)		
+	global _logger, _numpool, _concurrents, _default_option
+	
+	asynconnect.set_timeout (timeout)		
 	_default_option = default_option
 	_numpool = numpool + 1
 	_logger = logger
@@ -35,7 +37,6 @@ def configure (
 	http_response.Response.SIZE_LIMIT = response_max_size
 	socketpool.create (logger)
 	localstorage.create (logger)
-	trigger.start_trigger ()	
 
 def add (thing, callback, logger = None):
 	global _que, _default_header
