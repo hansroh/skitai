@@ -5,9 +5,7 @@ import os
 import sys
 from skitai.lib.reraise import reraise 
 from skitai.lib import producers, compressors
-from skitai import version_info
 
-SKITAI_VERSION = "%s.%s" % version_info [:2]
 UNCOMPRESS_MAX = 2048
 
 def catch (htmlformating = 0, exc_info = None):
@@ -51,7 +49,7 @@ class http_response:
 	def __init__ (self, request):
 		self.request = request
 		self.reply_headers = [
-			('Server', "SWAE %s" % SKITAI_VERSION),
+			('Server', "SWAE"),
 			('Date', http_date.build_http_date (time.time()))
 		]
 		self.outgoing = producers.fifo ()

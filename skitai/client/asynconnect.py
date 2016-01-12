@@ -18,7 +18,8 @@ class TimeOut (Exception): pass
 
 def set_timeout (timeout):
 	for each in (AsynConnect, AsynSSLConnect, AsynSSLProxyConnect):
-		each.zombie_timeout = timeout
+		each.default_timeout = timeout
+		each.network_delay_timeout = timeout
 		
 
 class AsynConnect (asynchat.async_chat):
@@ -45,6 +46,9 @@ class AsynConnect (asynchat.async_chat):
 		asynchat.async_chat.__init__ (self)
 		self.initialize ()
 	
+	def set_event_time (self):
+		self.event_time = time.time ()
+		
 	def set_proxy (self, flag = True):
 		self.proxy = flag
 	
@@ -75,6 +79,7 @@ class AsynConnect (asynchat.async_chat):
 		asynchat.async_chat.handle_close (self)
 				
 	def initialize (self):
+		self.event_time = time.time ()
 		self.request = None
 		self.sent = 0
 		self.received = 0
@@ -102,9 +107,9 @@ class AsynConnect (asynchat.async_chat):
         
 	def maintern (self):
 		# if self.is_channel_in_map (), mainterned by lifetime
-		if not self.is_channel_in_map () and  self.isactive () and time.time () - self.event_time > self.zombie_timeout:
-			# do not user close_socket (), this func might be called in the thread, and currently in select.select()
-			self.handle_close ()
+		if not self.is_channel_in_map () and self.isactive () and time.time () - self.event_time > self.zombie_timeout:			# do not user close_socket (), this func might be called in the thread, and currently in select.select()
+			self.log ("Too Long Activation", "warn")			
+			self.close (True)
 	
 	def is_deletable (self, timeout):
 		if time.time () - self.event_time > timeout:
@@ -122,6 +127,7 @@ class AsynConnect (asynchat.async_chat):
 		self.producer_fifo.clear()	
 						
 	def close_socket (self):
+		#print ("$$$$$$$$$$$$$$$$$$$$$$$$$$$$", time.time () - self.event_time, self.connected, self.sent, self.received)
 		self.connected = False
 		self.accepting = False		
 		self.del_channel ()
@@ -146,17 +152,17 @@ class AsynConnect (asynchat.async_chat):
 		else:			
 			self.del_channel ()
 		
-		ret = None
-		try:
-			if self.request:
+		if self.request:
+			ret = None
+			try:			
 				# request continue cause of 401 error
 				ret = self.request.done (self.errcode, self.errmsg)					
-		except:
-			self.trace ()
-		else:
-			if ret is not None:
-				return
-						
+			except:
+				self.trace ()
+			else:
+				if ret is not None:
+					return			
+		
 		self.request = None			
 		self.set_active (False)
 	
@@ -204,10 +210,10 @@ class AsynConnect (asynchat.async_chat):
 	def get_request_count (self):	
 		return self.request_count
 	
-	def add_channel (self, map = None):		
-		self.zombie_timeout =  self.network_delay_timeout
+	def add_channel (self, map = None):
+		self.zombie_timeout =  self.network_delay_timeout		
 		return asynchat.async_chat.add_channel (self, map)
-	
+		
 	def del_channel (self, map=None):
 		fd = self._fileno
 		if map is None:
@@ -379,13 +385,14 @@ class AsynConnect (asynchat.async_chat):
 			timeout = self.default_timeout
 		self.zombie_timeout = timeout
 	
-	def handle_connect (self):		
+	def handle_connect (self):
 		try: 
 			self.request.when_connected ()
 		except AttributeError:
 			pass
 			
 	def handle_timeout (self):
+		#print ("*************************", time.time () - self.event_time, self.connected, self.sent, self.received)
 		self.log ("socket timeout", "fail")
 		self.error (702, "Socket Timeout")
 		self.handle_close ()
@@ -458,7 +465,7 @@ class AsynSSLConnect (AsynConnect):
 		self.connected = True
 		
 	def recv (self, buffer_size):
-		self.event_time = time.time ()		
+		self.event_time = time.time ()
 		try:
 			data = self.socket.recv (buffer_size)			
 			if not data:

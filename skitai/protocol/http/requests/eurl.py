@@ -36,7 +36,7 @@ class EURL:
 			self.set_header ("Content-Type", v)
 		elif k ==	"http-referer":
 			self.set_header ("Referer", v)
-		self.http [k [2:]] = v
+		self.http [k [2:]] = v		
 				
 	def set_header (self, k, v):
 		self.header [k] = v
@@ -55,7 +55,7 @@ class EURL:
 		return self.header
 						
 	def __setitem__ (self, k, v):
-		if k [:7] in ("http-", "head-"):
+		if k [:5] in ("http-", "head-"):
 			self.set_header_from_option (k, v)
 		else:	
 			self.info [k] = v

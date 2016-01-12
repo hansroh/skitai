@@ -71,8 +71,11 @@ class base_logger:
 		if self.filter and type not in self.filter:
 			return line
 		
-		self.lock.acquire ()
-		self.out.write (line)
+		self.lock.acquire ()	
+		try:
+			self.out.write (line)
+		except UnicodeEncodeError:			
+			self.out.write (repr (line.encode ("utf8")))
 		if self.flushnow: self.flush ()
 		self.cache (line)
 		self.lock.release ()
@@ -83,7 +86,7 @@ class base_logger:
 	
 	def trace (self, name = ''):
 		return self.log(trace (), "expt", name)
-	
+		
 	def read (self):
 		return self.__cache
 		

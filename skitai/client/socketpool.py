@@ -117,7 +117,7 @@ class SocketPool:
 				if time.time () - self.__last_maintern > self.maintern_interval:
 					self.maintern ()
 							
-				self.__numget += 1					
+				self.__numget += 1
 				if serverkey not in self.__socketfarm:
 					asyncon = self.create_asyncon (server, *args)
 					self.__socketfarm [serverkey] = {}
@@ -128,7 +128,7 @@ class SocketPool:
 						if not each.isactive ():
 							asyncon = each
 							break
-												
+					
 					if not asyncon:
 						asyncon = self.create_asyncon (server, *args)
 						self.__socketfarm [serverkey][id (asyncon)] = asyncon
@@ -136,7 +136,7 @@ class SocketPool:
 				asyncon.set_active (True, nolock = True)
 			
 			finally:
-				self.lock.release ()	
+				self.lock.release ()
 		
 		except:
 			self.logger.trace ()

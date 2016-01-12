@@ -4,35 +4,38 @@ from .. import request as http_request
 from .. import response as http_response
 from .. import request_handler as http_request_handler
 from skitai.client import socketpool, asynconnect
+from skitai.server.threads import trigger
 from skitai import lifetime
 import asyncore
 from . import rc
+import asyncore
 
 _map = asyncore.socket_map
 _logger = None
 _que = []
 _numpool = 4
+_concurrents = 2
 _default_header = ""
 
 def configure (
 	logger = None, 
-	numpool = 3, 
-	default_timeout = 30, 
+	numpool = 3,
+	concurrents = 2,
+	default_timeout = 30,
 	default_option = "", 
 	response_max_size = 100000000
 	):
 
-	global _logger, _numpool, _default_option
-	
-	asynconnect.default_timeout = default_timeout
-	asynconnect.network_delay_timeout = default_timeout	
-		
+	global _logger, _numpool, _concurrents, _default_option	
+	asynconnect.set_timeout (default_timeout)		
 	_default_option = default_option
 	_numpool = numpool + 1
 	_logger = logger
+	_concurrents = concurrents
 	http_response.Response.SIZE_LIMIT = response_max_size
 	socketpool.create (logger)
 	localstorage.create (logger)
+	trigger.start_trigger ()	
 
 def add (thing, callback, logger = None):
 	global _que, _default_header
@@ -43,14 +46,42 @@ def add (thing, callback, logger = None):
 	maybe_pop ()
 
 def maybe_pop ():
-	global _numpool, _que
+	global _numpool, _que, _map, _concurrents
 	
-	lm = len (_map)
+	if not _que:
+		lifetime.shutdown (0, 1)
+		return
+	
+	lm = len (_map)		
+	if lm >= _numpool:
+		return
+	
+	currents = {}
+	for r in list (_map.values ()):
+		try: currents [r.el ["netloc"]] += 1
+		except KeyError: currents [r.el ["netloc"]] = 1
+		except AttributeError: pass
+
+	index = 0
+	indexes = []	
 	while lm < _numpool and _que:
-		item = _que.pop (0)
-		Item (*item)
-		lm += 1
+		item = _que [index]
+		if type (item [0]) is str:
+			el = eurl.EURL (item [0])
+			_que [index] = (el,) + item [1:]
+		else:
+			el = item [0]						
+		if currents.get (el ["netloc"], 0) < _concurrents:
+			indexes.append (index)
+			lm += 1
+		index += 1
 	
+	pup = 0
+	for index in indexes:
+		item = _que.pop (index - pup)
+		Item (*item)
+		pup += 1
+
 def get_all ():
 	try:
 		lifetime.loop (3.0)

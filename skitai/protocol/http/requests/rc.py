@@ -1,11 +1,10 @@
 """
 2015. 12. 7 Hans Roh
 
-LocalStorage
-	cookie
-	item
-	
+
 ResponseContainer
+	logger
+	
 	udata
 	
 	uinfo
@@ -44,11 +43,27 @@ ResponseContainer
 		connection
 		header
 		content_type
-		encoding
+		charset
 		body
+	
+	set_cookie (self, k, v)
+	get_cookie (self, k)
+	set_item (self, k, v)
+	get_item (self, k)
+	advance (self, surl)	
+	sleep (self, timeout)
+			
 """
-
+has_lxml = True
+try:
+	from . import treebuilder
+	import html5lib
+except ImportError:
+	has_lxml = False
+import math		
 import json
+import time
+
 try:
 	import xmlrpclib
 except ImportError:
@@ -91,11 +106,11 @@ class RCRequest:
 class RCResponse (RCRequest):
 	def set (self, handler):	
 		r = handler.response
+		self.__baseurl = handler.request.el ["rfc"]
 		self.header = r.header
-		self.version, self.code, self.msg = r.version, r.code, r.msg
-		
+		self.version, self.code, self.msg = r.version, r.code, r.msg		
 		self.content_type = None
-		self.encoding = None
+		self.charset = None
 		
 		ct = self.get_header ("content-type")
 		if ct:
@@ -103,25 +118,35 @@ class RCResponse (RCRequest):
 			self.content_type = ctl [0]
 			for param in ctl [1:]:
 				if param.strip ().startswith ("charset="):
-					self.encoding = param.split ("=", 1)[-1].strip ().lower ()
+					self.charset = param.split ("=", 1)[-1].strip ().lower ()
 			
 		self.connection = self.get_header ("connection")
 		self.body = r.get_content ()		
 	
+	def html (self):
+		global has_lxml		
+		assert has_lxml is True, "missing lxml or html5lib"
+		return treebuilder.Parser, treebuilder.html (self.body, self.__baseurl, self.charset)
+	
+	def etree (self):
+		global has_lxml		
+		assert has_lxml is True, "missing lxml or html5lib"
+		return treebuilder.Parser, treebuilder.etree (self.body, self.charset)
+			
 	def binary (self):
 		return self.body
 		
 	def text (self):
-		if self.encoding:
-			return self.body.decode (self.encoding)
+		if self.charset:
+			return self.body.decode (self.charset)
 		else:
 			return self.body.decode ("utf8")
 		
 	def json (self):
-		return json.loads (self.body)
+		return json.loads (self.text ())
 	
 	def xmlrpc (self):
-		return xmlrpclib.loads (self.body)	
+		return xmlrpclib.loads (self.text ())	
 	
 	def save_to (self, path):
 		content = self.get_content ()
@@ -160,6 +185,8 @@ class ResponseContainer:
 		self.udata = RCUData (handler.request.el)
 		self.request = RCRequest (handler)
 		self.response = RCResponse (handler)
+		self.logger = handler.request.logger
+		self.__asyncon = handler.asyncon
 		
 		for header in handler.response.get_header ():
 			if header.lower ().startswith ("set-cookie: "):
@@ -180,6 +207,12 @@ class ResponseContainer:
 	def get_item (self, k):	
 		localstorage.localstorage.get_item (self.uinfo.rfc, k)
 	
-	def url_for (self, surl):
+	def advance (self, surl):
 		return self.uinfo.eurl.inherit (surl)
-
+	
+	def sleep (self, timeout):
+		a, b = math.modf (timeout)
+		for i in range (int (b)):
+			self.__asyncon.set_event_time ()
+			time.sleep (1)
+		time.sleep (a)
