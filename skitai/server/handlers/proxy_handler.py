@@ -3,7 +3,6 @@ import re
 from skitai.protocol.http import request as http_request
 from skitai.protocol.http import request_handler as http_request_handler
 from skitai.protocol.http import response as http_response
-from skitai.client import adns
 from skitai.lib import compressors
 from skitai.lib import producers
 import time
@@ -462,8 +461,7 @@ class Handler (wsgi_handler.Handler):
 		self.wasc = wasc
 		self.clusters = clusters
 		self.cachefs = cachefs
-		#self.cachefs = None # DELETE IT!
-		adns.init (self.wasc.logger.get ("server"))		
+		#self.cachefs = None # DELETE IT!		
 		self.q = {}
 				
 	def match (self, request):

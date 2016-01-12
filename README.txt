@@ -894,6 +894,8 @@ Documentation
 Change Log
 -------------
   
+  0.10.1.8 - fix adns init point. DNS query will be more faster, if you unused proxy.
+  
   0.10.1.3 - add was.temp.bind for event handling
   
   0.10.1.1 - add was.temp for setting temporary data during current request

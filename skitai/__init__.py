@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.10.1.7"
+VERSION = "0.10.1.8"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
 
 import threading

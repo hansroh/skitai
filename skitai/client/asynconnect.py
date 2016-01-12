@@ -108,7 +108,6 @@ class AsynConnect (asynchat.async_chat):
 	def maintern (self):
 		# if self.is_channel_in_map (), mainterned by lifetime
 		if not self.is_channel_in_map () and self.isactive () and time.time () - self.event_time > self.zombie_timeout:			# do not user close_socket (), this func might be called in the thread, and currently in select.select()
-			self.log ("Too Long Activation", "warn")			
 			self.close (True)
 	
 	def is_deletable (self, timeout):

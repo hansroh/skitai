@@ -9,6 +9,7 @@ from skitai import lifetime
 import asyncore
 from . import rc
 import asyncore
+from skitai.client import adns
 
 _map = asyncore.socket_map
 _logger = None
@@ -16,7 +17,6 @@ _que = []
 _numpool = 4
 _concurrents = 2
 _default_header = ""
-trigger.start_trigger () # for keeping lifetime loop
 
 def configure (
 	logger = None, 
@@ -26,8 +26,8 @@ def configure (
 	default_option = "", 
 	response_max_size = 100000000
 	):
-
-	global _logger, _numpool, _concurrents, _default_option
+	
+	global _logger, _numpool, _concurrents, _default_option, _configured
 	
 	asynconnect.set_timeout (timeout)		
 	_default_option = default_option
@@ -37,7 +37,10 @@ def configure (
 	http_response.Response.SIZE_LIMIT = response_max_size
 	socketpool.create (logger)
 	localstorage.create (logger)
-
+	adns.init (logger)
+	trigger.start_trigger () # for keeping lifetime loop	
+		
+	
 def add (thing, callback, logger = None):
 	global _que, _default_header
 	
@@ -47,7 +50,7 @@ def add (thing, callback, logger = None):
 	maybe_pop ()
 
 def maybe_pop ():
-	global _numpool, _que, _map, _concurrents
+	global _numpool, _que, _map, _concurrents, _logger
 	
 	if not _que:
 		lifetime.shutdown (0, 1)
@@ -66,21 +69,33 @@ def maybe_pop ():
 	index = 0
 	indexes = []	
 	while lm < _numpool and _que:
-		item = _que [index]
+		try:
+			item = _que [index]
+		except IndexError:
+			break	
 		if type (item [0]) is str:
-			el = eurl.EURL (item [0])
-			_que [index] = (el,) + item [1:]
+			try: 
+				el = eurl.EURL (item [0])
+			except:
+				_logger.trace ()
+				indexes.append ((0, index))
+				index += 1
+				continue				
+			else:					
+				_que [index] = (el,) + item [1:]
+
 		else:
 			el = item [0]						
 		if currents.get (el ["netloc"], 0) < _concurrents:
-			indexes.append (index)
+			indexes.append ((1, index))
 			lm += 1
 		index += 1
-	
+		
 	pup = 0
-	for index in indexes:
+	for valid, index in indexes:
 		item = _que.pop (index - pup)
-		Item (*item)
+		if valid:
+			Item (*item)
 		pup += 1
 
 def get_all ():

@@ -6,7 +6,7 @@
 
 HTTPS = True
 PSYCOPG = True
-
+from skitai.client import adns
 import sys, time, os, threading
 from . import http_server, wsgi_apps, rcache
 from skitai import lifetime
@@ -73,9 +73,10 @@ class Loader:
 		self.wasc.register ("lock", threading.RLock ())
 		self.wasc.register ("lifetime", lifetime)		
 		
+		adns.init (self.wasc.logger.get ("server"))		
 		socketfarm = socketpool.SocketPool (self.wasc.logger.get ("server"))
 		self.wasc.clusters ["__socketpool__"] = socketfarm
-		self.wasc.clusters_for_distcall ["__socketpool__"] = cluster_dist_call.ClusterDistCallCreator (socketfarm, self.wasc.logger.get ("server"))
+		self.wasc.clusters_for_distcall ["__socketpool__"] = cluster_dist_call.ClusterDistCallCreator (socketfarm, self.wasc.logger.get ("server"))		
 		
 		if PSYCOPG:
 			dp = dbpool.DBPool (self.wasc.logger.get ("server"))

@@ -149,10 +149,9 @@ class RCResponse (RCRequest):
 		return xmlrpclib.loads (self.text ())	
 	
 	def save_to (self, path):
-		content = self.get_content ()
-		if type (content) is bytes:
+		if type (self.body) is bytes:
 			f = open (path, "wb")
-			f.write (content)
+			f.write (self.body)
 			f.close ()
 		else:
 			raise TypeError ("Content is not bytes")

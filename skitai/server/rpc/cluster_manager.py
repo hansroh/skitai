@@ -1,6 +1,6 @@
 import threading
 from skitai.server.threads import socket_map
-from skitai.client import asynconnect, adns
+from skitai.client import asynconnect
 import time
 import re
 import copy
