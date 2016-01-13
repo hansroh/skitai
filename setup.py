@@ -225,7 +225,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 				data = f.read ()				
 			with open (target, "wb") as f:			
 				if has_py3:
-					data = data.replace ("#!/usr/bin/python", "#!/usr/bin/python3", 1)
+					data = data.replace (b"#!/usr/bin/python", b"#!/usr/bin/python3", 1)
 				f.write (data)
 			os.chmod (target, 0o755)
 		
