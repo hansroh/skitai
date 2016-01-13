@@ -27,6 +27,7 @@ class async_dns (asyncore.dispatcher_with_send):
 		self.args = args		
 		self.logger = logger
 		self.debug_level = debug_level
+		self.qname = self.args ["name"].decode ("utf8")
 		
 		self.creation_time = time.time ()
 		self.event_time = time.time ()

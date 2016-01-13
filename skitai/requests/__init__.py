@@ -3,6 +3,7 @@ from . import localstorage
 from skitai.protocol.http import request as http_request
 from skitai.protocol.http import response as http_response
 from skitai.protocol.http import request_handler as http_request_handler
+from skitai.protocol.dns import asyndns
 from skitai.client import socketpool, asynconnect
 from skitai.server.threads import trigger
 from skitai.lib import strutil
@@ -15,7 +16,8 @@ from skitai.client import adns
 _map = asyncore.socket_map
 _logger = None
 _que = []
-_numpool = 4
+_max_numpool = 4
+_current_numpool = 4
 _concurrents = 2
 _default_header = ""
 _use_lifetime = True
@@ -31,10 +33,11 @@ def configure (
 	use_lifetime = True
 	):
 	
-	global _logger, _numpool, _concurrents, _default_option, _configured, _use_lifetime, _timeout
+	global _logger, _max_numpool, _current_numpool, _concurrents, _default_option, _configured, _use_lifetime, _timeout
 	
 	_default_option = default_option
-	_numpool = numpool + 1
+	_max_numpool = numpool + 1
+	_current_numpool = _max_numpool
 	_logger = logger
 	_concurrents = concurrents
 	_use_lifetime = use_lifetime
@@ -48,38 +51,52 @@ def configure (
 			
 	
 def add (thing, callback):
-	global _que, _default_header, _logger
+	global _que, _default_header, _logger, _current_numpool
 	
 	if strutil.is_str_like (thing):
 		thing = thing + " " + _default_option
 	_que.append ((thing, callback, _logger))
+	# notify new item
+	_current_numpool += 1
 	maybe_pop ()
 
 def maybe_pop ():
-	global _numpool, _que, _map, _concurrents, _logger, _use_lifetime
+	global _max_numpool, _current_numpool, _que, _map, _concurrents, _logger, _use_lifetime
 	
 	lm = len (_map)
-	
 	if _use_lifetime and not _que and lm == 1:
 		lifetime.shutdown (0, 1)
 		return
 	
-	if lm >= _numpool:
+	if _current_numpool > _max_numpool:
+		_current_numpool = _max_numpool  # maximum
+				
+	if lm >= _current_numpool:
 		return
 	
 	currents = {}
 	for r in list (_map.values ()):
-		try: currents [r.el ["netloc"]] += 1
-		except KeyError: currents [r.el ["netloc"]] = 1
-		except AttributeError: pass
-
+		if isinstance (r, asynconnect.AsynConnect) and r.request: 
+			netloc = r.request.request.el ["netloc"]
+		elif isinstance (r, asyndns.async_dns): 
+			netloc = r.qname
+		else:
+			continue	
+			
+		try: currents [netloc] += 1
+		except KeyError: currents [netloc] = 1
+		
 	index = 0
-	indexes = []	
-	while lm < _numpool and _que:
+	indexes = []		
+	while lm < _current_numpool and _que:
 		try:
 			item = _que [index]
 		except IndexError:
-			break	
+			# for minimize cost to search new item by concurrents limitation
+			_current_numpool = len (currents) * _concurrents
+			if _current_numpool < 2:
+				_current_numpool = 2 # minmum	
+			break
 		
 		if not isinstance (item [0], eurl.EURL):
 			try: 
@@ -95,18 +112,24 @@ def maybe_pop ():
 		else:
 			el = item [0]
 		
-		if currents.get (el ["netloc"], 0) < _concurrents:
+		if currents.get (el ["netloc"], 0) <= _concurrents:
+			try: 
+				currents [el ["netloc"]] += 1
+			except KeyError:
+				currents [el ["netloc"]] = 1
 			indexes.append ((1, index))
 			lm += 1
 		index += 1
-		
+	
+	print (_current_numpool, len (_map), len (_que))
+	
 	pup = 0
-	created = False
+	created = False	
 	for valid, index in indexes:
-		item = _que.pop (index - pup)
+		item = _que.pop (index - pup)		
 		if valid:
 			Item (*item)
-			created = True
+			created = True			
 		pup += 1
 
 	if created:
@@ -252,6 +275,7 @@ class Item:
 		).start ()
 		
 	def callback_wrap (self, handler):
+		global _current_numpool
 		r = rc.ResponseContainer (handler, self.callback)
 		
 		# unkink back refs
@@ -262,4 +286,6 @@ class Item:
 		del handler
 		
 		self.callback (r)
+		# notify have a room
+		_current_numpool += 1
 		maybe_pop ()
