@@ -5,6 +5,7 @@ from skitai.protocol.http import response as http_response
 from skitai.protocol.http import request_handler as http_request_handler
 from skitai.client import socketpool, asynconnect
 from skitai.server.threads import trigger
+from skitai.lib import strutil
 from skitai import lifetime
 import asyncore
 from . import rc
@@ -41,16 +42,15 @@ def configure (
 	http_response.Response.SIZE_LIMIT = response_max_size
 	localstorage.create (logger)
 		
-	if _use_lifetime:
-		socketpool.create (logger)
-		adns.init (logger)
-		trigger.start_trigger () # for keeping lifetime loop	
-		
+	socketpool.create (logger)
+	adns.init (logger)
+	trigger.start_trigger () # for keeping lifetime loop
+			
 	
 def add (thing, callback):
 	global _que, _default_header, _logger
 	
-	if type (thing) is str:
+	if strutil.is_str_like (thing):
 		thing = thing + " " + _default_option
 	_que.append ((thing, callback, _logger))
 	maybe_pop ()
@@ -81,7 +81,7 @@ def maybe_pop ():
 		except IndexError:
 			break	
 		
-		if type (item [0]) is str:
+		if not isinstance (item [0], eurl.EURL):
 			try: 
 				el = eurl.EURL (item [0])
 			except:
@@ -94,18 +94,25 @@ def maybe_pop ():
 		
 		else:
 			el = item [0]
-
+		
 		if currents.get (el ["netloc"], 0) < _concurrents:
 			indexes.append ((1, index))
 			lm += 1
 		index += 1
 		
 	pup = 0
+	created = False
 	for valid, index in indexes:
 		item = _que.pop (index - pup)
 		if valid:
 			Item (*item)
+			created = True
 		pup += 1
+
+	if created:
+		# for threading mode
+		trigger.the_trigger.pull_trigger ()
+		
 
 def get_all ():
 	global _use_lifetime	
@@ -181,7 +188,7 @@ class Request (http_request.HTTPRequest):
 		if localstorage.localstorage is None:
 			configure (logger)
 			
-		if type (thing) is str:
+		if strutil.is_str_like (thing):
 			self.el = eurl.EURL (thing, data)
 		else:
 			self.el = thing

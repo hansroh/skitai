@@ -4,7 +4,7 @@ try:
 except ImportError:
 	from urllib import unquote_plus, quote_plus	
 import os
-from skitai.lib import importer
+from skitai.lib import importer, strutil
 from types import FunctionType as function
 
 RX_RULE = re.compile ("(/<(.+?)>)")
@@ -147,7 +147,7 @@ class Package:
 								
 	def try_rule (self, path_info, rulepack):
 		rule, (f, n, l, a, s) = rulepack		
-		if type (rule) is str: 
+		if strutil.is_str_like (rule):
 			return None, None
 			
 		arglist = rule.findall (path_info)

@@ -256,8 +256,7 @@ class Job:
 					will_be_push.append (part)
 				
 				else:
-					type_of_part = type (part)
-					#if (PY_MAJOR_VERSION >=3 and type_of_part is str) or (PY_MAJOR_VERSION <3 and type_of_part is unicode):
+					type_of_part = type (part)					
 					if type_of_part is not bytes: # unicode
 						part = part.encode ("utf8")
 						type_of_part = bytes

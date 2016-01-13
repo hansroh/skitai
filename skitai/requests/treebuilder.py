@@ -6,21 +6,22 @@ import lxml.html.clean
 import re
 import traceback
 from copy import deepcopy
+import sys
+from skitai.lib import strutil
 
 TABSSPACE = re.compile(r'[\s\t]+')
 def innerTrim(value):
-	if type (value) is str:
+	if strutil.is_str_like (value):
 		# remove tab and white space
 		value = re.sub(TABSSPACE, ' ', value)
 		value = ''.join(value.splitlines())
 		return value.strip()
 	return ''
-
 	
 class Parser:
 	@classmethod
 	def from_string (cls, html):
-		if type (html) is str and html.startswith('<?'):
+		if strutil.is_str_like (html) and html.startswith('<?'):
 			html = re.sub(r'^\<\?.*?\?\>', '', html, flags=re.DOTALL)				
 		try:
 			return lxml.html.fromstring(html)			
@@ -265,12 +266,15 @@ class Parser:
 			if val [0] in "\"'":
 				return val [1:-1]
 			return val		
-
 	
 def remove_control_characters (html):
 	def str_to_int(s, default, base=10):
 		if int(s, base) < 0x10000:
-			return chr(int(s, base))
+			if strutil.PY_MAJOR_VERSION == 2:
+				return unichr(int(s, base))
+			else:	
+				return chr(int(s, base))
+				
 		return default
 	html = re.sub(r"&#(\d+);?", lambda c: str_to_int(c.group(1), c.group(0)), html)
 	html = re.sub(r"&#[xX]([0-9a-fA-F]+);?", lambda c: str_to_int(c.group(1), c.group(0), base=16), html)
@@ -284,7 +288,7 @@ def remove_non_asc (html):
 	return html
 	
 	
-RX_CAHRSET = re.compile (br"[\s;]+charset\s*=\s*[\"']?([-a-z0-9]+)", re.M)
+RX_CAHRSET = re.compile (br"[\s;]+charset\s*=\s*['\"]?([-a-z0-9]+)", re.M) #"
 RX_META = re.compile (br"<meta\s+.+?>", re.I|re.M)
 
 def get_charset (html):	
@@ -322,7 +326,7 @@ def to_str (html, encoding):
 				html = try_generic_encoding (html)				
 	except UnicodeDecodeError:		
 		return remove_non_asc (html)
-	else:		
+	else:
 		return remove_control_characters (html)
 	
 def html (html, baseurl, encoding = None):

@@ -116,6 +116,19 @@ In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"
 
 
 
+Note For Python 3 Users
+------------------------
+
+SAE can be executed with Python 2.7 & 3.4 and use /usr/bin/python.
+
+For using Python 3, there're 2 ways.
+
+1. change symbolic link for /usr/bin/python to python3. But it is possibly very dangerous, because some of your system's applications is possibly use Python 2.7.
+
+2. change shell path of skitaid scripts (/usr/bin/local/sktaid*.py) from `#!/usr/bin/python` to `#!/usr/bin/python3`. In this case, you should re-install requirements using 'pip3 install ...'.
+
+
+
 Asynchronous Requests Using Skitai WAS
 -----------------------------------------------------------------
 
@@ -893,6 +906,8 @@ Documentation
 
 Change Log
 -------------
+  
+  0.10.4 - bug fix py27's unicode type check
   
   0.10.3 - bug fix map-reduce call service. version number format was changed.
   

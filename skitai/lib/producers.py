@@ -6,7 +6,7 @@ import string
 import time
 import io
 import gzip
-from . import compressors
+from . import compressors, strutil
 import mimetypes
 import os
 
@@ -43,7 +43,7 @@ class list_producer (simple_producer):
 		if not self.data:
 			return b''			
 		data = self.data.pop (0)
-		if type (data) is str:
+		if strutil.is_encodable (data):
 			return data.encode ("utf8")
 		return data
 
@@ -61,7 +61,7 @@ class closing_iter_producer (list_producer):
 			return b""
 		try:
 			data = self.next ()
-			if type (data) is str:
+			if strutil.is_encodable (data):
 				return data.encode ("utf8")
 			return data
 		except StopIteration:		

@@ -5,8 +5,9 @@ from .select_trigger import trigger
 the_trigger = None
 
 def start_trigger ():
-	global the_trigger	
-	the_trigger = trigger ()
+	global the_trigger
+	if the_trigger is None:
+		the_trigger = trigger ()
 
 def wakeup (thunk = None):
 	global the_trigger
@@ -35,4 +36,3 @@ def wakeselect ():
 	for fd, obj in list(asyncore.socket_map.items()):
 		if hasattr(obj, "pull_trigger"):
 			obj.pull_trigger()
-			

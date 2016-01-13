@@ -194,8 +194,10 @@ socketpool = None
 
 def create (logger):
 	global socketpool
-	socketpool = SocketPool (logger)
+	if socketpool is None:
+		socketpool = SocketPool (logger)
 
 def cleanup ():
+	global socketpool
 	socketpool.cleanup ()
 		

@@ -166,7 +166,6 @@ class RCResponse (RCRequest):
 class RCUInfo:
 	def __init__ (self, eurl):
 		self.eurl = eurl
-		del self.eurl.data
 	
 	def __getattr__ (self, attr):
 		try:

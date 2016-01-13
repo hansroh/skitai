@@ -120,7 +120,7 @@ class EURL:
 				if k [5:] in ("cookie", "referer", "content-type", "form"):
 					continue
 				if k not in eurl.http:
-					eurl [k] = v
+					eurl [k] = v										
 		return eurl
 		
 	def parse (self):
@@ -149,6 +149,7 @@ class EURL:
 		
 		if self.data:
 			d ["http-form"] =  util.dictencode (self.data)
+			self.data = {}
 						
 		self._set (d)
 
