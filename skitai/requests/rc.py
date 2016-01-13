@@ -71,7 +71,10 @@ try:
 except ImportError:
 	import xmlrpc.client as xmlrpclib
 from . import localstorage
-from urllib.parse import urljoin
+try:
+	from urllib.parse import urljoin
+except ImportError:
+	from urlparse import urljoin	
 	
 class RCRequest:
 	def __init__ (self, obj):

@@ -278,14 +278,14 @@ def remove_control_characters (html):
 	return html
 
 def remove_non_asc (html):	
-	html = re.sub(rb"&#(\d+);?", "", html)
-	html = re.sub(rb"&#[xX]([0-9a-fA-F]+);?", "", html)
-	html = re.sub(rb"[\x00-\x08\x80-\xff]", "", html)	
+	html = re.sub(br"&#(\d+);?", "", html)
+	html = re.sub(br"&#[xX]([0-9a-fA-F]+);?", "", html)
+	html = re.sub(br"[\x00-\x08\x80-\xff]", "", html)	
 	return html
 	
 	
-RX_CAHRSET = re.compile (rb"[\s;]+charset\s*=\s*[\"']?([-a-z0-9]+)", re.M)
-RX_META = re.compile (rb"<meta\s+.+?>", re.I|re.M)
+RX_CAHRSET = re.compile (br"[\s;]+charset\s*=\s*[\"']?([-a-z0-9]+)", re.M)
+RX_META = re.compile (br"<meta\s+.+?>", re.I|re.M)
 
 def get_charset (html):	
 	encoding = None

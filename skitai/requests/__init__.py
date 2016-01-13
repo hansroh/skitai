@@ -80,6 +80,7 @@ def maybe_pop ():
 			item = _que [index]
 		except IndexError:
 			break	
+		
 		if type (item [0]) is str:
 			try: 
 				el = eurl.EURL (item [0])
@@ -90,9 +91,10 @@ def maybe_pop ():
 				continue				
 			else:					
 				_que [index] = (el,) + item [1:]
-
+		
 		else:
-			el = item [0]						
+			el = item [0]
+
 		if currents.get (el ["netloc"], 0) < _concurrents:
 			indexes.append ((1, index))
 			lm += 1
