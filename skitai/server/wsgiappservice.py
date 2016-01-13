@@ -116,7 +116,6 @@ class WAS:
 			raise AttributeError ("WAS instance doesn't have '%s'" % method)			
 		
 		uri = None
-		print args, karg
 		if args:		uri = args [0]
 		elif karg:	uri = karg.get ("uri", "")
 		if not uri:	raise AssertionError ("missing param 'uri'")
