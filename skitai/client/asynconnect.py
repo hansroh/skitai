@@ -16,17 +16,12 @@ from warnings import warn
 class SocketPanic (Exception): pass
 class TimeOut (Exception): pass
 
-def set_timeout (timeout):
-	for each in (AsynConnect, AsynSSLConnect, AsynSSLProxyConnect):
-		each.default_timeout = timeout
-		each.network_delay_timeout = timeout
-		
 
 class AsynConnect (asynchat.async_chat):
 	ac_in_buffer_size = 4096
 	ac_out_buffer_size = 4096
 	zombie_timeout = 10
-	default_timeout = 10
+	keep_alive_timeout = 10
 	network_delay_timeout = 10	
 	ready = None
 	affluent = None	
@@ -220,7 +215,7 @@ class AsynConnect (asynchat.async_chat):
 		if fd in map:
 			del map[fd]		
 		# make default and sometimes reset server'stimeout	
-		self.zombie_timeout =  self.default_timeout
+		self.zombie_timeout =  self.keep_alive_timeout
 				
 	def create_socket (self, family, type):
 		self.family_and_type = family, type
@@ -378,12 +373,22 @@ class AsynConnect (asynchat.async_chat):
 		if not self.request: 
 			return # already closed
 		self.request.found_terminator ()
-		
-	def set_timeout (self, timeout = -1):
-		if timeout == -1:
-			timeout = self.default_timeout
+	
+	def set_zombie_timeout (self, timeout = 10):
 		self.zombie_timeout = timeout
 	
+	def set_zombie_timeout_by_case (self):
+		if self.affluent or self.ready:
+			self.zombie_timeout = self.network_delay_timeout * 2
+		else:	
+			self.zombie_timeout = self.network_delay_timeout
+		
+	def set_network_delay_timeout (self, timeout = 10):
+		self.network_delay_timeout = timeout
+	
+	def set_keep_alive_timeout (self, timeout = 10):
+		self.keep_alive_timeout = timeout
+		
 	def handle_connect (self):
 		try: 
 			self.request.when_connected ()
@@ -395,19 +400,13 @@ class AsynConnect (asynchat.async_chat):
 		self.log ("socket timeout", "fail")
 		self.error (702, "Socket Timeout")
 		self.handle_close ()
-	
-	def set_timeout_by_case (self):
-		if self.affluent or self.ready:
-			self.zombie_timeout = self.network_delay_timeout * 2
-		else:	
-			self.zombie_timeout = self.network_delay_timeout
 		
 	def handle_read (self):
-		self.set_timeout_by_case ()
+		self.set_zombie_timeout_by_case ()
 		asynchat.async_chat.handle_read (self)
 		
 	def handle_write (self):
-		self.set_timeout_by_case ()
+		self.set_zombie_timeout_by_case ()
 		asynchat.async_chat.handle_write (self)
 			
 	def handle_expt (self):

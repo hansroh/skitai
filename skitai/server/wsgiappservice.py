@@ -36,7 +36,7 @@ class _Method:
 	def __getattr__(self, name):
 		return _Method(self.__send, "%s.%s" % (self.__name, name))
 		
-	def __call__(self, *args, **karg):
+	def __call__(self, *args, **karg):		
 		return self.__send(self.__name, args, karg)
 
 
@@ -116,10 +116,11 @@ class WAS:
 			raise AttributeError ("WAS instance doesn't have '%s'" % method)			
 		
 		uri = None
+		print args, karg
 		if args:		uri = args [0]
 		elif karg:	uri = karg.get ("uri", "")
 		if not uri:	raise AssertionError ("missing param 'uri'")
-		if uri [0] == "@": fn = "lb"
+		#if uri [0] == "@": fn = "lb"
 		return getattr (self, "_" + fn) (command, *args, **karg)
 	
 	def _rest (self, method, uri, data = None, auth = None, headers = None, filter = None, encoding = None):
@@ -127,7 +128,7 @@ class WAS:
 		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, headers, auth, encoding, mapreduce = False, callback = filter)
 			
 	def _map (self, method, uri, data = None, auth = None, headers = None, filter = None, encoding = None):		
-		clustername, uri = self.__detect_cluster (uri)
+		clustername, uri = self.__detect_cluster (uri)		
 		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, auth, encoding, mapreduce = True, callback = filter)
 	
 	def _lb (self, method, uri, data = None, auth = None, headers = None, filter = None, encoding = None):

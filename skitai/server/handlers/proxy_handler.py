@@ -59,7 +59,7 @@ class TunnelForServerToClient:
 		self.log ("connection maden to %s" % self.request.uri)
 		self.request.response.instant ("200 Connection Established", [("Keep-Alive", "timeout=%d" % self.keep_alive)])
 		self.channel.keep_alive = self.keep_alive # SSL Proxy timeout
-		self.asyncon.default_timeout = self.keep_alive		
+		self.asyncon.set_keep_alive_timeout (self.keep_alive)
 		
 	def done (self, code, msg):
 		if code and self.bytes == 0:

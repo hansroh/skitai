@@ -267,7 +267,7 @@ class AsynConnect (asyncore.dispatcher):
 		else:
 			self.check_state (state)
 
-	def set_timeout (self, timeout):
+	def set_zombie_timeout (self, timeout):
 		self.zombie_timeout = timeout
 
 	def handle_timeout (self):

@@ -119,7 +119,7 @@ class Parser:
 	def get_attr (cls, node, attr=None):
 		if attr:
 			return node.attrib.get(attr, None)
-		return attr
+		return node.attrib
 	
 	@classmethod
 	def has_attr (cls, node):
@@ -247,9 +247,26 @@ class Parser:
 			'h2', 'h3', 'h4', 'h5', 'h6']
 		article_cleaner.remove_unknown_tags = False
 		return article_cleaner.clean_html (node)
+	
+	@classmethod
+	def get_param (cls, node, attr, name):
+		name = name.lower ()
+		params = cls.get_attr (node, attr)
+		for param in params.split (";"):			
+			param = param.strip ()
+			if not param.lower ().startswith (name):
+				continue
+			
+			val = param [len (name):].strip ()
+			if not val: return ""
+			if val [0] == "=":
+				val = val [1:].strip ()
+				if not val: return ""
+			if val [0] in "\"'":
+				return val [1:-1]
+			return val		
 
-
-
+	
 def remove_control_characters (html):
 	def str_to_int(s, default, base=10):
 		if int(s, base) < 0x10000:

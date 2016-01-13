@@ -24,7 +24,9 @@ ResponseContainer
 		rfc
 		referer
 		page_id
-		referer_id	
+		referer_id
+		depth
+		moved
 			
 	request	
 		version
@@ -69,6 +71,7 @@ try:
 except ImportError:
 	import xmlrpc.client as xmlrpclib
 from . import localstorage
+from urllib.parse import urljoin
 	
 class RCRequest:
 	def __init__ (self, obj):
@@ -179,13 +182,15 @@ class RCUData:
 			raise AttributeError
 				
 class ResponseContainer:
-	def __init__ (self, handler):
+	def __init__ (self, handler, callback):
 		self.uinfo = RCUInfo (handler.request.el)
 		self.udata = RCUData (handler.request.el)
 		self.request = RCRequest (handler)
 		self.response = RCResponse (handler)
 		self.logger = handler.request.logger
+		self.__el = handler.request.el
 		self.__asyncon = handler.asyncon
+		self.__callback = callback
 		
 		for header in handler.response.get_header ():
 			if header.lower ().startswith ("set-cookie: "):
@@ -205,13 +210,28 @@ class ResponseContainer:
 	
 	def get_item (self, k):	
 		localstorage.localstorage.get_item (self.uinfo.rfc, k)
-	
-	def advance (self, surl):
-		return self.uinfo.eurl.inherit (surl)
-	
-	def sleep (self, timeout):
+		
+	def stall (self, timeout):
 		a, b = math.modf (timeout)
 		for i in range (int (b)):
 			self.__asyncon.set_event_time ()
 			time.sleep (1)
 		time.sleep (a)
+	
+	def resolve (self, url):
+		return urljoin (self.uinfo.eurl ["rfc"], url)
+		
+	def relocate (self, url):
+		from skitai import requests
+		requests.add (self.__el.inherit (self.resolve (url), True), self.__callback)
+		
+	def visit (self, surl, callback = None):
+		from skitai import requests
+		requests.add (self.__el.inherit (surl), callback and callbak or self.__callback)
+	
+	def retry (self):
+		from skitai import requests
+		self.uinfo.eurl.inc_retrys ()
+		requests.add (self.__el, self.__callback)
+	
+	

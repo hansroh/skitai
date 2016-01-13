@@ -218,13 +218,15 @@ if "install" in sys.argv or "develop" in sys.argv:
 				if why.errno == 2: pass
 			shutil.copyfile (os.path.join ("skitai/skitaid/etc/skitaid", path), os.path.join ("/etc/skitaid", path))
 		
+		has_py3 = os.path.isfile ("/usr/bin/python3") or os.path.islink ("/usr/bin/python3")
 		for fn in ("skitaid.py", "skitaid-instance.py", "skitaid-smtpda.py"):
-			target = os.path.join ("/usr/local/bin", fn)
-			try:
-				os.remove (target)
-			except OSError as why:
-				if why.errno == 2: pass	
-			shutil.copyfile (os.path.join ("skitai/skitaid/bin", fn), target)
+			target = os.path.join ("/usr/local/bin", fn)											
+			with open (os.path.join ("skitai/skitaid/bin", fn), "rb") as f:
+				data = f.read ()				
+			with open (target, "wb") as f:			
+				if has_py3:
+					data = data.replace ("#!/usr/bin/python", "#!/usr/bin/python3", 1)
+				f.write (data)
 			os.chmod (target, 0o755)
 		
 		for fn in ("static/index.html",):

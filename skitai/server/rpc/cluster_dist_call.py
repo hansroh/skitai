@@ -291,7 +291,7 @@ class ClusterDistCall:
 		
 		# timeouts	
 		for rs, asyncon in list(self._requests.items ()):
-			asyncon.set_timeout (0) # make zombie channel
+			asyncon.set_zombie_timeout (0) # make zombie channel
 			asyncon.handle_timeout ()
 			rs.set_status (1)
 			self._cluster.report (asyncon, False) # maybe dead

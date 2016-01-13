@@ -22,7 +22,7 @@ class EURL:
 		self.data = data
 		self.user = {}
 		self.http = {"http-version": "1.1", "http-connection": "close"}
-		self.info = {"depth": 0}
+		self.info = {"depth": 0, "moved": 0, "retrys": 0}
 		self.header = {"Cache-Control": "max-age=0"}
 		self.parse ()
 	
@@ -87,8 +87,14 @@ class EURL:
 	def to_version_11 (self):
 		self ["http-version"] = "1.1"
 		self.del_header ("connection")
-		
-	def inherit (self, surl):
+	
+	def inc_retrys (self):
+		self.info ["retrys"] = self ["retrys"] + 1
+	
+	def dec_retrys (self):
+		self.info ["retrys"] = self ["retrys"] - 1
+				
+	def inherit (self, surl, moved = False):
 		eurl = EURL (surl)
 				
 		# inherit user-data
@@ -100,8 +106,12 @@ class EURL:
 		eurl ["auth"] = self ["auth"]
 		eurl ["referer"] = eurl ["http-referer"] = self ["rfc"]
 		eurl ["referer_id"] = self ["page_id"]
-		eurl ["depth"] = self ["depth"] + 1
 		
+		if moved:
+			eurl ["moved"] = self ["moved"] + 1		
+		else:
+			eurl ["depth"] = self ["depth"] + 1
+			
 		# inherit http, header
 		for k, v in list(self.http.items ()):
 			if k [:5] == "head-":
@@ -109,7 +119,7 @@ class EURL:
 			else:
 				if k [5:] in ("cookie", "referer", "content-type", "form"):
 					continue
-				if not eurl.http.has_key ():					
+				if k not in eurl.http:
 					eurl [k] = v
 		return eurl
 		

@@ -374,8 +374,8 @@ class RequestHandler:
 					
 					if k.strip () == "timeout": 
 						timeout = int (v)
-						if timeout < self.asyncon.default_timeout:
-							self.asyncon.default_timeout = timeout
+						if timeout < self.asyncon.keep_alive_timeout:
+							self.asyncon.set_keep_alive_timeout (timeout)
 					elif k.strip () == "max" and int (v) == 0:
 						close_it = True
 		

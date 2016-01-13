@@ -17,6 +17,8 @@ _que = []
 _numpool = 4
 _concurrents = 2
 _default_header = ""
+_use_lifetime = True
+_timeout = 30
 
 def configure (
 	logger = None, 
@@ -24,39 +26,44 @@ def configure (
 	timeout = 30,
 	concurrents = 2,
 	default_option = "", 
-	response_max_size = 100000000
+	response_max_size = 100000000,
+	use_lifetime = True
 	):
 	
-	global _logger, _numpool, _concurrents, _default_option, _configured
+	global _logger, _numpool, _concurrents, _default_option, _configured, _use_lifetime, _timeout
 	
-	asynconnect.set_timeout (timeout)		
 	_default_option = default_option
 	_numpool = numpool + 1
 	_logger = logger
 	_concurrents = concurrents
+	_use_lifetime = use_lifetime
+	
 	http_response.Response.SIZE_LIMIT = response_max_size
-	socketpool.create (logger)
 	localstorage.create (logger)
-	adns.init (logger)
-	trigger.start_trigger () # for keeping lifetime loop	
+		
+	if _use_lifetime:
+		socketpool.create (logger)
+		adns.init (logger)
+		trigger.start_trigger () # for keeping lifetime loop	
 		
 	
-def add (thing, callback, logger = None):
-	global _que, _default_header
+def add (thing, callback):
+	global _que, _default_header, _logger
 	
 	if type (thing) is str:
 		thing = thing + " " + _default_option
-	_que.append ((thing, callback, logger))
+	_que.append ((thing, callback, _logger))
 	maybe_pop ()
 
 def maybe_pop ():
-	global _numpool, _que, _map, _concurrents, _logger
+	global _numpool, _que, _map, _concurrents, _logger, _use_lifetime
 	
-	if not _que:
+	lm = len (_map)
+	
+	if _use_lifetime and not _que and lm == 1:
 		lifetime.shutdown (0, 1)
 		return
 	
-	lm = len (_map)		
 	if lm >= _numpool:
 		return
 	
@@ -99,6 +106,9 @@ def maybe_pop ():
 		pup += 1
 
 def get_all ():
+	global _use_lifetime	
+	if not _use_lifetime: return
+
 	try:
 		lifetime.loop (3.0)
 	finally:	
@@ -200,7 +210,8 @@ class Request (http_request.HTTPRequest):
 		
 class Item:
 	def __init__ (self, thing, callback, logger = None):
-		global _logger
+		global _logger, _timeout
+		
 		if logger:
 			self.logger = logger			
 		else:
@@ -212,6 +223,7 @@ class Item:
 		if request.el ["http-tunnel"]:		
 			request.el.to_version_11 ()
 			asyncon = sp.get ("proxys://%s" % request.el ["http-tunnel"])				
+			asyncon.set_network_delay_timeout (_timeout)
 			if not asyncon.connected:
 				asyncon.request = SSLProxyRequestHandler (asyncon, request, self.callback_wrap)
 				return				
@@ -231,7 +243,7 @@ class Item:
 		).start ()
 		
 	def callback_wrap (self, handler):
-		r = rc.ResponseContainer (handler)
+		r = rc.ResponseContainer (handler, self.callback)
 		
 		# unkink back refs
 		handler.asyncon = None
