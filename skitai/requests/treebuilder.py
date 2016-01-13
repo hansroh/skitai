@@ -247,14 +247,79 @@ class Parser:
 			'h2', 'h3', 'h4', 'h5', 'h6']
 		article_cleaner.remove_unknown_tags = False
 		return article_cleaner.clean_html (node)
-					
 
+
+
+def remove_control_characters (html):
+	def str_to_int(s, default, base=10):
+		if int(s, base) < 0x10000:
+			return chr(int(s, base))
+		return default
+	html = re.sub(r"&#(\d+);?", lambda c: str_to_int(c.group(1), c.group(0)), html)
+	html = re.sub(r"&#[xX]([0-9a-fA-F]+);?", lambda c: str_to_int(c.group(1), c.group(0), base=16), html)
+	html = re.sub(r"[\x00-\x08\x0b\x0e-\x1f\x7f]", "", html)	
+	return html
+
+def remove_non_asc (html):	
+	html = re.sub(rb"&#(\d+);?", "", html)
+	html = re.sub(rb"&#[xX]([0-9a-fA-F]+);?", "", html)
+	html = re.sub(rb"[\x00-\x08\x80-\xff]", "", html)	
+	return html
+	
+	
+RX_CAHRSET = re.compile (rb"[\s;]+charset\s*=\s*[\"']?([-a-z0-9]+)", re.M)
+RX_META = re.compile (rb"<meta\s+.+?>", re.I|re.M)
+
+def get_charset (html):	
+	encoding = None
+	pos = 0	
+	while 1:	
+		match = RX_META.search (html, pos)
+		if not match: break
+		#print (match.group ())	
+		charset = RX_CAHRSET.findall (match.group ().lower ())
+		if charset:			
+			encoding = charset [0].decode ("utf8")			
+			#print (encoding)		
+			break
+		pos = match.end ()		
+	return encoding
+
+def to_str (html, encoding):
+	def try_generic_encoding (html):
+		try:
+			return html.decode ("utf8")
+		except UnicodeDecodeError:	
+			return html.decode ("iso8859-1")
+	
+	if encoding is None:
+		encoding = get_charset (html)		
+
+	try:
+		if not encoding:
+			html = try_generic_encoding (html)
+		else:
+			try:
+				html = html.decode (encoding)
+			except LookupError:
+				html = try_generic_encoding (html)				
+	except UnicodeDecodeError:		
+		return remove_non_asc (html)
+	else:		
+		return remove_control_characters (html)
+	
 def html (html, baseurl, encoding = None):
-	# html5lib rebuilds possibly mal-formed html
-	return lxml.html.fromstring (lxml.etree.tostring (html5lib.parse (html, encoding = encoding, treebuilder="lxml")), baseurl)	
+	# html5lib rebuilds possibly mal-formed html	
+	try:
+		return lxml.html.fromstring (lxml.etree.tostring (html5lib.parse (html, encoding = encoding, treebuilder="lxml")), baseurl)	
+	except ValueError:		
+		return lxml.html.fromstring (lxml.etree.tostring (html5lib.parse (to_str (html, encoding), treebuilder="lxml")), baseurl)	
 
 def etree (html, encoding = None):
-	return html5lib.parse (html, encoding = encoding, treebuilder="lxml")	
+	try:
+		return html5lib.parse (html, encoding = encoding, treebuilder="lxml")	
+	except ValueError:	
+		return html5lib.parse (to_str (html, encoding), treebuilder="lxml")	
 
 
 if __name__ == "__main__":	

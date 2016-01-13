@@ -229,7 +229,7 @@ class FailedResponse (Response):
 		return b""
 		
 	def get_content (self):
-		return
+		return b""
 	
 	def done (self):
 		pass

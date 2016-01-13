@@ -4,7 +4,7 @@ try:
 	from urllib.parse import urlparse
 except ImportError:
 	from urlparse import urlparse	
-from .. import util
+from skitai.protocol.http import util
 
 localstorage = None
 

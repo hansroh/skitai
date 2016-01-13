@@ -7,7 +7,7 @@ except ImportError:
 	from urlparse import urlparse
 	from urllib import quote_plus	
 import time
-from .. import util
+from skitai.protocol.http import util
 from . import localstorage
 
 
@@ -146,7 +146,7 @@ class EURL:
 		for k, v in list(d.items ()):
 			if k [:7] == "--with-":
 				k = k [7:]
-				self.user [k] = v				
+				self.user [k] = v.strip ()
 			elif k in self.methods:
 				self ['method'] = k
 				self ['url'] = v.strip ()

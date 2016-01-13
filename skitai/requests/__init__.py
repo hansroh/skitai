@@ -1,8 +1,8 @@
 from . import eurl
 from . import localstorage
-from .. import request as http_request
-from .. import response as http_response
-from .. import request_handler as http_request_handler
+from skitai.protocol.http import request as http_request
+from skitai.protocol.http import response as http_response
+from skitai.protocol.http import request_handler as http_request_handler
 from skitai.client import socketpool, asynconnect
 from skitai.server.threads import trigger
 from skitai import lifetime
