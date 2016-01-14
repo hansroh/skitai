@@ -115,22 +115,47 @@ Also app should can handle mount point.
 In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Skitai-Saddle can handle obiously. But I don't know other WSGI middle wares will work properly.
 
 
+Virtual Hosting
+-------------------
+
+.. code:: python
+
+  [routes:line]
+  
+  : default  
+  / = /home/user/www
+  
+  ; exactly matching host
+  : www.mydomain.com mydomain.com  
+  / = home/user/mydomain.www
+  
+  ; matched *.mydomain.com
+  : .mydomain.com
+  / = home/user/mydomain.any 
+
+`New in version 0.10.5`
+
+
 
 Note For Python 3 Users
-------------------------
+-------------------------
 
-SAE can be executed with Python 2.7 & 3.4 and use /usr/bin/python.
+*Posix*
 
-For using Python 3, there're 2 ways.
+SAE will be executed with /usr/bin/python (mostly symbolic link for /usr/bin/python2).
 
-1. change symbolic link for /usr/bin/python to python3. But it is possibly very dangerous, because some of your system's applications is possibly use Python 2.7.
+For using Python 3.x, change skitaid scripts' - /usr/local/bin/sktaid*.py - first line from `#!/usr/bin/python` to `#!/usr/bin/python3`. Once you change, it will be kept, even upgrade or re-install skitai.
 
-2. change shell path of skitaid scripts (/usr/bin/local/sktaid*.py) from `#!/usr/bin/python` to `#!/usr/bin/python3`. In this case, you should re-install requirements using 'pip3 install ...'.
+In this case, you should re-install requirements using 'pip3 install ...'.
 
+
+*Win32*
+
+Change python key value to like `c:\python34\python.exe` in c:\skitaid\etc\skitaid.conf.
 
 
 Asynchronous Requests Using Skitai WAS
------------------------------------------------------------------
+-----------------------------------------
 
 'WAS' means (Skitai) *WSGI Application Service*.
 
@@ -569,6 +594,8 @@ Directory structure sould be:
 
 To enable session for app, random string formatted securekey should be set for encrypt/decrypt session values.
 
+*WARN*: `securekey` should be same on all skitai apps at least within a virtual hosing group, Otherwise it will be serious disater.
+
 .. code:: python
 
   app.securekey = "ds8fdsflksdjf9879dsf;?<>Asda"
@@ -906,6 +933,8 @@ Documentation
 
 Change Log
 -------------
+  
+  0.10.5 - add virtual hosting
   
   0.10.4 - bug fix py27's unicode type check
   

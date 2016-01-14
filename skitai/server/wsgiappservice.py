@@ -12,7 +12,6 @@ except ImportError:
 else:	
 	from .dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
 	
-from .handlers import default_handler
 from . import server_info
 import json
 try:
@@ -57,18 +56,13 @@ class WAS:
 	def unregister (cls, name):
 		del cls.objects [name]
 		return delattr (cls, name)
-	
-	@classmethod
-	def add_route (cls, v, r):
-		for h in cls.httpserver.handlers:
-			if isinstance (h, default_handler.Handler):
-				h.add_route (v, r)
 		
 	@classmethod
 	def add_handler (cls, back, handler, *args, **karg):
 		h = handler (cls, *args, **karg)
 		if hasattr (cls, "httpserver"):
 			cls.httpserver.install_handler (h, back)
+		return h	
 					
 	@classmethod
 	def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0):
@@ -103,23 +97,26 @@ class WAS:
 		# was.db, 		was.get, 			was.post,			was.put, ...
 		# was.db.lb, 	was.get.lb,		was.post.lb,	was.put.lb, ...
 		# was.db.map,	was.get.map,	was.post.map,	was.put.map, ...
-				
+		
+		uri = None
+		if args:		uri = args [0]
+		elif karg:	uri = karg.get ("uri", "")
+		if not uri:	raise AssertionError ("missing param uri or cluster name")
+
 		try: 
 			command, fn = method.split (".")
 		except ValueError: 
 			command = method
-			fn = (command == "db" and "db" or "rest")
-		
+			if uri [0] == "@": 
+				fn = "lb"
+			else:
+				fn = (command == "db" and "db" or "rest")
+				
 		if command == "db":
 			return getattr (self, "_d" + fn) (*args, **karg)
 		if command not in self.VALID_COMMANDS:
 			raise AttributeError ("WAS instance doesn't have '%s'" % method)			
 		
-		uri = None
-		if args:		uri = args [0]
-		elif karg:	uri = karg.get ("uri", "")
-		if not uri:	raise AssertionError ("missing param 'uri'")
-		#if uri [0] == "@": fn = "lb"
 		return getattr (self, "_" + fn) (command, *args, **karg)
 	
 	def _rest (self, method, uri, data = None, auth = None, headers = None, filter = None, encoding = None):

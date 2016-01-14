@@ -39,8 +39,9 @@ class Handler:
 	post_max_size = 5 * 1024 * 1024	
 	upload_max_size = 100 * 1024 * 1024
 	
-	def __init__(self, wasc, post_max_size = 0, upload_max_size = 0):
+	def __init__(self, wasc, apps = None, post_max_size = 0, upload_max_size = 0):
 		self.wasc = wasc
+		self.apps = apps
 		if post_max_size: self.post_max_size = post_max_size
 		if upload_max_size: self.upload_max_size = upload_max_size
 		
@@ -112,7 +113,7 @@ class Handler:
 	def handle_request (self, request):
 		path, params, query, fragment = request.split_uri ()
 		
-		has_route = self.wasc.apps.has_route (path)
+		has_route = self.apps.has_route (path)
 		if has_route == 0:
 			return request.response.error (404)
 		elif has_route in (1, 2):
@@ -127,7 +128,7 @@ class Handler:
 			else:	
 				return request.response.error (301)
 		
-		app = self.wasc.apps.get_app (has_route).get_callable()
+		app = self.apps.get_app (has_route).get_callable()
 		try: 
 			www_authenticate = app.authorize (request.get_header ("Authorization"), request.command, request.uri)
 			if www_authenticate:
@@ -171,7 +172,7 @@ class Handler:
 	def continue_request (self, request, data = None):
 		try:
 			path, params, query, fragment = request.split_uri ()
-			apph = self.wasc.apps.get_app (path)
+			apph = self.apps.get_app (path)
 					
 		except:
 			self.wasc.logger.trace ("server",  request.uri)

@@ -192,5 +192,4 @@ class ModuleManager:
 			d ['<a href="%s">%s</a>' % (path, path)] = module.abspath
 		return d
 
-		
 

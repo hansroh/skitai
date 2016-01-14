@@ -292,7 +292,7 @@ class http_channel (asynchat.async_chat):
 			self.server.total_requests.inc()
 			
 			if command is None:
-				r.error (400)
+				r.response.error (400)
 				return
 			
 			for h in self.server.handlers:
@@ -300,15 +300,14 @@ class http_channel (asynchat.async_chat):
 					try:
 						self.current_request = r
 						h.handle_request (r)
-						
+												
 					except:						
 						self.server.trace()
-						try: r.error (500)
-						except: pass
-							
+						try: r.response.error (500)
+						except: pass							
 					return
 					
-			r.error (404)
+			r.response.error (503)
 					
 	def close (self):
 		if self.closed:

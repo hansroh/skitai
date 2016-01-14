@@ -23,7 +23,7 @@ except ImportError:
 else:			
 	from skitai.dbapi import dbpool	
 		
-from .handlers import default_handler, wsgi_handler, proxypass_handler, proxy_handler, pingpong_handler
+from .handlers import proxy_handler, pingpong_handler, vhost_handler
 from .threads import threadlib, trigger
 from skitai.lib import logger, confparse, pathtool, flock
 from .rpc import cluster_dist_call, cachefs		
@@ -178,33 +178,19 @@ class Loader:
 			
 	def install_handler (self, routes = {}, proxy = False, static_max_age = 300, upload_max_size = 0):		
 		self.wasc.add_handler (1, pingpong_handler.Handler)		
-		clusters = self.wasc.clusters		
 		if proxy:			
-			self.wasc.add_handler (1, proxy_handler.Handler, clusters, self.wasc.cachefs)
-		self.wasc.add_handler (1, proxypass_handler.Handler, clusters, self.wasc.cachefs)
-		routes_directory = {}
-		alternative_handlers = [wsgi_handler.Handler (self.wasc, upload_max_size)]
-		self.wasc.add_handler (1, default_handler.Handler, routes_directory, static_max_age, alternative_handlers)
-			
-		apps = wsgi_apps.ModuleManager(self.wasc)
-		self.wasc.register ("apps", apps)		
+			self.wasc.add_handler (1, proxy_handler.Handler, self.wasc.clusters, self.wasc.cachefs)		
+		vh = self.wasc.add_handler (1, vhost_handler.Handler, self.wasc.clusters, self.wasc.cachefs, static_max_age, upload_max_size)		
+		
+		current_rule = "default"
 		for line in routes:
-			route, target = [x.strip () for x in line.split ("=", 1)]
-
-			if target.startswith ("@"):
-				if route [-1] == "/":
-					route = route [:-1]
-				clusters [target [1:].strip ()].set_route (route)				
-			
-			elif os.path.isdir (target):
-				if route [-1] == "/":
-					route = route [:-1]
-				self.wasc.add_route (route, target)
-				
+			if line.startswith (":"):
+				current_rule = line [1:]
+			elif line.startswith (";") or line.startswith ("#"):
+				continue
 			else:
-				fullpath = os.path.split (target.strip())				
-				apps.add_module (route, os.sep.join (fullpath[:-1]), fullpath [-1])
-
+				vh.add_route (current_rule, line)	
+			
 	def run (self):
 		if self._exit_code is not None: 
 			return self._exit_code # master process

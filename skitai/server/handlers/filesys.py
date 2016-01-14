@@ -207,9 +207,9 @@ class os_filesystem:
 
 class mapped_filesystem (os_filesystem):
 	def __init__ (self):
+		os_filesystem.__init__ (self, None, "/")
 		self.maps = {}
 		self.permission_cache = {}
-		self.root = None		
 	
 	def add_map (self, alias, optstr):
 		options = optstr.split("|")		

@@ -15,6 +15,7 @@ from skitai.client import adns
 
 _map = asyncore.socket_map
 _logger = None
+_debug = True
 _que = []
 _max_numpool = 4
 _current_numpool = 4
@@ -61,7 +62,7 @@ def add (thing, callback):
 	maybe_pop ()
 
 def maybe_pop ():
-	global _max_numpool, _current_numpool, _que, _map, _concurrents, _logger, _use_lifetime
+	global _max_numpool, _current_numpool, _que, _map, _concurrents, _logger, _use_lifetime, _debug
 	
 	lm = len (_map)
 	if _use_lifetime and not _que and lm == 1:
@@ -70,16 +71,13 @@ def maybe_pop ():
 	
 	if _current_numpool > _max_numpool:
 		_current_numpool = _max_numpool  # maximum
-				
-	if lm >= _current_numpool:
-		return
 	
 	currents = {}
 	for r in list (_map.values ()):
 		if isinstance (r, asynconnect.AsynConnect) and r.request: 
-			netloc = r.request.request.el ["netloc"]
+			netloc = r.request.request.el ["netloc"]			
 		elif isinstance (r, asyndns.async_dns): 
-			netloc = r.qname
+			netloc = r.qname						
 		else:
 			continue	
 			
@@ -121,7 +119,8 @@ def maybe_pop ():
 			lm += 1
 		index += 1
 	
-	print (_current_numpool, len (_map), len (_que))
+	if _debug:
+		print (_current_numpool, len (_map), len (_que))
 	
 	pup = 0
 	created = False	
@@ -133,14 +132,18 @@ def maybe_pop ():
 		pup += 1
 
 	if created:
-		# for threading mode
+		# for multi threading mode
 		trigger.the_trigger.pull_trigger ()
 		
 
 def get_all ():
-	global _use_lifetime	
+	import time
+	global _use_lifetime, _map	
+	for r in list (_map.values ()):
+		# reinit for loading _que too long
+		r.event_time = time.time ()		
 	if not _use_lifetime: return
-
+	
 	try:
 		lifetime.loop (3.0)
 	finally:	

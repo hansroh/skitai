@@ -14,12 +14,7 @@ class ClusterManager:
 		self.logger = logger
 		self.lock = threading.RLock ()
 		self._name = name
-		self._route_rx = None
-		self._route = None
-		self._routelen = 0
-				
-		self.set_ssl (ssl)
-		
+		self.set_ssl (ssl)		
 		self._havedeadnode = 0
 		self._numget = 0
 		self._nummget = 0
@@ -36,11 +31,6 @@ class ClusterManager:
 		
 	def get_name (self):
 		return self._name
-		
-	def set_route (self, route):
-		self._route = route
-		self._routelen = len (route)
-		self._route_rx = re.compile (route + "(?P<rti>[0-9]*)", re.I)
 			
 	def is_ssl_cluster (self):
 		return self._use_ssl
@@ -51,23 +41,6 @@ class ClusterManager:
 			self._conn_class = asynconnect.AsynSSLConnect	
 		else:
 			self._conn_class = asynconnect.AsynConnect
-	
-	def match (self, request):
-		if not (self._route_rx):
-			return False	# used only rpc-call
-		uri = request.uri
-		if self._route_rx:			
-			match = self._route_rx.match (uri)
-			if not match: return False		
-		return True
-	
-	def get_path_length (self):
-		return self._routelen
-			
-	def get_route_index (self, request):
-		if not self._route_rx:
-			return ""
-		return self._route_rx.match (request.uri).group ("rti")
 	
 	def status (self):
 		info = {}

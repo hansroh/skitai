@@ -31,7 +31,9 @@ class Cookie:
 	DOUBLEDECADE = 630720000
 	def __init__ (self, request, secret_key = None, session_timeout = 1200):
 		self.request = request		
-		self.secret_key = secret_key.encode ("utf8")
+		self.secret_key = secret_key
+		if secret_key:
+			self.secret_key = secret_key.encode ("utf8")
 		self.session_timeout = session_timeout
 		self.data = {}
 		self.uncommits = {}

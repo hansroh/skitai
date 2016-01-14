@@ -3,17 +3,23 @@ from skitai.protocol.http import request as http_request
 import re
 	
 class Handler (proxy_handler.Handler):
-	def match (self, request):
-		if self.find_cluster (request):
-			return 1
-		else:
-			return 0
-			
-	def find_cluster (self, request):
-		for cluster in list(self.clusters.values ()):
-			if cluster.match (request):
-				return cluster
+	def __init__ (self, wasc, clusters, cachefs = None):
+		proxy_handler.Handler.__init__ (self, wasc, clusters, cachefs)
+		self.route_map = {}
 	
+	def add_route (self, route, cname):		
+		self.route_map [route] = (cname, len (route), re.compile (route + "(?P<rti>[0-9]*)", re.I))
+	
+	def match (self, request):		
+		return self.find_cluster (request) and 1 or 0
+				
+	def find_cluster (self, request):
+		uri = request.uri
+		for route, (cname, route_len, route_rx) in list (self.route_map.items ()):		
+			match = route_rx.match (uri)
+			if match:
+				return self.clusters [cname], route_len, route_rx
+		
 	def handle_request (self, request):
 		proxy_handler.Handler.handle_queued_request (self, request)
 							
@@ -29,14 +35,14 @@ class Handler (proxy_handler.Handler):
 			request.response.error (500, "", "Routing failed. Please contact administator.")
 	
 	def route (self, request, collector):
-		current_cluster = self.find_cluster (request)
-		maybe_route = current_cluster.get_route_index (request)
+		current_cluster, route_len, route_rx  = self.find_cluster (request)		
+		maybe_route = route_rx.match (request.uri).group ("rti")
 		if maybe_route: 
 			route = int (maybe_route)			
 		else:
 			route = -1
 				
-		psysicaluri = request.uri [len (maybe_route) + current_cluster.get_path_length ():]
+		psysicaluri = request.uri [len (maybe_route) + route_len:]
 		if psysicaluri == "": psysicaluri = "/"
 		elif psysicaluri[0] != "/": psysicaluri = "/" + psysicaluri
 		
@@ -66,9 +72,8 @@ class Handler (proxy_handler.Handler):
 		r.start ()
 	
 	def callback (self, handler):
-		request, response, collector = handler.client_request, handler.response, handler.collector
-		cluster = self.find_cluster (request)
-		
+		request, response, collector = handler.client_request, handler.response, handler.collector		
+		cluster = self.find_cluster (request) [0]
 		cluster.report (handler.asyncon, response.code)	
 		
 		if response.code >= 700:
