@@ -301,5 +301,9 @@ class Item:
 		handler.request = None
 		del handler
 		
-		self.callback (r)		
+		try:
+			self.callback (r)		
+		except:
+			_logger.trace ()
+			
 		maybe_pop ()

@@ -163,6 +163,7 @@ class Response:
 			self.init_buffer ()		
 		self.size += len (data)
 			
+		#print ("<<<<<", repr (data)[-80:], len (data) )	
 		if self.decompressor:
 			data = self.decompressor.decompress (data)
 		
@@ -170,7 +171,7 @@ class Response:
 			self.max_age = 0
 			self.u.no_cache ()
 		
-		print (self.decompressor, data)
+		#print (">>>>>", repr (data)[-80:])
 		if data:
 			# sometimes decompressor return "",
 			# null byte is signal of producer's ending, so ignore.

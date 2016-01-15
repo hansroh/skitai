@@ -56,12 +56,23 @@ class GZipDecompressor:
 		self.decompressor = zlib.decompressobj(-zlib.MAX_WBITS)
 		self.first_data = True
 		self.maybe_eof = b""
+		self.extra = False
 			
 	def decompress (self, buf):
 		if self.first_data:
 			buf = buf [10:]
 			self.first_data = False
+		elif self.extra:
+			if len (buf) == 8:
+				return ""
+			else:
+				self.extra = False
+				buf = b"\x03\x00" + buf
 		
+		if buf == b"\x03\x00":
+			# what is it?	
+			self.extra = True
+				
 		if len (buf) > 8:
 			self.maybe_eof = buf [-8:]
 		else:
@@ -71,7 +82,7 @@ class GZipDecompressor:
 		d = self.decompressor.decompress (buf)
 		self.size += len (d)
 		self.crc = zlib.crc32(d, self.crc)
-		if d == b"":
+		if d == b"":			
 			return self.decompressor.flush ()
 		return d
 	
