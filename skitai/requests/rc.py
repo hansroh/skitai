@@ -225,7 +225,7 @@ class ResponseContainer:
 		
 	def relocate (self, url):
 		from skitai import requests
-		requests.add (self.__el.inherit (self.resolve (url), True), self.__callback)
+		requests.add (self.__el.inherit (self.resolve (url), True), self.__callback, front = True)
 		
 	def visit (self, surl, callback = None):
 		from skitai import requests
@@ -234,6 +234,6 @@ class ResponseContainer:
 	def retry (self):
 		from skitai import requests
 		self.uinfo.eurl.inc_retrys ()
-		requests.add (self.__el, self.__callback)
+		requests.add (self.__el, self.__callback, front = True)
 	
 	

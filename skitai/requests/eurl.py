@@ -27,7 +27,7 @@ class EURL:
 		self.parse ()
 	
 	def set_header_from_option (self, k, v):
-		"Possibles: http-[form|version|connection|cookie|content-type|user-agent|proxy|tunnel]"
+		"Possibles: http-[auth|form|version|connection|cookie|content-type|user-agent|proxy|tunnel]"
 		if k [:5] == "head-":
 			self.set_header (k [5:], v)		
 		elif k ==	"http-cookie":
@@ -36,7 +36,7 @@ class EURL:
 			self.set_header ("Content-Type", v)
 		elif k ==	"http-referer":
 			self.set_header ("Referer", v)
-		self.http [k [2:]] = v		
+		self.http [k] = v		
 				
 	def set_header (self, k, v):
 		self.header [k] = v
@@ -103,7 +103,7 @@ class EURL:
 				eurl.user [k] = v
 		
 		# inherit info
-		eurl ["auth"] = self ["auth"]
+		eurl ["http-auth"] = self ["http-auth"]
 		eurl ["referer"] = eurl ["http-referer"] = self ["rfc"]
 		eurl ["referer_id"] = self ["page_id"]
 		
@@ -194,17 +194,18 @@ class EURL:
 		if self ['querystring']:
 			uri += '?' + self ['querystring']
 		self ['uri'] = uri
-
+		
 		position = self ['netloc'].find('@')
 		if position > -1:
-			auth, netloc = self ['netloc'].split ("@", 1)
-			self ['netloc'] = netloc
+			self ["http-auth"], self ['netloc'] = self ['netloc'].split ("@", 1)
+		
+		if self ["http-auth"]:
 			try: 
-				self ['username'], self ['password'] = auth.split (':', 1)
+				self ['username'], self ['password'] = self ["http-auth"].split (':', 1)
 			except ValueError:	
 				pass
 			else:	
-				self ['auth'] = (self ['username'], self ['password'])
+				self ["http-auth"] = (self ['username'], self ['password'])
 				
 		try:
 			self ['netloc'], self ['port'] = self ['netloc'].split (':', 1)

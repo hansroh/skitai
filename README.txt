@@ -755,7 +755,7 @@ Saddle provide simple authenticate for administration or perform access control 
   def hello (was, name = "Hans Roh"):
     return "Hello, %s" % name
 
-If your server run with SSL, you can use app.authorization = "basic", otherwise use "digest" for your password security.
+If your server run with SSL, you can use app.authorization = "basic", otherwise recommend using "digest" for your password safety.
 
 
 

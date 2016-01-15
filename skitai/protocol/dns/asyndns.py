@@ -15,7 +15,7 @@ defaults = Base.defaults
 Base.DiscoverNameServers ()
 
 class async_dns (asyncore.dispatcher_with_send):
-	zombie_timeout = 10
+	zombie_timeout = 3
 	
 	def __init__ (self, servers, request, args, callback, logger, debug_level):
 		self.servers = servers
@@ -35,8 +35,7 @@ class async_dns (asyncore.dispatcher_with_send):
 		self.closed = False
 		
 		asyncore.dispatcher_with_send.__init__ (self)		
-		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
-		
+		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)				
 		self.ac_out_buffer = self.request
 				
 		try:

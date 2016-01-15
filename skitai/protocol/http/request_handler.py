@@ -303,6 +303,7 @@ class RequestHandler:
 	def create_response (self):
 		# overide for new Response
 		buffer, self.buffer = self.buffer, b""
+		#print (repr (buffer))
 		try:
 			self.response = http_response.Response (self.request, buffer.decode ("utf8"))		
 		except:
@@ -319,7 +320,7 @@ class RequestHandler:
 			return True
 		return False	
 			
-	def start (self):
+	def start (self):		
 		if adns.query:
 			adns.query (self.asyncon.address [0], "A", callback = self.continue_start)
 		else:

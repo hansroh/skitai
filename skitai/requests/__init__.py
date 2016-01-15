@@ -14,6 +14,7 @@ import asyncore
 from skitai.client import adns
 
 _currents = {}
+_latest = ""
 _map = asyncore.socket_map
 _logger = None
 _debug = True
@@ -52,8 +53,8 @@ def configure (
 	trigger.start_trigger () # for keeping lifetime loop
 			
 	
-def add (thing, callback):
-	global _que, _default_header, _logger, _current_numpool, _currents
+def add (thing, callback, front = False):
+	global _que, _default_header, _logger, _current_numpool, _currents, _latest
 	
 	if strutil.is_str_like (thing):
 		thing = thing + " " + _default_option
@@ -62,15 +63,22 @@ def add (thing, callback):
 		except:
 			_logger.trace ()
 			return
-					
-	_que.append ((thing, callback, _logger))
+	
+	if front:
+		_que.insert (0, (thing, callback, _logger))
+	else:	
+		_que.append ((thing, callback, _logger))
+		
 	# notify new item
 	if thing ["netloc"] not in _currents:
 		_current_numpool += 1
-	maybe_pop ()
+	
+	if _latest: # after loop started, not during queueing
+		maybe_pop ()
 
 def maybe_pop ():
-	global _max_numpool, _current_numpool, _que, _map, _concurrents, _logger, _use_lifetime, _debug, _currents
+	global _max_numpool, _current_numpool, _que, _map, _concurrents
+	global _logger, _use_lifetime, _debug, _currents, _latest
 	
 	lm = len (_map)
 	if _use_lifetime and not _que and lm == 1:
@@ -80,7 +88,8 @@ def maybe_pop ():
 	if _current_numpool > _max_numpool:
 		_current_numpool = _max_numpool  # maximum
 	
-	_currents = {}
+	# for sequencial reqeust, prevent current callback item
+	_currents = {_latest: 1}
 	for r in list (_map.values ()):
 		if isinstance (r, asynconnect.AsynConnect) and r.request: 
 			netloc = r.request.request.el ["netloc"]			
@@ -128,19 +137,20 @@ def maybe_pop ():
 	if pup:
 		# for multi threading mode
 		trigger.the_trigger.pull_trigger ()
-		
+	
+	return pup	
 
 def get_all ():
 	import time
-	global _use_lifetime, _map, _que, _logger
+	global _use_lifetime, _map, _que, _logger, _concurrent
 	
 	if not _que:
 		_logger ("[warn] no item to get")
 		return
 	
-	for r in list (_map.values ()):
-		# reinit for loading _que too long
-		r.event_time = time.time ()		
+	for i in range (_current_numpool):
+		if not maybe_pop ():
+			break
 	
 	if not _use_lifetime: 
 		return
@@ -235,7 +245,7 @@ class Request (http_request.HTTPRequest):
 		pass
 		
 	def get_auth (self):
-		return self.el ["auth"]
+		return self.el ["http-auth"]
 		
 	def get_data (self):
 		return self.el ["http-form"] is not None and self.el ["http-form"].encode ("utf8") or b""
@@ -279,7 +289,10 @@ class Item:
 		).start ()
 		
 	def callback_wrap (self, handler):
-		r = rc.ResponseContainer (handler, self.callback)
+		global _latest
+	
+		r = rc.ResponseContainer (handler, self.callback)		
+		_latest = r.uinfo.netloc
 		
 		# unkink back refs
 		handler.asyncon = None
@@ -288,5 +301,5 @@ class Item:
 		handler.request = None
 		del handler
 		
-		self.callback (r)
+		self.callback (r)		
 		maybe_pop ()

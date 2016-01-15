@@ -170,8 +170,9 @@ class Response:
 			self.max_age = 0
 			self.u.no_cache ()
 		
+		print (self.decompressor, data)
 		if data:
-			# sometimes decopressor return "",
+			# sometimes decompressor return "",
 			# null byte is signal of producer's ending, so ignore.
 			self.p.feed (data)
 			
