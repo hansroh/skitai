@@ -43,13 +43,15 @@ class	WAS (Skitai.Loader):
 	def test_config (cls, conf):
 		config = confparse.ConfParse (conf)
 		
-		assert config.getint ("server", "processes") > 0, "processes should be int > 0"
-		assert config.getint ("server", "threads") >= 0, "processes should be int >= 0"
+		assert config.getint ("server", "processes", 1) > 0, "processes should be int >= 1"
+		assert config.getint ("server", "threads", 4) >= 0, "processes should be int >= 0"
 		if config.getopt ("server", "ssl") == "yes":
 			assert config.getopt ("server", "certfile"), "enable ssl but certfile is not given"
-		assert config.getint ("server", "port") > 0, "posrt should br int > 0"		
-		assert config.getint ("server", "static_max_age") is not None, "static_max_age should be int >= 0"
-		assert config.getint ("server", "num_result_cache_max") is not None, "num_result_cache_max should be int >= 0"
+		assert config.getint ("server", "port", 5000) > 0, "posrt should br int > 0"		
+		assert config.getint ("server", "static_max_age", 300) >= 0, "static_max_age should be int >= 0"
+		assert config.getint ("server", "keep_alive", 10) >= 0, "keep_alive should be int >= 0"
+		assert config.getint ("server", "response_timeout", 10) >= 0, "response_timeout should be int >= 0"
+		assert config.getint ("server", "num_result_cache_max", 1000) >= 0, "num_result_cache_max should be int >= 0"
 		
 		for sect in list(config.keys ()):
 			if sect.startswith ("@"):
@@ -75,9 +77,9 @@ class	WAS (Skitai.Loader):
 			self.wasc.logger ("server", "perf profiling is turned on, set to single worker mode forcely", "warn")
 			self.set_num_worker (1)
 		else:	
-			self.set_num_worker (config.getint ("server", "processes"))
+			self.set_num_worker (config.getint ("server", "processes", 1))
 		
-		if config.getint ("server", "threads") == 0:
+		if config.getint ("server", "threads", 4) == 0:
 			self.wasc.logger ("server", "multi-threading is disabled, all asynchronous remote call services will be also disabled.", "warn")
 		
 		if config.getopt ("server", "enable_proxy") == "yes":
@@ -89,18 +91,20 @@ class	WAS (Skitai.Loader):
 		if config.getopt ("server", "ssl") in ("yes", "1") and config.getopt ("server", "certfile"):
 			self.config_certification (config.getopt ("server", "certfile"), config.getopt ("server", "keyfile"), config.getopt ("server", "passphrase"))
 		self.config_cachefs (os.path.join (self.varpath, "cache"))
-		self.config_rcache (config.getint ("server", "num_result_cache_max"))
+		self.config_rcache (config.getint ("server", "num_result_cache_max", 1000))
 		
 		# spawn
 		self.config_webserver (
-			config.getint ("server", "port"),
-			ip = config.getopt ("server", "ip"),
-			name = config.getopt ("server", "name"),
-			ssl = config.getopt ("server", "ssl") in ("yes", "1") or False
+			config.getint ("server", "port", 5000),
+			config.getopt ("server", "ip"),
+			config.getopt ("server", "name"),
+			config.getopt ("server", "ssl") in ("yes", "1") or False,
+			config.getint ("server", "keep_alive", 10),
+			config.getint ("server", "response_timeout", 10)
 		)
 		
 		# after spawn
-		self.config_threads (config.getint ("server", "threads"))
+		self.config_threads (config.getint ("server", "threads", 4))
 		
 		for sect in list(config.keys ()):
 			if sect.startswith ("@"):
@@ -110,7 +114,7 @@ class	WAS (Skitai.Loader):
 				ssl = config.getopt (sect, "ssl")
 				self.add_cluster (ctype, name, members, ssl)
 
-		self.install_handler (config.getopt ("routes"), config.getopt ("server", "enable_proxy") == "yes",  config.getint ("server", "static_max_age"))
+		self.install_handler (config.getopt ("routes"), config.getopt ("server", "enable_proxy") == "yes",  config.getint ("server", "static_max_age", 300))
 		
 		lifetime.init ()
 		

@@ -76,14 +76,14 @@ package_dir = {
 skitaid_files = [
 	"README.md",
 	"skitaid/bin/*.py",
-	"skitaid/pub/default/*.py",	
-	"skitaid/pub/default/static/*.*",	
-	"skitaid/pub/default/templates/*.*",	
+	"skitaid/pub/sample/*.py",	
+	"skitaid/pub/sample/static/*.*",	
+	"skitaid/pub/sample/templates/*.*",	
 	"skitaid/etc/init/skitaid.conf",
 	"skitaid/etc/init.d/skitaid", 
 	"skitaid/etc/skitaid/skitaid.conf",
 	"skitaid/etc/skitaid/servers-available/README.txt", 
-	"skitaid/etc/skitaid/servers-enabled/default.conf",
+	"skitaid/etc/skitaid/servers-enabled/sample.conf",
 	"skitaid/etc/skitaid/cert/*.*",
 	"protocol/dns/*.txt",
 	"protocol/dns/pydns/*.txt",
@@ -141,8 +141,8 @@ if "install" in sys.argv or "develop" in sys.argv:
 		mkdir ("c:\\skitaid\\var")
 		mkdir ("c:\\skitaid\\bin")
 		mkdir ("c:\\skitaid\\log")
-		mkdir ("c:\\skitaid\\pub\\default\\static")
-		mkdir ("c:\\skitaid\\pub\\default\\templates")
+		mkdir ("c:\\skitaid\\pub\\sample\\static")
+		mkdir ("c:\\skitaid\\pub\\sample\\templates")
 		mkdir ("c:\\skitaid\\etc\\cert")
 		mkdir ("c:\\skitaid\\etc\\servers-available")
 		mkdir ("c:\\skitaid\\etc\\servers-enabled")		
@@ -151,9 +151,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 		if not os.path.isfile (conf):
 			shutil.copyfile ("skitai\\skitaid\\etc\\skitaid\\skitaid.conf", conf)
 		
-		pathes = ["cert\\README.txt", "servers-available\\README.txt"]
-		if not os.listdir ("c:\\skitaid\\etc\\servers-enabled"):
-			pathes.append ("servers-enabled\\default.conf")
+		pathes = ["cert\\README.txt", "servers-available\\README.txt", "servers-enabled\\sample.conf"]		
 		for path in pathes:
 			target = os.path.join ("c:\\skitaid\\etc", path)
 			try: 
@@ -170,17 +168,17 @@ if "install" in sys.argv or "develop" in sys.argv:
 			shutil.copyfile (os.path.join ("skitai\\skitaid\\bin", fn), target)
 		
 		for fn in ("static\\index.html",):
-			target = os.path.join ("c:\\skitaid\\pub\\default", fn)
+			target = os.path.join ("c:\\skitaid\\pub\\sample", fn)
 			try: os.remove (target)			
 			except WindowsError as why:
 				if why.errno == 2: pass	
 					
 		for fn in ("webapp.py", "static\\reindeer.jpg", "templates\\index.html"):
-			target = os.path.join ("c:\\skitaid\\pub\\default", fn)
+			target = os.path.join ("c:\\skitaid\\pub\\sample", fn)
 			try: os.remove (target)
 			except WindowsError as why:
 				if why.errno == 2: pass	
-			shutil.copyfile (os.path.join ("skitai\\skitaid\\pub\\default", fn), target)
+			shutil.copyfile (os.path.join ("skitai\\skitaid\\pub\\sample", fn), target)
 			
 		print("\n\n======================================")
 		print("Installation Complete")
@@ -198,18 +196,17 @@ if "install" in sys.argv or "develop" in sys.argv:
 		mkdir ("/etc/skitaid/servers-available")
 		mkdir ("/var/log/skitaid")
 		mkdir ("/var/local/skitaid")		
-		mkdir ("/var/local/skitaid-pub/default/static")
-		mkdir ("/var/local/skitaid-pub/default/templates")
+		mkdir ("/var/local/skitaid-pub/sample/static")
+		mkdir ("/var/local/skitaid-pub/sample/templates")
 			
 		conf = "/etc/skitaid/skitaid.conf"
 		if not os.path.isfile (conf) and not os.path.islink (conf):
 			shutil.copyfile (os.path.join ("skitai/skitaid/etc/skitaid/skitaid.conf"), "/etc/skitaid/skitaid.conf")
 		
-		if not os.listdir ("/etc/skitaid/servers-enabled"):
-			with open ("skitai/skitaid/etc/skitaid/servers-enabled/default.conf") as f:
-				data = f.read ().replace ("c:\\skitaid\\pub\default\\", "/var/local/skitaid-pub/default/")
-			with open ("/etc/skitaid/servers-enabled/default.conf", "w") as f:
-				f.write (data)
+		with open ("skitai/skitaid/etc/skitaid/servers-enabled/sample.conf") as f:
+			data = f.read ().replace ("c:\\skitaid\\pub\sample\\", "/var/local/skitaid-pub/sample/")
+		with open ("/etc/skitaid/servers-enabled/sample.conf", "w") as f:
+			f.write (data)
 		
 		for path in ("cert/README.txt", "servers-available/README.txt"):
 			try: 
@@ -236,17 +233,17 @@ if "install" in sys.argv or "develop" in sys.argv:
 			os.chmod (target, 0o755)
 		
 		for fn in ("static/index.html",):
-			target = os.path.join ("/var/local/skitaid-pub/default", fn)
+			target = os.path.join ("/var/local/skitaid-pub/sample", fn)
 			try: os.remove (target)
 			except OSError as why:
 				if why.errno == 2: pass
 					
 		for fn in ("webapp.py", "templates/index.html", "static/reindeer.jpg"):
-			target = os.path.join ("/var/local/skitaid-pub/default", fn)
+			target = os.path.join ("/var/local/skitaid-pub/sample", fn)
 			try: os.remove (target)
 			except OSError as why:
 				if why.errno == 2: pass
-			shutil.copyfile (os.path.join ("skitai/skitaid/pub/default", fn), target)
+			shutil.copyfile (os.path.join ("skitai/skitaid/pub/sample", fn), target)
 		
 		if os.path.isfile ("/etc/init.d/skitaid"):
 			os.remove ("/etc/init.d/skitaid")

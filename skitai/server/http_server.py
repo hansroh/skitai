@@ -138,7 +138,7 @@ class http_channel (asynchat.async_chat):
 	closables = []
 	
 	zombie_timeout = 10
-	network_delay_timeout = 10
+	response_timeout = 10
 	keep_alive = 10
 	
 	def __init__ (self, server, conn, addr):
@@ -199,9 +199,9 @@ class http_channel (asynchat.async_chat):
 	
 	def set_timeout_by_case (self):
 		if self.affluent or self.ready:
-			self.zombie_timeout = self.network_delay_timeout * 2
+			self.zombie_timeout = self.response_timeout * 2
 		else:	
-			self.zombie_timeout = self.network_delay_timeout
+			self.zombie_timeout = self.response_timeout
 		
 	def handle_read (self):
 		self.set_timeout_by_case ()
@@ -554,6 +554,12 @@ def hHUPMASTER (signum, frame):
 	EXITCODE = 3
 	DO_SHUTDOWN (signal.SIGTERM)
 
+def configure (name, response, keep_alive):
+	from . import https_server
+	http_server.SERVER_IDENT = name
+	https_server.https_server.SERVER_IDENT = name + " (SSL)"
+	http_channel.response_timeout = https_server.https_channel.response_timeout = not response and 10 or response
+	http_channel.keep_alive = https_server.https_channel.keep_alive = not keep_alive and 10 or keep_alive
 
 		
 if __name__ == "__main__":

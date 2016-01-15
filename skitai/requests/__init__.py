@@ -13,6 +13,7 @@ from . import rc
 import asyncore
 from skitai.client import adns
 
+_currents = {}
 _map = asyncore.socket_map
 _logger = None
 _debug = True
@@ -52,17 +53,24 @@ def configure (
 			
 	
 def add (thing, callback):
-	global _que, _default_header, _logger, _current_numpool
+	global _que, _default_header, _logger, _current_numpool, _currents
 	
 	if strutil.is_str_like (thing):
 		thing = thing + " " + _default_option
+		try:
+			thing = eurl.EURL (thing)
+		except:
+			_logger.trace ()
+			return
+					
 	_que.append ((thing, callback, _logger))
 	# notify new item
-	_current_numpool += 1
+	if thing ["netloc"] not in _currents:
+		_current_numpool += 1
 	maybe_pop ()
 
 def maybe_pop ():
-	global _max_numpool, _current_numpool, _que, _map, _concurrents, _logger, _use_lifetime, _debug
+	global _max_numpool, _current_numpool, _que, _map, _concurrents, _logger, _use_lifetime, _debug, _currents
 	
 	lm = len (_map)
 	if _use_lifetime and not _que and lm == 1:
@@ -72,7 +80,7 @@ def maybe_pop ():
 	if _current_numpool > _max_numpool:
 		_current_numpool = _max_numpool  # maximum
 	
-	currents = {}
+	_currents = {}
 	for r in list (_map.values ()):
 		if isinstance (r, asynconnect.AsynConnect) and r.request: 
 			netloc = r.request.request.el ["netloc"]			
@@ -81,8 +89,8 @@ def maybe_pop ():
 		else:
 			continue	
 			
-		try: currents [netloc] += 1
-		except KeyError: currents [netloc] = 1
+		try: _currents [netloc] += 1
+		except KeyError: _currents [netloc] = 1
 		
 	index = 0
 	indexes = []		
@@ -91,31 +99,20 @@ def maybe_pop ():
 			item = _que [index]
 		except IndexError:
 			# for minimize cost to search new item by concurrents limitation
-			_current_numpool = len (currents) * _concurrents
+			_current_numpool = len (_currents) * _concurrents
 			if _current_numpool < 2:
 				_current_numpool = 2 # minmum	
+			if _debug:
+				print (">>>>>>>>>>>> resize numpool %d" % _current_numpool)
 			break
 		
-		if not isinstance (item [0], eurl.EURL):
+		el = item [0]
+		if _currents.get (el ["netloc"], 0) <= _concurrents:
 			try: 
-				el = eurl.EURL (item [0])
-			except:
-				_logger.trace ()
-				indexes.append ((0, index))
-				index += 1
-				continue				
-			else:					
-				_que [index] = (el,) + item [1:]
-		
-		else:
-			el = item [0]
-		
-		if currents.get (el ["netloc"], 0) <= _concurrents:
-			try: 
-				currents [el ["netloc"]] += 1
+				_currents [el ["netloc"]] += 1
 			except KeyError:
-				currents [el ["netloc"]] = 1
-			indexes.append ((1, index))
+				_currents [el ["netloc"]] = 1
+			indexes.append (index)
 			lm += 1
 		index += 1
 	
@@ -123,26 +120,30 @@ def maybe_pop ():
 		print (_current_numpool, len (_map), len (_que))
 	
 	pup = 0
-	created = False	
-	for valid, index in indexes:
+	for index in indexes:
 		item = _que.pop (index - pup)		
-		if valid:
-			Item (*item)
-			created = True			
+		Item (*item)		
 		pup += 1
 
-	if created:
+	if pup:
 		# for multi threading mode
 		trigger.the_trigger.pull_trigger ()
 		
 
 def get_all ():
 	import time
-	global _use_lifetime, _map	
+	global _use_lifetime, _map, _que, _logger
+	
+	if not _que:
+		_logger ("[warn] no item to get")
+		return
+	
 	for r in list (_map.values ()):
 		# reinit for loading _que too long
 		r.event_time = time.time ()		
-	if not _use_lifetime: return
+	
+	if not _use_lifetime: 
+		return
 	
 	try:
 		lifetime.loop (3.0)
@@ -278,7 +279,6 @@ class Item:
 		).start ()
 		
 	def callback_wrap (self, handler):
-		global _current_numpool
 		r = rc.ResponseContainer (handler, self.callback)
 		
 		# unkink back refs
@@ -289,6 +289,4 @@ class Item:
 		del handler
 		
 		self.callback (r)
-		# notify have a room
-		_current_numpool += 1
 		maybe_pop ()

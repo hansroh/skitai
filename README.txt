@@ -79,7 +79,7 @@ Here's three WSGI app samples:
   def index (was):	 
     return "Hello World"
 
-For mounting to SAE, modify config file in /etc/skitaid/servers-enabled/default.conf
+For mounting to SAE, modify config file in /etc/skitaid/servers-enabled/sample.conf
 
 .. code:: python
   
@@ -140,16 +140,16 @@ Virtual Hosting
 Note For Python 3 Users
 -------------------------
 
-*Posix*
+**Posix**
 
 SAE will be executed with /usr/bin/python (mostly symbolic link for /usr/bin/python2).
 
 For using Python 3.x, change skitaid scripts' - /usr/local/bin/sktaid*.py - first line from `#!/usr/bin/python` to `#!/usr/bin/python3`. Once you change, it will be kept, even upgrade or re-install skitai.
 
-In this case, you should re-install requirements using 'pip3 install ...'.
+In this case, you should re-install skitai and requirements using 'pip3 install ...'.
 
 
-*Win32*
+**Win32**
 
 Change python key value to like `c:\python34\python.exe` in c:\skitaid\etc\skitaid.conf.
 
@@ -238,7 +238,7 @@ Avaliable methods are:
 
 If server members are pre defined, skitai choose one automatically per each request supporting *fail-over*.
 
-At first, let's add mysearch members to config file (ex. /etc/skitaid/servers-enabled/default.conf),
+At first, let's add mysearch members to config file (ex. /etc/skitaid/servers-enabled/sample.conf),
 
 .. code:: python
 
@@ -416,12 +416,12 @@ For output message & error in console:
 
 *Posix*
 
-sudo /usr/local/bin/skitai-instance.py -v -f default
+sudo /usr/local/bin/skitai-instance.py -v -f sample
   
 
 *Win32*
 
-c:\skitaid\bin\skitai-instance.py -v -f default
+c:\skitaid\bin\skitai-instance.py -v -f sample
 
 
   
@@ -822,7 +822,7 @@ Is there nothing to diffrence? Yes. Saddle app methods are also used for XMLRPC 
 Running Skitai as HTTPS Server
 -------------------------------
 
-Simply config your certification files to config file (ex. /etc/skitaid/servers-enabled/default.conf). 
+Simply config your certification files to config file (ex. /etc/skitaid/servers-enabled/sample.conf). 
 
 .. code:: python
 
@@ -934,6 +934,8 @@ Documentation
 Change Log
 -------------
   
+  0.10.6 - a) change sample config file anem from default.conf to sample.conf. 2) new config keys: response_timeout = 10, keep_alive = 10, see servers-enabled/sample.conf
+
   0.10.5 - add virtual hosting
   
   0.10.4 - bug fix py27's unicode type check

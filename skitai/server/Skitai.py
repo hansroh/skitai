@@ -108,14 +108,15 @@ class Loader:
 		self.ctx = https_server.init_context (certfile, keyfile, pass_phrase)		
 		self.ssl = True
 				
-	def config_webserver (self, port, ip = "", name = "", ssl = False):
+	def config_webserver (self, port, ip = "", name = "", ssl = False, keep_alive = 10, response_timeout = 10):
 		# maybe be configured	at first.
 		if ssl and not HTTPS:
 			raise SystemError("Can't start SSL Web Server")
 		
 		if not name:
-			name = self.instance_name
-		http_server.http_server.SERVER_IDENT = name
+			name = self.instance_name		
+		http_server.configure (name, response_timeout, keep_alive)
+				
 		if ssl and self.ctx is None:
 			raise ValueError("SSL ctx not setup")
 		

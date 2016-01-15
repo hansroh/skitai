@@ -72,9 +72,9 @@ class	SMTPDeliverAgent:
 			self.close ()		
 					
 	def setup (self):
-		val = self.config.getint ("smtpda", "max_retry")
+		val = self.config.getint ("smtpda", "max_retry", 10)
 		if val: self.MAX_RETRY = val
-		val = self.config.getint ("smtpda", "undelivers_keep_max_days")
+		val = self.config.getint ("smtpda", "undelivers_keep_max_days", 30)
 		if val: self.UNDELIVERS_KEEP_MAX = val * 3600 * 24
 
 		self.default_smtp = (
