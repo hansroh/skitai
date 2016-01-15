@@ -5,17 +5,6 @@ Copyright (c) 2015 by Hans Roh
 
 License: BSD
 
-Announcement
----------------
-
-From version 0.10, Skitai App Engine follows WSGI specification. So existing Skitai apps need to lots of modifications.
-
-Conceptually, SAE has been seperated into two components:
-
-1. Skitai App Engine Server, for WSGI apps
-
-2. Saddle, the small WSGI middleware integrated with SAE. But you can also mount any WSGI apps and frameworks like Flask.
-
 
 Introduce
 ----------
@@ -33,6 +22,14 @@ It is influenced by Zope_ and Flask_ a lot.
 - SAE provides asynchronous connection to PostgreSQL
 
 Skitai is not a framework for convinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your WSGI apps as both server and client.
+
+From version 0.10, Skitai App Engine follows WSGI specification. So existing Skitai apps need to lots of modifications.
+
+Conceptually, SAE has been seperated into two components:
+
+1. Skitai App Engine Server, for WSGI apps
+
+2. Saddle, the small WSGI middleware integrated with SAE. But you can also mount any WSGI apps and frameworks like Flask.
 
 
 .. _Zope: http://www.zope.org/
@@ -135,6 +132,8 @@ Virtual Hosting
 
 `New in version 0.10.5`
 
+
+*Note:* For virtual hosting using multiple Skitai instances with Nginx/Squid, see `Virtual Hosting with Nginx / Squid` at end of this document.
 
 
 Note For Python 3 Users
@@ -842,7 +841,65 @@ To genrate self-signed certification file:
     openssl req -new -newkey rsa:2048 -x509 -keyout server.pem -out server.pem -days 365 -nodes
     
 For more detail please read REAME.txt in /etc/skitaid/cert/README.txt
-    	
+
+
+Skitai with Nginx / Squid
+--------------------------
+
+From version 0.10.5, Skitai supports virtual hosting itself, but there're so many other reasons using with reverse proxy servers.
+
+Here's some helpful sample works for virtual hosting using Nginx / Squid.
+
+If you want 2 different and totaly unrelated websites:
+
+- www.jeans.com
+- www.carsales.com
+
+And make two config in /etc/skitaid/servers-enabled
+
+- jeans.conf *using port 5000*
+- carsales.conf *using port 5001*
+
+Then you can reverse proxying using Nginx, Squid or many others.
+
+Example Squid config file (squid.conf) is like this:
+
+.. code:: python
+    
+    http_port 80 accel defaultsite=www.carsales.com
+    
+    cache_peer 192.168.1.100 parent 5000 0 no-query originserver name=jeans    
+    acl jeans-domain dstdomain www.jeans.com
+    http_access allow jeans-domain
+    cache_peer_access jeans allow jeans-domain
+    
+    cache_peer 192.168.1.100 parent 5001 0 no-query originserver name=carsales
+    acl carsales-domain dstdomain www.carsales.com
+    http_access allow carsales-domain
+    cache_peer_access carsales allow carsales-domain
+
+For Nginx might be 2 config files (I'm not sure):
+
+.. code:: python
+
+    ; /etc/nginx/sites-enabled/jeans.com
+    server {
+	    listen 80;
+	    server_name www.jeans.com;
+      location / {
+        proxy_pass http://192.168.1.100:5000;
+      }
+    }
+    
+    ; /etc/nginx/sites-enabled/carsales.com    
+    server {
+	    listen 80;
+	    server_name www.carsales.com;
+      location / {
+        proxy_pass http://192.168.1.100:5001;
+      }
+    }
+
 
 Project Purpose
 -----------------
@@ -934,7 +991,7 @@ Documentation
 Change Log
 -------------
   
-  0.10.6 - a) change sample config file anem from default.conf to sample.conf. 2) new config keys: response_timeout = 10, keep_alive = 10, see servers-enabled/sample.conf
+  0.10.6 - a) change sample config file name and sample site name from default.conf to sample.conf. 2) new config keys: response_timeout = 10, keep_alive = 10, see servers-enabled/sample.conf
 
   0.10.5 - add virtual hosting
   

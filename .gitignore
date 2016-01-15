@@ -1,6 +1,7 @@
 *.pyc
 *.o
 *.a
+*.log
 hosts.txt
 build/
 dist/
