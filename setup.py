@@ -221,7 +221,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 			if os.path.isfile (target):
 				with open (target, "rb") as f:
 					exists_python = f.readline ().strip ()
-					if not exists_python.startswith ("#!"):
+					if not exists_python.startswith (b"#!"):
 						exists_python = None
 			
 			with open (os.path.join ("skitai/skitaid/bin", fn), "rb") as f:
