@@ -123,7 +123,9 @@ class Parser:
 		return node.attrib
 	
 	@classmethod
-	def has_attr (cls, node):
+	def has_attr (cls, node, attr = None):		
+		if attr:
+			return attr in node.attrib
 		return len (node.attrib) != 0
 		
 	@classmethod

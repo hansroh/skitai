@@ -54,7 +54,7 @@ def configure (
 			
 	
 def add (thing, callback, front = False):
-	global _que, _default_header, _logger, _current_numpool, _currents, _latest
+	global _que, _default_header, _logger, _current_numpool, _currents
 	
 	if strutil.is_str_like (thing):
 		thing = thing + " " + _default_option
@@ -88,8 +88,7 @@ def maybe_pop ():
 	if _current_numpool > _max_numpool:
 		_current_numpool = _max_numpool  # maximum
 	
-	# for sequencial reqeust, prevent current callback item
-	_currents = {_latest: 1}
+	_currents = {}
 	for r in list (_map.values ()):
 		if isinstance (r, asynconnect.AsynConnect) and r.request: 
 			netloc = r.request.request.el ["netloc"]			
@@ -116,7 +115,7 @@ def maybe_pop ():
 			break
 		
 		el = item [0]
-		if _currents.get (el ["netloc"], 0) <= _concurrents:
+		if _currents.get (el ["netloc"], 0) < _concurrents:
 			try: 
 				_currents [el ["netloc"]] += 1
 			except KeyError:
@@ -252,6 +251,9 @@ class Request (http_request.HTTPRequest):
 
 	def get_eurl (self):
 		return self.el
+	
+	def get_useragent (self):
+		return self.el ["http-user-agent"]	
 		
 		
 class Item:
@@ -293,7 +295,6 @@ class Item:
 	
 		r = rc.ResponseContainer (handler, self.callback)		
 		_latest = r.uinfo.netloc
-		
 		# unkink back refs
 		handler.asyncon = None
 		handler.callback = None
@@ -305,5 +306,4 @@ class Item:
 			self.callback (r)		
 		except:
 			_logger.trace ()
-			
 		maybe_pop ()

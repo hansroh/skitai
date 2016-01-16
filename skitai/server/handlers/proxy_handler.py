@@ -212,10 +212,11 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		if not self.client_request.channel:
 			return False
 		
+		self.response = None
 		self.asyncon.close_socket ()
 		self.asyncon.request = None # unlink back ref.		
 		self.retry_count = 1
-		
+				
 		self.asyncon.cancel_request ()
 		self.asyncon.push (self.get_request_buffer ())
 		#print ("retry......", self.get_request_buffer (), self.collector)

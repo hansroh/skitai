@@ -26,6 +26,9 @@ class EURL:
 		self.header = {"Cache-Control": "max-age=0"}
 		self.parse ()
 	
+	def __str__ (self):
+		return self ["rfc"]
+		
 	def set_header_from_option (self, k, v):
 		"Possibles: http-[auth|form|version|connection|cookie|content-type|user-agent|proxy|tunnel]"
 		if k [:5] == "head-":
@@ -167,7 +170,7 @@ class EURL:
 			elif k [:7] in ("--http-", "--head-"):
 				self [k [2:]] = v
 			
-		self ['scheme'], self ['netloc'], self ['script'], _params, _query, _fragment = urlparse (self ['url'])		
+		self ['scheme'], self ['netloc'], self ['script'], self ['params'], self ['querystring'], self ['fragment'] = urlparse (self ['url'])		
 		if self ['scheme'] not in ("http", "https"):
 			raise ValueError("Unknown protocol: %s" % self ['scheme'])		
 		if self ["http-form"] and self ['method'] not in ("post", "put"):
@@ -178,9 +181,6 @@ class EURL:
 			raise ValueError("Needn't content-type")
 		if self ["http-form"] and self ["method"] == "post" and self.get_header ("content-type") is None:
 			self ["http-content-type"] = "application/x-www-form-urlencoded; charset=utf-8"		
-		if _params: self ['params'] = _params
-		if _query: self ['querystring'] = _query
-		if _fragment: self ['fragment'] = _fragment
 			
 		if not self ['script']: 
 			self ['script'] = '/'
@@ -287,11 +287,11 @@ class EURL:
 		return "&".join (argslist)
 
 	def geneate_page_id (self):		
-		signature = self ['netloc'] + "|" + str (self ["port"]) + "|" + self ['script']
+		signature = self ['method'] + "|" + self ['netloc'] + "|" + str (self ["port"]) + "|" + self ['script'] + "|" + self ['params']
 		if self ['querystring']:
 			signature += "|" + self.__sort_args (self ['querystring'])
-		if self ['data']:
-			signature += "|" + self.__sort_args (self ['data'])
+		if self ['http-form']:
+			signature += "|" + self.__sort_args (self ['http-form'])
 		return md5 (signature.encode ("utf8")).hexdigest ()
 	
 	def show (self):

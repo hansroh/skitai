@@ -93,6 +93,16 @@ class LocalStorage:
 		except KeyError: self.cookie [domain][path] = {}					
 		self.cookie [domain][path][key] = val
 	
+	def del_cookie (self, url, key):
+		if domain is None:
+			domain = self.get_host (url)
+		try: self.cookie [domain]
+		except KeyError: return		
+		try: self.cookie [domain][path]
+		except KeyError: return
+		for path in self.cookie [domain]:
+			del self.cookie [domain][path][key]
+		
 	def set_cookie_from_string (self, url, cookiestr):
 		host = self.get_host (url)
 		ckey, cval = '', ''				

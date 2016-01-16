@@ -169,6 +169,8 @@ class RequestHandler:
 			"\r\n".join (self.header)
 		)).encode ("utf8")
 		
+		#print (req)
+		#print (data)
 		if is_data_producer:
 			return [req, data]
 		else:	
@@ -337,8 +339,9 @@ class RequestHandler:
 	
 	def retry (self):
 		if self.retry_count:
-			return False		
-		
+			return False
+			
+		self.response = None
 		self.asyncon.close_socket ()
 		self.asyncon.request = None # unlink back ref.
 		self.retry_count = 1		

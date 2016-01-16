@@ -472,7 +472,8 @@ class AsynSSLConnect (AsynConnect):
 					return b''					
 				self.handle_close ()
 				return b''
-			else:
+			else:				
+				self.received += len (data)
 				return data
 
 		except ssl.SSLError as why:
@@ -501,7 +502,8 @@ class AsynSSLConnect (AsynConnect):
 	def send (self, data):
 		self.event_time = time.time ()
 		try:
-			return self.socket.send (data)
+			sent = self.socket.send (data)
+			self.sent += sent
 
 		except ssl.SSLError as why:
 			if why.errno == ssl.SSL_ERROR_WANT_WRITE:

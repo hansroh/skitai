@@ -192,7 +192,7 @@ class ResponseContainer:
 		self.logger = handler.request.logger
 		self.__el = handler.request.el
 		self.__asyncon = handler.asyncon
-		self.__callback = callback
+		self.callback = callback
 		
 		for header in handler.response.get_header ():
 			if header.lower ().startswith ("set-cookie: "):
@@ -222,18 +222,21 @@ class ResponseContainer:
 	
 	def resolve (self, url):
 		return urljoin (self.uinfo.eurl ["rfc"], url)
+	
+	def inherit (self, surl):
+		return self.__el.inherit (surl)
 		
 	def relocate (self, url):
 		from skitai import requests
-		requests.add (self.__el.inherit (self.resolve (url), True), self.__callback, front = True)
+		requests.add (self.__el.inherit (self.resolve (url), True), self.callback, front = True)
 		
 	def visit (self, surl, callback = None):
 		from skitai import requests
-		requests.add (self.__el.inherit (surl), callback and callbak or self.__callback)
+		requests.add (self.inherit (surl), callback and callback or self.callback)
 	
 	def retry (self):
 		from skitai import requests
 		self.uinfo.eurl.inc_retrys ()
-		requests.add (self.__el, self.__callback, front = True)
+		requests.add (self.__el, self.callback, front = True)
 	
 	
