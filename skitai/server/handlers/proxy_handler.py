@@ -485,12 +485,12 @@ class Handler (wsgi_handler.Handler):
 		self.handle_queue ()
 	
 	def handle_queue (self):
-		for addr in self.q.keys ():
+		for addr in list (self.q.keys ()):
 			if not self.q [addr]:
 				del self.q [addr]
 				continue
 				
-			for host, cp in self.q [addr].items ():
+			for host, cp in list (self.q [addr].items ()):
 				request = cp.get ()
 				if request == 0:
 					del self.q [addr][host]

@@ -991,7 +991,7 @@ Documentation
 Change Log
 -------------
   
-  0.10.7 - fix fail-reconnect issues related `was` networking services.
+  0.10.7 - fix fail-reconnect issues related `was` networking services. fix proxy.
   
   0.10.6 - a) change sample config file name and sample site name from default.conf to sample.conf. 2) new config keys: response_timeout = 10, keep_alive = 10, see servers-enabled/sample.conf
 
