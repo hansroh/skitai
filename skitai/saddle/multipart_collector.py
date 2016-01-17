@@ -60,11 +60,11 @@ class Part:
 	def mv (self, to):
 		os.rename (self.get_local_filename (), to)
 		
-	def get_header_with_attr (self, header):
+	def get_header_with_attr (self, header, default = None):
 		d = {}
 		v = self.get_header (header)
 		if v is None:
-			return "", d
+			return default, d
 			
 		v2 = v.split (";")
 		if len (v2) == 1:
@@ -77,7 +77,7 @@ class Part:
 			d [a] = b
 		return v2 [0], d	
 			
-	def get_header (self, header):
+	def get_header (self, header, default = None):
 		header = header.lower()	
 		h = header + ':'
 		hl = len(h)
@@ -85,7 +85,7 @@ class Part:
 			if line [:hl].lower() == h:
 				r = line [hl:].strip ()
 				return r
-		return None
+		return default
 		
 	def add_new_part (self, part):
 		if self.subpart:

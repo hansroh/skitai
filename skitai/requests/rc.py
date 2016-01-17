@@ -92,8 +92,25 @@ class RCRequest:
 		self.body = handler.request.get_data ()
 		self.content_type = handler.request.get_content_type ()
 		self.encoding = handler.request.encoding
-		
-	def get_header (self, header):
+	
+	def get_header_with_attr (self, header, default = None):
+		d = {}
+		v = self.get_header (header)
+		if v is None:
+			return default, d
+			
+		v2 = v.split (";")
+		if len (v2) == 1:
+			return v, d
+		for each in v2 [1:]:
+			try:
+				a, b = each.strip ().split ("=", 1)
+			except ValueError:
+				a, b = each.strip (), None
+			d [a] = b
+		return v2 [0], d	
+			
+	def get_header (self, header, default = None):
 		header = header.lower()
 		hc = self._header_cache
 		if header not in hc:
@@ -105,9 +122,9 @@ class RCRequest:
 					hc [header] = r
 					return r
 			hc [header] = None
-			return None
+			return default
 		else:
-			return hc[header]
+			return hc[header] is not None and hc[header] or default
 
 class RCResponse (RCRequest):
 	def set (self, handler):	

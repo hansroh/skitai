@@ -109,7 +109,19 @@ class Handler:
 			request.response.instant ("100 Continue")
 
 		return collector
-
+	
+	def authorized (self, request, route):	
+		app = self.apps.get_app (route).get_callable()
+		try: 
+			www_authenticate = app.authorize (request.get_header ("Authorization"), request.command, request.uri)
+			if www_authenticate:
+				request.response ['WWW-Authenticate'] = www_authenticate
+				request.response.error (401)
+				return False
+		except AttributeError: 
+			pass
+		return True
+			
 	def handle_request (self, request):
 		path, params, query, fragment = request.split_uri ()
 		
@@ -128,14 +140,8 @@ class Handler:
 			else:	
 				return request.response.error (301)
 		
-		app = self.apps.get_app (has_route).get_callable()
-		try: 
-			www_authenticate = app.authorize (request.get_header ("Authorization"), request.command, request.uri)
-			if www_authenticate:
-				request.response ['WWW-Authenticate'] = www_authenticate
-				return request.response.error (401)
-		except AttributeError: 
-			pass
+		if not self.authorized (request, has_route):
+			return 
 		
 		ct = request.get_header ("content-type")
 		if request.command == 'post' and ct and ct.startswith ("multipart/form-data"):
@@ -183,7 +189,7 @@ class Handler:
 			if data:
 				env ["wsgi.input"] = data
 			args = (env, request.response.start_response)
-								
+
 		except:
 			self.wasc.logger.trace ("server",  request.uri)
 			return request.response.error (500, why = apph.debug and catch (1) or "")
@@ -209,7 +215,7 @@ class Job:
 	def __str__ (self):
 		return "%s %s HTTP/%s" % (self.request.command.upper (), self.request.uri, self.request.version)
 	
-	def exec_app (self):		
+	def exec_app (self):
 		was = the_was._get ()
 		self.args [0]["skitai.was"] = was
 		
@@ -309,4 +315,6 @@ class Job:
 		
 		was = env.get ("skitai.was")
 		if was is not None:
+			was.request.response = None
 			was.request = None
+			

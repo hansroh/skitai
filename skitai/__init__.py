@@ -1,10 +1,14 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.10.7"
+VERSION = "0.11.0"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
 
 import threading
 import sys
+
+WEBSOCKET_REQDATA = 1
+WEBSOCKET_DEDICATE = 2
+WEBSOCKET_MULTICAST = 3
 
 class _WASPool:	
 	def __init__ (self):
@@ -39,7 +43,14 @@ class _WASPool:
 	
 	def _set (self, wasc):
 		self.__wasc = wasc
-		
+	
+	def _del (self):
+		_id = self.__get_id ()
+		try:
+			del self.__p [_id]
+		except KeyError:
+			pass
+				
 	def _get (self):
 		_id = self.__get_id ()
 		try:

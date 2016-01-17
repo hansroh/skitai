@@ -9,15 +9,29 @@ PY_MAJOR_VERSION = sys.version_info.major
 
 class DeflateCompressor:
 	def __init__ (self, level = 5):
-		self.compressor = zlib.compressobj (5)	
+		self.compressor = zlib.compressobj (5, zlib.DEFLATED)
 		
 	def compress (self, buf):	
 		return self.compressor.compress (buf)
 	
 	def flush (self):
 		return self.compressor.flush ()
-		
 
+
+class DeflateDeompressor:
+	def __init__ (self):
+		self.decompressor = zlib.decompressobj ()	
+		
+	def compress (self, buf):	
+		d = self.decompressor.decompress (buf)
+		if d == b"":
+			return self.flush ()
+		return d	
+	
+	def flush (self):
+		return self.decompressor.flush ()
+		
+				
 class GZipCompressor:
 	#HEADER = b"\037\213\010" + chr (0) + struct.pack ("<L", int (time.time ())) + b"\002\377"
 	HEADER = b"\037\213\010" + b'\x00' + struct.pack ("<L", int (time.time ())) + b"\002\377"	

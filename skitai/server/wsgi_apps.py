@@ -84,8 +84,8 @@ class Module:
 	
 	def cleanup (self):
 		try: getattr (self.module, self.appname).cleanup ()
-		except AttributeError: pass	
-			
+		except AttributeError: pass
+	
 	def __call__ (self, env, start_response):
 		self.use_reloader and self.maybe_reload ()		
 		return getattr (self.module, self.appname) (env, start_response)

@@ -49,12 +49,12 @@ class EURL:
 			if key.lower () == k.lower ():
 				del self.header [k]
 				
-	def get_header (self, key = None):
+	def get_header (self, key = None, default = None):
 		if key:
 			for k, v in list (self.header.items ()):
 				if key.lower () == k.lower ():
 					return v
-			return None
+			return default
 		return self.header
 						
 	def __setitem__ (self, k, v):

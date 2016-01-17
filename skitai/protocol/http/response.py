@@ -176,8 +176,25 @@ class Response:
 			# sometimes decompressor return "",
 			# null byte is signal of producer's ending, so ignore.
 			self.p.feed (data)
+	
+	def get_header_with_attr (self, header, default = None):
+		d = {}
+		v = self.get_header (header)
+		if v is None:
+			return default, d
 			
-	def get_header (self, header = None):
+		v2 = v.split (";")
+		if len (v2) == 1:
+			return v, d
+		for each in v2 [1:]:
+			try:
+				a, b = each.strip ().split ("=", 1)
+			except ValueError:
+				a, b = each.strip (), None
+			d [a] = b
+		return v2 [0], d	
+				
+	def get_header (self, header = None, default = None):
 		if header is None:
 			return self.header
 		header = header.lower()
@@ -191,9 +208,9 @@ class Response:
 					hc [header] = r
 					return r
 			hc [header] = None
-			return None
+			return default
 		else:
-			return hc[header]
+			return hc[header] is not None and hc[header] or default
 	
 	def get_headers (self):
 		return self.header

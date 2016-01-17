@@ -3,7 +3,7 @@
 import sys
 import asyncore, asynchat
 import re, socket, time, threading, os
-from . import http_date, http_response, utility, counter
+from . import http_date, http_request, utility, counter
 from .threads import threadlib
 from skitai import lifetime
 from skitai.lib import producers, compressors
@@ -17,111 +17,7 @@ SURVAIL = True
 EXITCODE = 0
 DEBUG = False
 
-class http_request:
-	version = "1.1"
-	collector = None
-	producer = None
-	request_count = counter.counter()
-	
-	def __init__ (self, *args):		
-		self.request_number = self.request_count.inc()		
-		(self.channel, self.request,
-		 self.command, self.uri, self.version,
-		 self.header) = args
-		self.logger = self.channel.server.server_logger
-		self.server_ident = self.channel.server.SERVER_IDENT		
-		self.response = http_response.http_response (self)
-		self.body = None
-		self.reply_code = 200
-		self.reply_message = ""		
-		self._split_uri = None
-		self._header_cache = {}
-		self.gzip_encoded = False
-	
-	def get_raw_header (self):
-		return self.header	
-	get_headers = get_raw_header
-	
-	path_regex = re.compile (r'([^;?#]*)(;[^?#]*)?(\?[^#]*)?(#.*)?')
-	def split_uri (self):
-		if self._split_uri is None:
-			m = self.path_regex.match (self.uri)
-			if m.end() != len(self.uri):
-				raise ValueError("Broken URI")
-			else:
-				self._split_uri = m.groups()				
-		return self._split_uri
 
-	def get_header_with_regex (self, head_reg, group):
-		for line in self.header:
-			m = head_reg.match (line)
-			if m.end() == len(line):
-				return head_reg.group (group)
-		return ''
-	
-	def set_body (self, body):
-		self.body = body
-	
-	def get_body (self):
-		return self.body
-			
-	def get_header (self, header = None):
-		if header is None:
-			return self.header
-		header = header.lower()
-		hc = self._header_cache
-		if header not in hc:
-			h = header + ':'
-			hl = len(h)
-			for line in self.header:
-				if line [:hl].lower() == h:
-					r = line [hl:].strip ()
-					hc [header] = r
-					return r
-			hc [header] = None
-			return None
-		else:
-			return hc[header]
-	
-	def get_content_type (self):
-		return self.get_header_with_params ("content-type") [0]
-				
-	def get_main_type (self):
-		ct = self.get_header_with_params ("content-type")
-		if ct is None:
-			return
-		return ct.split ("/", 1) [0]
-	
-	def get_sub_type (self):
-		ct = self.get_header_with_params ("content-type")
-		if ct is None:
-			return
-		return ct.split ("/", 1) [1]
-		
-	def get_user_agent (self):
-		return self.get_header ("user-agent")
-	
-	def get_remote_addr (self):
-		return self.channel.addr [0]
-			
-	def collect_incoming_data (self, data):
-		if self.collector:
-			self.collector.collect_incoming_data (data)			
-		else:
-			self.logger.log (
-				'dropping %d bytes of incoming request data' % len(data),
-				'warning'
-				)
-
-	def found_terminator (self):		
-		if self.collector:
-			self.collector.found_terminator()			
-		else:
-			self.logger.log (
-				'unexpected end-of-record for incoming request',
-				'warning'
-				)
-			
 	
 #-------------------------------------------------------------------
 # server channel
@@ -228,7 +124,6 @@ class http_channel (asynchat.async_chat):
 			self.debug_buffer += str (data)
 		self.event_time = int (time.time())
 		result = asynchat.async_chat.send (self, data)
-		
 		self.server.bytes_out.inc (result)
 		self.bytes_out.inc (result)
 		return result
@@ -241,7 +136,7 @@ class http_channel (asynchat.async_chat):
 			if not result:
 				self.handle_close ()
 				return b""			
-			#print ("*****************", result)	
+			#print ("*****************", repr (result))
 			return result
 			
 		except MemoryError:
@@ -286,7 +181,7 @@ class http_channel (asynchat.async_chat):
 			self.debug_buffer = b""
 			
 			header = utility.join_headers (lines[1:])
-			r = http_request (self, request, command, uri, version, header)
+			r = http_request.http_request (self, request, command, uri, version, header)
 			
 			self.request_counter.inc()
 			self.server.total_requests.inc()
