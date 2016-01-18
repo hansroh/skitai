@@ -57,20 +57,20 @@ initializing parameters should be tuple of (websocket design spec, keep alive ti
 
 *websocket design specs* can  be choosen one of 3 .
 
-1. WEBSOCKET_REQDATA
+WEBSOCKET_REQDATA
 
   - Thread pool manages n websocket connection
   - It's simple request and response way like AJAX
   - Use skitai initail thread pool, no additional thread created
   - Low cost on threads resources, but reposne cost is relatvley high than the others
   
-2. WEBSOCKET_DEDICATE: one thread per websocket connection
+WEBSOCKET_DEDICATE
 
   - One thread per websocket connection
   - Use when reponse maiking is heavy and takes long time
   - New thread created per websocket connection
   
-3. WEBSOCKET_MULTICAST: one thread manages n websockets connection
+WEBSOCKET_MULTICAST
   
   - One thread manages n websockets connection
   - Chat room model, all websockets will be managed by single thread
@@ -1176,6 +1176,8 @@ Documentation
 
 Change Log
 -------------
+  
+  0.11.0 - fix websocket data decoding
   
   0.11.0 - Websocket implemeted
   

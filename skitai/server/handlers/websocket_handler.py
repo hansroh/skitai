@@ -48,9 +48,11 @@ class WebSocket:
 		self.wasc = handler.wasc
 		self.request = request		
 		self.channel = request.channel
-		self.channel.set_terminator (None)
+		self.channel.set_terminator (2)
 		self.rfile = BytesIO ()
 		self.masks = b""
+		self.buf = b""
+		self.payload_length = 0
 		self.opcode = None
 		self._closed = False
 		
@@ -77,66 +79,67 @@ class WebSocket:
 			return
 		
 		if self.masks:
-			self.rfile.write (data)
-			return
-			
-		b1, b2 = self._tobytes(data [:2])
-		
-		fin    = b1 & FIN
-		opcode = b1 & OPCODE
-		if opcode == CLOSE_CONN:
-			self.close ()
-			return
-		mask = b2 & MASKED
-		if not mask:
-			raise AssertionError ("Client should always mask")			
-		payload_length = b2 & PAYLOAD_LEN
-		if payload_length == 0:
-			self.found_terminator ()
-			return
-		
-		if payload_length < 126:
-			masks = data [2:6]
-			payload_start = 6
-			
-		elif payload_length == 126:
-			payload_length = struct.unpack(">H", self._tobytes(data [2:4]))[0]
-			masks = data [4:8]
-			payload_start = 8
-			
-		elif payload_length == 127:
-			payload_length = struct.unpack(">Q", self._tobytes(data [2:10]))[0]
-			masks = data [10:14]		
-			payload_start = 14	
-		
-		self.rfile.write (data [payload_start:])
-		self.opcode = opcode
-		self.masks = masks
-			
-		want = payload_length - (len (data) - payload_start)
-		if not want:
-			self.found_terminator ()
-			return
-		self.channel.set_terminator (want)
-		
+			self.rfile.write (data)			
+		else:
+			self.buf = data
+	
 	def found_terminator (self):
-		self.channel.set_terminator (None)
-		masked_data = bytearray(self.rfile.getvalue ())
-		if not masked_data:
-			# NOOP?
-			return
-		masking_key = bytearray(self.masks)
-		data = bytearray ([masked_data[i] ^ masking_key [i%4] for i in range (len (masked_data))])
+		#print ("-----", self.buf, self.opcode, self.payload_length, self.masks)
+		if self.masks:
+			# end of message
+			masked_data = bytearray(self.rfile.getvalue ())
+			masking_key = bytearray(self.masks)
+			data = bytearray ([masked_data[i] ^ masking_key [i%4] for i in range (len (masked_data))])
+			
+			if self.opcode == OPCODE_TEXT:
+				# text
+				data = data.decode('utf-8')
 		
-		if self.opcode == OPCODE_TEXT:
-			# text
-			data = data.decode('utf-8')
+			self.payload_length = 0
+			self.opcode = None
+			self.masks = b""
+			self.rfile.seek (0)
+			self.rfile.truncate ()
+			self.channel.set_terminator (2)
+			self.handle_message (data)
 		
-		self.opcode = None
-		self.masks = b""
-		self.rfile.seek (0)
-		self.rfile.truncate ()
-		self.handle_message (data)
+		elif self.payload_length:
+			self.masks = self.buf
+			self.channel.set_terminator (self.payload_length)
+		
+		elif self.opcode is None:
+			b1, b2 = self._tobytes(self.buf)
+			fin    = b1 & FIN
+			self.opcode = b1 & OPCODE
+			if self.opcode == CLOSE_CONN:
+				self.close ()
+				return
+				
+			mask = b2 & MASKED
+			if not mask:
+				raise AssertionError ("Client should always mask")
+			
+			payload_length = b2 & PAYLOAD_LEN
+			if payload_length == 0:
+				self.opcode = None
+				self.channel.set_terminator (2)
+				return
+			
+			if payload_length < 126:
+				self.payload_length = payload_length
+				self.channel.set_terminator (4) # mask
+			elif payload_length == 126:
+				self.channel.set_terminator (2)	# short length
+			elif payload_length == 127:
+				self.channel.set_terminator (8) # long length
+						
+		elif self.payload_length == 0:			
+			if len (self.buf) == 2:
+				fmt = ">H"
+			else:	
+				fmt = ">Q"
+			self.payload_length = struct.unpack(fmt, self._tobytes(self.buf))[0]
+			self.channel.set_terminator (4) # mask
 		
 	def send (self, message, op_code = OPCODE_TEXT):
 		header  = bytearray()
@@ -327,12 +330,14 @@ class WebSocketServer (WebSocket2):
 		
 	def add_client (self, ws):
 		self.clients [ws.client_id] = ws
+		self.handle_message (ws.client_id, 1)
 	
 	def handle_close (self, client_id):
 		try:
 			del self.clients [client_id]
 		except KeyError:
-			pass
+			pass		
+		self.handle_message (client_id, -1)
 		
 	def handle_message (self, client_id, msg):
 		self.cv.acquire()
@@ -385,7 +390,10 @@ class Handler (wsgi_handler.Handler):
 		securekey = request.get_header ("sec-webSocket-key")
 		
 		if not origin or not host or not securekey: 
-			return request.response.error (400)		
+			return request.response.error (400)
+		
+		if not (host.startswith ("localhost:") or origin.find (host) != -1 or origin == "null"):
+			return request.response.error (403)
 		
 		path, params, query, fragment = request.split_uri ()		
 		has_route = self.apps.has_route (path)
