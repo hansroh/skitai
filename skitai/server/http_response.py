@@ -237,7 +237,7 @@ class http_response:
 	#--------------------------------------------	
 	def add_closable (self, thing):
 		if self.request.channel:
-			self.request.channel.closables.append (thing)
+			self.request.channel.add_closable (thing)
 	
 	def push (self, thing):		
 		if not self.responsable (): return

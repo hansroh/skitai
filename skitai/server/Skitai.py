@@ -211,7 +211,7 @@ class Loader:
 			if attr == "logger": continue
 			try:
 				self.wasc.logger ("server", "[info] clenaup %s" % attr)
-				obj.cleanup ()				
+				obj.cleanup ()
 				del obj
 			except AttributeError:
 				pass

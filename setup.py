@@ -173,7 +173,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 			except WindowsError as why:
 				if why.errno == 2: pass	
 					
-		for fn in ("webapp.py", "static\\reindeer.jpg", "templates\\index.html"):
+		for fn in ("webapp.py", "static\\reindeer.jpg", "templates\\documentation.html", "templates\\index.html", "templates\\websocket.html"):
 			target = os.path.join ("c:\\skitaid\\pub\\sample", fn)
 			try: os.remove (target)
 			except WindowsError as why:
@@ -238,7 +238,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 			except OSError as why:
 				if why.errno == 2: pass
 					
-		for fn in ("webapp.py", "templates/index.html", "static/reindeer.jpg"):
+		for fn in ("webapp.py", "templates/documentation.html", "templates/websocket.html", "templates/index.html", "static/reindeer.jpg"):
 			target = os.path.join ("/var/local/skitaid-pub/sample", fn)
 			try: os.remove (target)
 			except OSError as why:

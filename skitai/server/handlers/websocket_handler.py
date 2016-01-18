@@ -16,6 +16,7 @@ try:
 	from urllib.parse import quote_plus
 except ImportError:
 	from urllib import quote_plus	
+from skitai.server import utility
 from skitai.lib import strutil
 from skitai import version_info, was as the_was
 try:
@@ -53,10 +54,11 @@ class WebSocket:
 		self.opcode = None
 		self._closed = False
 		
-	def close (self):		
+	def close (self):
 		if self._closed: return
 		self._closed = True
-		self.channel.current_request = None  # break circ. ref
+		if self.channel:
+			self.channel.current_request = None  # break circ. ref
 		self.handler.finish_request (self.request)		
 	
 	def closed (self):
@@ -64,7 +66,7 @@ class WebSocket:
 				
 	def _tobytes (self, b):
 		if sys.version_info[0] < 3:
-			return map(ord, bytes)
+			return map(ord, b)
 		else:
 			return b
 		
@@ -78,7 +80,7 @@ class WebSocket:
 			self.rfile.write (data)
 			return
 			
-		b1, b2 = self._tobytes(data [:2])		
+		b1, b2 = self._tobytes(data [:2])
 		
 		fin    = b1 & FIN
 		opcode = b1 & OPCODE
@@ -120,6 +122,9 @@ class WebSocket:
 	def found_terminator (self):
 		self.channel.set_terminator (None)
 		masked_data = bytearray(self.rfile.getvalue ())
+		if not masked_data:
+			# NOOP?
+			return
 		masking_key = bytearray(self.masks)
 		data = bytearray ([masked_data[i] ^ masking_key [i%4] for i in range (len (masked_data))])
 		
@@ -170,14 +175,14 @@ class WebSocket:
 	
 class WebSocket1 (WebSocket):
 	# WEBSOCKET_REQDATA			
-	def __init__ (self, handler, request, apph, env):
+	def __init__ (self, handler, request, apph, env, param_name):
 		WebSocket.__init__ (self, handler, request)
 		self.apph = apph
 		self.env = env
 		self.querystring = self.env.get ("QUERY_STRING", "")
 		if self.querystring:
 			self.querystring += "&"
-		self.querystring += "message="
+		self.querystring += "%s=" % param_name
 		
 	def handle_message (self, msg):
 		self.env ["QUERY_STRING"] = self.querystring + quote_plus (msg)		
@@ -204,69 +209,38 @@ class WebSocket2 (WebSocket):
 	def __init__ (self, handler, request):
 		WebSocket.__init__ (self, handler, request)
 		self.cv = threading.Condition (threading.RLock ())
-		self.messages = []
+		self.messages = []		
 	
-	def wait (self, timeout = 10):
+	def close (self):
+		WebSocket.close (self)
 		self.cv.acquire()
-		while not self.messages:
-			self.cv.wait(timeout)
-			if self.messages or self.closed ():
-				break
-		self.cv.release()		
+		self.cv.notify ()
+		self.cv.release ()
 		
-	def handle_message (self, msg):
+	def getswait (self, timeout = 10):
+		if self._closed:
+			return None # closed channel
+		self.cv.acquire()
+		while not self.messages and not self._closed:
+			self.cv.wait(timeout)
+		if self._closed:
+			self.cv.release()
+			return None
+		messages = self.messages
+		self.messages = []
+		self.cv.release()
+		return messages
+	
+	def handle_message (self, msg):		
 		self.cv.acquire()
 		self.messages.append (msg)
 		self.cv.notify ()
 		self.cv.release ()
 
-
-class WebSocket3 (WebSocket):
-	# WEBSOCKET_MULTICAST
-	def __init__ (self, handler, request, server):
-		WebSocket.__init__ (self, handler, request)
-		self.client_id = ws.channel.channel_number
-		self.server = server
-	
-	def handle_message (self, msg):
-		self.server.push (self.client_id, msg)
-
-
-class WebSocketServer (WebSocket2):
-	# WEBSOCKET_DEDICATE if lock is None, or WEBSOCKET_MULTICAST
-	def __init__ (self, handler):
-		self.handler = handler
-		self.cv = threading.Condition (threading.RLock ())
-		self.messages = []
-		self.clients = {}
-	
-	def add_client (self, ws):
-		self.clients [ws.client_id] = ws
-	
-	def push (self, client_id, msg):
-		self.cv.acquire()
-		self.messages.append ((client_id, msg))
-		self.cv.notify ()
-		self.cv.release ()
-			
-	def wait (self, timeout = 10):
-		self.cv.acquire()
-		while not self.messages:
-			self.cv.wait(timeout)
-			if self.messages or self.closed ():
-				break
-		self.cv.release()		
-	
-	def send (self, client_id, msg):
-		self.clients [client_id].send (msg)
-	
-	def send_all (self, msg, exclude_client_id = None):
-		for client_id in self.clients:
-			if client_id != exclude_client_id:
-		 		self.send (client_id, msg)
+class Job2 (Job1):
+	def handle_error (self):
+		pass
 		
-	
-class Job23 (Job1):
 	def exec_app (self):
 		was = the_was._get () # create new was, cause of non thread pool
 		was.request = self.request
@@ -274,19 +248,124 @@ class Job23 (Job1):
 		try:
 			self.apph (*self.args)
 		except:
+			self.handle_error ()
 			self.logger.trace ("app")
 		the_was._del () # remove
 
+
+class WebSocket3 (WebSocket):
+	# WEBSOCKET_MULTICAST
+	def __init__ (self, handler, request, server):
+		WebSocket.__init__ (self, handler, request)
+		self.client_id = request.channel.channel_number
+		self.server = server
+	
+	def handle_message (self, msg):
+		self.server.handle_message (self.client_id, msg)
+	
+	def close (self):
+		WebSocket.close (self)
+		self.server.handle_close (self.client_id)
+
+
+class Job3 (Job2):
+	def __init__(self, server, request, apph, args, logger):
+		self.server = server
+		Job2.__init__(self, request, apph, args, logger)
+		
+	def handle_error (self):
+		self.server.close ()
+		
+
+class WebSocketServers:
+	def __init__ (self):
+		self.lock = threading.RLock ()
+		self.wss = {}
+	
+	def get (self, gid):
+		self.lock.acquire ()
+		wss = self.wss [gid]
+		self.lock.release ()
+		return wss
+		
+	def has_key (self, gid):	
+		self.lock.acquire ()
+		has = gid in self.wss
+		self.lock.release ()
+		return has
+		
+	def create (self, gid):	
+		self.lock.acquire ()
+		wss = WebSocketServer (gid)
+		self.wss [gid] = wss
+		self.lock.release ()
+		return wss
+	
+	def remove (self, gid):
+		self.lock.acquire ()
+		try: 
+			del self.wss [gid]			
+		except KeyError: 
+			pass	
+		self.lock.release ()		
+	
+	def close (self):
+		self.lock.acquire ()
+		for s in list (self.wss.values ()):
+			s.close ()
+		self.lock.release ()
+
+websocket_servers = WebSocketServers ()
+			
+class WebSocketServer (WebSocket2):
+	def __init__ (self, gid):
+		self._closed = False
+		self.gid = gid
+		self.cv = threading.Condition (threading.RLock ())
+		self.messages = []
+		self.clients = {}
+		
+	def add_client (self, ws):
+		self.clients [ws.client_id] = ws
+	
+	def handle_close (self, client_id):
+		try:
+			del self.clients [client_id]
+		except KeyError:
+			pass
+		
+	def handle_message (self, client_id, msg):
+		self.cv.acquire()
+		self.messages.append ((client_id, msg))
+		self.cv.notifyAll ()
+		self.cv.release ()
+			
+	def close (self):
+		websocket_servers.remove (self.gid)
+		self.clients = {}
+		self.cv.acquire()
+		self._closed = True
+		self.cv.notifyAll ()
+		self.cv.release ()
+		
+	def send (self, *args, **karg):
+		raise AssertionError ("Can't use send() on WEBSOCKET_MULTICAST spec, use send_to(client_id, msg, op_code)")
+	
+	def sendto (self, client_id, msg, op_code = OPCODE_TEXT):		
+		self.clients [client_id].send (msg, op_code)
+		
+	def sendall (self, msg, op_code = OPCODE_TEXT):
+		for client_id in self.clients:
+			self.sendto (client_id, msg)
 	
 
 class Handler (wsgi_handler.Handler):
-	def __init__ (self, wasc, apps):
-		wsgi_handler.Handler.__init__ (self, wasc, apps)		
-		self.websocket_servers = {} # For WEBSOCKET_MULTICAST
-			
 	def match (self, request):
 		connection = request.get_header ("connection")
 		return connection and connection.lower ().find ("upgrade") != -1 and request.version == "1.1" and request.command == "get"
+	
+	def close (self):
+		websocket_servers.close ()
 	
 	GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'.encode ()
 	def calculate_response_key (self, key):		
@@ -294,10 +373,11 @@ class Handler (wsgi_handler.Handler):
 		response_key = b64encode(hash.digest()).strip()
 		return response_key.decode('ASCII')
 		
-	def handle_request (self, request):
-		
+	def handle_request (self, request):				
 		def donot_response (self, *args, **kargs):
-			raise AssertionError ("Websocket can't use start_response ()")
+			def push (thing):
+				raise AssertionError ("Websocket can't use start_response ()")
+			return push	
 		
 		origin = request.get_header ("origin")
 		host = request.get_header ("host")
@@ -319,59 +399,84 @@ class Handler (wsgi_handler.Handler):
 		was = the_was._get ()
 		was.request = request
 		env ["skitai.was"] = was
-		env ["skitai.websocket_init"] = ""
+		env ["websocket_init"] = ""
 		# app should reply  (design type one of (1,2,3), keep-alive seconds)
 		# when env has 'skitai.websocket_init'
 		try:
-			ws_design = apph (env, donot_response)
+			apph (env, donot_response)
+			try:
+				design_spec, keep_alive, param_name = env ["websocket_init"]
+				del env ["websocket_init"]
+			except (IndexError, ValueError): 
+				raise AssertionError ("You should return (design_spec, keep_alive, param_name) where env has key 'skitai.websocket_init'")				
+			assert design_spec in (1,2,3), "design_spec  should be one of (WEBSOCKET_REQDATA, WEBSOCKET_DEDICATE, WEBSOCKET_MULTICAST)"			
 		except:
 			self.wasc.logger.trace ("server",  request.uri)
-			return request.response.error (500, why = apph.debug and catch (1) or "")	
-		
-		try: 
-			ws_design, keep_alive = ws_design [0]
-		except (IndexError, ValueError): ws_design = (-1, 0)
-		
-		if ws_design not in (1,2,3):			
-			return request.response.error (503)
+			return request.response.error (500, why = apph.debug and catch (1) or "")
 		
 		header = [
 			("Sec-WebSocket-Accept", self.calculate_response_key (securekey)),
 			("Upgrade", "Websocket"),
 			("Connection", "Upgrade"),
-			# TODO ("WebSocket-Origin", origin),
       ("WebSocket-Protocol", protocol),
       ("WebSocket-Location", "ws://" + host + path)
 		]
 		request.response.start_response ("101 Web Socket Protocol Handshake", header)
 		request.response.done ()
 		
-		del env ["skitai.websocket_init"]
-		request.channel.keep_alive = keep_alive
-		request.channel.response_timeout = keep_alive
+		if design_spec == 1: 
+			# WEBSOCKET_REQDATA			
+			# Like AJAX, simple request of client, simple response data
+			# the simplest version of stateless HTTP protocol using basic skitai thread pool
+			ws = WebSocket1 (self, request, apph, env, param_name)
+			env ["websocket"] = ws		
+			self.channel_config (request, ws, keep_alive)
 		
-		if ws_design == 1: # WEBSOCKET_REQDATA			
-			ws = WebSocket1 (self, request, apph, env)			
-		
-		elif ws_design == 2: #WEBSOCKET_DEDICATE 
+		elif design_spec == 2: 
+			# WEBSOCKET_DEDICATE 			
+			# 1:1 wesocket:thread
+			# Be careful, it will be consume massive thread resources
 			ws = WebSocket2 (self, request)
 			env ["websocket"] = ws
-			request.channel.current_request = ws
-			args = (request, apph, (env, donot_response), self.wasc.logger)
-			threading.Thread (target = Job2, args = args).start ()
+			self.channel_config (request, ws, keep_alive)
+			job = Job2 (request, apph, (env, donot_response), self.wasc.logger)
+			threading.Thread (target = job).start ()
 		
-		else: # WEBSOCKET_MULTICAST
-			if path not in self.websocket_servers:
-				wss = WebSocketServer ()
-				self.websocket_servers [path] = wss
-				env ["websocket"] = wss				
-				args = (request, apph, (env, donot_response), self.wasc.logger)
-				threading.Thread (target = Job2, args = args).start ()				
-			ws = WebSocket3 (self, request)
-			request.channel.current_request = ws
-			self.websocket_servers [path].add_client (ws)
+		else: 
+			# WEBSOCKET_MULTICAST
+			# /chat?roomid=456, 
+			# return (WEBSOCKET_MULTICAST, 600, "roomid")
+			# websocketserver thread will be created by roomid
+			# can send to all clients of group / specific client
+			if not param_name:
+				gidkey = path
+			else:	
+				gid = utility.crack_query (query).get (param_name, None)
+				try:
+					assert gid, "%s value can't find" % param_name
+				except:
+					self.wasc.logger.trace ("server",  request.uri)
+					return request.response.error (500, why = apph.debug and catch (1) or "")
+				gid = "%s/%s" % (path, gid)
+			
+			if not websocket_servers.has_key (gid):
+				server = websocket_servers.create (gid)
+				env ["websocket"] = server
+				job = Job3 (server, request, apph, (env, donot_response), self.wasc.logger)
+				threading.Thread (target = job).start ()	
+			
+			server = websocket_servers.get (gid)				
+			ws = WebSocket3 (self, request, server)
+			server.add_client (ws)
+			self.channel_config (request, ws, keep_alive)			
 		
 	def finish_request (self, request):		
 		if request.channel:
-			request.channel.close ()
-	
+			request.channel.close_when_done ()
+		
+	def channel_config (self, request, ws, keep_alive):
+		request.channel.current_request = ws
+		request.channel.add_closable_when_done (ws)
+		request.channel.keep_alive = keep_alive
+		request.channel.response_timeout = keep_alive
+		

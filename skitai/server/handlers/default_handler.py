@@ -33,7 +33,12 @@ class Handler:
 		self.filesystem = filesys.mapped_filesystem ()
 		for k, v in list(pathmap.items ()):
 			self.add_route (k, v)
-				
+	
+	def close (self):	
+		for h in self.alt_handlers:
+			try: h.close ()
+			except AttributeError: pass
+										
 	def match (self, request):
 		return 1
 	

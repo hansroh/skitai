@@ -143,8 +143,12 @@ def loop (timeout = 30.0):
 	_shutdown_timeout = 30
 	_exit_code = 0	
 
-	lifetime_loop(timeout)
-	graceful_shutdown_loop()
+	try: 
+		lifetime_loop(timeout)
+	except KeyboardInterrupt:
+		graceful_shutdown_loop()
+	else:
+		graceful_shutdown_loop()	
 
 if hasattr(select, 'poll'):
 	poll_fun = asyncore.poll2
@@ -226,7 +230,7 @@ def graceful_shutdown_loop ():
 			else:
 				try:
 					veto = veto or fn (_shutdown_phase, time_in_this_phase)
-				except:
+				except:					
 					obj.handle_error()
 		
 		if veto and time_in_this_phase < _shutdown_timeout:

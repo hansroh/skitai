@@ -31,7 +31,6 @@ class http_channel (asynchat.async_chat):
 	affluent = None
 	closed = False
 	is_rejected = False
-	closables = []
 	
 	zombie_timeout = 10
 	response_timeout = 10
@@ -51,6 +50,9 @@ class http_channel (asynchat.async_chat):
 		self.event_time = int (time.time())
 		self.debug_info = None
 		self.debug_buffer = b""
+		
+		self.closables = []
+		self.closables_when_done = []
 		
 	def reject (self):
 		self.is_rejected = True		
@@ -77,13 +79,14 @@ class http_channel (asynchat.async_chat):
 				)
 		
 	def clean_shutdown_control (self, phase, time_in_this_phase):
-		if phase == 3:			
-			self.reject ()			
-			if self.writable ():
-				return 1
-			else:				
-				self.close ()
-				return 0				
+		if phase == 0:
+			self.reject ()
+		
+		if self.writable ():
+			return 1
+		else:				
+			self.close ()
+			return 0		
 		return 0
 
 	def isconnected (self):
@@ -113,6 +116,12 @@ class http_channel (asynchat.async_chat):
 			self.done_request ()
 		return ret	
 	
+	def add_closable (self, thing):
+		self.closables.append (thing)
+	
+	def add_closable_when_done (self, thing):
+		self.closables_when_done.append (thing)		
+		
 	def done_request (self):	
 		self.zombie_timeout = self.keep_alive
 		self.closables = [] # all producers are finished
@@ -205,6 +214,7 @@ class http_channel (asynchat.async_chat):
 			r.response.error (503)
 					
 	def close (self):
+		#print (self.closables_when_done)
 		if self.closed:
 			return
 		self.closed = True
@@ -215,10 +225,9 @@ class http_channel (asynchat.async_chat):
 			self.current_request.channel = None # break circ refs
 			self.current_request = None
 		
-		for closable in self.closables:
-			if closable:				
-				try: closable.close ()
-				except AttributeError: pass
+		for closable in self.closables + self.closables_when_done:
+			if closable and hasattr (closable, "close"):				
+				closable.close ()				
 		
 		self.discard_buffers ()
 		asynchat.async_chat.close (self)
@@ -326,14 +335,17 @@ class http_server (asyncore.dispatcher):
 		self.set_socket(sock)
 	
 	def clean_shutdown_control (self, phase, time_in_this_phase):
-		if phase == 2:
-			if self.worker_ident != "parent":
-				self.log_info ('abandon listening socket %s' % self.server_name)
-				self.del_channel ()
-			else:	
-				self.log_info ('closing %s' % self.server_name)
-				self.close ()
-				
+		if phase == 0:
+			self.log_info ('shutting down web server: %s' % self.server_name)
+			self.close ()			
+		return 0
+	
+	def close (self):
+		asyncore.dispatcher.close (self)
+		for h in self.handlers:
+			if hasattr (h, "close"):
+				h.close ()
+					
 	def writable (self):
 		return 0
 
