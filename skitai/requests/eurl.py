@@ -58,7 +58,7 @@ class EURL:
 		return self.header
 						
 	def __setitem__ (self, k, v):
-		if k [:5] in ("http-", "head-"):
+		if k [:5] in ("http-", "head-", "wsoc-"):
 			self.set_header_from_option (k, v)
 		else:	
 			self.info [k] = v
@@ -135,7 +135,7 @@ class EURL:
 				current_key = tk
 				d[current_key] = ''
 			
-			elif tk [:7] in ("--with-", "--head-", "--http-"):
+			elif tk [:7] in ("--with-", "--head-", "--http-", "--wsoc-"):				
 				current_key = token
 				d[current_key] = ''
 				
@@ -165,14 +165,12 @@ class EURL:
 				self ['method'] = k
 				self ['url'] = v.strip ()
 			elif k == "from":
-				self ["referer"] = v
-				self ["http-referer"] = v				
-			elif k [:7] in ("--http-", "--head-"):
-				self [k [2:]] = v
+				self ["referer"] = v.strip ()
+				self ["http-referer"] = v.strip ()				
+			elif k [:7] in ("--http-", "--head-", "--wsoc-"):
+				self [k [2:]] = v.strip ()
 			
-		self ['scheme'], self ['netloc'], self ['script'], self ['params'], self ['querystring'], self ['fragment'] = urlparse (self ['url'])		
-		if self ['scheme'] not in ("http", "https"):
-			raise ValueError("Unknown protocol: %s" % self ['scheme'])		
+		self ['scheme'], self ['netloc'], self ['script'], self ['params'], self ['querystring'], self ['fragment'] = urlparse (self ['url'])
 		if self ["http-form"] and self ['method'] not in ("post", "put"):
 			raise ValueError("Form exists but method isn't post or get")
 		if self ["method"] in ("post", "put") and not self ["http-form"]:

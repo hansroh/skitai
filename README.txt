@@ -6,12 +6,12 @@ Copyright (c) 2015 by Hans Roh
 License: BSD
 
 
-What's New: HTML5 Websocket Implemeted
----------------------------------------
+What's New: HTML5 Web Socket Implemented
+-----------------------------------------
 
-HTML5 websocket has been implemented. 
+HTML5 web socket has been implemented. 
 
-But I'm not sure my implemetation is right way, so it is experimental and unstatble.
+But I'm not sure my implemetation is right way, so it is experimental and unstatable.
 
 I think there're 3 handling ways to use websockets.
 
@@ -21,7 +21,7 @@ I think there're 3 handling ways to use websockets.
 
 3. one thread manages n websockets connection
 
-So skitai support above 3 ways.
+So skitai supports above all 3 ways.
 
 First of all, see conceptual client side java script for websocket.
 
@@ -83,11 +83,11 @@ WEBSOCKET_MULTICAST
 
 **WEBSOCKET_REQDATA**
 
-*Skitai-Saddle Style*
-
 Here's a echo app for showing simple request-respone.
 
 Client can connect by ws://localhost:5000/websocket/chat.
+
+*Skitai-Saddle Style*
 
 .. code:: python
 
@@ -1161,17 +1161,6 @@ Optional Requirements
 - *Jinja2* for HTML Rendering
 
 .. _`win32 binary`: http://www.stickpeople.com/projects/python/win-psycopg/
-
-
-    
-Documentation
--------------
-  
-  I'm so sorry, there's only very old documentation.
-  
-  https://gitlab.com/hansroh/skitai/wikis/home
-  
-  Fundemental concept and structure is not so changed, so it's better than none.
 
 
 Change Log

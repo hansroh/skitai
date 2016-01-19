@@ -31,13 +31,13 @@ class Part:
 		self.boundary = None
 		self.subpart = None		
 		
-		self.content_type, attr = self.get_header_with_attr ("Content-Type")
+		self.content_type, attr = self.get_header_with_attr ("Content-Type", "")
 		if self.content_type.startswith ("multipart/"):			
 			self.boundary = attr ["boundary"].encode ("utf8")
 			self.value = []
 		
 		else:
-			val, attr =	self.get_header_with_attr ("Content-Disposition")
+			val, attr =	self.get_header_with_attr ("Content-Disposition", "")
 			if val:
 				self.name = attr ["name"].replace ('"', "")
 				if "filename" in attr and attr ["filename"]:

@@ -34,9 +34,12 @@ PAYLOAD_LEN = 0x7f
 PAYLOAD_LEN_EXT16 = 0x7e
 PAYLOAD_LEN_EXT64 = 0x7f
 
-OPCODE_TEXT = 0x01
-OPCODE_BINARY = 0x02
-CLOSE_CONN  = 0x8
+OPCODE_CONTINUATION = 0x0
+OPCODE_TEXT = 0x1
+OPCODE_BINARY = 0x2
+OPCODE_CLOSE = 0x8
+OPCODE_PING = 0x9
+OPCODE_PONG = 0xa
 
 
 class WebSocket:
@@ -51,6 +54,7 @@ class WebSocket:
 		self.channel.set_terminator (2)
 		self.rfile = BytesIO ()
 		self.masks = b""
+		self.has_masks = True
 		self.buf = b""
 		self.payload_length = 0
 		self.opcode = None
@@ -73,23 +77,27 @@ class WebSocket:
 			return b
 		
 	def collect_incoming_data (self, data):
+		#print (">>>>", data)
 		if not data:
 			# closed connection
 			self.close ()
 			return
 		
-		if self.masks:
+		if self.masks or (not self.has_masks and self.payload_length):
 			self.rfile.write (data)			
 		else:
 			self.buf = data
 	
 	def found_terminator (self):
 		#print ("-----", self.buf, self.opcode, self.payload_length, self.masks)
-		if self.masks:
+		if self.masks or (not self.has_masks and self.payload_length):
 			# end of message
 			masked_data = bytearray(self.rfile.getvalue ())
-			masking_key = bytearray(self.masks)
-			data = bytearray ([masked_data[i] ^ masking_key [i%4] for i in range (len (masked_data))])
+			if self.masks:
+				masking_key = bytearray(self.masks)
+				data = bytearray ([masked_data[i] ^ masking_key [i%4] for i in range (len (masked_data))])
+			else:
+				data = masked_data	
 			
 			if self.opcode == OPCODE_TEXT:
 				# text
@@ -98,6 +106,7 @@ class WebSocket:
 			self.payload_length = 0
 			self.opcode = None
 			self.masks = b""
+			self.has_masks = True
 			self.rfile.seek (0)
 			self.rfile.truncate ()
 			self.channel.set_terminator (2)
@@ -107,41 +116,52 @@ class WebSocket:
 			self.masks = self.buf
 			self.channel.set_terminator (self.payload_length)
 		
-		elif self.opcode is None:
-			b1, b2 = self._tobytes(self.buf)
-			fin    = b1 & FIN
-			self.opcode = b1 & OPCODE
-			if self.opcode == CLOSE_CONN:
-				self.close ()
-				return
-				
-			mask = b2 & MASKED
-			if not mask:
-				raise AssertionError ("Client should always mask")
-			
-			payload_length = b2 & PAYLOAD_LEN
-			if payload_length == 0:
-				self.opcode = None
-				self.channel.set_terminator (2)
-				return
-			
-			if payload_length < 126:
-				self.payload_length = payload_length
-				self.channel.set_terminator (4) # mask
-			elif payload_length == 126:
-				self.channel.set_terminator (2)	# short length
-			elif payload_length == 127:
-				self.channel.set_terminator (8) # long length
-						
-		elif self.payload_length == 0:			
+		elif self.opcode:			
 			if len (self.buf) == 2:
 				fmt = ">H"
 			else:	
 				fmt = ">Q"
 			self.payload_length = struct.unpack(fmt, self._tobytes(self.buf))[0]
-			self.channel.set_terminator (4) # mask
+			if self.has_masks:
+				self.channel.set_terminator (4) # mask
+			else:
+				self.channel.set_terminator (self.payload_length)
 		
-	def send (self, message, op_code = OPCODE_TEXT):
+		elif self.opcode is None:
+			b1, b2 = self._tobytes(self.buf)
+			fin    = b1 & FIN
+			self.opcode = b1 & OPCODE
+			#print (fin, self.opcode)
+			if self.opcode == OPCODE_CLOSE:
+				self.close ()
+				return
+				
+			mask = b2 & MASKED
+			if not mask:
+				self.has_masks = False
+			
+			payload_length = b2 & PAYLOAD_LEN
+			if payload_length == 0:
+				self.opcode = None
+				self.has_masks = True
+				self.channel.set_terminator (2)
+				return
+			
+			if payload_length < 126:
+				self.payload_length = payload_length
+				if self.has_masks:
+					self.channel.set_terminator (4) # mask
+				else:
+					self.channel.set_terminator (self.payload_length)
+			elif payload_length == 126:
+				self.channel.set_terminator (2)	# short length
+			elif payload_length == 127:
+				self.channel.set_terminator (8) # long length
+		
+		else:
+			raise AssertionError ("Web socket frame decode error")
+			
+	def send (self, message, op_code = OPCODE_TEXT):		
 		header  = bytearray()
 		if strutil.is_encodable (message):
 			payload = message.encode ("utf8")
@@ -200,11 +220,12 @@ class Job1 (wsgi_handler.Job):
 		was = the_was._get ()
 		was.request = self.request
 		self.args [0]["skitai.was"] = was
+				
 		try:
-			content = self.apph (*self.args)
+			content = self.apph (*self.args) [0]
 		except:
 			content = self.apph.debug and "[ERROR]" + catch (0) or "[ERROR]"
-		self.args [1] (content [0])
+		self.args [1] (content)
 
 
 class WebSocket2 (WebSocket):
@@ -399,10 +420,11 @@ class Handler (wsgi_handler.Handler):
 		has_route = self.apps.has_route (path)
 		if type (has_route) is int:
 			return request.response.error (404)
-		if not self.authorized (request, has_route):
-			return
 		
 		apph = self.apps.get_app (path)
+		if not self.authorized (apph.get_callable(), request, has_route):
+			return
+			
 		env = self.build_environ (request, apph)
 		was = the_was._get ()
 		was.request = request

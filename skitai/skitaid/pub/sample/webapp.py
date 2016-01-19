@@ -6,6 +6,12 @@ app = Saddle (__name__)
 app.debug = True
 app.use_reloader = True
 
+#app.authorization = "digest"
+#app.realm = "Test"
+#app.user = "app"
+#app.password = "1111"
+
+
 @app.route ("/")
 def index (was):
 	t = was.app.get_template ("index.html")	
@@ -89,7 +95,7 @@ def websocket (was, mode = "echo"):
 		mode += "?name=Hans"
 	elif mode == "chat":	
 		mode += "?roomid=1"
-	return t.render ({"path": mode})
+	return t.render ({"path": mode, "host": was.request.get_header ("host")})
 	
 """
 # Flask

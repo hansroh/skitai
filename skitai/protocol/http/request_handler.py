@@ -1,8 +1,10 @@
 from . import response as http_response
-from skitai.client import adns
+from skitai.client import adns, asynconnect
 import base64
 from skitai.server import utility
 from hashlib import md5
+from base64 import b64encode
+import os
 
 class Authorizer:
 	def __init__ (self):
@@ -116,6 +118,15 @@ class RequestHandler:
 	#------------------------------------------------
 	# handler must provide these methods
 	#------------------------------------------------
+	def get_http_auth_header (self, data = b""):
+		auth = self.request.get_auth ()
+		if auth:
+			uri = self.asyncon.is_proxy () and self.request.uri or self.request.path
+			auth_header = authorizer.get (self.request.get_address (), auth, self.method, uri, data)
+			if auth_header is None:
+				raise AssertionError ("Unknown authedentification method")
+			return auth_header
+				
 	def get_request_buffer (self):
 		data = self.request.get_data ()		
 		is_data_producer = False
@@ -129,7 +140,7 @@ class RequestHandler:
 			hc ["Host"] = "%s" % address [0]
 		else:
 			hc ["Host"] = "%s:%d" % address
-
+		
 		hc ["Accept"] = "*/*"		
 		hc ["Accept-Encoding"] = "gzip"
 		
@@ -144,15 +155,10 @@ class RequestHandler:
 			ct = self.request.get_content_type ()		
 			if ct:
 				hc ["Content-Type"] = self.request.get_content_type ()
-				
-		auth = self.request.get_auth ()
-		if auth:
-			uri = self.asyncon.is_proxy () and self.request.uri or self.request.path
-			auth_header = authorizer.get (self.request.get_address (), auth, self.method, uri, data)
-			if auth_header is None:
-				raise AssertionError ("Unknown authedentification method")
-			if auth_header:
-				hc ["Authorization"] = auth_header
+			
+		auth_header = self.get_http_auth_header (data)
+		if auth_header:
+			hc ["Authorization"] = auth_header
 		
 		ua = self.request.get_useragent ()
 		if ua:
@@ -176,7 +182,7 @@ class RequestHandler:
 		else:	
 			return [req + data]
 	
-	def recalibrate_response (self, error, msg):
+	def rebuild_response (self, error, msg):
 		if self.response is None and not error and self.buffer: 
 			s = self.buffer.find (b"\n\n")
 			if s != -1:
@@ -202,26 +208,54 @@ class RequestHandler:
 		# finally call done, even if failed or error occured in recving body, just done.
 		self.response.done ()
 		return error, msg
+	
+	def handled_http_authorization (self):
+		if self.response.code != 401:
+			return 0 #pass
+			
+		if self.reauth_count > 0:
+			self.asyncon.close_it = True
+			self.asyncon.handle_close ()
+			return 1 # abort
 		
-	def done (self, error = 0, msg = ""):		
+		self.reauth_count = 1		
+		try: 
+			authorizer.set (self.request.get_address (), self.response.get_header ("WWW-Authenticate"), self.request.get_auth ())
+			bufs = self.get_request_buffer ()
+		
+		except:
+			self.trace ()				
+			self.response = http_response.FailedResponse (706, "Unknown Authedentification Method", self.request)			
+			self.asyncon.close_it = True
+			self.asyncon.handle_close ()
+			return 1 # abort
+			
+		else:
+			self.retry ()
+			return 1 #retry
+		
+		return 0 #pass
+	
+	def handle_disconnected (self):
+		if self.retry_count:
+			return False
+		self.retry_count = 1		
+		self.retry (True)
+		return True
+					
+	def retry (self, force_reconnect = False):
+		if self.connection == "close" or force_reconnect:
+			self.asyncon.close_socket ()
+		self.response = None
+		self.asyncon.request = None
+		for buf in self.get_request_buffer ():
+			self.asyncon.push (buf)
+		self.asyncon.set_terminator (b"\r\n\r\n")
+		self.asyncon.start_request (self)	
+		
+	def done (self, error = 0, msg = ""):
 		# handle abnormally raised exceptions like network error etc.
-		self.recalibrate_response (error, msg)		
-		
-		if self.reauth_count == 0 and self.response.code == 401:
-			self.reauth_count = 1		
-			try: 
-				authorizer.set (self.request.get_address (), self.response.get_header ("WWW-Authenticate"), self.request.get_auth ())
-				bufs = self.get_request_buffer ()
-			except:
-				self.trace ()				
-				self.response = http_response.FailedResponse (706, "Unknown Authedentification Method", self.request)
-			else:
-				for buf in bufs:
-					self.asyncon.push (buf)				
-				self.response = None
-				self.asyncon.set_terminator (b"\r\n\r\n")
-				self.asyncon.start_request (self)
-				return 401
+		self.rebuild_response (error, msg)		
 		
 		if self.asyncon:
 			self.asyncon.request = None		
@@ -238,12 +272,16 @@ class RequestHandler:
 			except:
 				self.response = http_response.FailedResponse (709, "Invalid Content", self.request)
 				raise
-			
+	
+	def found_end_of_body (self):		
+		if self.handled_http_authorization ():					
+			return
+		self.asyncon.handle_close ()
+		
 	def found_terminator (self):
 		if self.response:
 			if self.end_of_data:
-				self.asyncon.handle_close ()
-				return
+				return self.found_end_of_body ()				
 			
 			if self.wrap_in_chunk:			
 				if self.asyncon.get_terminator () == 0:
@@ -265,7 +303,7 @@ class RequestHandler:
 					self.asyncon.set_terminator (chunked_size)
 			
 			elif self.asyncon.get_terminator () == 0:
-				self.asyncon.handle_close ()
+				self.found_end_of_body ()
 						
 		else:
 			try:
@@ -275,12 +313,12 @@ class RequestHandler:
 				# If not, recv data continuously T.T
 				self.asyncon.handle_error ()
 				return
-			
+					
 			# 100 Continue etc. try recv continued header
 			if self.response is None:
 				return
 				
-			self.asyncon.close_it = self.will_be_close ()			
+			self.asyncon.close_it = self.will_be_close ()		
 			if self.used_chunk ():
 				self.wrap_in_chunk = True
 				self.asyncon.set_terminator (b"\r\n") #chunked transfer
@@ -293,11 +331,10 @@ class RequestHandler:
 						clen = ""
 					else:
 						clen = 0 # no transfer-encoding, no content-lenth
-				
-				if clen == 0:
-					self.asyncon.handle_close ()
-					return
-					
+												
+				if clen == 0:					
+					return self.found_end_of_body ()
+										
 				self.asyncon.set_terminator (clen)
 			
 			#self.buffer = ""
@@ -307,7 +344,7 @@ class RequestHandler:
 		buffer, self.buffer = self.buffer, b""
 		#print (repr (buffer))
 		try:
-			self.response = http_response.Response (self.request, buffer.decode ("utf8"))		
+			self.response = http_response.Response (self.request, buffer.decode ("utf8"))
 		except:
 			self.log ("response header error: `%s`" % repr (buffer.decode ("utf8") [:80]), "error")
 			raise
@@ -337,20 +374,6 @@ class RequestHandler:
 			self.asyncon.push (buf)
 		self.asyncon.start_request (self)
 	
-	def retry (self):
-		if self.retry_count:
-			return False
-			
-		self.response = None
-		self.asyncon.close_socket ()
-		self.asyncon.request = None # unlink back ref.
-		self.retry_count = 1		
-		self.asyncon.cancel_request ()
-		for buf in self.get_request_buffer ():
-			self.asyncon.push (buf)
-		self.asyncon.start_request (self)
-		return True
-					
 	def will_be_close (self):
 		if self.response is None:
 			return True
@@ -359,12 +382,12 @@ class RequestHandler:
 			return True
 				
 		close_it = True
-		connection = self.response.get_header ("connection")
-		if self.response.version in ("1.1", "1.x"):
-			if not connection or connection.lower () == "keep-alive":
+		connection = self.response.get_header ("connection", "").lower ()
+		if self.response.version == "1.1":
+			if not connection or connection.find ("keep-alive") != -1 or connection.find ("upgrade") != -1:
 				close_it = False
 		else:
-			if connection and connection.lower () == "keep-alive":
+			if connection.find ("keep-alive") != -1:
 				close_it = False
 		
 		if not close_it:

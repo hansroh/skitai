@@ -92,7 +92,7 @@ class WAS:
 	def __getattr__ (self, name):
 		return _Method(self._call, name)
 	
-	VALID_COMMANDS = ["get", "post", "rpc", "put", "upload", "delete", "options", "db"]
+	VALID_COMMANDS = ["ws", "get", "post", "rpc", "put", "upload", "delete", "options", "db"]
 	def _call (self, method, args, karg):
 		# was.db, 		was.get, 			was.post,			was.put, ...
 		# was.db.lb, 	was.get.lb,		was.post.lb,	was.put.lb, ...

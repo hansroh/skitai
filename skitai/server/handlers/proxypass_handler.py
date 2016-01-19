@@ -86,7 +86,10 @@ class Handler (proxy_handler.Handler):
 						collector.reuse_cache ()
 					self.route (request, collector)
 					return self.dealloc (request, handler)
-					
+		
+		elif response.code == 101: # websocket connection upgrade
+			self.upgrade (handler)
+						
 		else:
 			try:	
 				self.save_cache (request, handler)					

@@ -10,7 +10,7 @@ except ImportError:
 	from urllib import quote
 	from urlparse import urlparse
 				
-from skitai.lib import producers
+from skitai.lib import producers, strutil
 
 
 class XMLRPCRequest:
@@ -38,7 +38,7 @@ class XMLRPCRequest:
 		return "POST"
 		
 	def split (self, uri):
-		if not (uri.startswith ("http://") or uri.startswith ("https://")):
+		if uri.find ("://") == -1:
 			return None, uri
 			
 		scheme, address, script, params, qs, fragment = urlparse (uri)
@@ -52,7 +52,7 @@ class XMLRPCRequest:
 			port = int (port)
 		except ValueError:
 			host = address
-			if scheme == "http":
+			if scheme in ("http", "ws"):
 				port = 80
 			else:
 				port = 443	
@@ -63,8 +63,7 @@ class XMLRPCRequest:
 		return xmlrpclib.dumps (self.params, self.method, encoding=self.encoding, allow_none=1).encode ("utf8")
 	
 	def get_auth (self):
-		if self.auth:
-			return base64.encodestring (self.auth) [:-1]
+		return self.auth
 		
 	def get_data (self):
 		return self.data
@@ -79,7 +78,7 @@ class XMLRPCRequest:
 					del self.headers [k]
 				elif k.lower () == "content-type":
 					self.content_type = v
-					del self.headers [k]					
+					del self.headers [k]
 		return self.content_type
 	
 	def get_headers (self):
@@ -113,7 +112,7 @@ class HTTPRequest (XMLRPCRequest):
 						
 		return self.params
 		
-	
+		
 class HTTPPutRequest (HTTPRequest):
 	# PUT content-type hasn't got default type
 	content_type = None

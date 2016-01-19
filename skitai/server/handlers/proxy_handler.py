@@ -72,7 +72,7 @@ class TunnelForServerToClient:
 		self.bytes += len (data)		
 		self.channel.push (data)
 	
-	def retry (self):
+	def handle_disconnected (self):
 		return False
 		
 	def log_request (self):
@@ -131,7 +131,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 			return
 
 		# handle abnormally raised exceptions like network error etc.
-		error, msg = self.recalibrate_response (error, msg)
+		error, msg = self.rebuild_response (error, msg)
 		# finally, push response, but do not bind ready func because all data had been recieved.
 		if not error:
 			self.push_response ()
@@ -204,7 +204,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 			self.push_collector ()
 		self.asyncon.start_request (self)
 	
-	def retry (self):
+	def handle_disconnected (self):
 		if self.retry_count: 
 			return False
 		if self.collector and not self.collector.cached:
@@ -594,11 +594,24 @@ class Handler (wsgi_handler.Handler):
 		request.producer = None
 		request.response = None # break back ref.		
 		del handler
-						
+	
+	def upgrade (self, handler):
+		if response.get_header ("sec-websocket-accept"):
+			request.channel.set_terminator (None)
+			cli2srv = TunnelForClientToServer (handler.asyncon)
+			request.channel.current_request = cli2srv		
+			self.wasc.logger ("server", "connection upgrade %s" % self.request.uri)
+			request.channel.keep_alive = TunnelForServerToClient.keep_alive
+			handler.asyncon.set_keep_alive_timeout (TunnelForServerToClient.keep_alive)
+			
 	def callback (self, handler):
 		response, request = handler.response, handler.client_request
 		if response.code >= 700:			
 			request.response.error (506, response.msg)
+		
+		elif response.code == 101: # websocket connection upgrade
+			self.upgrade (handler)
+			
 		else:
 			try:
 				self.save_cache (request, handler)					
@@ -606,7 +619,6 @@ class Handler (wsgi_handler.Handler):
 				self.wasc.logger.trace ("server")
 		
 		self.dealloc (request, handler)
-
 		try: self.q [request.channel.addr[0]][request.get_header ("host")].done () # decrease current_requests
 		except KeyError: pass
 		self.handle_queue ()

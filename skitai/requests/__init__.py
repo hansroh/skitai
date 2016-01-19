@@ -3,6 +3,7 @@ from . import localstorage
 from skitai.protocol.http import request as http_request
 from skitai.protocol.http import response as http_response
 from skitai.protocol.http import request_handler as http_request_handler
+from skitai.protocol.ws import request_handler as ws_request_handler
 from skitai.protocol.dns import asyndns
 from skitai.client import socketpool, asynconnect
 from skitai.server.threads import trigger
@@ -204,7 +205,7 @@ class SSLProxyRequestHandler:
 			self.done (code, msg)
 	
 	def done (self, code, msg):
-		if code:			
+		if code:
 			self.asyncon.request = None # unlink back ref			
 			self.respone = http_response.FailedResponse (code, msg, self.request)
 			self.callback (self)
@@ -219,23 +220,12 @@ class SSLProxyRequestHandler:
 		self.buffer = b""		
 
 
-class Request (http_request.HTTPRequest):
-	def __init__ (self, thing, data = {}, logger = None):
-		if localstorage.localstorage is None:
-			configure (logger)
-			
-		if strutil.is_str_like (thing):
-			self.el = eurl.EURL (thing, data)
-		else:
-			self.el = thing
-
-		http_request.HTTPRequest.__init__ (
-			self, 
-			self.el ["rfc"], 
-			self.el ["method"].upper (), 
-			headers = self.el.get_header (),
-			logger = logger
-			)
+class HTTPRequest (http_request.HTTPRequest):
+	def __init__ (self, el, logger = None):		
+		self.el = el			
+		url = self.el ["rfc"]
+		method = self.el ["method"].upper ()
+		http_request.HTTPRequest.__init__ (self, url, method, headers = self.el.get_header (), logger = logger)
 			
 	def split (self, uri):
 		return (self.el ["netloc"], self.el ["port"]), self.el ["uri"]
@@ -245,8 +235,9 @@ class Request (http_request.HTTPRequest):
 		
 	def get_auth (self):
 		return self.el ["http-auth"]
-		
+			
 	def get_data (self):
+		if self.el ["scheme"] in ("ws", "wss"): return b""
 		return self.el ["http-form"] is not None and self.el ["http-form"].encode ("utf8") or b""
 
 	def get_eurl (self):
@@ -255,40 +246,57 @@ class Request (http_request.HTTPRequest):
 	def get_useragent (self):
 		return self.el ["http-user-agent"]	
 		
+
+class WSRequest (HTTPRequest, ws_request_handler.Request):
+	def __init__ (self, el, logger = None):
+		self.el = el
+		ws_request_handler.Request.__init__ (self, self.el ["rfc"], self.el ["wsoc-message"], self.el ["wsoc-opcode"], self.el ["http-auth"], logger = logger)
+		
 		
 class Item:
 	def __init__ (self, thing, callback, logger = None):
 		global _logger, _timeout
 		
+		if localstorage.localstorage is None:
+			configure (logger)
+		
+		if strutil.is_str_like (thing):
+			self.el = eurl.EURL (thing)
+		else:
+			self.el = thing
+			
 		if logger:
 			self.logger = logger			
 		else:
 			self.logger = _logger
 		self.callback = callback
-	
-		request = Request (thing, logger = self.logger)
-		sp = socketpool.socketpool
-		if request.el ["http-tunnel"]:		
+		
+		if self.el ["scheme"] in ("ws", "wss"):
+			request = WSRequest (self.el, logger = self.logger)
+			handler_class = ws_request_handler.RequestHandler
+		else:
+			request = HTTPRequest (self.el, logger = self.logger)
+			handler_class = http_request_handler.RequestHandler
+			
+		sp = socketpool.socketpool		
+		if request.el ["http-tunnel"]:
 			request.el.to_version_11 ()
 			asyncon = sp.get ("proxys://%s" % request.el ["http-tunnel"])				
 			asyncon.set_network_delay_timeout (_timeout)
 			if not asyncon.connected:
 				asyncon.request = SSLProxyRequestHandler (asyncon, request, self.callback_wrap)
-				return				
-		
+				return		
 		elif request.el ["http-proxy"]:
 			asyncon = sp.get ("proxy://%s" % request.el ["http-proxy"])
-
 		else:
-			asyncon = sp.get (request.el ["rfc"])			
-		
-		http_request_handler.RequestHandler (
-			asyncon,
-			request, 
-			self.callback_wrap,
-			request.el ["http-version"],
-			request.el.get_connection ()
-		).start ()
+			asyncon = sp.get (request.el ["rfc"])
+					
+		handler_class (asyncon, request, self.callback_wrap, request.el ["http-version"], request.el.get_connection ()).start ()
+	
+	def handle_websocket (self, handler):
+		if handler.response.code == 101:
+			request = WSRequest (handler.request.el, logger = self.logger)
+			ws_request_handler.RequestHandler (asyncon, request, self.callback_wrap).start ()
 		
 	def callback_wrap (self, handler):
 		global _latest

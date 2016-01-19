@@ -144,7 +144,7 @@ class SocketPool:
 		return asyncon
 	
 	def create_asyncon (self, server, scheme):
-		if scheme == "https":
+		if scheme in ("https", "wss"):
 			__conn_class = asynconnect.AsynSSLConnect
 			__dft_Port = 443
 		elif scheme == "tunnel":
@@ -174,7 +174,7 @@ class SocketPool:
 				
 	def get (self, uri):	
 		scheme, server, script, params, qs, fragment = urlparse (uri)
-		serverkey = "%s://%s" % (scheme, server)
+		serverkey = "%s://%s" % (scheme, server)		
 		return self._get (serverkey, server, scheme)
 		
 	def cleanup (self):

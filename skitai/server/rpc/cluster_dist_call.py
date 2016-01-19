@@ -4,6 +4,7 @@ import threading
 from skitai.protocol.http import request as http_request
 from skitai.protocol.http import request_handler as http_request_handler
 from skitai.protocol.http import response as http_response
+from skitai.protocol.ws import request_handler as ws_request_handler
 from skitai.server import rcache
 
 
@@ -13,7 +14,10 @@ class Result (rcache.Result):
 		self.node = id
 		self._response = response
 		self.set_result ()
-		
+	
+	def __getattr__ (self, attr):
+		return getattr (self._response, attr)
+			
 	def set_result(self):
 		self.data = self._response.get_content ()
 		self.header = self._response.header
@@ -189,13 +193,13 @@ class ClusterDistCall:
 		if cluster_name == "socketpool":
 			_id = "%s/%s" % (self._uri, self._reqtype)
 		else:
-			_id = "%s/%s/%s" % (cluster_name, self._uri, self._reqtype)
+			_id = "%s/%s/%s" % (cluster_name, self._uri, self._reqtype)		
 		_id += "/%s/%s" % self._cached_request_args
 		_id += "%s" % (
 			self._mapreduce and "/M" or ""			
 			)
 		return _id
-				
+		
 	def _request (self, method, params):
 		self._cached_request_args = (method, params) # backup for retry
 		if rcache.the_rcache:
@@ -210,22 +214,31 @@ class ClusterDistCall:
 				asyncon = self._get_connection (self._uri)
 			
 			_reqtype = self._reqtype.lower ()
-			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self.get_ident () or None, filterfunc = self._callback)
+			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self.get_ident () or None, filterfunc = self._callback)			
 			
-			if _reqtype == "rpc":
-				request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)				
-			elif _reqtype == "jsonrpc":
-				request = http_request.JSONRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)		
-			elif _reqtype == "upload": 
-				request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
-			elif _reqtype == "put":
-				request = http_request.HTTPPutRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
-			else: # "get", "post", "delete", ...
-				request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
-			
-			self._requests[rs] = asyncon
-			r = http_request_handler.RequestHandler (asyncon, request, rs.handle_result)
-			r.start ()
+			if _reqtype in ("ws", "wss"):				
+					if self.encoding is None:
+						self.encoding = 1 # opcode TEXT
+					request = ws_request_handler.Request (self._uri, params, self._headers, self._encoding, self._auth, self._logger)
+					self._requests[rs] = asyncon
+					r = ws_request_handler.RequestHandler (asyncon, request, rs.handle_result)
+					r.start ()
+											
+			else:											
+				if _reqtype == "rpc":
+					request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)				
+				elif _reqtype == "jsonrpc":
+					request = http_request.JSONRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)		
+				elif _reqtype == "upload": 
+					request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
+				elif _reqtype == "put":
+					request = http_request.HTTPPutRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
+				else:
+					request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
+				
+				self._requests[rs] = asyncon
+				r = http_request_handler.RequestHandler (asyncon, request, rs.handle_result)
+				r.start ()
 			
 		trigger.wakeup ()
 		
@@ -307,9 +320,9 @@ class ClusterDistCallCreator:
 	def __getattr__ (self, name):	
 		return getattr (self.cluster, name)
 		
-	def Server (self, uri, params = None, reqtype="rpc", headers = None, login = None, encoding = None, mapreduce = False, callback = None):
+	def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, encoding = None, mapreduce = False, callback = None):
 		# reqtype: rpc, get, post, head, put, delete
-		return ClusterDistCall (self.cluster, uri, params, reqtype, headers, login, encoding, mapreduce, callback, self.logger)
+		return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, encoding, mapreduce, callback, self.logger)
 		
 	
 if __name__ == "__main__":
@@ -356,4 +369,4 @@ if __name__ == "__main__":
 	trigger.start_trigger ()
 	
 	testCluster ()
-	testSocketPool ()	
+	testSocketPool ()

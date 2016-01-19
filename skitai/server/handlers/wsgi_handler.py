@@ -110,8 +110,7 @@ class Handler:
 
 		return collector
 	
-	def authorized (self, request, route):	
-		app = self.apps.get_app (route).get_callable()
+	def authorized (self, app, request, route):			
 		try: 
 			www_authenticate = app.authorize (request.get_header ("Authorization"), request.command, request.uri)
 			if www_authenticate:
@@ -140,7 +139,8 @@ class Handler:
 			else:	
 				return request.response.error (301)
 		
-		if not self.authorized (request, has_route):
+		app = self.apps.get_app (has_route).get_callable()		
+		if not self.authorized (app, request, has_route):
 			return 
 		
 		ct = request.get_header ("content-type")
@@ -241,7 +241,7 @@ class Job:
 			
 			if type (content) not in (list, tuple):
 				content = (content,) # make iterable
-				
+
 			will_be_push = []
 			if len (response) == 0:
 				content_length = 0
