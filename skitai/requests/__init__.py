@@ -202,11 +202,11 @@ class SSLProxyRequestHandler:
 				self.request.el.get_connection ()
 			).start ()
 		else:
-			self.done (code, msg)
+			self.case_closed (code, msg)
 	
-	def done (self, code, msg):
+	def case_closed (self, code, msg):
 		if code:
-			self.asyncon.request = None # unlink back ref			
+			self.asyncon.handler = None # unlink back ref			
 			self.respone = http_response.FailedResponse (code, msg, self.request)
 			self.callback (self)
 			
@@ -274,6 +274,12 @@ class Item:
 		if self.el ["scheme"] in ("ws", "wss"):
 			request = WSRequest (self.el, logger = self.logger)
 			handler_class = ws_request_handler.RequestHandler
+			
+			# websocket proxy should be tunnel
+			if self.el.has_key ("http-proxy"):
+				self.el ["http-tunnel"] = self.el ["http-proxy"]
+				del self.el ["http-proxy"]
+				
 		else:
 			request = HTTPRequest (self.el, logger = self.logger)
 			handler_class = http_request_handler.RequestHandler
@@ -281,10 +287,10 @@ class Item:
 		sp = socketpool.socketpool		
 		if request.el ["http-tunnel"]:
 			request.el.to_version_11 ()
-			asyncon = sp.get ("proxys://%s" % request.el ["http-tunnel"])				
+			asyncon = sp.get ("proxys://%s" % request.el ["http-tunnel"])
 			asyncon.set_network_delay_timeout (_timeout)
 			if not asyncon.connected:
-				asyncon.request = SSLProxyRequestHandler (asyncon, request, self.callback_wrap)
+				asyncon.handler = SSLProxyRequestHandler (asyncon, request, self.callback_wrap)
 				return		
 		elif request.el ["http-proxy"]:
 			asyncon = sp.get ("proxy://%s" % request.el ["http-proxy"])

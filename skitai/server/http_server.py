@@ -17,7 +17,6 @@ SURVAIL = True
 EXITCODE = 0
 DEBUG = False
 
-
 	
 #-------------------------------------------------------------------
 # server channel
@@ -129,6 +128,7 @@ class http_channel (asynchat.async_chat):
 		self.affluent = None
 							
 	def send (self, data):
+		#print 	(str(data), self.current_request)
 		if DEBUG:
 			self.debug_buffer += str (data)
 		self.event_time = int (time.time())
@@ -144,16 +144,16 @@ class http_channel (asynchat.async_chat):
 			self.server.bytes_in.inc (len (result))
 			if not result:
 				self.handle_close ()
-				return b""			
-			#print ("*****************", repr (result))
+				return b""		
+			#print 	(repr(result), self.current_request)
 			return result
 			
 		except MemoryError:
 			lifetime.shutdown (1, 1)
-			
+				
 	def collect_incoming_data (self, data):
-		#print ("collect_incoming_data", repr (data [:180]))
-		if self.current_request:			
+		#print ("collect_incoming_data", repr (data [:180]), self.current_request)
+		if self.current_request:
 			self.current_request.collect_incoming_data (data)
 		else:
 			self.in_buffer = self.in_buffer + data

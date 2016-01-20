@@ -1,5 +1,5 @@
 from . import response as http_response
-from skitai.client import adns, asynconnect
+from skitai.client import asynconnect
 import base64
 from skitai.server import utility
 from hashlib import md5
@@ -221,8 +221,7 @@ class RequestHandler:
 		self.reauth_count = 1		
 		try: 
 			authorizer.set (self.request.get_address (), self.response.get_header ("WWW-Authenticate"), self.request.get_auth ())
-			bufs = self.get_request_buffer ()
-		
+					
 		except:
 			self.trace ()				
 			self.response = http_response.FailedResponse (706, "Unknown Authedentification Method", self.request)			
@@ -247,18 +246,18 @@ class RequestHandler:
 		if self.connection == "close" or force_reconnect:
 			self.asyncon.close_socket ()
 		self.response = None
-		self.asyncon.request = None
+		self.asyncon.handler = None
 		for buf in self.get_request_buffer ():
 			self.asyncon.push (buf)
 		self.asyncon.set_terminator (b"\r\n\r\n")
 		self.asyncon.start_request (self)	
 		
-	def done (self, error = 0, msg = ""):
+	def case_closed (self, error = 0, msg = ""):
 		# handle abnormally raised exceptions like network error etc.
 		self.rebuild_response (error, msg)		
 		
 		if self.asyncon:
-			self.asyncon.request = None		
+			self.asyncon.handler = None		
 						
 		if self.callback:
 			self.callback (self)
@@ -359,17 +358,7 @@ class RequestHandler:
 			return True
 		return False	
 			
-	def start (self):		
-		if adns.query:
-			adns.query (self.asyncon.address [0], "A", callback = self.continue_start)
-		else:
-			self.continue_start (True)
-		
-	def continue_start (self, answer):
-		if not answer:
-			self.log ("DNS not found - %s" % self.asyncon.address [0], "error")
-			return self.done (704, "DNS Not Found")
-		
+	def start (self):
 		for buf in self.get_request_buffer ():
 			self.asyncon.push (buf)
 		self.asyncon.start_request (self)

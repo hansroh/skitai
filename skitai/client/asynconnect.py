@@ -16,7 +16,6 @@ from warnings import warn
 class SocketPanic (Exception): pass
 class TimeOut (Exception): pass
 
-
 class AsynConnect (asynchat.async_chat):
 	ac_in_buffer_size = 4096
 	ac_out_buffer_size = 4096
@@ -51,16 +50,16 @@ class AsynConnect (asynchat.async_chat):
 		return self.proxy
 			
 	def log (self, msg, logtype):
-		if self.request is not None and hasattr (self.request, "log"):
-			self.request.log (msg, logtype)
+		if self.handler is not None and hasattr (self.handler, "log"):
+			self.handler.log (msg, logtype)
 		elif self.logger:
 			self.logger (msg, logtype)
 		else:
 			warn ("No logger")
 			
 	def trace (self):		
-		if self.request is not None and hasattr (self.request, "trace"):
-			self.request.trace ()
+		if self.handler is not None and hasattr (self.handler, "trace"):
+			self.handler.trace ()
 		elif self.logger:
 			self.logger.trace ()
 		else:
@@ -75,7 +74,7 @@ class AsynConnect (asynchat.async_chat):
 				
 	def initialize (self):
 		self.event_time = time.time ()
-		self.request = None
+		self.handler = None
 		self.sent = 0
 		self.received = 0
 		self.close_it = False
@@ -121,7 +120,6 @@ class AsynConnect (asynchat.async_chat):
 		self.producer_fifo.clear()	
 						
 	def close_socket (self):
-		print ("$$$$$$$$$$$$$$$$$$$$$$$$$$$$", time.time () - self.event_time, self.connected, self.sent, self.received)
 		self.connected = False
 		self.accepting = False		
 		self.del_channel ()
@@ -147,25 +145,25 @@ class AsynConnect (asynchat.async_chat):
 		else:			
 			self.del_channel ()
 		
-		if self.request:
+		if self.handler:
 			ret = None
 			try:			
 				# request continue cause of 401 error
-				ret = self.request.done (self.errcode, self.errmsg)					
+				ret = self.handler.case_closed (self.errcode, self.errmsg)					
 			except:
 				self.trace ()
 			else:
 				if ret is not None:
 					return			
 		
-		self.request = None			
+		self.handler = None			
 		self.set_active (False)
 	
 	def abort (self):
 		try:
 			self.close_socket ()
 		finally:	
-			self.request = None
+			self.handler = None
 			self.set_active (False)
 			
 	def error (self, code, msg):
@@ -224,13 +222,20 @@ class AsynConnect (asynchat.async_chat):
 		sock.setblocking (0)
 		self.set_socket (sock)
 	
-	def connect_with_adns (self):
+	def connect (self):
 		if adns.query:
-			adns.query (self.address [0], "A", callback = self.connect)
+			adns.query (self.address [0], "A", callback = self.continue_connect)
 		else:
-			self.connect ()
+			# no adns query
+			self.continue_connect (True)
 	
-	def connect (self, force = 0):
+	def continue_connect (self, answer = None):
+		if not answer:
+			self.log ("DNS not found - %s" % self.asyncon.address [0], "error")
+			self.error (704, "DNS Not Found")
+			self.handle_close ()
+			return
+		
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
 		
 		try:
@@ -253,7 +258,7 @@ class AsynConnect (asynchat.async_chat):
 	def recv (self, buffer_size):		
 		self.event_time = time.time ()
 		try:
-			data = self.socket.recv(buffer_size)			
+			data = self.socket.recv(buffer_size)	
 			#print ("+++++DATA", len (data), repr (data [:40]))				
 			if not data:
 				if not self.connected:
@@ -288,7 +293,7 @@ class AsynConnect (asynchat.async_chat):
 				raise
 	
 	def send (self, data):
-		#print self.request, data
+		#print ("+++++DATA", len (data), repr (data [:40]))	
 		self.event_time = time.time ()
 		try:
 			sent = self.socket.send (data)
@@ -322,7 +327,7 @@ class AsynConnect (asynchat.async_chat):
 	def disconnect_handled (self):	
 		if self.received:
 			return False
-		return self.request.handle_disconnected ()		
+		return self.handler.handle_disconnected ()		
 
 	def close_if_over_keep_live (self):
 		if time.time () - self.event_time > self.zombie_timeout:
@@ -331,10 +336,10 @@ class AsynConnect (asynchat.async_chat):
 			return True
 		return False
 		
-	def start_request (self, request):
+	def start_request (self, handler):
 		self.initialize ()
-		self.request = request
-		self.debug_info = (request.method, request.uri, request.http_version)
+		self.handler = handler
+		self.debug_info = (handler.method, handler.uri, handler.http_version)
 		
 		if self.connected:
 			self.close_if_over_keep_live () # check keep-alive
@@ -367,15 +372,15 @@ class AsynConnect (asynchat.async_chat):
 			self.initiate_send ()
 					
 	def collect_incoming_data (self, data):
-		if not self.request:
+		if not self.handler:
 			return # already closed				
 		#print (repr (data[:79]))
-		self.request.collect_incoming_data (data)
+		self.handler.collect_incoming_data (data)
 	
 	def found_terminator (self):
-		if not self.request: 
+		if not self.handler: 
 			return # already closed
-		self.request.found_terminator ()
+		self.handler.found_terminator ()
 	
 	def set_zombie_timeout (self, timeout = 10):
 		self.zombie_timeout = timeout
@@ -394,7 +399,7 @@ class AsynConnect (asynchat.async_chat):
 		
 	def handle_connect (self):
 		try: 
-			self.request.when_connected ()
+			self.handler.has_been_connected ()
 		except AttributeError:
 			pass
 			
@@ -436,10 +441,10 @@ class AsynSSLConnect (AsynConnect):
 	ac_in_buffer_size = 65535 # generally safe setting 65535 for SSL
 	ac_out_buffer_size = 65535
 	
-	def connect (self, force = 0):
+	def connect (self):
 		self.handshaking = False
 		self.handshaked = False
-		AsynConnect.connect (self, force)
+		AsynConnect.connect (self)
 	
 	def handshake (self):
 		if not self.handshaking:

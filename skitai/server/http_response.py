@@ -106,10 +106,6 @@ class http_response:
 		h = '\r\n'.join (
 				[self.response(self.reply_code, self.reply_message)] + ['%s: %s' % x for x in self.reply_headers]
 				) + '\r\n\r\n'			
-		
-		#print ("####### SKITAI => CLIENT ##########################")
-		#print (h)
-		#print ("-------------------------------------------")
 		return h		
 	
 	def get_status_msg (self, code):
@@ -246,7 +242,7 @@ class http_response:
 		else:
 			self.outgoing.push (thing)
 					
-	def done (self, globbing = True, compress = True, force_close = False):
+	def done (self, globbing = True, compress = True, force_close = False, next_request = None):
 		self.htime = (time.time () - self.stime) * 1000
 		self.stime = time.time () #for delivery time
 		
@@ -364,8 +360,14 @@ class http_response:
 				self.request.channel.push_with_producer (producers.globbing_producer (producers.hooked_producer (outgoing_producer, self.log)))
 			else:
 				self.request.channel.push_with_producer (producers.hooked_producer (outgoing_producer, self.log))
-			
-			self.request.channel.current_request = None
+
+			if next_request:
+				request, terminator = next_request
+				self.request.channel.current_request = request
+				self.request.channel.set_terminator (terminator)				
+			else:
+				self.request.channel.current_request = None
+				
 			# proxy collector and producer is related to asynconnect
 			# and relay data with channel
 			# then if request is suddenly stopped, make sure close them

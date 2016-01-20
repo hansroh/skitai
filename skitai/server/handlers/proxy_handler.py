@@ -9,24 +9,23 @@ import time
 
 post_max_size = wsgi_handler.Handler.post_max_size
 upload_max_size = wsgi_handler.Handler.upload_max_size
+PROXY_TUNNEL_KEEP_ALIVE = 120
 
 class TunnelForClientToServer:
 	collector = None
 	producer = None
 	def __init__ (self, asyncon):
 		self.asyncon = asyncon
-		self.bytes = 0
-		
+		self.bytes = 0		
 		self.asyncon.set_terminator (None)
 		
 	def collect_incoming_data (self, data):
-		#print (repr(data))
-		self.bytes += len (data)
+		self.bytes += len (data)		
 		self.asyncon.push (data)
 	
 	def close (self):
 		self.asyncon.close_socket ()
-		self.asyncon.request = None # unlink back ref
+		self.asyncon.handler = None # unlink back ref
 
 
 class TunnelForServerToClient:
@@ -34,14 +33,10 @@ class TunnelForServerToClient:
 	def __init__ (self, request, asyncon):
 		self.request = request
 		self.channel = request.channel
-		self.asyncon = asyncon
-			
+		self.asyncon = asyncon		
 		self.bytes = 0
 		self.stime = time.time ()
 		self.cli2srv = None
-		
-		if not self.asyncon.connected:
-			self.asyncon.connect_with_adns ()
 				
 	def trace (self, name = None):
 		if name is None:
@@ -52,18 +47,9 @@ class TunnelForServerToClient:
 		uri = "tunnel://%s:%d" % self.asyncon.address
 		self.channel.log ("%s - %s" % (uri, message), type)
 	
-	def when_connected (self):
-		self.channel.set_terminator (None)
-		self.cli2srv = TunnelForClientToServer (self.asyncon)
-		self.channel.current_request = self.cli2srv		
-		self.log ("connection maden to %s" % self.request.uri)
-		self.request.response.instant ("200 Connection Established", [("Keep-Alive", "timeout=%d" % self.keep_alive)])
-		self.channel.keep_alive = self.keep_alive # SSL Proxy timeout
-		self.asyncon.set_keep_alive_timeout (self.keep_alive)
-		
-	def done (self, code, msg):
+	def case_closed (self, code, msg):
 		if code and self.bytes == 0:
-			self.asyncon.request = None # unlink back ref
+			self.asyncon.handler = None # unlink back ref
 			self.request.response.error (507, msg)			
 		else:
 			self.close ()
@@ -104,23 +90,44 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		self.is_pushed_response = False
 			
 	def add_reply_headers (self):
-		for line in self.response.get_headers ():
+		for line in self.response.get_headers ():			
 			try: k, v = line.split (": ", 1)
-			except:	continue
+			except:	continue			
 			ll = k.lower ()
 			if ll in ("expires", "date", "connection", "keep-alive", "content-length", "transfer-encoding", "content-encoding", "age", "vary"):
 				continue
 			self.client_request.response [k] = v.strip ()
 	
+	def create_tunnel (self):
+		response, request, asyncon = self.response, self.client_request, self.asyncon		
+		cli2srv = TunnelForClientToServer (asyncon)
+		asyncon.handler = TunnelForServerToClient (request, asyncon)		
+		request.channel.keep_alive = PROXY_TUNNEL_KEEP_ALIVE		
+		asyncon.set_keep_alive_timeout (PROXY_TUNNEL_KEEP_ALIVE)
+		request.response.done (globbing = False, compress = False, next_request = (cli2srv, None)) # request, terminator		
+			
+	def has_been_connected (self):
+		if self.request.method == "connect":
+			self.buffer =	b"HTTP/1.1 200 Connection Established\r\nKeep-Alive: timeout=120"				
+			self.create_response ()
+			self.found_terminator ()
+		
 	def push_response (self):		
 		if self.is_pushed_response or not self.client_request.channel:
 			return
 		if self.response.body_expected ():
 			self.client_request.response.push (self.response)
-		self.client_request.response.done (globbing = False, compress = False)
+			# in relay mode, possibly delayed
+			self.client_request.channel.ready = self.response.ready
+			self.asyncon.affluent = self.response.affluent
+		
+		if self.response.code == 200 and self.response.msg.lower () == "connection established": # websocket connection upgrade
+			self.create_tunnel ()			
+		else:	
+			self.client_request.response.done (globbing = False, compress = False)
 		self.is_pushed_response = True
 			
-	def done (self, error, msg = ""):
+	def case_closed (self, error, msg = ""):
 		# unbind readable/writable methods
 		self.asyncon.ready = None
 		self.asyncon.affluent = None		
@@ -129,7 +136,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 			self.client_request.channel.affluent = None
 		else:
 			return
-
+		
 		# handle abnormally raised exceptions like network error etc.
 		error, msg = self.rebuild_response (error, msg)
 		# finally, push response, but do not bind ready func because all data had been recieved.
@@ -137,8 +144,8 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 			self.push_response ()
 		
 		if self.asyncon:
-			self.asyncon.request = None
-							
+			self.asyncon.handler = None
+		
 		if self.callback:
 			self.callback (self)
 			
@@ -185,23 +192,17 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		if self.response.is_gzip_compressed ():
 			self.client_request.response ["Content-Encoding"] = "gzip"
 	
-		# in relay mode, possibly delayed
-		self.client_request.channel.ready = self.response.ready
-		self.asyncon.affluent = self.response.affluent
-		
 		self.push_response ()
 	
-	def continue_start (self, answer):
-		if not answer:
-			self.log ("DNS not found - %s" % self.asyncon.address [0], "error")
-			return self.done (704, "DNS Not Found")
-		
+	def start (self):		
 		if not self.client_request.channel:
 			return
-		
-		self.asyncon.push (self.get_request_buffer ())
-		if self.collector:
-			self.push_collector ()
+
+		if self.request.method != "connect":
+			for buf in self.get_request_buffer ():
+				self.asyncon.push (buf)				
+			if self.collector:
+				self.push_collector ()
 		self.asyncon.start_request (self)
 	
 	def handle_disconnected (self):
@@ -214,7 +215,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		
 		self.response = None
 		self.asyncon.close_socket ()
-		self.asyncon.request = None # unlink back ref.		
+		self.asyncon.handler = None # unlink back ref.		
 		self.retry_count = 1
 				
 		self.asyncon.cancel_request ()
@@ -267,7 +268,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		#print ("####### SKITAI => SERVER ##########################")
 		#print (req)
 		#print ("---------------------------------")
-		return req.encode ("utf8")
+		return [req.encode ("utf8")]
 
 	
 class ProxyResponse (http_response.Response):
@@ -500,35 +501,33 @@ class Handler (wsgi_handler.Handler):
 					self.handle_queued_request (request)
 				
 	def handle_queued_request (self, request):
-		if request.command == "connect":
-			uri = "tunnel://" + request.uri + "/"
-			asyncon = self.clusters ["__socketpool__"].get (uri)
-			asyncon.request = TunnelForServerToClient (request, asyncon)
-			
-		else:
-			collector = None
-			if request.command in ('post', 'put'):
-				ct = request.get_header ("content-type")
-				if not ct: ct = ""
-				current_post_max_size = ct.startswith ("multipart/form-data") and upload_max_size or post_max_size
-				collector = self.make_collector (Collector, request, current_post_max_size)
-				if collector:
-					request.collector = collector
-					collector.start_collect ()
-				else:
-					return # error was already called in make_collector ()
-								
-			self.continue_request(request, collector)
+		collector = None
+		if request.command in ('post', 'put'):
+			ct = request.get_header ("content-type")
+			if not ct: ct = ""
+			current_post_max_size = ct.startswith ("multipart/form-data") and upload_max_size or post_max_size
+			collector = self.make_collector (Collector, request, current_post_max_size)
+			if collector:
+				request.collector = collector
+				collector.start_collect ()
+			else:
+				return # error was already called in make_collector ()
+							
+		self.continue_request(request, collector)
 					
 	def continue_request (self, request, collector, asyncon = None):		
 		if self.is_cached (request, collector is not None):
 			return
 		
 		try:
-			req = http_request.HTTPRequest (request.uri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))		
 			if asyncon is None:		
-				asyncon = self.clusters ["__socketpool__"].get (request.uri)
-				
+				if request.command == "connect":
+					asyncon_key = "tunnel://" + request.uri + "/"
+				else:
+					asyncon_key = request.uri					
+				asyncon = self.clusters ["__socketpool__"].get (asyncon_key)
+			
+			req = http_request.HTTPRequest (request.uri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))				
 			r = ProxyRequestHandler (asyncon, req, self.callback, request, collector)			
 			if collector:
 				collector.asyncon = asyncon
@@ -594,23 +593,11 @@ class Handler (wsgi_handler.Handler):
 		request.producer = None
 		request.response = None # break back ref.		
 		del handler
-	
-	def upgrade (self, handler):
-		if response.get_header ("sec-websocket-accept"):
-			request.channel.set_terminator (None)
-			cli2srv = TunnelForClientToServer (handler.asyncon)
-			request.channel.current_request = cli2srv		
-			self.wasc.logger ("server", "connection upgrade %s" % self.request.uri)
-			request.channel.keep_alive = TunnelForServerToClient.keep_alive
-			handler.asyncon.set_keep_alive_timeout (TunnelForServerToClient.keep_alive)
 			
 	def callback (self, handler):
-		response, request = handler.response, handler.client_request
+		response, request = handler.response, handler.client_request		
 		if response.code >= 700:			
 			request.response.error (506, response.msg)
-		
-		elif response.code == 101: # websocket connection upgrade
-			self.upgrade (handler)
 			
 		else:
 			try:

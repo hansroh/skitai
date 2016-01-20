@@ -89,7 +89,8 @@ class EURL:
 	
 	def to_version_11 (self):
 		self ["http-version"] = "1.1"
-		self.del_header ("connection")
+		if self ["http-connection"].lower () == "close":
+			del self ["http-connection"]
 	
 	def inc_retrys (self):
 		self.info ["retrys"] = self ["retrys"] + 1

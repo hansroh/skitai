@@ -5,193 +5,7 @@ Copyright (c) 2015 by Hans Roh
 
 License: BSD
 
-
-What's New: HTML5 Web Socket Implemented
------------------------------------------
-
-HTML5 web socket has been implemented. 
-
-But I'm not sure my implemetation is right way, so it is experimental and unstatable.
-
-I think there're 3 handling ways to use websockets.
-
-1. thread pool manages n websocket connection
-
-2. one thread per websocket connection
-
-3. one thread manages n websockets connection
-
-So skitai supports above all 3 ways.
-
-First of all, see conceptual client side java script for websocket.
-
-.. code:: html
-
-  <script language="javascript" type="text/javascript">  
-  var wsUri = "ws://localhost:5000/websocket/chat";
-  testWebSocket();
-  
-  function testWebSocket()
-  {
-    websocket = new WebSocket(wsUri);
-    websocket.onopen = function(evt) { onOpen(evt) };
-    websocket.onclose = function(evt) { onClose(evt) };
-    websocket.onmessage = function(evt) { onMessage(evt) };
-    websocket.onerror = function(evt) { onError(evt) };
-  }
-  
-  function onOpen(evt) {doSend("Hello");}
-  function onClose(evt) {writeToScreen("DISCONNECTED");}  
-  function onMessage(evt) {writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');}
-  function onError(evt) {writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);}  
-  function doClose () {websocket.close();}  
-  function doSend(message) {websocket.send(message);}
-  </script>
-
-
-If your WSGI app enable handle websocket, it should give  initial parameters to Skitai.
-
-You should check exist of env ["websocket_init"], set initializing parameters.
-
-initializing parameters should be tuple of (websocket design spec, keep alive timeout, variable name)
-
-*websocket design specs* can  be choosen one of 3 .
-
-WEBSOCKET_REQDATA
-
-  - Thread pool manages n websocket connection
-  - It's simple request and response way like AJAX
-  - Use skitai initail thread pool, no additional thread created
-  - Low cost on threads resources, but reposne cost is relatvley high than the others
-  
-WEBSOCKET_DEDICATE
-
-  - One thread per websocket connection
-  - Use when reponse maiking is heavy and takes long time
-  - New thread created per websocket connection
-  
-WEBSOCKET_MULTICAST
-  
-  - One thread manages n websockets connection
-  - Chat room model, all websockets will be managed by single thread
-  - New thread created per chat room
-
-*keep alive timeout* is seconds.
-
-*variable name* is various usage per each design spec.
-
-
-**WEBSOCKET_REQDATA**
-
-Here's a echo app for showing simple request-respone.
-
-Client can connect by ws://localhost:5000/websocket/chat.
-
-*Skitai-Saddle Style*
-
-.. code:: python
-
-  from skitai.saddle import Saddle
-  import skitai
-  
-  app = Saddle (__name__)
-  app.debug = True
-  app.use_reloader = True
-
-  @app.route ("/websocket/echo")
-  def echo (was, message = ""):
-    if "websocket_init" in was.env:
-      was.env ["websocket_init"] = (skitai.WEBSOCKET_REQDATA, 60, "message")
-      return ""
-    return "ECHO:" + message
-
-*Flask Style*
-
-.. code:: python
-
-  from flask import Flask, request 
-  import skitai
-  
-  app = Flask (__name__)
-  app.debug = True
-  app.use_reloader = True
-
-  @app.route ("/websocket/echo")
-  def echo ():
-    if "websocket_init" in request.environ:
-      request.environ ["websocket_init"] = (skitai.WEBSOCKET_REQDATA, 60, "message")
-      return ""
-    return "ECHO:" + request.args.get ("message")
-
-In this case, variable name is "message", It means take websocket's message as "message" arg.
-
-
-**WEBSOCKET_DEDICATE**
-
-This app will handle only one websocket client. and if new websocekt connected, will be created new thread.
-
-Client can connect by ws://localhost:5000/websocket/talk?name=Member.
-
-.. code:: python
-
-  @app.route ("/websocket/talk")
-  def talk (was, name):
-    if "websocket_init" in was.env:
-      was.env ["websocket_init"] = (skitai.WEBSOCKET_DEDICATE, 60, None)
-      return ""
-    
-    ws = was.env ["websocket"]
-    while 1:
-      messages = ws.getswait (10)
-      if messages is None:
-        break  
-      for m in messages:
-        if m.lower () == "bye":
-          ws.send ("Bye, have a nice day." + m)
-          ws.close ()
-          break
-        elif m.lower () == "hello":
-          ws.send ("Hello, " + name)        
-        else:  
-          ws.send ("You Said:" + m)
-
-In this case, variable name should be None. If exists, will be ignored.
-
-
-**WEBSOCKET_MULTICAST**
-
-Here's simple mutiuser chatting app.
-
-Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can chat between all clients.
-
-.. code:: python
-
-  @app.route ("/websocket/chat")
-  def chat (was, roomid):
-    if "websocket_init" in was.env:
-      was.env ["websocket_init"] = (skitai.WEBSOCKET_MULTICAST, 60, "roomid")
-      return ""
-    
-    ws = was.env ["websocket"]  
-    while 1:
-      messages = ws.getswait (10)
-      if messages is None:
-        break  
-      for client_id, m in messages:
-        ws.sendall ("Client %d Said: %s" % (client_id, m))
-
-In this case, variable name is "roomid", then Skitai will create websocket group seperatly.
-
-
-You can access all examples by skitai sample app after installing skitai.
-
-.. code:: python
-
-  sudo skitaid-instance.py -v -f sample
-
-Then goto http://localhost:5000/websocket in your browser.
-
-
+	  
 Introduce
 ----------
 
@@ -410,13 +224,11 @@ Avaliable methods are:
 
 - was.get (url, auth = (username, password))
 - was.post (url, data = data, auth = (username, password))
+- was.rpc (url, auth = (username, password)) # XMLRPC
+- was.ws (url, data, auth = (username, password)) # Web Socket
 - was.put (url, data = data, auth = (username, password))
 - was.delete (url)
-- was.upload (url, data = data, auth = (username, password)) # For clarity to multipart POST
-- was.rpc (url, auth = (username, password)) # XMLRPC
-- and other RESTful methods supported by target servers.
-
-
+- was.upload (url, data, auth = (username, password)) # For clarity to multipart POST
 
 
 **Load-Balancing**
@@ -449,11 +261,12 @@ Avaliable methods are:
 
 - was.get.lb ()
 - was.post.lb ()
-- was.upload.lb ()
 - was.rpc.lb ()
+- was.ws.lb ()
+- was.upload.lb ()
 - was.put.lb ()
 - was.delete.lb ()
-- and other RESTful methods supported by target servers.
+
 
 *Note:* If @mysearch member is only one, was.get.lb ("@mydb") is equal to was.get ("@mydb").
 
@@ -500,11 +313,11 @@ Avaliable methods are:
 
 - was.get.map ()
 - was.post.map ()
-- was.upload.map ()
 - was.rpc.map ()
+- was.ws.map ()
+- was.upload.map ()
 - was.put.map ()
 - was.delete.map ()
-- and other RESTful methods supported by target servers.
 
 
 **PostgreSQL Map-Reducing**
@@ -569,6 +382,212 @@ If it is configured, you can skip e.set_smtp(). But be careful for keeping your 
     ssl = no
     max_retry = 10
     undelivers_keep_max_days = 30
+
+
+HTML5 Web Socket
+--------------------------------------
+
+Added new Skitai 'was' web socket service:
+
+- was.ws ()
+- was.ws.lb ()
+- was.ws.map ()
+
+It is desinged simple & no stateless request-response model using web socket message frame for *light overheaded server-to-server communication*. For example, if your web server queries to so many other search servers via RESTful access, web socket might be a good alterative option. Think HTTP-Headerless JSON messaging. Usage is very simailar with HTTP request.
+
+.. code:: python
+
+  @app.route ("/query")
+  def query (was):
+    s = was.ws (
+    	"http://192.168.1.100:5000/websocket/echo", 
+    	json.dumps ({"keyword": "snowboard binding"})
+    )
+	  rs = s.getwait ()
+	  result = json.loads (rs.data)
+	  
+
+Also at server-side, HTML5 Web Socket has been implemented obioulsy
+
+But I'm not sure my implemetation is right way, so it is experimental and unstatable.
+
+I think there're 3 handling ways to use websockets.
+
+1. thread pool manages n websocket connection
+
+2. one thread per websocket connection
+
+3. one thread manages n websockets connection
+
+So skitai supports above all 3 ways.
+
+First of all, see conceptual client side java script for websocket.
+
+.. code:: html
+
+  <script language="javascript" type="text/javascript">  
+  var wsUri = "ws://localhost:5000/websocket/chat";
+  testWebSocket();
+  
+  function testWebSocket()
+  {
+    websocket = new WebSocket(wsUri);
+    websocket.onopen = function(evt) { onOpen(evt) };
+    websocket.onclose = function(evt) { onClose(evt) };
+    websocket.onmessage = function(evt) { onMessage(evt) };
+    websocket.onerror = function(evt) { onError(evt) };
+  }
+  
+  function onOpen(evt) {doSend("Hello");}
+  function onClose(evt) {writeToScreen("DISCONNECTED");}  
+  function onMessage(evt) {writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');}
+  function onError(evt) {writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);}  
+  function doClose () {websocket.close();}  
+  function doSend(message) {websocket.send(message);}
+  </script>
+
+
+If your WSGI app enable handle websocket, it should give  initial parameters to Skitai.
+
+You should check exist of env ["websocket_init"], set initializing parameters.
+
+initializing parameters should be tuple of (websocket design spec, keep alive timeout, variable name)
+
+*websocket design specs* can  be choosen one of 3 .
+
+WEBSOCKET_REQDATA
+
+  - Thread pool manages n websocket connection
+  - It's simple request and response way like AJAX
+  - Use skitai initail thread pool, no additional thread created
+  - Low cost on threads resources, but reposne cost is relatvley high than the others
+  
+WEBSOCKET_DEDICATE
+
+  - One thread per websocket connection
+  - Use when reponse maiking is heavy and takes long time
+  - New thread created per websocket connection
+  
+WEBSOCKET_MULTICAST
+  
+  - One thread manages n websockets connection
+  - Chat room model, all websockets will be managed by single thread
+  - New thread created per chat room
+
+*keep alive timeout* is seconds.
+
+*variable name* is various usage per each design spec.
+
+
+**WEBSOCKET_REQDATA**
+
+Here's a echo app for showing simple request-respone.
+
+Client can connect by ws://localhost:5000/websocket/chat.
+
+*Skitai-Saddle Style*
+
+.. code:: python
+
+  from skitai.saddle import Saddle
+  import skitai
+  
+  app = Saddle (__name__)
+  app.debug = True
+  app.use_reloader = True
+
+  @app.route ("/websocket/echo")
+  def echo (was, message = ""):
+    if "websocket_init" in was.env:
+      was.env ["websocket_init"] = (skitai.WEBSOCKET_REQDATA, 60, "message")
+      return ""
+    return "ECHO:" + message
+
+*Flask Style*
+
+.. code:: python
+
+  from flask import Flask, request 
+  import skitai
+  
+  app = Flask (__name__)
+  app.debug = True
+  app.use_reloader = True
+
+  @app.route ("/websocket/echo")
+  def echo ():
+    if "websocket_init" in request.environ:
+      request.environ ["websocket_init"] = (skitai.WEBSOCKET_REQDATA, 60, "message")
+      return ""
+    return "ECHO:" + request.args.get ("message")
+
+In this case, variable name is "message", It means take websocket's message as "message" arg.
+
+
+**WEBSOCKET_DEDICATE**
+
+This app will handle only one websocket client. and if new websocekt connected, will be created new thread.
+
+Client can connect by ws://localhost:5000/websocket/talk?name=Member.
+
+.. code:: python
+
+  @app.route ("/websocket/talk")
+  def talk (was, name):
+    if "websocket_init" in was.env:
+      was.env ["websocket_init"] = (skitai.WEBSOCKET_DEDICATE, 60, None)
+      return ""
+    
+    ws = was.env ["websocket"]
+    while 1:
+      messages = ws.getswait (10)
+      if messages is None:
+        break  
+      for m in messages:
+        if m.lower () == "bye":
+          ws.send ("Bye, have a nice day." + m)
+          ws.close ()
+          break
+        elif m.lower () == "hello":
+          ws.send ("Hello, " + name)        
+        else:  
+          ws.send ("You Said:" + m)
+
+In this case, variable name should be None. If exists, will be ignored.
+
+
+**WEBSOCKET_MULTICAST**
+
+Here's simple mutiuser chatting app.
+
+Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can chat between all clients.
+
+.. code:: python
+
+  @app.route ("/websocket/chat")
+  def chat (was, roomid):
+    if "websocket_init" in was.env:
+      was.env ["websocket_init"] = (skitai.WEBSOCKET_MULTICAST, 60, "roomid")
+      return ""
+    
+    ws = was.env ["websocket"]  
+    while 1:
+      messages = ws.getswait (10)
+      if messages is None:
+        break  
+      for client_id, m in messages:
+        ws.sendall ("Client %d Said: %s" % (client_id, m))
+
+In this case, variable name is "roomid", then Skitai will create websocket group seperatly.
+
+
+You can access all examples by skitai sample app after installing skitai.
+
+.. code:: python
+
+  sudo skitaid-instance.py -v -f sample
+
+Then goto http://localhost:5000/websocket in your browser.
     
 
 **Other Utility Service**
@@ -1165,6 +1184,8 @@ Optional Requirements
 
 Change Log
 -------------
+  
+  0.11.2 - add 'was' web socket service, was.ws, was.ws.lb, was.ws.map
   
   0.11.0 - fix websocket data decoding
   

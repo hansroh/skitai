@@ -116,11 +116,7 @@ class RequestHandler (request_handler.RequestHandler):
 		self.masks = b""
 		self.handshaking = False
 		
-	def continue_start (self, answer):
-		if not answer:
-			self.log ("DNS not found - %s" % self.asyncon.address [0], "error")
-			return self.done (704, "DNS Not Found")
-		
+	def start (self):
 		if not self.asyncon.connected:
 			self.handshaking = True
 			for buf in self.get_request_buffer ():

@@ -16,7 +16,7 @@ def testCluster ():
 	clustercall = cluster_dist_call.ClusterDistCallCreator (sc, logger.screen_logger ())	
 	s = clustercall.Server ("/websocket/echo", "Hello WS", "ws", auth = ("app", "1111"), mapreduce = False)
 	threading.Thread (target = __reduce, args = (s,)).start ()
-		while 1:		
+	while 1:		
 		asyncore.loop (timeout = 1, count = 2)
 		if len (asyncore.socket_map) == 1:
 			break
