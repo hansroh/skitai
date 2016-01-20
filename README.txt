@@ -1185,6 +1185,8 @@ Optional Requirements
 Change Log
 -------------
   
+  0.11.3 - fix proxy related bugs
+  
   0.11.2 - add 'was' web socket service, was.ws, was.ws.lb, was.ws.map
   
   0.11.0 - fix websocket data decoding

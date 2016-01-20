@@ -64,7 +64,10 @@ class EURL:
 			self.info [k] = v
 	
 	def __delitem__ (self, k):
-		del self.info [k]
+		try:
+			del self.info [k]
+		except KeyError:
+			del self.http [k]	
 		
 	def __getitem__ (self, k):
 		try:
@@ -76,13 +79,13 @@ class EURL:
 				return None
 	
 	def get (self, k, d):
-		return self.info.get (k, d)
+		return self.info.get (k) or self.http.get (k, d)
 		
 	def items (self):
-		return list(self.info.items ())
+		return list(self.info.items ()) + list(self.http.items ())
 	
 	def has_key (self, k):
-		return k in self.info
+		return k in self.info or k in self.http
 			
 	def __str__ (self):
 		return self ["url"]

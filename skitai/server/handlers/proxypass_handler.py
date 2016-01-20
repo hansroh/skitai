@@ -19,7 +19,10 @@ class Handler (proxy_handler.Handler):
 			match = route_rx.match (uri)
 			if match:
 				return self.clusters [cname], route_len, route_rx
-		
+	
+	def is_tunneling (self):		
+		return self.response.code == 101 # upgrade
+			
 	def handle_request (self, request):
 		proxy_handler.Handler.handle_queued_request (self, request)
 							

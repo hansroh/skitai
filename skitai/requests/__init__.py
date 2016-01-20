@@ -3,7 +3,10 @@ from . import localstorage
 from skitai.protocol.http import request as http_request
 from skitai.protocol.http import response as http_response
 from skitai.protocol.http import request_handler as http_request_handler
+from skitai.protocol.http import tunnel_handler
 from skitai.protocol.ws import request_handler as ws_request_handler
+from skitai.protocol.ws import tunnel_handler as ws_tunnel_handler
+from skitai.protocol.ws import request as ws_request
 from skitai.protocol.dns import asyndns
 from skitai.client import socketpool, asynconnect
 from skitai.server.threads import trigger
@@ -161,64 +164,21 @@ def get_all ():
 		socketpool.cleanup ()
 
 
-class SSLProxyRequestHandler:
-	def __init__ (self, asyncon, request, callback):
-		self.asyncon = asyncon
-		self.request = request
-		self.callback = callback
-		self.response = None
-		self.buffer = b""
+class SSLProxyTunnelHandler (tunnel_handler.SSLProxyTunnelHandler):
+	def get_handshaking_buffer (self):	
+		req = ("CONNECT %s:%d HTTP/%s\r\nUser-Agent: %s\r\n\r\n" % (
+					self.request.el ["netloc"], 
+					self.request.el ["port"],
+					self.request.el ["http-version"],
+					self.request.el.get_useragent ()
+				)).encode ("utf8")
+		return req
 		
-		asyncon.set_terminator (b"\r\n\r\n")
-		asyncon.push (
-			("CONNECT %s:%d HTTP/%s\r\nUser-Agent: %s\r\n\r\n" % (
-				self.request.el ["netloc"], 
-				self.request.el ["port"],
-				self.request.el ["http-version"], 
-				self.request.el.get_useragent ()
-			)).encode ("utf8")
-		)
-		asyncon.connect_with_adns ()
-		
-	def trace (self, name = None):
-		if name is None:
-			name = "proxys://%s:%d" % self.asyncon.address
-		self.request.logger.trace (name)
-		
-	def log (self, message, type = "info"):
-		uri = "proxys://%s:%d" % self.asyncon.address
-		self.request.logger.log ("%s - %s" % (uri, message), type)
-	
-	def found_terminator (self):
-		lines = self.buffer.split ("\r\n")
-		version, code, msg = http_response.crack_response (lines [0])
-		if code == 200:
-			self.asyncon.proxy_accepted = True
-			http_request_handler.RequestHandler (
-				self.asyncon, 
-				self.request, 
-				self.callback,
-				self.request.el ["http-version"],				
-				self.request.el.get_connection ()
-			).start ()
-		else:
-			self.case_closed (code, msg)
-	
-	def case_closed (self, code, msg):
-		if code:
-			self.asyncon.handler = None # unlink back ref			
-			self.respone = http_response.FailedResponse (code, msg, self.request)
-			self.callback (self)
 			
-	def collect_incoming_data (self, data):
-		self.buffer += data
-		
-	def retry (self):
-		return False
+class WSSSLProxyTunnelHandler (ws_tunnel_handler.SSLProxyTunnelHandler, SSLProxyTunnelHandler):
+	pass
 
-	def close (self):
-		self.buffer = b""		
-
+	
 
 class HTTPRequest (http_request.HTTPRequest):
 	def __init__ (self, el, logger = None):		
@@ -247,10 +207,10 @@ class HTTPRequest (http_request.HTTPRequest):
 		return self.el ["http-user-agent"]	
 		
 
-class WSRequest (HTTPRequest, ws_request_handler.Request):
+class WSRequest (HTTPRequest, ws_request.Request):
 	def __init__ (self, el, logger = None):
 		self.el = el
-		ws_request_handler.Request.__init__ (self, self.el ["rfc"], self.el ["wsoc-message"], self.el ["wsoc-opcode"], self.el ["http-auth"], logger = logger)
+		ws_request.Request.__init__ (self, self.el ["rfc"], self.el ["wsoc-message"], self.el ["wsoc-opcode"], self.el ["http-auth"], logger = logger)
 		
 		
 class Item:
@@ -272,32 +232,35 @@ class Item:
 		self.callback = callback
 		
 		if self.el ["scheme"] in ("ws", "wss"):
+			self.el ['http-connection'] = "keep-aluve, Upgrade"			
+			self.el.to_version_11 ()
 			request = WSRequest (self.el, logger = self.logger)
-			handler_class = ws_request_handler.RequestHandler
-			
 			# websocket proxy should be tunnel
 			if self.el.has_key ("http-proxy"):
 				self.el ["http-tunnel"] = self.el ["http-proxy"]
 				del self.el ["http-proxy"]
+			if self.el.has_key ("http-tunnel"):
+				handler_class = SSLProxyTunnelHandler				
+			else:
+				handler_class = ws_request_handler.RequestHandler
 				
 		else:
 			request = HTTPRequest (self.el, logger = self.logger)
-			handler_class = http_request_handler.RequestHandler
+			if self.el.has_key ("http-tunnel"):		
+				request.el.to_version_11 ()
+				handler_class = SSLProxyTunnelHandler
+			else:	
+				handler_class = http_request_handler.RequestHandler
 			
 		sp = socketpool.socketpool		
 		if request.el ["http-tunnel"]:
-			request.el.to_version_11 ()
 			asyncon = sp.get ("proxys://%s" % request.el ["http-tunnel"])
-			asyncon.set_network_delay_timeout (_timeout)
-			if not asyncon.connected:
-				asyncon.handler = SSLProxyRequestHandler (asyncon, request, self.callback_wrap)
-				return		
 		elif request.el ["http-proxy"]:
 			asyncon = sp.get ("proxy://%s" % request.el ["http-proxy"])
 		else:
 			asyncon = sp.get (request.el ["rfc"])
 					
-		handler_class (asyncon, request, self.callback_wrap, request.el ["http-version"], request.el.get_connection ()).start ()
+		handler_class (asyncon, request, self.callback_wrap, request.el ["http-version"], request.el ['connection']).start ()
 	
 	def handle_websocket (self, handler):
 		if handler.response.code == 101:

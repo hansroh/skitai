@@ -461,9 +461,10 @@ class AsynSSLConnect (AsynConnect):
 				return False
 			raise ssl.SSLError(why)
 		self.handshaked = True
+		self.handshaking = False
 		return True
 							
-	def handle_connect_event(self):
+	def handle_connect_event (self):		
 		if not self.handshaked and not self.handshake ():
 			return	
 		# handshaking done
@@ -532,21 +533,23 @@ class AsynSSLConnect (AsynConnect):
 class AsynSSLProxyConnect (AsynSSLConnect, AsynConnect):
 	def __init__ (self, address, lock = None, logger = None):
 		AsynConnect.__init__ (self, address, lock, logger)
-		self.proxy_accepted = False
+		self.handshaking = False
+		self.handshaked = False
+		self.established = False
+
+	def handle_connect_event (self):
+		if self.established:
+			AsynSSLConnect.handle_connect_event (self)
+		else:	
+			AsynConnect.handle_connect_event (self)
 	
-	def handle_connect_event (self):		
-		AsynConnect.handle_connect_event (self)
-	
-	def recv (self, buffer_size):
+	def recv (self, buffer_size):		
 		if self.handshaked or self.handshaking:
 			return AsynSSLConnect.recv (self, buffer_size)				
 		else:
 			return AsynConnect.recv (self, buffer_size)
-		
-	def send (self, data):
-		if not self.handshaked and self.proxy_accepted and self.connected:
-			if not self.handshake ():
-				return 0		
+			
+	def send (self, data):		
 		if self.handshaked or self.handshaking:
 			return AsynSSLConnect.send (self, data)
 		else:

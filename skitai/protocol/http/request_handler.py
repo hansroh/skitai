@@ -98,7 +98,7 @@ class RequestHandler:
 		if request.get_address () is None:
 			request.set_address (self.asyncon.address)
 		
-		self.asyncon.set_terminator (b"\r\n\r\n")	
+		self.asyncon.set_terminator (b"\r\n\r\n")
 	
 	def _del_ (self):
 		self.callback = None
@@ -250,7 +250,7 @@ class RequestHandler:
 		for buf in self.get_request_buffer ():
 			self.asyncon.push (buf)
 		self.asyncon.set_terminator (b"\r\n\r\n")
-		self.asyncon.start_request (self)	
+		self.asyncon.start_request (self)
 		
 	def case_closed (self, error = 0, msg = ""):
 		# handle abnormally raised exceptions like network error etc.

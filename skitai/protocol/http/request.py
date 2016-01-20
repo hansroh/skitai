@@ -41,7 +41,7 @@ class XMLRPCRequest:
 		if uri.find ("://") == -1:
 			return None, uri
 			
-		scheme, address, script, params, qs, fragment = urlparse (uri)
+		scheme, address, script, params, qs, fragment = urlparse (uri)		
 		if not script: script = "/"
 		path = script
 		if params: path += ";" + params

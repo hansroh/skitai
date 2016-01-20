@@ -111,7 +111,10 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 			self.buffer =	b"HTTP/1.1 200 Connection Established\r\nKeep-Alive: timeout=120"				
 			self.create_response ()
 			self.found_terminator ()
-		
+	
+	def is_tunneling (self):
+		return self.response.code == 200 and self.response.msg.lower () == "connection established": # websocket connection upgrade
+			
 	def push_response (self):		
 		if self.is_pushed_response or not self.client_request.channel:
 			return
@@ -121,7 +124,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 			self.client_request.channel.ready = self.response.ready
 			self.asyncon.affluent = self.response.affluent
 		
-		if self.response.code == 200 and self.response.msg.lower () == "connection established": # websocket connection upgrade
+		if self.is_tunneling ():
 			self.create_tunnel ()			
 		else:	
 			self.client_request.response.done (globbing = False, compress = False)
@@ -219,7 +222,8 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		self.retry_count = 1
 				
 		self.asyncon.cancel_request ()
-		self.asyncon.push (self.get_request_buffer ())
+		for buf in self.get_request_buffer ():
+			self.asyncon.push (buf)
 		#print ("retry......", self.get_request_buffer (), self.collector)
 		if self.collector:
 			self.collector.reuse_cache ()
@@ -468,7 +472,7 @@ class Handler (wsgi_handler.Handler):
 				
 	def match (self, request):
 		uri = request.uri.lower ()
-		if uri.startswith ("http://") or uri.startswith ("https://"):
+		if uri.startswith ("http://") or uri.startswith ("https://") or uri.startswith ("ws://") or uri.startswith ("wss://"):
 			return 1
 		if request.command == "connect":
 			return 1
