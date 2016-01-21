@@ -1,5 +1,6 @@
 from . import response, request
 from skitai.protocol.http import request_handler
+from skitai.protocol.http.response import FailedResponse
 from skitai.client import asynconnect
 from skitai.lib import strutil
 
@@ -43,11 +44,12 @@ class RequestHandler (request_handler.RequestHandler):
 		self.payload_length = 0		
 		self.has_masks = True
 		self.masks = b""
-		self.__handshaking = False
+		self._handshaking = False
 		
 	def start (self):
+		print ("self.asyncon.upgraded", self.asyncon.upgraded)
 		if not self.asyncon.upgraded:
-			self.__handshaking = True
+			self._handshaking = True
 			for buf in self.get_request_buffer ():
 				self.asyncon.push (buf)				
 		else:	
@@ -81,15 +83,15 @@ class RequestHandler (request_handler.RequestHandler):
 		req = ("GET %s HTTP/1.1\r\n%s\r\n\r\n" % (
 			uri,
 			"\r\n".join (["%s: %s" % x for x in list(hc.items ())])
-		)).encode ("utf8")
+		)).encode ("utf8")		
 		return [req]
 	
 	def handle_disconnected (self):
 		return False
 	
 	def collect_incoming_data (self, data):
-		#print ("+++++++", data)
-		if self.__handshaking:
+		#print ("+++++++", data, self._handshaking)
+		if self._handshaking:
 			request_handler.RequestHandler.collect_incoming_data (self, data)
 		elif self.masks or (not self.has_masks and self.payload_length):
 			self.rfile.write (data)
@@ -107,22 +109,21 @@ class RequestHandler (request_handler.RequestHandler):
 			return
 		
 		if not (self.response.code == 101 and self.response.get_header ("Sec-WebSocket-Accept")):
-			self.response = response.FailedResponse (self.response.code, self.response.msg)
+			self.response = FailedResponse (self.response.code, self.response.msg)
 			self.asyncon.close_it = True
 			self.asyncon.handle_close ()
 			
 		else:
 			self.response = None
-			self.__handshaking = False
+			self._handshaking = False
 			self.asyncon.upgraded = True
 											
 			msg = self.request.get_message ()
-			print ("&&&&&&&&&&&&&&&&&&&&&&&", str (msg))
 			self.asyncon.push (msg)
 			self.asyncon.set_terminator (2)
 						
 	def found_terminator (self):
-		if self.__handshaking:
+		if self._handshaking:
 			request_handler.RequestHandler.found_terminator (self)
 			
 		elif self.masks or not self.has_masks:

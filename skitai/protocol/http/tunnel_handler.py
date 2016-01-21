@@ -1,4 +1,5 @@
 from . import request_handler as http_request_handler
+from skitai.protocol.http import response
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (compatible; Skitaibot/0.1a)"	
 
@@ -22,14 +23,13 @@ class ProxyTunnelHandler (http_request_handler.RequestHandler):
 	def convert_to_ssl (self):
 		pass
 		
-	def finish_handshake (self):	
+	def finish_handshake (self):
 		if self.response.code == 200:
 			self.asyncon.established = True
 			self.response = None
 			self.convert_to_ssl ()
 			for buf in self.get_request_buffer ():
-				self.asyncon.push (buf)
-														
+				self.asyncon.push (buf)														
 		else:
 			self.response = response.FailedResponse (self.response.code, self.response.msg)
 			self.asyncon.close_it = True

@@ -20,6 +20,7 @@ class TunnelForClientToServer:
 		self.asyncon.set_terminator (None)
 		
 	def collect_incoming_data (self, data):
+		#print (">>>>>>>>>>>>", data)
 		self.bytes += len (data)		
 		self.asyncon.push (data)
 	
@@ -55,6 +56,7 @@ class TunnelForServerToClient:
 			self.close ()
 			
 	def collect_incoming_data (self, data):		
+		#print ("<<<<<<<<<<<<", data)
 		self.bytes += len (data)		
 		self.channel.push (data)
 	
