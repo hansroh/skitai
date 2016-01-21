@@ -1,3 +1,5 @@
+from skitai.protocol.http import response
+
 class Response (response.Response):
 	def __init__ (self, code, msg, opcode, data = None):
 		self.code = code

@@ -79,7 +79,8 @@ class RequestHandler:
 		self.asyncon = asyncon
 		self.buffer = b""	
 		self.wrap_in_chunk = False
-		self.end_of_data = False		
+		self.end_of_data = False
+		self.expect_disconnect = False		
 		
 		self.request = request
 		self.callback = callback
@@ -236,6 +237,10 @@ class RequestHandler:
 		return 0 #pass
 	
 	def handle_disconnected (self):
+		if self.expect_disconnect:
+			self.found_terminator ()
+			return False
+			
 		if self.retry_count:
 			return False
 		self.retry_count = 1		
@@ -305,6 +310,7 @@ class RequestHandler:
 				self.found_end_of_body ()
 						
 		else:
+			self.expect_disconnect = False
 			try:
 				self.create_response ()
 			except:	
@@ -328,6 +334,7 @@ class RequestHandler:
 				except TypeError:
 					if self.asyncon.close_it:
 						clen = ""
+						self.expect_disconnect = True
 					else:
 						clen = 0 # no transfer-encoding, no content-lenth
 												

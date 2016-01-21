@@ -1,4 +1,5 @@
-from skitai.protocol.http import response, request, request_handler, tunnel_handler
+from . import response, request
+from skitai.protocol.http import request_handler
 from skitai.client import asynconnect
 from skitai.lib import strutil
 
@@ -42,11 +43,11 @@ class RequestHandler (request_handler.RequestHandler):
 		self.payload_length = 0		
 		self.has_masks = True
 		self.masks = b""
-		self.handshaking = False
+		self.__handshaking = False
 		
 	def start (self):
-		if not self.asyncon.connected:
-			self.handshaking = True
+		if not self.asyncon.upgraded:
+			self.__handshaking = True
 			for buf in self.get_request_buffer ():
 				self.asyncon.push (buf)				
 		else:	
@@ -85,10 +86,10 @@ class RequestHandler (request_handler.RequestHandler):
 	
 	def handle_disconnected (self):
 		return False
-		
+	
 	def collect_incoming_data (self, data):
 		#print ("+++++++", data)
-		if self.handshaking:
+		if self.__handshaking:
 			request_handler.RequestHandler.collect_incoming_data (self, data)
 		elif self.masks or (not self.has_masks and self.payload_length):
 			self.rfile.write (data)
@@ -112,14 +113,16 @@ class RequestHandler (request_handler.RequestHandler):
 			
 		else:
 			self.response = None
-			self.handshaking = False
+			self.__handshaking = False
+			self.asyncon.upgraded = True
 											
 			msg = self.request.get_message ()
+			print ("&&&&&&&&&&&&&&&&&&&&&&&", str (msg))
 			self.asyncon.push (msg)
 			self.asyncon.set_terminator (2)
 						
 	def found_terminator (self):
-		if self.handshaking:
+		if self.__handshaking:
 			request_handler.RequestHandler.found_terminator (self)
 			
 		elif self.masks or not self.has_masks:
@@ -135,7 +138,7 @@ class RequestHandler (request_handler.RequestHandler):
 				# text
 				data = data.decode('utf-8')
 			
-			self.response = Response (200, "OK", self.opcode, data)
+			self.response = response.Response (200, "OK", self.opcode, data)
 			self.asyncon.set_terminator (2)
 			self.asyncon.close_it = False
 			self.asyncon.handle_close ()

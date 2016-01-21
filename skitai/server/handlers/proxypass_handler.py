@@ -1,7 +1,9 @@
 from . import wsgi_handler, proxy_handler
 from skitai.protocol.http import request as http_request
 import re
-	
+
+
+
 class Handler (proxy_handler.Handler):
 	def __init__ (self, wasc, clusters, cachefs = None):
 		proxy_handler.Handler.__init__ (self, wasc, clusters, cachefs)
@@ -19,10 +21,10 @@ class Handler (proxy_handler.Handler):
 			match = route_rx.match (uri)
 			if match:
 				return self.clusters [cname], route_len, route_rx
-	
-	def is_tunneling (self):		
-		return self.response.code == 101 # upgrade
-			
+		
+	def will_open_tunneling (self):
+		return self.response.code == 101 # websocket connection upgrade
+				
 	def handle_request (self, request):
 		proxy_handler.Handler.handle_queued_request (self, request)
 							
@@ -71,7 +73,7 @@ class Handler (proxy_handler.Handler):
 			), 'warn')
 		
 		fetcher = http_request.HTTPRequest (psysicaluri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))		
-		r = proxy_handler.ProxyRequestHandler (asyncon, fetcher, self.callback, request, collector)
+		r = proxy_handler.ProxyRequestHandler (asyncon, fetcher, self.callback, request, collector)	
 		r.start ()
 	
 	def callback (self, handler):

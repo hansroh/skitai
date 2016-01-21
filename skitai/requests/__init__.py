@@ -94,8 +94,8 @@ def maybe_pop ():
 	
 	_currents = {}
 	for r in list (_map.values ()):
-		if isinstance (r, asynconnect.AsynConnect) and r.request: 
-			netloc = r.request.request.el ["netloc"]			
+		if isinstance (r, asynconnect.AsynConnect) and r.handler: 
+			netloc = r.handler.request.el ["netloc"]			
 		elif isinstance (r, asyndns.async_dns): 
 			netloc = r.qname						
 		else:
@@ -174,11 +174,13 @@ class SSLProxyTunnelHandler (tunnel_handler.SSLProxyTunnelHandler):
 				)).encode ("utf8")
 		return req
 		
-			
-class WSSSLProxyTunnelHandler (ws_tunnel_handler.SSLProxyTunnelHandler, SSLProxyTunnelHandler):
+class WSSSLProxyTunnelHandler (SSLProxyTunnelHandler, ws_tunnel_handler.SSLProxyTunnelHandler):
 	pass
 
-	
+class WSProxyTunnelHandler (ws_tunnel_handler.ProxyTunnelHandler, SSLProxyTunnelHandler):
+	def get_handshaking_buffer (self):	
+		return SSLProxyTunnelHandler.get_handshaking_buffer (self)
+
 
 class HTTPRequest (http_request.HTTPRequest):
 	def __init__ (self, el, logger = None):		
@@ -240,7 +242,10 @@ class Item:
 				self.el ["http-tunnel"] = self.el ["http-proxy"]
 				del self.el ["http-proxy"]
 			if self.el.has_key ("http-tunnel"):
-				handler_class = SSLProxyTunnelHandler				
+				if self.el ['scheme'] == 'wss':
+					handler_class = WSSSLProxyTunnelHandler				
+				else:
+					handler_class = WSProxyTunnelHandler		
 			else:
 				handler_class = ws_request_handler.RequestHandler
 				

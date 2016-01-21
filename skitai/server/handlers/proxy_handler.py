@@ -112,10 +112,10 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 			self.create_response ()
 			self.found_terminator ()
 	
-	def is_tunneling (self):
-		return self.response.code == 200 and self.response.msg.lower () == "connection established": # websocket connection upgrade
+	def will_open_tunneling (self):
+		return self.response.code == 200 and self.response.msg.lower () == "connection established"
 			
-	def push_response (self):		
+	def push_response (self):
 		if self.is_pushed_response or not self.client_request.channel:
 			return
 		if self.response.body_expected ():
@@ -124,7 +124,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 			self.client_request.channel.ready = self.response.ready
 			self.asyncon.affluent = self.response.affluent
 		
-		if self.is_tunneling ():
+		if self.will_open_tunneling ():
 			self.create_tunnel ()			
 		else:	
 			self.client_request.response.done (globbing = False, compress = False)
@@ -209,6 +209,10 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		self.asyncon.start_request (self)
 	
 	def handle_disconnected (self):
+		if self.expect_disconnect:
+			self.found_terminator ()
+			return False
+						
 		if self.retry_count: 
 			return False
 		if self.collector and not self.collector.cached:

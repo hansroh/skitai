@@ -5,6 +5,7 @@ from skitai.protocol.http import request as http_request
 from skitai.protocol.http import request_handler as http_request_handler
 from skitai.protocol.http import response as http_response
 from skitai.protocol.ws import request_handler as ws_request_handler
+from skitai.protocol.ws import request as ws_request
 from skitai.server import rcache
 
 
@@ -219,7 +220,7 @@ class ClusterDistCall:
 			if _reqtype in ("ws", "wss"):				
 					if self.encoding is None:
 						self.encoding = 1 # opcode TEXT
-					request = ws_request_handler.Request (self._uri, params, self._headers, self._encoding, self._auth, self._logger)
+					request = ws_request.Request (self._uri, params, self._headers, self._encoding, self._auth, self._logger)
 					self._requests[rs] = asyncon
 					r = ws_request_handler.RequestHandler (asyncon, request, rs.handle_result)
 					r.start ()

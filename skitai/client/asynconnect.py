@@ -37,6 +37,12 @@ class AsynConnect (asynchat.async_chat):
 		self.event_time = time.time ()
 		self._cv = threading.Condition ()		
 		
+		self._handshaking = False # SSL handsjking
+		self._handshaked = False # SSL handsjking
+		
+		self.established = False # used for tunneling
+		self.upgraded = False # used for web socket
+		
 		asynchat.async_chat.__init__ (self)
 		self.initialize ()
 	
@@ -121,7 +127,13 @@ class AsynConnect (asynchat.async_chat):
 						
 	def close_socket (self):
 		self.connected = False
-		self.accepting = False		
+		self.accepting = False
+		
+		self._handshaking = False
+		self._handshaked = False
+		self.established = False
+		self.upgraded = False
+		
 		self.del_channel ()
 		self._fineno = None
 		
@@ -156,7 +168,7 @@ class AsynConnect (asynchat.async_chat):
 				if ret is not None:
 					return			
 		
-		self.handler = None			
+		self.handler = None
 		self.set_active (False)
 	
 	def abort (self):
@@ -324,9 +336,10 @@ class AsynConnect (asynchat.async_chat):
 			else:
 				raise
 	
-	def disconnect_handled (self):	
-		if self.received:
-			return False
+	def disconnect_handled (self):
+		# server returned null byte
+		# raised asyncore._DISCONNECTED
+		# raised ssl.SSL_ERROR_ZERO_RETURN
 		return self.handler.handle_disconnected ()		
 
 	def close_if_over_keep_live (self):
@@ -441,18 +454,13 @@ class AsynSSLConnect (AsynConnect):
 	ac_in_buffer_size = 65535 # generally safe setting 65535 for SSL
 	ac_out_buffer_size = 65535
 	
-	def connect (self):
-		self.handshaking = False
-		self.handshaked = False
-		AsynConnect.connect (self)
-	
 	def handshake (self):
-		if not self.handshaking:
+		if not self._handshaking:
 			err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
 			if err != 0:
 				raise socket.error(err, _strerror(err))	
 			self.socket = ssl.wrap_socket (self.socket, do_handshake_on_connect = False)
-			self.handshaking = True
+			self._handshaking = True
 			
 		try:
 			self.socket.do_handshake ()
@@ -460,13 +468,12 @@ class AsynSSLConnect (AsynConnect):
 			if why.args [0] in (ssl.SSL_ERROR_WANT_READ, ssl.SSL_ERROR_WANT_WRITE):				
 				return False
 			raise ssl.SSLError(why)
-		self.handshaked = True
-		self.handshaking = False
+		self._handshaked = True		
 		return True
 							
 	def handle_connect_event (self):		
-		if not self.handshaked and not self.handshake ():
-			return	
+		if not self._handshaked and not self.handshake ():
+			return
 		# handshaking done
 		self.handle_connect()
 		self.connected = True
@@ -531,12 +538,6 @@ class AsynSSLConnect (AsynConnect):
 
 
 class AsynSSLProxyConnect (AsynSSLConnect, AsynConnect):
-	def __init__ (self, address, lock = None, logger = None):
-		AsynConnect.__init__ (self, address, lock, logger)
-		self.handshaking = False
-		self.handshaked = False
-		self.established = False
-
 	def handle_connect_event (self):
 		if self.established:
 			AsynSSLConnect.handle_connect_event (self)
@@ -544,13 +545,13 @@ class AsynSSLProxyConnect (AsynSSLConnect, AsynConnect):
 			AsynConnect.handle_connect_event (self)
 	
 	def recv (self, buffer_size):		
-		if self.handshaked or self.handshaking:
+		if self._handshaked or self._handshaking:
 			return AsynSSLConnect.recv (self, buffer_size)				
 		else:
 			return AsynConnect.recv (self, buffer_size)
 			
 	def send (self, data):		
-		if self.handshaked or self.handshaking:
+		if self._handshaked or self._handshaking:
 			return AsynSSLConnect.send (self, data)
 		else:
 			return AsynConnect.send (self, data)

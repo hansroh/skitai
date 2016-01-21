@@ -16,6 +16,7 @@ if __name__ == "__main__":
 	#requests.add ("http://app:1111@ibizcast.skitai.com:5000/ --http-connection keep-alive", handle_page)
 	#requests.add ("https://gitlab.com/u/hansroh --http-tunnel hq.lufex.com:5000", handle_page)
 	requests.add ("ws://54.183.172.47:5000/websocket/echo --wsoc-message hello 1, hans --http-tunnel hq.lufex.com:5000", handle_page)
+	#requests.add ("ws://54.183.172.47:5000/websocket/echo --wsoc-message hello 1, hans", handle_page)
 	requests.get_all ()
 	
 	
