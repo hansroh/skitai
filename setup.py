@@ -58,6 +58,7 @@ packages = [
 	'skitai.protocol.dns',
 	'skitai.protocol.dns.pydns',
 	'skitai.protocol.http',	
+	'skitai.protocol.ws',	
 	'skitai.requests',
 	'skitai.protocol.smtp',
 	'skitai.server',
