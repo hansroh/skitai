@@ -217,9 +217,7 @@ class ClusterDistCall:
 			_reqtype = self._reqtype.lower ()
 			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self.get_ident () or None, filterfunc = self._callback)			
 			
-			if _reqtype in ("ws", "wss"):				
-					if self.encoding is None:
-						self.encoding = 1 # opcode TEXT
+			if _reqtype in ("ws", "wss"):					
 					request = ws_request.Request (self._uri, params, self._headers, self._encoding, self._auth, self._logger)
 					self._requests[rs] = asyncon
 					r = ws_request_handler.RequestHandler (asyncon, request, rs.handle_result)
