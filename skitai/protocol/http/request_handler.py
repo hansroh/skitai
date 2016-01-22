@@ -239,12 +239,15 @@ class RequestHandler:
 	def handle_disconnected (self):
 		if self.expect_disconnect:
 			self.found_terminator ()
-			return False
-			
+			return False		
 		if self.retry_count:
 			return False
-		self.retry_count = 1		
-		self.retry (True)
+		self.retry_count = 1
+		try:
+			self.retry (True)
+		except:
+			self.trace ()
+			return False	
 		return True
 					
 	def retry (self, force_reconnect = False):

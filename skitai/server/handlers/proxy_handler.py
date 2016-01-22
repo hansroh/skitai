@@ -216,6 +216,11 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 				self.push_collector ()
 		self.asyncon.start_request (self)
 	
+	def handle_disconnected (self):
+		if self.client_request.channel is None:
+			return False
+		return http_request_handler.RequestHandler.handle_disconnected (self)
+		
 	def retry (self, force_reconnect = False):
 		self.response = None
 		self.asyncon.close_socket ()
@@ -365,6 +370,7 @@ class ProxyResponse (http_response.Response):
 	def more (self):
 		self.flushed_time = time.time ()
 		return self.u.read ()		
+
 
 class Collector (collectors.FormCollector):
 	# same as asyncon ac_in_buffer_size
