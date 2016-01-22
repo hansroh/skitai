@@ -5,6 +5,34 @@ Copyright (c) 2015 by Hans Roh
 
 License: BSD
 
+
+
+What's New
+-----------
+
+Newly added 3 Skitai 'was' client-side web socket services:
+
+- was.ws ()
+- was.ws.lb ()
+- was.ws.map ()
+
+It is desinged as simple & stateless request-response model using web socket message frame for *light overheaded server-to-server communication*. For example, if your web server queries to so many other search servers via RESTful access, web socket might be a good alterative option. Think HTTP-Headerless JSON messaging. Usage is very simailar with HTTP request.
+
+.. code:: python
+
+  @app.route ("/query")
+  def query (was):
+    s = was.ws (
+    	"http://192.168.1.100:5000/websocket/echo", 
+    	json.dumps ({"keyword": "snowboard binding"})
+    )
+    rs = s.getwait ()
+    result = json.loads (rs.data)
+
+Obiously, target server should have Web Socket app, routed to '/websocket/echo' in this case.
+
+To build WSGI application can handle web sockets on Skitai, see *HTML5 Web Socket* section.
+
 	  
 Introduce
 ----------
@@ -387,13 +415,13 @@ If it is configured, you can skip e.set_smtp(). But be careful for keeping your 
 HTML5 Web Socket
 --------------------------------------
 
-Added new Skitai 'was' web socket service:
+Mendtioned above, there're 3 Skitai 'was' client-side web socket services:
 
 - was.ws ()
 - was.ws.lb ()
 - was.ws.map ()
 
-It is desinged simple & no stateless request-response model using web socket message frame for *light overheaded server-to-server communication*. For example, if your web server queries to so many other search servers via RESTful access, web socket might be a good alterative option. Think HTTP-Headerless JSON messaging. Usage is very simailar with HTTP request.
+It is desinged as simple & no stateless request-response model using web socket message frame for *light overheaded server-to-server communication*. For example, if your web server queries to so many other search servers via RESTful access, web socket might be a good alterative option. Think HTTP-Headerless JSON messaging. Usage is very simailar with HTTP request.
 
 .. code:: python
 
@@ -403,9 +431,12 @@ It is desinged simple & no stateless request-response model using web socket mes
     	"http://192.168.1.100:5000/websocket/echo", 
     	json.dumps ({"keyword": "snowboard binding"})
     )
-	  rs = s.getwait ()
-	  result = json.loads (rs.data)
+    rs = s.getwait ()
+    result = json.loads (rs.data)
 	  
+Obiously, target server should have Web Socket app, routed to '/websocket/echo' in this case.
+
+
 
 Also at server-side, HTML5 Web Socket has been implemented obioulsy
 
