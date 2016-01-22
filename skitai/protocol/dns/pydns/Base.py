@@ -158,7 +158,7 @@ class DnsRequest:
 			qtype=self.args['qtype']
 			
 		if 'name' not in self.args:
-			print(self.args)
+			#print(self.args)
 			raise DNSError('nothing to lookup')
 			
 		qname = self.args['name']

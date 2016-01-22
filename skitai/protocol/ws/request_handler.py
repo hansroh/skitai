@@ -47,7 +47,7 @@ class RequestHandler (request_handler.RequestHandler):
 		self._handshaking = False
 		
 	def start (self):
-		print ("self.asyncon.upgraded", self.asyncon.upgraded)
+		#print ("self.asyncon.upgraded", self.asyncon.upgraded)
 		if not self.asyncon.upgraded:
 			self._handshaking = True
 			for buf in self.get_request_buffer ():

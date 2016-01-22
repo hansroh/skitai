@@ -99,7 +99,7 @@ class request_queue:
 			self.queue.append (item)
 		self.cv.notify ()
 		self.cv.release ()		
-		print(self.queue)
+		#print(self.queue)
 		
 	def get (self):
 		self.cv.acquire()

@@ -5,8 +5,11 @@ import os
 
 class Request (request.HTTPRequest):
 	def __init__ (self, uri, message, headers = None, encoding = None, auth = None, logger = None):
+		if uri.startswith ("ws://"):
+			uri = "http://" + uri [5:]
+		elif uri.startswith ("wss://"):
+			uri = "https://" + uri [6:]
 		request.HTTPRequest.__init__ (self, uri, "get", {}, headers, None, auth, logger)		
-		
 		self.message = message		
 		if not self.message:
 			self.message = b""			

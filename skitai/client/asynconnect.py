@@ -421,7 +421,7 @@ class AsynConnect (asynchat.async_chat):
 			pass
 			
 	def handle_timeout (self):
-		print ("*************************", self.zombie_timeout, time.time () - self.event_time, self.connected, self.sent, self.received)
+		#print ("*************************", self.zombie_timeout, time.time () - self.event_time, self.connected, self.sent, self.received)
 		self.log ("socket timeout", "fail")
 		self.error (702, "Socket Timeout")
 		self.handle_close ()

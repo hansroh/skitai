@@ -23,7 +23,7 @@ It is desinged as simple & stateless request-response model using web socket mes
   @app.route ("/query")
   def query (was):
     s = was.ws (
-    	"http://192.168.1.100:5000/websocket/echo", 
+    	"ws://192.168.1.100:5000/websocket/echo", 
     	json.dumps ({"keyword": "snowboard binding"})
     )
     rs = s.getwait ()
@@ -412,6 +412,16 @@ If it is configured, you can skip e.set_smtp(). But be careful for keeping your 
     undelivers_keep_max_days = 30
 
 
+**Other Utility Service**
+
+- was.status ()
+- was.tojson ()
+- was.fromjson ()
+- was.toxml () # XMLRPC
+- was.fromxml () # XMLRPC
+
+
+
 HTML5 Web Socket
 --------------------------------------
 
@@ -428,7 +438,7 @@ It is desinged as simple & no stateless request-response model using web socket 
   @app.route ("/query")
   def query (was):
     s = was.ws (
-    	"http://192.168.1.100:5000/websocket/echo", 
+    	"ws://192.168.1.100:5000/websocket/echo", 
     	json.dumps ({"keyword": "snowboard binding"})
     )
     rs = s.getwait ()
@@ -620,14 +630,6 @@ You can access all examples by skitai sample app after installing skitai.
 
 Then goto http://localhost:5000/websocket in your browser.
     
-
-**Other Utility Service**
-
-- was.status ()
-- was.tojson ()
-- was.fromjson ()
-- was.toxml () # XMLRPC
-- was.fromxml () # XMLRPC
 
 
 Request Handling with Saddle
