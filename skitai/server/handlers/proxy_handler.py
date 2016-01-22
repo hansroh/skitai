@@ -11,12 +11,14 @@ post_max_size = wsgi_handler.Handler.post_max_size
 upload_max_size = wsgi_handler.Handler.upload_max_size
 PROXY_TUNNEL_KEEP_ALIVE = 120
 
-class TunnelForClientToServer:
+class AsynTunnel:
 	collector = None
 	producer = None
-	def __init__ (self, asyncon):
+	def __init__ (self, asyncon, handler):
 		self.asyncon = asyncon
-		self.bytes = 0		
+		self.handler = handler
+		self.bytes = 0
+		self.asyncon.close_it = True
 		self.asyncon.set_terminator (None)
 		
 	def collect_incoming_data (self, data):
@@ -25,19 +27,23 @@ class TunnelForClientToServer:
 		self.asyncon.push (data)
 	
 	def close (self):
-		self.asyncon.close_socket ()
-		self.asyncon.handler = None # unlink back ref
-
-
-class TunnelForServerToClient:
+		self.handler.channel_closed ()
+		
+	
+class TunnelHandler:
 	keep_alive = 120			
-	def __init__ (self, request, asyncon):
-		self.request = request
-		self.channel = request.channel
+	def __init__ (self, asyncon, request, channel):		
 		self.asyncon = asyncon		
+		self.request = request
+		self.channel = channel
+		
+		self.asyntunnel = AsynTunnel (asyncon, self)		
+		self.channel.set_response_timeout	(PROXY_TUNNEL_KEEP_ALIVE)
+		self.asyncon.set_network_delay_timeout (PROXY_TUNNEL_KEEP_ALIVE)
+		
 		self.bytes = 0
+		self._closed = False
 		self.stime = time.time ()
-		self.cli2srv = None
 				
 	def trace (self, name = None):
 		if name is None:
@@ -47,21 +53,11 @@ class TunnelForServerToClient:
 	def log (self, message, type = "info"):
 		uri = "tunnel://%s:%d" % self.asyncon.address
 		self.channel.log ("%s - %s" % (uri, message), type)
-	
-	def case_closed (self, code, msg):
-		if code and self.bytes == 0:
-			self.asyncon.handler = None # unlink back ref
-			self.request.response.error (507, msg)			
-		else:
-			self.close ()
-			
-	def collect_incoming_data (self, data):		
-		#print ("<<<<<<<<<<<<", data)
-		self.bytes += len (data)		
+					
+	def collect_incoming_data (self, data):	
+		#print ("<<<<<<<<<<<<", data[:20])
+		self.bytes += len (data)
 		self.channel.push (data)
-	
-	def handle_disconnected (self):
-		return False
 		
 	def log_request (self):
 		htime = (time.time () - self.stime) * 1000
@@ -71,18 +67,29 @@ class TunnelForServerToClient:
 			self.channel.addr[1],			
 			self.asyncon.address [0],
 			self.asyncon.address [1],
-			self.cli2srv is not None and self.cli2srv.bytes or 0,
+			self.asyntunnel is not None and self.asyntunnel.bytes or 0,
 			self.bytes,
 			htime,
 			htime
 			)
 		)
-				
-	def close (self):
-		self.log_request ()
-		self.cli2srv and self.cli2srv.close ()
-		self.channel.close ()
-
+		
+	def case_closed (self, code, msg):
+		#print ("------------case_closed", self.request.uri)
+		self.asyncon.handler = None
+		
+	def channel_closed (self):
+		#print ("------------channel_closed", self.request.uri)
+		if self._closed: return
+		self._closed = True
+		self.asyncon.handle_close ()
+	
+	def handle_disconnected (self):
+		#print ("------------handle_disconnected", self.request.uri, self.bytes)
+		# Disconnected by server mostly caused by Connection: close header				
+		self.channel.close_when_done ()
+		self.channel.current_request = None
+						
 
 class ProxyRequestHandler (http_request_handler.RequestHandler):
 	def __init__ (self, asyncon, request, callback, client_request, collector, connection = "keep-alive"):
@@ -90,6 +97,8 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		self.collector = collector
 		self.client_request = client_request
 		self.is_pushed_response = False
+		self.is_tunnel = False
+		self.new_handler = None
 			
 	def add_reply_headers (self):
 		for line in self.response.get_headers ():			
@@ -100,23 +109,21 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 				continue
 			self.client_request.response [k] = v.strip ()
 	
-	def create_tunnel (self):
-		response, request, asyncon = self.response, self.client_request, self.asyncon		
-		cli2srv = TunnelForClientToServer (asyncon)
-		asyncon.handler = TunnelForServerToClient (request, asyncon)		
-		request.channel.keep_alive = PROXY_TUNNEL_KEEP_ALIVE		
-		asyncon.set_keep_alive_timeout (PROXY_TUNNEL_KEEP_ALIVE)
-		request.response.done (globbing = False, compress = False, next_request = (cli2srv, None)) # request, terminator		
-			
 	def has_been_connected (self):
 		if self.request.method == "connect":
 			self.buffer =	b"HTTP/1.1 200 Connection Established\r\nKeep-Alive: timeout=120"				
-			self.create_response ()
 			self.found_terminator ()
 	
 	def will_open_tunneling (self):
 		return self.response.code == 200 and self.response.msg.lower () == "connection established"
-			
+	
+	def create_tunnel (self):
+		self.asyncon.established = True		
+		self.new_handler = TunnelHandler (self.asyncon, self.request, self.client_request.channel)
+		# next_request = (new request, new terminator)
+		self.client_request.response.done (globbing = False, compress = False, next_request = (self.new_handler.asyntunnel, None)) 
+		self.case_closed (0)
+		
 	def push_response (self):
 		if self.is_pushed_response or not self.client_request.channel:
 			return
@@ -126,11 +133,11 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 			self.client_request.channel.ready = self.response.ready
 			self.asyncon.affluent = self.response.affluent
 		
+		self.is_pushed_response = True
 		if self.will_open_tunneling ():
-			self.create_tunnel ()			
+			self.create_tunnel ()
 		else:	
 			self.client_request.response.done (globbing = False, compress = False)
-		self.is_pushed_response = True
 			
 	def case_closed (self, error, msg = ""):
 		# unbind readable/writable methods
@@ -148,10 +155,9 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		if not error:
 			self.push_response ()
 		
-		if self.asyncon:
-			self.asyncon.handler = None
-		
+		self.asyncon.handler = self.new_handler				
 		if self.callback:
+			#print ("~~~~~~~~~~~~~~~~~~~~~~~callback")
 			self.callback (self)
 			
 	def collect_incoming_data (self, data):
@@ -199,10 +205,10 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 	
 		self.push_response ()
 	
-	def start (self):		
+	def start (self):
 		if not self.client_request.channel:
 			return
-
+		
 		if self.request.method != "connect":
 			for buf in self.get_request_buffer ():
 				self.asyncon.push (buf)				
@@ -210,18 +216,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 				self.push_collector ()
 		self.asyncon.start_request (self)
 	
-	def handle_disconnected (self):
-		if self.expect_disconnect:
-			self.found_terminator ()
-			return False
-						
-		if self.retry_count: 
-			return False
-		if self.collector and not self.collector.cached:
-			return False
-		if not self.client_request.channel:
-			return False
-		
+	def retry (self, force_reconnect = False):
 		self.response = None
 		self.asyncon.close_socket ()
 		self.asyncon.handler = None # unlink back ref.		
@@ -459,7 +454,7 @@ class ConnectionPool:
 		while self.requests and self.current_requests <= self.maxconn:
 			request = self.requests.pop (0)
 			if request.channel is None:
-				continue
+				continue			
 			self.current_requests += 1
 			return request
 		return len (self.requests) and 1 or 0
@@ -606,9 +601,8 @@ class Handler (wsgi_handler.Handler):
 			
 	def callback (self, handler):
 		response, request = handler.response, handler.client_request		
-		if response.code >= 700:			
-			request.response.error (506, response.msg)
-			
+		if response.code >= 700:
+			request.response.error (506, response.msg)			
 		else:
 			try:
 				self.save_cache (request, handler)					

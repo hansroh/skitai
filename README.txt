@@ -1185,7 +1185,7 @@ Optional Requirements
 Change Log
 -------------
   
-  0.11.3 - fix proxy related bugs
+  0.11.4 - fix SSL proxy tunneling
   
   0.11.2 - add 'was' web socket service, was.ws, was.ws.lb, was.ws.map
   

@@ -506,7 +506,6 @@ class Handler (wsgi_handler.Handler):
 		
 	def channel_config (self, request, ws, keep_alive):
 		request.channel.current_request = ws
-		request.channel.add_closable_when_done (ws)
 		request.channel.keep_alive = keep_alive
 		request.channel.response_timeout = keep_alive
 		

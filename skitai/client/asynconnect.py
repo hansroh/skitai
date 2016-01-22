@@ -124,6 +124,10 @@ class AsynConnect (asynchat.async_chat):
 	
 	def cancel_request (self):
 		self.producer_fifo.clear()	
+	
+	def create_new_socket (self):
+		self.close_socket ()
+		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
 						
 	def close_socket (self):
 		self.connected = False
@@ -403,7 +407,7 @@ class AsynConnect (asynchat.async_chat):
 			self.zombie_timeout = self.network_delay_timeout * 2
 		else:	
 			self.zombie_timeout = self.network_delay_timeout
-		
+	
 	def set_network_delay_timeout (self, timeout = 10):
 		self.network_delay_timeout = timeout
 	
@@ -417,7 +421,7 @@ class AsynConnect (asynchat.async_chat):
 			pass
 			
 	def handle_timeout (self):
-		#print ("*************************", time.time () - self.event_time, self.connected, self.sent, self.received)
+		print ("*************************", self.zombie_timeout, time.time () - self.event_time, self.connected, self.sent, self.received)
 		self.log ("socket timeout", "fail")
 		self.error (702, "Socket Timeout")
 		self.handle_close ()

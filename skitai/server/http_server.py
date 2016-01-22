@@ -51,7 +51,6 @@ class http_channel (asynchat.async_chat):
 		self.debug_buffer = b""
 		
 		self.closables = []
-		self.closables_when_done = []
 		
 	def reject (self):
 		self.is_rejected = True		
@@ -95,6 +94,9 @@ class http_channel (asynchat.async_chat):
 		self.log ("zombie channel %s killed." % ":".join (map (str, self.addr)))
 		self.close ()
 	
+	def set_response_timeout (self, timeout):
+		self.response_timeout = timeout
+		
 	def set_timeout_by_case (self):
 		if self.affluent or self.ready:
 			self.zombie_timeout = self.response_timeout * 2
@@ -117,9 +119,6 @@ class http_channel (asynchat.async_chat):
 	
 	def add_closable (self, thing):
 		self.closables.append (thing)
-	
-	def add_closable_when_done (self, thing):
-		self.closables_when_done.append (thing)		
 		
 	def done_request (self):	
 		self.zombie_timeout = self.keep_alive
@@ -214,7 +213,6 @@ class http_channel (asynchat.async_chat):
 			r.response.error (503)
 					
 	def close (self):
-		#print (self.closables_when_done)
 		if self.closed:
 			return
 		self.closed = True
@@ -225,7 +223,7 @@ class http_channel (asynchat.async_chat):
 			self.current_request.channel = None # break circ refs
 			self.current_request = None
 		
-		for closable in self.closables + self.closables_when_done:
+		for closable in self.closables:
 			if closable and hasattr (closable, "close"):				
 				closable.close ()				
 		
