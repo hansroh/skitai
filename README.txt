@@ -425,6 +425,9 @@ If it is configured, you can skip e.set_smtp(). But be careful for keeping your 
 HTML5 Web Socket
 --------------------------------------
 
+*New in version 0.11*
+
+
 Mendtioned above, there're 3 Skitai 'was' client-side web socket services:
 
 - was.ws ()
@@ -777,9 +780,8 @@ file object has these attributes:
 - file.name: original file name posted
 - file.size
 - file.mimetype
-- file.save (into, name = None, mkdir = False, dup = "u")
 - file.remove ()
-
+- file.save (into, name = None, mkdir = False, dup = "u")
   * if name is None, used file.name
   * dup: 
     
@@ -1221,8 +1223,6 @@ Change Log
   0.11.4 - fix SSL proxy tunneling
   
   0.11.2 - add 'was' web socket service, was.ws, was.ws.lb, was.ws.map
-  
-  0.11.0 - fix websocket data decoding
   
   0.11.0 - Websocket implemeted
   

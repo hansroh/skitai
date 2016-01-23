@@ -345,19 +345,22 @@ class WebSocketServer (WebSocket2):
 	def __init__ (self, gid):
 		self._closed = False
 		self.gid = gid
-		self.cv = threading.Condition (threading.RLock ())
+		self.lock = threading.RLock ()
+		self.cv = threading.Condition ()
 		self.messages = []
 		self.clients = {}
 		
 	def add_client (self, ws):
+		self.lock.acquire ()
 		self.clients [ws.client_id] = ws
+		self.lock.release ()
 		self.handle_message (ws.client_id, 1)
 	
 	def handle_close (self, client_id):
-		try:
-			del self.clients [client_id]
-		except KeyError:
-			pass		
+		self.lock.acquire ()
+		try: del self.clients [client_id]
+		except KeyError: pass		
+		self.lock.release ()
 		self.handle_message (client_id, -1)
 		
 	def handle_message (self, client_id, msg):
@@ -378,10 +381,20 @@ class WebSocketServer (WebSocket2):
 		raise AssertionError ("Can't use send() on WEBSOCKET_MULTICAST spec, use send_to(client_id, msg, op_code)")
 	
 	def sendto (self, client_id, msg, op_code = OPCODE_TEXT):		
-		self.clients [client_id].send (msg, op_code)
+		self.lock.acquire ()
+		try:
+			client = self.clients [client_id]
+		except KeyError:
+			client = None	
+		self.lock.release ()
+		if client:
+			client.send (msg, op_code)
 		
 	def sendall (self, msg, op_code = OPCODE_TEXT):
-		for client_id in self.clients:
+		self.lock.acquire ()
+		clients = list (self.clients.keys ())
+		self.lock.release ()
+		for client_id in clients:
 			self.sendto (client_id, msg)
 	
 
@@ -506,6 +519,5 @@ class Handler (wsgi_handler.Handler):
 		
 	def channel_config (self, request, ws, keep_alive):
 		request.channel.current_request = ws
-		request.channel.keep_alive = keep_alive
-		request.channel.response_timeout = keep_alive
+		request.channel.set_response_timeout (keep_alive)
 		

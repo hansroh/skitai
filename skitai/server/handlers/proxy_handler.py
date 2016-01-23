@@ -218,6 +218,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 	
 	def handle_disconnected (self):
 		if self.client_request.channel is None:
+			# disconnected
 			return False
 		return http_request_handler.RequestHandler.handle_disconnected (self)
 		
