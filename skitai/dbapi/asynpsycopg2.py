@@ -54,8 +54,7 @@ class AsynConnect (asyncore.dispatcher):
 	def clean_shutdown_control (self, phase, time_in_this_phase):
 		if phase == 2:
 			self.error (psycopg2.OperationalError, "was entered shutdown process")	
-			self.handle_close ()		
-		return 0
+			self.handle_close ()			
 	
 	def is_deletable (self, timeout):
 		if time.time () - self.event_time > timeout:

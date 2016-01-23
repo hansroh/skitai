@@ -232,7 +232,7 @@ def graceful_shutdown_loop ():
 					veto = veto or fn (_shutdown_phase, time_in_this_phase)
 				except:					
 					obj.handle_error()
-		
+					
 		if veto and time_in_this_phase < _shutdown_timeout:
 			try:
 				poll_fun(timeout, map)

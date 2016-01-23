@@ -323,7 +323,7 @@ class SMTP (asynchat.async_chat):
 		if phase == 3:
 			if self._stat < 99 or self.writable ():
 				return 1
-		return 0
+			return 0
 	
 	def handle_connect (self):
 		self.event_time = time.time ()

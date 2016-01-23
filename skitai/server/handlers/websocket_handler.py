@@ -480,6 +480,7 @@ class Handler (wsgi_handler.Handler):
 			# 1:1 wesocket:thread
 			# Be careful, it will be consume massive thread resources
 			ws = WebSocket2 (self, request)
+			request.channel.add_closing_partner (ws)
 			env ["websocket"] = ws
 			self.channel_config (request, ws, keep_alive)
 			job = Job2 (request, apph, (env, donot_response), self.wasc.logger)
@@ -504,6 +505,7 @@ class Handler (wsgi_handler.Handler):
 			
 			if not websocket_servers.has_key (gid):
 				server = websocket_servers.create (gid)
+				request.channel.add_closing_partner (server)
 				env ["websocket"] = server
 				job = Job3 (server, request, apph, (env, donot_response), self.wasc.logger)
 				threading.Thread (target = job).start ()	

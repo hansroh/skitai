@@ -93,7 +93,6 @@ class AsynConnect (asynchat.async_chat):
 		if phase == 2:
 			self.error (705, "Server Entered Shutdown Process")
 			self.handle_close ()
-		return 0
 		
 	def readable (self):
 		if self.affluent is not None:

@@ -259,7 +259,7 @@ class Job:
 					# streaming obj
 					if hasattr (part, "close"):
 						# automatic close	when channel suddenly closed
-						response.add_closable (part)
+						response.add_closable_producer (part)
 					will_be_push.append (part)
 				
 				else:
