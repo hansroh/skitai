@@ -113,7 +113,7 @@ class HTTPRequest (XMLRPCRequest):
 		if strutil.is_encodable (self.params):
 			return self.params.encoding ("utf8")
 		
-		if self.encoding:
+		if self.encoding and strutil.is_decodable (self.params):
 			return self.params.decode (self.encoding).encoding ("utf8") 
 			
 		return self.params
