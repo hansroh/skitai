@@ -128,7 +128,7 @@ class http_channel (asynchat.async_chat):
 		self.affluent = None
 							
 	def send (self, data):
-		#print 	(str(data), self.current_request)
+		#print	("SEND", repr(data), self.get_terminator ())
 		if DEBUG:
 			self.debug_buffer += str (data)
 		self.event_time = int (time.time())
@@ -145,7 +145,7 @@ class http_channel (asynchat.async_chat):
 			if not result:
 				self.handle_close ()
 				return b""		
-			#print 	(repr(result), self.current_request)
+			#print	("RECV", repr(result), self.get_terminator ())
 			return result
 			
 		except MemoryError:

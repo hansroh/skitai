@@ -364,9 +364,10 @@ class http_response:
 			if next_request:
 				request, terminator = next_request
 				self.request.channel.current_request = request
-				self.request.channel.set_terminator (terminator)				
+				self.request.channel.set_terminator (terminator)
 			else:
 				self.request.channel.current_request = None
+				self.request.channel.set_terminator (b"\r\n\r\n")
 				
 			# proxy collector and producer is related to asynconnect
 			# and relay data with channel

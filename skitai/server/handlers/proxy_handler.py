@@ -127,6 +127,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 	def push_response (self):
 		if self.is_pushed_response or not self.client_request.channel:
 			return
+		
 		if self.response.body_expected ():
 			self.client_request.response.push (self.response)
 			# in relay mode, possibly delayed
@@ -159,7 +160,11 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		if self.callback:
 			#print ("~~~~~~~~~~~~~~~~~~~~~~~callback")
 			self.callback (self)
-			
+	
+	def found_end_of_body (self):
+		# proxy should not handle authorization		
+		self.asyncon.handle_close ()
+		
 	def collect_incoming_data (self, data):
 		http_request_handler.RequestHandler.collect_incoming_data (self, data)
 		
@@ -361,16 +366,16 @@ class ProxyResponse (http_response.Response):
 		self.asyncon.abort ()
 			
 	def affluent (self):
-		# if channel doesn't consume data, delay recv data		
+		# if channel doesn't consume data, delay recv data
 		return len (self.u.data) < 1000
 		
 	def ready (self):
-		# if exist consumable data or wait
+		# if exist consumable data or wait		
 		return len (self.u.data) or self.got_all_data
 		
 	def more (self):
 		self.flushed_time = time.time ()
-		return self.u.read ()		
+		return self.u.read ()
 
 
 class Collector (collectors.FormCollector):

@@ -109,7 +109,13 @@ class HTTPRequest (XMLRPCRequest):
 					v = v.decode (self.encoding)					
 				fm.append ("%s=%s" % (quote (k), quote (v)))
 			return "&".join (fm).encode ("utf8")
-						
+		
+		if strutil.is_encodable (self.params):
+			return self.params.encoding ("utf8")
+		
+		if self.encoding:
+			return self.params.decode (self.encoding).encoding ("utf8") 
+			
 		return self.params
 		
 		

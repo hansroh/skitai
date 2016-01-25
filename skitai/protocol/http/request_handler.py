@@ -128,7 +128,7 @@ class RequestHandler:
 				raise AssertionError ("Unknown authedentification method")
 			return auth_header
 				
-	def get_request_buffer (self):
+	def get_request_buffer (self):		
 		data = self.request.get_data ()		
 		is_data_producer = False
 		
@@ -180,7 +180,7 @@ class RequestHandler:
 		#print (data)
 		if is_data_producer:
 			return [req, data]
-		else:	
+		else:
 			return [req + data]
 	
 	def rebuild_response (self, error, msg):
@@ -288,7 +288,7 @@ class RequestHandler:
 	def found_terminator (self):
 		if self.response:
 			if self.end_of_data:
-				return self.found_end_of_body ()				
+				return self.found_end_of_body ()
 			
 			if self.wrap_in_chunk:			
 				if self.asyncon.get_terminator () == 0:
@@ -309,7 +309,7 @@ class RequestHandler:
 				elif chunked_size > 0:
 					self.asyncon.set_terminator (chunked_size)
 			
-			elif self.asyncon.get_terminator () == 0:
+			else:
 				self.found_end_of_body ()
 						
 		else:
@@ -339,15 +339,12 @@ class RequestHandler:
 						clen = ""
 						self.expect_disconnect = True
 					else:
-						clen = 0 # no transfer-encoding, no content-lenth
-												
-				if clen == 0:					
+						clen = 0 # no transfer-encoding, no content-lenth												
+				
+				if clen == 0:
 					return self.found_end_of_body ()
-										
 				self.asyncon.set_terminator (clen)
 			
-			#self.buffer = ""
-
 	def create_response (self):
 		# overide for new Response
 		buffer, self.buffer = self.buffer, b""
