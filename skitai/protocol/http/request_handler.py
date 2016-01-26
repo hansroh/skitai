@@ -262,7 +262,7 @@ class RequestHandler:
 		
 	def case_closed (self, error = 0, msg = ""):
 		# handle abnormally raised exceptions like network error etc.
-		self.rebuild_response (error, msg)		
+		self.rebuild_response (error, msg)
 		
 		if self.asyncon:
 			self.asyncon.handler = None		
@@ -280,7 +280,7 @@ class RequestHandler:
 				self.response = http_response.FailedResponse (709, "Invalid Content", self.request)
 				raise
 	
-	def found_end_of_body (self):		
+	def found_end_of_body (self):
 		if self.handled_http_authorization ():					
 			return
 		self.asyncon.handle_close ()

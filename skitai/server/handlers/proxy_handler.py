@@ -139,7 +139,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 			self.create_tunnel ()
 		else:	
 			self.client_request.response.done (globbing = False, compress = False)
-			
+				
 	def case_closed (self, error, msg = ""):
 		# unbind readable/writable methods
 		self.asyncon.ready = None
@@ -158,7 +158,6 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		
 		self.asyncon.handler = self.new_handler				
 		if self.callback:
-			#print ("~~~~~~~~~~~~~~~~~~~~~~~callback")
 			self.callback (self)
 	
 	def found_end_of_body (self):
@@ -185,7 +184,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		if not self.client_request.channel:
 			return
 				
-		buffer, self.buffer = self.buffer, b""		
+		buffer, self.buffer = self.buffer, b""
 		accept_gzip = ""
 		accept_encoding = self.client_request.get_header ("Accept-Encoding")
 		if accept_encoding and accept_encoding.find ("gzip") != -1:
@@ -461,18 +460,27 @@ class ConnectionPool:
 	
 	def add (self, request)	:
 		self.requests.append (request)
+	
+	def __len__ (self):
+		return len (self.requests)
 		
 	def get (self):
 		while self.requests and self.current_requests <= self.maxconn:
 			request = self.requests.pop (0)
 			if request.channel is None:
-				continue			
+				continue
 			self.current_requests += 1
 			return request
 		return len (self.requests) and 1 or 0
 	
-	def done (self):
-		self.current_requests -= 1
+	def done (self, code):
+		if code >= 700:
+			for r in self.requests:
+				r.channel.close ()
+			self.requests = []
+			self.current_requests = 0
+		else:	
+			self.current_requests -= 1
 		
 			
 class Handler (wsgi_handler.Handler):
@@ -501,14 +509,20 @@ class Handler (wsgi_handler.Handler):
 		except KeyError: 
 			self.q [addr][host] = ConnectionPool (request)		
 		self.handle_queue ()
+		#self.handle_queued_request (request)
 	
 	def handle_queue (self):
 		for addr in list (self.q.keys ()):
 			if not self.q [addr]:
 				del self.q [addr]
 				continue
+			
+			#for host, cp in list (self.q [addr].items ()):
+				#print (host, len (cp))
+				#print ('-' * 79)
 				
 			for host, cp in list (self.q [addr].items ()):
+				#print (host, len (cp))
 				request = cp.get ()
 				if request == 0:
 					del self.q [addr][host]
@@ -614,7 +628,8 @@ class Handler (wsgi_handler.Handler):
 	def callback (self, handler):
 		response, request = handler.response, handler.client_request		
 		if response.code >= 700:
-			request.response.error (506, response.msg)			
+			request.response.error (506, response.msg)
+		
 		else:
 			try:
 				self.save_cache (request, handler)					
@@ -622,7 +637,7 @@ class Handler (wsgi_handler.Handler):
 				self.wasc.logger.trace ("server")
 		
 		self.dealloc (request, handler)
-		try: self.q [request.channel.addr[0]][request.get_header ("host")].done () # decrease current_requests
+		try: self.q [request.channel.addr[0]][request.get_header ("host")].done (response.code) # decrease current_requests
 		except KeyError: pass
 		self.handle_queue ()
 		
