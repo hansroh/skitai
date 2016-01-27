@@ -217,7 +217,8 @@ class RequestHandler:
 			else:
 				self.found_end_of_body ()
 						
-		else:			
+		else:
+			self.expect_disconnect = False
 			try:
 				self.create_response ()
 			except:	
@@ -272,7 +273,7 @@ class RequestHandler:
 		if self.handled_http_authorization ():					
 			return
 		if self.will_be_close ():
-			self.asyncon.handle_close ()		
+			self.asyncon.disconnect ()		
 		self.close_case_with_end_tran ()
 	
 	def handled_http_authorization (self):
@@ -301,14 +302,14 @@ class RequestHandler:
 		if self.response and self.expect_disconnect:
 			self.close_case_with_end_tran ()
 			return
-		
-		# possibly discoonected cause of keep-alive timeout
-		if self.response is None and self.retry_count == 0 and why == 706:
+	
+		# possibly disconnected cause of keep-alive timeout		
+		if why == 706 and self.response is None and self.retry_count == 0:
 			self.retry_count = 1
-			self.asyncon.handle_close ()
+			self.asyncon.disconnect ()
 			self.start ()
-			return
-
+			return			
+	
 		self.response = http_response.FailedResponse (why, msg, self.request)
 		self.close_case_with_end_tran ()
 	

@@ -168,7 +168,7 @@ class RequestHandler (request_handler.RequestHandler):
 			self.opcode = b1 & OPCODE
 			if self.opcode == OPCODE_CLOSE:				
 				self.response = response.Response (200, "OK", self.opcode, "")
-				self.asyncon.handle_close ()
+				self.asyncon.disconnect ()
 				self.close_case_with_end_tran ()
 				return
 				

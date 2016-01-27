@@ -99,7 +99,7 @@ class AsynConnect (asynchat.async_chat):
 	def maintern (self):
 		# if self.is_channel_in_map (), mainterned by lifetime
 		if not self.is_channel_in_map () and self.isactive () and time.time () - self.event_time > self.zombie_timeout:			# do not user close_socket (), this func might be called in the thread, and currently in select.select()
-			self.handle_close ()
+			self.disconnect ()
 	
 	def is_deletable (self, timeout):
 		if time.time () - self.event_time > timeout:
@@ -114,7 +114,7 @@ class AsynConnect (asynchat.async_chat):
 		return self._fileno in map
 	
 	def abort (self):
-		self.handle_close ()
+		self.discoonect ()
 		self.end_tran ()
 		
 	def set_active (self, flag, nolock = False):
@@ -239,7 +239,7 @@ class AsynConnect (asynchat.async_chat):
 	
 	def close_if_over_keep_live (self):
 		if time.time () - self.event_time > self.zombie_timeout:
-			self.handle_close ()
+			self.disconnect ()
 	
 	def initiate_send (self):
 		if self.is_channel_in_map ():
@@ -306,11 +306,11 @@ class AsynConnect (asynchat.async_chat):
 		if init_send:
 			self.initiate_send ()
 	
-	def handle_close (self, code = 0, msg = ""):
+	def handle_close (self, code = 706, msg = "Disconnected by The Other"):
 		self.errcode = code
 		self.errmsg = msg
 		self.close()
-						
+							
 	def collect_incoming_data (self, data):
 		if not self.handler:
 			self.logger ("droping data %d" % len (data), "warn")
@@ -324,6 +324,10 @@ class AsynConnect (asynchat.async_chat):
 			return # already closed
 		self.handler.found_terminator ()
 	
+	def disconnect (self):
+		# no error
+		self.handle_close (0, "")
+		
 	def close (self):
 		asynchat.async_chat.close (self)
 		self.producer_fifo.clear()

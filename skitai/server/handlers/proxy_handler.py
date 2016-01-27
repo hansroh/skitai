@@ -84,7 +84,7 @@ class TunnelHandler:
 	def channel_closed (self):
 		#print ("------------channel_closed", self.request.uri, self.bytes)
 		self.asyncon.handler = None
-		self.asyncon.handle_close ()
+		self.asyncon.disconnect ()
 		self.asyncon.end_tran ()
 
 
@@ -135,7 +135,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 	def found_end_of_body (self):
 		# proxy should not handle authorization		
 		if self.will_be_close ():
-			self.asyncon.handle_close ()
+			self.asyncon.disconnect ()
 		self.close_case_with_end_tran ()
 	
 	def create_tunnel (self):
@@ -317,7 +317,7 @@ class ProxyResponse (http_response.Response):
 		self.client_request.producer = None
 		try: self.u.data = []
 		except AttributeError: pass		
-		self.asyncon.handle_close ()
+		self.asyncon.disconnect ()
 		self.asyncon.end_tran ()
 			
 	def affluent (self):
