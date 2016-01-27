@@ -55,7 +55,7 @@ class RequestHandler (request_handler.RequestHandler):
 			for buf in self.get_request_buffer ():
 				self.asyncon.push (buf)
 		else:	
-			self.asyncon.set_terminator (2)						
+			self.asyncon.set_terminator (2)
 			self.asyncon.push (self.request.get_message ())
 		self.asyncon.begin_tran (self)
 		
@@ -88,12 +88,13 @@ class RequestHandler (request_handler.RequestHandler):
 		)).encode ("utf8")		
 		return [req]
 	
-	def connection_closed (self, why, msg):		
+	def connection_closed (self, why, msg):
 		if self._handshaking:
 			# possibly retry or case_closed with error
 			request_handler.RequestHandler.connection_closed (self, why, msg)
 		else:
 			self.response = response.Response (why, msg, -1, -1)
+			self.asyncon.end_tran ()
 			self.case_closed ()
 	
 	def collect_incoming_data (self, data):
@@ -121,10 +122,9 @@ class RequestHandler (request_handler.RequestHandler):
 		else:
 			self.response = None
 			self._handshaking = False
-			self.asyncon.upgraded = True
-											
-			msg = self.request.get_message ()
-			self.asyncon.push (msg)
+			self.asyncon.upgraded = True											
+
+			self.asyncon.push (self.request.get_message ())
 			self.asyncon.set_terminator (2)
 						
 	def found_terminator (self):
@@ -146,6 +146,7 @@ class RequestHandler (request_handler.RequestHandler):
 			
 			self.response = response.Response (200, "OK", self.opcode, data)
 			self.asyncon.set_terminator (2)			
+			self.asyncon.end_tran ()
 			self.case_closed ()
 						
 		elif self.payload_length:
@@ -170,6 +171,7 @@ class RequestHandler (request_handler.RequestHandler):
 			if self.opcode == OPCODE_CLOSE:				
 				self.response = response.Response (200, "OK", self.opcode, "")
 				self.asyncon.handle_close ()
+				self.asyncon.end_tran ()
 				self.case_closed ()
 				return
 				
@@ -183,6 +185,7 @@ class RequestHandler (request_handler.RequestHandler):
 				self.opcode = None
 				self.has_masks = True
 				self.asyncon.set_terminator (2)				
+				self.asyncon.end_tran ()
 				self.case_closed ()
 				return
 			

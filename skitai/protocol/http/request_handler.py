@@ -179,7 +179,7 @@ class RequestHandler:
 		
 		#print (req)
 		#print (data)
-		if is_data_producer:
+		if is_data_producer:			
 			return [req, data]
 		else:
 			return [req + data]
@@ -308,7 +308,7 @@ class RequestHandler:
 		if self.response is None and self.retry_count == 0 and why == 706:
 			self.retry_count = 1
 			self.asyncon.handle_close ()
-			self.start (self)
+			self.start ()
 			return
 
 		self.response = http_response.FailedResponse (why, msg, self.request)

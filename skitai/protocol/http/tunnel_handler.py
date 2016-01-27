@@ -17,8 +17,9 @@ class ProxyTunnelHandler (http_request_handler.RequestHandler):
 		return req
 	
 	def start_handshake (self):
+		self.asyncon.set_terminator ("\r\n\r\n")
 		self.asyncon.push (self.get_handshaking_buffer ())
-		self.asyncon.begin_tran (self)		
+		self.asyncon.begin_tran (self)
 	
 	def convert_to_ssl (self):
 		pass
@@ -29,7 +30,7 @@ class ProxyTunnelHandler (http_request_handler.RequestHandler):
 			self.response = None
 			self.convert_to_ssl ()
 			for buf in self.get_request_buffer ():
-				self.asyncon.push (buf)														
+				self.asyncon.push (buf)
 		else:
 			self.response = response.FailedResponse (self.response.code, self.response.msg)
 			self.asyncon.handle_close (720, "Returned %d %s" % (self.response.code, self.response.msg))
@@ -40,7 +41,7 @@ class ProxyTunnelHandler (http_request_handler.RequestHandler):
 		else:
 			http_request_handler.RequestHandler.start (self)
 		
-	def found_end_of_body (self):	
+	def found_end_of_body (self):			
 		if not self.asyncon.established:
 			self.finish_handshake ()											
 		else:

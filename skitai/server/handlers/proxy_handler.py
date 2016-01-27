@@ -83,8 +83,8 @@ class TunnelHandler:
 		
 	def channel_closed (self):
 		#print ("------------channel_closed", self.request.uri, self.bytes)
-		self.asyncon.handle_close ()
 		self.asyncon.handler = None
+		self.asyncon.handle_close ()
 		self.asyncon.end_tran ()
 
 
@@ -179,9 +179,10 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		
 		if self.response.body_expected ():
 			self.client_request.response.push (self.response)
+			#self.client_request.channel.add_closable_producer (self.response)
 			# in relay mode, possibly delayed
-			self.client_request.channel.ready = self.response.ready
-			self.asyncon.affluent = self.response.affluent
+			self.client_request.channel.ready = self.response.ready			
+			self.asyncon.affluent = self.response.affluent			
 		
 		self.client_request.response.done (globbing = False, compress = False)
 	
@@ -314,10 +315,11 @@ class ProxyResponse (http_response.Response):
 		return self.gzip_compressed
 	
 	def close (self):
-		self.client_request.producer = None		
+		self.client_request.producer = None
 		try: self.u.data = []
 		except AttributeError: pass		
-		self.asyncon.abort ()
+		self.asyncon.handle_close ()
+		self.asyncon.end_tran ()
 			
 	def affluent (self):
 		# if channel doesn't consume data, delay recv data
@@ -404,38 +406,6 @@ class Collector (collectors.FormCollector):
 		#print "proxy_handler.collector.more >> %d" % tl, id (self)
 		return b"".join (data)
 
-
-class ConnectionPool:
-	def __init__ (self, request):
-		self.maxconn = 3
-		if request.version == "1.0":
-			self.maxconn = 4
-		self.requests = [request]
-		self.current_requests = 0
-	
-	def add (self, request)	:
-		self.requests.append (request)
-	
-	def __len__ (self):
-		return len (self.requests)
-		
-	def get (self):
-		while self.requests and self.current_requests <= self.maxconn:
-			request = self.requests.pop (0)
-			if request.channel is None:
-				continue
-			self.current_requests += 1
-			return request
-		return len (self.requests) and 1 or 0
-	
-	def done (self, code):
-		if code >= 700:
-			for r in self.requests:
-				r.channel.close ()
-			self.requests = []
-			self.current_requests = 0
-		else:	
-			self.current_requests -= 1
 		
 			
 class Handler (wsgi_handler.Handler):
@@ -455,38 +425,6 @@ class Handler (wsgi_handler.Handler):
 		return 0
 		
 	def handle_request (self, request):
-		addr = request.channel.addr[0]
-		host = request.get_header ("host")
-		if addr not in self.q:
-			self.q [addr] = {}			
-		try: 
-			self.q [addr][host].add (request)			
-		except KeyError: 
-			self.q [addr][host] = ConnectionPool (request)		
-		self.handle_queue ()
-		#self.handle_queued_request (request)
-	
-	def handle_queue (self):
-		for addr in list (self.q.keys ()):
-			if not self.q [addr]:
-				del self.q [addr]
-				continue
-			
-			#for host, cp in list (self.q [addr].items ()):
-				#print (host, len (cp))
-				#print ('-' * 79)
-				
-			for host, cp in list (self.q [addr].items ()):
-				#print (host, len (cp))
-				request = cp.get ()
-				if request == 0:
-					del self.q [addr][host]
-				elif request == 1:
-					continue
-				else:
-					self.handle_queued_request (request)
-				
-	def handle_queued_request (self, request):
 		collector = None
 		if request.command in ('post', 'put'):
 			ct = request.get_header ("content-type")
@@ -497,8 +435,7 @@ class Handler (wsgi_handler.Handler):
 				request.collector = collector
 				collector.start_collect ()
 			else:
-				return # error was already called in make_collector ()
-							
+				return # error was already called in make_collector ()							
 		self.continue_request(request, collector)
 					
 	def continue_request (self, request, collector, asyncon = None):		
@@ -592,7 +529,4 @@ class Handler (wsgi_handler.Handler):
 				self.wasc.logger.trace ("server")
 		
 		self.dealloc (request, handler)
-		try: self.q [request.channel.addr[0]][request.get_header ("host")].done (response.code) # decrease current_requests
-		except KeyError: pass
-		self.handle_queue ()
 		

@@ -42,6 +42,7 @@ class AsynConnect (asynchat.async_chat):
 	def initialize (self):
 		self.errcode = 0
 		self.errmsg = ""
+		self.raised_ENOTCONN = 0
 		
 		self._handshaking = False
 		self._handshaked = False		
@@ -113,11 +114,8 @@ class AsynConnect (asynchat.async_chat):
 		return self._fileno in map
 	
 	def abort (self):
-		try:
-			self.handle_close ()
-		finally:	
-			self.handler = None
-			self.set_active (False)
+		self.handle_close ()
+		self.end_tran ()
 		
 	def set_active (self, flag, nolock = False):
 		if flag:
@@ -213,13 +211,20 @@ class AsynConnect (asynchat.async_chat):
 				return data		
 		except socket.error as why:
 			if why.errno in asyncore._DISCONNECTED:				
+				if why.errno == asyncore.ENOTCONN and os.name == "nt":
+					# winsock sometimes raise ENOTCONN and sometimes recovered.					
+					if self.raised_ENOTCONN <= 3:
+						self.raised_ENOTCONN += 1
+						return b''
+					else:	
+						self.raised_ENOTCONN = 0
+						
 				self.handle_close (706, "Connection closed unexpectedly in recv")
 				return b''
 			else:
 				raise
 	
-	def send (self, data):
-		#print ("+++++DATA", len (data), repr (data [:40]))	
+	def send (self, data):		
 		self.event_time = time.time ()
 		try:
 			return self.socket.send (data)
@@ -270,7 +275,7 @@ class AsynConnect (asynchat.async_chat):
 		asynchat.async_chat.handle_write (self)
 			
 	def handle_expt (self):
-		self.loggger ("socket panic", "fail")
+		self.logger ("socket panic", "fail")
 		self.handle_close (703, "Socket Panic")
 	
 	def handle_error (self):
@@ -308,20 +313,23 @@ class AsynConnect (asynchat.async_chat):
 						
 	def collect_incoming_data (self, data):
 		if not self.handler:
-			self.loggger ("droping data %d" % len (data), "warn")
+			self.logger ("droping data %d" % len (data), "warn")
 			return # already closed				
 		#print (repr (data[:79]))
 		self.handler.collect_incoming_data (data)
 	
 	def found_terminator (self):
 		if not self.handler: 
-			self.loggger ("found terminator but no handler", "warn")
+			self.logger ("found terminator but no handler", "warn")
 			return # already closed
 		self.handler.found_terminator ()
 	
 	def close (self):
-		asynchat.async_chat.close (self)		
-		if self.handler and self.errcode:
+		asynchat.async_chat.close (self)
+		self.producer_fifo.clear()
+		if self.handler is None:
+			self.end_tran () # automatic end_tran when timeout occured by maintern
+		elif self.errcode:
 			self.handler.connection_closed (self.errcode, self.errmsg)
 			
 	def end_tran (self):
@@ -368,7 +376,7 @@ class AsynSSLConnect (AsynConnect):
 		self._handshaked = True		
 		return True
 							
-	def handle_connect_event (self):		
+	def handle_connect_event (self):	
 		if not self._handshaked and not self.handshake ():
 			return
 		# handshaking done
