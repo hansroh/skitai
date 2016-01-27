@@ -49,13 +49,15 @@ class RequestHandler (request_handler.RequestHandler):
 	def start (self):
 		#print ("self.asyncon.upgraded", self.asyncon.upgraded)
 		if not self.asyncon.upgraded:
-			self._handshaking = True
+			self.buffer, self.response = b"", None
+			self._handshaking = True			
+			self.asyncon.set_terminator (b"\r\n\r\n")
 			for buf in self.get_request_buffer ():
-				self.asyncon.push (buf)				
+				self.asyncon.push (buf)
 		else:	
-			self.asyncon.push (self.request.get_message ())
 			self.asyncon.set_terminator (2)						
-		self.asyncon.start_request (self)
+			self.asyncon.push (self.request.get_message ())
+		self.asyncon.begin_tran (self)
 		
 	def get_request_buffer (self):
 		hc = {}		
@@ -86,8 +88,13 @@ class RequestHandler (request_handler.RequestHandler):
 		)).encode ("utf8")		
 		return [req]
 	
-	def handle_disconnected (self):
-		return False
+	def connection_closed (self, why, msg):		
+		if self._handshaking:
+			# possibly retry or case_closed with error
+			request_handler.RequestHandler.connection_closed (self, why, msg)
+		else:
+			self.response = response.Response (why, msg, -1, -1)
+			self.case_closed ()
 	
 	def collect_incoming_data (self, data):
 		#print ("+++++++", data, self._handshaking)
@@ -105,13 +112,11 @@ class RequestHandler (request_handler.RequestHandler):
 			return b
 	
 	def found_end_of_body (self):
-		if self.handled_http_authorization ():					
+		if self.handled_http_authorization ():
 			return
 		
 		if not (self.response.code == 101 and self.response.get_header ("Sec-WebSocket-Accept")):
-			self.response = FailedResponse (self.response.code, self.response.msg)
-			self.asyncon.close_it = True
-			self.asyncon.handle_close ()
+			self.asyncon.handle_close (self.response.code, self.response.msg)
 			
 		else:
 			self.response = None
@@ -140,9 +145,8 @@ class RequestHandler (request_handler.RequestHandler):
 				data = data.decode('utf-8')
 			
 			self.response = response.Response (200, "OK", self.opcode, data)
-			self.asyncon.set_terminator (2)
-			self.asyncon.close_it = False
-			self.asyncon.handle_close ()
+			self.asyncon.set_terminator (2)			
+			self.case_closed ()
 						
 		elif self.payload_length:
 			self.masks = self.buf
@@ -163,9 +167,10 @@ class RequestHandler (request_handler.RequestHandler):
 			b1, b2 = self._tobytes(self.buf)
 			fin    = b1 & FIN
 			self.opcode = b1 & OPCODE
-			if self.opcode == OPCODE_CLOSE:
-				self.asyncon.close_it = True
+			if self.opcode == OPCODE_CLOSE:				
+				self.response = response.Response (200, "OK", self.opcode, "")
 				self.asyncon.handle_close ()
+				self.case_closed ()
 				return
 				
 			mask = b2 & MASKED
@@ -174,11 +179,11 @@ class RequestHandler (request_handler.RequestHandler):
 			
 			payload_length = b2 & PAYLOAD_LEN
 			if payload_length == 0:
+				self.response = response.Response (200, "OK", self.opcode, "")
 				self.opcode = None
 				self.has_masks = True
-				self.asyncon.set_terminator (2)
-				self.response = response.Response (self.request, "")				
-				self.asyncon.handle_close ()
+				self.asyncon.set_terminator (2)				
+				self.case_closed ()
 				return
 			
 			if payload_length < 126:

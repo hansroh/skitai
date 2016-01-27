@@ -3,7 +3,6 @@ from skitai.protocol.http import request as http_request
 import re
 
 
-
 class Handler (proxy_handler.Handler):
 	def __init__ (self, wasc, clusters, cachefs = None):
 		proxy_handler.Handler.__init__ (self, wasc, clusters, cachefs)

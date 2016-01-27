@@ -18,7 +18,6 @@ class AsynTunnel:
 		self.asyncon = asyncon
 		self.handler = handler
 		self.bytes = 0
-		self.asyncon.close_it = True
 		self.asyncon.set_terminator (None)
 		
 	def collect_incoming_data (self, data):
@@ -27,6 +26,8 @@ class AsynTunnel:
 		self.asyncon.push (data)
 	
 	def close (self):
+		# will be closed by channel
+		#print (">>>>>>>>>>>>> AsynTunnel xlosed", self.handler.request.uri)
 		self.handler.channel_closed ()
 		
 	
@@ -40,9 +41,9 @@ class TunnelHandler:
 		self.asyntunnel = AsynTunnel (asyncon, self)		
 		self.channel.set_response_timeout	(PROXY_TUNNEL_KEEP_ALIVE)
 		self.asyncon.set_network_delay_timeout (PROXY_TUNNEL_KEEP_ALIVE)
+		self.channel.add_closing_partner (self.asyntunnel)
 		
 		self.bytes = 0
-		self._closed = False
 		self.stime = time.time ()
 				
 	def trace (self, name = None):
@@ -74,29 +75,24 @@ class TunnelHandler:
 			)
 		)
 		
-	def case_closed (self, code, msg):
-		#print ("------------case_closed", self.request.uri)
-		self.asyncon.handler = None
-		
-	def channel_closed (self):
-		#print ("------------channel_closed", self.request.uri)
-		if self._closed: return
-		self._closed = True
-		self.asyncon.handle_close ()
-	
-	def handle_disconnected (self):
-		#print ("------------handle_disconnected", self.request.uri, self.bytes)
+	def connection_closed (self, why, msg):
+		#print ("------------Asyncon_disconnected", self.request.uri, self.bytes)
 		# Disconnected by server mostly caused by Connection: close header				
 		self.channel.close_when_done ()
 		self.channel.current_request = None
-						
+		
+	def channel_closed (self):
+		#print ("------------channel_closed", self.request.uri, self.bytes)
+		self.asyncon.handle_close ()
+		self.asyncon.handler = None
+		self.asyncon.end_tran ()
+
 
 class ProxyRequestHandler (http_request_handler.RequestHandler):
 	def __init__ (self, asyncon, request, callback, client_request, collector, connection = "keep-alive"):
 		http_request_handler.RequestHandler.__init__ (self, asyncon, request, callback, "1.1", connection)
 		self.collector = collector
 		self.client_request = client_request
-		self.is_pushed_response = False
 		self.is_tunnel = False
 		self.new_handler = None
 			
@@ -117,73 +113,41 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 	def will_open_tunneling (self):
 		return self.response.code == 200 and self.response.msg.lower () == "connection established"
 	
-	def create_tunnel (self):
-		self.asyncon.established = True		
-		self.new_handler = TunnelHandler (self.asyncon, self.request, self.client_request.channel)
-		# next_request = (new request, new terminator)
-		self.client_request.response.done (globbing = False, compress = False, next_request = (self.new_handler.asyntunnel, None)) 
-		self.case_closed (0)
-		
-	def push_response (self):
-		if self.is_pushed_response or not self.client_request.channel:
-			return
-		
-		if self.response.body_expected ():
-			self.client_request.response.push (self.response)
-			# in relay mode, possibly delayed
-			self.client_request.channel.ready = self.response.ready
-			self.asyncon.affluent = self.response.affluent
-		
-		self.is_pushed_response = True
-		if self.will_open_tunneling ():
-			self.create_tunnel ()
-		else:	
-			self.client_request.response.done (globbing = False, compress = False)
-				
-	def case_closed (self, error, msg = ""):
+	def connection_closed (self, why, msg):
+		if self.client_request.channel is None: return
+		return http_request_handler.RequestHandler.connection_closed (self, why, msg)
+					
+	def case_closed (self):
 		# unbind readable/writable methods
-		self.asyncon.ready = None
-		self.asyncon.affluent = None		
-		if self.client_request.channel:			
-			self.client_request.channel.ready = None
-			self.client_request.channel.affluent = None
-		else:
-			return
-		
-		# handle abnormally raised exceptions like network error etc.
-		error, msg = self.rebuild_response (error, msg)
-		# finally, push response, but do not bind ready func because all data had been recieved.
-		if not error:
-			self.push_response ()
-		
-		self.asyncon.handler = self.new_handler				
+		if self.asyncon:
+			self.asyncon.ready = None
+			self.asyncon.affluent = None
+			if self.client_request.channel:			
+				self.client_request.channel.ready = None
+				self.client_request.channel.affluent = None
+			else:
+				return
+			self.asyncon.handler = self.new_handler
+			
 		if self.callback:
 			self.callback (self)
 	
 	def found_end_of_body (self):
 		# proxy should not handle authorization		
-		self.asyncon.handle_close ()
-		
-	def collect_incoming_data (self, data):
-		http_request_handler.RequestHandler.collect_incoming_data (self, data)
-		
-	def is_continue_response (self):
-		if self.response.code == 100 and self.client_request.get_header ("Expect") != "100-continue":
-			# ignore, wait next message
-			# if expect header exist on client, it's treated normal response
-			self.response = None
-			self.asyncon.set_terminator (b"\r\n\r\n")
-			return True
-		return False
+		if self.will_be_close ():
+			self.asyncon.handle_close ()
+		self.asyncon.end_tran ()
+		self.case_closed ()
+	
+	def create_tunnel (self):
+		self.asyncon.established = True		
+		self.new_handler = TunnelHandler (self.asyncon, self.request, self.client_request.channel)
+		# next_request = (new request, new terminator)
+		self.client_request.response.done (globbing = False, compress = False, next_request = (self.new_handler.asyntunnel, None)) 
 			
-	def create_response (self):
-		#print ("####### SERVER => SKITAI ##########################")
-		#print (self.buffer)
-		#print ("---------------------------------")
-		
-		if not self.client_request.channel:
-			return
-				
+	def create_response (self):		
+		if not self.client_request.channel: return
+
 		buffer, self.buffer = self.buffer, b""
 		accept_gzip = ""
 		accept_encoding = self.client_request.get_header ("Accept-Encoding")
@@ -195,59 +159,50 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		except:
 			#print (buffer)
 			self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
-			raise
-		
+			self.asyncon.handle_close (708, "Response Header Error")
+			return
+
 		if self.is_continue_response ():
 			# maybe response code is 100 continue
 			return
 		
+		if self.will_open_tunneling ():
+			self.create_tunnel ()
+			self.case_closed ()
+			return
+				
 		self.client_request.response.start (self.response.code, self.response.msg)
 		self.add_reply_headers ()
 		
 		if self.response.is_gzip_compressed ():
 			self.client_request.response ["Content-Encoding"] = "gzip"
-	
-		self.push_response ()
+		
+		if self.response.body_expected ():
+			self.client_request.response.push (self.response)
+			# in relay mode, possibly delayed
+			self.client_request.channel.ready = self.response.ready
+			self.asyncon.affluent = self.response.affluent
+		
+		self.client_request.response.done (globbing = False, compress = False)
 	
 	def start (self):
-		if not self.client_request.channel:
-			return
+		if not self.client_request.channel: return
+		
+		self.buffer, self.response = b"", None
+		self.asyncon.set_terminator (b"\r\n\r\n")	
 		
 		if self.request.method != "connect":
 			for buf in self.get_request_buffer ():
-				self.asyncon.push (buf)				
+				self.asyncon.push (buf)
 			if self.collector:
-				self.push_collector ()
-		self.asyncon.start_request (self)
-	
-	def handle_disconnected (self):
-		if self.client_request.channel is None:
-			# disconnected
-			return False
-		return http_request_handler.RequestHandler.handle_disconnected (self)
-		
-	def retry (self, force_reconnect = False):
-		self.response = None
-		self.asyncon.close_socket ()
-		self.asyncon.handler = None # unlink back ref.		
-		self.retry_count = 1
+				self.collector.reuse_cache ()
+				if not self.collector.got_all_data:
+					self.asyncon.ready = self.collector.ready
+					self.client_request.channel.affluent = self.collector.affluent
+					# don't init_send cause of producer has no data yet
+				self.asyncon.push_with_producer (self.collector, init_send = False)
 				
-		self.asyncon.cancel_request ()
-		for buf in self.get_request_buffer ():
-			self.asyncon.push (buf)
-		#print ("retry......", self.get_request_buffer (), self.collector)
-		if self.collector:
-			self.collector.reuse_cache ()
-			self.push_collector ()
-		self.asyncon.start_request (self)
-		return True
-	
-	def push_collector (self):
-		if not self.collector.got_all_data:
-			self.asyncon.ready = self.collector.ready
-			self.client_request.channel.affluent = self.collector.affluent		
-			# don't init_send cause of producer has no data yet
-		self.asyncon.push_with_producer (self.collector, init_send = False)
+		self.asyncon.begin_tran (self)
 								
 	def get_request_buffer (self):
 		hc = {}
@@ -385,8 +340,8 @@ class Collector (collectors.FormCollector):
 		self.handler = handler
 		self.request = request
 		self.data = []
-		self.cached = False
 		self.cache = []
+		self.cached = False
 		self.got_all_data = False
 		self.length = 0 
 		self.content_length = self.get_content_length ()

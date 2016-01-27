@@ -77,7 +77,6 @@ authorizer = Authorizer ()
 class RequestHandler:
 	def __init__ (self, asyncon, request, callback, http_version = "1.1", connection = "keep-alive"):
 		self.asyncon = asyncon
-		self.buffer = b""	
 		self.wrap_in_chunk = False
 		self.end_of_data = False
 		self.expect_disconnect = False		
@@ -87,9 +86,13 @@ class RequestHandler:
 		self.http_version = http_version
 		self.logger = request.logger
 		self.connection = connection		
+		
+		self.expect_disconnect = False
 		self.retry_count = 0
 		self.reauth_count = 0
-		self.response = None	
+		
+		self.buffer = b""	
+		self.response = None
 		
 		self.method, self.uri = (
 			self.request.get_method (),			
@@ -99,8 +102,6 @@ class RequestHandler:
 		if request.get_address () is None:
 			request.set_address (self.asyncon.address)
 		
-		self.asyncon.set_terminator (b"\r\n\r\n")
-	
 	def _del_ (self):
 		self.callback = None
 		self.asyncon = None
@@ -183,107 +184,11 @@ class RequestHandler:
 		else:
 			return [req + data]
 	
-	def rebuild_response (self, error, msg):
-		if self.response is None and not error and self.buffer: 
-			s = self.buffer.find (b"\n\n")
-			if s != -1:
-				body = self.buffer [s+2:]
-				self.buffer = self.buffer [:s]
-				try:
-					self.create_response ()
-					self.response.collect_incoming_data (body)							
-				except:
-					self.trace ()
-					self.response = None
-					error, msg = 707, "HTTP Header or Body Error"
-					self.log ("%d %s" % (error, msg), "error")
-						
-		if self.response is None:
-			if error:
-				self.response = http_response.FailedResponse (error, msg, self.request)
-			else:
-				error, msg = 708, "No Data Recieved"
-				self.response = http_response.FailedResponse (error, msg, self.request)	
-				self.log ("%d %s" % (error, msg), "error")
-		
-		# finally call done, even if failed or error occured in recving body, just done.
-		self.response.done ()
-		return error, msg
-	
-	def handled_http_authorization (self):
-		if self.response.code != 401:
-			return 0 #pass
-			
-		if self.reauth_count > 0:
-			self.asyncon.close_it = True
-			self.asyncon.handle_close ()
-			return 1 # abort
-		
-		self.reauth_count = 1		
-		try: 
-			authorizer.set (self.request.get_address (), self.response.get_header ("WWW-Authenticate"), self.request.get_auth ())
-					
-		except:
-			self.trace ()				
-			self.response = http_response.FailedResponse (706, "Unknown Authedentification Method", self.request)			
-			self.asyncon.close_it = True
-			self.asyncon.handle_close ()
-			return 1 # abort
-			
-		else:
-			self.retry ()
-			return 1 #retry
-		
-		return 0 #pass
-	
-	def handle_disconnected (self):
-		if self.expect_disconnect:
-			self.found_terminator ()
-			return False		
-		if self.retry_count:
-			return False
-		self.retry_count = 1
-		try:
-			self.retry (True)
-		except:
-			self.trace ()
-			return False	
-		return True
-					
-	def retry (self, force_reconnect = False):
-		if self.connection == "close" or force_reconnect:
-			self.asyncon.close_socket ()
-		self.response = None
-		self.asyncon.handler = None
-		for buf in self.get_request_buffer ():
-			self.asyncon.push (buf)
-		self.asyncon.set_terminator (b"\r\n\r\n")
-		self.asyncon.start_request (self)
-		
-	def case_closed (self, error = 0, msg = ""):
-		# handle abnormally raised exceptions like network error etc.
-		self.rebuild_response (error, msg)
-		
-		if self.asyncon:
-			self.asyncon.handler = None		
-						
-		if self.callback:
-			self.callback (self)
-		
 	def collect_incoming_data (self, data):
 		if not self.response or self.asyncon.get_terminator () == b"\r\n":
 			self.buffer += data
 		else:
-			try:
-				self.response.collect_incoming_data (data)
-			except:
-				self.response = http_response.FailedResponse (709, "Invalid Content", self.request)
-				raise
-	
-	def found_end_of_body (self):
-		if self.handled_http_authorization ():					
-			return
-		self.asyncon.handle_close ()
+			self.response.collect_incoming_data (data)			
 		
 	def found_terminator (self):
 		if self.response:
@@ -312,8 +217,7 @@ class RequestHandler:
 			else:
 				self.found_end_of_body ()
 						
-		else:
-			self.expect_disconnect = False
+		else:			
 			try:
 				self.create_response ()
 			except:	
@@ -324,9 +228,8 @@ class RequestHandler:
 					
 			# 100 Continue etc. try recv continued header
 			if self.response is None:
-				return
-				
-			self.asyncon.close_it = self.will_be_close ()		
+				return				
+			
 			if self.used_chunk ():
 				self.wrap_in_chunk = True
 				self.asyncon.set_terminator (b"\r\n") #chunked transfer
@@ -335,7 +238,7 @@ class RequestHandler:
 				try:
 					clen = self.get_content_length ()
 				except TypeError:
-					if self.asyncon.close_it:
+					if self.will_be_close ():
 						clen = ""
 						self.expect_disconnect = True
 					else:
@@ -343,37 +246,90 @@ class RequestHandler:
 				
 				if clen == 0:
 					return self.found_end_of_body ()
+					
 				self.asyncon.set_terminator (clen)
 			
 	def create_response (self):
-		# overide for new Response
 		buffer, self.buffer = self.buffer, b""
-		#print (repr (buffer))
 		try:
 			self.response = http_response.Response (self.request, buffer.decode ("utf8"))
 		except:
 			self.log ("response header error: `%s`" % repr (buffer.decode ("utf8") [:80]), "error")
-			raise
-		self.is_continue_response ()
+			self.asyncon.handle_close (708, "Response Header Error")
+		else:	
+			self.is_continue_response ()
 		
 	def is_continue_response (self):	
 		# default header never has "Expect: 100-continue"
 		# ignore, wait next message	
-		if self.response.code == 100:			
+		if self.response.code == 100:
 			self.response = None
 			self.asyncon.set_terminator (b"\r\n\r\n")
 			return True
-		return False	
+		return False
+	
+	def found_end_of_body (self):
+		if self.handled_http_authorization ():					
+			return
+		if self.will_be_close ():
+			self.asyncon.handle_close ()
+		self.asyncon.end_tran ()	
+		self.case_closed ()
+	
+	def handled_http_authorization (self):
+		if self.response.code != 401:
+			return 0 #pass
 			
+		if self.reauth_count > 0:
+			self.asyncon.handle_close (710, "Authorization Failed")
+			return 1 # abort
+		
+		self.reauth_count = 1		
+		try: 
+			authorizer.set (self.request.get_address (), self.response.get_header ("WWW-Authenticate"), self.request.get_auth ())					
+		except:
+			self.trace ()
+			self.asyncon.handle_close (711, "Unknown Authedentification Method")
+			return 1 # abort
+			
+		else:
+			self.start ()
+			return 1
+		
+		return 0 #pass
+			
+	def connection_closed (self, why, msg):
+		if self.response and self.expect_disconnect:
+			self.asyncon.end_tran ()
+			self.case_closed ()
+			return
+		
+		# possibly discoonected cause of keep-alive timeout
+		if self.response is None and self.retry_count == 0 and why == 706:
+			self.retry_count = 1
+			self.asyncon.handle_close ()
+			self.start (self)
+			return
+
+		self.response = http_response.FailedResponse (why, msg, self.request)
+		self.asyncon.end_tran ()
+		self.case_closed ()
+		
+	def case_closed (self):
+		if self.asyncon:
+			self.asyncon.handler = None # unlink back ref.			
+						
+		if self.callback:
+			self.callback (self)
+					
 	def start (self):
+		self.buffer, self.response = b"", None
+		self.asyncon.set_terminator (b"\r\n\r\n")	
 		for buf in self.get_request_buffer ():
 			self.asyncon.push (buf)
-		self.asyncon.start_request (self)
+		self.asyncon.begin_tran (self)
 	
 	def will_be_close (self):
-		if self.response is None:
-			return True
-		
 		if self.connection == "close": #server misbehavior ex.paxnet
 			return True
 				
@@ -401,7 +357,7 @@ class RequestHandler:
 							self.asyncon.set_keep_alive_timeout (timeout)
 					elif k.strip () == "max" and int (v) == 0:
 						close_it = True
-		
+								
 		return close_it
 	
 	def used_chunk (self):

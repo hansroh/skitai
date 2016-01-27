@@ -183,7 +183,7 @@ class SocketPool:
 			try:
 				for server in list(self.__socketfarm.keys ()):					
 					for asyncon in list(self.__socketfarm [server].values ()):
-						asyncon.close (True)
+						asyncon.handle_close ()
 			finally:
 				self.lock.release ()
 		except:

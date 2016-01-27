@@ -95,7 +95,7 @@ class ClusterManager:
 				for node in list(self._cluster.keys ()):
 					self._cluster [node]["stoped"] = True
 					for asyncon in self._cluster [node]["connection"]:
-						asyncon.close_socket ()
+						asyncon.handle_close ()
 			finally:	
 				self.lock.release ()
 		except:
@@ -243,7 +243,7 @@ class ClusterManager:
 					if asyncon.isactive ():
 						cannot_closes.append (asyncon)
 					else:
-						asyncon.close_socket ()
+						asyncon.handle_close ()
 						del asyncon
 				self._close_desires = cannot_closes
 				
