@@ -20,7 +20,7 @@ _STATE_OK = (POLL_OK, POLL_WRITE, POLL_READ)
 
 class AsynConnect (asyncore.dispatcher):
 	zombie_timeout = 120	
-		
+	
 	def __init__ (self, address, dbname, user, password, lock = None, logger = None):		
 		self.address = address
 		self.dbname = dbname
@@ -53,8 +53,7 @@ class AsynConnect (asyncore.dispatcher):
 		
 	def clean_shutdown_control (self, phase, time_in_this_phase):
 		if phase == 2:
-			self.error (psycopg2.OperationalError, "was entered shutdown process")	
-			self.handle_close ()			
+			self.handle_close (psycopg2.OperationalError, "was entered shutdown process")			
 	
 	def is_deletable (self, timeout):
 		if time.time () - self.event_time > timeout:
@@ -75,13 +74,12 @@ class AsynConnect (asyncore.dispatcher):
 		if not self.connected:
 			return
 		self.empty_cursor () 
-		self.close ()
+		self.end_tran ()
 	
 	def check_state (self, state):
 		if state not in (_STATE_OK):
-			self.error (psycopg2.OperationalError, "psycopg2.poll() returned %s" % state)
-			self.logger (self.exception_str, "error")
-			self.handle_close ()
+			self.logger (self.exception_str, "psycopg2.poll() returned %s" % state)
+			self.handle_close (psycopg2.OperationalError, "psycopg2.poll() returned %s" % state)
 	
 	def poll (self):		
 		try:
@@ -113,9 +111,6 @@ class AsynConnect (asyncore.dispatcher):
 				# case 2. previously timeouted
 				#print ">>>>>>maintern-release", self, self.connected	
 				self.release ()
-			
-	def error (self, err_class, err_msg):
-		self.exception_class, self.exception_str = err_class, err_msg				
 		
 	def del_channel (self, map=None):
 		fd = self._fileno
@@ -125,10 +120,10 @@ class AsynConnect (asyncore.dispatcher):
 			del map[fd]
 	
 	def reconnect (self):
-		self.close_socket ()
+		self.close ()
 		self.connect ()
 					
-	def close_socket (self):
+	def close (self):
 		self.connected = False		
 		self.del_channel ()
 		
@@ -142,11 +137,11 @@ class AsynConnect (asyncore.dispatcher):
 		self.cur = None
 		self.conn = None
 	
-	def close (self, force = False):
+	def end_tran (self, force = False):
 		if force or self.exception_class:
-			self.close_socket ()
+			self.close ()
 		else:
-			self.del_channel ()		
+			self.del_channel ()
 			
 		if self.callback:
 			if self.has_result:
@@ -160,7 +155,7 @@ class AsynConnect (asyncore.dispatcher):
 	
 	def abort (self):
 		self.callback = None
-		self.close_socket ()	
+		self.close ()
 		self.set_active (False)
 				
 	def set_active (self, flag, nolock = False):
@@ -239,8 +234,7 @@ class AsynConnect (asyncore.dispatcher):
 			self.handle_write ()
 	
 	def handle_expt (self):
-		self.error (psycopg2.OperationalError, "socket panic")
-		self.handle_close ()
+		self.handle_close (psycopg2.OperationalError, "socket panic")
 		
 	def handle_connect (self):
 		self.del_channel ()
@@ -253,7 +247,7 @@ class AsynConnect (asyncore.dispatcher):
 		if self.cur and state == POLL_OK:
 			self.event_time = time.time ()
 			self.has_result = True
-			self.close ()
+			self.end_tran ()
 		else:
 			self.check_state (state)
 							
@@ -270,16 +264,15 @@ class AsynConnect (asyncore.dispatcher):
 		self.zombie_timeout = timeout
 
 	def handle_timeout (self):
-		self.error (psycopg2.OperationalError, "Operation Timeout")
-		self.handle_close ()
+		self.handle_close (psycopg2.OperationalError, "Operation Timeout")
 	
 	def handle_error (self):
 		dummy, exception_class, exception_str, tbinfo = asyncore.compact_traceback()
-		self.error (exception_class, exception_str)
 		self.logger.trace ()
-		self.handle_close ()
+		self.handle_close (exception_class, exception_str)
 	
-	def handle_close (self):
+	def handle_close (self, expt = None, msg = ""):
+		self.exception_class, self.exception_str = expt, msg		
 		self.close ()
 				
 	#-----------------------------------------------------

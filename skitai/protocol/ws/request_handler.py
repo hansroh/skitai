@@ -90,12 +90,11 @@ class RequestHandler (request_handler.RequestHandler):
 	
 	def connection_closed (self, why, msg):
 		if self._handshaking:
-			# possibly retry or case_closed with error
+			# possibly retry or close_case with error
 			request_handler.RequestHandler.connection_closed (self, why, msg)
 		else:
 			self.response = response.Response (why, msg, -1, -1)
-			self.asyncon.end_tran ()
-			self.case_closed ()
+			self.close_case_with_end_tran ()
 	
 	def collect_incoming_data (self, data):
 		#print ("+++++++", data, self._handshaking)
@@ -146,8 +145,7 @@ class RequestHandler (request_handler.RequestHandler):
 			
 			self.response = response.Response (200, "OK", self.opcode, data)
 			self.asyncon.set_terminator (2)			
-			self.asyncon.end_tran ()
-			self.case_closed ()
+			self.close_case_with_end_tran ()
 						
 		elif self.payload_length:
 			self.masks = self.buf
@@ -171,8 +169,7 @@ class RequestHandler (request_handler.RequestHandler):
 			if self.opcode == OPCODE_CLOSE:				
 				self.response = response.Response (200, "OK", self.opcode, "")
 				self.asyncon.handle_close ()
-				self.asyncon.end_tran ()
-				self.case_closed ()
+				self.close_case_with_end_tran ()
 				return
 				
 			mask = b2 & MASKED
@@ -185,8 +182,7 @@ class RequestHandler (request_handler.RequestHandler):
 				self.opcode = None
 				self.has_masks = True
 				self.asyncon.set_terminator (2)				
-				self.asyncon.end_tran ()
-				self.case_closed ()
+				self.close_case_with_end_tran ()
 				return
 			
 			if payload_length < 126:

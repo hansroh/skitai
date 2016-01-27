@@ -50,7 +50,7 @@ class ProxyTunnelHandler (http_request_handler.RequestHandler):
 	def connection_closed (self, why, msg):
 		if self.response is None:
 			self.response = response.FailedResponse (why, msg)
-		self.case_closed ()
+		self.close_case ()
 
 
 class SSLProxyTunnelHandler (ProxyTunnelHandler):

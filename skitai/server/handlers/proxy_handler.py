@@ -117,7 +117,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		if self.client_request.channel is None: return
 		return http_request_handler.RequestHandler.connection_closed (self, why, msg)
 					
-	def case_closed (self):
+	def close_case (self):
 		# unbind readable/writable methods
 		if self.asyncon:
 			self.asyncon.ready = None
@@ -136,8 +136,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		# proxy should not handle authorization		
 		if self.will_be_close ():
 			self.asyncon.handle_close ()
-		self.asyncon.end_tran ()
-		self.case_closed ()
+		self.close_case_with_end_tran ()
 	
 	def create_tunnel (self):
 		self.asyncon.established = True		
@@ -168,7 +167,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		
 		if self.will_open_tunneling ():
 			self.create_tunnel ()
-			self.case_closed ()
+			self.close_case ()
 			return
 				
 		self.client_request.response.start (self.response.code, self.response.msg)
@@ -182,7 +181,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 			#self.client_request.channel.add_closable_producer (self.response)
 			# in relay mode, possibly delayed
 			self.client_request.channel.ready = self.response.ready			
-			self.asyncon.affluent = self.response.affluent			
+			self.asyncon.affluent = self.response.affluent
 		
 		self.client_request.response.done (globbing = False, compress = False)
 	
@@ -405,7 +404,6 @@ class Collector (collectors.FormCollector):
 			self.cache += data
 		#print "proxy_handler.collector.more >> %d" % tl, id (self)
 		return b"".join (data)
-
 		
 			
 class Handler (wsgi_handler.Handler):

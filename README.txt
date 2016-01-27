@@ -1220,82 +1220,9 @@ Optional Requirements
 Change Log
 -------------
   
-  0.11.4 - fix SSL proxy tunneling
+  0.12 - reengineering 'was' networking & proxy modules
   
-  0.11.2 - add 'was' web socket service, was.ws, was.ws.lb, was.ws.map
+  0.11 - Websocket implemeted
   
-  0.11.0 - Websocket implemeted
+  0.10 - WSGI support
   
-  0.10.7 - fix fail-reconnect issues related `was` networking services. fix proxy.
-  
-  0.10.6 - a) change sample config file name and sample site name from default.conf to sample.conf. 2) new config keys: response_timeout = 10, keep_alive = 10, see servers-enabled/sample.conf
-
-  0.10.5 - add virtual hosting
-  
-  0.10.4 - bug fix py27's unicode type check
-  
-  0.10.3 - bug fix map-reduce call service. version number format was changed.
-  
-  0.10.1.8 - fix adns init point. DNS query will be more faster, if you unused proxy.
-  
-  0.10.1.3 - add was.temp.bind for event handling
-  
-  0.10.1.1 - add was.temp for setting temporary data during current request
-  
-  0.10.1.0 - enter 0.10 beta state
-  
-  0.10.0.5 - keep-alive & data transfer dealy timeout was reset
-  
-  0.10.0.4 - add execution time & delivery time to request log file
-  
-  0.10.0.2 - emergency patch for str responses, add Digest auth method for was remote call
-
-  0.10.0 - WSGI support
-    
-  0.9.4.21 - add tools
-  
-  0.9.4.19 - no threads mode, then can config threads=0, but cannot use all async restful requests
-  
-  0.9.4.17 - fix application reload in py27
- 
-  0.9.4.16 - fix GZIP decompressing
-  
-  0.9.4.13 - enable pass phrase on CA signed certification
-  
-  0.9.4.9 - remove dependency M2Crypto
-  
-  0.9.4.8 - fix error handling for asynconnect.connect
-  
-  0.9.4.6 - improve handling winsock ENOTCONN
-  
-  0.9.4.5 - fix asyndns, asyncon reconnect
-  
-  0.9.4.1 - fix init.d script
-
-  0.9.4 - (1)works on Python 3, but unstable yet (2)add was.email() (3)improve rpc performance
-  
-  0.9.3.7 - add skitaid-install-requirements.sh for psycopg2 and M2Crypto
-	  
-  0.9.3.2 - change default log and var path 
- 
-  0.9.2 - fix multipart file upload
-  
-  0.9.1.32 - fix reverse proxy Host header
-
-  0.9.1.30 - was.wget, was.rest (former was.rpc), was.map, was.lb specification changed. see Documentation.
-  
-  0.9.1.28 - add HEAD, DELETE, OPTIONS methods
-  
-  0.9.1.27 - support Map-Reduce, Load_Balanace for (json & xml serialized object over) HTTP Call
-  
-  0.9.1.25 - fix xmlrpc server uri, I misunderstood all xmlrpc uri is /rpc2
-  
-  0.9.1.24 - possibly fixed, "too many file descriptors in select()"
-  
-  0.9.1.23 - add some methods to was.request, add "X-Forwarded-For" to proxy_handler
-  
-  0.9.1.19 - new was member, was.response
-      
-  0.9.1.14 - Automation session commit
-  
-  0.9.1.12 - Fix / App Routing

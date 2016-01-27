@@ -267,14 +267,13 @@ class RequestHandler:
 			self.asyncon.set_terminator (b"\r\n\r\n")
 			return True
 		return False
-	
+		
 	def found_end_of_body (self):
 		if self.handled_http_authorization ():					
 			return
 		if self.will_be_close ():
-			self.asyncon.handle_close ()
-		self.asyncon.end_tran ()	
-		self.case_closed ()
+			self.asyncon.handle_close ()		
+		self.close_case_with_end_tran ()
 	
 	def handled_http_authorization (self):
 		if self.response.code != 401:
@@ -300,8 +299,7 @@ class RequestHandler:
 			
 	def connection_closed (self, why, msg):
 		if self.response and self.expect_disconnect:
-			self.asyncon.end_tran ()
-			self.case_closed ()
+			self.close_case_with_end_tran ()
 			return
 		
 		# possibly discoonected cause of keep-alive timeout
@@ -312,10 +310,13 @@ class RequestHandler:
 			return
 
 		self.response = http_response.FailedResponse (why, msg, self.request)
+		self.close_case_with_end_tran ()
+	
+	def close_case_with_end_tran (self):
 		self.asyncon.end_tran ()
-		self.case_closed ()
+		self.close_case ()
 		
-	def case_closed (self):
+	def close_case (self):
 		if self.asyncon:
 			self.asyncon.handler = None # unlink back ref.			
 						

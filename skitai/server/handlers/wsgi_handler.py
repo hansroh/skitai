@@ -23,12 +23,13 @@ header2env = {
 	}
 
 PY_MAJOR_VERSION = sys.version_info.major
-
+SKITAI_VERSION = ".".join (map (lambda x: str (x), version_info [:3]))
+	
 class Handler:
-	GATEWAY_INTERFACE = 'CGI/1.1'
+	GATEWAY_INTERFACE = 'CGI/1.1'	
 	ENV = {
 			'GATEWAY_INTERFACE': 'CGI/1.1',
-			'SERVER_SOFTWARE': "Skitai App Engine/%s.%s.%s Python/%d.%d" % (version_info [:3] + sys.version_info[:2]),
+			'SERVER_SOFTWARE': "Skitai App Engine/%s Python/%d.%d" % ((SKITAI_VERSION,) + sys.version_info[:2]),
 			'skitai.version': tuple (version_info [:3]),			
 			"wsgi.version": (1, 0),
 			"wsgi.errors": sys.stderr,
