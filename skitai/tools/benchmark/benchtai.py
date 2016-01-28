@@ -1,5 +1,5 @@
 from __future__ import print_function
-from skitai.protocol.http import requests
+from skitai import requests
 from skitai.lib import logger
 import time
 

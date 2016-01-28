@@ -97,11 +97,12 @@ class AsynConnect (asynchat.async_chat):
 		# if self.is_channel_in_map (), mainterned by lifetime
 		if not self.is_channel_in_map () and self.isactive () and time.time () - self.event_time > self.zombie_timeout:			# do not user close_socket (), this func might be called in the thread, and currently in select.select()
 			self.disconnect ()
+			self.end_tran ()
 	
 	def is_deletable (self, timeout):
 		if time.time () - self.event_time > timeout:
 			if not self.isactive ():
-				self.abort ()
+				self.disconnect ()
 				return True
 		return False
 	
@@ -109,10 +110,6 @@ class AsynConnect (asynchat.async_chat):
 		if map is None:
 			map = self._map
 		return self._fileno in map
-	
-	def abort (self):
-		self.disconnect ()
-		self.end_tran ()
 		
 	def set_active (self, flag, nolock = False):
 		if flag:
@@ -325,7 +322,11 @@ class AsynConnect (asynchat.async_chat):
 	def disconnect (self):
 		# no error
 		self.handle_close (0, "")
-		
+	
+	def reconnect (self):
+		self.disconnect ()
+		self.connect ()
+			
 	def close (self):
 		asynchat.async_chat.close (self)
 		self.producer_fifo.clear()

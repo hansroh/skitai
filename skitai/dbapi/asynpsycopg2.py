@@ -49,13 +49,6 @@ class AsynConnect (asyncore.dispatcher):
 		if phase == 2:
 			self.handle_close (psycopg2.OperationalError, "was entered shutdown process")			
 	
-	def is_deletable (self, timeout):
-		if time.time () - self.event_time > timeout:
-			if not self.isactive ():
-				self.abort ()
-				return True
-		return False
-	
 	def empty_cursor (self):
 		if self.has_result:
 			try:
@@ -63,12 +56,6 @@ class AsynConnect (asyncore.dispatcher):
 			except psycopg2.ProgrammingError:
 				pass
 			self.has_result = False
-		
-	def release (self):
-		if not self.connected:
-			return
-		self.empty_cursor () 
-		self.end_tran ()
 	
 	def check_state (self, state):
 		if state not in (_STATE_OK):
@@ -92,19 +79,6 @@ class AsynConnect (asyncore.dispatcher):
 		if map is None:
 			map = self._map
 		return self._fileno in map
-			
-	def maintern (self):
-		# if self.is_channel_in_map (), mainterned by lifetime
-		if not self.is_channel_in_map () and self.isactive () and time.time () - self.event_time > self.zombie_timeout:
-			if not self.has_result:
-				self.handle_timeout ()
-				
-			else:
-				# Auto Release For,
-				# case 1. doesn't be called wait() or fetchwait()
-				# case 2. previously timeouted
-				#print ">>>>>>maintern-release", self, self.connected	
-				self.release ()
 		
 	def del_channel (self, map=None):
 		fd = self._fileno
@@ -114,43 +88,58 @@ class AsynConnect (asyncore.dispatcher):
 			del map[fd]
 	
 	def reconnect (self):
-		self.close ()
+		self.disconnect ()
 		self.connect ()
+	
+	def disconnect (self):
+		self.close ()
+	
+	def is_deletable (self, timeout):
+		if time.time () - self.event_time > timeout:
+			if not self.isactive ():
+				self.disconnect ()
+				return True
+		return False
+
+	def maintern (self):
+		# if self.is_channel_in_map (), mainterned by lifetime
+		if not self.is_channel_in_map () and self.isactive () and time.time () - self.event_time > self.zombie_timeout:			
+			# Auto Release For,
+			# case 1. doesn't be called wait() or fetchwait()
+			# case 2. previously timeouted
+			#print ">>>>>>maintern-release", self, self.connected	
+			self.empty_cursor ()
+			self.set_active (False)
 					
 	def close (self):
-		self.connected = False		
+		self.connected = False
 		self.del_channel ()
 		
 		if self.cur:
 			self.empty_cursor ()
 			try: self.cur.close ()
-			except: pass			
+			except: pass							
 		try: self.conn.close ()
-		except: pass
-			
+		except: pass			
 		self.cur = None
 		self.conn = None
 	
-	def end_tran (self, force = False):
-		if force or self.exception_class:
-			self.close ()
-		else:
-			self.del_channel ()
+	def close_case_with_end_tran (self):	
+		self.end_tran ()
+		self.close_case ()
+		
+	def end_tran (self):		
+		self.del_channel ()
 			
+	def close_case (self):
 		if self.callback:
 			if self.has_result:
 				self.callback (self.cur.description, self.exception_class, self.exception_str, self.fetchall ())
 			else:
 				self.callback (None, self.exception_class, self.exception_str, None)
 			self.callback = None
-		
 		self.set_active (False)
-	
-	def abort (self):
-		self.callback = None
-		self.close ()
-		self.set_active (False)
-				
+			
 	def set_active (self, flag, nolock = False):
 		if flag:
 			flag = time.time ()
@@ -239,6 +228,7 @@ class AsynConnect (asyncore.dispatcher):
 			self.set_event_time ()
 			self.has_result = True
 			self.end_tran ()
+			self.close_case_with_end_tran ()			
 		else:
 			self.check_state (state)
 							
@@ -262,9 +252,10 @@ class AsynConnect (asyncore.dispatcher):
 		self.logger.trace ()
 		self.handle_close (exception_class, exception_str)
 	
-	def handle_close (self, expt = None, msg = ""):
+	def handle_close (self, expt = None, msg = ""):		
 		self.exception_class, self.exception_str = expt, msg		
 		self.close ()
+		self.close_case ()
 	
 	def set_event_time (self):
 		self.event_time = time.time ()			
