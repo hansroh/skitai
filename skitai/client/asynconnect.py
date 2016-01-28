@@ -208,13 +208,6 @@ class AsynConnect (asynchat.async_chat):
 				return data		
 		except socket.error as why:
 			if why.errno in asyncore._DISCONNECTED:				
-				if why.errno == asyncore.ENOTCONN and os.name == "nt":
-					# winsock sometimes raise ENOTCONN and sometimes recovered.					
-					if self._raised_ENOTCONN <= 3:
-						self._raised_ENOTCONN += 1
-						return b''
-					else:	
-						self._raised_ENOTCONN = 0						
 				self.handle_close (700, "Connection closed unexpectedly in recv")
 				return b''				
 			else:
@@ -228,6 +221,15 @@ class AsynConnect (asynchat.async_chat):
 			if why.errno == EWOULDBLOCK:
 				return 0				
 			elif why.errno in asyncore._DISCONNECTED:
+				#print (">>>>>>>>>> why.errno == asyncore.ENOTCONN", why.errno == asyncore.ENOTCONN)
+				if os.name == "nt" and why.errno == asyncore.ENOTCONN:
+					# winsock sometimes raise ENOTCONN and sometimes recovered.
+					# Found this error at http://file.hungryboarder.com:8080/HBAdManager/pa.html?siteId=hboarder&zoneId=S-2
+					if self._raised_ENOTCONN <= 3:
+						self._raised_ENOTCONN += 1
+						return 0
+					else:
+						self._raised_ENOTCONN = 0						
 				self.handle_close (700, "Connection closed unexpectedly in send")
 				return 0
 			else:
