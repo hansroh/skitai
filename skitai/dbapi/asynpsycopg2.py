@@ -31,25 +31,19 @@ class AsynConnect (asyncore.dispatcher):
 		self.logger = logger
 		self.request_count = 0
 		self.execute_count = 0
-		self.event_time = time.time ()
+		
 		self._cv = threading.Condition ()
 		self.active = 0		
 		self.conn = None
 		self.cur = None
-		
-		self.initialize ()
-		
+		self.callback = None
+		self.out_buffer = ""		
+		self.set_event_time ()
+			
 		asyncore.dispatcher.__init__ (self)
 	
 	def duplicate (self):
 		return self.__class__ (self.address, self.dbname, self.user, self.password, self.lock, self.logger)
-		
-	def initialize (self):					
-		self.callback = None
-		self.has_result = False
-		self.out_buffer = ""
-		self.exception_str = ""
-		self.exception_class = None
 		
 	def clean_shutdown_control (self, phase, time_in_this_phase):
 		if phase == 2:
@@ -149,8 +143,7 @@ class AsynConnect (asyncore.dispatcher):
 			else:
 				self.callback (None, self.exception_class, self.exception_str, None)
 			self.callback = None
-			
-		self.expt_class, self.expt_str = None, None		
+		
 		self.set_active (False)
 	
 	def abort (self):
@@ -192,7 +185,7 @@ class AsynConnect (asyncore.dispatcher):
 		return self.execute_count
 		
 	def add_channel (self, map = None):
-		self.event_time = time.time ()
+		self.set_event_time ()
 		return asyncore.dispatcher.add_channel (self, map)
 			
 	def del_channel (self, map=None):
@@ -203,9 +196,7 @@ class AsynConnect (asyncore.dispatcher):
 			del map[fd]			
 	  	
 	def connect (self, force = 0):
-		self.event_time = time.time ()
-		host, port = self.address
-		
+		host, port = self.address		
 		sock = psycopg2.connect (
 			dbname = self.dbname,
 			user = self.user,
@@ -245,7 +236,7 @@ class AsynConnect (asyncore.dispatcher):
 	def handle_read (self):
 		state = self.poll ()
 		if self.cur and state == POLL_OK:
-			self.event_time = time.time ()
+			self.set_event_time ()
 			self.has_result = True
 			self.end_tran ()
 		else:
@@ -254,7 +245,7 @@ class AsynConnect (asyncore.dispatcher):
 	def handle_write (self):
 		state = self.poll ()
 		if self.cur and state == POLL_OK:
-			self.event_time = time.time ()
+			self.set_event_time ()
 			self.cur.execute (self.out_buffer)
 			self.out_buffer = ""
 		else:
@@ -274,7 +265,10 @@ class AsynConnect (asyncore.dispatcher):
 	def handle_close (self, expt = None, msg = ""):
 		self.exception_class, self.exception_str = expt, msg		
 		self.close ()
-				
+	
+	def set_event_time (self):
+		self.event_time = time.time ()			
+		
 	#-----------------------------------------------------
 	# DB methods
 	#-----------------------------------------------------	
@@ -284,12 +278,14 @@ class AsynConnect (asyncore.dispatcher):
 		return result
 		
 	def execute (self, sql, callback):
-		self.initialize ()
-		
-		self.callback = callback		
-		self.event_time = time.time ()
-		self.execute_count += 1					
 		self.out_buffer = sql
+		self.callback = callback
+		self.has_result = False
+		self.exception_str = ""
+		self.exception_class = None		
+		self.set_event_time ()
+		
+		self.execute_count += 1		
 		
 		if not self.connected:
 			self.connect ()

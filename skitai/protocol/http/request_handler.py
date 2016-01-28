@@ -304,7 +304,7 @@ class RequestHandler:
 			return
 	
 		# possibly disconnected cause of keep-alive timeout		
-		if why == 706 and self.response is None and self.retry_count == 0:
+		if why == 700 and self.response is None and self.retry_count == 0:
 			self.retry_count = 1
 			self.asyncon.disconnect ()
 			self.start ()

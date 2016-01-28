@@ -35,33 +35,30 @@ class AsynConnect (asynchat.async_chat):
 		self.lock = lock
 		self.logger = logger
 		self._cv = threading.Condition ()		
-		self.initialize ()
-				
+		self.set_event_time ()
+		
+		self.initialize_connection ()				
 		asynchat.async_chat.__init__ (self)
 	
-	def initialize (self):
-		self.errcode = 0
-		self.errmsg = ""
-		self.raised_ENOTCONN = 0
-		
+	def initialize_connection (self):
 		self._handshaking = False
 		self._handshaked = False		
-		self._proxy = False
 		
+		self.proxy = False		
 		self.established = False		
 		self.upgraded = False		
 		self.ready = None
 		self.affluent = None
-		self.set_event_time ()
+		self._raised_ENOTCONN = 0 # for win32
 			
 	def set_event_time (self):
 		self.event_time = time.time ()
 		
 	def set_proxy (self, flag = True):
-		self._proxy = flag
+		self.proxy = flag
 	
 	def is_proxy (self):
-		return self._proxy
+		return self.proxy
 			
 	def log (self, msg, logtype):
 		if self.handler is not None and hasattr (self.handler, "log"):
@@ -114,7 +111,7 @@ class AsynConnect (asynchat.async_chat):
 		return self._fileno in map
 	
 	def abort (self):
-		self.discoonect ()
+		self.disconnect ()
 		self.end_tran ()
 		
 	def set_active (self, flag, nolock = False):
@@ -169,8 +166,6 @@ class AsynConnect (asynchat.async_chat):
 		self.set_socket (sock)
 	
 	def connect (self):
-		self.initialize ()
-						
 		if adns.query:
 			adns.query (self.address [0], "A", callback = self.continue_connect)
 		else:
@@ -182,7 +177,9 @@ class AsynConnect (asynchat.async_chat):
 			self.log ("DNS not found - %s" % self.address [0], "error")
 			return self.handle_close (704, "DNS Not Found")			
 		
-		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)		
+		self.initialize_connection ()		
+		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
+		
 		try:
 			if not adns.query:				
 				asynchat.async_chat.connect (self, self.address)
@@ -200,12 +197,12 @@ class AsynConnect (asynchat.async_chat):
 			self.handle_error ()
 	
 	def recv (self, buffer_size):		
-		self.event_time = time.time ()
+		self.set_event_time ()
 		try:
 			data = self.socket.recv(buffer_size)	
 			#print ("+++++DATA", len (data), repr (data [:40]))				
 			if not data:
-				self.handle_close (706, "Connection closed unexpectedly in recv")
+				self.handle_close (700, "Connection closed unexpectedly in recv")
 				return b''
 			else:
 				return data		
@@ -213,26 +210,25 @@ class AsynConnect (asynchat.async_chat):
 			if why.errno in asyncore._DISCONNECTED:				
 				if why.errno == asyncore.ENOTCONN and os.name == "nt":
 					# winsock sometimes raise ENOTCONN and sometimes recovered.					
-					if self.raised_ENOTCONN <= 3:
-						self.raised_ENOTCONN += 1
+					if self._raised_ENOTCONN <= 3:
+						self._raised_ENOTCONN += 1
 						return b''
 					else:	
-						self.raised_ENOTCONN = 0
-						
-				self.handle_close (706, "Connection closed unexpectedly in recv")
-				return b''
+						self._raised_ENOTCONN = 0						
+				self.handle_close (700, "Connection closed unexpectedly in recv")
+				return b''				
 			else:
 				raise
 	
 	def send (self, data):		
-		self.event_time = time.time ()
+		self.set_event_time ()
 		try:
 			return self.socket.send (data)
 		except socket.error as why:
 			if why.errno == EWOULDBLOCK:
 				return 0				
 			elif why.errno in asyncore._DISCONNECTED:
-				self.handle_close (706, "Connection closed unexpectedly in send")
+				self.handle_close (700, "Connection closed unexpectedly in send")
 				return 0
 			else:
 				raise
@@ -290,7 +286,7 @@ class AsynConnect (asynchat.async_chat):
 		err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
 		if err != 0:
 			self.log ("Socket Error %d Occurred" % err, "warn")
-			self.handle_close (700, "Socket %d Error" % err)
+			self.handle_close (706, "Socket %d Error" % err)
 		else:
 			self.handle_expt ()
 	
@@ -306,7 +302,7 @@ class AsynConnect (asynchat.async_chat):
 		if init_send:
 			self.initiate_send ()
 	
-	def handle_close (self, code = 706, msg = "Disconnected by The Other"):
+	def handle_close (self, code = 700, msg = "Disconnected by Server"):
 		self.errcode = code
 		self.errmsg = msg
 		self.close()
@@ -342,7 +338,10 @@ class AsynConnect (asynchat.async_chat):
 		self.set_active (False)
 			
 	def begin_tran (self, handler):
+		self.errcode = 0
+		self.errmsg = ""
 		self.handler = handler
+		self.set_event_time ()
 		self.debug_info = (handler.method, handler.uri, handler.http_version)		
 		
 		if self.connected:
@@ -388,11 +387,11 @@ class AsynSSLConnect (AsynConnect):
 		self.connected = True
 		
 	def recv (self, buffer_size):
-		self.event_time = time.time ()
+		self.set_event_time ()
 		try:
 			data = self.socket.recv (buffer_size)			
 			if not data:				
-				self.handle_close (706, "Connection closed unexpectedly")
+				self.handle_close (700, "Connection closed unexpectedly")
 				return b''
 			else:				
 				return data
@@ -402,14 +401,14 @@ class AsynSSLConnect (AsynConnect):
 				return b'' # retry			
 			# closed connection
 			elif why.errno in (ssl.SSL_ERROR_ZERO_RETURN, ssl.SSL_ERROR_EOF):
-				self.handle_close (706, "Connection closed by SSL_ERROR_ZERO_RETURN or SSL_ERROR_EOF")
+				self.handle_close (700, "Connection closed by SSL_ERROR_ZERO_RETURN or SSL_ERROR_EOF")
 				return b''
 				
 			else:
 				raise
 
 	def send (self, data):
-		self.event_time = time.time ()
+		self.set_event_time ()
 		try:
 			return self.socket.send (data)			
 
@@ -417,7 +416,7 @@ class AsynSSLConnect (AsynConnect):
 			if why.errno == ssl.SSL_ERROR_WANT_WRITE:
 				return 0
 			elif why.errno == ssl.SSL_ERROR_ZERO_RETURN:				
-				self.handle_close (706, "Connection blosed by SSL_ERROR_ZERO_RETURN")
+				self.handle_close (700, "Connection blosed by SSL_ERROR_ZERO_RETURN")
 				return 0
 			else:
 				raise
