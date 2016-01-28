@@ -48,7 +48,7 @@ class Composer:
 		self.H [name] = value
 		
 	def rfc_date (self):
-		return time.strftime ('%a, %d %b %Y %H:%M:%S +0900', time.localtime (time.time ()))
+		return time.strftime ('%a, %d %b %Y %H:%M:%S -0000', time.gmtime (time.time ()))
 	
 	def parse_address (self, addr):
 		try:

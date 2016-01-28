@@ -1220,7 +1220,7 @@ Optional Requirements
 Change Log
 -------------
   
-  0.12 - reengineering 'was' networking & proxy modules
+  0.12 - Re-engineering 'was' networking, PostgreSQL & proxy modules
   
   0.11 - Websocket implemeted
   
