@@ -109,7 +109,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 				continue
 			self.client_request.response [k] = v.strip ()			
 	
-	ESTABLISHED = b"HTTP/1.1 200 Connection Established\r\Server: " + skitai.NAME.encode ("utf8")
+	ESTABLISHED = b"HTTP/1.1 200 Connection Established\r\nServer: " + skitai.NAME.encode ("utf8")
 	def has_been_connected (self):
 		if self.request.method == "connect":
 			self.buffer =	self.ESTABLISHED
