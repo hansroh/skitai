@@ -46,7 +46,8 @@ class Handler:
 		if post_max_size: self.post_max_size = post_max_size
 		if upload_max_size: self.upload_max_size = upload_max_size
 		
-		self.ENV ["skitai.threads"] = (self.wasc.config.getint ("server", "processes"), self.wasc.config.getint ("server", "threads")),		
+		self.ENV ["skitai.process"] = self.wasc.config.getint ("server", "processes")
+		self.ENV ["skitai.thread"] = self.wasc.config.getint ("server", "threads")
 		self.ENV ["wsgi.url_scheme"] = hasattr (self.wasc.httpserver, "ctx") == "https" or "http"
 		self.ENV ["wsgi.multithread"] = hasattr (self.wasc, "threads")
 		self.ENV ["wsgi.multiprocess"] = self.wasc.config.getint ("server", "processes") > 1 and os.name != "nt"

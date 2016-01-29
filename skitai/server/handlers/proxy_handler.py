@@ -107,7 +107,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 	
 	def has_been_connected (self):
 		if self.request.method == "connect":
-			self.buffer =	b"HTTP/1.1 200 Connection Established\r\nKeep-Alive: timeout=120"				
+			self.buffer =	b"HTTP/1.1 200 Connection Established"				
 			self.found_terminator ()
 	
 	def will_open_tunneling (self):
