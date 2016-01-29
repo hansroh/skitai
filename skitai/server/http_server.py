@@ -10,6 +10,7 @@ from skitai.lib import producers, compressors
 import signal
 import ssl
 from skitai import VERSION
+import skitai
 
 PID = []
 ACTIVE_WORKERS = 0
@@ -254,7 +255,7 @@ class http_channel (asynchat.async_chat):
 # server class
 #-------------------------------------------------------------------
 class http_server (asyncore.dispatcher):
-	SERVER_IDENT = 'SWAE %s' % VERSION
+	SERVER_IDENT = skitai.NAME
 	def __init__ (self, ip, port, server_logger = None, request_logger = None):
 		global PID
 		self.handlers = []

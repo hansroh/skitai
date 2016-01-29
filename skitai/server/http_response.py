@@ -5,6 +5,7 @@ import os
 import sys
 from skitai.lib.reraise import reraise 
 from skitai.lib import producers, compressors
+import skitai
 
 UNCOMPRESS_MAX = 2048
 
@@ -49,7 +50,7 @@ class http_response:
 	def __init__ (self, request):
 		self.request = request
 		self.reply_headers = [
-			('Server', "SWAE"),
+			('Server', skitai.NAME),
 			('Date', http_date.build_http_date (time.time()))
 		]
 		self.outgoing = producers.fifo ()
@@ -74,8 +75,6 @@ class http_response:
 		return key in [x [0].lower () for x in self.reply_headers]		
 			
 	def set (self, key, value):
-		#if key.lower () != "set-cookie":
-		#	self.delete (key)
 		self.reply_headers.append ((key, value))
 	
 	def get (self, key):

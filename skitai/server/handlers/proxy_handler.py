@@ -1,5 +1,6 @@
 from . import wsgi_handler, collectors
 import re
+import skitai
 from skitai.protocol.http import request as http_request
 from skitai.protocol.http import request_handler as http_request_handler
 from skitai.protocol.http import response as http_response
@@ -96,18 +97,22 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		self.is_tunnel = False
 		self.new_handler = None
 			
-	def add_reply_headers (self):
+	def add_reply_headers (self):		
 		for line in self.response.get_headers ():			
 			try: k, v = line.split (": ", 1)
 			except:	continue			
 			ll = k.lower ()
 			if ll in ("expires", "date", "connection", "keep-alive", "content-length", "transfer-encoding", "content-encoding", "age", "vary"):
 				continue
-			self.client_request.response [k] = v.strip ()
+			if ll == "server":
+				self.client_request.response.update ("Server", v.strip () + ", " + skitai.NAME)
+				continue
+			self.client_request.response [k] = v.strip ()			
 	
+	ESTABLISHED = b"HTTP/1.1 200 Connection Established\r\Server: " + skitai.NAME.encode ("utf8")
 	def has_been_connected (self):
 		if self.request.method == "connect":
-			self.buffer =	b"HTTP/1.1 200 Connection Established"				
+			self.buffer =	self.ESTABLISHED
 			self.found_terminator ()
 	
 	def will_open_tunneling (self):
@@ -227,6 +232,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 				hc [k] = v
 				
 		hc ["X-Forwarded-For"] = "%s" % self.client_request.get_remote_addr ()
+		hc ["X-Proxy-Agent"] = skitai.NAME
 				
 		req = "%s %s HTTP/%s\r\n%s\r\n\r\n" % (
 			method,
