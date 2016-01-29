@@ -328,7 +328,9 @@ class AsynConnect (asynchat.async_chat):
 		self.connect ()
 			
 	def close (self):
-		asynchat.async_chat.close (self)
+		if self.socket:
+			# self.socket is still None, when DNS not found
+			asynchat.async_chat.close (self)
 		self.producer_fifo.clear()
 		if self.handler is None:
 			self.end_tran () # automatic end_tran when timeout occured by maintern
