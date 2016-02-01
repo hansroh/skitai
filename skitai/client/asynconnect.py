@@ -41,6 +41,7 @@ class AsynConnect (asynchat.async_chat):
 		asynchat.async_chat.__init__ (self)
 	
 	def initialize_connection (self):
+		self._raised_ENOTCONN = 0 # for win32
 		self._handshaking = False
 		self._handshaked = False		
 		
@@ -48,8 +49,7 @@ class AsynConnect (asynchat.async_chat):
 		self.established = False		
 		self.upgraded = False		
 		self.ready = None
-		self.affluent = None
-		self._raised_ENOTCONN = 0 # for win32
+		self.affluent = None		
 			
 	def set_event_time (self):
 		self.event_time = time.time ()
@@ -174,7 +174,7 @@ class AsynConnect (asynchat.async_chat):
 			self.log ("DNS not found - %s" % self.address [0], "error")
 			return self.handle_close (704, "DNS Not Found")			
 		
-		self.initialize_connection ()		
+		self.initialize_connection ()
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
 		
 		try:
