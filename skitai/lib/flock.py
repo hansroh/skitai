@@ -4,14 +4,15 @@ from . import pathtool
 def isCurrentProcess (pid, cmd = "python"):
 	if os.name == "nt":
 		import win32process, win32api, win32con, pywintypes
-		if pid in win32process.EnumProcesses ():			
+		if pid in win32process.EnumProcesses ():
 			try:
 				handle = win32api.OpenProcess (win32con.PROCESS_QUERY_INFORMATION | win32con.PROCESS_VM_READ, 0, int (pid))
 				exefilename = win32process.GetModuleFileNameEx (handle, 0)
 				if exefilename.find (cmd) != -1:
 					return True		
-			except pywintypes.error: # Windows service, Access is denied
-				return True		
+			except pywintypes.error: 
+				# Windows service, Access is denied
+				return False
 	
 	else:
 		proc = "/proc/%s/cmdline" % pid
@@ -20,8 +21,7 @@ def isCurrentProcess (pid, cmd = "python"):
 			exefilename = f.read ()
 			f.close ()
 			if exefilename.find (cmd) != -1:
-				return True
-	
+				return True	
 	return False
 	
 	
