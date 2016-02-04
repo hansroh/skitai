@@ -1,14 +1,33 @@
-import os
+import os, sys
 from . import pathtool
 
-def isCurrentProcess (pid, cmd = "python"):
+def isCurrentProcess (pid, cmd = None):
+	if cmd is None:
+		cmd = sys.argv [0]
+		
 	if os.name == "nt":
 		import win32process, win32api, win32con, pywintypes
-		if pid in win32process.EnumProcesses ():
+		HAS_WMI = True
+		try: import wmi	
+		except ImportError: HAS_WMI = False
+		
+		if pid not in win32process.EnumProcesses ():
+			return False
+	
+		if HAS_WMI:
+			cl = [p.CommandLine for p in wmi.WMI ().Win32_Process () if p.ProcessID == pid]
+			if not cl:
+				return False
+			if cl [0].find (cmd) == -1:
+				return False
+			return True
+												
+		else:	
 			try:
 				handle = win32api.OpenProcess (win32con.PROCESS_QUERY_INFORMATION | win32con.PROCESS_VM_READ, 0, int (pid))
 				exefilename = win32process.GetModuleFileNameEx (handle, 0)
-				if exefilename.find (cmd) != -1:
+				win32process.GetStartupInfo()
+				if exefilename.find ("python.exe") != -1:
 					return True		
 			except pywintypes.error: 
 				# Windows service, Access is denied
@@ -21,7 +40,8 @@ def isCurrentProcess (pid, cmd = "python"):
 			exefilename = f.read ()
 			f.close ()
 			if exefilename.find (cmd) != -1:
-				return True	
+				return True
+				
 	return False
 	
 	
