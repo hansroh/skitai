@@ -16,11 +16,9 @@ def isCurrentProcess (pid, cmd = None):
 	
 		if HAS_WMI:
 			cl = [p.CommandLine for p in wmi.WMI ().Win32_Process () if p.ProcessID == pid]
-			if not cl:
-				return False
-			if cl [0].find (cmd) == -1:
-				return False
-			return True
+			if cl and cl [0].find (cmd) != -1:
+				return True
+			return False
 												
 		else:	
 			try:
@@ -28,20 +26,21 @@ def isCurrentProcess (pid, cmd = None):
 				exefilename = win32process.GetModuleFileNameEx (handle, 0)
 				win32process.GetStartupInfo()
 				if exefilename.find ("python.exe") != -1:
-					return True		
+					return True
 			except pywintypes.error: 
 				# Windows service, Access is denied
 				return False
-	
+
 	else:
 		proc = "/proc/%s/cmdline" % pid
-		if os.path.isfile (proc):
-			f = open (proc)
-			exefilename = f.read ()
-			f.close ()
-			if exefilename.find (cmd) != -1:
-				return True
-				
+		if not os.path.isfile (proc):
+			return False
+		
+		with open (proc) as f:
+			exefilename = f.read ()		
+		if exefilename.find (cmd) != -1:
+			return True
+		
 	return False
 	
 	
