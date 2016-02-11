@@ -5,35 +5,7 @@ Copyright (c) 2015 by Hans Roh
 
 License: BSD
 
-
-
-What's New
------------
-
-Newly added 3 Skitai 'was' client-side web socket services:
-
-- was.ws ()
-- was.ws.lb ()
-- was.ws.map ()
-
-It is desinged as simple & stateless request-response model using web socket message frame for *light overheaded server-to-server communication*. For example, if your web server queries to so many other search servers via RESTful access, web socket might be a good alterative option. Think HTTP-Headerless JSON messaging. Usage is very simailar with HTTP request.
-
-.. code:: python
-
-  @app.route ("/query")
-  def query (was):
-    s = was.ws (
-    	"ws://192.168.1.100:5000/websocket/echo", 
-    	json.dumps ({"keyword": "snowboard binding"})
-    )
-    rs = s.getwait ()
-    result = json.loads (rs.data)
-
-Obiously, target server should have Web Socket app, routed to '/websocket/echo' in this case.
-
-To build WSGI application can handle web sockets on Skitai, see *HTML5 Web Socket* section.
-
-	  
+  
 Introduce
 ----------
 
@@ -427,8 +399,7 @@ HTML5 Web Socket
 
 *New in version 0.11*
 
-
-Mendtioned above, there're 3 Skitai 'was' client-side web socket services:
+There're 3 Skitai 'was' client-side web socket services:
 
 - was.ws ()
 - was.ws.lb ()
@@ -450,8 +421,7 @@ It is desinged as simple & no stateless request-response model using web socket 
 Obiously, target server should have Web Socket app, routed to '/websocket/echo' in this case.
 
 
-
-Also at server-side, HTML5 Web Socket has been implemented obioulsy
+Also at server-side, HTML5 Web Socket has been implemented.
 
 But I'm not sure my implemetation is right way, so it is experimental and unstatable.
 

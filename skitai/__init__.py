@@ -42,7 +42,7 @@ class _WASPool:
 		for _id in self.__p:
 			delattr (self.__p [_id], attr, value)
 	
-	def _set (self, wasc):
+	def _start (self, wasc):
 		self.__wasc = wasc
 	
 	def _del (self):
@@ -65,5 +65,5 @@ class _WASPool:
 was = _WASPool ()
 def start_was (wasc):
 	global was
-	was._set (wasc)	
+	was._start (wasc)	
 
