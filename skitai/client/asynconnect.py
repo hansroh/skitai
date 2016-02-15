@@ -37,6 +37,7 @@ class AsynConnect (asynchat.async_chat):
 		self._cv = threading.Condition ()		
 		self.set_event_time ()
 		
+		self.handler = None
 		self.initialize_connection ()				
 		asynchat.async_chat.__init__ (self)
 	
