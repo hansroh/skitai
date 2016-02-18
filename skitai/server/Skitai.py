@@ -179,7 +179,7 @@ class Loader:
 			
 	def install_handler (self, routes = {}, proxy = False, static_max_age = 300, upload_max_size = 0):		
 		self.wasc.add_handler (1, pingpong_handler.Handler)		
-		if proxy:			
+		if proxy:
 			self.wasc.add_handler (1, proxy_handler.Handler, self.wasc.clusters, self.wasc.cachefs)		
 		vh = self.wasc.add_handler (1, vhost_handler.Handler, self.wasc.clusters, self.wasc.cachefs, static_max_age, upload_max_size)		
 		

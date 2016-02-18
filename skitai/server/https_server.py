@@ -67,6 +67,7 @@ class https_server (http_server.http_server):
 
 def init_context (certfile, keyfile, pass_phrase):
 	ctx = ssl.SSLContext (ssl.PROTOCOL_SSLv23)
+	#ctx = ssl.SSLContext (ssl.PROTOCOL_TLSv1_2)
 	ctx.load_cert_chain (certfile, keyfile, pass_phrase)
 	ctx.check_hostname = False
 	return ctx

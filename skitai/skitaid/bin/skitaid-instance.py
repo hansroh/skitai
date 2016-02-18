@@ -37,6 +37,7 @@ class	WAS (Skitai.Loader):
 	def __init__ (self, config, logpath, varpath, consol):
 		self.test_config (config)
 		self.consol = consol
+		self.ssl_server = False
 		Skitai.Loader.__init__ (self, config, logpath, varpath)
 	
 	@classmethod
@@ -81,15 +82,22 @@ class	WAS (Skitai.Loader):
 		
 		if config.getint ("server", "threads", 4) == 0:
 			self.wasc.logger ("server", "multi-threading is disabled, all asynchronous remote call services will be also disabled.", "warn")
-		
-		if config.getopt ("server", "enable_proxy") == "yes":
-			self.wasc.logger ("server", "----------------------------------------------------", "warn")
-			self.wasc.logger ("server", "HTTP/HTTPS proxy service enabled", "warn")
-			self.wasc.logger ("server", "proxy is for testing purpose only, check your config", "warn")
-			self.wasc.logger ("server", "----------------------------------------------------", "warn")
 			
 		if config.getopt ("server", "ssl") in ("yes", "1") and config.getopt ("server", "certfile"):
 			self.config_certification (config.getopt ("server", "certfile"), config.getopt ("server", "keyfile"), config.getopt ("server", "passphrase"))
+			self.ssl_server = True
+		
+		if config.getopt ("server", "enable_proxy") == "yes":
+			self.wasc.logger ("server", "----------------------------------------------------", "warn")
+			if self.ssl_server:				
+				self.wasc.logger ("server", "HTTP/HTTPS proxy service is disabled", "warn")
+				self.wasc.logger ("server", "Proxy cannot be enabled with SSL", "warn")
+				config.setopt ("server", "enable_proxy", "no")
+			else:	
+				self.wasc.logger ("server", "HTTP/HTTPS proxy service is enabled", "warn")
+				self.wasc.logger ("server", "Proxy is for testing purpose only, check your config", "warn")
+			self.wasc.logger ("server", "----------------------------------------------------", "warn")
+
 		self.config_cachefs (os.path.join (self.varpath, "cache"))
 		self.config_rcache (config.getint ("server", "num_result_cache_max", 1000))
 		

@@ -227,7 +227,7 @@ class AsynConnect (asynchat.async_chat):
 						self._raised_ENOTCONN += 1
 						return 0
 					else:
-						self._raised_ENOTCONN = 0						
+						self._raised_ENOTCONN = 0
 				self.handle_close (700, "Connection closed unexpectedly in send")
 				return 0
 			else:
@@ -263,11 +263,11 @@ class AsynConnect (asynchat.async_chat):
 			pass
 		
 	def handle_read (self):
-		self.set_zombie_timeout_by_case ()
+		self.set_zombie_timeout_by_case ()		
 		asynchat.async_chat.handle_read (self)
 		
 	def handle_write (self):
-		self.set_zombie_timeout_by_case ()
+		self.set_zombie_timeout_by_case ()		
 		asynchat.async_chat.handle_write (self)
 			
 	def handle_expt (self):
