@@ -294,7 +294,7 @@ class MessageBox (SecuredListValue):
 		
 	def send (self, msg, category = "info", valid = 0, **extra):
 		if self.data and self.mid == -1:
-			self.mid = max ([n [0] for n in self.data])
+			self.mid = max ([n [0] for n in self.data])		
 		self.mid += 1
 		self.data.append ((self.mid, category, int (time.time ()), valid, msg, extra))
 		self.dirty = True
@@ -317,15 +317,15 @@ class MessageBox (SecuredListValue):
 		not_expired = []
 		
 		for notice in self.data:
-			if wanted_category and notice [0] not in wanted_category:
+			if wanted_category and notice [1] not in wanted_category:
 				not_expired.append (notice)
 				continue
 			
-			how_old = now - notice [1]
+			how_old = now - notice [2]
 			if how_old >= self.AWEEK:
 				# too old news				
 				continue	
-			if how_old < notice [2]:
+			if how_old < notice [3]:
 				not_expired.append (notice)
 			
 			messages.append (notice)			

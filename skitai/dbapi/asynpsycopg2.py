@@ -9,8 +9,10 @@ try:
 	
 except ImportError:	
 	class AsynConnect:
-		def __init__ (self, *args, **kargs):
-			raise ImportError ("Cannot Import psycopg2")
+		def __init__ (self, address, params = None, lock = None, logger = None):
+			logger ("[warn] cannot import psycopg2")
+			raise ImportError, "cannot import psycopg2"
+			
 			
 else:	
 	import asyncore
@@ -21,7 +23,7 @@ else:
 	_STATE_OK = (POLL_OK, POLL_WRITE, POLL_READ)
 		
 	class AsynConnect (dbconnect.DBConnect, asyncore.dispatcher):
-		def __init__ (self, address, params = None, lock = None, logger = None):		
+		def __init__ (self, address, params = None, lock = None, logger = None):
 			dbconnect.DBConnect.__init__ (self, address, params, lock, logger)
 			self.dbname, self.user, self.password = self.params
 			asyncore.dispatcher.__init__ (self)
