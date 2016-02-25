@@ -1,5 +1,5 @@
 import sqlite3
-import dbconnect
+from . import dbconnect
 import threading
 
 class OperationalError (Exception):
