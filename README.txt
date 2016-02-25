@@ -392,12 +392,13 @@ But according to `Psycopg2 advanced topics`_, there are several limitations in u
 
 ::
 
-  The connection is always in autocommit mode and it is not possible to change it. So a transaction is not implicitly started at the first query and is not possible to use methods commit() and rollback(): you can manually control transactions using execute() to send database commands such as BEGIN, COMMIT and ROLLBACK. Similarly set_session() can¡¯t be used but it is still possible to invoke the SET command with the proper default_transaction.. parameter.
+  The connection is always in autocommit mode and it is not possible to change it. So a transaction is not implicitly started at the first query and is not possible to use methods commit() and rollback(): you can manually control transactions using execute() to send database commands such as BEGIN, COMMIT and ROLLBACK. Similarly set_session() canÂ¡?t be used but it is still possible to invoke the SET command with the proper default_transaction.. parameter.
 
   With asynchronous connections it is also not possible to use set_client_encoding(), executemany(), large objects, named cursors.
 
   COPY commands are not supported either in asynchronous mode, but this will be probably implemented in a future release.
-
+  
+  
 If you need blocking jobs, you can use original Psycopg2 module or other PostgreSQL modules.
 
 Anyway, usage is basically same concept with above HTTP Requests.
