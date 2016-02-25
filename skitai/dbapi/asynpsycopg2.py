@@ -11,7 +11,7 @@ except ImportError:
 	class AsynConnect:
 		def __init__ (self, address, params = None, lock = None, logger = None):
 			logger ("[warn] cannot import psycopg2")
-			raise ImportError, "cannot import psycopg2"
+			raise ImportError ("cannot import psycopg2")
 			
 			
 else:	
