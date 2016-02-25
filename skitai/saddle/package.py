@@ -18,13 +18,9 @@ class Package:
 		
 		self.logger = None
 		self.route_map = {}
-		self._before_request = None
-		self._success_request = None
-		self._teardown_request = None
-		self._failed_request = None
-		self._startup = None
-		self._shutdown = None
-		self._onreload = None
+		self._binds_server = [None] * 3
+		self._binds_request = [None] * 4
+		self._binds_when = [None] * 5		
 		
 	def init (self, module, packagename):
 		self.module = module
@@ -37,8 +33,8 @@ class Package:
 			self.update_file_info	()
 				
 	def cleanup (self):
-		if self._shutdown:
-			self._shutdown (self.wasc, self)
+		# shutdown
+		self.binds_skitai [2] and self.binds_skitai [2] (self.wasc, self)
 		
 	def __getitem__ (self, k):
 		return self.route_map [k]
@@ -62,43 +58,54 @@ class Package:
 		stat = os.stat (self.abspath)
 		self.file_info = (stat.st_mtime, stat.st_size)
 	
-	def onreload (self, f):
-		self._onreload = f
-		
+	#----------------------------------------------
+	# Decorators
+	#----------------------------------------------
 	def startup (self, f):
-		self._startup = f
+		self._binds_server [0] = f
 	
+	def onreload (self, f):
+		self._binds_server [1] = f
+		
 	def shutdown (self, f):
-		self._shutdown = f
+		self._binds_server [2] = f
 		
 	def before_request (self, f):
-		self._before_request = f
+		self._binds_request [0] = f
 	
-	def success_request (self, f):
-		self._success_request = f
-	
-	def teardown_request (self, f):
-		self._teardown_request = f
+	def finish_request (self, f):
+		self._binds_request [1] = f
 	
 	def failed_request (self, f):
-		self._failed_request = f
+		self._binds_request [2] = f
+	
+	def teardown_request (self, f):
+		self._binds_request [3] = f
+	
+	def got_template (self, f):
+		self._binds_when [0] = f
+	
+	def template_rendered (self, f):
+		self._binds_when [1] = f
+	
+	def message_flashed (self, f):
+		self._binds_when [2] = f
+	
+	#----------------------------------------------
+	# Event Binding
+	#----------------------------------------------
+	def when_got_template (self, *args):
+		self._binds_when [0] and self._binds_when [0] (*args)
+	
+	def when_template_rendered (self, *args):
+		self._binds_when [1] and self._binds_when [1] (*args)
 		
-	def route (self, rule, *t, **k):		
-		def decorator(f):
-			self.add_route (rule, f, *t, **k)
-		return decorator
+	def when_message_flashed (self, *args):
+		self._binds_when [2] and self._binds_when [2] (*args)
 	
-	def get_route_map (self):
-		return self.route_map
-	
-	def set_route_map (self, route_map):
-		self.route_map = route_map
-	
-	def add_package (self, module, packagename = "package"):
-		p = getattr (module, packagename)
-		p.init (module, packagename)
-		self.packages [id (p)] = p
-	
+	#----------------------------------------------
+	# URL Building
+	#----------------------------------------------		
 	def url_for (self, thing, *args, **kargs):
 		if thing.startswith ("/"):
 			base = self.route
@@ -144,6 +151,25 @@ class Package:
 			url = p.build_url (thing, *args, **kargs)
 			if url:
 				return url
+				
+	#----------------------------------------------
+	# Routing
+	#----------------------------------------------						
+	def route (self, rule, *t, **k):
+		def decorator(f):
+			self.add_route (rule, f, *t, **k)
+		return decorator
+	
+	def get_route_map (self):
+		return self.route_map
+	
+	def set_route_map (self, route_map):
+		self.route_map = route_map
+	
+	def add_package (self, module, packagename = "package"):
+		p = getattr (module, packagename)
+		p.init (module, packagename)
+		self.packages [id (p)] = p
 								
 	def try_rule (self, path_info, rulepack):
 		rule, (f, n, l, a, s) = rulepack		
@@ -243,31 +269,26 @@ class Package:
 			return (None, None, None, 0)
 																	
 		return (
-			[
-				self._before_request, 
-				method, 
-				self._success_request, 
-				self._failed_request, 
-				self._teardown_request
-			], 
+			[self._binds_request [0], method] + self._binds_request [1:4], 
 			kargs, match, matchtype
 		)
 	
+	#----------------------------------------------
+	# Starting App
+	#----------------------------------------------
 	def start (self, wasc, route, packages = None):
 		self.wasc = wasc
 		self.route = route
 		
 		if packages is None:
 			# initing app & packages
-			if self._startup:
-				self._startup (self.wasc, self)
+			self._binds_server [0] and self._binds_server [0] (self.wasc, self)
 			
 			for p in list (self.packages.values ()):
 				p.start (self.wasc, route)
 				
 		else:
-			if self._onreload:
-				self._onreload (self.wasc, self)
+			self._binds_server [1] and self._binds_server [1] (self.wasc, self)
 			self.packages = packages
 
-
+	

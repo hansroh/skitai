@@ -71,7 +71,7 @@ class ClusterManager:
 						conns.append (conn)
 								
 					_node ["connection"] = conns
-					cluster ["%s:%d" % node] = _node				
+					cluster [str (node)] = _node
 				info ["cluster"] = cluster
 				
 				actives = len ([x for x in self._close_desires if x.isactive ()])

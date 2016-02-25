@@ -2,7 +2,7 @@ import threading
 import time
 import os
 import sys
-from . import package, multipart_collector, cookie
+from . import package, multipart_collector, cookie, secured_cookie_value
 from . import wsgi_executor, xmlrpc_executor
 from skitai.lib import producers
 from skitai.server import utility
@@ -24,7 +24,7 @@ except ImportError:
 
 multipart_collector.MultipartCollector.file_max_size = 20 * 1024 * 1024
 multipart_collector.MultipartCollector.cache_max_size = 5 * 1024 * 1024
-cookie.SecuredCookieValue.default_session_timeout = 1200
+secured_cookie_value.Session.default_session_timeout = 1200
 
 	
 class Saddle (package.Package):
@@ -44,7 +44,7 @@ class Saddle (package.Package):
 	opaque = None
 	
 	def __init__ (self, package_name):
-		self.template_env = JINJA2 and Environment (loader = PackageLoader (package_name)) or None
+		self.jinja_env = JINJA2 and Environment (loader = PackageLoader (package_name)) or None
 		package.Package.__init__ (self)	
 		self.lock = threading.RLock ()
 		self.cache_sorted = 0
@@ -120,7 +120,7 @@ class Saddle (package.Package):
 	
 	def get_template (self, name):
 		if JINJA2:
-			return self.template_env.get_template (name)
+			return self.jinja_env.get_template (name)
 		raise ImportError ("jinja2 required.")
 	
 	def get_multipart_collector (self):
@@ -184,11 +184,13 @@ class Saddle (package.Package):
 		
 		was.cookie = None
 		was.session = None
+		was.mbox = None
 		was.response = None
 		was.env = None
 		was.app = None
 		was.ab = None
-		was.temp = None		
+		was.g = None
+		was.reset ()
 		
 		return result
 		

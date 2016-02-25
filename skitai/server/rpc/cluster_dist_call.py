@@ -8,6 +8,8 @@ from skitai.protocol.ws import request_handler as ws_request_handler
 from skitai.protocol.ws import request as ws_request
 from skitai.server import rcache
 
+class OperationError (Exception):
+	pass
 
 class Result (rcache.Result):
 	def __init__ (self, id, status, response, ident = None):
@@ -25,7 +27,11 @@ class Result (rcache.Result):
 		self.code = self._response.code
 		self.msg = self._response.msg
 		self.version = self._response.version
-			
+	
+	def reraise (self):
+		if self.status != 3:
+			raise OperationError ("[%d] %s (status: %d)" % (self.code, self.msg, self.status))
+				
 	def cache (self, timeout = 300):
 		self._response = None
 		if self.code != 200:
@@ -254,7 +260,11 @@ class ClusterDistCall:
 			
 	def _cancel (self):
 		self._canceled = 1
-	
+		
+	def wait (self, timeout = 3):		
+		for rs in self.getswait (timeout):
+			rs.reraise ()
+		
 	def getwait (self, timeout = 3):
 		if self._cached_result is not None:
 			return self._cached_result

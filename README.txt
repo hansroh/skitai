@@ -173,7 +173,10 @@ Asynchronous Requests Using Skitai WAS
     url = request.args.get('url', 'http://www.python.org')
     s = was.get (url)
     result = s.getwait (5) # timeout
-    return result.data
+    if result.status == 3 and result.code == 200:
+      return result.data
+    else:
+      result.reraise ()
 
 
 *Skitai-Saddle Style*
@@ -187,7 +190,10 @@ Asynchronous Requests Using Skitai WAS
   def get (was, url = "http://www.python.org"):
     s = was.get (url)
     result = s.getwait (5) # timeout
-    return result.data
+    if result.status == 3 and result.code == 200:
+      return result.data
+    else:
+      result.reraise ()
 
 Both can access to http://127.0.0.1:5000/get?url=https%3A//pypi.python.org/pypi .
 
@@ -198,6 +204,15 @@ Also note that if you want to use WAS services in your WSGI middle wares except 
 .. code:: python
 
   from skitai import was
+
+And result.status value must be checked:
+
+- 0: Initial Default Value
+- 1: Operation Timeout
+- 2: Exception Occured
+- 3: Normal
+
+if status is not 3, you should handle error by calling result.reraise (), ignoring or returning alternative content etc. For my convient, it will be skipped in example codes below.
 
 
 Here're post, file upload method examples:
@@ -320,45 +335,6 @@ Avaliable methods are:
 - was.delete.map ()
 
 
-**PostgreSQL Map-Reducing**
-
-This sample is to show querying sharded database.
-Add mydb members to config file.
-
-.. code:: python
-
-    [@mydb]
-    type = postresql
-    members = s1.yourserver.com:5432/mydb/user/passwd, s2.yourserver.com:5432/mydb/user/passwd
-
-
-.. code:: python
-
-    @app.route ("/query")
-    def query (was, keyword):
-      s = was.db.map ("@mydb")
-      s.execute("SELECT * FROM CITIES;")
-
-      results = s.getswait (timeout = 2)
-      all_results = []
-      for result in results:
-        if result.status == 3:
-          all_results.append (result.data)
-      return all_results
-
-
-Basically same usage concept with above HTTP Requests.
-
-Avaliable methods are:
-
-- was.db ("127.0.0.1:5432", "mydb", "postgres", "password")
-- was.db ("@mydb")
-- was.db.lb ("@mydb")
-- was.db.map ("@mydb")
-
-*Note:* if @mydb member is only one, was.db.lb ("@mydb") is equal to was.db ("@mydb").
-
-
 **Sending e-Mails**
 
 .. code:: python
@@ -391,6 +367,128 @@ If it is configured, you can skip e.set_smtp(). But be careful for keeping your 
 - was.fromjson ()
 - was.toxml () # XMLRPC
 - was.fromxml () # XMLRPC
+
+
+
+Connecting to DBMS
+--------------------------------------
+
+Of cause, you can use any database modules for connecting to your DBMS.
+
+Skitai also provides asynchonous PostgreSQL query services for efficient developing and getting advantages of asynchronous server framework by using Psycopg2.
+
+But according to `Psycopg2 advanced topics`_, there are several limitations in using asynchronous connections:
+
+::
+
+  The connection is always in autocommit mode and it is not possible to change it. So a transaction is not implicitly started at the first query and is not possible to use methods commit() and rollback(): you can manually control transactions using execute() to send database commands such as BEGIN, COMMIT and ROLLBACK. Similarly set_session() can¡¯t be used but it is still possible to invoke the SET command with the proper default_transaction.. parameter.
+
+  With asynchronous connections it is also not possible to use set_client_encoding(), executemany(), large objects, named cursors.
+
+  COPY commands are not supported either in asynchronous mode, but this will be probably implemented in a future release.
+
+If you need blocking jobs, you can use original Psycopg2 module or other PostgreSQL modules.
+
+Anyway, usage is basically same concept with above HTTP Requests.
+
+*Simple Query*
+
+.. code:: python
+
+    s = was.db ("127.0.0.1:5432", "mydb", "user", "password")
+    s.execute ("SELECT * FROM weather;")	
+    result = s.getwait (2)
+  
+
+*Load-Balancing*
+
+This sample is to show querying sharded database.
+Add mydb members to config file.
+
+.. code:: python
+
+    [@mydb]
+    type = postresql
+    members = s1.yourserver.com:5432/mydb/user/passwd, s2.yourserver.com:5432/mydb/user/passwd
+
+    @app.route ("/query")
+    def query (was, keyword):
+      s = was.db.lb ("@mydb")
+      s.execute("INSERT INTO CITIES VALUES ('New York');")
+      s.wait (2) # no return, just wait for completing query, if failed exception will be raised
+      
+      s = was.db.lb ("@mydb")
+      s.execute("SELECT * FROM CITIES;")
+      result = s.getwait (2)
+   
+	
+*Map-Reducing*
+
+.. code:: python
+
+    @app.route ("/query")
+    def query (was, keyword):
+      s = was.db.map ("@mydb")
+      s.execute("SELECT * FROM CITIES;")
+
+      results = s.getswait (2)
+      all_results = []
+      for result in results:
+        if result.status == 3:
+          all_results.append (result.data)
+      return all_results
+
+
+Avaliable methods are:
+
+- was.db ("127.0.0.1:5432", "mydb", "postgres", "password")
+- was.db ("@mydb")
+- was.db.lb ("@mydb")
+- was.db.map ("@mydb")
+
+*Note:* if @mydb member is only one, was.db.lb ("@mydb") is equal to was.db ("@mydb").
+
+*Note 2:* You should call exalctly 1 execute () per a was.db.* () object.
+
+
+.. _`Psycopg2 advanced topics`: http://initd.org/psycopg/docs/advanced.html
+
+
+**Fast App Protoyping using SQLite3**
+
+`New in version 0.13`
+
+Skitai provide SQLite3 query API service for fast app prototyping. 
+
+Usage is almost same with PostgreSQL. This service IS NOT asynchronous BUT just emulating.
+
+.. code:: python
+
+    from skitai import DB_SQLITE3
+    
+    s = was.db ("sqlite3.db", DB_SQLITE3)
+    s.execute ("""
+      drop table if exists people;
+      create table people (name_last, age);
+      insert into people values ('Cho', 42);
+    """)
+    # result is not needed use wait(), and if failed, excpetion will be raised
+    s.wait (5)
+
+    s = was.db ("sqlite3.db", DB_SQLITE3)
+    s.execute ("select * from people;")	
+    result = s.getwait (2)
+
+Also load-balacing and map-reuducing is exactly same with PostgreSQL.
+
+.. code:: python
+
+    [@mysqlite3]
+    type = sqlite3
+    members = /tmp/sqlite1.db, /tmp/sqlite2.db
+
+
+*Note:* You should call exalctly 1 execute () per a was.db.* () object, and 'select' statement should be called alone.
 
 
 
@@ -768,14 +866,28 @@ file object has these attributes:
   was.env.get ("CONTENT_TYPE")
 
 
-**Access App & Jinja Templates**
+**Access App & Jinja2 Templates**
 
 .. code:: python
 
   if was.app.debug:
-    was.app.get_template ("index-debug.html") # getting Jinja template
+    return was.render ("index-debug.html", var1 = "var1") # getting Jinja template
   else:  
-    was.app.get_template ("index.html") # getting Jinja template
+    return was.render ("index.html", var1 = "var1") # getting Jinja template
+
+At template, you can use all was object like was.g, was.request, was.cookie, was.session, was.ab, was.app ...
+
+.. code:: html
+
+  <a href="{{ was.ab ("hello", "Hans Roh") }}">Greeting</a>
+    
+  Messages To: {{ was.g.userid }}, 
+  <ul>
+  	{% for mtype, msg in was.get_flashed_messages () %}
+  		<li> {{ mtype }}: {{ msg }}</li>
+  	{% endfor %}
+  </ul>
+
 
 Directory structure sould be:
 
@@ -854,33 +966,44 @@ To enable session for app, random string formatted securekey should be set for e
     if not login ():
       return "Not Authorized"
   
-  @app.after_request
+  @app.finish_request
   def after_request (was):
-    was.temp.user_id    
-    was.temp.user_status
+    was.g.user_id    
+    was.g.user_status
     ...
   
   @app.failed_request
   def failed_request (was):
-    was.temp.user_id    
-    was.temp.user_status
+    was.g.user_id    
+    was.g.user_status
     ...
   
   @app.teardown_request
   def teardown_request (was):
-    was.temp.resouce.close ()
+    was.g.resouce.close ()
     ...
   
+  @app.got_template
+  def got_template (was, template, dict):
+    # template is the returned object of app.jinja_env.get_template (template_filename)
+    ...
+  
+  @app.template_rendered
+  def template_rendered (was, template, dict, rendered):
+    ...
+  
+  @app.message_flashed
+  def message_flashed (was, msg, category, **extra):
+    ...
+
   @app.route ("/view-account")
   def view_account (was, userid):
-    was.temp.user_id = "jerry"
-    was.temp.user_status = "active"
-    was.temp.resouce = open ()
+    was.g.user_id = "jerry"
+    was.g.user_status = "active"
+    was.g.resouce = open ()
     return ...
 
-
-For this situation, 'was' provide was.temp that is empty class instance. was.temp is valid only in cuurent request. After end of current request, was.temp is reset to empty.
-
+For this situation, 'was' provide was.g that is empty class instance. was.g is valid only in current request. After end of current request.
 
 If view_account is called, Saddle execute these sequence:
 
@@ -899,30 +1022,6 @@ If view_account is called, Saddle execute these sequence:
   finally:
     teardown_request (was)
     
-
-Also it is possible to bind some events with temporary handling methods.
-
-.. code:: python
-
-  from skitai.saddle import EVOK, EVEXCEPT, EVREQEND
-  
-  @app.route ("/view-account")
-
-  def view_account (was, userid):
-    def handle_ok (was):
-    	was.temp.user_id
-    	was.temp.user_status
-    
-    was.temp.bind (EVOK, handle_ok)
-    was.temp.bind (EVEXCEPT, handle_except)
-    was.temp.bind (EVREQEND, handle_end)
-   
-    was.temp.user_id = "jerry"
-    was.temp.user_status = "active"
-    was.temp.resouce = open ()
-    
-    return ...
-
 
 Also there're another kind of method group,
 
@@ -1189,6 +1288,8 @@ Optional Requirements
 
 Change Log
 -------------
+  
+  0.13 - was.mbox added | was.render (template_file, dictioanry or key-value args) added | was.temp and was.temp.bind() has been removed and replaced with was.g | SQLite3 DB connection added
   
   0.12 - Re-engineering 'was' networking, PostgreSQL & proxy modules
   

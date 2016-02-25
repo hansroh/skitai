@@ -48,41 +48,36 @@ class Executor:
 		response = None
 		first_expt = None
 		
-		[before, func, success, failed, teardown] = method
-		_ok, _exception, _teardown = None, None, None
-		
+		[before, func, success, failed, teardown] = method		
 		try:
 			if before:
 				response = before (self.was)
 				if response:
 					return response
-			
+					
 			if type (func) is list:
 				response = self.chained_exec (func, args, karg)					
 					
-			else:
+			else:				
 				response = func (self.was, *args, **karg)
 				if type (response) is not list:
 					response = [response]											
-				# ok, exception, teardown
-				_ok, _exception, _teardown = self.was.temp._binds [:3]
 				
 		except MemoryError:
 			raise
 																										
 		except Exception as expt:
 			self.was.logger.trace ("app")
-			if first_expt is None: first_expt = sys.exc_info ()
-			
-			if _exception:		self.exec_chain (_exception)
-			if failed:		self.exec_chain (failed)
+			if first_expt is None: 
+				first_expt = sys.exc_info ()			
+			failed and self.exec_chain (failed)
 							
 		else:
-			if _ok: 	first_expt = self.exec_chain (_ok)
-			if success: 	first_expt = self.exec_chain (success)
+			if success: 	
+				first_expt = self.exec_chain (success)
 		
-		if _teardown: 	first_expt = self.exec_chain (_teardown, first_expt)
-		if teardown: 		first_expt = self.exec_chain (teardown, first_expt)
+		if teardown:
+			first_expt = self.exec_chain (teardown, first_expt)
 			
 		if first_expt:
 			reraise (*first_expt)
@@ -124,27 +119,30 @@ class Executor:
 				s [k] = v
 	
 	def build_was (self):
-		class Temp:
-			def __init__ (self):
-				self._binds = [None] * 3
-				
-			def bind (self, index, method):
-				self._binds [index] = method
-				
+		class G:
+			pass
+			
 		_was = self.env["skitai.was"]
 		_was.env = self.env
-		_was.temp = Temp ()
 		_was.response = _was.request.response
 		_was.cookie = cookie.Cookie (_was.request, _was.app.securekey, _was.app.session_timeout)
 		_was.session = _was.cookie.get_session ()
-		self.was = _was		
+		_was.mbox = _was.cookie.get_notices ()
+		_was.g = G ()
+		self.was = _was
 	
 	def commit (self):
-		# keep commit order, session -> cookie
-		try: self.was.session.commit ()
-		except AttributeError: pass							
+		# keep commit order, session -> mbox -> cookie
+		self.was.session and self.was.session.commit ()
+		self.was.mbox and self.was.mbox.commit ()
 		self.was.cookie.commit ()
-			
+	
+	def rollback (self):
+		# keep commit order, session -> mbox -> cookie
+		self.was.session and self.was.session.rollback ()
+		self.was.mbox and self.was.mbox.rollback ()
+		self.was.cookie.rollback ()
+				
 	def __call__ (self):	
 		thing, param = self.get_method (self.env ["PATH_INFO"])
 		if thing is None:
@@ -160,7 +158,12 @@ class Executor:
 			return b""
 		
 		self.build_was ()
-		content = self.generate_content (thing, (), param)
-		self.commit ()
+		try:
+			content = self.generate_content (thing, (), param)
+		except:	
+			self.rollback ()
+			raise
+		else:
+			self.commit ()			
 		return content
 		

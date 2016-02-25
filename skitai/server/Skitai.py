@@ -5,7 +5,6 @@
 #-------------------------------------------------------
 
 HTTPS = True
-PSYCOPG = True
 from skitai.client import adns
 import sys, time, os, threading
 from . import http_server, wsgi_apps, rcache
@@ -13,16 +12,8 @@ from skitai import lifetime
 from warnings import warn
 from . import https_server
 from skitai import start_was
-
 if os.name == "nt":	
-	from . import schedule
-
-try: import psycopg2
-except ImportError: 
-	PSYCOPG = False	
-else:			
-	from skitai.dbapi import dbpool	
-		
+	from . import schedule			
 from .handlers import proxy_handler, pingpong_handler, vhost_handler
 from .threads import threadlib, trigger
 from skitai.lib import logger, confparse, pathtool, flock
@@ -32,9 +23,9 @@ import socket
 import signal
 import multiprocessing
 from . import wsgiappservice
+from .dbi import cluster_dist_call as dcluster_dist_call
+from skitai.dbapi import dbpool
 
-if PSYCOPG:
-	from .dbi import cluster_dist_call as dcluster_dist_call
 
 class Loader:
 	def __init__ (self, config, logpath, varpath, debug = 0):
@@ -78,10 +69,9 @@ class Loader:
 		self.wasc.clusters ["__socketpool__"] = socketfarm
 		self.wasc.clusters_for_distcall ["__socketpool__"] = cluster_dist_call.ClusterDistCallCreator (socketfarm, self.wasc.logger.get ("server"))		
 		
-		if PSYCOPG:
-			dp = dbpool.DBPool (self.wasc.logger.get ("server"))
-			self.wasc.clusters ["__dbpool__"] = dp
-			self.wasc.clusters_for_distcall ["__dbpool__"] = dcluster_dist_call.ClusterDistCallCreator (dp, self.wasc.logger.get ("server"))
+		dp = dbpool.DBPool (self.wasc.logger.get ("server"))
+		self.wasc.clusters ["__dbpool__"] = dp
+		self.wasc.clusters_for_distcall ["__dbpool__"] = dcluster_dist_call.ClusterDistCallCreator (dp, self.wasc.logger.get ("server"))
 		
 		if not hasattr (self.wasc, "threads"):
 			for attr in ("map", "rpc", "rest", "wget", "lb", "db", "dlb", "dmap"):

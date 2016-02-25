@@ -94,6 +94,7 @@ class Handler:
 	
 	def make_collector (self, collector_class, request, max_cl, *args, **kargs):
 		collector = collector_class (self, request, *args, **kargs)
+				
 		if collector.content_length is None:
 			request.response.error (411)
 			return

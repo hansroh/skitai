@@ -255,7 +255,7 @@ class RequestHandler:
 		try:
 			self.response = http_response.Response (self.request, buffer.decode ("utf8"))
 		except:
-			self.log ("response header error: `%s`" % repr (buffer.decode ("utf8") [:80]), "error")
+			self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
 			self.asyncon.handle_close (708, "Response Header Error")
 		else:	
 			self.is_continue_response ()

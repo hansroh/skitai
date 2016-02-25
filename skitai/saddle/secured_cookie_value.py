@@ -1,0 +1,308 @@
+import pickle as pickle
+from skitai.server import http_date
+import time
+import random
+from skitai.lib import pathtool
+from skitai.lib import udict
+import os, sys
+try:
+	from urllib.parse import quote_plus, unquote_plus
+except ImportError:
+	from urllib import quote_plus, unquote_plus	
+import base64
+import pickle
+from hmac import new as hmac
+
+_default_hash = None
+if sys.version_info >= (2, 5):
+	try:
+		from hashlib import sha1 as _default_hash
+	except ImportError:
+		pass
+if _default_hash is None:
+	import sha as _default_hash
+
+
+class UnquoteError(Exception):
+	"""Internal exception used to signal failures on quoting."""
+
+
+class SecuredValue:
+	hash_method = _default_hash
+	serialization_method = pickle
+	quote_base64 = True
+	KEY = "SECURED"	
+	
+	def __init__ (self, data, secret_key, setfunc, new = True):
+		if new:
+			self.set_default_data ()
+		else:
+			self.data = data				
+		self.secret_key = secret_key
+		self.setfunc = setfunc
+		self.new = new
+		self.commited = False
+		self.rollbacked = False
+	
+	def __contains__ (self, k):
+		return k in self.data
+		
+	def set_default_data (self):
+		self.data = None
+	
+	def clear (self):
+		self.set_default_data ()
+		
+	def recal_expires (self, expires):						
+		return expires
+	
+	def rollback (self):
+		self.rollbacked = True
+			
+	def commit (self, expires = None, path = "/", domain = None):
+		if self.commited or self.rollbacked:
+			return
+		expires = self.recal_expires (expires)
+		self.setfunc (self.KEY, self.serialize (), expires, path, domain)
+		self.commited = True
+	
+	@classmethod		
+	def validate_data (cls, data):
+		return data
+		
+	@classmethod
+	def quote (cls, value):		
+		if cls.serialization_method is not None:
+			value = cls.serialization_method.dumps(value, 1)			
+		if cls.quote_base64:
+			value = base64.b64encode (value)
+			value = b''.join(value.splitlines()).strip()
+		return value
+	
+	@classmethod
+	def unquote(cls, value):
+		try:
+			if cls.quote_base64:
+				value = base64.b64decode(value)
+			if cls.serialization_method is not None:
+				value = cls.serialization_method.loads(value)
+			return value
+		except:			
+			raise UnquoteError
+
+
+class SecuredDictValue (SecuredValue):
+	KEY = "SECUREDICT"	
+			
+	def set_default_data (self):
+		self.data = {}
+			
+	def __setitem__ (self, k, v):
+		self.set (k, v)
+	
+	def __delitem__ (self, k):
+		return self.remove (k)
+	
+	def __getitem__ (self, k, v = None):
+		return self.data.get (k, v)
+	
+	def iterkeys (self):		
+		return self.data.iterkeys ()
+	
+	def itervalues (self):		
+		return self.data.itervalues ()	
+	
+	def iteritems (self):		
+		return self.data.iteritems ()	
+		
+	def has_key (self, k):
+		return k in self.data
+	
+	def items (self):
+		return list(self.data.items ())
+	
+	def keys (self):
+		return list(self.data.keys ())	
+	
+	def values (self):
+		return list(self.data.values ())	
+			
+	def remove (self, k):
+		try:
+			del self.data [k]
+		except KeyError:
+			pass
+			
+	def set (self, k, v):
+		if type (k) is not type (""):
+			raise TypeError("Session key must be string type")
+		self.data [k] = v
+	
+	def get (self, k, v = None):
+		return self.data.get (k, v)
+		
+	def serialize(self):
+		if self.secret_key is None:
+			raise RuntimeError('no secret key defined')
+		
+		result = []
+		mac = hmac(self.secret_key, None, self.hash_method)
+		for key, value in sorted (self.items(), key = lambda x: x[0]):
+			result.append (quote_plus (key).encode ("utf8") + b"=" + self.quote(value))
+			mac.update(b'|' + result[-1])			
+		return (base64.b64encode(mac.digest()).strip() + b"?" + b'&'.join(result)).decode ("utf8")
+	
+	@classmethod
+	def unserialize(cls, string, secret_key, setfunc, *args, **kargs):
+		items = {}
+		try:
+			base64_hash, data = string.split(b'?', 1)
+		except:
+			base64_hash, data, items = b"", b"", None
+		
+		mac = hmac(secret_key, None, cls.hash_method)
+		for item in data.split(b'&'):
+			mac.update(b'|' + item)
+			if not b'=' in item:
+				items = None
+				break
+			key, value = item.split(b'=', 1)
+			# try to make the key a string
+			try:
+				key = unquote_plus (key.decode ("utf8"))
+			except UnicodeError:
+				pass
+			items[key] = value
+		
+		try:
+			client_hash = base64.b64decode(base64_hash)
+		except Exception:
+			items = client_hash = None
+		
+		if items is not None and client_hash == mac.digest():
+			try:
+				for key, value in items.items():					
+					items[key] = cls.unquote(value)
+			except UnquoteError:
+				items = {}
+			else:
+				items = cls.validate_data (items)
+				
+		else:
+			items = {}
+						
+		return cls (items, secret_key, setfunc, False, *args, **kargs)		
+
+class SecuredListValue (SecuredValue):
+	KEY = "SECURELIST"	
+	
+	def set_default_data (self):
+		self.data = []
+	
+	def serialize(self):
+		if self.secret_key is None:
+			raise RuntimeError('no secret key defined')
+								
+		result = []
+		mac = hmac(self.secret_key, None, self.hash_method)
+		for value in sorted (self.data):
+			result.append (self.quote (value))
+			mac.update(b'|' + result[-1])
+		return (base64.b64encode(mac.digest()).strip() + b"?" + b'&'.join(result)).decode ("utf8")
+	
+	@classmethod
+	def unserialize(cls, string, secret_key, setfunc, *args, **kargs):
+		items = []
+		try:
+			base64_hash, data = string.split(b'?', 1)
+		except:
+			base64_hash, data, items = b"", b"", None
+		
+		mac = hmac(secret_key, None, cls.hash_method)
+		for item in data.split(b'&'):
+			mac.update(b'|' + item)
+			items.append (cls.unquote (item))
+		
+		try:
+			client_hash = base64.b64decode(base64_hash)
+		except Exception:
+			items = client_hash = None
+					
+		items = cls.validate_data (items)		
+		return cls (items, secret_key, setfunc, False, *args, **kargs)
+				
+			
+class Session (SecuredDictValue):
+	default_session_timeout = 1200 # 20 min.
+	max_valid_session = 7200 # 2hours
+	KEY = "SESSION"	
+	
+	def __init__ (self, data, secret_key, setfunc, new = True, session_timeout = 0):
+		SecuredValue.__init__ (self, data, secret_key, setfunc, new)
+		self.session_timeout = session_timeout and session_timeout or self.default_session_timeout
+	
+	def recal_expires (self, expires):						
+		if expires is None:
+			return self.session_timeout
+		if expires == "now":
+			return 0
+		if expires == "never":
+			raise ValueError("session must be specified expires seconds")
+		return min (int (expires), self.max_valid_session)
+		
+	def commit (self, expires = None, path = "/", domain = None):
+		if self.commited or self.rollbacked:
+			return
+		expires = self.recal_expires (expires)
+		self ["_expires"] = time.time () + expires
+		self.setfunc (self.KEY, self.serialize (), expires, path, domain)
+		self.commited = True
+		
+	def set_default_session_timeout (self, timeout):
+		self.default_session_timeout = timeout
+	
+	@classmethod
+	def validate_data (cls, data):
+		if '_expires' in data:
+			if time.time() > data['_expires']: # expired
+				data = {}
+			if cls.max_valid_session + time.time () < data['_expires']: # too long, maybe fraud
+				data = {}
+		else:							
+			data = {} # no expires? maybe fraud
+		return data	
+	
+
+class MessageBox (SecuredListValue):
+	AWEEK = 3600 * 24 * 7
+	KEY = "NOTIS"
+	
+	def send (self, msg, category = "info", valid = 0, **extra):
+		self.data.append ((category, int (time.time ()), valid, msg, extra))
+		
+	def get (self, wanted_category = None):
+		now = int (time.time ())
+		messages = []	
+		not_expired = []
+		
+		for notice in self.data:
+			if wanted_category and wanted_category != notice [0]:
+				continue
+			
+			how_old = now - notice [1]
+			if how_old >= self.AWEEK:
+				# too old news
+				continue
+			if how_old < notice [2]:
+				not_expired.append (notice)					
+			messages.append (notice)
+			
+		self.data = not_expired
+		return messages
+	
+	def recal_expires (self, expires):						
+		if self.data:
+			return "never"
+		return 0
+	
+	

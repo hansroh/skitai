@@ -41,7 +41,7 @@ class AsynConnect (asynchat.async_chat):
 		self.initialize_connection ()				
 		asynchat.async_chat.__init__ (self)
 	
-	def initialize_connection (self):
+	def initialize_connection (self):		
 		self._raised_ENOTCONN = 0 # for win32
 		self._handshaking = False
 		self._handshaked = False		
@@ -332,7 +332,12 @@ class AsynConnect (asynchat.async_chat):
 		if self.socket:
 			# self.socket is still None, when DNS not found
 			asynchat.async_chat.close (self)
-		self.producer_fifo.clear()
+		
+			# re-init asychat
+			self.ac_in_buffer = b''
+			self.incoming = []
+			self.producer_fifo.clear()
+		
 		if self.handler is None:
 			self.end_tran () # automatic end_tran when timeout occured by maintern
 		elif self.errcode:
@@ -346,7 +351,8 @@ class AsynConnect (asynchat.async_chat):
 	def begin_tran (self, handler):
 		self.errcode = 0
 		self.errmsg = ""
-		self.handler = handler
+		
+		self.handler = handler		
 		self.set_event_time ()
 		self.debug_info = (handler.method, handler.uri, handler.http_version)		
 		

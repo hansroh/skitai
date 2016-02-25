@@ -1,8 +1,9 @@
 import threading
 import time
 from . import asynpsycopg2
+from . import synsqlite3
 from skitai.client import socketpool
-from .__init__ import DB_PGSQL
+from skitai import DB_PGSQL, DB_SQLITE3
 
 class DBPool (socketpool.SocketPool):
 	object_timeout = 300
@@ -10,17 +11,20 @@ class DBPool (socketpool.SocketPool):
 	def get_name (self):
 		return "__dbpool__"
 			
-	def create_asyncon (self, server, dbname, user, password, dbtype):
+	def create_asyncon (self, server, params, dbtype):
+		if DB_SQLITE3 in (params [0], dbtype):
+			return synsqlite3.SynConnect (server, params, self.lock, self.logger)
+		
 		if dbtype == DB_PGSQL:
 			try: 
 				host, port = server.split (":", 1)
 			except ValueError:
-				host, port = server, 5432			
-			return asynpsycopg2.AsynConnect ((host, port), dbname, user, password, self.lock, self.logger)
-	
-	def get (self, server, dbname, user, password, dbtype = DB_PGSQL):
-		serverkey = "%s/%s/%s" % (server, dbname, user)
-		return self._get (serverkey, server, dbname, user, password, dbtype)
+				host, port = server, 5432
+			return asynpsycopg2.AsynConnect ((host, port), params, self.lock, self.logger)		
+						
+	def get (self, server, dbname, user, pwd, dbtype = DB_PGSQL):
+		serverkey = "%s/%s/%s/%s" % (server, dbname, user, dbtype)
+		return self._get (serverkey, server, (dbname, user, pwd), dbtype)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@
 <title>WebSocket Test</title>
 <script language="javascript" type="text/javascript">
 
-var wsUri = "ws://{{host}}/websocket/{{path}}";
+var wsUri = "ws://{{was.request.get_header ("host")}}/websocket/{{path}}";
 var output;
 var sents = 0;
 function init()

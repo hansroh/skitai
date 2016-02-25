@@ -3,7 +3,11 @@ from skitai.server.threads import trigger
 import threading
 from skitai.server import rcache
 from skitai.server.rpc import cluster_dist_call
-import psycopg2
+
+
+class OperationTimeout (Exception):
+	pass
+
 
 class	Result (rcache.Result):
 	def __init__ (self, id, status, description = None, expt_class = None, expt_str = None, data = [], ident = None):
@@ -12,6 +16,7 @@ class	Result (rcache.Result):
 		self.__expt_class = expt_class
 		self.__expt_str = expt_str
 		# For Results competitable
+		
 		if status == 3:
 			self.code, self.msg = 200, "OK"
 		else:
@@ -30,7 +35,7 @@ class	Result (rcache.Result):
 			return
 			
 		assert (len (description) == len (data [0]))		
-		cols = [col.name for col in description]
+		cols = [type (col) is tuple and col [0] or col.name for col in description]
 		d = []
 		for row in data:
 			i = 0
@@ -45,9 +50,9 @@ class	Result (rcache.Result):
 	def get_result (self):	
 		return self.data
 	
-	def throw (self):
+	def reraise (self):
 		if self.__expt_class:
-			raise self.__expt_class (self.__expt_str)
+			raise self.__expt_class ("%s (status: %d)" % (self.__expt_str, self.status))
 	
 	def show_error (self):
 		if self.__expt_class:
@@ -89,7 +94,7 @@ class Dispatcher:
 		
 	def get_result (self):
 		if self.result is None:
-			self.result = Result (self.id, 1, None, psycopg2.OperationalError, "Operation Timeout", None, self.ident)
+			self.result = Result (self.id, 1, None, OperationTimeout, "Operation Timeout", None, self.ident)
 			self.do_filter ()
 		return self.result
 	
@@ -187,7 +192,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 			asyncon.execute (sql, rs.handle_result)
 			
 		trigger.wakeup ()
-	
+		
 	def execute (self, sql):
 		self._request (sql)
 		

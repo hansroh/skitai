@@ -3,14 +3,8 @@ import multiprocessing
 from skitai.lib import pathtool, logger
 from .rpc import cluster_manager, cluster_dist_call
 from skitai.protocol.smtp import composer
-
-PSYCOPG2_ENABLED = True
-try: 
-	import psycopg2
-except ImportError: 
-	PSYCOPG2_ENABLED = False
-else:	
-	from .dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
+from .dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
+from skitai import DB_PGSQL, DB_SQLITE3
 	
 from . import server_info
 import json
@@ -66,14 +60,18 @@ class WAS:
 					
 	@classmethod
 	def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0):
-		if PSYCOPG2_ENABLED and clustertype == "postgresql":
-			cluster = dcluster_manager.ClusterManager (clustername, clusterlist, ssl, cls.logger.get ("server"))
+		if clustertype in (DB_PGSQL, DB_SQLITE3):
+			cluster = dcluster_manager.ClusterManager (clustername, clusterlist, clustertype, cls.logger.get ("server"))
 			cls.clusters_for_distcall [clustername] = dcluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"))
 		else:
 			cluster = cluster_manager.ClusterManager (clustername, clusterlist, ssl, cls.logger.get ("server"))
 			cls.clusters_for_distcall [clustername] = cluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"))
 		cls.clusters [clustername] = cluster
-			
+	
+	def __init__ (self):		
+		self._flashed = True
+		self.reset ()
+				
 	def __dir__ (self):
 		return self.objects.keys ()
 	
@@ -97,7 +95,7 @@ class WAS:
 		# was.db, 		was.get, 			was.post,			was.put, ...
 		# was.db.lb, 	was.get.lb,		was.post.lb,	was.put.lb, ...
 		# was.db.map,	was.get.map,	was.post.map,	was.put.map, ...
-		
+
 		uri = None
 		if args:		uri = args [0]
 		elif karg:	uri = karg.get ("uri", "")
@@ -135,11 +133,38 @@ class WAS:
 		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, user, password, dbtype, mapreduce = False, callback = filter)
 	
 	def _dlb (self, clustername, filter = None):
+		clustername = self.__detect_cluster (clustername) [0]
 		return self.clusters_for_distcall [clustername].Server (mapreduce = False, callback = filter)
 	
 	def _dmap (self, clustername, filter = None):
+		clustername = self.__detect_cluster (clustername) [0]
 		return self.clusters_for_distcall [clustername].Server (mapreduce = True, callback = filter)
 	
+	def reset (self):
+		if self._flashed:
+			self._flashed_messages = []
+			self._flashed = False	
+	
+	def get_flashed_messages (self):
+		return self._flashed_messages
+	
+	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
+		if _do_not_use_this_variable_name_: 
+			assert not karg, "Can't Use Dictionary and Keyword Args Both"
+			karg = _do_not_use_this_variable_name_
+		karg ["was"] = self		
+		template = self.app.get_template (template_file)
+		self.app.when_got_template (self, template, karg)
+		
+		rendered = template.render (karg)
+		self.app.when_template_rendered (self, template, karg, rendered)
+		return rendered	
+	
+	def flash (self, msg, mtype = "info", **extra):
+		self._flashed = True
+		self._flashed_messages.append ((mtype, msg, extra))
+		self.app.when_message_flashed (self, msg, extra)
+			
 	def email (self, subject, snd, rcpt):
 		return composer.Composer (subject, snd, rcpt)
 		

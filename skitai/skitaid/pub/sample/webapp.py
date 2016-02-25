@@ -20,7 +20,6 @@ def index (was):
 @app.route ("/documentation")
 def documentation (was):
 	req = was.get ("https://pypi.python.org/pypi/skitai")
-	t = was.app.get_template ("documentation.html")
 	pypi_content = (
 			"<h4>"
 			"<p>It seems some problem at <a href='https://pypi.python.org/pypi/skitai'>PyPi</a>.</p>"
@@ -36,8 +35,8 @@ def documentation (was):
 			e = content.find ('<a name="downloads">', s)
 			if e != -1:						
 				pypi_content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></h4>" + content [s:e]
-		
-	return t.render ({"content": pypi_content})
+	
+	return was.render ("documentation.html", content = pypi_content)
 
 
 @app.route ("/hello")
@@ -90,12 +89,11 @@ def chat (was, roomid):
 
 @app.route ("/websocket")
 def websocket (was, mode = "echo"):
-	t = was.app.get_template ("websocket.html")
 	if mode == "talk":
 		mode += "?name=Hans"
 	elif mode == "chat":	
 		mode += "?roomid=1"
-	return t.render ({"path": mode, "host": was.request.get_header ("host")})
+	return t.render ("websocket.html", path = mode)
 	
 """
 # Flask
