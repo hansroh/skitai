@@ -38,8 +38,7 @@ class Cookie:
 		if secret_key:
 			self.secret_key = secret_key.encode ("utf8")
 		self.session_timeout = session_timeout
-		self.commited = False
-		self.rollbacked = False
+		self.dirty = False		
 		self.data = {}
 		self.uncommits = {}
 		self.session_cookie = None
@@ -88,7 +87,7 @@ class Cookie:
 		except KeyError:
 			pass
 		else:		
-			self.set (k, expires = 0)	
+			self.set (k, expires = 0)
 		
 	def clear (self):
 		for k, v in list(self.data.items ()):			
@@ -113,16 +112,17 @@ class Cookie:
 			self.data [k] = v
 	
 	def rollback (self):
-		self.rollbacked = True
+		self.dirty = False
 		
 	def commit (self):
-		if self.commited or self.rollbacked:
+		if not self.dirty:
 			return			
 		for cs in list(self.uncommits.values ()):
 			self.request.response ["Set-Cookie"] = cs		
-		self.commited = True
+		self.dirty = False
 			
 	def set (self, name, val = "", expires = None, path = "/", domain = None):
+		self.dirty = True
 		# browser string cookie
 		cl = []
 		if expires is not None:

@@ -41,13 +41,13 @@ class SecuredValue:
 		self.secret_key = secret_key
 		self.setfunc = setfunc
 		self.new = new
-		self.commited = False
-		self.rollbacked = False
-	
+		self.dirty = False
+		
 	def __contains__ (self, k):
 		return k in self.data
 		
 	def set_default_data (self):
+		self.dirty = False
 		self.data = None
 	
 	def clear (self):
@@ -57,14 +57,14 @@ class SecuredValue:
 		return expires
 	
 	def rollback (self):
-		self.rollbacked = True
+		self.dirty = False
 			
 	def commit (self, expires = None, path = "/", domain = None):
-		if self.commited or self.rollbacked:
+		if not self.dirty:
 			return
 		expires = self.recal_expires (expires)
 		self.setfunc (self.KEY, self.serialize (), expires, path, domain)
-		self.commited = True
+		self.dirty = False
 	
 	@classmethod		
 	def validate_data (cls, data):
@@ -95,6 +95,7 @@ class SecuredDictValue (SecuredValue):
 	KEY = "SECUREDICT"	
 			
 	def set_default_data (self):
+		self.dirty = True
 		self.data = {}
 			
 	def __setitem__ (self, k, v):
@@ -132,11 +133,14 @@ class SecuredDictValue (SecuredValue):
 			del self.data [k]
 		except KeyError:
 			pass
+		else:
+			self.dirty = True
 			
 	def set (self, k, v):
 		if type (k) is not type (""):
 			raise TypeError("Session key must be string type")
 		self.data [k] = v
+		self.dirty = True
 	
 	def get (self, k, v = None):
 		return self.data.get (k, v)
@@ -197,6 +201,7 @@ class SecuredListValue (SecuredValue):
 	KEY = "SECURELIST"	
 	
 	def set_default_data (self):
+		self.dirty = True
 		self.data = []
 	
 	def serialize(self):
@@ -251,12 +256,14 @@ class Session (SecuredDictValue):
 		return min (int (expires), self.max_valid_session)
 		
 	def commit (self, expires = None, path = "/", domain = None):
-		if self.commited or self.rollbacked:
-			return
+		if not self.dirty:
+			return		
 		expires = self.recal_expires (expires)
 		self ["_expires"] = time.time () + expires
+		if len (self.data) == 1: # only have _expires, expire now
+			expires = 0			
 		self.setfunc (self.KEY, self.serialize (), expires, path, domain)
-		self.commited = True
+		self.dirty = False
 		
 	def set_default_session_timeout (self, timeout):
 		self.default_session_timeout = timeout
@@ -266,38 +273,67 @@ class Session (SecuredDictValue):
 		if '_expires' in data:
 			if time.time() > data['_expires']: # expired
 				data = {}
-			if cls.max_valid_session + time.time () < data['_expires']: # too long, maybe fraud
+			elif cls.max_valid_session + time.time () < data['_expires']: # too long, maybe fraud
 				data = {}
 		else:							
 			data = {} # no expires? maybe fraud
-		return data	
-	
-
+		
+		if not data:
+			self.dirty = True
+			
+		return data
+		
+		
 class MessageBox (SecuredListValue):
 	AWEEK = 3600 * 24 * 7
 	KEY = "NOTIS"
 	
-	def send (self, msg, category = "info", valid = 0, **extra):
-		self.data.append ((category, int (time.time ()), valid, msg, extra))
+	def __init__ (self, data, secret_key, setfunc, new = True):
+		SecuredValue.__init__ (self, data, secret_key, setfunc, new)
+		self.mid = -1
 		
-	def get (self, wanted_category = None):
+	def send (self, msg, category = "info", valid = 0, **extra):
+		if self.data and self.mid == -1:
+			self.mid = max ([n [0] for n in self.data])
+		self.mid += 1
+		self.data.append ((self.mid, category, int (time.time ()), valid, msg, extra))
+		self.dirty = True
+	
+	def remove (self, mid):
+		index = 0
+		found = False
+		for n in self.data:
+			if n [0] == mid:
+				found = True
+				break
+			index += 1		
+		if found:
+			self.data.pop (index)
+		self.dirty = True	
+			
+	def get (self, *wanted_category):
 		now = int (time.time ())
 		messages = []	
 		not_expired = []
 		
 		for notice in self.data:
-			if wanted_category and wanted_category != notice [0]:
+			if wanted_category and notice [0] not in wanted_category:
+				not_expired.append (notice)
 				continue
 			
 			how_old = now - notice [1]
 			if how_old >= self.AWEEK:
-				# too old news
-				continue
+				# too old news				
+				continue	
 			if how_old < notice [2]:
-				not_expired.append (notice)					
-			messages.append (notice)
+				not_expired.append (notice)
 			
-		self.data = not_expired
+			messages.append (notice)			
+		
+		if len (self.data) != len (not_expired):
+			self.data = not_expired
+			self.dirty = True
+			
 		return messages
 	
 	def recal_expires (self, expires):						

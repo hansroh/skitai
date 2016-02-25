@@ -182,15 +182,14 @@ class Saddle (package.Package):
 		else:	
 			result = wsgi_executor.Executor (env, self.get_method) ()		
 		
-		was.cookie = None
 		was.session = None
 		was.mbox = None
+		was.cookie = None
 		was.response = None
 		was.env = None
 		was.app = None
 		was.ab = None
-		was.g = None
-		was.reset ()
+		was.g = None		
 		
 		return result
 		

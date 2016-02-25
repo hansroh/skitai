@@ -5,8 +5,9 @@ from .rpc import cluster_manager, cluster_dist_call
 from skitai.protocol.smtp import composer
 from .dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
 from skitai import DB_PGSQL, DB_SQLITE3
-	
-from . import server_info
+from . import server_info, http_date
+import time
+
 import json
 try:
 	import xmlrpc.client as xmlrpclib
@@ -67,10 +68,6 @@ class WAS:
 			cluster = cluster_manager.ClusterManager (clustername, clusterlist, ssl, cls.logger.get ("server"))
 			cls.clusters_for_distcall [clustername] = cluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"))
 		cls.clusters [clustername] = cluster
-	
-	def __init__ (self):		
-		self._flashed = True
-		self.reset ()
 				
 	def __dir__ (self):
 		return self.objects.keys ()
@@ -140,14 +137,6 @@ class WAS:
 		clustername = self.__detect_cluster (clustername) [0]
 		return self.clusters_for_distcall [clustername].Server (mapreduce = True, callback = filter)
 	
-	def reset (self):
-		if self._flashed:
-			self._flashed_messages = []
-			self._flashed = False	
-	
-	def get_flashed_messages (self):
-		return self._flashed_messages
-	
 	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		if _do_not_use_this_variable_name_: 
 			assert not karg, "Can't Use Dictionary and Keyword Args Both"
@@ -160,10 +149,18 @@ class WAS:
 		self.app.when_template_rendered (self, template, karg, rendered)
 		return rendered	
 	
-	def flash (self, msg, mtype = "info", **extra):
-		self._flashed = True
-		self._flashed_messages.append ((mtype, msg, extra))
-		self.app.when_message_flashed (self, msg, extra)
+	def redirect (self, url, status = "302 Object Moved"):
+		self.response ["Location"] = url
+		self.response ["Cache-Control"] = "max-age=0"
+		self.response ["Expires"] = http_date.build_http_date (time.time ())
+		self.response.start_response (status)
+		content =  (
+			"<head><title>Document Moved</title></head>"
+			"<body><h1>Object Moved</h1>"
+			"This document may be found " 
+			'<a HREF="%s">here</a></body>' % url
+		)
+		return content
 			
 	def email (self, subject, snd, rcpt):
 		return composer.Composer (subject, snd, rcpt)

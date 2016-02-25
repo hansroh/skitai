@@ -5,6 +5,17 @@ Copyright (c) 2015 by Hans Roh
 
 License: BSD
 
+
+Changes
+----------
+
+- was.temp and was.temp.bind() has been removed
+- was.mbox added
+- was.g added
+- was.redirect added
+- was.render (template name, dictioanry or key-value args) added
+- SQLite3 DB connection added
+  
   
 Introduce
 ----------
@@ -787,13 +798,18 @@ The object has 'close ()' method, will be called when all data consumed, or sock
   @app.route ("/hello")
   def hello_world (was, num = 8):	
     return num
-  # http://127.0.0.1:5000/hello?num=100
-	
+  # http://127.0.0.1:5000/hello?num=100	
 	
   @app.route ("/hello/<int:num>")
   def hello_world (was, num = 8):
     return str (num)
     # http://127.0.0.1:5000/hello/100
+
+Also you can access as dictionary object 'was.request.args'.
+
+.. code:: python
+
+  num = was.request.args.get ("num", 0)
 
 
 Available fancy URL param types:
@@ -857,7 +873,6 @@ file object has these attributes:
     + o - overwrite
 
 
-
 **Access Environment Variables**
 
 .. code:: python
@@ -870,29 +885,86 @@ file object has these attributes:
 
 .. code:: python
 
-  if was.app.debug:
-    return was.render ("index-debug.html", var1 = "var1") # getting Jinja template
-  else:  
-    return was.render ("index.html", var1 = "var1") # getting Jinja template
-
-At template, you can use all was object like was.g, was.request, was.cookie, was.session, was.ab, was.app ...
-
-.. code:: html
-
-  <a href="{{ was.ab ("hello", "Hans Roh") }}">Greeting</a>
-    
-  Messages To: {{ was.g.userid }}, 
-  <ul>
-  	{% for mtype, msg in was.get_flashed_messages () %}
-  		<li> {{ mtype }}: {{ msg }}</li>
-  	{% endfor %}
-  </ul>
-
+  return was.render ("index.html", choice = 2, product = "Apples")
+  
+  is same with:
+  
+  return was.render ("index.html", {"choice": 2, "product": "Apples"})
+  
+  BUT CAN'T:
+  
+  return was.render ("index.html", {"choice": 2}, product = "Apples")
+  
 
 Directory structure sould be:
 
 - app.py
 - templates/index.html
+
+
+At template, you can use 'was' object anywhere.
+
+.. code:: html
+  
+  {{ was.cookie.username }} choices item {{ choice }}.
+  
+  <a href="{{ was.ab ("checkout", choice) }}">Proceed</a>
+
+
+**Messaging Box API**
+
+Like Flask's flash feature, Skitai also provide messaging API.
+
+.. code:: python  
+
+  @app.route ("/msg")
+  def msg (was):
+    was.mbox.send ("This is Flash Message", "flash")
+    was.mbox.send ("This is Alert Message Kept by 60 seconds on every request", "alram", valid = 60)
+    return was.redirect (was.ab ("showmsg", "Hans Roh"), status = "302 Object Moved")
+  
+  @app.route ("/msg")
+  def showflash (was, name):
+    return was.render ("msg.htm", name=name)
+    
+A part of msg.htm is like this:
+
+.. code:: html
+
+  Messages To {{ name }},
+  <ul>
+  	{% for category, created, valid, msg, extra in was.mbox.get () %}
+  		<li> {{ mtype }}: {{ msg }}</li>
+  	{% endfor %}
+  </ul>
+
+Default value of valid argument is 0, which means if page called was.mbox.get() is finished successfully, it is automatically deleted from mbox.
+
+but like flash message, if messages are delayed by next request, these messages are save into secured cookie value, so delayed/long term valid messages size is limited by cookie specificatio. Then shorter and fewer messsages would be better as possible.
+
+was.mbox can be used for general page creation like handling notice, alram or error messages consistently. In this case, these messages (valid=0) is consumed by current request, there's no particular size limitation.
+
+.. code:: python  
+  
+  @app.before_request
+  def before_request (was):
+    if has_new_item ():
+      was.mbox.send ("New Item Arrived", "notice")
+  
+  @app.route ("/main")  
+  def main (was):
+    return was.render ("news.htm")
+
+.. code:: html
+
+  News for {{ was.g.username }},
+  <ul>
+  	{% for mid, category, created, valid, msg, extra in was.mbox.get ("notice", "news") %}
+  		<li class="{{category}}"> {{ msg }}</li>
+  	{% endfor %}
+  </ul>
+
+
 
 
 **Access Cookie**
@@ -957,7 +1029,7 @@ To enable session for app, random string formatted securekey should be set for e
   was.ab ("hello", "Your Name") # returned '/hello/Your_Name'
 
 
-**Chained Execution**
+**Registering funtions and was.g**
 
 .. code:: python
 
@@ -984,12 +1056,12 @@ To enable session for app, random string formatted securekey should be set for e
     ...
   
   @app.got_template
-  def got_template (was, template, dict):
+  def got_template (was, template, args_dict):
     # template is the returned object of app.jinja_env.get_template (template_filename)
     ...
   
   @app.template_rendered
-  def template_rendered (was, template, dict, rendered):
+  def template_rendered (was, template, args_dict, rendered):
     ...
   
   @app.message_flashed
@@ -1289,7 +1361,14 @@ Optional Requirements
 Change Log
 -------------
   
-  0.13 - was.mbox added | was.render (template_file, dictioanry or key-value args) added | was.temp and was.temp.bind() has been removed and replaced with was.g | SQLite3 DB connection added
+  0.13
+  
+  - was.temp and was.temp.bind() has been removed
+  - was.mbox added
+  - was.g added
+  - was.redirect added
+  - was.render (template name, dictioanry or key-value args) added
+  - SQLite3 DB connection added
   
   0.12 - Re-engineering 'was' networking, PostgreSQL & proxy modules
   
