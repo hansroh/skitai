@@ -88,9 +88,6 @@ class Package:
 	def template_rendered (self, f):
 		self._binds_when [1] = f
 	
-	def message_flashed (self, f):
-		self._binds_when [2] = f
-	
 	#----------------------------------------------
 	# Event Binding
 	#----------------------------------------------

@@ -391,8 +391,6 @@ Skitai also provides asynchonous PostgreSQL query services for efficient develop
 
 But according to `Psycopg2 advanced topics`_, there are several limitations in using asynchronous connections:
 
-::
-
   The connection is always in autocommit mode and it is not possible to change it. So a transaction is not implicitly started at the first query and is not possible to use methods commit() and rollback(): you can manually control transactions using execute() to send database commands such as BEGIN, COMMIT and ROLLBACK. Similarly set_session() can¡?t be used but it is still possible to invoke the SET command with the proper default_transaction.. parameter.
 
   With asynchronous connections it is also not possible to use set_client_encoding(), executemany(), large objects, named cursors.
@@ -404,7 +402,7 @@ If you need blocking jobs, you can use original Psycopg2 module or other Postgre
 
 Anyway, usage is basically same concept with above HTTP Requests.
 
-*Simple Query*
+**Simple Query**
 
 .. code:: python
 
@@ -413,7 +411,7 @@ Anyway, usage is basically same concept with above HTTP Requests.
     result = s.getwait (2)
   
 
-*Load-Balancing*
+**Load-Balancing**
 
 This sample is to show querying sharded database.
 Add mydb members to config file.
@@ -435,7 +433,7 @@ Add mydb members to config file.
       result = s.getwait (2)
    
 	
-*Map-Reducing*
+**Map-Reducing**
 
 .. code:: python
 
@@ -910,7 +908,7 @@ At template, you can use 'was' object anywhere.
   
   {{ was.cookie.username }} choices item {{ choice }}.
   
-  <a href="{{ was.ab ("checkout", choice) }}">Proceed</a>
+  <a href="{{ was.ab ('checkout', choice) }}">Proceed</a>
 
 
 **Messaging Box API**
@@ -925,8 +923,8 @@ Like Flask's flash feature, Skitai also provide messaging API.
     was.mbox.send ("This is Alert Message Kept by 60 seconds on every request", "alram", valid = 60)
     return was.redirect (was.ab ("showmsg", "Hans Roh"), status = "302 Object Moved")
   
-  @app.route ("/msg")
-  def showflash (was, name):
+  @app.route ("/showmsg")
+  def showmsg (was, name):
     return was.render ("msg.htm", name=name)
     
 A part of msg.htm is like this:
@@ -957,6 +955,8 @@ was.mbox can be used for general page creation like handling notice, alram or er
   def main (was):
     return was.render ("news.htm")
 
+news.htm like this:
+
 .. code:: html
 
   News for {{ was.g.username }},
@@ -967,13 +967,16 @@ was.mbox can be used for general page creation like handling notice, alram or er
   </ul>
 
 
+- was.mbox.send (msg, category, valid_seconds, key=val, ...)
+- was.mbox.get (filtered_category, ...) return [(message_id, category, created_time, valid_seconds, msg, extra_dict)]  
+- was.mbox.remove (message_id)
 
 
 **Access Cookie**
 
 .. code:: python
 
-  if was.cookie.get ("user_id") is None:
+  if "user_id" not in was.cookie:
   	was.cookie.set ("user_id", "hansroh")
   	
 - was.cookie.set (key, val)
@@ -983,7 +986,10 @@ was.mbox can be used for general page creation like handling notice, alram or er
 - was.cookie.kyes ()
 - was.cookie.values ()
 - was.cookie.items ()
-
+- was.cookie.has_key ()
+- was.cookie.iterkyes ()
+- was.cookie.itervalues ()
+- was.cookie.iteritems ()
 
 **Access Session**
 
@@ -998,7 +1004,7 @@ To enable session for app, random string formatted securekey should be set for e
   
   @app.route ("/session")
   def hello_world (was, **form):  
-    if was.session.get ("login") is None:
+    if "login" not in was.session:
       was.session.set ("user_id", form.get ("hansroh"))
   
 - was.session.set (key, val)
@@ -1008,9 +1014,14 @@ To enable session for app, random string formatted securekey should be set for e
 - was.session.kyes ()
 - was.session.values ()
 - was.session.items ()
-
+- was.session.has_key ()
+- was.session.iterkyes ()
+- was.session.itervalues ()
+- was.session.iteritems ()
 
 **Building URL**
+
+If your app is mounted at "/math",
 
 .. code:: python
 
@@ -1018,17 +1029,23 @@ To enable session for app, random string formatted securekey should be set for e
   def add (was, num1, num2):  
     return int (num1) + int (num2)
     
-  was.app.build_url ("add", 10, 40) # returned '/add?num1=10&num2=40'
+  was.app.build_url ("add", 10, 40) # returned '/math/add?num1=10&num2=40'
   # BUT it's too long to use practically,
   # was.ab is acronym for was.app.build_url
-  was.ab ("add", 10, 40) # returned '/add?num1=10&num2=40'
-  was.ab ("add", 10, num2=60) # returned '/add?num1=10&num2=60'
+  was.ab ("add", 10, 40) # returned '/math/add?num1=10&num2=40'
+  was.ab ("add", 10, num2=60) # returned '/math/add?num1=10&num2=60'
   
   @app.route ("/hello/<name>")
   def hello (was, name = "Hans Roh"):
     return "Hello, %s" % name
 	
-  was.ab ("hello", "Your Name") # returned '/hello/Your_Name'
+  was.ab ("hello", "Your Name") # returned '/math/hello/Your_Name'
+
+For building static url, url should be started with "/"
+
+.. code:: python
+
+  was.ab ("/css/home.css") # returned '/math/css/home.css'
 
 
 **Registering funtions and was.g**
@@ -1066,9 +1083,6 @@ To enable session for app, random string formatted securekey should be set for e
   def template_rendered (was, template, args_dict, rendered):
     ...
   
-  @app.message_flashed
-  def message_flashed (was, msg, category, **extra):
-    ...
 
   @app.route ("/view-account")
   def view_account (was, userid):
