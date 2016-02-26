@@ -748,7 +748,6 @@ c:\skitaid\bin\skitai-instance.py -v -f sample
   
 **Access Request**
 
-.. code:: python
 
 Reqeust object provides these methods and attributes:
 
@@ -978,7 +977,7 @@ A part of msg.htm is like this:
 
   Messages To {{ name }},
   <ul>
-  	{% for category, created, valid, msg, extra in was.mbox.get () %}
+  	{% for message_id, category, created, valid, msg, extra in was.mbox.get () %}
   		<li> {{ mtype }}: {{ msg }}</li>
   	{% endfor %}
   </ul>
@@ -1114,7 +1113,7 @@ file object has these attributes:
       return "Not Authorized"
   
   @app.finish_request
-  def after_request (was):
+  def finish_request (was):
     was.g.user_id    
     was.g.user_status
     ...
@@ -1162,7 +1161,7 @@ If view_account is called, Saddle execute these sequence:
     except:
       failed_request (was)
     else:
-      after_request (was)
+      finish_request (was)
   finally:
     teardown_request (was)
     
@@ -1432,8 +1431,9 @@ Optional Requirements
 Change Log
 -------------
   
-  0.13
+  0.14
   
+  - was.response spec. changed
   - was.temp and was.temp.bind() has been removed
   - was.mbox added
   - was.g added
