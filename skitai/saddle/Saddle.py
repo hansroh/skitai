@@ -26,7 +26,10 @@ multipart_collector.MultipartCollector.file_max_size = 20 * 1024 * 1024
 multipart_collector.MultipartCollector.cache_max_size = 5 * 1024 * 1024
 secured_cookie_value.Session.default_session_timeout = 1200
 
+class Config:
+	pass
 	
+		
 class Saddle (package.Package):
 	use_reloader = False
 	debug = False
@@ -50,6 +53,7 @@ class Saddle (package.Package):
 		self.cache_sorted = 0
 		self.cached_paths = {}
 		self.cached_rules = []
+		self.config = Config ()
 		
 	def __setattr__ (self, name, attr):
 		if name == "upload_file_max_size":
@@ -175,6 +179,7 @@ class Saddle (package.Package):
 		was = env ["skitai.was"]		
 		was.app = self
 		was.ab = self.build_url
+		was.response = was.request.response
 		
 		content_type = env.get ("CONTENT_TYPE", "")				
 		if content_type.startswith ("text/xml") or content_type.startswith ("application/xml+rpc"):
@@ -182,14 +187,10 @@ class Saddle (package.Package):
 		else:	
 			result = wsgi_executor.Executor (env, self.get_method) ()		
 		
-		was.session = None
-		was.mbox = None
-		was.cookie = None
-		was.response = None
-		was.env = None
-		was.app = None
-		was.ab = None
-		was.g = None		
-		
+		del was.response
+		del was.ab
+		del was.app
+		was.cleanup_jitos () # del session, mbox, cookie, g
+			
 		return result
 		

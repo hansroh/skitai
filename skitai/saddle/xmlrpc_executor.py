@@ -40,5 +40,7 @@ class Executor (wsgi_executor.Executor):
 		
 		self.commit ()
 		self.was.response ["Content-Type"] = "text/xml"
+		
+		del self.was.env		
 		return xmlrpclib.dumps (results, methodresponse = True, allow_none = True, encoding = "utf8").encode ("utf8")
 		

@@ -317,7 +317,7 @@ class Job:
 				except: self.logger.trace ("app")
 		
 		was = env.get ("skitai.was")
-		if was is not None:
+		if was is not None and was.in__dict__ ("request"):
 			was.request.response = None
-			was.request = None
+			del was.request
 			

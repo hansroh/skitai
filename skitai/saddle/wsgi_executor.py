@@ -125,23 +125,32 @@ class Executor:
 			
 		_was = self.env["skitai.was"]
 		_was.env = self.env
-		_was.response = _was.request.response
-		_was.cookie = cookie.Cookie (_was.request, _was.app.securekey, _was.app.session_timeout)
-		_was.session = _was.cookie.get_session ()
-		_was.mbox = _was.cookie.get_notices ()
-		_was.g = G ()
+				
+		# these objects will be create just in time from _was.
+		#_was.cookie = cookie.Cookie (_was.request, _was.app.securekey, _was.app.session_timeout)
+		#_was.session = _was.cookie.get_session ()
+		#_was.mbox = _was.cookie.get_notices ()
+		#_was.g = G ()
 		self.was = _was
 	
 	def commit (self):
 		# keep commit order, session -> mbox -> cookie
-		self.was.session and self.was.session.commit ()
-		self.was.mbox and self.was.mbox.commit ()
+		if not self.was.in__dict__ ("cookie"):		
+			return			
+		if self.was.in__dict__ ("session"):		
+			self.was.session and self.was.session.commit ()
+		if self.was.in__dict__ ("mbox"):		
+			self.was.mbox and self.was.mbox.commit ()
 		self.was.cookie.commit ()
 	
 	def rollback (self):
+		if not self.was.in__dict__ ("cookie"):		
+			return			
 		# keep commit order, session -> mbox -> cookie
-		self.was.session and self.was.session.rollback ()
-		self.was.mbox and self.was.mbox.rollback ()
+		if self.was.in__dict__ ("session"):		
+			self.was.session and self.was.session.rollback ()
+		if self.was.in__dict__ ("mbox"):		
+			self.was.mbox and self.was.mbox.rollback ()
 		self.was.cookie.rollback ()
 				
 	def __call__ (self):	
@@ -165,6 +174,9 @@ class Executor:
 			self.rollback ()
 			raise
 		else:
-			self.commit ()			
+			self.commit ()
+		
+		# clean was
+		del self.was.env
 		return content
 		

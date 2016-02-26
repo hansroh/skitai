@@ -18,7 +18,6 @@ Changes
 - was.render (template name, dictioanry or key-value args) added
 - SQLite3 DB connection added
   
-  
 Introduce
 ----------
 
@@ -125,51 +124,186 @@ Also app should can handle mount point.
 In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Skitai-Saddle can handle obiously. But I don't know other WSGI middle wares will work properly.
 
 
-Virtual Hosting
--------------------
+Concept of Skitai 'was' Services
+---------------------------------
+
+'was' means (Skitai) *WSGI Application Service*. 
+
+WSGI middleware like Flask, need to import 'was':
 
 .. code:: python
 
-  [routes:line]
+  from skitai import was
   
-  : default  
-  / = /home/user/www
+  @app.route ("/")
+  def hello ():
+    was.get ("http://...")
+    ...    
+
+But Saddle WSGI middleware integrated with Skitai, use just like Python 'self'.
+
+It will be easy to understand think like that:
+
+- Skitai is Python class instance
+- 'was' is 'self' which first argument of instance method
+- Your app functions are methods of Skitai instance
+
+.. code:: python
   
-  ; exactly matching host
-  : www.mydomain.com mydomain.com  
-  / = home/user/mydomain.www
+  @app.route ("/")
+  def hello (was, name = "Hans Roh"):
+    was.get ("http://...")
+    ...
+
+Simply just remember, if you use WSGI middleware like Flask, Bottle, ... - NOT Saddle - and want to use Skitai asynchronous services, you should import 'was'. Usage is exactly same. But for my convinient, I wrote example codes Saddle version mostly.
+
+OK, let's move on.
+
+Skitai is not just WSGI Web Server but *Micro WSGI Application Server* provides some powerful asynchronous networking (HTTP, SMTP, DNS) and database (PostgreSQL, SQLite3) connecting services.
+
+The reason why Skitai provides these services on server level, asynchronous request handling have significant benefits compared with synchrinous one.
+
+Let's see synchronous code first.
+
+.. code:: python
+
+  import xmlrpclib
   
-  ; matched *.mydomain.com
-  : .mydomain.com
-  / = home/user/mydomain.any 
+  @app.route ("/req")
+  def req (was):
+    [Job A]
+    
+    [CREATE REQUEST]
+    s = xmlrpclib.Server ("https://pypi.python.org/pypi", timeout = 2)
+    result = s.package_releases('roundup')	  
+    [BLOCKED WAIT MAX 2 seconds from CREATE REQUEST]
+	    
+    for a, b in result:
+      [Job B with result]
+	  
+    [Job C]
+	  
+    content = [Content Generating]
+	  
+    return content
 
-`New in version 0.10.5`
+[Job C] is delayed by [BLOCKED WAIT] by maxium 2 sec.
+
+But asynchronous version is:
+
+.. code:: python
+
+  @app.route ("/req")
+  def req (was):
+    [CREATE REQUEST]
+    s = was.rpc ("https://pypi.python.org/pypi")
+    s.package_releases('roundup')
+	  
+    [Job A]
+    [Job C]
+    
+    result = s.getwait (2)
+    [BLOCKED WAIT MAX 2 seconds from CREATE REQUEST]
+    for a, b in result:
+      [Job B with result]
+	  	
+    content = [Content Generating]
+	  
+    return content
+
+There's also [BLOCKED WAIT], but actually RPC request is processed backgound with [Job A & C]. It's same waiting max 2 sec for request, but [Job A & C] is already done in asynchronous version.
+
+If it is possible to put usage of result more backward, asynchoronous benefit will be maximized.
+
+.. code:: python
+
+  @app.route ("/req")
+  def req (was):      
+    s = was.rpc ("https://pypi.python.org/pypi")
+    s.package_releases('roundup')
+	  
+    [Job A]
+    [Job C]
+    
+    content = [
+      Content Generating within Template Engine
+      [Generating Job A]
+      {% result = s.getwait (2) %}
+      {% for a, b in result %}
+        [Job B with result]
+      {% endfor %}
+      [Generating Job B]
+    ]
+    return content
+
+In 2 seconds (which should possibly wait at the worst situation in synchronous version), [Job A & C] and [Generating Job A] is processed parallelly in asynchronous environment.
+
+There's same problem with database related jobs, so Skitai also provides asynchronous PostgreSQL connection. 
+
+But it's not done, more benefitial situation is this one.
+
+First, blocking version,
+
+.. code:: python
+
+  import xmlrpclib
+  import odbc
+  import urllib
+  
+  @app.route ("/req")
+  def req (was):
+    s = xmlrpclib.Server ("https://pypi.python.org/pypi", timeout = 2)
+    result1 = s.package_releases('roundup')
+    
+    result2 = urllib.urlopen ("https://pypi.python.org/", timeout = 2)
+    
+    dbc = odbc.odbc ("127.0.0.1", timeout = 2)
+    c = dbc.cursor ()
+    c.execute ("select ...")
+    result3 = c.fetchall ()	    
+    
+    content = [Content Generating]
+	  
+    return content
+
+Actually, all connection doesn't have timeout arg, Anyway above 3 requests will be possibly delayed max '6' seconds.
+
+Now async version is,
+
+.. code:: python
+
+  @app.route ("/req")
+  def req (was):
+    s1 = was.rpc ("https://pypi.python.org/pypi")
+    s1.package_releases('roundup')
+    
+    s2 = was.get ("https://pypi.python.org/")
+    
+    s3 = was.db ("127.0.0.1")
+    s3.execute ("select ...")
+    
+    result1 = s1.getwait (2)
+    result2 = s2.getwait (2)
+    result3 = s3.getwait (2)
+    	
+    content = [Content Generating]
+	  
+    return content
+
+Above async version will be possibly delayed max '2' seconds, because waiting-start point is the time request was created and 3 requests was created almost same time and processed parallelly in background.
+
+Even better, Skitai manages connection pool for all connections, doesn't do connect operation except first request.
+
+Of cause, if use callback mechanism traditionally used for async call like AJAX, it would be more faster, but it's not easy to maintain codes, possibliy will be maiden to 'callback-heaven'. Skitai 'was' service is a compromise between Async and Sync (Blocking and Non-Blocking).
+
+So next two chapters are 'HTTP/XMLRPC Request' and 'Connecting to DBMS'.
+
+Bottom line, the best coding strategy with Skitai is, *"Async Request Early, Use Result Lately"*.
 
 
-*Note:* For virtual hosting using multiple Skitai instances with Nginx/Squid, see `Virtual Hosting with Nginx / Squid` at end of this document.
 
-
-Note For Python 3 Users
--------------------------
-
-**Posix**
-
-SAE will be executed with /usr/bin/python (mostly symbolic link for /usr/bin/python2).
-
-For using Python 3.x, change skitaid scripts' - /usr/local/bin/sktaid*.py - first line from `#!/usr/bin/python` to `#!/usr/bin/python3`. Once you change, it will be kept, even upgrade or re-install skitai.
-
-In this case, you should re-install skitai and requirements using 'pip3 install ...'.
-
-
-**Win32**
-
-Change python key value to like `c:\python34\python.exe` in c:\skitaid\etc\skitaid.conf.
-
-
-Asynchronous Outside Resource Request With Skitai WAS
--------------------------------------------------------
-
-'WAS' means (Skitai) *WSGI Application Service*.
+HTTP/XMLRPC Request
+--------------------
 
 **Simple HTTP Request**
 
@@ -212,7 +346,7 @@ Both can access to http://127.0.0.1:5000/get?url=https%3A//pypi.python.org/pypi 
 
 If you are familar to Flask then use it, otherwise choose any WSGI middle ware you like include Skitai-Saddle.
 
-Also note that if you want to use WAS services in your WSGI middle wares except Skitai-Saddle, you should import was.
+Again note that if you want to use WAS services in your WSGI middle wares (not Skitai-Saddle), you should import was.
 
 .. code:: python
 
@@ -225,18 +359,18 @@ And result.status value must be checked:
 - 2: Exception Occured
 - 3: Normal
 
-if status is not 3, you should handle error by calling result.reraise (), ignoring or returning alternative content etc. For my convient, it will be skipped in example codes below.
+if status is not 3, you should handle error by calling result.reraise (), ignoring or returning alternative content etc. For my convinient, it will be skipped in example codes from now.
 
 
-Here're post, file upload method examples:
+Here're post and file upload method examples:
 
 .. code:: python
 
-  s1 = was.post (url, {"user": "Hans Roh", "comment": "Hello"})
+  s1 = was.post (url, {"user": "Hans Roh", "comment": "Hello"})  
   s2 = was.upload (url, {"user": "Hans Roh", "file": open (r"logo.png", "rb")})
   
-  result = s1.getwait (5)
-  result = s2.getwait (5)
+  result = s1.getwait (2)
+  result = s2.getwait (2)
 
 
 Here's XMLRPC request for example:
@@ -245,7 +379,7 @@ Here's XMLRPC request for example:
 
   s = was.rpc (url)
   s.get_prime_number_gt (10000)
-  result = s.getwait (5)
+  result = s.getwait (2)
 
 
 Avaliable methods are:
@@ -348,43 +482,8 @@ Avaliable methods are:
 - was.delete.map ()
 
 
-**Sending e-Mails**
-
-.. code:: python
-
-    # email delivery service
-    e = was.email (subject, snd, rcpt)
-    e.set_smtp ("127.0.0.1:465", "username", "password", ssl = True)
-    e.add_text ("Hello World<div><img src='cid:ID_A'></div>", "text/html")
-    e.add_attachment (r"001.png", cid="ID_A")
-    e.send ()
-
-With asynchronous email delivery service, can add default SMTP Server config to skitaid.conf (/etc/skitaid/skitaid.conf or c:\skitaid\etc\skitaid.conf).
-If it is configured, you can skip e.set_smtp(). But be careful for keeping your smtp password.
-
-.. code:: python
-
-    [smtpda]
-    smtpserver = 127.0.0.1:25
-    user = 
-    password = 
-    ssl = no
-    max_retry = 10
-    undelivers_keep_max_days = 30
-
-
-**Other Utility Service**
-
-- was.status ()
-- was.tojson ()
-- was.fromjson ()
-- was.toxml () # XMLRPC
-- was.fromxml () # XMLRPC
-
-
-
 Connecting to DBMS
---------------------------------------
+---------------------
 
 Of cause, you can use any database modules for connecting to your DBMS.
 
@@ -713,6 +812,49 @@ You can access all examples by skitai sample app after installing skitai.
 Then goto http://localhost:5000/websocket in your browser.
     
 
+Other Utility Service of 'was'
+-----------------------------------
+
+This chapter's 'was' services are also avaliable for all WSGI middelwares.
+
+**Sending e-Mails**
+
+e-Mail sending service is executed seperated system process not threading. Every e-mail is temporary save to file system, e-Mail delivery process check new mail and will send. So there's possibly some delay time.
+
+.. code:: python
+
+    # email delivery service
+    e = was.email (subject, snd, rcpt)
+    e.set_smtp ("127.0.0.1:465", "username", "password", ssl = True)
+    e.add_text ("Hello World<div><img src='cid:ID_A'></div>", "text/html")
+    e.add_attachment (r"001.png", cid="ID_A")
+    e.send ()
+
+With asynchronous email delivery service, can add default SMTP Server config to skitaid.conf (/etc/skitaid/skitaid.conf or c:\skitaid\etc\skitaid.conf).
+If it is configured, you can skip e.set_smtp(). But be careful for keeping your smtp password.
+
+.. code:: python
+
+    [smtpda]
+    smtpserver = 127.0.0.1:25
+    user = 
+    password = 
+    ssl = no
+    max_retry = 10
+    undelivers_keep_max_days = 30
+
+**Utilities**
+
+- was.status () # HTML formatted status information like phpinfo() in PHP.
+- was.tojson (object)
+- was.fromjson (string)
+- was.toxml (object) # XMLRPC
+- was.fromxml (string) # XMLRPC
+- was.restart () # Restart Skitai App Engine Server
+- was.shutdown () # Shutdown Skitai App Engine Server
+
+In next chapter's features of 'was' are only available for *Skitai-Saddle WSGI middleware*. So if you have no plan to use Saddle, just skip.
+
 
 Request Handling with Saddle
 ----------------------------
@@ -728,6 +870,8 @@ And note below objects and methods ARE NOT WORKING in any other WSGI middlewares
 
 .. code:: python
 
+  from skitai.saddle import Saddle
+  
   app = Saddle (__name__)
   app.debug = True # output exception information
   app.use_reloader = True # auto realod on file changed
@@ -748,7 +892,6 @@ c:\skitaid\bin\skitai-instance.py -v -f sample
   
 **Access Request**
 
-.. code:: python
 
 Reqeust object provides these methods and attributes:
 
@@ -768,13 +911,13 @@ Reqeust object provides these methods and attributes:
 - was.request.get_sub_type ()
 
 
-**Handle Response**
+**Response**
 
 Basically, just return contents.
 
 .. code:: python
 	
-	@app.route ("/hello")
+  @app.route ("/hello")
   def hello_world (was):	
     return was.render ("hello.htm")
 
@@ -796,6 +939,8 @@ If you need set additional headers or HTTP status,
 Above 3 examples will make exacltly same result.
 
 Sending specific HTTP status code,
+
+.. code:: python
   
   def hello (was):	
     return was.response ("404 Not Found", was.render ("err404.htm"))
@@ -835,13 +980,13 @@ All available return types are:
 The object has 'close ()' method, will be called when all data consumed, or socket is disconnected with client by any reasons.
 
 - was.response (status = "200 OK", body = None, headers = None)
-- was.set_status (status) # "200 OK", "404 Not Found"
-- was.get_status ()
-- was.set_headers (headers) # [(key, value), ...]
-- was.get_headers ()
-- was.set_header (k, v)
-- was.get_header (k)
-- was.del_header (k)
+- was.response.set_status (status) # "200 OK", "404 Not Found"
+- was.response.get_status ()
+- was.response.set_headers (headers) # [(key, value), ...]
+- was.response.get_headers ()
+- was.response.set_header (k, v)
+- was.response.get_header (k)
+- was.response.del_header (k)
 
 
 **Getting URL Parameters**
@@ -920,40 +1065,72 @@ For building static url, url should be started with "/"
 
 **Access Environment Variables**
 
+was.env is just Python dictionary object.
+
 .. code:: python
 
-  was.env.keys ()
+  if "HTTP_USER_AGENT" in was.env:
+    ...
   was.env.get ("CONTENT_TYPE")
 
 
-**Access App & Jinja2 Templates**
+**Access App**
+
+You can access all Saddle object from was.app.
+
+- was.app.debug
+- was.app.use_reloader
+- was.app.config # use for custom configuration like was.app.config.my_setting = 1
+- was.app.jinja_env
+- was.app.packagename
+- was.app.buld_url () is equal to was.ab ()
+
+
+**Jinja2 Templates**
+
+was.render() use Jinja2_ templating engine. For providing arguments to Jinja2, use dictionary or keyword arguments.
 
 .. code:: python
-
+  
   return was.render ("index.html", choice = 2, product = "Apples")
   
-  is same with:
+  #is same with:
   
   return was.render ("index.html", {"choice": 2, "product": "Apples"})
   
-  BUT CAN'T:
+  #BUT CAN'T:
   
   return was.render ("index.html", {"choice": 2}, product = "Apples")
-  
+
 
 Directory structure sould be:
 
-- app.py
-- templates/index.html
+- /project_home/app.py
+- /project_home/templates/index.html
 
 
-At template, you can use 'was' object anywhere.
+At template, you can use all 'was' objects anywhere defautly. Especially, Url/Form parameters also can be accessed via 'was.request.args'.
 
 .. code:: html
   
-  {{ was.cookie.username }} choices item {{ choice }}.
+  {{ was.cookie.username }} choices item {{ was.request.args.get ("choice", "N/A") }}.
   
   <a href="{{ was.ab ('checkout', choice) }}">Proceed</a>
+
+
+If you want modify Jinja2 envrionment, can through was.app.jinja_env object.
+
+.. code:: python
+  
+  def generate_form_token ():
+    ...
+    
+  was.app.jinja_env.globals['form_token'] = generate_form_token
+
+
+
+.. _Jinja2: http://jinja.pocoo.org/
+
 
 
 **Messaging Box API**
@@ -978,7 +1155,7 @@ A part of msg.htm is like this:
 
   Messages To {{ name }},
   <ul>
-  	{% for category, created, valid, msg, extra in was.mbox.get () %}
+  	{% for message_id, category, created, valid, msg, extra in was.mbox.get () %}
   		<li> {{ mtype }}: {{ msg }}</li>
   	{% endfor %}
   </ul>
@@ -1019,10 +1196,14 @@ news.htm like this:
 
 **Access Cookie**
 
+was.cookie has almost dictionary methods.
+
 .. code:: python
 
   if "user_id" not in was.cookie:
-  	was.cookie.set ("user_id", "hansroh")
+  	was.cookie.set ("user_id", "hansroh")  	
+  	# or  	
+  	was.cookie ["user_id"] = "hansroh"
   	
 - was.cookie.set (key, val)
 - was.cookie.get (key)
@@ -1038,9 +1219,11 @@ news.htm like this:
 
 **Access Session**
 
+was.session has almost dictionary methods.
+
 To enable session for app, random string formatted securekey should be set for encrypt/decrypt session values.
 
-*WARN*: `securekey` should be same on all skitai apps at least within a virtual hosing group, Otherwise it will be serious disater.
+*WARN*: `securekey` should be same on all skitai apps at least within a virtual hosing group, Otherwise it will be serious disaster.
 
 .. code:: python
 
@@ -1051,6 +1234,8 @@ To enable session for app, random string formatted securekey should be set for e
   def hello_world (was, **form):  
     if "login" not in was.session:
       was.session.set ("user_id", form.get ("hansroh"))
+      # or
+      was.session ["user_id"] = form.get ("hansroh")
   
 - was.session.set (key, val)
 - was.session.get (key)
@@ -1089,7 +1274,7 @@ To enable session for app, random string formatted securekey should be set for e
       if file:
         file.save ("d:\\var\\upload", dup = "o") # overwrite
 			  
-file object has these attributes:
+'file' object's attributes are:
 
 - file.file: temporary saved file full path
 - file.name: original file name posted
@@ -1097,6 +1282,7 @@ file object has these attributes:
 - file.mimetype
 - file.remove ()
 - file.save (into, name = None, mkdir = False, dup = "u")
+
   * if name is None, used file.name
   * dup: 
     
@@ -1114,7 +1300,7 @@ file object has these attributes:
       return "Not Authorized"
   
   @app.finish_request
-  def after_request (was):
+  def finish_request (was):
     was.g.user_id    
     was.g.user_status
     ...
@@ -1130,16 +1316,6 @@ file object has these attributes:
     was.g.resouce.close ()
     ...
   
-  @app.got_template
-  def got_template (was, template, args_dict):
-    # template is the returned object of app.jinja_env.get_template (template_filename)
-    ...
-  
-  @app.template_rendered
-  def template_rendered (was, template, args_dict, rendered):
-    ...
-  
-
   @app.route ("/view-account")
   def view_account (was, userid):
     was.g.user_id = "jerry"
@@ -1159,12 +1335,17 @@ If view_account is called, Saddle execute these sequence:
       if content: 
         return content
       content = view_account (was, *args, **karg)
+      
     except:
       failed_request (was)
+      
     else:
-      after_request (was)
+      finish_request (was)
+      
   finally:
     teardown_request (was)
+  
+  return content
     
 
 Also there're another kind of method group,
@@ -1173,18 +1354,48 @@ Also there're another kind of method group,
 
   @app.startup
   def startup (wasc, app):
-    object = SomeClass ()
-    wasc.registerObject ("myobject", object)
+    wasc.register ("loginengine", SNSLoginEngine ())
+    wasc.register ("searcher", FulltextSearcher ())    
   
   @app.onreload  
   def onreload (wasc, app):
-    wasc.myobject.reset ()
+    wasc.loginengine.reset ()
   
   @app.shutdown    
   def shutdown (wasc, app):
-    wasc.myobject.close ()
+    wasc.searcher.close ()
+        
+    wasc.unregister ("loginengine")
+    wasc.unregister ("searcher")
   
-'wasc' is class object of 'was' and mainly used for sharing Skitai server-wide object. these methods will be called,
+'wasc' is Python Class object of 'was', so mainly used for sharing Skitai server-wide object via was.object.
+
+As a result, myobject can be accessed by all your current app functions even all other apps mounted on Skitai.
+
+.. code:: python
+  
+  # app mounted to 'abc.com/members'
+  @app.route ("/")
+  def index (was):
+    was.loginengine.get_user_info ()
+    was.searcher.query ("ipad")
+  
+  # app mounted to 'abc.com/register'
+  @app.route ("/")
+  def index (was):
+    was.loginengine.check_user_to ("facebook")
+    was.searcher.query ("ipad")
+  
+  # app mounted to 'def.com/'
+  @app.route ("/")
+  def index (was):
+    was.searcher.query ("news")
+
+*Note:* The way to mount with host, see *'Mounting With Virtual Host'* chapter below.
+
+It maybe used like plugin system. If a app which should be mounted loads pulgin-like objects, theses can be used by Skitai server wide apps via was.object1, was.object2,...
+
+These methods will be called,
 
 1. startup: when app imported on skitai server started
 2. onreload: when app.use_reloader is True and app is reloaded
@@ -1270,8 +1481,72 @@ Is there nothing to diffrence? Yes. Saddle app methods are also used for XMLRPC 
 
 
 
-Running Skitai as HTTPS Server
--------------------------------
+Skitai Server Configuration / Mainternance
+--------------------------------------------
+
+Now let's move on to new subject about server configuration amd mainternance.
+
+Configuration files are located in '/etc/skitaid/servers-enabled/\*.conf', and on win32, 'c:\\skitaid\\etc\\servers-enabled/\*.conf'.
+
+Basic configuration is relatively simple, so refer commets of config file. Current config file like this:
+
+.. code:: python
+
+  [server]
+  threads = 4
+  processes = 1
+  ip =
+  port = 5000
+  ssl = no
+  ; default path is /etc/skitaid/cert
+  certfile = skitai.com.ca.pem
+  keyfile = skitai.com.key.pem
+  passphrase = passphrase
+  
+  enable_proxy = yes
+  static_max_age = 300
+  num_result_cache_max = 2000
+  response_timeout = 10
+  keep_alive = 10
+  
+  max_upload_each_file_size = 20000000
+  max_cache_size = 5000000
+  sessiontimeout = 1200
+  
+  [routes:line]
+  
+  / = /apps/skipub/devel/static
+  / = /apps/skipub/devel/unitest:app
+  
+
+**Mounting With Virtual Host**
+
+App can be mounted with virtual host.
+
+.. code:: python
+
+  [routes:line]
+  
+  : default
+  / = /home/user/www/static
+  / = /home/user/www/wsig:app
+  
+  ; exactly matching host
+  : www.mydomain.com mydomain.com  
+  / = /home/user/mydomain.www/static
+  /service = /home/user/mydomain.www/wsgi:app
+  
+  ; matched *.mydomain.com
+  : .mydomain.com
+  / = home/user/mydomain.any/static 
+  / = home/user/mydomain.any/wsgi:app 
+
+`New in version 0.10.5`
+
+As a result, the app location '/home/user/mydomain.www/wsgi.py' is mounted to 'www.mydomain.com/service' and 'mydomain.com/service'.
+
+
+**Running Skitai as HTTPS Server**
 
 Simply config your certification files to config file (ex. /etc/skitaid/servers-enabled/sample.conf). 
 
@@ -1295,8 +1570,24 @@ To genrate self-signed certification file:
 For more detail please read REAME.txt in /etc/skitaid/cert/README.txt
 
 
-Skitai with Nginx / Squid
---------------------------
+**Note For Python 3 Users**
+
+*Posix*
+
+SAE will be executed with /usr/bin/python (mostly symbolic link for /usr/bin/python2).
+
+For using Python 3.x, change skitaid scripts' - /usr/local/bin/sktaid*.py - first line from `#!/usr/bin/python` to `#!/usr/bin/python3`. Once you change, it will be kept, even upgrade or re-install skitai.
+
+In this case, you should re-install skitai and requirements using 'pip3 install ...'.
+
+
+*Win32*
+
+Change python key value to like `c:\\python34\\python.exe` in c:\\skitaid\\etc\\skitaid.conf.
+
+
+
+**Skitai with Nginx / Squid**
 
 From version 0.10.5, Skitai supports virtual hosting itself, but there're so many other reasons using with reverse proxy servers.
 
@@ -1353,25 +1644,8 @@ For Nginx might be 2 config files (I'm not sure):
     }
 
 
-Project Purpose
------------------
-
-Skitai App Engine's original purpose is to serve python fulltext search engine Wissen_ which is my another pypi work. And recently I found that it is possibly useful for building and serving websites.
-
-Anyway, I am modifying my codes to optimizing for enabling service on Linux machine with relatvely poor H/W and making easy to auto-scaling provided cloud computing service like AWS_.
-
-If you need lots of outside http(s) resources connecting jobs and use PostgreSQL, it might be worth testing and participating this project.
-
-Also note it might be more efficient that circumstance using `Gevent WSGI Server`_ + Flask. They have well documentation and already tested by lots of users.
-
-
-.. _Wissen: https://pypi.python.org/pypi/wissen
-.. _AWS: https://aws.amazon.com
-.. _`Gevent WSGI Server`: http://www.gevent.org/
-    
-
 Installation and Startup
----------------------------
+-------------------------
 
 **Posix**
 
@@ -1402,12 +1676,11 @@ Installation and Startup
     
     ;if everythig is OK,
     
-    install-win32-service install
+    install-win32-service.py install
     
     #For auto run on boot,
-    install-win32-service --startup auto install
-    
-    install-win32-service start
+    install-win32-service.py --startup auto install    
+    install-win32-service.py start
     
 
 
@@ -1429,8 +1702,27 @@ Optional Requirements
 .. _`win32 binary`: http://www.stickpeople.com/projects/python/win-psycopg/
 
 
+Project Purpose
+-----------------
+
+Skitai App Engine's original purpose is to serve python fulltext search engine Wissen_ which is my another pypi work. And recently I found that it is possibly useful for building and serving websites.
+
+Anyway, I am modifying my codes to optimizing for enabling service on Linux machine with relatvely poor H/W and making easy to auto-scaling provided cloud computing service like AWS_.
+
+If you need lots of outside http(s) resources connecting jobs and use PostgreSQL, it might be worth testing and participating this project.
+
+Also note it might be more efficient that circumstance using `Gevent WSGI Server`_ + Flask. They have well documentation and already tested by lots of users.
+
+
+.. _Wissen: https://pypi.python.org/pypi/wissen
+.. _AWS: https://aws.amazon.com
+.. _`Gevent WSGI Server`: http://www.gevent.org/
+
+
 Change Log
 -------------
+  
+  0.14 was.response spec. changed
   
   0.13
   
