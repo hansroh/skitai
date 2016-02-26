@@ -10,6 +10,7 @@ License: BSD
 Changes
 ----------
 
+- was.response spec. changed
 - was.temp and was.temp.bind() has been removed
 - was.mbox added
 - was.g added
@@ -165,8 +166,8 @@ In this case, you should re-install skitai and requirements using 'pip3 install 
 Change python key value to like `c:\python34\python.exe` in c:\skitaid\etc\skitaid.conf.
 
 
-Asynchronous Requests Using Skitai WAS
------------------------------------------
+Asynchronous Outside Resource Request With Skitai WAS
+-------------------------------------------------------
 
 'WAS' means (Skitai) *WSGI Application Service*.
 
@@ -502,7 +503,6 @@ Also load-balacing and map-reuducing is exactly same with PostgreSQL.
 *Note:* You should call exalctly 1 execute () per a was.db.* () object, and 'select' statement should be called alone.
 
 
-
 HTML5 Web Socket
 --------------------------------------
 
@@ -721,6 +721,8 @@ Request Handling with Saddle
 
 Flask and other WSGI middle ware have their own way to handle request. So If you choose them, see their documentation. And note that below objects will *NOT* be avaliable on other WSGI middle wares.
 
+And note below objects and methods ARE NOT WORKING in any other WSGI middlewares except Saddle.
+
 
 **Debugging**
 
@@ -748,37 +750,79 @@ c:\skitaid\bin\skitai-instance.py -v -f sample
 
 .. code:: python
 
-  was.request.get_header ("content-type") # case insensitive
-  was.request.get_header () # retrun header all list
-  was.request.command # lower case get, post, put, ...
-  was.request.version # HTTP Version, 1.0, 1.1
-  was.request.uri  
-  was.request.get_body ()
-  was.request.get_remote_addr ()
-  was.request.get_user_agent ()
+Reqeust object provides these methods and attributes:
+
+- was.request.command # lower case get, post, put, ...
+- was.request.version # HTTP Version, 1.0, 1.1
+- was.request.uri
+- was.request.args # dictionary contains url/form parameters
+- was.request.split_uri () # (script, param, querystring, fragment)
+- was.request.get_header ("content-type") # case insensitive
+- was.request.get_headers () # retrun header all list
+- was.request.get_body ()
+- was.request.get_scheme () # http or https
+- was.request.get_remote_addr ()
+- was.request.get_user_agent ()
+- was.request.get_content_type ()
+- was.request.get_main_type ()
+- was.request.get_sub_type ()
 
 
 **Handle Response**
 
-.. code:: python
+Basically, just return contents.
 
-  was.response ["Content-Type"] = "text/plain"
-  was.response.set_status ("200 OK") # default value
-  return "Hello"
+.. code:: python
+	
+	@app.route ("/hello")
+  def hello_world (was):	
+    return was.render ("hello.htm")
+
+If you need set additional headers or HTTP status,
     
-  was.response.send_error ("500 Server Error", why = "It's not my fault")
-  return "" # should null string/bytes after call send_error ()
+.. code:: python
   
-  was.response ["Content-Type"] = "video/mp4"
-  return open ("mypicnic.mp4", "rb")
+  @app.route ("/hello")
+  def hello (was):	
+    return was.response ("200 OK", was.render ("hello.htm"), [("Cache-Control", "max-age=60")])
+
+  def hello (was):	
+    return was.response (body = was.render ("hello.htm"), headers = [("Cache-Control", "max-age=60")])
+
+  def hello (was):	       
+    was.response.set_header ("Cache-Control", "max-age=60")
+    return was.render ("hello.htm")
+
+Above 3 examples will make exacltly same result.
+
+Sending specific HTTP status code,
   
-  was.response ["Content-Type"] = "text/csv"  
-  def generate():
-    for row in iter_all_rows():
-      yield ','.join(row) + '\n'  
-  return generate()
+  def hello (was):	
+    return was.response ("404 Not Found", was.render ("err404.htm"))
   
-Available return types are:
+  def hello (was):
+    # if body is not given, automaticcally generated with default error template.
+    return was.response ("404 Not Found")
+
+
+You can return various objects.
+
+.. code:: python
+  
+  # File
+  @app.route ("/streaming")
+  def streaming (was):	
+    return was.response ("200 OK", open ("mypicnic.mp4", "rb"), headers = [("Content-Type", "video/mp4")])
+  
+  # Generator
+  def build_csv (was):	
+    def generate():
+      for row in iter_all_rows():
+        yield ','.join(row) + '\n'
+    return was.response ("200 OK", generate (), headers = [("Content-Type", "text/csv")])   
+    
+
+All available return types are:
 
 - String, Bytes, Unicode
 - File-like object has 'read (buffer_size)' method, optional 'close ()'
@@ -790,13 +834,22 @@ Available return types are:
 
 The object has 'close ()' method, will be called when all data consumed, or socket is disconnected with client by any reasons.
 
+- was.response (status = "200 OK", body = None, headers = None)
+- was.set_status (status) # "200 OK", "404 Not Found"
+- was.get_status ()
+- was.set_headers (headers) # [(key, value), ...]
+- was.get_headers ()
+- was.set_header (k, v)
+- was.get_header (k)
+- was.del_header (k)
+
 
 **Getting URL Parameters**
 
 .. code:: python
   
   @app.route ("/hello")
-  def hello_world (was, num = 8):	
+  def hello_world (was, num = 8):
     return num
   # http://127.0.0.1:5000/hello?num=100	
 	
@@ -805,6 +858,7 @@ The object has 'close ()' method, will be called when all data consumed, or sock
     return str (num)
     # http://127.0.0.1:5000/hello/100
 
+
 Also you can access as dictionary object 'was.request.args'.
 
 .. code:: python
@@ -812,7 +866,7 @@ Also you can access as dictionary object 'was.request.args'.
   num = was.request.args.get ("num", 0)
 
 
-Available fancy URL param types:
+for fancy url building, available param types are:
 
 - int
 - float
@@ -821,6 +875,8 @@ Available fancy URL param types:
 
 
 **Getting Form Parameters**
+
+Getting form is not different from the way for url parameters, but generally form parameters is too many to use with each function parameters, can take from single args \*\*form or take mixed with named args and \*\*form both.
 
 .. code:: python
 
@@ -832,46 +888,35 @@ Available fancy URL param types:
   def hello_world (was, userid, **form):
   	return "Post %s %s" % (userid, form.get ("comment", ""))
 
-	
-**File Upload**
+
+**Building URL**
+
+If your app is mounted at "/math",
 
 .. code:: python
-  
-  FORM = """
-    <form enctype="multipart/form-data" method="post">
-    <input type="hidden" name="submit-hidden" value="Genious">   
-    <p></p>What is your name? <input type="text" name="submit-name" value="Hans Roh"></p>
-    <p></p>What files are you sending? <br />
-    <input type="file" name="file">
-    </p>
-    <input type="submit" value="Send"> 
-    <input type="reset">
-  </form>
-  """
-  
-  @app.route ("/upload")
-  def upload (was, *form):
-    if was.request.command == "get":
-      return FORM
-    else:
-      file = form.get ("file")
-      if file:
-        file.save ("d:\\var\\upload", dup = "o") # overwrite
-			  
-file object has these attributes:
 
-- file.file: temporary saved file full path
-- file.name: original file name posted
-- file.size
-- file.mimetype
-- file.remove ()
-- file.save (into, name = None, mkdir = False, dup = "u")
-  * if name is None, used file.name
-  * dup: 
+  @app.route ("/add")
+  def add (was, num1, num2):  
+    return int (num1) + int (num2)
     
-    + u - make unique (default)
-    + o - overwrite
+  was.app.build_url ("add", 10, 40) # returned '/math/add?num1=10&num2=40'
+  # BUT it's too long to use practically,
+  # was.ab is acronym for was.app.build_url
+  was.ab ("add", 10, 40) # returned '/math/add?num1=10&num2=40'
+  was.ab ("add", 10, num2=60) # returned '/math/add?num1=10&num2=60'
+  
+  @app.route ("/hello/<name>")
+  def hello (was, name = "Hans Roh"):
+    return "Hello, %s" % name
+	
+  was.ab ("hello", "Your Name") # returned '/math/hello/Your_Name'
 
+For building static url, url should be started with "/"
+
+.. code:: python
+
+  was.ab ("/css/home.css") # returned '/math/css/home.css'
+  
 
 **Access Environment Variables**
 
@@ -1019,36 +1064,47 @@ To enable session for app, random string formatted securekey should be set for e
 - was.session.itervalues ()
 - was.session.iteritems ()
 
-**Building URL**
-
-If your app is mounted at "/math",
+**File Upload**
 
 .. code:: python
-
-  @app.route ("/add")
-  def add (was, num1, num2):  
-    return int (num1) + int (num2)
-    
-  was.app.build_url ("add", 10, 40) # returned '/math/add?num1=10&num2=40'
-  # BUT it's too long to use practically,
-  # was.ab is acronym for was.app.build_url
-  was.ab ("add", 10, 40) # returned '/math/add?num1=10&num2=40'
-  was.ab ("add", 10, num2=60) # returned '/math/add?num1=10&num2=60'
   
-  @app.route ("/hello/<name>")
-  def hello (was, name = "Hans Roh"):
-    return "Hello, %s" % name
-	
-  was.ab ("hello", "Your Name") # returned '/math/hello/Your_Name'
+  FORM = """
+    <form enctype="multipart/form-data" method="post">
+    <input type="hidden" name="submit-hidden" value="Genious">   
+    <p></p>What is your name? <input type="text" name="submit-name" value="Hans Roh"></p>
+    <p></p>What files are you sending? <br />
+    <input type="file" name="file">
+    </p>
+    <input type="submit" value="Send"> 
+    <input type="reset">
+  </form>
+  """
+  
+  @app.route ("/upload")
+  def upload (was, *form):
+    if was.request.command == "get":
+      return FORM
+    else:
+      file = form.get ("file")
+      if file:
+        file.save ("d:\\var\\upload", dup = "o") # overwrite
+			  
+file object has these attributes:
 
-For building static url, url should be started with "/"
+- file.file: temporary saved file full path
+- file.name: original file name posted
+- file.size
+- file.mimetype
+- file.remove ()
+- file.save (into, name = None, mkdir = False, dup = "u")
+  * if name is None, used file.name
+  * dup: 
+    
+    + u - make unique (default)
+    + o - overwrite
 
-.. code:: python
 
-  was.ab ("/css/home.css") # returned '/math/css/home.css'
-
-
-**Registering funtions and was.g**
+**Registering event handling funtions and was.g**
 
 .. code:: python
 
@@ -1153,7 +1209,6 @@ Saddle provide simple authenticate for administration or perform access control 
     return "Hello, %s" % name
 
 If your server run with SSL, you can use app.authorization = "basic", otherwise recommend using "digest" for your password safety.
-
 
 
 **Packaging for Larger App**

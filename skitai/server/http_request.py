@@ -22,8 +22,12 @@ class http_request:
 		self.gzip_encoded = False
 		self.response = http_response.http_response (self)
 	
+	def get_scheme (self):	
+		from .https_server import https_channel
+		return isinstance (self.channel, https_channel) and "https" or "http"
+	
 	def get_raw_header (self):
-		return self.header	
+		return self.header
 	get_headers = get_raw_header
 	
 	path_regex = re.compile (r'([^;?#]*)(;[^?#]*)?(\?[^#]*)?(#.*)?')

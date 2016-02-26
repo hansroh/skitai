@@ -8,6 +8,11 @@ from skitai import DB_PGSQL, DB_SQLITE3
 from . import server_info, http_date
 import time
 
+try: 
+	from urllib.parse import urljoin
+except ImportError:
+	from urlparse import urljoin	
+	
 import json
 try:
 	import xmlrpc.client as xmlrpclib
@@ -149,18 +154,23 @@ class WAS:
 		self.app.when_template_rendered (self, template, karg, rendered)
 		return rendered	
 	
-	def redirect (self, url, status = "302 Object Moved"):
-		self.response ["Location"] = url
-		self.response ["Cache-Control"] = "max-age=0"
-		self.response ["Expires"] = http_date.build_http_date (time.time ())
-		self.response.start_response (status)
-		content =  (
-			"<head><title>Document Moved</title></head>"
-			"<body><h1>Object Moved</h1>"
-			"This document may be found " 
-			'<a HREF="%s">here</a></body>' % url
-		)
-		return content
+	REDIRECT_TEMPLATE =  (
+		"<head><title>%s</title></head>"
+		"<body><h1>%s</h1>"
+		"This document may be found " 
+		'<a HREF="%s">here</a></body>'
+	)
+	def redirect (self, url, status = "302 Object Moved", body = None, headers = None):
+		redirect_headers = [
+			("Location", url), 
+			("Cache-Control", "max-age=0"), 
+			("Expires", http_date.build_http_date (time.time ()))
+		]
+		if type (headers) is list:
+			redirect_headers += headers
+		if not body:
+			body = self.REDIRECT_TEMPLATE % (status, status, url)			
+		return self.response (status, body, redirect_headers)
 			
 	def email (self, subject, snd, rcpt):
 		return composer.Composer (subject, snd, rcpt)

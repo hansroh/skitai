@@ -6,8 +6,38 @@ import sys
 from skitai.lib.reraise import reraise 
 from skitai.lib import producers, compressors
 import skitai
+try: 
+	from urllib.parse import urljoin
+except ImportError:
+	from urlparse import urljoin	
 
 UNCOMPRESS_MAX = 2048
+
+# Default error message
+DEFAULT_ERROR_MESSAGE = """<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>ERROR: %(code)d %(message)s</title>
+<style type="text/css"><!-- *{font-family:verdana,sans-serif;}body{margin:0;padding:0;background:#efefef;font-size:14px;color:#1e1e1e;} #titles{margin-left:15px;padding:10px;}#titles h1,h2{color: #000000;} #content{padding:16px 10px 30px 16px;background:#ffffff;} #error p,h3,b{font-size:12px;}#error{margin:0;padding:0;} hr{margin:0;padding:0;} #error hr{border-top:#888888 1px solid;} #error li,i{font-weight:normal;}#footer {font-size:12px;padding-left:10px;} --></style>
+</head>
+<body>
+<div id="titles"><h1>ERROR</h1><h2>%(code)d %(message)s</h2></div>
+<hr />
+<div id="content">
+<p>The following error was encountered while trying to retrieve the URL:</p>
+<blockquote>
+<div id="error"><b>%(message)s</b><p>%(info)s</p></div>
+<a href="%(url)s">%(url)s</a>
+</blockquote>
+</div>
+<hr />
+<div id="footer">
+<p>Generated %(gentime)s</p>
+</div>
+</body>
+</html>"""
+
 
 def catch (htmlformating = 0, exc_info = None):
 	if exc_info is None:
@@ -201,8 +231,21 @@ class http_response:
 			for k, v in headers:
 				self.set (k, v)
 	reply = start
-			
+	
+	def build_default_template (self, why = ""):
+		global DEFAULT_ERROR_MESSAGE
+		
+		return (DEFAULT_ERROR_MESSAGE % {
+			'code': self.reply_code,
+			'message': self.reply_message,
+			'info': why,
+			'gentime': http_date.build_http_date (time.time ()),
+			'url': urljoin ("%s://%s/" % (self.request.get_scheme (), self.request.get_header ("host")), self.request.uri)
+			})
+				
 	def error (self, code, status = "", why = "", force_close = False, push_only = False):
+		global DEFAULT_ERROR_MESSAGE
+		
 		if not self.responsable (): return
 		self.reply_code = code
 		if status: self.reply_message = status
@@ -211,19 +254,12 @@ class http_response:
 		if type (why) is tuple: # sys.exc_info ()
 			why = catch (1, why)
 		
-		s = (self.DEFAULT_ERROR_MESSAGE % {
-			'code': self.reply_code,
-			'message': self.reply_message,
-			'info': why,
-			'gentime': http_date.build_http_date (time.time ()),
-			'url': "http://%s%s" % (self.request.get_header ("host"), self.request.uri)
-			}).encode ("utf8")
-		
-		self.update ('Content-Length', len(s))
+		body = self.build_default_template ().encode ("utf8")		
+		self.update ('Content-Length', len(body))
 		self.update ('Content-Type', 'text/html')
 		self.update ('Cache-Control', 'max-age=0')
 			
-		self.push (s)
+		self.push (body)
 		if not push_only:
 			self.done (True, True, force_close)
 	
@@ -397,29 +433,6 @@ class http_response:
 			)
 		)
 		
-	# Default error message
-	DEFAULT_ERROR_MESSAGE = """<!DOCTYPE html>
-<html>
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>ERROR: %(code)d %(message)s</title>
-<style type="text/css"><!-- *{font-family:verdana,sans-serif;}body{margin:0;padding:0;background:#efefef;font-size:12px;color:#1e1e1e;} #titles{margin-left:15px;padding:10px;}#titles h1,h2{color: #000000;} #content{padding:10px;background:#ffffff;} #error p,h3,b{font-size:11px;}#error{margin:0;padding:0;} hr{margin:0;padding:0;} #error hr{border-top:#888888 1px solid;} #error li,i{font-weight:normal;}#footer {font-size:9px;padding-left:10px;} --></style>
-</head>
-<body>
-<div id="titles"><h1>ERROR</h1><h2>%(code)d %(message)s</h2></div>
-<hr />
-<div id="content">
-<p>The following error was encountered while trying to retrieve the URL:
-<a href="%(url)s">%(url)s</a></p> 
-<div id="error"><p><b>%(code)d %(message)s</p><p>%(info)s</p></div><br />
-</div> 
-<hr />
-<div id="footer">
-<p>Generated %(gentime)s</p>
-</div>
-</body>
-</html>"""
-
 	responses = {
 		100: "Continue",
 		101: "Switching Protocols",
@@ -471,4 +484,31 @@ class http_response:
 		708: "No Data Recieved",
 		709: "Invalid Content"
 	}		
+	
+	#---------------------------------------------
+	# Used within Saddle app
+	#---------------------------------------------
+	
+	set_header = set
+	get_header = get
+	del_header = delete
+	
+	def set_headers (self, headers):
+		for k, v in headers:
+			self.set (k, v)
+			
+	def get_hedaers (self):	
+		return self.reply_headers
+	
+	set_status = set_reply
 		
+	def get_status (self):
+		return "%d %s" % self.get_reply ()
+					
+	def __call__ (self, status = "200 OK", body = None, headers = None):
+		global DEFAULT_ERROR_MESSAGE
+		self.start_response (status, headers)
+		
+		if not body:
+			return self.build_default_template ()
+		return body
