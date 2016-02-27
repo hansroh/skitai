@@ -1341,7 +1341,7 @@ If view_account is called, Saddle execute these sequence:
       
     else:
       finish_request (was)
-      
+
   finally:
     teardown_request (was)
   
@@ -1726,6 +1726,7 @@ Change Log
   
   0.13
   
+  - was.response spec. changed
   - was.temp and was.temp.bind() has been removed
   - was.mbox added
   - was.g added
