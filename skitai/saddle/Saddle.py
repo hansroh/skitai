@@ -9,7 +9,7 @@ from skitai.server import utility
 from hashlib import md5
 import random
 import base64
-
+from skitai.saddle import cookie
 
 try:
 	import xmlrpc.client as xmlrpclib
@@ -174,7 +174,32 @@ class Saddle (package.Package):
 		self.route = route
 		if self._onreload:
 			self._onreload (self.wasc, self)		
-							
+	
+	def create_on_demand (self, was, name):
+		class G: pass
+		# create just in time objects
+		if name == "cookie":			
+			return cookie.Cookie (was.request, self.securekey, self.session_timeout)
+		if name in ("session", "mbox"):			
+			if not was.in__dict__ ("cookie"):
+				was.cookie = cookie.Cookie (was.request, self.securekey, self.session_timeout)			
+			if name == "session":
+				return was.cookie.get_session ()					
+			if name == "mbox":
+				return was.cookie.get_notices ()		
+		if name == "g":
+			return G ()
+	
+	def cleanup_on_demands (self, was):
+		if was.in__dict__ ("g"):
+			del was.g
+		if not was.in__dict__ ("cookie"):
+			return
+		for j in ("session", "mbox"):
+			if was.in__dict__ (j):		
+				delattr (was, j)
+		del was.cookie
+										
 	def __call__ (self, env, start_response):
 		was = env ["skitai.was"]		
 		was.app = self
@@ -190,7 +215,7 @@ class Saddle (package.Package):
 		del was.response
 		del was.ab
 		del was.app
-		was.cleanup_jitos () # del session, mbox, cookie, g
+		self.cleanup_on_demands (was) # del session, mbox, cookie, g
 			
 		return result
 		

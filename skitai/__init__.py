@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.14.1"
+VERSION = "0.14.2"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
 NAME = "SAE/%s.%s" % version_info [:2]
 
@@ -30,7 +30,7 @@ class _WASPool:
 		if not _was.in__dict__ ("app"):
 			# it will be called WSGI middlewares except Saddle,
 			# So request object not need
-			del _was.request
+			del _was.request			
 		return  getattr (_was, attr)
 			
 	def __setattr__ (self, attr, value):

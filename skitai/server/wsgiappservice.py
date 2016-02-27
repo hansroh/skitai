@@ -7,7 +7,6 @@ from .dbi import cluster_manager as dcluster_manager, cluster_dist_call as dclus
 from skitai import DB_PGSQL, DB_SQLITE3
 from . import server_info, http_date
 import time
-from skitai.saddle import cookie
 
 try: 
 	from urllib.parse import urljoin
@@ -90,46 +89,21 @@ class WAS:
 			clustername = clustername [1:]
 		return clustername, "/" + uri
 	
-	def cleanup_jitos (self):
-		if self.in__dict__ ("g"):
-			del self.g
-		if not self.in__dict__ ("cookie"):
-			return
-		for j in ("session", "mbox"):
-			if self.in__dict__ (j):		
-				delattr (self, j)
-		del self.cookie
-	
 	def in__dict__ (self, name):
 		return name in self.__dict__
 		
 	VALID_COMMANDS = ["ws", "get", "post", "rpc", "put", "upload", "delete", "options", "db"]
 	def __getattr__ (self, name):
-		class G: 
-			pass
-		
 		# method magic
 		if name in self.VALID_COMMANDS:
 			return _Method(self._call, name)
 		
 		if self.in__dict__ ("app"): # saddle app			
-			# create just in time objects
-			if name == "cookie":			
-				self.cookie = cookie.Cookie (self.request, self.app.securekey, self.app.session_timeout)			
-				return self.cookie
-			if name in ("session", "mbox"):			
-				if not self.in__dict__ ("cookie"):
-					self.cookie = cookie.Cookie (self.request, self.app.securekey, self.app.session_timeout)			
-				if name == "session":
-					self.session = self.cookie.get_session ()
-					return self.session
-				if name == "mbox":
-					self.mbox = self.cookie.get_notices ()
-					return self.mbox
-			if name == "g":
-				self.g = G ()
-				return self.g
-			
+			attr = self.app.create_on_demand (self, name)
+			if attr:
+				setattr (self, name, attr)
+				return attr
+				
 		raise AttributeError ("'was' hasn't attribute '%s'" % name)	
 	
 	def _call (self, method, args, karg):

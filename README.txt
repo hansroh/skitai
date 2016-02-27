@@ -240,7 +240,7 @@ In 2 seconds (which should possibly wait at the worst situation in synchronous v
 
 There's same problem with database related jobs, so Skitai also provides asynchronous PostgreSQL connection. 
 
-But it's not done, more benefitial situation is this one.
+But it's not done yet. More benefitial situation is this one.
 
 First, blocking version,
 
@@ -292,9 +292,11 @@ Now async version is,
 
 Above async version will be possibly delayed max '2' seconds, because waiting-start point is the time request was created and 3 requests was created almost same time and processed parallelly in background.
 
-Even better, Skitai manages connection pool for all connections, doesn't do connect operation except first request.
+It can be implemeted by using multi-threading, but Skitai handles all sockets with simgle threaded non-blocking multi-plexing loop, there's no additional thread related cost.
 
-Of cause, if use callback mechanism traditionally used for async call like AJAX, it would be more faster, but it's not easy to maintain codes, possibliy will be maiden to 'callback-heaven'. Skitai 'was' service is a compromise between Async and Sync (Blocking and Non-Blocking).
+Even better, Skitai manages connection pool for all connections, doesn't need connect operation except at first request.
+
+Of cause, if use callback mechanism traditionally used for async call like AJAX, it would be more faster, but it's not easy to maintain codes, possibliy will be created 'callback-heaven'. Skitai 'was' service is a compromise between Async and Sync (Blocking and Non-Blocking).
 
 So next two chapters are 'HTTP/XMLRPC Request' and 'Connecting to DBMS'.
 
@@ -565,7 +567,7 @@ Avaliable methods are:
 .. _`Psycopg2 advanced topics`: http://initd.org/psycopg/docs/advanced.html
 
 
-**Fast App Protoyping using SQLite3**
+**Fast App Prototyping using SQLite3**
 
 `New in version 0.13`
 
@@ -861,9 +863,9 @@ Request Handling with Saddle
 
 *Saddle* is WSGI middle ware integrated with Skitai App Engine.
 
-Flask and other WSGI middle ware have their own way to handle request. So If you choose them, see their documentation. And note that below objects will *NOT* be avaliable on other WSGI middle wares.
+Flask and other WSGI middle ware have their own way to handle request. So If you choose them, see their documentation.
 
-And note below objects and methods ARE NOT WORKING in any other WSGI middlewares except Saddle.
+And note below objects and methods *ARE NOT WORKING* in any other WSGI middlewares except Saddle.
 
 
 **Debugging**
@@ -1086,9 +1088,9 @@ You can access all Saddle object from was.app.
 - was.app.buld_url () is equal to was.ab ()
 
 
-**Jinja2 Templates**
+**Jinja2 Templates Engine**
 
-was.render() use Jinja2_ templating engine. For providing arguments to Jinja2, use dictionary or keyword arguments.
+Although You can use any template engine, Skitai provides was.render() which uses Jinja2_ template engine. For providing arguments to Jinja2, use dictionary or keyword arguments.
 
 .. code:: python
   
