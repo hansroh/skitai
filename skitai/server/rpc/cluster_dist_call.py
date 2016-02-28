@@ -34,7 +34,7 @@ class Result (rcache.Result):
 				
 	def cache (self, timeout = 300):
 		self._response = None
-		if self.code != 200:
+		if self.status != 3:
 			return
 		rcache.Result.cache (self, timeout)
 		
@@ -42,19 +42,19 @@ class Result (rcache.Result):
 class Results (rcache.Result):
 	def __init__ (self, results, ident = None):
 		self.results = results
+		self.code = [rs.code for rs in results]
 		rcache.Result.__init__ (self, [rs.status for rs in self.results], ident)
 		
 	def __iter__ (self):
 		return self.results.__iter__ ()
-
+	
 	def cache (self, timeout = 300):
 		if self.is_cached:
 			return
 		if rcache.the_rcache is None or not self.ident: 
 			return
-		if [_f for _f in [rs.status != 3 or rs.code != 200 for rs in self.results] if _f]:
-			return
-		
+		if [_f for _f in [rs.status != 3 for rs in self.results] if _f]:
+			return				
 		rcache.Result.__timeout = timeout
 		rcache.Result.__cached_time = time.time ()
 		

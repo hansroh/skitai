@@ -33,7 +33,8 @@ class SecuredValue:
 	quote_base64 = True
 	KEY = "SECURED"	
 	
-	def __init__ (self, data, secret_key, setfunc, new = True):
+	def __init__ (self, request, data, secret_key, setfunc, new = True):
+		self.request = request
 		if new:
 			self.set_default_data ()
 		else:
@@ -65,10 +66,6 @@ class SecuredValue:
 		expires = self.recal_expires (expires)
 		self.setfunc (self.KEY, self.serialize (), expires, path, domain)
 		self.dirty = False
-	
-	@classmethod		
-	def validate_data (cls, data):
-		return data
 		
 	@classmethod
 	def quote (cls, value):		
@@ -157,7 +154,7 @@ class SecuredDictValue (SecuredValue):
 		return (base64.b64encode(mac.digest()).strip() + b"?" + b'&'.join(result)).decode ("utf8")
 	
 	@classmethod
-	def unserialize(cls, string, secret_key, setfunc, *args, **kargs):
+	def unserialize(cls, request, string, secret_key, setfunc, *args, **kargs):
 		items = {}
 		try:
 			base64_hash, data = string.split(b'?', 1)
@@ -189,13 +186,11 @@ class SecuredDictValue (SecuredValue):
 					items[key] = cls.unquote(value)
 			except UnquoteError:
 				items = {}
-			else:
-				items = cls.validate_data (items)
-				
+								
 		else:
 			items = {}
 						
-		return cls (items, secret_key, setfunc, False, *args, **kargs)		
+		return cls (request, items, secret_key, setfunc, False, *args, **kargs)		
 
 class SecuredListValue (SecuredValue):
 	KEY = "SECURELIST"	
@@ -216,7 +211,7 @@ class SecuredListValue (SecuredValue):
 		return (base64.b64encode(mac.digest()).strip() + b"?" + b'&'.join(result)).decode ("utf8")
 	
 	@classmethod
-	def unserialize(cls, string, secret_key, setfunc, *args, **kargs):
+	def unserialize(cls, request, string, secret_key, setfunc, *args, **kargs):
 		items = []
 		try:
 			base64_hash, data = string.split(b'?', 1)
@@ -233,63 +228,75 @@ class SecuredListValue (SecuredValue):
 		except Exception:
 			items = client_hash = None
 					
-		items = cls.validate_data (items)		
-		return cls (items, secret_key, setfunc, False, *args, **kargs)
+		return cls (request, items, secret_key, setfunc, False, *args, **kargs)
 				
 			
 class Session (SecuredDictValue):
-	default_session_timeout = 1200 # 20 min.
-	max_valid_session = 7200 # 2hours
+	default_session_timeout = 1200 # 20 min.	
 	KEY = "SESSION"	
 	
-	def __init__ (self, data, secret_key, setfunc, new = True, session_timeout = 0):
-		SecuredValue.__init__ (self, data, secret_key, setfunc, new)
+	def __init__ (self, request, data, secret_key, setfunc, new = True, session_timeout = 0):
+		SecuredValue.__init__ (self, request, data, secret_key, setfunc, new)
 		self.session_timeout = session_timeout and session_timeout or self.default_session_timeout
+		self.__source_verified = False
+		if self.data:
+			self.validate ()
+		
+	def validate (self):	
+		if not '_expires' in self.data:
+			self.data = {}
+			return
+			
+		if type (self.data ['_expires']) is tuple:
+			expires, addr = self.data ['_expires']
+			self.__source_verified = (addr == self.request.get_remote_addr ())				
+		else:
+			expires = self.data ['_expires']
+			
+		if time.time() > expires: # expired
+			self.data = {}
+			return
+			
+		if self.session_timeout + time.time () < expires: # too long, maybe fraud
+			self.data = {}
+			return
 	
-	def recal_expires (self, expires):						
+	def getv (self, k, v = None):
+		if self.__source_verified:
+			return self.get (k, v)
+		return v	
+		
+	def source_verified (self):
+		return self.__source_verified
+				
+	def recal_expires (self, expires):
 		if expires is None:
 			return self.session_timeout
 		if expires == "now":
 			return 0
 		if expires == "never":
 			raise ValueError("session must be specified expires seconds")
-		return min (int (expires), self.max_valid_session)
+		return int (expires)
 		
 	def commit (self, expires = None, path = "/", domain = None):
-		if not self.dirty:
-			return		
+		# always commit for extending/expiring expires
 		expires = self.recal_expires (expires)
-		self ["_expires"] = time.time () + expires
+		self ["_expires"] = (time.time () + expires, self.request.get_remote_addr ())
 		if len (self.data) == 1: # only have _expires, expire now
-			expires = 0			
+			expires = 0
 		self.setfunc (self.KEY, self.serialize (), expires, path, domain)
 		self.dirty = False
 		
 	def set_default_session_timeout (self, timeout):
 		self.default_session_timeout = timeout
-	
-	@classmethod
-	def validate_data (cls, data):
-		if '_expires' in data:
-			if time.time() > data['_expires']: # expired
-				data = {}
-			elif cls.max_valid_session + time.time () < data['_expires']: # too long, maybe fraud
-				data = {}
-		else:							
-			data = {} # no expires? maybe fraud
-		
-		if not data:
-			self.dirty = True
-			
-		return data
 		
 		
 class MessageBox (SecuredListValue):
 	AWEEK = 3600 * 24 * 7
 	KEY = "NOTIS"
 	
-	def __init__ (self, data, secret_key, setfunc, new = True):
-		SecuredValue.__init__ (self, data, secret_key, setfunc, new)
+	def __init__ (self, request, data, secret_key, setfunc, new = True):
+		SecuredValue.__init__ (self, request, data, secret_key, setfunc, new)
 		self.mid = -1
 		
 	def send (self, msg, category = "info", valid = 0, **extra):

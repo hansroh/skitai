@@ -180,6 +180,7 @@ class Saddle (package.Package):
 		# create just in time objects
 		if name == "cookie":			
 			return cookie.Cookie (was.request, self.securekey, self.session_timeout)
+			
 		if name in ("session", "mbox"):			
 			if not was.in__dict__ ("cookie"):
 				was.cookie = cookie.Cookie (was.request, self.securekey, self.session_timeout)			
@@ -187,6 +188,7 @@ class Saddle (package.Package):
 				return was.cookie.get_session ()					
 			if name == "mbox":
 				return was.cookie.get_notices ()		
+				
 		if name == "g":
 			return G ()
 	

@@ -159,21 +159,21 @@ class Cookie:
 	def get_session (self, create = True):
 		if self.secret_key:
 			if self.session_cookie:
-				sc = secured_cookie_value.Session.unserialize (self.session_cookie.encode ("utf8"), self.secret_key, self.set, self.session_timeout)
+				sc = secured_cookie_value.Session.unserialize (self.request, self.session_cookie.encode ("utf8"), self.secret_key, self.set, self.session_timeout)
 				self.session_cookie = None
 				return sc
 			elif create:
-				return secured_cookie_value.Session (None, self.secret_key, self.set, True, self.session_timeout)
+				return secured_cookie_value.Session (self.request, None, self.secret_key, self.set, True, self.session_timeout)
 		return None
 	
 	def get_notices (self, create = True):
 		if self.secret_key:
 			if self.notices_cookie:
-				sc = secured_cookie_value.MessageBox.unserialize (self.notices_cookie.encode ("utf8"), self.secret_key, self.set)
+				sc = secured_cookie_value.MessageBox.unserialize (self.request, self.notices_cookie.encode ("utf8"), self.secret_key, self.set)
 				self.notices_cookie = None
 				return sc
 			elif create:
-				return secured_cookie_value.MessageBox (None, self.secret_key, self.set, True)
+				return secured_cookie_value.MessageBox (self.request, None, self.secret_key, self.set, True)
 		return None
 		
 

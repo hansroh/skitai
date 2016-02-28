@@ -10,12 +10,8 @@ License: BSD
 Changes
 ----------
 
+- was.session.getv () added
 - was.response spec. changed
-- was.temp and was.temp.bind() has been removed
-- was.mbox added
-- was.g added
-- was.redirect added
-- was.render (template name, dictioanry or key-value args) added
 - SQLite3 DB connection added
   
 Introduce
@@ -484,6 +480,25 @@ Avaliable methods are:
 - was.delete.map ()
 
 
+**Caching Result**
+
+Every results returned by getwait(), getswait() can cache.
+
+.. code:: python
+
+  s = was.rpc.lb ("@mysearch/rpc2")
+  result = s.getwait (2)
+  if result.code == 200:
+  	result.cache (60) # 60 seconds
+  
+  s = was.rpc.map ("@mysearch/rpc2")
+  results = s.getswait (2)
+  # assume @mysearch has 3 members
+  if results.code == [200, 200, 200]:    
+    result.cache (60)
+
+Although code == 200 alredy implies status == 3, anyway if status is not 3, cache() will be ignored. If cached, it wil return cached result for 60 seconds.
+
 Connecting to DBMS
 ---------------------
 
@@ -493,7 +508,7 @@ Skitai also provides asynchonous PostgreSQL query services for efficient develop
 
 But according to `Psycopg2 advanced topics`_, there are several limitations in using asynchronous connections:
 
-  The connection is always in autocommit mode and it is not possible to change it. So a transaction is not implicitly started at the first query and is not possible to use methods commit() and rollback(): you can manually control transactions using execute() to send database commands such as BEGIN, COMMIT and ROLLBACK. Similarly set_session() can¡?t be used but it is still possible to invoke the SET command with the proper default_transaction.. parameter.
+  The connection is always in autocommit mode and it is not possible to change it. So a transaction is not implicitly started at the first query and is not possible to use methods commit() and rollback(): you can manually control transactions using execute() to send database commands such as BEGIN, COMMIT and ROLLBACK. Similarly set_session() can't be used but it is still possible to invoke the SET command with the proper default_transaction.. parameter.
 
   With asynchronous connections it is also not possible to use set_client_encoding(), executemany(), large objects, named cursors.
 
@@ -602,6 +617,25 @@ Also load-balacing and map-reuducing is exactly same with PostgreSQL.
 
 
 *Note:* You should call exalctly 1 execute () per a was.db.* () object, and 'select' statement should be called alone.
+
+
+**Caching Result**
+
+Same as HTTP/RPC, every results returned by getwait(), getswait() can cache.
+
+.. code:: python
+
+  s = was.db.lb ("@mydb")
+  s.execute ("select ...")
+  result = s.getwait (2)
+  result.cache (60)
+  
+  s = was.db.map ("@mydb")
+  s.execute ("select ...")
+  results = s.getswait (2)
+  result.cache (60)
+  
+If result or one of results has status != 3, cache() will be ignored.
 
 
 HTML5 Web Socket
@@ -1208,7 +1242,7 @@ was.cookie has almost dictionary methods.
   	was.cookie ["user_id"] = "hansroh"
   	
 - was.cookie.set (key, val)
-- was.cookie.get (key)
+- was.cookie.get (key, default = None)
 - was.cookie.remove (key)
 - was.cookie.clear ()
 - was.cookie.kyes ()
@@ -1238,9 +1272,11 @@ To enable session for app, random string formatted securekey should be set for e
       was.session.set ("user_id", form.get ("hansroh"))
       # or
       was.session ["user_id"] = form.get ("hansroh")
-  
+
+- was.session.source_verified (): If current IP address matches with last IP accesss session
 - was.session.set (key, val)
-- was.session.get (key)
+- was.session.get (key, default = None)
+- was.session.getv (key, default = None): If not source_verified (), return default
 - was.session.remove (key)
 - was.session.clear ()
 - was.session.kyes ()
@@ -1495,8 +1531,8 @@ Basic configuration is relatively simple, so refer commets of config file. Curre
 .. code:: python
 
   [server]
-  threads = 4
   processes = 1
+  threads = 4  
   ip =
   port = 5000
   ssl = no
@@ -1510,16 +1546,21 @@ Basic configuration is relatively simple, so refer commets of config file. Curre
   num_result_cache_max = 2000
   response_timeout = 10
   keep_alive = 10
-  
-  max_upload_each_file_size = 20000000
-  max_cache_size = 5000000
   sessiontimeout = 1200
   
   [routes:line]
   
   / = /apps/skipub/devel/static
   / = /apps/skipub/devel/unitest:app
-  
+
+
+Here's configs required your carefulness.
+
+- processes: number of workers but on Win32, only 1 is valid
+- threads: generally not up to 4 per CPU. If set to 0, Skitai run with entirely single thread. so be careful if your WSGI function takes long time or possibly will be delayed by blocking operation.
+- num_result_cache_max: number of cache for HTTP/RPC/DBMS results
+- response_timeout: transfer delay timeout caused by network problem
+
 
 **Mounting With Virtual Host**
 
@@ -1723,6 +1764,7 @@ Also note it might be more efficient that circumstance using `Gevent WSGI Server
 
 Change Log
 -------------
+  0.14.3 was.session.getv () added
   
   0.14 was.response spec. changed
   

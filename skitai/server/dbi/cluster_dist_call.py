@@ -59,6 +59,8 @@ class	Result (rcache.Result):
 			return "%s %s" % (self.__expt_class, self.__expt_str)
 		
 	def cache (self, timeout = 300):
+		if self.status != 3:
+			return
 		rcache.Result.cache (self, timeout)
 	
 			
