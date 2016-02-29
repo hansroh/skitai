@@ -216,7 +216,7 @@ if "install" in sys.argv or "develop" in sys.argv:
 				if why.errno == 2: pass
 			shutil.copyfile (os.path.join ("skitai/skitaid/etc/skitaid", path), os.path.join ("/etc/skitaid", path))
 		
-		for fn in ("skitaid.py", "skitaid-instance.py", "skitaid-smtpda.py"):
+		for fn in ("skitaid.py", "skitaid-instance.py", "skitaid-smtpda.py", "skitaid-cron.py"):
 			target = os.path.join ("/usr/local/bin", fn)			
 			exists_python = None
 			if os.path.isfile (target):

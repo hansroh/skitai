@@ -46,6 +46,58 @@ Conceptually, SAE has been seperated into two components:
 .. __: http://www.nightmare.com/medusa/medusa.html
 
 
+Installation / Startup
+-------------------------
+
+**Requirements**
+
+On win32, required *pywin32 binary* - http://sourceforge.net/projects/pywin32/files/pywin32/Build%20219/
+
+**Optional Requirements**
+
+* Skitaid can find at least one DNS server from system configuration for Async-DNS query. Possibly it is only problem on dynamic IP allocated desktop, then set DNS manually, please.
+
+- *psycopg2* for querying PostgreSQL asynchronously (`win32 binary`_)
+- *Jinja2* for HTML Rendering
+
+.. _`win32 binary`: http://www.stickpeople.com/projects/python/win-psycopg/
+
+
+**Installation & Startup On Posix**
+
+.. code:: python
+
+    sudo pip install skitai    
+    sudo skitaid.py -v &
+    sudo skitaid.py stop
+
+    ;if everythig is OK,
+    
+    sudo service skitaid start
+    
+    #For auto run on boot,
+    sudo update-rc.d skitaid defaults
+    or
+    sudo chkconfig skitaid on
+    
+
+**Installation & Startup On Win32**
+
+.. code:: python
+
+    sudo pip install skitai
+    cd c:\skitaid\bin
+    skitaid.py -v
+    skitaid.py stop (in another command prompt)
+    
+    ;if everythig is OK,
+    
+    install-win32-service.py install
+    
+    #For auto run on boot,
+    install-win32-service.py --startup auto install    
+    install-win32-service.py start
+    
 
 Mounting WSGI Apps
 --------------------
@@ -123,7 +175,7 @@ In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"
 Concept of Skitai 'was' Services
 ---------------------------------
 
-'was' means (Skitai) *WSGI Application Service*. 
+'was' means (Skitai) *WSGI Application Support*. 
 
 WSGI middleware like Flask, need to import 'was':
 
@@ -157,9 +209,12 @@ OK, let's move on.
 
 Skitai is not just WSGI Web Server but *Micro WSGI Application Server* provides some powerful asynchronous networking (HTTP, SMTP, DNS) and database (PostgreSQL, SQLite3) connecting services.
 
-The reason why Skitai provides these services on server level, asynchronous request handling have significant benefits compared with synchrinous one.
+The reason why Skitai provides these services on server level: 
 
-Let's see synchronous code first.
+- I think application server should provide at least efficient network/database handling methods, connection pool and its result caching management, because of only server object has homeostasis to do these things over your app.
+- Asynchronous request handling have significant benefits compared to synchronous one
+
+What's the benefit? Let's see synchronous code first.
 
 .. code:: python
 
@@ -234,7 +289,7 @@ If it is possible to put usage of result more backward, asynchoronous benefit wi
 
 In 2 seconds (which should possibly wait at the worst situation in synchronous version), [Job A & C] and [Generating Job A] is processed parallelly in asynchronous environment.
 
-There's same problem with database related jobs, so Skitai also provides asynchronous PostgreSQL connection. 
+There's same problem with database related jobs, so Skitai also provides *asynchronous PostgreSQL connection*. 
 
 But it's not done yet. More benefitial situation is this one.
 
@@ -288,9 +343,9 @@ Now async version is,
 
 Above async version will be possibly delayed max '2' seconds, because waiting-start point is the time request was created and 3 requests was created almost same time and processed parallelly in background.
 
-It can be implemeted by using multi-threading, but Skitai handles all sockets with simgle threaded non-blocking multi-plexing loop, there's no additional thread related cost.
+It can be implemeted by using multi-threading, but Skitai handles all sockets in single threaded non-blocking multi-plexing loop, there's no additional cost for threads creationg/context switching etc.
 
-Even better, Skitai manages connection pool for all connections, doesn't need connect operation except at first request.
+Even better, Skitai manages connection pool for all connections, doesn't need connect operation except at first request at most cases.
 
 Of cause, if use callback mechanism traditionally used for async call like AJAX, it would be more faster, but it's not easy to maintain codes, possibliy will be created 'callback-heaven'. Skitai 'was' service is a compromise between Async and Sync (Blocking and Non-Blocking).
 
@@ -480,6 +535,30 @@ Avaliable methods are:
 - was.delete.map ()
 
 
+**HTML5 Websocket Request**
+
+There're 3 Skitai 'was' client-side web socket services:
+
+- was.ws ()
+- was.ws.lb ()
+- was.ws.map ()
+
+It is desinged as simple & no stateless request-response model using web socket message frame for *light overheaded server-to-server communication*. For example, if your web server queries to so many other search servers via RESTful access, web socket might be a good alterative option. Think HTTP-Headerless JSON messaging. Usage is very simailar with HTTP request.
+
+.. code:: python
+
+  @app.route ("/query")
+  def query (was):
+    s = was.ws (
+    	"ws://192.168.1.100:5000/websocket/echo", 
+    	json.dumps ({"keyword": "snowboard binding"})
+    )
+    rs = s.getwait ()
+    result = was.fromjson (rs.data)
+
+Usage is same as HTTP/RPC request and obiously, target server should be implemented websocket service routed to '/websocket/echo' in this case.
+
+
 **Caching Result**
 
 Every results returned by getwait(), getswait() can cache.
@@ -498,6 +577,8 @@ Every results returned by getwait(), getswait() can cache.
     result.cache (60)
 
 Although code == 200 alredy implies status == 3, anyway if status is not 3, cache() will be ignored. If cached, it wil return cached result for 60 seconds.
+
+
 
 Connecting to DBMS
 ---------------------
@@ -638,216 +719,6 @@ Same as HTTP/RPC, every results returned by getwait(), getswait() can cache.
 If result or one of results has status != 3, cache() will be ignored.
 
 
-HTML5 Web Socket
---------------------------------------
-
-*New in version 0.11*
-
-There're 3 Skitai 'was' client-side web socket services:
-
-- was.ws ()
-- was.ws.lb ()
-- was.ws.map ()
-
-It is desinged as simple & no stateless request-response model using web socket message frame for *light overheaded server-to-server communication*. For example, if your web server queries to so many other search servers via RESTful access, web socket might be a good alterative option. Think HTTP-Headerless JSON messaging. Usage is very simailar with HTTP request.
-
-.. code:: python
-
-  @app.route ("/query")
-  def query (was):
-    s = was.ws (
-    	"ws://192.168.1.100:5000/websocket/echo", 
-    	json.dumps ({"keyword": "snowboard binding"})
-    )
-    rs = s.getwait ()
-    result = json.loads (rs.data)
-	  
-Obiously, target server should have Web Socket app, routed to '/websocket/echo' in this case.
-
-
-Also at server-side, HTML5 Web Socket has been implemented.
-
-But I'm not sure my implemetation is right way, so it is experimental and unstatable.
-
-I think there're 3 handling ways to use websockets.
-
-1. thread pool manages n websocket connection
-
-2. one thread per websocket connection
-
-3. one thread manages n websockets connection
-
-So skitai supports above all 3 ways.
-
-First of all, see conceptual client side java script for websocket.
-
-.. code:: html
-
-  <script language="javascript" type="text/javascript">  
-  var wsUri = "ws://localhost:5000/websocket/chat";
-  testWebSocket();
-  
-  function testWebSocket()
-  {
-    websocket = new WebSocket(wsUri);
-    websocket.onopen = function(evt) { onOpen(evt) };
-    websocket.onclose = function(evt) { onClose(evt) };
-    websocket.onmessage = function(evt) { onMessage(evt) };
-    websocket.onerror = function(evt) { onError(evt) };
-  }
-  
-  function onOpen(evt) {doSend("Hello");}
-  function onClose(evt) {writeToScreen("DISCONNECTED");}  
-  function onMessage(evt) {writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');}
-  function onError(evt) {writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);}  
-  function doClose () {websocket.close();}  
-  function doSend(message) {websocket.send(message);}
-  </script>
-
-
-If your WSGI app enable handle websocket, it should give  initial parameters to Skitai.
-
-You should check exist of env ["websocket_init"], set initializing parameters.
-
-initializing parameters should be tuple of (websocket design spec, keep alive timeout, variable name)
-
-*websocket design specs* can  be choosen one of 3 .
-
-WEBSOCKET_REQDATA
-
-  - Thread pool manages n websocket connection
-  - It's simple request and response way like AJAX
-  - Use skitai initail thread pool, no additional thread created
-  - Low cost on threads resources, but reposne cost is relatvley high than the others
-  
-WEBSOCKET_DEDICATE
-
-  - One thread per websocket connection
-  - Use when reponse maiking is heavy and takes long time
-  - New thread created per websocket connection
-  
-WEBSOCKET_MULTICAST
-  
-  - One thread manages n websockets connection
-  - Chat room model, all websockets will be managed by single thread
-  - New thread created per chat room
-
-*keep alive timeout* is seconds.
-
-*variable name* is various usage per each design spec.
-
-
-**WEBSOCKET_REQDATA**
-
-Here's a echo app for showing simple request-respone.
-
-Client can connect by ws://localhost:5000/websocket/chat.
-
-*Skitai-Saddle Style*
-
-.. code:: python
-
-  from skitai.saddle import Saddle
-  import skitai
-  
-  app = Saddle (__name__)
-  app.debug = True
-  app.use_reloader = True
-
-  @app.route ("/websocket/echo")
-  def echo (was, message = ""):
-    if "websocket_init" in was.env:
-      was.env ["websocket_init"] = (skitai.WEBSOCKET_REQDATA, 60, "message")
-      return ""
-    return "ECHO:" + message
-
-*Flask Style*
-
-.. code:: python
-
-  from flask import Flask, request 
-  import skitai
-  
-  app = Flask (__name__)
-  app.debug = True
-  app.use_reloader = True
-
-  @app.route ("/websocket/echo")
-  def echo ():
-    if "websocket_init" in request.environ:
-      request.environ ["websocket_init"] = (skitai.WEBSOCKET_REQDATA, 60, "message")
-      return ""
-    return "ECHO:" + request.args.get ("message")
-
-In this case, variable name is "message", It means take websocket's message as "message" arg.
-
-
-**WEBSOCKET_DEDICATE**
-
-This app will handle only one websocket client. and if new websocekt connected, will be created new thread.
-
-Client can connect by ws://localhost:5000/websocket/talk?name=Member.
-
-.. code:: python
-
-  @app.route ("/websocket/talk")
-  def talk (was, name):
-    if "websocket_init" in was.env:
-      was.env ["websocket_init"] = (skitai.WEBSOCKET_DEDICATE, 60, None)
-      return ""
-    
-    ws = was.env ["websocket"]
-    while 1:
-      messages = ws.getswait (10)
-      if messages is None:
-        break  
-      for m in messages:
-        if m.lower () == "bye":
-          ws.send ("Bye, have a nice day." + m)
-          ws.close ()
-          break
-        elif m.lower () == "hello":
-          ws.send ("Hello, " + name)        
-        else:  
-          ws.send ("You Said:" + m)
-
-In this case, variable name should be None. If exists, will be ignored.
-
-
-**WEBSOCKET_MULTICAST**
-
-Here's simple mutiuser chatting app.
-
-Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can chat between all clients.
-
-.. code:: python
-
-  @app.route ("/websocket/chat")
-  def chat (was, roomid):
-    if "websocket_init" in was.env:
-      was.env ["websocket_init"] = (skitai.WEBSOCKET_MULTICAST, 60, "roomid")
-      return ""
-    
-    ws = was.env ["websocket"]  
-    while 1:
-      messages = ws.getswait (10)
-      if messages is None:
-        break  
-      for client_id, m in messages:
-        ws.sendall ("Client %d Said: %s" % (client_id, m))
-
-In this case, variable name is "roomid", then Skitai will create websocket group seperatly.
-
-
-You can access all examples by skitai sample app after installing skitai.
-
-.. code:: python
-
-  sudo skitaid-instance.py -v -f sample
-
-Then goto http://localhost:5000/websocket in your browser.
-    
-
 Other Utility Service of 'was'
 -----------------------------------
 
@@ -879,6 +750,9 @@ If it is configured, you can skip e.set_smtp(). But be careful for keeping your 
     max_retry = 10
     undelivers_keep_max_days = 30
 
+Log file is located at /var/log/skitaid/daemons/smtpda/smtpda.log or c:\skitaid\log\daemons\smtpda\smtpda.log
+
+
 **Utilities**
 
 - was.status () # HTML formatted status information like phpinfo() in PHP.
@@ -890,6 +764,7 @@ If it is configured, you can skip e.set_smtp(). But be careful for keeping your 
 - was.shutdown () # Shutdown Skitai App Engine Server
 
 In next chapter's features of 'was' are only available for *Skitai-Saddle WSGI middleware*. So if you have no plan to use Saddle, just skip.
+
 
 
 Request Handling with Saddle
@@ -917,12 +792,12 @@ For output message & error in console:
 
 *Posix*
 
-sudo /usr/local/bin/skitai-instance.py -v -f sample
+  sudo /usr/local/bin/skitai-instance.py -v -f sample
   
 
 *Win32*
 
-c:\skitaid\bin\skitai-instance.py -v -f sample
+  c:\\skitaid\\bin\\skitai-instance.py -v -f sample
 
 
   
@@ -1518,8 +1393,7 @@ Server Side:
 Is there nothing to diffrence? Yes. Saddle app methods are also used for XMLRPC service if return values are XMLRPC dumpable.
 
 
-
-Skitai Server Configuration / Mainternance
+Skitai Server Configuration / Management
 --------------------------------------------
 
 Now let's move on to new subject about server configuration amd mainternance.
@@ -1589,6 +1463,22 @@ App can be mounted with virtual host.
 As a result, the app location '/home/user/mydomain.www/wsgi.py' is mounted to 'www.mydomain.com/service' and 'mydomain.com/service'.
 
 
+**Job Scheduling**
+
+If your app need some scheduled batch jobs, you can add jobs to skitaid.conf (/etc/skitaid/skitaid.conf or c:\skitaid\etc\skitaid.conf) like this.
+
+.. code:: python
+
+  [crontab:line]
+  
+  */2 */2 * * * /home/apps/monitor.py  > /home/apps/monitor.log 2>&1
+  9 2/12 * * * /home/apps/remove_pended_files.py > /dev/null 2>&1
+
+Taks configuarion is same with posix crontab.
+
+Cron log file is located at /var/log/skitaid/daemons/cron/cron.log or c:\skitaid\log\daemons\cron\cron.log
+
+
 **Running Skitai as HTTPS Server**
 
 Simply config your certification files to config file (ex. /etc/skitaid/servers-enabled/sample.conf). 
@@ -1613,6 +1503,11 @@ To genrate self-signed certification file:
 For more detail please read REAME.txt in /etc/skitaid/cert/README.txt
 
 
+**Running HTML5 Websocket Service**
+
+This topic need a chapter, see next chapter.
+
+
 **Note For Python 3 Users**
 
 *Posix*
@@ -1627,7 +1522,6 @@ In this case, you should re-install skitai and requirements using 'pip3 install 
 *Win32*
 
 Change python key value to like `c:\\python34\\python.exe` in c:\\skitaid\\etc\\skitaid.conf.
-
 
 
 **Skitai with Nginx / Squid**
@@ -1687,62 +1581,196 @@ For Nginx might be 2 config files (I'm not sure):
     }
 
 
-Installation and Startup
--------------------------
 
-**Posix**
+HTML5 Websocket
+-------------------
+
+*New in version 0.11*
+
+The HTML5 WebSockets specification defines an API that enables web pages to use the WebSockets protocol for two-way communication with a remote host.
+
+Skitai can be HTML5 websocket server.
+
+But I'm not sure my implemetation is right way, so it is experimental and unstatable.
+
+I think there're 3 handling ways to use websockets.
+
+1. thread pool manages n websocket connection
+
+2. one thread per websocket connection
+
+3. one thread manages n websockets connection
+
+So skitai supports above all 3 ways.
+
+First of all, see conceptual client side java script for websocket.
+
+.. code:: html
+
+  <script language="javascript" type="text/javascript">  
+  var wsUri = "ws://localhost:5000/websocket/chat";
+  testWebSocket();
+  
+  function testWebSocket()
+  {
+    websocket = new WebSocket(wsUri);
+    websocket.onopen = function(evt) { onOpen(evt) };
+    websocket.onclose = function(evt) { onClose(evt) };
+    websocket.onmessage = function(evt) { onMessage(evt) };
+    websocket.onerror = function(evt) { onError(evt) };
+  }
+  
+  function onOpen(evt) {doSend("Hello");}
+  function onClose(evt) {writeToScreen("DISCONNECTED");}  
+  function onMessage(evt) {writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');}
+  function onError(evt) {writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);}  
+  function doClose () {websocket.close();}  
+  function doSend(message) {websocket.send(message);}
+  </script>
+
+
+If your WSGI app enable handle websocket, it should give  initial parameters to Skitai.
+
+You should check exist of env ["websocket_init"], set initializing parameters.
+
+initializing parameters should be tuple of (websocket design spec, keep alive timeout, variable name)
+
+*websocket design specs* can  be choosen one of 3 .
+
+WEBSOCKET_REQDATA
+
+  - Thread pool manages n websocket connection
+  - It's simple request and response way like AJAX
+  - Use skitai initail thread pool, no additional thread created
+  - Low cost on threads resources, but reposne cost is relatvley high than the others
+  
+WEBSOCKET_DEDICATE
+
+  - One thread per websocket connection
+  - Use when reponse maiking is heavy and takes long time
+  - New thread created per websocket connection
+  
+WEBSOCKET_MULTICAST
+  
+  - One thread manages n websockets connection
+  - Chat room model, all websockets will be managed by single thread
+  - New thread created per chat room
+
+*keep alive timeout* is seconds.
+
+*variable name* is various usage per each design spec.
+
+
+**WEBSOCKET_REQDATA**
+
+Here's a echo app for showing simple request-respone.
+
+Client can connect by ws://localhost:5000/websocket/chat.
+
+*Skitai-Saddle Style*
 
 .. code:: python
 
-    sudo pip install skitai    
-    sudo skitaid.py -v &
-    sudo skitaid.py stop
+  from skitai.saddle import Saddle
+  import skitai
+  
+  app = Saddle (__name__)
+  app.debug = True
+  app.use_reloader = True
 
-    ;if everythig is OK,
-    
-    sudo service skitaid start
-    
-    #For auto run on boot,
-    sudo update-rc.d skitaid defaults
-    or
-    sudo chkconfig skitaid on
-    
+  @app.route ("/websocket/echo")
+  def echo (was, message = ""):
+    if "websocket_init" in was.env:
+      was.env ["websocket_init"] = (skitai.WEBSOCKET_REQDATA, 60, "message")
+      return ""
+    return "ECHO:" + message
 
-**Win32**
+*Flask Style*
 
 .. code:: python
 
-    sudo pip install skitai
-    cd c:\skitaid\bin
-    skitaid.py -v
-    skitaid.py stop (in another command prompt)
+  from flask import Flask, request 
+  import skitai
+  
+  app = Flask (__name__)
+  app.debug = True
+  app.use_reloader = True
+
+  @app.route ("/websocket/echo")
+  def echo ():
+    if "websocket_init" in request.environ:
+      request.environ ["websocket_init"] = (skitai.WEBSOCKET_REQDATA, 60, "message")
+      return ""
+    return "ECHO:" + request.args.get ("message")
+
+In this case, variable name is "message", It means take websocket's message as "message" arg.
+
+
+**WEBSOCKET_DEDICATE**
+
+This app will handle only one websocket client. and if new websocekt connected, will be created new thread.
+
+Client can connect by ws://localhost:5000/websocket/talk?name=Member.
+
+.. code:: python
+
+  @app.route ("/websocket/talk")
+  def talk (was, name):
+    if "websocket_init" in was.env:
+      was.env ["websocket_init"] = (skitai.WEBSOCKET_DEDICATE, 60, None)
+      return ""
     
-    ;if everythig is OK,
+    ws = was.env ["websocket"]
+    while 1:
+      messages = ws.getswait (10)
+      if messages is None:
+        break  
+      for m in messages:
+        if m.lower () == "bye":
+          ws.send ("Bye, have a nice day." + m)
+          ws.close ()
+          break
+        elif m.lower () == "hello":
+          ws.send ("Hello, " + name)        
+        else:  
+          ws.send ("You Said:" + m)
+
+In this case, variable name should be None. If exists, will be ignored.
+
+
+**WEBSOCKET_MULTICAST**
+
+Here's simple mutiuser chatting app.
+
+Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can chat between all clients.
+
+.. code:: python
+
+  @app.route ("/websocket/chat")
+  def chat (was, roomid):
+    if "websocket_init" in was.env:
+      was.env ["websocket_init"] = (skitai.WEBSOCKET_MULTICAST, 60, "roomid")
+      return ""
     
-    install-win32-service.py install
-    
-    #For auto run on boot,
-    install-win32-service.py --startup auto install    
-    install-win32-service.py start
-    
+    ws = was.env ["websocket"]  
+    while 1:
+      messages = ws.getswait (10)
+      if messages is None:
+        break  
+      for client_id, m in messages:
+        ws.sendall ("Client %d Said: %s" % (client_id, m))
+
+In this case, variable name is "roomid", then Skitai will create websocket group seperatly.
 
 
-Requirements
---------------
+You can access all examples by skitai sample app after installing skitai.
 
-**Win 32**
+.. code:: python
 
-- *pywin32 binary* - http://sourceforge.net/projects/pywin32/files/pywin32/Build%20219/
+  sudo skitaid-instance.py -v -f sample
 
-Optional Requirements
-------------------------
+Then goto http://localhost:5000/websocket in your browser.
 
-* Skitaid can find at least one DNS server from system configuration for Async-DNS query. Possibly it is only problem on dynamic IP allocated desktop, then set DNS manually, please.
-
-- *psycopg2* for querying PostgreSQL asynchronously (`win32 binary`_)
-- *Jinja2* for HTML Rendering
-
-.. _`win32 binary`: http://www.stickpeople.com/projects/python/win-psycopg/
 
 
 Project Purpose

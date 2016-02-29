@@ -49,7 +49,8 @@ class	SMTPDeliverAgent:
 		elif req == "shutdown":
 			lifetime.shutdown (0, 0)		
 		elif req == "rotate":
-			self.logger.rotate ()
+			try: self.logger.rotate ()
+			except: self.logger.trace ()
 		else:
 			self.logger ("[error] unknown signal - %s" % req)
 		self.flock.unlock ("signal")

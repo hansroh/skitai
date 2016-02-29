@@ -108,15 +108,19 @@ class SMTPDA (Server):
 		self.backoff_start_time = None
 		self.backoff_interval = 5
 	
+	def get_cmd (self):
+		if os.name == "nt":
+			return "%s %s" % (PYTHON, os.path.join (SKITAI_BIN, "skitaid-smtpda.py"))
+		else:
+			return "%s" % (os.path.join (SKITAI_BIN, "skitaid-smtpda.py"),)		
+	
 	def start (self):
 		self.start_time = time.time ()
-		if os.name == "nt":
-			cmd = "%s %s" % (PYTHON, os.path.join (SKITAI_BIN, "skitaid-smtpda.py"))
-		else:
-			cmd = "%s" % (os.path.join (SKITAI_BIN, "skitaid-smtpda.py"),)
+		cmd = self.get_cmd ()
 				
 		if not IS_SERVICE:
 			cmd += " --verbose"
+			
 		self.logger ("[info] starting server with option: %s" % cmd)
 		if os.name == "nt":
 			self.child = subprocess.Popen (
@@ -132,17 +136,26 @@ class SMTPDA (Server):
 			)
 			
 
+class Cron (SMTPDA):	
+	def get_cmd (self):
+		if os.name == "nt":
+			return "%s %s" % (PYTHON, os.path.join (SKITAI_BIN, "skitaid-cron.py"))
+		else:
+			return "%s" % (os.path.join (SKITAI_BIN, "skitaid-cron.py"),)
+	
+			
 class Servers:
-	BACKOFF_MAX_INTERVAL = 600	
+	BACKOFF_MAX_INTERVAL = 600
 	CLEAN_SHUTDOWNED = {}
 	RESTART_QUEUE = {}
-	DAEMONS = ("smtpda",)
+	DAEMONS = ("smtpda", "cron")
 	
 	def __init__ (self, logger):
 		self.logger = logger
 		self.lock = flock.Lock (LOCKDIR)
 		self.lock.unlockall ()
 		self.a = {}
+		self.req_stop_all = False
 		self.last_slist = []
 	
 	def has_key (self, name):
@@ -190,17 +203,28 @@ class Servers:
 		self.a [name].send_signal (sig)
 		
 	def stop_all (self):
-		global LOOP
-		LOOP = False
-		for name, server in list(self.a.items ()):
-			server.send_stop_signal ()
-
-		if os.name == "posix":
-			try:
-				os.wait ()
-			except OSError:
-				pass
+		global LOOP		
+		if self.req_stop_all:
+			return
 		
+		self.req_stop_all = True			
+		LOOP = False
+		childs = []
+		for name, server in list(self.a.items ()):
+			childs.append (server.child)
+			server.send_stop_signal ()
+		
+		while 1:
+			veto = False
+			for child in childs:
+				veto = (server.child.poll () == None)
+				if veto:
+					time.sleep (1)
+					break
+										
+			if not veto:
+				break
+			
 	def add_server (self, name):		
 		self.a [name] = Server (name, self.logger)
 		self.a [name].start ()
@@ -231,7 +255,20 @@ class Servers:
 		name = "smtpda"
 		self.a [name] = SMTPDA (name, self.logger)
 		self.a [name].start ()
-				
+		
+		name = "cron"
+		self.a [name] = Cron (name, self.logger)
+		self.a [name].start ()
+	
+	def run (self):
+		try:
+			try:
+				self.start ()
+			except:
+				self.logger.trace ()	
+		finally:
+			self.stop_all ()
+		
 	def start (self):
 		self.start_daemons ()
 						
@@ -441,8 +478,8 @@ if __name__ == "__main__":
 			
 	try:
 		pidlock.make ()
-		ServerMamager.start ()
-	finally:		
+		ServerMamager.run ()
+	finally:
 		pidlock.remove ()		
 		if IS_SERVICE:
 			sys.stderr.close ()
