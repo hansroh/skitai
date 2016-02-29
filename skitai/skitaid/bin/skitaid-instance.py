@@ -57,6 +57,12 @@ class	WAS (Skitai.Loader):
 		for sect in list(config.keys ()):
 			if sect.startswith ("@"):
 				name = sect [1:]
+				ctype = config.getopt (sect, "type")
+				if ctpye == "postgresql":
+					try:
+						import psycopg2
+					except ImportError:
+						raise AssertionError ("psycopg2 not installed")
 				assert len (name) > 0, "cluster name should be provided"
 				members = [_f for _f in [x.strip () for x in config.getopt (sect, "members").split (",")] if _f]
 				assert len (members) > 0, "cluster should have al least one member"				
