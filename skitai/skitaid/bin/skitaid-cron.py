@@ -17,6 +17,10 @@ def hTERM (signum, frame):
 	global EXIT_CODE
 	EXIT_CODE = 0
 
+def hHUP (signum, frame):			
+	global EXIT_CODE
+	EXIT_CODE = 3
+
 
 class	CronManager:	
 	def __init__ (self, config, logpath, varpath, consol):
@@ -181,6 +185,7 @@ class	CronManager:
 			
 			signal.signal(signal.SIGTERM, hTERM)
 			signal.signal(signal.SIGQUIT, hTERM)
+			signal.signal(signal.SIGHUP, hHUP)
 		
 	def execute (self, cmd):					
 		self.logger ("[info] job starting: %s" % cmd)
@@ -211,8 +216,8 @@ class	CronManager:
 			for i in range (60):
 				if os.name == "nt" and i % 10 == 0:
 					self.maintern_shutdown_request (now)
-					if EXIT_CODE is not None:
-						break
+				if EXIT_CODE is not None:
+					break
 				time.sleep (1)
 		
 		
