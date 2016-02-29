@@ -537,6 +537,8 @@ Avaliable methods are:
 
 **HTML5 Websocket Request**
 
+*New in version 0.11*
+
 There're 3 Skitai 'was' client-side web socket services:
 
 - was.ws ()
@@ -1044,9 +1046,9 @@ If you want modify Jinja2 envrionment, can through was.app.jinja_env object.
 
 
 
-**Messaging Box API**
+**Messaging Box**
 
-Like Flask's flash feature, Skitai also provide messaging API.
+Like Flask's flash feature, Skitai also provide messaging tool.
 
 .. code:: python  
 
@@ -1465,7 +1467,7 @@ As a result, the app location '/home/user/mydomain.www/wsgi.py' is mounted to 'w
 
 **Job Scheduling**
 
-If your app need some scheduled batch jobs, you can add jobs to skitaid.conf (/etc/skitaid/skitaid.conf or c:\skitaid\etc\skitaid.conf) like this.
+If your app need some scheduled batch jobs, you can use taks scheduling tool of OS - cron, taks scheduler - or can use Skitai's cron service. Add jobs to skitaid.conf (/etc/skitaid/skitaid.conf or c:\\skitaid\\etc\\skitaid.conf) like this.
 
 .. code:: python
 
@@ -1760,7 +1762,7 @@ Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can
       for client_id, m in messages:
         ws.sendall ("Client %d Said: %s" % (client_id, m))
 
-In this case, variable name is "roomid", then Skitai will create websocket group seperatly.
+In this case, variable name is "roomid", then Skitai will create websocket group seperatly by roomid value.
 
 
 You can access all examples by skitai sample app after installing skitai.

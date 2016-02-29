@@ -6,6 +6,7 @@ from skitai.protocol.smtp import composer
 from .dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
 from skitai import DB_PGSQL, DB_SQLITE3
 from . import server_info, http_date
+import os
 import time
 
 try: 
@@ -184,6 +185,9 @@ class WAS:
 		return self.response (status, body, redirect_headers)
 			
 	def email (self, subject, snd, rcpt):
+		if composer.Composer.SAVE_PATH is None:			
+			composer.Composer.SAVE_PATH = os.path.join (self.var_base_path, "daemons", "smtpda", "mail", "spool")
+			pathtool.mkdir (composer.Composer.SAVE_PATH)
 		return composer.Composer (subject, snd, rcpt)
 		
 	def tojson (self, obj):

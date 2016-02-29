@@ -53,6 +53,8 @@ class Loader:
 		self.num_worker = num
 			
 	def WAS_initialize (self):		
+		self.wasc.log_base_path = os.path.split (os.path.split (self.logpath)[0])[0]
+		self.wasc.var_base_path = os.path.split (os.path.split (self.varpath)[0])[0]
 		self.wasc.register ("debug", self.debug)
 		self.wasc.register ("plock", multiprocessing.RLock ())
 		self.wasc.register ("clusters",  {})
