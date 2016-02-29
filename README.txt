@@ -351,7 +351,7 @@ Of cause, if use callback mechanism traditionally used for async call like AJAX,
 
 So next two chapters are 'HTTP/XMLRPC Request' and 'Connecting to DBMS'.
 
-Bottom line, the best coding strategy with Skitai is, *"Async Request Early, Use Result Lately"*.
+Bottom line, the best coding strategy with Skitai is, *"Request Early, Use Lately"*.
 
 
 
@@ -553,7 +553,7 @@ It is desinged as simple & no stateless request-response model using web socket 
   def query (was):
     s = was.ws (
     	"ws://192.168.1.100:5000/websocket/echo", 
-    	json.dumps ({"keyword": "snowboard binding"})
+    	was.tojson ({"keyword": "snowboard binding"})
     )
     rs = s.getwait ()
     result = was.fromjson (rs.data)
@@ -1422,7 +1422,6 @@ Basic configuration is relatively simple, so refer commets of config file. Curre
   num_result_cache_max = 2000
   response_timeout = 10
   keep_alive = 10
-  sessiontimeout = 1200
   
   [routes:line]
   

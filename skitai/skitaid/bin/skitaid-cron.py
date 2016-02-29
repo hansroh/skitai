@@ -55,7 +55,7 @@ class	CronManager:
 	def close (self):
 		self.logger ("[info] trying to kill childs...")
 		self.maintern (time.time (), kill = True)
-		self.logger ("[info] cron closed")
+		self.logger ("[info] service cron stopped")
 	
 	def kill (self, pid, cmd):
 		self.logger ("[info] trying to kill %s (pid: %d)" % (cmd, pid))			
@@ -68,7 +68,7 @@ class	CronManager:
 				
 			except pywintypes.error as why:
 				if why.errno != 87:
-					self.logger ("[error] killing %s(pid:%d) has been failed" % (cmd, pid))
+					self.logger ("[error] killing %s (pid:%d) has been failed" % (cmd, pid))
 					
 		else:
 			child.kill ()			
@@ -76,18 +76,31 @@ class	CronManager:
 	def maintern (self, current_time, kill = False):
 		for pid, (cmd, started, child) in list (self.currents.iteritems ()):			
 			rcode = child.poll ()
+			due = ((current_time - started) * 1000)
+			
+			if due > 60000:
+				due -= 60000				
+			if due > 120000:
+				due = "%2.1f min" % (due / 1000. / 60.,)
+			elif due > 1000:
+				due = "%2.1f sec" % (due / 1000.,)
+			else:
+				due = "%d ms" % due				
+			
 			if rcode is None:
 				if kill:
 					 self.kill (pid, cmd)					 
 					 del self.currents [pid]					 
+				else:
+					self.logger ("[info] %s still running for %s (pid: %d)" % (cmd, due, pid))
 				continue
-			due = ((current_time - started) * 1000) - 60000
-			self.logger ("[info] %s has been finished (run for %d ms, rcode is %d)" % (cmd, due, rcode))
+			
+			self.logger ("[info] %s has been finished after %s (pid: %d run, rcode is %d)" % (cmd, due, pid, rcode))
 			del self.currents [pid]
 		self.last_maintern = time.time ()
 							
 	def run (self):
-		self.logger ("[info] cron started")
+		self.logger ("[info] service cron started")
 		try:
 			try:
 				self.loop ()
@@ -96,26 +109,49 @@ class	CronManager:
 		finally:
 			self.close ()		
 	
-	def parse (self, unitd, until = 60):
+	def parse (self, unitd, umax = 60):
+		#print ("---", unitd)
+		
 		if unitd == "*":
-			return None
+			return []
 						
 		try: 
 			unit, interval = unitd.split ("/", 1)
-		except:
-			units = map (int, unitd.split (","))
+		except ValueError:
+			unit, interval = unitd, 1
 		else:
+			interval = int (interval)
+		
+		have_until = False
+		try:
+			unit, until = unit.split ("-", 1)
+		except ValueError:			
+			until = umax
+		else:
+			have_until = True
+			if unit == "":
+				unit = 0
+			if until == "":
+				until = umax
+			else:										
+				until = int (until) + 1			
+			
+		if interval == 1 and not have_until:
+			units = map (int, unit.split (","))
+					
+		else:	
 			if unit == "*":
 				unit = 0
-			else:
+			else:					
 				unit = int (unit)
-
+				
 			units = []
-			for i in range (unit, until, int (interval)):
+			#print ("+++++", unit, until, interval)
+			for i in range (unit, until, interval):
 				units.append (i)
-		
+	
 		# add sunday (0 or 7)
-		if until == 7 and 0 in units:
+		if umax == 7 and 0 in units:
 			units.append (7)
 			
 		return units
@@ -124,6 +160,8 @@ class	CronManager:
 		mtime = os.path.getmtime (self.confn)
 		
 		if self.confmtime != mtime:
+			if self.confmtime:
+				self.logger ("[error] crontab updated, refreshing...")
 			self.jobs = []				
 			cf = confparse.ConfParse (self.confn)
 			jobs = cf.getopt ("crontab")
@@ -135,14 +173,14 @@ class	CronManager:
 					continue
 				
 				try:
-					self.jobs.append ((
+					job = (
 						self.parse (args [0], 60),
 						self.parse (args [1], 24),
 						self.parse (args [2], 31),
 						self.parse (args [3], 12),
 						self.parse (args [4], 7),
 						args [5]
-					))
+					)					
 				
 				except ValueError:
 					self.logger ("[error] invalid cron command %s" % (args,))
@@ -151,9 +189,13 @@ class	CronManager:
 				except:
 					self.logger.trace ()
 					continue	
-		
+				
+				else:
+					self.jobs.append (job)
+					self.logger ("[info] job added %s" % str (job))
+					
 		now = datetime.now ().timetuple ()	
-		for m, h, d, M, w, cmd in self.jobs:
+		for m, h, d, M, w, cmd in self.jobs:			
 			if M and now.tm_mon not in M:
 				continue
 			if w and now.tm_wday + 1 not in w:
@@ -188,7 +230,7 @@ class	CronManager:
 			signal.signal(signal.SIGHUP, hHUP)
 		
 	def execute (self, cmd):					
-		self.logger ("[info] job starting: %s" % cmd)
+		self.logger ("[info] starting job %s" % cmd)
 		if os.name == "nt":
 			child = subprocess.Popen (
 				cmd, 
@@ -202,7 +244,7 @@ class	CronManager:
 				shell = True
 			)
 		
-		self.logger ("[info] job started (pid: %d): %s" % (child.pid, cmd))
+		self.logger ("[info] job started %s with pid %d" % (cmd, child.pid))
 		self.currents [child.pid] = (cmd, time.time (), child)
 	
 	def loop (self):

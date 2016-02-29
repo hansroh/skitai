@@ -60,10 +60,10 @@ class	SMTPDeliverAgent:
 			self.shutdown_in_progress = True
 	
 	def close (self):
-		self.logger ("[info] smtpda closed")
+		self.logger ("[info] service smtpda stopped")
 						
 	def run (self):
-		self.logger ("[info] smtpda started")
+		self.logger ("[info] service smtpda started")
 		try:
 			try:
 				lifetime.loop (3.0)
