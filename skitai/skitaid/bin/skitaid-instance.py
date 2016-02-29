@@ -58,7 +58,7 @@ class	WAS (Skitai.Loader):
 			if sect.startswith ("@"):
 				name = sect [1:]
 				ctype = config.getopt (sect, "type")
-				if ctpye == "postgresql":
+				if ctype == "postgresql":
 					try:
 						import psycopg2
 					except ImportError:
