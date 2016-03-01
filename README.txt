@@ -10,6 +10,8 @@ License: BSD
 Changes
 ----------
 
+- batch task scheduling added
+- e-mail sending fixed
 - was.session.getv () added
 - was.response spec. changed
 - SQLite3 DB connection added
@@ -1439,6 +1441,8 @@ Here's configs required your carefulness.
 
 **Mounting With Virtual Host**
 
+*New in version 0.10.5*
+
 App can be mounted with virtual host.
 
 .. code:: python
@@ -1459,14 +1463,14 @@ App can be mounted with virtual host.
   / = home/user/mydomain.any/static 
   / = home/user/mydomain.any/wsgi:app 
 
-`New in version 0.10.5`
-
 As a result, the app location '/home/user/mydomain.www/wsgi.py' is mounted to 'www.mydomain.com/service' and 'mydomain.com/service'.
 
 
-**Job Scheduling**
+**Batch Task Scheduling**
 
-If your app need some scheduled batch jobs, you can use taks scheduling tool of OS - cron, taks scheduler - or can use Skitai's cron service. Add jobs to skitaid.conf (/etc/skitaid/skitaid.conf or c:\\skitaid\\etc\\skitaid.conf) like this.
+*New in version 0.14.5*
+
+Sometimes app need batch tasks for minimum response time to clients. At this situateion, you can use taks scheduling tool of OS - cron, taks scheduler - or can use Skitai's batch task scheduling service for consistent app management. for this, add jobs configuration to skitaid.conf (/etc/skitaid/skitaid.conf or c:\\skitaid\\etc\\skitaid.conf) like this.
 
 .. code:: python
 

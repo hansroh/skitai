@@ -118,43 +118,49 @@ class	CronManager:
 		try: 
 			unit, interval = unitd.split ("/", 1)
 		except ValueError:
-			unit, interval = unitd, 1
+			unit, interval = unitd, 0
 		else:
 			interval = int (interval)
-		
-		have_until = False
-		try:
-			unit, until = unit.split ("-", 1)
-		except ValueError:			
-			until = umax
-		else:
-			have_until = True
-			if unit == "":
-				unit = 0
-			if until == "":
-				until = umax
-			else:										
-				until = int (until) + 1			
-			
-		if interval == 1 and not have_until:
-			units = map (int, unit.split (","))
-					
-		else:	
+			if interval == 1 and unit in "0*":
+				return []			
 			if unit == "*":
-				unit = 0
-			else:					
-				unit = int (unit)
-				
-			units = []
-			#print ("+++++", unit, until, interval)
-			for i in range (unit, until, interval):
-				units.append (i)
-	
+				unit = "0"								
+			if interval > umax / 2.:
+				raise ValueError ("interval %d is too big" % interval)
+		
+		units = {}
+		_all = unit.split (",")
+		_all_len = len (_all)
+		
+		for subunit in _all:
+			if subunit.find ("-") == -1:
+				if interval == 0 or _all_len > 1:
+					units [int (subunit)] = None
+				else:	
+					for i in range (int (subunit), umax, interval):
+						units [i] = None
+						
+			else:
+				a, b = subunit.split ("-", 1)
+				if a == "":
+					a = 0
+				else:
+					a = int (a)
+				if b == "":
+					b = umax			
+				else:	
+					b = int (b) + 1
+				for i in range (a, b, interval == 0 and 1 or interval):
+					units [i] = None
+		
 		# add sunday (0 or 7)
 		if umax == 7 and 0 in units:
-			units.append (7)
+			del units [0]
+			units [7] = None
 			
-		return units
+		r = list (units.iterkeys ())
+		r.sort ()
+		return r
 	
 	def update_jobs (self):
 		mtime = os.path.getmtime (self.confn)
@@ -182,8 +188,8 @@ class	CronManager:
 						args [5]
 					)					
 				
-				except ValueError:
-					self.logger ("[error] invalid cron command %s" % (args,))
+				except ValueError as why:
+					self.logger ("[error] %s, %s" % (args [5], why))
 					continue	
 					
 				except:
