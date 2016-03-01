@@ -131,28 +131,28 @@ class WAS:
 		
 		return getattr (self, "_" + fn) (command, *args, **karg)
 	
-	def _rest (self, method, uri, data = None, auth = None, headers = None, filter = None, encoding = None):
+	def _rest (self, method, uri, data = None, auth = None, headers = None, use_cache = True, filter = None, encoding = None):
 		#auth = (user, password)
-		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, headers, auth, encoding, mapreduce = False, callback = filter)
+		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, headers, auth, encoding, use_cache, mapreduce = False, callback = filter)
 			
-	def _map (self, method, uri, data = None, auth = None, headers = None, filter = None, encoding = None):		
+	def _map (self, method, uri, data = None, auth = None, headers = None, use_cache = True, filter = None, encoding = None):		
 		clustername, uri = self.__detect_cluster (uri)		
-		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, auth, encoding, mapreduce = True, callback = filter)
+		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, auth, encoding, use_cache, mapreduce = True, callback = filter)
 	
-	def _lb (self, method, uri, data = None, auth = None, headers = None, filter = None, encoding = None):
+	def _lb (self, method, uri, data = None, auth = None, headers = None, use_cache = True, filter = None, encoding = None):
 		clustername, uri = self.__detect_cluster (uri)
-		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, auth, encoding, mapreduce = False, callback = filter)
+		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, auth, encoding, use_cache, mapreduce = False, callback = filter)
 	
-	def _ddb (self, server, dbname, user = "", password = "", dbtype = "postgresql", filter = None):
-		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, user, password, dbtype, mapreduce = False, callback = filter)
+	def _ddb (self, server, dbname, user = "", password = "", dbtype = "postgresql", use_cache = True, filter = None):
+		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, user, password, dbtype, use_cache, mapreduce = False, callback = filter)
 	
-	def _dlb (self, clustername, filter = None):
+	def _dlb (self, clustername, use_cache = True, filter = None):
 		clustername = self.__detect_cluster (clustername) [0]
-		return self.clusters_for_distcall [clustername].Server (mapreduce = False, callback = filter)
+		return self.clusters_for_distcall [clustername].Server (use_cache = use_cache, mapreduce = False, callback = filter)
 	
-	def _dmap (self, clustername, filter = None):
+	def _dmap (self, clustername, use_cache = True, filter = None):
 		clustername = self.__detect_cluster (clustername) [0]
-		return self.clusters_for_distcall [clustername].Server (mapreduce = True, callback = filter)
+		return self.clusters_for_distcall [clustername].Server (use_cache = use_cache, mapreduce = True, callback = filter)
 	
 	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		if _do_not_use_this_variable_name_: 

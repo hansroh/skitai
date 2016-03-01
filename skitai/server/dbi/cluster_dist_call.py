@@ -129,6 +129,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		user, 
 		password,
 		dbtype,
+		use_cache,
 		mapreduce,
 		callback,
 		logger
@@ -141,6 +142,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		self.password = password
 		self.dbtype = dbtype
 		
+		self._use_cache = use_cache		
 		self._callback = callback		
 		self._mapreduce = mapreduce		
 		self._cluster = cluster
@@ -182,7 +184,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 	def _request (self, sql):
 		self._cached_request_args = (sql,) # backup for retry
 		
-		if rcache.the_rcache:
+		if self._use_cache and rcache.the_rcache:
 			self._cached_result = rcache.the_rcache.get (self.get_ident ())
 			if self._cached_result is not None:
 				return
@@ -220,9 +222,9 @@ class ClusterDistCallCreator:
 	def __getattr__ (self, name):	
 		return getattr (self.cluster, name)
 		
-	def Server (self, server = None, dbname = None, user = None, password = None, dbtype = None, mapreduce = False, callback = None):
+	def Server (self, server = None, dbname = None, user = None, password = None, dbtype = None, use_cache = True, mapreduce = False, callback = None):
 		# reqtype: xmlrpc, rpc2, json, jsonrpc, http
-		return ClusterDistCall (self.cluster, server, dbname, user, password, dbtype, mapreduce, callback, self.logger)
+		return ClusterDistCall (self.cluster, server, dbname, user, password, dbtype, use_cache, mapreduce, callback, self.logger)
 
 
 		

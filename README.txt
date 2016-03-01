@@ -10,7 +10,7 @@ License: BSD
 Changes
 ----------
 
-- batch task scheduling added
+- batch task scheduler added
 - e-mail sending fixed
 - was.session.getv () added
 - was.response spec. changed
@@ -439,13 +439,13 @@ Here's XMLRPC request for example:
 
 Avaliable methods are:
 
-- was.get (url, auth = (username, password))
-- was.post (url, data = data, auth = (username, password))
-- was.rpc (url, auth = (username, password)) # XMLRPC
-- was.ws (url, data, auth = (username, password)) # Web Socket
-- was.put (url, data = data, auth = (username, password))
-- was.delete (url)
-- was.upload (url, data, auth = (username, password)) # For clarity to multipart POST
+- was.get (url, data = None, auth = (username, password), headers = [(name, value), ...], use_cache = True)
+- was.post (url, data, auth, headers, use_cache)
+- was.rpc (url, data, auth, headers, use_cache) # XMLRPC
+- was.ws (url, data, auth, headers, use_cache) # Web Socket
+- was.put (url, data, auth, headers, use_cache)
+- was.delete (url, data, auth, headers, use_cache)
+- was.upload (url, data, auth, headers, use_cache) # For clarity to multipart POST
 
 
 **Load-Balancing**
@@ -582,7 +582,20 @@ Every results returned by getwait(), getswait() can cache.
 
 Although code == 200 alredy implies status == 3, anyway if status is not 3, cache() will be ignored. If cached, it wil return cached result for 60 seconds.
 
+For expiring cached result by updating new data:
 
+.. code:: python
+  
+  refreshed = False
+  if was.request.command == "post":
+    ...
+    refreshed = True
+  
+  s = was.rpc.lb ("@mysearch/rpc2", use_cache = not refreshed and True or False)
+  result = s.getwait (2)
+  if result.code == 200:
+  	result.cache (60) # 60 seconds  
+    
 
 Connecting to DBMS
 ---------------------
@@ -654,10 +667,12 @@ Add mydb members to config file.
 
 Avaliable methods are:
 
-- was.db ("127.0.0.1:5432", "mydb", "postgres", "password")
-- was.db ("@mydb")
-- was.db.lb ("@mydb")
-- was.db.map ("@mydb")
+- was.db (server, dbname, user, password, dbtype = "postgresql", use_cache = True)
+- was.db.lb (server, dbname, user, password, dbtype = "postgresql", use_cache = True)
+- was.db.map (server, dbname, user, password, dbtype = "postgresql", use_cache = True)
+- was.db ("@mydb", use_cache = True)
+- was.db.lb ("@mydb", use_cache = True)
+- was.db.map ("@mydb", use_cache = True)
 
 *Note:* if @mydb member is only one, was.db.lb ("@mydb") is equal to was.db ("@mydb").
 
@@ -722,6 +737,20 @@ Same as HTTP/RPC, every results returned by getwait(), getswait() can cache.
   
 If result or one of results has status != 3, cache() will be ignored.
 
+For expiring cached result by updating new data:
+
+.. code:: python
+  
+  has_new_data = False
+  if was.request.command == "post":
+    ...
+    has_new_data = True
+  
+  s = was.db.lb ("@mydb", use_cache = not has_new_data and True or False)
+  s.execute ("select ...")
+  result = s.getwait (2)
+  result.cache (60)
+  	
 
 Other Utility Service of 'was'
 -----------------------------------
@@ -1466,7 +1495,7 @@ App can be mounted with virtual host.
 As a result, the app location '/home/user/mydomain.www/wsgi.py' is mounted to 'www.mydomain.com/service' and 'mydomain.com/service'.
 
 
-**Batch Task Scheduling**
+**Batch Task Scheduler**
 
 *New in version 0.14.5*
 

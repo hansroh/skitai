@@ -149,7 +149,8 @@ class ClusterDistCall:
 		reqtype = "get",
 		headers = None,
 		auth = None,
-		encoding = None,		
+		encoding = None,	
+		use_cache = False,	
 		mapreduce = True,
 		callback = None,
 		logger = None
@@ -163,6 +164,7 @@ class ClusterDistCall:
 			
 		self._auth = auth
 		self._encoding = encoding
+		self._use_cache = use_cache
 		self._mapreduce = mapreduce
 		self._callback = callback
 		self._logger = logger
@@ -209,7 +211,7 @@ class ClusterDistCall:
 		
 	def _request (self, method, params):
 		self._cached_request_args = (method, params) # backup for retry
-		if rcache.the_rcache:
+		if self._use_cache and rcache.the_rcache:
 			self._cached_result = rcache.the_rcache.get (self.get_ident ())
 			if self._cached_result is not None:
 				return
@@ -329,9 +331,9 @@ class ClusterDistCallCreator:
 	def __getattr__ (self, name):	
 		return getattr (self.cluster, name)
 		
-	def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, encoding = None, mapreduce = False, callback = None):
+	def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, encoding = None, use_cache = True, mapreduce = False, callback = None):
 		# reqtype: rpc, get, post, head, put, delete
-		return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, encoding, mapreduce, callback, self.logger)
+		return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, encoding, use_cache, mapreduce, callback, self.logger)
 		
 	
 if __name__ == "__main__":
