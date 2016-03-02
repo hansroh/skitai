@@ -202,24 +202,25 @@ Usage:
 	skitaid-smtpda.py [options...]
 
 Options:
-	--conf or -f [ea]/yekeulus
+	--log or -l: print log
 	--verbose or -v
+	--help or -h
 
 Examples:
-	ex. skitaid-smtpda.py -v -f default
-	ex. skitaid-smtpda.py -f default	
+	ex. skitaid-smtpda.py -l
+	ex. skitaid-smtpda.py -v
 	""")
 
 
 if __name__ == "__main__":
-	argopt = getopt.getopt(sys.argv[1:], "hvs", ["help", "verbose", "status"])
+	argopt = getopt.getopt(sys.argv[1:], "hvl", ["help", "verbose", "log"])
 	_varpath = None
 	_consol = False
-	_status = False
+	_log = False
 	
 	for k, v in argopt [0]:
-		if k == "--staus" or k == "-s":
-			_status = True
+		if k == "--log" or k == "-l":
+			_log = True
 		elif k == "--verbose" or k == "-v":	
 			_consol = True
 		elif k == "--help" or k == "-h":	
@@ -231,10 +232,8 @@ if __name__ == "__main__":
 	_varpath = os.path.join (skitaid.VARDIR, "daemons", "smtpda")
 	_logpath = os.path.join (skitaid.LOGDIR, "daemons", "smtpda")
 	
-	if _status:
-		print ("=" * 40)
-		print ("Skitai SMTP Delivery Agent Status")
-		print ("=" * 40)
+	if _log:		
+		skitaid.printlog (os.path.join (_logpath, "smtpda.log"))
 		sys.exit (0)
 		
 	lck = flock.Lock (os.path.join (_varpath, "lock"))

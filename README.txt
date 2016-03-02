@@ -584,6 +584,8 @@ Although code == 200 alredy implies status == 3, anyway if status is not 3, cach
 
 For expiring cached result by updating new data:
 
+*New in version 0.14.9*
+
 .. code:: python
   
   refreshed = False
@@ -738,6 +740,8 @@ Same as HTTP/RPC, every results returned by getwait(), getswait() can cache.
 If result or one of results has status != 3, cache() will be ignored.
 
 For expiring cached result by updating new data:
+
+*New in version 0.14.9*
 
 .. code:: python
   

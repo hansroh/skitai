@@ -162,27 +162,34 @@ Usage:
 
 Options:
 	--conf or -f [ea]/yekeulus
-	--verbose or -v
+	--verbose or -v	
+	--test: test configuration file
+	--log=[server|app|request|stderr]: print log
+	--help or -h
 
 Examples:
-	ex. skitaid-instance.py -v -f default
-	ex. skitaid-instance.py -f default	
+	skitaid-instance.py -v -f default
+	skitaid-instance.py -f default	
+	skitaid-instance.py -f default -l server	
 	""")
 
 
 if __name__ == "__main__":
-	argopt = getopt.getopt(sys.argv[1:], "f:hvtp", ["help", "conf=", "verbose", "test", "profile"])
+	argopt = getopt.getopt(sys.argv[1:], "f:hvtpl:", ["help", "conf=", "verbose", "test", "profile", "log="])
 	_conf = ""
 	_varpath = None
 	_consol = False
 	_test = False
 	_profile = False
+	_log = False
 	
 	for k, v in argopt [0]:
 		if k == "--conf" or k == "-f":
 			_conf = v
 		elif k == "--verbose" or k == "-v":	
 			_consol = True
+		elif k == "--log" or k == "-l":	
+			_log = v	
 		elif k == "--profile" or k == "-p":	
 			_profile = True	
 		elif k == "--test" or k == "-t":	
@@ -216,6 +223,15 @@ if __name__ == "__main__":
 	_varpath = os.path.join (skitaid.VARDIR, "instances", name)
 	_logpath = os.path.join (skitaid.LOGDIR, "instances", name)
 	
+	if _log:
+		if _log not in ("server", "request", "app", "stderr"):
+			print("[error] no such log file '%s', should be one of server, app, request, stderr" % _log)
+			usage ()
+			sys.exit (1)
+						
+		skitaid.printlog (os.path.join (_logpath, "%s.log" % _log))
+		sys.exit (0)
+		
 	if not (os.path.isfile (_config) or os.path.islink (_config)):
 		print("[error] no server config file")
 		usage ()
@@ -265,3 +281,4 @@ if __name__ == "__main__":
 		else: # worker process
 			sys.exit (lifetime._exit_code)
 	
+

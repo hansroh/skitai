@@ -58,7 +58,7 @@ class	CronManager:
 		self.logger ("[info] service cron stopped")
 	
 	def kill (self, pid, cmd):
-		self.logger ("[info] trying to kill %s (pid: %d)" % (cmd, pid))			
+		self.logger ("[info] trying to kill pid:%d %s" % (pid, cmd))			
 		if os.name == "nt":
 			import win32api, win32con, pywintypes
 			try:
@@ -68,7 +68,7 @@ class	CronManager:
 				
 			except pywintypes.error as why:
 				if why.errno != 87:
-					self.logger ("[error] killing %s (pid:%d) has been failed" % (cmd, pid))
+					self.logger ("[error] failed killing job pid:%d %s" % (pid, cmd))
 					
 		else:
 			child.kill ()			
@@ -92,10 +92,10 @@ class	CronManager:
 					 self.kill (pid, cmd)					 
 					 del self.currents [pid]					 
 				else:
-					self.logger ("[info] %s still running for %s (pid: %d)" % (cmd, due, pid))
+					self.logger ("[info] job still running pid:%d for %s, %s" % (pid, due, cmd))
 				continue
 			
-			self.logger ("[info] %s has been finished after %s (pid: %d run, rcode is %d)" % (cmd, due, pid, rcode))
+			self.logger ("[info] job has been finished pid:%d with rcode:%d for %s, %s" % (pid, rcode, due, cmd))
 			del self.currents [pid]
 		self.last_maintern = time.time ()
 							
@@ -236,7 +236,6 @@ class	CronManager:
 			signal.signal(signal.SIGHUP, hHUP)
 		
 	def execute (self, cmd):					
-		self.logger ("[info] starting job %s" % cmd)
 		if os.name == "nt":
 			child = subprocess.Popen (
 				cmd, 
@@ -250,7 +249,7 @@ class	CronManager:
 				shell = True
 			)
 		
-		self.logger ("[info] job started %s with pid %d" % (cmd, child.pid))
+		self.logger ("[info] job started with pid:%d %s" % (child.pid, cmd))
 		self.currents [child.pid] = (cmd, time.time (), child)
 	
 	def loop (self):
@@ -275,25 +274,25 @@ Usage:
 	skitaid-cron.py [options...]
 
 Options:
-	--help or -h
-	--status or -s	
+	--log or -l: print log
 	--verbose or -v
+	--help or -h
 
 Examples:
 	ex. skitaid-cron.py -v
-	ex. skitaid-cron.py -s
+	ex. skitaid-cron.py -l
 	""")
 
 
 if __name__ == "__main__":
-	argopt = getopt.getopt(sys.argv[1:], "hvs", ["help", "verbose", "status"])
+	argopt = getopt.getopt(sys.argv[1:], "hvl", ["help", "verbose", "log"])
 	_varpath = None
 	_consol = False
-	_status = False
+	_log = False
 	
 	for k, v in argopt [0]:
-		if k == "--staus" or k == "-s":
-			_status = True
+		if k == "--log" or k == "-l":
+			_log = True
 		elif k == "--verbose" or k == "-v":	
 			_consol = True
 		elif k == "--help" or k == "-h":	
@@ -304,10 +303,9 @@ if __name__ == "__main__":
 	_config = skitaid.cf
 	_varpath = os.path.join (skitaid.VARDIR, "daemons", "cron")
 	_logpath = os.path.join (skitaid.LOGDIR, "daemons", "cron")
-	if _status:
-		print ("=" * 40)
-		print ("Skitai Cron Status")
-		print ("=" * 40)
+	
+	if _log:
+		skitaid.printlog (os.path.join (_logpath, "cron.log"))
 		sys.exit (0)
 		
 	lck = flock.Lock (os.path.join (_varpath, "lock"))

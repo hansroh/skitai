@@ -9,6 +9,14 @@ import time
 from skitai.lib import confparse, logger, flock, pathtool
 import time
 
+
+def printlog (path):
+	import codecs
+	with codecs.open (path, "r") as f:
+		data = f.read ()		
+	print (data)	
+	print ("@ %s" % path)
+	
 cf = confparse.ConfParse ()
 if os.name == "nt":
 	CONFIGPATH = r"c:\skitaid\etc"	
@@ -329,6 +337,7 @@ Usage:
 Options:
 	--verbose or -v : verbiose (default run as service)
 	--name or -n [server name]
+	--log or -l: print log
 	--command or -k	[command]	
 		command is one of below:
 			restart
@@ -389,8 +398,8 @@ if __name__ == "__main__":
 	import getopt	
 	optlist, args = getopt.getopt(
 		sys.argv[1:], 
-		"n:k:hv", 
-		["help", "verbose", "name=", "--command"]
+		"n:k:hvl", 
+		["help", "verbose", "name=", "command", "log"]
 	)
 	
 	# send signal to skitai
@@ -422,6 +431,7 @@ if __name__ == "__main__":
 	IS_SERVICE = True
 	name = ""
 	command = ""
+	_log = False
 	for k, v in optlist:
 		if k == "--verbose" or k == "-v":
 			IS_SERVICE = False
@@ -429,6 +439,8 @@ if __name__ == "__main__":
 			name = v
 		elif k == "--command" or k == "-k":
 			command = v
+		elif k == "--log" or k == "-l":
+			_log = True
 		elif k == "--help" or k == "-h":
 			usage ()
 			sys.exit ()
@@ -455,6 +467,10 @@ if __name__ == "__main__":
 	l = logger.multi_logger ()
 	l.add_logger (logger.rotate_logger (LOGDIR, "skitaid", "monthly"))
 	
+	if _log:		
+		printlog (os.path.join (LOGDIR, "skitaid.log"))
+		sys.exit (0)
+		
 	def hTERM (signum, frame):
 		ServerMamager.stop_all ()
 	
