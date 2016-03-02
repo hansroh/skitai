@@ -11,11 +11,23 @@ import time
 
 
 def printlog (path):
+	if not os.path.isfile (path):
+		print ("- log file not found\n- %s" % path)
+		
 	import codecs
+	size = os.path.getsize (path)
 	with codecs.open (path, "r") as f:
+		p = size - 16384
+		if p < -1:
+			p = 0
+		f.seek (p)
 		data = f.read ()		
-	print (data)	
-	print ("@ %s" % path)
+	print ("..." + data)	
+	if p:
+		print ("\n- displayed last 16Kb of %dKb" % (size/1024.,))
+	else:
+		print ("\n- displayed all of %dKb" % (size/1024.,))	
+	print ("- %s" % path)	
 	
 cf = confparse.ConfParse ()
 if os.name == "nt":
@@ -332,29 +344,33 @@ class Servers:
 def usage ():
 	print("""
 Usage:
-	skitaid.py [stop|rotate] [options...]
+	skitaid.py [options...] [command]
 
 Options:
-	--verbose or -v : verbiose (default run as service)
-	--name or -n [server name]
-	--log or -l: print log
-	--command or -k	[command]	
-		command is one of below:
-			restart
-			shutdown
-			terminate
-			rotate
-			restart-all
-			shutdown-all
-			terminate-all
-			rotate-all
+	--verbose or -v : verbose mode (default run as service)
+	--config or -f [server name]	
+	--log-suffix or -s [log file suffix]
+		
+Command:
+	if -f or --config is given:
+	  [ restart | shutown | terminate | roate | log ]
+	  
+	else:
+	  skitaid.py control commands
+	    [ start | stop | log | rotate ]
+	    if command is not given, assumed 'start'
+	    
+	  command for all skitaid instances except smtpda and cron daemons
+	    [ restart-all | shutown-all | terminate-all | roate-all ]
 
 Examples:
-	ex. skitaid.py : run as service
+	ex. skitaid.py
 	ex. skitaid.py --verbose
 	ex. skitaid.py stop
-	ex. skitaid.py -k shutdown -n (server-name) 
-	ex. skitaid.py -k restart-all
+	ex. skitaid.py -f sample shutdown
+	ex. skitaid.py restart-all
+	ex. skitaid.py -f cron log
+	ex. skitaid.py -f sample -s request log
 	""")
 
 def _touch (req, name):
@@ -398,106 +414,130 @@ if __name__ == "__main__":
 	import getopt	
 	optlist, args = getopt.getopt(
 		sys.argv[1:], 
-		"n:k:hvl", 
-		["help", "verbose", "name=", "command", "log"]
+		"f:n:hvls:", 
+		["help", "verbose", "name=", "config=", "log-suffix="]
 	)
 	
 	# send signal to skitai
 	lck = flock.Lock (LOCKDIR)
 	pidlock = lck.get_pidlock ()
-	if args:
-		if not pidlock.isalive ():
-			print("[error] not running")
-			sys.exit (1)
-			
-		if "stop" in args:		
-			if os.name == "nt":
-				lck.lock ("signal", "shutdown")
-			else:
-				os.kill (pidlock.getpid (), signal.SIGTERM)
-			exit (0)
-		
-		elif "rotate" in args:		
-			if os.name == "nt":
-				flock.Lock (LOCKDIR).lock ("signal", "rotate")
-			else:
-				os.kill (pidlock.getpid (), signal.SIGUSR1)
-			exit (0)	
-		
-		else:
-			print("[error] unknown argument")
-			sys.exit (1)
-			
+	
 	IS_SERVICE = True
 	name = ""
-	command = ""
-	_log = False
+	suffix = "server"
 	for k, v in optlist:
 		if k == "--verbose" or k == "-v":
 			IS_SERVICE = False
-		elif k == "--name" or k == "-n":
-			name = v
-		elif k == "--command" or k == "-k":
-			command = v
-		elif k == "--log" or k == "-l":
-			_log = True
+		elif k == "--config" or k == "-f" or k == "--name" or k == "-n":
+			name = v		
+		elif k == "--log-suffix" or k == "-s":	
+			suffix = v
 		elif k == "--help" or k == "-h":
 			usage ()
 			sys.exit ()
 	
-	if not command and pidlock.isalive ():
-		print("[error] already running")
-		sys.exit (1)
-	
-	# send signal to sub servers
-	if command:		
-		if not pidlock.isalive ():
-			print("[error] not running")
-			sys.exit (1)
-					
-		if not command.endswith ("-all") and not name:
-			print("[error] server name must defined. use --name or -n")
-			sys.exit (1)
-		
-		if command.endswith ("-all"):
-			command	= command [:-4]
-		touch (command, name)		
-		sys.exit ()
-	
-	l = logger.multi_logger ()
-	l.add_logger (logger.rotate_logger (LOGDIR, "skitaid", "monthly"))
-	
-	if _log:		
-		printlog (os.path.join (LOGDIR, "skitaid.log"))
-		sys.exit (0)
-		
-	def hTERM (signum, frame):
-		ServerMamager.stop_all ()
-	
-	def hUSR1 (signum, frame):
-		ServerMamager.rotate ()
-		
-	ServerMamager = Servers (l)
-	if os.name == "nt":
-		signal.signal(signal.SIGBREAK, hTERM)
-	else:
-		signal.signal(signal.SIGTERM, hTERM)
-		signal.signal(signal.SIGUSR1, hUSR1)
-	
-	if IS_SERVICE:
-		from skitai.lib import devnull
-		sys.stdout = devnull.devnull ()
-		sys.stderr = open (os.path.join (LOGDIR, "stderr.log"), "a")
-
-	else:		
-		l.add_logger (logger.screen_logger ())
-			
 	try:
-		pidlock.make ()
-		ServerMamager.run ()
-	finally:
-		pidlock.remove ()		
-		if IS_SERVICE:
-			sys.stderr.close ()
+		command = args [0]
+	except IndexError:
+		command = ""		
+	
+	if name or (not name and command.endswith ("-all")):
+		if command == "log":
+			if not name:
+				print("[error] for displaying logs, need instance name" % name)
+				sys.exit (1)
+			
+			if name in ("smtpda", "cron"):
+				printlog (os.path.join (LOGDIR, "daemons", name, "%s.log" % name))
+			else:				
+				printlog (os.path.join (LOGDIR, "instances", name, "%s.log" % suffix))
+			sys.exit (0)
+			
+		if not pidlock.isalive ():
+			print("[error] skitaid not running")
+			sys.exit (1)
+			
+		if not command:		
+			print("[error] command required for %s instance" % name)
+			sys.exit (1)
+		
+		# send signal to sub servers
+		else:
+			if command.endswith ("-all"):
+				if name:
+					print("[error] cannot run with -f or --config")
+					sys.exit (1)
+					
+				command	= command [:-4]
+			touch (command, name)		
+			sys.exit ()
+		
+	else:
+		if command == "":
+			command = "start"
+		
+		if command != "start":
+			if command == "log":		
+				printlog (os.path.join (LOGDIR, "skitaid.log"))
+				sys.exit (0)
+				
+			if not pidlock.isalive ():
+				print("[error] skitaid not running")
+				sys.exit (1)
+				
+			elif command == "stop":		
+				if os.name == "nt":
+					lck.lock ("signal", "shutdown")
+				else:
+					os.kill (pidlock.getpid (), signal.SIGTERM)
+				exit (0)
+			
+			elif command == "rotate":		
+				if os.name == "nt":
+					flock.Lock (LOCKDIR).lock ("signal", "rotate")
+				else:
+					os.kill (pidlock.getpid (), signal.SIGUSR1)
+				exit (0)	
+			
+			else:
+				print("[error] unknown command '%s'" % command)
+				sys.exit (1)
+		
+		else:
+			if pidlock.isalive ():
+				print("[error] skitaid already running")
+				sys.exit (1)
+				
+			l = logger.multi_logger ()
+			l.add_logger (logger.rotate_logger (LOGDIR, "skitaid", "monthly"))
+				
+			def hTERM (signum, frame):
+				ServerMamager.stop_all ()
+			
+			def hUSR1 (signum, frame):
+				ServerMamager.rotate ()
+				
+			ServerMamager = Servers (l)
+			if os.name == "nt":
+				signal.signal(signal.SIGBREAK, hTERM)
+			else:
+				signal.signal(signal.SIGTERM, hTERM)
+				signal.signal(signal.SIGUSR1, hUSR1)
+			
+			if IS_SERVICE:
+				from skitai.lib import devnull
+				sys.stdout = devnull.devnull ()
+				sys.stderr = open (os.path.join (LOGDIR, "stderr.log"), "a")
+		
+			else:		
+				l.add_logger (logger.screen_logger ())
+					
+			try:
+				pidlock.make ()
+				ServerMamager.run ()
+			finally:
+				pidlock.remove ()		
+				if IS_SERVICE:
+					sys.stderr.close ()
 		
 		

@@ -246,7 +246,7 @@ if __name__ == "__main__":
 	pidlock = lck.get_pidlock ()
 	
 	if pidlock.isalive ():
-		print("[error] already running")
+		print("[error] instance '%s' already running" % _config)
 		sys.exit (1)
 	
 	pathtool.mkdir (_logpath)

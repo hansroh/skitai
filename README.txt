@@ -10,6 +10,7 @@ License: BSD
 Changes
 ----------
 
+- changed skitaid.py command line options, see 'skitaid.py --help'
 - batch task scheduler added
 - e-mail sending fixed
 - was.session.getv () added
