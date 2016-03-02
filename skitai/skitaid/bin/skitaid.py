@@ -393,7 +393,7 @@ def _touch (req, name):
 	if os.name == "nt":		
 		flock.Lock (lockpath).lock ("signal", req)
 	else:
-		pid	 = flock.PidFile (lockpath).getpid ()
+		pid	 = flock.PidFile (lockpath).getpid ("skitaid")
 		if pid is None and req == "restart":
 			flock.Lock (lockpath).lock ("signal", req)
 		else:
