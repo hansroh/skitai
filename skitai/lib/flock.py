@@ -64,14 +64,14 @@ class PidFile:
 		if os.path.isfile (pidfile):
 			os.remove (pidfile)
 		
-	def getpid (self):
+	def getpid (self, match = None):
 		pidfile = os.path.join (self.path, "pid")
 		if os.path.isfile (pidfile):
 			f = open (pidfile)
 			pid = f.read ()
 			f.close ()
 			pid = int (pid)
-			if isCurrentProcess (pid):
+			if isCurrentProcess (pid, match):
 				return pid
 		return None
 			
