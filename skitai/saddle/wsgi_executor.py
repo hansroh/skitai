@@ -31,23 +31,12 @@ class Executor:
 		self.env = env	
 		self.get_method = get_method
 		self.was = None
-	
-	def exec_chain (self, func, first_expt = None):
-		try:
-			func (self.was)		
-		except Exception as expt:
-			self.was.logger.trace ("app")
-			if first_expt is None: 
-				return sys.exc_info ()		
-		return first_expt
 				
 	def chained_exec (self, method, args, karg):
 		# recursive before, after, teardown
 		# [b, [b, [b, func, s, f, t], s, f, t], s, f, t]
 		
 		response = None
-		first_expt = None
-		
 		[before, func, success, failed, teardown] = method		
 		try:
 			if before:
@@ -56,9 +45,9 @@ class Executor:
 					return response
 					
 			if type (func) is list:
-				response = self.chained_exec (func, args, karg)					
+				response = self.chained_exec (func, args, karg)
 					
-			else:				
+			else:
 				response = func (self.was, *args, **karg)
 				if type (response) is not list:
 					response = [response]											
@@ -66,22 +55,15 @@ class Executor:
 		except MemoryError:
 			raise
 																										
-		except Exception as expt:
+		except Exception as expt:			
 			self.was.logger.trace ("app")
-			if first_expt is None: 
-				first_expt = sys.exc_info ()			
-			failed and self.exec_chain (failed)
+			failed and failed (self.was, sys.exc_info ())
+			raise
 							
 		else:
-			if success: 	
-				first_expt = self.exec_chain (success)
-		
-		if teardown:
-			first_expt = self.exec_chain (teardown, first_expt)
+			success and success (self.was)
 			
-		if first_expt:
-			reraise (*first_expt)
-		
+		teardown and teardown (self.was)
 		return response
 		
 	def generate_content (self, method, _args, karg):		
@@ -169,10 +151,10 @@ class Executor:
 		
 		self.build_was ()
 		try:
-			content = self.generate_content (thing, (), param)
-		except:	
+			content = self.generate_content (thing, (), param)			
+		except:				
 			self.rollback ()
-			raise
+			content = self.was.request.response ("500 Internal Server Error", exc_info = self.was.app.debug and sys.exc_info () or None)
 		else:
 			self.commit ()
 		

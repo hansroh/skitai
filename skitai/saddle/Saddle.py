@@ -46,9 +46,9 @@ class Saddle (package.Package):
 	
 	opaque = None
 	
-	def __init__ (self, package_name):
+	def __init__ (self, package_name, mount = "/"):
 		self.jinja_env = JINJA2 and Environment (loader = PackageLoader (package_name)) or None
-		package.Package.__init__ (self)	
+		package.Package.__init__ (self, mount)	
 		self.lock = threading.RLock ()
 		self.cache_sorted = 0
 		self.cached_paths = {}
@@ -59,7 +59,7 @@ class Saddle (package.Package):
 		if name == "upload_file_max_size":
 			multipart_collector.MultipartCollector.file_max_size = attr
 		self.__dict__ [name] = attr
-	
+
 	def get_www_authenticate (self):
 		if self.authorization == "basic":
 			return 'Basic realm="%s"' % self.realm

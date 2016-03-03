@@ -231,7 +231,7 @@ class Job:
 			if not response.responsable ():
 				# already called response.done () or dicinnected channel
 				return
-				
+			
 			if content is None: # Possibly no return mistake
 				raise AssertionError ("Content or part should not be None")
 

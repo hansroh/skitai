@@ -1,8 +1,9 @@
 import re
 try:
-	from urllib.parse import unquote_plus, quote_plus
+	from urllib.parse import unquote_plus, quote_plus, urljoin
 except ImportError:
-	from urllib import unquote_plus, quote_plus	
+	from urllib import unquote_plus, quote_plus
+	from urlparse import urljoin
 import os
 from skitai.lib import importer, strutil
 from types import FunctionType as function
@@ -10,7 +11,13 @@ from types import FunctionType as function
 RX_RULE = re.compile ("(/<(.+?)>)")
 
 class Package:
-	def __init__ (self):
+	def __init__ (self, mount = "/"):
+		if not mount:
+			self.mount = "/"
+		elif mount [-1] != "/":
+			self.mount = mount + "/"
+		else:
+			self.mount = mount	
 		self.module = None
 		self.packagename = None
 		self.wasc = None		
@@ -194,7 +201,8 @@ class Package:
 	def add_route (self, rule, func, *t, **k):
 		if not rule or rule [0] != "/":
 			raise AssertionError ("Url rule should be starts with '/'")
-			
+		
+		rule = urljoin (self.mount, rule [1:])
 		s = rule.find ("/<")
 		if s == -1:	
 			self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, rule)

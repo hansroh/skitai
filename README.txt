@@ -10,6 +10,7 @@ License: BSD
 Changes
 ----------
 
+- changed @failed_request event call arguments
 - changed skitaid.py command line options, see 'skitaid.py --help'
 - batch task scheduler added
 - e-mail sending fixed
@@ -1241,7 +1242,7 @@ To enable session for app, random string formatted securekey should be set for e
     + o - overwrite
 
 
-**Registering event handling funtions and was.g**
+**Registering Event Calls To App and was.g**
 
 .. code:: python
 
@@ -1257,7 +1258,7 @@ To enable session for app, random string formatted securekey should be set for e
     ...
   
   @app.failed_request
-  def failed_request (was):
+  def failed_request (was, exc_info):
     was.g.user_id    
     was.g.user_status
     ...
@@ -1283,12 +1284,12 @@ If view_account is called, Saddle execute these sequence:
   try:
     try: 
       content = before_request (was)
-      if content: 
+      if content:
         return content
       content = view_account (was, *args, **karg)
       
     except:
-      failed_request (was)
+      failed_request (was, sys.exc_info ())
       
     else:
       finish_request (was)
@@ -1298,6 +1299,10 @@ If view_account is called, Saddle execute these sequence:
   
   return content
     
+Be attention, failed_request's 2nd arguments is sys.exc_info (). Also faild_request, finish_request and teardown_request should return None (= nothing).
+
+Inspite you handle exception with failed_request (), exception will be reraised, and Saddle will handle exception finally. Then in failed_request (), you would be better pay focus on realesing of resources.
+
 
 Also there're another kind of method group,
 
@@ -1375,12 +1380,14 @@ If your server run with SSL, you can use app.authorization = "basic", otherwise 
 
 **Packaging for Larger App**
 
+If your app is very large or want to manage codes by categories, you can seperate your app.
+
 app.py
 
 .. code:: python
 
   from skitai.saddle import Saddle
-  from . import sub
+  from . import admin
   
   app = Saddle (__name__)
   app.debug = True
@@ -1398,14 +1405,67 @@ sub.py
 .. code:: python
 
   from skitai.saddle import Package
-  package = Package ()
+  package = Package ("/admin") # mount point
   
-  @package.route ("/hello/<name>")
-  def hello (was):		
+  @package.route ("/<name>")
+  def hello (was):
     # can build other module's method url
     return was.ab ("index", 1, 2) 
-	  
-You shoud mount only app.py. App's debug & use_reloader, etc. attributes will be applied to packages as same.
+    
+Now, hello function's can be accessed by '/[app mount point]/admin/Hans_Roh'.
+
+App's configs like debug & use_reloader, etc, will be applied to packages except event calls.
+
+Package can have own sub packages and event calls.
+
+.. code:: python
+  
+  from skitai.saddle import Package
+  from . import admin_sub
+  
+  package = Package ("/admin") # mount point
+  # package also can have sub packages
+  package.add_package (admin_sub, "package")
+  
+  @package.startup
+  def startup (wasc, app):
+    wasc.register ("loginengine", SNSLoginEngine ())
+    wasc.register ("searcher", FulltextSearcher ())    
+  
+  @package.shutdown    
+  def shutdown (wasc, app):
+    wasc.searcher.close ()
+        
+    wasc.unregister ("loginengine")
+    wasc.unregister ("searcher")
+    
+  @package.before_request
+  def before_request (was):
+    if not login ():
+      return "Not Authorized"
+  
+  @package.teardown_request
+  def teardown_request (was):
+    was.g.resouce.close ()
+    ...
+  
+  @package.route ("/<name>")
+  def hello (was):
+    # can build other module's method url
+    return was.ab ("index", 1, 2) 
+
+In this case, app and package's event calls executed in this order.
+
+.. code:: python
+
+  app.before_request()
+    package.before_request()
+      hello()
+    package.finish_request() or package.failed_request()
+    package.teardown_request ()
+  app.finish_request() or app.failed_request()
+  app.teardown_request ()
+
 
 
 **Implementing XMLRPC Service**

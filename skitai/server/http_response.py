@@ -19,7 +19,7 @@ DEFAULT_ERROR_MESSAGE = """<!DOCTYPE html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>ERROR: %(code)d %(message)s</title>
-<style type="text/css"><!-- *{font-family:verdana,sans-serif;}body{margin:0;padding:0;background:#efefef;font-size:14px;color:#1e1e1e;} #titles{margin-left:15px;padding:10px;}#titles h1,h2{color: #000000;} #content{padding:16px 10px 30px 16px;background:#ffffff;} #error p,h3,b{font-size:12px;}#error{margin:0;padding:0;} hr{margin:0;padding:0;} #error hr{border-top:#888888 1px solid;} #error li,i{font-weight:normal;}#footer {font-size:12px;padding-left:10px;} --></style>
+<style type="text/css"><!-- *{font-family:verdana,sans-serif;}body{margin:0;padding:0;background:#efefef;font-size:14px;color:#1e1e1e;} #titles{margin-left:15px;padding:10px;}#titles h1,h2{color: #000000;} #content{padding:16px 10px 30px 16px;background:#ffffff;} #error h2 {font-size: 14px;} #error h3{font-size: 13px; color: #d90000;} #error p,b,h4,li {font-size:12px;}#error h4{color: #999999;} #error li{margin-bottom: 6px;} #error .f {color:#d90000;} #error .n {color:#003366;font-weight:bold;} #error{margin:0;padding:0;} hr{margin:0;padding:0;} #error hr{border-top:#888888 1px solid;} #error li,i{font-weight:normal;}#footer {font-size:12px;padding-left:10px;} --></style>
 </head>
 <body>
 <div id="titles"><h1>ERROR</h1><h2>%(code)d %(message)s</h2></div>
@@ -27,7 +27,7 @@ DEFAULT_ERROR_MESSAGE = """<!DOCTYPE html>
 <div id="content">
 <p>The following error was encountered while trying to retrieve the URL:</p>
 <blockquote>
-<div id="error"><b>%(message)s</b><p>%(info)s</p></div>
+<div id="error"><h2>%(message)s</h2><p>%(info)s</p></div>
 <a href="%(url)s">%(url)s</a>
 </blockquote>
 </div>
@@ -57,10 +57,10 @@ def catch (htmlformating = 0, exc_info = None):
 	file, function, line = tbinfo [-1]
 	
 	if htmlformating:
-		buf = ["<hr><div style='color:#d90000; font-weight: bold; margin-top: 5px;'>%s</div><div style='color:#666666; font-weight: bold;'>%s</div>" % (t.__name__.replace (">", "&gt;").replace ("<", "&lt;"), v)]
+		buf = ["<hr><h3>%s</h3><h4>%s</h4>" % (t.__name__.replace (">", "&gt;").replace ("<", "&lt;"), v)]
 		buf.append ("<b>at %s at line %s, %s</b>" % (file, line, function == "?" and "__main__" or "function " + function))
 		buf.append ("<ul type='square'>")
-		buf += ["<li><i>%s</i> &nbsp;&nbsp;<font color='#d90000'>%s</font> <font color='#003366'><b>%s</b></font></li>" % x for x in tbinfo]
+		buf += ["<li><i>%s</i> <span class='f'>%s</span> <span class='n'><b>%s</b></font></li>" % x for x in tbinfo]
 		buf.append ("</ul>")		
 		return "\n".join (buf)
 		
@@ -254,7 +254,7 @@ class http_response:
 		if type (why) is tuple: # sys.exc_info ()
 			why = catch (1, why)
 		
-		body = self.build_default_template ().encode ("utf8")		
+		body = self.build_default_template ().encode ("utf8")	
 		self.update ('Content-Length', len(body))
 		self.update ('Content-Type', 'text/html')
 		self.update ('Cache-Control', 'max-age=0')
@@ -505,10 +505,9 @@ class http_response:
 	def get_status (self):
 		return "%d %s" % self.get_reply ()
 					
-	def __call__ (self, status = "200 OK", body = None, headers = None):
+	def __call__ (self, status = "200 OK", body = None, headers = None, exc_info = None):
 		global DEFAULT_ERROR_MESSAGE
 		self.start_response (status, headers)
-		
 		if not body:
-			return self.build_default_template ()
+			return self.build_default_template (exc_info and catch (1, exc_info) or "")
 		return body

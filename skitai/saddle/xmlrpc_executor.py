@@ -31,7 +31,7 @@ class Executor (wsgi_executor.Executor):
 			try:
 				result = self.generate_content (thing, _args, {})
 			except:
-				results.append ({'faultCode' : 1, 'faultString' : wsgi_executor.traceback ()})
+				results.append ({'faultCode' : 1, 'faultString' : self.was.app.debug and wsgi_executor.traceback () or "Error Occured"})
 			else:
 				results.append ([result])
 		
