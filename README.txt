@@ -10,7 +10,7 @@ License: BSD
 Changes
 ----------
 
-- changed @failed_request event call arguments
+- changed @failed_request event call arguments and can return custom error content
 - changed skitaid.py command line options, see 'skitaid.py --help'
 - batch task scheduler added
 - e-mail sending fixed
@@ -899,7 +899,18 @@ Sending specific HTTP status code,
     # if body is not given, automaticcally generated with default error template.
     return was.response ("404 Not Found")
 
+If app raise exception, traceback information will be displayed only app.debug = True. But you intentionally send it inspite of app.debug = False:
 
+.. code:: python
+  
+  # File
+  @app.route ("/raise_exception")
+  def raise_exception (was):	
+    try:
+    	raise ValueError ("Test Error")
+    except:    	
+    	return was.response ("500 Internal Server Error", exc_info = sys.exc_info ())
+    
 You can return various objects.
 
 .. code:: python
@@ -929,7 +940,7 @@ All available return types are:
 
 The object has 'close ()' method, will be called when all data consumed, or socket is disconnected with client by any reasons.
 
-- was.response (status = "200 OK", body = None, headers = None)
+- was.response (status = "200 OK", body = None, headers = None, exc_info = None)
 - was.response.set_status (status) # "200 OK", "404 Not Found"
 - was.response.get_status ()
 - was.response.set_headers (headers) # [(key, value), ...]
@@ -1289,7 +1300,9 @@ If view_account is called, Saddle execute these sequence:
       content = view_account (was, *args, **karg)
       
     except:
-      failed_request (was, sys.exc_info ())
+      content = failed_request (was, sys.exc_info ())
+      if content is None:
+      	raise
       
     else:
       finish_request (was)
@@ -1299,11 +1312,19 @@ If view_account is called, Saddle execute these sequence:
   
   return content
     
-Be attention, failed_request's 2nd arguments is sys.exc_info (). Also faild_request, finish_request and teardown_request should return None (= nothing).
+Be attention, failed_request's 2nd arguments is sys.exc_info (). Also finish_request and teardown_request (NOT failed_request) should return None (or return nothing). 
 
-Inspite you handle exception with failed_request (), exception will be reraised, and Saddle will handle exception finally. Then in failed_request (), you would be better pay focus on realesing of resources.
+If you handle exception with failed_request (), return custon error content or exception will be reraised and Saddle will handle exception.
 
+*New in version 0.14.13*
 
+.. code:: python
+
+ @app.failed_request
+  def failed_request (was, exc_info):
+    # releasing resources
+    return was.response ("501 Server Error", "We're sorry but something's going wrong")
+    
 Also there're another kind of method group,
 
 .. code:: python
@@ -1454,7 +1475,7 @@ Package can have own sub packages and event calls.
     # can build other module's method url
     return was.ab ("index", 1, 2) 
 
-In this case, app and package's event calls executed in this order.
+In this case, app and package's event calls are nested executed in this order.
 
 .. code:: python
 
@@ -1465,7 +1486,6 @@ In this case, app and package's event calls executed in this order.
     package.teardown_request ()
   app.finish_request() or app.failed_request()
   app.teardown_request ()
-
 
 
 **Implementing XMLRPC Service**

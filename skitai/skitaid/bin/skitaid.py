@@ -348,7 +348,7 @@ Usage:
 
 Options:
 	--verbose or -v : verbose mode (default run as service)
-	--config or -f [server name]	
+	--config or -f [config file name without .conf | smtpda | cron ]
 	--log-suffix or -s [log file suffix]
 		
 Command:
@@ -394,8 +394,12 @@ def _touch (req, name):
 		flock.Lock (lockpath).lock ("signal", req)
 	else:
 		pid	 = flock.PidFile (lockpath).getpid ("skitaid")
-		if pid is None and req == "restart":
-			flock.Lock (lockpath).lock ("signal", req)
+		if pid is None:
+			if req == "restart":
+				flock.Lock (lockpath).lock ("signal", req)
+			else:
+				print("[error] no such instance '%s'" % name)
+				sys.exit (1)
 		else:
 			if req == "terminate": sig = signal.SIGTERM
 			elif req == "shutdown": sig = signal.SIGQUIT
