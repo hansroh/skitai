@@ -324,14 +324,15 @@ class MessageBox (SecuredListValue):
 		not_expired = []
 		
 		for notice in self.data:
+			how_old = now - notice [2]
+			if how_old > notice [3] or how_old > self.AWEEK:
+				# too old news, drop
+				continue
+				
 			if wanted_category and notice [1] not in wanted_category:
 				not_expired.append (notice)
 				continue
 			
-			how_old = now - notice [2]
-			if how_old >= self.AWEEK:
-				# too old news				
-				continue	
 			if how_old < notice [3]:
 				not_expired.append (notice)
 			

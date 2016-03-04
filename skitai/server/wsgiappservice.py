@@ -210,7 +210,13 @@ class WAS:
 	
 	def shutdown (self, fast = 0):
 		lifetime.shutdown (0, fast)
-
+	
+	def log (self, msg, category = "info"):
+		self.logger ("app", msg, category)
+		
+	def traceback (self, identifier = ""):
+		self.logger.trace ("app", identifier)
+			
 	
 class Logger:
 	def __init__ (self, media, path):
@@ -221,8 +227,8 @@ class Logger:
 		self.lock = multiprocessing.Lock ()
 			
 		self.make_logger ("server", "monthly")
-		self.make_logger ("request", "daily")
 		self.make_logger ("app", "daily")
+		self.make_logger ("request", "daily")		
 
 	def make_logger (self, prefix, freq = "daily"):
 		self.lock.acquire ()

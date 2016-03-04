@@ -10,7 +10,9 @@ License: BSD
 Changes
 ----------
 
-- changed @failed_request event call arguments and can return custom error content
+- was.log(), was.traceback() added
+- fix valid time in message box 
+- changed @failed_request event call arguments and can return custom error page
 - changed skitaid.py command line options, see 'skitaid.py --help'
 - batch task scheduler added
 - e-mail sending fixed
@@ -1314,7 +1316,7 @@ If view_account is called, Saddle execute these sequence:
     
 Be attention, failed_request's 2nd arguments is sys.exc_info (). Also finish_request and teardown_request (NOT failed_request) should return None (or return nothing). 
 
-If you handle exception with failed_request (), return custon error content or exception will be reraised and Saddle will handle exception.
+If you handle exception with failed_request (), return custom error content, or exception will be reraised and Saddle will handle exception.
 
 *New in version 0.14.13*
 
@@ -1323,7 +1325,10 @@ If you handle exception with failed_request (), return custon error content or e
  @app.failed_request
   def failed_request (was, exc_info):
     # releasing resources
-    return was.response ("501 Server Error", "We're sorry but something's going wrong")
+    return was.response (
+    	"501 Server Error", 
+    	was.render ("err501.htm", msg = "We're sorry but something's going wrong")
+    )
     
 Also there're another kind of method group,
 
@@ -1511,6 +1516,47 @@ Server Side:
 Is there nothing to diffrence? Yes. Saddle app methods are also used for XMLRPC service if return values are XMLRPC dumpable.
 
 
+**Logging**
+
+If Skitai run with -v option, app and exceptions are displayed at your console, else logged at files.
+
+.. code:: python
+  
+  @app.route ("/")
+  def sum ():  
+    was.log ("called index", "info")    
+    try:
+      ...
+    except:  
+    	was.log ("exception occured", "error")
+    	was.traceback ("bp1")
+    was.log ("done index", "info")
+    
+If your config file is 'sample.conf', your log file is located at:
+
+- posix:  /var/log/skitaid/instances/sample/app.log
+- win32: c:\\skitaid\\log\\instances\\sample\\app.log
+
+To view lateset log, 
+
+.. code:: python
+
+  skitaid.py -f sample -s app log
+
+Above log is like this:
+
+.. code:: python
+  
+  2016.03.03 03:37:41 [info] called index
+  2016.03.03 03:37:41 [error] exception occured
+  2016.03.03 03:37:41 [info] done index
+  2016.03.03 11:41:17 [expt:bp1] <type 'exceptions.TypeError'> index() got an unexpected keyword argument 't' [/usr/local/lib/python2.7/dist-packages/skitai-0.14.12-py2.7.egg/skitai/saddle/wsgi_executor.py|chained_exec|51]
+
+
+- was.log (msg, category = "info")
+- was.traceback (identifier = "") # identifier is used as fast searching log line for debug
+
+
 Skitai Server Configuration / Management
 --------------------------------------------
 
@@ -1578,6 +1624,54 @@ App can be mounted with virtual host.
   / = home/user/mydomain.any/wsgi:app 
 
 As a result, the app location '/home/user/mydomain.www/wsgi.py' is mounted to 'www.mydomain.com/service' and 'mydomain.com/service'.
+
+
+**Log Files**
+
+If Skitai run with skitaid.py, there're several processes will be created.
+
+Sample ps command's result is:
+
+.. code:: python
+
+  ubuntu:~/skitai$ ps -ef | grep skitaid
+  root     19146 19145  0 Mar03 pts/0    00:00:11 /usr/bin/python /usr/local/bin/skitaid.py
+  root     19147 19146  0 Mar03 pts/0    00:00:05 /usr/bin/python /usr/local/bin/skitaid-smtpda.py
+  root     19148 19146  0 Mar03 pts/0    00:00:03 /usr/bin/python /usr/local/bin/skitaid-cron.py
+  root     19150 19146  0 Mar03 pts/0    00:00:00 /usr/bin/python /usr/local/bin/skitaid-instance.py --conf=sample
+
+- /usr/local/bin/skitaid.py : Skitaid Daemon manages all Skitais sub processes
+- /usr/local/bin/skitaid-instance.py : Skitai Instance with sample.conf
+- /usr/local/bin/skitaid-smtpda.py : SMTP Delivery Agent
+- /usr/local/bin/skitaid-cron.py : Cron Agent
+
+Skitai Daemon log file is located at:
+
+- posix:  /var/log/skitaid/skitaid.log
+- win32: c:\\skitaid\\log\\skitaid.log
+
+To view latest 16Kb log,
+
+  skitaid.py log
+
+SMTP Delivery Agent log is located at:
+
+- posix:  /var/log/skitaid/daemons/smtpda/smtpda.log
+- win32: c:\\skitaid\\log\\daemons\\smtpda\\smtpda.log
+- skitaid.py -f smtpda log
+
+Cron Agent log is located at:
+
+- posix:  /var/log/skitaid/daemons/cron/cron.log
+- win32: c:\\skitaid\\log\\daemons\\cron\\cron.log
+- skitaid.py -f cron log
+
+   
+If Skitai App Engine Instances config file is 'sample.conf', log file located at:
+
+- posix:  /var/log/skitaid/instances/sample/[server|request|app].log
+- win32: c:\\skitaid\\log\\instances\\sample\\[server|request|app].log
+- skitaid.py -f cron -s [server|request|app] log
 
 
 **Batch Task Scheduler**

@@ -37,7 +37,7 @@ class Executor:
 		# [b, [b, [b, func, s, f, t], s, f, t], s, f, t]
 		
 		response = None
-		[before, func, success, failed, teardown] = method		
+		[before, func, success, failed, teardown] = method	
 		try:
 			if before:
 				response = before (self.was)
@@ -63,7 +63,7 @@ class Executor:
 							
 		else:
 			success and success (self.was)
-			
+
 		teardown and teardown (self.was)
 		return response
 		
