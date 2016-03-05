@@ -1312,6 +1312,8 @@ but like flash message, if messages are delayed by next request, these messages 
 
 was.mbox can be used for general page creation like handling notice, alram or error messages consistently. In this case, these messages (valid=0) is consumed by current request, there's no particular size limitation.
 
+Also note valid argument is 0, it will be shown at next request just one time, but inspite of next request is after hundred years, it will be shown if browser has cookie values.
+
 .. code:: python  
   
   @app.before_request

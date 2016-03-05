@@ -292,7 +292,6 @@ class Session (SecuredDictValue):
 		
 		
 class MessageBox (SecuredListValue):
-	AWEEK = 3600 * 24 * 7
 	KEY = "NOTIS"
 	
 	def __init__ (self, request, data, secret_key, setfunc, new = True):
@@ -325,17 +324,18 @@ class MessageBox (SecuredListValue):
 		
 		for notice in self.data:
 			how_old = now - notice [2]
-			if how_old > notice [3] or how_old > self.AWEEK:
-				# too old news, drop
+			
+			if notice [3] and how_old > notice [3]:
+				# expired, drop
 				continue
-				
+			
 			if wanted_category and notice [1] not in wanted_category:
 				not_expired.append (notice)
 				continue
-			
-			if how_old < notice [3]:
-				not_expired.append (notice)
-			
+				
+			if notice [3]:
+				not_expired.append (notice)			
+							
 			messages.append (notice)			
 		
 		if len (self.data) != len (not_expired):
