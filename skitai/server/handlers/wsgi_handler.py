@@ -280,7 +280,7 @@ class Job:
 						raise AssertionError ("Streaming content should be single element")
 			
 			if content_length is not None:
-				response ["Content-Length"]	= content_length
+				response ["Content-Length"] = content_length
 				
 		except MemoryError:
 			raise

@@ -184,6 +184,12 @@ class WAS:
 			body = self.REDIRECT_TEMPLATE % (status, status, url)			
 		return self.response (status, body, redirect_headers)
 			
+	def log (self, msg, category = "info", at = "app"):
+		self.logger (at, msg, category)
+		
+	def traceback (self, identifier = "", at = "app"):
+		self.logger.trace (at, identifier)
+	
 	def email (self, subject, snd, rcpt):
 		if composer.Composer.SAVE_PATH is None:			
 			composer.Composer.SAVE_PATH = os.path.join (self.var_base_path, "daemons", "smtpda", "mail", "spool")
@@ -192,7 +198,7 @@ class WAS:
 		
 	def tojson (self, obj):
 		return json.dumps (obj)
-	
+		
 	def toxml (self, obj):
 		return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")	
 	
@@ -200,7 +206,7 @@ class WAS:
 		return json.loads (obj)
 	
 	def fromxml (self, obj, use_datetime=0):
-		return xmlrpclib.loads (obj)	
+		return xmlrpclib.loads (obj)
 											
 	def status (self, flt = None, fancy = True):
 		return server_info.make (self, flt, fancy)
@@ -211,12 +217,6 @@ class WAS:
 	def shutdown (self, fast = 0):
 		lifetime.shutdown (0, fast)
 	
-	def log (self, msg, category = "info"):
-		self.logger ("app", msg, category)
-		
-	def traceback (self, identifier = ""):
-		self.logger.trace ("app", identifier)
-			
 	
 class Logger:
 	def __init__ (self, media, path):

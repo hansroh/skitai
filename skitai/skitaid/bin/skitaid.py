@@ -428,7 +428,7 @@ if __name__ == "__main__":
 	
 	IS_SERVICE = True
 	name = ""
-	suffix = "server"
+	suffix = "app"
 	for k, v in optlist:
 		if k == "--verbose" or k == "-v":
 			IS_SERVICE = False
