@@ -13,9 +13,8 @@ app.use_reloader = True
 
 
 @app.route ("/")
-def index (was):
-	t = was.app.get_template ("index.html")	
-	return t.render ()
+def index (was):	
+	return was.render ("index.html")
 
 @app.route ("/documentation")
 def documentation (was):
@@ -93,7 +92,7 @@ def websocket (was, mode = "echo"):
 		mode += "?name=Hans"
 	elif mode == "chat":	
 		mode += "?roomid=1"
-	return t.render ("websocket.html", path = mode)
+	return was.render ("websocket.html", path = mode)
 	
 """
 # Flask

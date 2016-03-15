@@ -2,7 +2,7 @@ import threading
 import time
 import os
 import sys
-from . import package, multipart_collector, cookie, secured_cookie_value
+from . import part, multipart_collector, cookie, secured_cookie_value
 from . import wsgi_executor, xmlrpc_executor
 from skitai.lib import producers
 from skitai.server import utility
@@ -10,17 +10,11 @@ from hashlib import md5
 import random
 import base64
 from skitai.saddle import cookie
-
+	
 try:
 	import xmlrpc.client as xmlrpclib
 except ImportError:
 	import xmlrpclib
-	
-JINJA2 = True
-try:
-	from jinja2 import Environment, PackageLoader
-except ImportError:
-	JINJA2 = False
 
 multipart_collector.MultipartCollector.file_max_size = 20 * 1024 * 1024
 multipart_collector.MultipartCollector.cache_max_size = 5 * 1024 * 1024
@@ -30,7 +24,7 @@ class Config:
 	pass
 	
 		
-class Saddle (package.Package):
+class Saddle (part.Part):
 	use_reloader = False
 	debug = False
 	
@@ -46,9 +40,8 @@ class Saddle (package.Package):
 	
 	opaque = None
 	
-	def __init__ (self, package_name, mount = "/"):
-		self.jinja_env = JINJA2 and Environment (loader = PackageLoader (package_name)) or None
-		package.Package.__init__ (self, mount)	
+	def __init__ (self, module_name):
+		part.Part.__init__ (self, module_name)
 		self.lock = threading.RLock ()
 		self.cache_sorted = 0
 		self.cached_paths = {}
@@ -59,7 +52,7 @@ class Saddle (package.Package):
 		if name == "upload_file_max_size":
 			multipart_collector.MultipartCollector.file_max_size = attr
 		self.__dict__ [name] = attr
-
+		
 	def get_www_authenticate (self):
 		if self.authorization == "basic":
 			return 'Basic realm="%s"' % self.realm
@@ -122,16 +115,11 @@ class Saddle (package.Package):
 		self.debug = debug
 		self.use_reloader = use_reloader
 	
-	def get_template (self, name):
-		if JINJA2:
-			return self.jinja_env.get_template (name)
-		raise ImportError ("jinja2 required.")
-	
 	def get_multipart_collector (self):
 		return multipart_collector.MultipartCollector
 	
-	def get_method (self, path_info):
-		method, kargs = None, {}
+	def get_method (self, path_info):		
+		current_app, method, kargs = self, None, {}
 		self.lock.acquire ()
 		try:
 			method = self.cached_paths [path_info]
@@ -147,7 +135,7 @@ class Saddle (package.Package):
 			if self.use_reloader:
 				self.lock.acquire ()																
 			try:	
-				method, kargs, match, matchtype = self.get_package_method (path_info, self.use_reloader)
+				current_app, method, kargs, match, matchtype = self.get_package_method (path_info, self.use_reloader)
 			finally:	
 				if self.use_reloader: 
 					self.lock.release ()
@@ -155,7 +143,8 @@ class Saddle (package.Package):
 			if not self.use_reloader:
 				self.lock.acquire ()
 				if matchtype == 1:
-					self.cached_paths [match] = method				
+					self.cached_paths [match] = method
+								
 				elif matchtype == 2:
 					self.cached_rules.append ([match, 1])
 					if time.time () - self.cache_sorted > 300:
@@ -164,10 +153,10 @@ class Saddle (package.Package):
 						self.cache_sorted = time.time ()
 				self.lock.release ()
 					
-			if matchtype == 3:
-				return method, 301
+			if matchtype == 3:				
+				return current_app, method, 301
 		
-		return method, kargs
+		return current_app, method, kargs
 	
 	def restart (self, wasc, route):
 		self.wasc = wasc
@@ -215,8 +204,7 @@ class Saddle (package.Package):
 			result = wsgi_executor.Executor (env, self.get_method) ()		
 		
 		del was.response
-		del was.ab
-		del was.app
+		del was.ab		
 		self.cleanup_on_demands (was) # del session, mbox, cookie, g
 			
 		return result

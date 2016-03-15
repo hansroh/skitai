@@ -6,9 +6,10 @@ Copyright (c) 2015-2016 by Hans Roh
 
 Changes
 ==========
-
-- fix proxy occupies CPU on POST method failing
-- was.log(), was.traceback() added
+  
+  - fix routing bugs & was.ab()
+  - add saddle.Saddlery class for app packaging
+  - @app.startup, @app.onreload, @app.shutdown arguments has been changed
   
   
 Introduce
@@ -1552,16 +1553,16 @@ Also there're another kind of method group,
 .. code:: python
 
   @app.startup
-  def startup (wasc, app):
+  def startup (wasc):
     wasc.register ("loginengine", SNSLoginEngine ())
     wasc.register ("searcher", FulltextSearcher ())    
   
   @app.onreload  
-  def onreload (wasc, app):
+  def onreload (wasc):
     wasc.loginengine.reset ()
   
   @app.shutdown    
-  def shutdown (wasc, app):
+  def shutdown (wasc):
     wasc.searcher.close ()
         
     wasc.unregister ("loginengine")
@@ -1625,7 +1626,45 @@ If your server run with SSL, you can use app.authorization = "basic", otherwise 
 Packaging for Larger App
 --------------------------
 
-If your app is very large or want to manage codes by categories, you can seperate your app.
+*Changed in version 0.15*
+
+Before 0.15
+
+.. code:: python
+  
+  # admin.py
+  from skitai.saddle import Package
+  app = Package ("/admin") # mount point
+  
+  @app.route ("/<name>")
+  def hello (was):
+    # can build other module's method url
+    return was.ab ("index", 1, 2) 
+    
+  # app.py
+  from skitai.saddle import Saddle
+  from . import admin
+  
+  app = Saddle (__name__)
+  app.add_package (admin, "app")
+  
+  @app.route ("/")
+  def index (was, num1, num2):  
+    return was.ab ("hello", "Hans Roh") # url building
+  
+For now, if your app is very large or want to manage codes by categories, you can seperate your app.
+
+admin.py
+  
+.. code:: python
+
+  from skitai.saddle import Saddlery
+  part = Saddlery ()
+  
+  @part.route ("/<name>")
+  def hello (was):
+    # can build other module's method url
+    return was.ab ("index", 1, 2) 
 
 app.py
 
@@ -1636,80 +1675,97 @@ app.py
   
   app = Saddle (__name__)
   app.debug = True
-  app.use_reloader = True
-  
-  app.add_package (sub, "package")
+  app.use_reloader = True  
+  app.mount (admin, "part", "/admin")
   
   @app.route ("/")
   def index (was, num1, num2):  
     return was.ab ("hello", "Hans Roh") # url building
-
-
-sub.py
-  
-.. code:: python
-
-  from skitai.saddle import Package
-  package = Package ("/admin") # mount point
-  
-  @package.route ("/<name>")
-  def hello (was):
-    # can build other module's method url
-    return was.ab ("index", 1, 2) 
-    
+        
 Now, hello function's can be accessed by '/[app mount point]/admin/Hans_Roh'.
-
+  
 App's configs like debug & use_reloader, etc, will be applied to packages except event calls.
 
-Package can have own sub packages and event calls.
+*Note:* was.app is always main Saddle app NOT current Saddlery sub app.
+
+Saddlery can have own sub Saddlery and event calls.
 
 .. code:: python
   
-  from skitai.saddle import Package
+  from skitai.saddle import Saddlery
   from . import admin_sub
   
-  package = Package ("/admin") # mount point
-  # package also can have sub packages
-  package.add_package (admin_sub, "package")
+  part = Saddlery () # mount point
+  # Saddlery also can have sub Saddlery
+  part.mount (admin_sub, "app", "/admin/sub")
   
-  @package.startup
-  def startup (wasc, app):
+  @part.startup
+  def startup (wasc):
     wasc.register ("loginengine", SNSLoginEngine ())
     wasc.register ("searcher", FulltextSearcher ())    
   
-  @package.shutdown    
-  def shutdown (wasc, app):
+  @part.shutdown    
+  def shutdown (wasc):
     wasc.searcher.close ()
         
     wasc.unregister ("loginengine")
     wasc.unregister ("searcher")
     
-  @package.before_request
+  @part.before_request
   def before_request (was):
     if not login ():
       return "Not Authorized"
   
-  @package.teardown_request
+  @part.teardown_request
   def teardown_request (was):
     was.g.resouce.close ()
     ...
   
-  @package.route ("/<name>")
+  @part.route ("/<name>")
   def hello (was):
     # can build other module's method url
     return was.ab ("index", 1, 2) 
 
-In this case, app and package's event calls are nested executed in this order.
+In this case, app and sub-app's event calls are nested executed in this order.
 
 .. code:: python
 
   app.before_request()
-    package.before_request()
+    sub-app.before_request()
       hello()
-    package.finish_request() or package.failed_request()
-    package.teardown_request ()
+    sub-app.finish_request() or package.failed_request()
+    sub-app.teardown_request ()
   app.finish_request() or app.failed_request()
   app.teardown_request ()
+
+
+**Saddlery and Jinja2 Templates**
+
+was.render (template_path) always find templates directory where app.py exists, even if admin.py is located in sub directory with package form. This is somewhat conflicated but I think it's more easier way to maintain template files and template include policy. Remeber one app can have one templates directoty. But you can seperate into templates files by sub directory. For example:
+
+.. code:: python
+
+  /app.py
+  /admin.py
+  /members/__init__.py
+  /static
+  /templates/includes/header.html  
+  /templates/includes/footer.html
+  /templates/app/index.html  
+  /templates/admin/index.html
+  /templates/members/index.html
+
+But if you want to use independent templates under own templates directory:
+
+.. code:: python
+
+  from skitai.saddle import Saddlery
+  
+  part = Saddlery (__name__)
+  
+  @part.route ("/<name>")
+  def hello (was):
+    return was.render2 ("show.htm", name = name)
 
 
 Implementing XMLRPC Service
@@ -2020,7 +2076,6 @@ For Nginx might be 2 config files (I'm not sure):
     }
 
 
-
 Project Purpose
 ===================
 
@@ -2040,9 +2095,15 @@ Also note it might be more efficient that circumstance using `Gevent WSGI Server
 
 Change Log
 ==============
-
+  
+  0.15
+  
+  - add saddle.Saddlery class for app packaging
+  - @app.startup, @app.onreload, @app.shutdown arguments has been changed
+  
   0.14
   
+  - fix proxy occupies CPU on POST method failing
   - was.log(), was.traceback() added
   - fix valid time in message box 
   - changed @failed_request event call arguments and can return custom error page

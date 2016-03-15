@@ -70,7 +70,7 @@ class Executor:
 	def generate_content (self, method, _args, karg):		
 		_karg = self.parse_kargs (karg)		
 		self.was.request.args = _karg
-		response = self.chained_exec (method, _args, _karg)
+		response = self.chained_exec (method, _args, _karg)		
 		return response
 	
 	def parse_kargs (self, kargs):
@@ -137,7 +137,7 @@ class Executor:
 		self.was.cookie.rollback ()
 				
 	def __call__ (self):	
-		thing, param = self.get_method (self.env ["PATH_INFO"])
+		current_app, thing, param = self.get_method (self.env ["PATH_INFO"])		
 		if thing is None:
 			# Middleware Just push (), Skitai DO done().
 			self.env[ "skitai.was"].request.response.send_error ("404 Not Found")
@@ -145,12 +145,12 @@ class Executor:
 		
 		if param == 301:
 			response = self.env ["skitai.was"].request.response
-			location = self.env ["SCRIPT_NAME"] + thing
-			response ["Location"] = location
-			response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % location)
+			response ["Location"] = thing
+			response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % thing)
 			return b""
 		
 		self.build_was ()
+		self.was.subapp = current_app
 		try:
 			content = self.generate_content (thing, (), param)			
 		except:				
@@ -161,5 +161,6 @@ class Executor:
 		
 		# clean was
 		del self.was.env
+		del self.was.subapp
 		return content
 		

@@ -73,8 +73,8 @@ class Handler:
 		env ['REMOTE_ADDR'] = request.channel.addr [0]
 		env ['REMOTE_SERVER'] = request.channel.addr [0]		
 		env ['SCRIPT_NAME'] = apph.route		
-		env ['PATH_INFO'] = apph.get_path_info ("/" + path)
-				
+		env ['PATH_INFO'] = apph.get_path_info (path)
+		
 		for header in request.header:
 			key, value = header.split(":", 1)
 			key = key.lower()
@@ -130,12 +130,8 @@ class Handler:
 		has_route = self.apps.has_route (path)
 		if has_route == 0:
 			return request.response.error (404)
-		elif has_route in (1, 2):
-			if has_route == 1:
-				location = "%s/" % path
-			else:
-				location = path	[:-1]
-			request.response ["Location"] = location
+		if has_route == 1:
+			request.response ["Location"] = "%s/" % path
 			
 			if request.command in ('post', 'put'):
 				return request.response.abort (301)

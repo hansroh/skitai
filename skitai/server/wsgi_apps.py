@@ -65,21 +65,14 @@ class Module:
 		route = route
 		while route and route [-1] == "/":
 			route = route [:-1]				
-		if not route:
-			route = "/"			
-		self.route = route
-		
-		if route == "/":
-			self.route_len = 0
-		else:	
-			self.route_len = len (route)
+		self.route = route + "/"		
+		self.route_len = len (self.route) - 1
 			
 	def get_route (self):
 		return self.route
 					
 	def get_path_info (self, path):
-		path_info = path [self.route_len:]
-		if not path_info: path_info = u"/"
+		path_info = ("/" + path) [self.route_len:]
 		return path_info	
 	
 	def cleanup (self):
@@ -107,6 +100,8 @@ class ModuleManager:
 		self.modnames [modname] = None		
 		if not route:
 			route = "/"
+		elif not route.endswith ("/"):
+			route = route + "/"
 		try: 
 			module = Module (self.wasc, route, directory, modname)
 			
@@ -120,9 +115,9 @@ class ModuleManager:
 				self.wasc.logger ("app", "[info] application route collision detected: %s at %s <-> %s" % (route, module.abspath, self.modules [route].abspath), "warn")
 			self.modules [route] = module
 	
-	def get_app (self, script_name):	
-		route = self.has_route (script_name)
-		if route in (0, 1, 2): # 404, 301
+	def get_app (self, script_name):		
+		route = self.has_route (script_name)		
+		if route in (0, 1): # 404, 301
 			return None
 
 		try:	
@@ -133,8 +128,7 @@ class ModuleManager:
 		
 	def has_route (self, script_name):
 		# 0: 404
-		# 1: 301 => /skitai => /skitai/
-		# 2: 301 => /skitai/ => /skitai
+		# 1: 301 => /skitai => /skitai/		
 		
 		# route string
 		#script_name = script_name.encode ("utf8")
@@ -145,8 +139,8 @@ class ModuleManager:
 		for route in self.modules:
 			if script_name == route:
 				cands.append (route)				
-			elif script_name [-1] == "/" and script_name [:-1] == route:
-				return 2				
+			#elif script_name [-1] == "/" and script_name [:-1] == route:
+				#return 2
 			elif script_name + "/" == route:
 				return 1
 			elif script_name.startswith (route [-1] != "/" and route + "/" or route):
