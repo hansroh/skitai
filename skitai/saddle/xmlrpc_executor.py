@@ -22,7 +22,8 @@ class Executor (wsgi_executor.Executor):
 		results = []
 		for _method, _args in thunks:
 			path_info = self.env ["PATH_INFO"] = "/" + _method.replace (".", "/")
-			thing, param = self.get_method (path_info)
+			current_app, thing, param = self.get_method (path_info)
+			self.was.subapp = current_app
 			if not thing or param == 301:
 				try: raise Exception('Method "%s" is not supported' % _method)
 				except: results.append ({'faultCode' : 1, 'faultString' : wsgi_executor.traceback ()})
@@ -34,7 +35,8 @@ class Executor (wsgi_executor.Executor):
 				results.append ({'faultCode' : 1, 'faultString' : self.was.app.debug and wsgi_executor.traceback () or "Error Occured"})
 			else:
 				results.append ([result])
-		
+			del self.was.subapp
+			
 		if len (results) == 1: results = tuple (results)
 		else: results = (results,)
 		

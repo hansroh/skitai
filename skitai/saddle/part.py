@@ -1,4 +1,4 @@
-import re
+import re, sys
 try:
 	from urllib.parse import unquote_plus, quote_plus, urljoin
 except ImportError:
@@ -7,31 +7,65 @@ except ImportError:
 import os
 from skitai.lib import importer, strutil
 from types import FunctionType as function
-
+JINJA2 = True
+try:
+	from jinja2 import Environment, PackageLoader
+except ImportError:
+	JINJA2 = False
+	
 RX_RULE = re.compile ("(/<(.+?)>)")
 
-class Package:
-	def __init__ (self, mount = "/"):
-		if not mount:
-			self.mount = "/"
-		elif mount [-1] != "/":
-			self.mount = mount + "/"
-		else:
-			self.mount = mount	
+class Part:
+	def __init__ (self, module_name = ""):
+		self.module_name = module_name
+		self.jinja_env = None
+		if module_name:
+			self.jinja_env = JINJA2 and Environment (loader = PackageLoader (module_name)) or None
 		self.module = None
 		self.packagename = None
 		self.wasc = None		
 		self.packages = {}
 		
 		self.logger = None
+		self.mount_p = "/"
 		self.route_map = {}
 		self._binds_server = [None] * 3
 		self._binds_request = [None] * 4
 		self._binds_when = [None] * 5		
-		
-	def init (self, module, packagename):
-		self.module = module
+	
+	def get_template (self, name):
+		if JINJA2:
+			return self.jinja_env.get_template (name)
+		raise ImportError ("jinja2 required.")
+	
+	def render (self, was, template_file, _do_not_use_this_variable_name_ = {}, **karg):
+		while template_file and template_file [0] == "/":
+			template_file = template_file [1:]	
+											
+		if _do_not_use_this_variable_name_: 
+			assert not karg, "Can't Use Dictionary and Keyword Args Both"
+			karg = _do_not_use_this_variable_name_
+
+		karg ["was"] = was		
+		template = self.get_template (template_file)
+		self.when_got_template (was, template, karg)
+			
+		rendered = template.render (karg)
+		self.when_template_rendered (was, template, karg, rendered)
+		return rendered	
+				
+	def set_mount_point (self, mount):	
+		if not mount:
+			self.mount_p = "/"
+		elif mount [-1] != "/":
+			self.mount_p = mount + "/"
+		else:
+			self.mount_p = mount	
+				
+	def init (self, module, packagename = "app", mount = "/"):
+		self.module = module	
 		self.packagename = packagename
+		self.set_mount_point (mount)
 		
 		if self.module:
 			self.abspath = self.module.__file__
@@ -41,7 +75,7 @@ class Package:
 				
 	def cleanup (self):
 		# shutdown
-		self.binds_skitai [2] and self.binds_skitai [2] (self.wasc, self)
+		self._binds_server [2] and self._binds_server [2] (self.wasc)
 		
 	def __getitem__ (self, k):
 		return self.route_map [k]
@@ -170,11 +204,11 @@ class Package:
 	def set_route_map (self, route_map):
 		self.route_map = route_map
 	
-	def add_package (self, module, packagename = "package"):
-		p = getattr (module, packagename)
-		p.init (module, packagename)
-		self.packages [id (p)] = p
-								
+	def mount (self, module, partname = "part", mount = "/"):
+		part = getattr (module, partname)		
+		part.init (module, partname, mount)
+		self.packages [id (part)] = part
+									
 	def try_rule (self, path_info, rulepack):
 		rule, (f, n, l, a, s) = rulepack		
 		if strutil.is_str_like (rule):
@@ -202,7 +236,7 @@ class Package:
 		if not rule or rule [0] != "/":
 			raise AssertionError ("Url rule should be starts with '/'")
 		
-		rule = urljoin (self.mount, rule [1:])
+		rule = urljoin (self.mount_p, rule [1:])
 		s = rule.find ("/<")
 		if s == -1:	
 			self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, rule)
@@ -227,6 +261,9 @@ class Package:
 			self.route_map [re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), s_rule)
 			
 	def route_search (self, path_info):
+		if not path_info.startswith (self.mount_p):
+			raise KeyError		
+		path_info = "/" + path_info [len (self.mount_p):]
 		if path_info in self.route_map:			
 			return self.route_map [path_info][0]
 		if path_info [-1] == "/" and path_info [:-1] in self.route_map:
@@ -237,7 +274,7 @@ class Package:
 					
 	def get_package_method (self, path_info, use_reloader = False):
 		# 1st, try find in self
-		method, kargs, match, matchtype = None, {}, None, 0
+		app, method, kargs, match, matchtype = self, None, {}, None, 0
 		try:			
 			method = self.route_search (path_info)
 		except KeyError: 
@@ -249,7 +286,7 @@ class Package:
 				matchtype = 2
 		else:
 			if type (method) is not function: # 301 move
-				return method, None, None, 3
+				return self, method, None, None, 3
 			match = path_info
 			matchtype = 1
 		
@@ -260,23 +297,20 @@ class Package:
 				subapp = getattr (package.module, package.packagename)
 				if use_reloader and subapp.is_reloadable ():
 					del self.packages [pid]
-					args, its_packages = (package.module, package.packagename), package.packages
+					args, its_packages = (package.module, package.packagename, package.mount_p), package.packages
 					subapp.reload_package ()
-					self.add_package (*args)
+					self.mount (*args)
 					package.start (self.wasc, self.route, its_packages)
 					subapp = getattr (package.module, package.packagename)
 					
-				method, kargs, match, matchtype = subapp.get_package_method (path_info, use_reloader)
+				app, method, kargs, match, matchtype = subapp.get_package_method (path_info, use_reloader)
 				if method:
 					break
 			
 		if not method:
-			return (None, None, None, 0)
+			return None, None, None, None, 0
 																	
-		return (
-			[self._binds_request [0], method] + self._binds_request [1:4], 
-			kargs, match, matchtype
-		)
+		return app, [self._binds_request [0], method] + self._binds_request [1:4], kargs, match, matchtype
 	
 	#----------------------------------------------
 	# Starting App
@@ -287,13 +321,12 @@ class Package:
 		
 		if packages is None:
 			# initing app & packages
-			self._binds_server [0] and self._binds_server [0] (self.wasc, self)
+			self._binds_server [0] and self._binds_server [0] (self.wasc)
 			
 			for p in list (self.packages.values ()):
 				p.start (self.wasc, route)
 				
 		else:
-			self._binds_server [1] and self._binds_server [1] (self.wasc, self)
+			self._binds_server [1] and self._binds_server [1] (self.wasc)
 			self.packages = packages
 
-	

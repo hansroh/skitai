@@ -155,17 +155,11 @@ class WAS:
 		return self.clusters_for_distcall [clustername].Server (use_cache = use_cache, mapreduce = True, callback = filter)
 	
 	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
-		if _do_not_use_this_variable_name_: 
-			assert not karg, "Can't Use Dictionary and Keyword Args Both"
-			karg = _do_not_use_this_variable_name_
-		karg ["was"] = self		
-		template = self.app.get_template (template_file)
-		self.app.when_got_template (self, template, karg)
-		
-		rendered = template.render (karg)
-		self.app.when_template_rendered (self, template, karg, rendered)
-		return rendered	
+		return self.app.render (self, template_file, _do_not_use_this_variable_name_, **karg)
 	
+	def render2 (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
+		return self.subapp.render (self, template_file, _do_not_use_this_variable_name_, **karg)
+		
 	REDIRECT_TEMPLATE =  (
 		"<head><title>%s</title></head>"
 		"<body><h1>%s</h1>"
