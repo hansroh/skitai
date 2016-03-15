@@ -119,7 +119,8 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		return self.response.code == 200 and self.response.msg.lower () == "connection established"
 	
 	def connection_closed (self, why, msg):
-		if self.client_request.channel is None: return
+		if self.client_request.channel is None:
+			return self.close_case_with_end_tran ()			
 		return http_request_handler.RequestHandler.connection_closed (self, why, msg)
 					
 	def close_case (self):
@@ -374,10 +375,7 @@ class Collector (collectors.FormCollector):
 		
 		# abort immediatly
 		if self.asyncon:
-			self.asyncon.ready = None
-			self.asyncon.affluent = None
-			self.asyncon.handler = None
-			self.asyncon.close ()
+			self.asyncon.handle_close (710, "Channel Closed")
 				
 	def collect_incoming_data (self, data):
 		#print "proxy_handler.collector << %d" % len (data), id (self)

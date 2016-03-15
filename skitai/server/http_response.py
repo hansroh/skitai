@@ -482,7 +482,8 @@ class http_response:
 		706: "Unknown Authedentification Method",
 		707: "HTTP Header/Body Error",
 		708: "No Data Recieved",
-		709: "Invalid Content"
+		709: "Invalid Content",
+		710: "Channel Closed",	
 	}		
 	
 	#---------------------------------------------
