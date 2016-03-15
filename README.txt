@@ -1,11 +1,11 @@
-
 Copyright (c) 2015-2016 by Hans Roh
 
 .. contents::
  
 
 Changes
-==========  
+==========
+  
   - fix routing bugs & was.ab()
   - add saddle.Saddlery class for app packaging
   - @app.startup, @app.onreload, @app.shutdown arguments has been changed
@@ -1215,6 +1215,7 @@ If your app is mounted at "/math",
     return int (num1) + int (num2)
     
   was.app.build_url ("add", 10, 40) # returned '/math/add?num1=10&num2=40'
+  
   # BUT it's too long to use practically,
   # was.ab is acronym for was.app.build_url
   was.ab ("add", 10, 40) # returned '/math/add?num1=10&num2=40'
@@ -1225,13 +1226,7 @@ If your app is mounted at "/math",
     return "Hello, %s" % name
 	
   was.ab ("hello", "Your Name") # returned '/math/hello/Your_Name'
-
-For building static url, url should be started with "/"
-
-.. code:: python
-
-  was.ab ("/css/home.css") # returned '/math/css/home.css'
-  
+ 
 
 Access Environment Variables
 ------------------------------
@@ -1252,10 +1247,9 @@ You can access all Saddle object from was.app.
 
 - was.app.debug
 - was.app.use_reloader
-- was.app.config # use for custom configuration like was.app.config.my_setting = 1
 - was.app.jinja_env
-- was.app.packagename
-- was.app.buld_url () is equal to was.ab ()
+- was.app.build_url () is equal to was.ab ()
+- was.app.config # use for custom configuration like was.app.config.my_setting = 1
 
 
 Jinja2 Templates Engine
@@ -1622,39 +1616,10 @@ Saddle provide simple authenticate for administration or perform access control 
 If your server run with SSL, you can use app.authorization = "basic", otherwise recommend using "digest" for your password safety.
 
 
-Packaging for Larger App
---------------------------
+Mount Saddlery On Saddle (Packaging for Larger App)
+-----------------------------------------------------
 
 *Changed in version 0.15*
-<<<<<<< HEAD
-=======
-
-Before 0.15
-
-.. code:: python
-  
-  # wsgi.py
-  from skitai.saddle import Saddle
-  from . import admin
-  
-  app = Saddle (__name__)
-  app.add_package (admin, "app")
-  
-  @app.route ("/")
-  def index (was, num1, num2):  
-    return was.ab ("hello", "Hans Roh") # url building
-  
-  # admin.py
-  from skitai.saddle import Package
-  app = Package ("/admin") # mount point
-  
-  @app.route ("/<name>")
-  def hello (was):
-    # can build other module's method url
-    return was.ab ("index", 1, 2) 
-
-For now, if your app is very large or want to manage codes by categories, you can seperate your app.
->>>>>>> d24f9c7d00f8bf64c05ec2f1a4e470750a267e7f
 
 Before 0.15
 
@@ -1674,13 +1639,7 @@ Before 0.15
   from . import admin
   
   app = Saddle (__name__)
-<<<<<<< HEAD
   app.add_package (admin, "app")
-=======
-  app.debug = True
-  app.use_reloader = True  
-  app.mount (admin, "part", "/admin")
->>>>>>> d24f9c7d00f8bf64c05ec2f1a4e470750a267e7f
   
   @app.route ("/")
   def index (was, num1, num2):  
@@ -1688,26 +1647,17 @@ Before 0.15
   
 For now, if your app is very large or want to manage codes by categories, you can seperate your app.
 
-<<<<<<< HEAD
-=======
-
->>>>>>> d24f9c7d00f8bf64c05ec2f1a4e470750a267e7f
 admin.py
   
 .. code:: python
 
   from skitai.saddle import Saddlery
-<<<<<<< HEAD
   part = Saddlery ()
-=======
-  part = Saddlery () # mount point
->>>>>>> d24f9c7d00f8bf64c05ec2f1a4e470750a267e7f
   
   @part.route ("/<name>")
   def hello (was):
     # can build other module's method url
     return was.ab ("index", 1, 2) 
-<<<<<<< HEAD
 
 app.py
 
@@ -1719,15 +1669,12 @@ app.py
   app = Saddle (__name__)
   app.debug = True
   app.use_reloader = True  
-  app.mount (admin, "part", "/admin")
+  app.mount ("/admin", admin, "part")
   
   @app.route ("/")
   def index (was, num1, num2):  
     return was.ab ("hello", "Hans Roh") # url building
         
-=======
-    
->>>>>>> d24f9c7d00f8bf64c05ec2f1a4e470750a267e7f
 Now, hello function's can be accessed by '/[app mount point]/admin/Hans_Roh'.
   
 App's configs like debug & use_reloader, etc, will be applied to packages except event calls.
@@ -1743,7 +1690,7 @@ Saddlery can have own sub Saddlery and event calls.
   
   part = Saddlery () # mount point
   # Saddlery also can have sub Saddlery
-  part.mount (admin_sub, "app", "/admin/sub")
+  part.mount ("/admin/sub", admin_sub, "app")
   
   @part.startup
   def startup (wasc):
@@ -1811,12 +1758,7 @@ But if you want to use independent templates under own templates directory:
   
   @part.route ("/<name>")
   def hello (was):
-<<<<<<< HEAD
     return was.render2 ("show.htm", name = name)
-=======
-    # first arg shoulld be 'was'
-    return part.render2 ("show.htm", name = name)
->>>>>>> d24f9c7d00f8bf64c05ec2f1a4e470750a267e7f
 
 
 Implementing XMLRPC Service
@@ -2175,4 +2117,3 @@ Change Log
   0.11 - Websocket implemeted
   
   0.10 - WSGI support
-  

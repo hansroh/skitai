@@ -202,8 +202,8 @@ class Part:
 	def set_route_map (self, route_map):
 		self.route_map = route_map
 	
-	def mount (self, module, partname = "part", mount = "/"):
-		part = getattr (module, partname)		
+	def mount (self, mount, module, partname = "part"):
+		part = getattr (module, partname)
 		part.init (module, partname, self.mount_p [:-1] + mount)
 		self.packages [id (part)] = part
 									
