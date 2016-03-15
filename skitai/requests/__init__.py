@@ -21,7 +21,7 @@ _currents = {}
 _latest = ""
 _map = asyncore.socket_map
 _logger = None
-_debug = True
+_debug = False
 _que = []
 _max_numpool = 4
 _current_numpool = 4
@@ -37,10 +37,11 @@ def configure (
 	concurrents = 2,
 	default_option = "", 
 	response_max_size = 100000000,
-	use_lifetime = True
+	use_lifetime = True,
+	debug = False
 	):
 	
-	global _logger, _max_numpool, _current_numpool, _concurrents, _default_option, _configured, _use_lifetime, _timeout
+	global _logger, _max_numpool, _current_numpool, _concurrents, _default_option, _configured, _use_lifetime, _timeout, _debug
 	
 	_default_option = default_option
 	_max_numpool = numpool + 1
@@ -48,6 +49,7 @@ def configure (
 	_logger = logger
 	_concurrents = concurrents
 	_use_lifetime = use_lifetime
+	_debug = debug
 	
 	http_response.Response.SIZE_LIMIT = response_max_size
 	localstorage.create (logger)
@@ -129,7 +131,7 @@ def maybe_pop ():
 		index += 1
 	
 	if _debug:
-		print (_current_numpool, len (_map), len (_que))
+		print (">>>>>>>>>>>> numpool:%d in map:%d queue:%d" % (_current_numpool, len (_map), len (_que)))
 	
 	pup = 0
 	for index in indexes:

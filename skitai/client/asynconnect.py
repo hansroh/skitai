@@ -327,7 +327,7 @@ class AsynConnect (asynchat.async_chat):
 	def reconnect (self):
 		self.disconnect ()
 		self.connect ()
-			
+		
 	def close (self):
 		if self.socket:
 			# self.socket is still None, when DNS not found

@@ -217,19 +217,19 @@ class Response:
 	
 	def get_content (self):
 		if self.code >= 700:
-			return
+			return None
 		
 		if self.size == 0:
-			return
+			return b""
 				
 		self.p.close ()
-		result = self.u.close()
-		
+		result = self.u.close()		
 		if 200 <= self.code < 300:
 			if self.reqtype == "XMLRPC":
 				if len(result) == 1:
 					result = result [0]
-				return result			
+				return result
+				
 		return result
 	
 

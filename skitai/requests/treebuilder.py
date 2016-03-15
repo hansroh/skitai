@@ -255,7 +255,7 @@ class Parser:
 	def get_param (cls, node, attr, name):
 		name = name.lower ()
 		params = cls.get_attr (node, attr)
-		for param in params.split (";"):			
+		for param in params.split (";"):
 			param = param.strip ()
 			if not param.lower ().startswith (name):
 				continue
@@ -275,9 +275,9 @@ def remove_control_characters (html):
 			if strutil.PY_MAJOR_VERSION == 2:
 				return unichr(int(s, base))
 			else:	
-				return chr(int(s, base))
-				
+				return chr(int(s, base))				
 		return default
+
 	html = re.sub(r"&#(\d+);?", lambda c: str_to_int(c.group(1), c.group(0)), html)
 	html = re.sub(r"&#[xX]([0-9a-fA-F]+);?", lambda c: str_to_int(c.group(1), c.group(0), base=16), html)
 	html = re.sub(r"[\x00-\x08\x0b\x0e-\x1f\x7f]", "", html)	
@@ -316,8 +316,8 @@ def to_str (html, encoding):
 			return html.decode ("iso8859-1")
 	
 	if encoding is None:
-		encoding = get_charset (html)		
-
+		encoding = get_charset (html)
+	
 	try:
 		if not encoding:
 			html = try_generic_encoding (html)
@@ -325,9 +325,11 @@ def to_str (html, encoding):
 			try:
 				html = html.decode (encoding)
 			except LookupError:
-				html = try_generic_encoding (html)				
-	except UnicodeDecodeError:		
+				html = try_generic_encoding (html)
+				
+	except UnicodeDecodeError:
 		return remove_non_asc (html)
+		
 	else:
 		return remove_control_characters (html)
 	
@@ -335,7 +337,7 @@ def html (html, baseurl, encoding = None):
 	# html5lib rebuilds possibly mal-formed html	
 	try:
 		return lxml.html.fromstring (lxml.etree.tostring (html5lib.parse (html, encoding = encoding, treebuilder="lxml")), baseurl)	
-	except ValueError:		
+	except ValueError:
 		return lxml.html.fromstring (lxml.etree.tostring (html5lib.parse (to_str (html, encoding), treebuilder="lxml")), baseurl)	
 
 def etree (html, encoding = None):

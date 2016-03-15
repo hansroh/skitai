@@ -127,7 +127,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		if self.asyncon:
 			self.asyncon.ready = None
 			self.asyncon.affluent = None
-			if self.client_request.channel:			
+			if self.client_request.channel:
 				self.client_request.channel.ready = None
 				self.client_request.channel.affluent = None
 			else:
@@ -367,11 +367,17 @@ class Collector (collectors.FormCollector):
 		self.request.channel.set_terminator (self.content_length)
 	
 	def close (self):
+		# channel disconnected
 		self.data = []
 		self.cache = []
 		self.request.collector = None
+		
+		# abort immediatly
 		if self.asyncon:
-			self.asyncon.abort ()
+			self.asyncon.ready = None
+			self.asyncon.affluent = None
+			self.asyncon.handler = None
+			self.asyncon.close ()
 				
 	def collect_incoming_data (self, data):
 		#print "proxy_handler.collector << %d" % len (data), id (self)
@@ -381,6 +387,7 @@ class Collector (collectors.FormCollector):
 	def found_terminator (self):
 		self.request.channel.set_terminator (b'\r\n\r\n')
 		self.got_all_data = True
+		self.request.collector = None
 		# don't request.collector = None => do it at callback ()
 		# because this collector will be used in Request.continue_start() later
 	

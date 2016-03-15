@@ -1,20 +1,18 @@
-Skitai WSGI App Engine
-==========================
 
+Copyright (c) 2015-2016 by Hans Roh
 
-Copyright (c) 2015 by Hans Roh
-
-License: BSD
-
+.. contents::
+ 
 
 Changes
-----------
+==========
 
+- fix proxy occupies CPU on POST method failing
 - was.log(), was.traceback() added
-
+  
   
 Introduce
-----------
+===========
 
 Skitai App Engine (SAE) is a kind of branch of `Medusa Web Server`__ - A High-Performance Internet Server Architecture.
 
@@ -46,7 +44,7 @@ Conceptually, SAE has been seperated into two components:
 
 
 Installation / Startup
--------------------------
+=========================
 
 **Requirements**
 
@@ -64,7 +62,7 @@ On win32, required *pywin32 binary* - http://sourceforge.net/projects/pywin32/fi
 
 **Installation & Startup On Posix**
 
-.. code:: python
+.. code-block:: bash
 
     sudo pip install skitai    
     sudo skitaid.py -v &
@@ -82,7 +80,7 @@ On win32, required *pywin32 binary* - http://sourceforge.net/projects/pywin32/fi
 
 **Installation & Startup On Win32**
 
-.. code:: python
+.. code-block:: bash
 
     sudo pip install skitai
     cd c:\skitaid\bin
@@ -99,7 +97,7 @@ On win32, required *pywin32 binary* - http://sourceforge.net/projects/pywin32/fi
     
 
 Mounting WSGI Apps
---------------------
+====================
 
 Here's three WSGI app samples:
 
@@ -172,7 +170,7 @@ In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"
 
 
 Concept of Skitai 'was' Services
----------------------------------
+====================================
 
 'was' means (Skitai) *WSGI Application Support*. 
 
@@ -355,7 +353,10 @@ Bottom line, the best coding strategy with Skitai is, *"Request Early, Use Latel
 
 
 HTTP/XMLRPC Request
---------------------
+=========================
+
+Usage
+------
 
 **Simple HTTP Request**
 
@@ -404,12 +405,7 @@ Again note that if you want to use WAS services in your WSGI middle wares (not S
 
   from skitai import was
 
-And result.status value must be checked:
-
-- 0: Initial Default Value
-- 1: Operation Timeout
-- 2: Exception Occured
-- 3: Normal
+And result.status value must be checked.
 
 if status is not 3, you should handle error by calling result.reraise (), ignoring or returning alternative content etc. For my convinient, it will be skipped in example codes from now.
 
@@ -444,6 +440,19 @@ Avaliable methods are:
 - was.delete (url, data, auth, headers, use_cache)
 - was.upload (url, data, auth, headers, use_cache) # For clarity to multipart POST
 
+Above methods return ClusterDistCall (cdc) class.
+ 
+- cdc.getwait (timeout = 5) : return result with status
+- cdc.getswait (timeout = 5) : getting multiple results
+- cdc.wait (timeout = 5) : no return result, then if error has been ocuured. riased immediately
+- cdc.cache (timeout)
+- cdc.code : HTTP status code like 200, 404, ...
+- cdc.status
+
+  - 0: Initial Default Value
+  - 1: Operation Timeout
+  - 2: Exception Occured
+  - 3: Normal
 
 **Load-Balancing**
 
@@ -560,7 +569,8 @@ It is desinged as simple & no stateless request-response model using web socket 
 Usage is same as HTTP/RPC request and obiously, target server should be implemented websocket service routed to '/websocket/echo' in this case.
 
 
-**Caching Result**
+Caching Result
+----------------
 
 Every results returned by getwait(), getswait() can cache.
 
@@ -597,7 +607,7 @@ For expiring cached result by updating new data:
     
 
 Connecting to DBMS
----------------------
+=====================
 
 Of cause, you can use any database modules for connecting to your DBMS.
 
@@ -615,6 +625,9 @@ But according to `Psycopg2 advanced topics`_, there are several limitations in u
 If you need blocking jobs, you can use original Psycopg2 module or other PostgreSQL modules.
 
 Anyway, usage is basically same concept with above HTTP Requests.
+
+Usage
+------
 
 **Simple Query**
 
@@ -681,7 +694,8 @@ Avaliable methods are:
 .. _`Psycopg2 advanced topics`: http://initd.org/psycopg/docs/advanced.html
 
 
-**Fast App Prototyping using SQLite3**
+Fast App Prototyping using SQLite3
+------------------------------------
 
 `New in version 0.13`
 
@@ -718,7 +732,8 @@ Also load-balacing and map-reuducing is exactly same with PostgreSQL.
 *Note:* You should call exalctly 1 execute () per a was.db.* () object, and 'select' statement should be called alone.
 
 
-**Caching Result**
+Caching Result
+------------------
 
 Same as HTTP/RPC, every results returned by getwait(), getswait() can cache.
 
@@ -754,11 +769,12 @@ For expiring cached result by updating new data:
   	
 
 Other Utility Service of 'was'
------------------------------------
+=================================
 
 This chapter's 'was' services are also avaliable for all WSGI middelwares.
 
-**Sending e-Mails**
+Sending e-Mails
+-------------------
 
 e-Mail sending service is executed seperated system process not threading. Every e-mail is temporary save to file system, e-Mail delivery process check new mail and will send. So there's possibly some delay time.
 
@@ -787,7 +803,8 @@ If it is configured, you can skip e.set_smtp(). But be careful for keeping your 
 Log file is located at /var/log/skitaid/daemons/smtpda/smtpda.log or c:\skitaid\log\daemons\smtpda\smtpda.log
 
 
-**Utilities**
+Utilities
+-------------
 
 - was.status () # HTML formatted status information like phpinfo() in PHP.
 - was.tojson (object)
@@ -799,7 +816,7 @@ Log file is located at /var/log/skitaid/daemons/smtpda/smtpda.log or c:\skitaid\
 
 
 HTML5 Websocket
--------------------
+====================
 
 *New in version 0.11*
 
@@ -807,7 +824,7 @@ The HTML5 WebSockets specification defines an API that enables web pages to use 
 
 Skitai can be HTML5 websocket server and any WSGI middlewares can use it.
 
-But I'm not sure my implemetation is right way, so it is experimental and unstatable.
+But I'm not sure my implemetation is right way, so it is experimental and could be changable.
 
 I think there're 3 handling ways to use websockets.
 
@@ -877,7 +894,8 @@ WEBSOCKET_MULTICAST
 *variable name* is various usage per each design spec.
 
 
-**WEBSOCKET_REQDATA**
+Simple Data Request & Response
+-------------------------------
 
 Here's a echo app for showing simple request-respone.
 
@@ -921,8 +939,8 @@ Client can connect by ws://localhost:5000/websocket/chat.
 
 In this case, variable name is "message", It means take websocket's message as "message" arg.
 
-
-**WEBSOCKET_DEDICATE**
+Dedicated Websocket
+-----------------------
 
 This app will handle only one websocket client. and if new websocekt connected, will be created new thread.
 
@@ -954,7 +972,8 @@ Client can connect by ws://localhost:5000/websocket/talk?name=Member.
 In this case, variable name should be None. If exists, will be ignored.
 
 
-**WEBSOCKET_MULTICAST**
+Multicasting Websocket
+------------------------
 
 Here's simple mutiuser chatting app.
 
@@ -992,7 +1011,7 @@ In next chapter's features of 'was' are only available for *Skitai-Saddle WSGI m
 
 
 Request Handling with Saddle
-----------------------------
+===============================
 
 *Saddle* is WSGI middle ware integrated with Skitai App Engine.
 
@@ -1001,7 +1020,8 @@ Flask and other WSGI middle ware have their own way to handle request. So If you
 And note below objects and methods *ARE NOT WORKING* in any other WSGI middlewares except Saddle.
 
 
-**Debugging**
+Debugging
+----------
 
 .. code:: python
 
@@ -1025,8 +1045,8 @@ For output message & error in console:
 
 
   
-**Access Request**
-
+Access Request
+----------------
 
 Reqeust object provides these methods and attributes:
 
@@ -1046,7 +1066,8 @@ Reqeust object provides these methods and attributes:
 - was.request.get_sub_type ()
 
 
-**Response**
+Response
+-------------
 
 Basically, just return contents.
 
@@ -1135,7 +1156,8 @@ The object has 'close ()' method, will be called when all data consumed, or sock
 - was.response.del_header (k)
 
 
-**Getting URL Parameters**
+Getting URL Parameters
+-------------------------
 
 .. code:: python
   
@@ -1165,7 +1187,8 @@ for fancy url building, available param types are:
 - If not provided, assume as string. and all space char replaced to "_'
 
 
-**Getting Form Parameters**
+Getting Form Parameters
+----------------------------
 
 Getting form is not different from the way for url parameters, but generally form parameters is too many to use with each function parameters, can take from single args \*\*form or take mixed with named args and \*\*form both.
 
@@ -1180,7 +1203,8 @@ Getting form is not different from the way for url parameters, but generally for
   	return "Post %s %s" % (userid, form.get ("comment", ""))
 
 
-**Building URL**
+Building URL
+---------------
 
 If your app is mounted at "/math",
 
@@ -1209,7 +1233,8 @@ For building static url, url should be started with "/"
   was.ab ("/css/home.css") # returned '/math/css/home.css'
   
 
-**Access Environment Variables**
+Access Environment Variables
+------------------------------
 
 was.env is just Python dictionary object.
 
@@ -1220,7 +1245,8 @@ was.env is just Python dictionary object.
   was.env.get ("CONTENT_TYPE")
 
 
-**Access App**
+Access App
+-----------
 
 You can access all Saddle object from was.app.
 
@@ -1232,7 +1258,8 @@ You can access all Saddle object from was.app.
 - was.app.buld_url () is equal to was.ab ()
 
 
-**Jinja2 Templates Engine**
+Jinja2 Templates Engine
+--------------------------
 
 Although You can use any template engine, Skitai provides was.render() which uses Jinja2_ template engine. For providing arguments to Jinja2, use dictionary or keyword arguments.
 
@@ -1279,7 +1306,8 @@ If you want modify Jinja2 envrionment, can through was.app.jinja_env object.
 
 
 
-**Messaging Box**
+Messaging Box
+----------------
 
 Like Flask's flash feature, Skitai also provide messaging tool.
 
@@ -1342,7 +1370,8 @@ news.htm like this:
 - was.mbox.remove (message_id)
 
 
-**Access Cookie**
+Access Cookie
+----------------
 
 was.cookie has almost dictionary methods.
 
@@ -1365,7 +1394,8 @@ was.cookie has almost dictionary methods.
 - was.cookie.itervalues ()
 - was.cookie.iteritems ()
 
-**Access Session**
+Access Session
+----------------
 
 was.session has almost dictionary methods.
 
@@ -1399,7 +1429,8 @@ To enable session for app, random string formatted securekey should be set for e
 - was.session.itervalues ()
 - was.session.iteritems ()
 
-**File Upload**
+File Upload
+---------------
 
 .. code:: python
   
@@ -1440,7 +1471,8 @@ To enable session for app, random string formatted securekey should be set for e
     + o - overwrite
 
 
-**Registering Event Calls To App and was.g**
+Registering Event Calls To App and was.g
+-----------------------------------------
 
 .. code:: python
 
@@ -1569,7 +1601,8 @@ These methods will be called,
 3. shutdown: when skitai server is shutdowned
   
 
-**Using WWW-Authenticate**
+WWW-Authenticate
+-------------------
 
 Saddle provide simple authenticate for administration or perform access control from other system's call.
 
@@ -1589,7 +1622,8 @@ Saddle provide simple authenticate for administration or perform access control 
 If your server run with SSL, you can use app.authorization = "basic", otherwise recommend using "digest" for your password safety.
 
 
-**Packaging for Larger App**
+Packaging for Larger App
+--------------------------
 
 If your app is very large or want to manage codes by categories, you can seperate your app.
 
@@ -1678,7 +1712,8 @@ In this case, app and package's event calls are nested executed in this order.
   app.teardown_request ()
 
 
-**Implementing XMLRPC Service**
+Implementing XMLRPC Service
+-----------------------------
 
 Client Side:
 
@@ -1701,7 +1736,8 @@ Server Side:
 Is there nothing to diffrence? Yes. Saddle app methods are also used for XMLRPC service if return values are XMLRPC dumpable.
 
 
-**Logging and Traceback**
+Logging and Traceback
+------------------------
 
 If Skitai run with -v option, app and exceptions are displayed at your console, else logged at files.
 
@@ -1736,7 +1772,7 @@ Above log is like this:
   
   2016.03.03 03:37:41 [info] called index
   2016.03.03 03:37:41 [error] exception occured
-  2016.03.03 11:41:17 [expt:bp1] <type 'exceptions.TypeError'>\
+  2016.03.03 03:37:41 [expt:bp1] <type 'exceptions.TypeError'>\
     index() got an unexpected keyword argument 't'\
     [/skitai/saddle/wsgi_executor.py|chained_exec|51]
   2016.03.03 03:37:41 [info] done index
@@ -1746,9 +1782,12 @@ Above log is like this:
 
 
 Skitai Server Configuration / Management
---------------------------------------------
+============================================
 
 Now let's move on to new subject about server configuration amd mainternance.
+
+Configuration
+--------------
 
 Configuration files are located in '/etc/skitaid/servers-enabled/\*.conf', and on win32, 'c:\\skitaid\\etc\\servers-enabled/\*.conf'.
 
@@ -1787,7 +1826,8 @@ Here's configs required your carefulness.
 - response_timeout: transfer delay timeout caused by network problem
 
 
-**Mounting With Virtual Host**
+Mounting With Virtual Host
+-----------------------------
 
 *New in version 0.10.5*
 
@@ -1814,7 +1854,8 @@ App can be mounted with virtual host.
 As a result, the app location '/home/user/mydomain.www/wsgi.py' is mounted to 'www.mydomain.com/service' and 'mydomain.com/service'.
 
 
-**Log Files**
+Log Files
+-----------
 
 If Skitai run with skitaid.py, there're several processes will be created.
 
@@ -1862,7 +1903,8 @@ If Skitai App Engine Instances config file is 'sample.conf', log file located at
 - skitaid.py -f cron -s [server|request|app] log
 
 
-**Batch Task Scheduler**
+Batch Task Scheduler
+-----------------------
 
 *New in version 0.14.5*
 
@@ -1880,7 +1922,8 @@ Taks configuarion is same with posix crontab.
 Cron log file is located at /var/log/skitaid/daemons/cron/cron.log or c:\skitaid\log\daemons\cron\cron.log
 
 
-**Running Skitai as HTTPS Server**
+Running Skitai as HTTPS Server
+---------------------------------
 
 Simply config your certification files to config file (ex. /etc/skitaid/servers-enabled/sample.conf). 
 
@@ -1979,7 +2022,7 @@ For Nginx might be 2 config files (I'm not sure):
 
 
 Project Purpose
------------------
+===================
 
 Skitai App Engine's original purpose is to serve python fulltext search engine Wissen_ which is my another pypi work. And recently I found that it is possibly useful for building and serving websites.
 
@@ -1996,7 +2039,7 @@ Also note it might be more efficient that circumstance using `Gevent WSGI Server
 
 
 Change Log
--------------
+==============
 
   0.14
   
