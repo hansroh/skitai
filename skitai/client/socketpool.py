@@ -170,6 +170,8 @@ class SocketPool:
 		asyncon = __conn_class ((addr, port), self.lock, self.logger)	
 		if scheme == "proxy":
 			asyncon.set_proxy (True)
+		else:
+			asyncon.set_proxy (False)	
 		return asyncon
 				
 	def get (self, uri):	

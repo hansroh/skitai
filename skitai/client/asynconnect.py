@@ -36,7 +36,7 @@ class AsynConnect (asynchat.async_chat):
 		self.logger = logger
 		self._cv = threading.Condition ()		
 		self.set_event_time ()
-		
+		self.proxy = False
 		self.handler = None
 		self.initialize_connection ()				
 		asynchat.async_chat.__init__ (self)
@@ -46,7 +46,6 @@ class AsynConnect (asynchat.async_chat):
 		self._handshaking = False
 		self._handshaked = False		
 		
-		self.proxy = False		
 		self.established = False		
 		self.upgraded = False		
 		self.ready = None

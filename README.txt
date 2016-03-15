@@ -340,7 +340,7 @@ Now async version is,
 
 Above async version will be possibly delayed max '2' seconds, because waiting-start point is the time request was created and 3 requests was created almost same time and processed parallelly in background.
 
-It can be implemeted by using multi-threading, but Skitai handles all sockets in single threaded non-blocking multi-plexing loop, there's no additional cost for threads creationg/context switching etc.
+It can be implemeted by using multi-threading, but Skitai handles all sockets in single threaded non-blocking multi-plexing loop, there's no additional cost for threads creation/context switching etc.
 
 Even better, Skitai manages connection pool for all connections, doesn't need connect operation except at first request at most cases.
 
@@ -2024,9 +2024,9 @@ For Nginx might be 2 config files (I'm not sure):
 Project Purpose
 ===================
 
-Skitai App Engine's original purpose is to serve python fulltext search engine Wissen_ which is my another pypi work. And recently I found that it is possibly useful for building and serving websites.
+Skitai App Engine's original purpose is to serve python fulltext search engine Wissen_ which is my another pypi work. And I found that it is possibly useful for building and serving websites.
 
-Anyway, I am modifying my codes to optimizing for enabling service on Linux machine with relatvely poor H/W and making easy to auto-scaling provided cloud computing service like AWS_.
+Anyway, I am modifying my codes to optimizing for enabling service on Linux machine with relatvely poor H/W (ex. AWS_ t2.nano instance) and making easy to auto-scaling provided cloud computing service like AWS_.
 
 If you need lots of outside http(s) resources connecting jobs and use PostgreSQL, it might be worth testing and participating this project.
 

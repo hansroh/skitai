@@ -127,15 +127,14 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		# unbind readable/writable methods
 		if self.asyncon:
 			self.asyncon.ready = None
-			self.asyncon.affluent = None
+			self.asyncon.affluent = None			
 			if self.client_request.channel:
 				self.client_request.channel.ready = None
-				self.client_request.channel.affluent = None
-			else:
-				return
-			self.asyncon.handler = self.new_handler
+				self.client_request.channel.affluent = None			
 			
-		if self.callback:
+			self.asyncon.handler = self.new_handler			
+		
+		if self.callback:			
 			self.callback (self)
 	
 	def found_end_of_body (self):
@@ -324,8 +323,9 @@ class ProxyResponse (http_response.Response):
 		self.client_request.producer = None
 		try: self.u.data = []
 		except AttributeError: pass		
-		self.asyncon.disconnect ()
-		self.asyncon.end_tran ()
+		#self.asyncon.disconnect ()		
+		#self.asyncon.end_tran ()
+		self.asyncon.handle_close (710, "Channel Closed")
 			
 	def affluent (self):
 		# if channel doesn't consume data, delay recv data
@@ -527,15 +527,17 @@ class Handler (wsgi_handler.Handler):
 		del handler
 			
 	def callback (self, handler):
-		response, request = handler.response, handler.client_request		
-		if response.code >= 700:
-			request.response.error (506, response.msg)
+		response, request = handler.response, handler.client_request
 		
-		else:
-			try:
-				self.save_cache (request, handler)					
-			except:
-				self.wasc.logger.trace ("server")
+		if request.channel:
+			if response.code >= 700:
+				request.response.error (506, response.msg)
+			
+			else:
+				try:
+					self.save_cache (request, handler)
+				except:
+					self.wasc.logger.trace ("server")
 		
 		self.dealloc (request, handler)
 		
