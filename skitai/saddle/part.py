@@ -233,8 +233,7 @@ class Part:
 	def add_route (self, rule, func, *t, **k):
 		if not rule or rule [0] != "/":
 			raise AssertionError ("Url rule should be starts with '/'")
-		
-		#rule = urljoin (self.mount_p, rule [1:])
+					
 		s = rule.find ("/<")
 		if s == -1:	
 			self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, rule)
@@ -286,8 +285,7 @@ class Part:
 				matchtype = 2
 		else:
 			if type (method) is not function: # 301 move								
-				return self, method, None, None, 3
-				
+				return self, method, None, None, 3				
 			match = path_info
 			matchtype = 1
 		

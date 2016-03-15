@@ -5,8 +5,7 @@ Copyright (c) 2015-2016 by Hans Roh
  
 
 Changes
-==========
-  
+==========  
   - fix routing bugs & was.ab()
   - add saddle.Saddlery class for app packaging
   - @app.startup, @app.onreload, @app.shutdown arguments has been changed
@@ -1627,6 +1626,35 @@ Packaging for Larger App
 --------------------------
 
 *Changed in version 0.15*
+<<<<<<< HEAD
+=======
+
+Before 0.15
+
+.. code:: python
+  
+  # wsgi.py
+  from skitai.saddle import Saddle
+  from . import admin
+  
+  app = Saddle (__name__)
+  app.add_package (admin, "app")
+  
+  @app.route ("/")
+  def index (was, num1, num2):  
+    return was.ab ("hello", "Hans Roh") # url building
+  
+  # admin.py
+  from skitai.saddle import Package
+  app = Package ("/admin") # mount point
+  
+  @app.route ("/<name>")
+  def hello (was):
+    # can build other module's method url
+    return was.ab ("index", 1, 2) 
+
+For now, if your app is very large or want to manage codes by categories, you can seperate your app.
+>>>>>>> d24f9c7d00f8bf64c05ec2f1a4e470750a267e7f
 
 Before 0.15
 
@@ -1646,7 +1674,13 @@ Before 0.15
   from . import admin
   
   app = Saddle (__name__)
+<<<<<<< HEAD
   app.add_package (admin, "app")
+=======
+  app.debug = True
+  app.use_reloader = True  
+  app.mount (admin, "part", "/admin")
+>>>>>>> d24f9c7d00f8bf64c05ec2f1a4e470750a267e7f
   
   @app.route ("/")
   def index (was, num1, num2):  
@@ -1654,17 +1688,26 @@ Before 0.15
   
 For now, if your app is very large or want to manage codes by categories, you can seperate your app.
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> d24f9c7d00f8bf64c05ec2f1a4e470750a267e7f
 admin.py
   
 .. code:: python
 
   from skitai.saddle import Saddlery
+<<<<<<< HEAD
   part = Saddlery ()
+=======
+  part = Saddlery () # mount point
+>>>>>>> d24f9c7d00f8bf64c05ec2f1a4e470750a267e7f
   
   @part.route ("/<name>")
   def hello (was):
     # can build other module's method url
     return was.ab ("index", 1, 2) 
+<<<<<<< HEAD
 
 app.py
 
@@ -1682,6 +1725,9 @@ app.py
   def index (was, num1, num2):  
     return was.ab ("hello", "Hans Roh") # url building
         
+=======
+    
+>>>>>>> d24f9c7d00f8bf64c05ec2f1a4e470750a267e7f
 Now, hello function's can be accessed by '/[app mount point]/admin/Hans_Roh'.
   
 App's configs like debug & use_reloader, etc, will be applied to packages except event calls.
@@ -1765,7 +1811,12 @@ But if you want to use independent templates under own templates directory:
   
   @part.route ("/<name>")
   def hello (was):
+<<<<<<< HEAD
     return was.render2 ("show.htm", name = name)
+=======
+    # first arg shoulld be 'was'
+    return part.render2 ("show.htm", name = name)
+>>>>>>> d24f9c7d00f8bf64c05ec2f1a4e470750a267e7f
 
 
 Implementing XMLRPC Service
