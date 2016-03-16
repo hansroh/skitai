@@ -304,7 +304,7 @@ class MessageBox (SecuredListValue):
 		self.mid += 1
 		self.data.append ((self.mid, category, int (time.time ()), valid, msg, extra))
 		self.dirty = True
-	
+		
 	def remove (self, mid):
 		index = 0
 		found = False
@@ -312,31 +312,44 @@ class MessageBox (SecuredListValue):
 			if n [0] == mid:
 				found = True
 				break
-			index += 1		
+			index += 1
 		if found:
 			self.data.pop (index)
-		self.dirty = True	
+		self.dirty = True
+	
+	def search (self, k, v = None):
+		mids = []
+		for notice in self.data:
+			if v is None:
+				if notice [1] == k:
+					mids.append (notice [0])
+			elif notice [5].get (k) == v:
+				mids.append (notice [0])
+		return mids
 			
-	def get (self, *wanted_category):
+	def get (self, k = None, v = None):
+		mids = []
+		if k:
+			mids = self.search (k, v)
+
 		now = int (time.time ())
-		messages = []	
+		messages = []
 		not_expired = []
 		
 		for notice in self.data:
-			how_old = now - notice [2]
-			
+			how_old = now - notice [2]			
 			if notice [3] and how_old > notice [3]:
 				# expired, drop
 				continue
-			
-			if wanted_category and notice [1] not in wanted_category:
+				
+			if mids and notice [0] not in mids:
 				not_expired.append (notice)
 				continue
 				
 			if notice [3]:
 				not_expired.append (notice)			
 							
-			messages.append (notice)			
+			messages.append (notice)
 		
 		if len (self.data) != len (not_expired):
 			self.data = not_expired

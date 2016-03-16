@@ -1,15 +1,15 @@
-Copyright (c) 2015-2016 by Hans Roh
 
 .. contents:: Table of Contents
  
 
 Changes
 ==========
-  
-  - fix routing bugs & was.ab()
-  - add saddle.Saddlery class for app packaging
-  - @app.startup, @app.onreload, @app.shutdown arguments has been changed
-  
+
+- add was.mbox.search (), change spec was.mbox.get ()
+- fix routing bugs & was.ab()
+- add saddle.Saddlery class for app packaging
+- @app.startup, @app.onreload, @app.shutdown arguments has been changed
+
   
 Introduce
 ===========
@@ -1358,11 +1358,12 @@ news.htm like this:
   	{% endfor %}
   </ul>
 
-
 - was.mbox.send (msg, category, valid_seconds, key=val, ...)
-- was.mbox.get (filtered_category, ...) return [(message_id, category, created_time, valid_seconds, msg, extra_dict)]  
+- was.mbox.get () return [(message_id, category, created_time, valid_seconds, msg, extra_dict)]
+- was.mbox.get (category) filtered by category
+- was.mbox.get (key, val) filtered by extra_dict
+- was.mbox.search (key, val): find in extra_dict. if val is not given or given None, compare with category name. return [message_id, ...]
 - was.mbox.remove (message_id)
-
 
 Access Cookie
 ----------------
@@ -1885,21 +1886,30 @@ App can be mounted with virtual host.
 .. code:: python
 
   [routes:line]
-  
-  default
+ 
   / = /home/user/www/static
   / = /home/user/www/wsig:app
   
-  ; exactly matching host
   
+  # exactly matching host  
   www.mydomain.com mydomain.com  
+  
   / = /home/user/mydomain.www/static
   /service = /home/user/mydomain.www/wsgi:app
   
-  ; matched *.mydomain.com
+  
+  # matched *.mydomain.com include mydomain.com
   .mydomain.com
+  
   / = home/user/mydomain.any/static 
   / = home/user/mydomain.any/wsgi:app 
+
+  # matched *.mydomain2.com except mydomain2.com
+  *.mydomain.com
+  
+  / = home/user/mydomain2.any/static 
+  / = home/user/mydomain2.any/wsgi:app 
+
 
 As a result, the app location '/home/user/mydomain.www/wsgi.py' is mounted to 'www.mydomain.com/service' and 'mydomain.com/service'.
 
@@ -2092,6 +2102,8 @@ Change Log
   
   0.15
   
+  - add was.mbox.search (), change spec was.mbox.get ()
+  - fix routing bugs & was.ab()
   - add saddle.Saddlery class for app packaging
   - @app.startup, @app.onreload, @app.shutdown arguments has been changed
   
@@ -2118,3 +2130,7 @@ Change Log
   0.11 - Websocket implemeted
   
   0.10 - WSGI support
+  
+  
+*Copyright (c) 2015-2016 by Hans Roh*
+

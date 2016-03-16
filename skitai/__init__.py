@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.15.3"
+VERSION = "0.15.4"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
 NAME = "SAE/%s.%s" % version_info [:2]
 
@@ -14,7 +14,7 @@ WEBSOCKET_MULTICAST = 3
 DB_PGSQL = "postgresql"
 DB_SQLITE3 = "sqlite3"
 
-class _WASPool:	
+class _WASPool:
 	def __init__ (self):
 		self.__wasc = None
 		self.__p = {}
