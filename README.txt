@@ -1892,20 +1892,21 @@ App can be mounted with virtual host.
   
   
   # exactly matching host  
-  www.mydomain.com mydomain.com  
-  
+  @ www.mydomain.com mydomain.com 
+     
   / = /home/user/mydomain.www/static
   /service = /home/user/mydomain.www/wsgi:app
   
   
   # matched *.mydomain.com include mydomain.com
-  .mydomain.com
+  @ .mydomain.com
   
   / = home/user/mydomain.any/static 
   / = home/user/mydomain.any/wsgi:app 
 
+
   # matched *.mydomain2.com except mydomain2.com
-  *.mydomain.com
+  @ *.mydomain.com
   
   / = home/user/mydomain2.any/static 
   / = home/user/mydomain2.any/wsgi:app 

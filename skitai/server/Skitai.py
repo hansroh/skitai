@@ -183,6 +183,8 @@ class Loader:
 			elif line.startswith ("/"):
 				vh.add_route (current_rule, line)
 			elif line:
+				if line [0] == "@":
+					line = line [1:].strip ()
 				current_rule = line
 			
 	def run (self):

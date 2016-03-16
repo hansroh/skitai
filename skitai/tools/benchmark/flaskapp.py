@@ -56,7 +56,7 @@ def index ():
 			return os.path.join("d:\\var\\upload", filename)
 		else:
 			return str (request.form)
-	return FORMDATA+"<hr>"+MULTIPART
+	return FORMDATA+"<hr>"+MULTIPART+"<hr>URL_FOR: " + url_for ("generate_large_csv")
 
 @app.route('/ping')
 def ping ():
