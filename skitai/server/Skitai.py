@@ -177,12 +177,12 @@ class Loader:
 		
 		current_rule = "default"
 		for line in routes:
-			if line.startswith (":"):
-				current_rule = line [1:]
-			elif line.startswith (";") or line.startswith ("#"):
+			if line.startswith (";") or line.startswith ("#"):
 				continue
-			else:
-				vh.add_route (current_rule, line)	
+			elif line.startswith ("/"):
+				vh.add_route (current_rule, line)
+			elif line.strip ():
+				current_rule = line
 			
 	def run (self):
 		if self._exit_code is not None: 

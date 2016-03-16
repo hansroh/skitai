@@ -1,8 +1,8 @@
-from skitai.saddle import Package
+from skitai.saddle import Saddlery
 
-package = Package ()
+package = Saddlery ()
 
 @package.route('/pack')
 def hello_world (was):
-	return "I'm a Package!!!!33ddddd--"
+	return "I'm a Package!!!!33eeee--==="
 

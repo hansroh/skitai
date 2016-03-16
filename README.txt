@@ -1,6 +1,6 @@
 Copyright (c) 2015-2016 by Hans Roh
 
-.. contents::
+.. contents:: Table of Contents
  
 
 Changes
@@ -1886,17 +1886,18 @@ App can be mounted with virtual host.
 
   [routes:line]
   
-  : default
+  default
   / = /home/user/www/static
   / = /home/user/www/wsig:app
   
   ; exactly matching host
-  : www.mydomain.com mydomain.com  
+  
+  www.mydomain.com mydomain.com  
   / = /home/user/mydomain.www/static
   /service = /home/user/mydomain.www/wsgi:app
   
   ; matched *.mydomain.com
-  : .mydomain.com
+  .mydomain.com
   / = home/user/mydomain.any/static 
   / = home/user/mydomain.any/wsgi:app 
 
@@ -1910,7 +1911,7 @@ If Skitai run with skitaid.py, there're several processes will be created.
 
 Sample ps command's result is:
 
-.. code:: python
+.. code-block:: bash
 
   ubuntu:~/skitai$ ps -ef | grep skitaid
   root     19146 19145  0 Mar03 pts/0    00:00:11 /usr/bin/python /usr/local/bin/skitaid.py

@@ -296,7 +296,7 @@ class Part:
 				subapp = getattr (package.module, package.packagename)
 				if use_reloader and subapp.is_reloadable ():
 					del self.packages [pid]
-					args, its_packages = (package.module, package.packagename, package.mount_p), package.packages
+					args, its_packages = (package.mount_p, package.module, package.packagename), package.packages
 					subapp.reload_package ()
 					self.mount (*args)
 					package.start (self.wasc, self.route, its_packages)

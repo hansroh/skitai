@@ -36,7 +36,7 @@ FORMDATA = """
 """
 import skitaipackage
 
-app.add_package (skitaipackage, "package")
+app.mount ("/", skitaipackage, "package")
 
 @app.route ("/fancy/<int:cid>/<cname>")
 def fancy (was, cid, cname, zipcode):
