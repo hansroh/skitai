@@ -282,7 +282,7 @@ class Item:
 	def callback_wrap (self, handler):
 		global _latest
 	
-		r = rc.ResponseContainer (handler, self.callback)		
+		r = rc.ResponseContainer (handler, self.callback)
 		_latest = r.uinfo.netloc
 		# unkink back refs
 		handler.asyncon = None

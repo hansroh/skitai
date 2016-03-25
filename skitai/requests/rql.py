@@ -9,7 +9,9 @@ except ImportError:
 import time
 from skitai.protocol.http import util
 
-from . import localstorage
+DEBUG = False
+if not DEBUG:
+	from . import localstorage
 
 MAX_MOVED = 5
 KEYWORDS = ('from', "label", "with")
@@ -54,27 +56,16 @@ class RQL:
 		if self.uinfo.referer:
 			h.append (("Referer", self.uinfo.referer))
 		return dict (h)
+	
+	def check_end_quote (self, quote, token):
+		if token and token [-1] == quote and (len (token) == 1 or token [-2] != "\\"):
+			token = token [:-1].replace ("\\" + quote, quote)
+			quote = None
+		else:	
+			token = token.replace ("\\" + quote, quote)
+		return quote, token
 		
 	def parse (self):
-		"""
-			from http://a.com 
-			get http://a.com/search 
-			with q=lupot+violin # urlencoded format
-			label "Advanced Search"
-						
-			--cookie a=1;b=4 # urlencoded format
-			--user-agent
-			--version
-			--auth
-			--proxy
-			--tunnel
-			--content-type
-			--connection			
-			--head-Content-Type text/html
-			
-			--id:int 123
-			--name Test
-		"""	
 		if not self.rql.strip ():
 			raise AssertionError ("Empty RQL")
 		
@@ -83,16 +74,12 @@ class RQL:
 		current_quote = None
 		
 		for token in self.rql.split(" "):
-			if not token and (current_key is None or not d[current_key]):
+			if not token and (current_key is None or not d [current_key]):
 				continue
 			
 			if current_quote is not None:
-				if token and token [-1] == current_quote:
-					if len (token) == 1 or token [-2] != "\\":
-						d[current_key] += ' ' + token [:-1].replace ("\\" + current_quote, current_quote)
-						current_quote = None
-						continue												
-				d[current_key] += ' ' + token.replace ("\\" + current_quote, current_quote)				
+				current_quote, token = self.check_end_quote (current_quote, token)
+				d[current_key] += ' ' + token
 				continue
 				
 			tk = token.lower()
@@ -109,14 +96,12 @@ class RQL:
 				try: 
 					if d[current_key]:
 						d[current_key] += ' ' + token
-						
+												
 					else:
 						if token [0] in "\"'":
 							current_quote = token [0]
 							token = token [1:]
-							if token [-1] == current_quote and (len (token) == 1 or token [-2] != "\\"):
-								token = token [:-1]
-								current_quote = None
+							current_quote, token = self.check_end_quote (current_quote, token)
 						d[current_key] = token
 							
 				except KeyError:
@@ -147,7 +132,8 @@ class RQL:
 					# LONGOPTS = ('cookie', 'user-agent', 'version', 'auth', 'proxy', 'tunnel', 'content-type', 'connection')
 					okey = k [2:]
 					if okey == "cookie":
-						localstorage.g.set_cookie_from_data (self.uinfo.rfc, v)
+						if not DEBUG:
+							localstorage.g.set_cookie_from_data (self.uinfo.rfc, v)
 					elif okey == "user-agent":
 						self.hconf.user_agent = v					
 					elif okey == "content-type":
@@ -270,7 +256,8 @@ class RQL:
 		else:
 			self.uinfo.rfc = '%s://%s:%d%s' % (self.uinfo.scheme, self.uinfo.netloc, self.uinfo.port, self.uinfo.uri)	
 		self.uinfo.page_id = self.geneate_page_id ()
-		self.hconf.cookie = localstorage.g.get_cookie_as_string (self.uinfo.rfc)		
+		if not DEBUG:
+			self.hconf.cookie = localstorage.g.get_cookie_as_string (self.uinfo.rfc)		
 		
 	def to_version_11 (self):
 		self.hconf.version = "1.1"
@@ -378,10 +365,6 @@ def decode (s):
 				
 
 if __name__ == "__main__":
-	f = RQL ("from referer get http://url.com --useragent 'fire\' fox --connection close' --header-Content-Type text/html")
+	f = RQL ("from referer get http://url.com --useragent 'fire\\' fox --connection close' --header-Content-Type 'text/html' --id ''")
 	f.show ()
-	f2 = f.inherit ("http://url.com/moved1", True)
-	f2.show ()
-	f3 = f2.inherit ("http://url.com/moved2", True)
-	f3.show ()
-	print (f3.get_headers ())
+	

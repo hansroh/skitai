@@ -147,9 +147,17 @@ class RCResponse (RCRequest):
 				if param.strip ().startswith ("charset="):
 					self.charset = param.split ("=", 1)[-1].strip ().lower ()
 					
-		self.connection = self.get_header ("connection")
-		self.body = r.get_content ()		
+		self.connection = self.get_header ("connection")				
+		try:
+			self.body = r.get_content ()
+		except:
+			handler.request.logger.trace ()
+			self.body = b""
+			self.code, self.msg = 720, "Response Content Error"
 	
+	def __len__ (self):
+		return len (self.body)
+		
 	def html (self):
 		global has_lxml		
 		assert has_lxml is True, "missing lxml or html5lib"

@@ -24,10 +24,13 @@ class XMLRPCRequest:
 		self.encoding = encoding
 		self.auth = (auth and type (auth) is not tuple and tuple (auth.split (":", 1)) or auth)
 		self.logger = logger
-		
 		self.address, self.path = self.split (uri)
-		self.data = self.serialize ()
+		self.__xmlrpc_serialized = False
+		self.data = self.serialize ()		
 	
+	def xmlrpc_serialized (self):
+		return self.__xmlrpc_serialized
+		
 	def set_address (self, address):
 		self.address = address
 		
@@ -60,6 +63,7 @@ class XMLRPCRequest:
 		return (host, port)	, path
 		
 	def serialize (self):
+		self.__xmlrpc_serialized = True
 		return xmlrpclib.dumps (self.params, self.method, encoding=self.encoding, allow_none=1).encode ("utf8")
 	
 	def get_auth (self):

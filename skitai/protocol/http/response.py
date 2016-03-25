@@ -144,14 +144,11 @@ class Response:
 		if current_content_type is None:
 			current_content_type = ""
 			
-		if current_content_type.startswith ("text/xml") or request_content_type == "text/xml":
+		if self.request.xmlrpc_serialized ():
 			self.reqtype = "XMLRPC"
-			self.p, self.u = xmlrpclib.getparser()
-		elif current_content_type.startswith ("apllication/json-rpc"):
-			self.reqtype = "JSONRPC"
-			self.p, self.u = getfakeparser ()		
+			self.p, self.u = xmlrpclib.getparser()		
 		else:
-			self.reqtype = "HTTP"			
+			self.reqtype = "HTTP"
 			self.set_max_age ()			
 			self.p, self.u = getfakeparser (cache = self.max_age)					
 
@@ -223,7 +220,7 @@ class Response:
 			return b""
 				
 		self.p.close ()
-		result = self.u.close()		
+		result = self.u.close()
 		if 200 <= self.code < 300:
 			if self.reqtype == "XMLRPC":
 				if len(result) == 1:
