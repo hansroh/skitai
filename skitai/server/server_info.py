@@ -29,13 +29,13 @@ def _make (was, flt):
 	return g
 	
 	
-def format_object (o):
+def format_object (o, depth = 0):
 	b = []
 	if type (o) in (type ([]), type (())):
 		for each in o:
 			b.append ("<div>")
 			if type (each) is type ({}):
-				b.append ("%s" % format_object (each))
+				b.append ("%s" % format_object (each, depth + 1))
 			elif type (each) is type ([]):
 				b.append (", ".join ([str (x) for x in each]))
 			else:					
@@ -43,16 +43,16 @@ def format_object (o):
 			b.append ("</div>")				
 		return "".join (b)
 
-	b.append ("<table width='100%%' border='1'>")
+	b.append ("<table width='100%' border='1'>")
 	ii = list(o.items ())
 	ii.sort ()
-	
+	width = 15 + (depth * 6)
 	for k1, v1 in ii:
 		if type (v1) in (type ([]), type ({})):
-			b.append ("<tr><td bgcolor='#efefef' valign='top'><b>%s%s</b></td>" % (str (k1), type (v1) is type ([]) and " (%d)" % (len (v1),) or ""))			
-			b.append ("<td valign='top'>%s</td></tr>" % format_object (v1))			
+			b.append ("<tr><td bgcolor='#efefef' valign='top' width='%d%%'><b>%s%s</b></td>" % (width, str (k1), type (v1) is type ([]) and " (%d)" % (len (v1),) or ""))			
+			b.append ("<td valign='top'>%s</td></tr>" % format_object (v1, depth + 1))			
 		else:
-			b.append ("<tr><td bgcolor='#efefef' valign='top'>%s</td>" % str (k1))			
+			b.append ("<tr><td bgcolor='#efefef' valign='top' width='%d%%'>%s</td>" % (width, str (k1)))
 			b.append ("<td valign='top'>%s</td></tr>" % str (v1))
 	b.append ("</table>")	
 	return "".join (b)

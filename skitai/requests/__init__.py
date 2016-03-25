@@ -1,4 +1,4 @@
-from . import eurl
+from . import rql
 from . import localstorage
 from skitai.protocol.http import request as http_request
 from skitai.protocol.http import response as http_response
@@ -61,14 +61,16 @@ def configure (
 	
 def add (thing, callback, front = False):
 	global _que, _default_header, _logger, _current_numpool, _currents
-	
+
 	if strutil.is_str_like (thing):
 		thing = thing + " " + _default_option
 		try:
-			thing = eurl.EURL (thing)
+			thing = rql.RQL (thing)
 		except:
 			_logger.trace ()
 			return
+	
+	#thing.show ()
 	
 	if front:
 		_que.insert (0, (thing, callback, _logger))
@@ -76,7 +78,7 @@ def add (thing, callback, front = False):
 		_que.append ((thing, callback, _logger))
 		
 	# notify new item
-	if thing ["netloc"] not in _currents:
+	if thing.uinfo.netloc not in _currents:
 		_current_numpool += 1
 	
 	if _latest: # after loop started, not during queueing
@@ -97,7 +99,7 @@ def maybe_pop ():
 	_currents = {}
 	for r in list (_map.values ()):
 		if isinstance (r, asynconnect.AsynConnect) and r.handler: 
-			netloc = r.handler.request.el ["netloc"]			
+			netloc = r.handler.request.rql.uinfo.netloc
 		elif isinstance (r, asyndns.async_dns): 
 			netloc = r.qname						
 		else:
@@ -121,11 +123,11 @@ def maybe_pop ():
 			break
 		
 		el = item [0]
-		if _currents.get (el ["netloc"], 0) < _concurrents:
+		if _currents.get (el.uinfo.netloc, 0) < _concurrents:
 			try: 
-				_currents [el ["netloc"]] += 1
+				_currents [el.uinfo.netloc] += 1
 			except KeyError:
-				_currents [el ["netloc"]] = 1
+				_currents [el.uinfo.netloc] = 1
 			indexes.append (index)
 			lm += 1
 		index += 1
@@ -135,7 +137,7 @@ def maybe_pop ():
 	
 	pup = 0
 	for index in indexes:
-		item = _que.pop (index - pup)		
+		item = _que.pop (index - pup)
 		Item (*item)		
 		pup += 1
 
@@ -147,7 +149,7 @@ def maybe_pop ():
 
 def get_all ():
 	import time
-	global _use_lifetime, _map, _que, _logger, _concurrent
+	global _use_lifetime, _map, _que, _logger, _concurrent, _current_numpool, _latest
 	
 	if not _que:
 		_logger ("[warn] no item to get")
@@ -163,16 +165,19 @@ def get_all ():
 	try:
 		lifetime.loop (3.0)
 	finally:	
-		socketpool.cleanup ()
-
+		socketpool.cleanup ()	
+		# reset for new session
+		_current_numpool = _max_numpool
+		_latest = ""
+	
 
 class SSLProxyTunnelHandler (tunnel_handler.SSLProxyTunnelHandler):
 	def get_handshaking_buffer (self):	
 		req = ("CONNECT %s:%d HTTP/%s\r\nUser-Agent: %s\r\n\r\n" % (
-					self.request.el ["netloc"], 
-					self.request.el ["port"],
-					self.request.el ["http-version"],
-					self.request.el.get_useragent ()
+					self.request.rql.uinfo.netloc, 
+					self.request.rql.uinfo.port,
+					self.request.rql.hconf.version,
+					self.request.rql.get_useragent ()
 				)).encode ("utf8")
 		return req
 		
@@ -185,49 +190,49 @@ class WSProxyTunnelHandler (ws_tunnel_handler.ProxyTunnelHandler, SSLProxyTunnel
 
 
 class HTTPRequest (http_request.HTTPRequest):
-	def __init__ (self, el, logger = None):		
-		self.el = el			
-		url = self.el ["rfc"]
-		method = self.el ["method"].upper ()
-		http_request.HTTPRequest.__init__ (self, url, method, headers = self.el.get_header (), logger = logger)
+	def __init__ (self, rql, logger = None):		
+		self.rql = rql		
+		url = self.rql.uinfo.rfc
+		method = self.rql.uinfo.method.upper ()
+		http_request.HTTPRequest.__init__ (self, url, method, headers = self.rql.get_headers (), logger = logger)
 			
 	def split (self, uri):
-		return (self.el ["netloc"], self.el ["port"]), self.el ["uri"]
+		return (self.rql.uinfo.netloc, self.rql.uinfo.port), self.rql.uinfo.uri
 		
 	def serialize (self):
 		pass
 		
 	def get_auth (self):
-		return self.el ["http-auth"]
+		return self.rql.hconf.auth
 			
 	def get_data (self):
-		if self.el ["scheme"] in ("ws", "wss"): return b""
-		return self.el ["http-form"] is not None and self.el ["http-form"].encode ("utf8") or b""
+		if self.rql.uinfo.scheme in ("ws", "wss"): return b""
+		return self.rql.uinfo.data is not None and self.rql.uinfo.data.encode ("utf8") or b""
 
-	def get_eurl (self):
-		return self.el
+	def get_rql (self):
+		return self.rql
 	
 	def get_useragent (self):
-		return self.el ["http-user-agent"]	
+		return self.rql.hconf.user_agent
 		
 
 class WSRequest (HTTPRequest, ws_request.Request):
-	def __init__ (self, el, logger = None):
-		self.el = el
-		ws_request.Request.__init__ (self, self.el ["rfc"], self.el ["wsoc-message"], self.el ["wsoc-opcode"], self.el ["http-auth"], logger = logger)
+	def __init__ (self, rql, logger = None):
+		self.rql = rql
+		ws_request.Request.__init__ (self, self.rql.uinfo.rfc, self.uinfo.data, self.hconf.opcode, self.hconf.auth, logger = logger)
 		
 		
 class Item:
 	def __init__ (self, thing, callback, logger = None):
 		global _logger, _timeout
 		
-		if localstorage.localstorage is None:
+		if localstorage.g is None:
 			configure (logger)
 		
 		if strutil.is_str_like (thing):
-			self.el = eurl.EURL (thing)
+			self.rql = rql.RQL (thing)
 		else:
-			self.el = thing
+			self.rql = thing
 			
 		if logger:
 			self.logger = logger			
@@ -235,16 +240,16 @@ class Item:
 			self.logger = _logger
 		self.callback = callback
 		
-		if self.el ["scheme"] in ("ws", "wss"):
-			self.el ['http-connection'] = "keep-aluve, Upgrade"			
-			self.el.to_version_11 ()
-			request = WSRequest (self.el, logger = self.logger)
+		if self.rql.uinfo.scheme in ("ws", "wss"):
+			self.rql.uinfo.connection = "keep-alive, Upgrade"			
+			self.rql.to_version_11 ()
+			request = WSRequest (self.rql, logger = self.logger)
 			# websocket proxy should be tunnel
-			if self.el.has_key ("http-proxy"):
-				self.el ["http-tunnel"] = self.el ["http-proxy"]
-				del self.el ["http-proxy"]
-			if self.el.has_key ("http-tunnel"):
-				if self.el ['scheme'] == 'wss':
+			if self.rql.hconf.proxy:
+				self.rql.hconf.tunnel = self.rql.hconf.proxy
+				del self.rql.hconf.proxy
+			if self.rql.hconf.tunnel:
+				if self.rql.uinfo.scheme == 'wss':
 					handler_class = WSSSLProxyTunnelHandler				
 				else:
 					handler_class = WSProxyTunnelHandler		
@@ -252,26 +257,26 @@ class Item:
 				handler_class = ws_request_handler.RequestHandler
 				
 		else:
-			request = HTTPRequest (self.el, logger = self.logger)
-			if self.el.has_key ("http-tunnel"):		
-				request.el.to_version_11 ()
+			request = HTTPRequest (self.rql, logger = self.logger)
+			if self.rql.hconf.tunnel:		
+				request.rql.to_version_11 ()
 				handler_class = SSLProxyTunnelHandler
 			else:	
 				handler_class = http_request_handler.RequestHandler
 			
 		sp = socketpool.socketpool		
-		if request.el ["http-tunnel"]:
-			asyncon = sp.get ("proxys://%s" % request.el ["http-tunnel"])
-		elif request.el ["http-proxy"]:
-			asyncon = sp.get ("proxy://%s" % request.el ["http-proxy"])
+		if self.rql.hconf.tunnel:
+			asyncon = sp.get ("proxys://%s" % self.rql.hconf.tunnel)
+		elif self.rql.hconf.proxy:
+			asyncon = sp.get ("proxy://%s" % self.rql.hconf.proxy)
 		else:
-			asyncon = sp.get (request.el ["rfc"])
+			asyncon = sp.get (request.rql.uinfo.rfc)
 					
-		handler_class (asyncon, request, self.callback_wrap, request.el ["http-version"], request.el ['connection']).start ()
+		handler_class (asyncon, request, self.callback_wrap, request.rql.hconf.version, request.rql.hconf.connection).start ()
 	
 	def handle_websocket (self, handler):
 		if handler.response.code == 101:
-			request = WSRequest (handler.request.el, logger = self.logger)
+			request = WSRequest (handler.request.rql, logger = self.logger)
 			ws_request_handler.RequestHandler (asyncon, request, self.callback_wrap).start ()
 		
 	def callback_wrap (self, handler):

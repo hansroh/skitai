@@ -189,7 +189,7 @@ class SocketPool:
 			finally:
 				self.lock.release ()
 		except:
-			self.logger.trace ()	
+			self.logger.trace ()
 
 
 socketpool = None

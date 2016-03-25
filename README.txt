@@ -1883,7 +1883,7 @@ Mounting With Virtual Host
 
 App can be mounted with virtual host.
 
-.. code:: python
+.. code-block:: bash
 
   [routes:line]
  

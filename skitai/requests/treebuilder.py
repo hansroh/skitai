@@ -209,11 +209,11 @@ class Parser:
 			
 	@classmethod
 	def drop_node (cls, node):
-		nodes.drop_tag ()
+		node.drop_tag ()
 	
 	@classmethod
 	def drop_tree (cls, node):
-		nodes.drop_tree ()
+		node.drop_tree ()
 	
 	@classmethod
 	def create_element (cls, tag='p', text=None, tail=None):
@@ -226,7 +226,15 @@ class Parser:
 	@classmethod
 	def get_comments (cls, node):
 		return node.xpath('//comment()')
-		
+	
+	@classmethod
+	def remove_comments (cls, node):
+		for item in cls.get_comments (node):
+			try:
+				item.drop_tree ()
+			except AssertionError: # out of root node
+				pass
+				
 	@classmethod
 	def text_to_para (cls, text):
 		return cls.create_element ('p', text)

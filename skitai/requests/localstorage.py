@@ -6,12 +6,11 @@ except ImportError:
 	from urlparse import urlparse	
 from skitai.protocol.http import util
 
-localstorage = None
+g = None
 
 def create (logger):
-	global localstorage
-	localstorage = LocalStorage (logger)
-
+	global g
+	g = LocalStorage (logger)
 
 class LocalStorage:
 	def __init__ (self, logger):

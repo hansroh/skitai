@@ -5,6 +5,8 @@
 ResponseContainer
 	logger
 	
+	callback
+	
 	udata
 	
 	uinfo
@@ -85,9 +87,9 @@ class RCRequest:
 		self.header = handler.header
 		self.uri = handler.uri
 		self.version = handler.http_version
-		self.proxy = handler.request.el ["http-proxy"]
-		self.connection = handler.request.el ["http-connection"]
-		self.user_agent = handler.request.el ["http-user-agent"]
+		self.proxy = handler.request.rql.hconf.proxy
+		self.connection = handler.request.rql.hconf.connection
+		self.user_agent = handler.request.rql.hconf.user_agent
 		
 		self.body = handler.request.get_data ()
 		self.content_type = handler.request.get_content_type ()
@@ -126,14 +128,16 @@ class RCRequest:
 		else:
 			return hc[header] is not None and hc[header] or default
 
+
 class RCResponse (RCRequest):
 	def set (self, handler):	
 		r = handler.response
-		self.__baseurl = handler.request.el ["rfc"]
+		self.__baseurl = handler.request.rql.uinfo.rfc
 		self.header = r.header
 		self.version, self.code, self.msg = r.version, r.code, r.msg		
 		self.content_type = None
-		self.charset = None
+		self.charset = None 
+		self.__parser, self.__html, self.__etree = None, None, None
 		
 		ct = self.get_header ("content-type")
 		if ct:
@@ -142,19 +146,23 @@ class RCResponse (RCRequest):
 			for param in ctl [1:]:
 				if param.strip ().startswith ("charset="):
 					self.charset = param.split ("=", 1)[-1].strip ().lower ()
-			
+					
 		self.connection = self.get_header ("connection")
 		self.body = r.get_content ()		
 	
 	def html (self):
 		global has_lxml		
 		assert has_lxml is True, "missing lxml or html5lib"
-		return treebuilder.Parser, treebuilder.html (self.body, self.__baseurl, self.charset)
+		if self.__html: return self.__parser, self.__html		
+		self.__parser, self.__html = treebuilder.Parser, treebuilder.html (self.body, self.__baseurl, self.charset)
+		return self.__parser, self.__html
 	
 	def etree (self):
 		global has_lxml		
-		assert has_lxml is True, "missing lxml or html5lib"
-		return treebuilder.Parser, treebuilder.etree (self.body, self.charset)
+		assert has_lxml is True, "missing lxml or html5lib"		
+		if self.__etree: return self.__parser, self.__etree
+		self.__parser, self.__etree = treebuilder.Parser, treebuilder.etree (self.body, self.charset)
+		return self.__parser, self.__etree
 			
 	def binary (self):
 		return self.body
@@ -171,68 +179,59 @@ class RCResponse (RCRequest):
 	def xmlrpc (self):
 		return xmlrpclib.loads (self.text ())	
 	
-	def save_to (self, path):
+	def to_binary (self, s):
+		if type (s) is str:
+			return s.encode ("utf8")
+		return s	
+					
+	def save_to (self, path, header = None, footer = None):
 		if type (self.body) is None:
 			return
 			
 		if type (self.body) is bytes:
 			f = open (path, "wb")
+			if header:
+				f.write (self.to_binary (header))	
 			f.write (self.body)
+			if footer:
+				f.write (self.to_binary (footer))
 			f.close ()
 			
 		else:						
 			raise TypeError ("Content is not bytes")
 			
-			
-class RCUInfo:
-	def __init__ (self, eurl):
-		self.eurl = eurl
-	
-	def __getattr__ (self, attr):
-		try:
-			return self.eurl [attr]
-		except KeyError:
-			raise AttributeError
-				
-class RCUData:
-	def __init__ (self, eurl):
-		self.user = eurl.user
-	
-	def __getattr__ (self, attr):
-		try:
-			return self.user [attr]
-		except KeyError:
-			raise AttributeError
-				
+						
 class ResponseContainer:
 	def __init__ (self, handler, callback):
-		self.uinfo = RCUInfo (handler.request.el)
-		self.udata = RCUData (handler.request.el)
+		self.__rql = handler.request.rql
+		self.__asyncon = handler.asyncon
+		
+		self.uinfo = self.__rql.uinfo
+		self.udata = self.__rql.udata
+		self.hconf = self.__rql.hconf
 		self.request = RCRequest (handler)
 		self.response = RCResponse (handler)
 		self.logger = handler.request.logger
-		self.__el = handler.request.el
-		self.__asyncon = handler.asyncon
 		self.callback = callback
 		
 		for header in handler.response.get_header ():
 			if header.lower ().startswith ("set-cookie: "):
-				localstorage.localstorage.set_cookie_from_string (
-					handler.response.request.el ["rfc"],
+				localstorage.g.set_cookie_from_string (
+					self.uinfo.rfc,
 					header [12:]
 				)
-	
+		
 	def set_cookie (self, k, v):
-		localstorage.localstorage.set_cookie (self.uinfo.rfc, k, v)
+		localstorage.g.set_cookie (self.uinfo.rfc, k, v)
 	
 	def get_cookie (self, k):	
-		localstorage.localstorage.get_cookie (self.uinfo.rfc, k)
+		localstorage.g.get_cookie (self.uinfo.rfc, k)
 	
 	def set_item (self, k, v):
-		localstorage.localstorage.set_item (self.uinfo.rfc, k, v)
+		localstorage.g.set_item (self.uinfo.rfc, k, v)
 	
 	def get_item (self, k):	
-		localstorage.localstorage.get_item (self.uinfo.rfc, k)
+		localstorage.g.get_item (self.uinfo.rfc, k)
 		
 	def stall (self, timeout):
 		a, b = math.modf (timeout)
@@ -242,14 +241,14 @@ class ResponseContainer:
 		time.sleep (a)
 	
 	def resolve (self, url):
-		return urljoin (self.uinfo.eurl ["rfc"], url)
+		return urljoin (self.uinfo.rfc, url)
 	
 	def inherit (self, surl):
-		return self.__el.inherit (surl)
+		return self.__rql.inherit (surl)
 		
 	def relocate (self, url):
 		from skitai import requests
-		requests.add (self.__el.inherit (self.resolve (url), True), self.callback, front = True)
+		requests.add (self.__rql.inherit (self.resolve (url), True), self.callback, front = True)
 		
 	def visit (self, surl, callback = None):
 		from skitai import requests
@@ -258,6 +257,7 @@ class ResponseContainer:
 	def retry (self):
 		from skitai import requests
 		self.uinfo.eurl.inc_retrys ()
-		requests.add (self.__el, self.callback, front = True)
+		requests.add (self.__rql, self.callback, front = True)
+	
 	
 	
