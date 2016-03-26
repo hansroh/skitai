@@ -30,8 +30,8 @@ class Parser:
 			return None
 		
 	@classmethod
-	def to_string (cls, node):
-		return lxml.etree.tostring(node)
+	def to_string (cls, node, encoding = "utf8", method='html', doctype = "<!DOCTYPE html>"):
+		return lxml.html.tostring(node, encoding)
 	
 	def by_xpath (cls, node, expression):
 		items = node.xpath(expression)
@@ -276,7 +276,7 @@ class Parser:
 			if val [0] in "\"'":
 				return val [1:-1]
 			return val		
-	
+		
 def remove_control_characters (html):
 	def str_to_int(s, default, base=10):
 		if int(s, base) < 0x10000:
@@ -290,7 +290,7 @@ def remove_control_characters (html):
 	html = re.sub(r"&#[xX]([0-9a-fA-F]+);?", lambda c: str_to_int(c.group(1), c.group(0), base=16), html)
 	html = re.sub(r"[\x00-\x08\x0b\x0e-\x1f\x7f]", "", html)	
 	return html
-
+	
 def remove_non_asc (html):	
 	html = re.sub(br"&#(\d+);?", "", html)
 	html = re.sub(br"&#[xX]([0-9a-fA-F]+);?", "", html)
@@ -316,31 +316,33 @@ def get_charset (html):
 		pos = match.end ()		
 	return encoding
 
-def to_str (html, encoding):
+def to_str (body, encoding = None):
 	def try_generic_encoding (html):
 		try:
 			return html.decode ("utf8")
 		except UnicodeDecodeError:	
-			return html.decode ("iso8859-1")
-	
-	if encoding is None:
-		encoding = get_charset (html)
-	
-	try:
-		if not encoding:
-			html = try_generic_encoding (html)
-		else:
 			try:
-				html = html.decode (encoding)
-			except LookupError:
-				html = try_generic_encoding (html)
-				
-	except UnicodeDecodeError:
-		return remove_non_asc (html)
+				return html.decode ("iso8859-1")
+			except UnicodeDecodeError:
+				return remove_non_asc (html).decode ("utf8")
 		
+	if encoding:
+		try:
+			body = body.decode (encoding)
+		except (UnicodeDecodeError, LookupError):
+			inline_encoding = get_charset (body)
+			if inline_encoding and encoding != inline_encoding:				
+				try:
+					body = body.decode (inline_encoding)
+				except (UnicodeDecodeError, LookupError):
+					body = try_generic_encoding (body)			
+			else:
+				body = try_generic_encoding (body)	
 	else:
-		return remove_control_characters (html)
+		body = try_generic_encoding (body)
 	
+	return remove_control_characters (body)
+		
 def html (html, baseurl, encoding = None):
 	# html5lib rebuilds possibly mal-formed html	
 	try:
