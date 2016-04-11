@@ -26,13 +26,17 @@ class Module:
 	def start_app (self, reloded = False):					
 		self.set_devel_env ()
 		self.update_file_info ()
+		func = None
 		try:			
 			if not reloded:
-				getattr (self.module, self.appname).start (self.wasc, self.route)
+				func = getattr (self.module, self.appname).start 
 			else:
-				getattr (self.module, self.appname).restart (self.wasc, self.route)
-		except AttributeError:
-			pass	
+				func = getattr (self.module, self.appname).restart
+		except AttributeError:			
+			pass
+			
+		if func:
+			func (self.wasc, self.route)
 		
 	def set_devel_env (self):
 		self.debug = False

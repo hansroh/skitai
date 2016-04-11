@@ -328,7 +328,6 @@ class Part:
 		if packages is None:
 			# initing app & packages
 			self._binds_server [0] and self._binds_server [0] (self.wasc)
-			
 			for p in list (self.packages.values ()):
 				p.start (self.wasc, route)
 				

@@ -5,6 +5,7 @@
 Changes
 ==========
 
+- fix XMLRPC response and POST length
 - add was.mbox.search (), change spec was.mbox.get ()
 - fix routing bugs & was.ab()
 - add saddle.Saddlery class for app packaging
@@ -1548,8 +1549,12 @@ Also there're another kind of method group,
 
   @app.startup
   def startup (wasc):
-    wasc.register ("loginengine", SNSLoginEngine ())
-    wasc.register ("searcher", FulltextSearcher ())    
+    logger = was.logger.get ("app")
+    # OR
+    logger = was.logger.make_logger ("login", "daily")
+    config = wasc.config
+    wasc.register ("loginengine", SNSLoginEngine (logger))
+    wasc.register ("searcher", FulltextSearcher (wasc.numthreads))    
   
   @app.onreload  
   def onreload (wasc):
@@ -1563,6 +1568,8 @@ Also there're another kind of method group,
     wasc.unregister ("searcher")
   
 'wasc' is Python Class object of 'was', so mainly used for sharing Skitai server-wide object via was.object.
+
+And you can access numthreads, logger, config from wasc.
 
 As a result, myobject can be accessed by all your current app functions even all other apps mounted on Skitai.
 

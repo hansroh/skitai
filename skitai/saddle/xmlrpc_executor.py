@@ -34,10 +34,10 @@ class Executor (wsgi_executor.Executor):
 			except:
 				results.append ({'faultCode' : 1, 'faultString' : self.was.app.debug and wsgi_executor.traceback () or "Error Occured"})
 			else:
-				results.append ([result])
+				results.append ((result [0],))
 			del self.was.subapp
-			
-		if len (results) == 1: results = tuple (results)
+		
+		if methodname != "system.multicall": results = results [0]
 		else: results = (results,)
 		
 		self.commit ()

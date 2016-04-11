@@ -161,8 +161,8 @@ class Saddle (part.Part):
 	def restart (self, wasc, route):
 		self.wasc = wasc
 		self.route = route
-		if self._onreload:
-			self._onreload (self.wasc, self)		
+		if self._binds_server [1]:
+			self._binds_server [1] (self.wasc, self)
 	
 	def create_on_demand (self, was, name):
 		class G: pass

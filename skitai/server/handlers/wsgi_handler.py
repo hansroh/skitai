@@ -99,7 +99,7 @@ class Handler:
 			request.response.error (411)
 			return
 			
-		elif collector.content_length > max_cl: #5M
+		elif collector.content_length > max_cl: #5M			
 			self.wasc.logger ("server", "too large request body (%d)" % collector.content_length, "wran")
 			if request.get_header ("expect") == "100-continue":							
 				request.response.error (413) # client doesn't send data any more, I wish.

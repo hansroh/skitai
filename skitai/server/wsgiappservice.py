@@ -104,8 +104,11 @@ class WAS:
 			if attr:
 				setattr (self, name, attr)
 				return attr
-				
-		raise AttributeError ("'was' hasn't attribute '%s'" % name)	
+		
+		try:
+			return self.objects [name]
+		except KeyError:	
+			raise AttributeError ("'was' hasn't attribute '%s'" % name)	
 	
 	def _call (self, method, args, karg):
 		# was.db, 		was.get, 			was.post,			was.put, ...

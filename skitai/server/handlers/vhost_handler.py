@@ -38,7 +38,7 @@ class VHost:
 class Handler:
 	def __init__ (self, wasc, clusters, cachefs, static_max_age, upload_max_size):
 		self.wasc = wasc
-		self.vhost_args = (clusters, cachefs, static_max_age, static_max_age)		
+		self.vhost_args = (clusters, cachefs, static_max_age, upload_max_size)		
 		self.sites = {}
 		self.__cache = {}
 	

@@ -55,6 +55,7 @@ class request_thread (threading.Thread):
 		self.lock.release ()
 		
 		return {
+			"object_id": id (self),
 			"thread_id": self.id,
 			"status": idle and "IDLE" or "BUSY", 
 			"command":	command,

@@ -163,6 +163,7 @@ class Loader:
 			tpool = threadlib.thread_pool (queue, numthreads, self.wasc.logger.get ("server"))
 			self.wasc.register ("queue",  queue)
 			self.wasc.register ("threads", tpool)
+			self.wasc.numthreads = numthreads
 					
 	def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0):
 		if ssl in ("1", "yes"): ssl = 1
@@ -172,9 +173,9 @@ class Loader:
 	def install_handler (self, routes = {}, proxy = False, static_max_age = 300, upload_max_size = 0):		
 		self.wasc.add_handler (1, pingpong_handler.Handler)		
 		if proxy:
-			self.wasc.add_handler (1, proxy_handler.Handler, self.wasc.clusters, self.wasc.cachefs)		
-		vh = self.wasc.add_handler (1, vhost_handler.Handler, self.wasc.clusters, self.wasc.cachefs, static_max_age, upload_max_size)		
+			self.wasc.add_handler (1, proxy_handler.Handler, self.wasc.clusters, self.wasc.cachefs)
 		
+		vh = self.wasc.add_handler (1, vhost_handler.Handler, self.wasc.clusters, self.wasc.cachefs, static_max_age, upload_max_size)		
 		current_rule = "default"
 		for line in routes:
 			line = line.strip ()

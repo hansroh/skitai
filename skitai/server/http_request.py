@@ -70,18 +70,35 @@ class http_request:
 			return default
 		else:
 			return hc[header] is not None and hc[header] or default
+	
+	def get_header_with_attr (self, header, default = None):
+		d = {}
+		v = self.get_header (header, default)
+		if v is None:
+			return default, d
 			
+		v2 = v.split (";")
+		if len (v2) == 1:
+			return v, d
+		for each in v2 [1:]:
+			try:
+				a, b = each.strip ().split ("=", 1)
+			except ValueError:
+				a, b = each.strip (), None
+			d [a] = b
+		return v2 [0], d	
+				
 	def get_content_type (self):
-		return self.get_header_with_params ("content-type") [0]
+		return self.get_header_with_attr ("content-type") [0]
 				
 	def get_main_type (self):
-		ct = self.get_header_with_params ("content-type")
+		ct = self.get_content_type ()
 		if ct is None:
 			return
 		return ct.split ("/", 1) [0]
 	
 	def get_sub_type (self):
-		ct = self.get_header_with_params ("content-type")
+		ct = self.get_content_type ()
 		if ct is None:
 			return
 		return ct.split ("/", 1) [1]
