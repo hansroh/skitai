@@ -159,10 +159,7 @@ class Saddle (part.Part):
 		return current_app, method, kargs
 	
 	def restart (self, wasc, route):
-		self.wasc = wasc
-		self.route = route
-		if self._binds_server [1]:
-			self._binds_server [1] (self.wasc, self)
+		self.start (wasc, route, self.packages)
 	
 	def create_on_demand (self, was, name):
 		class G: pass

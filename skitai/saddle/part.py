@@ -323,7 +323,7 @@ class Part:
 		elif not route.endswith ("/"):			
 			self.route = route + "/"
 		else:
-			self.route = route	
+			self.route = route
 		
 		if packages is None:
 			# initing app & packages

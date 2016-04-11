@@ -5,6 +5,7 @@
 Changes
 ==========
 
+- fix app reloading
 - fix XMLRPC response and POST length
 - add was.mbox.search (), change spec was.mbox.get ()
 - fix routing bugs & was.ab()
@@ -1549,9 +1550,9 @@ Also there're another kind of method group,
 
   @app.startup
   def startup (wasc):
-    logger = was.logger.get ("app")
+    logger = wasc.logger.get ("app")
     # OR
-    logger = was.logger.make_logger ("login", "daily")
+    logger = wasc.logger.make_logger ("login", "daily")
     config = wasc.config
     wasc.register ("loginengine", SNSLoginEngine (logger))
     wasc.register ("searcher", FulltextSearcher (wasc.numthreads))    
