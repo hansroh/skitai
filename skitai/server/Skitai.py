@@ -7,7 +7,7 @@
 HTTPS = True
 from skitai.client import adns
 import sys, time, os, threading
-from . import http_server, wsgi_apps, rcache
+from . import http_server, rcache
 from skitai import lifetime
 from warnings import warn
 from . import https_server

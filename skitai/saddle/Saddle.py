@@ -177,7 +177,7 @@ class Saddle (part.Part):
 				
 		if name == "g":
 			return G ()
-	
+		
 	def cleanup_on_demands (self, was):
 		if was.in__dict__ ("g"):
 			del was.g

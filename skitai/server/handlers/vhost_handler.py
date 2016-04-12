@@ -23,7 +23,8 @@ class VHost:
 	def close (self):	
 		for h in self.handlers:
 			try: h.close ()
-			except AttributeError: pass
+			except AttributeError: pass		
+		self.apps.cleanup ()
 					
 	def add_proxypass (self, route, cname):
 		self.proxy_handler.add_route (route, cname)

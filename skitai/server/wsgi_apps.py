@@ -37,6 +37,10 @@ class Module:
 			
 		if func:
 			func (self.wasc, self.route)
+	
+	def cleanup (self):
+		try: getattr (self.module, self.appname).cleanup ()
+		except AttributeError: pass
 		
 	def set_devel_env (self):
 		self.debug = False
@@ -78,10 +82,6 @@ class Module:
 	def get_path_info (self, path):
 		path_info = ("/" + path) [self.route_len:]
 		return path_info	
-	
-	def cleanup (self):
-		try: getattr (self.module, self.appname).cleanup ()
-		except AttributeError: pass
 	
 	def __call__ (self, env, start_response):
 		self.use_reloader and self.maybe_reload ()	

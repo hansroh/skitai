@@ -72,10 +72,6 @@ class Part:
 			if self.abspath [-3:] != ".py":
 				self.abspath = self.abspath [:-1]
 			self.update_file_info	()
-				
-	def cleanup (self):
-		# shutdown
-		self._binds_server [2] and self._binds_server [2] (self.wasc)
 		
 	def __getitem__ (self, k):
 		return self.route_map [k]
@@ -316,6 +312,12 @@ class Part:
 	#----------------------------------------------
 	# Starting App
 	#----------------------------------------------
+	def cleanup (self):
+		# initing app & packages		
+		self._binds_server [2] and self._binds_server [2] (self.wasc)
+		for p in list (self.packages.values ()):
+			p.cleanup ()
+			
 	def start (self, wasc, route, packages = None):
 		self.wasc = wasc
 		if not route: 

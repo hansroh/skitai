@@ -5,7 +5,7 @@
 Changes
 ==========
 
-- fix app reloading
+- fix app reloading, @shutdown
 - fix XMLRPC response and POST length
 - add was.mbox.search (), change spec was.mbox.get ()
 - fix routing bugs & was.ab()
