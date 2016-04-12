@@ -264,7 +264,11 @@ class Job:
 				else:
 					type_of_part = type (part)					
 					if type_of_part is not bytes: # unicode
-						part = part.encode ("utf8")
+						try: 
+							part = part.encode ("utf8")
+						except AttributeError:
+							raise AssertionError ("%s is not supportable content type" % str (type (part)).replace ("<", "&lt;").replace (">", "&gt;"))
+								
 						type_of_part = bytes
 						
 					if type_of_part is bytes:
@@ -282,7 +286,7 @@ class Job:
 			raise
 			
 		except:
-			self.logger.trace ("app")
+			self.logger.trace ("app")			
 			trigger.wakeup (lambda p=response, d=self.apph.debug and catch (1) or "": (p.send_error ("500 Internal Server Error", d), p.done ()) )			
 				
 		else:

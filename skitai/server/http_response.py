@@ -254,7 +254,7 @@ class http_response:
 		if type (why) is tuple: # sys.exc_info ()
 			why = catch (1, why)
 		
-		body = self.build_default_template ().encode ("utf8")	
+		body = self.build_default_template (why).encode ("utf8")	
 		self.update ('Content-Length', len(body))
 		self.update ('Content-Type', 'text/html')
 		self.update ('Cache-Control', 'max-age=0')

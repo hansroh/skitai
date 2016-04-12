@@ -175,6 +175,7 @@ class ModuleManager:
 		del self.modules [route]
 	
 	def cleanup (self):
+		self.wasc.logger ("app", "[info] cleanup apps")
 		for route, module in list(self.modules.items ()):
 			try: 
 				self.wasc.logger ("app", "[info] ..cleanup app: %s" % route)					
