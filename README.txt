@@ -2,17 +2,6 @@
 .. contents:: Table of Contents
  
 
-Changes
-==========
-
-- fix app reloading, @shutdown
-- fix XMLRPC response and POST length
-- add was.mbox.search (), change spec was.mbox.get ()
-- fix routing bugs & was.ab()
-- add saddle.Saddlery class for app packaging
-- @app.startup, @app.onreload, @app.shutdown arguments has been changed
-
-  
 Introduce
 ===========
 
@@ -2111,6 +2100,8 @@ Change Log
   
   0.15
   
+  - fix app reloading, @shutdown
+  - fix XMLRPC response and POST length
   - add was.mbox.search (), change spec was.mbox.get ()
   - fix routing bugs & was.ab()
   - add saddle.Saddlery class for app packaging

@@ -157,7 +157,10 @@ class RCResponse (RCRequest):
 	
 	def __len__ (self):
 		return len (self.body)
-		
+	
+	def __str__ (self):
+		return self.string ()
+			
 	def html (self):
 		global has_lxml		
 		assert has_lxml is True, "missing lxml or html5lib"
@@ -174,12 +177,9 @@ class RCResponse (RCRequest):
 			
 	def binary (self):
 		return self.body
-		
-	def text (self):
-		if self.charset:
-			return self.body.decode (self.charset)
-		else:
-			return self.body.decode ("utf8")
+	
+	def string (self):
+		return treebuilder.to_str (self.body, self.charset)
 		
 	def json (self):
 		return json.loads (self.text ())

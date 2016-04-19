@@ -256,7 +256,8 @@ class RQL:
 		else:
 			self.uinfo.rfc = '%s://%s:%d%s' % (self.uinfo.scheme, self.uinfo.netloc, self.uinfo.port, self.uinfo.uri)	
 		self.uinfo.page_id = self.geneate_page_id ()
-		if not DEBUG:
+		self.uinfo.path_id = self.geneate_page_id (False)
+		if not DEBUG and localstorage.g:
 			self.hconf.cookie = localstorage.g.get_cookie_as_string (self.uinfo.rfc)		
 		
 	def to_version_11 (self):
@@ -330,17 +331,21 @@ class RQL:
 		argslist.sort ()		
 		return "&".join (argslist)
 
-	def geneate_page_id (self):		
+	def geneate_page_id (self, include_data = True):		
 		signature = [
-			self.uinfo.method, self.uinfo.netloc, str (self.uinfo.port), 
-			self.uinfo.script, self.uinfo.params
-		]			
-		if self.uinfo.querystring:
-			signature.append (self.__sort_args (self.uinfo.querystring))
-		if self.uinfo.data:
-			signature.append (self.__sort_args (self.uinfo.data))
+			self.uinfo.method,
+			self.uinfo.netloc.startswith ("www.") and self.uinfo.netloc [4:] or self.uinfo.netloc, 
+			str (self.uinfo.port), 
+			self.uinfo.script
+		]
+		if include_data:
+			signature.append (self.uinfo.params)
+			if self.uinfo.querystring:
+				signature.append (self.__sort_args (self.uinfo.querystring))
+			if self.uinfo.data:
+				signature.append (self.__sort_args (self.uinfo.data))
 		return md5 (":".join (signature).encode ("utf8")).hexdigest ()
-	
+		
 	def show (self):
 		for d in ("udata", "uinfo", "hconf"):
 			o = getattr (self, d)
@@ -351,9 +356,13 @@ class RQL:
 			print ()	
 					
 
-def make_pid (url):
+def make_page_id (url):
 	return RQL (url).uinfo.page_id
+make_pid = 	make_page_id
 
+def make_path_id (url):
+	return RQL (url).uinfo.path_id
+	
 def norm_space (s):
 		return re.sub ("\s+", " ", s)	
 		
