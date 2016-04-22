@@ -1,5 +1,10 @@
+import asyncore
 from . import rql
 from . import localstorage
+from . import rc
+from skitai import lifetime
+from skitai.client import adns
+from skitai.lib import strutil
 from skitai.protocol.http import request as http_request
 from skitai.protocol.http import response as http_response
 from skitai.protocol.http import request_handler as http_request_handler
@@ -10,12 +15,6 @@ from skitai.protocol.ws import request as ws_request
 from skitai.protocol.dns import asyndns
 from skitai.client import socketpool, asynconnect
 from skitai.server.threads import trigger
-from skitai.lib import strutil
-from skitai import lifetime
-import asyncore
-from . import rc
-import asyncore
-from skitai.client import adns
 
 _currents = {}
 _latest = ""

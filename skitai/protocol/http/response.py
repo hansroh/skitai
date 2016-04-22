@@ -132,10 +132,10 @@ class Response:
 		if self.decompressor:
 			try:
 				data = self.decompressor.flush ()
-			except:
+			except:					
 				pass
 			else:
-				self.p.feed (data)				
+				self.p.feed (data)			
 			self.decompressor = None
 	
 	def init_buffer (self):

@@ -227,7 +227,7 @@ class RQL:
 			netloc2 = netloc.split (".")
 					
 			self.uinfo.topdomain = netloc2 [-1]
-			if len (netloc2 [-1]) == 3:
+			if len (netloc2 [-1]) >= 3:
 				self.uinfo.domain = ".".join (netloc2 [-2:])
 				self.uinfo.host = ".".join (netloc2 [:-2])
 				self.uinfo.subdomain = netloc2 [-2]			

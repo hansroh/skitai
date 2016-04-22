@@ -188,14 +188,14 @@ class RequestHandler:
 		if not self.response or self.asyncon.get_terminator () == b"\r\n":
 			self.buffer += data
 		else:
-			self.response.collect_incoming_data (data)			
+			self.response.collect_incoming_data (data)
 		
 	def found_terminator (self):
-		if self.response:
+		if self.response:			
 			if self.end_of_data:
 				return self.found_end_of_body ()
 			
-			if self.wrap_in_chunk:			
+			if self.wrap_in_chunk:
 				if self.asyncon.get_terminator () == 0:
 					self.asyncon.set_terminator (b"\r\n")
 					self.buffer = b""
@@ -269,7 +269,9 @@ class RequestHandler:
 			return True
 		return False
 		
-	def found_end_of_body (self):
+	def found_end_of_body (self):	
+		if self.response:
+			self.response.done ()
 		if self.handled_http_authorization ():					
 			return
 		if self.will_be_close ():
