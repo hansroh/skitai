@@ -48,12 +48,14 @@ class http_channel (asynchat.async_chat):
 		self.in_buffer = b''
 		self.creation_time = int (time.time())
 		self.event_time = int (time.time())
-		self.debug_info = None
-		self.debug_buffer = b""
+		self.__history = []
 		
 		self.closable_producers = []
 		self.closable_partners = []
-		
+	
+	def get_history (self):
+		return self.__history
+			
 	def reject (self):
 		self.is_rejected = True		
 		
@@ -130,8 +132,6 @@ class http_channel (asynchat.async_chat):
 							
 	def send (self, data):
 		#print	("SEND", repr(data), self.get_terminator ())
-		if DEBUG:
-			self.debug_buffer += str (data)
 		self.event_time = int (time.time())
 		result = asynchat.async_chat.send (self, data)
 		self.server.bytes_out.inc (result)
@@ -165,6 +165,9 @@ class http_channel (asynchat.async_chat):
 			
 		if self.current_request:			
 			self.current_request.found_terminator()
+			if DEBUG:
+				self.__history.append ("REQUEST DONE")
+				self.__history = self.__history [-30:]
 			
 		else:
 			header = self.in_buffer
@@ -187,8 +190,8 @@ class http_channel (asynchat.async_chat):
 				self.log_info ("channel-%s invaild request header" % self.channel_number, "fail")
 				return self.close ()
 
-			self.debug_info = (command, uri, version)
-			self.debug_buffer = b""
+			if DEBUG: 
+				self.__history.append ("START REQUEST: %s/%s %s" % (command, version, uri))				
 			
 			header = utility.join_headers (lines[1:])
 			r = http_request.http_request (self, request, command, uri, version, header)

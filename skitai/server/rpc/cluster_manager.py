@@ -62,12 +62,8 @@ class ClusterManager:
 								"event_time": time.asctime (time.localtime (asyncon.event_time)),
 								"zombie_timeout": asyncon.zombie_timeout,	
 							}
-						try: 
-							di = asyncon.debug_info
-							if di:
-								conn ["debug_info"] = "%s %s HTTP/%s" % asyncon.debug_info
-						except AttributeError: pass
-								
+						if hasattr (asyncon, "get_history"):
+							conn ["history"] = asyncon.get_history ()								
 						conns.append (conn)
 								
 					_node ["connection"] = conns
@@ -220,8 +216,10 @@ class ClusterManager:
 				survived = []
 				for asyncon in _node ["connection"]:
 					if hasattr (asyncon, "maintern"):
-						asyncon.maintern ()													
-					if not asyncon.is_deletable (self.object_timeout):
+						continue
+																		
+					if not asyncon.maintern (self.object_timeout):					
+						# not deletable
 						survived.append (asyncon)
 														
 				if len (survived) == 0:

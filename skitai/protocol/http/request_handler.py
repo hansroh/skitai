@@ -275,7 +275,7 @@ class RequestHandler:
 		if self.handled_http_authorization ():					
 			return
 		if self.will_be_close ():
-			self.asyncon.disconnect ()		
+			self.asyncon.disconnect ()			
 		self.close_case_with_end_tran ()
 	
 	def handled_http_authorization (self):
@@ -292,8 +292,7 @@ class RequestHandler:
 		except:
 			self.trace ()
 			self.asyncon.handle_close (711, "Unknown Authedentification Method")
-			return 1 # abort
-			
+			return 1 # abort			
 		else:
 			self.start ()
 			return 1
@@ -307,8 +306,7 @@ class RequestHandler:
 	
 		# possibly disconnected cause of keep-alive timeout		
 		if why == 700 and self.response is None and self.retry_count == 0:
-			self.retry_count = 1
-			self.asyncon.disconnect ()
+			self.retry_count = 1			
 			self.start ()
 			return			
 	
@@ -321,8 +319,7 @@ class RequestHandler:
 		
 	def close_case (self):
 		if self.asyncon:
-			self.asyncon.handler = None # unlink back ref.			
-						
+			self.asyncon.handler = None # unlink back ref.
 		if self.callback:
 			self.callback (self)
 					
@@ -333,7 +330,7 @@ class RequestHandler:
 			self.asyncon.push (buf)
 		self.asyncon.begin_tran (self)
 	
-	def will_be_close (self):
+	def will_be_close (self):		
 		if self.connection == "close": #server misbehavior ex.paxnet
 			return True
 				

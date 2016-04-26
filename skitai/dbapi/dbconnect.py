@@ -4,6 +4,7 @@ import time
 import sys 
 import threading 	
 
+DEBUG = False
 
 class OperationalError (Exception):
 	pass
@@ -27,8 +28,12 @@ class DBConnect:
 		self.cur = None
 		self.callback = None
 		self.out_buffer = ""		
+		self.__history = []
 		self.set_event_time ()
 	
+	def get_history (self):
+		return self.__history
+		
 	def duplicate (self):
 		return self.__class__ (self.address, self.params, self.lock, self.logger)
 		
@@ -38,13 +43,19 @@ class DBConnect:
 	
 	def empty_cursor (self):
 		if self.has_result:
-			self.fetchall ()
-			self.has_result = False
+			self.fetchall ()			
 	
-	def maintern (self):
-		if self.isactive () and time.time () - self.event_time > self.zombie_timeout:			
+	def maintern (self, object_timeout):
+		# query done but not used
+		if self.has_result and self.isactive () and time.time () - self.event_time > self.zombie_timeout:			
 			self.empty_cursor ()
 			self.set_active (False)
+			
+		if time.time () - self.event_time > object_timeout:
+			if not self.isactive ():
+				self.disconnect ()
+				return True # deletable
+		return False	
 	
 	def reconnect (self):
 		self.disconnect ()
@@ -52,13 +63,6 @@ class DBConnect:
 	
 	def disconnect (self):
 		self.close ()
-	
-	def is_deletable (self, timeout):
-		if time.time () - self.event_time > timeout:
-			if not self.isactive ():
-				self.disconnect ()
-				return True
-		return False
 				
 	def close (self):
 		if self.cur:
@@ -143,5 +147,6 @@ class DBConnect:
 		return result
 		
 	def execute (self, sql, callback):
+		if DEBUG: self.__history.append ("BEGIN TRAN: %s" % sql)
 		raise NotImplementedError("must be implemented in subclass")
 

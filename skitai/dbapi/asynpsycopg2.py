@@ -4,6 +4,8 @@
 # 2015.6.9
 #-------------------------------------------------------
 
+DEBUG = False
+
 try:
 	import psycopg2 
 	
@@ -62,7 +64,10 @@ else:
 			self.end_tran ()
 			self.close_case ()
 			
-		def end_tran (self):		
+		def end_tran (self):
+			if DEBUG: 
+				self.__history.append ("END TRAN") 
+				self.__history = self.__history [-30:]
 			self.del_channel ()
 			
 		def add_channel (self, map = None):
@@ -107,7 +112,6 @@ else:
 			if self.cur and state == POLL_OK:
 				self.set_event_time ()
 				self.has_result = True
-				self.end_tran ()
 				self.close_case_with_end_tran ()
 			else:
 				self.check_state (state)
@@ -129,13 +133,12 @@ else:
 				try:
 					self.fetchall ()
 				except psycopg2.ProgrammingError:
-					pass
-				self.has_result = False
+					pass				
 				
-		def maintern (self):
+		def maintern (self, object_timeout):
 			if self.is_channel_in_map ():
-				return
-			dbconnect.DBConnect.maintern (self)
+				return False
+			return dbconnect.DBConnect.maintern (self, object_timeout)
 						
 		def close (self):
 			self.connected = False
@@ -155,6 +158,7 @@ else:
 			self.set_socket (sock)
 							
 		def execute (self, sql, callback):
+			if DEBUG: self.__history.append ("BEGIN TRAN: %s" % sql)
 			self.out_buffer = sql
 			self.callback = callback
 			self.has_result = False

@@ -137,10 +137,9 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		if self.callback:			
 			self.callback (self)
 	
-	def found_end_of_body (self):
+	def found_end_of_body (self):		
 		if self.response:
 			self.response.done ()
-		# proxy should not handle authorization		
 		if self.will_be_close ():
 			self.asyncon.disconnect ()
 		self.close_case_with_end_tran ()

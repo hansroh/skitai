@@ -45,10 +45,9 @@ def status ():
 				d ["request_counter"] = channel.request_counter
 			if hasattr (channel, "event_time"):
 				d ["last_event_time"] = time.asctime (time.localtime (channel.event_time))
-			if hasattr (channel, "debug_info") and channel.debug_info is not None:
-				d ["debug_info"] = "%s %s HTTP/%s" % channel.debug_info
-			if hasattr (channel, "debug_buffer"):
-				d ["debug_buffer"] = repr(channel.debug_buffer).replace ("<", "&lt;").replace ("<", "&gt;")				
+			if hasattr (channel, "get_history"):
+				d ["history"] = channel.get_history ()
+							
 		except:
 			raise
 			pass
@@ -176,11 +175,7 @@ if os.name == "nt":
 					pass	
 
 def poll_fun_wrap (timeout, map):
-	try:
-		#for k, v in map.items ():
-		#	di = hasattr (v, "debug_info") and v.debug_info or ""
-		#	print (k, v.connected, v.readable(), v.__class__.__name__, di)
-		#print ("#################################################")	
+	try:		
 		poll_fun (timeout, map)
 	
 	except select.error as why:

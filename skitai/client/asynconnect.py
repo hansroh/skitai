@@ -13,6 +13,8 @@ import threading
 from . import adns
 from warnings import warn
 
+DEBUG = False
+
 class SocketPanic (Exception): pass
 class TimeOut (Exception): pass
 
@@ -27,8 +29,7 @@ class AsynConnect (asynchat.async_chat):
 	
 	request_count = 0
 	active = 0
-	proxy = False		
-	debug_info = None
+	proxy = False
 			
 	def __init__ (self, address, lock = None, logger = None):
 		self.address = address
@@ -38,9 +39,13 @@ class AsynConnect (asynchat.async_chat):
 		self.set_event_time ()
 		self.proxy = False
 		self.handler = None
-		self.initialize_connection ()				
+		self.__history = []
+		self.initialize_connection ()
 		asynchat.async_chat.__init__ (self)
 	
+	def get_history (self):
+		return self.__history
+		
 	def initialize_connection (self):		
 		self._raised_ENOTCONN = 0 # for win32
 		self._handshaking = False
@@ -93,17 +98,17 @@ class AsynConnect (asynchat.async_chat):
 			return asynchat.async_chat.writable (self) and self.ready ()
 		return asynchat.async_chat.writable (self)	
         
-	def maintern (self):
-		# if self.is_channel_in_map (), mainterned by lifetime
-		if not self.is_channel_in_map () and self.isactive () and time.time () - self.event_time > self.zombie_timeout:			# do not user close_socket (), this func might be called in the thread, and currently in select.select()
+	def maintern (self, object_timeout):
+		# check inconsistency, maybe impossible
+		a, b = self.handler and 1 or 0, self.isactive () and 1 or 0
+		if a != b:			
 			self.disconnect ()
 			self.end_tran ()
-	
-	def is_deletable (self, timeout):
-		if time.time () - self.event_time > timeout:
-			if not self.isactive ():
+					
+		if time.time () - self.event_time > object_timeout:
+			if not self.isactive ():				
 				self.disconnect ()
-				return True
+				return True				
 		return False
 	
 	def is_channel_in_map (self, map = None):
@@ -112,6 +117,7 @@ class AsynConnect (asynchat.async_chat):
 		return self._fileno in map
 		
 	def set_active (self, flag, nolock = False):
+		if DEBUG: self.__history.append ("SET ACTIVE %s" % flag) 
 		if flag:
 			flag = time.time ()
 		else:
@@ -143,16 +149,15 @@ class AsynConnect (asynchat.async_chat):
 	def get_request_count (self):	
 		return self.request_count
 	
-	def add_channel (self, map = None):
+	def add_channel (self, map = None):		
+		if DEBUG: self.__history.append ("CHANNEL ADDED") 
 		self.zombie_timeout =  self.network_delay_timeout		
+		self._fileno = self.socket.fileno ()
 		return asynchat.async_chat.add_channel (self, map)
 		
-	def del_channel (self, map=None):
-		fd = self._fileno
-		if map is None:
-			map = self._map
-		if fd in map:
-			del map[fd]		
+	def del_channel (self, map = None):
+		if DEBUG: self.__history.append ("CHANNEL REMOVED") 
+		asynchat.async_chat.del_channel (self, map)
 		# make default and sometimes reset server'stimeout	
 		self.zombie_timeout =  self.keep_alive_timeout
 				
@@ -164,6 +169,7 @@ class AsynConnect (asynchat.async_chat):
 	
 	def connect (self):
 		if adns.query:
+			if DEBUG: self.__history.append ("QUERYING DNS")
 			adns.query (self.address [0], "A", callback = self.continue_connect)
 		else:
 			# no adns query
@@ -171,9 +177,11 @@ class AsynConnect (asynchat.async_chat):
 		
 	def continue_connect (self, answer = None):
 		if not answer:
+			if DEBUG: self.__history.append ("DNS FAILED")
 			self.log ("DNS not found - %s" % self.address [0], "error")
-			return self.handle_close (704, "DNS Not Found")			
+			return self.handle_close (704, "DNS Not Found")
 		
+		if DEBUG: self.__history.append ("CREATING SOCKET & CONNECTING...") 
 		self.initialize_connection ()
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
 		
@@ -234,6 +242,7 @@ class AsynConnect (asynchat.async_chat):
 	
 	def close_if_over_keep_live (self):
 		if time.time () - self.event_time > self.zombie_timeout:
+			if DEBUG: self.__history.append ("KEEP-ALIVE TIMEOUT") 
 			self.disconnect ()
 	
 	def initiate_send (self):
@@ -256,6 +265,7 @@ class AsynConnect (asynchat.async_chat):
 		self.keep_alive_timeout = timeout
 		
 	def handle_connect (self):
+		if DEBUG: self.__history.append ("CONNECTED") 
 		try: 
 			self.handler.has_been_connected ()
 		except AttributeError:
@@ -301,29 +311,33 @@ class AsynConnect (asynchat.async_chat):
 		if init_send:
 			self.initiate_send ()
 	
-	def handle_close (self, code = 700, msg = "Disconnected by Server"):
+	def handle_close (self, code = 700, msg = "Disconnected by Server"):		
+		if DEBUG: self.__history.append ("HANDLE_CLOSE %d %s" % (code, msg)) 
 		self.errcode = code
 		self.errmsg = msg
-		self.close()
+		self.close ()
 							
 	def collect_incoming_data (self, data):
 		if not self.handler:
-			self.logger ("droping data %d" % len (data), "warn")
-			return # already closed				
-		#print (repr (data[:79]))
+			self.logger ("recv data but no hander, droping data %d" % len (data), "warn")
+			self.disconnect ()
+			return
 		self.handler.collect_incoming_data (data)
 	
 	def found_terminator (self):
-		if not self.handler: 
+		if not self.handler:
 			self.logger ("found terminator but no handler", "warn")
+			self.disconnect ()
 			return # already closed
 		self.handler.found_terminator ()
 	
 	def disconnect (self):
 		# no error
+		if DEBUG: self.__history.append ("DISCONNECTING") 
 		self.handle_close (0, "")
 	
 	def reconnect (self):
+		if DEBUG: self.__history.append ("RECONNECTING")
 		self.disconnect ()
 		self.connect ()
 		
@@ -336,28 +350,36 @@ class AsynConnect (asynchat.async_chat):
 			self.ac_in_buffer = b''
 			self.incoming = []
 			self.producer_fifo.clear()
+			if DEBUG: self.__history.append ("DISCONNECTED")
+		else:
+			if DEBUG: self.__history.append ("CAN'T CLOSE, NOT CONNECTED")
 		
 		if self.handler is None:
+			if DEBUG: self.__history.append ("NO HANDLER, GOTO END TRAN")
 			self.end_tran () # automatic end_tran when timeout occured by maintern
 		elif self.errcode:
+			if DEBUG: self.__history.append ("CALL CONNECTION CLOSED")
 			self.handler.connection_closed (self.errcode, self.errmsg)
 			
 	def end_tran (self):
 		self.del_channel ()
 		self.handler = None
-		self.set_active (False)
+		self.set_active (False)		
+		if DEBUG: 
+			self.__history.append ("END TRAN")
+			self.__history = self.__history [-30:]
 			
 	def begin_tran (self, handler):
 		self.errcode = 0
 		self.errmsg = ""
-		
+			
 		self.handler = handler		
 		self.set_event_time ()
-		self.debug_info = (handler.method, handler.uri, handler.http_version)		
+		if DEBUG: self.__history.append ("BEGIN TRAN %s %s" % (handler.method, handler.request.uri))
 		
 		if self.connected:
 			self.close_if_over_keep_live () # check keep-alive
-				
+						
 		try:
 			if self.connected:
 				# should keep order

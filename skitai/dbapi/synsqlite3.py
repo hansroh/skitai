@@ -2,6 +2,8 @@ import sqlite3
 from . import dbconnect
 import threading
 
+DEBUG = False
+
 class OperationalError (Exception):
 	pass
 
@@ -24,7 +26,15 @@ class SynConnect (dbconnect.DBConnect):
 		self.connected = False
 		dbconnect.DBConnect.close (self)
 	
+	def close_case (self):
+		if DEBUG: 
+			self.__history.append ("END TRAN") 
+			self.__history = self.__history [-30:]
+		dbconnect.DBConnect.close_case (self)
+				
 	def execute (self, sql, callback):
+		if DEBUG: self.__history.append ("BEGIN TRAN: %s" % sql)
+		
 		self.callback = callback
 		self.has_result = False
 		self.exception_str = ""

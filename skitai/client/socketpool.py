@@ -51,14 +51,13 @@ class SocketPool:
 						try: stu ["has_result"] = asyncon.has_result
 						except AttributeError: pass						
 						
-						try: 
-							di = asyncon.debug_info
-							if di:
-								stu ["debug_info"] = "%s %s HTTP/%s" % asyncon.debug_info
-						except AttributeError: pass
+						if hasattr (asyncon, "get_history"):
+							stu ["history"] = asyncon.get_history ()
+							
 						try:
 							stu ["in_map"] = asyncon.is_channel_in_map ()
-						except AttributeError: pass	
+						except AttributeError: 
+							pass	
 							
 						conns.append (stu)
 													
@@ -81,31 +80,26 @@ class SocketPool:
 		if not self.__socketfarm: return [None] # at least one item needs
 		return list(self.__socketfarm.items ())
 		
-	def maintern (self):
-		try:			
-			# close unused sockets
-			for serverkey, node in list(self.__socketfarm.items ()):
-				for _id, asyncon in list(node.items ()):					
-					if hasattr (asyncon, "maintern"):
-						asyncon.maintern ()
-						
-					try:
-						closed = asyncon.is_deletable (self.object_timeout) # keep 2 minutes		
-					except:
-						self.logger.trace ()
-						closed = False
-						
-					if closed:
+	def maintern (self):		
+		# close unused sockets
+		for serverkey, node in list(self.__socketfarm.items ()):
+			for _id, asyncon in list(node.items ()):					
+				if not hasattr (asyncon, "maintern"):
+					continue
+				
+				try:
+					deletable = asyncon.maintern (self.object_timeout)
+				except:
+					self.logger.trace ()
+				else:
+					if deletable:
 						del self.__socketfarm [serverkey][_id]
 						del asyncon
-						self.numobj -= 1
-						
-				if not self.__socketfarm [serverkey]:
-					del self.__socketfarm [serverkey]
-					
-		except:
-			self.logger.trace ()
-		
+						self.numobj -= 1														
+			
+			if not self.__socketfarm [serverkey]:
+				del self.__socketfarm [serverkey]
+				
 		self.__last_maintern = time.time ()
 	
 	def _get (self, serverkey, server, *args):
