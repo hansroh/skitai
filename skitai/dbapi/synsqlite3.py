@@ -33,8 +33,6 @@ class SynConnect (dbconnect.DBConnect):
 		dbconnect.DBConnect.close_case (self)
 				
 	def execute (self, sql, callback):
-		if DEBUG: self.__history.append ("BEGIN TRAN: %s" % sql)
-		
 		self.callback = callback
 		self.has_result = False
 		self.exception_str = ""
@@ -44,17 +42,20 @@ class SynConnect (dbconnect.DBConnect):
 		
 		if not self.connected:
 			self.connect ()
-
+		
+		tranaction = False
 		sql= sql.strip ()
 		try:
 			if sql [:7].lower () == "select ":
 				self.cur.execute (sql)
 			else:	
-				self.cur.executescript (sql)				
+				tranaction = True
+				self.cur.executescript (sql)
 		except:
+			if tranaction: self.conn.rollback ()
 			self.handle_error ()
 		else:
-			self.conn.commit ()
+			if tranaction: self.conn.commit ()
 			self.has_result = True		
 			self.close_case ()
 		

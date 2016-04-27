@@ -155,7 +155,8 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		self._canceled = 0
 		self._init_time = time.time ()
 		self._cv = None
-		self._retry = 0		
+		self._retry = 0	
+		self._executed = False
 		self._numnodes = 0
 		
 		if self._cluster:
@@ -198,6 +199,9 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		trigger.wakeup ()
 		
 	def execute (self, sql):
+		if self._executed:
+			raise AssertionError ("Can't execute multiple, please create new connection")
+		self._executed = True
 		self._request (sql)
 		
 	def _get_connection (self, id = None):

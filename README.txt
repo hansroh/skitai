@@ -2100,7 +2100,9 @@ Change Log
   
   0.15
   
-  - fix loosing compressed content
+  - fix debug output
+  - fix asynconnect.maintern
+  - fix loosing end of compressed content
   - fix app reloading, @shutdown
   - fix XMLRPC response and POST length
   - add was.mbox.search (), change spec was.mbox.get ()

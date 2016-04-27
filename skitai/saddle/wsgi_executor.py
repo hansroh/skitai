@@ -57,7 +57,8 @@ class Executor:
 																										
 		except Exception as expt:			
 			self.was.logger.trace ("app")
-			response = failed (self.was, sys.exc_info ())
+			if failed:
+				response = failed (self.was, sys.exc_info ())
 			if response is None:				
 				raise
 							
