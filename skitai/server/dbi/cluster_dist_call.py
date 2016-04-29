@@ -9,6 +9,12 @@ class OperationTimeout (Exception):
 	pass
 
 
+class AttrDict (dict):
+	def __init__(self, *args, **kwargs):
+		super(AttrDict, self).__init__(*args, **kwargs)
+		self.__dict__ = self
+		
+
 class	Result (rcache.Result):
 	def __init__ (self, id, status, description = None, expt_class = None, expt_str = None, data = [], ident = None):
 		rcache.Result.__init__ (self, status, ident)
@@ -39,7 +45,7 @@ class	Result (rcache.Result):
 		d = []
 		for row in data:
 			i = 0
-			drow = {}
+			drow = AttrDict ()
 			for name in cols:
 				drow [name] = row [i]
 				i += 1

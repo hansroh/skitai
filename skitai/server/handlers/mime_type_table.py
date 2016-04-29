@@ -4,7 +4,9 @@
 #
 content_type_map = \
   {
-        'log': 'text/plain',
+       'css': 'text/css',
+        'js': 'text/javascript',
+       'log': 'text/plain',
         'ai':  'application/postscript',
        'aif':  'audio/x-aiff',
       'aifc':  'audio/x-aiff',

@@ -145,8 +145,7 @@ class Part:
 			return self.route [:-1] + self.mount_p [:-1] + thing
 	
 		for func, name, fuvars, favars, str_rule in self.route_map.values ():			 
-			if thing != name: continue
-				
+			if thing != name: continue								
 			assert len (args) <= len (fuvars), "Too many params, this has only %d params(s)" % len (fuvars)						
 			params = {}
 			for i in range (len (args)):
@@ -211,11 +210,14 @@ class Part:
 		arglist = rule.findall (path_info)
 		if not arglist: 
 			return None, None
-
+		
 		arglist = arglist [0]
+		if type (arglist) is not tuple:
+			arglist = (arglist,)
+			
 		kargs = {}
 		for i in range(len(arglist)):
-			an, at = a [i]			 
+			an, at = a [i]
 			if at == "int":
 				kargs [an] = int (arglist [i])
 			elif at == "float":

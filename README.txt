@@ -2100,6 +2100,7 @@ Change Log
   
   0.15
   
+  - add mimetypes for .css .js
   - fix debug output
   - fix asynconnect.maintern
   - fix loosing end of compressed content
