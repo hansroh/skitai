@@ -3,17 +3,10 @@ from skitai.server.threads import trigger
 import threading
 from skitai.server import rcache
 from skitai.server.rpc import cluster_dist_call
-
+from skitai.lib.attrdict import AttrDict
 
 class OperationTimeout (Exception):
 	pass
-
-
-class AttrDict (dict):
-	def __init__(self, *args, **kwargs):
-		super(AttrDict, self).__init__(*args, **kwargs)
-		self.__dict__ = self
-		
 
 class	Result (rcache.Result):
 	def __init__ (self, id, status, description = None, expt_class = None, expt_str = None, data = [], ident = None):

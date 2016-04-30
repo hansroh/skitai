@@ -2,6 +2,61 @@
 .. contents:: Table of Contents
  
 
+Changes
+=========
+
+*New in version 0.15.16*
+
+Added new app.jinja_overlay () for easy calling app.jinja_env.overlay ().
+
+.. code:: python
+
+  app = Saddle (__name__)
+  app.debug = True
+  app.use_reloader = True
+  app.jinja_overlay ("@", "#")
+
+Original Jinja2 form is:
+
+.. code:: html
+
+  {% for group in stat|groupby ('nation') %}
+    <h1>{{group.grouper}}</h1>
+    {% for row in group.list  %}
+      <h2>{{row.state}}</h1>
+      <a href="{{ was.ab ('bp_state', row.state, row.nation, loop.index)}}">{{row.population}}</a>
+    {% endfor %}
+  {% endfor %}
+
+app.jinja_overlay ("@", "#") changes jinja environment, 
+
+- variable_start_string = from {{ to #
+- variable_end_string = from }} to #
+- line_statement_prefix = from None ot @
+- line_comment_prefix = from None ot @@
+
+important note, for escaping charchater '#', use '##'.
+
+As a result, template can be write:
+
+.. code:: html
+
+  @for group in stat|groupby ('nation'):
+    <h1>#group.grouper#</h1>
+    @for row in group.list:
+      <h2>#row.state#</h1>
+      <a href="#was.ab ('state_view', row.state, row.nation, loop.index)#">#row.population#</a>
+      <a href="##" onclick="create_map (row.state);">Map</a>
+    @endfor
+  @endfor
+
+
+For more detail, `Jinja2 Line Statements`_.
+
+
+.. _`Jinja2 Line Statements`: http://jinja.pocoo.org/docs/dev/templates/#line-statements
+
+
 Introduce
 ===========
 
@@ -625,9 +680,17 @@ Usage
 .. code:: python
 
     s = was.db ("127.0.0.1:5432", "mydb", "user", "password")
-    s.execute ("SELECT * FROM weather;")	
+    s.execute ("SELECT city, t_high, t_low FROM weather;")
     result = s.getwait (2)
-  
+    
+    for row in result.data:
+     row.city, row.t_high, row.t_low  
+
+
+*New in version 0.15.15*
+
+result.data was dictionary list but now also can access value via attributes.
+
 
 **Load-Balancing**
 

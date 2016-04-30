@@ -7,20 +7,12 @@ except ImportError:
 import os
 from skitai.lib import importer, strutil
 from types import FunctionType as function
-JINJA2 = True
-try:
-	from jinja2 import Environment, PackageLoader
-except ImportError:
-	JINJA2 = False
+
 	
 RX_RULE = re.compile ("(/<(.+?)>)")
 
 class Part:
-	def __init__ (self, module_name = ""):
-		self.module_name = module_name
-		self.jinja_env = None
-		if module_name:
-			self.jinja_env = JINJA2 and Environment (loader = PackageLoader (module_name)) or None
+	def __init__ (self, *args, **kargs):			
 		self.module = None
 		self.packagename = None
 		self.wasc = None		
@@ -32,11 +24,6 @@ class Part:
 		self._binds_server = [None] * 3
 		self._binds_request = [None] * 4
 		self._binds_when = [None] * 5		
-	
-	def get_template (self, name):
-		if JINJA2:
-			return self.jinja_env.get_template (name)
-		raise ImportError ("jinja2 required.")
 	
 	def render (self, was, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		while template_file and template_file [0] == "/":

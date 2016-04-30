@@ -3,6 +3,7 @@ from . import cookie
 from skitai.lib.reraise import reraise 
 import sys
 from skitai.server.threads import trigger
+from skitai.lib.attrdict import AttrDict
 
 def traceback ():	
 	t, v, tb = sys.exc_info ()
@@ -75,7 +76,7 @@ class Executor:
 		return response
 	
 	def parse_kargs (self, kargs):
-		allkarg = {}
+		allkarg = AttrDict ()
 		query = self.env.get ("QUERY_STRING")
 		data = None
 		_input = self.env ["wsgi.input"]

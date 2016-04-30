@@ -10,7 +10,12 @@ from hashlib import md5
 import random
 import base64
 from skitai.saddle import cookie
-	
+JINJA2 = True
+try:	
+	from jinja2 import Environment, PackageLoader
+except ImportError:
+	JINJA2 = False
+		
 try:
 	import xmlrpc.client as xmlrpclib
 except ImportError:
@@ -41,18 +46,37 @@ class Saddle (part.Part):
 	opaque = None
 	
 	def __init__ (self, module_name):
-		part.Part.__init__ (self, module_name)
+		part.Part.__init__ (self)
+		self.module_name = module_name
+		self.jinja_env = JINJA2 and Environment (loader = PackageLoader (module_name)) or None		
 		self.lock = threading.RLock ()
 		self.cache_sorted = 0
 		self.cached_paths = {}
 		self.cached_rules = []
 		self.config = Config ()
+	
+	def jinja_overlay (self, line_statement = "@", variable_string = "#"):
+		from . import jinjapatch
 		
+		self.jinja_env = self.jinja_env.overlay (
+		  variable_start_string=variable_string,
+		  variable_end_string=variable_string,
+		  line_statement_prefix=line_statement,
+		  line_comment_prefix=line_statement * 2,
+		  trim_blocks=False,
+		  lstrip_blocks=False
+		)		
+				
 	def __setattr__ (self, name, attr):
 		if name == "upload_file_max_size":
 			multipart_collector.MultipartCollector.file_max_size = attr
 		self.__dict__ [name] = attr
-		
+	
+	def get_template (self, name):
+		if JINJA2:
+			return self.jinja_env.get_template (name)
+		raise ImportError ("jinja2 required.")
+			
 	def get_www_authenticate (self):
 		if self.authorization == "basic":
 			return 'Basic realm="%s"' % self.realm
