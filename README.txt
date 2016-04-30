@@ -19,7 +19,10 @@ Added new app.jinja_overlay () for easy calling app.jinja_env.overlay ().
 Original Jinja2 form is:
 
 .. code:: html
-
+  
+  {% extends "layout" %}  
+  {% block title %}Dash Board{% endblock %}
+  
   {% for group in stat|groupby ('nation') %}
     <h1>{{group.grouper}}</h1>
     {% for row in group.list  %}
@@ -41,6 +44,11 @@ As a result, template can be write:
 
 .. code:: html
 
+  @extends "layout"
+  @block title:
+    Dash Board
+  @endblock
+  
   @for group in stat|groupby ('nation'):
     <h1>#group.grouper#</h1>
     @for row in group.list:
@@ -50,9 +58,7 @@ As a result, template can be write:
     @endfor
   @endfor
 
-
 For more detail, `Jinja2 Line Statements`_.
-
 
 .. _`Jinja2 Line Statements`: http://jinja.pocoo.org/docs/dev/templates/#line-statements
 
