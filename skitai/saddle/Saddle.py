@@ -29,9 +29,10 @@ class Config:
 	pass
 
 class AuthorizedUser:
-	def __init__ (self, user, realm):
+	def __init__ (self, user, realm, info = None):
 		self.name = user
 		self.realm = realm
+		self.info = info
 		
 				
 class Saddle (part.Part):
@@ -58,20 +59,19 @@ class Saddle (part.Part):
 		self.cached_rules = []
 		self.config = Config ()
 	
-	def jinja_overlay (self, line_statement = "%", variable_string = "#"):
+	def jinja_overlay (self, line_statement = "%", variable_string = "#", block_start_string = "{%", block_end_string = "}", **karg):
 		from . import jinjapatch
-		
-		if len (variable_string) == 1:
-			self.jinja_env = JINJA2 and jinjapatch.Environment (loader = PackageLoader (self.module_name)) or None
-		else:
-			self.jinja_env = JINJA2 and Environment (loader = PackageLoader (self.module_name)) or None
-			
-		self.jinja_env = self.jinja_env.overlay (
+				
+		self.jinja_env = jinjapatch.Environment (
+			loader = PackageLoader (self.module_name),
 		  variable_start_string=variable_string,
 		  variable_end_string=variable_string,
 		  line_statement_prefix=line_statement,
-		  line_comment_prefix=line_statement * 2
-		)		
+		  block_end_string = block_end_string,
+		  block_start_string = block_start_string,
+		  line_comment_prefix=line_statement * 2,
+		  **karg
+		)
 				
 	def __setattr__ (self, name, attr):
 		if name == "upload_file_max_size":
@@ -92,7 +92,18 @@ class Saddle (part.Part):
 			return 'Digest realm="%s", qop="auth", nonce="%s", opaque="%s"' % (
 				self.realm, utility.md5uniqid (), self.opaque
 			)
-			
+	
+	def get_password (self, user):
+		info = self.users.get (user)
+		if not info:
+			return None, 0
+		return type (info) is str and (info, 0) or info [:2]
+	
+	def get_info (self, user):
+		info = self.users.get (user)
+		if not info: return None
+		return type (info) is not str and info [1:] or None
+				
 	def authorize (self, auth, method, uri):
 		if self.realm is None or not self.users:
 			return
@@ -107,9 +118,12 @@ class Saddle (part.Part):
 		
 		if self.authorization == "basic":
 			basic = base64.decodestring (authinfo.encode ("utf8")).decode ("utf8")
-			current_user, password = basic.split (":", 1)
-			if password == self.users.get (current_user):
-				return AuthorizedUser (current_user, self.realm)
+			current_user, current_password = basic.split (":", 1)
+			password, encrypted = self.get_password (current_user)
+			if encrypted:
+				raise AssertionError ("Basic authorization can't handle encrypted password")
+			if password ==  current_password:
+				return AuthorizedUser (current_user, self.realm, self.get_info (current_user))
 				
 		else:
 			method = method.upper ()
@@ -124,15 +138,17 @@ class Saddle (part.Part):
 			if not current_user:
 				return self.get_www_authenticate ()
 			
-			password = self.users.get (current_user)
+			password, encrypted = self.get_password (current_user)
 			if not password:
 				return self.get_www_authenticate ()
 				
 			try:
 				if uri != infod ["uri"]:					
 					return self.get_www_authenticate ()
-					
-				A1 = md5 (("%s:%s:%s" % (infod ["username"], self.realm, password)).encode ("utf8")).hexdigest ()
+				if encrypted:	
+					A1 = password
+				else:
+					A1 = md5 (("%s:%s:%s" % (infod ["username"], self.realm, password)).encode ("utf8")).hexdigest ()
 				A2 = md5 (("%s:%s" % (method, infod ["uri"])).encode ("utf8")).hexdigest ()
 				Hash = md5 (("%s:%s:%s:%s:%s:%s" % (
 					A1, 
@@ -145,7 +161,7 @@ class Saddle (part.Part):
 				).hexdigest ()
 
 				if Hash == infod ["response"]:
-					return AuthorizedUser (current_user, self.realm)
+					return AuthorizedUser (current_user, self.realm, self.get_info (current_user))
 					
 			except KeyError:
 				pass

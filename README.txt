@@ -19,7 +19,7 @@ Added new app.jinja_overlay () for easy calling app.jinja_env.overlay ().
   app = Saddle (__name__)
   app.debug = True
   app.use_reloader = True
-  app.jinja_overlay (line_statement = "%", variable_string = "#")
+  app.jinja_overlay (line_statement = "%", variable_string = "#", block_start_string = "{%", block_end_string = "}")
 
 Original Jinja2 form is:
 
@@ -37,12 +37,14 @@ Original Jinja2 form is:
     {% endfor %}
   {% endfor %}
 
-app.jinja_overlay ("%", "#") changes jinja environment,
+app.jinja_overlay ("%", "#", "{%", "}") changes jinja environment,
 
 - variable_start_string = from {{ to #
 - variable_end_string = from }} to #
 - line_statement_prefix = from None to %
 - line_comment_prefix = from None to %%
+- block_start_string = unchange, keep {%
+- block_end_string = from %} to }
 
 Important note for escaping charcter '#', use '##', but this is only valid when single variable_string. Also escaping '%' which appears at first of line excluding space/tab:
 
@@ -63,7 +65,7 @@ As a result, template can be written:
   % endblock  
   
   % for group in stat|groupby ('nation'):
-    <h1>#group.grouper#</h1>
+    <h1>#group.grouper# {% block sectionname }World Population{% endblock }</h1>
     % for row in group.list:
       <h2>#row.state#</h1>
       <a href="#was.ab ('state_view', row.state, row.nation, loop.index)#">#row.population#</a>
@@ -71,7 +73,7 @@ As a result, template can be written:
     % endfor
   % endfor
 
-In my case, above template is more easy to read/write if applying proper syntax highlighting to text editor.
+If you like this style, just call 'app.jinja_overlay ()'. In my case, above template is more easy to read/write if applying proper syntax highlighting to text editor.
 
 For more detail, `Jinja2 Line Statements and Escape`_.
 
@@ -1408,9 +1410,9 @@ A part of msg.htm is like this:
 
 Default value of valid argument is 0, which means if page called was.mbox.get() is finished successfully, it is automatically deleted from mbox.
 
-but like flash message, if messages are delayed by next request, these messages are save into secured cookie value, so delayed/long term valid messages size is limited by cookie specificatio. Then shorter and fewer messsages would be better as possible.
+But like flash message, if messages are delayed by next request, these messages are save into secured cookie value, so delayed/long term valid messages size is limited by cookie specificatio. Then shorter and fewer messsages would be better as possible.
 
-was.mbox can be used for general page creation like handling notice, alram or error messages consistently. In this case, these messages (valid=0) is consumed by current request, there's no particular size limitation.
+'was.mbox' can be used for general page creation like handling notice, alram or error messages consistently. In this case, these messages (valid=0) is consumed by current request, there's no particular size limitation.
 
 Also note valid argument is 0, it will be shown at next request just one time, but inspite of next request is after hundred years, it will be shown if browser has cookie values.
 
