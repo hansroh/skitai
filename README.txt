@@ -39,21 +39,17 @@ app.jinja_overlay ("@", "#") changes jinja environment,
 - line_statement_prefix = from None to @
 - line_comment_prefix = from None to @@
 
-<<<<<<< HEAD
-Important note for escaping charcter '#', use '##', but this is only valid when length of variable_string is 1. Also escaping '@' which appears at first of line excluding space/tab:
+Important note for escaping charcter '#', use '##', but this is only valid when single variable_string. Also escaping '@' which appears at first of line excluding space/tab:
 
 .. code:: html
 
   @raw:
-  	<style>
-  	@import url('style.css');
-  	</style>
-  	<a href="#" onclick="javascript: create_map ('#row.state#');">Map</a>
+    <style>
+    @import url('style.css');
+    </style>
+    <a href="#" onclick="javascript: create_map ('#row.state#');">Map</a>
   @endraw
 
-=======
-Important note, for escaping charcter '#', use '##', but this is only valid when length of variable_string is 1.
->>>>>>> 020fff6fa90e4a94c1b2d98da8e33e3e944c1dc5
 
 As a result, template can be written:
 

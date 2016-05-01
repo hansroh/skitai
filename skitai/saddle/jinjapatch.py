@@ -76,7 +76,7 @@ def get_lexer (environment):
 		]
 	
 	lexer.rules [olexer.TOKEN_RAW_BEGIN] = [
-			(c('(.*?)((?:\s*%s\-|%s|^[ \t\v]*%s)\s*endraw\s*(?:\-%s\s*|%s%s)?)' % (
+			(c('(.*?)((?:\s*%s\-|%s|^[ \t\v]*%s)\s*endraw\s*(?:\-%s\s*|%s%s|$))' % (
 				e(environment.block_start_string),
 				block_prefix_re,
 				e(environment.line_statement_prefix),
