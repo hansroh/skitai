@@ -14,13 +14,13 @@ Added new app.jinja_overlay () for easy calling app.jinja_env.overlay ().
   app = Saddle (__name__)
   app.debug = True
   app.use_reloader = True
-  app.jinja_overlay ("@", "#")
+  app.jinja_overlay (line_statement = "@", variable_string = "#")
 
 Original Jinja2 form is:
 
 .. code:: html
   
-  {% extends "layout" %}  
+  {% extends "layout.htm" %}  
   {% block title %}Dash Board{% endblock %}
   
   {% for group in stat|groupby ('nation') %}
@@ -32,20 +32,20 @@ Original Jinja2 form is:
     {% endfor %}
   {% endfor %}
 
-app.jinja_overlay ("@", "#") changes jinja environment, 
+app.jinja_overlay ("@", "#") changes jinja environment,
 
 - variable_start_string = from {{ to #
 - variable_end_string = from }} to #
 - line_statement_prefix = from None to @
 - line_comment_prefix = from None to @@
 
-Important note, for escaping charchater '#', use '##'.
+Important note, for escaping charcter '#', use '##', but this is only valid when length of variable_string is 1.
 
 As a result, template can be written:
 
 .. code:: html
 
-  @extends "layout"
+  @extends "layout.htm"
   @block title:
     Dash Board
   @endblock  
