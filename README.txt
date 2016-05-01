@@ -14,7 +14,7 @@ Added new app.jinja_overlay () for easy calling app.jinja_env.overlay ().
   app = Saddle (__name__)
   app.debug = True
   app.use_reloader = True
-  app.jinja_overlay (line_statement = "@", variable_string = "#")
+  app.jinja_overlay (line_statement = "%", variable_string = "#")
 
 Original Jinja2 form is:
 
@@ -32,46 +32,46 @@ Original Jinja2 form is:
     {% endfor %}
   {% endfor %}
 
-app.jinja_overlay ("@", "#") changes jinja environment,
+app.jinja_overlay ("%", "#") changes jinja environment,
 
 - variable_start_string = from {{ to #
 - variable_end_string = from }} to #
-- line_statement_prefix = from None to @
-- line_comment_prefix = from None to @@
+- line_statement_prefix = from None to %
+- line_comment_prefix = from None to %%
 
-Important note for escaping charcter '#', use '##', but this is only valid when single variable_string. Also escaping '@' which appears at first of line excluding space/tab:
+Important note for escaping charcter '#', use '##', but this is only valid when single variable_string. Also escaping '%' which appears at first of line excluding space/tab:
 
 .. code:: html
 
-  @raw:
-    <style>
-    @import url('style.css');
-    </style>
-    <a href="#" onclick="javascript: create_map ('#row.state#');">Map</a>
-  @endraw
-
+  % raw:
+    %HOME%/bin
+    <a href="#" onclick="javascript: create_map ();">Map</a>
+  % endraw
 
 As a result, template can be written:
 
 .. code:: html
 
-  @extends "layout.htm"
-  @block title:
+  % extends "layout.htm"
+  % block title:
     Dash Board
-  @endblock  
+  % endblock  
   
-  @for group in stat|groupby ('nation'):
+  % for group in stat|groupby ('nation'):
     <h1>#group.grouper#</h1>
-    @for row in group.list:
+    % for row in group.list:
       <h2>#row.state#</h1>
       <a href="#was.ab ('state_view', row.state, row.nation, loop.index)#">#row.population#</a>
       <a href="##" onclick="javascript: create_map ('#row.state#');">Map</a>
-    @endfor
-  @endfor
+    % endfor
+  % endfor
 
 In my case, above template is more easy to read/write if applying proper syntax highlighting to text editor.
 
-For more detail, `Jinja2 Line Statements`_.
+For more detail, `Jinja2 Line Statements and Escape`_.
+
+*Warning*: Current Jinja2 2.8 dose not support double escaping (##) and 'raw' line_statement but it will be applied to runtime patch by Saddle. So if you use app.jinja_overlay, you have compatible with official Jinja2.
+
 
 .. _`Jinja2 Line Statements`: http://jinja.pocoo.org/docs/dev/templates/#line-statements
 

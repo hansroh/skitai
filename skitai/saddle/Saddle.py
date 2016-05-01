@@ -55,7 +55,7 @@ class Saddle (part.Part):
 		self.cached_rules = []
 		self.config = Config ()
 	
-	def jinja_overlay (self, line_statement = "@", variable_string = "#"):
+	def jinja_overlay (self, line_statement = "%", variable_string = "#"):
 		from . import jinjapatch
 		
 		if len (variable_string) == 1:
