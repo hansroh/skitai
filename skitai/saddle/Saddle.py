@@ -67,9 +67,7 @@ class Saddle (part.Part):
 		  variable_start_string=variable_string,
 		  variable_end_string=variable_string,
 		  line_statement_prefix=line_statement,
-		  line_comment_prefix=line_statement * 2,
-		  trim_blocks=False,
-		  lstrip_blocks=False
+		  line_comment_prefix=line_statement * 2
 		)		
 				
 	def __setattr__ (self, name, attr):
