@@ -116,10 +116,15 @@ class Handler:
 	def authorized (self, app, request, route):			
 		try: 
 			www_authenticate = app.authorize (request.get_header ("Authorization"), request.command, request.uri)
-			if www_authenticate:
+			if type (www_authenticate) is str:
 				request.response ['WWW-Authenticate'] = www_authenticate
 				request.response.error (401)
 				return False
+			elif www_authenticate:
+				request.user = www_authenticate
+			else:	
+				request.user = None
+					
 		except AttributeError: 
 			pass
 		return True

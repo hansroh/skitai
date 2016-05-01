@@ -5,6 +5,11 @@
 Changes
 =========
 
+*Changed in version 0.15.21*
+
+  - removed app.user and app.password
+  - add app.users object has password = get(user) methods like dictionary
+
 *New in version 0.15.16*
 
 Added new app.jinja_overlay () for easy calling app.jinja_env.overlay ().
@@ -70,10 +75,10 @@ In my case, above template is more easy to read/write if applying proper syntax 
 
 For more detail, `Jinja2 Line Statements and Escape`_.
 
-*Warning*: Current Jinja2 2.8 dose not support double escaping (##) and 'raw' line_statement but it will be applied to runtime patch by Saddle. So if you use app.jinja_overlay, you have compatible with official Jinja2.
+*Warning*: Current Jinja2 2.8 dose not support double escaping (##) and 'raw' line_statement but it will be applied to runtime patch by Saddle. So if you use app.jinja_overlay, you have compatible problems with official Jinja2.
 
 
-.. _`Jinja2 Line Statements`: http://jinja.pocoo.org/docs/dev/templates/#line-statements
+.. _`Jinja2 Line Statements and Escape`: http://jinja.pocoo.org/docs/dev/templates/#line-statements
 
 
 Introduce
@@ -1678,6 +1683,12 @@ These methods will be called,
 WWW-Authenticate
 -------------------
 
+*Changed in version 0.15.21*
+
+  - removed app.user and app.password
+  - add app.users object has password = get(user) methods like dictionary
+
+
 Saddle provide simple authenticate for administration or perform access control from other system's call.
 
 .. code:: python
@@ -1686,8 +1697,7 @@ Saddle provide simple authenticate for administration or perform access control 
   
   app.authorization = "digest"
   app.realm = "Partner App Area of mysite.com"
-  app.user = "app"
-  app.password = "iamyourpartnerapp"
+  app.users = {"app": "iamyourpartnerapp"}
 	
   @app.route ("/hello/<name>")
   def hello (was, name = "Hans Roh"):

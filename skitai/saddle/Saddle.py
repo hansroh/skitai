@@ -27,8 +27,13 @@ secured_cookie_value.Session.default_session_timeout = 1200
 
 class Config:
 	pass
-	
+
+class AuthorizedUser:
+	def __init__ (self, user, realm):
+		self.name = user
+		self.realm = realm
 		
+				
 class Saddle (part.Part):
 	use_reloader = False
 	debug = False
@@ -40,9 +45,7 @@ class Saddle (part.Part):
 	#WWW-Authenticate
 	authorization = "digest"
 	realm = None
-	user = None
-	password = None
-	
+	users = {}
 	opaque = None
 	
 	def __init__ (self, module_name):
@@ -91,8 +94,9 @@ class Saddle (part.Part):
 			)
 			
 	def authorize (self, auth, method, uri):
-		if self.realm is None or self.user is None or self.password is None:
-			return		
+		if self.realm is None or not self.users:
+			return
+				
 		if auth is None:
 			return self.get_www_authenticate ()
 		
@@ -100,11 +104,12 @@ class Saddle (part.Part):
 		amethod, authinfo = auth.split (" ", 1)
 		if amethod.lower () != self.authorization:
 			return self.get_www_authenticate ()
-			
+		
 		if self.authorization == "basic":
-			basic = base64.decodestring (authinfo.encode ("utf8"))
-			if basic == "%s:%s" % (self.username, self.password):
-				return
+			basic = base64.decodestring (authinfo.encode ("utf8")).decode ("utf8")
+			current_user, password = basic.split (":", 1)
+			if password == self.users.get (current_user):
+				return AuthorizedUser (current_user, self.realm)
 				
 		else:
 			method = method.upper ()
@@ -115,10 +120,19 @@ class Saddle (part.Part):
 				if v[0] == '"': v = v [1:-1]
 				infod [k]	 = v
 			
+			current_user = infod.get ("username")
+			if not current_user:
+				return self.get_www_authenticate ()
+			
+			password = self.users.get (current_user)
+			if not password:
+				return self.get_www_authenticate ()
+				
 			try:
 				if uri != infod ["uri"]:					
 					return self.get_www_authenticate ()
-				A1 = md5 (("%s:%s:%s" % (self.user, self.realm, self.password)).encode ("utf8")).hexdigest ()
+					
+				A1 = md5 (("%s:%s:%s" % (infod ["username"], self.realm, password)).encode ("utf8")).hexdigest ()
 				A2 = md5 (("%s:%s" % (method, infod ["uri"])).encode ("utf8")).hexdigest ()
 				Hash = md5 (("%s:%s:%s:%s:%s:%s" % (
 					A1, 
@@ -130,8 +144,8 @@ class Saddle (part.Part):
 					)).encode ("utf8")
 				).hexdigest ()
 
-				if Hash == infod ["response"]:				
-					return
+				if Hash == infod ["response"]:
+					return AuthorizedUser (current_user, self.realm)
 					
 			except KeyError:
 				pass
