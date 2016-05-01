@@ -59,5 +59,21 @@ class Parser (parser.Parser):
 
         return body
 
-#silent replace
-environment.Parser = Parser
+
+_parser = None
+
+def patch ():
+	global _parser
+	if _parser is not None:
+		return # already patched
+	_parser = environment.Parser
+	environment.Parser = Parser
+
+def unpatch ():
+	global _parser
+	
+	if _parser is None:
+		return
+	environment.Parser = _parser
+	_parser = None
+

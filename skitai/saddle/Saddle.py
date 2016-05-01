@@ -58,6 +58,11 @@ class Saddle (part.Part):
 	def jinja_overlay (self, line_statement = "@", variable_string = "#"):
 		from . import jinjapatch
 		
+		if len (variable_string) == 1:
+			jinjapatch.patch ()
+		else:
+			jinjapatch.unpatch ()
+			
 		self.jinja_env = self.jinja_env.overlay (
 		  variable_start_string=variable_string,
 		  variable_end_string=variable_string,

@@ -28,6 +28,7 @@ Original Jinja2 form is:
     {% for row in group.list  %}
       <h2>{{row.state}}</h1>
       <a href="{{ was.ab ('bp_state', row.state, row.nation, loop.index)}}">{{row.population}}</a>
+      <a href="#" onclick="javascript: create_map ('{{row.state}}');">Map</a>
     {% endfor %}
   {% endfor %}
 
@@ -35,28 +36,30 @@ app.jinja_overlay ("@", "#") changes jinja environment,
 
 - variable_start_string = from {{ to #
 - variable_end_string = from }} to #
-- line_statement_prefix = from None ot @
-- line_comment_prefix = from None ot @@
+- line_statement_prefix = from None to @
+- line_comment_prefix = from None to @@
 
-important note, for escaping charchater '#', use '##'.
+Important note, for escaping charchater '#', use '##'.
 
-As a result, template can be write:
+As a result, template can be written:
 
 .. code:: html
 
   @extends "layout"
   @block title:
     Dash Board
-  @endblock
+  @endblock  
   
   @for group in stat|groupby ('nation'):
     <h1>#group.grouper#</h1>
     @for row in group.list:
       <h2>#row.state#</h1>
       <a href="#was.ab ('state_view', row.state, row.nation, loop.index)#">#row.population#</a>
-      <a href="##" onclick="create_map (row.state);">Map</a>
+      <a href="##" onclick="javascript: create_map ('#row.state#');">Map</a>
     @endfor
   @endfor
+
+In my case, above template is more easy to read/write if applying proper syntax highlighting to text editor.
 
 For more detail, `Jinja2 Line Statements`_.
 
