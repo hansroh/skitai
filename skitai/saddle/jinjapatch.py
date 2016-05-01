@@ -10,6 +10,7 @@ from jinja2.lexer import TOKEN_DATA, TOKEN_RAW_END, Failure, \
 	TOKEN_WHITESPACE, TOKEN_FLOAT, TOKEN_INTEGER, TOKEN_NAME, TOKEN_STRING, TOKEN_OPERATOR, \
 	whitespace_re, float_re, integer_re, name_re, string_re, operator_re, compile_rules
 
+
 def get_lexer (environment):
 	c = lambda x: re.compile(x, re.M | re.S)
 	e = re.escape
@@ -147,23 +148,10 @@ class Parser (parser.Parser):
 		return body
 
 
-_parser = None
+class Environment (environment.Environment):
+	def _parse(self, source, name, filename):
+		return Parser(self, source, name, environment.encode_filename(filename)).parse()
+	lexer = property(get_lexer, doc="The lexer for this environment.")
 
-def patch ():
-	global _parser
-	
-	if _parser is not None:
-		return # already patched
-	
-	environment.Environment.lexer = property(get_lexer, doc="The lexer for this environment.")
-	_parser = environment.Parser
-	environment.Parser = Parser
-
-def unpatch ():
-	global _parser
-	
-	if _parser is None:
-		return
-	environment.Environment.lexer = property(olexer.get_lexer, doc="The lexer for this environment.")
-	environment.Parser = _parser
-	_parser = None
+# enable 'raw' line statement
+environment.Environment = property(get_lexer, doc="The lexer for this environment.")

@@ -62,9 +62,9 @@ class Saddle (part.Part):
 		from . import jinjapatch
 		
 		if len (variable_string) == 1:
-			jinjapatch.patch ()
+			self.jinja_env = JINJA2 and jinjapatch.Environment (loader = PackageLoader (self.module_name)) or None
 		else:
-			jinjapatch.unpatch ()
+			self.jinja_env = JINJA2 and Environment (loader = PackageLoader (self.module_name)) or None
 			
 		self.jinja_env = self.jinja_env.overlay (
 		  variable_start_string=variable_string,
