@@ -459,7 +459,7 @@ class Handler (wsgi_handler.Handler):
 				else:
 					asyncon_key = request.uri					
 				asyncon = self.clusters ["__socketpool__"].get (asyncon_key)
-			
+					
 			req = http_request.HTTPRequest (request.uri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))				
 			r = ProxyRequestHandler (asyncon, req, self.callback, request, collector)			
 			if collector:

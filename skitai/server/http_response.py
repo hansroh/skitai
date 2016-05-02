@@ -395,7 +395,11 @@ class http_response:
 				self.request.channel.push_with_producer (producers.globbing_producer (producers.hooked_producer (outgoing_producer, self.log)))
 			else:
 				self.request.channel.push_with_producer (producers.hooked_producer (outgoing_producer, self.log))
-
+			
+			# IMP: second testing after push_with_producer()->init_send ()
+			if self.request.channel is None:
+				return
+						
 			if next_request:
 				request, terminator = next_request
 				self.request.channel.current_request = request

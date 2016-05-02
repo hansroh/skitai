@@ -2205,6 +2205,7 @@ Change Log
   
   0.15
   
+  - fix select error when closed socket, thanks to spam-proxy-bots
   - add mimetypes for .css .js
   - fix debug output
   - fix asynconnect.maintern

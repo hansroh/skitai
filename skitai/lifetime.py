@@ -154,48 +154,55 @@ if hasattr(select, 'poll'):
 else:
 	poll_fun = asyncore.poll
 
-if os.name == "nt":	
-	def remove_notsocks (map):
-		global _select_errors
-		
-		# on Windows we can get WSAENOTSOCK if the client
-		# rapidly connect and disconnects
-		for fd in list(map.keys()):
+
+def remove_notsocks (map):
+	global _select_errors
+	
+	# on Windows we can get WSAENOTSOCK if the client
+	# rapidly connect and disconnects
+	killed = 0
+	for fd in list(map.keys()):
+		try:
+			select.select([fd], [], [], 0)
+		except (ValueError, select.error):
+			killed += 1
+			_select_errors += 1
 			try:
-				select.select([fd], [], [], 0)
-			except select.error:
-				_select_errors += 1
-				try:
-					obj = map [fd]					
-					if obj:
-						try: obj.handle_expt ()
-						except: obj.handle_error ()						
-					del map[fd]
-				except (KeyError, AttributeError):
-					pass	
+				obj = map [fd]					
+				if obj:
+					try: obj.handle_expt ()
+					except: obj.handle_error ()						
+				del map[fd]
+			except (KeyError, AttributeError):
+				pass
+	return killed
+	
 
 def poll_fun_wrap (timeout, map):
 	try:		
 		poll_fun (timeout, map)
 	
 	except select.error as why:
-		if os.name == "nt" :
-			if why.args [0] == WSAENOTSOCK: # sometimes postgresql connection forcely closed
-				remove_notsocks (map)
+		# WSAENOTSOCK		
+		remove_notsocks (map)
 	
 	except ValueError:
-		# too many file descriptors in select()
-		# divide and conquer
-		half = len (map) / 2
-		tmap = {}
-		cc = 0
-		for k, v in list(map.items ()):
-			tmap [k] = v
-			cc += 1
-			if cc == half:
-				poll_fun_wrap (timeout, tmap)
-				tmap = {}
+		# negative file descriptor, testing all sockets
+		killed = remove_notsocks (map)
+		if not killed:
+			# too many file descriptors in select(), divide and conquer
+			half = len (map) / 2
+			tmap = {}
+			cc = 0
+			for k, v in list(map.items ()):
+				tmap [k] = v
+				cc += 1
+				if cc == half:
+					poll_fun_wrap (timeout, tmap)
+					tmap = {}
+					
 		poll_fun_wrap (timeout, tmap)
+
 
 def lifetime_loop (timeout = 30.0):
 	global _last_maintern
