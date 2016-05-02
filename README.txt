@@ -5,10 +5,16 @@
 Changes
 =========
 
+*Changed in version 0.15.24*
+
+  - add reraise arg to cdc.getwait (timeout = 5, reraise = False)
+  - also applied to getswiat and wait
+  
+  
 *Changed in version 0.15.21*
 
   - removed app.user and app.password
-  - add app.users object has password = get(user) methods like dictionary
+  - add app.users object has password = obj.get(user) method like dictionary
 
 *New in version 0.15.16*
 
@@ -19,7 +25,12 @@ Added new app.jinja_overlay () for easy calling app.jinja_env.overlay ().
   app = Saddle (__name__)
   app.debug = True
   app.use_reloader = True
-  app.jinja_overlay (line_statement = "%", variable_string = "#", block_start_string = "{%", block_end_string = "}")
+  app.jinja_overlay (
+  	line_statement = "%", 
+  	variable_string = "#", 
+  	block_start_string = "{%", 
+  	block_end_string = "}"
+  )
 
 Original Jinja2 form is:
 
@@ -29,10 +40,10 @@ Original Jinja2 form is:
   {% block title %}Dash Board{% endblock %}
   
   {% for group in stat|groupby ('nation') %}
-    <h1>{{group.grouper}}</h1>
+    <h1>{% block sectionname %}Population of{% endblock %} {{group.grouper}}</h1>
     {% for row in group.list  %}
       <h2>{{row.state}}</h1>
-      <a href="{{ was.ab ('bp_state', row.state, row.nation, loop.index)}}">{{row.population}}</a>
+      <a href="{{ was.ab ('bp_state', row.nation, loop.index)}}">{{row.population}}</a>
       <a href="#" onclick="javascript: create_map ('{{row.state}}');">Map</a>
     {% endfor %}
   {% endfor %}
@@ -65,10 +76,10 @@ As a result, template can be written:
   % endblock  
   
   % for group in stat|groupby ('nation'):
-    <h1>#group.grouper# {% block sectionname }World Population{% endblock }</h1>
+    <h1>{% block sectionname %}Population of{% endblock %}  #group.grouper#</h1>
     % for row in group.list:
       <h2>#row.state#</h1>
-      <a href="#was.ab ('state_view', row.state, row.nation, loop.index)#">#row.population#</a>
+      <a href="#was.ab ('state_view', row.nation, loop.index)#">#row.population#</a>
       <a href="##" onclick="javascript: create_map ('#row.state#');">Map</a>
     % endfor
   % endfor
@@ -514,9 +525,9 @@ Avaliable methods are:
 
 Above methods return ClusterDistCall (cdc) class.
  
-- cdc.getwait (timeout = 5) : return result with status
-- cdc.getswait (timeout = 5) : getting multiple results
-- cdc.wait (timeout = 5) : no return result, then if error has been ocuured. riased immediately
+- cdc.getwait (timeout = 5, reraise = False) : return result with status, if reraise is True, raise immediately when error occured
+- cdc.getswait (timeout = 5, reraise = False) : getting multiple results
+- cdc.wait (timeout = 5, reraise = True) : no return result just wait until query finished.maybe useful for executing create, update and delete queury
 - cdc.cache (timeout)
 - cdc.code : HTTP status code like 200, 404, ...
 - cdc.status

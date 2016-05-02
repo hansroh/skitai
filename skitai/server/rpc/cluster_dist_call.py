@@ -263,24 +263,28 @@ class ClusterDistCall:
 	def _cancel (self):
 		self._canceled = 1
 		
-	def wait (self, timeout = 3):		
-		for rs in self.getswait (timeout):
-			rs.reraise ()
+	def wait (self, timeout = 3, reraise = True):		
+		#for rs in self.getswait (timeout):
+		#	rs.reraise ()
+		self.getswait (timeout, reraise)
 		
-	def getwait (self, timeout = 3):
+	def getwait (self, timeout = 3, reraise = False):
 		if self._cached_result is not None:
 			return self._cached_result
 			
 		self._wait (timeout)
 		if len (self._results) > 1:
 			raise ValueError("Multiple Results, Use getswait")
-		return self._results [0].get_result ()
+		rs = self._results [0].get_result ()
+		if reraise:
+			rs.reraise ()
+		return rs
 	
-	def getswait (self, timeout = 3):
+	def getswait (self, timeout = 3, reraise = False):
 		if self._cached_result is not None:
 			return self._cached_result
 			
-		self._wait (timeout)
+		self._wait (timeout, reraise)
 		return Results ([rs.get_result () for rs in self._results], ident = self.get_ident ())
 	
 	def _collect_result (self):
