@@ -76,7 +76,7 @@ As a result, template can be written:
   % endblock  
   
   % for group in stat|groupby ('nation'):
-    <h1>{% block sectionname %}Population of{% endblock %}  #group.grouper#</h1>
+    <h1>{% block sectionname }Population of{% endblock }  #group.grouper#</h1>
     % for row in group.list:
       <h2>#row.state#</h1>
       <a href="#was.ab ('state_view', row.nation, loop.index)#">#row.population#</a>
