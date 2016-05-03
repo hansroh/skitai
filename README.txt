@@ -40,7 +40,7 @@ Original Jinja2 form is:
   {% block title %}Dash Board{% endblock %}
   
   {% for group in stat|groupby ('nation') %}
-    <h1>{% block sectionname %}Population of{% endblock %} {{group.grouper}}</h1>
+    <h1>{% block sectionname %}Population of {{group.grouper}}{% endblock %}</h1>
     {% for row in group.list  %}
       <h2>{{row.state}}</h1>
       <a href="{{ was.ab ('bp_state', row.nation, loop.index)}}">{{row.population}}</a>
@@ -57,7 +57,7 @@ app.jinja_overlay ("%", "#", "{%", "}") changes jinja environment,
 - block_start_string = unchange, keep {%
 - block_end_string = from %} to }
 
-Important note for escaping charcter '#', use '##', but this is only valid when single variable_string. Also escaping '%' which appears at first of line excluding space/tab:
+Important note for escaping charcter '#', use '##', but this is only valid when variable_start_string and variable_end_string are same. Also escaping '%' which appears at first of line excluding space/tab:
 
 .. code:: html
 
@@ -76,7 +76,7 @@ As a result, template can be written:
   % endblock  
   
   % for group in stat|groupby ('nation'):
-    <h1>{% block sectionname }Population of{% endblock }  #group.grouper#</h1>
+    <h1>{% block sectionname }Population of #group.grouper#{% endblock }</h1>
     % for row in group.list:
       <h2>#row.state#</h1>
       <a href="#was.ab ('state_view', row.nation, loop.index)#">#row.population#</a>

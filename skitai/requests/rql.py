@@ -172,7 +172,6 @@ class RQL:
 	def set_attributes (self):
 		url = self.uinfo.url
 		self.uinfo.scheme, self.uinfo.netloc, self.uinfo.script, self.uinfo.params, self.uinfo.querystring, self.uinfo.fragment = urlparse (url)
-		
 		if self.uinfo.data and self.uinfo.method not in ("post", "put"):
 			raise ValueError ("Form exists but method isn't post or get")
 		if self.uinfo.method in ("post", "put") and not self.uinfo.data:
@@ -225,9 +224,17 @@ class RQL:
 		if NON_IP_COMPONENT.search (self.uinfo.netloc):
 			netloc = self.uinfo.netloc
 			netloc2 = netloc.split (".")
-					
 			self.uinfo.topdomain = netloc2 [-1]
-			if len (netloc2 [-1]) >= 3:
+			
+			if len (netloc2) == 1:
+				self.uinfo.host = ""	
+				self.uinfo.domain = netloc
+				self.uinfo.subdomain = netloc				
+			elif len (netloc2) == 2:
+				self.uinfo.host = ""	
+				self.uinfo.domain = netloc
+				self.uinfo.subdomain = netloc2 [0]				
+			elif len (netloc2 [-1]) >= 3:
 				self.uinfo.domain = ".".join (netloc2 [-2:])
 				self.uinfo.host = ".".join (netloc2 [:-2])
 				self.uinfo.subdomain = netloc2 [-2]			

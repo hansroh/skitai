@@ -284,8 +284,11 @@ class ClusterDistCall:
 		if self._cached_result is not None:
 			return self._cached_result
 			
-		self._wait (timeout, reraise)
-		return Results ([rs.get_result () for rs in self._results], ident = self.get_ident ())
+		self._wait (timeout)
+		rss = [rs.get_result () for rs in self._results]
+		if reraise:
+			[rs.reraise () for rs in rss]			
+		return Results (rss, ident = self.get_ident ())
 	
 	def _collect_result (self):
 		for rs, asyncon in list(self._requests.items ()):
