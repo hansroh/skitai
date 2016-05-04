@@ -672,6 +672,20 @@ Every results returned by getwait(), getswait() can cache.
 
 Although code == 200 alredy implies status == 3, anyway if status is not 3, cache() will be ignored. If cached, it wil return cached result for 60 seconds.
 
+*New in version 0.15.28*
+
+If you getwait with reraise argument, code can be simple.
+
+.. code:: python
+
+  s = was.rpc.lb ("@mysearch/rpc2")
+  s.getwait (2, reraise = True)
+  content = s.getswait (2).data
+  s.cache (60)
+
+Please remember cache () method is both available request and result objects.
+
+
 For expiring cached result by updating new data:
 
 *New in version 0.14.9*
@@ -721,7 +735,7 @@ Usage
     result = s.getwait (2)
     
     for row in result.data:
-     row.city, row.t_high, row.t_low  
+      row.city, row.t_high, row.t_low
 
 
 *New in version 0.15.15*
@@ -841,6 +855,20 @@ Same as HTTP/RPC, every results returned by getwait(), getswait() can cache.
   result.cache (60)
   
 If result or one of results has status != 3, cache() will be ignored.
+
+*New in version 0.15.28*
+
+If you getwait with reraise argument, code can be simple.
+
+.. code:: python
+
+  s = was.db ("@mydb")
+  s.getwait (2, reraise = True)
+  for row in s.getswait (2).data:
+    ...
+  s.cache (60)
+
+Please remember cache () method is both available DB query request and result objects.
 
 For expiring cached result by updating new data:
 

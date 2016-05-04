@@ -262,11 +262,17 @@ class ClusterDistCall:
 			
 	def _cancel (self):
 		self._canceled = 1
-		
+	
+	def cache (self, timeout = 300):
+		if self._cached_result is None:
+			raise ValueError("call getwait, getswait first")
+		self._cached_result.cache (timeout)	
+			
 	def wait (self, timeout = 3, reraise = True):		
 		#for rs in self.getswait (timeout):
 		#	rs.reraise ()
 		self.getswait (timeout, reraise)
+		self._cached_result = None
 		
 	def getwait (self, timeout = 3, reraise = False):
 		if self._cached_result is not None:
@@ -275,10 +281,10 @@ class ClusterDistCall:
 		self._wait (timeout)
 		if len (self._results) > 1:
 			raise ValueError("Multiple Results, Use getswait")
-		rs = self._results [0].get_result ()
+		self._cached_result = self._results [0].get_result ()
 		if reraise:
-			rs.reraise ()
-		return rs
+			self._cached_result.reraise ()
+		return self._cached_result
 	
 	def getswait (self, timeout = 3, reraise = False):
 		if self._cached_result is not None:
@@ -287,8 +293,9 @@ class ClusterDistCall:
 		self._wait (timeout)
 		rss = [rs.get_result () for rs in self._results]
 		if reraise:
-			[rs.reraise () for rs in rss]			
-		return Results (rss, ident = self.get_ident ())
+			[rs.reraise () for rs in rss]
+		self._cached_result = Results (rss, ident = self.get_ident ())
+		return self._cached_result
 	
 	def _collect_result (self):
 		for rs, asyncon in list(self._requests.items ()):

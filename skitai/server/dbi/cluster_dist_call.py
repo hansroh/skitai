@@ -158,6 +158,8 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		self._executed = False
 		self._numnodes = 0
 		
+		self._sent_result = None
+		
 		if self._cluster:
 			nodes = self._cluster.get_nodes ()
 			self._numnodes = len (nodes)
