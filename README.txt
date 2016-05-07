@@ -56,6 +56,8 @@ app.jinja_overlay ("%", "#", "{%", "}") changes jinja environment,
 - line_comment_prefix = from None to %%
 - block_start_string = unchange, keep {%
 - block_end_string = from %} to }
+- trim_blocks = from False to True
+- lstrip_blocks = from False to True
 
 Important note for escaping charcter '#', use '##', but this is only valid when variable_start_string and variable_end_string are same. Also escaping '%' which appears at first of line excluding space/tab:
 
@@ -679,8 +681,7 @@ If you getwait with reraise argument, code can be simple.
 .. code:: python
 
   s = was.rpc.lb ("@mysearch/rpc2")
-  s.getwait (2, reraise = True)
-  content = s.getswait (2).data
+  content = s.getswait (2, reraise = True).data
   s.cache (60)
 
 Please remember cache () method is both available request and result objects.
@@ -863,8 +864,7 @@ If you getwait with reraise argument, code can be simple.
 .. code:: python
 
   s = was.db ("@mydb")
-  s.getwait (2, reraise = True)
-  for row in s.getswait (2).data:
+  for row in s.getswait (2, reraise = True).data:
     ...
   s.cache (60)
 
@@ -1403,6 +1403,22 @@ At template, you can use all 'was' objects anywhere defautly. Especially, Url/Fo
   
   <a href="{{ was.ab ('checkout', choice) }}">Proceed</a>
 
+Also 'was.g' is can be useful in case threr're lots of render parameters.
+
+.. code:: python
+
+  was.g.product = "Apple"
+  was.g.howmany = 10
+  
+  return was.render ("index.html")
+
+And at jinja2 template, 
+  
+.. code:: html
+  
+  {% set g = was.g }} {# make shortcut #}
+  Checkout for {{ g.howmany }} {{ g.product }}{{g.howmany > 1 and "s" or ""}}
+  
 
 If you want modify Jinja2 envrionment, can through was.app.jinja_env object.
 
@@ -1727,8 +1743,7 @@ WWW-Authenticate
 *Changed in version 0.15.21*
 
   - removed app.user and app.password
-  - add app.users object has password = get(user) methods like dictionary
-
+  - add app.users object has get(username) methods like dictionary  
 
 Saddle provide simple authenticate for administration or perform access control from other system's call.
 
@@ -1738,11 +1753,35 @@ Saddle provide simple authenticate for administration or perform access control 
   
   app.authorization = "digest"
   app.realm = "Partner App Area of mysite.com"
-  app.users = {"app": "iamyourpartnerapp"}
+  app.users = {"app": ("iamyourpartnerapp", 0, {'role': 'root'})}
 	
   @app.route ("/hello/<name>")
   def hello (was, name = "Hans Roh"):
     return "Hello, %s" % name
+
+The return of app.users.get (username) can be:
+
+  - (str password, boolean encrypted, obj userinfo)
+  - (str password, boolean encrypted)
+  - str password
+
+If you use encrypted password, you should use digest authorization and password should encrypt by this way:
+
+.. code:: python
+  
+  from hashlib import md5
+  
+  encrypted_password = md5 (
+  	("%s:%s:%s" % (username, realm, password)).encode ("utf8")
+  ).hexdigest ()
+
+		
+If authorization is successful, app can access username and userinfo vi was.request.user.
+
+  - was.request.user.name
+  - was.request.user.realm
+  - was.request.user.info
+  
 
 If your server run with SSL, you can use app.authorization = "basic", otherwise recommend using "digest" for your password safety.
 

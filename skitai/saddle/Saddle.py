@@ -70,6 +70,8 @@ class Saddle (part.Part):
 		  block_end_string = block_end_string,
 		  block_start_string = block_start_string,
 		  line_comment_prefix=line_statement * 2,
+		  trim_blocks = True,
+			lstrip_blocks = True,
 		  **karg
 		)
 				
@@ -96,13 +98,13 @@ class Saddle (part.Part):
 	def get_password (self, user):
 		info = self.users.get (user)
 		if not info:
-			return None, 0
+			return None, 0 # passwrod, encrypted
 		return type (info) is str and (info, 0) or info [:2]
 	
 	def get_info (self, user):
 		info = self.users.get (user)
 		if not info: return None
-		return type (info) is not str and info [1:] or None
+		return (type (info) is not str and len (info) == 3) and info [-1] or None
 				
 	def authorize (self, auth, method, uri):
 		if self.realm is None or not self.users:
