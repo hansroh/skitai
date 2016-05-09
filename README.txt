@@ -5,95 +5,83 @@
 Changes
 =========
 
-*Changed in version 0.15.24*
+*Changed in version 0.15.30*
 
-  - add reraise arg to cdc.getwait (timeout = 5, reraise = False)
-  - also applied to getswiat and wait
-  
-  
-*Changed in version 0.15.21*
-
-  - removed app.user and app.password
-  - add app.users object has password = obj.get(user) method like dictionary
-
-*New in version 0.15.16*
-
-Added new app.jinja_overlay () for easy calling app.jinja_env.overlay ().
+'was.cookie.set()' method prototype has been changed.
 
 .. code:: python
 
-  app = Saddle (__name__)
-  app.debug = True
-  app.use_reloader = True
-  app.jinja_overlay (
-  	line_statement = "%", 
-  	variable_string = "#", 
-  	block_start_string = "{%", 
-  	block_end_string = "}"
+  was.cookie.set (
+    key, val, 
+    expires = None, 
+    path = None, domain = None, 
+    secure = False, http_only = False
+  ) 
+
+'expires' args is seconds to expire. 
+
+ - if None, this cookie valid until browser closed
+ - if 0 or 'now', expired immediately
+ - if 'never', expire date will be set to a hundred years from now
+
+If 'secure' and 'http_only' options are set to True, 'Secure' and 'HttpOnly' parameters will be added to Set-Cookie header.
+
+If 'path' is None, every app's cookie path will be defaultly set to their mount point.
+
+For example, your admin app is mounted on "/admin" in configuration file like this:
+
+.. code:: bash
+
+  [routes:line]
+    
+  /admin = /var/wsgi/admin:app  
+
+If you don't specify cookie path when set, cookie path will be automatically set to '/admin'. So you want to access from another apps, cookie should be set with upper path = '/'.
+
+.. code:: python
+  
+  was.cookie.set ('private_cookie', val)
+        
+  was.cookie.set ('public_cookie', val, path = '/')
+  
+
+*New in version 0.15.30*
+
+Named Session & Messaging Box
+------------------------------
+
+You can create multiple named session and mbox objects by mount() methods.
+
+.. code:: python
+
+  was.session.mount (
+    name = None, securekey = None, 
+    path = None, domain = None, secure = False, http_only = False, 
+    session_timeout = None
+   )
+  
+  was.mbox.mount (
+    name = None, securekey = None, 
+    path = None, domain = None, secure = False, http_only = False
   )
 
-Original Jinja2 form is:
 
-.. code:: html
-  
-  {% extends "layout.htm" %}  
-  {% block title %}Dash Board{% endblock %}
-  
-  {% for group in stat|groupby ('nation') %}
-    <h1>{% block sectionname %}Population of {{group.grouper}}{% endblock %}</h1>
-    {% for row in group.list  %}
-      <h2>{{row.state}}</h1>
-      <a href="{{ was.ab ('bp_state', row.nation, loop.index)}}">{{row.population}}</a>
-      <a href="#" onclick="javascript: create_map ('{{row.state}}');">Map</a>
-    {% endfor %}
-  {% endfor %}
+for example, your app need isolated session or mbox seperated default session for any reasons, can create session named 'ADM' and if this session or mbox is valid at only /admin URL.
 
-app.jinja_overlay ("%", "#", "{%", "}") changes jinja environment,
+.. code:: python
 
-- variable_start_string = from {{ to #
-- variable_end_string = from }} to #
-- line_statement_prefix = from None to %
-- line_comment_prefix = from None to %%
-- block_start_string = unchange, keep {%
-- block_end_string = from %} to }
-- trim_blocks = from False to True
-- lstrip_blocks = from False to True
+  @app.route("/")
+  def index (was):	 
+    was.session.mount ("ADM", SECUREKEY_STRING, path = '/admin')
+    was.session.set ("admin_login", True)
 
-Important note for escaping charcter '#', use '##', but this is only valid when variable_start_string and variable_end_string are same. Also escaping '%' which appears at first of line excluding space/tab:
+    was.mbox.mount ("ADM", SECUREKEY_STRING, path = '/admin')
+    was.mbox.send ("10 data has been deleted", 'warning')
 
-.. code:: html
+SECUREKEY_STRING needn't same with app.securekey. And path, domain, secure, http_only args is for session cookie, you can mount any named sessions or mboxes with upper cookie path and upper cookie domain.
+    
+Also note was.session.mount (None, SECUREKEY_STRING) is exactly same as default session, but in this case SECUREKEY_STRING should be same as app.securekey.
 
-  % raw:
-    %HOME%/bin
-    <a href="#" onclick="javascript: create_map ();">Map</a>
-  % endraw
-
-As a result, template can be written:
-
-.. code:: html
-
-  % extends "layout.htm"
-  % block title:
-    Dash Board
-  % endblock  
-  
-  % for group in stat|groupby ('nation'):
-    <h1>{% block sectionname }Population of #group.grouper#{% endblock }</h1>
-    % for row in group.list:
-      <h2>#row.state#</h1>
-      <a href="#was.ab ('state_view', row.nation, loop.index)#">#row.population#</a>
-      <a href="##" onclick="javascript: create_map ('#row.state#');">Map</a>
-    % endfor
-  % endfor
-
-If you like this style, just call 'app.jinja_overlay ()'. In my case, above template is more easy to read/write if applying proper syntax highlighting to text editor.
-
-For more detail, `Jinja2 Line Statements and Escape`_.
-
-*Warning*: Current Jinja2 2.8 dose not support double escaping (##) and 'raw' line_statement but it will be applied to runtime patch by Saddle. So if you use app.jinja_overlay, you have compatible problems with official Jinja2.
-
-
-.. _`Jinja2 Line Statements and Escape`: http://jinja.pocoo.org/docs/dev/templates/#line-statements
 
 
 Introduce
@@ -526,8 +514,12 @@ Avaliable methods are:
 - was.upload (url, data, auth, headers, use_cache) # For clarity to multipart POST
 
 Above methods return ClusterDistCall (cdc) class.
+
+*Changed in version 0.15.24* 
+
+add reraise arg to cdc.getwait (timeout = 5, reraise = False) 
  
-- cdc.getwait (timeout = 5, reraise = False) : return result with status, if reraise is True, raise immediately when error occured
+- cdc.getwait (timeout = 5, reraise = False) : return result with status, if reraise is True, raise immediately when error occured    
 - cdc.getswait (timeout = 5, reraise = False) : getting multiple results
 - cdc.wait (timeout = 5, reraise = True) : no return result just wait until query finished.maybe useful for executing create, update and delete queury
 - cdc.cache (timeout)
@@ -538,6 +530,7 @@ Above methods return ClusterDistCall (cdc) class.
   - 1: Operation Timeout
   - 2: Exception Occured
   - 3: Normal
+
 
 **Load-Balancing**
 
@@ -1430,9 +1423,145 @@ If you want modify Jinja2 envrionment, can through was.app.jinja_env object.
   was.app.jinja_env.globals['form_token'] = generate_form_token
 
 
+*New in version 0.15.16*
 
+Added new app.jinja_overlay () for easy calling app.jinja_env.overlay ().
+
+.. code:: python
+
+  app = Saddle (__name__)
+  app.debug = True
+  app.use_reloader = True
+  app.jinja_overlay (
+  	line_statement = "%", 
+  	variable_string = "#", 
+  	block_start_string = "{%", 
+  	block_end_string = "}"
+  )
+
+Original Jinja2 form is:
+
+.. code:: html
+  
+  {% extends "layout.htm" %}  
+  {% block title %}Dash Board{% endblock %}
+  
+  {% for group in stat|groupby ('nation') %}
+    <h1>{% block sectionname %}Population of {{group.grouper}}{% endblock %}</h1>
+    {% for row in group.list  %}
+      <h2>{{row.state}}</h1>
+      <a href="{{ was.ab ('bp_state', row.nation, loop.index)}}">{{row.population}}</a>
+      <a href="#" onclick="javascript: create_map ('{{row.state}}');">Map</a>
+    {% endfor %}
+  {% endfor %}
+
+app.jinja_overlay ("%", "#", "{%", "}") changes jinja environment,
+
+- variable_start_string = from {{ to #
+- variable_end_string = from }} to #
+- line_statement_prefix = from None to %
+- line_comment_prefix = from None to %%
+- block_start_string = unchange, keep {%
+- block_end_string = from %} to }
+- trim_blocks = from False to True
+- lstrip_blocks = from False to True
+
+Important note for escaping charcter '#', use '##', but this is only valid when variable_start_string and variable_end_string are same. Also escaping '%' which appears at first of line excluding space/tab:
+
+.. code:: html
+
+  % raw:
+    %HOME%/bin
+    <a href="#" onclick="javascript: create_map ();">Map</a>
+  % endraw
+
+As a result, template can be written:
+
+.. code:: html
+
+  % extends "layout.htm"
+  % block title:
+    Dash Board
+  % endblock  
+  
+  % for group in stat|groupby ('nation'):
+    <h1>{% block sectionname }Population of #group.grouper#{% endblock }</h1>
+    % for row in group.list:
+      <h2>#row.state#</h1>
+      <a href="#was.ab ('state_view', row.nation, loop.index)#">#row.population#</a>
+      <a href="##" onclick="javascript: create_map ('#row.state#');">Map</a>
+    % endfor
+  % endfor
+
+If you like this style, just call 'app.jinja_overlay ()'. In my case, above template is more easy to read/write if applying proper syntax highlighting to text editor.
+
+For more detail, `Jinja2 Line Statements and Escape`_.
+
+*Warning*: Current Jinja2 2.8 dose not support double escaping (##) and 'raw' line_statement but it will be applied to runtime patch by Saddle. So if you use app.jinja_overlay, you have compatible problems with official Jinja2.
+
+
+.. _`Jinja2 Line Statements and Escape`: http://jinja.pocoo.org/docs/dev/templates/#line-statements
 .. _Jinja2: http://jinja.pocoo.org/
 
+
+Access Cookie
+----------------
+
+was.cookie has almost dictionary methods.
+
+.. code:: python
+
+  if "user_id" not in was.cookie:
+  	was.cookie.set ("user_id", "hansroh")  	
+  	# or  	
+  	was.cookie ["user_id"] = "hansroh"
+  	
+- was.cookie.set (key, val, expires = None, path = None, domain = None, secure = False, http_only = False)
+- was.cookie.remove (key, path, domain)
+- was.cookie.clear (path, domain)
+- was.cookie.keys ()
+- was.cookie.values ()
+- was.cookie.items ()
+- was.cookie.has_key ()
+- was.cookie.iterkyes ()
+- was.cookie.itervalues ()
+- was.cookie.iteritems ()
+
+
+Access Session
+----------------
+
+was.session has almost dictionary methods.
+
+To enable session for app, random string formatted securekey should be set for encrypt/decrypt session values.
+
+*WARN*: `securekey` should be same on all skitai apps at least within a virtual hosing group, Otherwise it will be serious disaster.
+
+.. code:: python
+
+  app.securekey = "ds8fdsflksdjf9879dsf;?<>Asda"
+  app.session_timeout = 1200 # sec
+  
+  @app.route ("/session")
+  def hello_world (was, **form):  
+    if "login" not in was.session:
+      was.session.set ("user_id", form.get ("hansroh"))
+      # or
+      was.session ["user_id"] = form.get ("hansroh")
+
+- was.session.source_verified (): If current IP address matches with last IP accesss session
+- was.session.set (key, val)
+- was.session.get (key, default = None)
+- was.session.getv (key, default = None): If not source_verified (), return default
+- was.session.remove (key)
+- was.session.clear ()
+- was.session.kyes ()
+- was.session.values ()
+- was.session.items ()
+- was.session.has_key ()
+- was.session.iterkyes ()
+- was.session.itervalues ()
+- was.session.iteritems ()
 
 
 Messaging Box
@@ -1500,64 +1629,7 @@ news.htm like this:
 - was.mbox.search (key, val): find in extra_dict. if val is not given or given None, compare with category name. return [message_id, ...]
 - was.mbox.remove (message_id)
 
-Access Cookie
-----------------
 
-was.cookie has almost dictionary methods.
-
-.. code:: python
-
-  if "user_id" not in was.cookie:
-  	was.cookie.set ("user_id", "hansroh")  	
-  	# or  	
-  	was.cookie ["user_id"] = "hansroh"
-  	
-- was.cookie.set (key, val)
-- was.cookie.get (key, default = None)
-- was.cookie.remove (key)
-- was.cookie.clear ()
-- was.cookie.kyes ()
-- was.cookie.values ()
-- was.cookie.items ()
-- was.cookie.has_key ()
-- was.cookie.iterkyes ()
-- was.cookie.itervalues ()
-- was.cookie.iteritems ()
-
-Access Session
-----------------
-
-was.session has almost dictionary methods.
-
-To enable session for app, random string formatted securekey should be set for encrypt/decrypt session values.
-
-*WARN*: `securekey` should be same on all skitai apps at least within a virtual hosing group, Otherwise it will be serious disaster.
-
-.. code:: python
-
-  app.securekey = "ds8fdsflksdjf9879dsf;?<>Asda"
-  app.session_timeout = 1200 # sec
-  
-  @app.route ("/session")
-  def hello_world (was, **form):  
-    if "login" not in was.session:
-      was.session.set ("user_id", form.get ("hansroh"))
-      # or
-      was.session ["user_id"] = form.get ("hansroh")
-
-- was.session.source_verified (): If current IP address matches with last IP accesss session
-- was.session.set (key, val)
-- was.session.get (key, default = None)
-- was.session.getv (key, default = None): If not source_verified (), return default
-- was.session.remove (key)
-- was.session.clear ()
-- was.session.kyes ()
-- was.session.values ()
-- was.session.items ()
-- was.session.has_key ()
-- was.session.iterkyes ()
-- was.session.itervalues ()
-- was.session.iteritems ()
 
 File Upload
 ---------------

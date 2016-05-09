@@ -12,7 +12,7 @@ except ImportError:
 import base64
 import pickle
 from hmac import new as hmac
-from . import secured_cookie_value
+from . import named_session
 
 def crack_cookie (r):
 	if not r: return {}
@@ -21,10 +21,10 @@ def crack_cookie (r):
 	for k in q:
 		key = unquote_plus (k [0])
 		if len (k) == 2:			
-			if key not in ("SESSION", "NOTIS"):
+			if not key.startswith ("SESSION") and not key.startswith ("NOTIS"):
 				arg[key] = unquote_plus (k[1])
 			else:
-				arg[key] = k[1]	
+				arg[key] = k[1]
 		else:
 			arg[key] = ""
 	return arg
@@ -32,17 +32,19 @@ def crack_cookie (r):
 
 class Cookie:
 	ACENTURY = 3153600000
-	def __init__ (self, request, secret_key = None, session_timeout = 1200):
+	def __init__ (self, request, securekey = None, default_path = None, session_timeout = 1200):
 		self.request = request		
-		self.secret_key = secret_key
-		if secret_key:
-			self.secret_key = secret_key.encode ("utf8")
+		self.securekey = securekey
+		if securekey:
+			self.securekey = securekey.encode ("utf8")
+		self.default_path = default_path
 		self.session_timeout = session_timeout
 		self.dirty = False		
 		self.data = {}
+		self.config = None
 		self.uncommits = {}
-		self.session_cookie = None
-		self.notices_cookie = None
+		self.session_cookie = {}
+		self.notices_cookie = {}
 		self._parse ()
 	
 	def __setitem__ (self, k, v):
@@ -81,34 +83,34 @@ class Cookie:
 	def get (self, k, a = None):
 		return self.data.get (k, a)
 	
-	def remove (self, k):
+	def remove (self, k, path = None, domain = None):
 		try:
 			del self.data [k]
 		except KeyError:
 			pass
 		else:		
-			self.set (k, expires = 0)
+			self.set (k, "", 0, path, domain)
 		
-	def clear (self):
+	def clear (self, path = None, domain = None):
 		for k, v in list(self.data.items ()):			
-			if k in ("SESSION", "NOTIS"): 
-				continue
-			self.set (k, expires = 0)
-		self.data = {}	
-			
+			if k.startswith ("SESSION") or k.startswith ("NOTIS"):
+				continue							
+			self.set (k, "", 0, path, domain)
+		self.data = {}
+
 	@classmethod
-	def set_secret_key (cls, secret_key):	
-		cls.secret_key = secret_key.encode ("utf8")
+	def set_securekey (cls, securekey):	
+		cls.securekey = securekey.encode ("utf8")
 		
 	def _parse (self):
-		cookie = crack_cookie (self.request.get_header ("cookie"))			
+		cookie = crack_cookie (self.request.get_header ("cookie"))
 		for k, v in list(cookie.items ()):
-			if k == "SESSION":
-				self.session_cookie = v
+			if k.startswith ("SESSION"):
+				self.session_cookie [k [7:]] = v					
 				continue
-			if k == "NOTIS":
-				self.notices_cookie = v
-				continue	
+			elif k.startswith ("NOTIS"):
+				self.notices_cookie [k [5:]] = v
+				continue
 			self.data [k] = v
 	
 	def rollback (self):
@@ -120,22 +122,25 @@ class Cookie:
 		for cs in list(self.uncommits.values ()):
 			self.request.response ["Set-Cookie"] = cs		
 		self.dirty = False
-			
-	def set (self, name, val = "", expires = None, path = "/", domain = None):
+		
+	def set (self, name, val = "", expires = None, path = None, domain = None, secure = False, http_only = False):		
 		self.dirty = True
+		if path is None:
+			path = self.default_path
+		
 		# browser string cookie
 		cl = []
 		if expires is not None:
 			if expires == "never":
 				expires = self.ACENTURY
 			elif expires == "now":
-				expires = 0		
+				expires = 0
 
 		if expires == 0:
 			cl = ["%s=%s" % (name, "")]
 			cl.append ("path=%s" % path)
 		else:
-			if name in ("SESSION", "NOTIS"):
+			if name.startswith ("SESSION") or name.startswith ("NOTIS"):
 				cl.append ("%s=%s" % (name, val))
 			else:
 				cl.append ("%s=%s" % (quote_plus (name), quote_plus (val)))
@@ -147,33 +152,25 @@ class Cookie:
 		if domain:
 			cl.append ("domain=%s" % domain)			
 		
+		if secure:
+			cl.append ("Secure")			
+		
+		if http_only:
+			cl.append ("HttpOnly")
+			
 		self.uncommits [name] = "; ".join (cl)
 		
 		# cookie data
 		if expires == 0:
 			try: del self.data [name]
 			except KeyError: pass										
-		elif name not in ("SESSION", "NOTIS"):
+		elif not name.startswith ("SESSION") and not name.startswith ("NOTIS"):
 			self.data [name] = val
 		
-	def get_session (self, create = True):
-		if self.secret_key:
-			if self.session_cookie:
-				sc = secured_cookie_value.Session.unserialize (self.request, self.session_cookie.encode ("utf8"), self.secret_key, self.set, self.session_timeout)
-				self.session_cookie = None
-				return sc
-			elif create:
-				return secured_cookie_value.Session (self.request, None, self.secret_key, self.set, True, self.session_timeout)
-		return None
-	
-	def get_notices (self, create = True):
-		if self.secret_key:
-			if self.notices_cookie:
-				sc = secured_cookie_value.MessageBox.unserialize (self.request, self.notices_cookie.encode ("utf8"), self.secret_key, self.set)
-				self.notices_cookie = None
-				return sc
-			elif create:
-				return secured_cookie_value.MessageBox (self.request, None, self.secret_key, self.set, True)
-		return None
+	def get_session (self):	
+		return named_session.NamedSession ("session", self.session_cookie, self.request, self.securekey, self.set, self.session_timeout)	
+		
+	def get_notices (self):
+		return named_session.NamedSession ("mbox", self.notices_cookie, self.request, self.securekey, self.set, self.session_timeout)
 		
 

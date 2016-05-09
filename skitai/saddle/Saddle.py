@@ -221,20 +221,22 @@ class Saddle (part.Part):
 		self.start (wasc, route, self.packages)
 	
 	def create_on_demand (self, was, name):
-		class G: pass
+		class G: 
+			pass
+		
 		# create just in time objects
-		if name == "cookie":			
-			return cookie.Cookie (was.request, self.securekey, self.session_timeout)
+		if name == "cookie":
+			return cookie.Cookie (was.request, self.securekey, self.route [:-1], self.session_timeout)
 			
-		if name in ("session", "mbox"):			
+		elif name in ("session", "mbox"):
 			if not was.in__dict__ ("cookie"):
-				was.cookie = cookie.Cookie (was.request, self.securekey, self.session_timeout)			
+				was.cookie = cookie.Cookie (was.request, self.securekey, self.route [:-1], self.session_timeout)			
 			if name == "session":
-				return was.cookie.get_session ()					
+				return was.cookie.get_session ()
 			if name == "mbox":
-				return was.cookie.get_notices ()		
+				return was.cookie.get_notices ()
 				
-		if name == "g":
+		elif name == "g":
 			return G ()
 		
 	def cleanup_on_demands (self, was):

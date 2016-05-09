@@ -33,7 +33,8 @@ class SecuredValue:
 	quote_base64 = True
 	KEY = "SECURED"	
 	
-	def __init__ (self, request, data, secret_key, setfunc, new = True):
+	def __init__ (self, name, request, data, secret_key, setfunc, new = True):
+		self.name = name
 		self.request = request
 		if new:
 			self.set_default_data ()
@@ -43,10 +44,20 @@ class SecuredValue:
 		self.setfunc = setfunc
 		self.new = new
 		self.dirty = False
+		self.__config = None		
+		self.__source_verified = False
+		if self.data:
+			self.validate ()
 		
 	def __contains__ (self, k):
 		return k in self.data
-		
+	
+	def validate (self):
+		pass
+	
+	def source_verified (self):
+		return self.__source_verified
+			
 	def set_default_data (self):
 		self.dirty = False
 		self.data = None
@@ -59,13 +70,20 @@ class SecuredValue:
 	
 	def rollback (self):
 		self.dirty = False
-			
-	def commit (self, expires = None, path = "/", domain = None):
-		if not self.dirty:
-			return
-		expires = self.recal_expires (expires)
-		self.setfunc (self.KEY, self.serialize (), expires, path, domain)
+	
+	def config (self, path = None, domain = None, secure = False, http_only = False):
+		self.__config = (path, domain, secure, http_only)
+	
+	def set_cookie (self, expires):
+		if self.__config:
+			self.setfunc (self.KEY + self.name, self.serialize (), expires, *self.__config)
+		else:
+			self.setfunc (self.KEY + self.name, self.serialize (), expires)
 		self.dirty = False
+		
+	def commit (self, expires = None):
+		if not self.dirty: return
+		self.set_cookie (self.recal_expires (expires))
 		
 	@classmethod
 	def quote (cls, value):		
@@ -154,43 +172,44 @@ class SecuredDictValue (SecuredValue):
 		return (base64.b64encode(mac.digest()).strip() + b"?" + b'&'.join(result)).decode ("utf8")
 	
 	@classmethod
-	def unserialize(cls, request, string, secret_key, setfunc, *args, **kargs):
+	def unserialize(cls, name, request, string, secret_key, setfunc, *args, **kargs):
 		items = {}
 		try:
 			base64_hash, data = string.split(b'?', 1)
 		except:
-			base64_hash, data, items = b"", b"", None
-		
-		mac = hmac(secret_key, None, cls.hash_method)
-		for item in data.split(b'&'):
-			mac.update(b'|' + item)
-			if not b'=' in item:
-				items = None
-				break
-			key, value = item.split(b'=', 1)
-			# try to make the key a string
-			try:
-				key = unquote_plus (key.decode ("utf8"))
-			except UnicodeError:
-				pass
-			items[key] = value
-		
-		try:
-			client_hash = base64.b64decode(base64_hash)
-		except Exception:
-			items = client_hash = None
-		
-		if items is not None and client_hash == mac.digest():
-			try:
-				for key, value in items.items():					
-					items[key] = cls.unquote(value)
-			except UnquoteError:
-				items = {}
-								
+			base64_hash, data, items = b"", b"", {}
 		else:
-			items = {}
+			mac = hmac(secret_key, None, cls.hash_method)
+			for item in data.split(b'&'):
+				mac.update(b'|' + item)
+				if not b'=' in item:
+					items = None
+					break
+				key, value = item.split(b'=', 1)
+				# try to make the key a string
+				try:
+					key = unquote_plus (key.decode ("utf8"))
+				except UnicodeError:
+					pass
+				items[key] = value
+			
+			try:
+				client_hash = base64.b64decode(base64_hash)
+			except Exception:
+				items = client_hash = None
+			
+			if items is not None and client_hash == mac.digest():
+				try:
+					for key, value in items.items():
+						items[key] = cls.unquote(value)
+				except UnquoteError:
+					items = {}
+									
+			else:
+				items = {}
 						
-		return cls (request, items, secret_key, setfunc, False, *args, **kargs)		
+		return cls (name, request, items, secret_key, setfunc, False, *args, **kargs)		
+
 
 class SecuredListValue (SecuredValue):
 	KEY = "SECURELIST"	
@@ -204,43 +223,43 @@ class SecuredListValue (SecuredValue):
 			raise RuntimeError('no secret key defined')
 								
 		result = []
-		mac = hmac(self.secret_key, None, self.hash_method)
+		mac = hmac(self.secret_key, None, self.hash_method)		
 		for value in sorted (self.data):
 			result.append (self.quote (value))
 			mac.update(b'|' + result[-1])
 		return (base64.b64encode(mac.digest()).strip() + b"?" + b'&'.join(result)).decode ("utf8")
 	
 	@classmethod
-	def unserialize(cls, request, string, secret_key, setfunc, *args, **kargs):
+	def unserialize(cls, name, request, string, secret_key, setfunc, *args, **kargs):
 		items = []
 		try:
 			base64_hash, data = string.split(b'?', 1)
 		except:
-			base64_hash, data, items = b"", b"", None
-		
-		mac = hmac(secret_key, None, cls.hash_method)
-		for item in data.split(b'&'):
-			mac.update(b'|' + item)
-			items.append (cls.unquote (item))
-		
-		try:
-			client_hash = base64.b64decode(base64_hash)
-		except Exception:
-			items = client_hash = None
-					
-		return cls (request, items, secret_key, setfunc, False, *args, **kargs)
+			base64_hash, data, items = b"", b"", []			
+		else:
+			try:
+				client_hash = base64.b64decode(base64_hash)
+			except Exception:
+				items = client_hash = None
+				
+			mac = hmac(secret_key, None, cls.hash_method)
+			for item in data.split(b'&'):
+				mac.update(b'|' + item)
+				items.append (cls.unquote (item))
+			
+			if client_hash != mac.digest():
+				items = []
+				
+		return cls (name, request, items, secret_key, setfunc, False, *args, **kargs)
 				
 			
 class Session (SecuredDictValue):
 	default_session_timeout = 1200 # 20 min.	
 	KEY = "SESSION"	
 	
-	def __init__ (self, request, data, secret_key, setfunc, new = True, session_timeout = 0):
-		SecuredValue.__init__ (self, request, data, secret_key, setfunc, new)
+	def __init__ (self, name, request, data, secret_key, setfunc, new = True, session_timeout = 0):
 		self.session_timeout = session_timeout and session_timeout or self.default_session_timeout
-		self.__source_verified = False
-		if self.data:
-			self.validate ()
+		SecuredValue.__init__ (self, name, request, data, secret_key, setfunc, new)
 		
 	def validate (self):	
 		if not '_expires' in self.data:
@@ -265,9 +284,6 @@ class Session (SecuredDictValue):
 		if self.__source_verified:
 			return self.get (k, v)
 		return v	
-		
-	def source_verified (self):
-		return self.__source_verified
 				
 	def recal_expires (self, expires):
 		if expires is None:
@@ -278,26 +294,43 @@ class Session (SecuredDictValue):
 			raise ValueError("session must be specified expires seconds")
 		return int (expires)
 		
-	def commit (self, expires = None, path = "/", domain = None):
+	def commit (self, expires = None):
 		# always commit for extending/expiring expires
 		expires = self.recal_expires (expires)
 		self ["_expires"] = (time.time () + expires, self.request.get_remote_addr ())
 		if len (self.data) == 1: # only have _expires, expire now
 			expires = 0
-		self.setfunc (self.KEY, self.serialize (), expires, path, domain)
-		self.dirty = False
+		self.set_cookie (expires)
 		
 	def set_default_session_timeout (self, timeout):
 		self.default_session_timeout = timeout
-		
+
 		
 class MessageBox (SecuredListValue):
 	KEY = "NOTIS"
 	
-	def __init__ (self, request, data, secret_key, setfunc, new = True):
-		SecuredValue.__init__ (self, request, data, secret_key, setfunc, new)
+	def __init__ (self, name, request, data, secret_key, setfunc, new = True):
+		SecuredValue.__init__ (self, name, request, data, secret_key, setfunc, new)
 		self.mid = -1
-		
+		if self.data:
+			self.validate ()
+	
+	def serialize (self):
+		self.data.append ((-1, time.time (), self.request.get_remote_addr ())) # add random string
+		return SecuredListValue.serialize (self)
+	
+	def validate (self):	
+		if not self.data:
+			self.data = []
+			return
+			
+		if self.data and self.data [0][0] != -1:
+			return
+			
+		validator, self.data = self.data [0], self.data [1:]
+		last_update, addr = validator [1:3]
+		self.__source_verified = (addr == self.request.get_remote_addr ())
+					
 	def send (self, msg, category = "info", valid = 0, **extra):
 		if self.data and self.mid == -1:
 			self.mid = max ([n [0] for n in self.data])		
@@ -326,7 +359,14 @@ class MessageBox (SecuredListValue):
 			elif notice [5].get (k) == v:
 				mids.append (notice [0])
 		return mids
-			
+	
+	def getv (self, k = None, v = None):
+		if not self.__source_verified:
+			self.data = []
+			self.dirty = True
+			return []
+		return self.get (k, v)	
+		
 	def get (self, k = None, v = None):
 		mids = []
 		if k:
@@ -362,4 +402,4 @@ class MessageBox (SecuredListValue):
 			return "never"
 		return 0
 	
-	
+
