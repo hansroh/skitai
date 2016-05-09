@@ -82,6 +82,15 @@ SECUREKEY_STRING needn't same with app.securekey. And path, domain, secure, http
     
 Also note was.session.mount (None, SECUREKEY_STRING) is exactly same as default session, but in this case SECUREKEY_STRING should be same as app.securekey.
 
+mount() is create named session or mbox if not exists, exists() is just check wheather exists named session already.
+
+.. code:: python
+
+  if not was.session.exists (None):
+    return "Your session maybe expired or signed out, please sign in again"
+      
+  if not was.session.exists ("ADM"):
+    return "Your admin session maybe expired or signed out, please sign in again"
 
 
 Introduce
