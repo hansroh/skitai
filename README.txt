@@ -78,9 +78,18 @@ for example, your app need isolated session or mbox seperated default session fo
     was.mbox.mount ("ADM", SECUREKEY_STRING, path = '/admin')
     was.mbox.send ("10 data has been deleted", 'warning')
 
-SECUREKEY_STRING needn't same with app.securekey. And path, domain, secure, http_only args is for session cookie, you can mount any named sessions or mboxes with upper cookie path and upper cookie domain.
+SECUREKEY_STRING needn't same with app.securekey. And path, domain, secure, http_only args is for session cookie, you can mount any named sessions or mboxes with upper cookie path and upper cookie domain. In other words, to share session or mbox with another apps, path should be closer to root (/).
+
+.. code:: python
+
+  @app.route("/")
+  def index (was):	 
+    was.session.mount ("ADM", SECUREKEY_STRING, path = '/')
+    was.session.set ("admin_login", True)
+
+Above 'ADM' sesion can be accessed by all mounted apps because path is '/'.
     
-Also note was.session.mount (None, SECUREKEY_STRING) is exactly same as default session, but in this case SECUREKEY_STRING should be same as app.securekey.
+Also note was.session.mount (None, SECUREKEY_STRING) is exactly same as mounting default session, but in this case SECUREKEY_STRING should be same as app.securekey.
 
 mount() is create named session or mbox if not exists, exists() is just check wheather exists named session already.
 
@@ -1558,9 +1567,9 @@ To enable session for app, random string formatted securekey should be set for e
       # or
       was.session ["user_id"] = form.get ("hansroh")
 
-- was.session.source_verified (): If current IP address matches with last IP accesss session
 - was.session.set (key, val)
 - was.session.get (key, default = None)
+- was.session.source_verified (): If current IP address matches with last IP accesss session
 - was.session.getv (key, default = None): If not source_verified (), return default
 - was.session.remove (key)
 - was.session.clear ()
@@ -1635,6 +1644,8 @@ news.htm like this:
 - was.mbox.get () return [(message_id, category, created_time, valid_seconds, msg, extra_dict)]
 - was.mbox.get (category) filtered by category
 - was.mbox.get (key, val) filtered by extra_dict
+- was.mbox.source_verified (): If current IP address matches with last IP accesss mbox
+- was.mbox.getv (...) return get () if source_verified ()
 - was.mbox.search (key, val): find in extra_dict. if val is not given or given None, compare with category name. return [message_id, ...]
 - was.mbox.remove (message_id)
 
