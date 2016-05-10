@@ -124,7 +124,7 @@ class Executor:
 			return			
 		if self.was.in__dict__ ("session"):		
 			self.was.session and self.was.session.commit ()
-		if self.was.in__dict__ ("mbox"):		
+		if self.was.in__dict__ ("mbox"):
 			self.was.mbox and self.was.mbox.commit ()
 		self.was.cookie.commit ()
 	

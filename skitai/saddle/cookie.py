@@ -30,100 +30,106 @@ def crack_cookie (r):
 	return arg
 
 
-class Cookie:
-	ACENTURY = 3153600000
-	def __init__ (self, request, securekey = None, default_path = None, session_timeout = 1200):
-		self.request = request		
-		self.securekey = securekey
-		if securekey:
-			self.securekey = securekey.encode ("utf8")
-		self.default_path = default_path
-		self.session_timeout = session_timeout
-		self.dirty = False		
-		self.data = {}
-		self.config = None
-		self.uncommits = {}
-		self.session_cookie = {}
-		self.notices_cookie = {}
-		self._parse ()
-	
+class BasicMethods:
 	def __setitem__ (self, k, v):
 		self.set (k, v)
 		
 	def __getitem__ (self, k):
-		return self.data [k]
+		return self.get (k)
 	
 	def __delitem__ (self, k):
 		return self.remove (k)
 	
 	def __contains__ (self, k):
+		self.data is None and self.__parse ()
 		return k in self.data
 	
 	def iterkeys (self):		
+		self.data is None and self.__parse ()
 		return self.data.iterkeys ()
 	
 	def itervalues (self):		
+		self.data is None and self.__parse ()
 		return self.data.itervalues ()	
 	
 	def iteritems (self):		
+		self.data is None and self.__parse ()
 		return self.data.iteritems ()	
 		
 	def has_key (self, k):
+		self.data is None and self.__parse ()
 		return k in self.data
 	
 	def items (self):
+		self.data is None and self.__parse ()
 		return list(self.data.items ())
 	
 	def keys (self):
+		self.data is None and self.__parse ()
 		return list(self.data.keys ())	
 	
 	def values (self):
+		self.data is None and self.__parse ()
 		return list(self.data.values ())	
 		
+
+class Cookie (BasicMethods):
+	ACENTURY = 3153600000
+	
+	def __init__ (self, request, securekey = None, default_path = None, session_timeout = 1200):
+		self.request = request		
+		if securekey:
+			self.securekey = securekey.encode ("utf8")
+		else:
+			self.securekey = securekey				
+		self.default_path = default_path
+		self.session_timeout = session_timeout
+		self.dirty = False		
+		self.data = None
+		self.uncommits = {}
+		self.sessions = {}		
+	
+	def __parse (self):
+		self.data = {}	
+		cookie = crack_cookie (self.request.get_header ("cookie"))
+		for k, v in list(cookie.items ()):
+			if k.startswith ("SESSION") or k.startswith ("NOTIS"):
+				self.sessions [k] = v					
+				continue			
+			self.data [k] = v
+		
 	def get (self, k, a = None):
+		self.data is None and self.__parse ()
 		return self.data.get (k, a)
 	
 	def remove (self, k, path = None, domain = None):
+		self.data is None and self.__parse ()
 		try:
 			del self.data [k]
 		except KeyError:
 			pass
 		else:		
 			self.set (k, "", 0, path, domain)
-		
+	
 	def clear (self, path = None, domain = None):
+		self.data is None and self.__parse ()
 		for k, v in list(self.data.items ()):			
-			if k.startswith ("SESSION") or k.startswith ("NOTIS"):
-				continue							
 			self.set (k, "", 0, path, domain)
 		self.data = {}
-
-	@classmethod
-	def set_securekey (cls, securekey):	
-		cls.securekey = securekey.encode ("utf8")
-		
-	def _parse (self):
-		cookie = crack_cookie (self.request.get_header ("cookie"))
-		for k, v in list(cookie.items ()):
-			if k.startswith ("SESSION"):
-				self.session_cookie [k [7:]] = v					
-				continue
-			elif k.startswith ("NOTIS"):
-				self.notices_cookie [k [5:]] = v
-				continue
-			self.data [k] = v
 	
 	def rollback (self):
-		self.dirty = False
+		self.dirty = False		
 		
 	def commit (self):
-		if not self.dirty:
+		if self.data is None or not self.dirty:
 			return			
 		for cs in list(self.uncommits.values ()):
 			self.request.response ["Set-Cookie"] = cs		
 		self.dirty = False
 		
-	def set (self, name, val = "", expires = None, path = None, domain = None, secure = False, http_only = False):		
+	def set (self, name, val = "", expires = None, path = None, domain = None, secure = False, http_only = False):
+		self.data is None and self.__parse ()
+						
 		self.dirty = True
 		if path is None:
 			path = self.default_path
@@ -166,11 +172,15 @@ class Cookie:
 			except KeyError: pass										
 		elif not name.startswith ("SESSION") and not name.startswith ("NOTIS"):
 			self.data [name] = val
-		
-	def get_session (self):	
-		return named_session.NamedSession ("session", self.session_cookie, self.request, self.securekey, self.set, self.session_timeout)	
+	
+	def get_named_session_data (self, name):
+		self.data is None and self.__parse ()
+		return self.sessions.get (name)
+				
+	def get_session (self):
+		return named_session.NamedSession ("session", self, self.request, self.securekey, self.session_timeout)
 		
 	def get_notices (self):
-		return named_session.NamedSession ("mbox", self.notices_cookie, self.request, self.securekey, self.set, self.session_timeout)
+		return  named_session.NamedSession ("mbox", self, self.request, self.securekey, self.session_timeout)
 		
 

@@ -1,19 +1,18 @@
-from . import secured_cookie_value
+from . import mbox, session
 
 class NamedSession:
-	def __init__ (self, wclass, dataset, request, securekey, setfunc, timeout = 1200):
+	def __init__ (self, wclass, cookie, request, securekey, timeout = 1200):
 		self.__wclass = wclass
-		self.__dataset = dataset
+		self.__cookie = cookie
 		self.__obj = None
 		self.__request = request
-		self.__securekey = securekey
-		self.__setfunc = setfunc
+		self.__securekey = securekey		
 		self.__timeout = timeout
 	
 	def mount (self, name = None, securekey = None, path = None, domain = None, secure = False, http_only = False, session_timeout = None):		
 		if self.__obj:
 			self.__obj.commit ()
-		
+								
 		securekey, session_timeout = self.__get_config (securekey, session_timeout)
 		if not securekey:
 			raise AssertionError ("Secret key is not configuured")
@@ -26,13 +25,12 @@ class NamedSession:
 		else:
 			name = "_" + name.upper ()
 		
-		data = self.__dataset.get (name)
 		if self.__wclass == "session":
-			obj = self.__get_session (name, data, securekey, session_timeout)
+			obj = self.__get_session (name, securekey, session_timeout)
 		else:
 			if session_timeout:
 				raise AssertionError ("Cannot set timeout for mbox")
-			obj = self.__get_notices (name, data, securekey)
+			obj = self.__get_notices (name, securekey)
 			
 		obj.config (path, domain, secure, http_only)
 		self.__obj = obj
@@ -53,14 +51,10 @@ class NamedSession:
 		 session_timeout and session_timeout or self.__timeout
 		)
 		
-	def __get_session (self, name, data, securekey, session_timeout):			
-		if data:
-			return secured_cookie_value.Session.unserialize (name, self.__request, data.encode ("utf8"), securekey, self.__setfunc, session_timeout)			
-		return secured_cookie_value.Session (name, self.__request, None, securekey, self.__setfunc, True, session_timeout)
+	def __get_session (self, name, securekey, session_timeout):			
+		return session.Session (name, self.__cookie, self.__request, securekey, session_timeout)
 			
-	def __get_notices (self, name, data, securekey):		
-		if data:
-			return secured_cookie_value.MessageBox.unserialize (name, self.__request, data.encode ("utf8"), securekey, self.__setfunc)			
-		return secured_cookie_value.MessageBox (name, self.__request, None, securekey, self.__setfunc, True)
+	def __get_notices (self, name, securekey):		
+		return mbox.MessageBox (name, self.__cookie, self.__request, securekey)
 
 	

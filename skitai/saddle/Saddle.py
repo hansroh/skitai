@@ -2,7 +2,7 @@ import threading
 import time
 import os
 import sys
-from . import part, multipart_collector, cookie, secured_cookie_value
+from . import part, multipart_collector, cookie, session
 from . import wsgi_executor, xmlrpc_executor
 from skitai.lib import producers
 from skitai.server import utility
@@ -23,7 +23,7 @@ except ImportError:
 
 multipart_collector.MultipartCollector.file_max_size = 20 * 1024 * 1024
 multipart_collector.MultipartCollector.cache_max_size = 5 * 1024 * 1024
-secured_cookie_value.Session.default_session_timeout = 1200
+session.Session.default_session_timeout = 1200
 
 class Config:
 	pass
