@@ -21,6 +21,7 @@ class Part:
 		self.logger = None
 		self.mount_p = "/"
 		self.route_map = {}
+		self.route_priority = []
 		self._binds_server = [None] * 3
 		self._binds_request = [None] * 4
 		self._binds_when = [None] * 5		
@@ -189,11 +190,9 @@ class Part:
 		part.init (module, partname, self.mount_p [:-1] + mount)
 		self.packages [id (part)] = part
 									
-	def try_rule (self, path_info, rulepack):
-		rule, (f, n, l, a, s) = rulepack		
-		if strutil.is_str_like (rule):
-			return None, None
-			
+	def try_rule (self, path_info, rule, rulepack):
+		f, n, l, a, s = rulepack
+		
 		arglist = rule.findall (path_info)
 		if not arglist: 
 			return None, None
@@ -241,13 +240,15 @@ class Part:
 			rule = rule.replace (".", "\.") + "$"
 			re_rule = re.compile (rule)				
 			self.route_map [re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), s_rule)
+			self.route_priority.append ((s, re_rule))
+			self.route_priority.sort (reverse = True)
 			
 	def route_search (self, path_info):
 		if path_info + "/" == self.mount_p:
 			return self.url_for ("/")
 		if not path_info.startswith (self.mount_p):
 			raise KeyError
-		path_info = "/" + path_info [len (self.mount_p):]
+		path_info = "/" + path_info [len (self.mount_p):]		
 		if path_info in self.route_map:			
 			return self.route_map [path_info][0]
 		#if path_info [-1] == "/" and path_info [:-1] in self.route_map:
@@ -260,12 +261,12 @@ class Part:
 		# 1st, try find in self
 		app, method, kargs, match, matchtype = self, None, {}, None, 0
 		try:			
-			method = self.route_search (path_info)				
-		except KeyError: 
-			for rulepack in list(self.route_map.items ()):
-				method, kargs = self.try_rule (path_info, rulepack)
+			method = self.route_search (path_info)
+		except KeyError:
+			for priority, rule in self.route_priority:	
+				method, kargs = self.try_rule (path_info, rule, self.route_map [rule])
 				if method: 
-					match = rulepack
+					match = (rule, self.route_map [rule])
 					break
 				matchtype = 2
 		else:

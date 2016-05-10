@@ -5,6 +5,10 @@
 Changes
 =========
 
+*Fixed in version 0.15.32*
+
+- fixed fancy URL routing
+
 *Changed in version 0.15.30*
 
 'was.cookie.set()' method prototype has been changed.
