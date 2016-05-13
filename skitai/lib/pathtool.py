@@ -15,8 +15,10 @@ def mkdir (tdir, mod = -1):
 	chain = [tdir]
 	while 1:
 		tdir, last = os.path.split (tdir)			
-		if not last: break
-		chain.insert (0, tdir)
+		if not last and not tdir: 
+			break
+		if tdir:	
+			chain.insert (0, tdir)
 	
 	for dir in chain [1:]:
 		try: 

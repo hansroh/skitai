@@ -2,108 +2,13 @@
 .. contents:: Table of Contents
  
 
-Changes
-=========
+Changes & News
+===============
 
-*Fixed in version 0.15.32*
-
+- fixed Websocket keep-alive timeout
 - fixed fancy URL routing
-
-*Changed in version 0.15.30*
-
-'was.cookie.set()' method prototype has been changed.
-
-.. code:: python
-
-  was.cookie.set (
-    key, val, 
-    expires = None, 
-    path = None, domain = None, 
-    secure = False, http_only = False
-  ) 
-
-'expires' args is seconds to expire. 
-
- - if None, this cookie valid until browser closed
- - if 0 or 'now', expired immediately
- - if 'never', expire date will be set to a hundred years from now
-
-If 'secure' and 'http_only' options are set to True, 'Secure' and 'HttpOnly' parameters will be added to Set-Cookie header.
-
-If 'path' is None, every app's cookie path will be defaultly set to their mount point.
-
-For example, your admin app is mounted on "/admin" in configuration file like this:
-
-.. code:: bash
-
-  [routes:line]
-    
-  /admin = /var/wsgi/admin:app  
-
-If you don't specify cookie path when set, cookie path will be automatically set to '/admin'. So you want to access from another apps, cookie should be set with upper path = '/'.
-
-.. code:: python
-  
-  was.cookie.set ('private_cookie', val)
-        
-  was.cookie.set ('public_cookie', val, path = '/')
-  
-
-*New in version 0.15.30*
-
-Named Session & Messaging Box
-------------------------------
-
-You can create multiple named session and mbox objects by mount() methods.
-
-.. code:: python
-
-  was.session.mount (
-    name = None, securekey = None, 
-    path = None, domain = None, secure = False, http_only = False, 
-    session_timeout = None
-   )
-  
-  was.mbox.mount (
-    name = None, securekey = None, 
-    path = None, domain = None, secure = False, http_only = False
-  )
-
-
-for example, your app need isolated session or mbox seperated default session for any reasons, can create session named 'ADM' and if this session or mbox is valid at only /admin URL.
-
-.. code:: python
-
-  @app.route("/")
-  def index (was):	 
-    was.session.mount ("ADM", SECUREKEY_STRING, path = '/admin')
-    was.session.set ("admin_login", True)
-
-    was.mbox.mount ("ADM", SECUREKEY_STRING, path = '/admin')
-    was.mbox.send ("10 data has been deleted", 'warning')
-
-SECUREKEY_STRING needn't same with app.securekey. And path, domain, secure, http_only args is for session cookie, you can mount any named sessions or mboxes with upper cookie path and upper cookie domain. In other words, to share session or mbox with another apps, path should be closer to root (/).
-
-.. code:: python
-
-  @app.route("/")
-  def index (was):	 
-    was.session.mount ("ADM", SECUREKEY_STRING, path = '/')
-    was.session.set ("admin_login", True)
-
-Above 'ADM' sesion can be accessed by all mounted apps because path is '/'.
-    
-Also note was.session.mount (None, SECUREKEY_STRING) is exactly same as mounting default session, but in this case SECUREKEY_STRING should be same as app.securekey.
-
-mount() is create named session or mbox if not exists, exists() is just check wheather exists named session already.
-
-.. code:: python
-
-  if not was.session.exists (None):
-    return "Your session maybe expired or signed out, please sign in again"
-      
-  if not was.session.exists ("ADM"):
-    return "Your admin session maybe expired or signed out, please sign in again"
+- 'was.cookie.set()' method prototype has been changed.
+- added Named Session & Messaging Box
 
 
 Introduce
@@ -1537,6 +1442,48 @@ was.cookie has almost dictionary methods.
   	was.cookie.set ("user_id", "hansroh")  	
   	# or  	
   	was.cookie ["user_id"] = "hansroh"
+
+
+*Changed in version 0.15.30*
+
+'was.cookie.set()' method prototype has been changed.
+
+.. code:: python
+
+  was.cookie.set (
+    key, val, 
+    expires = None, 
+    path = None, domain = None, 
+    secure = False, http_only = False
+  ) 
+
+'expires' args is seconds to expire. 
+
+ - if None, this cookie valid until browser closed
+ - if 0 or 'now', expired immediately
+ - if 'never', expire date will be set to a hundred years from now
+
+If 'secure' and 'http_only' options are set to True, 'Secure' and 'HttpOnly' parameters will be added to Set-Cookie header.
+
+If 'path' is None, every app's cookie path will be automaticaaly set to their mount point.
+
+For example, your admin app is mounted on "/admin" in configuration file like this:
+
+.. code:: bash
+
+  [routes:line]
+    
+  /admin = /var/wsgi/admin:app  
+
+If you don't specify cookie path when set, cookie path will be automatically set to '/admin'. So you want to access from another apps, cookie should be set with upper path = '/'.
+
+.. code:: python
+  
+  was.cookie.set ('private_cookie', val)
+        
+  was.cookie.set ('public_cookie', val, path = '/')
+  
+
   	
 - was.cookie.set (key, val, expires = None, path = None, domain = None, secure = False, http_only = False)
 - was.cookie.remove (key, path, domain)
@@ -1652,6 +1599,64 @@ news.htm like this:
 - was.mbox.getv (...) return get () if source_verified ()
 - was.mbox.search (key, val): find in extra_dict. if val is not given or given None, compare with category name. return [message_id, ...]
 - was.mbox.remove (message_id)
+
+
+Named Session & Messaging Box
+------------------------------
+
+*New in version 0.15.30*
+
+You can create multiple named session and mbox objects by mount() methods.
+
+.. code:: python
+
+  was.session.mount (
+    name = None, securekey = None, 
+    path = None, domain = None, secure = False, http_only = False, 
+    session_timeout = None
+   )
+  
+  was.mbox.mount (
+    name = None, securekey = None, 
+    path = None, domain = None, secure = False, http_only = False
+  )
+
+
+For example, your app need isolated session or mbox seperated default session for any reasons, can create session named 'ADM' and if this session or mbox is valid at only /admin URL.
+
+.. code:: python
+
+  @app.route("/")
+  def index (was):	 
+    was.session.mount ("ADM", SECUREKEY_STRING, path = '/admin')
+    was.session.set ("admin_login", True)
+
+    was.mbox.mount ("ADM", SECUREKEY_STRING, path = '/admin')
+    was.mbox.send ("10 data has been deleted", 'warning')
+
+SECUREKEY_STRING needn't same with app.securekey. And path, domain, secure, http_only args is for session cookie, you can mount any named sessions or mboxes with upper cookie path and upper cookie domain. In other words, to share session or mbox with another apps, path should be closer to root (/).
+
+.. code:: python
+
+  @app.route("/")
+  def index (was):	 
+    was.session.mount ("ADM", SECUREKEY_STRING, path = '/')
+    was.session.set ("admin_login", True)
+
+Above 'ADM' sesion can be accessed by all mounted apps because path is '/'.
+    
+Also note was.session.mount (None, SECUREKEY_STRING) is exactly same as mounting default session, but in this case SECUREKEY_STRING should be same as app.securekey.
+
+mount() is create named session or mbox if not exists, exists() is just check wheather exists named session already.
+
+.. code:: python
+
+  if not was.session.exists (None):
+    return "Your session maybe expired or signed out, please sign in again"
+      
+  if not was.session.exists ("ADM"):
+    return "Your admin session maybe expired or signed out, please sign in again"
+
 
 
 

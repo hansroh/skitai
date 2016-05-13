@@ -522,4 +522,5 @@ class Handler (wsgi_handler.Handler):
 	def channel_config (self, request, ws, keep_alive):
 		request.channel.current_request = ws
 		request.channel.set_response_timeout (keep_alive)
+		request.channel.set_keep_alive (keep_alive)
 		

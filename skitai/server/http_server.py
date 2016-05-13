@@ -97,6 +97,9 @@ class http_channel (asynchat.async_chat):
 	
 	def set_response_timeout (self, timeout):
 		self.response_timeout = timeout
+	
+	def set_keep_alive (self, timeout):
+		self.keep_alive = timeout	
 		
 	def set_timeout_by_case (self):
 		if self.affluent or self.ready:
