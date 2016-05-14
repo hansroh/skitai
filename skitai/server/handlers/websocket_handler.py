@@ -234,7 +234,7 @@ class WebSocket2 (WebSocket):
 		WebSocket.__init__ (self, handler, request)
 		self.cv = threading.Condition (threading.RLock ())
 		self.messages = []		
-	
+				
 	def close (self):
 		WebSocket.close (self)
 		self.cv.acquire()
@@ -261,6 +261,19 @@ class WebSocket2 (WebSocket):
 		self.cv.notify ()
 		self.cv.release ()
 
+class WebSocket4 (WebSocket2):
+	# WEBSOCKET_DEDICATE_THREADSAFE
+	def __init__ (self, handler, request):
+		WebSocket2.__init__ (self, handler, request)
+		self.lock = threading.Lock ()
+		
+	def send (self, message, op_code = OPCODE_TEXT):
+		self.lock.acquire ()
+		try:
+			WebSocket2.send (self, message, op_code)
+		finally:
+			self.lock.release ()
+			
 class Job2 (Job1):
 	def handle_error (self):
 		pass
@@ -452,7 +465,7 @@ class Handler (wsgi_handler.Handler):
 				del env ["websocket_init"]
 			except (IndexError, ValueError): 
 				raise AssertionError ("You should return (design_spec, keep_alive, param_name) where env has key 'skitai.websocket_init'")				
-			assert design_spec in (1,2,3), "design_spec  should be one of (WEBSOCKET_REQDATA, WEBSOCKET_DEDICATE, WEBSOCKET_MULTICAST)"			
+			assert design_spec in (1,2,3,4), "design_spec  should be one of (WEBSOCKET_REQDATA, WEBSOCKET_DEDICATE, WEBSOCKET_DEDICATE_THREADSAFE, WEBSOCKET_MULTICAST)"			
 		except:
 			self.wasc.logger.trace ("server",  request.uri)
 			return request.response.error (500, why = apph.debug and catch (1) or "")
@@ -475,11 +488,14 @@ class Handler (wsgi_handler.Handler):
 			env ["websocket"] = ws		
 			self.channel_config (request, ws, keep_alive)
 		
-		elif design_spec == 2: 
+		elif design_spec in (2, 4): 
 			# WEBSOCKET_DEDICATE 			
 			# 1:1 wesocket:thread
 			# Be careful, it will be consume massive thread resources
-			ws = WebSocket2 (self, request)
+			if design_spec == 2:
+				ws = WebSocket2 (self, request)
+			else:
+				ws = WebSocket4 (self, request)
 			request.channel.add_closing_partner (ws)
 			env ["websocket"] = ws
 			self.channel_config (request, ws, keep_alive)

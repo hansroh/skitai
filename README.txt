@@ -5,6 +5,7 @@
 Changes & News
 ===============
 
+- add Websocket design spec: WEBSOCKET_DEDICATE_THREADSAFE
 - fixed Websocket keep-alive timeout
 - fixed fancy URL routing
 - 'was.cookie.set()' method prototype has been changed.
@@ -921,7 +922,12 @@ WEBSOCKET_DEDICATE
   - One thread per websocket connection
   - Use when reponse maiking is heavy and takes long time
   - New thread created per websocket connection
-  
+ 
+WEBSOCKET_DEDICATE_THREADSAFE
+
+  - Thread safe version of WEBSOCKET_DEDICATE
+  - Multiple threads can call websocket.send (msg)
+ 
 WEBSOCKET_MULTICAST
   
   - One thread manages n websockets connection
