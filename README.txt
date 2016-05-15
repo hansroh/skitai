@@ -5,6 +5,7 @@
 Changes & News
 ===============
 
+- fixed fancy URL <path> routing
 - add Websocket design spec: WEBSOCKET_DEDICATE_THREADSAFE
 - fixed Websocket keep-alive timeout
 - fixed fancy URL routing
@@ -879,7 +880,12 @@ So skitai supports above all 3 ways.
 First of all, see conceptual client side java script for websocket.
 
 .. code:: html
-
+  
+  <body>
+  <ul id="display"></ul>
+  <input id="mymsg" type="text">
+  <button onclick='talk ();'>Submit<button>
+  
   <script language="javascript" type="text/javascript">  
   var wsUri = "ws://localhost:5000/websocket/chat";
   testWebSocket();
@@ -894,12 +900,23 @@ First of all, see conceptual client side java script for websocket.
   }
   
   function onOpen(evt) {doSend("Hello");}
-  function onClose(evt) {writeToScreen("DISCONNECTED");}  
-  function onMessage(evt) {writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');}
-  function onError(evt) {writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);}  
+  function onClose(evt) {log_info ("DISCONNECTED");}  
+  function onMessage(evt) {log_info('evt.data');}
+  function onError(evt) {log_info('ERROR: ' + evt.data));}  
   function doClose () {websocket.close();}  
-  function doSend(message) {websocket.send(message);}
-  </script>
+  function doSend(message) {
+  	log_info('SENT: ' + message));
+  	websocket.send(message);
+  }
+  function talk () {
+    doSend ($("#mymsg").val());
+    $("#mymsg").val("");
+  }
+  function log_info (message) {
+   $('<li>' + message + '</li>').appendTo ("#display");
+  }    
+  </script>  
+  </body>
 
 
 If your WSGI app enable handle websocket, it should give  initial parameters to Skitai.
@@ -920,7 +937,7 @@ WEBSOCKET_REQDATA
 WEBSOCKET_DEDICATE
 
   - One thread per websocket connection
-  - Use when reponse maiking is heavy and takes long time
+  - Use when interactives takes long time like websocket version telnet or subprocess stdout streaming
   - New thread created per websocket connection
  
 WEBSOCKET_DEDICATE_THREADSAFE
@@ -1013,6 +1030,50 @@ Client can connect by ws://localhost:5000/websocket/talk?name=Member.
           ws.send ("Hello, " + name)        
         else:  
           ws.send ("You Said:" + m)
+
+In this case, variable name should be None. If exists, will be ignored.
+
+Threadsafe-Dedicated Websocket
+-------------------------------
+
+This app will handle only one websocket client. and if new websocekt connected, will be created new thread.
+
+Also you can new threads in your function which use websocket.send ().
+
+.. code:: python
+  
+  def calculate (ws, id, count):
+    p = Popen (
+      [sys.executable, r'calucate.py', '-c', count],
+      universal_newlines=True,
+      stdout=PIPE, shell = False
+    )    
+    for line in iter(p.stdout.readline, ''):	 
+      self.ws.send (line)	
+    p.stdout.close ()
+  
+  @app.route ("/websocket/calculate")
+  def calculate (was):
+    if "websocket_init" in was.env:
+      was.env ["websocket_init"] = (skitai.WEBSOCKET_DEDICATE_THREADSAFE, 60, None)
+      return ""
+    
+    workers = 0
+    ws = was.env ["websocket"]
+    while 1:
+      messages = ws.getswait (10)
+      if messages is None:
+        break 
+      for m in messages:
+        if m.lower () == "bye":
+          ws.send ("Bye, have a nice day." + m)
+          ws.close ()
+          break
+        elif m.lower () == "run":
+          threading.Thread (target = calculate, args = (ws, workers, m[3:].strip ()).start ()
+          workers +=1
+        else:  
+          ws.send ("You said %s but I can't understatnd" % m)
 
 In this case, variable name should be None. If exists, will be ignored.
 

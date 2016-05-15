@@ -230,14 +230,14 @@ class Part:
 					rule = rule.replace (r, "/([0-9]+)")
 				elif n.startswith ("float:"):
 					rulenames.append ((n[6:], n [:5]))
-					rule = rule.replace (r, "/([\.0-9]+)")
+					rule = rule.replace (r, "/([.0-9]+)")
 				elif n.startswith ("path:"):
 					rulenames.append ((n[5:], n [:4]))
 					rule = rule.replace (r, "/(.+)")	
 				else:
 					rulenames.append ((n, "string"))
 					rule = rule.replace (r, "/([^/]+)")
-			rule = rule.replace (".", "\.") + "$"
+			rule = rule + "$"
 			re_rule = re.compile (rule)				
 			self.route_map [re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), s_rule)
 			self.route_priority.append ((s, re_rule))
