@@ -241,7 +241,7 @@ class Part:
 			re_rule = re.compile (rule)				
 			self.route_map [re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), s_rule)
 			self.route_priority.append ((s, re_rule))
-			self.route_priority.sort (reverse = True)
+			self.route_priority.sort (key = lambda x: x [0], reverse = True)
 			
 	def route_search (self, path_info):
 		if path_info + "/" == self.mount_p:
