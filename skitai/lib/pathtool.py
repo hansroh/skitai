@@ -21,7 +21,6 @@ def mkdir (tdir, mod = -1):
 	chain = [tdir]	
 	while 1:
 		tdir, last = os.path.split (tdir)		
-		print(tdir, last)
 		if not last: 
 			break
 		if tdir:
