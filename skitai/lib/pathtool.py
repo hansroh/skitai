@@ -11,13 +11,20 @@ import types
 import sys
 
 def mkdir (tdir, mod = -1):
-	if os.path.isdir (tdir): return
-	chain = [tdir]
+	while tdir:
+		if tdir [-1] in ("\\/"):
+			tdir = tdir [:-1]
+		else:
+			break	
+
+	if os.path.isdir (tdir): return	
+	chain = [tdir]	
 	while 1:
-		tdir, last = os.path.split (tdir)			
-		if not last and not tdir: 
+		tdir, last = os.path.split (tdir)		
+		print(tdir, last)
+		if not last: 
 			break
-		if tdir:	
+		if tdir:
 			chain.insert (0, tdir)
 	
 	for dir in chain [1:]:
