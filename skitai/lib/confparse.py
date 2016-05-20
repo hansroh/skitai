@@ -197,7 +197,7 @@ class ConfParse:
 		try: return float (value)
 		except: return default
 
-	def getopt (self, section, option = None, defualt = None):
+	def getopt (self, section, option = None, defualt = None, preserve_comment = False):
 		try: self.conf[section]
 		except KeyError:
 			if self.return_none: return defualt
@@ -208,7 +208,8 @@ class ConfParse:
 			if type (opt) == type (''):
 				opt = opt.replace ('\r', '').strip () + '\n'
 			elif type (opt) == type ([]):
-				opt = [x for x in opt if x and x [0] not in "#;"]
+				if not preserve_comment:
+					opt = [x for x in opt if x and x [0] not in "#;"]
 			return opt
 
 		try:
