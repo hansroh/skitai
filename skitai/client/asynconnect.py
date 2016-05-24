@@ -101,14 +101,15 @@ class AsynConnect (asynchat.async_chat):
 	def maintern (self, object_timeout):
 		# check inconsistency, maybe impossible
 		a, b = self.handler and 1 or 0, self.isactive () and 1 or 0
-		if a != b:			
+		if a != b:
 			self.disconnect ()
 			self.end_tran ()
 					
 		if time.time () - self.event_time > object_timeout:
-			if not self.isactive ():				
+			if not self.isactive ():	
 				self.disconnect ()
-				return True				
+				return True
+		
 		return False
 	
 	def is_channel_in_map (self, map = None):

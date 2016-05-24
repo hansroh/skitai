@@ -17,7 +17,29 @@ def innerTrim(value):
 		value = ''.join(value.splitlines())
 		return value.strip()
 	return ''
-	
+
+
+def filter_by_text (element, text):
+	if text [0] == "=":
+		return [each for each in element if each.text and each.text.strip () == text [1:]]
+	else:
+		op, text = text [:2], text [2:]
+		if op == "!=":
+			return [each for each in element if each.text and each.text.strip () != text]
+		elif op == "*=":
+			return [each for each in element if each.text and each.text.find (text) != -1]
+		elif op == "^=":	
+			return [each for each in element if each.text and each.text.strip ().startswith (text)]
+		elif op == "$=":	
+			return [each for each in element if each.text and each.text.strip ().endswith (text)]
+		elif op == "~=":	
+			return [each for each in element if each.text and text in each.text.split ()]
+		elif op == "|=":	
+			return [each for each in element if each.text and text in each.text.split ("-")]
+		else:	
+			raise AssertionError ("unknown operator %s" % op)
+			
+				
 class Parser:
 	@classmethod
 	def from_string (cls, html):
@@ -84,6 +106,23 @@ class Parser:
 			elems.remove(node)
 		return elems
 	
+	@classmethod
+	def by_lt (cls, node, text):
+		text = text.strip ()
+		return [a for a in cls.by_tag (node, "a") if a.get_text () == text]			
+	
+	@classmethod
+	def by_plt (cls, node, text):
+		text = text.strip ()
+		return [a for a in cls.by_tag (node, "a") if a.get_text ().find (text) != -1]
+	
+	@classmethod
+	def by_tint (cls, node, text):
+		tag, text = text.split (":", 1)
+		text = text.strip ()
+		element = cls.by_tag (node, tag)
+		return filter_by_text (element, text)
+							
 	@classmethod
 	def prev_siblings (cls, node):
 		nodes = []

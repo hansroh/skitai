@@ -45,6 +45,8 @@ def status ():
 				d ["request_counter"] = channel.request_counter
 			if hasattr (channel, "event_time"):
 				d ["last_event_time"] = time.asctime (time.localtime (channel.event_time))
+			if hasattr (channel, "zombie_timeout"):
+				d ["zombie_timeout"] = channel.zombie_timeout
 			if hasattr (channel, "get_history"):
 				d ["history"] = channel.get_history ()
 							
@@ -100,8 +102,8 @@ def maintern_zombie_channel (now):
 				# +3 is make gap between server & client
 				iszombie = (now - channel.event_time) > channel.zombie_timeout + 3
 			except AttributeError:
-				continue				
-			if iszombie:
+				continue
+			if iszombie:				
 				_killed_zombies += 1
 				try:
 					channel.handle_timeout ()

@@ -240,7 +240,7 @@ class ClusterManager:
 				for asyncon in self._close_desires:
 					if asyncon.isactive ():
 						cannot_closes.append (asyncon)
-					else:
+					else:						
 						asyncon.disconnect ()
 						del asyncon
 				self._close_desires = cannot_closes
