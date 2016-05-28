@@ -8,6 +8,7 @@ import traceback
 from copy import deepcopy
 import sys
 from skitai.lib import strutil
+from cssselect import GenericTranslator, SelectorError
 
 TABSSPACE = re.compile(r'[\s\t]+')
 def innerTrim(value):
@@ -23,8 +24,11 @@ def filter_by_text (element, text):
 	if text [0] == "=":
 		return [each for each in element if each.text and each.text.strip () == text [1:]]
 	else:
-		op, text = text [:2], text [2:]
-		if op == "!=":
+		op, text = text [:2], text [2:].strip ()
+		if op == "/=":
+			rx = eval ("re.compile ('%s')" % text)
+			return [each for each in element if each.text and rx.search (each.text.strip ())]
+		elif op == "!=":
 			return [each for each in element if each.text and each.text.strip () != text]
 		elif op == "*=":
 			return [each for each in element if each.text and each.text.find (text) != -1]
@@ -33,12 +37,9 @@ def filter_by_text (element, text):
 		elif op == "$=":	
 			return [each for each in element if each.text and each.text.strip ().endswith (text)]
 		elif op == "~=":	
-			return [each for each in element if each.text and text in each.text.split ()]
-		elif op == "|=":	
-			return [each for each in element if each.text and text in each.text.split ("-")]
-		else:	
-			raise AssertionError ("unknown operator %s" % op)
-			
+			return [each for each in element if each.text and text in each.text.split ()]		
+		else:
+			raise AssertionError ("unknown operator %s" % op)	
 				
 class Parser:
 	@classmethod
@@ -55,6 +56,7 @@ class Parser:
 	def to_string (cls, node, encoding = "utf8", method='html', doctype = "<!DOCTYPE html>"):
 		return lxml.html.tostring(node, encoding)
 	
+	@classmethod
 	def by_xpath (cls, node, expression):
 		items = node.xpath(expression)
 		return items
@@ -67,7 +69,8 @@ class Parser:
 		
 	@classmethod
 	def by_css (cls, node, selector):
-		return node.cssselect(selector)
+		return cls.by_xpath (node, GenericTranslator().css_to_xpath(selector))
+		#return node.cssselect(selector)
 	
 	@classmethod
 	def by_id (cls, node, idd):
@@ -78,8 +81,7 @@ class Parser:
 		return None
 
 	@classmethod
-	def by_tag_attr (
-			cls, node, tag=None, attr=None, value=None, childs=False):
+	def by_tag_attr (cls, node, tag=None, attr=None, value=None, childs=False):
 		NS = "http://exslt.org/regular-expressions"
 		# selector = tag or '*'
 		selector = 'descendant-or-self::%s' % (tag or '*')
@@ -117,12 +119,25 @@ class Parser:
 		return [a for a in cls.by_tag (node, "a") if a.get_text ().find (text) != -1]
 	
 	@classmethod
+	def by_csstext (cls, node, text):
+		css, text = text.split (">>", 1)
+		css = css.strip ()
+		text = text.strip ()
+		element = cls.by_css (node, css)
+		return filter_by_text (element, text)
+	
+	@classmethod
 	def by_tint (cls, node, text):
-		tag, text = text.split (":", 1)
+		tag, text = text.split ("=", 1)
+		text = "=" + text.strip ()
+		tag = tag.strip ()
+		if not tag [-1].isalpha ():
+			text = tag [-1] + text
+			tag = tag [:-1]
 		text = text.strip ()
 		element = cls.by_tag (node, tag)
 		return filter_by_text (element, text)
-							
+								
 	@classmethod
 	def prev_siblings (cls, node):
 		nodes = []
@@ -154,6 +169,10 @@ class Parser:
 			if c == 0:
 				break
 		return nodes[0] if nodes else None
+	
+	@classmethod
+	def new (self, tag):			
+		return lxml.etree.Element(tag)
 		
 	@classmethod
 	def get_attr (cls, node, attr=None):
@@ -182,7 +201,11 @@ class Parser:
 	@classmethod
 	def append_child (cls, node, child):
 		node.append(child)
-
+	
+	@classmethod
+	def insert_child (cls, index, node, child):
+		node.insert (index, child)
+		
 	@classmethod
 	def child_nodes (cls, node):
 		return list(node)
@@ -225,6 +248,10 @@ class Parser:
 	
 	@classmethod
 	def get_texts (cls, node, trim = True):
+		return cls.get_text_list (node, trim)
+	
+	@classmethod
+	def get_text_list (cls, node, trim = True):
 		if trim:
 			return [i.strip () for i in node.itertext()]
 		else:	
@@ -248,11 +275,25 @@ class Parser:
 			
 	@classmethod
 	def drop_node (cls, node):
-		node.drop_tag ()
+		try: 
+			node.drop_tag ()
+		except AttributeError:
+			node.getparent ().remove (node)
 	
 	@classmethod
 	def drop_tree (cls, node):
-		node.drop_tree ()
+		def recursive (node):
+			for child in node.getchildren ():
+				if child.getchildren ():
+					recursive (child)
+				else:
+					node.remove (child)
+										
+		try: 
+			node.drop_tree ()
+		except AttributeError:
+			recursive (node)
+			node.getparent ().remove (node)
 	
 	@classmethod
 	def create_element (cls, tag='p', text=None, tail=None):
@@ -385,9 +426,9 @@ def to_str (body, encoding = None):
 def html (html, baseurl, encoding = None):
 	# html5lib rebuilds possibly mal-formed html	
 	try:
-		return lxml.html.fromstring (lxml.etree.tostring (html5lib.parse (html, encoding = encoding, treebuilder="lxml")), baseurl)	
+		return lxml.html.fromstring (lxml.etree.tostring (html5lib.parse (html, encoding = encoding, treebuilder="lxml")), baseurl)
 	except ValueError:
-		return lxml.html.fromstring (lxml.etree.tostring (html5lib.parse (to_str (html, encoding), treebuilder="lxml")), baseurl)	
+		return lxml.html.fromstring (lxml.etree.tostring (html5lib.parse (to_str (html, encoding), treebuilder="lxml")), baseurl)
 
 def etree (html, encoding = None):
 	try:
