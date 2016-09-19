@@ -11,6 +11,8 @@ from skitai.lib import strutil
 from cssselect import GenericTranslator, SelectorError
 
 TABSSPACE = re.compile(r'[\s\t]+')
+SIMPLIFIED_CHILD_CSS = re.compile (r"\s*([<\[])(\-?)([0-9]+)[>\]]")
+
 def innerTrim(value):
 	if strutil.is_str_like (value):
 		# remove tab and white space
@@ -22,6 +24,8 @@ def innerTrim(value):
 
 def filter_by_text (element, text):
 	if text [0] == "=":
+		if text [1:] == "":
+			return [each for each in element if not Parser.get_text (each)]
 		return [each for each in element if each.text and each.text.strip () == text [1:]]
 	else:
 		op, text = text [:2], text [2:].strip ()
@@ -69,6 +73,23 @@ class Parser:
 		
 	@classmethod
 	def by_css (cls, node, selector):
+		def repl (m):
+			index = int (m.group (3))
+			if m.group (2) == "-":
+				index -= 1
+				if m.group (1) == "<":
+					ss = ":nth-child(%d)"
+				else:	
+					ss = ":nth-last-of-type(%d)"
+			else:
+				index += 1
+				if m.group (1) == "<":
+					ss = ":nth-last-child(%d)"				
+				else:	
+					ss = ":nth-of-type(%d)"			
+			return ss % index
+		
+		selector = SIMPLIFIED_CHILD_CSS.sub (repl, selector)
 		return cls.by_xpath (node, GenericTranslator().css_to_xpath(selector))
 		#return node.cssselect(selector)
 	
@@ -120,7 +141,7 @@ class Parser:
 	
 	@classmethod
 	def by_csstext (cls, node, text):
-		css, text = text.split (">>", 1)
+		css, text = text.split (":text", 1)
 		css = css.strip ()
 		text = text.strip ()
 		element = cls.by_css (node, css)
@@ -170,6 +191,10 @@ class Parser:
 				break
 		return nodes[0] if nodes else None
 	
+	@classmethod
+	def get_siblings (cls, node):
+		return cls.prev_siblings (node) + cls.next_siblings (node)
+		
 	@classmethod
 	def new (self, tag):			
 		return lxml.etree.Element(tag)
@@ -257,6 +282,30 @@ class Parser:
 		else:	
 			return [i for i in node.itertext()]
 	
+	@classmethod
+	def iter_text (cls, node):
+		def collect (node, container):
+			children = cls.get_children (node)
+			if not children:
+				return
+				
+			for child in children:
+				if child.tag not in (
+					"head", "meta", "link", "input", "hr", "br", "img", 
+					"table", "tr", "thead", "tbody", "ol", "ul", "dl"
+				):
+					text = child.text
+					if text is not None:
+						text = text.strip ()
+					else:
+						text = ""
+					container.append (text)
+				collect (child, container)
+
+		container = []
+		collect (node, container)
+		return container
+
 	@classmethod
 	def is_text_node (cls, node):
 		return True if node.tag == 'text' else False
