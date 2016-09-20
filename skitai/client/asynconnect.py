@@ -19,8 +19,8 @@ class SocketPanic (Exception): pass
 class TimeOut (Exception): pass
 
 class AsynConnect (asynchat.async_chat):
-	ac_in_buffer_size = 4096
-	ac_out_buffer_size = 4096
+	ac_in_buffer_size = 65535
+	ac_out_buffer_size = 65535
 	zombie_timeout = 10
 	keep_alive_timeout = 10
 	network_delay_timeout = 10	
@@ -393,9 +393,9 @@ class AsynConnect (asynchat.async_chat):
 	
 	
 class AsynSSLConnect (AsynConnect):	
-	ac_in_buffer_size = 65535 # generally safe setting 65535 for SSL
-	ac_out_buffer_size = 65535
-	
+	ac_out_buffer_size = 65536
+	ac_in_buffer_size = 65536
+		
 	def handshake (self):
 		if not self._handshaking:
 			err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
@@ -457,6 +457,9 @@ class AsynSSLConnect (AsynConnect):
 
 
 class AsynSSLProxyConnect (AsynSSLConnect, AsynConnect):
+	ac_out_buffer_size = 65536
+	ac_in_buffer_size = 65536
+	
 	def handle_connect_event (self):
 		if self.established:
 			AsynSSLConnect.handle_connect_event (self)

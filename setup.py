@@ -115,7 +115,7 @@ setup(
 	license='BSD',
 	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/skitai",
-	install_requires = ["jinja2"],
+	install_requires = ["jinja2", "h2"],
 	classifiers=classifiers
 )
 

@@ -5,29 +5,32 @@ from .counter import counter
 import socket, time, asyncore
 import ssl
 from skitai import lifetime
-import os
+import os, sys
 
 class https_channel (http_server.http_channel):
+	ac_out_buffer_size = 65536
+	ac_in_buffer_size = 65536
+	
 	def __init__(self, server, conn, addr):
 		http_server.http_channel.__init__(self, server, conn, addr)
 	
 	def send(self, data):	
-		result = self.socket.send(data)
+		result = self.socket.send(data)		
 		if result <= 0:
 			return 0
 		else:
 			self.server.bytes_out.increment(result)
 			return result	
 		
-	def recv(self, buffer_size):
+	def recv(self, buffer_size = 65535):
 		try:			
 			result = self.socket.recv(buffer_size)
 			if result is None:
-				return ''
+				return b''
 				
-			elif result == '':
+			elif result == b'':
 				self.handle_close()
-				return ''
+				return b''
 				
 			else:
 				self.server.bytes_in.increment(len(result))
@@ -38,7 +41,7 @@ class https_channel (http_server.http_channel):
 			
 		except ssl.SSLEOFError:
 			self.handle_close()
-			return ''			
+			return b''
 			
 
 class https_server (http_server.http_server):
@@ -65,9 +68,18 @@ class https_server (http_server.http_server):
 		https_channel (self, conn, addr)
 		
 
-def init_context (certfile, keyfile, pass_phrase):
-	ctx = ssl.SSLContext (ssl.PROTOCOL_SSLv23)
-	#ctx = ssl.SSLContext (ssl.PROTOCOL_TLSv1_2)
+PY_MAJOR_VERSION, PY_MIMOR_VERSION = sys.version_info [:2]
+	
+def init_context (certfile, keyfile, pass_phrase):	
+	try:
+		protocol = ssl.PROTOCOL_TLS
+	except AttributeError:
+		protocol = ssl.PROTOCOL_SSLv23			
+	ctx = ssl.SSLContext (protocol)
+	try:	
+		ctx.set_alpn_protocols (["h2", "h2-16", "h2-15", "h2-14"])
+	except AttributeError:		
+		ctx.set_npn_protocols (["h2", "h2-16", "h2-15", "h2-14"])
 	ctx.load_cert_chain (certfile, keyfile, pass_phrase)
 	ctx.check_hostname = False
 	return ctx

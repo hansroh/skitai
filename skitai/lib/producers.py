@@ -149,7 +149,7 @@ class file_producer:
 	"producer wrapper for file[-like] objects"
 
 	# match http_channel's outgoing buffer size
-	out_buffer_size = 4096
+	out_buffer_size = 8192
 
 	def __init__ (self, file):
 		self.done = 0
@@ -335,7 +335,7 @@ class globbing_producer:
 	gain about 30% performance on requests to a single channel]
 	"""
 
-	def __init__ (self, producer, buffer_size = 4096):
+	def __init__ (self, producer, buffer_size = 8192):
 		self.producer = producer
 		self.buffer = b''
 		self.buffer_size = buffer_size
@@ -350,6 +350,65 @@ class globbing_producer:
 		r = self.buffer
 		self.buffer = b''
 		return r
+
+
+class h2stream_producer:
+	def __init__ (self, stream_id, depends_on, weight, headers, producer, encoder, lock):
+		self.stream_id = stream_id
+		self.depends_on = depends_on
+		self.weight = weight
+		self.producer = producer # globbing_producer
+		self.encoder = encoder
+		
+		self._lock = lock
+		self._buf = b""
+		self._end_stream = False
+		
+		with self._lock:
+			encoder.send_headers (
+				stream_id = stream_id,
+				headers = headers,
+				end_stream = producer is None
+			)
+	
+	def __repr__ (self):
+		return "<h2stream_producer stream_id:%d, weight:%d, depends_on:%d>" % (self.stream_id, self.weight, self.depends_on)
+			
+	def get_max_len (self):
+		return min (self.encoder.local_flow_control_window (self.stream_id), self.encoder.max_outbound_frame_size)
+		
+	def more (self):
+		if self._end_stream and not self._buf:
+			return b''
+		
+		if self.producer is None:
+			self._end_stream = True
+		
+		else:		
+			_max_len = self.get_max_len ()
+			#_max_len = 512
+			#self.producer.buffer_size = 512			
+			
+			if self._buf:
+				data, self._buf = self._buf [:_max_len], self._buf [_max_len:]
+					
+			else:
+				data = self.producer.more ()
+				self._end_stream = len (data) < self.producer.buffer_size
+				if len (data) > _max_len:
+					data, self._buf = data [:_max_len], data [_max_len:]
+
+			#print (">>>>>>> MULTIPLEXING", self.stream_id, len (data), len (self._buf), (self._end_stream and not self._buf))			
+			with self._lock:
+				self.encoder.send_data (
+					stream_id = self.stream_id,
+					data = data,
+					end_stream = (self._end_stream and not self._buf)
+				)
+		
+		data_to_send = self.encoder.data_to_send ()
+		#print ('++++', len (data_to_send), repr (data_to_send) [:80], self._end_stream)		
+		return data_to_send
 
 
 class hooked_producer:

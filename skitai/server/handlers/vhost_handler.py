@@ -1,4 +1,10 @@
-from . import default_handler, wsgi_handler, proxypass_handler, websocket_handler
+from . import default_handler, wsgi_handler, proxypass_handler, websocket_handler, http2_handler
+HAS_H2 = True
+try:
+	from . import http2_handler
+except ImportError:
+	HAS_H2 = False
+		
 from .. import wsgi_apps
 import os
 
@@ -10,10 +16,12 @@ class VHost:
 		
 		self.apps = wsgi_apps.ModuleManager(self.wasc)
 		self.proxy_handler = proxypass_handler.Handler (self.wasc, clusters, cachefs)
-		alternative_handlers = [
+		alternative_handlers = [			
 			websocket_handler.Handler (self.wasc, self.apps),
 			wsgi_handler.Handler (self.wasc, self.apps, upload_max_size)
 		]
+		if HAS_H2:
+			alternative_handlers.insert (0, http2_handler.Handler (self.wasc, self.apps))			
 		self.default_handler = default_handler.Handler (self.wasc, {}, static_max_age, alternative_handlers)
 		self.handlers = [
 			self.proxy_handler,			

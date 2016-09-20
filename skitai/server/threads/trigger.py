@@ -10,8 +10,7 @@ def start_trigger ():
 		the_trigger = trigger ()
 
 def wakeup (thunk = None):
-	global the_trigger
-	
+	global the_trigger	
 	if the_trigger is None:
 		if thunk:
 			try:

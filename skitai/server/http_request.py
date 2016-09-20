@@ -7,7 +7,7 @@ class http_request:
 	producer = None
 	request_count = counter.counter()
 	
-	def __init__ (self, *args):		
+	def __init__ (self, *args):
 		self.request_number = self.request_count.inc()		
 		(self.channel, self.request,
 		 self.command, self.uri, self.version,

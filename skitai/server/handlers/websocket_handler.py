@@ -86,10 +86,11 @@ class WebSocket:
 		if self.masks or (not self.has_masks and self.payload_length):
 			self.rfile.write (data)			
 		else:
-			self.buf = data
+			self.buf += data
 	
 	def found_terminator (self):
 		#print ("-----", self.buf, self.opcode, self.payload_length, self.masks)
+		buf, self.buf = self.buf, b""
 		if self.masks or (not self.has_masks and self.payload_length):
 			# end of message
 			masked_data = bytearray(self.rfile.getvalue ())
@@ -113,22 +114,22 @@ class WebSocket:
 			self.handle_message (data)
 		
 		elif self.payload_length:
-			self.masks = self.buf
+			self.masks = buf
 			self.channel.set_terminator (self.payload_length)
 		
 		elif self.opcode:			
-			if len (self.buf) == 2:
+			if len (buf) == 2:
 				fmt = ">H"
 			else:	
 				fmt = ">Q"
-			self.payload_length = struct.unpack(fmt, self._tobytes(self.buf))[0]
+			self.payload_length = struct.unpack(fmt, self._tobytes(buf))[0]
 			if self.has_masks:
 				self.channel.set_terminator (4) # mask
 			else:
 				self.channel.set_terminator (self.payload_length)
 		
 		elif self.opcode is None:
-			b1, b2 = self._tobytes(self.buf)
+			b1, b2 = self._tobytes(buf)
 			fin    = b1 & FIN
 			self.opcode = b1 & OPCODE
 			#print (fin, self.opcode)
@@ -413,8 +414,8 @@ class WebSocketServer (WebSocket2):
 
 class Handler (wsgi_handler.Handler):
 	def match (self, request):
-		connection = request.get_header ("connection")
-		return connection and connection.lower ().find ("upgrade") != -1 and request.version == "1.1" and request.command == "get"
+		upgrade = request.get_header ("upgrade")
+		return upgrade and upgrade.lower ().startswith ("websocket") and request.version == "1.1" and request.command == "get"
 	
 	def close (self):
 		websocket_servers.close ()

@@ -70,7 +70,7 @@ class Handler:
 		if request.command not in ('get', 'head'):
 			self.handle_alternative (request)
 			return
-			
+		
 		path, params, query, fragment = request.split_uri()
 		if '%' in path:
 			path = unquote (path)

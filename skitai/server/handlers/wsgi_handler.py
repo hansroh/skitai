@@ -48,7 +48,7 @@ class Handler:
 		
 		self.ENV ["skitai.process"] = self.wasc.config.getint ("server", "processes")
 		self.ENV ["skitai.thread"] = self.wasc.config.getint ("server", "threads")
-		self.ENV ["wsgi.url_scheme"] = hasattr (self.wasc.httpserver, "ctx") == "https" or "http"
+		self.ENV ["wsgi.url_scheme"] = hasattr (self.wasc.httpserver, "ctx") and "https" or "http"
 		self.ENV ["wsgi.multithread"] = hasattr (self.wasc, "threads")
 		self.ENV ["wsgi.multiprocess"] = self.wasc.config.getint ("server", "processes") > 1 and os.name != "nt"
 		self.ENV ['SERVER_PORT'] = str (self.wasc.httpserver.port)
@@ -147,7 +147,7 @@ class Handler:
 		if not self.authorized (app, request, has_route):
 			return 
 		
-		ct = request.get_header ("content-type")
+		ct = request.get_header ("content-type")		
 		if request.command == 'post' and ct and ct.startswith ("multipart/form-data"):
 			# handle stream by app
 			# shoud have constructor __init__ (self, handler, request, upload_max_size = 100000000)

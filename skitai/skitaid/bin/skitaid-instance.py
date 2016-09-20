@@ -93,6 +93,10 @@ class	WAS (Skitai.Loader):
 			self.config_certification (config.getopt ("server", "certfile"), config.getopt ("server", "keyfile"), config.getopt ("server", "passphrase"))
 			self.ssl_server = True
 		
+		try: import h2
+		except ImportError:
+			self.wasc.logger ("server", "h2 is not installed, HTTP/2.0 is disabled", "warn")
+			
 		if config.getopt ("server", "enable_proxy") == "yes":
 			self.wasc.logger ("server", "----------------------------------------------------", "warn")
 			if self.ssl_server:				
@@ -152,7 +156,6 @@ class	WAS (Skitai.Loader):
 		else:
 			self.wasc.logger ("server", "[error] unknown signal - %s" % req)
 		self.flock.unlock ("signal")
-
 
 
 def usage ():

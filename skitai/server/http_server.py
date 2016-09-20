@@ -22,9 +22,7 @@ DEBUG = False
 #-------------------------------------------------------------------
 # server channel
 #-------------------------------------------------------------------
-class http_channel (asynchat.async_chat):
-	ac_out_buffer_size = 4096
-	ac_in_buffer_size = 4096
+class http_channel (asynchat.async_chat):	
 	current_request = None
 	channel_count = counter.counter ()
 	ready = None
@@ -41,7 +39,7 @@ class http_channel (asynchat.async_chat):
 		self.request_counter = counter.counter()
 		self.bytes_out = counter.counter()
 		
-		asynchat.async_chat.__init__ (self, conn)		
+		asynchat.async_chat.__init__ (self, conn)
 		self.server = server
 		self.addr = addr		
 		self.set_terminator (b'\r\n\r\n')
@@ -64,7 +62,7 @@ class http_channel (asynchat.async_chat):
 			return not self.is_rejected and asynchat.async_chat.readable (self)	and self.affluent ()
 		return not self.is_rejected and asynchat.async_chat.readable (self)
 			
-	def writable (self):								
+	def writable (self):
 		if self.ready is not None:
 			return asynchat.async_chat.writable (self) and self.ready ()
 		return asynchat.async_chat.writable (self)
@@ -115,7 +113,7 @@ class http_channel (asynchat.async_chat):
 		self.set_timeout_by_case ()
 		asynchat.async_chat.handle_write (self)		
 	
-	def initiate_send (self):		
+	def initiate_send (self):
 		ret = asynchat.async_chat.initiate_send (self)		
 		if len (self.producer_fifo) == 0:
 			self.done_request ()
@@ -136,7 +134,7 @@ class http_channel (asynchat.async_chat):
 	def send (self, data):
 		#print	("SEND", repr(data), self.get_terminator ())
 		self.event_time = int (time.time())
-		result = asynchat.async_chat.send (self, data)
+		result = asynchat.async_chat.send (self, data)		
 		self.server.bytes_out.inc (result)
 		self.bytes_out.inc (result)
 		return result
@@ -212,14 +210,15 @@ class http_channel (asynchat.async_chat):
 						self.current_request = r
 						h.handle_request (r)
 												
-					except:						
+					except:
 						self.server.trace()
 						try: r.response.error (500)
 						except: pass							
 					return
 					
-			r.response.error (503)
-					
+			try: r.response.error (404)
+			except: pass	
+	      				
 	def close (self):
 		if self.closed:
 			return

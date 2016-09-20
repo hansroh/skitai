@@ -5,12 +5,7 @@
 Changes & News
 ===============
 
-- fixed fancy URL <path> routing
-- add Websocket design spec: WEBSOCKET_DEDICATE_THREADSAFE
-- fixed Websocket keep-alive timeout
-- fixed fancy URL routing
-- 'was.cookie.set()' method prototype has been changed.
-- added Named Session & Messaging Box
+- HTTP/2.0 implemented with hyper-h2_
 
 
 Introduce
@@ -25,6 +20,7 @@ SAE orients light-weight, simplicity  and strengthen networking operations with 
 It is influenced by Zope_ and Flask_ a lot.
 
 - SAE can be run as Web, XML-RPC and Reverse Proxy Loadbancing Server
+- Support HTML5 Websocket & HTTP/2.0
 - SAE can handle massive RESTful API/RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily
 - SAE provides asynchronous connection to PostgreSQL
 
@@ -38,7 +34,7 @@ Conceptually, SAE has been seperated into two components:
 
 2. Saddle, the small WSGI middleware integrated with SAE. But you can also mount any WSGI apps and frameworks like Flask.
 
-
+.. _hyper-h2: https://pypi.python.org/pypi/h2
 .. _Zope: http://www.zope.org/
 .. _Flask: http://flask.pocoo.org/
 .. _PostgreSQL: http://www.postgresql.org/
@@ -58,6 +54,7 @@ On win32, required *pywin32 binary* - http://sourceforge.net/projects/pywin32/fi
 
 - *psycopg2* for querying PostgreSQL asynchronously (`win32 binary`_)
 - *Jinja2* for HTML Rendering
+- *hyper-h2* for HTTP/2 protocol
 
 .. _`win32 binary`: http://www.stickpeople.com/projects/python/win-psycopg/
 
@@ -2439,7 +2436,12 @@ Change Log
 ==============
   
   0.15
-  
+  - fixed fancy URL <path> routing
+  - add Websocket design spec: WEBSOCKET_DEDICATE_THREADSAFE
+  - fixed Websocket keep-alive timeout
+  - fixed fancy URL routing
+  - 'was.cookie.set()' method prototype has been changed.
+  - added Named Session & Messaging Box
   - fix select error when closed socket, thanks to spam-proxy-bots
   - add mimetypes for .css .js
   - fix debug output
