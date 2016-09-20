@@ -47,7 +47,7 @@ class WebSocket:
 	producer = None
 	
 	def __init__ (self, handler, request):		
-		self.handler = handler		
+		self.handler = handler
 		self.wasc = handler.wasc
 		self.request = request		
 		self.channel = request.channel

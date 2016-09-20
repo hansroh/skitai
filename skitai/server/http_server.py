@@ -226,9 +226,7 @@ class http_channel (asynchat.async_chat):
 		if self.current_request is not None:
 			self.closable_producers.append (self.current_request.collector)
 			self.closable_producers.append (self.current_request.producer)
-			self.current_request.channel = None # break circ refs
-			self.current_request = None
-		
+			
 		for closable in self.closable_producers + self.closable_partners:
 			if closable and hasattr (closable, "close"):
 				try:
@@ -236,6 +234,10 @@ class http_channel (asynchat.async_chat):
 				except:
 					self.server.trace()
 		
+		if self.current_request is not None:
+			self.current_request.channel = None # break circ refs
+			self.current_request = None
+			
 		self.discard_buffers ()
 		asynchat.async_chat.close (self)
 		self.connected = False		

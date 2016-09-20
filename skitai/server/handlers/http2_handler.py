@@ -203,7 +203,7 @@ class HTTP2:
 		
 		self.conn = H2Connection(client_side = False)
 		self.frame_buf = self.conn.incoming_buffer		
-		self.channel.push (self.get_connection_preface ())
+		self.initiate_connection ()
 		
 		self.data_length = 0
 		self.current_frame = None
@@ -230,18 +230,27 @@ class HTTP2:
 		self._closed = True
 		if self.channel:
 			self.channel.current_request = None  # break circ. ref
+		self.conn.close_connection () # go_away
+		print ('------------- go away')
+		self.send_data ()
 		self.handler.finish_request (self.request)
-	
+		
 	def closed (self):
 		return self._closed
 	
-	def get_connection_preface (self):
+	def send_data (self):			
+		data_to_send = self.conn.data_to_send ()
+		print ('+++++++++++', data_to_send)
+		if data_to_send:
+			self.channel.push (data_to_send)
+			
+	def initiate_connection (self):
 		h2settings = self.request.get_header ("HTTP2-Settings")
 		if h2settings:
 			self.conn.initiate_upgrade_connection (h2settings)
 		else:	
 			self.conn.initiate_connection()		
-		return self.conn.data_to_send ()
+		return self.send_data ()
 			
 	def collect_incoming_data (self, data):
 		#print ("RECV", repr (data), len (data), '::', self.channel.get_terminator ())		
@@ -363,11 +372,9 @@ class HTTP2:
 						pass
 				
 				if r and r.collector:
-					raise ProtocolError ("Data frame not complete")
-				
-		data_to_send = self.conn.data_to_send ()
-		if data_to_send:
-			self.channel.push (data_to_send)
+					self.conn.reset_stream (event.stream_id, PROTOCOL_ERROR)					
+		
+		self.send_data ()
 			
 	def handle_request (self, event):
 		command = "GET"
@@ -406,7 +413,8 @@ class HTTP2:
 
 							
 class Handler (wsgi_handler.Handler):
-	KEEP_ALIVE = 300
+	keep_alive = 5
+	
 	def match (self, request):
 		if request.command == "pri" and request.uri == "*" and request.version == "2.0":
 			return True
@@ -423,9 +431,10 @@ class Handler (wsgi_handler.Handler):
 			request.response.done ()
 		
 		http2 = HTTP2 (self, request)
+		request.channel.add_closing_partner (http2)
 		request.channel.current_request = http2
-		request.channel.set_response_timeout (self.KEEP_ALIVE)
-		request.channel.set_keep_alive (self.KEEP_ALIVE)		
+		request.channel.set_response_timeout (self.keep_alive)
+		request.channel.set_keep_alive (self.keep_alive)	
 		
 	def finish_request (self, request):
 		if request.channel:
