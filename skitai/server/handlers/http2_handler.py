@@ -199,11 +199,14 @@ class HTTP2:
 		self.wasc = handler.wasc
 		self.request = request
 		self.channel = request.channel
-		self.conn = H2Connection(client_side = False)
 		self.channel.producer_fifo = priority_producer_fifo ()
+		
+		self.conn = H2Connection(client_side = False)
+		self.frame_buf = self.conn.incoming_buffer		
 		self.channel.push (self.get_connection_preface ())
 		
 		self.data_length = 0
+		self.current_frame = None
 		self.rfile = BytesIO ()
 		self.buf = b""
 
@@ -252,26 +255,35 @@ class HTTP2:
 		else:
 			self.buf += data
 	
+	def set_frame_data (self, data):
+		if not self.current_frame:
+			return []
+		self.current_frame.parse_body (memoryview (data))
+		self.current_frame = self.frame_buf._update_header_buffer (self.current_frame)
+		return self.conn._receive_frame(self.current_frame)
+		
 	def found_terminator (self):
 		buf, self.buf = self.buf, b""
 		
 		#print ("FOUND", repr (buf), '::', self.data_length, self.channel.get_terminator ())		
 		events = None
 		if not self._got_preamble:
-			events = self.conn.receive_data (buf)
+			self.conn.receive_data (buf)
 			self.channel.set_terminator (9)
 			self._got_preamble = True
 			
 		elif self.data_length:
-			events = self.conn.receive_data (self.rfile.getvalue ())
+			events = self.set_frame_data (self.rfile.getvalue ())			
 			self.data_length = 0
+			self.current_frame = None
 			self.rfile.seek (0)
 			self.rfile.truncate ()
 			self.channel.set_terminator (9) # for frame header
 						
 		elif buf:
-			events = self.conn.receive_data (buf)
-			self.data_length = self.conn.incoming_buffer._parse_frame_header (buf) [-1]
+			self.current_frame, self.data_length = self.frame_buf._parse_frame_header (buf)
+			if self.data_length == 0:
+				events = self.set_frame_data (b'')
 			self.channel.set_terminator (self.data_length == 0 and 9 or self.data_length)	# next frame header
 			
 		else:
