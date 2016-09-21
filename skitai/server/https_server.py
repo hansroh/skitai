@@ -5,9 +5,11 @@ from .counter import counter
 import socket, time, asyncore
 import ssl
 from skitai import lifetime
-import os, sys
+import os, sys, errno
 import skitai
 
+PY_MAJOR_VERSION = sys.version_info [0]
+				
 class https_channel (http_server.http_channel):
 	ac_out_buffer_size = 65536
 	ac_in_buffer_size = 65536
@@ -16,7 +18,18 @@ class https_channel (http_server.http_channel):
 		http_server.http_channel.__init__(self, server, conn, addr)
 	
 	def send(self, data):	
-		result = self.socket.send(data)		
+		try:
+			result = self.socket.send(data)	
+				
+		except ssl.SSLError as why:
+			if why.errno == ssl.SSL_ERROR_WANT_WRITE:
+				return 0
+			elif why.errno == ssl.SSL_ERROR_ZERO_RETURN:				
+				self.handle_close ()
+				return 0
+			else:
+				raise
+					
 		if result <= 0:
 			return 0
 		else:
@@ -24,8 +37,11 @@ class https_channel (http_server.http_channel):
 			return result	
 		
 	def recv(self, buffer_size = 65535):
+		global PY_MAJOR_VERSION
+		
 		try:			
 			result = self.socket.recv(buffer_size)
+			#print ("~~~~~~~~~~~~~", len (result), buffer_size)
 			if result is None:
 				return b''
 				
@@ -39,11 +55,21 @@ class https_channel (http_server.http_channel):
 		
 		except MemoryError:
 			lifetime.shutdown (1, 1)
-			
-		except ssl.SSLEOFError:
-			self.handle_close()
-			return b''
-			
+		
+		except ssl.SSLError as why:
+			print ("SSL_ERROR_WANT_READ")
+			if why.errno == ssl.SSL_ERROR_WANT_READ:
+				if PY_MAJOR_VERSION == 2:	
+					raise socket.error (errno.EWOULDBLOCK)
+				else:	
+					raise BlockingIOError					
+			# closed connection
+			elif why.errno in (ssl.SSL_ERROR_ZERO_RETURN, ssl.SSL_ERROR_EOF):
+				self.handle_close ()
+				return b''
+			else:
+				raise
+					
 
 class https_server (http_server.http_server):
 	def __init__ (self, ip, port, ctx, server_logger = None, request_logger = None):

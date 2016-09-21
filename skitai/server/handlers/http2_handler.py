@@ -38,6 +38,11 @@ class priority_producer_fifo:
 			del self.l [index]
 		
 	def append (self, item):
+		if item is None:
+			with self._lock:
+				self.l.append (item)
+			return
+				
 		try:
 			w1 = item.weight
 			d1 = item.depends_on
@@ -56,7 +61,7 @@ class priority_producer_fifo:
 				except AttributeError:
 					pass
 				else:
-					if d2 >= d1 and w2 <= w1:
+					if d2 >= d1 and w2 < w1:
 						self.l.insert (index, item)
 						inserted = True
 						break
@@ -190,7 +195,7 @@ class data_channel (fake_channel, asynchat.async_chat):
 		data, self._data = self._data, b""
 		return data
 				
-	def collect_incoming_data (self, data):
+	def collect_incoming_data (self, data):		
 		self.current_request.collect_incoming_data (data)
 	
 	def found_terminator (self):
@@ -209,7 +214,8 @@ class HTTP2:
 		
 		self.channel.producer_fifo = priority_producer_fifo ()
 		self.conn = H2Connection(client_side = False)
-		self.frame_buf = self.conn.incoming_buffer		
+		self.frame_buf = self.conn.incoming_buffer
+		self.frame_buf.max_frame_size = self.conn.max_inbound_frame_size
 		self.initiate_connection ()
 		
 		self.data_length = 0
@@ -225,6 +231,8 @@ class HTTP2:
 
 		self._plock = threading.Lock ()
 		self._clock = threading.Lock ()
+		
+		self.__data_size = 0
 		
 	def close (self, force = False):
 		if self._closed: return
@@ -259,7 +267,20 @@ class HTTP2:
 			self.conn.initiate_upgrade_connection (h2settings)
 		else:	
 			self.conn.initiate_connection()		
-		return self.send_data ()
+		self.send_data ()
+		
+		if self.request.version == "1.1":
+			headers = [
+				(":method", self.request.command.upper ()), 
+				(":path", self.request.uri),
+			]
+			for line in self.request.get_header ():
+				k, v = line.split (": ", 1) 
+				k = k.lower ()
+				if k in ("http2-settings", "connection", "upgrade"):
+					continue
+				headers.append ((k, v))		
+			self.handle_request (1, headers)
 			
 	def collect_incoming_data (self, data):
 		#print ("RECV", repr (data), len (data), '::', self.channel.get_terminator ())		
@@ -276,9 +297,9 @@ class HTTP2:
 	def set_frame_data (self, data):
 		if not self.current_frame:
 			return []
-		self.current_frame.parse_body (memoryview (data))
+		self.current_frame.parse_body (memoryview (data))			
 		self.current_frame = self.frame_buf._update_header_buffer (self.current_frame)
-		return self.conn._receive_frame(self.current_frame)
+		return self.conn._receive_frame (self.current_frame)
 		
 	def found_terminator (self):
 		buf, self.buf = self.buf, b""
@@ -291,8 +312,8 @@ class HTTP2:
 			self.channel.set_terminator (9)
 			self._got_preamble = True
 			
-		elif self.data_length:
-			events = self.set_frame_data (self.rfile.getvalue ())			
+		elif self.data_length:			
+			events = self.set_frame_data (self.rfile.getvalue ())
 			self.data_length = 0
 			self.current_frame = None
 			self.rfile.seek (0)
@@ -301,6 +322,10 @@ class HTTP2:
 						
 		elif buf:
 			self.current_frame, self.data_length = self.frame_buf._parse_frame_header (buf)
+			self.frame_buf.max_frame_size = self.conn.max_inbound_frame_size
+			self.frame_buf._validate_frame_length (self.data_length)			
+			#print ("FRAME", self.current_frame, '::', self.data_length)
+			
 			if self.data_length == 0:
 				events = self.set_frame_data (b'')
 			self.channel.set_terminator (self.data_length == 0 and 9 or self.data_length)	# next frame header
@@ -345,7 +370,7 @@ class HTTP2:
 		for event in events:
 			#print (event)
 			if isinstance(event, RequestReceived):
-				self.handle_request (event)				
+				self.handle_request (event.stream_id, event.headers)				
 			
 			elif isinstance(event, ConnectionTerminated):
 				self.close (True)
@@ -372,6 +397,8 @@ class HTTP2:
 				
 				# POST, PUT method
 				if r:		
+					self.__data_size += len (event.data)
+					#print ("---total_data (event.data)", self.__data_size)
 					r.channel.set_data (event.data)
 					r.channel.handle_read ()
 
@@ -386,25 +413,27 @@ class HTTP2:
 				
 				if r and r.collector:
 					self.conn.reset_stream (event.stream_id, PROTOCOL_ERROR)					
+					with self._clock:
+						del self.stream_data [event.stream_id]
 		
 		self.send_data ()
 			
-	def handle_request (self, event):
+	def handle_request (self, stream_id, headers):
 		command = "GET"
 		uri = "/"
-		headers = []
-		for k, v in event.headers:
+		h = []
+		for k, v in headers:
 			if k[0] == ":":
 				if k == ":method": command = v
 				elif k == ":path": uri = v
 				continue
-			headers.append ("%s: %s" % (k, v))
+			h.append ("%s: %s" % (k, v))
 		
 		if command in ("POST", "PUT"):
 			vchannel = data_channel (self.channel)
 		else:
 			vchannel = fake_channel (self.channel)			
-		r = http2_request (self, vchannel, "%s %s HTTP/2.0" % (command, uri), command.lower (), uri, "2.0", headers, event.stream_id)
+		r = http2_request (self, vchannel, "%s %s HTTP/2.0" % (command, uri), command.lower (), uri, "2.0", h, stream_id)
 		vchannel.current_request = r
 		
 		self.channel.request_counter.inc()
@@ -421,7 +450,7 @@ class HTTP2:
 				else:
 					if r.collector:
 						with self._clock:
-							self.stream_data [event.stream_id] = r						
+							self.stream_data [stream_id] = r
 				return
 		
 		try: r.response.error (404)
@@ -434,6 +463,8 @@ class Handler (wsgi_handler.Handler):
 	def match (self, request):
 		if request.command == "pri" and request.uri == "*" and request.version == "2.0":
 			return True
+		if request.command in ('post', 'put'):
+			return False
 		upgrade = request.get_header ("upgrade")
 		return upgrade and upgrade.lower () == "h2c" and request.version == "1.1" and request.command == "get"
 	

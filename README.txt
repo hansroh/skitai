@@ -2432,6 +2432,16 @@ Also note it might be more efficient that circumstance using `Gevent WSGI Server
 .. _`Gevent WSGI Server`: http://www.gevent.org/
 
 
+Links
+======
+
+- `GitHub Repository`_
+- Bug Report: `GitHub issues`_
+
+.. _`GitHub Repository`: https://github.com/hansroh/skitai
+.. _`GitHub issues`: https://github.com/hansroh/skitai/issues
+
+
 Change Log
 ==============
   
