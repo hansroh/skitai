@@ -160,9 +160,6 @@ class WAS:
 	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		return self.app.render (self, template_file, _do_not_use_this_variable_name_, **karg)
 	
-	def render2 (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
-		return self.subapp.render (self, template_file, _do_not_use_this_variable_name_, **karg)
-		
 	REDIRECT_TEMPLATE =  (
 		"<head><title>%s</title></head>"
 		"<body><h1>%s</h1>"

@@ -74,7 +74,23 @@ class Saddle (part.Part):
 			lstrip_blocks = True,
 		  **karg
 		)
-				
+	
+	def render (self, was, template_file, _do_not_use_this_variable_name_ = {}, **karg):
+		while template_file and template_file [0] == "/":
+			template_file = template_file [1:]	
+											
+		if _do_not_use_this_variable_name_: 
+			assert not karg, "Can't Use Dictionary and Keyword Args Both"
+			karg = _do_not_use_this_variable_name_
+
+		karg ["was"] = was		
+		template = self.get_template (template_file)
+		self.when_got_template (was, template, karg)
+			
+		rendered = template.render (karg)
+		self.when_template_rendered (was, template, karg, rendered)
+		return rendered	
+					
 	def __setattr__ (self, name, attr):
 		if name == "upload_file_max_size":
 			multipart_collector.MultipartCollector.file_max_size = attr

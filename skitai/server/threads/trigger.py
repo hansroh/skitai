@@ -3,22 +3,25 @@ import socket
 from .select_trigger import trigger
 
 the_trigger = None
+the_logger = None
 
-def start_trigger ():
-	global the_trigger
+def start_trigger (logger = None):
+	global the_trigger, the_logger
+	the_logger = logger
 	if the_trigger is None:
-		the_trigger = trigger ()
+		the_trigger = trigger (logger)
 
 def wakeup (thunk = None):
-	global the_trigger	
+	global the_trigger, the_logger	
 	if the_trigger is None:
 		if thunk:
 			try:
 				thunk ()
 			except:
-				(file, fun, line), t, v, tbinfo = asyncore.compact_traceback()
+				if the_logger:
+					the_logger.trace ('wakeup')
 		return		
-			
+
 	try:
 		the_trigger.pull_trigger(thunk)
 	except OSError as why:

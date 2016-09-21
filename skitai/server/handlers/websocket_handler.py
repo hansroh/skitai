@@ -63,8 +63,6 @@ class WebSocket:
 	def close (self):
 		if self._closed: return
 		self._closed = True
-		if self.channel:
-			self.channel.current_request = None  # break circ. ref
 		self.handler.finish_request (self.request)		
 	
 	def closed (self):

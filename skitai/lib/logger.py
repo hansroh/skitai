@@ -85,7 +85,7 @@ class base_logger:
 		self.out.close ()
 	
 	def trace (self, name = ''):
-		return self.log(trace (), "expt", name)	
+		return self.log (trace (), "expt", name)	
 	traceback = trace	
 	
 	def read (self):

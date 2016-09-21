@@ -46,9 +46,10 @@ if os.name == 'posix':
 		# new data onto a channel's outgoing data queue at the same time that
 		# the main thread is trying to remove some]
 
-		def __init__ (self):
+		def __init__ (self, logger = None):
 			r, w = os.pipe()
 			self.trigger = w
+			self.logger = logger
 			asyncore.file_dispatcher.__init__ (self, r)
 			self.lock = _thread.allocate_lock()
 			self.thunks = []
@@ -83,7 +84,8 @@ if os.name == 'posix':
 					try:						
 						thunk()
 					except:
-						(file, fun, line), t, v, tbinfo = asyncore.compact_traceback()						
+						if self.logger:
+							self.logger.trace ('the_trigger')
 				self.thunks = []
 								
 			finally:
@@ -95,7 +97,8 @@ else:
 
 	class trigger (asyncore.dispatcher):
 		address = ('127.9.9.9', 19999)
-		def __init__ (self):
+		def __init__ (self, logger = None):
+			self.logger = logger
 			sock_class = socket.socket
 			a = sock_class (socket.AF_INET, socket.SOCK_STREAM)
 			w = sock_class (socket.AF_INET, socket.SOCK_STREAM)
@@ -157,7 +160,8 @@ else:
 					try:
 						thunk ()
 					except:
-						(file, fun, line), t, v, tbinfo = asyncore.compact_traceback()
+						if self.logger:
+							self.logger.trace ('the_trigger')
 				self.thunks = []
 				
 			finally:

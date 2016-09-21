@@ -6,6 +6,7 @@ import socket, time, asyncore
 import ssl
 from skitai import lifetime
 import os, sys
+import skitai
 
 class https_channel (http_server.http_channel):
 	ac_out_buffer_size = 65536
@@ -76,10 +77,11 @@ def init_context (certfile, keyfile, pass_phrase):
 	except AttributeError:
 		protocol = ssl.PROTOCOL_SSLv23			
 	ctx = ssl.SSLContext (protocol)
-	try:	
-		ctx.set_alpn_protocols (["h2", "h2-16", "h2-15", "h2-14"])
-	except AttributeError:		
-		ctx.set_npn_protocols (["h2", "h2-16", "h2-15", "h2-14"])
+	if skitai.HTTP2:
+		try:	
+			ctx.set_alpn_protocols (["h2", "h2-16", "h2-15", "h2-14"])
+		except AttributeError:		
+			ctx.set_npn_protocols (["h2", "h2-16", "h2-15", "h2-14"])
 	ctx.load_cert_chain (certfile, keyfile, pass_phrase)
 	ctx.check_hostname = False
 	return ctx

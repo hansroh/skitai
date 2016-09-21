@@ -298,8 +298,8 @@ class Job:
 			for part in will_be_push:				
 				if len (will_be_push) == 1 and type (part) is bytes and len (response) == 0:
 					response.update ("Content-Length", len (part))
-				response.push (part)					
-			trigger.wakeup (lambda p=response: (p.done(),))
+				response.push (part)
+			trigger.wakeup (lambda p=response: (p.done(),))			
 											
 	def __call__(self):
 		try:

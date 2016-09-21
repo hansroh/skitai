@@ -79,8 +79,9 @@ class TunnelHandler:
 	def connection_closed (self, why, msg):
 		#print ("------------Asyncon_disconnected", self.request.uri, self.bytes)
 		# Disconnected by server mostly caused by Connection: close header				
-		self.channel.close_when_done ()
-		self.channel.current_request = None
+		if self.channel:
+			self.channel.close_when_done ()
+			self.channel.current_request = None
 		
 	def channel_closed (self):
 		#print ("------------channel_closed", self.request.uri, self.bytes)

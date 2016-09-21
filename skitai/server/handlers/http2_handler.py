@@ -5,98 +5,13 @@ from skitai.server.threads import trigger
 import asynchat
 from h2.connection import H2Connection
 from h2.exceptions import ProtocolError
-from h2.events import DataReceived, RequestReceived, StreamEnded, PriorityUpdated
+from h2.events import DataReceived, RequestReceived, StreamEnded, PriorityUpdated, ConnectionTerminated
 from h2.errors import PROTOCOL_ERROR
-
-
+import threading
 try:
 	from cStringIO import StringIO as BytesIO
 except ImportError:
 	from io import BytesIO
-import threading
-
-class http2_response (http_response.http_response):
-	USE_DATA_COMPRESS = True
-	
-	def __init__ (self, request):
-		http_response.http_response.__init__ (self, request)		
-	
-	def push (self, thing):
-		if not self.responsable (): return
-		if type(thing) is bytes:			
-			self.outgoing.push (producers.simple_producer (thing))
-		else:
-			self.outgoing.push (thing)
-			
-	def build_reply_header (self):	
-		h = [(b":status", str (self.reply_code).encode ("utf8"))]
-		for k, v in self.reply_headers:
-			h.append ((k.encode ("utf8"), str (v).encode ("utf8")))		
-		return h
-		
-	def done (self, *args, **karg):
-		# removed by HTTP/2.0 Spec.
-		self.delete ('transfer-encoding')
-		self.delete ('connection')
-		
-		if len (self.outgoing) == 0:
-			outgoing_producer = None
-		
-		else:
-			way_to_compress = ""
-			if self.USE_DATA_COMPRESS and not self.has_key ('Content-Encoding'):
-				maybe_compress = self.request.get_header ("Accept-Encoding")
-				if maybe_compress and self.has_key ("content-length") and int (self ["Content-Length"]) <= http_response.UNCOMPRESS_MAX:
-					maybe_compress = ""
-				else:	
-					content_type = self ["Content-Type"]
-					if maybe_compress and content_type and (content_type.startswith ("text/") or content_type.endswith ("/json-rpc")):
-						accept_encoding = [x.strip () for x in maybe_compress.split (",")]
-						if "gzip" in accept_encoding:
-							way_to_compress = "gzip"
-						elif "deflate" in accept_encoding:
-							way_to_compress = "deflate"
-			
-				if way_to_compress:
-					if self.has_key ('Content-Length'):
-						self.delete ("content-length") # rebuild
-					self.update ('Content-Encoding', way_to_compress)
-			
-			if way_to_compress:
-				if way_to_compress == "gzip":
-					producer = producers.gzipped_producer
-				else: # deflate
-					producer = producers.compressed_producer
-				outgoing_producer = producer (producers.composite_producer (self.outgoing))						
-			else:
-				outgoing_producer = producers.composite_producer (self.outgoing)		
-			
-			outgoing_producer = producers.globbing_producer (producers.hooked_producer (outgoing_producer, self.log))
-		
-		self.request.http2.push_response (
-			self.request.stream_id, 
-			self.build_reply_header (), 
-			outgoing_producer
-		)
-
-		
-class http2_request (http_request.http_request):
-	def __init__ (self, *args):
-		self.request_number = self.request_count.inc()		
-		(self.http2, self.channel, self.request,		 
-		 self.command, self.uri, self.version,
-		 self.header, 
-		 self.stream_id) = args
-		
-		self.logger = self.channel.server.server_logger
-		self.server_ident = self.channel.server.SERVER_IDENT
-		self.body = None
-		self.reply_code = 200
-		self.reply_message = ""		
-		self._split_uri = None
-		self._header_cache = {}
-		self.gzip_encoded = False
-		self.response = http2_response (self)
 
 
 class priority_producer_fifo:
@@ -161,20 +76,112 @@ class priority_producer_fifo:
 	def clear (self):
 		with self._lock:
 			self.l = []
-
-
-class fake_channel (asynchat.async_chat):
-	def __init__ (self, channel):
-		asynchat.async_chat.__init__ (self)
-		self._channel = channel
-		self._data = b""
+			
+			
+class http2_response (http_response.http_response):
+	USE_DATA_COMPRESS = True
+	
+	def __init__ (self, request):
+		http_response.http_response.__init__ (self, request)		
+	
+	def push (self, thing):
+		if not self.responsable (): return
+		if type(thing) is bytes:			
+			self.outgoing.push (producers.simple_producer (thing))
+		else:
+			self.outgoing.push (thing)
+			
+	def build_reply_header (self):	
+		h = [(b":status", str (self.reply_code).encode ("utf8"))]
+		for k, v in self.reply_headers:
+			h.append ((k.encode ("utf8"), str (v).encode ("utf8")))		
+		return h
 		
+	def done (self, *args, **karg):
+		# removed by HTTP/2.0 Spec.
+		self.delete ('transfer-encoding')
+		self.delete ('connection')
+		
+		if len (self.outgoing) == 0:
+			outgoing_producer = None
+		
+		else:
+			way_to_compress = ""
+			if self.USE_DATA_COMPRESS and not self.has_key ('Content-Encoding'):
+				maybe_compress = self.request.get_header ("Accept-Encoding")
+				if maybe_compress and self.has_key ("content-length") and int (self ["Content-Length"]) <= http_response.UNCOMPRESS_MAX:
+					maybe_compress = ""
+				else:	
+					content_type = self ["Content-Type"]
+					if maybe_compress and content_type and (content_type.startswith ("text/") or content_type.endswith ("/json-rpc")):
+						accept_encoding = [x.strip () for x in maybe_compress.split (",")]
+						if "gzip" in accept_encoding:
+							way_to_compress = "gzip"
+						elif "deflate" in accept_encoding:
+							way_to_compress = "deflate"
+			
+				if way_to_compress:
+					if self.has_key ('Content-Length'):
+						self.delete ("content-length") # rebuild
+					self.update ('Content-Encoding', way_to_compress)
+			
+			if way_to_compress:
+				if way_to_compress == "gzip":
+					producer = producers.gzipped_producer
+				else: # deflate
+					producer = producers.compressed_producer
+				outgoing_producer = producer (producers.composite_producer (self.outgoing))						
+			else:
+				outgoing_producer = producers.composite_producer (self.outgoing)		
+			
+			outgoing_producer = producers.globbing_producer (producers.hooked_producer (outgoing_producer, self.log))
+		
+		try:
+			self.request.http2.push_response (
+				self.request.stream_id, 
+				self.build_reply_header (), 
+				outgoing_producer
+			)
+		
+		except:
+			self.request.logger.trace ()			
+			self.request.http2.close (True)
+			
+		
+class http2_request (http_request.http_request):
+	def __init__ (self, *args):
+		self.request_number = self.request_count.inc()		
+		(self.http2, self.channel, self.request,		 
+		 self.command, self.uri, self.version,
+		 self.header, 
+		 self.stream_id) = args
+		
+		self.logger = self.channel.server.server_logger
+		self.server_ident = self.channel.server.SERVER_IDENT
+		self.body = None
+		self.reply_code = 200
+		self.reply_message = ""		
+		self._split_uri = None
+		self._header_cache = {}
+		self.gzip_encoded = False
+		self.response = http2_response (self)
+
+
+class fake_channel:
+	def __init__ (self, channel):
 		# override members
+		self._channel = channel
 		self.addr = channel.addr
 		self.connected = channel.connected
-		
+	
 	def __getattr__ (self, attr):
 		return getattr (self._channel, attr)
+
+class data_channel (fake_channel, asynchat.async_chat):
+	def __init__ (self, channel):
+		asynchat.async_chat.__init__ (self)
+		fake_channel.__init__ (self, channel)
+		self._data = b""		
 		
 	def set_data (self, data):
 		self._data = data
@@ -225,14 +232,14 @@ class HTTP2:
 			self.conn.receive_data (b"PRI * HTTP/2.0\r\n\r\n")
 			self.channel.set_terminator (6) # SM\r\n\r\n
 		
-	def close (self):
+	def close (self, force = False):
 		if self._closed: return
-		self._closed = True
+		self._closed = True		
+		if force:
+			self.channel = None									
 		if self.channel:
-			self.channel.current_request = None  # break circ. ref
-		self.conn.close_connection () # go_away
-		print ('------------- go away')
-		self.send_data ()
+			self.conn.close_connection () # go_away
+			self.send_data ()		
 		self.handler.finish_request (self.request)
 		
 	def closed (self):
@@ -240,8 +247,8 @@ class HTTP2:
 	
 	def send_data (self):			
 		data_to_send = self.conn.data_to_send ()
-		print ('+++++++++++', data_to_send)
 		if data_to_send:
+			#print ("SEND", repr (data_to_send), len (data_to_send), '::', self.channel.get_terminator ())		
 			self.channel.push (data_to_send)
 			
 	def initiate_connection (self):
@@ -256,7 +263,7 @@ class HTTP2:
 		#print ("RECV", repr (data), len (data), '::', self.channel.get_terminator ())		
 		if not data:
 			# closed connection
-			self.close ()
+			self.close (True)
 			return
 			
 		if self.data_length:
@@ -277,7 +284,8 @@ class HTTP2:
 		#print ("FOUND", repr (buf), '::', self.data_length, self.channel.get_terminator ())		
 		events = None
 		if not self._got_preamble:
-			self.conn.receive_data (buf)
+			if not buf.endswith (b"SM\r\n\r\n"):
+				raise ProtocolError ("Invalid preamble")
 			self.channel.set_terminator (9)
 			self._got_preamble = True
 			
@@ -301,7 +309,7 @@ class HTTP2:
 		if events:
 			self.handle_events (events)
 				
-	def push_response (self, stream_id, headers, producer):		
+	def push_response (self, stream_id, headers, producer):
 		with self._clock:
 			try:
 				depends_on, weight = self.stream_weights [stream_id]
@@ -337,6 +345,9 @@ class HTTP2:
 			if isinstance(event, RequestReceived):
 				self.handle_request (event)				
 			
+			elif isinstance(event, ConnectionTerminated):
+				self.close (True)
+				
 			elif isinstance(event, PriorityUpdated):
 				if event.exclusive:
 					# rebuild depend_ons
@@ -387,9 +398,12 @@ class HTTP2:
 				continue
 			headers.append ("%s: %s" % (k, v))
 		
-		fch = fake_channel (self.channel)
-		r = http2_request (self, fch, "%s %s HTTP/2.0" % (command, uri), command.lower (), uri, "2.0", headers, event.stream_id)
-		fch.current_request = r
+		if command in ("POST", "PUT"):
+			vchannel = data_channel (self.channel)
+		else:
+			vchannel = fake_channel (self.channel)			
+		r = http2_request (self, vchannel, "%s %s HTTP/2.0" % (command, uri), command.lower (), uri, "2.0", headers, event.stream_id)
+		vchannel.current_request = r
 		
 		self.channel.request_counter.inc()
 		self.channel.server.total_requests.inc()
@@ -413,7 +427,7 @@ class HTTP2:
 
 							
 class Handler (wsgi_handler.Handler):
-	keep_alive = 5
+	keep_alive = 120
 	
 	def match (self, request):
 		if request.command == "pri" and request.uri == "*" and request.version == "2.0":

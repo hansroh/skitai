@@ -55,7 +55,7 @@ def configure (
 		
 	socketpool.create (logger)
 	adns.init (logger)
-	trigger.start_trigger () # for keeping lifetime loop
+	trigger.start_trigger (logger) # for keeping lifetime loop
 			
 	
 def add (thing, callback, front = False):

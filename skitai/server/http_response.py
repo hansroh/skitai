@@ -418,11 +418,9 @@ class http_response:
 				self.request.channel.close_when_done()
 		
 		except:
-			self.request.logger.trace ()
-			self.request.logger.log (
-				'channel maybe closed',
-				'warning'
-			)		
+			self.request.logger.trace ()			
+			if self.request.channel:
+				self.request.channel.close_when_done ()
 	
 	def log (self, bytes):		
 		self.request.channel.server.log_request (

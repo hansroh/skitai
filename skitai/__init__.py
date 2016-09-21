@@ -6,7 +6,10 @@ NAME = "SAE/%s.%s" % version_info [:2]
 
 import threading
 import sys
-
+HTTP2 = True
+try: import h2
+except ImportError: HTTP2 = False
+	
 WEBSOCKET_REQDATA = 1
 WEBSOCKET_DEDICATE = 2
 WEBSOCKET_MULTICAST = 3

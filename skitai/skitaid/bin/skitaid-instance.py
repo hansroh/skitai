@@ -5,7 +5,7 @@ import sys, os, getopt
 from skitai.server import Skitai
 from skitai import lifetime
 from skitai.lib import confparse, flock, pathtool
-
+import skitai
 import signal
 try:
 	import hotshot
@@ -93,8 +93,7 @@ class	WAS (Skitai.Loader):
 			self.config_certification (config.getopt ("server", "certfile"), config.getopt ("server", "keyfile"), config.getopt ("server", "passphrase"))
 			self.ssl_server = True
 		
-		try: import h2
-		except ImportError:
+		if not skitai.HTTP2:
 			self.wasc.logger ("server", "h2 is not installed, HTTP/2.0 is disabled", "warn")
 			
 		if config.getopt ("server", "enable_proxy") == "yes":

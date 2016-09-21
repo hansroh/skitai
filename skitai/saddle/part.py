@@ -25,22 +25,6 @@ class Part:
 		self._binds_server = [None] * 3
 		self._binds_request = [None] * 4
 		self._binds_when = [None] * 5		
-	
-	def render (self, was, template_file, _do_not_use_this_variable_name_ = {}, **karg):
-		while template_file and template_file [0] == "/":
-			template_file = template_file [1:]	
-											
-		if _do_not_use_this_variable_name_: 
-			assert not karg, "Can't Use Dictionary and Keyword Args Both"
-			karg = _do_not_use_this_variable_name_
-
-		karg ["was"] = was		
-		template = self.get_template (template_file)
-		self.when_got_template (was, template, karg)
-			
-		rendered = template.render (karg)
-		self.when_template_rendered (was, template, karg, rendered)
-		return rendered	
 				
 	def set_mount_point (self, mount):	
 		if not mount:

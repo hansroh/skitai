@@ -90,8 +90,23 @@ class http_channel (asynchat.async_chat):
 		return self.connected
 	
 	def handle_timeout (self):
-		self.log ("zombie channel %s killed." % ":".join (map (str, self.addr)))
-		self.close ()
+		self.log ("killing zombie channel %s" % ":".join (map (str, self.addr)))
+		if not self.closable_partners:
+			self.close ()
+			return
+		
+		# for graceful shutdown for partners	
+		for closable in self.closable_partners:
+			if closable and hasattr (closable, "close"):
+				try:
+					closable.close ()
+				except:
+					self.server.trace()
+
+		self.closable_partners = []
+		if len (self.producer_fifo) and self.producer_fifo [-1] is not None:
+			# not be called close_when_done, then close forcely
+			self.close ()
 	
 	def set_response_timeout (self, timeout):
 		self.response_timeout = timeout
@@ -226,6 +241,14 @@ class http_channel (asynchat.async_chat):
 		if self.current_request is not None:
 			self.closable_producers.append (self.current_request.collector)
 			self.closable_producers.append (self.current_request.producer)
+			# 1. close forcely or by error, make sure that channel is None
+			# 2. by close_when_done ()
+			self.current_request.channel = None
+			self.current_request = None
+		
+		for closable in self.closable_partners:
+			if closable and hasattr (closable, "channel"):
+				closable.channel = None
 			
 		for closable in self.closable_producers + self.closable_partners:
 			if closable and hasattr (closable, "close"):
@@ -234,14 +257,12 @@ class http_channel (asynchat.async_chat):
 				except:
 					self.server.trace()
 		
-		if self.current_request is not None:
-			self.current_request.channel = None # break circ refs
-			self.current_request = None
-			
+		self.closable_producers, self.closable_partners = [], []
 		self.discard_buffers ()
 		asynchat.async_chat.close (self)
 		self.connected = False		
 		self.closed = True
+		self.log_info ("channel-%s closed" % self.channel_number, "info")
 			
 	def log (self, message, type = "info"):
 		self.server.log (message, type)
