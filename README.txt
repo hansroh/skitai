@@ -1,10 +1,10 @@
-
 .. contents:: Table of Contents
  
 
 Changes & News
 ===============
 
+- fix HTTP/2 Uprading for "http" URIs (RFC 7540 Section 3.2)
 - HTTP/2.0 implemented with hyper-h2_
 
 
@@ -17,14 +17,14 @@ Medusa is different from most other servers because it runs as a single process,
 
 SAE orients light-weight, simplicity  and strengthen networking operations with external resources - HTTP / HTTPS / XML-RPC / PostgreSQL_ - keeping very low costs.
 
-It is influenced by Zope_ and Flask_ a lot.
-
-- SAE can be run as Web, XML-RPC and Reverse Proxy Loadbancing Server
-- Support HTML5 Websocket & HTTP/2.0
-- SAE can handle massive RESTful API/RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily
-- SAE provides asynchronous connection to PostgreSQL
+- Working as Web, XML-RPC and Reverse Proxy Loadbancing Server
+- HTML5 Websocket & HTTP/2.0 implemeted
+- Handling massive RESTful API/RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily
+- Asynchronous connection pool with PostgreSQL
 
 Skitai is not a framework for convinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your WSGI apps as both server and client.
+
+Also it is influenced by Zope_ and Flask_ a lot.
 
 From version 0.10, Skitai App Engine follows WSGI specification. So existing Skitai apps need to lots of modifications.
 
@@ -2436,6 +2436,7 @@ Change Log
 ==============
   
   0.15
+  
   - fixed fancy URL <path> routing
   - add Websocket design spec: WEBSOCKET_DEDICATE_THREADSAFE
   - fixed Websocket keep-alive timeout
@@ -2480,4 +2481,3 @@ Change Log
   
   
 *Copyright (c) 2015-2016 by Hans Roh*
-

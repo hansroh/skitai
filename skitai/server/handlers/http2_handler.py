@@ -206,8 +206,8 @@ class HTTP2:
 		self.wasc = handler.wasc
 		self.request = request
 		self.channel = request.channel
-		self.channel.producer_fifo = priority_producer_fifo ()
 		
+		self.channel.producer_fifo = priority_producer_fifo ()
 		self.conn = H2Connection(client_side = False)
 		self.frame_buf = self.conn.incoming_buffer		
 		self.initiate_connection ()
@@ -226,12 +226,6 @@ class HTTP2:
 		self._plock = threading.Lock ()
 		self._clock = threading.Lock ()
 		
-		if self.request.version == "1.1":
-			self.channel.set_terminator (18) # PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n
-		else:
-			self.conn.receive_data (b"PRI * HTTP/2.0\r\n\r\n")
-			self.channel.set_terminator (6) # SM\r\n\r\n
-		
 	def close (self, force = False):
 		if self._closed: return
 		self._closed = True		
@@ -244,7 +238,7 @@ class HTTP2:
 		
 	def closed (self):
 		return self._closed
-	
+			
 	def send_data (self):			
 		data_to_send = self.conn.data_to_send ()
 		if data_to_send:
@@ -252,6 +246,14 @@ class HTTP2:
 			self.channel.push (data_to_send)
 			
 	def initiate_connection (self):
+		if self.request.version == "1.1":
+			self.channel.push (
+				b"HTTP/1.1 101 Switching Protocols\r\nconnection: upgrade\r\nupgrade: h2c\r\n\r\n"
+			)			
+			self.channel.set_terminator (24) # PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n
+		else:
+			self.channel.set_terminator (6) # SM\r\n\r\n
+			
 		h2settings = self.request.get_header ("HTTP2-Settings")
 		if h2settings:
 			self.conn.initiate_upgrade_connection (h2settings)
@@ -436,19 +438,12 @@ class Handler (wsgi_handler.Handler):
 		return upgrade and upgrade.lower () == "h2c" and request.version == "1.1" and request.command == "get"
 	
 	def handle_request (self, request):
-		if request.version == "1.1":
-			header = [
-				("Connection", "Upgrade"),
-				("Upgrade", "h2c")
-			]
-			request.response.start_response ("101 Switching Protocols", header)					
-			request.response.done ()
-		
 		http2 = HTTP2 (self, request)
-		request.channel.add_closing_partner (http2)
-		request.channel.current_request = http2
-		request.channel.set_response_timeout (self.keep_alive)
-		request.channel.set_keep_alive (self.keep_alive)	
+		if request.channel:
+			request.channel.add_closing_partner (http2)
+			request.channel.current_request = http2
+			request.channel.set_response_timeout (self.keep_alive)
+			request.channel.set_keep_alive (self.keep_alive)
 		
 	def finish_request (self, request):
 		if request.channel:
