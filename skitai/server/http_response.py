@@ -268,7 +268,7 @@ class http_response:
 		if self.request.channel:
 			self.request.channel.add_closable_producer (thing)
 	
-	def push_promise (self, *args, **kargs):
+	def hint_promise (self, *args, **kargs):
 		# ignore in version 1.x
 		pass
 		

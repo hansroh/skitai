@@ -233,7 +233,7 @@ class http_channel (asynchat.async_chat):
 					
 			try: r.response.error (404)
 			except: pass	
-	      				
+		      				
 	def close (self):
 		if self.closed:
 			return

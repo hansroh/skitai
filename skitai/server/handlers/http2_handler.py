@@ -3,7 +3,7 @@ from skitai.server import http_request, http_response
 from skitai.lib import producers, compressors
 from skitai.server.threads import trigger
 import asynchat
-from h2.connection import H2Connection, INITIAL_WINDOW_SIZE
+from h2.connection import H2Connection, INITIAL_WINDOW_SIZE, ConnectionInputs, GoAwayFrame
 from h2.exceptions import ProtocolError
 from h2.events import DataReceived, RequestReceived, StreamEnded, PriorityUpdated, ConnectionTerminated, StreamReset
 from h2.errors import PROTOCOL_ERROR, FLOW_CONTROL_ERROR
@@ -42,7 +42,7 @@ class priority_producer_fifo:
 			with self._lock:
 				self.l.append (item)
 			return
-				
+			
 		try:
 			w1 = item.weight
 			d1 = item.depends_on
@@ -102,8 +102,14 @@ class http2_response (http_response.http_response):
 			h.append ((k.encode ("utf8"), str (v).encode ("utf8")))		
 		return h
 	
-	def push_promise (self, promised_stream_id, headers):
-		self.request.http2.push_promise (self.request.stream_id, promised_stream_id, headers)
+	def hint_promise (self, uri, method, scheme = None):
+		h = [
+			(':authority', self.request.get_header ('host')),
+	    (':path', path),
+	    (':scheme', scheme and scheme or self.request.scheme),
+	    (':method', method.upper ())
+	   ]		
+		self.request.http2.push_promise (self.request.stream_id, headers)
 		
 	def done (self, *args, **karg):
 		# removed by HTTP/2.0 Spec.
@@ -160,9 +166,8 @@ class http2_request (http_request.http_request):
 	def __init__ (self, *args):
 		self.request_number = self.request_count.inc()		
 		(self.http2, self.channel, self.request,		 
-		 self.command, self.uri, self.version,
-		 self.header, 
-		 self.stream_id) = args
+		 self.command, self.uri, self.version, self.scheme,
+		 self.header, self.stream_id) = args
 		
 		self.logger = self.channel.server.server_logger
 		self.server_ident = self.channel.server.SERVER_IDENT
@@ -244,14 +249,21 @@ class HTTP2:
 		self.buf = b""
 
 		self.stream_data = {}
-		self.stream_weights = {}	
+		self.stream_weights = {}
 		
+		self._send_stream_id = 0
+		self._close_when_stream_ended = False		
 		self._closed = False
 		self._got_preamble = False		
 
 		self._plock = threading.Lock ()
 		self._clock = threading.Lock ()
-		
+	
+	def close_when_done (self):
+		# send go_away b'\x00\x00\x08\x07\x00\x00\x00\x00\x00\x00\x00\x00\x0f\x00\x00\x00\x00')		
+		self.channel.push (GoAwayFrame (stream_id = 0).serialize ())
+		self.channel.close_when_done ()		
+			
 	def close (self, force = False):
 		if self._closed: return
 		self._closed = True		
@@ -260,7 +272,8 @@ class HTTP2:
 			
 		if self.channel:
 			self.conn.close_connection () # go_away
-			self.send_data ()		
+			self.send_data ()
+			
 		self.handler.finish_request (self.request)
 		
 	def closed (self):
@@ -358,8 +371,14 @@ class HTTP2:
 		if events:
 			self.handle_events (events)
 	
-	def push_promise (self, stream_id, promised_stream_id, request_headers):
-		self.conn.push_stream (stream_id, promised_stream_id, request_headers)
+	def get_new_stream_id (self):
+		with self._clock:
+			self._send_stream_id += 2
+			stream_id = self._send_stream_id
+		return stream_id
+		
+	def push_promise (self, stream_id, request_headers):
+		self.conn.push_stream (stream_id, self.get_new_stream_id (), request_headers)
 		self.send_data ()
 					
 	def push_response (self, stream_id, headers, producer):
@@ -391,6 +410,9 @@ class HTTP2:
 				r.http2 = None # break bacj ref.				
 		
 		self.channel.push_with_producer (outgoing_producer)
+		if self._close_when_stream_ended:
+			# depense data flooding
+			self.close_when_done ()
 		
 	def handle_events (self, events):
 		for event in events:
@@ -438,6 +460,7 @@ class HTTP2:
 							#print ("### WINDOW UPDATE", remains)
 							self.conn.increment_flow_control_window (remains, event.stream_id)
 							self.conn.increment_flow_control_window (ctln)
+							self._close_when_stream_ended = True
 							#print ('~~~~~~~~~~', remains, ctln)
 					
 			elif isinstance(event, StreamEnded):
@@ -457,19 +480,21 @@ class HTTP2:
 					with self._clock:
 						del self.stream_data [event.stream_id]
 					self.stream_lengths [event.stream_id]
-					
+						
 		self.send_data ()
 			
 	def handle_request (self, stream_id, headers):
 		command = "GET"
 		uri = "/"
+		scheme = "http"
 		h = []
 		cl = None
 		for k, v in headers:
 			if k[0] == ":":
 				if k == ":method": command = v
 				elif k == ":path": uri = v
-				elif k == ":authority": h.append ("host: %s" % v)
+				elif k == ":scheme": scheme = v
+				elif k == ":authority": h.append ("host: %s" % v)				
 				continue
 			if k == "content-length":
 				cl = int (v)
@@ -482,7 +507,7 @@ class HTTP2:
 		else:
 			vchannel = fake_channel (self.channel)			
 		
-		r = http2_request (self, vchannel, "%s %s HTTP/2.0" % (command, uri), command.lower (), uri, "2.0", h, stream_id)
+		r = http2_request (self, vchannel, "%s %s HTTP/2.0" % (command, uri), command.lower (), uri, "2.0", scheme, h, stream_id)
 		vchannel.current_request = r
 		self.channel.request_counter.inc()
 		self.channel.server.total_requests.inc()

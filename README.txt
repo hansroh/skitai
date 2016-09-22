@@ -4,9 +4,11 @@
 Changes & News
 ===============
 
-- 9.22.2016 fix flow control window
-- 9.21.2016 fix HTTP/2 Uprading for "http" URIs (RFC 7540 Section 3.2)
-- 9.21.2016 HTTP/2.0 implemented with hyper-h2_
+- 0.16.4 now skitai will disconnect after recieving over 65,535 bytes HTTP2 request body
+- 0.16.4 add method: was.response.hint_promise (uri, method, scheme) for sending PUSH PROMISE frame
+- 0.16.3 fix flow control window
+- 0.16.2 fix HTTP/2 Uprading for "http" URIs (RFC 7540 Section 3.2)
+- 0.16 HTTP/2.0 implemented with hyper-h2_
 
 
 Introduce
@@ -1258,7 +1260,7 @@ The object has 'close ()' method, will be called when all data consumed, or sock
 - was.response.set_header (k, v)
 - was.response.get_header (k)
 - was.response.del_header (k)
-- was.response.push_promise (stream_id, promised_stream_id, request_headers) *New in version 0.16.3*
+- was.response.hint_promise (uri, method = "GET", scheme = None) # *New in version 0.16.4*andonly works with HTTP/2.x and will be ignored HTTP/1.x
 
 
 Getting URL Parameters
