@@ -56,8 +56,7 @@ class https_channel (http_server.http_channel):
 		except MemoryError:
 			lifetime.shutdown (1, 1)
 		
-		except ssl.SSLError as why:
-			print ("SSL_ERROR_WANT_READ")
+		except ssl.SSLError as why:			
 			if why.errno == ssl.SSL_ERROR_WANT_READ:
 				if PY_MAJOR_VERSION == 2:	
 					raise socket.error (errno.EWOULDBLOCK)

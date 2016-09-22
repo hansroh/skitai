@@ -4,8 +4,9 @@
 Changes & News
 ===============
 
-- fix HTTP/2 Uprading for "http" URIs (RFC 7540 Section 3.2)
-- HTTP/2.0 implemented with hyper-h2_
+- 9.22.2016 fix flow control window
+- 9.21.2016 fix HTTP/2 Uprading for "http" URIs (RFC 7540 Section 3.2)
+- 9.21.2016 HTTP/2.0 implemented with hyper-h2_
 
 
 Introduce
@@ -1257,6 +1258,7 @@ The object has 'close ()' method, will be called when all data consumed, or sock
 - was.response.set_header (k, v)
 - was.response.get_header (k)
 - was.response.del_header (k)
+- was.response.push_promise (stream_id, promised_stream_id, request_headers) *New in version 0.16.3*
 
 
 Getting URL Parameters

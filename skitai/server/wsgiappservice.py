@@ -156,7 +156,7 @@ class WAS:
 	def _dmap (self, clustername, use_cache = True, filter = None):
 		clustername = self.__detect_cluster (clustername) [0]
 		return self.clusters_for_distcall [clustername].Server (use_cache = use_cache, mapreduce = True, callback = filter)
-	
+		
 	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		return self.app.render (self, template_file, _do_not_use_this_variable_name_, **karg)
 	

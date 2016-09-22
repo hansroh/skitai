@@ -245,7 +245,6 @@ class http_response:
 				
 	def error (self, code, status = "", why = "", force_close = False, push_only = False):
 		global DEFAULT_ERROR_MESSAGE
-		
 		if not self.responsable (): return
 		self.reply_code = code
 		if status: self.reply_message = status
@@ -258,7 +257,6 @@ class http_response:
 		self.update ('Content-Length', len(body))
 		self.update ('Content-Type', 'text/html')
 		self.update ('Cache-Control', 'max-age=0')
-			
 		self.push (body)
 		if not push_only:
 			self.done (True, True, force_close)
@@ -270,7 +268,11 @@ class http_response:
 		if self.request.channel:
 			self.request.channel.add_closable_producer (thing)
 	
-	def push (self, thing):		
+	def push_promise (self, *args, **kargs):
+		# ignore in version 1.x
+		pass
+		
+	def push (self, thing):
 		if not self.responsable (): return
 		if type(thing) is bytes:			
 			self.outgoing.push (producers.simple_producer (thing))

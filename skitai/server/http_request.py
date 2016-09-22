@@ -87,7 +87,11 @@ class http_request:
 				a, b = each.strip (), None
 			d [a] = b
 		return v2 [0], d	
-				
+	
+	def get_content_length (self):
+		try: return int (self.get_header ("content-length"))
+		except ValueError: return None
+					
 	def get_content_type (self):
 		return self.get_header_with_attr ("content-type") [0]
 				
