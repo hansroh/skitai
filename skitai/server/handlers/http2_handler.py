@@ -102,12 +102,12 @@ class http2_response (http_response.http_response):
 			h.append ((k.encode ("utf8"), str (v).encode ("utf8")))		
 		return h
 	
-	def hint_promise (self, uri, method, scheme = None):
+	def hint_promise (self, uri):
 		h = [
-			(':authority', self.request.get_header ('host')),
-	    (':path', path),
-	    (':scheme', scheme and scheme or self.request.scheme),
-	    (':method', method.upper ())
+			(':path', uri),
+			(':authority', self.request.get_header ('host')),	    
+	    (':scheme', self.request.scheme),
+	    (':method', "GET")
 	   ]		
 		self.request.http2.push_promise (self.request.stream_id, headers)
 		
