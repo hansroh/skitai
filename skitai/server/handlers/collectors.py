@@ -48,24 +48,18 @@ class FormCollector:
 class MultipartCollector (FormCollector):
 	def __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size):
 		self.handler = handler
-		self.request = request
-		self.upload_max_size = upload_max_size
-		self.file_max_size = file_max_size
-		self.cache_max_size = cache_max_size
-		self.upload_max_size = upload_max_size
+		self.request = request		
 		self.content_length = self.get_content_length ()
 		self.buffer = tempfile.NamedTemporaryFile(delete=False)
 		self.size = 0
 								
-	def start_collect (self):						
+	def start_collect (self):
 		if self.content_length == 0: 
 			return self.found_terminator()		
 		self.request.channel.set_terminator (self.content_length)
-		
+	
 	def collect_incoming_data (self, data):
 		self.size += len (data)
-		if self.upload_max_size and self.size > self.upload_max_size:
-			raise ValueError("file size is over %d MB" % (self.size/1024./1024,))
 		self.buffer.write (data)
 		
 	def close (self):
@@ -76,4 +70,5 @@ class MultipartCollector (FormCollector):
 		self.buffer.close ()		
 		self.handler.continue_request (self.request, open (self.buffer.name, "rb"))
 		self.request.channel.set_terminator (b'\r\n\r\n')
-		
+	
+	

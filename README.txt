@@ -6,7 +6,6 @@ Changes & News
 
 - 0.16.6 add several configs to was.app.config for limiting post body size form client
 - 0.16.5 add method: was.response.hint_promise (uri) for sending HTP/2 PUSH PROMISE frame
-- 0.16.4 now skitai will disconnect after recieving over 65,535 bytes HTTP2 request body
 - 0.16.3 fix flow control window
 - 0.16.2 fix HTTP/2 Uprading for "http" URIs (RFC 7540 Section 3.2)
 - 0.16 HTTP/2.0 implemented with hyper-h2_

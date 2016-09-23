@@ -176,9 +176,11 @@ class MultipartCollector (collectors.FormCollector):
 		# 100M, 20M, 5M
 		self.handler = handler
 		self.request = request
+		
 		self.upload_max_size = upload_max_size
 		self.file_max_size = file_max_size
 		self.cache_max_size = cache_max_size
+		
 		self.end_of_data = b""
 		self.cached = False
 		self.cache = []
