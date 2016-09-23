@@ -6,7 +6,7 @@ from .. import wsgi_apps
 import os
 
 class VHost:
-	def __init__ (self, wasc, clusters, cachefs, static_max_age, upload_max_size):
+	def __init__ (self, wasc, clusters, cachefs, static_max_age):
 		self.wasc = wasc
 		self.clusters = clusters
 		self.cachefs = cachefs
@@ -15,7 +15,7 @@ class VHost:
 		self.proxy_handler = proxypass_handler.Handler (self.wasc, clusters, cachefs)
 		alternative_handlers = [			
 			websocket_handler.Handler (self.wasc, self.apps),
-			wsgi_handler.Handler (self.wasc, self.apps, upload_max_size)
+			wsgi_handler.Handler (self.wasc, self.apps)
 		]
 		if skitai.HTTP2:
 			alternative_handlers.insert (0, http2_handler.Handler (self.wasc, self.apps))			
@@ -42,9 +42,9 @@ class VHost:
 
 
 class Handler:
-	def __init__ (self, wasc, clusters, cachefs, static_max_age, upload_max_size):
+	def __init__ (self, wasc, clusters, cachefs, static_max_age):
 		self.wasc = wasc
-		self.vhost_args = (clusters, cachefs, static_max_age, upload_max_size)		
+		self.vhost_args = (clusters, cachefs, static_max_age)		
 		self.sites = {}
 		self.__cache = {}
 	

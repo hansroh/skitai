@@ -46,10 +46,13 @@ class FormCollector:
 
 
 class MultipartCollector (FormCollector):
-	def __init__ (self, handler, request, upload_max_size):
+	def __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size):
 		self.handler = handler
 		self.request = request
-		self.upload_max_size = upload_max_size		
+		self.upload_max_size = upload_max_size
+		self.file_max_size = file_max_size
+		self.cache_max_size = cache_max_size
+		self.upload_max_size = upload_max_size
 		self.content_length = self.get_content_length ()
 		self.buffer = tempfile.NamedTemporaryFile(delete=False)
 		self.size = 0

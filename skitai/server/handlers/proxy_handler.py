@@ -8,8 +8,8 @@ from skitai.lib import compressors
 from skitai.lib import producers
 import time
 
-post_max_size = wsgi_handler.Handler.post_max_size
-upload_max_size = wsgi_handler.Handler.upload_max_size
+POST_MAX_SIZE = 5000000
+UPLOAD_MAX_SIZE = 20000000
 PROXY_TUNNEL_KEEP_ALIVE = 120
 
 class AsynTunnel:
@@ -361,10 +361,12 @@ class Collector (collectors.FormCollector):
 		self.cache = []
 			
 	def start_collect (self):	
+		global POST_MAX_SIZE
+		
 		if self.content_length == 0:
 			return self.found_terminator ()
 			
-		if self.content_length <= post_max_size: #5M
+		if self.content_length <= POST_MAX_SIZE: #5M
 			self.cached = True
 		
 		self.request.channel.set_terminator (self.content_length)
@@ -436,11 +438,13 @@ class Handler (wsgi_handler.Handler):
 		return 0
 		
 	def handle_request (self, request):
+		global POST_MAX_SIZE, UPLOAD_MAX_SIZE
+		
 		collector = None
 		if request.command in ('post', 'put'):
 			ct = request.get_header ("content-type")
 			if not ct: ct = ""
-			current_post_max_size = ct.startswith ("multipart/form-data") and upload_max_size or post_max_size
+			current_post_max_size = ct.startswith ("multipart/form-data") and UPLOAD_MAX_SIZE or POST_MAX_SIZE
 			collector = self.make_collector (Collector, request, current_post_max_size)
 			if collector:
 				request.collector = collector

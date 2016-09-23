@@ -21,12 +21,13 @@ try:
 except ImportError:
 	import xmlrpclib
 
-multipart_collector.MultipartCollector.file_max_size = 20 * 1024 * 1024
-multipart_collector.MultipartCollector.cache_max_size = 5 * 1024 * 1024
-session.Session.default_session_timeout = 1200
 
 class Config:
-	pass
+	max_post_body_size = 5 * 1024 * 1024
+	max_cache_size = 5 * 1024 * 1024
+	max_multipart_body_size = 20 * 1024 * 1024
+	max_upload_file_size = 20000000
+
 
 class AuthorizedUser:
 	def __init__ (self, user, realm, info = None):
@@ -91,11 +92,6 @@ class Saddle (part.Part):
 		self.when_template_rendered (was, template, karg, rendered)
 		return rendered	
 					
-	def __setattr__ (self, name, attr):
-		if name == "upload_file_max_size":
-			multipart_collector.MultipartCollector.file_max_size = attr
-		self.__dict__ [name] = attr
-	
 	def get_template (self, name):
 		if JINJA2:
 			return self.jinja_env.get_template (name)

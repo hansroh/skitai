@@ -169,17 +169,16 @@ class FileWrapper:
 				break
 		
 		return name.replace ("../", "").replace ("/", "")
-		
 						
 				
 class MultipartCollector (collectors.FormCollector):
-	file_max_size = 20 * 1024 * 1024
-	cache_max_size = 5 * 1024 * 1024
-	def __init__ (self, handler, request, upload_max_size = 100000000):
+	def __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size):
 		# 100M, 20M, 5M
 		self.handler = handler
 		self.request = request
 		self.upload_max_size = upload_max_size
+		self.file_max_size = file_max_size
+		self.cache_max_size = cache_max_size
 		self.end_of_data = b""
 		self.cached = False
 		self.cache = []
@@ -209,7 +208,7 @@ class MultipartCollector (collectors.FormCollector):
 		self.size += len (data)
 		if self.upload_max_size and self.size > self.upload_max_size:
 			raise ValueError("file size is over %d MB" % (self.size/1024./1024,))
-		
+			
 		if self.cache_max_size and self.size > self.cache_max_size:
 			self.cached = False
 			self.cache = []
@@ -282,8 +281,7 @@ class MultipartCollector (collectors.FormCollector):
 					break
 				pointer += 1					
 			data, self.buffer = self.buffer [pointer:], b""
-									
-			p = Part (data.decode ("utf8"), self.file_max_size)			
+			p = Part (data.decode ("utf8"), self.file_max_size)							
 			self.parts.add_new_part (p)
 			
 			if p.is_multipart ():

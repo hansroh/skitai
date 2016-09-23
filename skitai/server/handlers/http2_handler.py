@@ -489,6 +489,7 @@ class HTTP2:
 		scheme = "http"
 		h = []
 		cl = None
+		
 		for k, v in headers:
 			if k[0] == ":":
 				if k == ":method": command = v

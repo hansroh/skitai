@@ -4,6 +4,7 @@
 Changes & News
 ===============
 
+- 0.16.6 add several configs to was.app.config for limiting post body size form client
 - 0.16.5 add method: was.response.hint_promise (uri) for sending HTP/2 PUSH PROMISE frame
 - 0.16.4 now skitai will disconnect after recieving over 65,535 bytes HTTP2 request body
 - 0.16.3 fix flow control window
@@ -1126,6 +1127,33 @@ Flask and other WSGI middle ware have their own way to handle request. So If you
 And note below objects and methods *ARE NOT WORKING* in any other WSGI middlewares except Saddle.
 
 
+Access Saddle App
+------------------
+
+You can access all Saddle object from was.app.
+
+- was.app.debug
+- was.app.use_reloader
+- was.app.config # use for custom configuration like was.app.config.my_setting = 1
+
+- was.app.securekey
+- was.app.session_timeout = None	
+
+- was.app.authorization = "digest"
+- was.app.realm = None
+- was.app.users = {}
+- was.app.jinja_env
+
+- was.app.build_url () is equal to was.ab ()
+
+Currently was.app.config has these properties and you can reconfig by setting new value:
+
+- was.app.config.max_post_body_size = 5 * 1024 * 1024
+- was.app.config.max_cache_size = 5 * 1024 * 1024
+- was.app.config.max_multipart_body_size = 20 * 1024 * 1024
+- was.app.config.max_upload_file_size = 20000000
+
+
 Debugging
 ----------
 
@@ -1345,18 +1373,6 @@ was.env is just Python dictionary object.
   if "HTTP_USER_AGENT" in was.env:
     ...
   was.env.get ("CONTENT_TYPE")
-
-
-Access App
------------
-
-You can access all Saddle object from was.app.
-
-- was.app.debug
-- was.app.use_reloader
-- was.app.jinja_env
-- was.app.build_url () is equal to was.ab ()
-- was.app.config # use for custom configuration like was.app.config.my_setting = 1
 
 
 Jinja2 Templates Engine

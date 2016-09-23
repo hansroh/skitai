@@ -41,7 +41,7 @@ class https_channel (http_server.http_channel):
 		
 		try:			
 			result = self.socket.recv(buffer_size)
-			#print ("~~~~~~~~~~~~~", len (result), buffer_size)
+			#print ("~~~~~~~~~~~~~", len (result), result)
 			if result is None:
 				return b''
 				

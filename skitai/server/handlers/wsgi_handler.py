@@ -37,15 +37,9 @@ class Handler:
 			"wsgi.input": None
 	}
 	
-	post_max_size = 5 * 1024 * 1024	
-	upload_max_size = 100 * 1024 * 1024
-	
-	def __init__(self, wasc, apps = None, post_max_size = 0, upload_max_size = 0):
+	def __init__(self, wasc, apps = None):
 		self.wasc = wasc
 		self.apps = apps
-		if post_max_size: self.post_max_size = post_max_size
-		if upload_max_size: self.upload_max_size = upload_max_size
-		
 		self.ENV ["skitai.process"] = self.wasc.config.getint ("server", "processes")
 		self.ENV ["skitai.thread"] = self.wasc.config.getint ("server", "threads")
 		self.ENV ["wsgi.url_scheme"] = hasattr (self.wasc.httpserver, "ctx") and "https" or "http"
@@ -150,25 +144,30 @@ class Handler:
 		ct = request.get_header ("content-type")		
 		if request.command == 'post' and ct and ct.startswith ("multipart/form-data"):
 			# handle stream by app
-			# shoud have constructor __init__ (self, handler, request, upload_max_size = 100000000)
+			# shoud have constructor __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size)
 			try:
 				#self.wasc.apps.get_app (has_route) - module (that has callable) wrapper
 				#.get_callable() - callable, like WSGI function, Saddle or Falsk app
 				AppCollector = app.get_multipart_collector ()
 			except AttributeError:
 				AppCollector = None
-					
+			
+			args = (				
+				app.config.max_multipart_body_size, 
+				app.config.max_upload_file_size, 
+				app.config.max_cache_size
+			)			
 			if AppCollector:
-				collector = self.make_collector (AppCollector, request, self.upload_max_size, self.upload_max_size)
+				collector = self.make_collector (AppCollector, request, app.config.max_multipart_body_size, *args)
 			else:
-				collector = self.make_collector (collectors.MultipartCollector, request, self.upload_max_size, self.upload_max_size)	
+				collector = self.make_collector (collectors.MultipartCollector, request,  app.config.max_multipart_body_size, *args)
 
 			if collector:
 				request.collector = collector
 				collector.start_collect ()
 			
 		elif request.command in ('post', 'put'):
-			collector = self.make_collector (collectors.FormCollector, request, self.post_max_size)
+			collector = self.make_collector (collectors.FormCollector, request, app.config.max_post_body_size)
 			if collector:
 				request.collector = collector
 				collector.start_collect ()
