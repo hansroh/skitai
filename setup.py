@@ -76,7 +76,6 @@ package_dir = {
 }
 
 skitaid_files = [
-	"README.md",
 	"skitaid/bin/*.py",
 	"skitaid/pub/sample/*.py",	
 	"skitaid/pub/sample/static/*.*",	
@@ -99,14 +98,10 @@ package_data = {
 	"skitai": skitaid_files
 }
 
-with open ("README.txt") as f:
-	ldesc = f.read ()
-
 setup(
 	name='skitai',
 	version=__VER__,
-	description='Skitai WSGI App Engine',
-	long_description = ldesc,
+	description='Skitai WSGI App Engine',	
 	author='Hans Roh',
 	author_email='hansroh@gmail.com',
 	url='https://gitlab.com/hansroh/skitai/wikis/home',
