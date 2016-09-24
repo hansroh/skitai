@@ -193,32 +193,40 @@ class HTTP2:
 		self.channel.push_with_producer (
 			producers.h2header_producer (stream_id, headers, producer, self.conn, self._plock)
 		)
-		
 		if producer:
 			outgoing_producer = producers.h2stream_producer (
 				stream_id, depends_on, weight, producer, self.conn, self._plock
 			)			
-			if not r.is_promise:
-				self.channel.ready = self.channel.producer_fifo.ready
-				self.channel.push_with_producer (outgoing_producer)
-				with self._clock:
-					del self.requests [stream_id]
-							
-			else:
-				# promise data
-				r.outgoing_producer = outgoing_producer
-		
+			self.channel.ready = self.channel.producer_fifo.ready
+			self.channel.push_with_producer (outgoing_producer)
+			with self._clock:
+				del self.requests [stream_id]
+			
 		promise_stream_id, promise_headers = None, None
 		with self._alock:
 			try: promise_stream_id, promise_headers = self.promises.popitem ()
 			except KeyError: pass
-		
 		if promise_stream_id:
 			self.handle_request (promise_stream_id, promise_headers, is_promise = True)
-				
+	
+	def push_promised_data (self, stream_id):
+		if stream_id % 2 != 0 or stream_id == 0:
+			return			
+		r = None
+		with self._clock:
+			try: r = self.requests [stream_id]
+			except KeyError: pass
+		if r is None or not r.is_promise or r.outgoing_producer is None:
+			return
+		
+		r.outgoing_producer.depends_on, r.outgoing_producer.weight = self.priorities [stream_id]
+		self.channel.ready = self.channel.producer_fifo.ready
+		self.channel.push_with_producer (r.outgoing_producer)
+		r.outgoing_producer = None			
+		
 	def handle_events (self, events):
 		for event in events:
-			print ('EVENT', event)			
+			#print ('EVENT', event)			
 			if isinstance(event, RequestReceived):
 				self.handle_request (event.stream_id, event.headers)				
 					
@@ -247,7 +255,7 @@ class HTTP2:
 				with self._clock:
 					self.priorities [event.stream_id] = [event.depends_on, event.weight]
 					
-				self.push_promised_data (event.stream_id)	
+				#self.push_promised_data (event.stream_id)	
 				
 			elif isinstance(event, DataReceived):
 				with self._clock:
@@ -279,24 +287,10 @@ class HTTP2:
 					return
 			
 			elif isinstance(event, WindowUpdated):
-				self.push_promised_data (event.stream_id)
+				#self.push_promised_data (event.stream_id)
+				pass
 								
 		self.send_data ()
-	
-	def push_promised_data (self, stream_id):
-		if stream_id % 2 != 0 or stream_id == 0:
-			return			
-		r = None
-		with self._clock:
-			try: r = self.requests [stream_id]
-			except KeyError: pass
-		if r is None or not r.is_promise or r.outgoing_producer is None:
-			return
-		print (">>>>>>>>>>>>> ", r.outgoing_producer)
-		r.outgoing_producer.depends_on, r.outgoing_producer.weight = self.priorities [stream_id]
-		self.channel.ready = self.channel.producer_fifo.ready
-		self.channel.push_with_producer (r.outgoing_producer)
-		r.outgoing_producer = None
 							
 	def handle_request (self, stream_id, headers, is_promise = False):
 		command = "GET"
@@ -342,7 +336,6 @@ class HTTP2:
 			if h.match (r):
 				with self._clock:
 					self.requests [stream_id] = r
-				print ('11111', stream_id, r.is_promise)	
 						
 				try:
 					h.handle_request (r)
