@@ -351,10 +351,29 @@ class globbing_producer:
 		self.buffer = b''
 		return r
 
+try:
+	from h2.exceptions import FlowControlError
+except ImportError:
+	pass	
+
+class h2header_producer:
+	def __init__ (self, stream_id, headers, producer, encoder, lock):
+		with lock:
+			encoder.send_headers (
+				stream_id = stream_id,
+				headers = headers,
+				end_stream = producer is None
+			)
+			self.data_to_send = encoder.data_to_send ()
+	
+	def more (self):		
+		data_to_send, self.data_to_send = self.data_to_send, b''
+		return data_to_send
 
 class h2stream_producer:
 	BUFFER_SIZE = 4096	
-	def __init__ (self, stream_id, depends_on, weight, headers, producer, encoder, lock):
+	DELAY_TIMEOUT = 3
+	def __init__ (self, stream_id, depends_on, weight, producer, encoder, lock):
 		self.stream_id = stream_id
 		self.depends_on = depends_on
 		self.weight = weight
@@ -364,44 +383,42 @@ class h2stream_producer:
 		self._lock = lock
 		self._buf = b""
 		self._end_stream = False		
-		
-		with self._lock:
-			encoder.send_headers (
-				stream_id = stream_id,
-				headers = headers,
-				end_stream = producer is None
-			)
-	
+		self._last_sent = time.time ()
+				
 	def __repr__ (self):
 		return "<h2stream_producer stream_id:%d, weight:%d, depends_on:%d>" % (self.stream_id, self.weight, self.depends_on)
-		
+	
+	def is_done (self):
+		return self._end_stream and not self._buf
+	
+	def ready (self):
+		#print ("FLOW WINDOW READY", self.encoder.local_flow_control_window (self.stream_id))
+		return self.encoder.local_flow_control_window (self.stream_id)
+			 	
 	def more (self):
-		if self._end_stream and not self._buf:
+		if self.is_done ():
 			return b''
-		
-		if self.producer is None:
-			self._end_stream = True
-		
-		else:		
-			if self._buf:
-				data, self._buf = self._buf [:self.BUFFER_SIZE], self._buf [self.BUFFER_SIZE:]
-					
-			else:
-				data = self.producer.more ()
-				self._end_stream = len (data) < self.producer.buffer_size
-				if len (data) > self.BUFFER_SIZE:
-					data, self._buf = data [:self.BUFFER_SIZE], data [self.BUFFER_SIZE:]
 
-			#print (">>>>>>> MULTIPLEXING", self.stream_id, len (data), len (self._buf), (self._end_stream and not self._buf))			
-			with self._lock:
-				self.encoder.send_data (
-					stream_id = self.stream_id,
-					data = data,
-					end_stream = (self._end_stream and not self._buf)
-				)
+		if self._buf:
+			data, self._buf = self._buf [:self.BUFFER_SIZE], self._buf [self.BUFFER_SIZE:]
+				
+		else:
+			data = self.producer.more ()
+			self._end_stream = len (data) < self.producer.buffer_size
+			if len (data) > self.BUFFER_SIZE:
+				data, self._buf = data [:self.BUFFER_SIZE], data [self.BUFFER_SIZE:]
 		
-		data_to_send = self.encoder.data_to_send ()
-		#print ('++++', len (data_to_send), repr (data_to_send) [:80], self._end_stream)		
+		#print (">>>>>>> MULTIPLEXING", self.stream_id, len (data), len (self._buf), (self._end_stream and not self._buf))			
+		with self._lock:			
+			self.encoder.send_data (
+				stream_id = self.stream_id,
+				data = data,
+				end_stream = self.is_done ()
+			)
+			self._last_sent = time.time ()	
+			data_to_send = self.encoder.data_to_send ()
+				
+		#print ('++++', len (data_to_send), repr (data_to_send) [:80], self._end_stream)				
 		return data_to_send
 
 

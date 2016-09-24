@@ -3,7 +3,7 @@
 
 Changes & News
 ===============
-
+- 0.16.8 fix pushing promise and response
 - 0.16.6 add several configs to was.app.config for limiting post body size form client
 - 0.16.5 add method: was.response.hint_promise (uri) for sending HTP/2 PUSH PROMISE frame
 - 0.16.3 fix flow control window
