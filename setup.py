@@ -66,7 +66,7 @@ packages = [
 	'skitai.server.handlers',
 	'skitai.server.rpc',
 	'skitai.server.threads',
-	'skitai.server.http2',
+	'skitai.server.handlers.http2',
 	'skitai.saddle'
 ]
 
