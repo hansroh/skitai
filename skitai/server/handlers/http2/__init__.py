@@ -133,7 +133,10 @@ class request (http_request.http_request):
 		self.weight = 0
 				
 		self.response = response (self)
-
+	
+	def get_scheme (self):	
+		return self.scheme
+		
 
 class fake_channel:
 	def __init__ (self, channel):

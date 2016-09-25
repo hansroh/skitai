@@ -372,7 +372,8 @@ class h2header_producer:
 
 class h2stream_producer:
 	BUFFER_SIZE = 4096	
-	DELAY_TIMEOUT = 3
+	FLOW_CONTROL_WINDOW_UPDATE_TIMEOUT = 3
+	
 	def __init__ (self, stream_id, depends_on, weight, producer, encoder, lock):
 		self.stream_id = stream_id
 		self.depends_on = depends_on
@@ -393,7 +394,9 @@ class h2stream_producer:
 	
 	def ready (self):
 		#print ("FLOW WINDOW READY", self.stream_id, self.encoder.local_flow_control_window (self.stream_id))
-		return self.encoder.local_flow_control_window (self.stream_id)
+		if time.time () - self._last_sent > self.FLOW_CONTROL_WINDOW_UPDATE_TIMEOUT:
+			return True
+		return self.encoder.local_flow_control_window (self.stream_id) >= self.BUFFER_SIZE
 			 	
 	def more (self):
 		if self.is_done ():
@@ -411,13 +414,18 @@ class h2stream_producer:
 		#print (">>>>>>> MULTIPLEXING", self.stream_id, len (data), len (self._buf), (self._end_stream and not self._buf))			
 		#print ("MULTIPLEXING", self.stream_id, self.encoder.local_flow_control_window (self.stream_id))
 		with self._lock:
-			self.encoder.send_data (
-				stream_id = self.stream_id,
-				data = data,
-				end_stream = self.is_done ()
-			)
-			self._last_sent = time.time ()	
-			data_to_send = self.encoder.data_to_send ()
+			try:
+				self.encoder.send_data (
+					stream_id = self.stream_id,
+					data = data,
+					end_stream = self.is_done ()
+				)
+				self._last_sent = time.time ()	
+				data_to_send = self.encoder.data_to_send ()
+				
+			except FlowControlError:
+				# close forcely
+				return b''
 				
 		#print ('++++', len (data_to_send), repr (data_to_send) [:80], self._end_stream)				
 		return data_to_send

@@ -1,7 +1,7 @@
 from . import wsgi_handler
 from skitai.lib import producers
 from h2.connection import H2Connection, GoAwayFrame
-from h2.exceptions import ProtocolError
+from h2.exceptions import ProtocolError, NoSuchStreamError
 from h2.events import DataReceived, RequestReceived, StreamEnded, PriorityUpdated, ConnectionTerminated, StreamReset, WindowUpdated
 from h2.errors import PROTOCOL_ERROR, FLOW_CONTROL_ERROR
 from . import http2
@@ -67,7 +67,7 @@ class HTTP2:
 	def closed (self):
 		return self._closed
 			
-	def send_data (self):			
+	def send_data (self, stream_id = 0):					
 		data_to_send = self.conn.data_to_send ()
 		if data_to_send:
 			#print ("SEND", repr (data_to_send), len (data_to_send), '::', self.channel.get_terminator ())		
@@ -124,12 +124,6 @@ class HTTP2:
 		self.current_frame = self.frame_buf._update_header_buffer (self.current_frame)
 		events = self.conn._receive_frame (self.current_frame)
 		return events
-	
-	def sendable (self, stream_id):
-		if self.local_flow_control_window (stream_id) == 0:
-			self.close (True)
-			return False
-		return True
 					
 	def found_terminator (self):
 		buf, self.buf = self.buf, b""
@@ -177,11 +171,9 @@ class HTTP2:
 		with self._alock:
 			self.promises [promise_stream_id] = request_headers	+ addtional_request_headers	
 		
-		#print ('PUSH STREAM', stream_id, promise_stream_id, request_headers)
 		with self._plock:
 			self.conn.push_stream (stream_id, promise_stream_id, request_headers	+ addtional_request_headers)
-			data_to_send = self.conn.data_to_send ()
-		self.channel.push (data_to_send)
+		self.send_data (stream_id)
 					
 	def push_response (self, stream_id, headers, producer):
 		with self._clock:
@@ -203,6 +195,7 @@ class HTTP2:
 			outgoing_producer = producers.h2stream_producer (
 				stream_id, depends_on, weight, producer, self.conn, self._plock
 			)			
+			
 			self.channel.ready = self.channel.producer_fifo.ready
 			self.channel.push_with_producer (outgoing_producer)
 			with self._clock:
@@ -294,11 +287,13 @@ class HTTP2:
 					return
 			
 			elif isinstance(event, WindowUpdated):
-				#self.push_promised_data (event.stream_id)
-				#print ('+++++++WindowUpdated', self.channel.producer_fifo.l)
+				#self.push_promised_data (event.stream_id)				
 				pass
-								
-		self.send_data ()
+		
+		try: 			
+			self.send_data (event.stream_id)
+		except AttributeError:
+			self.send_data ()	
 							
 	def handle_request (self, stream_id, headers, is_promise = False):
 		#print ("REQUEST: %d" % stream_id, headers)
