@@ -270,10 +270,8 @@ class HTTP2:
 		uri = "/"
 		scheme = "http"
 		authority = ""
-		
-		h = []
-		cl = None
-		
+		cl = 0
+		h = []				
 		for k, v in headers:
 			if k[0] == ":":
 				if k == ":method": command = v
@@ -284,21 +282,19 @@ class HTTP2:
 					if authority:
 						h.append ("host: %s" % authority)				
 				continue
+				
 			if k == "content-length":
 				cl = int (v)
 			h.append ("%s: %s" % (k, v))
 		
-		if cl:
-			with self._plock:				
-				self.conn.increment_flow_control_window (cl + 65535)
-				self.conn.increment_flow_control_window (cl, stream_id)
-				
+		should_have_collector = False	
 		if command == "CONNECT":
 			first_line = "%s %s HTTP/2.0" % (command, authority)
 			vchannel = self.channel			
 		else:	
 			first_line = "%s %s HTTP/2.0" % (command, uri)
 			if command in ("POST", "PUT"):
+				should_have_collector = True
 				vchannel = http2.data_channel (self.channel, cl)
 			else:
 				vchannel = http2.fake_channel (self.channel)
@@ -311,11 +307,11 @@ class HTTP2:
 			self.channel.server.total_requests.inc()
 		
 		for h in self.channel.server.handlers:
-			if h.match (r):
+			if h.match (r):		
 				with self._clock:
 					self.requests [stream_id] = r
-						
-				try:
+				
+				try:					
 					h.handle_request (r)
 					
 				except:
@@ -323,6 +319,21 @@ class HTTP2:
 					try: r.response.error (500)
 					except: pass
 						
+				else:
+					if should_have_collector and cl > 0 and r.collector is None:
+						# too large body
+						with self._plock:
+							self.conn.close_connection (FLOW_CONTROL_ERROR, b"Request Entity Too Large")
+							#self.conn.reset_stream (stream_id, FLOW_CONTROL_ERROR)
+						self.send_data ()
+						
+					elif cl > 0:
+						# give extended permission sending data to client
+						with self._plock:				
+							self.conn.increment_flow_control_window (cl + 65535)
+							self.conn.increment_flow_control_window (cl, stream_id)
+						self.send_data ()	
+							
 				return					
 					
 		try: r.response.error (404)
