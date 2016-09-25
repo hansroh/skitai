@@ -201,7 +201,7 @@ class HTTP2:
 			)			
 			self.channel.push_with_producer (outgoing_producer)
 			with self._clock:
-				self.channel.ready = self.channel.producer_fifo.ready
+				#self.channel.ready = self.channel.producer_fifo.ready
 				del self.requests [stream_id]
 			
 		promise_stream_id, promise_headers = None, None
@@ -250,18 +250,6 @@ class HTTP2:
 				r.channel.set_data (event.data, event.flow_controlled_length)
 				r.channel.handle_read ()
 				
-				chnk = r.channel.get_chunk_size ()
-				with self._plock:
-					rfcw = self.conn.remote_flow_control_window (event.stream_id)
-				ctln = r.channel.get_content_length ()
-				dtln = r.channel.get_data_size ()				
-				if rfcw == 0 or (chnk and event.flow_controlled_length == chnk and rfcw < chnk):
-					remains = ctln - dtln
-					if remains:
-						with self._plock:
-							self.conn.increment_flow_control_window (remains, event.stream_id)
-							self.conn.increment_flow_control_window (ctln)
-						
 			elif isinstance(event, StreamEnded):
 				r = None
 				with self._clock:
@@ -300,12 +288,17 @@ class HTTP2:
 				cl = int (v)
 			h.append ("%s: %s" % (k, v))
 		
+		if cl:
+			with self._plock:
+				self.conn.increment_flow_control_window (cl)
+				self.conn.increment_flow_control_window (cl, stream_id)
+				
 		if command == "CONNECT":
 			first_line = "%s %s HTTP/2.0" % (command, authority)
 			vchannel = self.channel			
 		else:	
 			first_line = "%s %s HTTP/2.0" % (command, uri)
-			if command in ("POST", "PUT"):				
+			if command in ("POST", "PUT"):
 				vchannel = http2.data_channel (self.channel, cl)
 			else:
 				vchannel = http2.fake_channel (self.channel)
