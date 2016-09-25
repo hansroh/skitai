@@ -289,8 +289,8 @@ class HTTP2:
 			h.append ("%s: %s" % (k, v))
 		
 		if cl:
-			with self._plock:
-				self.conn.increment_flow_control_window (cl)
+			with self._plock:				
+				self.conn.increment_flow_control_window (cl + 65535)
 				self.conn.increment_flow_control_window (cl, stream_id)
 				
 		if command == "CONNECT":
