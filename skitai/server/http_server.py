@@ -228,7 +228,8 @@ class http_channel (asynchat.async_chat):
 					except:
 						self.server.trace()
 						try: r.response.error (500)
-						except: pass							
+						except: pass
+							
 					return
 					
 			try: r.response.error (404)

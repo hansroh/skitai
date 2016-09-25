@@ -394,7 +394,8 @@ class h2stream_producer:
 	
 	def ready (self):
 		#print ("FLOW WINDOW READY", self.stream_id, self.encoder.local_flow_control_window (self.stream_id))
-		lfcw = self.encoder.local_flow_control_window (self.stream_id)		
+		with self._lock:
+			lfcw = self.encoder.local_flow_control_window (self.stream_id)		
 		if lfcw >= self.BUFFER_SIZE:
 			return True		
 		if time.time () - self._last_sent > self.FLOW_CONTROL_WINDOW_UPDATE_TIMEOUT:

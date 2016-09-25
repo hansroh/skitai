@@ -28,7 +28,6 @@ class HTTP2:
 		self.conn = H2Connection(client_side = False)
 		self.frame_buf = self.conn.incoming_buffer
 		self.frame_buf.max_frame_size = self.conn.max_inbound_frame_size
-		self.initiate_connection ()
 		
 		self.data_length = 0
 		self.current_frame = None
@@ -46,6 +45,8 @@ class HTTP2:
 		self._plock = threading.Lock ()
 		self._clock = threading.Lock ()
 		self._alock = threading.Lock ()
+		
+		self.initiate_connection ()
 	
 	def close_when_done (self):
 		# send go_away b'\x00\x00\x08\x07\x00\x00\x00\x00\x00\x00\x00\x00\x0f\x00\x00\x00\x00')		
@@ -59,7 +60,8 @@ class HTTP2:
 			self.channel = None
 			
 		if self.channel:
-			self.conn.close_connection () # go_away
+			with self._plock:
+				self.conn.close_connection () # go_away
 			self.send_data ()
 			
 		self.handler.finish_request (self.request)
@@ -67,8 +69,10 @@ class HTTP2:
 	def closed (self):
 		return self._closed
 			
-	def send_data (self, stream_id = 0):					
-		data_to_send = self.conn.data_to_send ()
+	def send_data (self):
+		with self._plock:			
+			data_to_send = self.conn.data_to_send ()
+		
 		if data_to_send:
 			#print ("SEND", repr (data_to_send), len (data_to_send), '::', self.channel.get_terminator ())		
 			self.channel.push (data_to_send)
@@ -89,7 +93,6 @@ class HTTP2:
 			self.conn.initiate_upgrade_connection (h2settings)
 		else:	
 			self.conn.initiate_connection()		
-		#self.conn.update_settings ({INITIAL_WINDOW_SIZE: 12451840})
 		self.send_data ()
 		
 		if self.request.version == "1.1":
@@ -120,9 +123,10 @@ class HTTP2:
 	def set_frame_data (self, data):
 		if not self.current_frame:
 			return []
-		self.current_frame.parse_body (memoryview (data))			
+		self.current_frame.parse_body (memoryview (data))				
 		self.current_frame = self.frame_buf._update_header_buffer (self.current_frame)
-		events = self.conn._receive_frame (self.current_frame)
+		with self._plock:
+			events = self.conn._receive_frame (self.current_frame)
 		return events
 					
 	def found_terminator (self):
@@ -173,7 +177,7 @@ class HTTP2:
 		
 		with self._plock:
 			self.conn.push_stream (stream_id, promise_stream_id, request_headers	+ addtional_request_headers)
-		self.send_data (stream_id)
+		self.send_data ()
 					
 	def push_response (self, stream_id, headers, producer):
 		with self._clock:
@@ -195,33 +199,18 @@ class HTTP2:
 			outgoing_producer = producers.h2stream_producer (
 				stream_id, depends_on, weight, producer, self.conn, self._plock
 			)			
-			
-			self.channel.ready = self.channel.producer_fifo.ready
 			self.channel.push_with_producer (outgoing_producer)
 			with self._clock:
+				self.channel.ready = self.channel.producer_fifo.ready
 				del self.requests [stream_id]
 			
 		promise_stream_id, promise_headers = None, None
 		with self._alock:
 			try: promise_stream_id, promise_headers = self.promises.popitem ()
 			except KeyError: pass
+		
 		if promise_stream_id:
 			self.handle_request (promise_stream_id, promise_headers, is_promise = True)
-	
-	def push_promised_data (self, stream_id):
-		if stream_id % 2 != 0 or stream_id == 0:
-			return			
-		r = None
-		with self._clock:
-			try: r = self.requests [stream_id]
-			except KeyError: pass
-		if r is None or not r.is_promise or r.outgoing_producer is None:
-			return
-		
-		r.outgoing_producer.depends_on, r.outgoing_producer.weight = self.priorities [stream_id]
-		self.channel.ready = self.channel.producer_fifo.ready
-		self.channel.push_with_producer (r.outgoing_producer)
-		r.outgoing_producer = None			
 		
 	def handle_events (self, events):
 		for event in events:
@@ -254,8 +243,6 @@ class HTTP2:
 					
 				with self._clock:
 					self.priorities [event.stream_id] = [event.depends_on, event.weight]
-					
-				#self.push_promised_data (event.stream_id)	
 				
 			elif isinstance(event, DataReceived):
 				with self._clock:
@@ -264,14 +251,16 @@ class HTTP2:
 				r.channel.handle_read ()
 				
 				chnk = r.channel.get_chunk_size ()
-				rfcw = self.conn.remote_flow_control_window (event.stream_id)
+				with self._plock:
+					rfcw = self.conn.remote_flow_control_window (event.stream_id)
 				ctln = r.channel.get_content_length ()
 				dtln = r.channel.get_data_size ()				
 				if rfcw == 0 or (chnk and event.flow_controlled_length == chnk and rfcw < chnk):
 					remains = ctln - dtln
 					if remains:
-						self.conn.increment_flow_control_window (remains, event.stream_id)
-						self.conn.increment_flow_control_window (ctln)
+						with self._plock:
+							self.conn.increment_flow_control_window (remains, event.stream_id)
+							self.conn.increment_flow_control_window (ctln)
 						
 			elif isinstance(event, StreamEnded):
 				r = None
@@ -282,18 +271,10 @@ class HTTP2:
 				if r and r.collector:
 					with self._clock:
 						del self.requests [event.stream_id]
-					self.conn.reset_stream (event.stream_id, PROTOCOL_ERROR)
-					self.close ()
-					return
+					with self._plock:	
+						self.conn.reset_stream (event.stream_id, PROTOCOL_ERROR)
 			
-			elif isinstance(event, WindowUpdated):
-				#self.push_promised_data (event.stream_id)				
-				pass
-		
-		try: 			
-			self.send_data (event.stream_id)
-		except AttributeError:
-			self.send_data ()	
+		self.send_data ()
 							
 	def handle_request (self, stream_id, headers, is_promise = False):
 		#print ("REQUEST: %d" % stream_id, headers)
@@ -319,22 +300,22 @@ class HTTP2:
 				cl = int (v)
 			h.append ("%s: %s" % (k, v))
 		
-		should_have_collector = False					
 		if command == "CONNECT":
 			first_line = "%s %s HTTP/2.0" % (command, authority)
 			vchannel = self.channel			
 		else:	
 			first_line = "%s %s HTTP/2.0" % (command, uri)
-			if command in ("POST", "PUT"):
-				should_have_collector = True
+			if command in ("POST", "PUT"):				
 				vchannel = http2.data_channel (self.channel, cl)
 			else:
 				vchannel = http2.fake_channel (self.channel)
 		
 		r = http2.request (self, vchannel, first_line, command.lower (), uri, "2.0", scheme, h, stream_id, is_promise)		
 		vchannel.current_request = r
-		self.channel.request_counter.inc()
-		self.channel.server.total_requests.inc()
+		
+		with self._clock:
+			self.channel.request_counter.inc()
+			self.channel.server.total_requests.inc()
 		
 		for h in self.channel.server.handlers:
 			if h.match (r):
@@ -349,13 +330,7 @@ class HTTP2:
 					try: r.response.error (500)
 					except: pass
 						
-				else:					
-					if should_have_collector and r.collector is None:
-						# content-length validated
-						#self.close () # graceful disconnect
-						self.conn.reset_stream (stream_id, FLOW_CONTROL_ERROR)
-						self.close ()					
-					return					
+				return					
 					
 		try: r.response.error (404)
 		except: pass
@@ -372,7 +347,8 @@ class HTTP2h2 (HTTP2):
 		self.channel.set_terminator (None) # PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n
 			
 	def collect_incoming_data (self, data):		
-		events = self.conn.receive_data (data)
+		with self._plock:
+			events = self.conn.receive_data (data)
 		self.handle_events (events)
 
 
