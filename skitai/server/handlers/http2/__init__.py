@@ -1,6 +1,7 @@
 from skitai.server import http_request, http_response
 from skitai.lib import producers
 import asynchat
+import time
 
 
 class response (http_response.http_response):
@@ -27,10 +28,20 @@ class response (http_response.http_response):
 			(':path', uri),
 			(':authority', self.request.get_header ('host')),	    
 	    (':scheme', self.request.scheme),
-	    (':method', "GET"),
-	    ('accept-encoding', 'gzip')
-	   ]		
-		self.request.http2.push_promise (self.request.stream_id, headers)
+	    (':method', "GET")	    
+	  ]
+	   
+		additional_headers = [
+	   	(k, v) for k, v in [
+		   	('accept-encoding', self.request.get_header ('accept-encoding')),
+		   	('accept-language', self.request.get_header ('accept-language')),
+		    ('cookie', self.request.get_header ('cookie')),
+		    ('user-agent', self.request.get_header ('user-agent')),
+		    ('referer', "%s://%s%s" % (self.request.scheme, self.request.get_header ('host'), self.request.uri)),	    
+		   ] if v
+	   ]
+	    
+		self.request.http2.push_promise (self.request.stream_id, headers, additional_headers)
 		
 	def done (self, globbing = True, compress = True, force_close = False, next_request = None):
 		# removed by HTTP/2.0 Spec.
@@ -85,7 +96,21 @@ class response (http_response.http_response):
 				request, terminator = next_request
 				self.request.channel.current_request = request
 				self.request.channel.set_terminator (terminator)
-				
+	
+	def log (self, bytes):		
+		self.request.channel.server.log_request (
+			'%s:%d %s%s %s %d %dms %dms'
+			% (self.request.channel.addr[0],
+			self.request.channel.addr[1],			
+			self.request.is_promise and "PUSH-" or "",
+			self.request.request,
+			self.reply_code,			
+			bytes,
+			self.htime,
+			(time.time () - self.stime) * 1000
+			)
+		)
+
 		
 class request (http_request.http_request):
 	def __init__ (self, *args):

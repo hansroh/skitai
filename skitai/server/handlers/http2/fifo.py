@@ -33,7 +33,10 @@ class priority_producer_fifo:
 					pass
 				else:
 					if legacy_stream_id	== stream_id:
-						self.l.pop (index)
+						item = self.l.pop (index)
+						if hasattr (item, 'close'):
+							try: item.close ()
+							except: pass
 						break
 				index += 1		
 	
@@ -53,14 +56,16 @@ class priority_producer_fifo:
 		for item in self.l [1:]:
 			if not hasattr (item, 'stream_id'):
 				break
+							
 			if item.ready ():
 				ready_item = self.l.pop (index)
 				self.l.insert (0, ready_item)
 				has_ready = True
 				break
+				
 			index += 1
 		
-		self._lock.release ()	
+		self._lock.release ()
 		return has_ready
 			
 	def append (self, item):

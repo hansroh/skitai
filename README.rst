@@ -3,8 +3,9 @@
 
 Changes & News
 ===============
+
 - 0.16.8 fix pushing promise and response
-- 0.16.6 add several configs to was.app.config for limiting post body size form client
+- 0.16.6 add several configs to was.app.config for limiting post body size from client
 - 0.16.5 add method: was.response.hint_promise (uri) for sending HTP/2 PUSH PROMISE frame
 - 0.16.3 fix flow control window
 - 0.16.2 fix HTTP/2 Uprading for "http" URIs (RFC 7540 Section 3.2)
@@ -854,6 +855,32 @@ Utilities
 - was.fromxml (string) # XMLRPC
 - was.restart () # Restart Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
 - was.shutdown () # Shutdown Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
+
+
+
+HTTP/2.0
+============
+
+*New in version 0.16*
+
+Skiai supports HTPT2 both 'h2' protocl over enrypted TLS and 'h2c' for clear text (But now Sep 2016, there is no browser supporting h2c protocol).
+
+Basically you have nothing to do for HTTP2. Client's browser will handle it except `HTTP2 server push`_.
+
+For using it, you just call was.response.hint_promise (uri) before return response data. It will work only client browser support HTTP2, otherwise will be ignored.
+
+.. code:: python
+
+  @app.route ("/promise")
+  def promise (was):
+  
+    was.response.hint_promise ('/images/A.png')
+    was.response.hint_promise ('/images/B.png')
+    
+    return was.response ("200 OK", 'Promise Sent<br><br><img src="/images/A.png"><img src="/images/B.png">')	
+
+
+.. _`HTTP2 server push`: https://tools.ietf.org/html/rfc7540#section-8.2
 
 
 HTML5 Websocket

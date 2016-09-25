@@ -392,7 +392,7 @@ class h2stream_producer:
 		return self._end_stream and not self._buf
 	
 	def ready (self):
-		#print ("FLOW WINDOW READY", self.encoder.local_flow_control_window (self.stream_id))
+		#print ("FLOW WINDOW READY", self.stream_id, self.encoder.local_flow_control_window (self.stream_id))
 		return self.encoder.local_flow_control_window (self.stream_id)
 			 	
 	def more (self):
@@ -409,7 +409,8 @@ class h2stream_producer:
 				data, self._buf = data [:self.BUFFER_SIZE], data [self.BUFFER_SIZE:]
 		
 		#print (">>>>>>> MULTIPLEXING", self.stream_id, len (data), len (self._buf), (self._end_stream and not self._buf))			
-		with self._lock:			
+		#print ("MULTIPLEXING", self.stream_id, self.encoder.local_flow_control_window (self.stream_id))
+		with self._lock:
 			self.encoder.send_data (
 				stream_id = self.stream_id,
 				data = data,

@@ -85,7 +85,7 @@ class http_channel (asynchat.async_chat):
 				return 1
 			self.close ()
 			return 0
-		
+	      		
 	def isconnected (self):
 		return self.connected
 	

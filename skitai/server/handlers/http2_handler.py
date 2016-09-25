@@ -124,7 +124,13 @@ class HTTP2:
 		self.current_frame = self.frame_buf._update_header_buffer (self.current_frame)
 		events = self.conn._receive_frame (self.current_frame)
 		return events
-			
+	
+	def sendable (self, stream_id):
+		if self.local_flow_control_window (stream_id) == 0:
+			self.close (True)
+			return False
+		return True
+					
 	def found_terminator (self):
 		buf, self.buf = self.buf, b""
 		
@@ -166,15 +172,15 @@ class HTTP2:
 			stream_id = self._send_stream_id
 		return stream_id
 		
-	def push_promise (self, stream_id, request_headers):
+	def push_promise (self, stream_id, request_headers, addtional_request_headers):
 		promise_stream_id = self.get_new_stream_id ()
 		with self._alock:
-			self.promises [promise_stream_id] = request_headers		
+			self.promises [promise_stream_id] = request_headers	+ addtional_request_headers	
 		
 		#print ('PUSH STREAM', stream_id, promise_stream_id, request_headers)
 		with self._plock:
-			self.conn.push_stream (stream_id, promise_stream_id, request_headers)
-			data_to_send = self.conn.data_to_send ()			
+			self.conn.push_stream (stream_id, promise_stream_id, request_headers	+ addtional_request_headers)
+			data_to_send = self.conn.data_to_send ()
 		self.channel.push (data_to_send)
 					
 	def push_response (self, stream_id, headers, producer):
@@ -226,7 +232,7 @@ class HTTP2:
 		
 	def handle_events (self, events):
 		for event in events:
-			#print ('EVENT', event)			
+			#print ('EVENT', event)
 			if isinstance(event, RequestReceived):
 				self.handle_request (event.stream_id, event.headers)				
 					
@@ -237,10 +243,11 @@ class HTTP2:
 						with self._alock:
 							try: del self.promises [event.stream_id]
 							except KeyError: pass
-							else: deleted = True								
+							else: deleted = True
+					
 					if not deleted:
 						self.channel.producer_fifo.remove (event.stream_id)
-					
+						
 			elif isinstance(event, ConnectionTerminated):
 				self.close (True)
 				
@@ -288,11 +295,13 @@ class HTTP2:
 			
 			elif isinstance(event, WindowUpdated):
 				#self.push_promised_data (event.stream_id)
+				#print ('+++++++WindowUpdated', self.channel.producer_fifo.l)
 				pass
 								
 		self.send_data ()
 							
 	def handle_request (self, stream_id, headers, is_promise = False):
+		#print ("REQUEST: %d" % stream_id, headers)
 		command = "GET"
 		uri = "/"
 		scheme = "http"
@@ -306,7 +315,7 @@ class HTTP2:
 				if k == ":method": command = v
 				elif k == ":path": uri = v
 				elif k == ":scheme": scheme = v
-				elif k == ":authority": 
+				elif k == ":authority":
 					authority = v
 					if authority:
 						h.append ("host: %s" % authority)				
