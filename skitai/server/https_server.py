@@ -7,7 +7,7 @@ import ssl
 from skitai import lifetime
 import os, sys, errno
 import skitai
-
+from errno import EWOULDBLOCK
 			
 class https_channel (http_server.http_channel):
 	ac_out_buffer_size = 65536

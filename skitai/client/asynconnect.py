@@ -265,10 +265,8 @@ class AsynConnect (asynchat.async_chat):
 		
 	def handle_connect (self):
 		if DEBUG: self.__history.append ("CONNECTED") 
-		try: 
+		if hasattr (self.handler, "has_been_connected"):		
 			self.handler.has_been_connected ()
-		except AttributeError:
-			pass
 		
 	def handle_read (self):
 		self.set_zombie_timeout_by_case ()		
