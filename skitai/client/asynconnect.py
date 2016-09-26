@@ -1,20 +1,17 @@
-import asynchat
-import asyncore
-import re
-import os
+import asynchat, asyncore
+import re, os, sys
+import ssl
 import socket
 import time
-import sys
 import zlib
-import ssl
+from warnings import warn
 from errno import ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EWOULDBLOCK
 import select
 import threading
 from . import adns
-from warnings import warn
 
 DEBUG = False
-
+	
 class SocketPanic (Exception): pass
 class TimeOut (Exception): pass
 
@@ -30,7 +27,7 @@ class AsynConnect (asynchat.async_chat):
 	request_count = 0
 	active = 0
 	proxy = False
-			
+
 	def __init__ (self, address, lock = None, logger = None):
 		self.address = address
 		self.lock = lock
@@ -191,8 +188,8 @@ class AsynConnect (asynchat.async_chat):
 				asynchat.async_chat.connect (self, self.address)
 				
 			else:	
-				res = adns.get (self.address [0], "A")						
-				if res:				
+				res = adns.get (self.address [0], "A")	
+				if res:
 					ip = res [-1]["data"]
 					if ip:
 						asynchat.async_chat.connect (self, (ip, self.address [1]))																		
@@ -206,7 +203,7 @@ class AsynConnect (asynchat.async_chat):
 		self.set_event_time ()
 		try:
 			data = self.socket.recv(buffer_size)	
-			#print ("+++++DATA", len (data), repr (data [:40]))				
+			#print ("+++++DATA", len (data), repr (data [:40]))
 			if not data:
 				self.handle_close (700, "Connection closed unexpectedly in recv")
 				return b''
@@ -220,6 +217,7 @@ class AsynConnect (asynchat.async_chat):
 				raise
 	
 	def send (self, data):		
+		#print ("SEND", data)
 		self.set_event_time ()
 		try:
 			return self.socket.send (data)
@@ -432,7 +430,11 @@ class AsynSSLConnect (AsynConnect):
 
 		except ssl.SSLError as why:
 			if why.errno == ssl.SSL_ERROR_WANT_READ:
-				return b'' # retry			
+				try: 
+					raise BlockingIOError				
+				except NameError:
+					raise socket.error (EWOULDBLOCK)
+													
 			# closed connection
 			elif why.errno in (ssl.SSL_ERROR_ZERO_RETURN, ssl.SSL_ERROR_EOF):
 				self.handle_close (700, "Connection closed by SSL_ERROR_ZERO_RETURN or SSL_ERROR_EOF")

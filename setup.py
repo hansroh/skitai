@@ -67,6 +67,8 @@ packages = [
 	'skitai.server.rpc',
 	'skitai.server.threads',
 	'skitai.server.handlers.http2',
+	'skitai.server.handlers.websocket',
+	'skitai.server.handlers.proxy',
 	'skitai.saddle'
 ]
 

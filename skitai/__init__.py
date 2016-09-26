@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.16.19"
+VERSION = "0.16.20"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -9,7 +9,7 @@ import sys
 HTTP2 = True
 try: import h2
 except ImportError: HTTP2 = False
-	
+
 WEBSOCKET_REQDATA = 1
 WEBSOCKET_DEDICATE = 2
 WEBSOCKET_MULTICAST = 3

@@ -4,6 +4,7 @@
 Changes & News
 ===============
 
+- 0.16.20 fix SSL proxy and divide into package for proxy & websocket_handler
 - 0.16.19 fix HTTP2 cookie
 - 0.16.18 fix handle large request body
 - 0.16.13 fix thread locking for h2.Connection
@@ -19,11 +20,11 @@ Changes & News
 Introduce
 ===========
 
-Skitai App Engine (SAE) is a kind of branch of `Medusa Web Server`__ - A High-Performance Internet Server Architecture.
+Skitai App Engine (SWAE) is a kind of branch of `Medusa Web Server`__ - A High-Performance Internet Server Architecture.
 
 Medusa is different from most other servers because it runs as a single process, multiplexing I/O with its various client and server connections within a single process/thread.
 
-SAE orients light-weight, simplicity  and strengthen networking operations with external resources - HTTP / HTTPS / XML-RPC / PostgreSQL_ - keeping very low costs.
+SWAE orients light-weight, simplicity  and strengthen networking operations with external resources - HTTP / HTTPS / XML-RPC / PostgreSQL_ - keeping very low costs.
 
 - Working as Web, XML-RPC and Reverse Proxy Loadbancing Server
 - HTML5 Websocket & HTTP/2.0 implemeted
@@ -36,11 +37,11 @@ Also it is influenced by Zope_ and Flask_ a lot.
 
 From version 0.10, Skitai App Engine follows WSGI specification. So existing Skitai apps need to lots of modifications.
 
-Conceptually, SAE has been seperated into two components:
+Conceptually, SWAE has been seperated into two components:
 
 1. Skitai App Engine Server, for WSGI apps
 
-2. Saddle, the small WSGI middleware integrated with SAE. But you can also mount any WSGI apps and frameworks like Flask.
+2. Saddle, the small WSGI middleware integrated with SWAE. But you can also mount any WSGI apps and frameworks like Flask.
 
 .. _hyper-h2: https://pypi.python.org/pypi/h2
 .. _Zope: http://www.zope.org/
@@ -140,7 +141,7 @@ Here's three WSGI app samples:
   def index (was):	 
     return "Hello World"
 
-For mounting to SAE, modify config file in /etc/skitaid/servers-enabled/sample.conf
+For mounting to SWAE, modify config file in /etc/skitaid/servers-enabled/sample.conf
 
 .. code:: python
   
@@ -524,7 +525,7 @@ It can be accessed from http://127.0.0.1:5000/search, and handled as load-balanc
 
 **Map-Reducing**
 
-Basically same with load_balancing except SAE requests to all members per each request.
+Basically same with load_balancing except SWAE requests to all members per each request.
 
 .. code:: python
 
@@ -867,7 +868,7 @@ HTTP/2.0
 
 *New in version 0.16*
 
-Skiai supports HTPT2 both 'h2' protocl over enrypted TLS and 'h2c' for clear text (But now Sep 2016, there is no browser supporting h2c protocol).
+Skiai supports HTPT2 both 'h2' protocl over encrypted TLS and 'h2c' for clear text (But now Sep 2016, there is no browser supporting h2c protocol).
 
 Basically you have nothing to do for HTTP2. Client's browser will handle it except `HTTP2 server push`_.
 
@@ -2396,7 +2397,7 @@ For more detail please read REAME.txt in /etc/skitaid/cert/README.txt
 
 *Posix*
 
-SAE will be executed with /usr/bin/python (mostly symbolic link for /usr/bin/python2).
+SWAE will be executed with /usr/bin/python (mostly symbolic link for /usr/bin/python2).
 
 For using Python 3.x, change skitaid scripts' - /usr/local/bin/sktaid*.py - first line from `#!/usr/bin/python` to `#!/usr/bin/python3`. Once you change, it will be kept, even upgrade or re-install skitai.
 
