@@ -48,10 +48,11 @@ class HTTP2:
 		
 		self.initiate_connection ()
 	
-	def close_when_done (self):
-		# send go_away b'\x00\x00\x08\x07\x00\x00\x00\x00\x00\x00\x00\x00\x0f\x00\x00\x00\x00')		
-		self.channel.push (GoAwayFrame (stream_id = 0).serialize ())
-		self.channel.close_when_done ()
+	def close_when_done (self, errcode = 0, msg = None):
+		with self._plock:
+			self.conn.close_connection (errcode, msg)
+		self.send_data ()
+		self.channel.close_when_done ()		
 			
 	def close (self, force = False):
 		if self._closed: return
@@ -70,11 +71,11 @@ class HTTP2:
 		return self._closed
 			
 	def send_data (self):
-		with self._plock:			
+		with self._plock:
 			data_to_send = self.conn.data_to_send ()
 		
 		if data_to_send:
-			#print ("SEND", repr (data_to_send), len (data_to_send), '::', self.channel.get_terminator ())		
+			#print ("SEND", repr (data_to_send), len (data_to_send))
 			self.channel.push (data_to_send)
 	
 	def handle_preamble (self):
@@ -257,10 +258,12 @@ class HTTP2:
 					except KeyError: pass
 				
 				if r and r.collector:
+					# unexpected end of body
 					with self._clock:
 						del self.requests [event.stream_id]
 					with self._plock:	
-						self.conn.reset_stream (event.stream_id, PROTOCOL_ERROR)
+						self.close_when_done (PROTOCOL_ERROR)
+						return						
 			
 		self.send_data ()
 							
@@ -322,16 +325,19 @@ class HTTP2:
 				else:
 					if should_have_collector and cl > 0 and r.collector is None:
 						# too large body
-						with self._plock:
-							self.conn.close_connection (FLOW_CONTROL_ERROR, b"Request Entity Too Large")
-							#self.conn.reset_stream (stream_id, FLOW_CONTROL_ERROR)
-						self.send_data ()
+						self.close_when_done (FLOW_CONTROL_ERROR)
+						# Reset_stream is not working on browsers
+						#with self._plock:						
+						#	self.conn.reset_stream (stream_id, FLOW_CONTROL_ERROR)
+						#self.send_data ()
 						
 					elif cl > 0:
 						# give extended permission sending data to client
-						with self._plock:				
-							self.conn.increment_flow_control_window (cl + 65535)
-							self.conn.increment_flow_control_window (cl, stream_id)
+						with self._plock:
+							self.conn.increment_flow_control_window (cl)
+							rfcw = self.conn.remote_flow_control_window (stream_id)
+							if cl > rfcw:
+								self.conn.increment_flow_control_window (cl - rfcw, stream_id)
 						self.send_data ()	
 							
 				return					
