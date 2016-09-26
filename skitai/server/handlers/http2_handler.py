@@ -40,11 +40,10 @@ class HTTP2:
 		
 		self._send_stream_id = 0
 		self._closed = False
-		self._got_preamble = False		
+		self._got_preamble = False
 
-		self._plock = threading.Lock ()
-		self._clock = threading.Lock ()
-		self._alock = threading.Lock ()
+		self._plock = threading.Lock () # for self.conn
+		self._clock = threading.Lock () # for self.x
 		
 		self.initiate_connection ()
 	
@@ -153,7 +152,7 @@ class HTTP2:
 			self.current_frame, self.data_length = self.frame_buf._parse_frame_header (buf)
 			self.frame_buf.max_frame_size = self.conn.max_inbound_frame_size
 			self.frame_buf._validate_frame_length (self.data_length)			
-			#print ("FRAME", self.current_frame, '::', self.data_length)
+			#print ("++FRAME", self.current_frame, '::', self.data_length)
 						
 			if self.data_length == 0:
 				events = self.set_frame_data (b'')
@@ -166,14 +165,14 @@ class HTTP2:
 			self.handle_events (events)
 	
 	def get_new_stream_id (self):
-		with self._alock:
+		with self._clock:
 			self._send_stream_id += 2
 			stream_id = self._send_stream_id
 		return stream_id
 		
 	def push_promise (self, stream_id, request_headers, addtional_request_headers):
 		promise_stream_id = self.get_new_stream_id ()
-		with self._alock:
+		with self._clock:
 			self.promises [promise_stream_id] = request_headers	+ addtional_request_headers	
 		
 		with self._plock:
@@ -181,17 +180,15 @@ class HTTP2:
 		self.send_data ()
 					
 	def push_response (self, stream_id, headers, producer):
+		#print ("++RESPONSE", headers)
 		with self._clock:
+			r = self.requests [stream_id]
 			try:
 				depends_on, weight = self.priorities [stream_id]
 			except KeyError:
 				depends_on, weight = 0, 1	
 			else:
-				del self.priorities [stream_id]	
-		
-		with self._clock:
-			r = self.requests [stream_id]
-		r.http2 = None # break bacj ref.
+				del self.priorities [stream_id]				
 		
 		self.channel.push_with_producer (
 			producers.h2header_producer (stream_id, headers, producer, self.conn, self._plock)
@@ -201,12 +198,14 @@ class HTTP2:
 				stream_id, depends_on, weight, producer, self.conn, self._plock
 			)			
 			self.channel.push_with_producer (outgoing_producer)
+			
+			r.http2 = None # break bacj ref.
 			with self._clock:
 				#self.channel.ready = self.channel.producer_fifo.ready
 				del self.requests [stream_id]
 			
 		promise_stream_id, promise_headers = None, None
-		with self._alock:
+		with self._clock:
 			try: promise_stream_id, promise_headers = self.promises.popitem ()
 			except KeyError: pass
 		
@@ -215,7 +214,7 @@ class HTTP2:
 		
 	def handle_events (self, events):
 		for event in events:
-			#print ('EVENT', event)
+			#print ('++EVENT', event)
 			if isinstance(event, RequestReceived):
 				self.handle_request (event.stream_id, event.headers)				
 					
@@ -223,7 +222,7 @@ class HTTP2:
 				if event.remote_reset:
 					deleted = False
 					if event.stream_id % 2 == 0: # promise stream
-						with self._alock:
+						with self._clock:
 							try: del self.promises [event.stream_id]
 							except KeyError: pass
 							else: deleted = True
@@ -259,22 +258,24 @@ class HTTP2:
 				
 				if r and r.collector:
 					# unexpected end of body
+					r.http2 = None # break back ref.
 					with self._clock:
 						del self.requests [event.stream_id]
-					with self._plock:	
+					with self._plock:
 						self.close_when_done (PROTOCOL_ERROR)
-						return						
+						return
 			
 		self.send_data ()
 							
 	def handle_request (self, stream_id, headers, is_promise = False):
-		#print ("REQUEST: %d" % stream_id, headers)
+		#print ("++REQUEST: %d" % stream_id, headers)
 		command = "GET"
 		uri = "/"
 		scheme = "http"
 		authority = ""
 		cl = 0
-		h = []				
+		h = []
+		cookies = []
 		for k, v in headers:
 			if k[0] == ":":
 				if k == ":method": command = v
@@ -284,12 +285,17 @@ class HTTP2:
 					authority = v
 					if authority:
 						h.append ("host: %s" % authority)				
-				continue
-				
+				continue								
 			if k == "content-length":
 				cl = int (v)
+			elif k == "cookie":
+				cookies.append (v)
+				continue					
 			h.append ("%s: %s" % (k, v))
-		
+								
+		if cookies:
+			h.append ("Cookie: %s" % "; ".join (cookies))
+			
 		should_have_collector = False	
 		if command == "CONNECT":
 			first_line = "%s %s HTTP/2.0" % (command, authority)
@@ -332,7 +338,7 @@ class HTTP2:
 						self.close_when_done (FLOW_CONTROL_ERROR)
 						
 					elif cl > 0:
-						# give extended permission sending data to client
+						# give permission for sending data to a client
 						with self._plock:
 							self.conn.increment_flow_control_window (cl)
 							rfcw = self.conn.remote_flow_control_window (stream_id)

@@ -4,6 +4,8 @@
 Changes & News
 ===============
 
+- 0.16.19 fix HTTP2 cookie
+- 0.16.18 fix handle large request body
 - 0.16.13 fix thread locking for h2.Connection
 - 0.16.11 fix pushing promise and response on Firefox
 - 0.16.8 fix pushing promise and response
