@@ -4,7 +4,8 @@ from h2.connection import H2Connection, GoAwayFrame
 from h2.exceptions import ProtocolError, NoSuchStreamError
 from h2.events import DataReceived, RequestReceived, StreamEnded, PriorityUpdated, ConnectionTerminated, StreamReset, WindowUpdated
 from h2.errors import PROTOCOL_ERROR, FLOW_CONTROL_ERROR
-from . import http2
+from .http2.request import request as http2_request
+from .http2.vchannel import fake_channel, data_channel
 from .http2.fifo import priority_producer_fifo
 import threading
 try:
@@ -13,10 +14,10 @@ except ImportError:
 	from io import BytesIO
 
 
-class HTTP2:
+class http2_handler:
 	collector = None
 	producer = None
-	
+	http11_terminator = 24
 	def __init__ (self, handler, request):
 		self.handler = handler
 		self.wasc = handler.wasc
@@ -45,8 +46,6 @@ class HTTP2:
 		self._plock = threading.Lock () # for self.conn
 		self._clock = threading.Lock () # for self.x
 		
-		self.initiate_connection ()
-	
 	def close_when_done (self, errcode = 0, msg = None):
 		with self._plock:
 			self.conn.close_connection (errcode, msg)
@@ -78,16 +77,11 @@ class HTTP2:
 			self.channel.push (data_to_send)
 	
 	def handle_preamble (self):
-		if self.request.version == "1.1":
-			self.channel.push (
-				b"HTTP/1.1 101 Switching Protocols\r\nconnection: upgrade\r\nupgrade: h2c\r\n\r\n"
-			)			
-			self.channel.set_terminator (24) # PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n
-		else:
+		if self.request.version.startswith ("2."):
 			self.channel.set_terminator (6) # SM\r\n\r\n
 					
-	def initiate_connection (self):		
-		self.handle_preamble ()	
+	def initiate_connection (self):
+		self.handle_preamble ()
 		h2settings = self.request.get_header ("HTTP2-Settings")
 		if h2settings:
 			self.conn.initiate_upgrade_connection (h2settings)
@@ -128,6 +122,9 @@ class HTTP2:
 		with self._plock:
 			events = self.conn._receive_frame (self.current_frame)
 		return events
+
+	def set_terminator (self, terminator):
+		self.channel.set_terminator (terminator)
 					
 	def found_terminator (self):
 		buf, self.buf = self.buf, b""
@@ -304,11 +301,11 @@ class HTTP2:
 			first_line = "%s %s HTTP/2.0" % (command, uri)
 			if command in ("POST", "PUT"):
 				should_have_collector = True
-				vchannel = http2.data_channel (self.channel, cl)
+				vchannel = data_channel (self.channel, cl)
 			else:
-				vchannel = http2.fake_channel (self.channel)
+				vchannel = fake_channel (self.channel)
 		
-		r = http2.request (self, vchannel, first_line, command.lower (), uri, "2.0", scheme, h, stream_id, is_promise)		
+		r = http2_request (self, vchannel, first_line, command.lower (), uri, "2.0", scheme, h, stream_id, is_promise)		
 		vchannel.current_request = r
 		
 		with self._clock:
@@ -352,15 +349,13 @@ class HTTP2:
 		except: pass
 
 
-class HTTP2h2 (HTTP2):
+class h2_handler (http2_handler):
+	http11_terminator = None
+	
 	def handle_preamble (self):
-		if self.request.version == "1.1":
-			self.channel.push (
-				b"HTTP/1.1 101 Switching Protocols\r\nconnection: upgrade\r\nupgrade: h2c\r\n\r\n"
-			)
-		else:				
-			self.conn.receive_data (b"PRI * HTTP/2.0\r\n\r\n")
-		self.channel.set_terminator (None) # PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n
+		if self.request.version.startswith ("2."):
+			self.conn.receive_data ("PRI * HTTP/2.0\r\n\r\n")
+			self.channel.set_terminator (None)
 			
 	def collect_incoming_data (self, data):		
 		with self._plock:
@@ -380,13 +375,23 @@ class Handler (wsgi_handler.Handler):
 		return upgrade and upgrade.lower () == "h2c" and request.version == "1.1" and request.command == "get"
 	
 	def handle_request (self, request):
-		http2 = HTTP2 (self, request)		
 		
-		if request.channel:
-			request.channel.add_closing_partner (http2)
+		http2 = http2_handler (self, request)		
+		request.channel.add_closing_partner (http2)
+		request.channel.set_response_timeout (self.keep_alive)
+		request.channel.set_keep_alive (self.keep_alive)
+		
+		if request.version == "1.1":
+			request.response (
+				"101 Switching Protocol",
+				headers = [("Connection",  "upgrade"), ("Upgrade", "h2c")]
+			)
+			request.response.done (False, False, False, (http2, http2.http11_terminator))
+		
+		else:
 			request.channel.current_request = http2
-			request.channel.set_response_timeout (self.keep_alive)
-			request.channel.set_keep_alive (self.keep_alive)
+			
+		http2.initiate_connection ()
 		
 	def finish_request (self, request):
 		if request.channel:
