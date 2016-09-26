@@ -325,11 +325,11 @@ class HTTP2:
 				else:
 					if should_have_collector and cl > 0 and r.collector is None:
 						# too large body
+						with self._plock:						
+							self.conn.reset_stream (stream_id, FLOW_CONTROL_ERROR)
+						self.send_data ()	
+						# some browser ignore reset, why?
 						self.close_when_done (FLOW_CONTROL_ERROR)
-						# Reset_stream is not working on browsers
-						#with self._plock:						
-						#	self.conn.reset_stream (stream_id, FLOW_CONTROL_ERROR)
-						#self.send_data ()
 						
 					elif cl > 0:
 						# give extended permission sending data to client
