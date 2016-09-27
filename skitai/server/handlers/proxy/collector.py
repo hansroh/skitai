@@ -1,5 +1,5 @@
 from .. import collectors
-from .__init__ import POST_MAX_SIZE
+from . import POST_MAX_SIZE
 
 
 class Collector (collectors.FormCollector):
@@ -17,12 +17,10 @@ class Collector (collectors.FormCollector):
 		self.content_length = self.get_content_length ()
 	
 	def reuse_cache (self):
-		self.data = self.cache + self.data		
+		self.data = self.cache + self.data
 		self.cache = []
 			
 	def start_collect (self):	
-		global POST_MAX_SIZE
-		
 		if self.content_length == 0:
 			return self.found_terminator ()
 			

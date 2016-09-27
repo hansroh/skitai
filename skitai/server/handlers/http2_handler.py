@@ -1,4 +1,5 @@
 from . import wsgi_handler
+import skitai
 from skitai.lib import producers
 from h2.connection import H2Connection, GoAwayFrame
 from h2.exceptions import ProtocolError, NoSuchStreamError
@@ -14,7 +15,7 @@ except ImportError:
 	from io import BytesIO
 
 
-class http2_handler:
+class http2_request_handler:
 	collector = None
 	producer = None
 	http11_terminator = 24
@@ -349,7 +350,7 @@ class http2_handler:
 		except: pass
 
 
-class h2_handler (http2_handler):
+class h2_request_handler (http2_request_handler):
 	http11_terminator = None
 	
 	def handle_preamble (self):
@@ -376,7 +377,7 @@ class Handler (wsgi_handler.Handler):
 	
 	def handle_request (self, request):
 		
-		http2 = http2_handler (self, request)		
+		http2 = http2_request_handler (self, request)		
 		request.channel.add_closing_partner (http2)
 		request.channel.set_response_timeout (self.keep_alive)
 		request.channel.set_keep_alive (self.keep_alive)
@@ -384,7 +385,7 @@ class Handler (wsgi_handler.Handler):
 		if request.version == "1.1":
 			request.response (
 				"101 Switching Protocol",
-				headers = [("Connection",  "upgrade"), ("Upgrade", "h2c")]
+				headers = [("Connection",  "upgrade"), ("Upgrade", "h2c"), ("Server", skitai.NAME.encode ("utf8"))]
 			)
 			request.response.done (False, False, False, (http2, http2.http11_terminator))
 		

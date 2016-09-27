@@ -8,7 +8,7 @@ from .proxy.tunnel import TunnelHandler
 from .proxy.response import ProxyResponse
 
 
-class ProxyRequestHandler (http_request_handler.RequestHandler):
+class proxy_request_handler (http_request_handler.RequestHandler):
 	def __init__ (self, asyncon, request, callback, client_request, collector, connection = "keep-alive"):
 		http_request_handler.RequestHandler.__init__ (self, asyncon, request, callback, "1.1", connection)
 		self.collector = collector
@@ -31,7 +31,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 	ESTABLISHED = b" 200 Connection Established\r\nServer: " + skitai.NAME.encode ("utf8")
 	def has_been_connected (self):
 		if self.request.method == "connect":
-			self.buffer =	b"HTTP/" + self.client_request.version.encode ("utf8") + self.ESTABLISHED
+			self.buffer =	b"HTTP/" + self.client_request.version.encode ("utf8") + self.ESTABLISHED			
 			self.found_terminator ()
 	
 	def will_open_tunneling (self):
@@ -210,7 +210,7 @@ class Handler (wsgi_handler.Handler):
 				asyncon = self.clusters ["__socketpool__"].get (asyncon_key)
 					
 			req = http_request.HTTPRequest (request.uri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))				
-			r = ProxyRequestHandler (asyncon, req, self.callback, request, collector)			
+			r = proxy_request_handler (asyncon, req, self.callback, request, collector)			
 			if collector:
 				collector.asyncon = asyncon
 			r.start ()

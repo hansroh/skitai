@@ -1,4 +1,4 @@
-from .__init__ import PROXY_TUNNEL_KEEP_ALIVE
+from . import PROXY_TUNNEL_KEEP_ALIVE
 import time
 
 
