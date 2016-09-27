@@ -73,15 +73,14 @@ class Handler (wsgi_handler.Handler):
 			self.wasc.logger.trace ("server",  request.uri)
 			return request.response.error (500, why = apph.debug and catch (1) or "")
 		
-		header = [
+		headers = [
 			("Sec-WebSocket-Accept", self.calculate_response_key (securekey)),
 			("Upgrade", "Websocket"),
 			("Connection", "Upgrade"),
       ("WebSocket-Protocol", protocol),
       ("WebSocket-Location", "ws://" + host + path)
 		]
-		request.response.start_response ("101 Web Socket Protocol Handshake", header)
-		request.response.done ()
+		request.response ("101 Web Socket Protocol Handshake", headers = headers)
 		
 		if design_spec == 1: 
 			# WEBSOCKET_REQDATA			
@@ -139,7 +138,7 @@ class Handler (wsgi_handler.Handler):
 			request.channel.close_when_done ()
 		
 	def channel_config (self, request, ws, keep_alive):
-		request.channel.current_request = ws
+		request.response.done (False, False, False, (ws, 2))
 		request.channel.set_response_timeout (keep_alive)
 		request.channel.set_keep_alive (keep_alive)
 		
