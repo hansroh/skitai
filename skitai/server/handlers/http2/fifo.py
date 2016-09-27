@@ -39,34 +39,6 @@ class priority_producer_fifo:
 							except: pass
 						break
 				index += 1		
-	
-	def ready (self):
-		self._lock.acquire ()
-		if not self.l:
-			self._lock.release ()
-			return False
-			
-		first = self.l [0]
-		if not hasattr (first, 'stream_id') or first.ready ():
-			self._lock.release ()
-			return True
-		
-		index = 1
-		has_ready = False
-		for item in self.l [1:]:
-			if not hasattr (item, 'stream_id'):
-				break
-							
-			if item.ready ():
-				ready_item = self.l.pop (index)
-				self.l.insert (0, ready_item)
-				has_ready = True
-				break
-				
-			index += 1
-		
-		self._lock.release ()
-		return has_ready
 			
 	def append (self, item):
 		has_None = False
@@ -116,4 +88,34 @@ class priority_producer_fifo:
 	def clear (self):
 		with self._lock:
 			self.l = []
+	
+	def ready (self):
+		# check if remote flow control window for each stream is open
+		# but maybe unnecessory and unused
+		self._lock.acquire ()
+		if not self.l:
+			self._lock.release ()
+			return False
 			
+		first = self.l [0]
+		if not hasattr (first, 'stream_id') or first.ready ():
+			self._lock.release ()
+			return True
+		
+		index = 1
+		has_ready = False
+		for item in self.l [1:]:
+			if not hasattr (item, 'stream_id'):
+				break
+							
+			if item.ready ():
+				ready_item = self.l.pop (index)
+				self.l.insert (0, ready_item)
+				has_ready = True
+				break
+				
+			index += 1
+		
+		self._lock.release ()
+		return has_ready
+				

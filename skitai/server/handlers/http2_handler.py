@@ -7,6 +7,7 @@ from h2.events import DataReceived, RequestReceived, StreamEnded, PriorityUpdate
 from h2.errors import PROTOCOL_ERROR, FLOW_CONTROL_ERROR
 from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
+from .http2.producers import h2stream_producer, h2header_producer
 from .http2.fifo import priority_producer_fifo
 import threading
 try:
@@ -189,10 +190,10 @@ class http2_request_handler:
 				del self.priorities [stream_id]				
 		
 		self.channel.push_with_producer (
-			producers.h2header_producer (stream_id, headers, producer, self.conn, self._plock)
+			h2header_producer (stream_id, headers, producer, self.conn, self._plock)
 		)
 		if producer:
-			outgoing_producer = producers.h2stream_producer (
+			outgoing_producer = h2stream_producer (
 				stream_id, depends_on, weight, producer, self.conn, self._plock
 			)			
 			self.channel.push_with_producer (outgoing_producer)
