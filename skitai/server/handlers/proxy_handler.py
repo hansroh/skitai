@@ -66,8 +66,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 	def create_tunnel (self):
 		self.asyncon.established = True		
 		self.new_handler = TunnelHandler (self.asyncon, self.request, self.client_request.channel)
-		# next_request = (new request, new terminator)
-		self.client_request.response.done (globbing = False, compress = False, next_request = (self.new_handler.asyntunnel, None)) 
+		self.client_request.response.done (False, False, False, (self.new_handler.asyntunnel, None)) 
 			
 	def create_response (self):		
 		if not self.client_request.channel: return
