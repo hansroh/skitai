@@ -189,7 +189,7 @@ class Loader:
 			
 	def install_handler (self, routes = [], proxy = False, static_max_age = 300):		
 		if routes and type (routes [0]) is tuple:
-			routes = self.install_handler_with_dict (routes)
+			routes = self.install_handler_with_tuple (routes)
 			
 		self.wasc.add_handler (1, pingpong_handler.Handler)		
 		if proxy:

@@ -18,9 +18,9 @@ if __name__ == "__main__":
 	skitai.run (
 		address = "127.0.0.1",
 		port = 5000,
-		mount = {
-			'/': (__file__, 'app'),
-			'/skitai': (__file__, 'skitaiapp')
-		}
+		mount = [
+			('/', (__file__, 'app')),
+			('/skitai', (__file__, 'skitaiapp'))
+		]
 	)
 
