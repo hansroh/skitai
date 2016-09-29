@@ -21,6 +21,8 @@ if __name__ == "__main__":
 		mount = [
 			('/', (__file__, 'app')),
 			('/skitai', (__file__, 'skitaiapp'))
-		]
+		],
+		#certfile = r"C:\skitaid\etc\cert\skitai.com.ca.pem",
+		#passphrase = ""
 	)
 

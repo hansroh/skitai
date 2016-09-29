@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.17.1"
+VERSION = "0.17.2"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -92,7 +92,11 @@ def run (**conf):
 			if conf.get ("certfile"):		
 				self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
 			self.config_rcache (100)
-			self.config_webserver (conf.get ('port', 5000), conf.get ('address', ''), "Skitai Test Server", False, 5, 10)
+			self.config_webserver (
+				conf.get ('port', 5000), conf.get ('address', ''), 
+				"Skitai Test Server", conf.get ("certfile") is not None, 
+				5, 10
+			)
 			self.config_threads (conf.get ('threads', 4))
 			
 			for name, (ctype, members, ssl) in conf.get ("clusters", {}):
