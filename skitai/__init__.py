@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.16.26"
+VERSION = "0.17"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -75,3 +75,41 @@ def start_was (wasc):
 	global was
 	was._start (wasc)	
 
+	
+def run (**conf):
+	from . import lifetime
+	from .server import Skitai
+	
+	class TestServer (Skitai.Loader):
+		def __init__ (self, conf):
+			self.conf = conf
+			Skitai.Loader.__init__ (self, 'test.conf')
+			
+		def configure (self):
+			conf = self.conf
+			
+			self.set_num_worker (1)
+			if conf.get ("certfile"):		
+				self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
+			self.config_rcache (100)
+			self.config_webserver (conf.get ('port', 5000), conf.get ('address', ''), "Skitai Test Server", False, 5, 10)
+			self.config_threads (conf.get ('threads', 4))
+			
+			for name, (ctype, members, ssl) in conf.get ("clusters", {}):
+				self.add_cluster (ctype, name, members, ssl)
+			
+			self.install_handler (
+				conf.get ("mount"), 
+				conf.get ("proxy", False),
+				conf.get ("static_max_age", 300)
+			)			
+			lifetime.init ()
+	
+	if not conf.get ('mount'):
+		raise ValueError ('Dictionary mount {mount point: path or app} required')
+	
+	server = TestServer (conf)
+	# timeout for fast keyboard interrupt on win32	
+	server.run (1.0)
+	
+	

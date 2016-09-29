@@ -25,10 +25,10 @@ import multiprocessing
 from . import wsgiappservice
 from .dbi import cluster_dist_call as dcluster_dist_call
 from skitai.dbapi import dbpool
-
+import types
 
 class Loader:
-	def __init__ (self, config, logpath, varpath, debug = 0):
+	def __init__ (self, config, logpath = None, varpath = None, debug = 0):
 		self.config = config
 		self.instance_name = os.path.split (config)[-1][:-5]
 		self.logpath = logpath
@@ -47,18 +47,21 @@ class Loader:
 	def configure (self):
 		raise SystemExit("configure must be overided")
 	
-	def set_num_worker (self, num):	
+	def set_num_worker (self, num):
 		if os.name == "nt":
 			num = 1
 		self.num_worker = num
+		self.wasc.workers = num
 			
 	def WAS_initialize (self):		
-		self.wasc.log_base_path = os.path.split (os.path.split (self.logpath)[0])[0]
-		self.wasc.var_base_path = os.path.split (os.path.split (self.varpath)[0])[0]
+		self.wasc.log_base_path = self.logpath and os.path.split (os.path.split (self.logpath)[0])[0]
+		self.wasc.var_base_path = self.varpath and os.path.split (os.path.split (self.varpath)[0])[0]
 		self.wasc.register ("debug", self.debug)
 		self.wasc.register ("plock", multiprocessing.RLock ())
 		self.wasc.register ("clusters",  {})
 		self.wasc.register ("clusters_for_distcall",  {})
+		self.wasc.register ("workers", 1)
+		self.wasc.register ("cachefs", None)
 		
 	def WAS_finalize (self):
 		global the_was
@@ -78,14 +81,13 @@ class Loader:
 		if not hasattr (self.wasc, "threads"):
 			for attr in ("map", "rpc", "rest", "wget", "lb", "db", "dlb", "dmap"):
 				delattr (self.wasc, attr)
-		
 		start_was (self.wasc)
 		
 	def config_cachefs (self, cache_dir): 
 		if cache_dir:
-			self.wasc.register ("cachefs",  cachefs.CacheFileSystem (cache_dir))
+			self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir)
 	
-	def config_rcache (self, maxobj = 2000):
+	def config_rcache (self, maxobj = 1000):
 		rcache.start_rcache (maxobj)
 		self.wasc.register ("rcache", rcache.the_rcache)		
 		
@@ -148,10 +150,10 @@ class Loader:
 		if path is not None:
 			media = ["file"]
 		else:
-			media = ["screen"]	
-		self.wasc.register ("logger", wsgiappservice.Logger (media, path))
+			media = ["screen"]
 		
-		if os.name != "nt":
+		self.wasc.register ("logger", wsgiappservice.Logger (media, path))		
+		if os.name != "nt" and path:
 			def hUSR1 (signum, frame):	
 				self.wasc.logger.rotate ()
 			signal.signal(signal.SIGUSR1, hUSR1)
@@ -169,8 +171,26 @@ class Loader:
 		if ssl in ("1", "yes"): ssl = 1
 		else: ssl = 0
 		self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl)
+	
+	def install_handler_with_tuple (self, routes):
+		sroutes = []
+		for route, entity in routes:
+			if type (entity) is tuple:
+				entity, appname = entity
+			else:
+				entity, appname = entity, 'app'
+									
+			if entity.endswith (".py") or entity.endswith (".pyc"):
+				entity = os.path.join (os.getcwd (), entity) [:-3]
+				if entity [-1] == ".": 
+					entity = entity [:-1]
+			sroutes.append ("%s=%s:%s" % (route, entity, appname))
+		return sroutes
 			
-	def install_handler (self, routes = {}, proxy = False, static_max_age = 300):		
+	def install_handler (self, routes = [], proxy = False, static_max_age = 300):		
+		if routes and type (routes [0]) is tuple:
+			routes = self.install_handler_with_dict (routes)
+			
 		self.wasc.add_handler (1, pingpong_handler.Handler)		
 		if proxy:
 			self.wasc.add_handler (1, proxy_handler.Handler, self.wasc.clusters, self.wasc.cachefs)
@@ -188,13 +208,13 @@ class Loader:
 					line = line [1:].strip ()
 				current_rule = line
 			
-	def run (self):
+	def run (self, timeout = 30):
 		if self._exit_code is not None: 
 			return self._exit_code # master process
 			
 		try:
 			try:
-				lifetime.loop ()
+				lifetime.loop (timeout)
 			except:
 				self.wasc.logger.trace ("server")					
 		finally:

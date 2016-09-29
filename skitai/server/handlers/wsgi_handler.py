@@ -40,11 +40,13 @@ class Handler:
 	def __init__(self, wasc, apps = None):
 		self.wasc = wasc
 		self.apps = apps
-		self.ENV ["skitai.process"] = self.wasc.config.getint ("server", "processes")
-		self.ENV ["skitai.thread"] = self.wasc.config.getint ("server", "threads")
+		self.ENV ["skitai.process"] = self.wasc.workers
+		self.ENV ["skitai.thread"] = 0
+		if hasattr (self.wasc, "threads"):
+			self.ENV ["skitai.thread"] = len (self.wasc.threads)			
 		self.ENV ["wsgi.url_scheme"] = hasattr (self.wasc.httpserver, "ctx") and "https" or "http"
 		self.ENV ["wsgi.multithread"] = hasattr (self.wasc, "threads")
-		self.ENV ["wsgi.multiprocess"] = self.wasc.config.getint ("server", "processes") > 1 and os.name != "nt"
+		self.ENV ["wsgi.multiprocess"] = self.wasc.workers > 1 and os.name != "nt"
 		self.ENV ['SERVER_PORT'] = str (self.wasc.httpserver.port)
 		self.ENV ['SERVER_NAME'] = self.wasc.httpserver.server_name
 		

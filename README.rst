@@ -11,8 +11,6 @@ From version 0.17, `Skitai WSGI App Engine`_ is seperated from this project.
 
 If you want to run Skitai with fully pre-configured functional WSGI app engine as daemon or win32 service, install `Skitai WSGI App Engine`_.
 
-.. _`Skitai WSGI App Engine`: https://pypi.python.org/pypi/skitaid
-
 
 Introduce
 ===========
@@ -80,53 +78,143 @@ On win32, required *pywin32 binary* - http://sourceforge.net/projects/pywin32/fi
     sudo pip install skitai    
     
 
-Start Up
-========
+Starting Skitai
+================
 
-Here's three WSGI app samples:
+If you want to run Skitai as daemon or win32 service with configuration file, you can install `Skitai WSGI App Engine`_.
 
-*WSGI App* at /var/wsgi/wsgiapp.py
+Otherwise if your purpose is just WSGI app developement, you can run Skitai easily at console.
+
+
+Basic Usage
+------------
 
 .. code:: python
   
+  #WSGI App
+
   def app (env, start_response):
     start_response ("200 OK", [("Content-Type", "text/plain")])
     return ['Hello World']
+    
+  app.use_reloader = True
+  app.debug = True
+
+  if __name__ == "__main__": 
+  
+    import skitai
+    
+    skitai.run (
+      address = "127.0.0.1",
+      port = 5000,
+      mount = [('/', __file__)]
+    )
 
 
-*Flask App* at /var/wsgi/flaskapp.py
+At now, run this code from console.
+
+.. code-block:: bash
+
+  python wsgiapp.py
+
+You can access this WSGI app by visiting http://127.0.0.1:5000/.
+
+
+Mount Multiple WSGI apps and static directory contains files
+--------------------------------------------------------------
+
+Here's three WSGI app samples:
 
 .. code:: python
-
-  from flask import Flask  
-  app = Flask(__name__)  
   
-  @app.route("/")
+  #WSGI App
+
+  def app (env, start_response):
+    start_response ("200 OK", [("Content-Type", "text/plain")])
+    return ['Hello World']
+    
+  app.use_reloader = True
+  app.debug = True
+
+
+  # Flask App*
+  from flask import Flask  
+  app2 = Flask(__name__)  
+  
+  app2.use_reloader = True
+  app2.debug = True
+  
+  @app2.route("/")
   def index ():	 
     return "Hello World"
 
 
-*Skitai-Saddle App* at /var/wsgi/skitaiapp.py
-
-.. code:: python
-
+  # Skitai-Saddle App  
   from skitai.saddle import Saddle  
-  app = Saddle (__name__)
+  app3 = Saddle (__name__)
   
-  @app.route('/')
+  app3.use_reloader = True
+  app3.debug = True
+    
+  @app3.route('/')
   def index (was):	 
     return "Hello World"
 
-For mounting to Skitai, modify config file in /etc/skitaid/servers-enabled/sample.conf
+
+Then place this code at bottom of above WSGI app.
 
 .. code:: python
   
- 
+  if __name__ == "__main__": 
   
-You can access Flask app from http://127.0.0.1:5000/aboutus and other apps are same.
+    import skitai
+    
+    skitai.run (
+      address = "127.0.0.1",
+      port = 5000,
+      mount = [
+        ('/', (__file__, 'app')), # mount WSGI app
+        ('/flask', (__file__, 'app2')), # mount Flask app
+        ('/skitai', (__file__, 'app3')), # mount Skitai app
+        ('/', '/var/www/test/static' # mount static directory
+      ]
+    )
+
+Enabling Proxy Server
+------------------------
+
+.. code:: python
+
+  skitai.run (
+    address = "127.0.0.1",
+    port = 5000,
+    mount = [('/', __file__)],
+    proxy = True
+  )
+
+Run as HTTPS Server
+------------------------
+
+To genrate self-signed certification file:
+
+.. code:: python
+
+    openssl req -new -newkey rsa:2048 -x509 -keyout server.pem -out server.pem -days 365 -nodes
 
 
-**Note: Mount point & App routing**
+.. code:: python
+
+  skitai.run (
+    address = "127.0.0.1",
+    port = 5000,
+    mount = [('/', __file__)],
+    certfile = '/var/www/certs/server.pem'    
+    passphrase = 'your pass phrase'
+  )
+
+
+About Mount point & App routing
+--------------------------------
 
 If app is mounted to '/flaskapp',
 
@@ -143,6 +231,7 @@ Above /hello can called, http://127.0.0.1:5000/flaskapp/hello
 
 Also app should can handle mount point. 
 In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Skitai-Saddle can handle obiously. But I don't know other WSGI containers will work properly.
+
 
 
 Concept of Skitai 'was' Services
@@ -1552,11 +1641,19 @@ If 'path' is None, every app's cookie path will be automaticaaly set to their mo
 
 For example, your admin app is mounted on "/admin" in configuration file like this:
 
-.. code:: bash
+.. code:: python
 
-  [routes:line]
+  app = ... ()
+  
+  if __name__ == "__main__": 
+  
+    import skitai
     
-  /admin = /var/wsgi/admin:app  
+    skitai.run (
+      address = "127.0.0.1",
+      port = 5000,
+      mount = {'/admin': app}
+    )
 
 If you don't specify cookie path when set, cookie path will be automatically set to '/admin'. So you want to access from another apps, cookie should be set with upper path = '/'.
 
@@ -2158,28 +2255,6 @@ If Skitai run with -v option, app and exceptions are displayed at your console, 
 
 Note inspite of you do not handle exception, all app exceptions will be logged automatically by Saddle. And it includes app importing and reloading exceptions.
 
-If your config file is 'sample.conf', your log file is located at:
-
-- posix:  /var/log/skitaid/instances/sample/app.log
-- win32: c:\\skitaid\\log\\instances\\sample\\app.log
-
-To view lateset log, 
-
-.. code:: python
-
-  skitaid.py -f sample log
-
-Above log is like this:
-
-.. code:: python
-  
-  2016.03.03 03:37:41 [info] called index
-  2016.03.03 03:37:41 [error] exception occured
-  2016.03.03 03:37:41 [expt:bp1] <type 'exceptions.TypeError'>\
-    index() got an unexpected keyword argument 't'\
-    [/skitai/saddle/wsgi_executor.py|chained_exec|51]
-  2016.03.03 03:37:41 [info] done index
-
 - was.log (msg, category = "info")
 - was.traceback (identifier = "") # identifier is used as fast searching log line for debug
 
@@ -2209,6 +2284,7 @@ Links
 
 .. _`GitHub Repository`: https://github.com/hansroh/skitai
 .. _`GitHub issues`: https://github.com/hansroh/skitai/issues
+.. _`Skitai WSGI App Engine`: https://pypi.python.org/pypi/skitaid
 
 
 Change Log
@@ -2272,5 +2348,4 @@ Change Log
   
   0.10 - WSGI support
   
-  
-*Copyright (c) 2015-2016 by Hans Roh*
+

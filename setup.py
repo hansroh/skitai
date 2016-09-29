@@ -55,6 +55,7 @@ packages = [
 	'skitai.dbapi',
 	'skitai.lib',	
 	'skitai.protocol',
+	'skitai.examples',
 	'skitai.protocol.dns',
 	'skitai.protocol.dns.pydns',
 	'skitai.protocol.http',	

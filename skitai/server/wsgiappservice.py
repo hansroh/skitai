@@ -48,9 +48,9 @@ class WAS:
 	#----------------------------------------------------		
 	@classmethod
 	def register (cls, name, obj):
-		cls.objects [name] = obj
 		if hasattr (cls, name):
-			raise KeyError("server object `%s` is already exists")
+			raise KeyError("server object `%s` is already exists" % name)			
+		cls.objects [name] = obj		
 		setattr (cls, name, obj)
 	
 	@classmethod
@@ -219,11 +219,11 @@ class Logger:
 		if self.path: pathtool.mkdir (path)
 		self.logger_factory = {}
 		self.lock = multiprocessing.Lock ()
-			
+		
 		self.make_logger ("server", "monthly")
 		self.make_logger ("app", "daily")
-		self.make_logger ("request", "daily")		
-
+		self.make_logger ("request", "daily")
+		
 	def make_logger (self, prefix, freq = "daily"):
 		self.lock.acquire ()
 		has_prefix = prefix in self.logger_factory
@@ -232,7 +232,10 @@ class Logger:
 			raise TypeError("%s is already used" % prefix)
 								
 		_logger = logger.multi_logger ()		
-		_logger.add_logger (logger.rotate_logger (self.path, prefix, freq))
+		if self.path:
+			_logger.add_logger (logger.rotate_logger (self.path, prefix, freq))
+		else:
+			_logger.add_logger (logger.screen_logger ())
 		
 		self.logger_factory [prefix] = _logger		
 		self.lock.release ()	
