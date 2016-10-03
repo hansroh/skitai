@@ -23,7 +23,7 @@ class http_request:
 		self.response = http_response.http_response (self)
 	
 	def get_scheme (self):	
-		from .https_server import https_channel
+		from .https_server import https_channel		
 		return isinstance (self.channel, https_channel) and "https" or "http"
 	
 	def get_raw_header (self):

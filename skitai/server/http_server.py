@@ -30,9 +30,9 @@ class http_channel (asynchat.async_chat):
 	closed = False
 	is_rejected = False
 	
-	zombie_timeout = 10
+	zombie_timeout = 5
+	keep_alive = 5
 	response_timeout = 10
-	keep_alive = 10
 	
 	def __init__ (self, server, conn, addr):
 		self.channel_number = http_channel.channel_count.inc ()
@@ -85,7 +85,7 @@ class http_channel (asynchat.async_chat):
 				return 1
 			self.close ()
 			return 0
-		
+	      		
 	def isconnected (self):
 		return self.connected
 	
@@ -228,7 +228,8 @@ class http_channel (asynchat.async_chat):
 					except:
 						self.server.trace()
 						try: r.response.error (500)
-						except: pass							
+						except: pass
+							
 					return
 					
 			try: r.response.error (404)

@@ -73,7 +73,7 @@ class Handler:
 			self.sites [rule] = VHost (self.wasc, *self.vhost_args)
 
 		vhost = self.sites [rule]
-		route, target = [x.strip () for x in routepair.split ("=", 1)]		
+		route, target = [x.strip () for x in routepair.split ("=", 1)]
 		if target.startswith ("@"):
 			if route [-1] == "/":
 				route = route [:-1]
@@ -85,7 +85,7 @@ class Handler:
 			vhost.add_route (route, target)
 			
 		else:
-			fullpath = os.path.split (target.strip())				
+			fullpath = os.path.split (target.strip())
 			vhost.add_module (route, os.sep.join (fullpath[:-1]), fullpath [-1])
 		
 	def find (self, host):

@@ -1,96 +1,14 @@
-from . import wsgi_handler, collectors
-import re
+from . import wsgi_handler
 import skitai
 from skitai.protocol.http import request as http_request
 from skitai.protocol.http import request_handler as http_request_handler
-from skitai.protocol.http import response as http_response
-from skitai.lib import compressors
-from skitai.lib import producers
-import time
-
-POST_MAX_SIZE = 5000000
-UPLOAD_MAX_SIZE = 20000000
-PROXY_TUNNEL_KEEP_ALIVE = 120
-
-class AsynTunnel:
-	collector = None
-	producer = None
-	def __init__ (self, asyncon, handler):
-		self.asyncon = asyncon
-		self.handler = handler
-		self.bytes = 0
-		self.asyncon.set_terminator (None)
-		
-	def collect_incoming_data (self, data):
-		#print (">>>>>>>>>>>>", data)
-		self.bytes += len (data)		
-		self.asyncon.push (data)
-	
-	def close (self):
-		# will be closed by channel
-		#print (">>>>>>>>>>>>> AsynTunnel xlosed", self.handler.request.uri)
-		self.handler.channel_closed ()
-		
-	
-class TunnelHandler:
-	keep_alive = 120			
-	def __init__ (self, asyncon, request, channel):		
-		self.asyncon = asyncon		
-		self.request = request
-		self.channel = channel
-		
-		self.asyntunnel = AsynTunnel (asyncon, self)		
-		self.channel.set_response_timeout	(PROXY_TUNNEL_KEEP_ALIVE)
-		self.asyncon.set_network_delay_timeout (PROXY_TUNNEL_KEEP_ALIVE)
-		self.channel.add_closing_partner (self.asyntunnel)
-		
-		self.bytes = 0
-		self.stime = time.time ()
-				
-	def trace (self, name = None):
-		if name is None:
-			name = "tunnel://%s:%d" % self.asyncon.address
-		self.channel.trace (name)
-		
-	def log (self, message, type = "info"):
-		uri = "tunnel://%s:%d" % self.asyncon.address
-		self.channel.log ("%s - %s" % (uri, message), type)
-					
-	def collect_incoming_data (self, data):	
-		#print ("<<<<<<<<<<<<", data[:20])
-		self.bytes += len (data)
-		self.channel.push (data)
-		
-	def log_request (self):
-		htime = (time.time () - self.stime) * 1000
-		self.channel.server.log_request (
-			'%s:%d CONNECT tunnel://%s:%d HTTP/1.1 200 %d/%d %dms %dms'
-			% (self.channel.addr[0],
-			self.channel.addr[1],			
-			self.asyncon.address [0],
-			self.asyncon.address [1],
-			self.asyntunnel is not None and self.asyntunnel.bytes or 0,
-			self.bytes,
-			htime,
-			htime
-			)
-		)
-		
-	def connection_closed (self, why, msg):
-		#print ("------------Asyncon_disconnected", self.request.uri, self.bytes)
-		# Disconnected by server mostly caused by Connection: close header				
-		if self.channel:
-			self.channel.close_when_done ()
-			self.channel.current_request = None
-		
-	def channel_closed (self):
-		#print ("------------channel_closed", self.request.uri, self.bytes)
-		self.asyncon.handler = None
-		self.asyncon.disconnect ()
-		self.asyncon.end_tran ()
+from .proxy import POST_MAX_SIZE, UPLOAD_MAX_SIZE
+from .proxy.collector import Collector
+from .proxy.tunnel import TunnelHandler
+from .proxy.response import ProxyResponse
 
 
-class ProxyRequestHandler (http_request_handler.RequestHandler):
+class proxy_request_handler (http_request_handler.RequestHandler):
 	def __init__ (self, asyncon, request, callback, client_request, collector, connection = "keep-alive"):
 		http_request_handler.RequestHandler.__init__ (self, asyncon, request, callback, "1.1", connection)
 		self.collector = collector
@@ -110,10 +28,10 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 				continue
 			self.client_request.response [k] = v.strip ()			
 	
-	ESTABLISHED = b"HTTP/%s 200 Connection Established\r\nServer: " + skitai.NAME.encode ("utf8")
+	ESTABLISHED = b" 200 Connection Established\r\nServer: " + skitai.NAME.encode ("utf8")
 	def has_been_connected (self):
 		if self.request.method == "connect":
-			self.buffer =	self.ESTABLISHED % self.request.version
+			self.buffer =	b"HTTP/" + self.client_request.version.encode ("utf8") + self.ESTABLISHED			
 			self.found_terminator ()
 	
 	def will_open_tunneling (self):
@@ -148,8 +66,7 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 	def create_tunnel (self):
 		self.asyncon.established = True		
 		self.new_handler = TunnelHandler (self.asyncon, self.request, self.client_request.channel)
-		# next_request = (new request, new terminator)
-		self.client_request.response.done (globbing = False, compress = False, next_request = (self.new_handler.asyntunnel, None)) 
+		self.client_request.response.done (False, False, False, (self.new_handler.asyntunnel, None)) 
 			
 	def create_response (self):		
 		if not self.client_request.channel: return
@@ -248,185 +165,13 @@ class ProxyRequestHandler (http_request_handler.RequestHandler):
 		#print ("---------------------------------")
 		return [req.encode ("utf8")]
 
-	
-class ProxyResponse (http_response.Response):
-	SIZE_LIMIT = 2**24
-	
-	def __init__ (self, request, header, accept_gzip, client_request, asyncon):		
-		self.client_request = client_request
-		self.asyncon = asyncon
-		self.accept_gzip = accept_gzip		
-		self.request = request
-		self.header_s = header		
-		if header [:2] == "\r\n":
-			header = header [2:]
-		header = header.split ("\r\n")		
-		self.response = header [0]
-		self.header = header [1:]
-		self._header_cache = {}
-		self.flushed_time = 0
-		self.client_request.producer = self
-		self.version, self.code, self.msg = http_response.crack_response (self.response)
-		self.p, self.u = None, None
-		self.decompressor = None
-		self.gzip_compressed = False	
-		self.make_decompressor = False
-		
-		content_encoding = self.get_header ("Content-Encoding")			
-		if content_encoding == "gzip":
-			if self.accept_gzip:
-				self.gzip_compressed = True
-			else:	
-				self.make_decompressor = True
-						
-		self.size = 0
-		self.got_all_data = False
-		
-		self.reqtype = "HTTP"				
-		if self.client_request.get_header ("cookie"):
-			self.max_age = 0
-		else:	
-			self.set_max_age ()
-	
-	def body_expected (self):
-		cl = self.get_header ("Content-Length")
-		if cl == 0:
-			self.got_all_data = True
-			return False
-		
-		te = self.get_header ("Transfer-Encoding")
-		if cl is None and te != "chunked":
-			hv = self.version
-			cn = self.get_header ("Connection")			
-			if cn is None:
-				if hv == "1.0": cn = "close"
-				else: cn = "keep-alive"	
-			else:
-				cn = cn.lower ()			
-			if cn == "keep-alive":				
-				self.got_all_data = True
-				return False
-		
-		if self.p is None:
-			self.p, self.u = http_response.getfakeparser (cache = self.max_age)
-			if self.make_decompressor:
-				self.decompressor = compressors.GZipDecompressor ()
-			
-		return True
-		
-	def init_buffer (self):
-		# do this job will be executed in body_expected ()
-		pass
-		
-	def is_gzip_compressed (self):
-		return self.gzip_compressed
-	
-	def close (self):
-		self.client_request.producer = None
-		try: self.u.data = []
-		except AttributeError: pass		
-		#self.asyncon.disconnect ()		
-		#self.asyncon.end_tran ()
-		self.asyncon.handle_close (710, "Channel Closed")
-			
-	def affluent (self):
-		# if channel doesn't consume data, delay recv data
-		return len (self.u.data) < 1000
-		
-	def ready (self):
-		# if exist consumable data or wait		
-		return len (self.u.data) or self.got_all_data
-		
-	def more (self):
-		self.flushed_time = time.time ()
-		return self.u.read ()
-
-
-class Collector (collectors.FormCollector):
-	# same as asyncon ac_in_buffer_size
-	ac_in_buffer_size = 4096
-	asyncon = None
-	def __init__ (self, handler, request):
-		self.handler = handler
-		self.request = request
-		self.data = []
-		self.cache = []
-		self.cached = False
-		self.got_all_data = False
-		self.length = 0 
-		self.content_length = self.get_content_length ()
-	
-	def reuse_cache (self):
-		self.data = self.cache + self.data		
-		self.cache = []
-			
-	def start_collect (self):	
-		global POST_MAX_SIZE
-		
-		if self.content_length == 0:
-			return self.found_terminator ()
-			
-		if self.content_length <= POST_MAX_SIZE: #5M
-			self.cached = True
-		
-		self.request.channel.set_terminator (self.content_length)
-	
-	def close (self):
-		# channel disconnected
-		self.data = []
-		self.cache = []
-		self.request.collector = None
-		
-		# abort immediatly
-		if self.asyncon:
-			self.asyncon.handle_close (710, "Channel Closed")
-				
-	def collect_incoming_data (self, data):
-		#print "proxy_handler.collector << %d" % len (data), id (self)
-		self.length += len (data)
-		self.data.append (data)
-
-	def found_terminator (self):
-		self.request.channel.set_terminator (b'\r\n\r\n')
-		self.got_all_data = True
-		self.request.collector = None
-		# don't request.collector = None => do it at callback ()
-		# because this collector will be used in Request.continue_start() later
-	
-	def get_cache (self):
-		return b"".join (self.cache)
-	
-	def affluent (self):
-		# if channel doesn't consume data, delay recv data		
-		return len (self.data) < 1000
-		
-	def ready (self):
-		return len (self.data) or self.got_all_data
-	
-	def more (self):
-		if not self.data:
-			return b""
-						
-		data = []
-		tl = 0
-		while self.data:
-			tl += len (self.data [0])
-			if tl > self.ac_in_buffer_size:
-				break
-			data.append (self.data.pop (0))
-		
-		if self.cached:			
-			self.cache += data
-		#print "proxy_handler.collector.more >> %d" % tl, id (self)
-		return b"".join (data)
-		
 			
 class Handler (wsgi_handler.Handler):
 	def __init__ (self, wasc, clusters, cachefs = None):
 		self.wasc = wasc
 		self.clusters = clusters
 		self.cachefs = cachefs
-		#self.cachefs = None # DELETE IT!		
+		#self.cachefs = None # DELETE IT!
 		self.q = {}
 				
 	def match (self, request):
@@ -438,8 +183,6 @@ class Handler (wsgi_handler.Handler):
 		return 0
 		
 	def handle_request (self, request):
-		global POST_MAX_SIZE, UPLOAD_MAX_SIZE
-		
 		collector = None
 		if request.command in ('post', 'put'):
 			ct = request.get_header ("content-type")
@@ -466,7 +209,7 @@ class Handler (wsgi_handler.Handler):
 				asyncon = self.clusters ["__socketpool__"].get (asyncon_key)
 					
 			req = http_request.HTTPRequest (request.uri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))				
-			r = ProxyRequestHandler (asyncon, req, self.callback, request, collector)			
+			r = proxy_request_handler (asyncon, req, self.callback, request, collector)			
 			if collector:
 				collector.asyncon = asyncon
 			r.start ()

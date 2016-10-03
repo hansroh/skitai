@@ -33,7 +33,9 @@ DEFAULT_ERROR_MESSAGE = """<!DOCTYPE html>
 </div>
 <hr />
 <div id="footer">
-<p>Generated %(gentime)s</p>
+<p>
+Generated %(gentime)s by <i>Skitai WSGI App Engine</i>
+</p>
 </div>
 </body>
 </html>"""

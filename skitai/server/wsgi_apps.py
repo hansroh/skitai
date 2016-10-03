@@ -45,16 +45,11 @@ class Module:
 	def set_devel_env (self):
 		self.debug = False
 		self.use_reloader = False
-		if type (getattr (self.module, self.appname)) is function:
-			try: self.debug = self.appname.debug
-			except AttributeError: pass
-			try: self.use_reloader = self.appname.use_reloader
-			except AttributeError: pass
-		else:
-			try: self.debug = getattr (self.module, self.appname).debug
-			except AttributeError: pass
-			try: self.use_reloader = getattr (self.module, self.appname).use_reloader
-			except AttributeError: pass
+		app = getattr (self.module, self.appname)
+		try: self.debug = app.debug
+		except AttributeError: pass
+		try: self.use_reloader = app.use_reloader
+		except AttributeError: pass
 
 	def update_file_info (self):
 		stat = os.stat (self.abspath)

@@ -1,28 +1,27 @@
-======================
-Skitai WSGI App Engine
-======================
+==============
+Skitai Core
+==============
 
-.. contents:: Table of Contents
- 
 
 Changes & News
 ===============
 
-- 0.16.6 add several configs to was.app.config for limiting post body size form client
-- 0.16.5 add method: was.response.hint_promise (uri) for sending HTP/2 PUSH PROMISE frame
-- 0.16.3 fix flow control window
-- 0.16.2 fix HTTP/2 Uprading for "http" URIs (RFC 7540 Section 3.2)
-- 0.16 HTTP/2.0 implemented with hyper-h2_
+From version 0.17 (Oct 2016), `Skitai WSGI App Engine`_ is seperated from this project.
+
+If you want to run Skitai with fully pre-configured functional WSGI app engine as daemon or win32 service, install `Skitai WSGI App Engine`_.
+
+
+.. contents:: Table of Contents
 
 
 Introduce
 ===========
 
-Skitai App Engine (SAE) is a kind of branch of `Medusa Web Server`__ - A High-Performance Internet Server Architecture.
+Skitai is a kind of branch of `Medusa Web Server`__ - A High-Performance Internet Server Architecture.
 
 Medusa is different from most other servers because it runs as a single process, multiplexing I/O with its various client and server connections within a single process/thread.
 
-SAE orients light-weight, simplicity  and strengthen networking operations with external resources - HTTP / HTTPS / XML-RPC / PostgreSQL_ - keeping very low costs.
+Skitai orients light-weight, simplicity  and strengthen networking operations with external resources - HTTP / HTTPS / XML-RPC / PostgreSQL_ - keeping very low costs.
 
 - Working as Web, XML-RPC and Reverse Proxy Loadbancing Server
 - HTML5 Websocket & HTTP/2.0 implemeted
@@ -33,13 +32,13 @@ Skitai is not a framework for convinient developing, module reusability and plug
 
 Also it is influenced by Zope_ and Flask_ a lot.
 
-From version 0.10, Skitai App Engine follows WSGI specification. So existing Skitai apps need to lots of modifications.
+From version 0.10, Skitai follows WSGI specification. So existing Skitai apps need to lots of modifications.
 
-Conceptually, SAE has been seperated into two components:
+Conceptually, Skitai has been seperated into two components:
 
 1. Skitai App Engine Server, for WSGI apps
 
-2. Saddle, the small WSGI middleware integrated with SAE. But you can also mount any WSGI apps and frameworks like Flask.
+2. Saddle, the small WSGI container integrated with Skitai. But you can also mount any WSGI apps and frameworks like Flask.
 
 .. _hyper-h2: https://pypi.python.org/pypi/h2
 .. _Zope: http://www.zope.org/
@@ -48,7 +47,7 @@ Conceptually, SAE has been seperated into two components:
 .. __: http://www.nightmare.com/medusa/medusa.html
 
 
-Installation / Startup
+Installation
 =========================
 
 **Requirements**
@@ -66,97 +65,160 @@ On win32, required *pywin32 binary* - http://sourceforge.net/projects/pywin32/fi
 .. _`win32 binary`: http://www.stickpeople.com/projects/python/win-psycopg/
 
 
-**Installation & Startup On Posix**
+**Installation**
 
 .. code-block:: bash
 
-    sudo pip install skitai    
-    sudo skitaid.py -v &
-    sudo skitaid.py stop
-
-    ;if everythig is OK,
-    
-    sudo service skitaid start
-    
-    #For auto run on boot,
-    sudo update-rc.d skitaid defaults
-    or
-    sudo chkconfig skitaid on
+  pip install skitai    
     
 
-**Installation & Startup On Win32**
+Starting Skitai
+================
 
-.. code-block:: bash
+If you want to run Skitai as daemon or win32 service with configuration file, you can install `Skitai WSGI App Engine`_.
 
-    sudo pip install skitai
-    cd c:\skitaid\bin
-    skitaid.py -v
-    skitaid.py stop (in another command prompt)
-    
-    ;if everythig is OK,
-    
-    install-win32-service.py install
-    
-    #For auto run on boot,
-    install-win32-service.py --startup auto install    
-    install-win32-service.py start
-    
+Otherwise if your purpose is just WSGI app developement, you can run Skitai easily at console.
 
-Mounting WSGI Apps
-====================
 
-Here's three WSGI app samples:
-
-*WSGI App* at /var/wsgi/wsgiapp.py
+Basic Usage
+------------
 
 .. code:: python
   
+  #WSGI App
+
   def app (env, start_response):
     start_response ("200 OK", [("Content-Type", "text/plain")])
     return ['Hello World']
+    
+  app.use_reloader = True
+  app.debug = True
 
+  if __name__ == "__main__": 
+  
+    import skitai
+    
+    skitai.run (
+      mount = [('/', __file__)]
+    )
 
-*Flask App* at /var/wsgi/flaskapp.py
+At now, run this code from console.
+
+.. code-block:: bash
+
+  python wsgiapp.py
+
+You can access this WSGI app by visiting http://127.0.0.1:5000/.
+
+If you want to allow access to your public IPs, or specify port:
 
 .. code:: python
 
-  from flask import Flask  
-  app = Flask(__name__)  
+  skitai.run (
+    address = "0.0.0.0",
+    port = 5000,
+    mount = [('/', __file__)]
+  )
+
+if you want to change number of threads for WSGI app:
+
+.. code:: python
+
+  skitai.run (
+    threads = 4,
+    mount = [('/', __file__)]
+  )
+
+
+Mount Multiple WSGI Apps And Static Directories
+------------------------------------------------
+
+Here's three WSGI app samples:
+
+.. code:: python
   
-  @app.route("/")
+  #WSGI App
+
+  def app (env, start_response):
+    start_response ("200 OK", [("Content-Type", "text/plain")])
+    return ['Hello World']
+    
+  app.use_reloader = True
+  app.debug = True
+
+
+  # Flask App*
+  from flask import Flask  
+  app2 = Flask(__name__)  
+  
+  app2.use_reloader = True
+  app2.debug = True
+  
+  @app2.route("/")
   def index ():	 
     return "Hello World"
 
 
-*Skitai-Saddle App* at /var/wsgi/skitaiapp.py
-
-.. code:: python
-
+  # Skitai-Saddle App  
   from skitai.saddle import Saddle  
-  app = Saddle (__name__)
+  app3 = Saddle (__name__)
   
-  @app.route('/')
+  app3.use_reloader = True
+  app3.debug = True
+    
+  @app3.route('/')
   def index (was):	 
     return "Hello World"
 
-For mounting to SAE, modify config file in /etc/skitaid/servers-enabled/sample.conf
+
+Then place this code at bottom of above WSGI app.
 
 .. code:: python
   
-  [routes:line]
+  if __name__ == "__main__": 
   
-  ; for files like images, css
-  / = /var/wsgi/static
-  
-  ; app mount syntax is path/module:callable
-  / = /var/wsgi/wsgiapp:app
-  /aboutus = /var/wsgi/flaskapp:app
-  /services = /var/wsgi/skitaiapp:app
-  
-You can access Flask app from http://127.0.0.1:5000/aboutus and other apps are same.
+    import skitai
+    
+    skitai.run (
+      mount = [
+        ('/', (__file__, 'app')), # mount WSGI app
+        ('/flask', (__file__, 'app2')), # mount Flask app
+        ('/skitai', (__file__, 'app3')), # mount Skitai app
+        ('/', '/var/www/test/static' # mount static directory
+      ]
+    )
+
+Enabling Proxy Server
+------------------------
+
+.. code:: python
+
+  skitai.run (
+    mount = [('/', __file__)],
+    proxy = True
+  )
+
+Run as HTTPS Server
+------------------------
+
+To genrate self-signed certification file:
+
+.. code:: python
+
+    openssl req -new -newkey rsa:2048 -x509 -keyout server.pem -out server.pem -days 365 -nodes
 
 
-**Note: Mount point & App routing**
+.. code:: python
+
+  skitai.run (
+    mount = [('/', __file__)],
+    certfile = '/var/www/certs/server.pem' # combined certification with private key
+    passphrase = 'your pass phrase'
+  )
+
+
+About Mount point & App routing
+--------------------------------
 
 If app is mounted to '/flaskapp',
 
@@ -172,7 +234,8 @@ If app is mounted to '/flaskapp',
 Above /hello can called, http://127.0.0.1:5000/flaskapp/hello
 
 Also app should can handle mount point. 
-In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Skitai-Saddle can handle obiously. But I don't know other WSGI middle wares will work properly.
+In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Skitai-Saddle can handle obiously. But I don't know other WSGI containers will work properly.
+
 
 
 Concept of Skitai 'was' Services
@@ -180,7 +243,7 @@ Concept of Skitai 'was' Services
 
 'was' means (Skitai) *WSGI Application Support*. 
 
-WSGI middleware like Flask, need to import 'was':
+WSGI container like Flask, need to import 'was':
 
 .. code:: python
 
@@ -191,7 +254,7 @@ WSGI middleware like Flask, need to import 'was':
     was.get ("http://...")
     ...    
 
-But Saddle WSGI middleware integrated with Skitai, use just like Python 'self'.
+But Saddle WSGI container integrated with Skitai, use just like Python 'self'.
 
 It will be easy to understand think like that:
 
@@ -206,7 +269,7 @@ It will be easy to understand think like that:
     was.get ("http://...")
     ...
 
-Simply just remember, if you use WSGI middleware like Flask, Bottle, ... - NOT Saddle - and want to use Skitai asynchronous services, you should import 'was'. Usage is exactly same. But for my convinient, I wrote example codes Saddle version mostly.
+Simply just remember, if you use WSGI container like Flask, Bottle, ... - NOT Saddle - and want to use Skitai asynchronous services, you should import 'was'. Usage is exactly same. But for my convinient, I wrote example codes Saddle version mostly.
 
 OK, let's move on.
 
@@ -358,8 +421,8 @@ Bottom line, the best coding strategy with Skitai is, *"Request Early, Use Latel
 
 
 
-HTTP/XMLRPC Request
-=========================
+HTTP/XMLRPC/Websocket Request
+==============================
 
 Usage
 ------
@@ -403,9 +466,9 @@ Usage
 
 Both can access to http://127.0.0.1:5000/get?url=https%3A//pypi.python.org/pypi .
 
-If you are familar to Flask then use it, otherwise choose any WSGI middle ware you like include Skitai-Saddle.
+If you are familar to Flask then use it, otherwise choose any WSGI container you like include Skitai-Saddle.
 
-Again note that if you want to use WAS services in your WSGI middle wares (not Skitai-Saddle), you should import was.
+Again note that if you want to use WAS services in your WSGI containers (not Skitai-Saddle), you should import was.
 
 .. code:: python
 
@@ -523,7 +586,7 @@ It can be accessed from http://127.0.0.1:5000/search, and handled as load-balanc
 
 **Map-Reducing**
 
-Basically same with load_balancing except SAE requests to all members per each request.
+Basically same with load_balancing except Skitai requests to all members per each request.
 
 .. code:: python
 
@@ -860,6 +923,32 @@ Utilities
 - was.shutdown () # Shutdown Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
 
 
+
+HTTP/2.0
+============
+
+*New in version 0.16*
+
+Skiai supports HTPT2 both 'h2' protocl over encrypted TLS and 'h2c' for clear text (But now Sep 2016, there is no browser supporting h2c protocol).
+
+Basically you have nothing to do for HTTP2. Client's browser will handle it except `HTTP2 server push`_.
+
+For using it, you just call was.response.hint_promise (uri) before return response data. It will work only client browser support HTTP2, otherwise will be ignored.
+
+.. code:: python
+
+  @app.route ("/promise")
+  def promise (was):
+  
+    was.response.hint_promise ('/images/A.png')
+    was.response.hint_promise ('/images/B.png')
+    
+    return was.response ("200 OK", 'Promise Sent<br><br><img src="/images/A.png"><img src="/images/B.png">')	
+
+
+.. _`HTTP2 server push`: https://tools.ietf.org/html/rfc7540#section-8.2
+
+
 HTML5 Websocket
 ====================
 
@@ -867,7 +956,7 @@ HTML5 Websocket
 
 The HTML5 WebSockets specification defines an API that enables web pages to use the WebSockets protocol for two-way communication with a remote host.
 
-Skitai can be HTML5 websocket server and any WSGI middlewares can use it.
+Skitai can be HTML5 websocket server and any WSGI containers can use it.
 
 But I'm not sure my implemetation is right way, so it is experimental and could be changable.
 
@@ -1116,18 +1205,18 @@ You can access all examples by skitai sample app after installing skitai.
 
 Then goto http://localhost:5000/websocket in your browser.
 
-In next chapter's features of 'was' are only available for *Skitai-Saddle WSGI middleware*. So if you have no plan to use Saddle, just skip.
+In next chapter's features of 'was' are only available for *Skitai-Saddle WSGI container*. So if you have no plan to use Saddle, just skip.
 
 
 
 Request Handling with Saddle
 ===============================
 
-*Saddle* is WSGI middle ware integrated with Skitai App Engine.
+*Saddle* is WSGI container integrated with Skitai App Engine.
 
-Flask and other WSGI middle ware have their own way to handle request. So If you choose them, see their documentation.
+Flask and other WSGI container have their own way to handle request. So If you choose them, see their documentation.
 
-And note below objects and methods *ARE NOT WORKING* in any other WSGI middlewares except Saddle.
+And note below objects and methods *ARE NOT WORKING* in any other WSGI containers except Saddle.
 
 
 Access Saddle App
@@ -1556,11 +1645,19 @@ If 'path' is None, every app's cookie path will be automaticaaly set to their mo
 
 For example, your admin app is mounted on "/admin" in configuration file like this:
 
-.. code:: bash
+.. code:: python
 
-  [routes:line]
+  app = ... ()
+  
+  if __name__ == "__main__": 
+  
+    import skitai
     
-  /admin = /var/wsgi/admin:app  
+    skitai.run (
+      address = "127.0.0.1",
+      port = 5000,
+      mount = {'/admin': app}
+    )
 
 If you don't specify cookie path when set, cookie path will be automatically set to '/admin'. So you want to access from another apps, cookie should be set with upper path = '/'.
 
@@ -2162,280 +2259,8 @@ If Skitai run with -v option, app and exceptions are displayed at your console, 
 
 Note inspite of you do not handle exception, all app exceptions will be logged automatically by Saddle. And it includes app importing and reloading exceptions.
 
-If your config file is 'sample.conf', your log file is located at:
-
-- posix:  /var/log/skitaid/instances/sample/app.log
-- win32: c:\\skitaid\\log\\instances\\sample\\app.log
-
-To view lateset log, 
-
-.. code:: python
-
-  skitaid.py -f sample log
-
-Above log is like this:
-
-.. code:: python
-  
-  2016.03.03 03:37:41 [info] called index
-  2016.03.03 03:37:41 [error] exception occured
-  2016.03.03 03:37:41 [expt:bp1] <type 'exceptions.TypeError'>\
-    index() got an unexpected keyword argument 't'\
-    [/skitai/saddle/wsgi_executor.py|chained_exec|51]
-  2016.03.03 03:37:41 [info] done index
-
 - was.log (msg, category = "info")
 - was.traceback (identifier = "") # identifier is used as fast searching log line for debug
-
-
-Skitai Server Configuration / Management
-============================================
-
-Now let's move on to new subject about server configuration amd mainternance.
-
-Configuration
---------------
-
-Configuration files are located in '/etc/skitaid/servers-enabled/\*.conf', and on win32, 'c:\\skitaid\\etc\\servers-enabled/\*.conf'.
-
-Basic configuration is relatively simple, so refer commets of config file. Current config file like this:
-
-.. code:: python
-
-  [server]
-  processes = 1
-  threads = 4  
-  ip =
-  port = 5000
-  ssl = no
-  ; default path is /etc/skitaid/cert
-  certfile = skitai.com.ca.pem
-  keyfile = skitai.com.key.pem
-  passphrase = passphrase
-  
-  enable_proxy = yes
-  static_max_age = 300
-  num_result_cache_max = 2000
-  response_timeout = 10
-  keep_alive = 10
-  
-  [routes:line]
-  
-  / = /apps/skipub/devel/static
-  / = /apps/skipub/devel/unitest:app
-
-
-Here's configs required your carefulness.
-
-- processes: number of workers but on Win32, only 1 is valid
-- threads: generally not up to 4 per CPU. If set to 0, Skitai run with entirely single thread. so be careful if your WSGI function takes long time or possibly will be delayed by blocking operation.
-- num_result_cache_max: number of cache for HTTP/RPC/DBMS results
-- response_timeout: transfer delay timeout caused by network problem
-
-
-Mounting With Virtual Host
------------------------------
-
-*New in version 0.10.5*
-
-App can be mounted with virtual host.
-
-.. code-block:: bash
-
-  [routes:line]
- 
-  / = /home/user/www/static
-  / = /home/user/www/wsig:app
-  
-  
-  # exactly matching host  
-  @ www.mydomain.com mydomain.com 
-     
-  / = /home/user/mydomain.www/static
-  /service = /home/user/mydomain.www/wsgi:app
-  
-  
-  # matched *.mydomain.com include mydomain.com
-  @ .mydomain.com
-  
-  / = home/user/mydomain.any/static 
-  / = home/user/mydomain.any/wsgi:app 
-
-
-  # matched *.mydomain2.com except mydomain2.com
-  @ *.mydomain.com
-  
-  / = home/user/mydomain2.any/static 
-  / = home/user/mydomain2.any/wsgi:app 
-
-
-As a result, the app location '/home/user/mydomain.www/wsgi.py' is mounted to 'www.mydomain.com/service' and 'mydomain.com/service'.
-
-
-Log Files
------------
-
-If Skitai run with skitaid.py, there're several processes will be created.
-
-Sample ps command's result is:
-
-.. code-block:: bash
-
-  ubuntu:~/skitai$ ps -ef | grep skitaid
-  root     19146 19145  0 Mar03 pts/0    00:00:11 /usr/bin/python /usr/local/bin/skitaid.py
-  root     19147 19146  0 Mar03 pts/0    00:00:05 /usr/bin/python /usr/local/bin/skitaid-smtpda.py
-  root     19148 19146  0 Mar03 pts/0    00:00:03 /usr/bin/python /usr/local/bin/skitaid-cron.py
-  root     19150 19146  0 Mar03 pts/0    00:00:00 /usr/bin/python /usr/local/bin/skitaid-instance.py --conf=sample
-
-- /usr/local/bin/skitaid.py : Skitaid Daemon manages all Skitais sub processes
-- /usr/local/bin/skitaid-instance.py : Skitai Instance with sample.conf
-- /usr/local/bin/skitaid-smtpda.py : SMTP Delivery Agent
-- /usr/local/bin/skitaid-cron.py : Cron Agent
-
-Skitai Daemon log file is located at:
-
-- posix:  /var/log/skitaid/skitaid.log
-- win32: c:\\skitaid\\log\\skitaid.log
-
-To view latest 16Kb log,
-
-  skitaid.py log
-
-SMTP Delivery Agent log is located at:
-
-- posix:  /var/log/skitaid/daemons/smtpda/smtpda.log
-- win32: c:\\skitaid\\log\\daemons\\smtpda\\smtpda.log
-- skitaid.py -f smtpda log
-
-Cron Agent log is located at:
-
-- posix:  /var/log/skitaid/daemons/cron/cron.log
-- win32: c:\\skitaid\\log\\daemons\\cron\\cron.log
-- skitaid.py -f cron log
-
-   
-If Skitai App Engine Instances config file is 'sample.conf', log file located at:
-
-- posix:  /var/log/skitaid/instances/sample/[server|request|app].log
-- win32: c:\\skitaid\\log\\instances\\sample\\[server|request|app].log
-- skitaid.py -f cron -s [server|request|app] log
-
-
-Batch Task Scheduler
------------------------
-
-*New in version 0.14.5*
-
-Sometimes app need batch tasks for minimum response time to clients. At this situateion, you can use taks scheduling tool of OS - cron, taks scheduler - or can use Skitai's batch task scheduling service for consistent app management. for this, add jobs configuration to skitaid.conf (/etc/skitaid/skitaid.conf or c:\\skitaid\\etc\\skitaid.conf) like this.
-
-.. code:: python
-
-  [crontab:line]
-  
-  */2 */2 * * * /home/apps/monitor.py  > /home/apps/monitor.log 2>&1
-  9 2/12 * * * /home/apps/remove_pended_files.py > /dev/null 2>&1
-
-Taks configuarion is same with posix crontab.
-
-Cron log file is located at /var/log/skitaid/daemons/cron/cron.log or c:\skitaid\log\daemons\cron\cron.log
-
-
-Running Skitai as HTTPS Server
----------------------------------
-
-Simply config your certification files to config file (ex. /etc/skitaid/servers-enabled/sample.conf). 
-
-.. code:: python
-
-    [server]
-    ssl = yes
-    ; added new key
-    certfile = server.pem
-    ; you can combine to certfile
-    ; keyfile = private.key
-    ; passphrase = 
-
-
-To genrate self-signed certification file:
-
-.. code:: python
-
-    openssl req -new -newkey rsa:2048 -x509 -keyout server.pem -out server.pem -days 365 -nodes
-    
-For more detail please read REAME.txt in /etc/skitaid/cert/README.txt
-
-
-**Note For Python 3 Users**
-
-*Posix*
-
-SAE will be executed with /usr/bin/python (mostly symbolic link for /usr/bin/python2).
-
-For using Python 3.x, change skitaid scripts' - /usr/local/bin/sktaid*.py - first line from `#!/usr/bin/python` to `#!/usr/bin/python3`. Once you change, it will be kept, even upgrade or re-install skitai.
-
-In this case, you should re-install skitai and requirements using 'pip3 install ...'.
-
-
-*Win32*
-
-Change python key value to like `c:\\python34\\python.exe` in c:\\skitaid\\etc\\skitaid.conf.
-
-
-**Skitai with Nginx / Squid**
-
-From version 0.10.5, Skitai supports virtual hosting itself, but there're so many other reasons using with reverse proxy servers.
-
-Here's some helpful sample works for virtual hosting using Nginx / Squid.
-
-If you want 2 different and totaly unrelated websites:
-
-- www.jeans.com
-- www.carsales.com
-
-And make two config in /etc/skitaid/servers-enabled
-
-- jeans.conf *using port 5000*
-- carsales.conf *using port 5001*
-
-Then you can reverse proxying using Nginx, Squid or many others.
-
-Example Squid config file (squid.conf) is like this:
-
-.. code:: python
-    
-    http_port 80 accel defaultsite=www.carsales.com
-    
-    cache_peer 192.168.1.100 parent 5000 0 no-query originserver name=jeans    
-    acl jeans-domain dstdomain www.jeans.com
-    http_access allow jeans-domain
-    cache_peer_access jeans allow jeans-domain
-    
-    cache_peer 192.168.1.100 parent 5001 0 no-query originserver name=carsales
-    acl carsales-domain dstdomain www.carsales.com
-    http_access allow carsales-domain
-    cache_peer_access carsales allow carsales-domain
-
-For Nginx might be 2 config files (I'm not sure):
-
-.. code:: python
-
-    ; /etc/nginx/sites-enabled/jeans.com
-    server {
-	    listen 80;
-	    server_name www.jeans.com;
-      location / {
-        proxy_pass http://192.168.1.100:5000;
-      }
-    }
-    
-    ; /etc/nginx/sites-enabled/carsales.com    
-    server {
-	    listen 80;
-	    server_name www.carsales.com;
-      location / {
-        proxy_pass http://192.168.1.100:5001;
-      }
-    }
 
 
 Project Purpose
@@ -2463,12 +2288,27 @@ Links
 
 .. _`GitHub Repository`: https://github.com/hansroh/skitai
 .. _`GitHub issues`: https://github.com/hansroh/skitai/issues
+.. _`Skitai WSGI App Engine`: https://pypi.python.org/pypi/skitaid
 
 
 Change Log
 ==============
   
-  0.15
+  0.16 (Sep 2016)
+  
+  - 0.16.20 fix SSL proxy and divide into package for proxy & websocket_handler
+  - 0.16.19 fix HTTP2 cookie
+  - 0.16.18 fix handle large request body
+  - 0.16.13 fix thread locking for h2.Connection
+  - 0.16.11 fix pushing promise and response on Firefox
+  - 0.16.8 fix pushing promise and response
+  - 0.16.6 add several configs to was.app.config for limiting post body size from client
+  - 0.16.5 add method: was.response.hint_promise (uri) for sending HTP/2 PUSH PROMISE frame
+  - 0.16.3 fix flow control window
+  - 0.16.2 fix HTTP/2 Uprading for "http" URIs (RFC 7540 Section 3.2)
+  - 0.16 HTTP/2.0 implemented with hyper-h2_
+  
+  0.15 (Mar 2016)
   
   - fixed fancy URL <path> routing
   - add Websocket design spec: WEBSOCKET_DEDICATE_THREADSAFE
@@ -2488,7 +2328,7 @@ Change Log
   - add saddle.Saddlery class for app packaging
   - @app.startup, @app.onreload, @app.shutdown arguments has been changed
   
-  0.14
+  0.14 (Feb 2016)
   
   - fix proxy occupies CPU on POST method failing
   - was.log(), was.traceback() added
@@ -2501,16 +2341,15 @@ Change Log
   - was.response spec. changed
   - SQLite3 DB connection added
   
-  0.13
+  0.13 (Feb 2016)
   
   - was.mbox, was.g, was.redirect, was.render added  
   - SQLite3 DB connection added
   
-  0.12 - Re-engineering 'was' networking, PostgreSQL & proxy modules
+  0.12 (Jan 2016) - Re-engineering 'was' networking, PostgreSQL & proxy modules
   
-  0.11 - Websocket implemeted
+  0.11 (Jan 2016) - Websocket implemeted
   
-  0.10 - WSGI support
+  0.10 (Dec 2015) - WSGI support
   
-  
-*Copyright (c) 2015-2016 by Hans Roh*
+
