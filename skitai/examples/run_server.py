@@ -1,8 +1,9 @@
 from skitai.saddle import Saddle
-
+import skitai
+	
 def app (env, start_response):
 	start_response ("200 OK", [("Content-Type", "text/plain")])
-	return ['Hello World!=']
+	return ['Hello World']
 
 skitaiapp = Saddle (__name__)
 skitaiapp.use_reloader = True
@@ -13,8 +14,6 @@ def index (was):
 	return "Hello World by Saddle"
 	
 if __name__ == "__main__":
-	import skitai
-  
 	skitai.run (
 		address = "127.0.0.1",
 		port = 5000,
@@ -25,4 +24,3 @@ if __name__ == "__main__":
 		#certfile = r"C:\skitaid\etc\cert\skitai.com.ca.pem",
 		#passphrase = ""
 	)
-

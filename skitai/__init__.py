@@ -93,7 +93,7 @@ def run (**conf):
 				self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
 			self.config_rcache (100)
 			self.config_webserver (
-				conf.get ('port', 5000), conf.get ('address', ''), 
+				conf.get ('port', 5000), conf.get ('address', '127.0.0.1'), 
 				"Skitai Test Server", conf.get ("certfile") is not None, 
 				5, 10
 			)

@@ -1,5 +1,5 @@
 ==============
-Skitai Library
+Skitai Core
 ==============
 
 
@@ -7,9 +7,12 @@ Skitai Library
 Changes & News
 ===============
 
-From version 0.17, `Skitai WSGI App Engine`_ is seperated from this project.
+From version 0.17 (Oct 2016), `Skitai WSGI App Engine`_ is seperated from this project.
 
 If you want to run Skitai with fully pre-configured functional WSGI app engine as daemon or win32 service, install `Skitai WSGI App Engine`_.
+
+
+.. contents:: Table of Contents
 
 
 Introduce
@@ -63,19 +66,11 @@ On win32, required *pywin32 binary* - http://sourceforge.net/projects/pywin32/fi
 .. _`win32 binary`: http://www.stickpeople.com/projects/python/win-psycopg/
 
 
-**Installation & Startup On Posix**
+**Installation**
 
 .. code-block:: bash
 
-    pip install skitai    
-    
-    
-
-**Installation & Startup On Win32**
-
-.. code-block:: bash
-
-    sudo pip install skitai    
+  pip install skitai    
     
 
 Starting Skitai
@@ -105,11 +100,8 @@ Basic Usage
     import skitai
     
     skitai.run (
-      address = "127.0.0.1",
-      port = 5000,
       mount = [('/', __file__)]
     )
-
 
 At now, run this code from console.
 
@@ -119,9 +111,28 @@ At now, run this code from console.
 
 You can access this WSGI app by visiting http://127.0.0.1:5000/.
 
+If you want to allow access to your public IPs, or specify port:
 
-Mount Multiple WSGI apps and static directory contains files
---------------------------------------------------------------
+.. code:: python
+
+  skitai.run (
+    address = "0.0.0.0",
+    port = 5000,
+    mount = [('/', __file__)]
+  )
+
+if you want to change number of threads for WSGI app:
+
+.. code:: python
+
+  skitai.run (
+    threads = 4,
+    mount = [('/', __file__)]
+  )
+
+
+Mount Multiple WSGI Apps And Static Directories
+------------------------------------------------
 
 Here's three WSGI app samples:
 
@@ -170,8 +181,6 @@ Then place this code at bottom of above WSGI app.
     import skitai
     
     skitai.run (
-      address = "127.0.0.1",
-      port = 5000,
       mount = [
         ('/', (__file__, 'app')), # mount WSGI app
         ('/flask', (__file__, 'app2')), # mount Flask app
@@ -186,8 +195,6 @@ Enabling Proxy Server
 .. code:: python
 
   skitai.run (
-    address = "127.0.0.1",
-    port = 5000,
     mount = [('/', __file__)],
     proxy = True
   )
@@ -205,10 +212,8 @@ To genrate self-signed certification file:
 .. code:: python
 
   skitai.run (
-    address = "127.0.0.1",
-    port = 5000,
     mount = [('/', __file__)],
-    certfile = '/var/www/certs/server.pem'    
+    certfile = '/var/www/certs/server.pem' # combined certification with private key
     passphrase = 'your pass phrase'
   )
 
@@ -417,8 +422,8 @@ Bottom line, the best coding strategy with Skitai is, *"Request Early, Use Latel
 
 
 
-HTTP/XMLRPC Request
-=========================
+HTTP/XMLRPC/Websocket Request
+==============================
 
 Usage
 ------
@@ -2290,7 +2295,7 @@ Links
 Change Log
 ==============
   
-  0.16
+  0.16 (Sep 2016)
   
   - 0.16.20 fix SSL proxy and divide into package for proxy & websocket_handler
   - 0.16.19 fix HTTP2 cookie
@@ -2304,7 +2309,7 @@ Change Log
   - 0.16.2 fix HTTP/2 Uprading for "http" URIs (RFC 7540 Section 3.2)
   - 0.16 HTTP/2.0 implemented with hyper-h2_
   
-  0.15
+  0.15 (Mar 2016)
   
   - fixed fancy URL <path> routing
   - add Websocket design spec: WEBSOCKET_DEDICATE_THREADSAFE
@@ -2324,7 +2329,7 @@ Change Log
   - add saddle.Saddlery class for app packaging
   - @app.startup, @app.onreload, @app.shutdown arguments has been changed
   
-  0.14
+  0.14 (Feb 2016)
   
   - fix proxy occupies CPU on POST method failing
   - was.log(), was.traceback() added
@@ -2337,15 +2342,15 @@ Change Log
   - was.response spec. changed
   - SQLite3 DB connection added
   
-  0.13
+  0.13 (Feb 2016)
   
   - was.mbox, was.g, was.redirect, was.render added  
   - SQLite3 DB connection added
   
-  0.12 - Re-engineering 'was' networking, PostgreSQL & proxy modules
+  0.12 (Jan 2016) - Re-engineering 'was' networking, PostgreSQL & proxy modules
   
-  0.11 - Websocket implemeted
+  0.11 (Jan 2016) - Websocket implemeted
   
-  0.10 - WSGI support
+  0.10 (Dec 2015) - WSGI support
   
 

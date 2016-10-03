@@ -89,7 +89,8 @@ package_data = {
 setup(
 	name='skitai',
 	version=__VER__,
-	description='Skitai Library',	
+	description='Skitai Core',	
+	url = 'https://github.com/hansroh/skitai',
 	author='Hans Roh',
 	author_email='hansroh@gmail.com',	
 	packages=packages,

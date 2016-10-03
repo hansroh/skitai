@@ -216,7 +216,8 @@ class Logger:
 	def __init__ (self, media, path):
 		self.media = media
 		self.path = path
-		if self.path: pathtool.mkdir (path)
+		if self.path: 
+			pathtool.mkdir (path)			
 		self.logger_factory = {}
 		self.lock = multiprocessing.Lock ()
 		
@@ -231,11 +232,11 @@ class Logger:
 			self.lock.release ()
 			raise TypeError("%s is already used" % prefix)
 								
-		_logger = logger.multi_logger ()		
+		_logger = logger.multi_logger ()
 		if self.path:
 			_logger.add_logger (logger.rotate_logger (self.path, prefix, freq))
 		else:
-			_logger.add_logger (logger.screen_logger ())
+			_logger.add_logger (logger.screen_logger ()	)
 		
 		self.logger_factory [prefix] = _logger		
 		self.lock.release ()	
