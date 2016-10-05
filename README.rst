@@ -39,7 +39,7 @@ Conceptually, Skitai has been seperated into two components:
 
 1. Skitai App Engine Server, for WSGI apps
 
-2. Saddle, the small WSGI container integrated with Skitai. But you can also mount any WSGI apps and frameworks like Flask.
+2. Skito-Saddle, the small WSGI container integrated with Skitai. But you can also mount any WSGI apps and frameworks like Flask.
 
 .. _hyper-h2: https://pypi.python.org/pypi/h2
 .. _Zope: http://www.zope.org/
@@ -160,7 +160,7 @@ Here's three WSGI app samples:
     return "Hello World"
 
 
-  # Skitai-Saddle App  
+  # Skito-Saddle App  
   from skitai.saddle import Saddle  
   app3 = Saddle (__name__)
   
@@ -218,7 +218,7 @@ To genrate self-signed certification file:
   )
 
 
-About Mount point & App routing
+About Mount Point & App Routing
 --------------------------------
 
 If app is mounted to '/flaskapp',
@@ -235,7 +235,7 @@ If app is mounted to '/flaskapp',
 Above /hello can called, http://127.0.0.1:5000/flaskapp/hello
 
 Also app should can handle mount point. 
-In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Skitai-Saddle can handle obiously. But I don't know other WSGI containers will work properly.
+In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Skito-Saddle can handle obiously. But I don't know other WSGI containers will work properly.
 
 
 
@@ -449,7 +449,7 @@ Usage
       result.reraise ()
 
 
-*Skitai-Saddle Style*
+*Skito-Saddle Style*
 
 .. code:: python
 
@@ -467,9 +467,9 @@ Usage
 
 Both can access to http://127.0.0.1:5000/get?url=https%3A//pypi.python.org/pypi .
 
-If you are familar to Flask then use it, otherwise choose any WSGI container you like include Skitai-Saddle.
+If you are familar to Flask then use it, otherwise choose any WSGI container you like include Skito-Saddle.
 
-Again note that if you want to use WAS services in your WSGI containers (not Skitai-Saddle), you should import was.
+Again note that if you want to use WAS services in your WSGI containers (not Skito-Saddle), you should import was.
 
 .. code:: python
 
@@ -1057,7 +1057,7 @@ Here's a echo app for showing simple request-respone.
 
 Client can connect by ws://localhost:5000/websocket/chat.
 
-*Skitai-Saddle Style*
+*Skito-Saddle Style*
 
 .. code:: python
 
@@ -1206,12 +1206,12 @@ You can access all examples by skitai sample app after installing skitai.
 
 Then goto http://localhost:5000/websocket in your browser.
 
-In next chapter's features of 'was' are only available for *Skitai-Saddle WSGI container*. So if you have no plan to use Saddle, just skip.
+In next chapter's features of 'was' are only available for *Skito-Saddle WSGI container*. So if you have no plan to use Saddle, just skip.
 
 
 
-Request Handling with Saddle
-===============================
+Request Handling with Skito-Saddle
+====================================
 
 *Saddle* is WSGI container integrated with Skitai App Engine.
 
@@ -1247,8 +1247,12 @@ Currently was.app.config has these properties and you can reconfig by setting ne
 - was.app.config.max_upload_file_size = 20000000
 
 
-Debugging
-----------
+Debugging and Reloading App
+-----------------------------
+
+If debug is True, all errors even server errors is shown on both web browser and console window, otherhwise shown only on console.
+
+If use_reloader is True, Skito-Saddle will detect file changes and reload app automatically, otherwise app will never be reloaded.
 
 .. code:: python
 
@@ -1258,19 +1262,6 @@ Debugging
   app.debug = True # output exception information
   app.use_reloader = True # auto realod on file changed
   
-
-For output message & error in console:  
-
-*Posix*
-
-  sudo /usr/local/bin/skitai-instance.py -v -f sample
-  
-
-*Win32*
-
-  c:\\skitaid\\bin\\skitai-instance.py -v -f sample
-
-
   
 Access Request
 ----------------
