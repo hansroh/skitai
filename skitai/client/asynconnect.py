@@ -149,9 +149,9 @@ class AsynConnect (asynchat.async_chat):
 	
 	def add_channel (self, map = None):		
 		if DEBUG: self.__history.append ("CHANNEL ADDED") 
-		self.zombie_timeout =  self.network_delay_timeout		
+		self.zombie_timeout =  self.network_delay_timeout
 		self._fileno = self.socket.fileno ()
-		return asynchat.async_chat.add_channel (self, map)
+		return asynchat.async_chat.add_channel (self, map)		
 		
 	def del_channel (self, map = None):
 		if DEBUG: self.__history.append ("CHANNEL REMOVED") 

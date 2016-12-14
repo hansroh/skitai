@@ -19,6 +19,8 @@ class async_dns (asyncore.dispatcher_with_send):
 	
 	def __init__ (self, servers, request, args, callback, logger, debug_level):
 		self.servers = servers
+		if not self.servers:
+			raise OSError ("DNS Server Required")
 		random.shuffle (self.servers)
 		#self.servers = [("156.154.71.3", 513), ("156.154.71.9", 543)]
 		self.addr = self.servers.pop (0)

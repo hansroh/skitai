@@ -1,5 +1,4 @@
 ﻿import threading
-from skitai.server.threads import socket_map
 from . import asynconnect
 import time
 try:
@@ -9,8 +8,8 @@ except ImportError:
 import copy
 
 class SocketPool:
-	maintern_interval = 60
 	object_timeout = 120
+	maintern_interval = 30
 	
 	def __init__ (self, logger):
 		self.__socketfarm = {}

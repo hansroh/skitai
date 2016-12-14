@@ -1,5 +1,4 @@
 import threading
-from skitai.server.threads import socket_map
 from skitai.client import asynconnect
 import time
 import re
@@ -9,6 +8,7 @@ from operator import itemgetter
 
 class ClusterManager:
 	object_timeout = 1200
+	maintern_interval = 30
 	
 	def __init__ (self, name, cluster, ssl = 0, logger = None):
 		self.logger = logger
@@ -22,7 +22,6 @@ class ClusterManager:
 		self._cluster = {}	
 		self._last_maintern = time.time ()
 		self._close_desires = []		
-		 
 		if cluster:
 			self.create_pool (cluster)
 	
@@ -223,7 +222,7 @@ class ClusterManager:
 						survived.append (asyncon)
 														
 				if len (survived) == 0:
-					# at least 1 must be survived ro duplicate
+					# at least 1 must be survived for duplicating
 					_node ["connection"] = _node ["connection"][:1]
 				elif len (_node ["connection"]) != len (survived):
 					_node ["connection"] = survived
@@ -256,7 +255,7 @@ class ClusterManager:
 		try:
 			try:
 				self._numget += 1
-				if time.time () - self._last_maintern > 60:
+				if time.time () - self._last_maintern > self.maintern_interval:
 					self.maintern ()
 					
 				if specific:
@@ -278,20 +277,29 @@ class ClusterManager:
 				cluster = []
 				for node in nodes:
 					avails = [x for x in self._cluster [node]["connection"] if not x.isactive ()]
-					if not avails: 
+					if not avails:
 						continue
+					
 					weight = self._cluster [node]["weight"]
-					cluster.append ((avails [0], len (avails) / float (weight), weight))
+					actives = weight - len (avails)
+					
+					if actives == 0:
+						capability = 1.0
+					else:
+						capability = 1.0 - (actives / float (weight))
+
+					cluster.append ((avails [0], capability, weight))
 				
 				if cluster:
-					#cluster.sort (key = self.sortkey)
+					random.shuffle (cluster) # load balancing between same weighted members
 					cluster.sort (key = itemgetter(1, 2), reverse = True)
-					asyncon = cluster [0][0]					
+					asyncon = cluster [0][0]
+					
 				else:
 					t = [(len (self._cluster [node]["connection"]), node) for node in nodes]
 					t.sort ()
 					node = t [0][1]
-					asyncon = self._cluster [node]["connection"][0].duplicate ()		
+					asyncon = self._cluster [node]["connection"][0].duplicate ()
 					self._cluster [node]["connection"].append (asyncon)
 									
 				asyncon.set_active (True, nolock = True)							

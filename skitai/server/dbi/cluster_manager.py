@@ -3,7 +3,8 @@ from skitai.dbapi import asynpsycopg2, synsqlite3
 from skitai import DB_PGSQL, DB_SQLITE3
 
 class ClusterManager (cluster_manager.ClusterManager):
-	object_timeout = 1200
+	object_timeout = 1200	
+	maintern_interval = 60
 	
 	def __init__ (self, name, cluster, dbtype = DB_PGSQL, logger = None):
 		self.dbtype = dbtype
