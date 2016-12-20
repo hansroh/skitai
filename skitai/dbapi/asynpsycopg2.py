@@ -18,9 +18,8 @@ except ImportError:
 			
 else:	
 	import asyncore
-	from skitai.server.threads import trigger 
-	from . import dbconnect
-	
+	from . import dbconnect	
+
 	from psycopg2.extensions import POLL_OK, POLL_WRITE, POLL_READ
 	_STATE_OK = (POLL_OK, POLL_WRITE, POLL_READ)
 		
@@ -72,14 +71,14 @@ else:
 			
 		def add_channel (self, map = None):
 			self.set_event_time ()
-			return asyncore.dispatcher.add_channel (self, map)
+			return asyncore.dispatcher.add_channel (self, map)			
 				
 		def del_channel (self, map=None):
 			fd = self._fileno
 			if map is None:
 				map = self._map
 			if fd in map:
-				del map[fd]			
+				del map[fd]
 		
 		def handle_expt_event (self):
 			self.handle_expt ()
@@ -176,5 +175,4 @@ else:
 				if state != POLL_OK:
 					self.reconnect ()
 				else:
-					self.add_channel ()			
-			trigger.wakeselect ()
+					self.add_channel ()

@@ -14,7 +14,7 @@ from . import https_server
 from skitai import start_was
 if os.name == "nt":	
 	from . import schedule			
-from .handlers import proxy_handler, pingpong_handler, vhost_handler
+from .handlers import proxy_handler, ddos_handler, vhost_handler, maintern_handler
 from .threads import threadlib, trigger
 from skitai.lib import logger, confparse, pathtool, flock
 from .rpc import cluster_dist_call, cachefs		
@@ -83,9 +83,9 @@ class Loader:
 				delattr (self.wasc, attr)
 		start_was (self.wasc)
 		
-	def config_cachefs (self, cache_dir): 
+	def config_cachefs (self, cache_dir, memmax = 8, diskmax = 128): 
 		if cache_dir:
-			self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir)
+			self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir, memmax, diskmax)
 	
 	def config_rcache (self, maxobj = 1000):
 		rcache.start_rcache (maxobj)
@@ -186,12 +186,17 @@ class Loader:
 					entity = entity [:-1]
 			sroutes.append ("%s=%s:%s" % (route, entity, appname))
 		return sroutes
+	
+	def set_maintern (self, path):
+		self.wasc.add_handler (0, maintern_handler.Handler, path)
 			
-	def install_handler (self, routes = [], proxy = False, static_max_age = 300):		
+	def install_handler (self, routes = [], proxy = False, static_max_age = 300, blacklist_dir = None):
 		if routes and type (routes [0]) is tuple:
 			routes = self.install_handler_with_tuple (routes)
+		
+		if blacklist_dir:
+			self.wasc.add_handler (0, ddos_handler.Handler (blacklist_dir))
 			
-		self.wasc.add_handler (1, pingpong_handler.Handler)		
 		if proxy:
 			self.wasc.add_handler (1, proxy_handler.Handler, self.wasc.clusters, self.wasc.cachefs)
 		

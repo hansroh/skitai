@@ -79,7 +79,7 @@ package_dir = {
 
 skitai_files = [
 	"protocol/dns/*.txt",
-	"protocol/dns/pydns/*.txt"	
+	"protocol/dns/pydns/*.txt"
 ]
 
 package_data = {
@@ -89,8 +89,8 @@ package_data = {
 setup(
 	name='skitai',
 	version=__VER__,
-	description='Skitai Core',	
-	url = 'https://github.com/hansroh/skitai',
+	description='Skitai Library',
+	url = 'https://gitlab.com/hansroh/skitai',
 	author='Hans Roh',
 	author_email='hansroh@gmail.com',	
 	packages=packages,
@@ -99,6 +99,6 @@ setup(
 	license='BSD',
 	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/skitai",
-	install_requires = ["jinja2", "h2"],
+	install_requires = ["jinja2==2.8", "h2"],
 	classifiers=classifiers
 )

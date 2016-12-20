@@ -130,7 +130,7 @@ class pipe_logger (screen_logger):
 
 
 class rotate_logger (base_logger):
-	def __init__(self, base, surfix = '', freq = "daily", cacheline = 200, flushnow = 1):
+	def __init__(self, base, surfix = '', freq = "daily", cacheline = 200, flushnow = 0):
 		self.base = base
 		self.surfix = surfix
 		self.freq = freq

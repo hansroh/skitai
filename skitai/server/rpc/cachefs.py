@@ -9,28 +9,58 @@ import glob
 import threading
 from functools import reduce
 
+class CacheInfo:
+	def __init__ (self):		
+		self.count = 0
+		self.allocated = 0.0
+		self.accumulated_caches = 0
+		self.accumulated_expires = 0
+		
+	def inc (self, delta):
+		self.count += 1
+		self.allocated += delta
+		self.accumulated_caches += 1
+		
+	def dec (self, delta):
+		self.count -= 1
+		self.allocated -= delta
+		self.accumulated_expires += 1
+	
+	def get (self):
+		return (
+			self.count, 
+			self.allocated, 
+			self.accumulated_caches, 
+			self.accumulated_expires
+		)	
+		
+		
 class CacheFileSystem:
-	def __init__ (self, path, memmax = 64, timeout = 86400):
+	maintern_interval = 600
+	
+	def __init__ (self, path, memmax = 64, diskmax = 64):
 		self.path = path
-		self.memmax = memmax * 1024 * 1024
-		self.timeout = timeout
+		self.max_memory = memmax * 1024 * 1024
+		self.max_disk = diskmax * 1024 *1024		
 		self.files = {}
-		self.hits = {}
-		self.memcache = {}
-		self.memusage = 0
-		self.check_dir ()
-		self.lock = threading.RLock ()
+		self.current_memory = CacheInfo ()
+		self.current_disk = CacheInfo ()
+		self.maintern_times = {}
+		self.lock = threading.RLock ()		
+		self.mainterns = counter.counter ()
 		self.numhits = counter.counter ()
 		self.numfails = counter.counter ()
+		self.check_dir ()
 	
 	def status (self):
-		self.lock.acquire ()
-		r = {
-			"numhits": self.numhits.as_long (),
-			"numfails": self.numfails.as_long (),			
-			"numchachedfiles": reduce (lambda x, y: x + y, list(self.files.values ()))
-		}
-		self.lock.release ()
+		with self.lock:
+			r = {
+				"numhits": self.numhits.as_long (),
+				"numfails": self.numfails.as_long (),	
+				'mainterned':self.mainterns.as_long (),
+				"memory": self.current_memory.get (),
+				"disk": self.current_disk.get ()
+			}
 		return r
 
 	def check_dir (self):
@@ -39,27 +69,61 @@ class CacheFileSystem:
 				for j in list(range(48,58)) + list(range(97,103)):
 					initial = "0" + chr (h) + "/" + chr (i) + chr (j)
 					pathtool.mkdir (os.path.join (self.path, initial))
-					self.hits [initial] = 1
-					self.files [initial] = 0
-		
-	def maintern (self, initial, force_remove = False):
+					self.load_cache (initial)
+	
+	def load_cache (self, initial, force_remove = False):
 		c = 0
 		for path in glob.glob (os.path.join (self.path, initial, "*")):
-			if force_remove or os.stat (path).st_mtime < time.time () - self.timeout:				
-				os.remove (path)
-			else:
-				c += 1
-		return c
-	
+			created = os.stat (path).st_mtime
+			
+			try: self.files [initial]
+			except KeyError: 	self.files [initial] = {}
+			
+			fn = os.path.split (path)[-1]
+			f = open (path, "rb")
+			max_age = int (f.read (12).strip ())
+			compressed = int (f.read (1).strip ())
+			f.close ()
+			
+			if created < time.time () - max_age:				
+				try: os.remove (path)				
+				except (OSError, IOError): pass
+				continue
+				
+			size = os.path.getsize (path)
+			self.files [initial][fn] = (created, 1, size, compressed, max_age)
+			with self.lock:
+				self.current_disk.inc (size)
+					
+	def maintern (self, initial, force_remove = False):
+		current_time = time.time ()		
+		valid_time = current_time - self.timeout
+		deletables = []	
+		for fn in self.files [initial]:
+			cached = self.files [initial][fn]
+			if cached [0] < valid_time or force_remove:
+				deletables.append ((fn, cached [1], cached [2]))
+		
+		for fn, stored, usage in deletables:		
+			if stored == 0:
+				with self.lock:			
+					self.current_memory.dec (usage)					
+				del self.files [initial][fn]				
+			else:	
+				try: os.remove (os.path.join (self.path, initial, fn))
+				except (OSError, IOError): pass
+				else:	
+					with self.lock:			
+						self.current_disk.dec (usage)
+					del self.files [initial][fn]				
+		
+		self.maintern_times [initial] = time.time ()
+		with self.lock:
+			self.mainterns.inc ()
+			
 	def truncate (self):
-		self.lock.acquire ()
-		files = list(self.files.keys ())
-		self.lock.release ()
-		for initial in files:
-			d = self.maintern (initial, True)
-			self.lock.acquire ()
-			self.files [initial] = c
-			self.lock.release ()
+		for initial in self.files.keys ():
+			self.maintern (initial, True)
 						
 	def getpath (self, uri, data):
 		if not data: 
@@ -67,134 +131,114 @@ class CacheFileSystem:
 		key = uri + ":" + str (data)
 		file = md5 (key.encode ("utf8")).hexdigest ()
 		initial = "0" + file [0] + "/" + file [1:3]
-		self.hits [initial] += 1
-		if self.hits [initial] % 1000 == 0:
-			c = self.maintern (initial)
-			self.lock.acquire ()
-			self.files [initial] = c
-			self.lock.release ()	
-		return os.path.join (self.path, initial, file), initial
-	
-	def decompress (self, content_type, content):
-		if content_type [:5] == "text/":
-			decompressor = compressors.GZipDecompressor ()
-			return decompressor.decompress (content) + decompressor.flush ()
-		else:
-			content	
+		return os.path.join (self.path, initial, file), initial, file
 			
 	def get (self, uri, data, undecompressible = 0):		
-		path, initial = self.getpath (uri, data)
-
-		memhit = False
-		try:			
-			m = self.memcache [initial][path]
-			memhit = True
-		except KeyError:			
-			if not os.path.isfile (path): 
-				self.lock.acquire ()
+		path, initial, fn = self.getpath (uri, data)
+		
+		try:
+			cached = self.files [initial][fn]
+		except KeyError:
+			with self.lock:
 				self.numfails.inc ()
-				self.lock.release ()
-				return None, None, None, None, None
-		
-		if memhit:
-			mtime, size, max_age = m [0:3]
-		else:	
-			mtime = os.stat (path).st_mtime
-			f = open (path, "rb")
-			max_age = int (f.read (12))
-		
-		if os.stat (path).st_mtime < time.time () - max_age:
-			if memhit:
-				del self.memcache [initial][path]
-				self.memusage -= (size + size * 0.2)
-			else:	
-				f.close ()
-			self.lock.acquire ()
-			self.files [initial] -= 1
-			self.lock.release ()
-			os.remove (path)
 			return None, None, None, None, None
 		
-		self.lock.acquire ()	
-		self.numhits.inc ()
-		self.lock.release ()
-		if memhit:
-			compressed, content_type, content = m [3:6]
-				
+		max_age = cached [4]
+		if cached [0] < time.time () - max_age:
+			if cached [1] == 0:
+				del self.files [initial][fn]
+				with self.lock:
+					self.current_memory.dec (cached [2])
+			else:
+				try: 
+					os.remove (os.path.join (self.path, initial, fn))
+				except (OSError, IOError): 
+					pass
+				else:
+					del self.files [initial][fn]
+					with self.lock:
+						self.current_disk.dec (cached [2])
+			return None, None, None, None, None
+		
+		with self.lock:
+			self.numhits.inc ()
+								
+		if cached [1] == 0:
+			content_type, content = cached [-2:]
+			memhit = -1
+		
 		else:	
-			compressed = int (f.read (1))
-			content_type = f.read (64).strip ().decode ("utf8")
+			f = open (path, "rb")
+			f.read (13) # abandon max_age, compressed
+			content_type = f.read (64).strip ()
 			content = f.read ()
-			f.close ()
-			
-			if self.memusage < self.memmax:
-				size = len (content)
-				self.memusage += (size + size * 0.2)
-				
-				try:
-					self.memcache [initial]
-				except KeyError:
-					self.memcache [initial] = {}
-						
-				self.memcache [initial][path] = (
-					mtime,
-					size, 
-					max_age,
-					compressed, 
-					content_type, 
-					content
-				)
-				
+			f.close ()			
+			memhit = 1
+		
+		compressed = cached [3]
 		if compressed and not undecompressible:
 			decompressor = compressors.GZipDecompressor ()
 			content = decompressor.decompress (content) + decompressor.flush ()
 			compressed = 0
 		
-		return memhit and 1 or -1, compressed, max_age, content_type, content
-		
+		return memhit, compressed, max_age, content_type, content
+	
 	def save (self, uri, data, content_type, content, max_age, compressed = 0):		
+		usage = len (content)
+		if usage > 10000000:
+			return
+		
 		if len (str (max_age)) > 12 or len (content_type) > 64:
 			return
 		
-		path, initial = self.getpath (uri, data)
-		if not os.path.isfile (path):
-			self.lock.acquire ()
-			self.files [initial] += 1
-			self.lock.release ()
-			f = open (path, "wb")
+		# check memory status
+		with self.lock:
+			current_memory = self.current_memory.get ()[1]		
+			current_disk = self.current_disk.get ()[1]		
+		if current_memory > self.max_memory and current_disk > self.max_disk:
+			# there's no memory/disk room for cache
+			return self.maintern (initial)
+					
+		path, initial, fn = self.getpath (uri, data)
+		try: self.files [initial]
+		except KeyError: self.files [initial] = {}
 		else:
-			return
+			with self.lock:
+				last_maintern = self.maintern_times.get (initial, 0.)	
+				current_time = time.time ()		
+			if last_maintern == 0:
+				self.maintern_times [initial] = current_time
+			elif current_time - last_maintern > self.maintern_interval:
+				self.maintern (initial)	
 		
+		# already have valid cache
+		cached = self.files [initial].get (fn)
+		if cached: # already have
+			return
+			
 		if not compressed and content_type.startswith ("text/"):
 			compressor = compressors.GZipCompressor ()
 			content = compressor.compress (content) + compressor.flush ()
 			compressed = 1
+			usage = len (content)
 		
+		if current_memory <= self.max_memory:
+			usage *= 1.5
+			self.files [initial][fn] = (time.time (), 0, usage, compressed, max_age, content_type, content)
+			with self.lock:
+				self.current_memory.inc (usage)
+			return
+			
+		f = open (path, "wb")
 		if not content_type:
-			content_type = b""	
-		
+			content_type = b""			
 		f.write (("%12s%d%64s" % (max_age, compressed, content_type)).encode ("utf8"))
 		f.write (content)
 		f.close ()
-		
-		if self.memusage < self.memmax:
-			size = len (content)
-			self.memusage += (size + size * 0.2)
-			
-			try:
-				self.memcache [initial]
-			except KeyError:
-				self.memcache [initial] = {}
-					
-			self.memcache [initial][path] = (
-				time.time (),
-				size, 
-				max_age,
-				compressed, 
-				content_type, 
-				content
-			)
-			
+		self.files [initial][fn] = (time.time (), 0, usage, compressed, max_age)
+		with self.lock:
+			self.current_disk.inc (usage)
+
 			
 if __name__ == "__main__":
 	f = ReverseProxy ("g:\\ttt")

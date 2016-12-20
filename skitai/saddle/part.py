@@ -116,7 +116,7 @@ class Part:
 		if thing.startswith ("/"):
 			return self.route [:-1] + self.mount_p [:-1] + thing
 	
-		for func, name, fuvars, favars, str_rule in self.route_map.values ():			 
+		for func, name, fuvars, favars, str_rule, options in self.route_map.values ():			 
 			if thing != name: continue								
 			assert len (args) <= len (fuvars), "Too many params, this has only %d params(s)" % len (fuvars)						
 			params = {}
@@ -158,9 +158,9 @@ class Part:
 	#----------------------------------------------
 	# Routing
 	#----------------------------------------------						
-	def route (self, rule, *t, **k):
+	def route (self, rule, **k):
 		def decorator(f):
-			self.add_route (rule, f, *t, **k)
+			self.add_route (rule, f, **k)
 		return decorator
 	
 	def get_route_map (self):
@@ -175,7 +175,7 @@ class Part:
 		self.packages [id (part)] = part
 									
 	def try_rule (self, path_info, rule, rulepack):
-		f, n, l, a, s = rulepack
+		f, n, l, a, s, options = rulepack
 		
 		arglist = rule.findall (path_info)
 		if not arglist: 
@@ -198,13 +198,13 @@ class Part:
 				kargs [an] = unquote_plus (arglist [i]).replace ("_", " ")
 		return f, kargs
 	
-	def add_route (self, rule, func, *t, **k):
+	def add_route (self, rule, func, **options):
 		if not rule or rule [0] != "/":
 			raise AssertionError ("Url rule should be starts with '/'")
 					
 		s = rule.find ("/<")
 		if s == -1:	
-			self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, rule)
+			self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, rule, options)
 		else:
 			s_rule = rule
 			rulenames = []
@@ -223,42 +223,48 @@ class Part:
 					rule = rule.replace (r, "/([^/]+)")
 			rule = rule + "$"
 			re_rule = re.compile (rule)				
-			self.route_map [re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), s_rule)
+			self.route_map [re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), s_rule, options)
 			self.route_priority.append ((s, re_rule))
 			self.route_priority.sort (key = lambda x: x [0], reverse = True)
 			
 	def route_search (self, path_info):
 		if path_info + "/" == self.mount_p:
-			return self.url_for ("/")
+			return self.url_for ("/"), self.route_map ["/"]
 		if not path_info.startswith (self.mount_p):
 			raise KeyError
 		path_info = "/" + path_info [len (self.mount_p):]		
 		if path_info in self.route_map:			
-			return self.route_map [path_info][0]
-		#if path_info [-1] == "/" and path_info [:-1] in self.route_map:
-		#	return path_info [:-1]
-		if path_info + "/" in self.route_map:
-			return self.url_for (path_info + "/")
+			return self.route_map [path_info][0], self.route_map [path_info]
+		trydir = path_info + "/"
+		if trydir in self.route_map:
+			return self.url_for (trydir), self.route_map [trydir]
 		raise KeyError
 					
-	def get_package_method (self, path_info, use_reloader = False):
+	def get_package_method (self, path_info, command, content_type, authorization, use_reloader = False):		
+		app, method, kargs, matchtype = self, None, {}, 0				
 		# 1st, try find in self
-		app, method, kargs, match, matchtype = self, None, {}, None, 0
 		try:			
-			method = self.route_search (path_info)
-		except KeyError:
-			for priority, rule in self.route_priority:	
-				method, kargs = self.try_rule (path_info, rule, self.route_map [rule])
-				if method: 
-					match = (rule, self.route_map [rule])
-					break
-				matchtype = 2
-		else:
-			if type (method) is not function: # 301 move								
-				return self, method, None, None, 3				
-			match = path_info
-			matchtype = 1
+			method, current_rule = self.route_search (path_info)
 		
+		except KeyError:
+			for priority, rule in self.route_priority:
+				current_rule = self.route_map [rule]
+				method, kargs = self.try_rule (path_info, rule, current_rule)
+				if method: 
+					match = (rule, current_rule)					
+					matchtype = 2
+					options = current_rule [-1]
+					break
+		
+		else:			
+			match = path_info
+			if type (method) is not function:
+				# object move
+				matchtype = -1
+			else:	
+				matchtype = 1
+				options = current_rule [-1]
+			
 		# 2nd, try find in sub packages
 		if method is None and self.packages:
 			for pid in list (self.packages.keys ()):
@@ -271,17 +277,18 @@ class Part:
 					self.mount (*args)
 					package.start (self.wasc, self.route, its_packages)
 					subapp = getattr (package.module, package.packagename)
-					
-				app, method, kargs, match, matchtype = subapp.get_package_method (path_info, use_reloader)
-				if matchtype == 3:
-					return app, method, None, None, 3
+										
+				app, method, kargs, options, match, matchtype = subapp.get_package_method (path_info, method, content_type, authorization, use_reloader)				
 				if method:
 					break
-			
-		if not method:
-			return None, None, None, None, 0
-																	
-		return app, [self._binds_request [0], method] + self._binds_request [1:4], kargs, match, matchtype
+		
+		if method is None:
+			return None, None, None, None, None, 0
+		
+		if matchtype == -1: # 301 move
+			return app, method, None, None, None, -1
+		
+		return app, [self._binds_request [0], method] + self._binds_request [1:4], kargs, options, match, matchtype
 	
 	#----------------------------------------------
 	# Starting App

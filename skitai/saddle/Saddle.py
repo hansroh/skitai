@@ -45,15 +45,16 @@ class Saddle (part.Part):
 	session_timeout = None
 	
 	#WWW-Authenticate
-	authorization = "digest"
+	authenticate = False
+	authorization = "digest"	
 	realm = None
-	users = {}
-	opaque = None
+	users = {}	
+	opaque = None	
 	
-	def __init__ (self, module_name):
+	def __init__ (self, app_name):
 		part.Part.__init__ (self)
-		self.module_name = module_name
-		self.jinja_env = JINJA2 and Environment (loader = PackageLoader (module_name)) or None		
+		self.app_name = app_name
+		self.jinja_env = JINJA2 and Environment (loader = PackageLoader (app_name)) or None		
 		self.lock = threading.RLock ()
 		self.cache_sorted = 0
 		self.cached_paths = {}
@@ -64,7 +65,7 @@ class Saddle (part.Part):
 		from . import jinjapatch
 				
 		self.jinja_env = jinjapatch.Environment (
-			loader = PackageLoader (self.module_name),
+			loader = PackageLoader (self.app_name),
 		  variable_start_string=variable_string,
 		  variable_end_string=variable_string,
 		  line_statement_prefix=line_statement,
@@ -189,45 +190,59 @@ class Saddle (part.Part):
 	def get_multipart_collector (self):
 		return multipart_collector.MultipartCollector
 	
-	def get_method (self, path_info):		
-		current_app, method, kargs = self, None, {}
-		self.lock.acquire ()
-		try:
-			method = self.cached_paths [path_info]
-		except KeyError:
-			for rulepack, freg in self.cached_rules:
-				method, kargs = self.try_rule (path_info, rulepack)
-				if method: 
-					break
-		finally:
-			self.lock.release ()
-	
+	def get_method (self, path_info, command = None, content_type = None, authorization = None):		
+		current_app, method = self, None
+		
+		with self.lock:
+			try:
+				method, options = self.cached_paths [path_info]
+			except KeyError:
+				ind = 0
+				for rulepack, freg, options in self.cached_rules:
+					method, kargs = self.try_rule (path_info, rulepack)
+					if method:						
+						self.cached_rules [ind][1] += 1
+						break
+					ind += 1					
+								
 		if not method:
 			if self.use_reloader:
 				self.lock.acquire ()																
 			try:	
-				current_app, method, kargs, match, matchtype = self.get_package_method (path_info, self.use_reloader)
+				current_app, method, kargs, options, match, matchtype = self.get_package_method (path_info, command, content_type, authorization, self.use_reloader)
 			finally:	
 				if self.use_reloader: 
 					self.lock.release ()
 			
+			if matchtype == -1:
+				return current_app, method, None, 301
+			
+			if not method:
+				return current_app, None, None, 404
+				
 			if not self.use_reloader:
-				self.lock.acquire ()
 				if matchtype == 1:
-					self.cached_paths [match] = method
+					with self.lock:
+						self.cached_paths [match] = (method, options)
 								
 				elif matchtype == 2:
-					self.cached_rules.append ([match, 1])
-					if time.time () - self.cache_sorted > 300:
-						self.cached_rules.sort (lambda x, y: cmp (y[1], x[1]))
-						self.cached_rules.sort (key = lambda x: x[1], reverse = True)
-						self.cache_sorted = time.time ()
-				self.lock.release ()
-					
-			if matchtype == 3:				
-				return current_app, method, 301
+					with self.lock:
+						self.cached_rules.append ([match, 1, options])
+						if time.time () - self.cache_sorted > 300:
+							self.cached_rules.sort (key = lambda x: x[1], reverse = True)
+							self.cache_sorted = time.time ()
 		
-		return current_app, method, kargs
+		resp_code = 0
+		if options:
+			allowed = options.get ("methods", [])
+			if allowed and command not in allowed:
+				return current_app, None, None, 405 # method not allowed		
+			allowed = options.get ("content_types", [])	
+			if allowed and content_type not in allowed:
+				return current_app, None, None, 415 # unsupported media type
+			resp_code = options.get ("authenticate", False) and 401 or 0
+									
+		return current_app, method, kargs, resp_code			
 	
 	def restart (self, wasc, route):
 		self.start (wasc, route, self.packages)

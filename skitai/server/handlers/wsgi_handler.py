@@ -109,7 +109,14 @@ class Handler:
 
 		return collector
 	
-	def authorized (self, app, request, route):			
+	def isauthorized (self, app, request):		
+		try:
+			authenticate_required = app.authenticate
+		except AttributeError: 
+			return True
+		if not authenticate_required:
+			return True
+		
 		try: 
 			www_authenticate = app.authorize (request.get_header ("Authorization"), request.command, request.uri)
 			if type (www_authenticate) is str:
@@ -123,6 +130,7 @@ class Handler:
 					
 		except AttributeError: 
 			pass
+			
 		return True
 			
 	def handle_request (self, request):
@@ -140,7 +148,7 @@ class Handler:
 				return request.response.error (301)
 		
 		app = self.apps.get_app (has_route).get_callable()		
-		if not self.authorized (app, request, has_route):
+		if not self.isauthorized (app, request):
 			return 
 		
 		ct = request.get_header ("content-type")		

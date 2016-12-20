@@ -48,28 +48,28 @@ class Handler (proxy_handler.Handler):
 		elif psysicaluri[0] != "/": psysicaluri = "/" + psysicaluri
 		
 		request.loadbalance_retry += 1
+		retry = request.loadbalance_retry
 		asyncon = current_cluster.get (index = route)
 		
 		if not asyncon: 
-			request.logger ("no available socket in cluster pool, retry: %d, url: %s, cluster index: %d" % (
-				request.loadbalance_retry, 
+			request.logger ("nopool-%d, url: %s, cluster index: %d" % (
+				retry, 
 				request.uri, 
 				route
 				), 'warn')
 			return request.response.error (503)
 		
-		if request.loadbalance_retry > 1:
-			request.logger ("route call multiple retry, retry: %d, server: %s:%s (connected:%s), url: %s, cluster index: %d" % (
-				request.loadbalance_retry,
+		if retry > 1:
+			request.logger ("failsafe-%d, target: %s:%s, url: %s, cluster index: %d" % (
+				retry,
 				asyncon.address [0], 
-				asyncon.address [1], 
-				asyncon.connected,
+				asyncon.address [1],				
 				request.uri,
 				route
 			), 'warn')
 		
 		fetcher = http_request.HTTPRequest (psysicaluri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))		
-		r = proxy_handler.ProxyRequestHandler (asyncon, fetcher, self.callback, request, collector)	
+		r = proxy_handler.proxy_request_handler (asyncon, fetcher, self.callback, request, collector)	
 		r.start ()
 	
 	def callback (self, handler):
