@@ -1233,6 +1233,7 @@ You can access all Saddle object from was.app.
 - was.app.session_timeout = None	
 
 - was.app.authorization = "digest"
+- was.app.authenticate = False
 - was.app.realm = None
 - was.app.users = {}
 - was.app.jinja_env
@@ -1262,6 +1263,28 @@ If use_reloader is True, Skito-Saddle will detect file changes and reload app au
   app.debug = True # output exception information
   app.use_reloader = True # auto realod on file changed
   
+
+Routing
+--------
+
+Basic routing is like this:
+
+.. code:: python
+	
+  @app.route ("/hello")
+  def hello_world (was):	
+    return was.render ("hello.htm")
+
+For adding some restrictions:
+
+.. code:: python
+	
+  @app.route ("/hello", methods = ["GET"], content_types = ["text/xml"])
+  def hello_world (was):	
+    return was.render ("hello.htm")
+
+If method is not GET, Saddle will response http error code 405 (Method Not Allowed), and content-type is not text/xml, 415 (Unsupported Content Type).
+    
   
 Access Request
 ----------------
@@ -2029,12 +2052,24 @@ Saddle provide simple authenticate for administration or perform access control 
   app = Saddle (__name__)
   
   app.authorization = "digest"
+  app.authenticate = True
   app.realm = "Partner App Area of mysite.com"
   app.users = {"app": ("iamyourpartnerapp", 0, {'role': 'root'})}
 	
   @app.route ("/hello/<name>")
   def hello (was, name = "Hans Roh"):
     return "Hello, %s" % name
+
+If app.authenticate is True, all routes of app require authorization (default is False).
+
+Otherwise you can make some routes requirigng authorization like this:
+
+.. code:: python
+ 
+  @app.route ("/hello/<name>", authenticate = True)
+  def hello (was, name = "Hans Roh"):
+    return "Hello, %s" % name
+
 
 The return of app.users.get (username) can be:
 
@@ -2275,11 +2310,11 @@ Also note it might be more efficient that circumstance using `Gevent WSGI Server
 Links
 ======
 
-- `GitHub Repository`_
-- Bug Report: `GitHub issues`_
+- `GitLab Repository`_
+- Bug Report: `GitLab issues`_
 
-.. _`GitHub Repository`: https://github.com/hansroh/skitai
-.. _`GitHub issues`: https://github.com/hansroh/skitai/issues
+.. _`GitLab Repository`: https://gitlab.com/hansroh/skitai
+.. _`GitLab issues`: https://gitlab.com/hansroh/skitai/issues
 .. _`Skitai WSGI App Engine`: https://pypi.python.org/pypi/skitaid
 
 

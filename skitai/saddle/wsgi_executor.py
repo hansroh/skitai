@@ -137,27 +137,63 @@ class Executor:
 		if self.was.in__dict__ ("mbox"):		
 			self.was.mbox and self.was.mbox.rollback ()
 		self.was.cookie.rollback ()
+	
+	responses = {
+		404: "Not Found",
+		415: "Unsupported Content Type",
+		405: "Method Not Allowed"			
+	}	
+	
+	def isauthorized (self, app, request):			
+		try: 
+			www_authenticate = app.authorize (request.get_header ("Authorization"), request.command, request.uri)
+			if type (www_authenticate) is str:
+				request.response ['WWW-Authenticate'] = www_authenticate
+				request.response.send_error ("401 Unauthorized")
+				return False				
+			elif www_authenticate:
+				request.user = www_authenticate
+			else:	
+				request.user = None
+					
+		except AttributeError: 
+			pass
+			
+		return True
 				
-	def __call__ (self):	
-		current_app, thing, param = self.get_method (self.env ["PATH_INFO"])		
-		if thing is None:
-			# Middleware Just push (), Skitai DO done().
-			self.env[ "skitai.was"].request.response.send_error ("404 Not Found")
-			return b""
+	def __call__ (self):		
+		request = self.env ["skitai.was"].request
 		
-		if param == 301:
-			response = self.env ["skitai.was"].request.response
+		current_app, thing, param, respcode = self.get_method (
+			self.env ["PATH_INFO"], 
+			request.command.upper (), 
+			request.get_header ('content-type'),
+			request.get_header ('authorization')
+		)
+		
+		if respcode == 301:
+			response = request.response
 			response ["Location"] = thing
 			response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % thing)
 			return b""
 		
+		if respcode == 401:
+			if not self.isauthorized (current_app, request):
+				return b""
+			# passed then be normal
+			respcode = 0
+			
+		if respcode:
+			request.response.send_error ("%d %s" % (respcode, self.responses.get (respcode, "Undefined Error")))
+			return b""
+			
 		self.build_was ()
 		self.was.subapp = current_app
 		try:
-			content = self.generate_content (thing, (), param)			
+			content = self.generate_content (thing, (), param)
 		except:				
 			self.rollback ()
-			content = self.was.request.response ("500 Internal Server Error", exc_info = self.was.app.debug and sys.exc_info () or None)
+			content = request.response ("500 Internal Server Error", exc_info = self.was.app.debug and sys.exc_info () or None)
 		else:
 			self.commit ()
 		
