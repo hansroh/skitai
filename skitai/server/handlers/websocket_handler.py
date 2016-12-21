@@ -51,7 +51,7 @@ class Handler (wsgi_handler.Handler):
 			return request.response.error (404)
 		
 		apph = self.apps.get_app (path)
-		if not self.authorized (apph.get_callable(), request, has_route):
+		if not self.isauthorized (apph.get_callable(), request):
 			return
 			
 		env = self.build_environ (request, apph)
