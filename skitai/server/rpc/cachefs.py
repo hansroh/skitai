@@ -38,8 +38,10 @@ class CacheInfo:
 class CacheFileSystem:
 	maintern_interval = 600
 	
-	def __init__ (self, path, memmax = 64, diskmax = 64):
+	def __init__ (self, path = None, memmax = 64, diskmax = 0):
 		self.path = path
+		if not self.path:
+			diskmax = 0
 		self.max_memory = memmax * 1024 * 1024
 		self.max_disk = diskmax * 1024 *1024		
 		self.files = {}
@@ -50,7 +52,8 @@ class CacheFileSystem:
 		self.mainterns = counter.counter ()
 		self.numhits = counter.counter ()
 		self.numfails = counter.counter ()
-		self.check_dir ()
+		if self.max_disk:
+			self.check_dir ()
 	
 	def status (self):
 		with self.lock:
@@ -184,6 +187,8 @@ class CacheFileSystem:
 		return memhit, compressed, max_age, content_type, content
 	
 	def save (self, uri, data, content_type, content, max_age, compressed = 0):		
+		if self.max_memory == 0 or not self.max_disk == 0:
+			return
 		usage = len (content)
 		if usage > 10000000:
 			return
@@ -194,7 +199,7 @@ class CacheFileSystem:
 		# check memory status
 		with self.lock:
 			current_memory = self.current_memory.get ()[1]		
-			current_disk = self.current_disk.get ()[1]		
+			current_disk = self.current_disk.get ()[1]
 		if current_memory > self.max_memory and current_disk > self.max_disk:
 			# there's no memory/disk room for cache
 			return self.maintern (initial)

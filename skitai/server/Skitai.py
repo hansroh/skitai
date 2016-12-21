@@ -83,9 +83,8 @@ class Loader:
 				delattr (self.wasc, attr)
 		start_was (self.wasc)
 		
-	def config_cachefs (self, cache_dir, memmax = 8, diskmax = 128): 
-		if cache_dir:
-			self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir, memmax, diskmax)
+	def config_cachefs (self, cache_dir, memmax = 8, diskmax = 0): 
+		self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir, memmax, diskmax)
 	
 	def config_rcache (self, maxobj = 1000):
 		rcache.start_rcache (maxobj)
