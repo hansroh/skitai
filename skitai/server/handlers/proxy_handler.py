@@ -167,16 +167,18 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 
 			
 class Handler (wsgi_handler.Handler):
-	def __init__ (self, wasc, clusters, cachefs = None):
+	def __init__ (self, wasc, clusters, cachefs = None, unsecure_https = False):
 		self.wasc = wasc
 		self.clusters = clusters
 		self.cachefs = cachefs
-		#self.cachefs = None # DELETE IT!
+		self.unsecure_https = unsecure_https
 		self.q = {}
 				
 	def match (self, request):
 		uri = request.uri.lower ()
-		if uri.startswith ("http://") or uri.startswith ("https://") or uri.startswith ("ws://") or uri.startswith ("wss://"):
+		if uri.startswith ("http://") or uri.startswith ("ws://") or uri.startswith ("wss://"):
+			return 1
+		if self.unsecure_https and uri.startswith ("https://"):
 			return 1
 		if request.command == "connect":
 			return 1

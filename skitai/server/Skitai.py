@@ -181,7 +181,7 @@ class Loader:
 			sroutes.append ("%s=%s:%s" % (route, entity, appname))
 		return sroutes
 			
-	def install_handler (self, routes = [], proxy = False, static_max_age = 300, blacklist_dir = None):
+	def install_handler (self, routes = [], proxy = False, static_max_age = 300, blacklist_dir = None, unsecure_https = False):
 		if routes and type (routes [0]) is tuple:
 			routes = self.install_handler_with_tuple (routes)
 		
@@ -189,7 +189,7 @@ class Loader:
 			self.wasc.add_handler (0, ipbl_handler.Handler (blacklist_dir))
 			
 		if proxy:
-			self.wasc.add_handler (1, proxy_handler.Handler, self.wasc.clusters, self.wasc.cachefs)
+			self.wasc.add_handler (1, proxy_handler.Handler, self.wasc.clusters, self.wasc.cachefs, unsecure_https)
 		
 		vh = self.wasc.add_handler (1, vhost_handler.Handler, self.wasc.clusters, self.wasc.cachefs, static_max_age)		
 		current_rule = "default"
