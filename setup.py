@@ -37,18 +37,18 @@ classifiers = [
 	'Programming Language :: Python :: 3'
 ]
 
-if "install" in sys.argv or "develop" in sys.argv:
-	PY_MAJOR_VERSION = sys.version_info [0]
-	if PY_MAJOR_VERSION == 3:
-		if os.path.isfile ("skitai/lib/py2utils.py"):
-			os.remove ("skitai/lib/py2utils.py")
-			try: os.remove ("skitai/lib/py2utils.pyc")
-			except OSError: pass				
-	else:
-		if not os.path.isfile ("skitai/lib/py2utils.py"):
-			with open ("skitai/lib/py2utils.py", "w") as f:
-				f.write ("def reraise(type, value, tb):\n\traise type, value, tb\n")			
-		
+
+PY_MAJOR_VERSION = sys.version_info [0]
+if PY_MAJOR_VERSION == 3:
+	if os.path.isfile ("skitai/lib/py2utils.py"):
+		os.remove ("skitai/lib/py2utils.py")
+		try: os.remove ("skitai/lib/py2utils.pyc")
+		except OSError: pass		
+else:
+	if not os.path.isfile ("skitai/lib/py2utils.py"):
+		with open ("skitai/lib/py2utils.py", "w") as f:
+			f.write ("def reraise(type, value, tb):\n\traise type, value, tb\n")			
+
 packages = [
 	'skitai',
 	'skitai.client',
