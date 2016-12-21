@@ -37,7 +37,6 @@ classifiers = [
 	'Programming Language :: Python :: 3'
 ]
 
-
 PY_MAJOR_VERSION = sys.version_info [0]
 if PY_MAJOR_VERSION == 3:
 	if os.path.isfile ("skitai/lib/py2utils.py"):
