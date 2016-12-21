@@ -16,7 +16,7 @@ class thread_safe_socket_map (dict):
 	
 	def __nonzero__(self):
 		with self.lock:
-			v = dict.__nonzero__ (self)
+			v = dict.__len__ (self)
 		return v
 			
 	def __getitem__ (self, k):	
