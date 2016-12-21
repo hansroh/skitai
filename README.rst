@@ -30,7 +30,7 @@ Skitai orients light-weight, simplicity  and strengthen networking operations wi
 
 Skitai is not a framework for convinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your WSGI apps as both server and client.
 
-Also it is influenced by Zope_ and Flask_ a lot.
+Also note it is inspired by Zope_ and Flask_ a lot.
 
 From version 0.10, Skitai follows WSGI specification. So existing Skitai apps need to lots of modifications.
 
@@ -69,8 +69,19 @@ On win32, required *pywin32 binary* - http://sourceforge.net/projects/pywin32/fi
 
 .. code-block:: bash
 
-  pip install skitai    
-    
+    pip install skitai    
+
+Another way from Git:
+
+.. code-block:: bash
+
+    git clone https://gitlab.com/hansroh/skitai.git
+    cd skitai
+    python setup.py install
+
+
+But generally you don't need install alone. When you install Skitai App Engine, proper version of Skitai Library will be installed.
+
 
 Starting Skitai
 ================
