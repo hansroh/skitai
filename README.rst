@@ -1,6 +1,6 @@
-==============
-Skitai Core
-==============
+===============
+Skitai Library
+===============
 
 
 Changes & News
