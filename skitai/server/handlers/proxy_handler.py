@@ -199,7 +199,7 @@ class Handler (wsgi_handler.Handler):
 		self.continue_request(request, collector)
 					
 	def continue_request (self, request, collector, asyncon = None):		
-		if self.is_cached (request, collector is not None):
+		if self.has_valid_cache (request, collector is not None):
 			return
 		
 		try:
@@ -220,47 +220,57 @@ class Handler (wsgi_handler.Handler):
 			self.wasc.logger.trace ("server")			
 			request.response.error (500, "", "Proxy request has been failed.")
 		
-	def is_cached (self, request, has_data):		
-		if has_data:
-			return False
-		if request.get_header ("cookie") is not None:
-			return False
-		if request.get_header ("progma") == "no-cache" or request.get_header ("cache-control") == "no-cache":
-			request.response ["X-Cache-Lookup"] = "PASSED"
+	def has_valid_cache (self, request, has_data):
+		if not self.cachefs:
+			request.response ["X-Skitaid-Cache-Lookup"] = "NOCACHE"
 			return False
 		
-		if self.cachefs:
-			try:
-				accept_encoding = request.get_header ("accept-encoding")
-				hit, compressed, max_age, content_type, content = self.cachefs.get (request.uri, "", accept_encoding and accept_encoding.find ("gzip") != -1)
-						
-			except:
-				self.wasc.logger.trace ("server")	
-				return False
-			
-			else:
-				if hit:
-					if hit == 1:
-						request.response ["X-Cache-Lookup"] = "MEM_HIT"
-					else:
-						request.response ["X-Cache-Lookup"] = "HIT"
-					if content_type:
-						request.response ["Content-Type"] = content_type					
-					request.response ["Cache-Control"] = "max-age=%d" % max_age
-					if compressed:
-						request.response ["Content-Encoding"] = "gzip"
-					request.response.push (content)
-					request.response.done ()
-					return True
+		if has_data:
+			# have collector, cna't cache
+			request.response ["X-Skitaid-Cache-Lookup"] = "PASSED"
+			return False
+				
+		cachable = self.cachefs.iscachable (
+			request.get_header ("cache-control"),
+			request.get_header ("cookie") is not None, 
+			request.get_header ("authorization") is not None, 
+			request.get_header ("progma")			
+		)		
+		if not cachable:
+			request.response ["X-Skitaid-Cache-Lookup"] = "PASSED"
+			return False
+		
+		try:
+			accept_encoding = request.get_header ("accept-encoding")
+			hit, compressed, max_age, content_type, content = self.cachefs.get (request.uri, None, accept_encoding and accept_encoding.find ("gzip") != -1)
 					
-		request.response ["X-Cache-Lookup"] = "MISS"
-		return False
+		except:
+			self.wasc.logger.trace ("server")	
+			return False
+		
+		else:
+			if hit is None:
+				request.response ["X-Skitaid-Cache-Lookup"] = "MISS"
+				return False
+				
+		if hit == -1:
+			request.response ["X-Skitaid-Cache-Lookup"] = "MEM_HIT"
+		else:
+			request.response ["X-Skitaid-Cache-Lookup"] = "HIT"
+		if content_type:
+			request.response ["Content-Type"] = content_type					
+		request.response ["Cache-Control"] = "max-age=%d" % max_age
+		if compressed:
+			request.response ["Content-Encoding"] = "gzip"
+		request.response.push (content)
+		request.response.done ()
+		return True
 	
 	def save_cache (self, request, handler):
 		try:			
-			if self.cachefs and handler.response.max_age:
+			if self.cachefs and not handler.request.data and handler.response.max_age:
 				self.cachefs.save (
-					request.uri, handler.request.data, 
+					request.uri, None, 
 					handler.response.get_header ("content-type"), handler.response.get_content (), 
 					handler.response.max_age, request.response ["Content-Encoding"] == "gzip"
 				)

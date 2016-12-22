@@ -70,14 +70,6 @@ class Loader:
 		self.wasc.register ("lifetime", lifetime)		
 		
 		adns.init (self.wasc.logger.get ("server"))		
-		socketfarm = socketpool.SocketPool (self.wasc.logger.get ("server"))
-		self.wasc.clusters ["__socketpool__"] = socketfarm
-		self.wasc.clusters_for_distcall ["__socketpool__"] = cluster_dist_call.ClusterDistCallCreator (socketfarm, self.wasc.logger.get ("server"))		
-		
-		dp = dbpool.DBPool (self.wasc.logger.get ("server"))
-		self.wasc.clusters ["__dbpool__"] = dp
-		self.wasc.clusters_for_distcall ["__dbpool__"] = dcluster_dist_call.ClusterDistCallCreator (dp, self.wasc.logger.get ("server"))
-		
 		if not hasattr (self.wasc, "threads"):
 			for attr in ("map", "rpc", "rest", "wget", "lb", "db", "dlb", "dmap"):
 				delattr (self.wasc, attr)
@@ -85,7 +77,15 @@ class Loader:
 		
 	def config_cachefs (self, cache_dir, memmax = 8, diskmax = 0): 
 		self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir, memmax, diskmax)
-	
+		
+		socketfarm = socketpool.SocketPool (self.wasc.logger.get ("server"))
+		self.wasc.clusters ["__socketpool__"] = socketfarm
+		self.wasc.clusters_for_distcall ["__socketpool__"] = cluster_dist_call.ClusterDistCallCreator (socketfarm, self.wasc.logger.get ("server"), self.wasc.cachefs)		
+		
+		dp = dbpool.DBPool (self.wasc.logger.get ("server"))
+		self.wasc.clusters ["__dbpool__"] = dp
+		self.wasc.clusters_for_distcall ["__dbpool__"] = dcluster_dist_call.ClusterDistCallCreator (dp, self.wasc.logger.get ("server"))
+		
 	def config_rcache (self, maxobj = 1000):
 		rcache.start_rcache (maxobj)
 		self.wasc.register ("rcache", rcache.the_rcache)		

@@ -85,7 +85,7 @@ class RequestHandler:
 		self.callback = callback
 		self.http_version = http_version
 		self.logger = request.logger
-		self.connection = connection		
+		self.connection = connection				
 		
 		self.expect_disconnect = False
 		self.retry_count = 0

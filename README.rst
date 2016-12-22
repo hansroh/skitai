@@ -6,6 +6,8 @@ Skitai Core
 Changes & News
 ===============
 
+- 0.18.7 - response contents caching has been applied to all was.request services (except websocket requests).
+
 From version 0.17 (Oct 2016), `Skitai WSGI App Engine`_ is seperated from this project.
 
 If you want to run Skitai with fully pre-configured functional WSGI app engine as daemon or win32 service, install `Skitai WSGI App Engine`_.
@@ -891,39 +893,6 @@ Other Utility Service of 'was'
 =================================
 
 This chapter's 'was' services are also avaliable for all WSGI middelwares.
-
-Sending e-Mails
--------------------
-
-e-Mail sending service is executed seperated system process not threading. Every e-mail is temporary save to file system, e-Mail delivery process check new mail and will send. So there's possibly some delay time.
-
-.. code:: python
-
-    # email delivery service
-    e = was.email (subject, snd, rcpt)
-    e.set_smtp ("127.0.0.1:465", "username", "password", ssl = True)
-    e.add_text ("Hello World<div><img src='cid:ID_A'></div>", "text/html")
-    e.add_attachment (r"001.png", cid="ID_A")
-    e.send ()
-
-With asynchronous email delivery service, can add default SMTP Server config to skitaid.conf (/etc/skitaid/skitaid.conf or c:\skitaid\etc\skitaid.conf).
-If it is configured, you can skip e.set_smtp(). But be careful for keeping your smtp password.
-
-.. code:: python
-
-    [smtpda]
-    smtpserver = 127.0.0.1:25
-    user = 
-    password = 
-    ssl = no
-    max_retry = 10
-    undelivers_keep_max_days = 30
-
-Log file is located at /var/log/skitaid/daemons/smtpda/smtpda.log or c:\skitaid\log\daemons\smtpda\smtpda.log
-
-
-Utilities
--------------
 
 - was.status () # HTML formatted status information like phpinfo() in PHP.
 - was.tojson (object)

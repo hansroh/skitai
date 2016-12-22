@@ -117,7 +117,7 @@ class Response:
 			except ValueError: 
 				continue
 		
-		if self.max_age > 0:		
+		if self.max_age > 0:
 			age = self.get_header ("age")
 			if age:
 				try: age = int (age)	

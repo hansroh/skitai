@@ -63,15 +63,16 @@ class Results (rcache.Result):
 		
 			
 class Dispatcher:
-	def __init__ (self, cv, id, ident = None, filterfunc = None):
+	def __init__ (self, cv, id, ident = None, filterfunc = None, cachefs = None):
 		self._cv = cv
 		self.id = id
 		self.ident = ident
 		self.filterfunc = filterfunc
+		self.cachefs = cachefs
 		self.creation_time = time.time ()
 		self.status = 0		
 		self.result = None
-		self.handler = None		
+		self.handler = None
 			
 	def get_id (self):
 		return self.id
@@ -102,16 +103,19 @@ class Dispatcher:
 	def do_filter (self):
 		if self.filterfunc:
 			self.filterfunc (self.result)
-						
+			
+	def handle_cache (self, response):
+		status = 3
+		self.result = Result (self.id, status, response, self.ident)				
+		self.set_status (status)
+							
 	def handle_result (self, handler):
 		if self.get_status () == 1:
 			# timeout, ignore
 			return
 	
 		response = handler.response		
-		
-		# DON'T do_filter here, it blocks select loop
-		
+		# DON'T do_filter here, it blocks select loop		
 		if response.code >= 700:
 			status = 2
 		else:
@@ -119,12 +123,19 @@ class Dispatcher:
 		
 		self.result = Result (self.id, status, response, self.ident)				
 		self.set_status (status)
-										
+		
+		cakey = response.request.get_cache_key ()
+		if self.cachefs and cakey and response.max_age:
+			self.cachefs.save (
+				cakey, response.request.data,
+				response.get_header ("content-type"), response.get_content (), 
+				response.max_age, 0
+			)
+
 		handler.asyncon = None
 		handler.callback = None
 		handler.response = None
 		
-	
    	        	     
 #-----------------------------------------------------------
 # Cluster Base Call
@@ -143,7 +154,7 @@ class _Method:
 
 
 class ClusterDistCall:
-	def __init__ (self, 
+	def __init__ (self,
 		cluster, 
 		uri,
 		params = None,
@@ -154,6 +165,7 @@ class ClusterDistCall:
 		use_cache = False,	
 		mapreduce = True,
 		callback = None,
+		cachefs = None,
 		logger = None
 		):
 		
@@ -168,6 +180,7 @@ class ClusterDistCall:
 		self._use_cache = use_cache
 		self._mapreduce = mapreduce
 		self._callback = callback
+		self._cachefs = cachefs
 		self._logger = logger
 	
 		self._requests = {}
@@ -209,7 +222,38 @@ class ClusterDistCall:
 			self._mapreduce and "/M" or ""			
 			)
 		return _id
+	
+	def handle_request (self, request, rs, asyncon, handler):		
+		self._requests[rs] = asyncon
 		
+		if self._cachefs:
+			request.set_address (asyncon.address)
+			cakey = request.get_cache_key ()
+			if cakey:			
+				cachable = self._cachefs.iscachable (
+					request.get_header ("cache-control"),
+					request.get_header ("cookie") is not None, 
+					request.get_header ("authorization") is not None,
+					request.get_header ("progma")					
+				)
+				
+				if cachable:
+					hit, compressed, max_age, content_type, content = self._cachefs.get (cakey, request.data, undecompressible = 0)			
+					if hit:
+						header = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nX-Skitaid-Cache-Lookup: %s" % (
+							content_type, hit == -1 and "MEM_HIT" or "HIT"
+						)		
+						response = http_response.Response (request, header)
+						response.collect_incoming_data (content)
+						response.done ()
+						asyncon.set_active (False)
+						rs.handle_cache (response)						
+						return 0
+		
+		r = handler (asyncon, request, rs.handle_result)
+		r.start ()
+		return 1
+				
 	def _request (self, method, params):
 		self._cached_request_args = (method, params) # backup for retry
 		if self._use_cache and rcache.the_rcache:
@@ -217,6 +261,7 @@ class ClusterDistCall:
 			if self._cached_result is not None:
 				return
 		
+		requests = 0
 		while self._avails ():
 			if self._cluster.get_name () != "__socketpool__":
 				asyncon = self._get_connection (None)
@@ -224,15 +269,14 @@ class ClusterDistCall:
 				asyncon = self._get_connection (self._uri)
 			
 			_reqtype = self._reqtype.lower ()
-			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self.get_ident () or None, filterfunc = self._callback)			
+			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self.get_ident () or None, filterfunc = self._callback, cachefs = self._cachefs)
 			
 			if _reqtype in ("ws", "wss"):					
-					request = ws_request.Request (self._uri, params, self._headers, self._encoding, self._auth, self._logger)
-					self._requests[rs] = asyncon
-					r = ws_request_handler.RequestHandler (asyncon, request, rs.handle_result)
-					r.start ()
+				handler = ws_request_handler.RequestHandler					
+				request = ws_request.Request (self._uri, params, self._headers, self._encoding, self._auth, self._logger)
 											
 			else:											
+				handler = http_request_handler.RequestHandler
 				if _reqtype == "rpc":
 					request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)				
 				elif _reqtype == "jsonrpc":
@@ -242,13 +286,11 @@ class ClusterDistCall:
 				elif _reqtype == "put":
 					request = http_request.HTTPPutRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
 				else:
-					request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
-				
-				self._requests[rs] = asyncon
-				r = http_request_handler.RequestHandler (asyncon, request, rs.handle_result)
-				r.start ()
-			
-		trigger.wakeup ()
+					request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)				
+			requests += self.handle_request (request, rs, asyncon, handler)
+		
+		if requests:				
+			trigger.wakeup ()
 		
 	def _avails (self):
 		return len (self._nodes)
@@ -339,16 +381,17 @@ class ClusterDistCall:
 		
 	
 class ClusterDistCallCreator:
-	def __init__ (self, cluster, logger):
-		self.cluster = cluster
+	def __init__ (self, cluster, logger, cachesfs):
+		self.cluster = cluster				
 		self.logger = logger
+		self.cachesfs = cachesfs		
 	
 	def __getattr__ (self, name):	
 		return getattr (self.cluster, name)
 		
 	def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, encoding = None, use_cache = True, mapreduce = False, callback = None):
 		# reqtype: rpc, get, post, head, put, delete
-		return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, encoding, use_cache, mapreduce, callback, self.logger)
+		return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, encoding, use_cache, mapreduce, callback, self.cachesfs, self.logger)
 		
 	
 if __name__ == "__main__":

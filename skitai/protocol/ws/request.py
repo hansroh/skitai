@@ -27,6 +27,9 @@ class Request (request.HTTPRequest):
 		self.rsv2 = 0
 		self.rsv3 = 0
 		
+	def get_cache_key (self):
+		return None		
+			
 	def get_message (self):	
 		header = b''
 		if self.fin > 0x1:

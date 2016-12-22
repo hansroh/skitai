@@ -26,7 +26,7 @@ class Handler (proxy_handler.Handler):
 
 	def continue_request (self, request, collector):
 		request.loadbalance_retry = 0
-		if self.is_cached (request, collector is not None):
+		if self.has_valid_cache (request, collector is not None):
 			return
 		
 		try:

@@ -76,6 +76,7 @@ class CacheFileSystem:
 	
 	def load_cache (self, initial, force_remove = False):
 		c = 0
+		current_time = time.time ()
 		for path in glob.glob (os.path.join (self.path, initial, "*")):
 			created = os.stat (path).st_mtime
 			
@@ -88,7 +89,7 @@ class CacheFileSystem:
 			compressed = int (f.read (1).strip ())
 			f.close ()
 			
-			if created < time.time () - max_age:				
+			if created < current_time - max_age:				
 				try: os.remove (path)				
 				except (OSError, IOError): pass
 				continue
@@ -120,7 +121,7 @@ class CacheFileSystem:
 						self.current_disk.dec (usage)
 					del self.files [initial][fn]				
 		
-		self.maintern_times [initial] = time.time ()
+		self.maintern_times [initial] = current_time
 		with self.lock:
 			self.mainterns.inc ()
 			
@@ -128,16 +129,30 @@ class CacheFileSystem:
 		for initial in self.files.keys ():
 			self.maintern (initial, True)
 						
-	def getpath (self, uri, data):
+	def getpath (self, key, data):
 		if not data: 
-			data = "" # to make standard type
-		key = uri + ":" + str (data)
-		file = md5 (key.encode ("utf8")).hexdigest ()
+			data = b"" # to make standard type		
+		key = key.encode ("utf8")
+		key = key + b":" + data
+		file = md5 (key).hexdigest ()
 		initial = "0" + file [0] + "/" + file [1:3]
 		return os.path.join (self.path, initial, file), initial, file
-			
-	def get (self, uri, data, undecompressible = 0):		
-		path, initial, fn = self.getpath (uri, data)
+	
+	def iscachable (self, cache_control, has_cookie, has_auth, progma):
+		if progma == "no-cache":			
+			return False		
+		if cache_control:			
+			cache_control = list (map (lambda x: x.strip (), cache_control.split (",")))
+			if "no-cache" in cache_control or "max-age=0" in cache_control:
+				return False
+			if has_auth and "public" not in cache_control:
+				cachable = False
+			if has_cookie and "public" not in cache_control:
+				cachable = False						
+		return True
+					
+	def get (self, key, data, undecompressible = 0):
+		path, initial, fn = self.getpath (key, data)
 		
 		try:
 			cached = self.files [initial][fn]
@@ -146,8 +161,9 @@ class CacheFileSystem:
 				self.numfails.inc ()
 			return None, None, None, None, None
 		
+		current_time = int (time.time ())
 		max_age = cached [4]
-		if cached [0] < time.time () - max_age:
+		if cached [0] < current_time - max_age:
 			if cached [1] == 0:
 				del self.files [initial][fn]
 				with self.lock:
@@ -186,7 +202,7 @@ class CacheFileSystem:
 		
 		return memhit, compressed, max_age, content_type, content
 	
-	def save (self, uri, data, content_type, content, max_age, compressed = 0):		
+	def save (self, key, data, content_type, content, max_age, compressed = 0):		
 		if self.max_memory == 0 or not self.max_disk == 0:
 			return
 		usage = len (content)
@@ -203,14 +219,14 @@ class CacheFileSystem:
 		if current_memory > self.max_memory and current_disk > self.max_disk:
 			# there's no memory/disk room for cache
 			return self.maintern (initial)
-					
-		path, initial, fn = self.getpath (uri, data)
+		
+		current_time = int (time.time ())
+		path, initial, fn = self.getpath (key, data)
 		try: self.files [initial]
 		except KeyError: self.files [initial] = {}
 		else:
 			with self.lock:
-				last_maintern = self.maintern_times.get (initial, 0.)	
-				current_time = time.time ()		
+				last_maintern = self.maintern_times.get (initial, 0.)					
 			if last_maintern == 0:
 				self.maintern_times [initial] = current_time
 			elif current_time - last_maintern > self.maintern_interval:
@@ -229,7 +245,7 @@ class CacheFileSystem:
 		
 		if current_memory <= self.max_memory:
 			usage *= 1.5
-			self.files [initial][fn] = (time.time (), 0, usage, compressed, max_age, content_type, content)
+			self.files [initial][fn] = (current_time, 0, usage, compressed, max_age, content_type, content)
 			with self.lock:
 				self.current_memory.inc (usage)
 			return
@@ -240,7 +256,7 @@ class CacheFileSystem:
 		f.write (("%12s%d%64s" % (max_age, compressed, content_type)).encode ("utf8"))
 		f.write (content)
 		f.close ()
-		self.files [initial][fn] = (time.time (), 0, usage, compressed, max_age)
+		self.files [initial][fn] = (current_time, 0, usage, compressed, max_age)
 		with self.lock:
 			self.current_disk.inc (usage)
 

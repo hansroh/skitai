@@ -1,7 +1,8 @@
 from skitai.protocol.http import response
 
 class Response (response.Response):
-	def __init__ (self, code, msg, opcode, data = None):
+	def __init__ (self, request, code, msg, opcode, data = None):
+		self.request = request
 		self.code = code
 		self.msg = msg
 		self.data = data

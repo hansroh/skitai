@@ -93,7 +93,7 @@ class RequestHandler (request_handler.RequestHandler):
 			# possibly retry or close_case with error
 			request_handler.RequestHandler.connection_closed (self, why, msg)
 		else:
-			self.response = response.Response (why, msg, -1, -1)
+			self.response = response.Response (self.request, why, msg, -1, -1)
 			self.close_case_with_end_tran ()
 	
 	def collect_incoming_data (self, data):
@@ -143,7 +143,7 @@ class RequestHandler (request_handler.RequestHandler):
 				# text
 				data = data.decode('utf-8')
 			
-			self.response = response.Response (200, "OK", self.opcode, data)
+			self.response = response.Response (self.request, 200, "OK", self.opcode, data)
 			self.asyncon.set_terminator (2)			
 			self.close_case_with_end_tran ()
 						
@@ -167,7 +167,7 @@ class RequestHandler (request_handler.RequestHandler):
 			fin    = b1 & FIN
 			self.opcode = b1 & OPCODE
 			if self.opcode == OPCODE_CLOSE:				
-				self.response = response.Response (200, "OK", self.opcode, "")
+				self.response = response.Response (self.request, 200, "OK", self.opcode, "")
 				self.asyncon.disconnect ()
 				self.close_case_with_end_tran ()
 				return
@@ -178,7 +178,7 @@ class RequestHandler (request_handler.RequestHandler):
 			
 			payload_length = b2 & PAYLOAD_LEN
 			if payload_length == 0:
-				self.response = response.Response (200, "OK", self.opcode, "")
+				self.response = response.Response (self.request, 200, "OK", self.opcode, "")
 				self.opcode = None
 				self.has_masks = True
 				self.asyncon.set_terminator (2)				

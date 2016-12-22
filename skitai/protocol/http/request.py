@@ -20,7 +20,10 @@ class XMLRPCRequest:
 		self.uri = uri
 		self.method = method
 		self.params = params
-		self.headers = headers
+		self.headers = {}
+		if headers:
+			for k, v in headers:
+				self.headers [k] = v				
 		self.encoding = encoding
 		self.auth = (auth and type (auth) is not tuple and tuple (auth.split (":", 1)) or auth)
 		self.logger = logger
@@ -28,6 +31,14 @@ class XMLRPCRequest:
 		self.__xmlrpc_serialized = False
 		self.data = self.serialize ()		
 	
+	def get_cache_key (self):
+		if len (self.data) > 4096:
+			return None			
+		return "%s:%s%s/%s" % (
+			self.address [0], self.address [1],
+			self.path, self.method
+		)
+		
 	def xmlrpc_serialized (self):
 		return self.__xmlrpc_serialized
 		
@@ -76,27 +87,42 @@ class XMLRPCRequest:
 		return "Mozilla/5.0 (compatible; Skitaibot/0.1a)"
 				
 	def get_content_type (self):
-		if self.headers:
-			for k, v in list(self.headers.items ()):
-				if k.lower () == "content-length":
-					del self.headers [k]
-				elif k.lower () == "content-type":
-					self.content_type = v
-					del self.headers [k]
+		k, v = self.get_header ("content-length", True)
+		if k: del self.headers [k]
+		k, v = self.get_header ("content-type", True)
+		if k: 
+			del self.headers [k]
+			self.content_type = v		
 		return self.content_type
 	
-	def get_headers (self):
+	def get_header (self, k, with_key = False):
 		if self.headers:
-			return list(self.headers.items ())
-		else:
-			return []	
+			k = k.lower ()
+			for n, v in self.headers.items ():
+				if n.lower () == k:
+					if with_key:
+						return n, v
+					return v
+					
+		if with_key:
+			return None, None		
+		
+	def get_headers (self):
+		return list(self.headers.items ())
 			
 	
 class HTTPRequest (XMLRPCRequest):
 	content_type = "application/x-www-form-urlencoded; charset=utf-8"
 	def get_method (self):
 		return self.method.upper ()
-					
+	
+	def get_cache_key (self):
+		if self.data:
+			return None
+		return "%s:%s%s" % (
+			self.address [0], self.address [1], self.path
+		)
+						
 	def serialize (self):
 		# formdata type can be string, dict, boolean
 		if not self.params:
@@ -129,7 +155,10 @@ class HTTPPutRequest (HTTPRequest):
 			
 	def get_method (self):
 		return "PUT"
-					
+	
+	def get_cache_key (self):
+		return None			
+							
 	def serialize (self):
 		if type (self.params) is not str:
 			raise TypeError ("PUT body must be string")
@@ -146,6 +175,9 @@ class HTTPMultipartRequest (HTTPRequest):
 		if type (self.params) is bytes:
 			self.find_boundary ()
 	
+	def get_cache_key (self):
+		return None
+		
 	def get_method (self):
 		return "POST"
 						
@@ -166,4 +198,5 @@ class HTTPMultipartRequest (HTTPRequest):
 		if type (self.params) is type ({}):
 			return producers.multipart_producer (self.params, self.boundary, self.encoding)
 		return self.params
-
+	
+	
