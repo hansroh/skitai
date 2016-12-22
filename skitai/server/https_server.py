@@ -80,7 +80,7 @@ class https_server (http_server.http_server):
 		try:
 			conn, addr = self.accept()
 		except socket.error:
-			self.log_info ('server accept() threw an exception', 'warning')
+			#self.log_info ('server accept() threw an exception', 'warning')
 			return
 		except TypeError:
 			if os.name == "nt":
