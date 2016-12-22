@@ -138,8 +138,8 @@ class CacheFileSystem:
 		initial = "0" + file [0] + "/" + file [1:3]
 		return os.path.join (self.path, initial, file), initial, file
 	
-	def iscachable (self, cache_control, has_cookie, has_auth, progma):
-		if progma == "no-cache":			
+	def is_cachable (self, cache_control, has_cookie, has_auth, pragma):
+		if pragma == "no-cache":			
 			return False		
 		if cache_control:			
 			cache_control = list (map (lambda x: x.strip (), cache_control.split (",")))

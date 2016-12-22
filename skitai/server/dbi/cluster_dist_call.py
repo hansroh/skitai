@@ -2,8 +2,7 @@ import time
 from skitai.server.threads import socket_map
 from skitai.server.threads import trigger
 import threading
-from skitai.server import rcache
-from skitai.server.rpc import cluster_dist_call
+from skitai.server.rpc import cluster_dist_call, rcache
 from skitai.lib.attrdict import AttrDict
 
 class OperationTimeout (Exception):
@@ -172,7 +171,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 	def __getattr__ (self, name):	
 		raise AttributeError("%s not found" % name)
 		
-	def get_ident (self):
+	def _get_ident (self):
 		cluster_name = self._cluster.get_name ()
 		if cluster_name == "dbpool":
 			_id = "%s/%s/%s/%s" % (self.server, self.dbname, self.user, self.password)
@@ -188,13 +187,13 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		self._cached_request_args = (sql,) # backup for retry
 		
 		if self._use_cache and rcache.the_rcache:
-			self._cached_result = rcache.the_rcache.get (self.get_ident ())
+			self._cached_result = rcache.the_rcache.get (self._get_ident ())
 			if self._cached_result is not None:
 				return
 		
 		while self._avails ():
 			asyncon = self._get_connection (None)			
-			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self.get_ident () or None, filterfunc = self._callback)
+			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._callback)
 			self._requests [rs] = asyncon
 			asyncon.execute (sql, rs.handle_result)
 			

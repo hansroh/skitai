@@ -8,11 +8,6 @@ Changes & News
 
 - 0.18.7 - response contents caching has been applied to all was.request services (except websocket requests).
 
-From version 0.17 (Oct 2016), `Skitai WSGI App Engine`_ is seperated from this project.
-
-If you want to run Skitai with fully pre-configured functional WSGI app engine as daemon or win32 service, install `Skitai WSGI App Engine`_.
-
-
 .. contents:: Table of Contents
 
 
@@ -34,7 +29,11 @@ Skitai is not a framework for convinient developing, module reusability and plug
 
 Also note it is inspired by Zope_ and Flask_ a lot.
 
-From version 0.10, Skitai follows WSGI specification. So existing Skitai apps need to lots of modifications.
+
+From version 0.17 (Oct 2016), `Skitai WSGI App Engine`_ is seperated from this project.
+
+If you want to run Skitai with fully pre-configured functional WSGI app engine as daemon or win32 service, install `Skitai WSGI App Engine`_.
+
 
 Conceptually, Skitai has been seperated into two components:
 
@@ -2300,6 +2299,14 @@ Links
 Change Log
 ==============
   
+  0.18 (Dec 2016)
+  
+  - On progess...
+  
+  0.17 (Oct 2016)
+  
+  - `Skitai WSGI App Engine`_ is seperated
+  
   0.16 (Sep 2016)
   
   - 0.16.20 fix SSL proxy and divide into package for proxy & websocket_handler
@@ -2358,4 +2365,3 @@ Change Log
   
   0.10 (Dec 2015) - WSGI support
   
-

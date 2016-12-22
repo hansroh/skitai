@@ -230,11 +230,11 @@ class Handler (wsgi_handler.Handler):
 			request.response ["X-Skitaid-Cache-Lookup"] = "PASSED"
 			return False
 				
-		cachable = self.cachefs.iscachable (
+		cachable = self.cachefs.is_cachable (
 			request.get_header ("cache-control"),
 			request.get_header ("cookie") is not None, 
 			request.get_header ("authorization") is not None, 
-			request.get_header ("progma")			
+			request.get_header ("pragma")			
 		)		
 		if not cachable:
 			request.response ["X-Skitaid-Cache-Lookup"] = "PASSED"

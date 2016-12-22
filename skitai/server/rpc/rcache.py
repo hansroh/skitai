@@ -66,7 +66,7 @@ class RCache:
 		t = list(self.__cache.items ())	
 		t.sort (key = lambda x: x [1].remain_secs)
 		for h, obj in t [:self.num_clear]:
-			del self.__cache [h]			
+			del self.__cache [h]
 				
 	def cache (self, obj):
 		with self.lock:

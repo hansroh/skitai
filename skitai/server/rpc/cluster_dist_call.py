@@ -7,7 +7,7 @@ from skitai.protocol.http import request_handler as http_request_handler
 from skitai.protocol.http import response as http_response
 from skitai.protocol.ws import request_handler as ws_request_handler
 from skitai.protocol.ws import request as ws_request
-from skitai.server import rcache
+from . import rcache
 
 class OperationError (Exception):
 	pass
@@ -211,7 +211,7 @@ class ClusterDistCall:
 		self._cv = None
 		self._results = []
 	
-	def get_ident (self):
+	def _get_ident (self):
 		cluster_name = self._cluster.get_name ()
 		if cluster_name == "socketpool":
 			_id = "%s/%s" % (self._uri, self._reqtype)
@@ -223,18 +223,18 @@ class ClusterDistCall:
 			)
 		return _id
 	
-	def handle_request (self, request, rs, asyncon, handler):		
+	def _handle_request (self, request, rs, asyncon, handler):		
 		self._requests[rs] = asyncon
 		
 		if self._cachefs:
 			request.set_address (asyncon.address)
 			cakey = request.get_cache_key ()
 			if cakey:			
-				cachable = self._cachefs.iscachable (
+				cachable = self._cachefs.is_cachable (
 					request.get_header ("cache-control"),
 					request.get_header ("cookie") is not None, 
 					request.get_header ("authorization") is not None,
-					request.get_header ("progma")					
+					request.get_header ("pragma")					
 				)
 				
 				if cachable:
@@ -257,7 +257,7 @@ class ClusterDistCall:
 	def _request (self, method, params):
 		self._cached_request_args = (method, params) # backup for retry
 		if self._use_cache and rcache.the_rcache:
-			self._cached_result = rcache.the_rcache.get (self.get_ident ())
+			self._cached_result = rcache.the_rcache.get (self._get_ident ())
 			if self._cached_result is not None:
 				return
 		
@@ -269,14 +269,18 @@ class ClusterDistCall:
 				asyncon = self._get_connection (self._uri)
 			
 			_reqtype = self._reqtype.lower ()
-			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self.get_ident () or None, filterfunc = self._callback, cachefs = self._cachefs)
+			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._callback, cachefs = self._cachefs)
 			
 			if _reqtype in ("ws", "wss"):					
 				handler = ws_request_handler.RequestHandler					
 				request = ws_request.Request (self._uri, params, self._headers, self._encoding, self._auth, self._logger)
 											
-			else:											
+			else:				
 				handler = http_request_handler.RequestHandler
+				if not self._use_cache:
+					if self._headers is None:
+						self._headers = {}
+					self._headers ["Cache-Control"] = "no-cache"
 				if _reqtype == "rpc":
 					request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)				
 				elif _reqtype == "jsonrpc":
@@ -287,7 +291,7 @@ class ClusterDistCall:
 					request = http_request.HTTPPutRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
 				else:
 					request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)				
-			requests += self.handle_request (request, rs, asyncon, handler)
+			requests += self._handle_request (request, rs, asyncon, handler)
 		
 		if requests:				
 			trigger.wakeup ()
@@ -337,7 +341,7 @@ class ClusterDistCall:
 		rss = [rs.get_result () for rs in self._results]
 		if reraise:
 			[rs.reraise () for rs in rss]
-		self._cached_result = Results (rss, ident = self.get_ident ())
+		self._cached_result = Results (rss, ident = self._get_ident ())
 		return self._cached_result
 	
 	def _collect_result (self):
