@@ -6,6 +6,8 @@ Skitai Library
 Changes & News
 ===============
 
+- 0.18.11 - default content-type of was.post(), was.put() has been changed from 'application/x-www-form-urlencoded' to 'application/json'. if you use this method currently, you SHOULD change method name to was.postform()
+
 - 0.18.7 - response contents caching has been applied to all was.request services (except websocket requests).
 
 .. contents:: Table of Contents
@@ -196,7 +198,7 @@ Then place this code at bottom of above WSGI app.
         ('/', (__file__, 'app')), # mount WSGI app
         ('/flask', (__file__, 'app2')), # mount Flask app
         ('/skitai', (__file__, 'app3')), # mount Skitai app
-        ('/', '/var/www/test/static' # mount static directory
+        ('/', '/var/www/test/static') # mount static directory
       ]
     )
 
@@ -495,12 +497,13 @@ Here're post and file upload method examples:
 
 .. code:: python
 
-  s1 = was.post (url, {"user": "Hans Roh", "comment": "Hello"})  
+  s1 = was.post (url, {"user": "Hans Roh", "comment": "Hello"})
   s2 = was.upload (url, {"user": "Hans Roh", "file": open (r"logo.png", "rb")})
   
   result = s1.getwait (2)
   result = s2.getwait (2)
 
+It is important to know that if post/put method's dictionary type data is automatically dumped to json. If you want to post/put www form data, use postform/putform method or add Content-Type header "application/x-www-form-urlencoded". Also in case all the other content types, data should be string or bytes type, and need Content-Type header.
 
 Here's XMLRPC request for example:
 
@@ -515,9 +518,11 @@ Avaliable methods are:
 
 - was.get (url, data = None, auth = (username, password), headers = [(name, value), ...], use_cache = True)
 - was.post (url, data, auth, headers, use_cache)
+- was.postform (url, data, auth, headers, use_cache)
 - was.rpc (url, data, auth, headers, use_cache) # XMLRPC
 - was.ws (url, data, auth, headers, use_cache) # Web Socket
 - was.put (url, data, auth, headers, use_cache)
+- was.putform (url, data, auth, headers, use_cache)
 - was.delete (url, data, auth, headers, use_cache)
 - was.upload (url, data, auth, headers, use_cache) # For clarity to multipart POST
 
@@ -570,10 +575,12 @@ Avaliable methods are:
 
 - was.get.lb ()
 - was.post.lb ()
+- was.postform.lb ()
 - was.rpc.lb ()
 - was.ws.lb ()
 - was.upload.lb ()
 - was.put.lb ()
+- was.putform.lb ()
 - was.delete.lb ()
 
 
@@ -622,10 +629,12 @@ Avaliable methods are:
 
 - was.get.map ()
 - was.post.map ()
+- was.postform.map ()
 - was.rpc.map ()
 - was.ws.map ()
 - was.upload.map ()
 - was.put.map ()
+- was.putform.map ()
 - was.delete.map ()
 
 

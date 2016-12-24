@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.18.10"
+VERSION = "0.18.11"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -106,7 +106,7 @@ def run (**conf):
 				conf.get ("mount"), 
 				conf.get ("proxy", False),
 				conf.get ("static_max_age", 300)
-			)			
+			)
 			lifetime.init ()
 	
 	if not conf.get ('mount'):
@@ -114,6 +114,6 @@ def run (**conf):
 	
 	server = TestServer (conf)
 	# timeout for fast keyboard interrupt on win32	
-	server.run (1.0)
+	server.run (2.0)
 	
 	

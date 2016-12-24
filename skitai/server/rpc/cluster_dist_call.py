@@ -253,7 +253,12 @@ class ClusterDistCall:
 		r = handler (asyncon, request, rs.handle_result)
 		r.start ()
 		return 1
-				
+	
+	def _add_header (self, n, v):
+		if self._headers is None:
+			self._headers = {}
+		self._headers [n] = v
+					
 	def _request (self, method, params):
 		self._cached_request_args = (method, params) # backup for retry
 		if self._use_cache and rcache.the_rcache:
@@ -276,21 +281,20 @@ class ClusterDistCall:
 				request = ws_request.Request (self._uri, params, self._headers, self._encoding, self._auth, self._logger)
 											
 			else:				
-				handler = http_request_handler.RequestHandler
 				if not self._use_cache:
-					if self._headers is None:
-						self._headers = {}
-					self._headers ["Cache-Control"] = "no-cache"
+					self._add_header ("Cache-Control", "no-cache")
+				if _reqtype.endswith ("form"):
+					self._add_header ("Content-Type", "application/x-www-form-urlencoded")
+					_reqtype = _reqtype [:-4]
+
+				handler = http_request_handler.RequestHandler		
 				if _reqtype == "rpc":
 					request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)				
-				elif _reqtype == "jsonrpc":
-					request = http_request.JSONRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)		
-				elif _reqtype == "upload": 
+				elif _reqtype == "upload":
 					request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
-				elif _reqtype == "put":
-					request = http_request.HTTPPutRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
 				else:
 					request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)				
+			
 			requests += self._handle_request (request, rs, asyncon, handler)
 		
 		if requests:				
@@ -395,6 +399,11 @@ class ClusterDistCallCreator:
 		
 	def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, encoding = None, use_cache = True, mapreduce = False, callback = None):
 		# reqtype: rpc, get, post, head, put, delete
+		if type (headers) is list:
+			h = {}
+			for n, v in headers:
+				h [n] = v
+			headers = h	
 		return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, encoding, use_cache, mapreduce, callback, self.cachesfs, self.logger)
 		
 	

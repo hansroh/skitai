@@ -92,7 +92,7 @@ class XMLRPCRequest:
 		k, v = self.get_header ("content-type", True)
 		if k: 
 			del self.headers [k]
-			self.content_type = v		
+			self.content_type = v
 		return self.content_type
 	
 	def get_header (self, k, with_key = False):
@@ -112,33 +112,49 @@ class XMLRPCRequest:
 			
 	
 class HTTPRequest (XMLRPCRequest):
-	content_type = "application/x-www-form-urlencoded; charset=utf-8"
+	# REST has priority
+	content_type = "application/json"
+	
 	def get_method (self):
 		return self.method.upper ()
 	
 	def get_cache_key (self):
-		if self.data:
-			return None
+		if len (self.data) > 4096:
+			return None			
 		return "%s:%s%s" % (
 			self.address [0], self.address [1], self.path
 		)
-						
+	
+	def get_content_type (self):
+		if not self.params:
+			self.content_type = None
+			return None
+		return XMLRPCRequest.get_content_type (self)
+							
 	def serialize (self):
 		# formdata type can be string, dict, boolean
 		if not self.params:
-			# no content, no content-type
-			self.content_type = None		
 			return b""
-
-		if type (self.params) is type ({}):
-			if self.get_content_type () != "application/x-www-form-urlencoded":
-				raise TypeError ("POST Body should be string or can be encodable")
-			fm = []
-			for k, v in list(self.params.items ()):
-				if self.encoding:
-					v = v.decode (self.encoding)					
-				fm.append ("%s=%s" % (quote (k), quote (v)))
-			return "&".join (fm).encode ("utf8")
+		
+		content_type = self.get_content_type ()
+		if content_type is None:
+			raise TypeError ("Content-Type header is missing")
+			
+		if type (self.params) is dict:			
+			if content_type == "application/json":
+				return json.dumps (self.params).encode ("utf8")
+		
+			elif content_type == "application/x-www-form-urlencoded":
+				fm = []
+				for k, v in list(self.params.items ()):
+					if self.encoding:
+						v = v.decode (self.encoding)
+					fm.append ("%s=%s" % (quote (k), quote (v)))
+				self.content_type = "application/x-www-form-urlencoded; charset=utf-8"
+				return "&".join (fm).encode ("utf8")
+			
+			else:	
+				raise TypeError ("Unhandled content-type")
 		
 		if strutil.is_encodable (self.params):
 			return self.params.encoding ("utf8")
@@ -147,24 +163,6 @@ class HTTPRequest (XMLRPCRequest):
 			return self.params.decode (self.encoding).encoding ("utf8") 
 			
 		return self.params
-		
-		
-class HTTPPutRequest (HTTPRequest):
-	# PUT content-type hasn't got default type
-	content_type = None
-			
-	def get_method (self):
-		return "PUT"
-	
-	def get_cache_key (self):
-		return None			
-							
-	def serialize (self):
-		if type (self.params) is not str:
-			raise TypeError ("PUT body must be string")
-		if self.encoding:
-			return self.params.decode (self.encoding).encode ("utf8")
-		return self.params.encode ("utf8")
 		
 		
 class HTTPMultipartRequest (HTTPRequest):

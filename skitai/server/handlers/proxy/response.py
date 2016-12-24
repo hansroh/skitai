@@ -24,6 +24,7 @@ class ProxyResponse (http_response.Response):
 		self.p, self.u = None, None
 		self.decompressor = None
 		self.gzip_compressed = False	
+		self.is_xmlrpc_return = False
 		self.make_decompressor = False
 		
 		content_encoding = self.get_header ("Content-Encoding")			
@@ -35,12 +36,7 @@ class ProxyResponse (http_response.Response):
 						
 		self.size = 0
 		self.got_all_data = False
-		
-		self.reqtype = "HTTP"				
-		if self.client_request.get_header ("cookie"):
-			self.max_age = 0
-		else:	
-			self.set_max_age ()
+		self.set_max_age ()
 	
 	def body_expected (self):
 		cl = self.get_header ("Content-Length")

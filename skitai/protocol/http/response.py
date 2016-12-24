@@ -6,6 +6,7 @@ except ImportError:
 from skitai.server import http_date
 from skitai.lib import compressors
 import time
+import json
 
 
 class RepsonseError (Exception): 
@@ -77,16 +78,13 @@ class Response:
 		self.version, self.code, self.msg = crack_response (self.response)
 		self.size = 0
 		self.got_all_data = False
-		self.reqtype = None
 		self.max_age = 0
 		self.decompressor = None
+		self.is_xmlrpc_return = False
 		
 	def set_max_age (self):
 		self.max_age = 0
 		if self.code != 200:
-			return
-		
-		if self.get_header ("set-cookie"):
 			return
 		
 		expires = self.get_header ("expires")		
@@ -139,19 +137,13 @@ class Response:
 			self.decompressor = None
 	
 	def init_buffer (self):
-		request_content_type = self.request.get_content_type ()
-		current_content_type = self.get_header ("content-type")
-		if current_content_type is None:
-			current_content_type = ""
-			
-		if self.request.xmlrpc_serialized ():
-			self.reqtype = "XMLRPC"
+		self.set_max_age ()
+		if self.request.xmlrpc_serialized () and self.get_header ("content-type") == 'text/xml':
 			self.p, self.u = xmlrpclib.getparser()		
-		else:
-			self.reqtype = "HTTP"
-			self.set_max_age ()			
-			self.p, self.u = getfakeparser (cache = self.max_age)					
-
+			self.is_xmlrpc_return = True
+		else:			
+			self.p, self.u = getfakeparser (cache = self.max_age)
+					
 		if self.get_header ("Content-Encoding") == "gzip":			
 			self.decompressor = compressors.GZipDecompressor ()
 			
@@ -220,13 +212,13 @@ class Response:
 			return b""
 				
 		self.p.close ()
-		result = self.u.close()
-		if 200 <= self.code < 300:
-			if self.reqtype == "XMLRPC":
-				if len(result) == 1:
-					result = result [0]
-				return result
-				
+		result = self.u.close()		
+		if self.is_xmlrpc_return:
+			if len(result) == 1:
+				result = result [0]
+			return result
+		elif self.get_header ("content-type") == "application/json":
+			return json.loads (result)			
 		return result
 	
 
