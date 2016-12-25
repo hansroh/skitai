@@ -130,44 +130,15 @@ class RequestHandler:
 			return auth_header
 				
 	def get_request_buffer (self):		
-		data = self.request.get_data ()		
-		is_data_producer = False
-		
 		hc = {}
-		if (self.http_version == "1.1" and self.connection == "close") or (self.http_version == "1.0" and self.connection == "keep-alive"):
-			hc ["Connection"] = self.connection
-		
-		address = self.request.get_address ()
-		if address [1] in (80, 443):			
-			hc ["Host"] = "%s" % address [0]
-		else:
-			hc ["Host"] = "%s:%d" % address
-		
-		hc ["Accept"] = "*/*"		
-		hc ["Accept-Encoding"] = "gzip"
-		
-		if data:			
-			try:
-				cl = data.get_content_length ()
-				is_data_producer = True
-			except AttributeError:
-				cl = len (data)				
-			hc ["Content-Length"] = cl
-		
-			ct = self.request.get_content_type ()		
-			if ct:
-				hc ["Content-Type"] = self.request.get_content_type ()
-			
-		auth_header = self.get_http_auth_header (data)
-		if auth_header:
-			hc ["Authorization"] = auth_header
-		
-		ua = self.request.get_useragent ()
-		if ua:
-			hc ["User-Agent"] = ua
-			
+		data = self.request.get_data ()
 		for k, v in self.request.get_headers ():
 			hc [k] = v
+		if (self.http_version == "1.1" and self.connection == "close") or (self.http_version == "1.0" and self.connection == "keep-alive"):
+			hc ["Connection"] = self.connection			
+		auth_header = self.get_http_auth_header (data)
+		if auth_header:
+			hc ["Authorization"] = auth_header			
 		
 		self.header = ["%s: %s" % x for x in list(hc.items ())]					
 		req = ("%s %s HTTP/%s\r\n%s\r\n\r\n" % (
@@ -178,8 +149,8 @@ class RequestHandler:
 		)).encode ("utf8")
 		
 		#print (req)
-		#print (data)
-		if is_data_producer:			
+		#print (data)		
+		if type (data) is not bytes:
 			return [req, data]
 		else:
 			return [req + data]

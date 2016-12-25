@@ -67,7 +67,7 @@ class RequestHandler (request_handler.RequestHandler):
 		if (scheme == "ws" and port == 80) or (scheme == "wss" and port == 443):
 			host = addr [0]
 		else:
-			host = "%s:%d" % (addr, port)	
+			host = "%s:%d" % (addr, port)
 					
 		hc ['Host'] = host
 		hc ['Origin'] = "%s://%s" % (type (self.asyncon) is asynconnect.AsynConnect and "https" or "http", hc ['Host'])

@@ -11,26 +11,44 @@ except ImportError:
 	from urlparse import urlparse
 				
 from skitai.lib import producers, strutil
+import skitai
 
-
-class XMLRPCRequest:
-	content_type = "text/xml"
+class XMLRPCRequest:	
+	user_agent = "Mozilla/5.0 (compatible; Skitai/%s.%s)" % skitai.version_info [:2]
 			
 	def __init__ (self, uri, method, params = (), headers = None, encoding = "utf8", auth = None, logger = None):
 		self.uri = uri
 		self.method = method
-		self.params = params
-		self.headers = {}
-		if headers:
-			for k, v in headers:
-				self.headers [k] = v				
+		self.params = params		
 		self.encoding = encoding
 		self.auth = (auth and type (auth) is not tuple and tuple (auth.split (":", 1)) or auth)
 		self.logger = logger
 		self.address, self.path = self.split (uri)
 		self.__xmlrpc_serialized = False
-		self.data = self.serialize ()		
+		self.headers = {
+			"Accept": "*/*",
+			"Accept-Encoding": "gzip"				
+		}
+		if headers:
+			for k, v in headers.items ():
+				n = k.lower ()
+				if n in ("accept-encoding	", "content-length"):
+					# reanalyze
+					continue					
+				self.headers [k] = v			
+		self.data = self.serialize ()
 	
+	def build_header (self):
+		if self.get_header ("host") is None:
+			address = self.get_address ()
+			if address [1] in (80, 443):			
+				self.headers ["Host"] = "%s" % address [0]
+			else:
+				self.headers ["Host"] = "%s:%d" % address
+		
+		if self.get_header ("user-agent") is None:
+			self.headers ["User-Agent"] = self.user_agent
+		
 	def get_cache_key (self):
 		if len (self.data) > 4096:
 			return None			
@@ -75,25 +93,16 @@ class XMLRPCRequest:
 		
 	def serialize (self):
 		self.__xmlrpc_serialized = True
-		return xmlrpclib.dumps (self.params, self.method, encoding=self.encoding, allow_none=1).encode ("utf8")
+		data = xmlrpclib.dumps (self.params, self.method, encoding=self.encoding, allow_none=1).encode ("utf8")
+		self.headers ["Content-Type"] = "text/xml"
+		self.headers ["Content-Length"] = len (data)
+		return data
 	
 	def get_auth (self):
 		return self.auth
 		
 	def get_data (self):
 		return self.data
-	
-	def get_useragent (self):
-		return "Mozilla/5.0 (compatible; Skitaibot/0.1a)"
-				
-	def get_content_type (self):
-		k, v = self.get_header ("content-length", True)
-		if k: del self.headers [k]
-		k, v = self.get_header ("content-type", True)
-		if k: 
-			del self.headers [k]
-			self.content_type = v
-		return self.content_type
 	
 	def get_header (self, k, with_key = False):
 		if self.headers:
@@ -108,13 +117,11 @@ class XMLRPCRequest:
 			return None, None		
 		
 	def get_headers (self):
-		return list(self.headers.items ())
+		self.build_header ()
+		return list (self.headers.items ())
 			
 	
 class HTTPRequest (XMLRPCRequest):
-	# REST has priority
-	content_type = "application/json"
-	
 	def get_method (self):
 		return self.method.upper ()
 	
@@ -125,49 +132,58 @@ class HTTPRequest (XMLRPCRequest):
 			self.address [0], self.address [1], self.path
 		)
 	
-	def get_content_type (self):
-		if not self.params:
-			self.content_type = None
-			return None
-		return XMLRPCRequest.get_content_type (self)
-							
+	def to_bytes (self):	
+		if strutil.is_encodable (self.params):
+			data = self.params.encoding ("utf8")		
+		elif self.encoding and strutil.is_decodable (self.params):
+			data = self.params.decode (self.encoding).encoding ("utf8") 		
+		else:	
+			data = self.params
+		
+		# when only bytes type, in case proxy_request this value will be just bool type
+		try:
+			hc ["Content-Length"] = len (data)
+		except TypeError:
+			pass	
+		return data
+								
 	def serialize (self):
 		# formdata type can be string, dict, boolean
 		if not self.params:
+			header_name, content_type = self.get_header ("content-type", True)
+			if header_name:
+				del self.headers ["Content-Type"]
 			return b""
 		
-		content_type = self.get_content_type ()
+		header_name, content_type = self.get_header ("content-type", True)
 		if content_type is None:
-			raise TypeError ("Content-Type header is missing")
-			
+			content_type = "application/json"
+			self.headers ["Content-Type"] = content_type
+				
 		if type (self.params) is dict:			
 			if content_type == "application/json":
-				return json.dumps (self.params).encode ("utf8")
-		
+				data = json.dumps (self.params).encode ("utf8")		
 			elif content_type == "application/x-www-form-urlencoded":
 				fm = []
 				for k, v in list(self.params.items ()):
 					if self.encoding:
 						v = v.decode (self.encoding)
-					fm.append ("%s=%s" % (quote (k), quote (v)))
-				self.content_type = "application/x-www-form-urlencoded; charset=utf-8"
-				return "&".join (fm).encode ("utf8")
-			
+					fm.append ("%s=%s" % (quote (k), quote (v)))				
+				self.headers [header_name] = "application/x-www-form-urlencoded; charset=utf-8"
+				data = "&".join (fm).encode ("utf8")			
 			else:	
-				raise TypeError ("Unhandled content-type")
-		
-		if strutil.is_encodable (self.params):
-			return self.params.encoding ("utf8")
-		
-		if self.encoding and strutil.is_decodable (self.params):
-			return self.params.decode (self.encoding).encoding ("utf8") 
+				raise TypeError ("Unknown Content-Type")
 			
-		return self.params
+			self.headers ["Content-Length"] = len (data)		
+			return data	
+		
+		data = self.to_bytes ()				
+		return data
 		
 		
 class HTTPMultipartRequest (HTTPRequest):
-	boundary = "-------------------SAE-20150614204358"
-	
+	boundary = "-------------------Skitai-%s.%s-a1a80da4-ca3d-11e6-b245-001b216d6e71" % skitai.version_info [:2]
+		
 	def __init__ (self, uri, method, params = {}, headers = None, encoding = None, auth = None, logger = None):
 		HTTPRequest.__init__ (self, uri, method, params, headers, encoding, auth, logger)
 		if type (self.params) is bytes:
@@ -178,23 +194,22 @@ class HTTPMultipartRequest (HTTPRequest):
 		
 	def get_method (self):
 		return "POST"
-						
-	def get_content_type (self):
-		HTTPRequest.get_content_type (self) # for remove content-type header
-		return "multipart/form-data; boundary=" + self.boundary
 			
 	def find_boundary (self):
 		s = self.params.find (b"\r\n")
 		if s == -1:
-			raise ValueError("boundary not found")
+			raise ValueError("Boundary Not Found")
 		b = self.params [:s]			
 		if b [:2] != b"--":
 			raise ValueError("invalid multipart/form-data")
 		self.boundary = b [2:s]
 		
 	def serialize (self):
-		if type (self.params) is type ({}):
-			return producers.multipart_producer (self.params, self.boundary, self.encoding)
-		return self.params
-	
+		self.headers ["Content-Type"] = "multipart/form-data; boundary=" + self.boundary
+		if type (self.params) is dict:			
+			p = producers.multipart_producer (self.params, self.boundary, self.encoding)
+			self.headers ["Content-Length"] = p.get_content_length ()
+			return p
+		data = self.to_bytes ()		
+		return data
 	

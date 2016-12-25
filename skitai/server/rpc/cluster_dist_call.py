@@ -227,6 +227,7 @@ class ClusterDistCall:
 		self._requests[rs] = asyncon
 		
 		if self._cachefs:
+			# IMP: mannual address setting
 			request.set_address (asyncon.address)
 			cakey = request.get_cache_key ()
 			if cakey:			
@@ -241,7 +242,7 @@ class ClusterDistCall:
 					hit, compressed, max_age, content_type, content = self._cachefs.get (cakey, request.data, undecompressible = 0)			
 					if hit:
 						header = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nX-Skitaid-Cache-Lookup: %s" % (
-							content_type, hit == -1 and "MEM_HIT" or "HIT"
+							content_type, hit == 1 and "MEM_HIT" or "HIT"
 						)		
 						response = http_response.Response (request, header)
 						response.collect_incoming_data (content)
@@ -258,6 +259,18 @@ class ClusterDistCall:
 		if self._headers is None:
 			self._headers = {}
 		self._headers [n] = v
+	
+	_TYPEMAP = [
+		("form", "application/x-www-form-urlencoded"),
+		("xml", "text/xml"),	
+		("nvp", "text/namevalue")
+	]
+	def _map_content_type (self, _reqtype):
+		for alias, ct in self._TYPEMAP:
+			if _reqtype.endswith (alias):
+				self._add_header ("Content-Type", ct)
+				return _reqtype [:-len (alias)]
+		return _reqtype
 					
 	def _request (self, method, params):
 		self._cached_request_args = (method, params) # backup for retry
@@ -282,17 +295,16 @@ class ClusterDistCall:
 											
 			else:				
 				if not self._use_cache:
-					self._add_header ("Cache-Control", "no-cache")
-				if _reqtype.endswith ("form"):
-					self._add_header ("Content-Type", "application/x-www-form-urlencoded")
-					_reqtype = _reqtype [:-4]
-
+					self._add_header ("Cache-Control", "no-cache")				
+				
 				handler = http_request_handler.RequestHandler		
 				if _reqtype == "rpc":
 					request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)				
 				elif _reqtype == "upload":
 					request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
 				else:
+					if params:
+						_reqtype = self._map_content_type (_reqtype)
 					request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)				
 			
 			requests += self._handle_request (request, rs, asyncon, handler)

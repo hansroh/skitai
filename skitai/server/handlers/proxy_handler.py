@@ -253,10 +253,7 @@ class Handler (wsgi_handler.Handler):
 				request.response ["X-Skitaid-Cache-Lookup"] = "MISS"
 				return False
 				
-		if hit == -1:
-			request.response ["X-Skitaid-Cache-Lookup"] = "MEM_HIT"
-		else:
-			request.response ["X-Skitaid-Cache-Lookup"] = "HIT"
+		request.response ["X-Skitaid-Cache-Lookup"] = hit == 1 and "MEM_HIT" or "HIT"
 		if content_type:
 			request.response ["Content-Type"] = content_type					
 		request.response ["Cache-Control"] = "max-age=%d" % max_age

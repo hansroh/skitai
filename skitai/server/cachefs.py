@@ -101,15 +101,15 @@ class CacheFileSystem:
 					
 	def maintern (self, initial, force_remove = False):
 		current_time = time.time ()		
-		valid_time = current_time - self.timeout
 		deletables = []	
 		for fn in self.files [initial]:
 			cached = self.files [initial][fn]
+			valid_time = current_time - cached [4] # max-age
 			if cached [0] < valid_time or force_remove:
 				deletables.append ((fn, cached [1], cached [2]))
 		
-		for fn, stored, usage in deletables:		
-			if stored == 0:
+		for fn, memhit, usage in deletables:		
+			if memhit == 1:
 				with self.lock:			
 					self.current_memory.dec (usage)					
 				del self.files [initial][fn]				
@@ -162,9 +162,11 @@ class CacheFileSystem:
 			return None, None, None, None, None
 		
 		current_time = int (time.time ())
+		memhit = cached [1]
 		max_age = cached [4]
+				
 		if cached [0] < current_time - max_age:
-			if cached [1] == 0:
+			if memhit == 1:
 				del self.files [initial][fn]
 				with self.lock:
 					self.current_memory.dec (cached [2])
@@ -181,10 +183,9 @@ class CacheFileSystem:
 		
 		with self.lock:
 			self.numhits.inc ()
-								
-		if cached [1] == 0:
-			content_type, content = cached [-2:]
-			memhit = -1
+		
+		if memhit == 1:
+			content_type, content = cached [-2:]			
 		
 		else:	
 			f = open (path, "rb")
@@ -192,7 +193,6 @@ class CacheFileSystem:
 			content_type = f.read (64).strip ()
 			content = f.read ()
 			f.close ()			
-			memhit = 1
 		
 		compressed = cached [3]
 		if compressed and not undecompressible:
@@ -245,20 +245,21 @@ class CacheFileSystem:
 		
 		if current_memory <= self.max_memory:
 			usage *= 1.5
-			self.files [initial][fn] = (current_time, 0, usage, compressed, max_age, content_type, content)
+			self.files [initial][fn] = (current_time, 1, usage, compressed, max_age, content_type, content)
 			with self.lock:
 				self.current_memory.inc (usage)
 			return
-			
-		f = open (path, "wb")
-		if not content_type:
-			content_type = b""			
-		f.write (("%12s%d%64s" % (max_age, compressed, content_type)).encode ("utf8"))
-		f.write (content)
-		f.close ()
-		self.files [initial][fn] = (current_time, 0, usage, compressed, max_age)
-		with self.lock:
-			self.current_disk.inc (usage)
+		
+		if self.max_disk:
+			f = open (path, "wb")
+			if not content_type:
+				content_type = b""			
+			f.write (("%12s%d%64s" % (max_age, compressed, content_type)).encode ("utf8"))
+			f.write (content)
+			f.close ()
+			self.files [initial][fn] = (current_time, -1, usage, compressed, max_age)
+			with self.lock:
+				self.current_disk.inc (usage)
 
 			
 if __name__ == "__main__":
