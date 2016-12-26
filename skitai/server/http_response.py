@@ -446,7 +446,7 @@ class http_response:
 		201: "Created",
 		202: "Accepted",
 		203: "Non-Authoritative Information",
-		204: "No Content",
+		204: "Deleted",
 		205: "Reset Content",
 		206: "Partial Content",
 		300: "Multiple Choices",
@@ -518,3 +518,5 @@ class http_response:
 		if not body:
 			return self.build_default_template (exc_info and catch (1, exc_info) or "")
 		return body
+	
+	
