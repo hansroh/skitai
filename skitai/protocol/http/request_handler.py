@@ -16,7 +16,9 @@ class Authorizer:
 			
 		infod = self.db [netloc]
 		if infod ["meth"] == "basic":
-			return "Basic " + base64.encodestring ("%s:%s" % auth) [:-1]	
+			return "Basic " + base64.encodestring ("%s:%s" % auth) [:-1]
+		elif infod ["meth"] == "bearer":
+			return "Bearer " + auth [0]
 		else:
 			infod ["nc"] += 1
 			hexnc = hex (infod ["nc"])[2:].zfill (8)
@@ -52,9 +54,9 @@ class Authorizer:
 	def set (self, netloc, authreq, auth):
 		if auth is None:
 			return
-			
-		amethod, authinfo = authreq.split (" ", 1)
-		infod = {"meth": amethod.lower ()}		
+		
+		amethod, authinfo = authreq.split (" ", 1)		
+		infod = {"meth": amethod.lower ()}
 		infod ["nc"] = 0
 		for info in authinfo.split (","):
 			k, v = info.strip ().split ("=", 1)

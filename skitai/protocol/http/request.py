@@ -32,7 +32,7 @@ class XMLRPCRequest:
 		if headers:
 			for k, v in headers.items ():
 				n = k.lower ()
-				if n in ("accept-encoding	", "content-length"):
+				if n in ("accept-encoding	", "content-length", "connection"):
 					# reanalyze
 					continue					
 				self.headers [k] = v			
@@ -194,6 +194,7 @@ class HTTPRequest (XMLRPCRequest):
 		if type (self.params) is dict:			
 			if content_type == "application/json":
 				data = json.dumps (self.params).encode ("utf8")
+				self.headers [header_name] = "application/json; charset=utf-8"
 			elif content_type == "application/x-www-form-urlencoded":
 				data = self.urlencode ()
 				self.headers [header_name] = "application/x-www-form-urlencoded; charset=utf-8"

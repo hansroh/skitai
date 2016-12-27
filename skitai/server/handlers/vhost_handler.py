@@ -1,4 +1,4 @@
-from . import default_handler, wsgi_handler, proxypass_handler, websocket_handler
+from . import default_handler, wsgi_handler, proxypass_handler, websocket_handler, api_access_handler
 import skitai
 if skitai.HTTP2:
 	from . import http2_handler		
@@ -6,12 +6,12 @@ from .. import wsgi_apps
 import os
 
 class VHost:
-	def __init__ (self, wasc, clusters, cachefs, static_max_age):
+	def __init__ (self, wasc, clusters, cachefs, static_max_age, apigateway_authenticate):
 		self.wasc = wasc
 		self.clusters = clusters
 		self.cachefs = cachefs
 		
-		self.apps = wsgi_apps.ModuleManager(self.wasc)
+		self.apps = wsgi_apps.ModuleManager(self.wasc, self)
 		self.proxy_handler = proxypass_handler.Handler (self.wasc, clusters, cachefs)
 		alternative_handlers = [			
 			websocket_handler.Handler (self.wasc, self.apps),
@@ -20,17 +20,22 @@ class VHost:
 		if skitai.HTTP2:
 			alternative_handlers.insert (0, http2_handler.Handler (self.wasc, self.apps))			
 		self.default_handler = default_handler.Handler (self.wasc, {}, static_max_age, alternative_handlers)
-		self.handlers = [
-			self.proxy_handler,			
-			self.default_handler
-		]
+		self.handlers = []
+		if apigateway_authenticate:
+			self.access_handler = api_access_handler.Handler (self.wasc, self.proxy_handler.find_cluster)
+			self.handlers.append (self.access_handler)			
+		self.handlers.append (self.proxy_handler)
+		self.handlers.append (self.default_handler)
 	
 	def close (self):	
 		for h in self.handlers:
 			try: h.close ()
 			except AttributeError: pass		
 		self.apps.cleanup ()
-					
+	
+	def set_token_storage (self, storage):
+		self.access_handler.set_token_storage (storage)
+						
 	def add_proxypass (self, route, cname):
 		self.proxy_handler.add_route (route, cname)
 		
@@ -42,9 +47,9 @@ class VHost:
 
 
 class Handler:
-	def __init__ (self, wasc, clusters, cachefs, static_max_age):
+	def __init__ (self, wasc, clusters, cachefs, static_max_age, apigateway_authenticate):
 		self.wasc = wasc
-		self.vhost_args = (clusters, cachefs, static_max_age)		
+		self.vhost_args = (clusters, cachefs, static_max_age, apigateway_authenticate)		
 		self.sites = {}
 		self.__cache = {}
 	
@@ -57,12 +62,15 @@ class Handler:
 		return self.find (request.get_header ("host")) and 1 or 0
 		
 	def handle_request (self, request):
-		vhost = self.find (request.get_header ("host"))		
+		vhost = self.find (request.get_header ("host"))
 		for h in vhost.handlers:
 			if h.match (request):
 				h.handle_request (request)
 				break
-		
+	
+	def set_token_storage (self, storage):
+		vhost.set_token_storage (storage)
+			
 	def add_route (self, rule, routepair):
 		if rule.strip () in ("*", "default"):
 			rule = None

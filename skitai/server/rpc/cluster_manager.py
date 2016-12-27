@@ -10,10 +10,11 @@ class ClusterManager:
 	object_timeout = 1200
 	maintern_interval = 30
 	
-	def __init__ (self, name, cluster, ssl = 0, logger = None):
+	def __init__ (self, name, cluster, ssl = 0, access = [], logger = None):
 		self.logger = logger
 		self.lock = threading.RLock ()
 		self._name = name
+		self.access = access
 		self.set_ssl (ssl)		
 		self._havedeadnode = 0
 		self._numget = 0
@@ -21,13 +22,30 @@ class ClusterManager:
 		self._clusterlist = []
 		self._cluster = {}	
 		self._last_maintern = time.time ()
-		self._close_desires = []		
+		self._close_desires = []
 		if cluster:
 			self.create_pool (cluster)
 	
 	def __len__ (self):
 		return len (self._cluster)
-		
+	
+	def get_access_roles (self, roles):
+		if not self.access:
+			return roles		
+		allowed_roles = []	
+		for role in roles:
+			if role in self.access:
+				allowed_roles.append (role)				
+		return allowed_roles		
+	
+	def has_permission (self, roles):
+		if not self.access:
+			return True
+		for role in roles:
+			if role in self.access:
+				return True
+		return False
+				
 	def get_name (self):
 		return self._name
 			

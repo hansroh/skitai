@@ -6,9 +6,9 @@ class ClusterManager (cluster_manager.ClusterManager):
 	object_timeout = 1200	
 	maintern_interval = 60
 	
-	def __init__ (self, name, cluster, dbtype = DB_PGSQL, logger = None):
+	def __init__ (self, name, cluster, dbtype = DB_PGSQL, access = [], logger = None):
 		self.dbtype = dbtype
-		cluster_manager.ClusterManager.__init__ (self, name, cluster, 0, logger)
+		cluster_manager.ClusterManager.__init__ (self, name, cluster, 0, access, logger)
 			
 	def match (self, request):
 		return False # not serverd by url

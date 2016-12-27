@@ -5,8 +5,10 @@ from types import FunctionType as function
 
 
 class Module:
-	def __init__ (self, wasc, route, directory, libpath):
+	def __init__ (self, wasc, handler, route, directory, libpath):
 		self.wasc = wasc
+		self.handler = handler
+								
 		try:
 			libpath, self.appname = libpath.split (":", 1)		
 		except ValueError:
@@ -36,7 +38,10 @@ class Module:
 			pass
 			
 		if func:
+			# temporary current handler
+			self.wasc.handler = self.handler
 			func (self.wasc, self.route)
+			self.wasc.handler = None
 	
 	def cleanup (self):
 		try: getattr (self.module, self.appname).cleanup ()
@@ -85,8 +90,9 @@ class Module:
 
 class ModuleManager:
 	modules = {}	
-	def __init__(self, wasc):
+	def __init__(self, wasc, handler):
 		self.wasc = wasc		
+		self.handler = handler
 		self.modules = {}
 		self.modnames = {}
 			
@@ -102,7 +108,7 @@ class ModuleManager:
 		elif not route.endswith ("/"):
 			route = route + "/"
 		try: 
-			module = Module (self.wasc, route, directory, modname)
+			module = Module (self.wasc, self.handler, route, directory, modname)
 			
 		except: 
 			self.wasc.logger.trace ("app")

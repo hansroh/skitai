@@ -8,6 +8,7 @@ from skitai import DB_PGSQL, DB_SQLITE3
 from . import server_info, http_date
 import os
 import time
+from skitai.server.handlers import api_access_handler
 
 try: 
 	from urllib.parse import urljoin
@@ -64,14 +65,14 @@ class WAS:
 		if hasattr (cls, "httpserver"):
 			cls.httpserver.install_handler (h, back)
 		return h	
-					
+						
 	@classmethod
-	def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0):
+	def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0, access = []):
 		if clustertype in (DB_PGSQL, DB_SQLITE3):
-			cluster = dcluster_manager.ClusterManager (clustername, clusterlist, clustertype, cls.logger.get ("server"))
+			cluster = dcluster_manager.ClusterManager (clustername, clusterlist, clustertype, access, cls.logger.get ("server"))
 			cls.clusters_for_distcall [clustername] = dcluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"))
 		else:
-			cluster = cluster_manager.ClusterManager (clustername, clusterlist, ssl, cls.logger.get ("server"))
+			cluster = cluster_manager.ClusterManager (clustername, clusterlist, ssl, access, cls.logger.get ("server"))
 			cls.clusters_for_distcall [clustername] = cluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"), cls.cachefs)
 		cls.clusters [clustername] = cluster
 				

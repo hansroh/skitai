@@ -6,11 +6,10 @@ Skitai Library
 Changes & News
 ===============
 
+- 0.20 - add API Gateway Access Handler
+
 - 0.19 - Reengineering was.request methods, fix disk caching
 
-- 0.18.11 - default content-type of was.post(), was.put() has been changed from 'application/x-www-form-urlencoded' to 'application/json'. if you use this method currently, you SHOULD change method name to was.postform()
-
-- 0.18.7 - response contents caching has been applied to all was.request services (except websocket requests).
 
 .. contents:: Table of Contents
 
@@ -50,6 +49,7 @@ Conceptually, Skitai has been seperated into two components:
 .. _Flask: http://flask.pocoo.org/
 .. _PostgreSQL: http://www.postgresql.org/
 .. __: http://www.nightmare.com/medusa/medusa.html
+
 
 
 Installation
@@ -2333,7 +2333,7 @@ Change Log
   
   0.19 (Dec 2016)
   
-  - On progress...
+  - Reengineering was.request methods, fix disk caching
   
   0.18 (Dec 2016)
   
