@@ -31,8 +31,7 @@ class DBConnect:
 	def end_tran (self):
 		if DEBUG: 
 			self.__history.append ("END TRAN") 
-			self.__history = self.__history [-30:]
-		self.del_channel ()
+			self.__history = self.__history [-30:]		
 		
 	def close_case_with_end_tran (self):
 		self.end_tran ()

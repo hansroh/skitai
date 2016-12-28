@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.20.3"
+VERSION = "0.20.5"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 

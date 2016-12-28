@@ -26,7 +26,7 @@ Skitai orients light-weight, simplicity  and strengthen networking operations wi
 - Working as Web, XML-RPC and Reverse Proxy Loadbancing Server
 - HTML5 Websocket & HTTP/2.0 implemeted
 - Handling massive RESTful API/RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily
-- Asynchronous connection pool with PostgreSQL
+- Asynchronous connection pool with PostgreSQL and Redis
 
 Skitai is not a framework for convinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your WSGI apps as both server and client.
 
@@ -757,8 +757,9 @@ If you need blocking jobs, you can use original Psycopg2 module or other Postgre
 
 Anyway, usage is basically same concept with above HTTP Requests.
 
-Usage
-------
+
+PostgreSQL
+------------
 
 **Simple Query**
 
@@ -790,8 +791,7 @@ Add mydb members to config file.
 
     @app.route ("/query")
     def query (was, keyword):
-      s = was.db.lb ("@mydb")
-      s.execute("INSERT INTO CITIES VALUES ('New York');")
+      s = was.db.lb ("@mydb").execute("INSERT INTO CITIES VALUES ('New York');")
       s.wait (2) # no return, just wait for completing query, if failed exception will be raised
       
       s = was.db.lb ("@mydb")
@@ -805,9 +805,7 @@ Add mydb members to config file.
 
     @app.route ("/query")
     def query (was, keyword):
-      s = was.db.map ("@mydb")
-      s.execute("SELECT * FROM CITIES;")
-
+      s = was.db.map ("@mydb").execute("SELECT * FROM CITIES;")
       results = s.getswait (2)
       all_results = []
       for result in results:
@@ -833,7 +831,48 @@ Avaliable methods are:
 .. _`Psycopg2 advanced topics`: http://initd.org/psycopg/docs/advanced.html
 
 
-Fast App Prototyping using SQLite3
+Redis
+--------
+
+`New in version 0.20.5`
+
+Redis_ is an open source (BSD licensed), in-memory data structure store, used as a database, cache and message broker.
+
+Skitai provides asynchronous connection to Redis server with connection pool. Usage is almost same with PostgreSQL.
+
+.. code:: python
+
+  from skitai import DB_REDIS
+  
+  @app.route ("/test/redis")
+  def redis (was):
+  s1 = was.db ("127.0.0.1:6379", DB_REDIS).execute ("SET", "maykey1", "Hans Roh")	
+  s3 = was.db ("127.0.0.1:6379", DB_REDIS).execute ("GET", "maykey1")
+  s3 = was.db ("127.0.0.1:6379", DB_REDIS).execute ("RPUSH", "maykey2", hello")
+  s3 = was.db ("127.0.0.1:6379", DB_REDIS).execute ("RPUSH", "maykey2", world")
+  s5 = was.db ("127.0.0.1:6379", DB_REDIS).execute ("LRANGE", "maykey2", 0, -1)
+  s2 = was.db ("127.0.0.1:6379", DB_REDIS).execute ("SAVE")
+  
+  buf = []
+  for s in (s1, s2, s3, s4, s5):
+    rs = s.getwait (5)
+    buf.append (str (rs.data [0].value))
+  return "<hr>".join (buf)
+
+
+Also load-balacing and map-reuducing is exactly same with PostgreSQL.
+
+.. code:: python
+
+    [@myredis]
+    type = redis
+    members = /tmp/sqlite1.db, /tmp/sqlite2.db
+
+
+.. _Redis: https://redis.io/
+
+
+SQLite3 For Fast App Prototyping
 ------------------------------------
 
 `New in version 0.13`
@@ -855,8 +894,7 @@ Usage is almost same with PostgreSQL. This service IS NOT asynchronous BUT just 
     # result is not needed use wait(), and if failed, excpetion will be raised
     s.wait (5)
 
-    s = was.db ("sqlite3.db", DB_SQLITE3)
-    s.execute ("select * from people;")	
+    s = was.db ("sqlite3.db", DB_SQLITE3).execute ("select * from people;")    
     result = s.getwait (2)
 
 Also load-balacing and map-reuducing is exactly same with PostgreSQL.

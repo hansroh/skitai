@@ -50,7 +50,11 @@ else:
 			if map is None:
 				map = self._map
 			return self._fileno in map
-			
+		
+		def end_tran (self):
+			dbconnect.DBConnect.end_tran (self)
+			self.del_channel ()
+				
 		def del_channel (self, map=None):
 			fd = self._fileno
 			if map is None:

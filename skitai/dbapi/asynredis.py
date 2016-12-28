@@ -22,8 +22,12 @@ class AsynConnect (dbconnect.DBConnect, asynchat.async_chat):
 		asynchat.async_chat.__init__ (self)
 	
 	def close (self):
-		asynchat.async_chat.close ()
-						
+		asynchat.async_chat.close (self)
+	
+	def end_tran (self):
+		dbconnect.DBConnect.end_tran (self)
+		asynchat.async_chat.del_channel (self)
+								
 	def close_case (self):
 		if self.callback:
 			self.callback ([("value",)], self.exception_class, self.exception_str, self.fetchall ())
@@ -65,6 +69,8 @@ class AsynConnect (dbconnect.DBConnect, asynchat.async_chat):
 		return [(res,)]
 	
 	def add_element (self, e):
+		if type (e) is bytes:
+			e = e.decode ("utf8")
 		self.response [-1].append (e)
 		self.num_elements [-1] -= 1
 		while self.num_elements and self.num_elements [-1] <= 0:		
@@ -85,7 +91,7 @@ class AsynConnect (dbconnect.DBConnect, asynchat.async_chat):
 
 		header = self.data [-1][:1]
 		if self.length != -1:
-			self.add_element (self.data [-1][:-2].decode ("utf8"))
+			self.add_element (self.data [-1][:-2])
 			self.data = []
 			self.length = -1
 			self.set_terminator (LINE_FEED)
@@ -139,6 +145,8 @@ class AsynConnect (dbconnect.DBConnect, asynchat.async_chat):
 		if not self.connected:
 			self.connect ()
 		else:
+			# keep this order
+			self.initiate_send ()
 			self.add_channel ()			
 		self.send_command (*command)
 		
