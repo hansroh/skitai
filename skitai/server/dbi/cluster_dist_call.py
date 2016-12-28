@@ -4,24 +4,30 @@ from skitai.server.threads import trigger
 import threading
 from skitai.server.rpc import cluster_dist_call, rcache
 from skitai.lib.attrdict import AttrDict
-
+import asyncore
 class OperationTimeout (Exception):
 	pass
 
 class	Result (rcache.Result):
 	def __init__ (self, id, status, description = None, expt_class = None, expt_str = None, data = [], ident = None):
-		rcache.Result.__init__ (self, status, ident)
+		rcache.Result.__init__ (self, status, ident)		
 		self.node = id
 		self.__expt_class = expt_class
 		self.__expt_str = expt_str
-		# For Results competitable
-		
+						
 		if status == 3:
+			try:
+				self.set_result (description, data)
+			except:
+				self.__expt_class, self.__expt_str = asyncore.compact_traceback() [1:3]
+				self.status = 2
+		
+		# For Results competitable		
+		if self.status == 3:
 			self.code, self.msg = 200, "OK"
 		else:
 			self.code, self.msg = 501, "Server Error"
-		self.set_result (description, data)
-	
+		
 	def __iter__ (self):
 		return self.data.__iter__ ()
 	
@@ -32,9 +38,9 @@ class	Result (rcache.Result):
 		if not data:
 			self.data = []
 			return
-			
+	
 		assert (len (description) == len (data [0]))		
-		cols = [type (col) is tuple and col [0] or col.name for col in description]
+		cols = [type (col) is tuple and col [0] or col.name for col in description]		
 		d = []
 		for row in data:
 			i = 0
@@ -45,7 +51,7 @@ class	Result (rcache.Result):
 			d.append (drow)
 		self.data = d
 		self.description = description
-		
+	
 	def get_result (self):	
 		return self.data
 	
@@ -130,6 +136,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		dbtype,
 		use_cache,
 		mapreduce,
+		filter,
 		callback,
 		logger
 		):
@@ -142,7 +149,8 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		self.dbtype = dbtype
 		
 		self._use_cache = use_cache		
-		self._callback = callback		
+		self._filter = filter
+		self._callback = callback
 		self._mapreduce = mapreduce		
 		self._cluster = cluster
 		self._cached_request_args = None
@@ -178,14 +186,13 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		else:
 			_id = cluster_name
 		_id += "/%s%s" % (
-			self._cached_request_args [0],
+			",".join (map (lambda x: str (x), self._cached_request_args)),
 			self._mapreduce and "/M" or ""
 			)	
 		return _id
 				
-	def _request (self, sql):
-		self._cached_request_args = (sql,) # backup for retry
-		
+	def _request (self, *cmd):
+		self._cached_request_args = cmd # backup for retry
 		if self._use_cache and rcache.the_rcache:
 			self._cached_result = rcache.the_rcache.get (self._get_ident ())
 			if self._cached_result is not None:
@@ -193,18 +200,19 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		
 		while self._avails ():
 			asyncon = self._get_connection (None)			
-			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._callback)
+			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._filter)
 			self._requests [rs] = asyncon
-			asyncon.execute (sql, rs.handle_result)
+			asyncon.execute (self._callback and self._callback or rs.handle_result, *cmd)
 			
 		trigger.wakeup ()
 		
-	def execute (self, sql):
+	def execute (self, *cmd):
 		if self._executed:
 			raise AssertionError ("Can't execute multiple, please create new connection")
 		self._executed = True
-		self._request (sql)
-		
+		self._request (*cmd)
+		return self
+				
 	def _get_connection (self, id = None):
 		if id is None: id = self._nodes.pop ()
 		else: self._nodes = []
@@ -212,7 +220,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		if self.server:
 			asyncon = self._cluster.get (self.server, self.dbname, self.user, self.password, self.dbtype)		
 		else:	
-			asyncon = self._cluster.get (id)	
+			asyncon = self._cluster.get (id)
 		
 		if self._cv is None:
 			self._cv = asyncon._cv
@@ -227,9 +235,9 @@ class ClusterDistCallCreator:
 	def __getattr__ (self, name):	
 		return getattr (self.cluster, name)
 		
-	def Server (self, server = None, dbname = None, user = None, password = None, dbtype = None, use_cache = True, mapreduce = False, callback = None):
+	def Server (self, server = None, dbname = None, user = None, password = None, dbtype = None, use_cache = True, mapreduce = False, filter = None, callback = None):
 		# reqtype: xmlrpc, rpc2, json, jsonrpc, http
-		return ClusterDistCall (self.cluster, server, dbname, user, password, dbtype, use_cache, mapreduce, callback, self.logger)
+		return ClusterDistCall (self.cluster, server, dbname, user, password, dbtype, use_cache, mapreduce, filter, callback, self.logger)
 
 
 		

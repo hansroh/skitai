@@ -22,17 +22,13 @@ class SynConnect (dbconnect.DBConnect):
 		else:	
 			self.connected = True
 	
-	def close (self):
-		self.connected = False
-		dbconnect.DBConnect.close (self)
-	
 	def close_case (self):
 		if DEBUG: 
 			self.__history.append ("END TRAN") 
 			self.__history = self.__history [-30:]
 		dbconnect.DBConnect.close_case (self)
 				
-	def execute (self, sql, callback):
+	def execute (self, callback, sql):
 		self.callback = callback
 		self.has_result = False
 		self.exception_str = ""

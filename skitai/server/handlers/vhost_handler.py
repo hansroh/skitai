@@ -6,25 +6,28 @@ from .. import wsgi_apps
 import os
 
 class VHost:
-	def __init__ (self, wasc, clusters, cachefs, static_max_age, apigateway_authenticate):
+	def __init__ (self, wasc, clusters, cachefs, static_max_age, apigateway_authenticate, apigateway_realm):
 		self.wasc = wasc
 		self.clusters = clusters
 		self.cachefs = cachefs
 		
 		self.apps = wsgi_apps.ModuleManager(self.wasc, self)
-		self.proxy_handler = proxypass_handler.Handler (self.wasc, clusters, cachefs)
+		self.proxypass_handler = proxypass_handler.Handler (self.wasc, clusters, cachefs)
+		if apigateway_authenticate:
+			self.access_handler = api_access_handler.Handler (self.wasc, apigateway_realm, self.proxypass_handler)
+			self.handlers = [self.access_handler]
+		else:
+			self.access_handler = None
+			self.handlers = [self.proxypass_handler]
+						
 		alternative_handlers = [			
 			websocket_handler.Handler (self.wasc, self.apps),
 			wsgi_handler.Handler (self.wasc, self.apps)
 		]
 		if skitai.HTTP2:
-			alternative_handlers.insert (0, http2_handler.Handler (self.wasc, self.apps))			
-		self.default_handler = default_handler.Handler (self.wasc, {}, static_max_age, alternative_handlers)
-		self.handlers = []
-		if apigateway_authenticate:
-			self.access_handler = api_access_handler.Handler (self.wasc, self.proxy_handler.find_cluster)
-			self.handlers.append (self.access_handler)			
-		self.handlers.append (self.proxy_handler)
+			alternative_handlers.insert (0, http2_handler.Handler (self.wasc, self.apps))
+			
+		self.default_handler = default_handler.Handler (self.wasc, {}, static_max_age, alternative_handlers)		
 		self.handlers.append (self.default_handler)
 	
 	def close (self):	
@@ -34,22 +37,23 @@ class VHost:
 		self.apps.cleanup ()
 	
 	def set_token_storage (self, storage):
-		self.access_handler.set_token_storage (storage)
+		if self.access_handler:
+			self.access_handler.set_token_storage (storage)
 						
 	def add_proxypass (self, route, cname):
-		self.proxy_handler.add_route (route, cname)
+		self.proxypass_handler.add_route (route, cname)
 		
 	def add_route (self, route, target):
 		self.default_handler.add_route (route, target)		
-	
+		
 	def add_module (self, route, path, module):
 		self.apps.add_module (route, path, module)
 
 
 class Handler:
-	def __init__ (self, wasc, clusters, cachefs, static_max_age, apigateway_authenticate):
+	def __init__ (self, wasc, clusters, cachefs, static_max_age, apigateway_authenticate, apigateway_realm):
 		self.wasc = wasc
-		self.vhost_args = (clusters, cachefs, static_max_age, apigateway_authenticate)		
+		self.vhost_args = (clusters, cachefs, static_max_age, apigateway_authenticate, apigateway_realm)		
 		self.sites = {}
 		self.__cache = {}
 	
@@ -67,9 +71,6 @@ class Handler:
 			if h.match (request):
 				h.handle_request (request)
 				break
-	
-	def set_token_storage (self, storage):
-		vhost.set_token_storage (storage)
 			
 	def add_route (self, rule, routepair):
 		if rule.strip () in ("*", "default"):

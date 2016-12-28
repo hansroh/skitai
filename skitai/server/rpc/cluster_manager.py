@@ -5,12 +5,55 @@ import re
 import copy
 import random
 from operator import itemgetter
+import math
 
+class AccessPolicy:	
+	def __init__ (self, roles, ips):
+		self.roles = self.to_list (roles)
+		self.ips = []
+		for ip_mask in self.to_list (ips):
+			try: ip, mask = ip_mask.split ("/", 1)
+			except ValueError: ip, mask = ip_mask, 32
+			else: mask = int (mask)		
+			pp = math.floor (mask / 8)
+			mask_bits = mask % 8
+			mask_bit = "1" * mask_bits
+			mask_bit += "0" * (8 - mask_bits)
+			self.ips.append ((ip.split (".")[:pp], mask, pp, int (mask_bit, 2)))
+			
+	def to_list (self, s):	
+		return list (filter (None, map (lambda x: x.strip (), s.split (","))))
+	
+	def has_role (self, roles):
+		if not self.roles:
+			return roles and True or False
+		for role in roles:
+			if role in self.roles:
+				return True
+		return False
+	
+	def is_valid_request (self, request):
+		if not self.ips:
+			return True
+		client_ip = request.channel.addr [0]
+		for ip, mask, pp, mask_bit in self.ips:
+			if mask == 32 and client_ip == ip:
+				return True
+			client_ip = client_ip.split (".")	
+			if ip	!= client_ip [:pp]:
+				continue
+			if mask_bit == 0:
+				return True
+			if int (client_ip [pp]) & mask_bit == mask_bit:
+				return True
+		return False		
+			
+			
 class ClusterManager:
 	object_timeout = 1200
 	maintern_interval = 30
 	
-	def __init__ (self, name, cluster, ssl = 0, access = [], logger = None):
+	def __init__ (self, name, cluster, ssl = 0, access = None, logger = None):
 		self.logger = logger
 		self.lock = threading.RLock ()
 		self._name = name
@@ -29,22 +72,8 @@ class ClusterManager:
 	def __len__ (self):
 		return len (self._cluster)
 	
-	def get_access_roles (self, roles):
-		if not self.access:
-			return roles		
-		allowed_roles = []	
-		for role in roles:
-			if role in self.access:
-				allowed_roles.append (role)				
-		return allowed_roles		
-	
-	def has_permission (self, roles):
-		if not self.access:
-			return True
-		for role in roles:
-			if role in self.access:
-				return True
-		return False
+	def has_permission (self, request, roles):
+		return self.access.is_valid_request (request) and self.access.has_role (roles)
 				
 	def get_name (self):
 		return self._name

@@ -27,10 +27,16 @@ class DBConnect:
 		self.conn = None
 		self.cur = None
 		self.callback = None
-		self.out_buffer = ""		
+		self.out_buffer = ""	
+		self.has_result = False	
 		self.__history = []
 		self.set_event_time ()
 	
+	def close (self):
+		self.connected = False
+		self.cur.close ()
+		self.conn.close ()
+					
 	def get_history (self):
 		return self.__history
 		
@@ -63,16 +69,6 @@ class DBConnect:
 	
 	def disconnect (self):
 		self.close ()
-				
-	def close (self):
-		if self.cur:
-			self.empty_cursor ()
-			try: self.cur.close ()
-			except: pass							
-		try: self.conn.close ()
-		except: pass			
-		self.cur = None
-		self.conn = None		
 	
 	def close_case (self):
 		if self.callback:
@@ -137,6 +133,9 @@ class DBConnect:
 	
 	def set_event_time (self):
 		self.event_time = time.time ()			
+	
+	def log_history (self, msg):	
+		self.__history.append ("BEGIN TRAN: %s" % sql)
 		
 	#-----------------------------------------------------
 	# DB methods
@@ -146,7 +145,7 @@ class DBConnect:
 		self.has_result = False
 		return result
 		
-	def execute (self, sql, callback):
-		if DEBUG: self.__history.append ("BEGIN TRAN: %s" % sql)
+	def execute (self, callback, sql):
+		if DEBUG: self.log_history ("BEGIN TRAN: %s" % sql)
 		raise NotImplementedError("must be implemented in subclass")
 

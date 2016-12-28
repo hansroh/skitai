@@ -4,7 +4,7 @@ from skitai.lib import pathtool, logger
 from .rpc import cluster_manager, cluster_dist_call
 from skitai.protocol.smtp import composer
 from .dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
-from skitai import DB_PGSQL, DB_SQLITE3
+from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS
 from . import server_info, http_date
 import os
 import time
@@ -68,7 +68,7 @@ class WAS:
 						
 	@classmethod
 	def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0, access = []):
-		if clustertype in (DB_PGSQL, DB_SQLITE3):
+		if clustertype in (DB_PGSQL, DB_SQLITE3, DB_REDIS):
 			cluster = dcluster_manager.ClusterManager (clustername, clusterlist, clustertype, access, cls.logger.get ("server"))
 			cls.clusters_for_distcall [clustername] = dcluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"))
 		else:
@@ -135,28 +135,28 @@ class WAS:
 		
 		return getattr (self, "_" + fn) (command, *args, **karg)
 	
-	def _rest (self, method, uri, data = None, auth = None, headers = None, use_cache = True, filter = None, encoding = None):
+	def _rest (self, method, uri, data = None, auth = None, headers = None, use_cache = True, filter = None, callback = None, encoding = None):
 		#auth = (user, password)
-		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, headers, auth, encoding, use_cache, mapreduce = False, callback = filter)
+		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, headers, auth, encoding, use_cache, mapreduce = False, filter = filter, callback = callback)
 			
-	def _map (self, method, uri, data = None, auth = None, headers = None, use_cache = True, filter = None, encoding = None):		
+	def _map (self, method, uri, data = None, auth = None, headers = None, use_cache = True, filter = None, callback = None, encoding = None):		
 		clustername, uri = self.__detect_cluster (uri)		
-		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, auth, encoding, use_cache, mapreduce = True, callback = filter)
+		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, auth, encoding, use_cache, mapreduce = True, filter = filter, callback = callback)
 	
-	def _lb (self, method, uri, data = None, auth = None, headers = None, use_cache = True, filter = None, encoding = None):
+	def _lb (self, method, uri, data = None, auth = None, headers = None, use_cache = True, filter = None, callback = None, encoding = None):
 		clustername, uri = self.__detect_cluster (uri)
-		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, auth, encoding, use_cache, mapreduce = False, callback = filter)
+		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, auth, encoding, use_cache, mapreduce = False, filter = filter, callback = callback)
 	
-	def _ddb (self, server, dbname, user = "", password = "", dbtype = "postgresql", use_cache = True, filter = None):
-		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, user, password, dbtype, use_cache, mapreduce = False, callback = filter)
+	def _ddb (self, server, dbname, user = "", password = "", dbtype = "postgresql", use_cache = True, filter = None, callback = None):
+		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, user, password, dbtype, use_cache, mapreduce = False, filter = filter, callback = callback)
 	
-	def _dlb (self, clustername, use_cache = True, filter = None):
+	def _dlb (self, clustername, use_cache = True, filter = None, callback = None):
 		clustername = self.__detect_cluster (clustername) [0]
-		return self.clusters_for_distcall [clustername].Server (use_cache = use_cache, mapreduce = False, callback = filter)
+		return self.clusters_for_distcall [clustername].Server (use_cache = use_cache, mapreduce = False, filter = None, callback = None)
 	
-	def _dmap (self, clustername, use_cache = True, filter = None):
+	def _dmap (self, clustername, use_cache = True, filter = None, callback = None):
 		clustername = self.__detect_cluster (clustername) [0]
-		return self.clusters_for_distcall [clustername].Server (use_cache = use_cache, mapreduce = True, callback = filter)
+		return self.clusters_for_distcall [clustername].Server (use_cache = use_cache, mapreduce = True, filter = None, callback = None)
 		
 	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		return self.app.render (self, template_file, _do_not_use_this_variable_name_, **karg)

@@ -17,7 +17,10 @@ class Result (rcache.Result):
 		rcache.Result.__init__ (self, status, ident)		
 		self.node = id
 		self._response = response
-		self.set_result ()
+		try:
+			self.set_result ()
+		except:			 
+			self.status, self.code, self.msg = 2, 720, "Result Set Error"
 	
 	def __getattr__ (self, attr):
 		return getattr (self._response, attr)
@@ -31,7 +34,7 @@ class Result (rcache.Result):
 	
 	def reraise (self):
 		if self.status != 3:
-			raise OperationError ("[%d] %s (status: %d)" % (self.code, self.msg, self.status))
+			raise OperationError ("%s - %d" % (self.msg, self.code))
 				
 	def cache (self, timeout = 300):
 		self._response = None
@@ -164,6 +167,7 @@ class ClusterDistCall:
 		encoding = None,	
 		use_cache = False,	
 		mapreduce = True,
+		filter = None,
 		callback = None,
 		cachefs = None,
 		logger = None
@@ -179,6 +183,7 @@ class ClusterDistCall:
 		self._encoding = encoding
 		self._use_cache = use_cache
 		self._mapreduce = mapreduce
+		self._filter = filter
 		self._callback = callback
 		self._cachefs = cachefs
 		self._logger = logger
@@ -251,7 +256,7 @@ class ClusterDistCall:
 						rs.handle_cache (response)						
 						return 0
 		
-		r = handler (asyncon, request, rs.handle_result)
+		r = handler (asyncon, request, self._callback and self._callback or rs.handle_result)
 		r.start ()
 		return 1
 	
@@ -287,7 +292,7 @@ class ClusterDistCall:
 				asyncon = self._get_connection (self._uri)
 			
 			_reqtype = self._reqtype.lower ()
-			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._callback, cachefs = self._cachefs)
+			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._filter, cachefs = self._cachefs)
 			
 			if _reqtype in ("ws", "wss"):					
 				handler = ws_request_handler.RequestHandler					
@@ -409,14 +414,14 @@ class ClusterDistCallCreator:
 	def __getattr__ (self, name):	
 		return getattr (self.cluster, name)
 		
-	def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, encoding = None, use_cache = True, mapreduce = False, callback = None):
+	def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, encoding = None, use_cache = True, mapreduce = False, filter = None, callback = None):
 		# reqtype: rpc, get, post, head, put, delete
 		if type (headers) is list:
 			h = {}
 			for n, v in headers:
 				h [n] = v
 			headers = h	
-		return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, encoding, use_cache, mapreduce, callback, self.cachesfs, self.logger)
+		return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, encoding, use_cache, mapreduce, filter, callback, self.cachesfs, self.logger)
 		
 	
 if __name__ == "__main__":

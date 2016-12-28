@@ -1,6 +1,6 @@
 from skitai.server.rpc import cluster_manager
-from skitai.dbapi import asynpsycopg2, synsqlite3
-from skitai import DB_PGSQL, DB_SQLITE3
+from skitai.dbapi import asynpsycopg2, synsqlite3, asynredis
+from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS
 
 class ClusterManager (cluster_manager.ClusterManager):
 	object_timeout = 1200	
@@ -14,22 +14,31 @@ class ClusterManager (cluster_manager.ClusterManager):
 		return False # not serverd by url
 	
 	def create_asyncon (self, member):
-		if self.dbtype == DB_PGSQL:
+		if self.dbtype == DB_SQLITE3:
+			asyncon = synsqlite3.SynConnect (member, None, self.lock, self.logger)
+			nodeid = member
+		
+		else:	
 			try:
 				server, db, user, passwd = member.split ("/", 3)
 			except:
-				server, db, user, passwd = member, "", "", ""				
+				server, db, user, passwd = member, "", "", ""
+
 			try: 
 				host, port = server.split (":", 1)
 				server = (host, int (port))
 			except ValueError: 
-				server	= (server, 5432)				
-			asyncon = asynpsycopg2.AsynConnect (server, (db, user, passwd), self.lock, self.logger)
-			nodeid = server
-		
-		elif self.dbtype == DB_SQLITE3:
-			asyncon = synsqlite3.SynConnect (member, None, self.lock, self.logger)
-			nodeid = member
+				server	= (server, 5432)
 			
+			if self.dbtype == DB_PGSQL:		
+				conn_class = asynpsycopg2.AsynConnect
+			elif self.dbtype == DB_REDIS:
+				conn_class = asynredis.AsynConnect
+			else:
+				raise TypeError ("Unknown DB type: %s" % self.dbtype)
+			
+			asyncon = conn_class (server, (db, user, passwd), self.lock, self.logger)	
+			nodeid = server
+				
 		return nodeid, asyncon # nodeid, asyncon
 

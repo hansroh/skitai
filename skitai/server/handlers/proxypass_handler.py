@@ -7,19 +7,23 @@ class Handler (proxy_handler.Handler):
 	def __init__ (self, wasc, clusters, cachefs = None):
 		proxy_handler.Handler.__init__ (self, wasc, clusters, cachefs)
 		self.route_map = {}
+		self.sorted_route_map = []
 	
 	def add_route (self, route, cname):		
 		self.route_map [route] = (cname, len (route), re.compile (route + "(?P<rti>[0-9]*)", re.I))
-	
+		temp = list (self.route_map.items ())
+		temp.sort (key = lambda x: x [1][1], reverse = True)
+		self.sorted_route_map = temp
+		
 	def match (self, request):		
 		return self.find_cluster (request) and 1 or 0
 				
 	def find_cluster (self, request):
 		uri = request.uri
-		for route, (cname, route_len, route_rx) in list (self.route_map.items ()):		
+		for route, (cname, route_len, route_rx) in self.sorted_route_map:
 			match = route_rx.match (uri)
-			if match:
-				return self.clusters [cname], route_len, route_rx
+			if match:				
+				return self.clusters [cname], route_len, route_rx		
 		
 	def will_open_tunneling (self):
 		return self.response.code == 101 # websocket connection upgrade

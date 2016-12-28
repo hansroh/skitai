@@ -161,7 +161,7 @@ class Loader:
 			self.wasc.register ("threads", tpool)
 			self.wasc.numthreads = numthreads
 					
-	def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0, access = []):
+	def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0, access = None):
 		if ssl in ("1", "yes"): ssl = 1
 		else: ssl = 0
 		self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl, access = access)
@@ -181,7 +181,12 @@ class Loader:
 			sroutes.append ("%s=%s:%s" % (route, entity, appname))
 		return sroutes
 			
-	def install_handler (self, routes = [], proxy = False, static_max_age = 300, blacklist_dir = None, unsecure_https = False, apigateway_authenticate = False):
+	def install_handler (self, 
+			routes = [], 
+			proxy = False, static_max_age = 300, 
+			blacklist_dir = None, unsecure_https = False, 
+			apigateway_authenticate = False, apigateway_realm = "API Gateway"
+		):
 		if routes and type (routes [0]) is tuple:
 			routes = self.install_handler_with_tuple (routes)
 		
@@ -189,7 +194,14 @@ class Loader:
 			self.wasc.add_handler (0, ipbl_handler.Handler, blacklist_dir)
 		if proxy:
 			self.wasc.add_handler (1, proxy_handler.Handler, self.wasc.clusters, self.wasc.cachefs, unsecure_https)		
-		vh = self.wasc.add_handler (1, vhost_handler.Handler, self.wasc.clusters, self.wasc.cachefs, static_max_age, apigateway_authenticate)		
+		
+		vh = self.wasc.add_handler (
+			1, vhost_handler.Handler, 
+			self.wasc.clusters, self.wasc.cachefs, 
+			static_max_age, 
+			apigateway_authenticate, apigateway_realm
+		)
+		
 		current_rule = "default"
 		for line in routes:
 			line = line.strip ()

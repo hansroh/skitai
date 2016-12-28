@@ -14,8 +14,7 @@ except ImportError:
 		def __init__ (self, address, params = None, lock = None, logger = None):
 			logger ("[warn] cannot import psycopg2")
 			raise ImportError ("cannot import psycopg2")
-			
-			
+
 else:	
 	import asyncore
 	from . import dbconnect	
@@ -139,8 +138,7 @@ else:
 				return False
 			return dbconnect.DBConnect.maintern (self, object_timeout)
 						
-		def close (self):
-			self.connected = False
+		def close (self):			
 			self.del_channel ()
 			dbconnect.DBConnect.close (self)
 			
@@ -156,7 +154,7 @@ else:
 			)
 			self.set_socket (sock)
 							
-		def execute (self, sql, callback):
+		def execute (self, callback, sql):
 			if DEBUG: self.__history.append ("BEGIN TRAN: %s" % sql)
 			self.out_buffer = sql
 			self.callback = callback
