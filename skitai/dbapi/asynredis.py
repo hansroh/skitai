@@ -1,6 +1,6 @@
+from redis import connection as redisconn
 import asynchat
 from . import dbconnect	
-from redis import connection as redisconn
 import socket
 
 DEBUG = True
@@ -18,23 +18,11 @@ class AsynConnect (dbconnect.DBConnect, asynchat.async_chat):
 	def __init__ (self, address, params = None, lock = None, logger = None):
 		dbconnect.DBConnect.__init__ (self, address, params, lock, logger)
 		self.dbname, self.user, self.password = self.params
-		asynchat.async_chat.__init__ (self)
 		self.redisconn = redisconn.Connection ()
+		asynchat.async_chat.__init__ (self)
 	
 	def close (self):
 		asynchat.async_chat.close ()
-		
-	def handle_close (self, expt = None, msg = ""):		
-		self.exception_class, self.exception_str = expt, msg		
-		self.close ()
-		self.close_case ()
-	
-	def end_tran (self):
-		self.del_channel ()
-	
-	def close_case_with_end_tran (self):
-		self.end_tran ()
-		self.close_case ()
 						
 	def close_case (self):
 		if self.callback:
@@ -123,7 +111,7 @@ class AsynConnect (dbconnect.DBConnect, asynchat.async_chat):
 		elif header == b"*":			
 			num_elements = int (self.data [-1][1:])			
 			if self.num_elements [-1] == -1:
-				self.add_element (None)				
+				self.add_element (None)
 			else:
 				self.response.append ([])
 				self.num_elements.append (num_elements)
@@ -136,25 +124,21 @@ class AsynConnect (dbconnect.DBConnect, asynchat.async_chat):
 		if not self.num_elements:
 			self.has_result = True
 			self.close_case_with_end_tran ()
-				
-	def execute (self, callback, *command):
-		self.callback = callback		
-		self.exception_str = ""
-		self.exception_class = None		
-		self.set_event_time ()
-		self.execute_count += 1
-		
+	
+	def begin_tran (self, callback, sql):			
+		dbconnect.DBConnect.begin_tran (self, callback, sql)
 		self.response = [[]]
 		self.data = []
 		self.length = -1
 		self.num_elements = [0]
 		self.last_command = None		
 		self.set_terminator (LINE_FEED)
-		
+						
+	def execute (self, callback, *command):
+		self.begin_tran (callback, command)		
 		if not self.connected:
 			self.connect ()
 		else:
-			self.add_channel ()
-			
+			self.add_channel ()			
 		self.send_command (*command)
 		

@@ -25,13 +25,19 @@ class DBConnect:
 		self._cv = threading.Condition ()
 		self.active = 0		
 		self.conn = None
-		self.cur = None
-		self.callback = None
-		self.out_buffer = ""	
-		self.has_result = False	
-		self.__history = []
+		self.cur = None		
 		self.set_event_time ()
 	
+	def end_tran (self):
+		if DEBUG: 
+			self.__history.append ("END TRAN") 
+			self.__history = self.__history [-30:]
+		self.del_channel ()
+		
+	def close_case_with_end_tran (self):
+		self.end_tran ()
+		self.close_case ()
+			
 	def close (self):
 		self.connected = False
 		self.cur.close ()
@@ -144,8 +150,17 @@ class DBConnect:
 		result = self.cur.fetchall ()
 		self.has_result = False
 		return result
-		
-	def execute (self, callback, sql):
+	
+	def begin_tran (self, callback, sql):
+		self.__history = []
+		self.callback = callback
+		self.has_result = False
+		self.exception_str = ""
+		self.exception_class = None		
+		self.execute_count += 1	
+		self.set_event_time ()
 		if DEBUG: self.log_history ("BEGIN TRAN: %s" % sql)
+		
+	def execute (self, callback, sql):		
+		self.begin_tran (callback, sql)
 		raise NotImplementedError("must be implemented in subclass")
-

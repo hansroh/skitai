@@ -13,6 +13,9 @@ class SynConnect (dbconnect.DBConnect):
 		dbconnect.DBConnect.__init__ (self, address, params, lock, logger)
 		self.connected = False
 	
+	def del_channel (self):
+		pass
+		
 	def connect (self):
 		try:
 			self.conn = sqlite3.connect (self.address, check_same_thread = False)
@@ -29,13 +32,7 @@ class SynConnect (dbconnect.DBConnect):
 		dbconnect.DBConnect.close_case (self)
 				
 	def execute (self, callback, sql):
-		self.callback = callback
-		self.has_result = False
-		self.exception_str = ""
-		self.exception_class = None		
-		self.set_event_time ()		
-		self.execute_count += 1		
-		
+		self.begin_tran (callback, sql)		
 		if not self.connected:
 			self.connect ()
 		

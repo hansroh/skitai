@@ -7,7 +7,7 @@
 DEBUG = False
 
 try:
-	import psycopg2 
+	import psycopg2
 	
 except ImportError:	
 	class AsynConnect:
@@ -57,20 +57,9 @@ else:
 				map = self._map
 			if fd in map:
 				del map[fd]
-
-		def close_case_with_end_tran (self):
-			self.end_tran ()
-			self.close_case ()
-			
-		def end_tran (self):
-			if DEBUG: 
-				self.__history.append ("END TRAN") 
-				self.__history = self.__history [-30:]
-			self.del_channel ()
-			
+	
 		def add_channel (self, map = None):
-			self.set_event_time ()
-			return asyncore.dispatcher.add_channel (self, map)			
+			return asyncore.dispatcher.add_channel (self, map)
 				
 		def del_channel (self, map=None):
 			fd = self._fileno
@@ -153,21 +142,15 @@ else:
 				async = 1
 			)
 			self.set_socket (sock)
-							
-		def execute (self, callback, sql):
-			if DEBUG: self.__history.append ("BEGIN TRAN: %s" % sql)
+		
+		def begin_tran (self, callback, sql):
+			dbconnect.DBConnect.begin_tran (self, callback, sql)
 			self.out_buffer = sql
-			self.callback = callback
-			self.has_result = False
-			self.exception_str = ""
-			self.exception_class = None		
-			self.set_event_time ()
-			
-			self.execute_count += 1		
-			
+								
+		def execute (self, callback, sql):			
+			self.begin_tran (callback, sql)			
 			if not self.connected:
-				self.connect ()
-				
+				self.connect ()				
 			else:
 				state = self.poll ()
 				if state != POLL_OK:
