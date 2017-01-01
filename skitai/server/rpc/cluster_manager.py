@@ -51,7 +51,7 @@ class AccessPolicy:
 			
 class ClusterManager:
 	object_timeout = 1200
-	maintern_interval = 30
+	maintern_interval = 60
 	
 	def __init__ (self, name, cluster, ssl = 0, access = None, logger = None):
 		self.logger = logger

@@ -4,7 +4,7 @@ from skitai.lib import pathtool, logger
 from .rpc import cluster_manager, cluster_dist_call
 from skitai.protocol.smtp import composer
 from .dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
-from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS
+from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from . import server_info, http_date
 import os
 import time
@@ -68,8 +68,8 @@ class WAS:
 						
 	@classmethod
 	def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0, access = []):
-		if clustertype in (DB_PGSQL, DB_SQLITE3, DB_REDIS):
-			cluster = dcluster_manager.ClusterManager (clustername, clusterlist, clustertype, access, cls.logger.get ("server"))
+		if clustertype and "*" + clustertype in (DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB):
+			cluster = dcluster_manager.ClusterManager (clustername, clusterlist, "*" + clustertype, access, cls.logger.get ("server"))
 			cls.clusters_for_distcall [clustername] = dcluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"))
 		else:
 			cluster = cluster_manager.ClusterManager (clustername, clusterlist, ssl, access, cls.logger.get ("server"))
@@ -135,17 +135,28 @@ class WAS:
 		
 		return getattr (self, "_" + fn) (command, *args, **karg)
 	
+	def rebuild_header (self, header):
+		if not header:
+			nheader = {}			
+		elif type (header) is list:
+			nheader = {}			
+			for k, v in header:
+				nheader [k] = v
+		nheader ["X-Gtxn-Id"] = self.request.get_gtxid ()
+		nheader ["X-Ltxn-Id"] = self.request.get_ltxid (1)
+		return nheader
+		
 	def _rest (self, method, uri, data = None, auth = None, headers = None, use_cache = True, filter = None, callback = None, encoding = None):
 		#auth = (user, password)
-		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, headers, auth, encoding, use_cache, mapreduce = False, filter = filter, callback = callback)
+		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, self.rebuild_header (headers), auth, encoding, use_cache, mapreduce = False, filter = filter, callback = callback)
 			
 	def _map (self, method, uri, data = None, auth = None, headers = None, use_cache = True, filter = None, callback = None, encoding = None):		
 		clustername, uri = self.__detect_cluster (uri)		
-		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, auth, encoding, use_cache, mapreduce = True, filter = filter, callback = callback)
+		return self.clusters_for_distcall [clustername].Server (uri, data, method, self.rebuild_header (headers), auth, encoding, use_cache, mapreduce = True, filter = filter, callback = callback)
 	
 	def _lb (self, method, uri, data = None, auth = None, headers = None, use_cache = True, filter = None, callback = None, encoding = None):
 		clustername, uri = self.__detect_cluster (uri)
-		return self.clusters_for_distcall [clustername].Server (uri, data, method, headers, auth, encoding, use_cache, mapreduce = False, filter = filter, callback = callback)
+		return self.clusters_for_distcall [clustername].Server (uri, data, method, self.rebuild_header (headers), auth, encoding, use_cache, mapreduce = False, filter = filter, callback = callback)
 	
 	def _ddb (self, server, dbname, user = "", password = "", dbtype = "postgresql", use_cache = True, filter = None, callback = None):
 		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, user, password, dbtype, use_cache, mapreduce = False, filter = filter, callback = callback)
@@ -167,6 +178,9 @@ class WAS:
 		"This document may be found " 
 		'<a HREF="%s">here</a></body>'
 	)
+	def txnid (self):
+		return "%s/%s" % (self.request.gtxid, self.request.ltxid)
+		
 	def redirect (self, url, status = "302 Object Moved", body = None, headers = None):
 		redirect_headers = [
 			("Location", url), 
@@ -180,10 +194,12 @@ class WAS:
 		return self.response (status, body, redirect_headers)
 			
 	def log (self, msg, category = "info", at = "app"):
-		self.logger (at, msg, category)
+		self.logger (at, msg, "%s:%s" % (category, self.txnid ()))
 		
-	def traceback (self, identifier = "", at = "app"):
-		self.logger.trace (at, identifier)
+	def traceback (self, id = "", at = "app"):
+		if not id:
+			id = self.txnid ()
+		self.logger.trace (at, id)
 	
 	def email (self, subject, snd, rcpt):
 		if composer.Composer.SAVE_PATH is None:			

@@ -428,12 +428,20 @@ class http_response:
 	
 	def log (self, bytes):		
 		self.request.channel.server.log_request (
-			'%s:%d %s %s %d %dms %dms'
+			'%s:%d %s %s%s %s %d %d %s %s %s %s %s %dms %dms'
 			% (self.request.channel.addr[0],
 			self.request.channel.addr[1],			
+			self.request.host,
+			self.request.is_promise and "PUSH-" or "",
 			self.request.request,
-			self.reply_code,			
+			self.reply_code,
+			self.request.rbytes,
 			bytes,
+			self.request.gtxid and self.request.gtxid or "-",
+			self.request.ltxid and self.request.ltxid or "-",
+			self.request.user and '"' + self.request.user.name + '"' or "-",
+			self.request.token and self.request.token or "-",
+			self.request.user_agent and '"' + self.request.user_agent + '"' or "-",
 			self.htime,
 			(time.time () - self.stime) * 1000
 			)
@@ -479,6 +487,7 @@ class http_response:
 		505: "HTTP Version Not Supported",
 		506: "Proxy Error",
 		507: "Failed Establishing Connection",
+		508: "WSGI App Error",
 		700: "Socket Error",
 		701: "Exception Occured",
 		702: "Socket Timeout",

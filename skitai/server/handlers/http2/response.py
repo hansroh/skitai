@@ -96,18 +96,3 @@ class response (http_response.http_response):
 				self.request.channel.current_request = request
 				self.request.channel.set_terminator (terminator)
 	
-	def log (self, bytes):		
-		self.request.channel.server.log_request (
-			'%s:%d %s%s %s %d %dms %dms'
-			% (self.request.channel.addr[0],
-			self.request.channel.addr[1],			
-			self.request.is_promise and "PUSH-" or "",
-			self.request.request,
-			self.reply_code,			
-			bytes,
-			self.htime,
-			(time.time () - self.stime) * 1000
-			)
-		)
-
-		

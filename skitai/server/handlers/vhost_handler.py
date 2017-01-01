@@ -6,15 +6,15 @@ from .. import wsgi_apps
 import os
 
 class VHost:
-	def __init__ (self, wasc, clusters, cachefs, static_max_age, apigateway_authenticate, apigateway_realm):
+	def __init__ (self, wasc, clusters, cachefs, static_max_age, enable_apigateway, apigateway_authenticate, apigateway_realm, apigateway_secret_key):
 		self.wasc = wasc
 		self.clusters = clusters
 		self.cachefs = cachefs
 		
 		self.apps = wsgi_apps.ModuleManager(self.wasc, self)
 		self.proxypass_handler = proxypass_handler.Handler (self.wasc, clusters, cachefs)
-		if apigateway_authenticate:
-			self.access_handler = api_access_handler.Handler (self.wasc, apigateway_realm, self.proxypass_handler)
+		if enable_apigateway:
+			self.access_handler = api_access_handler.Handler (self.wasc, apigateway_authenticate, apigateway_realm, self.proxypass_handler, apigateway_secret_key)
 			self.handlers = [self.access_handler]
 		else:
 			self.access_handler = None
@@ -36,9 +36,9 @@ class VHost:
 			except AttributeError: pass		
 		self.apps.cleanup ()
 	
-	def set_token_storage (self, storage):
+	def set_auth_handler (self, storage):
 		if self.access_handler:
-			self.access_handler.set_token_storage (storage)
+			self.access_handler.set_auth_handler (storage)
 						
 	def add_proxypass (self, route, cname):
 		self.proxypass_handler.add_route (route, cname)
@@ -51,9 +51,9 @@ class VHost:
 
 
 class Handler:
-	def __init__ (self, wasc, clusters, cachefs, static_max_age, apigateway_authenticate, apigateway_realm):
+	def __init__ (self, wasc, *args):
 		self.wasc = wasc
-		self.vhost_args = (clusters, cachefs, static_max_age, apigateway_authenticate, apigateway_realm)		
+		self.vhost_args = args
 		self.sites = {}
 		self.__cache = {}
 	

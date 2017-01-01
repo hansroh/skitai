@@ -35,6 +35,7 @@ class AsynConnect (asynchat.async_chat):
 		self._cv = threading.Condition ()		
 		self.set_event_time ()
 		self.proxy = False
+		self.proxy_client = False
 		self.handler = None
 		self.__history = []
 		self.initialize_connection ()
@@ -55,9 +56,6 @@ class AsynConnect (asynchat.async_chat):
 			
 	def set_event_time (self):
 		self.event_time = time.time ()
-		
-	def set_proxy (self, flag = True):
-		self.proxy = flag
 	
 	def is_proxy (self):
 		return self.proxy
@@ -244,10 +242,6 @@ class AsynConnect (asynchat.async_chat):
 			if DEBUG: self.__history.append ("KEEP-ALIVE TIMEOUT") 
 			self.disconnect ()
 	
-	def initiate_send (self):
-		if self.is_channel_in_map ():
-			return asynchat.async_chat.initiate_send (self)
-	
 	def set_zombie_timeout (self, timeout = 10):
 		self.zombie_timeout = timeout
 	
@@ -357,6 +351,9 @@ class AsynConnect (asynchat.async_chat):
 		elif self.errcode:
 			if DEBUG: self.__history.append ("CALL CONNECTION CLOSED")
 			self.handler.connection_closed (self.errcode, self.errmsg)
+		
+		if not self.proxy_client:
+			self.logger ("[info] CONNECTION %s has been closed" % str (self.address))
 			
 	def end_tran (self):
 		self.del_channel ()
@@ -365,22 +362,36 @@ class AsynConnect (asynchat.async_chat):
 		if DEBUG: 
 			self.__history.append ("END TRAN")
 			self.__history = self.__history [-30:]
-			
+	
+	#def initiate_send (self):
+		# is it nessasory? LOOK LATER
+		#if self.is_channel_in_map ():
+			#asynchat.async_chat.initiate_send (self)		
+	
+	def set_proxy (self, flag = True):
+		self.proxy = flag
+		
+	def set_proxy_client (self, flag = True):
+		self.proxy_client = flag
+						
 	def begin_tran (self, handler):
 		self.errcode = 0
 		self.errmsg = ""
 			
 		self.handler = handler		
 		self.set_event_time ()
+		self.proxy_client = False
+		
 		if DEBUG: self.__history.append ("BEGIN TRAN %s %s" % (handler.method, handler.request.uri))
 		
 		if self.connected:
 			self.close_if_over_keep_live () # check keep-alive
-						
+		
+		# IMP: call add_channel () AFTER push()	otherwise threading issue will be raised
 		try:
 			if self.connected:
-				# should keep order
-				self.initiate_send ()
+				#should keep order but it seems meaningless? LOOK LATER with initiate_send
+				#self.initiate_send ()
 				self.add_channel ()
 			else:
 				self.connect ()
@@ -450,7 +461,7 @@ class AsynSSLConnect (AsynConnect):
 			if why.errno == ssl.SSL_ERROR_WANT_WRITE:
 				return 0
 			elif why.errno == ssl.SSL_ERROR_ZERO_RETURN:				
-				self.handle_close (700, "Connection blosed by SSL_ERROR_ZERO_RETURN")
+				self.handle_close (700, "Connection closed by SSL_ERROR_ZERO_RETURN")
 				return 0
 			else:
 				raise

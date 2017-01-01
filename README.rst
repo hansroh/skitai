@@ -3,13 +3,13 @@ Skitai Library
 ===============
 
 
-Changes & News
+News & Changes
 ===============
 
-- 0.20 - add API Gateway Access Handler
-
-- 0.19 - Reengineering was.request methods, fix disk caching
-
+- 0.21.8 - connected with MongoDB asynchronously
+- 0.21.3 - add JWT (JSON Web Token) handler, see `Skitai WSGI App Engine`_
+- 0.21.2 - applied global/local-transaction-ID to app logging: was.log (msg, logtype), was.traceback ()
+- 0.21 - change request log format, add global/local-transaction-ID to log file for backtrace
 
 .. contents:: Table of Contents
 
@@ -26,7 +26,7 @@ Skitai orients light-weight, simplicity  and strengthen networking operations wi
 - Working as Web, XML-RPC and Reverse Proxy Loadbancing Server
 - HTML5 Websocket & HTTP/2.0 implemeted
 - Handling massive RESTful API/RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily
-- Asynchronous connection pool with PostgreSQL and Redis
+- Asynchronous connection pool with PostgreSQL, MongoDB and Redis
 
 Skitai is not a framework for convinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your WSGI apps as both server and client.
 
@@ -412,8 +412,7 @@ Now async version is,
     
     s2 = was.get ("https://pypi.python.org/")
     
-    s3 = was.db ("127.0.0.1")
-    s3.execute ("select ...")
+    s3 = was.db ("127.0.0.1").do ("select ...")
     
     result1 = s1.getwait (2)
     result2 = s2.getwait (2)
@@ -437,8 +436,8 @@ Bottom line, the best coding strategy with Skitai is, *"Request Early, Use Latel
 
 
 
-HTTP/XMLRPC/Websocket Request
-==============================
+REST API / XMLRPC / Websocket Request
+=======================================
 
 Usage
 ------
@@ -458,7 +457,7 @@ Usage
     url = request.args.get('url', 'http://www.python.org')
     s = was.get (url)
     result = s.getwait (5) # timeout
-    if result.status == 3 and result.code == 200:
+    if result.is_normal () and result.code == 200:
       return result.data
     else:
       result.reraise ()
@@ -475,7 +474,7 @@ Usage
   def get (was, url = "http://www.python.org"):
     s = was.get (url)
     result = s.getwait (5) # timeout
-    if result.status == 3 and result.code == 200:
+    if result.is_normal () and result.code == 200:
       return result.data
     else:
       result.reraise ()
@@ -490,9 +489,9 @@ Again note that if you want to use WAS services in your WSGI containers (not Ski
 
   from skitai import was
 
-And result.status value must be checked.
+And result.is_normal () must be checked.
 
-if status is not 3, you should handle error by calling result.reraise (), ignoring or returning alternative content etc. For my convinient, it will be skipped in example codes from now.
+if status is not result.is_normal (), you should handle error by calling result.reraise (), result.get_error_as_string (), ignoring or returning alternative content etc. For my convinient, it will be skipped in example codes from now.
 
 
 Here're post and file upload method examples:
@@ -562,14 +561,25 @@ add reraise arg to cdc.getwait (timeout = 5, reraise = False)
 - cdc.getwait (timeout = 5, reraise = False) : return result with status, if reraise is True, raise immediately when error occured    
 - cdc.getswait (timeout = 5, reraise = False) : getting multiple results
 - cdc.wait (timeout = 5, reraise = True) : no return result just wait until query finished.maybe useful for executing create, update and delete queury
-- cdc.cache (timeout)
-- cdc.code : HTTP status code like 200, 404, ...
-- cdc.status
+
+The result returned from cdc.getwait(), getswait ():
+
+- result.code: HTTP status code like 200, 404, ...
+- result.msg: HTTP status message
+- result.data
+- result.status
 
   - 0: Initial Default Value
   - 1: Operation Timeout
   - 2: Exception Occured
   - 3: Normal
+
+- result.get_status ()
+- result.is_normal (): return result.status == 3
+- result.reraise ()
+- result.get_data ()
+- result.get_error_as_string ()
+- result.cache (timeout)
 
 
 **Load-Balancing**
@@ -735,7 +745,32 @@ For expiring cached result by updating new data:
   result = s.getwait (2)
   if result.code == 200:
   	result.cache (60) # 60 seconds  
-    
+
+API Transaction ID
+-------------------
+
+*New in version 0.21*
+
+For tracing REST API call, Skitai use global/local transaction IDs.
+
+If a client call a API first, global transaction ID (gtxnid) is assigned automatically like 'GTID-C4676-R67' and local transaction ID (ltxnid) is '1000'.
+
+You call was.get (), was.post () or etc, both IDs will be forwarded via HTTP request header. Most important thinng is that gtxnid is never changed by client call, but ltxnid will be changed per API call.
+
+when client calls gateway API or HTML, ltxnid is 1000. And if it calls APIs internally, ltxnid will increase to 2001, 2002. If ltxnid 2001 API calls internal sub API, ltxnid will increase to 3002, and ltxnid 2002 to 3003. Briefly 1st digit is call depth and rest digits are sequence of API calls.
+
+This IDs is logged to Skitai request log file like this. 
+
+.. code:: bash
+
+  2016.12.30 18:05:06 [info] 127.0.0.1:1778 127.0.0.1:5000 GET / \
+  HTTP/1.1 200 0 32970 \
+  GTID-C3-R8 1000 - - \
+  "Mozilla/5.0 (Windows NT 6.1;) Gecko/20100101 Firefox/50.0" \
+  4ms 3ms
+
+Focus 3rd line above log message. Then you can trace a series of API calls from each Skitai instance's log files for finding some kind of problems.
+
 
 Connecting to DBMS
 =====================
@@ -766,7 +801,7 @@ PostgreSQL
 .. code:: python
 
     s = was.db ("127.0.0.1:5432", "mydb", "user", "password")
-    s.execute ("SELECT city, t_high, t_low FROM weather;")
+    s.do ("SELECT city, t_high, t_low FROM weather;")
     result = s.getwait (2)
     
     for row in result.data:
@@ -791,11 +826,10 @@ Add mydb members to config file.
 
     @app.route ("/query")
     def query (was, keyword):
-      s = was.db.lb ("@mydb").execute("INSERT INTO CITIES VALUES ('New York');")
+      s = was.db.lb ("@mydb").do("INSERT INTO CITIES VALUES ('New York');")
       s.wait (2) # no return, just wait for completing query, if failed exception will be raised
       
-      s = was.db.lb ("@mydb")
-      s.execute("SELECT * FROM CITIES;")
+      s = was.db.lb ("@mydb").do("SELECT * FROM CITIES;")
       result = s.getwait (2)
    
 	
@@ -805,11 +839,11 @@ Add mydb members to config file.
 
     @app.route ("/query")
     def query (was, keyword):
-      s = was.db.map ("@mydb").execute("SELECT * FROM CITIES;")
+      s = was.db.map ("@mydb").do("SELECT * FROM CITIES;")
       results = s.getswait (2)
       all_results = []
       for result in results:
-        if result.status == 3:
+        if result.is_normal ():
           all_results.append (result.data)
       return all_results
 
@@ -825,10 +859,73 @@ Avaliable methods are:
 
 *Note:* if @mydb member is only one, was.db.lb ("@mydb") is equal to was.db ("@mydb").
 
-*Note 2:* You should call exalctly 1 execute () per a was.db.* () object.
+*Note 2:* You should call exalctly single do () per a was.db.* () object.
 
 
 .. _`Psycopg2 advanced topics`: http://initd.org/psycopg/docs/advanced.html
+
+MongoDB
+----------
+
+`New in version 0.21.8`
+
+Skitai provides MongoDB async connection pool using `MongoDB Wire Protocol`_.
+
+.. code:: python
+
+  from skitai import DB_MONGODB
+  
+  @app.route ("/mongo")
+  def redis (was):
+    s = was.db ("127.0.0.1:27017", "testdb", DB_MONGODB)
+	s.findone ("posts", {"author": "Hans Roh"})
+    rs = s.getwait (5)
+    return rs.data
+
+You can alias to your MongoDB server at tour configuration file:
+
+.. code:: bash
+
+  [@mymongo]
+  type = mongodb
+  members = s1.yourserver.com:27017/testdb
+  
+  
+.. code:: python
+
+  @app.route ("/test/db4")
+  def db4 (was):
+    s1 = was.db (@mymongo).findone ("posts", {"author": "Hans Roh"})
+    s2 = was.db (@mymongo).find ("posts", {"author": "Hans Roh"}, 0, 3)
+    s3 = was.db (@mymongo).findall ("posts", {"author": "Hans Roh"})
+    s4 = was.db (@mymongo).updateone ("posts", {"author": "Hans Roh"}, {"author": "Hans Roh", "title": "skitai App Engine"})
+    s5 = was.db (@mymongo).insert ("posts", {"author": "Hans Roh", "title": "skitai App Engine"})
+    buf = []
+    for s in (s1,s2,s3, s4, s5):
+      rs = s.getwait (5)
+      if rs.is_normal ():
+        buf.append (str (rs.data))
+      else:
+        buf.append (rs.get_error_as_string ())  
+    return "<hr>".join (buf)
+
+
+**Function Prototypes**
+
+- find (colname, spec, offset = 0, limit = 1)
+- findone (colname, spec): equivalant with find (colname, spec, 0, 1)
+- findall (colname, spec): equivalant with find (colname, spec, 0, -1)
+- insert (colname, docs, continue_on_error = 0)
+- update (colname, spec, doc)
+- updateone (colname, spec, doc)
+- upsert (colname, spec, doc)
+- upsertone (colname, spec, doc)
+- delete (colname, spec, flag = 0)
+- findkc (colname, spec, offset = 0, limit = 1): after finidhing search, it keeps cursor alive. then you can use 'get_more()'
+- get_more (colname, cursor_id, num_to_return): cursor_id can be got from (findkc()'s result).data ["cursor_id"]
+- kill_cursors (cursor_ids): if you use findkc() and stop fetching documents, you should mannually call this.
+
+.. _`MongoDB Wire Protocol`: https://docs.mongodb.com/manual/reference/mongodb-wire-protocol/
 
 
 Redis
@@ -836,7 +933,7 @@ Redis
 
 `New in version 0.20.5`
 
-Redis_ is an open source (BSD licensed), in-memory data structure store, used as a database, cache and message broker.
+Redis_ is an open source, in-memory data structure store, used as a database, cache and message broker.
 
 Skitai provides asynchronous connection to Redis server with connection pool. Usage is almost same with PostgreSQL.
 
@@ -844,32 +941,48 @@ Skitai provides asynchronous connection to Redis server with connection pool. Us
 
   from skitai import DB_REDIS
   
-  @app.route ("/test/redis")
+  @app.route ("/redis")
   def redis (was):
-  s1 = was.db ("127.0.0.1:6379", DB_REDIS).execute ("SET", "maykey1", "Hans Roh")	
-  s3 = was.db ("127.0.0.1:6379", DB_REDIS).execute ("GET", "maykey1")
-  s3 = was.db ("127.0.0.1:6379", DB_REDIS).execute ("RPUSH", "maykey2", hello")
-  s3 = was.db ("127.0.0.1:6379", DB_REDIS).execute ("RPUSH", "maykey2", world")
-  s5 = was.db ("127.0.0.1:6379", DB_REDIS).execute ("LRANGE", "maykey2", 0, -1)
-  s2 = was.db ("127.0.0.1:6379", DB_REDIS).execute ("SAVE")
-  
-  buf = []
-  for s in (s1, s2, s3, s4, s5):
+    s = was.db ("127.0.0.1:6379", DB_REDIS).set ("maykey1", "Hans Roh")	
     rs = s.getwait (5)
-    buf.append (str (rs.data [0].value))
-  return "<hr>".join (buf)
+    return rs.data
 
+You can alias to your Redis server at tour configuration file:
 
-Also load-balacing and map-reuducing is exactly same with PostgreSQL.
+.. code:: bash
+
+  [@myredis]
+  type = redis
+  members = s1.yourserver.com:6379
+
+So you can use more easily.
 
 .. code:: python
+  
+  @app.route ("/redis")
+  def redis (was):
+    s1 = was.db.map ("@myredis").set ("maykey1", "Hans Roh")	
+    s2 = was.db ("@myredis").get ("maykey1")
+    s3 = was.db.map ("@myredis").rpush ("maykey2", "hello")
+    s4 = was.db.map ("@myredis").rpush ("maykey2", "world")
+    s5 = was.db.lb ("@myredis").lrange ("maykey2", 0, -1)
+    s6 = was.db.map ("@myredis").save ()
+    
+    buf = []
+    for s in (s1, s2, s3, s4, s5, s6):
+      rs = s.getwait (5)
+      if rs.is_normal ():
+        buf.append (str (rs.data))
+      else:
+        buf.append (rs.get_error_as_string ())
+        
+    return "<hr>".join (buf)
 
-    [@myredis]
-    type = redis
-    members = /tmp/sqlite1.db, /tmp/sqlite2.db
+Possibly you can use all `Redis commands`_.
 
 
 .. _Redis: https://redis.io/
+.. _`Redis commands`: https://redis.io/commands
 
 
 SQLite3 For Fast App Prototyping
@@ -886,7 +999,7 @@ Usage is almost same with PostgreSQL. This service IS NOT asynchronous BUT just 
     from skitai import DB_SQLITE3
     
     s = was.db ("sqlite3.db", DB_SQLITE3)
-    s.execute ("""
+    s.do ("""
       drop table if exists people;
       create table people (name_last, age);
       insert into people values ('Cho', 42);
@@ -894,7 +1007,7 @@ Usage is almost same with PostgreSQL. This service IS NOT asynchronous BUT just 
     # result is not needed use wait(), and if failed, excpetion will be raised
     s.wait (5)
 
-    s = was.db ("sqlite3.db", DB_SQLITE3).execute ("select * from people;")    
+    s = was.db ("sqlite3.db", DB_SQLITE3).do ("select * from people;")    
     result = s.getwait (2)
 
 Also load-balacing and map-reuducing is exactly same with PostgreSQL.
@@ -916,13 +1029,11 @@ Same as HTTP/RPC, every results returned by getwait(), getswait() can cache.
 
 .. code:: python
 
-  s = was.db.lb ("@mydb")
-  s.execute ("select ...")
+  s = was.db.lb ("@mydb").do ("select ...")
   result = s.getwait (2)
   result.cache (60)
   
-  s = was.db.map ("@mydb")
-  s.execute ("select ...")
+  s = was.db.map ("@mydb").do ("select ...")
   results = s.getswait (2)
   result.cache (60)
   
@@ -953,7 +1064,7 @@ For expiring cached result by updating new data:
     has_new_data = True
   
   s = was.db.lb ("@mydb", use_cache = not has_new_data and True or False)
-  s.execute ("select ...")
+  s.do ("select ...")
   result = s.getwait (2)
   result.cache (60)
   	
@@ -2329,13 +2440,13 @@ If Skitai run with -v option, app and exceptions are displayed at your console, 
       ...
     except:  
     	was.log ("exception occured", "error")
-    	was.traceback ("bp1")
+    	was.traceback ()
     was.log ("done index", "info")
 
 Note inspite of you do not handle exception, all app exceptions will be logged automatically by Saddle. And it includes app importing and reloading exceptions.
 
 - was.log (msg, category = "info")
-- was.traceback (identifier = "") # identifier is used as fast searching log line for debug
+- was.traceback (id = "") # id is used as fast searching log line for debug, if not given, id will be *Global transaction ID/Local transaction ID*
 
 
 Project Purpose
@@ -2369,16 +2480,26 @@ Links
 Change Log
 ==============
   
+  0.21 (Dec 2016)
+  
+  - See News
+  
+  0.20 (Dec 2016)
+  
+  - 0.20.15 - minor optimize asynconnect, I wish
+  - 0.20.14 - fix Redis connector's threading related error
+  - 0.20.4 - add Redis connector
+  - 0.20 - add API Gateway access handler
+  
   0.19 (Dec 2016)
   
-  - Reengineering was.request methods, fix disk caching
+  - Reengineering was.request methods, fix disk caching  
   
   0.18 (Dec 2016)
   
   - 0.18.11 - default content-type of was.post(), was.put() has been changed from 'application/x-www-form-urlencoded' to 'application/json'. if you use this method currently, you SHOULD change method name to was.postform()
 
   - 0.18.7 - response contents caching has been applied to all was.request services (except websocket requests).
-
   
   0.17 (Oct 2016)
   

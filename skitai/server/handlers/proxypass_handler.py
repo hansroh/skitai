@@ -10,7 +10,7 @@ class Handler (proxy_handler.Handler):
 		self.sorted_route_map = []
 	
 	def add_route (self, route, cname):		
-		self.route_map [route] = (cname, len (route), re.compile (route + "(?P<rti>[0-9]*)", re.I))
+		self.route_map [route] = (cname, len (route))
 		temp = list (self.route_map.items ())
 		temp.sort (key = lambda x: x [1][1], reverse = True)
 		self.sorted_route_map = temp
@@ -20,15 +20,16 @@ class Handler (proxy_handler.Handler):
 				
 	def find_cluster (self, request):
 		uri = request.uri
-		for route, (cname, route_len, route_rx) in self.sorted_route_map:
-			match = route_rx.match (uri)
-			if match:				
-				return self.clusters [cname], route_len, route_rx		
+		for route, (cname, route_len) in self.sorted_route_map:
+			if uri.startswith (route):
+				return self.clusters [cname], route_len
 		
 	def will_open_tunneling (self):
 		return self.response.code == 101 # websocket connection upgrade
 
 	def continue_request (self, request, collector):
+		request.set_header ("X-GTXN-ID", request.gtxid)
+		request.set_header ("X-LTXN-ID", request.ltxid)
 		request.loadbalance_retry = 0
 		if self.has_valid_cache (request, collector is not None):
 			return
@@ -40,20 +41,14 @@ class Handler (proxy_handler.Handler):
 			request.response.error (500, "", "Routing failed. Please contact administator.")
 	
 	def route (self, request, collector):
-		current_cluster, route_len, route_rx  = self.find_cluster (request)		
-		maybe_route = route_rx.match (request.uri).group ("rti")
-		if maybe_route: 
-			route = int (maybe_route)			
-		else:
-			route = -1
-				
-		psysicaluri = request.uri [len (maybe_route) + route_len:]
+		current_cluster, route_len  = self.find_cluster (request)
+		psysicaluri = request.uri [route_len:]
 		if psysicaluri == "": psysicaluri = "/"
 		elif psysicaluri[0] != "/": psysicaluri = "/" + psysicaluri
 		
 		request.loadbalance_retry += 1
 		retry = request.loadbalance_retry
-		asyncon = current_cluster.get (index = route)
+		asyncon = current_cluster.get (index = -1)
 		
 		if not asyncon: 
 			request.logger ("nopool-%d, url: %s, cluster index: %d" % (

@@ -15,12 +15,13 @@ class request (http_request.http_request):
 		self.reply_message = ""		
 		self._split_uri = None
 		self._header_cache = {}
-		self.gzip_encoded = False
+		self.gzip_encoded = False		
 		
 		self.outgoing_producer = None
 		self.depends_on = 0
 		self.weight = 0
-				
+		
+		self.set_log_info ()				
 		self.response = response (self)
 	
 	def get_scheme (self):	

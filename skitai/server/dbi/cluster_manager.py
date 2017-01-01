@@ -1,11 +1,8 @@
 from skitai.server.rpc import cluster_manager
-from skitai.dbapi import asynpsycopg2, synsqlite3, asynredis
-from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS
+from skitai.dbapi import asynpsycopg2, synsqlite3, asynredis, asynmongo
+from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 
-class ClusterManager (cluster_manager.ClusterManager):
-	object_timeout = 1200	
-	maintern_interval = 60
-	
+class ClusterManager (cluster_manager.ClusterManager):	
 	def __init__ (self, name, cluster, dbtype = DB_PGSQL, access = [], logger = None):
 		self.dbtype = dbtype
 		cluster_manager.ClusterManager.__init__ (self, name, cluster, 0, access, logger)
@@ -19,21 +16,25 @@ class ClusterManager (cluster_manager.ClusterManager):
 			nodeid = member
 		
 		else:	
-			try:
-				server, db, user, passwd = member.split ("/", 3)
-			except:
-				server, db, user, passwd = member, "", "", ""
-
+			db, user, passwd = "", "", ""
+			args = member.split ("/", 3)
+			if len (args) == 4: 	server, db, user, passwd = args
+			elif len (args) == 3: 	server, db, user = args	
+			elif len (args) == 2: 	server, db = args		
+			else: 					server = args [0]
+			
 			try: 
 				host, port = server.split (":", 1)
 				server = (host, int (port))
 			except ValueError: 
 				server	= (server, 5432)
 			
-			if self.dbtype == DB_PGSQL:		
+			if self.dbtype == DB_PGSQL:
 				conn_class = asynpsycopg2.AsynConnect
 			elif self.dbtype == DB_REDIS:
 				conn_class = asynredis.AsynConnect
+			elif self.dbtype == DB_MONGODB:
+				conn_class = asynmongo.AsynConnect	
 			else:
 				raise TypeError ("Unknown DB type: %s" % self.dbtype)
 			

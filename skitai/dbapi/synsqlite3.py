@@ -13,8 +13,9 @@ class SynConnect (dbconnect.DBConnect):
 		dbconnect.DBConnect.__init__ (self, address, params, lock, logger)
 		self.connected = False
 	
-	def del_channel (self):
-		pass
+	def close (self):	
+		self.connected = False
+		dbconnect.DBConnect.close (self)
 		
 	def connect (self):
 		try:
@@ -24,12 +25,6 @@ class SynConnect (dbconnect.DBConnect):
 			self.handle_error ()
 		else:	
 			self.connected = True
-	
-	def close_case (self):
-		if DEBUG: 
-			self.__history.append ("END TRAN") 
-			self.__history = self.__history [-30:]
-		dbconnect.DBConnect.close_case (self)
 				
 	def execute (self, callback, sql):
 		self.begin_tran (callback, sql)		

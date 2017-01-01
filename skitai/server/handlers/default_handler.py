@@ -6,12 +6,18 @@ from . import filesys
 from skitai.server import http_date
 from skitai.lib import producers
 from skitai.server.utility import *
+from hashlib import md5
 
 IF_MODIFIED_SINCE = re.compile (
 	'If-Modified-Since: ([^;]+)((; length=([0-9]+)$)|$)',
 	re.IGNORECASE
 	)
 
+IF_NONE_MATCH = re.compile (
+	'If-None-Match: "?(.+?)(?:$|")',
+	re.IGNORECASE
+	)
+	
 USER_AGENT = re.compile ('User-Agent: (.*)', re.IGNORECASE)
 
 CONTENT_TYPE = re.compile (
@@ -116,7 +122,20 @@ class Handler:
 		if self.isprohibited (request, path):
 			return
 		
-		file_length = self.filesystem.stat (path)[stat.ST_SIZE]
+		try:
+			mtime = self.filesystem.stat (path)[stat.ST_MTIME]
+			file_length = self.filesystem.stat (path)[stat.ST_SIZE]
+		except:
+			self.handle_alternative (request)
+			return		
+		
+		etag = self.make_etag (file_length, mtime)		
+		inm = get_header_match (IF_NONE_MATCH, request.header)
+		if inm and etag == inm.group (1):
+			request.response.start (304)
+			request.response.done()
+			return
+			
 		ims = get_header_match (IF_MODIFIED_SINCE, request.header)
 		length_match = 1
 		if ims:
@@ -132,32 +151,37 @@ class Handler:
 		ims_date = 0
 		if ims:
 			ims_date = http_date.parse_http_date (ims.group (1))
-		try:
-			mtime = self.filesystem.stat (path)[stat.ST_MTIME]
-		except:
-			self.handle_alternative (request)
-			return
 
 		if length_match and ims_date:
 			if mtime <= ims_date:
 				request.response.start (304)
 				request.response.done()
 				return
+		
 		try:
 			file = self.filesystem.open (path, 'rb')
 		except IOError:
 			self.handle_alternative (request)
 			return
 
-		request.response ['Last-Modified'] = http_date.build_http_date (mtime)
 		request.response ['Content-Length'] = file_length
-		request.response ['Cache-Control'] = "max-age=%d" % self.max_age
+		if request.version == "1.0":
+			request.response ['Last-Modified'] = http_date.build_http_date (mtime)
+			if self.max_age:
+				request.response ['Expires'] = http_date.build_http_date (mtime + self.max_age)
+		else:
+			request.response ['Etag'] = '"' + etag + '"'
+			if self.max_age:
+				request.response ['Cache-Control'] = "max-age=%d" % self.max_age		
 		self.set_content_type (path, request)
-
+		
 		if request.command == 'get':
-			request.response.push (producers.file_producer (file))		
+			request.response.push (producers.file_producer (file))			
 		request.response.done()
-
+	
+	def make_etag (self, file_length, mtime):
+		return md5 (("%d:%d" % (file_length, int (mtime))).encode ("utf8")).hexdigest()
+	
 	def set_content_type (self, path, request):
 		ext = get_extension (path).lower()
 		if ext in mime_type_table.content_type_map:

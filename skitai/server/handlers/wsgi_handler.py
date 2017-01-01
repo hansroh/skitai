@@ -125,8 +125,6 @@ class Handler:
 				return False
 			elif www_authenticate:
 				request.user = www_authenticate
-			else:	
-				request.user = None
 					
 		except AttributeError: 
 			pass
@@ -300,8 +298,8 @@ class Job:
 			raise
 			
 		except:
-			self.logger.trace ("app")			
-			trigger.wakeup (lambda p=response, d=self.apph.debug and catch (1) or "": (p.send_error ("500 Internal Server Error", d), p.done ()) )			
+			was.traceback ()
+			trigger.wakeup (lambda p=response, d=self.apph.debug and catch (1) or "": (p.send_error ("508 WSGI App Error", d), p.done ()) )			
 				
 		else:
 			for part in will_be_push:				

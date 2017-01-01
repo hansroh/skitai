@@ -87,7 +87,7 @@ class SocketPool:
 					continue
 				
 				try:
-					deletable = asyncon.maintern (self.object_timeout)
+					deletable = asyncon.maintern (self.object_timeout)					
 				except:
 					self.logger.trace ()
 				else:
@@ -107,7 +107,7 @@ class SocketPool:
 		self.lock.acquire ()
 		try:
 			try:
-				if time.time () - self.__last_maintern > self.maintern_interval:
+				if time.time () - self.__last_maintern > self.maintern_interval:					
 					self.maintern ()
 							
 				self.__numget += 1
@@ -161,10 +161,7 @@ class SocketPool:
 		
 		self.numobj += 1			
 		asyncon = __conn_class ((addr, port), self.lock, self.logger)	
-		if scheme == "proxy":
-			asyncon.set_proxy (True)
-		else:
-			asyncon.set_proxy (False)	
+		asyncon.set_proxy (scheme == "proxy")
 		return asyncon
 				
 	def get (self, uri):	

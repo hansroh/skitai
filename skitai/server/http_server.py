@@ -397,7 +397,7 @@ class http_server (asyncore.dispatcher):
 	
 	def log_request (self, message):
 		if self.request_logger:
-			self.request_logger.log (message)
+			self.request_logger.log (message, "")
 		else:
 			sys.stdout.write ('%s\n' % message)
 	

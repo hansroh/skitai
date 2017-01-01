@@ -5,10 +5,12 @@ import threading
 from skitai.server.rpc import cluster_dist_call, rcache
 from skitai.lib.attrdict import AttrDict
 import asyncore
+from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
+
 class OperationTimeout (Exception):
 	pass
 
-class	Result (rcache.Result):
+class Result (rcache.Result):
 	def __init__ (self, id, status, description = None, expt_class = None, expt_str = None, data = [], ident = None):
 		rcache.Result.__init__ (self, status, ident)		
 		self.node = id
@@ -34,34 +36,43 @@ class	Result (rcache.Result):
 	def __slice__(self, start = None, end = None, step = None): 
 		return self.data [slice(start, end, step)]
 		
-	def set_result (self, description, data):
+	def set_result (self, description, data):		
 		if not data:
-			self.data = []
+			self.data = data
 			return
-	
-		assert (len (description) == len (data [0]))		
-		cols = [type (col) is tuple and col [0] or col.name for col in description]		
-		d = []
-		for row in data:
-			i = 0
-			drow = AttrDict ()
-			for name in cols:
-				drow [name] = row [i]
-				i += 1
-			d.append (drow)
-		self.data = d
+		
 		self.description = description
-	
-	def get_result (self):	
-		return self.data
+		if description:
+			assert (len (description) == len (data [0]))		
+			cols = [type (col) is tuple and col [0] or col.name for col in description]		
+			d = []
+			for row in data:
+				i = 0
+				drow = AttrDict ()
+				for name in cols:
+					drow [name] = row [i]
+					i += 1
+				d.append (drow)
+			self.data = d
+			
+		else:
+			if type (data) is dict:
+				try:
+					self.data = AttrDict ()
+					for k, v in data.items ():
+						self.data [k] = v
+				except:
+					self.data = data
+			else:		
+				self.data = data
 	
 	def reraise (self):
 		if self.__expt_class:
 			raise self.__expt_class ("%s (status: %d)" % (self.__expt_str, self.status))
 	
-	def show_error (self):
+	def get_error_as_string (self):
 		if self.__expt_class:
-			return "%s %s" % (self.__expt_class, self.__expt_str)
+			return "%s %s" % (self.__expt_class, self.__expt_str)		
 		
 	def cache (self, timeout = 300):
 		if self.status != 3:
@@ -148,6 +159,14 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		self.password = password
 		self.dbtype = dbtype
 		
+		if self.dbtype == DB_PGSQL:
+			if self.dbname in (DB_SQLITE3, DB_REDIS):
+				self.dbtype = self.dbname
+				self.dbname = ""
+			elif self.user in (DB_MONGODB,):
+				self.dbtype = self.user
+				self.user = ""
+				
 		self._use_cache = use_cache		
 		self._filter = filter
 		self._callback = callback
@@ -175,9 +194,6 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 				self._nodes = nodes
 			else: # anyone of nodes
 				self._nodes = [None]
-	
-	def __getattr__ (self, name):	
-		raise AttributeError("%s not found" % name)
 		
 	def _get_ident (self):
 		cluster_name = self._cluster.get_name ()
@@ -190,28 +206,6 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 			self._mapreduce and "/M" or ""
 			)	
 		return _id
-				
-	def _request (self, *cmd):
-		self._cached_request_args = cmd # backup for retry
-		if self._use_cache and rcache.the_rcache:
-			self._cached_result = rcache.the_rcache.get (self._get_ident ())
-			if self._cached_result is not None:
-				return
-		
-		while self._avails ():
-			asyncon = self._get_connection (None)			
-			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._filter)
-			self._requests [rs] = asyncon
-			asyncon.execute (self._callback and self._callback or rs.handle_result, *cmd)
-			
-		trigger.wakeup ()
-		
-	def execute (self, *cmd):
-		if self._executed:
-			raise AssertionError ("Can't execute multiple, please create new connection")
-		self._executed = True
-		self._request (*cmd)
-		return self
 				
 	def _get_connection (self, id = None):
 		if id is None: id = self._nodes.pop ()
@@ -226,7 +220,34 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 			self._cv = asyncon._cv
 		return asyncon
 	
+	def _request (self, method, cmd):
+		self._cached_request_args = cmd # backup for retry
+		if self._use_cache and rcache.the_rcache:
+			self._cached_result = rcache.the_rcache.get (self._get_ident ())
+			if self._cached_result is not None:
+				return
+		
+		while self._avails ():
+			asyncon = self._get_connection (None)			
+			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._filter)
+			self._requests [rs] = asyncon
+			if method is None:
+				asyncon.execute (self._callback and self._callback or rs.handle_result, *cmd)							
+			else:
+				asyncon.execute (self._callback and self._callback or rs.handle_result, method, *cmd)			
+		trigger.wakeup ()
+		return self
 	
+	def do (self, *cmd):
+		if self._executed:
+			raise AssertionError ("Can't execute multiple, please create new connection")
+		self._executed = True
+		return self._request (None, cmd)		
+	
+	def execute (self, *cmd):
+		return self.do (*cmd)
+
+		
 class ClusterDistCallCreator:
 	def __init__ (self, cluster, logger):
 		self.cluster = cluster

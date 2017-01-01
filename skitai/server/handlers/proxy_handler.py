@@ -127,6 +127,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 				self.asyncon.push_with_producer (self.collector, init_send = False)
 				
 		self.asyncon.begin_tran (self)
+		self.asyncon.set_proxy_client ()
 								
 	def get_request_buffer (self):
 		hc = {}
@@ -209,7 +210,7 @@ class Handler (wsgi_handler.Handler):
 				else:
 					asyncon_key = request.uri					
 				asyncon = self.clusters ["__socketpool__"].get (asyncon_key)
-					
+			
 			req = http_request.HTTPRequest (request.uri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))				
 			r = proxy_request_handler (asyncon, req, self.callback, request, collector)			
 			if collector:

@@ -9,7 +9,6 @@ DEBUG = False
 class OperationalError (Exception):
 	pass
 	
-	
 class DBConnect:
 	zombie_timeout = 120	
 	
@@ -23,24 +22,24 @@ class DBConnect:
 		self.execute_count = 0
 		
 		self._cv = threading.Condition ()
-		self.active = 0		
 		self.conn = None
-		self.cur = None		
+		self.cur = None
+		
+		# need if there's not any request yet
+		self.active = 0
+		self.has_result = False
+		self.__history = []
+		
 		self.set_event_time ()
 	
-	def end_tran (self):
-		if DEBUG: 
-			self.__history.append ("END TRAN") 
-			self.__history = self.__history [-30:]		
-		
-	def close_case_with_end_tran (self):
-		self.end_tran ()
-		self.close_case ()
-			
-	def close (self):
-		self.connected = False
-		self.cur.close ()
-		self.conn.close ()
+	def close (self):		
+		if self.cur:
+			self.cur.close ()
+			self.cur = None
+		if self.conn:	
+			self.conn.close ()			
+			self.conn = None		
+		self.logger ("[info] DB %s has been closed" % str (self.address))
 					
 	def get_history (self):
 		return self.__history
@@ -109,6 +108,7 @@ class DBConnect:
 		return self.get_active () > 0
 		
 	def isconnected (self):	
+		# self.connected should be defined at __init__ or asyncore
 		return self.connected
 		
 	def get_request_count (self):	
@@ -134,13 +134,17 @@ class DBConnect:
 	def handle_close (self, expt = None, msg = ""):		
 		self.exception_class, self.exception_str = expt, msg		
 		self.close ()
-		self.close_case ()
+		self.close_case_with_end_tran ()
 	
 	def set_event_time (self):
 		self.event_time = time.time ()			
 	
 	def log_history (self, msg):	
 		self.__history.append ("BEGIN TRAN: %s" % sql)
+	
+	def close_case_with_end_tran (self):
+		self.end_tran ()
+		self.close_case ()
 		
 	#-----------------------------------------------------
 	# DB methods
@@ -150,6 +154,11 @@ class DBConnect:
 		self.has_result = False
 		return result
 	
+	def end_tran (self):
+		if DEBUG: 
+			self.__history.append ("END TRAN") 
+			self.__history = self.__history [-30:]		
+						
 	def begin_tran (self, callback, sql):
 		self.__history = []
 		self.callback = callback
@@ -163,3 +172,26 @@ class DBConnect:
 	def execute (self, callback, sql):		
 		self.begin_tran (callback, sql)
 		raise NotImplementedError("must be implemented in subclass")
+
+
+class AsynDBConnect (DBConnect):
+	def is_channel_in_map (self, map = None):
+		if map is None:
+			map = self._map
+		return self._fileno in map
+	
+	def maintern (self, object_timeout):
+		# when in map, mainteren by lifetime with zombie_timeout
+		if self.is_channel_in_map ():
+			return False
+		return DBConnect.maintern (self, object_timeout)
+		
+	def del_channel (self, map=None):
+		# do not remove self._fileno
+		fd = self._fileno
+		if map is None:
+			map = self._map
+		if fd in map:
+			del map[fd]
+	
+	

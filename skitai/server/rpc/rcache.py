@@ -2,7 +2,7 @@ from hashlib import md5
 import time
 import threading
 
-class	Result:
+class Result:
 	def __init__ (self, status, ident = None):
 		self.status = status
 		self.ident = ident
@@ -12,8 +12,11 @@ class	Result:
 		self.is_cached = False
 	
 	def get_data (self):
-		return data
-		
+		return self.data
+	
+	def is_normal (self):
+		return self.status == 3
+			
 	def get_status (self):
 		# 0: Not Connected
 		# 1: Operation Timeout

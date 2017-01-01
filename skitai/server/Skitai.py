@@ -185,7 +185,10 @@ class Loader:
 			routes = [], 
 			proxy = False, static_max_age = 300, 
 			blacklist_dir = None, unsecure_https = False, 
-			apigateway_authenticate = False, apigateway_realm = "API Gateway"
+			enable_apigateway = False,
+			apigateway_authenticate = False, 
+			apigateway_realm = "API Gateway",
+			apigateway_secret_key = None
 		):
 		if routes and type (routes [0]) is tuple:
 			routes = self.install_handler_with_tuple (routes)
@@ -199,7 +202,7 @@ class Loader:
 			1, vhost_handler.Handler, 
 			self.wasc.clusters, self.wasc.cachefs, 
 			static_max_age, 
-			apigateway_authenticate, apigateway_realm
+			enable_apigateway, apigateway_authenticate, apigateway_realm, apigateway_secret_key
 		)
 		
 		current_rule = "default"

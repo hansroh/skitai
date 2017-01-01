@@ -25,7 +25,7 @@ class Result (rcache.Result):
 	def __getattr__ (self, attr):
 		return getattr (self._response, attr)
 			
-	def set_result(self):
+	def set_result (self):
 		self.data = self._response.get_content ()
 		self.header = self._response.header
 		self.code = self._response.code
@@ -34,7 +34,10 @@ class Result (rcache.Result):
 	
 	def reraise (self):
 		if self.status != 3:
-			raise OperationError ("%s - %d" % (self.msg, self.code))
+			raise OperationError ("%d %s" % (self.code, self.msg))
+	
+	def get_error_as_string (self):
+		return "<OperationError> %d %s" % (self.code, self.msg)		
 				
 	def cache (self, timeout = 300):
 		self._response = None
@@ -336,9 +339,7 @@ class ClusterDistCall:
 			raise ValueError("call getwait, getswait first")
 		self._cached_result.cache (timeout)	
 			
-	def wait (self, timeout = 3, reraise = True):		
-		#for rs in self.getswait (timeout):
-		#	rs.reraise ()
+	def wait (self, timeout = 3, reraise = True):
 		self.getswait (timeout, reraise)
 		self._cached_result = None
 		

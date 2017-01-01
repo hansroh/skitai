@@ -17,11 +17,41 @@ class http_request:
 		self.body = None
 		self.reply_code = 200
 		self.reply_message = ""		
+		self.loadbalance_retry = 0
+		self.rbytes = 0
+		self.gzip_encoded = False
+		self.is_promise = False
+		
 		self._split_uri = None
 		self._header_cache = {}
-		self.gzip_encoded = False
+
+		self.set_log_info ()
 		self.response = http_response.http_response (self)
 	
+	def set_log_info (self):
+		self.gtxid = self.get_header ("X-Gtxn-Id")
+		if not self.gtxid:
+			self.gtxid = "GTID-C%s-R%s" % (self.channel.channel_number, self.request_count)
+			self.ltxid = 1000
+		else:			
+			self.ltxid = self.get_header ("X-Ltxn-Id")
+			if not self.ltxid:
+				raise ValueError ("Local txn ID missing")
+			self.ltxid = int (self.ltxid) + 1000
+			
+		self.token = None
+		self.claim = None
+		self.user = None		
+		self.host = self.get_header ("host")
+		self.user_agent = self.get_header ("user-agent")
+	
+	def get_gtxid (self):
+		return self.gtxid
+		
+	def get_ltxid (self, delta = 1):
+		self.ltxid += delta
+		return str (self.ltxid)
+			
 	def get_scheme (self):	
 		from .https_server import https_channel		
 		return isinstance (self.channel, https_channel) and "https" or "http"
@@ -52,7 +82,10 @@ class http_request:
 	
 	def get_body (self):
 		return self.body
-			
+	
+	def set_header (self, name, value):
+		self.header.append ("%s: %s" % (name, value))		
+		
 	def get_header (self, header = None, default = None):
 		if header is None:
 			return self.header
@@ -115,6 +148,7 @@ class http_request:
 			
 	def collect_incoming_data (self, data):
 		if self.collector:
+			self.rbytes += len (data)
 			self.collector.collect_incoming_data (data)			
 		else:
 			self.logger.log (

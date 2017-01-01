@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.20.5"
+VERSION = "0.21.9"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -15,9 +15,10 @@ WEBSOCKET_DEDICATE = 2
 WEBSOCKET_MULTICAST = 3
 WEBSOCKET_DEDICATE_THREADSAFE = 4
 
-DB_PGSQL = "postgresql"
-DB_SQLITE3 = "sqlite3"
-DB_REDIS = "redis"
+DB_PGSQL = "*postgresql"
+DB_SQLITE3 = "*sqlite3"
+DB_REDIS = "*redis"
+DB_MONGODB = "*mongodb"
 
 class _WASPool:
 	def __init__ (self):

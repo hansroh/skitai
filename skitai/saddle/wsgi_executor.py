@@ -57,8 +57,8 @@ class Executor:
 			raise
 																										
 		except Exception as expt:			
-			self.was.logger.trace ("app")
 			if failed:
+				self.was.traceback ()
 				response = failed (self.was, sys.exc_info ())
 			if response is None:				
 				raise
@@ -153,8 +153,6 @@ class Executor:
 				return False				
 			elif www_authenticate:
 				request.user = www_authenticate
-			else:	
-				request.user = None
 					
 		except AttributeError: 
 			pass
@@ -194,6 +192,7 @@ class Executor:
 		except:				
 			self.rollback ()
 			content = request.response ("500 Internal Server Error", exc_info = self.was.app.debug and sys.exc_info () or None)
+			raise
 		else:
 			self.commit ()
 		

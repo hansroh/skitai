@@ -1,17 +1,17 @@
 import threading
 import time
-from . import asynpsycopg2, asynredis, synsqlite3
+from . import asynpsycopg2, asynredis, synsqlite3, asynmongo
 from skitai.client import socketpool
-from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS
+from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 
 class DBPool (socketpool.SocketPool):
-	object_timeout = 300
-	
+		
 	def get_name (self):
 		return "__dbpool__"
 			
 	def create_asyncon (self, server, params, dbtype):
 		if DB_SQLITE3 in (params [0], dbtype):
+			params = ("",) + params [1:]
 			return synsqlite3.SynConnect (server, params, self.lock, self.logger)
 		
 		try: 
@@ -21,12 +21,20 @@ class DBPool (socketpool.SocketPool):
 		else:
 			port = int (port)
 		
-		if DB_REDIS in (params [0], dbtype):
-			if DB_REDIS == params [0]:
-				params = ("",) + params [1:]
-			return asynredis.AsynConnect ((host, port), params, self.lock, self.logger)							
-		if dbtype == DB_PGSQL:			
-			return asynpsycopg2.AsynConnect ((host, port), params, self.lock, self.logger)		
+		if params [0] == DB_REDIS:
+			dbtype = params [0]
+			params = ("",) + params [1:]			
+		elif params [1] in (DB_MONGODB, DB_PGSQL):	
+			dbtype = params [1]
+			params = (params [0], "", params [2])
+			
+		if dbtype == DB_REDIS:
+			con_class = asynredis.AsynConnect 
+		elif dbtype == DB_MONGODB:			
+			con_class = asynmongo.AsynConnect
+		elif dbtype == DB_PGSQL:			
+			con_class = asynpsycopg2.AsynConnect
+		return con_class ((host, port), params, self.lock, self.logger)
 		
 	def get (self, server, dbname, user, pwd, dbtype = DB_PGSQL):
 		serverkey = "%s/%s/%s/%s" % (server, dbname, user, dbtype)

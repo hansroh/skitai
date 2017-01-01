@@ -54,13 +54,17 @@ class TunnelHandler:
 	def log_request (self):
 		htime = (time.time () - self.stime) * 1000
 		self.channel.server.log_request (
-			'%s:%d CONNECT tunnel://%s:%d HTTP/1.1 200 %d/%d %dms %dms'
+			'%s:%d %s CONNECT %s:%d HTTP/1.1 200 %d %d - - %s %s %s %dms %dms'
 			% (self.channel.addr[0],
 			self.channel.addr[1],			
+			self.request.host,
 			self.asyncon.address [0],
 			self.asyncon.address [1],
 			self.asyntunnel is not None and self.asyntunnel.bytes or 0,
 			self.bytes,
+			self.request.user and '"' + self.request.user.name + '"' or "-",
+			self.request.token and self.request.token or "-",			
+			self.request.user_agent and '"' + self.request.user_agent + '"' or "-",
 			htime,
 			htime
 			)

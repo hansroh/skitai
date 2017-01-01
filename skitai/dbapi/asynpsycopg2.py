@@ -22,9 +22,9 @@ else:
 	from psycopg2.extensions import POLL_OK, POLL_WRITE, POLL_READ
 	_STATE_OK = (POLL_OK, POLL_WRITE, POLL_READ)
 		
-	class AsynConnect (dbconnect.DBConnect, asyncore.dispatcher):
+	class AsynConnect (dbconnect.AsynDBConnect, asyncore.dispatcher):
 		def __init__ (self, address, params = None, lock = None, logger = None):
-			dbconnect.DBConnect.__init__ (self, address, params, lock, logger)
+			dbconnect.AsynDBConnect.__init__ (self, address, params, lock, logger)			
 			self.dbname, self.user, self.password = self.params
 			asyncore.dispatcher.__init__ (self)
 			
@@ -46,22 +46,6 @@ else:
 		def readable (self):
 			return self.connected and not self.out_buffer
 		
-		def is_channel_in_map (self, map = None):
-			if map is None:
-				map = self._map
-			return self._fileno in map
-		
-		def end_tran (self):
-			dbconnect.DBConnect.end_tran (self)
-			self.del_channel ()
-				
-		def del_channel (self, map=None):
-			fd = self._fileno
-			if map is None:
-				map = self._map
-			if fd in map:
-				del map[fd]
-	
 		def add_channel (self, map = None):
 			return asyncore.dispatcher.add_channel (self, map)
 				
@@ -79,7 +63,8 @@ else:
 			state = self.poll ()			
 			if state == POLL_OK:	
 				self.handle_connect ()
-				self.connected = True				
+				self.connected = True		
+				self.connecting = False		
 			else:
 				self.check_state (state)
 		
@@ -125,15 +110,10 @@ else:
 					self.fetchall ()
 				except psycopg2.ProgrammingError:
 					pass				
-				
-		def maintern (self, object_timeout):
-			if self.is_channel_in_map ():
-				return False
-			return dbconnect.DBConnect.maintern (self, object_timeout)
 						
 		def close (self):			
-			self.del_channel ()
-			dbconnect.DBConnect.close (self)
+			dbconnect.AsynDBConnect.close (self)
+			asyncore.dispatcher.close (self)
 			
 		def connect (self, force = 0):
 			host, port = self.address		
@@ -147,8 +127,12 @@ else:
 			)
 			self.set_socket (sock)
 		
+		def end_tran (self):
+			dbconnect.AsynDBConnect.end_tran (self)
+			self.del_channel ()
+				
 		def begin_tran (self, callback, sql):
-			dbconnect.DBConnect.begin_tran (self, callback, sql)
+			dbconnect.AsynDBConnect.begin_tran (self, callback, sql)
 			self.out_buffer = sql
 								
 		def execute (self, callback, sql):			
