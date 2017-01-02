@@ -2,11 +2,11 @@ from . import request_handler
 from skitai.protocol.http import tunnel_handler
 
 class ProxyTunnelHandler (request_handler.RequestHandler, tunnel_handler.ProxyTunnelHandler):
-	def start (self):	
+	def handle_request (self):	
 		if self.asyncon.established:			
-			request_handler.RequestHandler.start (self)			
+			request_handler.RequestHandler.handle_request (self)			
 		else:
-			tunnel_handler.ProxyTunnelHandler.start (self)
+			tunnel_handler.ProxyTunnelHandler.handle_request (self)
 	
 	def get_request_buffer (self):		
 		if self.asyncon.established:				

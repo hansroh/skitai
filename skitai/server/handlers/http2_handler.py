@@ -92,18 +92,21 @@ class http2_request_handler:
 		self.send_data ()
 		
 		if self.request.version == "1.1":
-			headers = [
-				(":method", self.request.command.upper ()), 
-				(":path", self.request.uri),
-			]
-			for line in self.request.get_header ():
-				k, v = line.split (": ", 1) 
-				k = k.lower ()
-				if k in ("http2-settings", "connection", "upgrade"):
-					continue
-				headers.append ((k, v))		
-			self.handle_request (1, headers)
+			self.handle_request (1, self.upgrade_header ())
 			
+	def upgrade_header (self):
+		headers = [
+			(":method", self.request.command.upper ()), 
+			(":path", self.request.uri),
+		]
+		for line in self.request.get_header ():
+			k, v = line.split (": ", 1) 
+			k = k.lower ()
+			if k in ("http2-settings", "connection", "upgrade"):
+				continue
+			headers.append ((k, v))
+		return headers
+					
 	def collect_incoming_data (self, data):
 		#print ("RECV", repr (data), len (data), '::', self.channel.get_terminator ())		
 		if not data:
@@ -131,7 +134,7 @@ class http2_request_handler:
 	def found_terminator (self):
 		buf, self.buf = self.buf, b""
 		
-		#print ("FOUND", repr (buf), '::', self.data_length, self.channel.get_terminator ())		
+		#print ("FOUND", repr (buf), '::', self.data_length, self.channel.get_terminator ())				
 		events = None
 		if not self._got_preamble:
 			if not buf.endswith (b"SM\r\n\r\n"):
@@ -140,7 +143,16 @@ class http2_request_handler:
 			self._got_preamble = True
 			
 		elif self.data_length:			
-			events = self.set_frame_data (self.rfile.getvalue ())
+			if self.request.version == "1.1":
+				with self._clock:
+					r = self.requests [1]
+				data = self.rfile.getvalue ()					
+				r.channel.set_data (data, len (data))
+				r.channel.handle_read ()
+				self.request.version = "2.0" # upgrade
+			else:							
+				events = self.set_frame_data (self.rfile.getvalue ())
+				
 			self.data_length = 0
 			self.current_frame = None
 			self.rfile.seek (0)
@@ -247,6 +259,7 @@ class http2_request_handler:
 				with self._clock:
 					r = self.requests [event.stream_id]
 				r.channel.set_data (event.data, event.flow_controlled_length)
+				r.rbutes = event.flow_controlled_length
 				r.channel.handle_read ()
 				
 			elif isinstance(event, StreamEnded):
@@ -286,7 +299,7 @@ class http2_request_handler:
 						h.append ("host: %s" % authority)				
 				continue								
 			if k == "content-length":
-				cl = int (v)
+				cl = int (v)				
 			elif k == "cookie":
 				cookies.append (v)
 				continue					
@@ -294,7 +307,7 @@ class http2_request_handler:
 								
 		if cookies:
 			h.append ("Cookie: %s" % "; ".join (cookies))
-			
+		
 		should_have_collector = False	
 		if command == "CONNECT":
 			first_line = "%s %s HTTP/2.0" % (command, authority)
@@ -330,20 +343,24 @@ class http2_request_handler:
 				else:
 					if should_have_collector and cl > 0 and r.collector is None:
 						# too large body
-						with self._plock:						
+						with self._plock:
 							self.conn.reset_stream (stream_id, FLOW_CONTROL_ERROR)
 						self.send_data ()	
 						# some browser ignore reset, why?
 						self.close_when_done (FLOW_CONTROL_ERROR)
 						
 					elif cl > 0:
-						# give permission for sending data to a client
-						with self._plock:
-							self.conn.increment_flow_control_window (cl)
-							rfcw = self.conn.remote_flow_control_window (stream_id)
-							if cl > rfcw:
-								self.conn.increment_flow_control_window (cl - rfcw, stream_id)
-						self.send_data ()	
+						if stream_id == 1:
+							self.data_length = cl
+							self.set_terminator (cl)
+						else:
+							# give permission for sending data to a client
+							with self._plock:
+								self.conn.increment_flow_control_window (cl)
+								rfcw = self.conn.remote_flow_control_window (stream_id)
+								if cl > rfcw:
+									self.conn.increment_flow_control_window (cl - rfcw, stream_id)
+							self.send_data ()
 							
 				return					
 					
@@ -370,14 +387,11 @@ class Handler (wsgi_handler.Handler):
 	
 	def match (self, request):
 		if request.command == "pri" and request.uri == "*" and request.version == "2.0":
-			return True
-		if request.command in ('post', 'put'):
-			return False
+			return True		
 		upgrade = request.get_header ("upgrade")
 		return upgrade and upgrade.lower () == "h2c" and request.version == "1.1" and request.command == "get"
 	
 	def handle_request (self, request):
-		
 		http2 = http2_request_handler (self, request)		
 		request.channel.add_closing_partner (http2)
 		request.channel.set_response_timeout (self.keep_alive)

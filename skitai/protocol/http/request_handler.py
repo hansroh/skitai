@@ -1,4 +1,6 @@
 from . import response as http_response
+from . import http2_request_handler
+from . import base_request_handler
 from skitai.client import asynconnect
 import base64
 from skitai.server import utility
@@ -76,7 +78,7 @@ class Authorizer:
 
 authorizer = Authorizer ()
 
-class RequestHandler:
+class RequestHandler (base_request_handler.RequestHandler):
 	def __init__ (self, asyncon, request, callback, http_version = "1.1", connection = "keep-alive"):
 		self.asyncon = asyncon
 		self.wrap_in_chunk = False
@@ -96,6 +98,10 @@ class RequestHandler:
 		self.buffer = b""	
 		self.response = None
 		
+		self._ssl = False
+		if isinstance (self.asyncon, asynconnect.AsynSSLConnect):
+			self._ssl = True
+			
 		self.method, self.uri = (
 			self.request.get_method (),			
 			self.asyncon.is_proxy () and self.request.uri or self.request.path
@@ -110,15 +116,6 @@ class RequestHandler:
 		self.request = None
 		self.response = None
 
-	def log (self, message, type = "info"):
-		self.logger.log ("%s - %s" % (self.request.uri, message), type)
-
-	def log_info (self, message, type='info'):
-		self.log (message, type)
-
-	def trace (self):
-		self.logger.trace (self.request.uri)
-	
 	#------------------------------------------------
 	# handler must provide these methods
 	#------------------------------------------------
@@ -130,8 +127,20 @@ class RequestHandler:
 			if auth_header is None:
 				raise AssertionError ("Unknown authedentification method")
 			return auth_header
-				
-	def get_request_buffer (self):		
+	
+	def switch_to_http2 (self):
+		http2_handler = http2_request_handler.RequestHandler (self.asyncon, self.request, self.callback)
+		self.asyncon.handler = http2_handler
+		http2_handler.continue_request (self)
+		
+	def has_been_connected (self):
+		if self._ssl in self.asyncon._proto in H2_NPN_PROTOCOLS:
+			self.push ("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n")
+			self.switch_to_http2 ()
+		else:
+			self.asyncon._proto = []	
+	
+	def get_request_header (self):
 		hc = {}
 		data = self.request.get_data ()
 		for k, v in self.request.get_headers ():
@@ -140,7 +149,9 @@ class RequestHandler:
 			hc ["Connection"] = self.connection			
 		auth_header = self.get_http_auth_header (data)
 		if auth_header:
-			hc ["Authorization"] = auth_header			
+			hc ["Authorization"] = auth_header
+		if not self._ssl and not self.asyncon.isconnected ():
+			hc ["Upgrade"] = "h2c"
 		
 		self.header = ["%s: %s" % x for x in list(hc.items ())]					
 		req = ("%s %s HTTP/%s\r\n%s\r\n\r\n" % (
@@ -148,15 +159,18 @@ class RequestHandler:
 			self.uri,
 			self.http_version,
 			"\r\n".join (self.header)
-		)).encode ("utf8")
+		)).encode ("utf8")		
+		return req
 		
-		#print (req)
-		#print (data)
-		if type (data) is not bytes:
-			return [req, data]
-		else:
-			return [req + data]
-	
+	def get_request_payload (self):
+		return self.request.get_data ()
+						
+	def get_request_buffer (self):
+		data = self.get_request_payload ()
+		if type (data) is bytes:			
+			return [self.get_request_header () + data]
+		return [self.get_request_header (), data]	
+		
 	def collect_incoming_data (self, data):
 		if not self.response or self.asyncon.get_terminator () == b"\r\n":
 			self.buffer += data
@@ -164,7 +178,7 @@ class RequestHandler:
 			self.response.collect_incoming_data (data)
 		
 	def found_terminator (self):
-		if self.response:			
+		if self.response:
 			if self.end_of_data:
 				return self.found_end_of_body ()
 			
@@ -237,9 +251,15 @@ class RequestHandler:
 		# default header never has "Expect: 100-continue"
 		# ignore, wait next message	
 		if self.response.code == 100:
-			self.response = None
 			self.asyncon.set_terminator (b"\r\n\r\n")
+			self.response = None
 			return True
+		elif self.response.code == 101:	# swiching protocol
+			if self.response.get_header ("Upgrade") == "h2c":
+				self.switch_to_http2 ()
+				self.asyncon._proto = ["h2c"]
+				self.response = None
+				return True
 		return False
 		
 	def found_end_of_body (self):	
@@ -267,7 +287,7 @@ class RequestHandler:
 			self.asyncon.handle_close (711, "Unknown Authedentification Method")
 			return 1 # abort			
 		else:
-			self.start ()
+			self.handle_request ()
 			return 1
 		
 		return 0 #pass
@@ -280,7 +300,7 @@ class RequestHandler:
 		# possibly disconnected cause of keep-alive timeout		
 		if why == 700 and self.response is None and self.retry_count == 0:
 			self.retry_count = 1			
-			self.start ()
+			self.handle_request ()
 			return			
 	
 		self.response = http_response.FailedResponse (why, msg, self.request)
@@ -296,12 +316,12 @@ class RequestHandler:
 		if self.callback:
 			self.callback (self)
 					
-	def start (self):
+	def handle_request (self):
 		self.buffer, self.response = b"", None
 		self.asyncon.set_terminator (b"\r\n\r\n")	
-		for buf in self.get_request_buffer ():
-			self.asyncon.push (buf)
-		self.asyncon.begin_tran (self)
+		for data in self.get_request_buffer ():
+			self.asyncon.push (data)
+		self.asyncon.begin_tran (self)	
 	
 	def will_be_close (self):		
 		if self.connection == "close": #server misbehavior ex.paxnet

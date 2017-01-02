@@ -35,11 +35,11 @@ class ProxyTunnelHandler (http_request_handler.RequestHandler):
 			self.response = response.FailedResponse (self.response.code, self.response.msg)
 			self.asyncon.handle_close (720, "Returned %d %s" % (self.response.code, self.response.msg))
 							
-	def start (self):	
+	def handle_request (self):	
 		if not self.asyncon.established:
 			self.start_handshake ()
 		else:
-			http_request_handler.RequestHandler.start (self)
+			http_request_handler.RequestHandler.handle_request (self)
 		
 	def found_end_of_body (self):			
 		if not self.asyncon.established:

@@ -4,6 +4,7 @@ from skitai.server.threads import trigger
 import threading
 from skitai.protocol.http import request as http_request
 from skitai.protocol.http import request_handler as http_request_handler
+from skitai.protocol.http import http2_request_handler
 from skitai.protocol.http import response as http_response
 from skitai.protocol.ws import request_handler as ws_request_handler
 from skitai.protocol.ws import request as ws_request
@@ -231,7 +232,7 @@ class ClusterDistCall:
 			)
 		return _id
 	
-	def _handle_request (self, request, rs, asyncon, handler):		
+	def _handle_request (self, request, rs, asyncon, handler):
 		self._requests[rs] = asyncon
 		
 		if self._cachefs:
@@ -260,7 +261,10 @@ class ClusterDistCall:
 						return 0
 		
 		r = handler (asyncon, request, self._callback and self._callback or rs.handle_result)
-		r.start ()
+		if asyncon._proto:
+			asyncon.handler.handle_request (r)
+		else:	
+			r.handle_request ()
 		return 1
 	
 	def _add_header (self, n, v):
@@ -305,7 +309,7 @@ class ClusterDistCall:
 				if not self._use_cache:
 					self._add_header ("Cache-Control", "no-cache")				
 				
-				handler = http_request_handler.RequestHandler		
+				handler = http_request_handler.RequestHandler					
 				if _reqtype == "rpc":
 					request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)				
 				elif _reqtype == "upload":

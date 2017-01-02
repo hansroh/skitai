@@ -46,7 +46,7 @@ class RequestHandler (request_handler.RequestHandler):
 		self.masks = b""
 		self._handshaking = False
 		
-	def start (self):
+	def handle_request (self):
 		#print ("self.asyncon.upgraded", self.asyncon.upgraded)
 		if not self.asyncon.upgraded:
 			self.buffer, self.response = b"", None

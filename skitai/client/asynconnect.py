@@ -11,6 +11,8 @@ import threading
 from . import adns
 from skitai.lib.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_context
 
+NPN_PROTOCOL = 'h2'
+H2_NPN_PROTOCOLS = [NPN_PROTOCOL, 'h2-16', 'h2-15', 'h2-14']
 DEBUG = False
 	
 class SocketPanic (Exception): pass
@@ -44,17 +46,18 @@ class AsynConnect (asynchat.async_chat):
 	
 	def get_history (self):
 		return self.__history
-		
+				
 	def initialize_connection (self):		
 		self._raised_ENOTCONN = 0 # for win32
+		self._proto = []
 		self._handshaking = False
 		self._handshaked = False		
 		
 		self.established = False		
 		self.upgraded = False		
 		self.ready = None
-		self.affluent = None		
-			
+		self.affluent = None
+		
 	def set_event_time (self):
 		self.event_time = time.time ()
 	
@@ -69,7 +72,7 @@ class AsynConnect (asynchat.async_chat):
 		else:
 			warn ("No logger")
 			
-	def trace (self):		
+	def trace (self):
 		if self.handler is not None and hasattr (self.handler, "trace"):
 			self.handler.trace ()
 		elif self.logger:
@@ -87,7 +90,7 @@ class AsynConnect (asynchat.async_chat):
 	def readable (self):
 		if self.affluent is not None:
 			return asynchat.async_chat.readable (self)	and self.affluent ()
-		return asynchat.async_chat.readable (self)	
+		return asynchat.async_chat.readable (self)
 	
 	def writable (self):
 		if self.ready is not None:
@@ -359,7 +362,7 @@ class AsynConnect (asynchat.async_chat):
 	def end_tran (self):
 		self.del_channel ()
 		self.handler = None
-		self.set_active (False)		
+		self.set_active (False)
 		if DEBUG: 
 			self.__history.append ("END TRAN")
 			self.__history = self.__history [-30:]
@@ -378,7 +381,7 @@ class AsynConnect (asynchat.async_chat):
 	def begin_tran (self, handler):
 		self.errcode = 0
 		self.errmsg = ""
-			
+		
 		self.handler = handler
 		self.set_event_time ()
 		self.proxy_client = False
@@ -408,9 +411,13 @@ class AsynSSLConnect (AsynConnect):
 		if not self._handshaking:
 			err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
 			if err != 0:
-				raise socket.error(err, _strerror(err))							
+				raise socket.error(err, _strerror(err))								
 			ssl_context = create_urllib3_context(ssl_version=resolve_ssl_version(None), cert_reqs=resolve_cert_reqs(None))
 			self.socket = ssl_context.wrap_socket (self.socket, do_handshake_on_connect = False, server_hostname = self.address [0])
+			try: self._proto = self.socket.selected_alpn_protocol()
+			except (AttributeError, NotImplementedError): 
+				try: self._proto = self.socket.selected_npn_protocol()
+				except (AttributeError, NotImplementedError): pass
 			self._handshaking = True
 			
 		try:

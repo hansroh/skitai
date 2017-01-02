@@ -109,7 +109,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		
 		self.client_request.response.done (globbing = False, compress = False)
 	
-	def start (self):
+	def handle_request (self):
 		if not self.client_request.channel: return
 		
 		self.buffer, self.response = b"", None
@@ -215,7 +215,7 @@ class Handler (wsgi_handler.Handler):
 			r = proxy_request_handler (asyncon, req, self.callback, request, collector)			
 			if collector:
 				collector.asyncon = asyncon
-			r.start ()
+			r.handle_request ()
 						
 		except:
 			self.wasc.logger.trace ("server")			
