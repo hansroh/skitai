@@ -9,7 +9,7 @@ from errno import ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EWOULDBLOCK
 import select
 import threading
 from . import adns
-
+from skitai.lib.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_context
 DEBUG = False
 	
 class SocketPanic (Exception): pass
@@ -407,8 +407,9 @@ class AsynSSLConnect (AsynConnect):
 		if not self._handshaking:
 			err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
 			if err != 0:
-				raise socket.error(err, _strerror(err))	
-			self.socket = ssl.wrap_socket (self.socket, do_handshake_on_connect = False)
+				raise socket.error(err, _strerror(err))							
+			ssl_context = create_urllib3_context(ssl_version=resolve_ssl_version(None), cert_reqs=resolve_cert_reqs(None))
+			self.socket = ssl_context.wrap_socket (self.socket, do_handshake_on_connect = False, server_hostname = self.address [0])
 			self._handshaking = True
 			
 		try:
