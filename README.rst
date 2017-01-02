@@ -876,12 +876,29 @@ Skitai provides MongoDB async connection pool using `MongoDB Wire Protocol`_.
   from skitai import DB_MONGODB
   
   @app.route ("/mongo")
-  def redis (was):
+  def mongo (was):
     s = was.db ("127.0.0.1:27017", "testdb", DB_MONGODB)
-	s.findone ("posts", {"author": "Hans Roh"})
+    s.findone ("posts", {"author": "Hans Roh"})
     rs = s.getwait (5)
     return rs.data
 
+rs.data is like this:
+
+.. code:: python
+
+  {
+    'number_returned': 1, 
+    'starting_from': 0, 
+    'cursor_id': 0, 
+    'data': [
+      {
+        '_id': ObjectId('58681d15f317837e9de98956'), 
+        'title': 'skitai App Engine',         
+        'author': 'Hans Roh'
+      }
+    ]
+  }
+	
 You can alias to your MongoDB server at tour configuration file:
 
 .. code:: bash
@@ -890,16 +907,17 @@ You can alias to your MongoDB server at tour configuration file:
   type = mongodb
   members = s1.yourserver.com:27017/testdb
   
+Now you can use more easily.
   
 .. code:: python
 
-  @app.route ("/test/db4")
-  def db4 (was):
-    s1 = was.db (@mymongo).findone ("posts", {"author": "Hans Roh"})
-    s2 = was.db (@mymongo).find ("posts", {"author": "Hans Roh"}, 0, 3)
-    s3 = was.db (@mymongo).findall ("posts", {"author": "Hans Roh"})
-    s4 = was.db (@mymongo).updateone ("posts", {"author": "Hans Roh"}, {"author": "Hans Roh", "title": "skitai App Engine"})
-    s5 = was.db (@mymongo).insert ("posts", {"author": "Hans Roh", "title": "skitai App Engine"})
+  @app.route ("/mongo")
+  def mongo (was):
+    s1 = was.db ("@mymongo").findone ("posts", {"author": "Hans Roh"})
+    s2 = was.db ("@mymongo").find ("posts", {"author": "Hans Roh"}, 0, 3)
+    s3 = was.db ("@mymongo").findall ("posts", {"author": "Hans Roh"})
+    s4 = was.db ("@mymongo").updateone ("posts", {"author": "Hans Roh"}, {"author": "Hans Roh", "title": "skitai App Engine"})
+    s5 = was.db ("@mymongo").insert ("posts", {"author": "Hans Roh", "title": "skitai App Engine"})
     buf = []
     for s in (s1,s2,s3, s4, s5):
       rs = s.getwait (5)
@@ -909,12 +927,32 @@ You can alias to your MongoDB server at tour configuration file:
         buf.append (rs.get_error_as_string ())  
     return "<hr>".join (buf)
 
+Documents can be received through cursor. But I don't think this way is not good for API nor Web Service. If you have situation using MongoDB cursor, you consider it is better moving to cron job.
+
+.. code:: python
+
+  @app.route ("/mongo")
+  def mongo (was):
+    docs = []
+    s = was.db ("@mymongo").findkc ("posts", {"author": "Hans Roh"}, 0, 100)    
+    rs = s.getwait (2)
+    docs.extend (rs.data ["data"])
+    cursor_id = rs.data ["cursor_id"]	
+    while cursor_id:
+      s = was.db ("@mymongo").get_more ("posts", cursor_id, 100)    
+      try:
+        rs = s.getwait (2)
+        docs.extend (rs.data ["data"])
+        cursor_id = rs.data ["cursor_id"]
+      except:
+        was.db ("@mymongo").kill_cursors ([cursor_id])
+        raise
 
 **Function Prototypes**
 
 - find (colname, spec, offset = 0, limit = 1)
-- findone (colname, spec): equivalant with find (colname, spec, 0, 1)
-- findall (colname, spec): equivalant with find (colname, spec, 0, -1)
+- findone (colname, spec): equivalent with find (colname, spec, 0, 1)
+- findall (colname, spec): equivalent with find (colname, spec, 0, -1)
 - insert (colname, docs, continue_on_error = 0)
 - update (colname, spec, doc)
 - updateone (colname, spec, doc)
@@ -2016,8 +2054,6 @@ mount() is create named session or mbox if not exists, exists() is just check wh
     return "Your admin session maybe expired or signed out, please sign in again"
 
 
-
-
 File Upload
 ---------------
 
@@ -2046,7 +2082,7 @@ File Upload
 			  
 'file' object's attributes are:
 
-- file.file: temporary saved file full path
+- file.path: temporary saved file full path
 - file.name: original file name posted
 - file.size
 - file.mimetype

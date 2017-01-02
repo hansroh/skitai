@@ -130,9 +130,11 @@ class Part:
 class FileWrapper:
 	def __init__ (self, part):
 		self.name = self.name_securing (part.get_remote_filename ())
-		self.file = part.get_local_filename ()
+		self.path = part.get_local_filename ()
 		self.size = part.get_file_size ()
 		self.mimetype = part.get_content_type ()
+		# depricate
+		self.file = self.path
 	
 	def save (self, into, name = None, mkdir = False, dup = "u"):
 		if name is None: name = self.name
@@ -151,13 +153,13 @@ class FileWrapper:
 					if not os.path.isfile (target):
 						break
 					num += 1				
-		shutil.move (self.file, target)
+		shutil.move (self.path, target)
 	
 	def remove (self):
-		os.remove (self.file)
+		os.remove (self.path)
 	
 	def read (self, mode = "rb"):
-		with open (self.file, mode) as f:
+		with open (self.path, mode) as f:
 			data = f.read ()
 		return data
 		

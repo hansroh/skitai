@@ -31,7 +31,11 @@ class http_request:
 	def set_log_info (self):
 		self.gtxid = self.get_header ("X-Gtxn-Id")
 		if not self.gtxid:
-			self.gtxid = "GTID-C%s-R%s" % (self.channel.channel_number, self.request_count)
+			self.gtxid = "gtid-%s-c%s-r%s" % (
+				self.channel.server.hash_id,
+				self.channel.channel_number, 
+				self.request_count
+			)
 			self.ltxid = 1000
 		else:			
 			self.ltxid = self.get_header ("X-Ltxn-Id")

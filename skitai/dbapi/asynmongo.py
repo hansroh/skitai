@@ -133,18 +133,15 @@ class AsynConnect (asynredis.AsynConnect):
 			if self.last_command [:6] in ("insert", "upsert", "delete"):
 				data = response ["data"][0]
 				if data ["ok"] != 1.0:
-					try:
-						raise MongoDBError ("%(err)s (connectionId:%(connectionId)d syncMillis:%(syncMillis)d)" % data)
-					except: 
-						return self.handle_error ()
-			
+					raise MongoDBError ("%(err)s (connectionId:%(connectionId)d syncMillis:%(syncMillis)d)" % data)
+					
 			self.response = response
-			if self.last_command [:4] == "find" and not self.preserve_cursor:
-				cusor_id = response.get ('cursor_id')				
-				if cusor_id != 0:
+			if not self.preserve_cursor:
+				cursor_id = response.get ('cursor_id')
+				if cursor_id != 0:
 					self.response ['cursor_id'] = 0
-					return self.kill_cursors ([cusor_id])
-			
+					return self.kill_cursors ([cursor_id])
+
 		self.has_result = True
 		self.close_case_with_end_tran ()
 		

@@ -312,12 +312,13 @@ class http_server (asyncore.dispatcher):
 		
 		host, port = self.socket.getsockname()
 		if not ip:
-			ip = socket.gethostname()			
+			ip = socket.gethostname()		
 		try:
 			ip = socket.gethostbyname (ip)
 			self.server_name = socket.gethostbyaddr (ip)[0]
 		except socket.error:			
-			self.server_name = ip		
+			self.server_name = ip
+		self.hash_id = hex (abs (hash (self.server_name)))[2:10]	
 		self.server_port = port
 	
 	def fork_and_serve (self, numworker = 1):

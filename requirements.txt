@@ -1,2 +1,4 @@
-jinja2
+jinja2==2.8
 h2
+redis>=2.10
+pymongo
