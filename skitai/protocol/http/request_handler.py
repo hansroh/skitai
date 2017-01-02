@@ -245,7 +245,7 @@ class RequestHandler:
 	def found_end_of_body (self):	
 		if self.response:
 			self.response.done ()
-		if self.handled_http_authorization ():					
+		if self.handled_http_authorization ():
 			return
 		if self.will_be_close ():
 			self.asyncon.disconnect ()			

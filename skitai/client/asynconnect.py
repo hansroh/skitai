@@ -10,6 +10,7 @@ import select
 import threading
 from . import adns
 from skitai.lib.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_context
+
 DEBUG = False
 	
 class SocketPanic (Exception): pass
@@ -378,7 +379,7 @@ class AsynConnect (asynchat.async_chat):
 		self.errcode = 0
 		self.errmsg = ""
 			
-		self.handler = handler		
+		self.handler = handler
 		self.set_event_time ()
 		self.proxy_client = False
 		
@@ -415,7 +416,7 @@ class AsynSSLConnect (AsynConnect):
 		try:
 			self.socket.do_handshake ()
 		except ssl.SSLError as why:
-			if why.args [0] in (ssl.SSL_ERROR_WANT_READ, ssl.SSL_ERROR_WANT_WRITE):				
+			if why.args [0] in (ssl.SSL_ERROR_WANT_READ, ssl.SSL_ERROR_WANT_WRITE):
 				return False
 			raise ssl.SSLError(why)
 		self._handshaked = True		
