@@ -15,6 +15,8 @@ class request (http_request.http_request):
 		self.reply_message = ""		
 		self._split_uri = None
 		self._header_cache = {}
+		self.rbytes = 0
+		self.loadbalance_retry = 0
 		self.gzip_encoded = False		
 		
 		self.outgoing_producer = None

@@ -6,6 +6,7 @@ Skitai Library
 News & Changes
 ===============
 
+- 0.21.17 - fix http2 request log error
 - 0.21.8 - connected with MongoDB asynchronously
 - 0.21.3 - add JWT (JSON Web Token) handler, see `Skitai WSGI App Engine`_
 - 0.21.2 - applied global/local-transaction-ID to app logging: was.log (msg, logtype), was.traceback ()
