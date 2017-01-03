@@ -10,7 +10,7 @@ from .proxy.response import ProxyResponse
 
 class proxy_request_handler (http_request_handler.RequestHandler):
 	def __init__ (self, asyncon, request, callback, client_request, collector, connection = "keep-alive"):
-		http_request_handler.RequestHandler.__init__ (self, asyncon, request, callback, "1.1", connection)
+		http_request_handler.RequestHandler.__init__ (self, asyncon, request, callback, connection)
 		self.collector = collector
 		self.client_request = client_request
 		self.is_tunnel = False
@@ -102,7 +102,8 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		
 		if self.response.body_expected ():
 			self.client_request.response.push (self.response)
-			#self.client_request.channel.add_closable_producer (self.response)
+			self.client_request.response.die_with (self.response)
+						
 			# in relay mode, possibly delayed
 			self.client_request.channel.ready = self.response.ready			
 			self.asyncon.affluent = self.response.affluent
@@ -111,32 +112,35 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 	
 	def handle_request (self):
 		if not self.client_request.channel: return
-		
+					
 		self.buffer, self.response = b"", None
-		self.asyncon.set_terminator (b"\r\n\r\n")	
+		self.asyncon.set_terminator (b"\r\n\r\n")
 		
 		if self.request.method != "connect":
-			for buf in self.get_request_buffer ():
-				self.asyncon.push (buf)
-			if self.collector:
-				self.collector.reuse_cache ()
-				if not self.collector.got_all_data:
-					self.asyncon.ready = self.collector.ready
-					self.client_request.channel.affluent = self.collector.affluent
-					# don't init_send cause of producer has no data yet
-				self.asyncon.push_with_producer (self.collector, init_send = False)
+			self.asyncon.push (self.get_request_header ())
+			payload = self.get_request_payload ()
+			if payload:
+				# don't init_send cause of producer has no data yet
+				self.asyncon.push_with_producer (payload, init_send = False)
 				
 		self.asyncon.begin_tran (self)
 		self.asyncon.set_proxy_client ()
-								
-	def get_request_buffer (self):
-		hc = {}
+	
+	def get_request_payload (self):								
+		if self.collector:
+			self.collector.reuse_cache ()
+			if not self.collector.got_all_data:
+				self.asyncon.ready = self.collector.ready
+				self.client_request.channel.affluent = self.collector.affluent				
+		return self.collector		
+		
+	def get_request_header (self, http_version = "1.1"):
+		hc = {}	
 		address = self.request.get_address ()
 		if address [1] in (80, 443):
 			hc ["Host"] = "%s" % address [0]
 		else:
-			hc ["Host"] = "%s:%d" % address
-			
+			hc ["Host"] = "%s:%d" % address			
 		hc ["Connection"] = self.connection
 		hc ["Accept-Encoding"] = "gzip"
 		
@@ -153,18 +157,18 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 				
 		hc ["X-Forwarded-For"] = "%s" % self.client_request.get_remote_addr ()
 		hc ["X-Proxy-Agent"] = skitai.NAME
-				
+	
 		req = "%s %s HTTP/%s\r\n%s\r\n\r\n" % (
 			method,
 			self.request.path,
-			self.http_version,
-			"\r\n".join (["%s: %s" % x for x in list(hc.items ())])			
+			http_version,
+			"\r\n".join (["%s: %s" % x for x in hc.items ()])			
 		)
 		
 		#print ("####### SKITAI => SERVER ##########################")
 		#print (req)
 		#print ("---------------------------------")
-		return [req.encode ("utf8")]
+		return req.encode ("utf8")
 
 			
 class Handler (wsgi_handler.Handler):
@@ -266,7 +270,7 @@ class Handler (wsgi_handler.Handler):
 	
 	def save_cache (self, request, handler):
 		try:			
-			if self.cachefs and not handler.request.data and handler.response.max_age:
+			if self.cachefs and not handler.request.payload and handler.response.max_age:
 				self.cachefs.save (
 					request.uri, None, 
 					handler.response.get_header ("content-type"), handler.response.get_content (), 

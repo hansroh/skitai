@@ -4,6 +4,7 @@ except ImportError:
 	import xmlrpclib
 	
 import base64
+import json
 try: 
 	from urllib.parse import urlparse, quote
 except ImportError:
@@ -36,7 +37,7 @@ class XMLRPCRequest:
 					# reanalyze
 					continue					
 				self.headers [k] = v			
-		self.data = self.serialize ()
+		self.payload = self.serialize ()		
 	
 	def build_header (self):
 		if self.get_header ("host") is None:
@@ -50,7 +51,7 @@ class XMLRPCRequest:
 			self.headers ["User-Agent"] = self.user_agent
 		
 	def get_cache_key (self):
-		if len (self.data) > 4096:
+		if len (self.payload) > 4096:
 			return None			
 		return "%s:%s%s/%s" % (
 			self.address [0], self.address [1],
@@ -94,15 +95,16 @@ class XMLRPCRequest:
 	def serialize (self):
 		self.__xmlrpc_serialized = True
 		data = xmlrpclib.dumps (self.params, self.method, encoding=self.encoding, allow_none=1).encode ("utf8")
-		self.headers ["Content-Type"] = "text/xml"
+		self.headers ["Content-Type"] = "text/xml; charset=utf-8"
 		self.headers ["Content-Length"] = len (data)
 		return data
 	
 	def get_auth (self):
 		return self.auth
 		
-	def get_data (self):
-		return self.data
+	def get_payload (self):
+		return self.payload
+	get_data = get_payload	
 	
 	def get_header (self, k, with_key = False):
 		if self.headers:
@@ -126,26 +128,26 @@ class HTTPRequest (XMLRPCRequest):
 		return self.method.upper ()
 	
 	def get_cache_key (self):
-		if len (self.data) > 4096:
+		if len (self.payload) > 4096:
 			return None			
 		return "%s:%s%s" % (
 			self.address [0], self.address [1], self.path
 		)
 	
-	def to_bytes (self, set_content_length = True):
-		if strutil.is_encodable (self.params):
-			data = self.params.encoding ("utf8")		
-		elif self.encoding and strutil.is_decodable (self.params):
-			data = self.params.decode (self.encoding).encoding ("utf8") 		
-		else:	
-			data = self.params
-		
+	def to_bytes (self, data, set_content_length = True):
+		if type (self.params) is not bytes:			
+			if strutil.is_encodable (self.params):
+				data = self.params.encoding ("utf8")		
+			elif self.encoding and strutil.is_decodable (self.params):
+				data = self.params.decode (self.encoding).encoding ("utf8") 		
+			
 		if set_content_length:
 			# when only bytes type, in case proxy_request this value will be just bool type
 			try:
 				self.headers ["Content-Length"] = len (data)
 			except TypeError:
 				pass
+				
 		return data
 	
 	def urlencode (self, to_bytes = True):
@@ -185,29 +187,25 @@ class HTTPRequest (XMLRPCRequest):
 			self.path += "?" + params
 			self.params = None
 			return b""
-			
+		
+		data = self.params
 		header_name, content_type = self.get_header ("content-type", True)
-		if content_type is None:
-			content_type = "application/json"
-			self.headers ["Content-Type"] = content_type
-				
 		if type (self.params) is dict:			
 			if content_type == "application/json":
 				data = json.dumps (self.params).encode ("utf8")
-				self.headers [header_name] = "application/json; charset=utf-8"
+				content_type = "application/json; charset=utf-8"
 			elif content_type == "application/x-www-form-urlencoded":
 				data = self.urlencode ()
-				self.headers [header_name] = "application/x-www-form-urlencoded; charset=utf-8"
+				content_type = "application/x-www-form-urlencoded; charset=utf-8"
 			elif content_type == "text/namevalue":
 				data = self.nvpencode ()	
-				self.headers [header_name] = "text/namevalue; charset=utf-8"
-			else:	
-				raise TypeError ("Unknown Content-Type")
-			self.headers ["Content-Length"] = len (data)
-			return data
+				content_type = "text/namevalue; charset=utf-8"
 		
-		data = self.to_bytes ()
-		return data
+		if not content_type:
+			content_type == "application/x-www-form-urlencoded"
+				
+		self.headers ["Content-Type"] = content_type
+		return self.to_bytes (data)
 		
 		
 class HTTPMultipartRequest (HTTPRequest):
@@ -239,6 +237,5 @@ class HTTPMultipartRequest (HTTPRequest):
 			p = producers.multipart_producer (self.params, self.boundary, self.encoding)
 			self.headers ["Content-Length"] = p.get_content_length ()
 			return p
-		data = self.to_bytes ()		
-		return data
+		return self.to_bytes (self.params)		
 	

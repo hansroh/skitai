@@ -98,7 +98,7 @@ class Handler (wsgi_handler.Handler):
 				ws = specs.WebSocket2 (self, request)
 			else:
 				ws = specs.WebSocket4 (self, request)
-			request.channel.add_closing_partner (ws)
+			request.channel.die_with (ws)
 			env ["websocket"] = ws
 			self.channel_config (request, ws, keep_alive)
 			job = specs.Job2 (request, apph, (env, donot_response), self.wasc.logger)
@@ -123,7 +123,7 @@ class Handler (wsgi_handler.Handler):
 			
 			if not websocket_servers.has_key (gid):
 				server = websocket_servers.create (gid)
-				request.channel.add_closing_partner (server)
+				request.channel.die_with (server)
 				env ["websocket"] = server
 				job = specs.Job3 (server, request, apph, (env, donot_response), self.wasc.logger)
 				threading.Thread (target = job).start ()	

@@ -4,11 +4,12 @@ from skitai.server.threads import trigger
 import threading
 from skitai.protocol.http import request as http_request
 from skitai.protocol.http import request_handler as http_request_handler
-from skitai.protocol.http import http2_request_handler
+from skitai.protocol.http2 import request_handler as http2_request_handler
 from skitai.protocol.http import response as http_response
 from skitai.protocol.ws import request_handler as ws_request_handler
 from skitai.protocol.ws import request as ws_request
 from . import rcache
+
 
 class OperationError (Exception):
 	pass
@@ -134,7 +135,7 @@ class Dispatcher:
 		cakey = response.request.get_cache_key ()
 		if self.cachefs and cakey and response.max_age:
 			self.cachefs.save (
-				cakey, response.request.data,
+				cakey, response.request.get_payload (),
 				response.get_header ("content-type"), response.get_content (), 
 				response.max_age, 0
 			)
@@ -248,7 +249,7 @@ class ClusterDistCall:
 				)
 				
 				if cachable:
-					hit, compressed, max_age, content_type, content = self._cachefs.get (cakey, request.data, undecompressible = 0)			
+					hit, compressed, max_age, content_type, content = self._cachefs.get (cakey, request.get_payload (), undecompressible = 0)			
 					if hit:
 						header = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nX-Skitaid-Cache-Lookup: %s" % (
 							content_type, hit == 1 and "MEM_HIT" or "HIT"
@@ -261,11 +262,11 @@ class ClusterDistCall:
 						return 0
 		
 		r = handler (asyncon, request, self._callback and self._callback or rs.handle_result)
-		if asyncon._proto:
+		if asyncon.get_proto () and asyncon.isconnected ():
 			asyncon.handler.handle_request (r)
-		else:	
+		else:				
 			r.handle_request ()
-		return 1
+		return 1	
 	
 	def _add_header (self, n, v):
 		if self._headers is None:
@@ -275,7 +276,8 @@ class ClusterDistCall:
 	_TYPEMAP = [
 		("form", "application/x-www-form-urlencoded"),
 		("xml", "text/xml"),	
-		("nvp", "text/namevalue")
+		("nvp", "text/namevalue"),
+		("grpc", "application/grpc")
 	]
 	def _map_content_type (self, _reqtype):
 		for alias, ct in self._TYPEMAP:
@@ -372,7 +374,7 @@ class ClusterDistCall:
 	
 	def _collect_result (self):
 		for rs, asyncon in list(self._requests.items ()):
-			status = rs.get_status ()
+			status = rs.get_status ()			
 			if not self._mapreduce and status == 2 and self._retry < (self._numnodes - 1):
 				self._logger ("cluster response error, switch to another...", "info")
 				self._cluster.report (asyncon, False) # exception occured

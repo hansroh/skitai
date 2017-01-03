@@ -5,13 +5,12 @@ DEFAULT_USER_AGENT = "Mozilla/5.0 (compatible; Skitaibot/0.1a)"
 
 class ProxyTunnelHandler (http_request_handler.RequestHandler):
 	def __init__ (self, asyncon, request, callback, *args, **karg):
-		http_request_handler.RequestHandler.__init__ (self, asyncon, request, callback, "1.1", connection = "keep-alive")
+		http_request_handler.RequestHandler.__init__ (self, asyncon, request, callback, connection = "keep-alive")
 	
 	def get_handshaking_buffer (self):
-		req = ("CONNECT %s:%d HTTP/%s\r\nUser-Agent: %s\r\n\r\n" % (
+		req = ("CONNECT %s:%d HTTP/1.1\r\nUser-Agent: %s\r\n\r\n" % (
 					self.request.address [0], 
-					self.request.address [1],
-					self.http_version, 
+					self.request.address [1],					
 					DEFAULT_USER_AGENT
 		)).encode ("utf8")
 		return req

@@ -91,6 +91,8 @@ class https_server (http_server.http_server):
 		
 		https_channel (self, conn, addr)
 		
+
+H2_PROTOCOLS = ["h2", "h2-16", "h2-15", "h2-14"]
 	
 def init_context (certfile, keyfile, pass_phrase):	
 	try:
@@ -100,9 +102,9 @@ def init_context (certfile, keyfile, pass_phrase):
 	ctx = ssl.SSLContext (protocol)
 	if skitai.HTTP2:
 		try:	
-			ctx.set_alpn_protocols (["h2", "h2-16", "h2-15", "h2-14"])
+			ctx.set_alpn_protocols (H2_PROTOCOLS)
 		except AttributeError:		
-			ctx.set_npn_protocols (["h2", "h2-16", "h2-15", "h2-14"])
+			ctx.set_npn_protocols (H2_PROTOCOLS)
 	ctx.load_cert_chain (certfile, keyfile, pass_phrase)
 	ctx.check_hostname = False
 	return ctx

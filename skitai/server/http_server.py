@@ -48,8 +48,8 @@ class http_channel (asynchat.async_chat):
 		self.event_time = int (time.time())
 		self.__history = []
 		
-		self.closable_producers = []
-		self.closable_partners = []
+		self.producers_attend_to = []
+		self.things_die_with = []
 	
 	def get_history (self):
 		return self.__history
@@ -91,19 +91,19 @@ class http_channel (asynchat.async_chat):
 	
 	def handle_timeout (self):
 		self.log ("killing zombie channel %s" % ":".join (map (str, self.addr)))
-		if not self.closable_partners:
+		if not self.things_die_with:
 			self.close ()
 			return
 		
 		# for graceful shutdown for partners	
-		for closable in self.closable_partners:
+		for closable in self.things_die_with:
 			if closable and hasattr (closable, "close"):
 				try:
 					closable.close ()
 				except:
 					self.server.trace()
 
-		self.closable_partners = []
+		self.things_die_with = []
 		if len (self.producer_fifo) and self.producer_fifo [-1] is not None:
 			# not be called close_when_done, then close forcely
 			self.close ()
@@ -134,15 +134,17 @@ class http_channel (asynchat.async_chat):
 			self.done_request ()
 		return ret	
 	
-	def add_closable_producer (self, thing):
-		self.closable_producers.append (thing)
+	def attend_to (self, thing):
+		if not thing: return
+		self.producers_attend_to.append (thing)
 	
-	def add_closing_partner (self, thing):
-		self.closable_partners.append (thing)
+	def die_with (self, thing):
+		if not thing: return
+		self.things_die_with.append (thing)		
 		
 	def done_request (self):	
 		self.zombie_timeout = self.keep_alive
-		self.closable_producers = [] # all producers are finished
+		self.producers_attend_to = [] # all producers are finished
 		self.ready = None
 		self.affluent = None
 							
@@ -240,25 +242,25 @@ class http_channel (asynchat.async_chat):
 			return
 		
 		if self.current_request is not None:
-			self.closable_producers.append (self.current_request.collector)
-			self.closable_producers.append (self.current_request.producer)
+			self.producers_attend_to.append (self.current_request.collector)
+			self.producers_attend_to.append (self.current_request.producer)
 			# 1. close forcely or by error, make sure that channel is None
 			# 2. by close_when_done ()
 			self.current_request.channel = None
 			self.current_request = None
 		
-		for closable in self.closable_partners:
+		for closable in self.things_die_with:
 			if closable and hasattr (closable, "channel"):
 				closable.channel = None
 			
-		for closable in self.closable_producers + self.closable_partners:
+		for closable in self.producers_attend_to + self.things_die_with:
 			if closable and hasattr (closable, "close"):
 				try:
 					closable.close ()
 				except:
 					self.server.trace()
 		
-		self.closable_producers, self.closable_partners = [], []
+		self.producers_attend_to, self.things_die_with = [], []
 		self.discard_buffers ()
 		asynchat.async_chat.close (self)
 		self.connected = False		

@@ -9,6 +9,8 @@ from errno import ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EWOULDBLOCK
 import select
 import threading
 from . import adns
+from skitai.server.https_server import H2_PROTOCOLS
+
 from skitai.lib.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_context
 
 NPN_PROTOCOL = 'h2'
@@ -36,20 +38,73 @@ class AsynConnect (asynchat.async_chat):
 		self.lock = lock
 		self.logger = logger
 		self._cv = threading.Condition ()		
+		self._sendlock = None
 		self.set_event_time ()
 		self.proxy = False
 		self.proxy_client = False
 		self.handler = None
-		self.__history = []
 		self.initialize_connection ()
 		asynchat.async_chat.__init__ (self)
 	
+	def close (self):
+		if self._closed:
+			return
+		
+		if self.socket:
+			# self.socket is still None, when DNS not found
+			asynchat.async_chat.close (self)
+		
+			# re-init asychat
+			self.ac_in_buffer = b''
+			self.incoming = []
+			self.producer_fifo.clear()
+			if DEBUG: self.__history.append ("DISCONNECTED")
+		else:
+			if DEBUG: self.__history.append ("CAN'T CLOSE, NOT CONNECTED")
+		
+		if self.handler is None:
+			if DEBUG: self.__history.append ("NO HANDLER, GOTO END TRAN")
+			self.end_tran () # automatic end_tran when timeout occured by maintern
+		elif self.errcode:
+			if DEBUG: self.__history.append ("CALL CONNECTION CLOSED")
+			self.handler.connection_closed (self.errcode, self.errmsg)
+		
+		if not self.proxy_client:
+			self.logger ("[info] CONNECTION %s has been closed" % str (self.address))
+		
+		self.set_active (False)
+		self.set_proto (None)
+		self.handler = None
+		self._closed = True
+			
+	def end_tran (self):
+		self.del_channel ()
+		self.handler = None
+		self.set_active (False)
+		if DEBUG: 
+			self.__history.append ("END TRAN")
+			self.__history = self.__history [-30:]
+				
+	def use_sendlock (self):
+		self._sendlock = threading.Lock ()
+		
+	def get_proto (self):
+		with self.lock:
+			p = self._proto
+		return p
+	
+	def set_proto (self, proto):
+		with self.lock:
+			self._proto = proto		
+				
 	def get_history (self):
 		return self.__history
 				
 	def initialize_connection (self):		
+		self._closed = False
 		self._raised_ENOTCONN = 0 # for win32
-		self._proto = []
+		self.__history = []
+		self._proto = None
 		self._handshaking = False
 		self._handshaked = False		
 		
@@ -96,21 +151,7 @@ class AsynConnect (asynchat.async_chat):
 		if self.ready is not None:
 			return asynchat.async_chat.writable (self) and self.ready ()
 		return asynchat.async_chat.writable (self)	
-        
-	def maintern (self, object_timeout):
-		# check inconsistency, maybe impossible
-		a, b = self.handler and 1 or 0, self.isactive () and 1 or 0
-		if a != b:
-			self.disconnect ()
-			self.end_tran ()
-					
-		if time.time () - self.event_time > object_timeout:
-			if not self.isactive ():	
-				self.disconnect ()
-				return True
-		
-		return False
-	
+  
 	def is_channel_in_map (self, map = None):
 		if map is None:
 			map = self._map
@@ -143,8 +184,10 @@ class AsynConnect (asynchat.async_chat):
 	def isactive (self):	
 		return self.get_active () > 0
 	
-	def isconnected (self):	
-		return self.connected
+	def isconnected (self):
+		with self.lock:
+			r = self.connected
+		return r	
 		
 	def get_request_count (self):	
 		return self.request_count
@@ -284,7 +327,7 @@ class AsynConnect (asynchat.async_chat):
 	
 	def handle_timeout (self):
 		self.log ("socket timeout", "fail")
-		self.handle_close (702, "Socket Timeout")
+		self.handle_close (702, "Zombie Timeout")
 		
 	def handle_expt_event(self):
 		err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
@@ -294,6 +337,16 @@ class AsynConnect (asynchat.async_chat):
 		else:
 			self.handle_expt ()
 	
+	def maintern (self, object_timeout):
+		if time.time () - self.event_time > object_timeout:
+			if self.handler and hasattr (self.handler, "enter_shutdown_process"):
+				self.handler.enter_shutdown ()
+				return True
+			else:	
+				self.disconnect ()
+				return True		
+		return False
+		
 	# proxy POST need no init_send
 	def push (self, thing, init_send = True):
 		if type (thing) is bytes:
@@ -306,7 +359,7 @@ class AsynConnect (asynchat.async_chat):
 		if init_send:
 			self.initiate_send ()
 	
-	def handle_close (self, code = 700, msg = "Disconnected by Server"):		
+	def handle_close (self, code = 700, msg = "Disconnected by Server"):
 		if DEBUG: self.__history.append ("HANDLE_CLOSE %d %s" % (code, msg)) 
 		self.errcode = code
 		self.errmsg = msg
@@ -335,42 +388,13 @@ class AsynConnect (asynchat.async_chat):
 		if DEBUG: self.__history.append ("RECONNECTING")
 		self.disconnect ()
 		self.connect ()
-		
-	def close (self):
-		if self.socket:
-			# self.socket is still None, when DNS not found
-			asynchat.async_chat.close (self)
-		
-			# re-init asychat
-			self.ac_in_buffer = b''
-			self.incoming = []
-			self.producer_fifo.clear()
-			if DEBUG: self.__history.append ("DISCONNECTED")
-		else:
-			if DEBUG: self.__history.append ("CAN'T CLOSE, NOT CONNECTED")
-		
-		if self.handler is None:
-			if DEBUG: self.__history.append ("NO HANDLER, GOTO END TRAN")
-			self.end_tran () # automatic end_tran when timeout occured by maintern
-		elif self.errcode:
-			if DEBUG: self.__history.append ("CALL CONNECTION CLOSED")
-			self.handler.connection_closed (self.errcode, self.errmsg)
-		
-		if not self.proxy_client:
-			self.logger ("[info] CONNECTION %s has been closed" % str (self.address))
-			
-	def end_tran (self):
-		self.del_channel ()
-		self.handler = None
-		self.set_active (False)
-		if DEBUG: 
-			self.__history.append ("END TRAN")
-			self.__history = self.__history [-30:]
 	
-	#def initiate_send (self):
-		# is it nessasory? LOOK LATER
-		#if self.is_channel_in_map ():
-			#asynchat.async_chat.initiate_send (self)		
+	def initiate_send (self):
+		if self._sendlock:
+			with self._sendlock:
+				asynchat.async_chat.initiate_send (self)
+		else:
+			asynchat.async_chat.initiate_send (self)		
 	
 	def set_proxy (self, flag = True):
 		self.proxy = flag
@@ -378,7 +402,7 @@ class AsynConnect (asynchat.async_chat):
 	def set_proxy_client (self, flag = True):
 		self.proxy_client = flag
 						
-	def begin_tran (self, handler):
+	def begin_tran (self, handler):		
 		self.errcode = 0
 		self.errmsg = ""
 		
@@ -401,8 +425,8 @@ class AsynConnect (asynchat.async_chat):
 				self.connect ()
 		except:
 			self.handle_error ()
-	
-	
+
+
 class AsynSSLConnect (AsynConnect):	
 	ac_out_buffer_size = 65536
 	ac_in_buffer_size = 65536
@@ -413,11 +437,10 @@ class AsynSSLConnect (AsynConnect):
 			if err != 0:
 				raise socket.error(err, _strerror(err))								
 			ssl_context = create_urllib3_context(ssl_version=resolve_ssl_version(None), cert_reqs=resolve_cert_reqs(None))
+			
+			try: ssl_context.set_alpn_protocols (H2_PROTOCOLS)
+			except AttributeError: ssl_context.set_npn_protocols (H2_PROTOCOLS)								
 			self.socket = ssl_context.wrap_socket (self.socket, do_handshake_on_connect = False, server_hostname = self.address [0])
-			try: self._proto = self.socket.selected_alpn_protocol()
-			except (AttributeError, NotImplementedError): 
-				try: self._proto = self.socket.selected_npn_protocol()
-				except (AttributeError, NotImplementedError): pass
 			self._handshaking = True
 			
 		try:
@@ -426,6 +449,12 @@ class AsynSSLConnect (AsynConnect):
 			if why.args [0] in (ssl.SSL_ERROR_WANT_READ, ssl.SSL_ERROR_WANT_WRITE):
 				return False
 			raise ssl.SSLError(why)
+		
+		try: self._proto = self.socket.selected_alpn_protocol()
+		except (AttributeError, NotImplementedError): 
+			try: self._proto = self.socket.selected_npn_protocol()
+			except (AttributeError, NotImplementedError): pass
+		
 		self._handshaked = True		
 		return True
 							

@@ -6,6 +6,7 @@ try:
 except ImportError:
 	from urlparse import urlparse	
 import copy
+from skitai.server.https_server import H2_PROTOCOLS
 
 class SocketPool:
 	object_timeout = 120
@@ -126,7 +127,7 @@ class SocketPool:
 						asyncon = self.create_asyncon (server, *args)
 						self.__socketfarm [serverkey][id (asyncon)] = asyncon
 				
-				asyncon.set_active (True, nolock = True)
+				asyncon.set_active (True)
 			
 			finally:
 				self.lock.release ()

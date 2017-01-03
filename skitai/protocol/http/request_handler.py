@@ -1,5 +1,5 @@
 from . import response as http_response
-from . import http2_request_handler
+from skitai.protocol.http2 import request_handler as http2_request_handler
 from . import base_request_handler
 from skitai.client import asynconnect
 import base64
@@ -7,6 +7,7 @@ from skitai.server import utility
 from hashlib import md5
 from base64 import b64encode
 import os
+from hyperframe.frame import SettingsFrame
 
 class Authorizer:
 	def __init__ (self):
@@ -79,7 +80,7 @@ class Authorizer:
 authorizer = Authorizer ()
 
 class RequestHandler (base_request_handler.RequestHandler):
-	def __init__ (self, asyncon, request, callback, http_version = "1.1", connection = "keep-alive"):
+	def __init__ (self, asyncon, request, callback, connection = "keep-alive"):
 		self.asyncon = asyncon
 		self.wrap_in_chunk = False
 		self.end_of_data = False
@@ -87,7 +88,6 @@ class RequestHandler (base_request_handler.RequestHandler):
 		
 		self.request = request
 		self.callback = callback
-		self.http_version = http_version
 		self.logger = request.logger
 		self.connection = connection				
 		
@@ -115,7 +115,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.asyncon = None
 		self.request = None
 		self.response = None
-
+		
 	#------------------------------------------------
 	# handler must provide these methods
 	#------------------------------------------------
@@ -128,53 +128,80 @@ class RequestHandler (base_request_handler.RequestHandler):
 				raise AssertionError ("Unknown authedentification method")
 			return auth_header
 	
-	def switch_to_http2 (self):
-		http2_handler = http2_request_handler.RequestHandler (self.asyncon, self.request, self.callback)
-		self.asyncon.handler = http2_handler
-		http2_handler.continue_request (self)
-		
-	def has_been_connected (self):
-		if self._ssl in self.asyncon._proto in H2_NPN_PROTOCOLS:
-			self.push ("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n")
-			self.switch_to_http2 ()
-		else:
-			self.asyncon._proto = []	
+	def rebuild_http2_headers (self, headers, headers_1x, payload):
+		content_encoding = None
+		for k, v in headers_1x:
+			k = k.lower ()
+			if k == "host":
+				headers.insert (2, (":authority", v))
+				continue
+			if k in ("connection", "transfer-encoding"):
+				continue
+			if k == "content-length" and type (payload) is bytes:
+				continue
+			if k == "content-encodig":
+				content_encoding = v
+			headers.append ((k, v))
+		return headers, content_encoding
 	
-	def get_request_header (self):
+	def get_http2_upgrade_header (self):
+		# try h2c protocol
 		hc = {}
-		data = self.request.get_data ()
-		for k, v in self.request.get_headers ():
-			hc [k] = v
-		if (self.http_version == "1.1" and self.connection == "close") or (self.http_version == "1.0" and self.connection == "keep-alive"):
-			hc ["Connection"] = self.connection			
-		auth_header = self.get_http_auth_header (data)
+		hc ["Upgrade"] = "h2c"
+		hc ['Connection'] = 'Upgrade, HTTP2-Settings'
+		http2_settings = SettingsFrame (0)
+		http2_settings.settings [SettingsFrame.INITIAL_WINDOW_SIZE] = 65535
+		settings = base64.urlsafe_b64encode(
+		    http2_settings.serialize_body ()
+		).rstrip (b'=').decode ("utf8")
+		hc ['HTTP2-Settings'] = settings
+		return hc
+				
+	def get_request_header (self, http_version = "1.1", upgrade = True):
+		if not self.asyncon.isconnected () and upgrade and http_version == "1.1" and not self._ssl:
+			hc = self.get_http2_upgrade_header ()
+		elif ((http_version == "1.1" and self.connection == "close") or (http_version == "1.0" and self.connection == "keep-alive")):
+			hc = {"Connection": self.connection}
+		else:
+			hc = {}
+			
+		payload = self.request.get_payload ()	
+		auth_header = self.get_http_auth_header (payload)
 		if auth_header:
 			hc ["Authorization"] = auth_header
-		if not self._ssl and not self.asyncon.isconnected ():
-			hc ["Upgrade"] = "h2c"
 		
-		self.header = ["%s: %s" % x for x in list(hc.items ())]					
-		req = ("%s %s HTTP/%s\r\n%s\r\n\r\n" % (
-			self.method,
-			self.uri,
-			self.http_version,
-			"\r\n".join (self.header)
-		)).encode ("utf8")		
-		return req
+		if http_version == "2.0":
+			headers = [
+				(":method", self.method),
+				(":path", self.uri),
+				(":scheme", self._ssl and "https" or "http")
+			]
+			return self.rebuild_http2_headers (headers, self.request.get_headers (), payload)			
+					
+		else:	
+			headers = list (hc.items ()) + self.request.get_headers ()
+			self.header = ["%s: %s" % x for x in headers]
+			req = ("%s %s HTTP/%s\r\n%s\r\n\r\n" % (
+				self.method,
+				self.uri,
+				http_version,
+				"\r\n".join (self.header)
+			)).encode ("utf8")
+			return req
 		
 	def get_request_payload (self):
-		return self.request.get_data ()
+		return self.request.get_payload ()
 						
-	def get_request_buffer (self):
-		data = self.get_request_payload ()
-		if type (data) is bytes:			
-			return [self.get_request_header () + data]
-		return [self.get_request_header (), data]	
+	def get_request_buffer (self, http_version = "1.1", upgrade = True):
+		payload = self.get_request_payload ()
+		if type (payload) is bytes:			
+			return [self.get_request_header (http_version, upgrade) + payload]
+		return [self.get_request_header (http_version, upgrade), payload]	
 		
 	def collect_incoming_data (self, data):
 		if not self.response or self.asyncon.get_terminator () == b"\r\n":
 			self.buffer += data
-		else:
+		else:			
 			self.response.collect_incoming_data (data)
 		
 	def found_terminator (self):
@@ -208,7 +235,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.expect_disconnect = False
 			try:
 				self.create_response ()
-			except:	
+			except:					
 				# I don't know why handle exception here.
 				# If not, recv data continuously T.T
 				self.asyncon.handle_error ()
@@ -256,9 +283,9 @@ class RequestHandler (base_request_handler.RequestHandler):
 			return True
 		elif self.response.code == 101:	# swiching protocol
 			if self.response.get_header ("Upgrade") == "h2c":
-				self.switch_to_http2 ()
-				self.asyncon._proto = ["h2c"]
+				self.asyncon._proto = "h2c"
 				self.response = None
+				self.switch_to_http2 ()				
 				return True
 		return False
 		
@@ -293,6 +320,8 @@ class RequestHandler (base_request_handler.RequestHandler):
 		return 0 #pass
 			
 	def connection_closed (self, why, msg):
+		is_real_asyncon = hasattr (self.asyncon, "address")
+		
 		if self.response and self.expect_disconnect:
 			self.close_case_with_end_tran ()
 			return
@@ -300,11 +329,14 @@ class RequestHandler (base_request_handler.RequestHandler):
 		# possibly disconnected cause of keep-alive timeout		
 		if why == 700 and self.response is None and self.retry_count == 0:
 			self.retry_count = 1			
-			self.handle_request ()
-			return			
-	
-		self.response = http_response.FailedResponse (why, msg, self.request)
-		self.close_case_with_end_tran ()
+			if is_real_asyncon:
+				# if not exists, fake asyncon
+				self.handle_request ()
+				return
+		
+		self.response = http_response.FailedResponse (why, msg, self.request)				
+		if hasattr (self.asyncon, "begin_tran"):
+			self.close_case_with_end_tran ()
 	
 	def close_case_with_end_tran (self):
 		self.asyncon.end_tran ()
@@ -315,13 +347,21 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.asyncon.handler = None # unlink back ref.
 		if self.callback:
 			self.callback (self)
+	
+	def switch_to_http2 (self):
+		http2_request_handler.RequestHandler (self)		
+		
+	def has_been_connected (self):
+		if self._ssl and self.asyncon._proto in asynconnect.H2_PROTOCOLS:
+			self.switch_to_http2 ()
 					
 	def handle_request (self):
 		self.buffer, self.response = b"", None
 		self.asyncon.set_terminator (b"\r\n\r\n")	
-		for data in self.get_request_buffer ():
-			self.asyncon.push (data)
-		self.asyncon.begin_tran (self)	
+		if not self._ssl:
+			for data in self.get_request_buffer ("1.1", True):
+				self.asyncon.push (data)
+		self.asyncon.begin_tran (self)
 	
 	def will_be_close (self):		
 		if self.connection == "close": #server misbehavior ex.paxnet

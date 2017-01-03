@@ -94,7 +94,7 @@ class WAS:
 	def in__dict__ (self, name):
 		return name in self.__dict__
 		
-	VALID_COMMANDS = ["ws", "get", "post", "rpc", "put", "upload", "delete", "options", "db"]
+	VALID_COMMANDS = ["ws", "get", "post", "postform", "postjson", "postxml", "postnvp", "postgrpc", "rpc", "put", "upload", "delete", "options", "db"]
 	def __getattr__ (self, name):
 		# method magic
 		if name in self.VALID_COMMANDS:

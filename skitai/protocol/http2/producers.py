@@ -16,6 +16,9 @@ class h2header_producer:
 			)
 			self.data_to_send = encoder.data_to_send ()
 	
+	def __repr__ (self):
+		return "<h2header_producer stream_id:%d>" % (self.stream_id,)
+	
 	def more (self):		
 		data_to_send, self.data_to_send = self.data_to_send, b''
 		return data_to_send
@@ -69,7 +72,7 @@ class h2stream_producer:
 			except FlowControlError:
 				# close forcely
 				return b''
-			
+		
 		return data_to_send
 	
 	def ready (self):

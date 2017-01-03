@@ -1,5 +1,6 @@
 import threading
 from skitai.client import asynconnect
+from skitai.server.https_server import H2_PROTOCOLS
 import time
 import re
 import copy
@@ -334,7 +335,7 @@ class ClusterManager:
 						capability = 1.0
 					else:
 						capability = 1.0 - (actives / float (weight))
-
+					
 					cluster.append ((avails [0], capability, weight))
 				
 				if cluster:
@@ -348,8 +349,8 @@ class ClusterManager:
 					node = t [0][1]
 					asyncon = self._cluster [node]["connection"][0].duplicate ()
 					self._cluster [node]["connection"].append (asyncon)
-									
-				asyncon.set_active (True, nolock = True)							
+				
+				asyncon.set_active (True)
 				
 			finally:
 				self.lock.release ()	

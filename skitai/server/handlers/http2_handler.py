@@ -4,10 +4,10 @@ from skitai.lib import producers
 from h2.connection import H2Connection, GoAwayFrame, DataFrame
 from h2.exceptions import ProtocolError, NoSuchStreamError
 from h2.events import DataReceived, RequestReceived, StreamEnded, PriorityUpdated, ConnectionTerminated, StreamReset, WindowUpdated
-from h2.errors import PROTOCOL_ERROR, FLOW_CONTROL_ERROR
+from h2.errors import PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
 from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
-from .http2.producers import h2stream_producer, h2header_producer
+from skitai.protocol.http2.producers import h2stream_producer, h2header_producer
 from .http2.fifo import priority_producer_fifo
 import threading
 try:
@@ -48,25 +48,22 @@ class http2_request_handler:
 		self._plock = threading.Lock () # for self.conn
 		self._clock = threading.Lock () # for self.x
 		
-	def close_when_done (self, errcode = 0, msg = None):
+	def go_away (self, errcode = 0, msg = None):
 		with self._plock:
 			self.conn.close_connection (errcode, msg)
 		self.send_data ()
 		self.channel.close_when_done ()		
-			
-	def close (self, force = False):
+				
+	def close (self, errcode = 0, msg = None):
 		if self._closed: return
 		self._closed = True		
-		if force:
-			self.channel = None
-			
 		if self.channel:
-			with self._plock:
-				self.conn.close_connection () # go_away
-			self.send_data ()
-			
+			self.go_away (errcode) # go_away			
 		self.handler.finish_request (self.request)
-		
+	
+	def enter_shutdown_process (self):
+		self.close (NO_ERROR)
+			
 	def closed (self):
 		return self._closed
 			
@@ -104,7 +101,7 @@ class http2_request_handler:
 			k = k.lower ()
 			if k in ("http2-settings", "connection", "upgrade"):
 				continue
-			headers.append ((k, v))
+			headers.append ((k, v))		
 		return headers
 					
 	def collect_incoming_data (self, data):
@@ -166,8 +163,7 @@ class http2_request_handler:
 			self.current_frame, self.data_length = self.frame_buf._parse_frame_header (buf)
 			self.frame_buf.max_frame_size = self.conn.max_inbound_frame_size
 			self.frame_buf._validate_frame_length (self.data_length)
-			#print ("++FRAME", self.current_frame, '::', self.data_length)
-						
+			
 			if self.data_length == 0:
 				events = self.set_frame_data (b'')
 			self.channel.set_terminator (self.data_length == 0 and 9 or self.data_length)	# next frame header
@@ -228,7 +224,6 @@ class http2_request_handler:
 		
 	def handle_events (self, events):
 		for event in events:
-			#print ("#EVENT:", event)
 			if isinstance(event, RequestReceived):
 				self.handle_request (event.stream_id, event.headers)				
 					
@@ -289,13 +284,13 @@ class http2_request_handler:
 		for k, v in headers:
 			#print ('HEADER:', k, v)
 			if k[0] == ":":
-				if k == ":method": command = v
+				if k == ":method": command = v.upper ()
 				elif k == ":path": uri = v
-				elif k == ":scheme": scheme = v
+				elif k == ":scheme": scheme = v.lower ()
 				elif k == ":authority":
 					authority = v
 					if authority:
-						h.append ("host: %s" % authority)				
+						h.append ("host: %s" % authority.lower ())				
 				continue								
 			if k == "content-length":
 				cl = int (v)				
@@ -319,7 +314,7 @@ class http2_request_handler:
 			else:
 				self.request.version = "2.0"
 				vchannel = fake_channel (self.channel)
-				
+		
 		r = http2_request (self, vchannel, first_line, command.lower (), uri, "2.0", scheme, h, stream_id, is_promise)		
 		vchannel.current_request = r
 		
@@ -347,7 +342,7 @@ class http2_request_handler:
 							self.conn.reset_stream (stream_id, FLOW_CONTROL_ERROR)
 						self.send_data ()	
 						# some browser ignore reset, why?
-						self.close_when_done (FLOW_CONTROL_ERROR)
+						self.close (FLOW_CONTROL_ERROR)
 						
 					elif cl > 0:
 						if stream_id == 1:
@@ -394,7 +389,7 @@ class Handler (wsgi_handler.Handler):
 	
 	def handle_request (self, request):
 		http2 = http2_request_handler (self, request)		
-		request.channel.add_closing_partner (http2)
+		request.channel.die_with (http2)
 		request.channel.set_response_timeout (self.keep_alive)
 		request.channel.set_keep_alive (self.keep_alive)
 		
