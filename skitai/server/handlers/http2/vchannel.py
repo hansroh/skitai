@@ -22,8 +22,10 @@ class data_channel (fake_channel, asynchat.async_chat):
 			
 	def set_data (self, data, size):
 		self._data = data
+		self.current_request.rbytes = len (self._data)
 		self._data_size += size
-		self._chunks.append (size)			
+		self._chunks.append (size)	
+		self.handle_read ()		
 	
 	def get_chunk_size (self):
 		d = {}
@@ -41,9 +43,9 @@ class data_channel (fake_channel, asynchat.async_chat):
 		data, self._data = self._data, b""
 		return data
 				
-	def collect_incoming_data (self, data):		
+	def collect_incoming_data (self, data):	
 		self.current_request.collect_incoming_data (data)
 	
 	def found_terminator (self):
 		self.current_request.found_terminator ()
-		
+	

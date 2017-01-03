@@ -92,11 +92,16 @@ class Handler:
 		collector = collector_class (self, request, *args, **kargs)
 				
 		if collector.content_length is None:
-			request.response.error (411)
-			return
+			if not request.version.startswith ("2."):
+				del collector
+				request.response.error (411)
+				return
+			else:
+				collector.set_max_content_length (max_cl)
 			
 		elif collector.content_length > max_cl: #5M			
 			self.wasc.logger ("server", "too large request body (%d)" % collector.content_length, "wran")
+			del collector
 			if request.get_header ("expect") == "100-continue":							
 				request.response.error (413) # client doesn't send data any more, I wish.
 			else:

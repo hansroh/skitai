@@ -12,7 +12,14 @@ class FormCollector:
 		self.buffer = BytesIO ()
 		self.content_length = self.get_content_length ()
 		self.size = 0
+		self.max_cl = 0 
 	
+	def set_max_content_length (self, max_cl):
+		self.max_cl = max_cl
+	
+	def get_max_content_length (self):
+		return self.max_cl
+			
 	def get_content_length (self):
 		cl = self.request.get_header ('content-length')
 		if cl is not None:
@@ -29,6 +36,8 @@ class FormCollector:
 
 	def collect_incoming_data (self, data):
 		self.size += len (data)
+		if self.max_cl and self.size > self.max_cl:
+			raise ValueError ("Too Large Entity")
 		self.buffer.write (data)
 
 	def found_terminator (self):
