@@ -136,6 +136,11 @@ class FileWrapper:
 		# depricate
 		self.file = self.path
 	
+	def __repr__ (self):
+		return "<File %s (%d bytes, %s) saved as %s>" % (
+			self.name, self.size, self.mimetype, self.path
+		)
+		
 	def save (self, into, name = None, mkdir = False, dup = "u"):
 		if name is None: name = self.name
 		# u: make unique, o: overwrite

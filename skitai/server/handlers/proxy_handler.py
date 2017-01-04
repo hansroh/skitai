@@ -207,24 +207,25 @@ class Handler (wsgi_handler.Handler):
 		if self.has_valid_cache (request, collector is not None):
 			return
 		
-		try:
-			if asyncon is None:		
-				if request.command == "connect":
-					asyncon_key = "tunnel://" + request.uri + "/"
-				else:
-					asyncon_key = request.uri					
-				asyncon = self.clusters ["__socketpool__"].get (asyncon_key)
-			
+		if asyncon is None:		
+			if request.command == "connect":
+				asyncon_key = "tunnel://" + request.uri + "/"
+			else:
+				asyncon_key = request.uri					
+			asyncon = self.clusters ["__socketpool__"].get (asyncon_key)
+		
+		try:	
 			req = http_request.HTTPRequest (request.uri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))				
 			r = proxy_request_handler (asyncon, req, self.callback, request, collector)			
 			if collector:
 				collector.asyncon = asyncon
 			r.handle_request ()
-						
+				
 		except:
+			asyncon.set_active (False)
 			self.wasc.logger.trace ("server")			
-			request.response.error (500, "", "Proxy request has been failed.")
-		
+			request.response.error (500, "", "Proxy Request Failed.")
+			
 	def has_valid_cache (self, request, has_data):
 		if not self.cachefs:
 			request.response ["X-Skitaid-Cache-Lookup"] = "NOCACHE"

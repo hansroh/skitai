@@ -406,7 +406,6 @@ class Handler (wsgi_handler.Handler):
 		http2.initiate_connection ()
 		
 	def finish_request (self, request):
-		if request.channel:
-			request.channel.close_when_done ()
-			
-	
+		if request.channel:			
+			request.channel.journal ('http2 stream channel')
+		

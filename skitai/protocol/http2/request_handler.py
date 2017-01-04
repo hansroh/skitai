@@ -51,15 +51,16 @@ class FakeAsynConnect:
 	def collect_incoming_data (self):
 		if self.collector:
 			self.collector.collect_incoming_data ()
-					
 		
 	
 class RequestHandler (base_request_handler.RequestHandler):
 	def __init__ (self, handler):
 		self.asyncon = handler.asyncon
-		self.asyncon.handler = self		
+		self.asyncon.handler = self	
+		self.asyncon.set_proto ("h2c")
 		self.request = handler.request
-		self.logger = handler.request.logger
+		base_request_handler.RequestHandler.__init__ (self, handler.request.logger)
+		self.asyncon.set_timeout (60, 60)
 		self.lock = handler.asyncon.lock # pool lock
 		self._ssl = handler._ssl
 		self._clock = threading.RLock () # conn lock
@@ -86,11 +87,10 @@ class RequestHandler (base_request_handler.RequestHandler):
 			
 		self.send_data ()
 		self.asyncon.set_terminator (9)
-		self.asyncon.set_active (False)
 		
 		if self._ssl:
 			self.handle_request (handler)
-	
+		
 	def go_away (self, errcode = 0, msg = None):
 		with self._plock:
 			self.conn.close_connection (errcode, msg)
@@ -119,8 +119,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.asyncon.push (data_to_send)
 							
 	def handle_request (self, handler):
-		self.request = handler.request	
-		self.asyncon.set_active (False)			
+		self.request = handler.request					
 		stream_id = self.get_new_stream_id ()
 		self.add_request (stream_id, handler)
 		
@@ -217,12 +216,14 @@ class RequestHandler (base_request_handler.RequestHandler):
 		if h:
 			h.collect_incoming_data ("\r\n".join (jheaders).encode ("utf8"))
 			h.found_terminator ()
-	
+		
 	def handle_events (self, events):
 		for event in events:
 			#print ('++EVENT', event)
 			if isinstance(event, ResponseReceived):
-				self.handle_response (event.stream_id, event.headers)				
+				self.handle_response (event.stream_id, event.headers)		
+				# for depensing massive requests
+				self.asyncon.set_active (False)
 					
 			elif isinstance(event, StreamReset):
 				if event.remote_reset:				

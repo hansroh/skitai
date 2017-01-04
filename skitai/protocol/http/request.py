@@ -172,12 +172,12 @@ class HTTPRequest (XMLRPCRequest):
 		return b"&".join (fm)
 									
 	def serialize (self):
-		# formdata type can be string, dict, boolean
 		if not self.params:
 			if self.get_method () in ("POST", "PUT"):
 				self.headers ["Content-Length"] = 0
 			return b""
 		
+		# formdata type can be string, dict, boolean
 		if self.get_method () in ("GET", "DELETE"):
 			if type (self.params) is dict:
 				params = self.urlencode (to_bytes = False)
@@ -203,7 +203,7 @@ class HTTPRequest (XMLRPCRequest):
 		
 		if not content_type:
 			content_type == "application/x-www-form-urlencoded"
-				
+		
 		self.headers ["Content-Type"] = content_type
 		return self.to_bytes (data)
 		

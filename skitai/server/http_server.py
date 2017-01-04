@@ -38,6 +38,7 @@ class http_channel (asynchat.async_chat):
 		self.channel_number = http_channel.channel_count.inc ()
 		self.request_counter = counter.counter()
 		self.bytes_out = counter.counter()
+		self.bytes_in = counter.counter()
 		
 		asynchat.async_chat.__init__ (self, conn)
 		self.server = server
@@ -160,7 +161,9 @@ class http_channel (asynchat.async_chat):
 		self.event_time = int (time.time())		
 		try:
 			result = asynchat.async_chat.recv (self, buffer_size)
-			self.server.bytes_in.inc (len (result))
+			lr = len (result)
+			self.server.bytes_in.inc (lr)
+			self.bytes_in.inc (lr)
 			if not result:
 				self.handle_close ()
 				return b""		
@@ -266,7 +269,19 @@ class http_channel (asynchat.async_chat):
 		self.connected = False		
 		self.closed = True
 		self.log_info ("channel-%s closed" % self.channel_number, "info")
-			
+	
+	def journal (self, reporter):
+		self.log (
+			"%s closed, client %s:%s, bytes in: %s, bytes out: %s for %d seconds " % (
+				reporter,
+				self.addr [0], 
+				self.addr [1], 
+				self.bytes_in,
+				self.bytes_out,
+				time.time () - self.creation_time
+			)
+		)
+					
 	def log (self, message, type = "info"):
 		self.server.log (message, type)
 	

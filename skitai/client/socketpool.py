@@ -1,4 +1,4 @@
-﻿import threading
+﻿import threading, random
 from . import asynconnect
 import time
 try:
@@ -8,12 +8,16 @@ except ImportError:
 import copy
 from skitai.server.https_server import H2_PROTOCOLS
 
+PROTO_LOADBALANCE = H2_PROTOCOLS
+
+
 class SocketPool:
 	object_timeout = 120
 	maintern_interval = 30
 	
 	def __init__ (self, logger):
 		self.__socketfarm = {}
+		self.__protos = {}
 		self.__numget  = 0
 		self.__last_maintern = time.time ()
 		self.logger = logger
@@ -118,7 +122,12 @@ class SocketPool:
 					self.__socketfarm [serverkey][id (asyncon)] = asyncon
 					
 				else:		
-					for each in list(self.__socketfarm [serverkey].values ()):	
+					proto = self.__protos.get (serverkey)
+					asyncons = list(self.__socketfarm [serverkey].values ())
+					if proto in PROTO_LOADBALANCE:
+						random.shuffle (asyncons)
+												
+					for each in asyncons:	
 						if not each.isactive ():
 							asyncon = each
 							break
@@ -135,6 +144,10 @@ class SocketPool:
 		except:
 			self.logger.trace ()
 		
+		proto = self.__protos.get (serverkey)
+		if not proto and asyncon.get_proto ():
+			self.__protos [serverkey] = asyncon.get_proto ()
+									
 		return asyncon
 	
 	def create_asyncon (self, server, scheme):

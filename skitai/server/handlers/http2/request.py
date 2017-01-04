@@ -1,5 +1,6 @@
 from skitai.server import http_request
 from .response import response
+import time
 
 class request (http_request.http_request):
 	def __init__ (self, *args):
@@ -16,6 +17,7 @@ class request (http_request.http_request):
 		self._split_uri = None
 		self._header_cache = {}
 		self.rbytes = 0
+		self.created = time.time ()
 		self.loadbalance_retry = 0
 		self.gzip_encoded = False		
 		

@@ -1,6 +1,6 @@
 import threading
 from skitai.client import asynconnect
-from skitai.server.https_server import H2_PROTOCOLS
+from skitai.client.socketpool import PROTO_LOADBALANCE
 import time
 import re
 import copy
@@ -60,6 +60,7 @@ class ClusterManager:
 		self._name = name
 		self.access = access
 		self.set_ssl (ssl)		
+		self._proto = None
 		self._havedeadnode = 0
 		self._numget = 0
 		self._nummget = 0
@@ -336,7 +337,13 @@ class ClusterManager:
 					else:
 						capability = 1.0 - (actives / float (weight))
 					
-					cluster.append ((avails [0], capability, weight))
+					if self._proto and self._proto in PROTO_LOADBALANCE:
+						# socket load-balancing
+						avail = random.choice (avails)
+					else:
+						avail = avails [0]
+					#print ('-----', avail, self._cluster [node]["connection"])
+					cluster.append ((avail, capability, weight))
 				
 				if cluster:
 					random.shuffle (cluster) # load balancing between same weighted members
@@ -357,7 +364,9 @@ class ClusterManager:
 		
 		except:
 			self.logger.trace ()
-					
+		
+		if self._proto is None:
+			self._proto = asyncon.get_proto ()			
 		return asyncon
 	
 	def sortfunc (self, a, b):

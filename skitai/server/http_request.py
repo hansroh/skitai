@@ -1,4 +1,5 @@
 from . import http_response, counter
+import time
 import re
 
 class http_request:
@@ -19,9 +20,9 @@ class http_request:
 		self.reply_message = ""		
 		self.loadbalance_retry = 0
 		self.rbytes = 0
+		self.created = time.time ()
 		self.gzip_encoded = False
 		self.is_promise = False
-		
 		self._split_uri = None
 		self._header_cache = {}
 

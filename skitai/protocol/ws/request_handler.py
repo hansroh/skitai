@@ -34,7 +34,7 @@ OPCODE_PONG = 0xa
 	
 class RequestHandler (request_handler.RequestHandler):
 	def __init__ (self, asyncon, request, callback, *args, **karg):
-		request_handler.RequestHandler.__init__ (self, asyncon, request, callback, "1.1", connection = "keep-alive, Upgrade")
+		request_handler.RequestHandler.__init__ (self, asyncon, request, callback)
 		self.initialize ()
 	
 	def initialize (self):
@@ -74,8 +74,7 @@ class RequestHandler (request_handler.RequestHandler):
 		hc ['Sec-WebSocket-Key'] = b64encode(os.urandom(16))
 		hc ['Connection'] = "keep-alive, Upgrade"
 		hc ['Upgrade'] = 'websocket'
-		hc ['Cache-Control'] = 'no-cache'
-		hc ['Pragma'] = 'no-cache'
+		hc ['Cache-Control'] = 'no-cache'		
 		
 		auth_header = self.get_http_auth_header ()
 		if auth_header:

@@ -92,7 +92,7 @@ class https_server (http_server.http_server):
 		https_channel (self, conn, addr)
 		
 
-H2_PROTOCOLS = ["h2", "h2-16", "h2-15", "h2-14"]
+H2_PROTOCOLS = ["h2", "h2-16", "h2-14", "h2c"]
 	
 def init_context (certfile, keyfile, pass_phrase):	
 	try:

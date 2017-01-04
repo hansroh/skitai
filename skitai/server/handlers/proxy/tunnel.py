@@ -79,6 +79,13 @@ class TunnelHandler:
 		
 	def channel_closed (self):
 		#print ("------------channel_closed", self.request.uri, self.bytes)
+		self.finish_request ()
 		self.asyncon.handler = None
 		self.asyncon.disconnect ()
 		self.asyncon.end_tran ()
+	
+	def finish_request (self):
+		if self.channel:			
+			self.channel.journal ('tunnel')
+
+		

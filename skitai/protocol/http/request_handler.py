@@ -88,7 +88,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		
 		self.request = request
 		self.callback = callback
-		self.logger = request.logger
+		base_request_handler.RequestHandler.__init__ (self, request.logger)
 		self.connection = connection				
 		
 		self.expect_disconnect = False

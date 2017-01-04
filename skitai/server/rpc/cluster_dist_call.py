@@ -104,8 +104,10 @@ class Dispatcher:
 		
 	def get_result (self):
 		if self.result is None: # timeout
-			self.result = Result (self.id, 1, http_response.FailedResponse (70, "Timeout"), self.ident)				
-			self.do_filter ()
+			if self.get_status () == -1:
+				self.result = Result (self.id, -1, http_response.FailedResponse (731, "Request Failed"), self.ident)
+			else:	
+				self.result = Result (self.id, 1, http_response.FailedResponse (730, "Timeout"), self.ident)
 		return self.result
 	
 	def do_filter (self):
@@ -233,9 +235,25 @@ class ClusterDistCall:
 			)
 		return _id
 	
+	def _add_header (self, n, v):
+		if self._headers is None:
+			self._headers = {}
+		self._headers [n] = v
+	
+	_TYPEMAP = [
+		("form", "application/x-www-form-urlencoded"),
+		("xml", "text/xml"),	
+		("nvp", "text/namevalue"),
+		("grpc", "application/grpc")
+	]
+	def _map_content_type (self, _reqtype):
+		for alias, ct in self._TYPEMAP:
+			if _reqtype.endswith (alias):
+				self._add_header ("Content-Type", ct)
+				return _reqtype [:-len (alias)]
+		return _reqtype
+	
 	def _handle_request (self, request, rs, asyncon, handler):
-		self._requests[rs] = asyncon
-		
 		if self._cachefs:
 			# IMP: mannual address setting
 			request.set_address (asyncon.address)
@@ -261,31 +279,14 @@ class ClusterDistCall:
 						rs.handle_cache (response)						
 						return 0
 		
-		r = handler (asyncon, request, self._callback and self._callback or rs.handle_result)
+		r = handler (asyncon, request, self._callback and self._callback or rs.handle_result)		
 		if asyncon.get_proto () and asyncon.isconnected ():
 			asyncon.handler.handle_request (r)
 		else:				
 			r.handle_request ()
-		return 1	
-	
-	def _add_header (self, n, v):
-		if self._headers is None:
-			self._headers = {}
-		self._headers [n] = v
-	
-	_TYPEMAP = [
-		("form", "application/x-www-form-urlencoded"),
-		("xml", "text/xml"),	
-		("nvp", "text/namevalue"),
-		("grpc", "application/grpc")
-	]
-	def _map_content_type (self, _reqtype):
-		for alias, ct in self._TYPEMAP:
-			if _reqtype.endswith (alias):
-				self._add_header ("Content-Type", ct)
-				return _reqtype [:-len (alias)]
-		return _reqtype
-					
+		
+		return 1
+						
 	def _request (self, method, params):
 		self._cached_request_args = (method, params) # backup for retry
 		if self._use_cache and rcache.the_rcache:
@@ -302,28 +303,37 @@ class ClusterDistCall:
 			
 			_reqtype = self._reqtype.lower ()
 			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._filter, cachefs = self._cachefs)
+			self._requests[rs] = asyncon
 			
-			if _reqtype in ("ws", "wss"):					
-				handler = ws_request_handler.RequestHandler					
-				request = ws_request.Request (self._uri, params, self._headers, self._encoding, self._auth, self._logger)
-											
-			else:				
-				if not self._use_cache:
-					self._add_header ("Cache-Control", "no-cache")				
+			try:
+				if _reqtype in ("ws", "wss"):
+					handler = ws_request_handler.RequestHandler					
+					request = ws_request.Request (self._uri, params, self._headers, self._encoding, self._auth, self._logger)
+												
+				else:				
+					if not self._use_cache:
+						self._add_header ("Cache-Control", "no-cache")				
+					
+					handler = http_request_handler.RequestHandler					
+					if _reqtype == "rpc":
+						request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)				
+					elif _reqtype == "upload":
+						request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
+					else:
+						if params:
+							_reqtype = self._map_content_type (_reqtype)
+						request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)				
 				
-				handler = http_request_handler.RequestHandler					
-				if _reqtype == "rpc":
-					request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)				
-				elif _reqtype == "upload":
-					request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
-				else:
-					if params:
-						_reqtype = self._map_content_type (_reqtype)
-					request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)				
+				requests += self._handle_request (request, rs, asyncon, handler)
+					
+			except:
+				self._logger ("Request Creating Failed", "fail")
+				self._logger.trace ()
+				rs.set_status (-1)
+				asyncon.set_active (False)
+				continue
 			
-			requests += self._handle_request (request, rs, asyncon, handler)
-		
-		if requests:				
+		if requests:
 			trigger.wakeup ()
 		
 	def _avails (self):
@@ -375,14 +385,19 @@ class ClusterDistCall:
 	def _collect_result (self):
 		for rs, asyncon in list(self._requests.items ()):
 			status = rs.get_status ()			
-			if not self._mapreduce and status == 2 and self._retry < (self._numnodes - 1):
-				self._logger ("cluster response error, switch to another...", "info")
+			if status == -1:
+				del self._requests [rs]
+				self._results.append (rs)
+				self._cluster.report (asyncon, True) # not asyncons' Fault				
+			
+			elif not self._mapreduce and status == 2 and self._retry < (self._numnodes - 1):
+				self._logger ("Cluster Response Error, Switch To Another...", "fail")
 				self._cluster.report (asyncon, False) # exception occured
 				del self._requests [rs]
 				self._retry += 1
 				self._nodes = [None]
 				self._request (*self._cached_request_args)
-			
+				
 			elif status >= 2:
 				del self._requests [rs]
 				self._results.append (rs)
@@ -390,7 +405,7 @@ class ClusterDistCall:
 					self._cluster.report (asyncon, False) # exception occured
 				else:	
 					self._cluster.report (asyncon, True) # well-functioning
-				rs.do_filter ()
+					rs.do_filter ()
 					
 	def _wait (self, timeout = 3):
 		self._collect_result ()

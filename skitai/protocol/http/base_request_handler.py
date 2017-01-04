@@ -1,5 +1,8 @@
 
 class RequestHandler:
+	def __init__ (self, logger):
+		self.logger = logger
+		
 	def log (self, message, type = "info"):
 		self.logger.log ("%s - %s" % (self.request.uri, message), type)
 

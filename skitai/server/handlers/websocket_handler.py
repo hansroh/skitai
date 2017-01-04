@@ -13,6 +13,7 @@ from skitai import version_info, was as the_was
 import threading		
 from .websocket import specs
 from .websocket.servers import websocket_servers
+import time
 
 class Handler (wsgi_handler.Handler):
 	def match (self, request):
@@ -133,12 +134,11 @@ class Handler (wsgi_handler.Handler):
 			server.add_client (ws)
 			self.channel_config (request, ws, keep_alive)			
 		
-	def finish_request (self, request):		
-		if request.channel:
-			request.channel.close_when_done ()
-		
 	def channel_config (self, request, ws, keep_alive):
 		request.response.done (False, False, False, (ws, 2))
 		request.channel.set_response_timeout (keep_alive)
 		request.channel.set_keep_alive (keep_alive)
-		
+	
+	def finish_request (self, request):
+		if request.channel:			
+			request.channel.journal ('websocket')
