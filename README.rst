@@ -6,11 +6,11 @@ Skitai Library
 News & Changes
 ===============
 
-- 0.21.17 - fix JWT base64 padding problem
-- 0.21.8 - connected with MongoDB asynchronously
-- 0.21.3 - add JWT (JSON Web Token) handler, see `Skitai WSGI App Engine`_
-- 0.21.2 - applied global/local-transaction-ID to app logging: was.log (msg, logtype), was.traceback ()
-- 0.21 - change request log format, add global/local-transaction-ID to log file for backtrace
+- 0.22 
+  
+  - Skitai REST/RPC call now uses HTTP2 if possible
+  - Fix HTTP2 initializing with POST method
+  
 
 .. contents:: Table of Contents
 
@@ -2517,10 +2517,18 @@ Links
 Change Log
 ==============
   
-  0.21 (Dec 2016)
+  0.22 (Jan 2017)
   
   - See News
+    
+  0.21 (Dec 2016)
   
+  - 0.21.17 - fix JWT base64 padding problem
+  - 0.21.8 - connected with MongoDB asynchronously
+  - 0.21.3 - add JWT (JSON Web Token) handler, see `Skitai WSGI App Engine`_
+  - 0.21.2 - applied global/local-transaction-ID to app logging: was.log (msg, logtype), was.traceback ()
+  - 0.21 - change request log format, add global/local-transaction-ID to log file for backtrace
+
   0.20 (Dec 2016)
   
   - 0.20.15 - minor optimize asynconnect, I wish
