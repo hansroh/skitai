@@ -11,6 +11,7 @@ from skitai.server.threads import trigger
 from . import collectors
 from skitai import version_info, was as the_was
 from skitai.saddle import Saddle
+from collections import Iterable
 try:
 	from cStringIO import StringIO as BytesIO
 except ImportError:
@@ -24,6 +25,8 @@ header2env = {
 
 PY_MAJOR_VERSION = sys.version_info.major
 SKITAI_VERSION = ".".join (map (lambda x: str (x), version_info [:3]))
+if PY_MAJOR_VERSION == 3:	
+	unicode = str
 	
 class Handler:
 	GATEWAY_INTERFACE = 'CGI/1.1'	
@@ -91,7 +94,7 @@ class Handler:
 	
 	def make_collector (self, collector_class, request, max_cl, *args, **kargs):
 		collector = collector_class (self, request, *args, **kargs)
-				
+		
 		if collector.content_length is None:
 			if not request.version.startswith ("2."):
 				del collector
@@ -101,7 +104,7 @@ class Handler:
 				collector.set_max_content_length (max_cl)
 			
 		elif collector.content_length > max_cl: #5M			
-			self.wasc.logger ("server", "too large request body (%d)" % collector.content_length, "wran")
+			self.wasc.logger ("server", "too large request body (%d bytes)" % collector.content_length, "wran")
 			del collector
 			if request.get_header ("expect") == "100-continue":							
 				request.response.error (413) # client doesn't send data any more, I wish.
@@ -264,36 +267,38 @@ class Job:
 				content_length = 0
 			else:
 				content_length = None
-					
+			
 			for part in content:
-				if hasattr (part, "read"):
-					part = producers.closing_stream_producer (part)	
-				elif hasattr (part, "_next") or hasattr (part, "next"): # flask etc.
-					part = producers.closing_iter_producer (part)
-					
-				if isinstance (part, producers.simple_producer) or hasattr (part, "more"):
-					content_length = None
-					# streaming obj
-					if hasattr (part, "close"):
-						# automatic close	when channel suddenly closed
-						response.die_with (part)
-					will_be_push.append (part)
-				
-				else:
-					type_of_part = type (part)					
+				type_of_part = type (part)				
+				if type_of_part in (bytes, str, unicode):
 					if type_of_part is not bytes: # unicode
 						try: 
 							part = part.encode ("utf8")
 						except AttributeError:
-							raise AssertionError ("%s is not supportable content type" % str (type (part)).replace ("<", "&lt;").replace (">", "&gt;"))
-								
+							raise AssertionError ("%s is not supportable content type" % str (type (part)).replace ("<", "&lt;").replace (">", "&gt;"))								
 						type_of_part = bytes
 						
 					if type_of_part is bytes:
 						if content_length is not None:
 							content_length += len (part)
 						will_be_push.append (part)
-						
+				
+				else:	
+					if hasattr (part, "read"):
+						part = producers.closing_stream_producer (part)				
+					elif type (part) is list:
+						part = producers.list_producer (part)
+					elif isinstance(part, Iterable): # flask etc.
+						part = producers.iter_producer (part)
+					
+					if isinstance (part, producers.simple_producer) or hasattr (part, "more"):
+						content_length = None
+						# streaming obj
+						if hasattr (part, "close"):
+							# automatic close	when channel suddenly closed
+							response.die_with (part)
+						will_be_push.append (part)
+				
 					else:
 						raise AssertionError ("Streaming content should be single element")
 			

@@ -9,6 +9,7 @@ import gzip
 from . import compressors, strutil
 import mimetypes
 import os
+from collections import Iterable
 
 """
 A collection of producers.
@@ -47,49 +48,37 @@ class list_producer (simple_producer):
 			return data.encode ("utf8")
 		return data
 
-class closing_iter_producer (list_producer):
-	def  __init__ (self, data):
-		list_producer.__init__ (self, data)
-		self.closed = False
-		try:
-			self.next = getattr (self.data, "_next")
-		except AttributeError:
-			self.next = getattr (self.data, "next")
-			
+class iter_producer (list_producer):
 	def more (self):
-		if self.closed: 
-			return b""
 		try:
-			data = self.next ()
+			data = next (self.data)
 			if strutil.is_encodable (data):
 				return data.encode ("utf8")
 			return data
 		except StopIteration:		
-			self.close ()
 			return b""
+
+class closing_stream_producer (simple_producer):
+	def __init__ (self, data, buffer_size = 4096):
+		if not hasattr (data, "read"):
+			raise AttributeError ("stream object should have `read()` returns bytes object and optional 'close()'")			
+		simple_producer.__init__ (self, data, buffer_size)
+		self.closed = False
+			
+	def more (self):
+		if self.closed: 
+			return b""
+		data = self.data.read (self.buffer_size)
+		if not data:
+			self.close ()
+		return data
 	
 	def close (self):
 		if self.closed: return			
 		try: self.data.close ()
 		except AttributeError: pass	
 		self.closed = True
-
-class closing_stream_producer (closing_iter_producer):
-		def __init__ (self, data, buffer_size = 4096):
-			if not hasattr (data, "read"):
-				raise AttributeError ("stream object should have `read()` returns bytes object and optional 'close()'")			
-			self.data = data
-			self.buffer_size = buffer_size
-			self.closed = False
-				
-		def more (self):
-			if self.closed: 
-				return b""
-			data = self.data.read (self.buffer_size)
-			if not data:
-				self.close ()
-			return data
-
+	
 class scanning_producer:
 	"like simple_producer, but more efficient for large strings"
 	def __init__ (self, data, buffer_size = 4096):
@@ -149,7 +138,7 @@ class file_producer:
 	"producer wrapper for file[-like] objects"
 
 	# match http_channel's outgoing buffer size
-	out_buffer_size = 8192
+	buffer_size = 4096
 
 	def __init__ (self, file):
 		self.done = 0
@@ -159,7 +148,7 @@ class file_producer:
 		if self.done:
 			return b''
 		else:
-			data = self.file.read (self.out_buffer_size)
+			data = self.file.read (self.buffer_size)
 			if not data:
 				self.file.close()
 				del self.file
@@ -189,7 +178,7 @@ Content-Type: application/octet-stream
 
 -----------------------------286502649418924--"""
 class multipart_producer:
-	ac_out_buffer_size = 1<<16
+	buffer_size = 4096
 	
 	def __init__ (self, data, boundary, encoding = None):
 		# self.data = {"name": "Hans Roh", "file1": <open (path, "rb")>}
@@ -209,10 +198,10 @@ class multipart_producer:
 				fsize = os.path.getsize (value.name)
 				size += (fsize + 2) # file size + \r\n
 				fn = os.path.split (value.name) [-1]
-				size += len (fn.encode ("utf8")) + 13 # ; filename=""
+				size += len (fn.encode ("utf8")) + 13 # ; filename=""\r\n
 				mimetype = mimetypes.guess_type (fn) [0]
 				if not mimetype:
-					mimetype = b"application/octet-stream"
+					mimetype = "application/octet-stream"
 				size += (16 + len (mimetype)) # Content-Type: application/octet-stream\r\n				
 				self.dlist.append ((1, name, (value.name, fn, mimetype)))
 				value.close ()
@@ -223,7 +212,7 @@ class multipart_producer:
 					self.data [name] = value
 				size += len (value.encode ("utf8")) + 2 # value + \r\n
 				self.dlist.append ((0, name, value))
-							
+
 			size += 2 # header end \r\n	
 			
 		return size	
@@ -236,9 +225,9 @@ class multipart_producer:
 			return b''
 			
 		if self.current_file:
-			d = self.current_file.read (self.ac_out_buffer_size)
+			d = self.current_file.read (self.buffer_size)
 			if d:
-				return d				
+				return d
 			else:
 				self.current_file.close ()
 				self.current_file = None

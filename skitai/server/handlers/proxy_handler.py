@@ -38,8 +38,10 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		return self.response.code == 200 and self.response.msg.lower () == "connection established"
 	
 	def connection_closed (self, why, msg):
-		if self.client_request.channel is None:
-			return self.close_case_with_end_tran ()			
+		# asyncon disconnected
+		if self.client_request.channel and self.response:			
+			# abort channel suddenly
+			return self.client_request.channel.handle_abort ()
 		return http_request_handler.RequestHandler.connection_closed (self, why, msg)
 					
 	def close_case (self):
@@ -49,8 +51,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 			self.asyncon.affluent = None			
 			if self.client_request.channel:
 				self.client_request.channel.ready = None
-				self.client_request.channel.affluent = None			
-			
+				self.client_request.channel.affluent = None
 			self.asyncon.handler = self.new_handler			
 		
 		if self.callback:			
@@ -66,7 +67,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 	def create_tunnel (self):
 		self.asyncon.established = True		
 		self.new_handler = TunnelHandler (self.asyncon, self.request, self.client_request.channel)
-		self.client_request.response.done (False, False, False, (self.new_handler.asyntunnel, None)) 
+		self.client_request.response.done (False, False, False, (self.new_handler.asyntunnel, None))
 			
 	def create_response (self):		
 		if not self.client_request.channel: return
@@ -105,7 +106,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 			self.client_request.response.die_with (self.response)
 						
 			# in relay mode, possibly delayed
-			self.client_request.channel.ready = self.response.ready			
+			self.client_request.channel.ready = self.response.ready
 			self.asyncon.affluent = self.response.affluent
 		
 		self.client_request.response.done (globbing = False, compress = False)
@@ -273,7 +274,7 @@ class Handler (wsgi_handler.Handler):
 		try:			
 			if self.cachefs and not handler.request.payload and handler.response.max_age:
 				self.cachefs.save (
-					request.uri, None, 
+					request.uri, 
 					handler.response.get_header ("content-type"), handler.response.get_content (), 
 					handler.response.max_age, request.response ["Content-Encoding"] == "gzip"
 				)

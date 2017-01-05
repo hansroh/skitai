@@ -1,5 +1,5 @@
 import sqlite3
-from . import dbconnect
+from . import dbconnect, asynpsycopg2
 import threading
 
 DEBUG = False
@@ -8,15 +8,26 @@ class OperationalError (Exception):
 	pass
 
 
-class SynConnect (dbconnect.DBConnect):
+class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 	def __init__ (self, address, params = None, lock = None, logger = None):
 		dbconnect.DBConnect.__init__ (self, address, params, lock, logger)
 		self.connected = False
+		self.conn = None
+		self.cur = None
 		
 	def close (self):	
-		self.connected = False
+		if self.cur:
+			self.cur.close ()
+			self.cur = None
+		if self.conn:	
+			self.conn.close ()			
+			self.conn = None	
+		self.connected = False	
 		dbconnect.DBConnect.close (self)
-		
+	
+	def close_case (self):
+		asynpsycopg2.AsynConnect.close_case (self)
+				
 	def connect (self):
 		try:
 			self.conn = sqlite3.connect (self.address, check_same_thread = False)

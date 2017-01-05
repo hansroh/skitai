@@ -130,7 +130,8 @@ class http2_request_handler:
 	def found_terminator (self):
 		buf, self.buf = self.buf, b""
 		
-		#print ("FOUND", repr (buf), '::', self.data_length, self.channel.get_terminator ())				
+		#print ("FOUND", repr (buf), '::', self.data_length, self.channel.get_terminator ())
+		#print ("FOUND", self.request.version, self.request.command, self.data_length)
 		events = None	
 		if self.request.version == "1.1" and self.request.command in ("post", "put") and self.data_length:
 			self.request.version = "2.0" # upgrade
@@ -252,13 +253,14 @@ class http2_request_handler:
 				with self._clock:
 					self.priorities [event.stream_id] = [event.depends_on, event.weight]
 				
-			elif isinstance(event, DataReceived):
+			elif isinstance(event, DataReceived):				
 				with self._clock:	
 					r = self.requests [event.stream_id]
 				try:
 					r.channel.set_data (event.data, event.flow_controlled_length)
 				except ValueError:
-					self.close ()
+					# from vchannel.handle_read () -> collector.collect_inconing_data ()
+					self.reset_stream (event.stream_id)
 				
 			elif isinstance(event, StreamEnded):
 				r = None
@@ -270,7 +272,13 @@ class http2_request_handler:
 					r.collector.found_terminator ()
 					
 		self.send_data ()
-							
+	
+	def reset_stream (self, stream_id, errcode = FLOW_CONTROL_ERROR):
+		with self._plock:
+			self.conn.reset_stream (stream_id, errcode)
+		self.send_data ()	
+		self.request.logger ("stream reset (stream_id:%d, error:%d)" % (stream_id, errcode), "info")
+									
 	def handle_request (self, stream_id, headers, is_promise = False):
 		#print ("++REQUEST: %d" % stream_id, headers)
 		command = "GET"
@@ -309,10 +317,10 @@ class http2_request_handler:
 			first_line = "%s %s HTTP/2.0" % (command, uri)
 			if command in ("POST", "PUT"):
 				should_have_collector = True
-				vchannel = data_channel (self.channel, cl)
+				vchannel = data_channel (stream_id, self.channel, cl)
 			else:
 				self.request.version = "2.0"
-				vchannel = fake_channel (self.channel)
+				vchannel = fake_channel (stream_id, self.channel)
 		
 		r = http2_request (self, vchannel, first_line, command.lower (), uri, "2.0", scheme, h, stream_id, is_promise)		
 		vchannel.current_request = r
@@ -337,11 +345,9 @@ class http2_request_handler:
 				else:
 					if should_have_collector and cl > 0 and r.collector is None:
 						# too large body
-						with self._plock:
-							self.conn.reset_stream (stream_id, FLOW_CONTROL_ERROR)
-						self.send_data ()	
+						self.reset_stream (stream_id)
 						# some browser ignore reset, why?
-						self.close (FLOW_CONTROL_ERROR)
+						#self.close (FLOW_CONTROL_ERROR)
 						
 					elif cl > 0:
 						if stream_id == 1:

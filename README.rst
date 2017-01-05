@@ -6,6 +6,14 @@ Skitai Library
 News & Changes
 ===============
 
+- 0.22.7 fix was.upload(), was.post*()
+- 0.22.5 fix xml-rpc service
+- 0.22.4 fix proxy
+- 0.22.3
+  
+  - fix https REST, XML-RPC call
+  - fix DB pool
+
 - 0.22 
   
   - Skitai REST/RPC call now uses HTTP2 if possible
@@ -407,10 +415,8 @@ Now async version is,
 
   @app.route ("/req")
   def req (was):
-    s1 = was.rpc ("https://pypi.python.org/pypi").pkginfo('roundup')
-    
-    s2 = was.get ("https://pypi.python.org/")
-    
+    s1 = was.get ("https://pypi.python.org/")
+    s2 = was.rpc ("https://pypi.python.org/pypi").pkginfo('roundup')    
     s3 = was.db ("127.0.0.1").do ("select ...")
     
     result1 = s1.getwait (2)
@@ -536,8 +542,8 @@ For requesting with basic/digest authorization:
 .. code:: python
 
   s = was.rpc (url, auth = (username, password))
-  s.get_prime_number_gt (10000)
-  result = s.getwait (2)
+  rs = s.get_prime_number_gt (10000)
+  result = rs.getwait (2)
 
 
 Avaliable methods are:
@@ -799,8 +805,8 @@ PostgreSQL
 
 .. code:: python
 
-    s = was.db ("127.0.0.1:5432", "mydb", "user", "password")
-    s.do ("SELECT city, t_high, t_low FROM weather;")
+    dbo = was.db ("127.0.0.1:5432", "mydb", "user", "password")
+    s = dbo.excute ("SELECT city, t_high, t_low FROM weather;")
     result = s.getwait (2)
     
     for row in result.data:
@@ -825,10 +831,11 @@ Add mydb members to config file.
 
     @app.route ("/query")
     def query (was, keyword):
-      s = was.db.lb ("@mydb").do("INSERT INTO CITIES VALUES ('New York');")
+      dbo = was.db.lb ("@mydb")
+      s = dbo.do("INSERT INTO CITIES VALUES ('New York');")
       s.wait (2) # no return, just wait for completing query, if failed exception will be raised
       
-      s = was.db.lb ("@mydb").do("SELECT * FROM CITIES;")
+      s = dbo.do("SELECT * FROM CITIES;")
       result = s.getwait (2)
    
 	
@@ -876,8 +883,8 @@ Skitai provides MongoDB async connection pool using `MongoDB Wire Protocol`_.
   
   @app.route ("/mongo")
   def mongo (was):
-    s = was.db ("127.0.0.1:27017", "testdb", DB_MONGODB)
-    s.findone ("posts", {"author": "Hans Roh"})
+    dbo = was.db ("127.0.0.1:27017", "testdb", DB_MONGODB)
+    s = dbo.findone ("posts", {"author": "Hans Roh"})
     rs = s.getwait (5)
     return rs.data
 
@@ -1056,8 +1063,6 @@ Also load-balacing and map-reuducing is exactly same with PostgreSQL.
     members = /tmp/sqlite1.db, /tmp/sqlite2.db
 
 
-*Note:* You should call exalctly 1 execute () per a was.db.* () object, and 'select' statement should be called alone.
-
 
 Caching Result
 ------------------
@@ -1082,7 +1087,7 @@ If you getwait with reraise argument, code can be simple.
 
 .. code:: python
 
-  s = was.db ("@mydb")
+  s = was.db ("@mydb").do ("select ...")
   for row in s.getswait (2, reraise = True).data:
     ...
   s.cache (60)
@@ -1100,8 +1105,8 @@ For expiring cached result by updating new data:
     ...
     has_new_data = True
   
-  s = was.db.lb ("@mydb", use_cache = not has_new_data and True or False)
-  s.do ("select ...")
+  dbo = was.db.lb ("@mydb", use_cache = not has_new_data and True or False)
+  s = dbo.do ("select ...")
   result = s.getwait (2)
   result.cache (60)
   	

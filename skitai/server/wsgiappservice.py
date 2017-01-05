@@ -158,7 +158,7 @@ class WAS:
 		clustername, uri = self.__detect_cluster (uri)
 		return self.clusters_for_distcall [clustername].Server (uri, data, method, self.rebuild_header (headers), auth, encoding, use_cache, mapreduce = False, filter = filter, callback = callback)
 	
-	def _ddb (self, server, dbname, user = "", password = "", dbtype = "postgresql", use_cache = True, filter = None, callback = None):
+	def _ddb (self, server, dbname, user = "", password = "", dbtype = DB_PGSQL, use_cache = True, filter = None, callback = None):
 		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, user, password, dbtype, use_cache, mapreduce = False, filter = filter, callback = callback)
 	
 	def _dlb (self, clustername, use_cache = True, filter = None, callback = None):

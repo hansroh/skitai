@@ -25,6 +25,8 @@ else:
 	class AsynConnect (dbconnect.AsynDBConnect, asyncore.dispatcher):
 		def __init__ (self, address, params = None, lock = None, logger = None):
 			dbconnect.AsynDBConnect.__init__ (self, address, params, lock, logger)			
+			self.conn = None
+			self.cur = None
 			self.dbname, self.user, self.password = self.params
 			asyncore.dispatcher.__init__ (self)
 			
@@ -63,7 +65,7 @@ else:
 			state = self.poll ()			
 			if state == POLL_OK:	
 				self.handle_connect ()
-				self.connected = True		
+				self.connected = True
 				self.connecting = False		
 			else:
 				self.check_state (state)
@@ -104,14 +106,35 @@ else:
 		#-----------------------------------
 		# Overriden
 		#-----------------------------------
+		def close_case (self):
+			if self.callback:
+				if self.has_result:
+					self.callback (self.cur.description, self.exception_class, self.exception_str, self.fetchall ())
+				else:
+					self.callback (None, self.exception_class, self.exception_str, None)
+				self.callback = None
+			self.set_active (False)
+			
 		def empty_cursor (self):
 			if self.has_result:
 				try:
 					self.fetchall ()
 				except psycopg2.ProgrammingError:
 					pass				
-						
+		
+		def fetchall (self):		
+			result = self.cur.fetchall ()
+			self.has_result = False
+			return result
+							
 		def close (self):			
+			if self.cur:
+				self.cur.close ()
+				self.cur = None
+			if self.conn:	
+				self.conn.close ()			
+				self.conn = None	
+				
 			dbconnect.AsynDBConnect.close (self)
 			asyncore.dispatcher.close (self)
 			
@@ -128,7 +151,6 @@ else:
 			self.set_socket (sock)
 		
 		def end_tran (self):
-			dbconnect.AsynDBConnect.end_tran (self)
 			self.del_channel ()
 				
 		def begin_tran (self, callback, sql):

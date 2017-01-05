@@ -7,7 +7,11 @@ from skitai.server import http_date
 from skitai.lib import compressors
 import time
 import json
-
+import struct
+try:
+	from cStringIO import StringIO as BytesIO
+except ImportError:
+	from io import BytesIO
 
 class RepsonseError (Exception): 
 	pass
@@ -18,9 +22,7 @@ def crack_response (data):
 	[ version, code, msg ] = RESPONSE.findall(data)[0]
 	return version, int(code), msg
 
-#------------------------------------------------------
-# xmlrpclib like json fakes
-#------------------------------------------------------
+
 class FakeParser(object):
 	def __init__(self, target):
 		self.target = target
@@ -32,35 +34,134 @@ class FakeParser(object):
 		pass
 
 
-class FakeTarget(object):
-	def __init__(self, cache = False):
+class cache_wrap_buffer:
+	def __init__ (self, buf, cache):
+		self.buf = buf
+		self.cache = cache
+		self.cdata = None
+		
+	def __getattr__ (self, name):
+		return getattr (self.buf, name)
+		
+	def close (self):
+		if self.cdata:
+			return self.cdata
+		res = self.buf.close ()
+		if self.cache:
+			self.cdata = res
+		return res
+	
+	def no_cache (self):
+		self.cache = 0
+		self.cdata = []
+			
+	
+class list_buffer (cache_wrap_buffer):
+	def __init__(self, cache = 0):
 		self.cache = cache
 		self.data = []
-		self.cdata = []
+		self.cdata = None
 
 	def feed(self, data):
 		self.data.append(data)
 	
-	def read (self):
-		d = b""
-		if self.data:
-			d = self.data.pop (0)
-		if self.cache:
-			self.cdata.append (d)
-		return d
-	
-	def close(self):
-		if self.cdata:
-			return b''.join(self.cdata)
+	def build_data (self):
 		return b''.join(self.data)
 	
+	def close (self):
+		if self.cdata:
+			return self.cdata
+		res = self.build_data ()
+		if self.cache:
+			self.cdata = res
+		return res
+	
 	def no_cache (self):
-		self.cache = False
+		self.cache = 0
+		self.cdata = []
+
+
+class bytes_buffer:
+	def __init__(self, cache = 0):
+		self.cache = cache
+		self.fp = BytesIO ()
+		self.cdata = None
+		
+	def feed (self, data):
+		self.fp.write (data)
+	
+	def get_messages (self):
+		msgs = []
+		fp = self.fp
+		
+		fp.seek (0)
+		byte = fp.read (1)
+		while byte:
+			iscompressed = struct.unpack ("<B", byte) [0]
+			length = struct.unpack ("<i", fp.read (4)) [0]
+			msg = fp.read (length)
+			msgs.append (msg)
+			byte = fp.read (1)
+		return tuple (msgs)
+		
+	def build_data (self):
+		return self.fp.getvalue ()
+	
+	def close (self):
+		if self.cdata:
+			return self.cdata
+		res = self.build_data ()
+		if self.cache:
+			self.cdata = res
+		return res
+	
+	def no_cache (self):
+		self.cache = 0
+		self.cdata = []
+
+
+class grpc_buffer (bytes_buffer):
+	def __init__(self, cache = 0):
+		self.cache = cache
+		self.fp = BytesIO ()
+		self.cdata = None
+		
+	def feed (self, data):
+		self.fp.write (data)
+	
+	def get_messages (self):
+		msgs = []
+		fp = self.fp
+		
+		fp.seek (0)
+		byte = fp.read (1)
+		while byte:
+			iscompressed = struct.unpack ("<B", byte) [0]
+			length = struct.unpack ("<i", fp.read (4)) [0]
+			msg = fp.read (length)
+			msgs.append (msg)
+			byte = fp.read (1)
+		return tuple (msgs)
+		
+	def build_data (self):
+		return self.get_messages ()
+	
+	def close (self):
+		if self.cdata:
+			return self.cdata
+		res = self.build_data ()
+		if self.cache:
+			self.cdata = res
+		return res
+	
+	def no_cache (self):
+		self.cache = 0
 		self.cdata = []
 		
-		
-def getfakeparser (cache = False):
-	target = FakeTarget(cache)
+				
+
+def getfakeparser (target_class, cache = False):
+	target = target_class(cache)
 	return FakeParser(target), target
 
 
@@ -138,11 +239,15 @@ class Response:
 	
 	def init_buffer (self):
 		self.set_max_age ()
-		if self.request.xmlrpc_serialized () and self.get_header ("content-type") == 'text/xml':
-			self.p, self.u = xmlrpclib.getparser()		
+		ct = self.get_header ("content-type", "")
+		if ct.startswith ('application/grpc'):
+			self.p, self.u = getfakeparser (grpc_buffer, cache = self.max_age)
+		elif ct == 'text/xml' and self.request.xmlrpc_serialized ():
+			self.p, self.u = xmlrpclib.getparser()
+			self.u = cache_wrap_buffer (self.u, self.max_age)
 			self.is_xmlrpc_return = True
 		else:			
-			self.p, self.u = getfakeparser (cache = self.max_age)
+			self.p, self.u = getfakeparser (bytes_buffer, cache = self.max_age)
 					
 		if self.get_header ("Content-Encoding") == "gzip":			
 			self.decompressor = compressors.GZipDecompressor ()
@@ -212,13 +317,14 @@ class Response:
 			return b""
 				
 		self.p.close ()
-		result = self.u.close()		
+		result = self.u.close()	
+		ct = self.get_header ("content-type")	
 		if self.is_xmlrpc_return:
 			if len(result) == 1:
 				result = result [0]
 			return result
-		elif self.get_header ("content-type") == "application/json":
-			return json.loads (result)			
+		elif ct.startswith ("application/json"):
+			return json.loads (result)
 		return result
 	
 

@@ -129,11 +129,8 @@ class CacheFileSystem:
 		for initial in self.files.keys ():
 			self.maintern (initial, True)
 						
-	def getpath (self, key, data):
-		if not data: 
-			data = b"" # to make standard type		
-		key = key.encode ("utf8")
-		key = key + b":" + data
+	def getpath (self, key):
+		key = key.encode ("utf8")		
 		file = md5 (key).hexdigest ()
 		initial = "0" + file [0] + "/" + file [1:3]
 		return os.path.join (self.path, initial, file), initial, file
@@ -151,8 +148,8 @@ class CacheFileSystem:
 				cachable = False						
 		return True
 					
-	def get (self, key, data, undecompressible = 0):
-		path, initial, fn = self.getpath (key, data)
+	def get (self, key, undecompressible = 0):
+		path, initial, fn = self.getpath (key)
 		
 		try:
 			cached = self.files [initial][fn]
@@ -202,7 +199,7 @@ class CacheFileSystem:
 		
 		return memhit, compressed, max_age, content_type, content
 	
-	def save (self, key, data, content_type, content, max_age, compressed = 0):		
+	def save (self, key, content_type, content, max_age, compressed = 0):		
 		if self.max_memory == 0 or not self.max_disk == 0:
 			return
 		usage = len (content)
@@ -221,7 +218,7 @@ class CacheFileSystem:
 			return self.maintern (initial)
 		
 		current_time = int (time.time ())
-		path, initial, fn = self.getpath (key, data)
+		path, initial, fn = self.getpath (key)
 		try: self.files [initial]
 		except KeyError: self.files [initial] = {}
 		else:

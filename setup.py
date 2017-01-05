@@ -61,6 +61,7 @@ packages = [
 	'skitai.protocol.http2',
 	'skitai.protocol.ws',	
 	'skitai.protocol.smtp',
+	'skitai.protocol.grpc',
 	'skitai.server',
 	'skitai.server.dbi',
 	'skitai.server.handlers',

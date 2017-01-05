@@ -72,12 +72,12 @@ class ProxyResponse (http_response.Response):
 		return self.gzip_compressed
 	
 	def close (self):
+		# channel closed and called automatically by channel
 		self.client_request.producer = None
 		try: self.u.data = []
 		except AttributeError: pass		
-		#self.asyncon.disconnect ()		
-		#self.asyncon.end_tran ()
-		self.asyncon.handle_close (710, "Channel Closed")
+		self.asyncon.handle_abort ()		
+		#self.asyncon.handle_close (710, "Channel Closed")
 			
 	def affluent (self):
 		# if channel doesn't consume data, delay recv data

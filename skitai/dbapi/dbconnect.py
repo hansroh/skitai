@@ -22,8 +22,6 @@ class DBConnect:
 		self.execute_count = 0
 		
 		self._cv = threading.Condition ()
-		self.conn = None
-		self.cur = None
 		
 		# need if there's not any request yet
 		self.active = 0
@@ -33,15 +31,16 @@ class DBConnect:
 		self.set_event_time ()
 	
 	def get_proto (self):
+		# call by culster_manager
 		return None
 	
+	def handle_abort (self):		
+		# call by dist_call
+		self.close ()
+		
 	def close (self):		
-		if self.cur:
-			self.cur.close ()
-			self.cur = None
-		if self.conn:	
-			self.conn.close ()			
-			self.conn = None		
+		self.callback = None
+		self.set_active (False)		
 		self.logger ("[info] DB %s has been closed" % str (self.address))
 					
 	def get_history (self):
@@ -78,13 +77,7 @@ class DBConnect:
 		self.close ()
 	
 	def close_case (self):
-		if self.callback:
-			if self.has_result:
-				self.callback (self.cur.description, self.exception_class, self.exception_str, self.fetchall ())
-			else:
-				self.callback (None, self.exception_class, self.exception_str, None)
-			self.callback = None
-		self.set_active (False)
+		raise NotImplementedError
 			
 	def set_active (self, flag, nolock = False):
 		if flag:
@@ -153,14 +146,10 @@ class DBConnect:
 	# DB methods
 	#-----------------------------------------------------
 	def fetchall (self):		
-		result = self.cur.fetchall ()
-		self.has_result = False
-		return result
+		raise NotImplementedError
 	
 	def end_tran (self):
-		if DEBUG: 
-			self.__history.append ("END TRAN") 
-			self.__history = self.__history [-30:]		
+		raise NotImplementedError
 						
 	def begin_tran (self, callback, sql):
 		self.__history = []
@@ -174,6 +163,7 @@ class DBConnect:
 		
 	def execute (self, callback, sql):		
 		self.begin_tran (callback, sql)
+		
 		raise NotImplementedError("must be implemented in subclass")
 
 

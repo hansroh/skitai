@@ -25,7 +25,9 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 		# re-init asychat
 		self.ac_in_buffer = b''
 		self.incoming = []
-		self.producer_fifo.clear()						
+		self.producer_fifo.clear()
+				
+		dbconnect.AsynDBConnect.close (self)
 		self.logger ("[info] DB %s has been closed" % str (self.address))
 		
 	def handle_connect (self):
@@ -138,7 +140,6 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 		self.set_active (False)
 	
 	def end_tran (self):
-		dbconnect.AsynDBConnect.end_tran (self)
 		self.del_channel ()
 		
 	def begin_tran (self, callback, sql):

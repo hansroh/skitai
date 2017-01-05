@@ -7,6 +7,8 @@ except ImportError:
 
 class Executor (wsgi_executor.Executor):
 	def __call__ (self):
+		request = self.env ["skitai.was"].request
+		
 		data = self.env ["wsgi.input"].read ()		
 		args, methodname = xmlrpclib.loads (data)
 		
@@ -21,14 +23,15 @@ class Executor (wsgi_executor.Executor):
 		
 		results = []
 		for _method, _args in thunks:
-			path_info = self.env ["PATH_INFO"] = "/" + _method.replace (".", "/")
-			current_app, thing, param = self.get_method (path_info)
-			self.was.subapp = current_app
-			if not thing or param == 301:
-				try: raise Exception('Method "%s" is not supported' % _method)
+			path_info = self.env ["PATH_INFO"] = "/" + _method.replace (".", "/")			
+			current_app, thing, param, respcode = self.find_method (request, path_info)
+			
+			if respcode:		
+				try: raise Exception('Method Error: %s' % _method)
 				except: results.append ({'faultCode' : 1, 'faultString' : wsgi_executor.traceback ()})
-				continue
-
+				continue				
+		
+			self.was.subapp = current_app
 			try:
 				result = self.generate_content (thing, _args, {})
 			except:
@@ -43,6 +46,6 @@ class Executor (wsgi_executor.Executor):
 		self.commit ()
 		self.was.response ["Content-Type"] = "text/xml"
 		
-		del self.was.env		
+		del self.was.env	
 		return xmlrpclib.dumps (results, methodresponse = True, allow_none = True, encoding = "utf8").encode ("utf8")
 		

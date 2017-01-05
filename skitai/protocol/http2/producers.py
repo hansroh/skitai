@@ -8,6 +8,7 @@ class h2header_producer:
 	def __init__ (self, stream_id, headers, producer, encoder, lock):
 		# DO NOT set self.stream_id
 		# if set, priority_producer_fifo try to re-sort and will raise error
+		self.stream_id = stream_id
 		with lock:
 			encoder.send_headers (
 				stream_id = stream_id,
@@ -22,6 +23,7 @@ class h2header_producer:
 	def more (self):		
 		data_to_send, self.data_to_send = self.data_to_send, b''
 		return data_to_send
+
 
 class h2stream_producer:
 	BUFFER_SIZE = 4096	

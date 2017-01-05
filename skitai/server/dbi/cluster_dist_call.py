@@ -182,7 +182,6 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		self._init_time = time.time ()
 		self._cv = None
 		self._retry = 0	
-		self._executed = False
 		self._numnodes = 0
 		
 		self._sent_result = None
@@ -231,23 +230,15 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 			asyncon = self._get_connection (None)			
 			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._filter)
 			self._requests [rs] = asyncon
-			if method is None:
+			print ('---', method, cmd)
+			if method in ("do", "execute"):
 				asyncon.execute (self._callback and self._callback or rs.handle_result, *cmd)							
 			else:
 				asyncon.execute (self._callback and self._callback or rs.handle_result, method, *cmd)			
 		trigger.wakeup ()
 		return self
 	
-	def do (self, *cmd):
-		if self._executed:
-			raise AssertionError ("Can't execute multiple, please create new connection")
-		self._executed = True
-		return self._request (None, cmd)		
-	
-	def execute (self, *cmd):
-		return self.do (*cmd)
 
-		
 class ClusterDistCallCreator:
 	def __init__ (self, cluster, logger):
 		self.cluster = cluster
@@ -258,7 +249,8 @@ class ClusterDistCallCreator:
 		
 	def Server (self, server = None, dbname = None, user = None, password = None, dbtype = None, use_cache = True, mapreduce = False, filter = None, callback = None):
 		# reqtype: xmlrpc, rpc2, json, jsonrpc, http
-		return ClusterDistCall (self.cluster, server, dbname, user, password, dbtype, use_cache, mapreduce, filter, callback, self.logger)
+		#return ClusterDistCall (self.cluster, server, dbname, user, password, dbtype, use_cache, mapreduce, filter, callback, self.logger)
+		return cluster_dist_call.Proxy (ClusterDistCall, self.cluster, server, dbname, user, password, dbtype, use_cache, mapreduce, filter, callback, self.logger)
 
 
 		

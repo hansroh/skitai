@@ -189,7 +189,7 @@ class MultipartCollector (collectors.FormCollector):
 		self.cache_max_size = cache_max_size
 		
 		self.end_of_data = b""
-		self.cached = False
+		self.cached = True
 		self.cache = []
 		self.parts = Part (self.request.header, self.file_max_size)
 		self.current_part = None
@@ -206,8 +206,8 @@ class MultipartCollector (collectors.FormCollector):
 		if self.content_length == 0: 
 			return self.found_terminator()
 		
-		if self.content_length <= self.cache_max_size: #5M
-			self.cached = True
+		if self.content_length is not None and self.content_length > self.cache_max_size: #5M
+			self.cached = False
 									
 		self.trackable_tail = None
 		self.top_boundary = self.parts.get_boundary ()
@@ -218,7 +218,7 @@ class MultipartCollector (collectors.FormCollector):
 		if self.upload_max_size and self.size > self.upload_max_size:
 			raise ValueError("file size is over %d MB" % (self.size/1024./1024,))
 			
-		if self.cache_max_size and self.size > self.cache_max_size:
+		if self.cached and self.cache_max_size and self.size > self.cache_max_size:
 			self.cached = False
 			self.cache = []
 				
@@ -232,7 +232,7 @@ class MultipartCollector (collectors.FormCollector):
 			if self.buffer == b"--" and self.trackable_tail == self.top_boundary:
 				self.stop_collect ()
 		
-		self.trackable_tail = None		
+		self.trackable_tail = None
 	
 	def close (self):
 		self.buffer = b""

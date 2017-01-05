@@ -1,7 +1,7 @@
 import asynchat
 
 class fake_channel:
-	def __init__ (self, channel):
+	def __init__ (self, stream_id, channel):
 		# override members
 		self._channel = channel
 		self.addr = channel.addr
@@ -12,10 +12,10 @@ class fake_channel:
 
 
 class data_channel (fake_channel, asynchat.async_chat):
-	def __init__ (self, channel, content_length):
+	def __init__ (self, stream_id, channel, content_length):
 		asynchat.async_chat.__init__ (self)
-		fake_channel.__init__ (self, channel)
-		self._content_length = content_length
+		fake_channel.__init__ (self, stream_id, channel)
+		self._content_length = content_length		
 		self._data = b""		
 		self._data_size = 0
 		self._chunks  = []
@@ -25,7 +25,7 @@ class data_channel (fake_channel, asynchat.async_chat):
 		self.current_request.rbytes = len (self._data)
 		self._data_size += size
 		self._chunks.append (size)	
-		self.handle_read ()		
+		self.handle_read ()
 	
 	def get_chunk_size (self):
 		d = {}
@@ -44,7 +44,7 @@ class data_channel (fake_channel, asynchat.async_chat):
 		return data
 				
 	def collect_incoming_data (self, data):	
-		self.current_request.collect_incoming_data (data)
+		self.current_request.collect_incoming_data (data)		
 	
 	def found_terminator (self):
 		self.current_request.found_terminator ()

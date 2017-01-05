@@ -158,33 +158,36 @@ class Executor:
 			pass
 			
 		return True
-				
-	def __call__ (self):		
-		request = self.env ["skitai.was"].request
-		
+	
+	def find_method (self, request, path):
 		current_app, thing, param, respcode = self.get_method (
-			self.env ["PATH_INFO"], 
+			path, 
 			request.command.upper (), 
 			request.get_header ('content-type'),
 			request.get_header ('authorization')
 		)
 		
-		if respcode == 301:
-			response = request.response
-			response ["Location"] = thing
-			response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % thing)
-			return b""
-		
-		if respcode == 401:
-			if not self.isauthorized (current_app, request):
-				return b""
+		if respcode == 401 and self.isauthorized (current_app, request):
 			# passed then be normal
 			respcode = 0
-			
+		
 		if respcode:
-			request.response.send_error ("%d %s" % (respcode, self.responses.get (respcode, "Undefined Error")))
-			return b""
+			if respcode == 301:
+				request.response ["Location"] = thing
+				request.response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % thing)							
+			else:
+				request.response.send_error ("%d %s" % (respcode, self.responses.get (respcode, "Undefined Error")))
 			
+		return current_app, thing, param, respcode
+		
+	def __call__ (self):		
+		request = self.env ["skitai.was"].request
+		current_app, thing, param, respcode = self.find_method (request, self.env ["PATH_INFO"])
+		
+		if respcode: 
+			# unacceptable
+			return b""
+		
 		self.build_was ()
 		self.was.subapp = current_app
 		try:

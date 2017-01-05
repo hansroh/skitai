@@ -32,7 +32,7 @@ class DBPool (socketpool.SocketPool):
 			con_class = asynredis.AsynConnect 
 		elif dbtype == DB_MONGODB:			
 			con_class = asynmongo.AsynConnect
-		elif dbtype == DB_PGSQL:			
+		elif dbtype == DB_PGSQL:
 			con_class = asynpsycopg2.AsynConnect
 		return con_class ((host, port), params, self.lock, self.logger)
 		

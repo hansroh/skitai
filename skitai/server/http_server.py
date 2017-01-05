@@ -134,7 +134,7 @@ class http_channel (asynchat.async_chat):
 		if len (self.producer_fifo) == 0:
 			self.done_request ()
 		return ret	
-	
+		
 	def attend_to (self, thing):
 		if not thing: return
 		self.producers_attend_to.append (thing)
@@ -239,11 +239,22 @@ class http_channel (asynchat.async_chat):
 					
 			try: r.response.error (404)
 			except: pass	
-		      				
-	def close (self):
+	
+	def handle_abort (self):
+		self.close (ignore_die_partner = True)
+		self.log_info ("channel-%s aborted" % self.channel_number, "info")
+			      				
+	def close (self, ignore_die_partner = False):
 		if self.closed:
 			return
 		
+		for closable, tag in self.things_die_with:
+			if closable and hasattr (closable, "channel"):
+				closable.channel = None
+			self.journal (tag)
+			if not ignore_die_partner:
+				self.producers_attend_to.append (closable)
+				
 		if self.current_request is not None:
 			self.producers_attend_to.append (self.current_request.collector)
 			self.producers_attend_to.append (self.current_request.producer)
@@ -251,12 +262,6 @@ class http_channel (asynchat.async_chat):
 			# 2. by close_when_done ()
 			self.current_request.channel = None
 			self.current_request = None
-		
-		for closable, tag in self.things_die_with:
-			if closable and hasattr (closable, "channel"):
-				closable.channel = None
-			self.journal (tag)
-			self.producers_attend_to.append (closable)
 			
 		for closable in self.producers_attend_to:
 			if closable and hasattr (closable, "close"):

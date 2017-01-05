@@ -288,7 +288,7 @@ class Saddle (part.Part):
 		elif content_type.startswith ("application/grpc"):
 			result = grpc_executor.Executor (env, self.get_method) ()
 		else:	
-			result = wsgi_executor.Executor (env, self.get_method) ()		
+			result = wsgi_executor.Executor (env, self.get_method) ()
 		
 		del was.response
 		del was.ab		

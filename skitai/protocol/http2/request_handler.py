@@ -129,16 +129,17 @@ class RequestHandler (base_request_handler.RequestHandler):
 		payload = handler.get_request_payload ()
 				
 		producer = None
-		if payload and type (payload) is bytes:
-			producer = producers.simple_producer (payload)
-			cl = len (payload)
-			if cl > 8196 and content_encoded is None:
-				producer = producers.gzipped_producer (payload)
-				headers.append (("content-encoding", "gzip"))
-			else:	
-				headers.append (("content-length", str (cl)))
-			producer = producers.globbing_producer (producer)
-					
+		if payload:
+			if type (payload) is bytes:
+				cl = len (payload)
+				#headers.append (("content-length", str (cl)))								
+				producer = producers.globbing_producer (
+					producers.simple_producer (payload)
+				)		
+			else:
+				# multipart_producer
+				producer = producers.globbing_producer (payload)				
+
 		header = h2header_producer (stream_id, headers, producer, self.conn, self._clock)
 		self.asyncon.push (header)
 					

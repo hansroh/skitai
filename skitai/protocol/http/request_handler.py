@@ -137,11 +137,9 @@ class RequestHandler (base_request_handler.RequestHandler):
 				continue
 			if k in ("connection", "transfer-encoding"):
 				continue
-			if k == "content-length" and type (payload) is bytes:
-				continue
 			if k == "content-encodig":
 				content_encoding = v
-			headers.append ((k, v))
+			headers.append ((k, str (v)))
 		return headers, content_encoding
 	
 	def get_http2_upgrade_header (self):
@@ -177,17 +175,16 @@ class RequestHandler (base_request_handler.RequestHandler):
 				(":scheme", self._ssl and "https" or "http")
 			]
 			return self.rebuild_http2_headers (headers, self.request.get_headers (), payload)			
-					
-		else:	
-			headers = list (hc.items ()) + self.request.get_headers ()
-			self.header = ["%s: %s" % x for x in headers]
-			req = ("%s %s HTTP/%s\r\n%s\r\n\r\n" % (
-				self.method,
-				self.uri,
-				http_version,
-				"\r\n".join (self.header)
-			)).encode ("utf8")
-			return req
+		
+		headers = list (hc.items ()) + self.request.get_headers ()
+		self.header = ["%s: %s" % x for x in headers]
+		req = ("%s %s HTTP/%s\r\n%s\r\n\r\n" % (
+			self.method,
+			self.uri,
+			http_version,
+			"\r\n".join (self.header)
+		)).encode ("utf8")
+		return req
 		
 	def get_request_payload (self):
 		return self.request.get_payload ()
@@ -323,7 +320,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		is_real_asyncon = hasattr (self.asyncon, "address")
 		
 		if self.response and self.expect_disconnect:
-			self.close_case_with_end_tran ()
+			self.close_case ()
 			return
 	
 		# possibly disconnected cause of keep-alive timeout		
@@ -336,7 +333,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		
 		self.response = http_response.FailedResponse (why, msg, self.request)				
 		if hasattr (self.asyncon, "begin_tran"):
-			self.close_case_with_end_tran ()
+			self.close_case ()
 	
 	def close_case_with_end_tran (self):
 		self.asyncon.end_tran ()
@@ -352,8 +349,12 @@ class RequestHandler (base_request_handler.RequestHandler):
 		http2_request_handler.RequestHandler (self)		
 		
 	def has_been_connected (self):
-		if self._ssl and self.asyncon._proto in asynconnect.H2_PROTOCOLS:
-			self.switch_to_http2 ()
+		if self._ssl:
+			if self.asyncon._proto in asynconnect.H2_PROTOCOLS:
+				self.switch_to_http2 ()
+			else:
+				for data in self.get_request_buffer ("1.1", False):
+					self.asyncon.push (data)				
 					
 	def handle_request (self):
 		self.buffer, self.response = b"", None

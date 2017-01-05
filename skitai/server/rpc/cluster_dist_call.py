@@ -138,7 +138,7 @@ class Dispatcher:
 		cakey = response.request.get_cache_key ()
 		if self.cachefs and cakey and response.max_age:
 			self.cachefs.save (
-				cakey, response.request.get_payload (),
+				cakey,
 				response.get_header ("content-type"), response.get_content (), 
 				response.max_age, 0
 			)
@@ -147,22 +147,6 @@ class Dispatcher:
 		handler.callback = None
 		handler.response = None
 		
-   	        	     
-#-----------------------------------------------------------
-# Cluster Base Call
-#-----------------------------------------------------------
-class _Method:
-	def __init__(self, send, name):
-		self.__send = send
-		self.__name = name
-		
-	def __getattr__(self, name):
-		return _Method(self.__send, "%s.%s" % (self.__name, name))
-		
-	def __call__(self, *args):
-		return self.__send(self.__name, args)
-
-
 
 class ClusterDistCall:
 	def __init__ (self,
@@ -216,9 +200,6 @@ class ClusterDistCall:
 		
 		if not self._reqtype.lower ().endswith ("rpc"):
 			self._request ("", self._params)
-		
-	def __getattr__ (self, name):	  
-		return _Method(self._request, name)
 	
 	def __del__ (self):
 		self._cv = None
@@ -267,7 +248,7 @@ class ClusterDistCall:
 				)
 				
 				if cachable:
-					hit, compressed, max_age, content_type, content = self._cachefs.get (cakey, request.get_payload (), undecompressible = 0)			
+					hit, compressed, max_age, content_type, content = self._cachefs.get (cakey, undecompressible = 0)			
 					if hit:
 						header = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nX-Skitaid-Cache-Lookup: %s" % (
 							content_type, hit == 1 and "MEM_HIT" or "HIT"
@@ -424,13 +405,41 @@ class ClusterDistCall:
 		
 		# timeouts	
 		for rs, asyncon in list(self._requests.items ()):
-			asyncon.set_zombie_timeout (0) # make zombie channel
-			asyncon.handle_timeout ()
+			asyncon.handle_abort () # abort imme
 			rs.set_status (1)
 			self._cluster.report (asyncon, False) # maybe dead
 			self._results.append (rs)
 			del self._requests [rs]
+
+#-----------------------------------------------------------
+# Cluster Base Call
+#-----------------------------------------------------------
+class _Method:
+	def __init__(self, send, name):
+		self.__send = send
+		self.__name = name
 		
+	def __getattr__(self, name):
+		return _Method(self.__send, "%s.%s" % (self.__name, name))
+		
+	def __call__(self, *args):
+		return self.__send(self.__name, args)
+
+		
+class Proxy:
+	def __init__ (self, _class, *args, **kargs):
+		self.__args = args
+		self.__kargs = kargs
+		self.__class = _class
+	
+	def __getattr__ (self, name):	  
+		return _Method(self.__request, name)
+	
+	def __request (self, method, params):		
+		cdc = self.__class (*self.__args, **self.__kargs)
+		cdc._request (method, params)
+		return cdc
+
 	
 class ClusterDistCallCreator:
 	def __init__ (self, cluster, logger, cachesfs):
@@ -447,8 +456,12 @@ class ClusterDistCallCreator:
 			h = {}
 			for n, v in headers:
 				h [n] = v
-			headers = h	
-		return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, encoding, use_cache, mapreduce, filter, callback, self.cachesfs, self.logger)
+			headers = h
+		
+		if reqtype.endswith ("rpc"):
+			return Proxy (ClusterDistCall, self.cluster, uri, params, reqtype, headers, auth, encoding, use_cache, mapreduce, filter, callback, self.cachesfs, self.logger)
+		else:	
+			return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, encoding, use_cache, mapreduce, filter, callback, self.cachesfs, self.logger)
 		
 	
 if __name__ == "__main__":
