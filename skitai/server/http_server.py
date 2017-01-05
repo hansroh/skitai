@@ -139,9 +139,9 @@ class http_channel (asynchat.async_chat):
 		if not thing: return
 		self.producers_attend_to.append (thing)
 	
-	def die_with (self, thing):
+	def die_with (self, thing, tag):
 		if not thing: return
-		self.things_die_with.append (thing)		
+		self.things_die_with.append ((thing, tag))		
 		
 	def done_request (self):	
 		self.zombie_timeout = self.keep_alive
@@ -252,11 +252,13 @@ class http_channel (asynchat.async_chat):
 			self.current_request.channel = None
 			self.current_request = None
 		
-		for closable in self.things_die_with:
+		for closable, tag in self.things_die_with:
 			if closable and hasattr (closable, "channel"):
 				closable.channel = None
+			self.journal (tag)
+			self.producers_attend_to.append (closable)
 			
-		for closable in self.producers_attend_to + self.things_die_with:
+		for closable in self.producers_attend_to:
 			if closable and hasattr (closable, "close"):
 				try:
 					closable.close ()

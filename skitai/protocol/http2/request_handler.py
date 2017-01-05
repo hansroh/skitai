@@ -90,6 +90,8 @@ class RequestHandler (base_request_handler.RequestHandler):
 		
 		if self._ssl:
 			self.handle_request (handler)
+		else:
+			self.asyncon.set_active (False)					
 		
 	def go_away (self, errcode = 0, msg = None):
 		with self._plock:
@@ -143,6 +145,8 @@ class RequestHandler (base_request_handler.RequestHandler):
 		if producer:
 			payload = h2stream_producer (stream_id, 0, 1, producer, self.conn, self._clock)
 			self.asyncon.push (payload)
+		
+		self.asyncon.set_active (False)
 				
 	def collect_incoming_data (self, data):
 		if not data:  return
@@ -222,8 +226,6 @@ class RequestHandler (base_request_handler.RequestHandler):
 			#print ('++EVENT', event)
 			if isinstance(event, ResponseReceived):
 				self.handle_response (event.stream_id, event.headers)		
-				# for depensing massive requests
-				self.asyncon.set_active (False)
 					
 			elif isinstance(event, StreamReset):
 				if event.remote_reset:				

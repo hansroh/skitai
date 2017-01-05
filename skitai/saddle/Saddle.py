@@ -3,7 +3,7 @@ import time
 import os
 import sys
 from . import part, multipart_collector, cookie, session
-from . import wsgi_executor, xmlrpc_executor
+from . import wsgi_executor, xmlrpc_executor, grpc_executor
 from skitai.lib import producers
 from skitai.server import utility
 from hashlib import md5
@@ -283,8 +283,10 @@ class Saddle (part.Part):
 		was.response = was.request.response
 		
 		content_type = env.get ("CONTENT_TYPE", "")				
-		if content_type.startswith ("text/xml") or content_type.startswith ("application/xml+rpc"):
+		if content_type.startswith ("text/xml") or content_type.startswith ("application/xml"):
 			result = xmlrpc_executor.Executor (env, self.get_method) ()
+		elif content_type.startswith ("application/grpc"):
+			result = grpc_executor.Executor (env, self.get_method) ()
 		else:	
 			result = wsgi_executor.Executor (env, self.get_method) ()		
 		

@@ -9,7 +9,8 @@ News & Changes
 - 0.22 
   
   - Skitai REST/RPC call now uses HTTP2 if possible
-  - Fix HTTP2 initializing with POST method
+  - Fix HTTP2 opening with POST method
+  - Add logging on disconnecting of Websocket, HTTP2, Proxy Tunnel channels
   
 
 .. contents:: Table of Contents
@@ -330,8 +331,7 @@ But asynchronous version is:
   @app.route ("/req")
   def req (was):
     [CREATE REQUEST]
-    s = was.rpc ("https://pypi.python.org/pypi")
-    s.package_releases('roundup')
+    s = was.rpc ("https://pypi.python.org/pypi").pkginfo('roundup')
 	  
     [Job A]
     [Job C]
@@ -353,8 +353,7 @@ If it is possible to put usage of result more backward, asynchoronous benefit wi
 
   @app.route ("/req")
   def req (was):      
-    s = was.rpc ("https://pypi.python.org/pypi")
-    s.package_releases('roundup')
+    s = was.rpc ("https://pypi.python.org/pypi").pkginfo ('roundup')
 	  
     [Job A]
     [Job C]
@@ -408,8 +407,7 @@ Now async version is,
 
   @app.route ("/req")
   def req (was):
-    s1 = was.rpc ("https://pypi.python.org/pypi")
-    s1.package_releases('roundup')
+    s1 = was.rpc ("https://pypi.python.org/pypi").pkginfo('roundup')
     
     s2 = was.get ("https://pypi.python.org/")
     
@@ -528,8 +526,7 @@ Here's XMLRPC request for example:
 
 .. code:: python
 
-  s = was.rpc (url)
-  s.get_prime_number_gt (10000)
+  s = was.rpc (url).get_prime_number_gt (10000)
   result = s.getwait (2)
 
 Please note XMLRPC method name shouldn't be any of wait, getwait, getswait or cache.  
@@ -602,8 +599,7 @@ Then let's request XMLRPC result to one of mysearch members.
 
   @app.route ("/search")
   def search (was, keyword = "Mozart"):
-    s = was.rpc.lb ("@mysearch/rpc2")
-    s.search (keyword)
+    s = was.rpc.lb ("@mysearch/rpc2").search (keyword)
     results = s.getwait (5)
     return result.data
 
@@ -647,8 +643,7 @@ Basically same with load_balancing except Skitai requests to all members per eac
 
     @app.route ("/search")
     def search (was, keyword = "Mozart"):
-      s = was.rpc.map ("@mysearch/rpc2")
-      s.search (keyword)
+      s = was.rpc.map ("@mysearch/rpc2").search (keyword)
       results = s.getswait (2)
 			
       all_results = []
@@ -705,15 +700,15 @@ Every results returned by getwait(), getswait() can cache.
 
 .. code:: python
 
-  s = was.rpc.lb ("@mysearch/rpc2")
+  s = was.rpc.lb ("@mysearch/rpc2").getinfo ()
   result = s.getwait (2)
   if result.code == 200:
   	result.cache (60) # 60 seconds
   
-  s = was.rpc.map ("@mysearch/rpc2")
+  s = was.rpc.map ("@mysearch/rpc2").getinfo ()
   results = s.getswait (2)
   # assume @mysearch has 3 members
-  if results.code == [200, 200, 200]:    
+  if results.code == [200, 200, 200]:
     result.cache (60)
 
 Although code == 200 alredy implies status == 3, anyway if status is not 3, cache() will be ignored. If cached, it wil return cached result for 60 seconds.
@@ -724,7 +719,7 @@ If you getwait with reraise argument, code can be simple.
 
 .. code:: python
 
-  s = was.rpc.lb ("@mysearch/rpc2")
+  s = was.rpc.lb ("@mysearch/rpc2").getinfo ()
   content = s.getswait (2, reraise = True).data
   s.cache (60)
 
@@ -742,7 +737,10 @@ For expiring cached result by updating new data:
     ...
     refreshed = True
   
-  s = was.rpc.lb ("@mysearch/rpc2", use_cache = not refreshed and True or False)
+  s = was.rpc.lb (
+  	"@mysearch/rpc2", 
+  	use_cache = not refreshed and True or False
+  ).getinfo ()
   result = s.getwait (2)
   if result.code == 200:
   	result.cache (60) # 60 seconds  
@@ -1130,6 +1128,8 @@ HTTP/2.0
 
 Skiai supports HTPT2 both 'h2' protocl over encrypted TLS and 'h2c' for clear text (But now Sep 2016, there is no browser supporting h2c protocol).
 
+**As A Server**
+
 Basically you have nothing to do for HTTP2. Client's browser will handle it except `HTTP2 server push`_.
 
 For using it, you just call was.response.hint_promise (uri) before return response data. It will work only client browser support HTTP2, otherwise will be ignored.
@@ -1143,6 +1143,13 @@ For using it, you just call was.response.hint_promise (uri) before return respon
     was.response.hint_promise ('/images/B.png')
     
     return was.response ("200 OK", 'Promise Sent<br><br><img src="/images/A.png"><img src="/images/B.png">')	
+
+
+**As A Client**
+
+*New in version 0.22*
+
+Skitai's all REST/RPC call uses HTTP2 protocol if target server supports. Obiously between Skitai App Engines, they communicate using HTTP2.
 
 
 .. _`HTTP2 server push`: https://tools.ietf.org/html/rfc7540#section-8.2

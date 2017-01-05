@@ -2,7 +2,7 @@ try:
 	import xmlrpc.client as xmlrpclib
 except ImportError:
 	import xmlrpclib
-	
+impoprt struct
 import base64
 import json
 try: 
@@ -28,7 +28,7 @@ class XMLRPCRequest:
 		self.__xmlrpc_serialized = False
 		self.headers = {
 			"Accept": "*/*",
-			"Accept-Encoding": "gzip"				
+			"Accept-Encoding": "gzip"			
 		}
 		if headers:
 			for k, v in headers.items ():
@@ -37,7 +37,7 @@ class XMLRPCRequest:
 					# reanalyze
 					continue					
 				self.headers [k] = v			
-		self.payload = self.serialize ()		
+		self.payload = self.serialize ()
 	
 	def build_header (self):
 		if self.get_header ("host") is None:
@@ -53,9 +53,9 @@ class XMLRPCRequest:
 	def get_cache_key (self):
 		if len (self.payload) > 4096:
 			return None			
-		return "%s:%s%s/%s" % (
+		return "%s:%s%s/%s?%s" % (
 			self.address [0], self.address [1],
-			self.path, self.method
+			self.path, self.method, self.payload
 		)
 		
 	def xmlrpc_serialized (self):
@@ -74,7 +74,7 @@ class XMLRPCRequest:
 		if uri.find ("://") == -1:
 			return None, uri
 			
-		scheme, address, script, params, qs, fragment = urlparse (uri)		
+		scheme, address, script, params, qs, fragment = urlparse (uri)
 		if not script: script = "/"
 		path = script
 		if params: path += ";" + params
@@ -121,7 +121,42 @@ class XMLRPCRequest:
 	def get_headers (self):
 		self.build_header ()
 		return list (self.headers.items ())
-			
+
+
+class GRPCRequest (XMLRPCRequest):
+	def __init__ (self, uri, method, params = (), headers = None, encoding = "utf8", auth = None, logger = None):
+		self.uri = uri
+		self.method = method
+		self.params = params		
+		self.encoding = encoding
+		self.auth = (auth and type (auth) is not tuple and tuple (auth.split (":", 1)) or auth)
+		self.logger = logger
+		self.address, self.path = self.split (uri)
+	
+		self.headers = {"grpc-timeout": "10S"}		
+		self.payload = self.serialize ()		
+		if not self.payload:
+			self.method = "GET"		
+		else:
+			self.headers ["content-type"] = "application/grpc+proto"
+		
+	def split (self, uri):
+		(host, port), path = XMLRPCRequest.split (self, uri)				
+		if path [-1] != "/":
+			path += "/"
+			self.uri += "/"
+		path += self.method
+		self.uri += self.method
+		return (host, port), path
+	
+	def serialize (self):
+		if not self.params:
+			return b""
+		data = self.params [0].SerializeToString ()
+		hd = struct.pack ("<B", 0)
+		hd += struct.pack ("<i", len (data))
+		return hd + data
+	
 	
 class HTTPRequest (XMLRPCRequest):
 	def get_method (self):

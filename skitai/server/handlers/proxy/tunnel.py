@@ -32,7 +32,7 @@ class TunnelHandler:
 		self.asyntunnel = AsynTunnel (asyncon, self)		
 		self.channel.set_response_timeout	(PROXY_TUNNEL_KEEP_ALIVE)
 		self.asyncon.set_network_delay_timeout (PROXY_TUNNEL_KEEP_ALIVE)
-		self.channel.die_with (self.asyntunnel)
+		self.channel.die_with (self.asyntunnel, "tunnel")
 		
 		self.bytes = 0
 		self.stime = time.time ()
@@ -78,14 +78,9 @@ class TunnelHandler:
 			self.channel.current_request = None
 		
 	def channel_closed (self):
-		#print ("------------channel_closed", self.request.uri, self.bytes)
-		self.finish_request ()
+		#print ("------------channel_closed", self.request.uri, self.bytes)		
 		self.asyncon.handler = None
 		self.asyncon.disconnect ()
 		self.asyncon.end_tran ()
 	
-	def finish_request (self):
-		if self.channel:			
-			self.channel.journal ('tunnel')
-
-		
+	

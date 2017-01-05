@@ -49,7 +49,7 @@ class Handler:
 		self.ENV ["wsgi.multiprocess"] = self.wasc.workers > 1 and os.name != "nt"
 		self.ENV ['SERVER_PORT'] = str (self.wasc.httpserver.port)
 		self.ENV ['SERVER_NAME'] = self.wasc.httpserver.server_name
-		
+	
 	def match (self, request):
 		return 1
 			
@@ -68,7 +68,8 @@ class Handler:
 		if query: env['QUERY_STRING'] = query		
 		env ['REMOTE_ADDR'] = request.channel.addr [0]
 		env ['REMOTE_SERVER'] = request.channel.addr [0]		
-		env ['SCRIPT_NAME'] = apph.route		
+		env ['SCRIPT_NAME'] = apph.route
+		env ['SCRPIT_PATH'] = apph.abspath
 		env ['PATH_INFO'] = apph.get_path_info (path)
 		
 		for header in request.header:

@@ -1,6 +1,7 @@
 import time
 from skitai.server.threads import socket_map
 from skitai.server.threads import trigger
+from skitai.client.asynconnect import AsynSSLConnect
 import threading
 from skitai.protocol.http import request as http_request
 from skitai.protocol.http import request_handler as http_request_handler
@@ -243,8 +244,7 @@ class ClusterDistCall:
 	_TYPEMAP = [
 		("form", "application/x-www-form-urlencoded"),
 		("xml", "text/xml"),	
-		("nvp", "text/namevalue"),
-		("grpc", "application/grpc")
+		("nvp", "text/namevalue")		
 	]
 	def _map_content_type (self, _reqtype):
 		for alias, ct in self._TYPEMAP:
@@ -317,6 +317,8 @@ class ClusterDistCall:
 					handler = http_request_handler.RequestHandler					
 					if _reqtype == "rpc":
 						request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)				
+					elif _reqtype == "grpc":
+						request = http_request.GRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)						
 					elif _reqtype == "upload":
 						request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
 					else:
@@ -336,6 +338,9 @@ class ClusterDistCall:
 		if requests:
 			trigger.wakeup ()
 		
+		if _reqtype [-3:] == "rpc":
+			return self
+			
 	def _avails (self):
 		return len (self._nodes)
 	

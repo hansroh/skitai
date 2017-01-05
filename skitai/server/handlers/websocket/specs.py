@@ -50,8 +50,7 @@ class WebSocket:
 		
 	def close (self):
 		if self._closed: return
-		self._closed = True
-		self.handler.finish_request (self.request)		
+		self._closed = True		
 	
 	def closed (self):
 		return self._closed

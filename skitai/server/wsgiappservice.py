@@ -94,9 +94,9 @@ class WAS:
 	def in__dict__ (self, name):
 		return name in self.__dict__
 		
-	VALID_COMMANDS = ["ws", "get", "post", "postform", "postjson", "postxml", "postnvp", "postgrpc", "rpc", "put", "upload", "delete", "options", "db"]
+	VALID_COMMANDS = ["ws", "get", "post", "postform", "postjson", "postxml", "postnvp", "rpc", "grpc", "put", "upload", "delete", "options", "db"]
 	def __getattr__ (self, name):
-		# method magic
+		# method magic		
 		if name in self.VALID_COMMANDS:
 			return _Method(self._call, name)
 		
@@ -206,7 +206,13 @@ class WAS:
 			composer.Composer.SAVE_PATH = os.path.join (self.var_base_path, "daemons", "smtpda", "mail", "spool")
 			pathtool.mkdir (composer.Composer.SAVE_PATH)
 		return composer.Composer (subject, snd, rcpt)
-		
+	
+	def togrpc (self, obj):
+		return obj.SerializeToString ()
+	
+	def fromgrpc (self, message, obj):
+		return message.ParseFromString (obj)
+			
 	def tojson (self, obj):
 		return json.dumps (obj)
 		

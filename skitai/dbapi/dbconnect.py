@@ -32,6 +32,9 @@ class DBConnect:
 		
 		self.set_event_time ()
 	
+	def get_proto (self):
+		return None
+	
 	def close (self):		
 		if self.cur:
 			self.cur.close ()

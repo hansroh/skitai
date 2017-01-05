@@ -366,7 +366,8 @@ class ClusterManager:
 			self.logger.trace ()
 		
 		if self._proto is None:
-			self._proto = asyncon.get_proto ()			
+			self._proto = asyncon.get_proto ()
+						
 		return asyncon
 	
 	def sortfunc (self, a, b):

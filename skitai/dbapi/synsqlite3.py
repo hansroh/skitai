@@ -12,7 +12,7 @@ class SynConnect (dbconnect.DBConnect):
 	def __init__ (self, address, params = None, lock = None, logger = None):
 		dbconnect.DBConnect.__init__ (self, address, params, lock, logger)
 		self.connected = False
-	
+		
 	def close (self):	
 		self.connected = False
 		dbconnect.DBConnect.close (self)

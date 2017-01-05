@@ -59,7 +59,6 @@ class http2_request_handler:
 		self._closed = True		
 		if self.channel:
 			self.go_away (errcode) # go_away			
-		self.handler.finish_request (self.request)
 	
 	def enter_shutdown_process (self):
 		self.close (NO_ERROR)
@@ -389,7 +388,7 @@ class Handler (wsgi_handler.Handler):
 	
 	def handle_request (self, request):
 		http2 = http2_request_handler (self, request)		
-		request.channel.die_with (http2)
+		request.channel.die_with (http2, "http2 stream")
 		request.channel.set_response_timeout (self.keep_alive)
 		request.channel.set_keep_alive (self.keep_alive)
 		
@@ -404,8 +403,4 @@ class Handler (wsgi_handler.Handler):
 			request.channel.current_request = http2
 			
 		http2.initiate_connection ()
-		
-	def finish_request (self, request):
-		if request.channel:			
-			request.channel.journal ('http2 stream channel')
-		
+	
