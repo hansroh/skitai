@@ -116,7 +116,7 @@ class Part:
 		if thing.startswith ("/"):
 			return self.route [:-1] + self.mount_p [:-1] + thing
 	
-		for func, name, fuvars, favars, str_rule, options in self.route_map.values ():			 
+		for func, name, fuvars, favars, numvars, str_rule, options in self.route_map.values ():			 
 			if thing != name: continue								
 			assert len (args) <= len (fuvars), "Too many params, this has only %d params(s)" % len (fuvars)						
 			params = {}
@@ -175,7 +175,7 @@ class Part:
 		self.packages [id (part)] = part
 									
 	def try_rule (self, path_info, rule, rulepack):
-		f, n, l, a, s, options = rulepack
+		f, n, l, a, c, s, options = rulepack
 		
 		arglist = rule.findall (path_info)
 		if not arglist: 
@@ -204,7 +204,7 @@ class Part:
 					
 		s = rule.find ("/<")
 		if s == -1:	
-			self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, rule, options)
+			self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, func.__code__.co_argcount - 1, rule, options)
 		else:
 			s_rule = rule
 			rulenames = []
@@ -223,7 +223,7 @@ class Part:
 					rule = rule.replace (r, "/([^/]+)")
 			rule = rule + "$"
 			re_rule = re.compile (rule)				
-			self.route_map [re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), s_rule, options)
+			self.route_map [re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), func.__code__.co_argcount - 1, s_rule, options)
 			self.route_priority.append ((s, re_rule))
 			self.route_priority.sort (key = lambda x: x [0], reverse = True)
 			

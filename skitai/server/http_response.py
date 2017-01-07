@@ -77,7 +77,7 @@ def catch (htmlformating = 0, exc_info = None):
 class http_response:
 	reply_code = 200
 	reply_message = "OK"
-	is_sent_response = False
+	_is_streaming = False
 		
 	def __init__ (self, request):
 		self.request = request
@@ -90,6 +90,12 @@ class http_response:
 		self.stime = time.time ()
 		self.htime = 0
 	
+	def is_streaming (self):
+		return self._is_streaming
+	
+	def set_streaming (self):
+		self._is_streaming = True	
+		
 	def __len__ (self):
 		return len (self.outgoing)
 			
@@ -150,7 +156,7 @@ class http_response:
 		return 'HTTP/%s %d %s' % (self.request.version, code, status)
 	
 	def responsable (self):
-		return not self.is_done		
+		return not self.is_done
 	
 	def parse_ststus (self, status):
 		try:	
@@ -174,10 +180,7 @@ class http_response:
 	def send_error (self, status, why = "", disconnect = False):
 		# for Saddle App
 		if not self.responsable ():
-			raise AssertionError ("Relponse already sent!")			
-		if len (self.outgoing):
-			self.outgoing.list = []
-		
+			raise AssertionError ("Relponse already sent!")
 		self ["Content-Type"] = "text/html"		
 		if type (why) is tuple: # render exc_info
 			why = catch (1, why)			
@@ -247,7 +250,8 @@ class http_response:
 				
 	def error (self, code, status = "", why = "", force_close = False, push_only = False):
 		global DEFAULT_ERROR_MESSAGE
-		if not self.responsable (): return
+		if self.is_done: return
+		self.outgoing.clear ()
 		self.reply_code = code
 		if status: self.reply_message = status
 		else:	self.reply_message = self.get_status_msg (code)
@@ -261,7 +265,7 @@ class http_response:
 		self.update ('Cache-Control', 'max-age=0')
 		self.push (body)
 		if not push_only:
-			self.done (True, True, force_close)
+			self.done (force_close)
 	
 	#--------------------------------------------
 	# Send Response
@@ -280,15 +284,19 @@ class http_response:
 			self.outgoing.push (producers.simple_producer (thing))
 		else:
 			self.outgoing.push (thing)
-					
-	def done (self, globbing = True, compress = True, force_close = False, next_request = None):
+	      					
+	def done (self, force_close = False, upgrade_request = None):
 		self.htime = (time.time () - self.stime) * 1000
 		self.stime = time.time () #for delivery time
 		
 		if not self.responsable (): return
 		self.is_done = True
 		if self.request.channel is None: return
-					
+		
+		globbing, compress = True, True
+		if upgrade_request or self.is_streaming ():
+			globbing, compress = False, False
+						
 		connection = utility.get_header (utility.CONNECTION, self.request.header).lower()
 		close_it = False
 		way_to_compress = ""
@@ -404,8 +412,8 @@ class http_response:
 			if self.request.channel is None:
 				return
 						
-			if next_request:
-				request, terminator = next_request
+			if upgrade_request:
+				request, terminator = upgrade_request
 				self.request.channel.current_request = request
 				self.request.channel.set_terminator (terminator)
 			else:

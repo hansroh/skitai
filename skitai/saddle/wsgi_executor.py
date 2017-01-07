@@ -69,10 +69,13 @@ class Executor:
 		teardown and teardown (self.was)
 		return response
 		
-	def generate_content (self, method, _args, karg):		
-		_karg = self.parse_kargs (karg)		
-		self.was.request.args = _karg
-		response = self.chained_exec (method, _args, _karg)		
+	def generate_content (self, method, _args, karg):	
+		ct = self.was.request.get_header ('content-type', '')
+		if self.was.request.command == 'post' and \
+			(ct.startswith ('application/x-www-form-urlencoded') or ct.startswith ("multipart/form-data")):
+			karg = self.parse_kargs (karg)
+		self.was.request.args = karg
+		response = self.chained_exec (method, _args, karg)
 		return response
 	
 	def parse_kargs (self, kargs):
@@ -85,7 +88,7 @@ class Executor:
 				self.merge_args (allkarg, _input)
 			else:
 				data = _input.read ()
-		
+				
 		if kargs:
 			self.merge_args (allkarg, kargs)
 		if query: 
@@ -159,7 +162,7 @@ class Executor:
 			
 		return True
 	
-	def find_method (self, request, path):
+	def find_method (self, request, path, handle_response = True):
 		current_app, thing, param, respcode = self.get_method (
 			path, 
 			request.command.upper (), 
@@ -171,13 +174,14 @@ class Executor:
 			# passed then be normal
 			respcode = 0
 		
-		if respcode:
-			if respcode == 301:
-				request.response ["Location"] = thing
-				request.response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % thing)							
-			else:
-				request.response.send_error ("%d %s" % (respcode, self.responses.get (respcode, "Undefined Error")))
-			
+		if handle_response:
+			if respcode:
+				if respcode == 301:
+					request.response ["Location"] = thing
+					request.response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % thing)							
+				else:
+					request.response.send_error ("%d %s" % (respcode, self.responses.get (respcode, "Undefined Error")))
+				
 		return current_app, thing, param, respcode
 		
 	def __call__ (self):		
@@ -195,10 +199,11 @@ class Executor:
 		except:				
 			self.rollback ()
 			content = request.response ("500 Internal Server Error", exc_info = self.was.app.debug and sys.exc_info () or None)
+			del self.was.env
+			del self.was.subapp
 			raise
-		else:
-			self.commit ()
 		
+		self.commit ()		
 		# clean was
 		del self.was.env
 		del self.was.subapp

@@ -305,7 +305,22 @@ class composite_producer:
 	"combine a fifo of producers into one"
 	def __init__ (self, producers):
 		self.producers = producers
-
+		self.bind_ready ()
+	
+	def bind_ready (self):
+		if len(self.producers) == 0:
+			return
+		p = self.producers.first()
+		if hasattr (p, "ready"):
+			self.ready = p.ready
+			p.ready = None
+			
+		else:
+			try:
+				del self.ready
+			except AttributeError:
+				pass		
+				
 	def more (self):
 		while len(self.producers):
 			p = self.producers.first()
@@ -314,6 +329,7 @@ class composite_producer:
 				return d
 			else:
 				self.producers.pop()
+				self.bind_ready ()
 		else:
 			return b''
 
@@ -328,7 +344,11 @@ class globbing_producer:
 		self.producer = producer
 		self.buffer = b''
 		self.buffer_size = buffer_size
-
+		
+		if hasattr (producer, "ready"):
+			self.ready = producer.ready
+			producer.ready = None
+		
 	def more (self):
 		while len(self.buffer) < self.buffer_size:
 			data = self.producer.more()
@@ -352,6 +372,10 @@ class hooked_producer:
 		self.producer = producer
 		self.function = function
 		self.bytes = 0
+		
+		if hasattr (producer, "ready"):
+			self.ready = producer.ready
+			producer.ready = None
 
 	def more (self):
 		#print "hooked_producer.more ()"
@@ -387,7 +411,11 @@ class chunked_producer:
 	def __init__ (self, producer, footers=None):
 		self.producer = producer
 		self.footers = footers
-	
+		
+		if hasattr (producer, "ready"):
+			self.ready = producer.ready
+			producer.ready = None
+			
 	def more (self):
 		if self.producer:
 			data = self.producer.more()
@@ -433,6 +461,12 @@ class compressed_producer:
 	def __init__ (self, producer, level=6):
 		self.producer = producer
 		self.compressor = zlib.compressobj (level, zlib.DEFLATED)
+		self.bind_ready ()
+	
+	def bind_ready (self):	
+		if hasattr (self.producer, "ready"):
+			self.ready = self.producer.ready
+			self.producer.ready = None
 			
 	def more (self):
 		if self.producer:
@@ -453,8 +487,9 @@ class compressed_producer:
 class gzipped_producer (compressed_producer):
 	def __init__ (self, producer, level=5):
 		self.producer = producer
-		self.compressor = compressors.GZipCompressor (level)
-	
+		self.compressor = compressors.GZipCompressor (level)		
+		self.bind_ready ()
+			
 	
 class escaping_producer:
 
@@ -468,7 +503,11 @@ class escaping_producer:
 		self.buffer = b''
 		from asynchat import find_prefix_at_end
 		self.find_prefix_at_end = find_prefix_at_end
-
+		
+		if hasattr (producer, "ready"):
+			self.ready = producer.ready
+			producer.ready = None
+			
 	def more (self):
 		esc_from = self.esc_from
 		esc_to   = self.esc_to
@@ -516,5 +555,7 @@ class fifo:
 			return (1, result)
 		else:
 			return (0, None)
-
+	
+	def clear (self):
+		self.list = []
 			

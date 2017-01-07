@@ -1,22 +1,29 @@
 import struct
 from skitai.protocol.grpc.producers import grpc_producer
+from skitai.protocol.http.request import XMLRPCRequest
 
 class GRPCRequest (XMLRPCRequest):
 	def __init__ (self, uri, method, params = (), headers = None, encoding = "utf8", auth = None, logger = None):
 		self.uri = uri
 		self.method = method
-		self.params = params		
+		self.params = params
 		self.encoding = encoding
 		self.auth = (auth and type (auth) is not tuple and tuple (auth.split (":", 1)) or auth)
 		self.logger = logger
 		self.address, self.path = self.split (uri)
 	
-		self.headers = {"grpc-timeout": "10S", "grpc-encoding": "gzip"}		
+		self.headers = {
+			"grpc-timeout": "10S", 
+			"grpc-encoding": "gzip",
+			"grpc-accept-encoding": "identity,gzip",
+			"user-agent": self.user_agent,
+			"message-type": self.params [0].__class__.__name__,
+		}		
 		self.payload = self.serialize ()
 		if not self.payload:
 			self.method = "GET"		
 		else:
-			self.headers ["Content-Type"] = "application/grpc+proto"		
+			self.headers ["Content-Type"] = "application/grpc"		
 	
 	def get_cache_key (self):
 		return None
@@ -34,7 +41,5 @@ class GRPCRequest (XMLRPCRequest):
 		return (host, port), path
 	
 	def serialize (self):
-		if type (self.params) is list:
-			self.params = iter (self.params)			
 		return grpc_producer (self.params)
 		

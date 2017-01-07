@@ -15,7 +15,7 @@ class https_channel (http_server.http_channel):
 	
 	def __init__(self, server, conn, addr):
 		http_server.http_channel.__init__(self, server, conn, addr)
-	
+		
 	def send(self, data):	
 		#print	("SEND", str (data), self.get_terminator ())
 		try:

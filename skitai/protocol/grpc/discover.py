@@ -1,32 +1,44 @@
+import sys
 from google.protobuf import descriptor_pb2
-from google.protobuf import descriptor_pool
-import phonebook_pb2 as pb
 
-proto = descriptor_pb2.FileDescriptorProto.FromString(
-    phonebook_pb2.DESCRIPTOR.serialized_pb
-)
+cache = {}
 
-pool = descriptor_pool.Default()
-print (pool.FindByName ("proto.phonebook"))
+def discover ():
+	global cache	
+	cache = {}
+	for k, v in sys.modules.items ():
+		if k.endswith ("_pb2") and not k.startswith ("google."):
+			desriptor = v.DESCRIPTOR
+			proto = descriptor_pb2.FileDescriptorProto.FromString(desriptor.serialized_pb)
+			for service in proto.service:			
+				for method in service.method:
+					cache ["%s.%s/%s" % (desriptor.package, service.name, method.name)] = (
+						v,
+						(method.input_type.split (".")[-1], method.client_streaming),
+						(method.output_type.split (".")[-1], method.server_streaming),
+						method.options
+					)					
 
-proto.service [0].method[0]
-proto.service [0].method[0].name
-'getBook'
-proto.service [0].method[0].input_type
-'.tutorial.null'
+def find_type (uri):
+	global cache	
+	if not cache: discover ()
+	return find_input (uri), find_output (uri)
+	
+def find_output (uri):
+	global cache	
+	if not cache: discover ()
+	try:
+		module, it, ot, opt = cache.get (uri)
+	except TypeError:
+		raise KeyError	
+	return getattr (module, ot [0]), ot [1]
 
-book = pb.Book ()
-p = book.person.add ()
-p.name = "Hans Roh"
-p.id = 1
-phone = p.phone.add ()
-phone.type = 1
-phone.number = "4602-1165"
-
-mbook = book.SerializeToString ()
-print (mbook)
-
-book = pb.Book ()
-book.ParseFromString (mbook)
-
-print (book)
+def find_input (uri):
+	global cache	
+	if not cache: discover ()
+	try:
+		module, it, ot, opt = cache.get (uri)
+	except TypeError:
+		raise KeyError	
+	return getattr (module, it [0]), it [1]
+	

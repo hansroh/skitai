@@ -4,10 +4,10 @@ from skitai.lib import producers
 from h2.connection import H2Connection, GoAwayFrame, DataFrame
 from h2.exceptions import ProtocolError, NoSuchStreamError
 from h2.events import DataReceived, RequestReceived, StreamEnded, PriorityUpdated, ConnectionTerminated, StreamReset, WindowUpdated
-from h2.errors import PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
+from h2.errors import CANCEL, PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
 from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
-from skitai.protocol.http2.producers import h2stream_producer, h2header_producer
+from skitai.protocol.http2.producers import h2stream_producer, h2header_producer, h2data_producer
 from .http2.fifo import priority_producer_fifo
 import threading
 try:
@@ -58,7 +58,12 @@ class http2_request_handler:
 		if self._closed: return
 		self._closed = True		
 		if self.channel:
-			self.go_away (errcode) # go_away			
+			self.go_away (errcode) # go_away
+		
+		with self._clock:
+			for request in self.requests.values ():
+				request.close ()
+			self.requests = []	
 	
 	def enter_shutdown_process (self):
 		self.close (NO_ERROR)
@@ -189,30 +194,31 @@ class http2_request_handler:
 			self.conn.push_stream (stream_id, promise_stream_id, request_headers	+ addtional_request_headers)
 		self.send_data ()
 					
-	def push_response (self, stream_id, headers, producer):
+	def handle_response (self, stream_id, headers, producer, streaming = False):
 		#print ("++RESPONSE", headers)
-		with self._clock:
-			r = self.requests [stream_id]
+		r = self.get_request (stream_id)		
+		with self._clock:			
 			try:
 				depends_on, weight = self.priorities [stream_id]
 			except KeyError:
 				depends_on, weight = 0, 1	
 			else:
 				del self.priorities [stream_id]				
-		
+
 		self.channel.push_with_producer (
 			h2header_producer (stream_id, headers, producer, self.conn, self._plock)
 		)
-		if producer:
-			outgoing_producer = h2stream_producer (
+		if producer:			
+			if streaming: 	h2_class = h2stream_producer
+			else: 					h2_class = h2data_producer
+			outgoing_producer = h2_class (
 				stream_id, depends_on, weight, producer, self.conn, self._plock
-			)			
-			self.channel.push_with_producer (outgoing_producer)
+			)
+			self.channel.push_with_producer (outgoing_producer)			
 			
-			r.http2 = None # break bacj ref.
-			with self._clock:
-				#self.channel.ready = self.channel.producer_fifo.ready
-				del self.requests [stream_id]			
+			if r.response and not r.response.is_streaming ():
+				# don't close streaming response
+				self.stream_finished (stream_id)
 			
 		promise_stream_id, promise_headers = None, None
 		with self._clock:
@@ -221,21 +227,43 @@ class http2_request_handler:
 		
 		if promise_stream_id:
 			self.handle_request (promise_stream_id, promise_headers, is_promise = True)
+	
+	def stream_finished (self, stream_id):
+		# called by stream_collectors
+		r = self.get_request (stream_id)
+		if r:			
+			r.http2 = None # break bacj ref.
+		with self._clock:
+			#self.channel.ready = self.channel.producer_fifo.ready
+			try: del self.requests [stream_id]
+			except KeyError: pass	
+		
+	def get_request (self, stream_id):
+		r = None
+		with self._clock:
+			try: r =	self.requests [stream_id]
+			except KeyError: pass
+		return r
 		
 	def handle_events (self, events):
 		for event in events:
+			#print ('EVENT:', event, self.requests)
 			if isinstance(event, RequestReceived):
 				self.handle_request (event.stream_id, event.headers)				
 					
 			elif isinstance(event, StreamReset):
 				if event.remote_reset:
+					r = self.get_request (event.stream_id)
+					if r and r.collector:
+						try: r.collector.stream_has_been_reset ()
+						except AttributeError: pass
+					
 					deleted = False
 					if event.stream_id % 2 == 0: # promise stream
 						with self._clock:
 							try: del self.promises [event.stream_id]
 							except KeyError: pass
 							else: deleted = True
-					
 					if not deleted:
 						self.channel.producer_fifo.remove (event.stream_id)
 						
@@ -254,31 +282,42 @@ class http2_request_handler:
 					self.priorities [event.stream_id] = [event.depends_on, event.weight]
 				
 			elif isinstance(event, DataReceived):				
-				with self._clock:	
-					r = self.requests [event.stream_id]
-				try:
-					r.channel.set_data (event.data, event.flow_controlled_length)
-				except ValueError:
-					# from vchannel.handle_read () -> collector.collect_inconing_data ()
-					self.reset_stream (event.stream_id)
+				r = self.get_request (event.stream_id)
+				if not r:
+					self.reset_stream (event.stream_id, PROTOCOL_ERROR)
+				else:
+					try:
+						r.channel.set_data (event.data, event.flow_controlled_length)
+					except ValueError:
+						# from vchannel.handle_read () -> collector.collect_inconing_data ()
+						self.reset_stream (event.stream_id)
+					else:
+						rfcw = self.conn.remote_flow_control_window (event.stream_id)
+						if rfcw < 131070:
+							self.increment_flow_control_window (event.stream_id, 196605)
 				
 			elif isinstance(event, StreamEnded):
-				r = None
-				with self._clock:
-					try: r = self.requests [event.stream_id]
-					except KeyError: pass
-				
+				r = self.get_request (event.stream_id)		
 				if r and r.collector:
-					r.collector.found_terminator ()
-					
+					r.channel.handle_read ()
+					r.channel.found_terminator ()
+				
 		self.send_data ()
 	
-	def reset_stream (self, stream_id, errcode = FLOW_CONTROL_ERROR):
+	def reset_stream (self, stream_id, errcode = CANCEL):
 		with self._plock:
-			self.conn.reset_stream (stream_id, errcode)
+			self.conn.reset_stream (stream_id, error_code = errcode)
 		self.send_data ()	
 		self.request.logger ("stream reset (stream_id:%d, error:%d)" % (stream_id, errcode), "info")
-									
+	
+	def increment_flow_control_window (self, stream_id, cl):
+		with self._plock:
+			self.conn.increment_flow_control_window (cl)
+			rfcw = self.conn.remote_flow_control_window (stream_id)
+			if cl > rfcw:
+				self.conn.increment_flow_control_window (cl - rfcw, stream_id)
+		self.send_data ()								
+		
 	def handle_request (self, stream_id, headers, is_promise = False):
 		#print ("++REQUEST: %d" % stream_id, headers)
 		command = "GET"
@@ -330,7 +369,7 @@ class http2_request_handler:
 			self.channel.server.total_requests.inc()
 		
 		for h in self.channel.server.handlers:
-			if h.match (r):		
+			if h.match (r):	
 				with self._clock:
 					self.requests [stream_id] = r
 				
@@ -345,23 +384,16 @@ class http2_request_handler:
 				else:
 					if should_have_collector and cl > 0 and r.collector is None:
 						# too large body
-						self.reset_stream (stream_id)
-						# some browser ignore reset, why?
-						#self.close (FLOW_CONTROL_ERROR)
+						self.reset_stream (stream_id)						
 						
 					elif cl > 0:
 						if stream_id == 1:
 							self.data_length = cl	
-							self.set_terminator (self.data_length)
+							self.set_terminator (cl)
 							
 						else:
 							# give permission for sending data to a client
-							with self._plock:
-								self.conn.increment_flow_control_window (cl)
-								rfcw = self.conn.remote_flow_control_window (stream_id)
-								if cl > rfcw:
-									self.conn.increment_flow_control_window (cl - rfcw, stream_id)
-							self.send_data ()
+							self.increment_flow_control_window (stream_id, cl)
 								
 				return					
 					
@@ -388,7 +420,7 @@ class Handler (wsgi_handler.Handler):
 	
 	def match (self, request):
 		if request.command == "pri" and request.uri == "*" and request.version == "2.0":
-			return True		
+			return True
 		upgrade = request.get_header ("upgrade")
 		return upgrade and upgrade.lower () == "h2c" and request.version == "1.1"
 	
@@ -403,7 +435,7 @@ class Handler (wsgi_handler.Handler):
 				"101 Switching Protocol",
 				headers = [("Connection",  "upgrade"), ("Upgrade", "h2c"), ("Server", skitai.NAME.encode ("utf8"))]
 			)
-			request.response.done (False, False, False, (http2, http2.http11_terminator))
+			request.response.done (upgrade_request = (http2, http2.http11_terminator))
 		
 		else:
 			request.channel.current_request = http2

@@ -48,10 +48,13 @@ class http_channel (asynchat.async_chat):
 		self.creation_time = int (time.time())
 		self.event_time = int (time.time())
 		self.__history = []
-		
+		self.__sendlock = None
 		self.producers_attend_to = []
 		self.things_die_with = []
 	
+	def use_sendlock (self):
+		self.__sendlock  = threading.Lock ()
+			
 	def get_history (self):
 		return self.__history
 			
@@ -130,10 +133,14 @@ class http_channel (asynchat.async_chat):
 		asynchat.async_chat.handle_write (self)		
 	
 	def initiate_send (self):
+		lock = self.__sendlock
+		if lock: lock.acquire ()
 		ret = asynchat.async_chat.initiate_send (self)		
-		if len (self.producer_fifo) == 0:
+		len_fifo = len (self.producer_fifo)
+		if lock: lock.release ()
+		if len_fifo == 0:
 			self.done_request ()
-		return ret	
+		return ret
 		
 	def attend_to (self, thing):
 		if not thing: return

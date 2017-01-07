@@ -61,7 +61,7 @@ class _WASPool:
 			del self.__p [_id]
 		except KeyError:
 			pass
-				
+
 	def _get (self):
 		_id = self.__get_id ()
 		try:

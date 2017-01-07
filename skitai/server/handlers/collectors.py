@@ -6,7 +6,7 @@ except ImportError:
 	from io import BytesIO	
 
 class FormCollector:
-	def __init__ (self, handler, request):
+	def __init__ (self, handler, request, *args):
 		self.handler = handler
 		self.request = request
 		self.buffer = BytesIO ()
@@ -55,7 +55,7 @@ class FormCollector:
 
 
 class MultipartCollector (FormCollector):
-	def __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size):
+	def __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size, *args):
 		self.handler = handler
 		self.request = request		
 		self.content_length = self.get_content_length ()
@@ -79,5 +79,8 @@ class MultipartCollector (FormCollector):
 		self.buffer.close ()		
 		self.handler.continue_request (self.request, open (self.buffer.name, "rb"))
 		self.request.channel.set_terminator (b'\r\n\r\n')
+
+
+
 	
 	

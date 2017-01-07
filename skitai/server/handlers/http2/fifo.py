@@ -3,62 +3,111 @@ import threading
 class priority_producer_fifo:
 	def __init__ (self):
 		self.l = []
+		self.r = []
+		self.has_None = False
 		self._lock = threading.Lock ()
 	
 	def __len__ (self):
 		with self._lock:
 			l = len (self.l)
-		return l
-		
-	def __getitem__(self, index):
+		if l:
+			return l
+					
+		l = 0
 		with self._lock:
-			i = self.l [index]
-		return i	
-	
+			if self.r:
+				for item in self.r:
+					if item.ready ():
+						return 1
+		
+		if not self.l and not self.r and self.has_None:
+			# for return None
+			self.l.append (None)
+			return 1
+		return 0
+			
+	def __getitem__(self, index):
+		if index != 0:
+			with self._lock:
+				return self.l [index]
+			
+		with self._lock:
+			if self.l and hasattr (self.l [0], 'ready') and not self.l [0].ready ():
+				item = self.l.pop (0)
+				self.r.append (item)
+		
+			if not self.l and self.r:
+				# self.l always has got a priority
+				for index in range (len (self.r)):
+					item = self.r [index]
+					if item.ready ():
+						item = self.r.pop (index)
+						self.l.insert (0, item)
+						break
+			
+			if not self.l:
+				self.l.append (b"")
+			return self.l [0]
+				
 	def __setitem__(self, index, item):
 		with self._lock:
 			self.l.insert (index, item)
 		
-	def __delitem__ (self, index):	
+	def __delitem__ (self, index):
+		import threading
 		with self._lock:
+			print ('\n-------------', id(self), threading.currentThread())
 			del self.l [index]
 	
-	def remove (self, stream_id):	
-		index = 0
+	def remove_from (self, stream_id, lst):
+		deletables = []
+		deleted = 0
 		with self._lock:
-			for each in self.l:
+			for index in range (len (lst)):
 				try:
-					legacy_stream_id = each.stream_id
+					producer_stream_id = lst [index].stream_id
 				except AttributeError:
 					pass
 				else:
-					if legacy_stream_id	== stream_id:
-						item = self.l.pop (index)
-						if hasattr (item, 'close'):
-							try: item.close ()
-							except: pass
-						break
-				index += 1		
+					if producer_stream_id	== stream_id:
+						deletables.append (index)
+			deleted = 1
+			for index in deletables:
+				item = lst.pop (index)
+				if hasattr (item, 'close'):
+					try: item.close ()
+					except: pass
+		return deleted
+							
+	def remove (self, stream_id):
+		self.remove_from (stream_id, self.l)
+		self.remove_from (stream_id, self.r)
+	
+	def append (self, item):		
+		self.insert (-1, item)
+	
+	def appendleft (self, item):
+		self.insert (0, item)
 			
-	def append (self, item):
-		has_None = False
-		with self._lock:
-			if self.l and self.l [-1] is None:
-				has_None = True
-		if has_None:
-			return
-				
+	def insert (self, index, item):
 		if item is None:
-			with self._lock:
-				self.l.append (item)
+			self.has_None = True
 			return
 			
+		if self.has_None:
+			return # deny adding	
+		
+		if hasattr (item, 'ready'):
+			with self._lock:
+				self.r.insert (index, item)
+			return
+					
 		try:
 			w1 = item.weight
 			d1 = item.depends_on
 		except AttributeError:
 			with self._lock:
-				self.l.append (item)
+				self.l.insert (index, item)
 			return
 		
 		index = 0
@@ -79,43 +128,11 @@ class priority_producer_fifo:
 		
 		if not inserted:
 			with self._lock:
-				self.l.append (item)
-			
-	def appendleft (self, item):
-		with self._lock:
-			self.l.insert (0, item)
-		
+				self.l.insert (index, item)
+	
 	def clear (self):
 		with self._lock:
 			self.l = []
+			self.r = []
 	
-	def ready (self):
-		# check if remote flow control window for each stream is open
-		# but maybe unnecessory and unused
-		self._lock.acquire ()
-		if not self.l:
-			self._lock.release ()
-			return False
-			
-		first = self.l [0]
-		if not hasattr (first, 'stream_id') or first.ready ():
-			self._lock.release ()
-			return True
-		
-		index = 1
-		has_ready = False
-		for item in self.l [1:]:
-			if not hasattr (item, 'stream_id'):
-				break
-							
-			if item.ready ():
-				ready_item = self.l.pop (index)
-				self.l.insert (0, ready_item)
-				has_ready = True
-				break
-				
-			index += 1
-		
-		self._lock.release ()
-		return has_ready
-				
+	

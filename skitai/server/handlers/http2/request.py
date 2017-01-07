@@ -30,7 +30,9 @@ class request (http_request.http_request):
 	
 	def get_scheme (self):	
 		return self.scheme
-		
-
 	
-	
+	def close (self):
+		# ex. grpc collector
+		if self.collector:
+			self.collector.close ()
+			

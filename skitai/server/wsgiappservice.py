@@ -93,7 +93,13 @@ class WAS:
 	
 	def in__dict__ (self, name):
 		return name in self.__dict__
-		
+	
+	def _clone (self):
+		new_was = self.__class__ ()
+		for k, v in self.__dict__.items ():
+			setattr (new_was, k, v)
+		return new_was	
+			
 	VALID_COMMANDS = ["ws", "get", "post", "postform", "postjson", "postxml", "postnvp", "rpc", "grpc", "put", "upload", "delete", "options", "db"]
 	def __getattr__ (self, name):
 		# method magic		

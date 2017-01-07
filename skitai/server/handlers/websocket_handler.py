@@ -100,6 +100,7 @@ class Handler (wsgi_handler.Handler):
 			else:
 				ws = specs.WebSocket4 (self, request)
 			request.channel.die_with (ws, "websocket spec. %d" % design_spec)
+			request.channel.use_sendlock ()
 			env ["websocket"] = ws
 			self.channel_config (request, ws, keep_alive)
 			job = specs.Job2 (request, apph, (env, donot_response), self.wasc.logger)
@@ -125,6 +126,7 @@ class Handler (wsgi_handler.Handler):
 			if not websocket_servers.has_key (gid):
 				server = websocket_servers.create (gid)
 				request.channel.die_with (server, "websocket spec. %d" % design_spec)
+				request.channel.use_sendlock ()
 				env ["websocket"] = server
 				job = specs.Job3 (server, request, apph, (env, donot_response), self.wasc.logger)
 				threading.Thread (target = job).start ()	
@@ -135,7 +137,7 @@ class Handler (wsgi_handler.Handler):
 			self.channel_config (request, ws, keep_alive)			
 		
 	def channel_config (self, request, ws, keep_alive):
-		request.response.done (False, False, False, (ws, 2))
+		request.response.done (upgrade_request =  (ws, 2))
 		request.channel.set_response_timeout (keep_alive)
 		request.channel.set_keep_alive (keep_alive)
 	

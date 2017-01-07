@@ -158,33 +158,32 @@ class Handler:
 		if not self.isauthorized (app, request):
 			return 
 		
-		ct = request.get_header ("content-type")		
-		if request.command == 'post' and ct and ct.startswith ("multipart/form-data"):
-			# handle stream by app
-			# shoud have constructor __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size)
+		if request.command in ('post', 'put'):
 			try:
-				#self.wasc.apps.get_app (has_route) - module (that has callable) wrapper
-				#.get_callable() - callable, like WSGI function, Saddle or Falsk app
-				AppCollector = app.get_multipart_collector ()
+				# shoud have constructor __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size)
+				collector_class = app.get_collector (request)
 			except AttributeError:
-				AppCollector = None
+				collector_class = None
+			except NotImplementedError:				
+				return request.response.error (404)
 			
+			ct = request.get_header ("content-type")	
+			if ct.startswith ("multipart/form-data"):
+				max_size = app.config.max_multipart_body_size
+			else:
+				max_size = app.config.max_post_body_size
+					
+			if collector_class is None:
+				if ct.startswith ("multipart/form-data"):
+					collector_class = collectors.MultipartCollector					
+				else:
+					collector_class = collectors.FormCollector
 			args = (				
 				app.config.max_multipart_body_size, 
 				app.config.max_upload_file_size, 
 				app.config.max_cache_size
-			)			
-			if AppCollector:
-				collector = self.make_collector (AppCollector, request, app.config.max_multipart_body_size, *args)
-			else:
-				collector = self.make_collector (collectors.MultipartCollector, request,  app.config.max_multipart_body_size, *args)
-
-			if collector:
-				request.collector = collector
-				collector.start_collect ()
-			
-		elif request.command in ('post', 'put'):
-			collector = self.make_collector (collectors.FormCollector, request, app.config.max_post_body_size)
+			)				
+			collector = self.make_collector (collector_class, request, max_size, *args)			
 			if collector:
 				request.collector = collector
 				collector.start_collect ()
@@ -214,6 +213,8 @@ class Handler:
 			self.wasc.logger.trace ("server",  request.uri)
 			return request.response.error (500, why = apph.debug and catch (1) or "")
 		
+		#if 
+		#	threading.Thread (target = Job (request, apph, args, self.wasc.logger))
 		if env ["wsgi.multithread"]:
 			self.wasc.queue.put (Job (request, apph, args, self.wasc.logger))
 		else:
@@ -246,7 +247,7 @@ class Job:
 			content = self.apph (*self.args)
 			
 			if not response.responsable ():
-				# already called response.done () or dicinnected channel
+				# already called response.done () or diconnected channel
 				return
 			
 			if content is None: # Possibly no return mistake
@@ -317,7 +318,7 @@ class Job:
 				if len (will_be_push) == 1 and type (part) is bytes and len (response) == 0:
 					response.update ("Content-Length", len (part))
 				response.push (part)
-			trigger.wakeup (lambda p=response: (p.done(),))			
+			trigger.wakeup (lambda p=response: (p.done(),))
 											
 	def __call__(self):
 		try:

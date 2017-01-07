@@ -230,7 +230,6 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 			asyncon = self._get_connection (None)			
 			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._filter)
 			self._requests [rs] = asyncon
-			print ('---', method, cmd)
 			if method in ("do", "execute"):
 				asyncon.execute (self._callback and self._callback or rs.handle_result, *cmd)							
 			else:

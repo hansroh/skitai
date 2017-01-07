@@ -2,9 +2,10 @@ import threading
 import time
 import os
 import sys
-from . import part, multipart_collector, cookie, session
+from . import part, multipart_collector, cookie, session, grpc_collector
 from . import wsgi_executor, xmlrpc_executor, grpc_executor
 from skitai.lib import producers
+from skitai.protocol.grpc import discover
 from skitai.server import utility
 from hashlib import md5
 import random
@@ -187,9 +188,33 @@ class Saddle (part.Part):
 		self.debug = debug
 		self.use_reloader = use_reloader
 	
-	def get_multipart_collector (self):
-		return multipart_collector.MultipartCollector
-	
+	def get_collector (self, request):
+		ct = request.get_header ("content-type")
+		if not ct: return
+		if ct.startswith ("multipart/form-data"):
+			return multipart_collector.MultipartCollector
+			
+		if ct.startswith ("application/grpc"):
+			try:
+				n, s = discover.find_input (request.uri [1:])
+			except KeyError:
+				raise NotImplementedError		
+			
+			if not s:
+				# not streaming
+				return grpc_collector.grpc_collector			
+			
+			try:
+				method = self.route_map ["/" + request.uri.split ("/")[-1]]
+			except KeyError:
+				raise NotImplementedError
+				
+			if method[-3] == 2:
+				# num args. ready to stream id
+				return grpc_collector.grpc_stream_collector
+			else:
+				return grpc_collector.grpc_collector	
+				
 	def get_method (self, path_info, command = None, content_type = None, authorization = None):		
 		current_app, method = self, None
 		
@@ -286,7 +311,7 @@ class Saddle (part.Part):
 		if content_type.startswith ("text/xml") or content_type.startswith ("application/xml"):
 			result = xmlrpc_executor.Executor (env, self.get_method) ()
 		elif content_type.startswith ("application/grpc"):
-			result = grpc_executor.Executor (env, self.get_method) ()
+			result = grpc_executor.Executor (env, self.get_method) ()			
 		else:	
 			result = wsgi_executor.Executor (env, self.get_method) ()
 		
