@@ -63,7 +63,7 @@ class http2_request_handler:
 		with self._clock:
 			for request in self.requests.values ():
 				request.close ()
-			self.requests = []	
+			self.requests = {}
 	
 	def enter_shutdown_process (self):
 		self.close (NO_ERROR)
@@ -215,11 +215,9 @@ class http2_request_handler:
 				stream_id, depends_on, weight, producer, self.conn, self._plock
 			)
 			self.channel.push_with_producer (outgoing_producer)			
-			
-			if r.response and not r.response.is_streaming ():
-				# don't close streaming response
+			if not streaming:				
 				self.stream_finished (stream_id)
-			
+	
 		promise_stream_id, promise_headers = None, None
 		with self._clock:
 			try: promise_stream_id, promise_headers = self.promises.popitem ()
@@ -282,7 +280,7 @@ class http2_request_handler:
 					self.priorities [event.stream_id] = [event.depends_on, event.weight]
 				
 			elif isinstance(event, DataReceived):				
-				r = self.get_request (event.stream_id)
+				r = self.get_request (event.stream_id)				
 				if not r:
 					self.reset_stream (event.stream_id, PROTOCOL_ERROR)
 				else:
@@ -300,7 +298,7 @@ class http2_request_handler:
 				r = self.get_request (event.stream_id)		
 				if r and r.collector:
 					r.channel.handle_read ()
-					r.channel.found_terminator ()
+					r.channel.found_terminator ()				
 				
 		self.send_data ()
 	

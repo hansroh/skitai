@@ -135,9 +135,12 @@ class http_channel (asynchat.async_chat):
 	def initiate_send (self):
 		lock = self.__sendlock
 		if lock: lock.acquire ()
-		ret = asynchat.async_chat.initiate_send (self)		
-		len_fifo = len (self.producer_fifo)
-		if lock: lock.release ()
+		try:
+			ret = asynchat.async_chat.initiate_send (self)		
+			len_fifo = len (self.producer_fifo)
+		finally:	
+			if lock: lock.release ()
+				
 		if len_fifo == 0:
 			self.done_request ()
 		return ret

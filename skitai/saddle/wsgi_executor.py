@@ -48,7 +48,7 @@ class Executor:
 			if type (func) is list:
 				response = self.chained_exec (func, args, karg)
 					
-			else:
+			else:				
 				response = func (self.was, *args, **karg)
 				if type (response) is not list:
 					response = [response]											

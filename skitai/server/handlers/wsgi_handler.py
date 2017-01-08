@@ -12,6 +12,7 @@ from . import collectors
 from skitai import version_info, was as the_was
 from skitai.saddle import Saddle
 from collections import Iterable
+import threading
 try:
 	from cStringIO import StringIO as BytesIO
 except ImportError:
@@ -213,13 +214,10 @@ class Handler:
 			self.wasc.logger.trace ("server",  request.uri)
 			return request.response.error (500, why = apph.debug and catch (1) or "")
 		
-		#if 
-		#	threading.Thread (target = Job (request, apph, args, self.wasc.logger))
 		if env ["wsgi.multithread"]:
 			self.wasc.queue.put (Job (request, apph, args, self.wasc.logger))
 		else:
 			Job (request, apph, args, self.wasc.logger) ()
-
 
 
 class Job:
@@ -228,7 +226,7 @@ class Job:
 		self.request = request
 		self.apph = apph
 		self.args = args
-		self.logger = logger
+		self.logger = logger		
 		
 	def __repr__(self):
 		return "<Job %s %s HTTP/%s>" % (self.request.command.upper (), self.request.uri, self.request.version)
@@ -320,11 +318,11 @@ class Job:
 				response.push (part)
 			trigger.wakeup (lambda p=response: (p.done(),))
 											
-	def __call__(self):
+	def __call__(self):		
 		try:
 			try:
 				self.exec_app ()
-			finally:
+			finally:				
 				self.deallocate	()
 		except:
 			# no response, alredy done. just log
@@ -341,7 +339,8 @@ class Job:
 				except: self.logger.trace ("app")
 		
 		was = env.get ("skitai.was")
-		if was is not None and was.in__dict__ ("request"):
-			was.request.response = None
+		if was is not None and was.in__dict__ ("request"):			
+			if not was.request.response.is_streaming ():				
+				was.request.response = None
 			del was.request
-			
+		

@@ -56,7 +56,7 @@ class priority_producer_fifo:
 	def __delitem__ (self, index):
 		import threading
 		with self._lock:
-			print ('\n-------------', id(self), threading.currentThread())
+			#print ('\n-------------', id(self), threading.currentThread())
 			del self.l [index]
 	
 	def remove_from (self, stream_id, lst):

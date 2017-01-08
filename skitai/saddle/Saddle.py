@@ -196,25 +196,15 @@ class Saddle (part.Part):
 			
 		if ct.startswith ("application/grpc"):
 			try:
-				n, s = discover.find_input (request.uri [1:])
+				i, o = discover.find_type (request.uri [1:])
 			except KeyError:
 				raise NotImplementedError		
 			
-			if not s:
-				# not streaming
-				return grpc_collector.grpc_collector			
+			#if i[1] and o[1]:
+			#	return grpc_collector.grpc_stream_collector
+			#else:	
+			return grpc_collector.grpc_collector			
 			
-			try:
-				method = self.route_map ["/" + request.uri.split ("/")[-1]]
-			except KeyError:
-				raise NotImplementedError
-				
-			if method[-3] == 2:
-				# num args. ready to stream id
-				return grpc_collector.grpc_stream_collector
-			else:
-				return grpc_collector.grpc_collector	
-				
 	def get_method (self, path_info, command = None, content_type = None, authorization = None):		
 		current_app, method = self, None
 		
