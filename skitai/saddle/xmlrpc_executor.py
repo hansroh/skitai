@@ -31,7 +31,7 @@ class Executor (wsgi_executor.Executor):
 				
 			self.was.subapp = current_app
 			try:
-				result = self.generate_content (thing, _args, {})
+				result = self.chained_exec (thing, _args, {})
 			except:
 				results.append ({'faultCode' : 1, 'faultString' : self.was.app.debug and wsgi_executor.traceback () or "Error Occured"})				
 			else:

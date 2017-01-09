@@ -33,7 +33,7 @@ class Handler (wsgi_handler.Handler):
 		def donot_response (self, *args, **kargs):
 			def push (thing):
 				raise AssertionError ("Websocket can't use start_response ()")
-			return push	
+			return push
 		
 		origin = request.get_header ("origin")
 		host = request.get_header ("host")
@@ -62,14 +62,19 @@ class Handler (wsgi_handler.Handler):
 		env ["websocket_init"] = ""
 		# app should reply  (design type one of (1,2,3), keep-alive seconds)
 		# when env has 'skitai.websocket_init'
-		try:
-			apph (env, donot_response)
-			try:
-				design_spec, keep_alive, param_name = env ["websocket_init"]
-				del env ["websocket_init"]
-			except (IndexError, ValueError): 
-				raise AssertionError ("You should return (design_spec, keep_alive, param_name) where env has key 'skitai.websocket_init'")				
-			assert design_spec in (1,2,3,4), "design_spec  should be one of (WEBSOCKET_REQDATA, WEBSOCKET_DEDICATE, WEBSOCKET_DEDICATE_THREADSAFE, WEBSOCKET_MULTICAST)"			
+		apph (env, donot_response)
+		wsconfig = env ["websocket_init"]
+		del env ["websocket_init"]
+		
+		try:	
+			if len (wsconfig) == 4:
+				design_spec, keep_alive, param_name, message_encoding = wsconfig
+			elif len (wsconfig) == 3:
+				design_spec, keep_alive, param_name = wsconfig
+				message_encoding = 'text'
+			else:
+				raise AssertionError ("You should return (design_spec, keep_alive, param_name, message_encoding) where env has key 'skitai.websocket_init'")				
+			assert design_spec in (1,2,3,4), "design_spec  should be one of (WEBSOCKET_REQDATA, WEBSOCKET_DEDICATE, WEBSOCKET_DEDICATE_THREADSAFE, WEBSOCKET_MULTICAST)"
 		except:
 			self.wasc.logger.trace ("server",  request.uri)
 			return request.response.error (500, why = apph.debug and catch (1) or "")
@@ -91,14 +96,14 @@ class Handler (wsgi_handler.Handler):
 			env ["websocket"] = ws		
 			self.channel_config (request, ws, keep_alive)
 		
-		elif design_spec in (2, 4): 
+		elif design_spec in (2, 4):
 			# WEBSOCKET_DEDICATE 			
 			# 1:1 wesocket:thread
-			# Be careful, it will be consume massive thread resources
+			# Be careful, it will be consume massive thread resources			
 			if design_spec == 2:
-				ws = specs.WebSocket2 (self, request)
+				ws = specs.WebSocket2 (self, request, message_encoding)
 			else:
-				ws = specs.WebSocket4 (self, request)
+				ws = specs.WebSocket4 (self, request, message_encoding)
 			request.channel.die_with (ws, "websocket spec. %d" % design_spec)
 			request.channel.use_sendlock ()
 			env ["websocket"] = ws
@@ -124,7 +129,7 @@ class Handler (wsgi_handler.Handler):
 				gid = "%s/%s" % (path, gid)
 			
 			if not websocket_servers.has_key (gid):
-				server = websocket_servers.create (gid)
+				server = websocket_servers.create (gid, message_encoding)
 				request.channel.die_with (server, "websocket spec. %d" % design_spec)
 				request.channel.use_sendlock ()
 				env ["websocket"] = server
@@ -137,7 +142,7 @@ class Handler (wsgi_handler.Handler):
 			self.channel_config (request, ws, keep_alive)			
 		
 	def channel_config (self, request, ws, keep_alive):
-		request.response.done (upgrade_request =  (ws, 2))
+		request.response.done (upgrade_to =  (ws, 2))
 		request.channel.set_response_timeout (keep_alive)
 		request.channel.set_keep_alive (keep_alive)
 	

@@ -84,7 +84,7 @@ class Module:
 		return path_info	
 	
 	def __call__ (self, env, start_response):
-		self.use_reloader and self.maybe_reload ()	
+		self.use_reloader and self.maybe_reload ()
 		return getattr (self.module, self.appname) (env, start_response)
 
 

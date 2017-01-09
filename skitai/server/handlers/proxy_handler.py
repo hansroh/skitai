@@ -67,7 +67,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 	def create_tunnel (self):
 		self.asyncon.established = True		
 		self.new_handler = TunnelHandler (self.asyncon, self.request, self.client_request.channel)
-		self.client_request.response.done (upgrade_request = (self.new_handler.asyntunnel, None))
+		self.client_request.response.done (upgrade_to = (self.new_handler.asyntunnel, None))
 			
 	def create_response (self):		
 		if not self.client_request.channel: return
@@ -94,7 +94,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 			self.create_tunnel ()
 			self.close_case ()
 			return
-				
+		
 		self.client_request.response.start (self.response.code, self.response.msg)
 		self.add_reply_headers ()
 		
@@ -250,7 +250,7 @@ class Handler (wsgi_handler.Handler):
 		
 		try:
 			accept_encoding = request.get_header ("accept-encoding")
-			hit, compressed, max_age, content_type, content = self.cachefs.get (request.uri, None, accept_encoding and accept_encoding.find ("gzip") != -1)
+			hit, compressed, max_age, content_type, content = self.cachefs.get (request.uri, accept_encoding and accept_encoding.find ("gzip") != -1)
 					
 		except:
 			self.wasc.logger.trace ("server")	

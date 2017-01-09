@@ -6,8 +6,8 @@ class grpc_producer:
 	def __init__ (self, msg = None):
 		self.closed = False
 		self.compressor = compressors.GZipCompressor ()
-		self.message = msg		
-	
+		self.message = msg
+
 	def send (self, msg):
 		self.message.send (msg)
 		
@@ -25,11 +25,11 @@ class grpc_producer:
 		
 		if not isinstance (self.message, Iterable):
 			msg = self.serialize (self.message)
-			self.close ()			
+			self.close ()
 			return msg
 		
 		try:
-			msg = next (self.message)
+			msg = next (self.message)			
 			return self.serialize (msg)
 		except StopIteration:
 			self.close ()			

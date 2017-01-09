@@ -5,7 +5,7 @@ from h2.events import DataReceived, ResponseReceived, StreamEnded, ConnectionTer
 from h2.errors import PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
 import h2.settings
 from skitai.lib import producers
-from .producers import h2stream_producer, h2header_producer
+from .producers import h2data_producer, h2header_producer
 from skitai.server.https_server import H2_PROTOCOLS
 from skitai.server.http_response import http_response, utility
 from skitai.client import asynconnect
@@ -79,7 +79,9 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.data_length = 0
 		self.current_frame = None
 		
-		if not self._ssl:
+		is_upgrade = not (self._ssl or self.request.initial_http_version == "2.0")			
+		
+		if is_upgrade:
 			self.conn.initiate_upgrade_connection()
 			self.conn.update_settings({h2.settings.ENABLE_PUSH: 0})
 		else:		    
@@ -88,7 +90,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.send_data ()
 		self.asyncon.set_terminator (9)
 		
-		if self._ssl:
+		if not is_upgrade:			
 			self.handle_request (handler)
 		else:
 			self.asyncon.set_active (False)					
@@ -131,20 +133,18 @@ class RequestHandler (base_request_handler.RequestHandler):
 		producer = None
 		if payload:
 			if type (payload) is bytes:
-				cl = len (payload)
-				#headers.append (("content-length", str (cl)))								
 				producer = producers.globbing_producer (
 					producers.simple_producer (payload)
-				)		
+				)
 			else:
-				# multipart_producer
+				# multipart, grpc_producer 
 				producer = producers.globbing_producer (payload)				
 
 		header = h2header_producer (stream_id, headers, producer, self.conn, self._clock)
 		self.asyncon.push (header)
 					
 		if producer:
-			payload = h2stream_producer (stream_id, 0, 1, producer, self.conn, self._clock)
+			payload = h2data_producer (stream_id, 0, 1, producer, self.conn, self._clock)
 			self.asyncon.push (payload)
 		
 		self.asyncon.set_active (False)

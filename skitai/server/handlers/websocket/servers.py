@@ -18,9 +18,9 @@ class WebSocketServers:
 		self.lock.release ()
 		return has
 		
-	def create (self, gid):	
+	def create (self, gid, message_encoding):	
 		self.lock.acquire ()
-		wss = WebSocketServer (gid)
+		wss = WebSocketServer (gid, message_encoding)
 		self.wss [gid] = wss
 		self.lock.release ()
 		return wss
@@ -41,13 +41,17 @@ class WebSocketServers:
 
 		
 class WebSocketServer (specs.WebSocket2):
-	def __init__ (self, gid):
+	def __init__ (self, gid, message_encoding = None):
 		self._closed = False
 		self.gid = gid
 		self.lock = threading.RLock ()
 		self.cv = threading.Condition ()
 		self.messages = []
 		self.clients = {}
+		
+		self.default_op_code = specs.OPCODE_TEXT
+		self.encoder_config = None
+		self.message_encoding = self.setup_encoding (message_encoding)
 		
 	def add_client (self, ws):
 		self.lock.acquire ()
@@ -63,6 +67,7 @@ class WebSocketServer (specs.WebSocket2):
 		self.handle_message (client_id, -1)
 		
 	def handle_message (self, client_id, msg):
+		msg = self.message_decode (msg)
 		self.cv.acquire()
 		self.messages.append ((client_id, msg))
 		self.cv.notifyAll ()
@@ -79,7 +84,10 @@ class WebSocketServer (specs.WebSocket2):
 	def send (self, *args, **karg):
 		raise AssertionError ("Can't use send() on WEBSOCKET_MULTICAST spec, use send_to(client_id, msg, op_code)")
 	
-	def sendto (self, client_id, msg, op_code = specs.OPCODE_TEXT):		
+	def sendto (self, client_id, msg, op_code = -1):		
+		if op_code == -1:
+			op_code = self.default_op_code
+		msg = self.message_encode (msg)
 		self.lock.acquire ()
 		try:
 			client = self.clients [client_id]

@@ -8,6 +8,8 @@ from skitai.lib import compressors
 import time
 import json
 import struct
+from skitai.protocol.grpc import discover
+
 try:
 	from cStringIO import StringIO as BytesIO
 except ImportError:
@@ -34,7 +36,7 @@ class FakeParser(object):
 		pass
 
 
-class cache_wrap_buffer:
+class cachable_xmlrpc_buffer:
 	def __init__ (self, buf, cache):
 		self.buf = buf
 		self.cache = cache
@@ -53,18 +55,27 @@ class cache_wrap_buffer:
 	
 	def no_cache (self):
 		self.cache = 0
-		self.cdata = []
-			
+		self.cdata = None
+		
 	
-class list_buffer (cache_wrap_buffer):
+class list_buffer:
 	def __init__(self, cache = 0):
 		self.cache = cache
 		self.data = []
 		self.cdata = None
-
+	
+	def __len__ (self):
+		return len (self.data)
+		
 	def feed(self, data):
 		self.data.append(data)
 	
+	def read (self):	
+		# consume data, used by proxy response
+		data = self.build_data ()
+		self.data = []
+		return data
+		
 	def build_data (self):
 		return b''.join(self.data)
 	
@@ -85,25 +96,16 @@ class bytes_buffer:
 	def __init__(self, cache = 0):
 		self.cache = cache
 		self.fp = BytesIO ()
-		self.cdata = None
-		
-	def feed (self, data):
-		self.fp.write (data)
+		self.current_buffer_size = 0
+		self.cdata = None		
 	
-	def get_messages (self):
-		msgs = []
-		fp = self.fp
-		
-		fp.seek (0)
-		byte = fp.read (1)
-		while byte:
-			iscompressed = struct.unpack ("<B", byte) [0]
-			length = struct.unpack ("<i", fp.read (4)) [0]
-			msg = fp.read (length)
-			msgs.append (msg)
-			byte = fp.read (1)
-		return tuple (msgs)
-		
+	def __len__ (self):
+		return self.current_buffer_size
+			
+	def feed (self, data):
+		self.current_buffer_size += len (data)
+		self.fp.write (data)
+			
 	def build_data (self):
 		return self.fp.getvalue ()
 	
@@ -121,19 +123,11 @@ class bytes_buffer:
 
 
 class grpc_buffer (bytes_buffer):
-	def __init__(self, cache = 0):
-		self.cache = cache
-		self.fp = BytesIO ()
-		self.cdata = None
-		
-	def feed (self, data):
-		self.fp.write (data)
-	
-	def get_messages (self):
+	def build_data (self):
 		msgs = []
 		fp = self.fp
-		
 		fp.seek (0)
+		
 		byte = fp.read (1)
 		while byte:
 			iscompressed = struct.unpack ("<B", byte) [0]
@@ -142,9 +136,6 @@ class grpc_buffer (bytes_buffer):
 			msgs.append (msg)
 			byte = fp.read (1)
 		return tuple (msgs)
-		
-	def build_data (self):
-		return self.get_messages ()
 	
 	def close (self):
 		if self.cdata:
@@ -153,13 +144,7 @@ class grpc_buffer (bytes_buffer):
 		if self.cache:
 			self.cdata = res
 		return res
-	
-	def no_cache (self):
-		self.cache = 0
-		self.cdata = []
 		
-				
-
 def getfakeparser (target_class, cache = False):
 	target = target_class(cache)
 	return FakeParser(target), target
@@ -244,7 +229,7 @@ class Response:
 			self.p, self.u = getfakeparser (grpc_buffer, cache = self.max_age)
 		elif ct == 'text/xml' and self.request.xmlrpc_serialized ():
 			self.p, self.u = xmlrpclib.getparser()
-			self.u = cache_wrap_buffer (self.u, self.max_age)
+			self.u = cachable_xmlrpc_buffer (self.u, self.max_age)
 			self.is_xmlrpc_return = True
 		else:			
 			self.p, self.u = getfakeparser (bytes_buffer, cache = self.max_age)
@@ -319,12 +304,27 @@ class Response:
 		self.p.close ()
 		result = self.u.close()	
 		ct = self.get_header ("content-type")	
+		
 		if self.is_xmlrpc_return:
 			if len(result) == 1:
 				result = result [0]
 			return result
+			
 		elif ct.startswith ("application/json"):
 			return json.loads (result)
+			
+		elif ct.startswith ('application/grpc'):			
+			msgs = []
+			for msg in result:
+				descriptor, isstream = discover.find_output (self.request.path [1:])					
+				f = descriptor ()
+				f.ParseFromString (msg)
+				msgs.append (f)
+								
+			if not isstream:
+				return msgs [0]
+			return msgs	
+			
 		return result
 	
 

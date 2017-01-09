@@ -340,7 +340,5 @@ class Job:
 		
 		was = env.get ("skitai.was")
 		if was is not None and was.in__dict__ ("request"):			
-			if not was.request.response.is_streaming ():				
-				was.request.response = None
 			del was.request
 		

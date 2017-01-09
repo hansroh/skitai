@@ -58,7 +58,7 @@ class ProxyResponse (http_response.Response):
 				return False
 		
 		if self.p is None:
-			self.p, self.u = http_response.getfakeparser (cache = self.max_age)
+			self.p, self.u = http_response.getfakeparser (http_response.list_buffer, cache = self.max_age)
 			if self.make_decompressor:
 				self.decompressor = compressors.GZipDecompressor ()
 			
@@ -73,20 +73,19 @@ class ProxyResponse (http_response.Response):
 	
 	def close (self):
 		# channel closed and called automatically by channel
-		self.client_request.producer = None
-		try: self.u.data = []
-		except AttributeError: pass		
+		self.client_request.producer = None		
 		self.asyncon.handle_abort ()		
 		#self.asyncon.handle_close (710, "Channel Closed")
 			
 	def affluent (self):
 		# if channel doesn't consume data, delay recv data
-		return len (self.u.data) < 1000
+		return len (self.u) < 1000
 		
 	def ready (self):
 		# if exist consumable data or wait		
-		return len (self.u.data) or self.got_all_data
+		return len (self.u) or self.got_all_data
 		
 	def more (self):
 		self.flushed_time = time.time ()
 		return self.u.read ()
+		

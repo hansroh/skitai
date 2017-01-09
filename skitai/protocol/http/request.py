@@ -16,6 +16,7 @@ import skitai
 
 class XMLRPCRequest:	
 	user_agent = "Mozilla/5.0 (compatible; Skitai/%s.%s)" % skitai.version_info [:2]
+	initial_http_version = "1.1"
 			
 	def __init__ (self, uri, method, params = (), headers = None, encoding = "utf8", auth = None, logger = None):
 		self.uri = uri

@@ -19,6 +19,8 @@ def discover ():
 						method.options
 					)					
 
+discover ()
+
 def find_type (uri):
 	global cache	
 	if not cache: discover ()

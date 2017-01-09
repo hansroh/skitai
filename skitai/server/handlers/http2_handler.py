@@ -8,7 +8,7 @@ from h2.errors import CANCEL, PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
 from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
 from skitai.protocol.http2.producers import h2stream_producer, h2header_producer, h2data_producer
-from .http2.fifo import priority_producer_fifo
+from .http2.fifo import http2_producer_fifo
 import threading
 try:
 	from cStringIO import StringIO as BytesIO
@@ -26,7 +26,7 @@ class http2_request_handler:
 		self.request = request
 		self.channel = request.channel
 		
-		self.channel.producer_fifo = priority_producer_fifo ()
+		self.channel.producer_fifo = http2_producer_fifo ()
 		
 		self.conn = H2Connection(client_side = False)
 		self.frame_buf = self.conn.incoming_buffer
@@ -59,10 +59,12 @@ class http2_request_handler:
 		self._closed = True		
 		if self.channel:
 			self.go_away (errcode) # go_away
-		
+
 		with self._clock:
 			for request in self.requests.values ():
-				request.close ()
+				request.abort ()
+				request.http2 = None
+				request.response.request = None
 			self.requests = {}
 	
 	def enter_shutdown_process (self):
@@ -194,9 +196,9 @@ class http2_request_handler:
 			self.conn.push_stream (stream_id, promise_stream_id, request_headers	+ addtional_request_headers)
 		self.send_data ()
 					
-	def handle_response (self, stream_id, headers, producer, streaming = False):
-		#print ("++RESPONSE", headers)
-		r = self.get_request (stream_id)		
+	def handle_response (self, stream_id, headers, producer):
+		#print ("++RESPONSE", headers, producer)
+		r = self.get_request (stream_id)
 		with self._clock:			
 			try:
 				depends_on, weight = self.priorities [stream_id]
@@ -209,15 +211,21 @@ class http2_request_handler:
 			h2header_producer (stream_id, headers, producer, self.conn, self._plock)
 		)
 		if producer:			
-			if streaming: 	h2_class = h2stream_producer
-			else: 					h2_class = h2data_producer
+			if r.response.is_async_streaming ():
+				h2_class = h2stream_producer
+			else:
+				h2_class = h2data_producer
+
 			outgoing_producer = h2_class (
 				stream_id, depends_on, weight, producer, self.conn, self._plock
 			)
 			self.channel.push_with_producer (outgoing_producer)			
-			if not streaming:				
-				self.stream_finished (stream_id)
-	
+		
+		if not r.is_async_streaming ():
+			# needn't recv data any more
+			self.remove_request (stream_id)
+		#print ('=========', len (self.requests))
+			
 		promise_stream_id, promise_headers = None, None
 		with self._clock:
 			try: promise_stream_id, promise_headers = self.promises.popitem ()
@@ -226,15 +234,13 @@ class http2_request_handler:
 		if promise_stream_id:
 			self.handle_request (promise_stream_id, promise_headers, is_promise = True)
 	
-	def stream_finished (self, stream_id):
-		# called by stream_collectors
+	def remove_request (self, stream_id):
 		r = self.get_request (stream_id)
-		if r:			
-			r.http2 = None # break bacj ref.
+		if not r: return
 		with self._clock:
-			#self.channel.ready = self.channel.producer_fifo.ready
 			try: del self.requests [stream_id]
-			except KeyError: pass	
+			except KeyError: pass		
+		r.http2 = None		
 		
 	def get_request (self, stream_id):
 		r = None
@@ -242,7 +248,7 @@ class http2_request_handler:
 			try: r =	self.requests [stream_id]
 			except KeyError: pass
 		return r
-		
+			
 	def handle_events (self, events):
 		for event in events:
 			#print ('EVENT:', event, self.requests)
@@ -296,16 +302,20 @@ class http2_request_handler:
 				
 			elif isinstance(event, StreamEnded):
 				r = self.get_request (event.stream_id)		
-				if r and r.collector:
-					r.channel.handle_read ()
-					r.channel.found_terminator ()				
-				
+				if r:
+					if r.collector:
+						r.channel.handle_read ()
+						r.channel.found_terminator ()
+					if r.is_async_streaming ():	
+						self.remove_request (event.stream_id)
+					
 		self.send_data ()
 	
 	def reset_stream (self, stream_id, errcode = CANCEL):
 		with self._plock:
 			self.conn.reset_stream (stream_id, error_code = errcode)
-		self.send_data ()	
+		self.send_data ()
+		self.remove_request (stream_id)
 		self.request.logger ("stream reset (stream_id:%d, error:%d)" % (stream_id, errcode), "info")
 	
 	def increment_flow_control_window (self, stream_id, cl):
@@ -433,7 +443,7 @@ class Handler (wsgi_handler.Handler):
 				"101 Switching Protocol",
 				headers = [("Connection",  "upgrade"), ("Upgrade", "h2c"), ("Server", skitai.NAME.encode ("utf8"))]
 			)
-			request.response.done (upgrade_request = (http2, http2.http11_terminator))
+			request.response.done (upgrade_to = (http2, http2.http11_terminator))
 		
 		else:
 			request.channel.current_request = http2

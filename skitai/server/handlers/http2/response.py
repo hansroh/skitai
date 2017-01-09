@@ -1,5 +1,6 @@
 from skitai.server import http_response
 from skitai.lib import producers
+from h2.errors import CANCEL, PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
 import time
 	
 
@@ -8,7 +9,7 @@ class response (http_response.http_response):
 		http_response.http_response.__init__ (self, request)
 	
 	def set_streaming (self):
-		self._is_streaming = True
+		self._is_async_streaming = True
 		
 	def build_reply_header (self):	
 		h = [(b":status", str (self.reply_code).encode ("utf8"))]
@@ -36,24 +37,28 @@ class response (http_response.http_response):
 	    
 		self.request.http2.push_promise (self.request.stream_id, headers, additional_headers)
 		
-	def done (self):
+	def done (self, upgrade_to = None):
 		self.htime = (time.time () - self.stime) * 1000
 		self.stime = time.time () #for delivery time
-		
+
 		if not self.responsable (): return
 		self.is_done = True
-		if self.request.channel is None: return
+		if self.request.http2 is None: return
 		
 		# removed by HTTP/2.0 Spec.
 		self.delete ('transfer-encoding')
 		self.delete ('connection')
 		
-		if len (self.outgoing) == 0:
-			outgoing_producer = None
-		else:
+		# compress payload and globbing production
+		do_optimize = True
+		if upgrade_to or self.is_async_streaming ():
+			do_optimize = False
+			
+		outgoing_producer = None	
+		if len (self.outgoing):
 			outgoing_producer = producers.composite_producer (self.outgoing)
 		
-		if not self.is_streaming () and not self.has_key ('Content-Encoding'):
+		if do_optimize and not self.has_key ('Content-Encoding'):
 			way_to_compress = ""			
 			maybe_compress = self.request.get_header ("Accept-Encoding")
 			if maybe_compress and self.has_key ("content-length") and int (self ["Content-Length"]) <= http_response.UNCOMPRESS_MAX:
@@ -76,22 +81,26 @@ class response (http_response.http_response):
 				else: # deflate
 					producer = producers.compressed_producer		
 				outgoing_producer = producer (outgoing_producer)
-					
-		if not self.is_streaming ():
-			outgoing_producer = producers.globbing_producer (producers.hooked_producer (outgoing_producer, self.log))				
-		else:
-			outgoing_producer = producers.hooked_producer (outgoing_producer, self.log)
 		
+		if outgoing_producer:
+			outgoing_producer = producers.hooked_producer (outgoing_producer, self.log)
+			if do_optimize:
+				outgoing_producer = producers.globbing_producer (outgoing_producer)				
+		
+		if self.request.http2 is None: return		
+		if upgrade_to:
+			# do not change http2 channel
+			request, terminator = upgrade_to
+			self.request.channel.current_request = request
+			self.request.channel.set_terminator (terminator)
+		
+		logger = self.request.logger #IMP: for  disconnect with request
 		try:
 			self.request.http2.handle_response (
 				self.request.stream_id, 
 				self.build_reply_header (),
-				outgoing_producer,
-				streaming = self.is_streaming ()
+				outgoing_producer				
 			)
 			
 		except:
-			self.request.logger.trace ()			
-			self.request.http2.close (True)
-		
-		
+			logger.trace ()			

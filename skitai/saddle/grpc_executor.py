@@ -52,7 +52,7 @@ class Executor (wsgi_executor.Executor):
 	
 		result = b""
 		try:
-			result = self.generate_content (self.service, (descriptor,), {})
+			result = self.chained_exec (self.service, (descriptor,), {})
 			
 		except:
 			self.was.traceback ()

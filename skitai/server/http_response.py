@@ -77,7 +77,7 @@ def catch (htmlformating = 0, exc_info = None):
 class http_response:
 	reply_code = 200
 	reply_message = "OK"
-	_is_streaming = False
+	_is_async_streaming = False
 		
 	def __init__ (self, request):
 		self.request = request
@@ -90,11 +90,11 @@ class http_response:
 		self.stime = time.time ()
 		self.htime = 0
 	
-	def is_streaming (self):
-		return self._is_streaming
+	def is_async_streaming (self):
+		return self._is_async_streaming
 	
 	def set_streaming (self):
-		self._is_streaming = True	
+		self._is_async_streaming = True	
 		
 	def __len__ (self):
 		return len (self.outgoing)
@@ -280,12 +280,12 @@ class http_response:
 		
 	def push (self, thing):
 		if not self.responsable (): return
-		if type(thing) is bytes:			
+		if type(thing) is bytes:
 			self.outgoing.push (producers.simple_producer (thing))
 		else:
 			self.outgoing.push (thing)
 	      					
-	def done (self, force_close = False, upgrade_request = None):
+	def done (self, force_close = False, upgrade_to = None):		
 		self.htime = (time.time () - self.stime) * 1000
 		self.stime = time.time () #for delivery time
 		
@@ -293,9 +293,10 @@ class http_response:
 		self.is_done = True
 		if self.request.channel is None: return
 		
-		globbing, compress = True, True
-		if upgrade_request or self.is_streaming ():
-			globbing, compress = False, False
+		# compress payload and globbing production
+		do_optimize = True
+		if upgrade_to or self.is_async_streaming ():
+			do_optimize = False
 						
 		connection = utility.get_header (utility.CONNECTION, self.request.header).lower()
 		close_it = False
@@ -305,7 +306,7 @@ class http_response:
 		if force_close:
 			close_it = True
 		
-		else:			
+		else:
 			if self.request.version == '1.0':
 				if connection == 'keep-alive':
 					if not self.has_key ('content-length'):
@@ -331,7 +332,7 @@ class http_response:
 				self.update ('Connection', 'close')
 				close_it = True
 		
-		if compress and not self.has_key ('Content-Encoding'):
+		if do_optimize and not self.has_key ('Content-Encoding'):
 			maybe_compress = self.request.get_header ("Accept-Encoding")
 			if maybe_compress and self.has_key ("content-length") and int (self ["Content-Length"]) <= UNCOMPRESS_MAX:
 				maybe_compress = ""
@@ -402,45 +403,42 @@ class http_response:
 				self.outgoing.push_front (outgoing_header)
 				outgoing_producer = producers.composite_producer (self.outgoing)
 		
-		try:
-			if globbing:
-				self.request.channel.push_with_producer (producers.globbing_producer (producers.hooked_producer (outgoing_producer, self.log)))
-			else:
-				self.request.channel.push_with_producer (producers.hooked_producer (outgoing_producer, self.log))
-			
-			# IMP: second testing after push_with_producer()->init_send ()
-			if self.request.channel is None:
-				return
-						
-			if upgrade_request:
-				request, terminator = upgrade_request
-				self.request.channel.current_request = request
-				self.request.channel.set_terminator (terminator)
-			else:
-				self.request.channel.current_request = None
-				self.request.channel.set_terminator (b"\r\n\r\n")
-				
-			# proxy collector and producer is related to asynconnect
-			# and relay data with channel
-			# then if request is suddenly stopped, make sure close them
-			self.die_with (self.request.collector)
-			self.die_with (self.request.producer)
-
-			if close_it:
-				self.request.channel.close_when_done()
+		outgoing_producer = producers.hooked_producer (outgoing_producer, self.log)
+		if do_optimize:
+			outgoing_producer = producers.globbing_producer (outgoing_producer)
 		
-		except:
-			self.request.logger.trace ()			
-			if self.request.channel:
-				self.request.channel.close_when_done ()
-	
+		# IMP: second testing after push_with_producer()->init_send ()
+		if self.request.channel is None: return
+		if upgrade_to:
+			request, terminator = upgrade_to
+			self.request.channel.current_request = request
+			self.request.channel.set_terminator (terminator)
+		else:
+			# preapre to receice new request for channel
+			self.request.channel.current_request = None
+			self.request.channel.set_terminator (b"\r\n\r\n")
+		
+		# proxy collector and producer is related to asynconnect
+		# and relay data with channel
+		# then if request is suddenly stopped, make sure close them
+		self.die_with (self.request.collector)
+		self.die_with (self.request.producer)
+		
+		logger = self.request.logger #IMP: for  disconnect with request
+		try:
+			self.request.channel.push_with_producer (outgoing_producer)		
+			if close_it:
+				self.request.channel.close_when_done()				
+		except:			
+			logger.trace ()			
+						
 	def log (self, bytes):		
 		self.request.channel.server.log_request (
 			'%s:%d %s %s %s %d %d %s %s %s %s %s %dms %dms'
 			% (self.request.channel.addr[0],
 			self.request.channel.addr[1],			
 			self.request.host,
-			self.request.is_promise and "PUSH" + self.request.request [3:] or self.request.request,			
+			self.request.is_promise () and "PUSH" + self.request.request [3:] or self.request.request,			
 			self.reply_code,
 			self.request.rbytes,
 			bytes,
@@ -453,6 +451,8 @@ class http_response:
 			(time.time () - self.stime) * 1000
 			)
 		)
+		# clearing resources, back refs
+		self.request.response_finished ()
 		
 	responses = {
 		100: "Continue",

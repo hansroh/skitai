@@ -349,7 +349,9 @@ class RequestHandler (base_request_handler.RequestHandler):
 		http2_request_handler.RequestHandler (self)		
 		
 	def has_been_connected (self):
-		if self._ssl:
+		if self._ssl or self.request.initial_http_version == "2.0":
+			if self.request.initial_http_version == "2.0":
+				self.asyncon.set_proto ("h2c")
 			if self.asyncon._proto in asynconnect.H2_PROTOCOLS:
 				self.switch_to_http2 ()
 			else:
@@ -359,7 +361,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 	def handle_request (self):
 		self.buffer, self.response = b"", None
 		self.asyncon.set_terminator (b"\r\n\r\n")	
-		if not self._ssl:
+		if not (self._ssl or self.request.initial_http_version == "2.0"):
 			for data in self.get_request_buffer ("1.1", True):
 				self.asyncon.push (data)
 		self.asyncon.begin_tran (self)

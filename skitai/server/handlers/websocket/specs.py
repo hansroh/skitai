@@ -14,6 +14,9 @@ try:
 except ImportError:
 	from io import BytesIO
 import threading
+import json
+from skitai.protocol.grpc import discover
+import xmlrpc.client
 
 FIN    = 0x80
 OPCODE = 0x0f
@@ -46,6 +49,7 @@ class WebSocket:
 		self.buf = b""
 		self.payload_length = 0
 		self.opcode = None
+		self.default_op_code = OPCODE_TEXT
 		self._closed = False
 		
 	def close (self):
@@ -147,7 +151,9 @@ class WebSocket:
 		else:
 			raise AssertionError ("Web socket frame decode error")
 			
-	def send (self, message, op_code = OPCODE_TEXT):		
+	def send (self, message, op_code = -1):	
+		if op_code == -1:
+			op_code = self.default_op_code				
 		header  = bytearray()
 		if strutil.is_encodable (message):
 			payload = message.encode ("utf8")
@@ -216,17 +222,49 @@ class Job1 (wsgi_handler.Job):
 
 class WebSocket2 (WebSocket):
 	# WEBSOCKET_DEDICATE if lock is None, or WEBSOCKET_MULTICAST
-	def __init__ (self, handler, request):
+	def __init__ (self, handler, request, message_encoding = None):
 		WebSocket.__init__ (self, handler, request)
 		self.cv = threading.Condition (threading.RLock ())
 		self.messages = []		
-				
+		
+		self.encoder_config = None
+		self.message_encoding = self.setup_encoding (message_encoding)
+	
+	def setup_encoding (self, message_encoding):	
+		if message_encoding == "grpc":
+			i, o = discover.find_type (request.uri [1:])
+			self.encoder_config = (i [0], 0 [0])
+			self.default_op_code = OP_BINARY
+			self.message_encode = self.grpc_encode
+			self.message_decode = self.grpc_decode			
+		elif message_encoding == "json":
+			self.message_encode = json.dumps
+			self.message_decode = json.loads
+		elif message_encoding == "xmlrpc":
+			self.message_encode = xmlrpc.client.dumps
+			self.message_decode = xmlrpc.client.loads
+		else:
+			self.message_encode = self.transport
+			self.message_decode = self.transport
+		return message_encoding
+		
+	def transport (self, msg):
+		return msg
+		
+	def grpc_encode (self, msg):
+		f = self.encoder_config [0] ()
+		f.ParseFromString (msg)
+		return f
+	
+	def grpc_decode (self, msg):
+		return msg.SerializeToString ()
+		
 	def close (self):
 		WebSocket.close (self)
 		self.cv.acquire()
 		self.cv.notify ()
 		self.cv.release ()
-		
+							
 	def getswait (self, timeout = 10):
 		if self._closed:
 			return None # closed channel
@@ -241,19 +279,24 @@ class WebSocket2 (WebSocket):
 		self.cv.release()
 		return messages
 	
+	def send (self, message, op_code = -1):		
+		WebSocket.send (self, self.message_encode (message), op_code)
+			
 	def handle_message (self, msg):		
+		msg = self.message_decode (msg)
 		self.cv.acquire()
 		self.messages.append (msg)
 		self.cv.notify ()
 		self.cv.release ()
-
+		
+		
 class WebSocket4 (WebSocket2):
 	# WEBSOCKET_DEDICATE_THREADSAFE
-	def __init__ (self, handler, request):
+	def __init__ (self, handler, request, message_encoding = None):
 		WebSocket2.__init__ (self, handler, request)
 		self.lock = threading.Lock ()
 		
-	def send (self, message, op_code = OPCODE_TEXT):
+	def send (self, message, op_code = -1):
 		self.lock.acquire ()
 		try:
 			WebSocket2.send (self, message, op_code)

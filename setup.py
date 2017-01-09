@@ -55,6 +55,7 @@ packages = [
 	'skitai.lib',	
 	'skitai.protocol',
 	'skitai.examples',
+	'skitai.examples.grpc',
 	'skitai.protocol.dns',
 	'skitai.protocol.dns.pydns',
 	'skitai.protocol.http',	
@@ -80,7 +81,8 @@ package_dir = {
 
 skitai_files = [
 	"protocol/dns/*.txt",
-	"protocol/dns/pydns/*.txt"
+	"protocol/dns/pydns/*.txt",
+	"examples/grpc/*.proto"
 ]
 
 package_data = {

@@ -51,16 +51,35 @@ class http_channel (asynchat.async_chat):
 		self.__sendlock = None
 		self.producers_attend_to = []
 		self.things_die_with = []
-	
+		
 	def use_sendlock (self):
 		self.__sendlock  = threading.Lock ()
+		self.initiate_send = self._initiate_send_ts
 			
 	def get_history (self):
 		return self.__history
 			
 	def reject (self):
 		self.is_rejected = True		
+	
+	def _initiate_send_ts (self):
+		lock = self.__sendlock
+		lock.acquire ()
+		try:
+			ret = asynchat.async_chat.initiate_send (self)		
+			len_fifo = len (self.producer_fifo)
+		finally:	
+			lock.release ()				
+		if len_fifo == 0:
+			self.done_request ()
+		return ret
 		
+	def initiate_send (self):
+		ret = asynchat.async_chat.initiate_send (self)		
+		if len (self.producer_fifo) == 0:
+			self.done_request ()
+		return ret
+			
 	def readable (self):		
 		if self.affluent is not None:
 			return not self.is_rejected and asynchat.async_chat.readable (self)	and self.affluent ()
@@ -131,19 +150,6 @@ class http_channel (asynchat.async_chat):
 	def handle_write (self):
 		self.set_timeout_by_case ()
 		asynchat.async_chat.handle_write (self)		
-	
-	def initiate_send (self):
-		lock = self.__sendlock
-		if lock: lock.acquire ()
-		try:
-			ret = asynchat.async_chat.initiate_send (self)		
-			len_fifo = len (self.producer_fifo)
-		finally:	
-			if lock: lock.release ()
-				
-		if len_fifo == 0:
-			self.done_request ()
-		return ret
 		
 	def attend_to (self, thing):
 		if not thing: return

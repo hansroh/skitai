@@ -38,7 +38,7 @@ class AsynConnect (asynchat.async_chat):
 		self.lock = lock
 		self.logger = logger
 		self._cv = threading.Condition ()		
-		self._sendlock = None
+		self.__sendlock = None
 		self.set_event_time ()
 		self.proxy = False
 		self.proxy_client = False
@@ -76,8 +76,13 @@ class AsynConnect (asynchat.async_chat):
 		self.set_active (False)
 				
 	def use_sendlock (self):
-		self._sendlock = threading.Lock ()
+		self.__sendlock = threading.Lock ()
+		self.initiate_send = self._initiate_send_ts
 		
+	def _initiate_send_ts (self):
+		with self.__sendlock:
+			return asynchat.async_chat.initiate_send (self)
+				
 	def get_proto (self):
 		with self.lock:
 			p = self._proto
@@ -375,13 +380,6 @@ class AsynConnect (asynchat.async_chat):
 	def reconnect (self):
 		self.disconnect ()
 		self.connect ()
-	
-	def initiate_send (self):
-		if self._sendlock:
-			with self._sendlock:
-				asynchat.async_chat.initiate_send (self)
-		else:
-			asynchat.async_chat.initiate_send (self)		
 	
 	def set_proxy (self, flag = True):
 		self.proxy = flag

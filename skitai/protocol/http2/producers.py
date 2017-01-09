@@ -7,18 +7,18 @@ except ImportError:
 class h2header_producer:
 	def __init__ (self, stream_id, headers, producer, encoder, lock):
 		# DO NOT set self.stream_id
-		# if set, priority_producer_fifo try to re-sort and will raise error
-		self.stream_id = stream_id
+		# if set, http2_producer_fifo try to re-sort and will raise error
+		self.__stream_id = stream_id
 		with lock:
 			encoder.send_headers (
-				stream_id = stream_id,
+				stream_id = self.__stream_id,
 				headers = headers,
 				end_stream = producer is None
 			)
 			self.data_to_send = encoder.data_to_send ()
 			
 	def __repr__ (self):
-		return "<h2header_producer stream_id:%d>" % (self.stream_id,)
+		return "<h2header_producer stream_id:%d>" % (self.__stream_id,)
 	
 	def more (self):		
 		data_to_send, self.data_to_send = self.data_to_send, b''
@@ -45,7 +45,7 @@ class h2data_producer:
 			producer.ready = None
 				
 	def __repr__ (self):
-		return "<h2stream_producer stream_id:%d, weight:%d, depends_on:%d>" % (self.stream_id, self.weight, self.depends_on)
+		return "<h2data_producer stream_id:%d, weight:%d, depends_on:%d>" % (self.stream_id, self.weight, self.depends_on)
 	
 	def is_done (self):
 		return self._end_stream and not self._buf

@@ -70,10 +70,7 @@ class Executor:
 		return response
 		
 	def generate_content (self, method, _args, karg):	
-		ct = self.was.request.get_header ('content-type', '')
-		if self.was.request.command == 'post' and \
-			(ct.startswith ('application/x-www-form-urlencoded') or ct.startswith ("multipart/form-data")):
-			karg = self.parse_kargs (karg)
+		karg = self.parse_kargs (karg)
 		self.was.request.args = karg
 		response = self.chained_exec (method, _args, karg)
 		return response

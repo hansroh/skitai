@@ -1,8 +1,10 @@
 import struct
-from skitai.protocol.grpc.producers import grpc_producer
+from .producers import grpc_producer
 from skitai.protocol.http.request import XMLRPCRequest
 
 class GRPCRequest (XMLRPCRequest):
+	initial_http_version = "2.0"
+	
 	def __init__ (self, uri, method, params = (), headers = None, encoding = "utf8", auth = None, logger = None):
 		self.uri = uri
 		self.method = method
@@ -21,7 +23,7 @@ class GRPCRequest (XMLRPCRequest):
 		}		
 		self.payload = self.serialize ()
 		if not self.payload:
-			self.method = "GET"		
+			self.method = "GET"
 		else:
 			self.headers ["Content-Type"] = "application/grpc"		
 	
@@ -41,5 +43,5 @@ class GRPCRequest (XMLRPCRequest):
 		return (host, port), path
 	
 	def serialize (self):
-		return grpc_producer (self.params)
+		return grpc_producer (self.params [0])
 		

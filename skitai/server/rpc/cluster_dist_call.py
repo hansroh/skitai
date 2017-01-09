@@ -23,7 +23,7 @@ class Result (rcache.Result):
 		self._response = response
 		try:
 			self.set_result ()
-		except:			 
+		except:
 			self.status, self.code, self.msg = 2, 720, "Result Set Error"
 	
 	def __getattr__ (self, attr):
@@ -245,7 +245,7 @@ class ClusterDistCall:
 					request.get_header ("cache-control"),
 					request.get_header ("cookie") is not None, 
 					request.get_header ("authorization") is not None,
-					request.get_header ("pragma")					
+					request.get_header ("pragma")
 				)
 				
 				if cachable:
