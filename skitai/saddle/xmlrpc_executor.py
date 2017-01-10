@@ -3,7 +3,7 @@ try:
 	import xmlrpc.client as xmlrpclib
 except ImportError:
 	import xmlrpclib
-from skitai.server.http_response import http_response
+from aquests.protocols.http import respcodes
 
 class Executor (wsgi_executor.Executor):
 	def __call__ (self):
@@ -26,8 +26,8 @@ class Executor (wsgi_executor.Executor):
 		for _method, _args in thunks:
 			path_info = self.env ["PATH_INFO"] = "/" + _method.replace (".", "/")						
 			current_app, thing, param, respcode = self.find_method (request, path_info, is_multicall is False)			
-			if respcode:
-				results.append ({'faultCode' : 1, 'faultString' : http_response.responses.get (rescode, "Undefined")})
+			if respcode:				
+				results.append ({'faultCode' : 1, 'faultString' : respcodes.get (respcode, "Undefined Error")})
 				
 			self.was.subapp = current_app
 			try:

@@ -1,6 +1,6 @@
 import threading
-from skitai.client import asynconnect
-from skitai.client.socketpool import PROTO_LOADBALANCE
+from aquests.client import asynconnect
+from aquests.client.socketpool import PROTO_LOADBALANCE
 import time
 import re
 import copy

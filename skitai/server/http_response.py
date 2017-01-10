@@ -1,10 +1,11 @@
-from . import http_date, utility
 import zlib
 import time
 import os
 import sys
-from skitai.lib.reraise import reraise 
-from skitai.lib import producers, compressors
+from aquests.protocols.http import http_date, http_util
+from aquests.lib.reraise import reraise 
+from aquests.lib import producers, compressors
+from aquests.protocols.http import respcodes
 import skitai
 try: 
 	from urllib.parse import urljoin
@@ -152,12 +153,8 @@ class http_response:
 		return h		
 	
 	def get_status_msg (self, code):
-		try:
-			status = self.responses [code]
-		except KeyError: 
-			status = "Undefined"
-		return status	
-	
+		return respcodes.get (code, "Undefined Error")
+		
 	def response (self, code, status):	
 		return 'HTTP/%s %d %s' % (self.request.version, code, status)
 	
@@ -301,7 +298,7 @@ class http_response:
 		if upgrade_to or self.is_async_streaming ():
 			do_optimize = False
 						
-		connection = utility.get_header (utility.CONNECTION, self.request.header).lower()
+		connection = http_util.get_header (http_util.CONNECTION, self.request.header).lower()
 		close_it = False
 		way_to_compress = ""
 		wrap_in_chunking = False
@@ -457,60 +454,6 @@ class http_response:
 		)
 		# clearing resources, back refs
 		self.request.response_finished ()
-		
-	responses = {
-		100: "Continue",
-		101: "Switching Protocols",
-		200: "OK",
-		201: "Created",
-		202: "Accepted",
-		203: "Non-Authoritative Information",
-		204: "Deleted",
-		205: "Reset Content",
-		206: "Partial Content",
-		300: "Multiple Choices",
-		301: "Moved Permanently",
-		302: "Moved Temporarily",
-		303: "See Other",
-		304: "Not Modified",
-		305: "Use Proxy",
-		400: "Bad Request",
-		401: "Unauthorized",
-		402: "Payment Required",
-		403: "Forbidden",
-		404: "Not Found",
-		405: "Method Not Allowed",
-		406: "Not Acceptable",
-		407: "Proxy Authentication Required",
-		408: "Request Time-out",
-		409: "Conflict",
-		410: "Gone",
-		411: "Length Required",			
-		412: "Precondition Failed",
-		413: "Request Entity Too Large",
-		414: "Request-URI Too Large",
-		415: "Unsupported Media Type",
-		500: "Internal Server Error",
-		501: "Not Implemented",
-		502: "Bad Gateway",
-		503: "Service Unavailable",
-		504: "Gateway Time-out",
-		505: "HTTP Version Not Supported",
-		506: "Proxy Error",
-		507: "Failed Establishing Connection",
-		508: "WSGI App Error",
-		700: "Socket Error",
-		701: "Exception Occured",
-		702: "Socket Timeout",
-		703: "Socket Panic",
-		704: "DNS Not Found",
-		705: "Server Entered Shutdown Process",
-		706: "Unknown Authedentification Method",
-		707: "HTTP Header/Body Error",
-		708: "No Data Recieved",
-		709: "Invalid Content",
-		710: "Channel Closed",	
-	}		
 	
 	#---------------------------------------------
 	# Used within Saddle app

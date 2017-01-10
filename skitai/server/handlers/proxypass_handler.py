@@ -1,5 +1,5 @@
 from . import wsgi_handler, proxy_handler
-from skitai.protocol.http import request as http_request
+from aquests.protocols.http import request as http_request
 import re
 
 

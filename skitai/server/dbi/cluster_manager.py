@@ -1,5 +1,5 @@
 from skitai.server.rpc import cluster_manager
-from skitai.dbapi import asynpsycopg2, synsqlite3, asynredis, asynmongo
+from aquests.dbapi import asynpsycopg2, synsqlite3, asynredis, asynmongo
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 
 class ClusterManager (cluster_manager.ClusterManager):	

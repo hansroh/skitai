@@ -4,9 +4,9 @@ import os
 import sys
 from . import part, multipart_collector, cookie, session, grpc_collector
 from . import wsgi_executor, xmlrpc_executor, grpc_executor
-from skitai.lib import producers
-from skitai.protocol.grpc import discover
-from skitai.server import utility
+from aquests.lib import producers
+from aquests.protocols.grpc import discover
+from aquests.protocols.http import http_util
 from hashlib import md5
 import random
 import base64
@@ -106,7 +106,7 @@ class Saddle (part.Part):
 			if self.opaque is None:
 				self.opaque = md5 (self.realm.encode ("utf8")).hexdigest ()
 			return 'Digest realm="%s", qop="auth", nonce="%s", opaque="%s"' % (
-				self.realm, utility.md5uniqid (), self.opaque
+				self.realm, http_util.md5uniqid (), self.opaque
 			)
 	
 	def get_password (self, user):

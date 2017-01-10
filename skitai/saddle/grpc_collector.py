@@ -1,7 +1,7 @@
 from skitai.server.handlers.collectors import FormCollector
 from skitai.server import counter
 from collections import Iterable
-from skitai.protocol.grpc.message import decode_message
+from aquests.protocols.grpc.message import decode_message
 import struct
 import time
 

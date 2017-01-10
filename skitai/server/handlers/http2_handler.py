@@ -1,13 +1,13 @@
 from . import wsgi_handler
 import skitai
-from skitai.lib import producers
+from aquests.lib import producers
 from h2.connection import H2Connection, GoAwayFrame, DataFrame
 from h2.exceptions import ProtocolError, NoSuchStreamError
 from h2.events import DataReceived, RequestReceived, StreamEnded, PriorityUpdated, ConnectionTerminated, StreamReset, WindowUpdated
 from h2.errors import CANCEL, PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
 from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
-from skitai.protocol.http2.producers import h2stream_producer, h2header_producer, h2data_producer
+from aquests.protocols.http2.producers import h2stream_producer, h2header_producer, h2data_producer
 from .http2.fifo import http2_producer_fifo
 import threading
 try:
@@ -251,6 +251,8 @@ class http2_request_handler:
 		for event in events:
 			#print ('EVENT:', event, self.requests)
 			if isinstance(event, RequestReceived):
+				#print ('======local_flow_control_window', self.conn.local_flow_control_window (event.stream_id))				
+				#print ('======remote_flow_control_window', self.conn.remote_flow_control_window (event.stream_id))				
 				self.handle_request (event.stream_id, event.headers)				
 					
 			elif isinstance(event, StreamReset):
@@ -298,7 +300,7 @@ class http2_request_handler:
 					else:
 						rfcw = self.conn.remote_flow_control_window (event.stream_id)
 						if rfcw < 131070:
-							self.increment_flow_control_window (event.stream_id, 196605)
+							self.increment_flow_control_window (event.stream_id, 1048576)
 				
 			elif isinstance(event, StreamEnded):
 				r = self.get_request (event.stream_id)
@@ -401,12 +403,16 @@ class http2_request_handler:
 					elif cl > 0:
 						if stream_id == 1:
 							self.data_length = cl	
-							self.set_terminator (cl)
-							
-						else:
+							self.set_terminator (cl)							
+						#else:
 							# give permission for sending data to a client
-							self.increment_flow_control_window (stream_id, cl)
-								
+							#self.increment_flow_control_window (stream_id, cl)
+					
+					#else:
+					#		rfcw = self.conn.remote_flow_control_window (stream_id)
+					#		if rfcw < 131070:
+					#			self.increment_flow_control_window (stream_id, 196605)
+
 				return					
 					
 		try: r.response.error (404)

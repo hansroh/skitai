@@ -33,7 +33,7 @@ class request_thread (threading.Thread):
 				job ()
 			except MemoryError:
 				self.logger.trace ("thread #%d" % self.id)				
-				lifetime.shutdown (1, 1)				
+				lifetime.shutdown (1, 1.0)				
 			except:
 				self.logger.trace ("thread #%d" % self.id)
 				

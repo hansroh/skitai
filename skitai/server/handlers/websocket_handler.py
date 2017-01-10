@@ -8,7 +8,7 @@ from . import wsgi_handler
 from hashlib import sha1
 from base64 import b64encode
 from skitai.server.http_response import catch
-from skitai.server import utility
+from aquests.protocols.http import http_util
 from skitai import version_info, was as the_was
 import threading		
 from .websocket import specs
@@ -120,7 +120,7 @@ class Handler (wsgi_handler.Handler):
 			if not param_name:
 				gidkey = path
 			else:	
-				gid = utility.crack_query (query).get (param_name, None)
+				gid = http_util.crack_query (query).get (param_name, None)
 				try:
 					assert gid, "%s value can't find" % param_name
 				except:

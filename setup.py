@@ -32,36 +32,12 @@ classifiers = [
 	'Topic :: Software Development :: Libraries :: Python Modules',
 	'Intended Audience :: Developers',
 	'Intended Audience :: Science/Research',
-	'Programming Language :: Python',
-	'Programming Language :: Python :: 2.7',
+	'Programming Language :: Python',	
 	'Programming Language :: Python :: 3'
 ]
 
-PY_MAJOR_VERSION = sys.version_info [0]
-if PY_MAJOR_VERSION == 3:
-	if os.path.isfile ("skitai/lib/py2utils.py"):
-		os.remove ("skitai/lib/py2utils.py")
-		try: os.remove ("skitai/lib/py2utils.pyc")
-		except OSError: pass		
-else:
-	if not os.path.isfile ("skitai/lib/py2utils.py"):
-		with open ("skitai/lib/py2utils.py", "w") as f:
-			f.write ("def reraise(type, value, tb):\n\traise type, value, tb\n")			
-
 packages = [
 	'skitai',
-	'skitai.client',
-	'skitai.dbapi',
-	'skitai.lib',	
-	'skitai.protocol',
-	'skitai.examples',	
-	'skitai.protocol.dns',
-	'skitai.protocol.dns.pydns',
-	'skitai.protocol.http',	
-	'skitai.protocol.http2',
-	'skitai.protocol.ws',	
-	'skitai.protocol.smtp',
-	'skitai.protocol.grpc',
 	'skitai.server',
 	'skitai.server.dbi',
 	'skitai.server.handlers',
@@ -70,22 +46,14 @@ packages = [
 	'skitai.server.handlers.http2',
 	'skitai.server.handlers.websocket',
 	'skitai.server.handlers.proxy',
-	'skitai.saddle'
+	'skitai.saddle',
+	'skitai.examples'
 ]
 
-package_dir = {
-	'skitai': 'skitai',
-	'skitai.server': 'skitai/server'
-}
-
-skitai_files = [
-	"protocol/dns/*.txt",
-	"protocol/dns/pydns/*.txt",
-	"examples/grpc/*.proto"
-]
+package_dir = {'skitai': 'skitai'}
 
 package_data = {
-	"skitai": skitai_files
+	"skitai": ["examples/grpc/*.proto"]
 }
 
 setup(
@@ -101,6 +69,6 @@ setup(
 	license='BSD',
 	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/skitai",
-	install_requires = ["jinja2==2.8", "h2", "redis>=2.10", "pymongo"],
+	install_requires = ["jinja2==2.8", "h2", "aquests"],
 	classifiers=classifiers
 )

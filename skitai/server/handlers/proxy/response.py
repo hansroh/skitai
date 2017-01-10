@@ -1,5 +1,5 @@
-from skitai.protocol.http import response as http_response
-from skitai.lib import compressors
+from aquests.protocols.http import response as http_response
+from aquests.lib import compressors
 import time
 
 

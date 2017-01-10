@@ -3,7 +3,7 @@ from skitai.server.threads import socket_map
 from skitai.server.threads import trigger
 import threading
 from skitai.server.rpc import cluster_dist_call, rcache
-from skitai.lib.attrdict import AttrDict
+from aquests.lib.attrdict import AttrDict
 import asyncore
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 
@@ -255,12 +255,12 @@ class ClusterDistCallCreator:
 		
 	
 if __name__ == "__main__":
-	from skitai.lib  import logger
+	from aquests.lib  import logger
 	from . import cluster_manager
 	import sys
 	import asyncore
 	import time
-	from skitai.client import socketpool
+	from aquests.client import socketpool
 	
 	def _reduce (asyncall):
 		for rs in asyncall.getswait (5):

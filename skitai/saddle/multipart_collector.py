@@ -1,7 +1,7 @@
 import tempfile
 import os
 from skitai.server.handlers import collectors
-from skitai.lib import pathtool
+from aquests.lib import pathtool
 import shutil
 
 class File:

@@ -5,7 +5,7 @@
 #-------------------------------------------------------
 
 HTTPS = True
-from skitai.client import adns
+from aquests.client import adns
 import sys, time, os, threading
 from . import http_server
 from skitai import lifetime
@@ -16,15 +16,15 @@ if os.name == "nt":
 	from . import schedule			
 from .handlers import proxy_handler, ipbl_handler, vhost_handler
 from .threads import threadlib, trigger
-from skitai.lib import logger, confparse, pathtool, flock
+from aquests.lib import logger, confparse, pathtool, flock
 from .rpc import cluster_dist_call, rcache
-from skitai.client import socketpool
+from aquests.client import socketpool
 import socket
 import signal
 import multiprocessing
 from . import wsgiappservice, cachefs
 from .dbi import cluster_dist_call as dcluster_dist_call
-from skitai.dbapi import dbpool
+from aquests.dbapi import dbpool
 import types
 
 class Loader:
@@ -233,7 +233,16 @@ class Loader:
 		
 	def close (self):
 		for attr, obj in list(self.wasc.objects.items ()):
-			if attr == "logger": continue
+			if attr == "logger": 
+				continue
+			
+			if attr == "clusters":
+				self.wasc.logger ("server", "[info] clenaup %s" % attr)
+				for name, cluster in obj.items ():
+					self.wasc.logger ("server", "[info] ...clenaup %s" % name)
+					cluster.cleanup ()
+				continue	
+					
 			try:
 				self.wasc.logger ("server", "[info] clenaup %s" % attr)
 				obj.cleanup ()

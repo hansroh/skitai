@@ -1,9 +1,10 @@
-from skitai.server  import utility
+from aquests.protocols.http import http_util
 from . import cookie
-from skitai.lib.reraise import reraise 
+from aquests.lib.reraise import reraise 
 import sys
 from skitai.server.threads import trigger
-from skitai.lib.attrdict import AttrDict
+from aquests.lib.attrdict import AttrDict
+from aquests.protocols.http import respcodes
 
 def traceback ():	
 	t, v, tb = sys.exc_info ()
@@ -91,9 +92,9 @@ class Executor:
 		if kargs:
 			self.merge_args (allkarg, kargs)
 		if query: 
-			self.merge_args (allkarg, utility.crack_query (query))
+			self.merge_args (allkarg, http_util.crack_query (query))
 		if data:
-			self.merge_args (allkarg, utility.crack_query (data))
+			self.merge_args (allkarg, http_util.crack_query (data))
 			
 		return allkarg
 		
@@ -140,12 +141,6 @@ class Executor:
 			self.was.mbox and self.was.mbox.rollback ()
 		self.was.cookie.rollback ()
 	
-	responses = {
-		404: "Not Found",
-		415: "Unsupported Content Type",
-		405: "Method Not Allowed"			
-	}	
-	
 	def isauthorized (self, app, request):			
 		try: 
 			www_authenticate = app.authorize (request.get_header ("Authorization"), request.command, request.uri)
@@ -179,7 +174,7 @@ class Executor:
 					request.response ["Location"] = thing
 					request.response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % thing)							
 				else:
-					request.response.send_error ("%d %s" % (respcode, self.responses.get (respcode, "Undefined Error")))
+					request.response.send_error ("%d %s" % (respcode, respcodes.get (respcode, "Undefined Error")))
 				
 		return current_app, thing, param, respcode
 		

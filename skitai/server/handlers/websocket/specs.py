@@ -7,7 +7,7 @@ try:
 	from urllib.parse import quote_plus
 except ImportError:
 	from urllib import quote_plus	
-from skitai.lib import strutil
+from aquests.lib import strutil
 from skitai import version_info, was as the_was
 try:
 	from cStringIO import StringIO as BytesIO
@@ -15,7 +15,7 @@ except ImportError:
 	from io import BytesIO
 import threading
 import json
-from skitai.protocol.grpc import discover
+from aquests.protocols.grpc import discover
 import xmlrpc.client
 
 FIN    = 0x80

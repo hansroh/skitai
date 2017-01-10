@@ -1,8 +1,8 @@
 from skitai import VERSION
 import multiprocessing
-from skitai.lib import pathtool, logger
+from aquests.lib import pathtool, logger
 from .rpc import cluster_manager, cluster_dist_call
-from skitai.protocol.smtp import composer
+from aquests.protocols.smtp import composer
 from .dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from . import server_info, http_date
@@ -44,6 +44,7 @@ class _Method:
 class WAS:
 	version = VERSION
 	objects = {}
+	
 	#----------------------------------------------------
 	# application friendly methods
 	#----------------------------------------------------		
@@ -100,7 +101,11 @@ class WAS:
 			setattr (new_was, k, v)
 		return new_was	
 			
-	VALID_COMMANDS = ["ws", "get", "post", "postform", "postjson", "postxml", "postnvp", "rpc", "grpc", "put", "upload", "delete", "options", "db"]
+	VALID_COMMANDS = [
+		"ws", "get", "post", "postform", "postjson", "postxml", "postnvp", 
+		"rpc", "grpc", "put", "upload", "delete", "options", "db",
+		"postgresql", "sqlite3", "redis", "mongodb"
+	]
 	def __getattr__ (self, name):
 		# method magic		
 		if name in self.VALID_COMMANDS:
@@ -135,11 +140,13 @@ class WAS:
 				fn = "lb"
 			else:
 				fn = (command == "db" and "db" or "rest")
-				
-		if command == "db":
-			return getattr (self, "_d" + fn) (*args, **karg)		
 		
-		return getattr (self, "_" + fn) (command, *args, **karg)
+		if command == "db":		
+			return getattr (self, "_d" + fn) (*args, **karg)
+		elif command in ("postgresql", "sqlite3", "redis", "mongodb"):
+			return getattr (self, "_a" + fn) ("*" + command, *args, **karg)		
+		else:	
+			return getattr (self, "_" + fn) (command, *args, **karg)
 	
 	def rebuild_header (self, header):
 		if not header:
@@ -164,6 +171,9 @@ class WAS:
 		clustername, uri = self.__detect_cluster (uri)
 		return self.clusters_for_distcall [clustername].Server (uri, data, method, self.rebuild_header (headers), auth, encoding, use_cache, mapreduce = False, filter = filter, callback = callback)
 	
+	def _adb (self, dbtype, server, dbname, user = "", password = "", use_cache = True, filter = None, callback = None):
+		return self._ddb (server, dbname, user, password, dbtype, use_cache, filter, callback)
+		
 	def _ddb (self, server, dbname, user = "", password = "", dbtype = DB_PGSQL, use_cache = True, filter = None, callback = None):
 		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, user, password, dbtype, use_cache, mapreduce = False, filter = filter, callback = callback)
 	
@@ -234,11 +244,11 @@ class WAS:
 	def status (self, flt = None, fancy = True):
 		return server_info.make (self, flt, fancy)
 	
-	def restart (self, fast = 0):
-		lifetime.shutdown (3, fast)
+	def restart (self, timeout = 0):
+		lifetime.shutdown (3, timeout)
 	
-	def shutdown (self, fast = 0):
-		lifetime.shutdown (0, fast)
+	def shutdown (self, timeout = 0):
+		lifetime.shutdown (0, timeout)
 	
 	
 class Logger:

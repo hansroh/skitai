@@ -4,8 +4,8 @@ from . import mime_type_table
 import os
 from . import filesys
 from skitai.server import http_date
-from skitai.lib import producers
-from skitai.server.utility import *
+from aquests.lib import producers
+from aquests.protocols.http.http_util import *
 from hashlib import md5
 
 IF_MODIFIED_SINCE = re.compile (

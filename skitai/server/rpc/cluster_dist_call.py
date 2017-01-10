@@ -1,15 +1,15 @@
 import time
 from skitai.server.threads import socket_map
 from skitai.server.threads import trigger
-from skitai.client.asynconnect import AsynSSLConnect
+from aquests.client.asynconnect import AsynSSLConnect
 import threading
-from skitai.protocol.http import request as http_request
-from skitai.protocol.http import request_handler as http_request_handler
-from skitai.protocol.http2 import request_handler as http2_request_handler
-from skitai.protocol.grpc.request import GRPCRequest
-from skitai.protocol.http import response as http_response
-from skitai.protocol.ws import request_handler as ws_request_handler
-from skitai.protocol.ws import request as ws_request
+from aquests.protocols.http import request as http_request
+from aquests.protocols.http import request_handler as http_request_handler
+from aquests.protocols.http2 import request_handler as http2_request_handler
+from aquests.protocols.grpc.request import GRPCRequest
+from aquests.protocols.http import response as http_response
+from aquests.protocols.ws import request_handler as ws_request_handler
+from aquests.protocols.ws import request as ws_request
 from . import rcache
 
 
@@ -466,12 +466,12 @@ class ClusterDistCallCreator:
 		
 	
 if __name__ == "__main__":
-	from skitai.lib  import logger
+	from aquests.lib  import logger
 	from . import cluster_manager
 	import sys
 	import asyncore
 	import time
-	from skitai.client import socketpool
+	from aquests.client import socketpool
 	
 	def _reduce (asyncall):
 		for rs in asyncall.getswait (5):

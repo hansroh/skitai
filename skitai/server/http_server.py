@@ -3,10 +3,11 @@
 import sys
 import asyncore, asynchat
 import re, socket, time, threading, os
-from . import http_date, http_request, utility, counter
+from . import http_request, counter
+from aquests.protocols.http import http_util, http_date
 from .threads import threadlib
 from skitai import lifetime
-from skitai.lib import producers, compressors
+from aquests.lib import producers, compressors
 import signal
 import ssl
 from skitai import VERSION
@@ -187,7 +188,7 @@ class http_channel (asynchat.async_chat):
 			return result
 			
 		except MemoryError:
-			lifetime.shutdown (1, 1)
+			lifetime.shutdown (1, 1.0)
 				
 	def collect_incoming_data (self, data):
 		#print ("collect_incoming_data", repr (data [:180]), self.current_request)
@@ -222,7 +223,7 @@ class http_channel (asynchat.async_chat):
 
 			request = lines[0]
 			try:
-				command, uri, version = utility.crack_request (request)
+				command, uri, version = http_util.crack_request (request)
 			except:
 				self.log_info ("channel-%s invaild request header" % self.channel_number, "fail")
 				return self.close ()
@@ -230,7 +231,7 @@ class http_channel (asynchat.async_chat):
 			if DEBUG: 
 				self.__history.append ("START REQUEST: %s/%s %s" % (command, version, uri))				
 			
-			header = utility.join_headers (lines[1:])
+			header = http_util.join_headers (lines[1:])
 			r = http_request.http_request (self, request, command, uri, version, header)
 			
 			self.request_counter.inc()
@@ -505,10 +506,10 @@ def hCHLD (signum, frame):
 	os.wait ()
 
 def hTERMWORKER (signum, frame):			
-	lifetime.shutdown (0, 1)
+	lifetime.shutdown (0, 1.0)
 
 def hQUITWORKER (signum, frame):			
-	lifetime.shutdown (0, 0)
+	lifetime.shutdown (0, 30.0)
 	
 def DO_SHUTDOWN (sig):
 	global SURVAIL, PID

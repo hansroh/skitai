@@ -8,6 +8,7 @@ from skitai import lifetime
 import os, sys, errno
 import skitai
 from errno import EWOULDBLOCK
+from aquests.protocols.http2 import H2_PROTOCOLS
 			
 class https_channel (http_server.http_channel):
 	ac_out_buffer_size = 65536
@@ -52,7 +53,7 @@ class https_channel (http_server.http_channel):
 				return result
 		
 		except MemoryError:
-			lifetime.shutdown (1, 1)
+			lifetime.shutdown (1, 1.0)
 		
 		except ssl.SSLError as why:			
 			if why.errno == ssl.SSL_ERROR_WANT_READ:				
@@ -91,8 +92,6 @@ class https_server (http_server.http_server):
 		
 		https_channel (self, conn, addr)
 		
-
-H2_PROTOCOLS = ["h2", "h2-16", "h2-14", "h2c"]
 	
 def init_context (certfile, keyfile, pass_phrase):	
 	try:

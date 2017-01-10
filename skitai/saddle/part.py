@@ -5,7 +5,7 @@ except ImportError:
 	from urllib import unquote_plus, quote_plus
 	from urlparse import urljoin
 import os
-from skitai.lib import importer, strutil
+from aquests.lib import importer, strutil
 from types import FunctionType as function
 
 	

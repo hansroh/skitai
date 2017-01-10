@@ -4,8 +4,7 @@ try:
 except ImportError:
 	from urllib import unquote	
 import sys
-from skitai.server import utility
-from skitai.lib import producers
+from aquests.lib import producers
 from skitai.server.http_response import catch
 from skitai.server.threads import trigger
 from . import collectors

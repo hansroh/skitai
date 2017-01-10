@@ -1,5 +1,5 @@
 import time
-from skitai.lib import jwt
+from aquests.lib import jwt
 
 class AuthorizedUser:
 	def __init__ (self, user, roles, realm):

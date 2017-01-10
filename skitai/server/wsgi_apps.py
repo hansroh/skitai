@@ -1,5 +1,5 @@
 import os, sys, re, types
-from skitai.lib  import pathtool, importer
+from aquests.lib  import pathtool, importer
 import threading
 from types import FunctionType as function
 
