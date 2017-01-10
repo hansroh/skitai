@@ -38,12 +38,12 @@ class response (http_response.http_response):
 		self.request.http2.push_promise (self.request.stream_id, headers, additional_headers)
 		
 	def done (self, upgrade_to = None):
+		if not self.is_responsable (): return
+		self._is_done = True
+		if self.request.http2 is None: return
+				
 		self.htime = (time.time () - self.stime) * 1000
 		self.stime = time.time () #for delivery time
-
-		if not self.responsable (): return
-		self.is_done = True
-		if self.request.http2 is None: return
 		
 		# removed by HTTP/2.0 Spec.
 		self.delete ('transfer-encoding')
@@ -104,3 +104,4 @@ class response (http_response.http_response):
 			
 		except:
 			logger.trace ()			
+		

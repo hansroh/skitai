@@ -22,17 +22,32 @@ class http_request:
 		self.rbytes = 0
 		self.created = time.time ()
 		self.gzip_encoded = False
-		self._is_async_streaming = False
-		self._is_promise = False
 		self._split_uri = None
 		self._header_cache = {}
-
+		self._is_stream_ended = False
+		self._is_async_streaming = False
+		self._is_promise = False
 		self.set_log_info ()
-		self.response = http_response.http_response (self)
+		self.make_response ()
 	
 	def is_promise (self):
 		return self._is_promise
 		
+	def make_response (self):
+		self.response = http_response.http_response (self)
+	
+	def set_async_streaming (self):
+			self._is_async_streaming = True
+	
+	def is_async_streaming (self):
+		return self._is_async_streaming
+	
+	def set_stream_ended (self):	
+		self._is_stream_ended = True
+	
+	def is_stream_ended (self):
+		return self._is_stream_ended
+			
 	def set_log_info (self):
 		self.gtxid = self.get_header ("X-Gtxn-Id")
 		if not self.gtxid:
@@ -173,14 +188,7 @@ class http_request:
 				'unexpected end-of-record for incoming request',
 				'warning'
 				)
-	
-	def is_async_streaming (self):
-		return self._is_async_streaming
-	
-	def set_streaming (self):
-			self._is_async_streaming = True
-	
+			
 	def response_finished (self):
 		self.response.request = None
 	
-		

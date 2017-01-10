@@ -86,16 +86,22 @@ class http_response:
 			('Date', http_date.build_http_date (time.time()))
 		]
 		self.outgoing = producers.fifo ()
-		self.is_done = False
+		self._is_done = False
 		self.stime = time.time ()
 		self.htime = 0
-	
+		
 	def is_async_streaming (self):
 		return self._is_async_streaming
 	
 	def set_streaming (self):
 		self._is_async_streaming = True	
-		
+	
+	def is_responsable (self):
+		return not self._is_done
+	
+	def is_done (self):	
+		return self._is_done
+				
 	def __len__ (self):
 		return len (self.outgoing)
 			
@@ -155,9 +161,6 @@ class http_response:
 	def response (self, code, status):	
 		return 'HTTP/%s %d %s' % (self.request.version, code, status)
 	
-	def responsable (self):
-		return not self.is_done
-	
 	def parse_ststus (self, status):
 		try:	
 			code, status = status.split (" ", 1)
@@ -179,7 +182,7 @@ class http_response:
 				
 	def send_error (self, status, why = "", disconnect = False):
 		# for Saddle App
-		if not self.responsable ():
+		if not self.is_responsable ():
 			raise AssertionError ("Relponse already sent!")
 		self ["Content-Type"] = "text/html"		
 		if type (why) is tuple: # render exc_info
@@ -200,7 +203,7 @@ class http_response:
 		
 	def start_response (self, status, headers = None, exc_info = None):		
 		# for WSGI App
-		if not self.responsable ():
+		if not self.is_responsable ():
 			if exc_info:
 				try:
 					reraise (*exc_info)
@@ -228,7 +231,7 @@ class http_response:
 		self.error (code, status, why, force_close = True)
 		
 	def start (self, code, status = "", headers = None):
-		if not self.responsable (): return
+		if not self.is_responsable (): return
 		self.reply_code = code
 		if status: self.reply_message = status
 		else:	self.reply_message = self.get_status_msg (code)			
@@ -250,7 +253,7 @@ class http_response:
 				
 	def error (self, code, status = "", why = "", force_close = False, push_only = False):
 		global DEFAULT_ERROR_MESSAGE
-		if self.is_done: return
+		if not self.is_responsable (): return
 		self.outgoing.clear ()
 		self.reply_code = code
 		if status: self.reply_message = status
@@ -279,19 +282,19 @@ class http_response:
 		pass
 		
 	def push (self, thing):
-		if not self.responsable (): return
+		if not self.is_responsable (): return
 		if type(thing) is bytes:
 			self.outgoing.push (producers.simple_producer (thing))
 		else:
 			self.outgoing.push (thing)
 	      					
 	def done (self, force_close = False, upgrade_to = None):		
-		self.htime = (time.time () - self.stime) * 1000
-		self.stime = time.time () #for delivery time
-		
-		if not self.responsable (): return
-		self.is_done = True
+		if not self.is_responsable (): return
+		self._is_done = True
 		if self.request.channel is None: return
+			
+		self.htime = (time.time () - self.stime) * 1000
+		self.stime = time.time () #for delivery time		
 		
 		# compress payload and globbing production
 		do_optimize = True
@@ -409,6 +412,7 @@ class http_response:
 		
 		# IMP: second testing after push_with_producer()->init_send ()
 		if self.request.channel is None: return
+
 		if upgrade_to:
 			request, terminator = upgrade_to
 			self.request.channel.current_request = request

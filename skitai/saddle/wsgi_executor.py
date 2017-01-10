@@ -57,11 +57,13 @@ class Executor:
 			raise
 																										
 		except Exception as expt:			
-			if failed:
-				self.was.traceback ()
+			if failed:				
 				response = failed (self.was, sys.exc_info ())
-			if response is None:				
+			if response is None:
 				raise
+			else:
+				# filed handle exception and contents, just log
+				self.was.traceback ()
 							
 		else:
 			success and success (self.was)
@@ -85,7 +87,7 @@ class Executor:
 				self.merge_args (allkarg, _input)
 			else:
 				data = _input.read ()
-				
+		
 		if kargs:
 			self.merge_args (allkarg, kargs)
 		if query: 

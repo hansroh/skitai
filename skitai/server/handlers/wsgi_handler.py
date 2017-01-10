@@ -244,7 +244,7 @@ class Job:
 		try:
 			content = self.apph (*self.args)
 			
-			if not response.responsable ():
+			if not response.is_responsable ():
 				# already called response.done () or diconnected channel
 				return
 			

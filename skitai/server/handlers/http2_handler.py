@@ -59,13 +59,11 @@ class http2_request_handler:
 		self._closed = True		
 		if self.channel:
 			self.go_away (errcode) # go_away
-
-		with self._clock:
-			for request in self.requests.values ():
-				request.abort ()
-				request.http2 = None
-				request.response.request = None
-			self.requests = {}
+		
+		with self._clock:	
+			stream_ids = list (self.requests.keys ())		
+		for stream_id in stream_ids:
+			self.remove_request (stream_id)
 	
 	def enter_shutdown_process (self):
 		self.close (NO_ERROR)
@@ -221,17 +219,17 @@ class http2_request_handler:
 			)
 			self.channel.push_with_producer (outgoing_producer)			
 		
-		if not r.is_async_streaming ():
+		if r.is_stream_ended () or not r.is_async_streaming ():
 			# needn't recv data any more
 			self.remove_request (stream_id)
+
 		#print ('=========', len (self.requests))
-			
-		promise_stream_id, promise_headers = None, None
+		#print ('===========', self.promises)
+		current_promises = []
 		with self._clock:
-			try: promise_stream_id, promise_headers = self.promises.popitem ()
-			except KeyError: pass
-		
-		if promise_stream_id:
+			while self.promises:
+				current_promises.append (self.promises.popitem ())				
+		for promise_stream_id, promise_headers in current_promises:
 			self.handle_request (promise_stream_id, promise_headers, is_promise = True)
 	
 	def remove_request (self, stream_id):
@@ -261,13 +259,15 @@ class http2_request_handler:
 					if r and r.collector:
 						try: r.collector.stream_has_been_reset ()
 						except AttributeError: pass
-					
+						r.set_stream_ended ()
+						
 					deleted = False
 					if event.stream_id % 2 == 0: # promise stream
 						with self._clock:
 							try: del self.promises [event.stream_id]
 							except KeyError: pass
 							else: deleted = True
+
 					if not deleted:
 						self.channel.producer_fifo.remove (event.stream_id)
 						
@@ -301,12 +301,13 @@ class http2_request_handler:
 							self.increment_flow_control_window (event.stream_id, 196605)
 				
 			elif isinstance(event, StreamEnded):
-				r = self.get_request (event.stream_id)		
+				r = self.get_request (event.stream_id)
 				if r:
 					if r.collector:
 						r.channel.handle_read ()
 						r.channel.found_terminator ()
-					if r.is_async_streaming ():	
+					r.set_stream_ended ()
+					if r.is_async_streaming () or r.response is None or r.response.is_done ():	
 						self.remove_request (event.stream_id)
 					
 		self.send_data ()
@@ -369,7 +370,10 @@ class http2_request_handler:
 				self.request.version = "2.0"
 				vchannel = fake_channel (stream_id, self.channel)
 		
-		r = http2_request (self, vchannel, first_line, command.lower (), uri, "2.0", scheme, h, stream_id, is_promise)		
+		r = http2_request (
+			self,  scheme, stream_id, is_promise, 
+			vchannel, first_line, command.lower (), uri, "2.0", h
+		)		
 		vchannel.current_request = r
 		
 		with self._clock:
