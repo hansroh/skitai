@@ -194,7 +194,7 @@ class http2_request_handler:
 			self.conn.push_stream (stream_id, promise_stream_id, request_headers	+ addtional_request_headers)
 		self.send_data ()
 					
-	def handle_response (self, stream_id, headers, producer):
+	def handle_response (self, stream_id, headers, producer, force_close = False):
 		#print ("++RESPONSE", headers, producer)
 		r = self.get_request (stream_id)
 		with self._clock:			
@@ -219,9 +219,12 @@ class http2_request_handler:
 			)
 			self.channel.push_with_producer (outgoing_producer)			
 		
-		if r.is_stream_ended () or not r.is_async_streaming ():
-			# needn't recv data any more
-			self.remove_request (stream_id)
+		if force_close:
+			self.reset_stream (stream_id, CANCEL)
+		else:	
+			if r.is_stream_ended () or not r.is_async_streaming ():
+				# needn't recv data any more
+				self.remove_request (stream_id)
 
 		#print ('=========', len (self.requests))
 		#print ('===========', self.promises)
@@ -404,15 +407,10 @@ class http2_request_handler:
 						if stream_id == 1:
 							self.data_length = cl	
 							self.set_terminator (cl)							
-						#else:
+						else:
 							# give permission for sending data to a client
-							#self.increment_flow_control_window (stream_id, cl)
+							self.increment_flow_control_window (stream_id, cl)
 					
-					#else:
-					#		rfcw = self.conn.remote_flow_control_window (stream_id)
-					#		if rfcw < 131070:
-					#			self.increment_flow_control_window (stream_id, 196605)
-
 				return					
 					
 		try: r.response.error (404)

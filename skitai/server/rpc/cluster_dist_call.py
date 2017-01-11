@@ -133,7 +133,7 @@ class Dispatcher:
 		else:
 			status = 3
 		
-		self.result = Result (self.id, status, response, self.ident)				
+		self.result = Result (self.id, status, response, self.ident)
 		self.set_status (status)
 		
 		cakey = response.request.get_cache_key ()
@@ -428,10 +428,10 @@ class _Method:
 
 		
 class Proxy:
-	def __init__ (self, _class, *args, **kargs):
+	def __init__ (self, __class, *args, **kargs):
+		self.__class = __class
 		self.__args = args
-		self.__kargs = kargs
-		self.__class = _class
+		self.__kargs = kargs		
 	
 	def __getattr__ (self, name):	  
 		return _Method(self.__request, name)

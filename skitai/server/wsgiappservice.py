@@ -140,7 +140,7 @@ class WAS:
 				fn = "lb"
 			else:
 				fn = (command == "db" and "db" or "rest")
-		
+
 		if command == "db":		
 			return getattr (self, "_d" + fn) (*args, **karg)
 		elif command in ("postgresql", "sqlite3", "redis", "mongodb"):

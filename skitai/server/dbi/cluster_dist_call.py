@@ -4,81 +4,65 @@ from skitai.server.threads import trigger
 import threading
 from skitai.server.rpc import cluster_dist_call, rcache
 from aquests.lib.attrdict import AttrDict
+from aquests.dbapi import request
 import asyncore
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 
 class OperationTimeout (Exception):
 	pass
 
+class RequestFailed (Exception):
+	pass
+	
 class Result (rcache.Result):
-	def __init__ (self, id, status, description = None, expt_class = None, expt_str = None, data = [], ident = None):
+	def __init__ (self, id, status, request = None, ident = None):
 		rcache.Result.__init__ (self, status, ident)		
 		self.node = id
-		self.__expt_class = expt_class
-		self.__expt_str = expt_str
-						
+		self.request = request
+		
 		if status == 3:
 			try:
-				self.set_result (description, data)
+				self.description, self.data = request.description, request.data
 			except:
-				self.__expt_class, self.__expt_str = asyncore.compact_traceback() [1:3]
+				request.expt_class, request.expt_str = asyncore.compact_traceback() [1:3]
 				self.status = 2
 		
-		# For Results competitable		
+		# For Results competitable
 		if self.status == 3:
 			self.code, self.msg = 200, "OK"
 		else:
-			self.code, self.msg = 501, "Server Error"
+			self.code, self.msg = 500, "Server Error"
 		
 	def __iter__ (self):
 		return self.data.__iter__ ()
 	
 	def __slice__(self, start = None, end = None, step = None): 
 		return self.data [slice(start, end, step)]
-		
-	def set_result (self, description, data):		
-		if not data:
-			self.data = data
-			return
-		
-		self.description = description
-		if description:
-			assert (len (description) == len (data [0]))		
-			cols = [type (col) is tuple and col [0] or col.name for col in description]		
-			d = []
-			for row in data:
-				i = 0
-				drow = AttrDict ()
-				for name in cols:
-					drow [name] = row [i]
-					i += 1
-				d.append (drow)
-			self.data = d
-			
-		else:
-			if type (data) is dict:
-				try:
-					self.data = AttrDict ()
-					for k, v in data.items ():
-						self.data [k] = v
-				except:
-					self.data = data
-			else:		
-				self.data = data
 	
 	def reraise (self):
-		if self.__expt_class:
-			raise self.__expt_class ("%s (status: %d)" % (self.__expt_str, self.status))
+		if self.request.expt_class:
+			raise self.request.expt_class ("%s (status: %d)" % (self.request.expt_str, self.status))
 	
 	def get_error_as_string (self):
-		if self.__expt_class:
-			return "%s %s" % (self.__expt_class, self.__expt_str)		
+		if self.request.expt_class:
+			return "%s %s" % (self.request.expt_class, self.request.expt_str)		
+		return ""	
 		
 	def cache (self, timeout = 300):
 		if self.status != 3:
 			return
 		rcache.Result.cache (self, timeout)
-	
+
+
+class FailedRequest:
+	def __init__ (self, expt_class, expt_msg):
+		self.description = None
+		self.data = None
+		self.expt_class = None
+		self.expt_str = None
+		
+		self.code, self.msg = 501, "timeout"
+			
 			
 class Dispatcher:
 	def __init__ (self, cv, id, ident = None, filterfunc = None):
@@ -112,25 +96,27 @@ class Dispatcher:
 		
 	def get_result (self):
 		if self.result is None:
-			self.result = Result (self.id, 1, None, OperationTimeout, "Operation Timeout", None, self.ident)
-			self.do_filter ()
+			if self.get_status () == -1:
+				self.result = Result (self.id, -1, FailedRequest (RequestFailed, "Request Failed"), self.ident)
+			else:
+				self.result = Result (self.id, 1, FailedRequest (OperationTimeout, "Operation Timeout"), self.ident)
 		return self.result
 	
 	def do_filter (self):
 		if self.filterfunc:
 			self.filterfunc (self.result)
 						
-	def handle_result (self, description = None, expt_class = None, expt_str = None, data = None):
+	def handle_result (self, request):
 		if self.get_status () == 1:
 			# timeout, ignore
 			return
 				
-		if expt_class:
+		if request.expt_class:
 			status = 2			
 		else:
 			status = 3
 		
-		self.result = Result (self.id, status, description, expt_class, expt_str, data, self.ident)
+		self.result = Result (self.id, status, request, self.ident)
 		self.set_status (status)		
 		        	     
 #-----------------------------------------------------------
@@ -219,8 +205,8 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 			self._cv = asyncon._cv
 		return asyncon
 	
-	def _request (self, method, cmd):
-		self._cached_request_args = cmd # backup for retry
+	def _request (self, method, params):
+		self._cached_request_args = (method, params) # backup for retry
 		if self._use_cache and rcache.the_rcache:
 			self._cached_result = rcache.the_rcache.get (self._get_ident ())
 			if self._cached_result is not None:
@@ -229,14 +215,15 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		while self._avails ():
 			asyncon = self._get_connection (None)			
 			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._filter)
+			req = request.Request (
+				self.dbtype, method, params, 
+				self._callback and self._callback or rs.handle_result
+			)
 			self._requests [rs] = asyncon
-			if method in ("do", "execute"):
-				asyncon.execute (self._callback and self._callback or rs.handle_result, *cmd)							
-			else:
-				asyncon.execute (self._callback and self._callback or rs.handle_result, method, *cmd)			
+			asyncon.execute (req)			
 		trigger.wakeup ()
 		return self
-	
+
 
 class ClusterDistCallCreator:
 	def __init__ (self, cluster, logger):
@@ -250,8 +237,6 @@ class ClusterDistCallCreator:
 		# reqtype: xmlrpc, rpc2, json, jsonrpc, http
 		#return ClusterDistCall (self.cluster, server, dbname, user, password, dbtype, use_cache, mapreduce, filter, callback, self.logger)
 		return cluster_dist_call.Proxy (ClusterDistCall, self.cluster, server, dbname, user, password, dbtype, use_cache, mapreduce, filter, callback, self.logger)
-
-
 		
 	
 if __name__ == "__main__":

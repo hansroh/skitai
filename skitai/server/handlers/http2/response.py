@@ -37,7 +37,7 @@ class response (http_response.http_response):
 	    
 		self.request.http2.push_promise (self.request.stream_id, headers, additional_headers)
 		
-	def done (self, upgrade_to = None):
+	def done (self, force_close = False, upgrade_to = None):
 		if not self.is_responsable (): return
 		self._is_done = True
 		if self.request.http2 is None: return
@@ -99,7 +99,8 @@ class response (http_response.http_response):
 			self.request.http2.handle_response (
 				self.request.stream_id, 
 				self.build_reply_header (),
-				outgoing_producer				
+				outgoing_producer,
+				force_close = force_close
 			)
 			
 		except:
