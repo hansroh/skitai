@@ -67,14 +67,14 @@ class Part:
 			return default, d
 			
 		v2 = v.split (";")
-		if len (v2) == 1:
-			return v, d
-		for each in v2 [1:]:
+		for each in v2:
+			each = each.strip ()
+			if not each: continue
 			try:
-				a, b = each.strip ().split ("=", 1)
+				a, b = each.split ("=", 1)
 			except ValueError:
-				a, b = each.strip (), None
-			d [a] = b
+				a, b = each, None
+			d [a.lower ()] = b
 		return v2 [0], d	
 			
 	def get_header (self, header, default = None):

@@ -86,8 +86,8 @@ class response (http_response.http_response):
 			outgoing_producer = producers.hooked_producer (outgoing_producer, self.log)
 			if do_optimize:
 				outgoing_producer = producers.globbing_producer (outgoing_producer)				
-		
-		if self.request.http2 is None: return		
+
+		if self.request.http2 is None: return
 		if upgrade_to:
 			# do not change http2 channel
 			request, terminator = upgrade_to

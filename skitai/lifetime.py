@@ -70,7 +70,6 @@ def maintern_zombie_channel (now):
 	for channel in list(asyncore.socket_map.values()):
 		if hasattr (channel, "handle_timeout"):
 			try:
-				# +3 is make gap between server & client
 				iszombie = (now - channel.event_time) > channel.zombie_timeout + 3
 			except AttributeError:
 				continue
@@ -82,11 +81,10 @@ def maintern_zombie_channel (now):
 					channel.handle_error ()
 
 maintern = None
-
-def init ():
-	global maintern	
+def init (kill_zombie_interval = 10.0):
+	global maintern
 	maintern = lifetime.Maintern ()
-	maintern.sched (10.0, maintern_zombie_channel)
+	maintern.sched (kill_zombie_interval, lifetime.maintern_zombie_channel)
 	maintern.sched (300.0, lifetime.maintern_gc)
 
 def shutdown (exit_code, shutdown_timeout = 30.0):

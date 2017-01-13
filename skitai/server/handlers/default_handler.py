@@ -174,9 +174,10 @@ class Handler:
 			if self.max_age:
 				request.response ['Cache-Control'] = "max-age=%d" % self.max_age		
 		self.set_content_type (path, request)
-		
+
 		if request.command == 'get':
-			request.response.push (producers.file_producer (file))			
+			request.response.push (producers.file_producer (file))
+			
 		request.response.done()
 	
 	def make_etag (self, file_length, mtime):

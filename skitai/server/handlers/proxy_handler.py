@@ -276,7 +276,7 @@ class Handler (wsgi_handler.Handler):
 			if self.cachefs and not handler.request.payload and handler.response.max_age:
 				self.cachefs.save (
 					request.uri, 
-					handler.response.get_header ("content-type"), handler.response.get_content (), 
+					handler.response.get_header ("content-type"), handler.response.content, 
 					handler.response.max_age, request.response ["Content-Encoding"] == "gzip"
 				)
 				

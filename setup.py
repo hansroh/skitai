@@ -2,10 +2,7 @@
 Hans Roh 2015 -- http://osp.skitai.com
 License: BSD
 """
-
-import skitai
-__VER__ = skitai.VERSION
-
+import re
 import sys
 import os
 import shutil, glob
@@ -25,8 +22,8 @@ if sys.argv[-1] == 'publish':
 classifiers = [
   'License :: OSI Approved :: BSD License',
   'Development Status :: 4 - Beta',
-  'Topic :: Internet :: WWW/HTTP',
-	'Topic :: Internet :: WWW/HTTP :: HTTP Servers',				
+  'Topic :: Internet :: WWW/HTTP :: HTTP Servers',	
+	'Topic :: Internet :: WWW/HTTP :: WSGI',
 	'Environment :: Console',
 	'Environment :: No Input/Output (Daemon)',
 	'Topic :: Software Development :: Libraries :: Python Modules',
@@ -56,9 +53,12 @@ package_data = {
 	"skitai": ["examples/grpc/*.proto"]
 }
 
+with open('skitai/__init__.py', 'r') as fd:
+	version = re.search(r'^__version__\s*=\s*"(.*?)"',fd.read(), re.M).group(1)
+
 setup(
 	name='skitai',
-	version=__VER__,
+	version=version,
 	description='Skitai Library',
 	url = 'https://gitlab.com/hansroh/skitai',
 	author='Hans Roh',
@@ -69,6 +69,6 @@ setup(
 	license='BSD',
 	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/skitai",
-	install_requires = ["jinja2==2.8", "h2", "aquests"],
+	install_requires = ["jinja2==2.8", "h2==2.5.1", "aquests"],
 	classifiers=classifiers
 )

@@ -10,7 +10,6 @@ from skitai import lifetime
 from aquests.lib import producers, compressors
 import signal
 import ssl
-from skitai import VERSION
 import skitai
 
 PID = []

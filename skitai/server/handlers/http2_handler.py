@@ -2,7 +2,7 @@ from . import wsgi_handler
 import skitai
 from aquests.lib import producers
 from h2.connection import H2Connection, GoAwayFrame, DataFrame
-from h2.exceptions import ProtocolError, NoSuchStreamError
+from h2.exceptions import ProtocolError, NoSuchStreamError, StreamClosedError
 from h2.events import DataReceived, RequestReceived, StreamEnded, PriorityUpdated, ConnectionTerminated, StreamReset, WindowUpdated
 from h2.errors import CANCEL, PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
 from .http2.request import request as http2_request
@@ -166,8 +166,7 @@ class http2_request_handler:
 									
 		elif buf:
 			self.current_frame, self.data_length = self.frame_buf._parse_frame_header (buf)
-			self.frame_buf.max_frame_size = self.conn.max_inbound_frame_size
-			self.frame_buf._validate_frame_length (self.data_length)
+			self.frame_buf.max_frame_size = self.data_length
 			
 			if self.data_length == 0:
 				events = self.set_frame_data (b'')
@@ -208,6 +207,7 @@ class http2_request_handler:
 		self.channel.push_with_producer (
 			h2header_producer (stream_id, headers, producer, self.conn, self._plock)
 		)
+		
 		if producer:			
 			if r.response.is_async_streaming ():
 				h2_class = h2stream_producer
@@ -217,7 +217,7 @@ class http2_request_handler:
 			outgoing_producer = h2_class (
 				stream_id, depends_on, weight, producer, self.conn, self._plock
 			)
-			self.channel.push_with_producer (outgoing_producer)			
+			self.channel.push_with_producer (outgoing_producer)
 		
 		if force_close:
 			self.reset_stream (stream_id, CANCEL)
@@ -326,10 +326,14 @@ class http2_request_handler:
 	
 	def increment_flow_control_window (self, stream_id, cl):
 		with self._plock:
-			self.conn.increment_flow_control_window (cl)
 			rfcw = self.conn.remote_flow_control_window (stream_id)
 			if cl > rfcw:
-				self.conn.increment_flow_control_window (cl - rfcw, stream_id)
+				try:
+					self.conn.increment_flow_control_window (cl - rfcw, stream_id)
+				except StreamClosedError:
+					pass
+				else:	
+					self.conn.increment_flow_control_window (cl)	
 		self.send_data ()								
 		
 	def handle_request (self, stream_id, headers, is_promise = False):
@@ -385,33 +389,32 @@ class http2_request_handler:
 			self.channel.request_counter.inc()
 			self.channel.server.total_requests.inc()
 		
-		for h in self.channel.server.handlers:
-			if h.match (r):	
-				with self._clock:
-					self.requests [stream_id] = r
+		h = self.handler.default_handler
+		if h.match (r):
+			with self._clock:
+				self.requests [stream_id] = r
+
+			try:					
+				h.handle_request (r)
 				
-				try:					
-					h.handle_request (r)
+			except:
+				self.channel.server.trace()
+				try: r.response.error (500)
+				except: pass
 					
-				except:
-					self.channel.server.trace()
-					try: r.response.error (500)
-					except: pass
-						
-				else:
-					if should_have_collector and cl > 0 and r.collector is None:
-						# too large body
-						self.reset_stream (stream_id)						
-						
-					elif cl > 0:
-						if stream_id == 1:
-							self.data_length = cl	
-							self.set_terminator (cl)							
-						else:
-							# give permission for sending data to a client
-							self.increment_flow_control_window (stream_id, cl)
+			else:
+				if should_have_collector and cl > 0 and r.collector is None:
+					# too large body
+					self.reset_stream (stream_id)						
 					
-				return					
+				elif cl > 0:
+					if stream_id == 1:
+						self.data_length = cl	
+						self.set_terminator (cl)							
+					else:
+						# give permission for sending data to a client
+						self.increment_flow_control_window (stream_id, cl)
+			return
 					
 		try: r.response.error (404)
 		except: pass
@@ -434,13 +437,24 @@ class h2_request_handler (http2_request_handler):
 class Handler (wsgi_handler.Handler):
 	keep_alive = 120
 	
+	def __init__(self, wasc, default_handler = None):
+		wsgi_handler.Handler.__init__(self, wasc, None)
+		self.default_handler = default_handler
+		
 	def match (self, request):
-		if request.command == "pri" and request.uri == "*" and request.version == "2.0":
-			return True
-		upgrade = request.get_header ("upgrade")
-		return upgrade and upgrade.lower () == "h2c" and request.version == "1.1"
-	
+		return True
+		
 	def handle_request (self, request):
+		is_http2 = False
+		if request.command == "pri" and request.uri == "*" and request.version == "2.0":
+			is_http2 = True
+		else:	
+			upgrade = request.get_header ("upgrade")		
+			is_http2 = upgrade and upgrade.lower () == "h2c" and request.version == "1.1"
+		
+		if not is_http2:
+			return self.default_handler.handle_request (request)
+	
 		http2 = http2_request_handler (self, request)		
 		request.channel.die_with (http2, "http2 stream")
 		request.channel.set_response_timeout (self.keep_alive)

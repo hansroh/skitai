@@ -1,4 +1,4 @@
-from skitai import VERSION
+from skitai import __version__
 import multiprocessing
 from aquests.lib import pathtool, logger
 from .rpc import cluster_manager, cluster_dist_call
@@ -42,7 +42,7 @@ class _Method:
 
 
 class WAS:
-	version = VERSION
+	version = __version__
 	objects = {}
 	
 	#----------------------------------------------------

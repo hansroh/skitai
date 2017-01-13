@@ -27,13 +27,13 @@ class Executor (wsgi_executor.Executor):
 			path_info = self.env ["PATH_INFO"] = "/" + _method.replace (".", "/")						
 			current_app, thing, param, respcode = self.find_method (request, path_info, is_multicall is False)			
 			if respcode:				
-				results.append ({'faultCode' : 1, 'faultString' : respcodes.get (respcode, "Undefined Error")})
+				results.append (xmlrpclib.Fault (1, respcodes.get (respcode, "Undefined Error")))
 				
 			self.was.subapp = current_app
 			try:
 				result = self.chained_exec (thing, _args, {})
 			except:
-				results.append ({'faultCode' : 1, 'faultString' : self.was.app.debug and wsgi_executor.traceback () or "Error Occured"})				
+				results.append (xmlrpclib.Fault (1, self.was.app.debug and wsgi_executor.traceback () or "Error Occured"))
 			else:
 				results.append ((result [0],))
 			del self.was.subapp

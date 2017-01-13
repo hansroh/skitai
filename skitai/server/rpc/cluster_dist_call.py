@@ -12,7 +12,6 @@ from aquests.protocols.ws import request_handler as ws_request_handler
 from aquests.protocols.ws import request as ws_request
 from . import rcache
 
-
 class OperationError (Exception):
 	pass
 
@@ -24,17 +23,15 @@ class Result (rcache.Result):
 		try:
 			self.set_result ()
 		except:
-			self.status, self.code, self.msg = 2, 720, "Result Set Error"
-	
+			self.status, self.code, self.msg = 2, 720, "Result Error"
+		
 	def __getattr__ (self, attr):
 		return getattr (self._response, attr)
-			
+					
 	def set_result (self):
-		self.data = self._response.get_content ()
-		self.header = self._response.header
 		self.code = self._response.code
 		self.msg = self._response.msg
-		self.version = self._response.version
+		self.data = self._response.data
 	
 	def reraise (self):
 		if self.status != 3:
@@ -140,7 +137,7 @@ class Dispatcher:
 		if self.cachefs and cakey and response.max_age:
 			self.cachefs.save (
 				cakey,
-				response.get_header ("content-type"), response.get_content (), 
+				response.get_header ("content-type"), response.content, 
 				response.max_age, 0
 			)
 

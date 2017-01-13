@@ -6,13 +6,10 @@ class Result:
 	def __init__ (self, status, ident = None):
 		self.status = status
 		self.ident = ident
-		self.data = None
+
 		self.timeout = 0
 		self.cached_time = 0
 		self.is_cached = False
-	
-	def get_data (self):
-		return self.data
 	
 	def is_normal (self):
 		return self.status == 3

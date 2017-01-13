@@ -1,7 +1,7 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.23a1"
-version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
+__version__ = "0.23a1"
+version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
 import threading
@@ -15,10 +15,7 @@ WEBSOCKET_DEDICATE = 2
 WEBSOCKET_MULTICAST = 3
 WEBSOCKET_DEDICATE_THREADSAFE = 4
 
-DB_PGSQL = "*postgresql"
-DB_SQLITE3 = "*sqlite3"
-DB_REDIS = "*redis"
-DB_MONGODB = "*mongodb"
+from aquests.dbapi import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 
 class _WASPool:
 	def __init__ (self):

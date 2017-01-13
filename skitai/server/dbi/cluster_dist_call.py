@@ -20,24 +20,14 @@ class Result (rcache.Result):
 		self.node = id
 		self.request = request
 		
-		if status == 3:
-			try:
-				self.description, self.data = request.description, request.data
-			except:
-				request.expt_class, request.expt_str = asyncore.compact_traceback() [1:3]
-				self.status = 2
-		
 		# For Results competitable
 		if self.status == 3:
 			self.code, self.msg = 200, "OK"
 		else:
 			self.code, self.msg = 500, "Server Error"
-		
-	def __iter__ (self):
-		return self.data.__iter__ ()
 	
-	def __slice__(self, start = None, end = None, step = None): 
-		return self.data [slice(start, end, step)]
+	def __getattr__ (self, attr):
+		return getattr (self.request, attr)
 	
 	def reraise (self):
 		if self.request.expt_class:
@@ -216,7 +206,10 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 			asyncon = self._get_connection (None)			
 			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._filter)
 			req = request.Request (
-				self.dbtype, method, params, 
+				self.dbtype,
+				self.server, 
+				self.dbname,
+				method, params, 
 				self._callback and self._callback or rs.handle_result
 			)
 			self._requests [rs] = asyncon
