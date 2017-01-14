@@ -1,4 +1,4 @@
-from .server.threads import trigger
+from aquests.lib.athreads import trigger
 from aquests import lifetime
 import sys, asyncore, time
 import gc

@@ -6,20 +6,10 @@ Skitai Library
 News & Changes
 ===============
 
-- 0.22.7 fix was.upload(), was.post*()
-- 0.22.5 fix xml-rpc service
-- 0.22.4 fix proxy
-- 0.22.3
-  
-  - fix https REST, XML-RPC call
-  - fix DB pool
+- encoding argument was eliminated from REST call 
+- changed RPC, DBO request spec
+- added gRPC as server and client
 
-- 0.22 
-  
-  - Skitai REST/RPC call now uses HTTP2 if possible
-  - Fix HTTP2 opening with POST method
-  - Add logging on disconnecting of Websocket, HTTP2, Proxy Tunnel channels
-  
 
 .. contents:: Table of Contents
 
@@ -261,869 +251,6 @@ Above /hello can called, http://127.0.0.1:5000/flaskapp/hello
 
 Also app should can handle mount point. 
 In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Skito-Saddle can handle obiously. But I don't know other WSGI containers will work properly.
-
-
-
-Concept of Skitai 'was' Services
-====================================
-
-'was' means (Skitai) *WSGI Application Support*. 
-
-WSGI container like Flask, need to import 'was':
-
-.. code:: python
-
-  from skitai import was
-  
-  @app.route ("/")
-  def hello ():
-    was.get ("http://...")
-    ...    
-
-But Saddle WSGI container integrated with Skitai, use just like Python 'self'.
-
-It will be easy to understand think like that:
-
-- Skitai is Python class instance
-- 'was' is 'self' which first argument of instance method
-- Your app functions are methods of Skitai instance
-
-.. code:: python
-  
-  @app.route ("/")
-  def hello (was, name = "Hans Roh"):
-    was.get ("http://...")
-    ...
-
-Simply just remember, if you use WSGI container like Flask, Bottle, ... - NOT Saddle - and want to use Skitai asynchronous services, you should import 'was'. Usage is exactly same. But for my convinient, I wrote example codes Saddle version mostly.
-
-OK, let's move on.
-
-Skitai is not just WSGI Web Server but *Micro WSGI Application Server* provides some powerful asynchronous networking (HTTP, SMTP, DNS) and database (PostgreSQL, SQLite3) connecting services.
-
-The reason why Skitai provides these services on server level: 
-
-- I think application server should provide at least efficient network/database handling methods, connection pool and its result caching management, because of only server object has homeostasis to do these things over your app.
-- Asynchronous request handling have significant benefits compared to synchronous one
-
-What's the benefit? Let's see synchronous code first.
-
-.. code:: python
-
-  import xmlrpclib
-  
-  @app.route ("/req")
-  def req (was):
-    [Job A]
-    
-    [CREATE REQUEST]
-    s = xmlrpclib.Server ("https://pypi.python.org/pypi", timeout = 2)
-    result = s.package_releases('roundup')	  
-    [BLOCKED WAIT MAX 2 seconds from CREATE REQUEST]
-	    
-    for a, b in result:
-      [Job B with result]
-	  
-    [Job C]
-	  
-    content = [Content Generating]
-	  
-    return content
-
-[Job C] is delayed by [BLOCKED WAIT] by maxium 2 sec.
-
-But asynchronous version is:
-
-.. code:: python
-
-  @app.route ("/req")
-  def req (was):
-    [CREATE REQUEST]
-    s = was.rpc ("https://pypi.python.org/pypi").pkginfo('roundup')
-	  
-    [Job A]
-    [Job C]
-    
-    result = s.getwait (2)
-    [BLOCKED WAIT MAX 2 seconds from CREATE REQUEST]
-    for a, b in result:
-      [Job B with result]
-	  	
-    content = [Content Generating]
-	  
-    return content
-
-There's also [BLOCKED WAIT], but actually RPC request is processed backgound with [Job A & C]. It's same waiting max 2 sec for request, but [Job A & C] is already done in asynchronous version.
-
-If it is possible to put usage of result more backward, asynchoronous benefit will be maximized.
-
-.. code:: python
-
-  @app.route ("/req")
-  def req (was):      
-    s = was.rpc ("https://pypi.python.org/pypi").pkginfo ('roundup')
-	  
-    [Job A]
-    [Job C]
-    
-    content = [
-      Content Generating within Template Engine
-      [Generating Job A]
-      {% result = s.getwait (2) %}
-      {% for a, b in result %}
-        [Job B with result]
-      {% endfor %}
-      [Generating Job B]
-    ]
-    return content
-
-In 2 seconds (which should possibly wait at the worst situation in synchronous version), [Job A & C] and [Generating Job A] is processed parallelly in asynchronous environment.
-
-There's same problem with database related jobs, so Skitai also provides *asynchronous PostgreSQL connection*. 
-
-But it's not done yet. More benefitial situation is this one.
-
-First, blocking version,
-
-.. code:: python
-
-  import xmlrpclib
-  import odbc
-  import urllib
-  
-  @app.route ("/req")
-  def req (was):
-    s = xmlrpclib.Server ("https://pypi.python.org/pypi", timeout = 2)
-    result1 = s.package_releases('roundup')
-    
-    result2 = urllib.urlopen ("https://pypi.python.org/", timeout = 2)
-    
-    dbc = odbc.odbc ("127.0.0.1", timeout = 2)
-    c = dbc.cursor ()
-    c.execute ("select ...")
-    result3 = c.fetchall ()	    
-    
-    content = [Content Generating]
-	  
-    return content
-
-Actually, all connection doesn't have timeout arg, Anyway above 3 requests will be possibly delayed max '6' seconds.
-
-Now async version is,
-
-.. code:: python
-
-  @app.route ("/req")
-  def req (was):
-    s1 = was.get ("https://pypi.python.org/")
-    s2 = was.rpc ("https://pypi.python.org/pypi").pkginfo('roundup')    
-    s3 = was.db ("127.0.0.1").do ("select ...")
-    
-    result1 = s1.getwait (2)
-    result2 = s2.getwait (2)
-    result3 = s3.getwait (2)
-    	
-    content = [Content Generating]
-	  
-    return content
-
-Above async version will be possibly delayed max '2' seconds, because waiting-start point is the time request was created and 3 requests was created almost same time and processed parallelly in background.
-
-It can be implemeted by using multi-threading, but Skitai handles all sockets in single threaded non-blocking multi-plexing loop, there's no additional cost for threads creation/context switching etc.
-
-Even better, Skitai manages connection pool for all connections, doesn't need connect operation except at first request at most cases.
-
-Of cause, if use callback mechanism traditionally used for async call like AJAX, it would be more faster, but it's not easy to maintain codes, possibliy will be created 'callback-heaven'. Skitai 'was' service is a compromise between Async and Sync (Blocking and Non-Blocking).
-
-So next two chapters are 'HTTP/XMLRPC Request' and 'Connecting to DBMS'.
-
-Bottom line, the best coding strategy with Skitai is, *"Request Early, Use Lately"*.
-
-
-
-REST API / XMLRPC / Websocket Request
-=======================================
-
-Usage
-------
-
-**Simple HTTP Request**
-
-*Flask Style:*
-
-.. code:: python
-
-  from flask import Flask, request
-  from skitai import was
-  
-  app = Flask (__name__)        
-  @app.route ("/get")
-  def get ():
-    url = request.args.get('url', 'http://www.python.org')
-    s = was.get (url)
-    result = s.getwait (5) # timeout
-    if result.is_normal () and result.code == 200:
-      return result.data
-    else:
-      result.reraise ()
-
-
-*Skito-Saddle Style*
-
-.. code:: python
-
-  from skitai.saddle import Saddle
-  app = Saddle (__name__)
-        
-  @app.route ("/get")
-  def get (was, url = "http://www.python.org"):
-    s = was.get (url)
-    result = s.getwait (5) # timeout
-    if result.is_normal () and result.code == 200:
-      return result.data
-    else:
-      result.reraise ()
-
-Both can access to http://127.0.0.1:5000/get?url=https%3A//pypi.python.org/pypi .
-
-If you are familar to Flask then use it, otherwise choose any WSGI container you like include Skito-Saddle.
-
-Again note that if you want to use WAS services in your WSGI containers (not Skito-Saddle), you should import was.
-
-.. code:: python
-
-  from skitai import was
-
-And result.is_normal () must be checked.
-
-if status is not result.is_normal (), you should handle error by calling result.reraise (), result.get_error_as_string (), ignoring or returning alternative content etc. For my convinient, it will be skipped in example codes from now.
-
-
-Here're post and file upload method examples:
-
-.. code:: python
-
-  s1 = was.post (url, {"user": "Hans Roh", "comment": "Hello"})
-  s2 = was.upload (url, {"user": "Hans Roh", "file": open (r"logo.png", "rb")})
-  
-  result = s1.getwait (2)
-  result = s2.getwait (2)
-
-It is important to know that if post/put method's dictionary type data is automatically dumped to json. If you want to post/put www form data, use postform/putform method or add Content-Type header "application/x-www-form-urlencoded". Also in case all the other content types, data should be string or bytes type, and need Content-Type header.
-
-.. code:: python
-
-  s = was.post (
-  	url, 
-  	{"user": "Hans Roh", "comment": "Hello"}, 
-  	headers = {"content-Type", "application/x-www-form-urlencoded"}
-  )
-  
-  # This is exactly same as:
-    
-  s = was.postform (
-  	url, 
-  	{"user": "Hans Roh", "comment": "Hello"}  	
-  )
-
-Another aliases are postxml, putxml (text/xml), postnvp, putnvp (text/namevalue).
-
-Here's XMLRPC request for example:
-
-.. code:: python
-
-  s = was.rpc (url).get_prime_number_gt (10000)
-  result = s.getwait (2)
-
-Please note XMLRPC method name shouldn't be any of wait, getwait, getswait or cache.  
-
-For requesting with basic/digest authorization:
-
-.. code:: python
-
-  s = was.rpc (url, auth = (username, password))
-  rs = s.get_prime_number_gt (10000)
-  result = rs.getwait (2)
-
-
-Avaliable methods are:
-
-- was.get (url, data = None, auth = (username, password), headers = [(name, value), ...] or {name: value}, use_cache = True)
-- was.post (url, data, auth, headers, use_cache)
-- was.rpc (url, data, auth, headers, use_cache) # XMLRPC
-- was.ws (url, data, auth, headers, use_cache) # Web Socket
-- was.put (url, data, auth, headers, use_cache)
-- was.delete (url, data, auth, headers, use_cache)
-- was.upload (url, data, auth, headers, use_cache) # For clarity to multipart POST
-
-Above methods return ClusterDistCall (cdc) class.
-
-*Changed in version 0.15.24* 
-
-add reraise arg to cdc.getwait (timeout = 5, reraise = False) 
- 
-- cdc.getwait (timeout = 5, reraise = False) : return result with status, if reraise is True, raise immediately when error occured    
-- cdc.getswait (timeout = 5, reraise = False) : getting multiple results
-- cdc.wait (timeout = 5, reraise = True) : no return result just wait until query finished.maybe useful for executing create, update and delete queury
-
-The result returned from cdc.getwait(), getswait ():
-
-- result.code: HTTP status code like 200, 404, ...
-- result.msg: HTTP status message
-- result.data
-- result.status
-
-  - 0: Initial Default Value
-  - 1: Operation Timeout
-  - 2: Exception Occured
-  - 3: Normal
-
-- result.get_status ()
-- result.is_normal (): return result.status == 3
-- result.reraise ()
-- result.get_data ()
-- result.get_error_as_string ()
-- result.cache (timeout)
-
-
-**Load-Balancing**
-
-If server members are pre defined, skitai choose one automatically per each request supporting *fail-over*.
-
-At first, let's add mysearch members to config file (ex. /etc/skitaid/servers-enabled/sample.conf),
-
-.. code:: python
-
-  [@mysearch]
-  ssl = yes
-  members = search1.mayserver.com:443, search2.mayserver.com:443
-    
-
-Then let's request XMLRPC result to one of mysearch members.
-   
-.. code:: python
-
-  @app.route ("/search")
-  def search (was, keyword = "Mozart"):
-    s = was.rpc.lb ("@mysearch/rpc2").search (keyword)
-    results = s.getwait (5)
-    return result.data
-
-It just small change from was.rpc () to was.rpc.lb ()
-
-Avaliable methods are:
-
-- was.get.lb ()
-- was.post.lb ()
-- was.rpc.lb ()
-- was.ws.lb ()
-- was.upload.lb ()
-- was.put.lb ()
-- was.delete.lb ()
-
-
-*Note:* If @mysearch member is only one, was.get.lb ("@mydb") is equal to was.get ("@mydb").
-
-*Note2:* You can mount cluster @mysearch to specific path as proxypass like this:
-
-At config file
-
-.. code:: python
-  
-  [routes:line]  
-  ; for files like images, css
-  / = /var/wsgi/static
-  
-  ; app mount syntax is path/module:callable
-  /search = @mysearch  
-  
-It can be accessed from http://127.0.0.1:5000/search, and handled as load-balanced proxypass.
-
-  
-
-**Map-Reducing**
-
-Basically same with load_balancing except Skitai requests to all members per each request.
-
-.. code:: python
-
-    @app.route ("/search")
-    def search (was, keyword = "Mozart"):
-      s = was.rpc.map ("@mysearch/rpc2").search (keyword)
-      results = s.getswait (2)
-			
-      all_results = []
-      for result in results:
-         all_results.extend (result.data)
-      return all_results
-
-There are 2 changes:
-
-1. from was.rpc.lb () to was.rpc.map ()
-2. form s.getwait () to s.getswait () for multiple results
-
-Avaliable methods are:
-
-- was.get.map ()
-- was.post.map ()
-- was.rpc.map ()
-- was.ws.map ()
-- was.upload.map ()
-- was.put.map ()
-- was.delete.map ()
-
-
-**HTML5 Websocket Request**
-
-*New in version 0.11*
-
-There're 3 Skitai 'was' client-side web socket services:
-
-- was.ws ()
-- was.ws.lb ()
-- was.ws.map ()
-
-It is desinged as simple & no stateless request-response model using web socket message frame for *light overheaded server-to-server communication*. For example, if your web server queries to so many other search servers via RESTful access, web socket might be a good alterative option. Think HTTP-Headerless JSON messaging. Usage is very simailar with HTTP request.
-
-.. code:: python
-
-  @app.route ("/query")
-  def query (was):
-    s = was.ws (
-    	"ws://192.168.1.100:5000/websocket/echo", 
-    	was.tojson ({"keyword": "snowboard binding"})
-    )
-    rs = s.getwait ()
-    result = was.fromjson (rs.data)
-
-Usage is same as HTTP/RPC request and obiously, target server should be implemented websocket service routed to '/websocket/echo' in this case.
-
-
-Caching Result
-----------------
-
-Every results returned by getwait(), getswait() can cache.
-
-.. code:: python
-
-  s = was.rpc.lb ("@mysearch/rpc2").getinfo ()
-  result = s.getwait (2)
-  if result.code == 200:
-  	result.cache (60) # 60 seconds
-  
-  s = was.rpc.map ("@mysearch/rpc2").getinfo ()
-  results = s.getswait (2)
-  # assume @mysearch has 3 members
-  if results.code == [200, 200, 200]:
-    result.cache (60)
-
-Although code == 200 alredy implies status == 3, anyway if status is not 3, cache() will be ignored. If cached, it wil return cached result for 60 seconds.
-
-*New in version 0.15.28*
-
-If you getwait with reraise argument, code can be simple.
-
-.. code:: python
-
-  s = was.rpc.lb ("@mysearch/rpc2").getinfo ()
-  content = s.getswait (2, reraise = True).data
-  s.cache (60)
-
-Please remember cache () method is both available request and result objects.
-
-
-For expiring cached result by updating new data:
-
-*New in version 0.14.9*
-
-.. code:: python
-  
-  refreshed = False
-  if was.request.command == "post":
-    ...
-    refreshed = True
-  
-  s = was.rpc.lb (
-  	"@mysearch/rpc2", 
-  	use_cache = not refreshed and True or False
-  ).getinfo ()
-  result = s.getwait (2)
-  if result.code == 200:
-  	result.cache (60) # 60 seconds  
-
-API Transaction ID
--------------------
-
-*New in version 0.21*
-
-For tracing REST API call, Skitai use global/local transaction IDs.
-
-If a client call a API first, global transaction ID (gtxnid) is assigned automatically like 'GTID-C4676-R67' and local transaction ID (ltxnid) is '1000'.
-
-You call was.get (), was.post () or etc, both IDs will be forwarded via HTTP request header. Most important thinng is that gtxnid is never changed by client call, but ltxnid will be changed per API call.
-
-when client calls gateway API or HTML, ltxnid is 1000. And if it calls APIs internally, ltxnid will increase to 2001, 2002. If ltxnid 2001 API calls internal sub API, ltxnid will increase to 3002, and ltxnid 2002 to 3003. Briefly 1st digit is call depth and rest digits are sequence of API calls.
-
-This IDs is logged to Skitai request log file like this. 
-
-.. code:: bash
-
-  2016.12.30 18:05:06 [info] 127.0.0.1:1778 127.0.0.1:5000 GET / \
-  HTTP/1.1 200 0 32970 \
-  GTID-C3-R8 1000 - - \
-  "Mozilla/5.0 (Windows NT 6.1;) Gecko/20100101 Firefox/50.0" \
-  4ms 3ms
-
-Focus 3rd line above log message. Then you can trace a series of API calls from each Skitai instance's log files for finding some kind of problems.
-
-
-Connecting to DBMS
-=====================
-
-Of cause, you can use any database modules for connecting to your DBMS.
-
-Skitai also provides asynchonous PostgreSQL query services for efficient developing and getting advantages of asynchronous server framework by using Psycopg2.
-
-But according to `Psycopg2 advanced topics`_, there are several limitations in using asynchronous connections:
-
-  The connection is always in autocommit mode and it is not possible to change it. So a transaction is not implicitly started at the first query and is not possible to use methods commit() and rollback(): you can manually control transactions using execute() to send database commands such as BEGIN, COMMIT and ROLLBACK. Similarly set_session() can't be used but it is still possible to invoke the SET command with the proper default_transaction.. parameter.
-
-  With asynchronous connections it is also not possible to use set_client_encoding(), executemany(), large objects, named cursors.
-
-  COPY commands are not supported either in asynchronous mode, but this will be probably implemented in a future release.
-  
-  
-If you need blocking jobs, you can use original Psycopg2 module or other PostgreSQL modules.
-
-Anyway, usage is basically same concept with above HTTP Requests.
-
-
-PostgreSQL
-------------
-
-**Simple Query**
-
-.. code:: python
-
-    dbo = was.db ("127.0.0.1:5432", "mydb", "user", "password")
-    s = dbo.excute ("SELECT city, t_high, t_low FROM weather;")
-    result = s.getwait (2)
-    
-    for row in result.data:
-      row.city, row.t_high, row.t_low
-
-
-*New in version 0.15.15*
-
-result.data was dictionary list but now also can access value via attributes.
-
-
-**Load-Balancing**
-
-This sample is to show querying sharded database.
-Add mydb members to config file.
-
-.. code:: python
-
-    [@mydb]
-    type = postresql
-    members = s1.yourserver.com:5432/mydb/user/passwd, s2.yourserver.com:5432/mydb/user/passwd
-
-    @app.route ("/query")
-    def query (was, keyword):
-      dbo = was.db.lb ("@mydb")
-      s = dbo.do("INSERT INTO CITIES VALUES ('New York');")
-      s.wait (2) # no return, just wait for completing query, if failed exception will be raised
-      
-      s = dbo.do("SELECT * FROM CITIES;")
-      result = s.getwait (2)
-   
-	
-**Map-Reducing**
-
-.. code:: python
-
-    @app.route ("/query")
-    def query (was, keyword):
-      s = was.db.map ("@mydb").do("SELECT * FROM CITIES;")
-      results = s.getswait (2)
-      all_results = []
-      for result in results:
-        if result.is_normal ():
-          all_results.append (result.data)
-      return all_results
-
-
-Avaliable methods are:
-
-- was.db (server, dbname, user, password, dbtype = "postgresql", use_cache = True)
-- was.db.lb (server, dbname, user, password, dbtype = "postgresql", use_cache = True)
-- was.db.map (server, dbname, user, password, dbtype = "postgresql", use_cache = True)
-- was.db ("@mydb", use_cache = True)
-- was.db.lb ("@mydb", use_cache = True)
-- was.db.map ("@mydb", use_cache = True)
-
-*Note:* if @mydb member is only one, was.db.lb ("@mydb") is equal to was.db ("@mydb").
-
-*Note 2:* You should call exalctly single do () per a was.db.* () object.
-
-
-.. _`Psycopg2 advanced topics`: http://initd.org/psycopg/docs/advanced.html
-
-MongoDB
-----------
-
-`New in version 0.21.8`
-
-Skitai provides MongoDB async connection pool using `MongoDB Wire Protocol`_.
-
-.. code:: python
-
-  from skitai import DB_MONGODB
-  
-  @app.route ("/mongo")
-  def mongo (was):
-    dbo = was.db ("127.0.0.1:27017", "testdb", DB_MONGODB)
-    s = dbo.findone ("posts", {"author": "Hans Roh"})
-    rs = s.getwait (5)
-    return rs.data
-
-rs.data is like this:
-
-.. code:: python
-
-  {
-    'number_returned': 1, 
-    'starting_from': 0, 
-    'cursor_id': 0, 
-    'data': [
-      {
-        '_id': ObjectId('58681d15f317837e9de98956'), 
-        'title': 'skitai App Engine',         
-        'author': 'Hans Roh'
-      }
-    ]
-  }
-	
-You can alias to your MongoDB server at tour configuration file:
-
-.. code:: bash
-
-  [@mymongo]
-  type = mongodb
-  members = s1.yourserver.com:27017/testdb
-  
-Now you can use more easily.
-  
-.. code:: python
-
-  @app.route ("/mongo")
-  def mongo (was):
-    s1 = was.db ("@mymongo").findone ("posts", {"author": "Hans Roh"})
-    s2 = was.db ("@mymongo").find ("posts", {"author": "Hans Roh"}, 0, 3)
-    s3 = was.db ("@mymongo").findall ("posts", {"author": "Hans Roh"})
-    s4 = was.db ("@mymongo").updateone ("posts", {"author": "Hans Roh"}, {"author": "Hans Roh", "title": "skitai App Engine"})
-    s5 = was.db ("@mymongo").insert ("posts", {"author": "Hans Roh", "title": "skitai App Engine"})
-    buf = []
-    for s in (s1,s2,s3, s4, s5):
-      rs = s.getwait (5)
-      if rs.is_normal ():
-        buf.append (str (rs.data))
-      else:
-        buf.append (rs.get_error_as_string ())  
-    return "<hr>".join (buf)
-
-Documents can be received through cursor. But I don't think this way is not good for API nor Web Service. If you have situation using MongoDB cursor, you consider it is better moving to cron job.
-
-.. code:: python
-
-  @app.route ("/mongo")
-  def mongo (was):
-    docs = []
-    s = was.db ("@mymongo").findkc ("posts", {"author": "Hans Roh"}, 0, 100)    
-    rs = s.getwait (2)
-    docs.extend (rs.data ["data"])
-    cursor_id = rs.data ["cursor_id"]	
-    while cursor_id:
-      s = was.db ("@mymongo").get_more ("posts", cursor_id, 100)    
-      try:
-        rs = s.getwait (2)
-        docs.extend (rs.data ["data"])
-        cursor_id = rs.data ["cursor_id"]
-      except:
-        was.db ("@mymongo").kill_cursors ([cursor_id])
-        raise
-
-**Function Prototypes**
-
-- find (colname, spec, offset = 0, limit = 1)
-- findone (colname, spec): equivalent with find (colname, spec, 0, 1)
-- findall (colname, spec): equivalent with find (colname, spec, 0, -1)
-- insert (colname, docs, continue_on_error = 0)
-- update (colname, spec, doc)
-- updateone (colname, spec, doc)
-- upsert (colname, spec, doc)
-- upsertone (colname, spec, doc)
-- delete (colname, spec, flag = 0)
-- findkc (colname, spec, offset = 0, limit = 1): after finidhing search, it keeps cursor alive. then you can use 'get_more()'
-- get_more (colname, cursor_id, num_to_return): cursor_id can be got from (findkc()'s result).data ["cursor_id"]
-- kill_cursors (cursor_ids): if you use findkc() and stop fetching documents, you should mannually call this.
-
-.. _`MongoDB Wire Protocol`: https://docs.mongodb.com/manual/reference/mongodb-wire-protocol/
-
-
-Redis
---------
-
-`New in version 0.20.5`
-
-Redis_ is an open source, in-memory data structure store, used as a database, cache and message broker.
-
-Skitai provides asynchronous connection to Redis server with connection pool. Usage is almost same with PostgreSQL.
-
-.. code:: python
-
-  from skitai import DB_REDIS
-  
-  @app.route ("/redis")
-  def redis (was):
-    s = was.db ("127.0.0.1:6379", DB_REDIS).set ("maykey1", "Hans Roh")	
-    rs = s.getwait (5)
-    return rs.data
-
-You can alias to your Redis server at tour configuration file:
-
-.. code:: bash
-
-  [@myredis]
-  type = redis
-  members = s1.yourserver.com:6379
-
-So you can use more easily.
-
-.. code:: python
-  
-  @app.route ("/redis")
-  def redis (was):
-    s1 = was.db.map ("@myredis").set ("maykey1", "Hans Roh")	
-    s2 = was.db ("@myredis").get ("maykey1")
-    s3 = was.db.map ("@myredis").rpush ("maykey2", "hello")
-    s4 = was.db.map ("@myredis").rpush ("maykey2", "world")
-    s5 = was.db.lb ("@myredis").lrange ("maykey2", 0, -1)
-    s6 = was.db.map ("@myredis").save ()
-    
-    buf = []
-    for s in (s1, s2, s3, s4, s5, s6):
-      rs = s.getwait (5)
-      if rs.is_normal ():
-        buf.append (str (rs.data))
-      else:
-        buf.append (rs.get_error_as_string ())
-        
-    return "<hr>".join (buf)
-
-Possibly you can use all `Redis commands`_.
-
-
-.. _Redis: https://redis.io/
-.. _`Redis commands`: https://redis.io/commands
-
-
-SQLite3 For Fast App Prototyping
-------------------------------------
-
-`New in version 0.13`
-
-Skitai provide SQLite3 query API service for fast app prototyping. 
-
-Usage is almost same with PostgreSQL. This service IS NOT asynchronous BUT just emulating.
-
-.. code:: python
-
-    from skitai import DB_SQLITE3
-    
-    s = was.db ("sqlite3.db", DB_SQLITE3)
-    s.do ("""
-      drop table if exists people;
-      create table people (name_last, age);
-      insert into people values ('Cho', 42);
-    """)
-    # result is not needed use wait(), and if failed, excpetion will be raised
-    s.wait (5)
-
-    s = was.db ("sqlite3.db", DB_SQLITE3).do ("select * from people;")    
-    result = s.getwait (2)
-
-Also load-balacing and map-reuducing is exactly same with PostgreSQL.
-
-.. code:: python
-
-    [@mysqlite3]
-    type = sqlite3
-    members = /tmp/sqlite1.db, /tmp/sqlite2.db
-
-
-
-Caching Result
-------------------
-
-Same as HTTP/RPC, every results returned by getwait(), getswait() can cache.
-
-.. code:: python
-
-  s = was.db.lb ("@mydb").do ("select ...")
-  result = s.getwait (2)
-  result.cache (60)
-  
-  s = was.db.map ("@mydb").do ("select ...")
-  results = s.getswait (2)
-  result.cache (60)
-  
-If result or one of results has status != 3, cache() will be ignored.
-
-*New in version 0.15.28*
-
-If you getwait with reraise argument, code can be simple.
-
-.. code:: python
-
-  s = was.db ("@mydb").do ("select ...")
-  for row in s.getswait (2, reraise = True).data:
-    ...
-  s.cache (60)
-
-Please remember cache () method is both available DB query request and result objects.
-
-For expiring cached result by updating new data:
-
-*New in version 0.14.9*
-
-.. code:: python
-  
-  has_new_data = False
-  if was.request.command == "post":
-    ...
-    has_new_data = True
-  
-  dbo = was.db.lb ("@mydb", use_cache = not has_new_data and True or False)
-  s = dbo.do ("select ...")
-  result = s.getwait (2)
-  result.cache (60)
-  	
-
-Other Utility Service of 'was'
-=================================
-
-This chapter's 'was' services are also avaliable for all WSGI middelwares.
-
-- was.status () # HTML formatted status information like phpinfo() in PHP.
-- was.tojson (object)
-- was.fromjson (string)
-- was.toxml (object) # XMLRPC
-- was.fromxml (string) # XMLRPC
-- was.restart () # Restart Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
-- was.shutdown () # Shutdown Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
-
 
 
 HTTP/2.0
@@ -1417,6 +544,290 @@ You can access all examples by skitai sample app after installing skitai.
 Then goto http://localhost:5000/websocket in your browser.
 
 In next chapter's features of 'was' are only available for *Skito-Saddle WSGI container*. So if you have no plan to use Saddle, just skip.
+
+
+
+Skitai 'was' Services
+=======================
+
+'was' means (Skitai) *WSGI Application Support*. 
+
+WSGI container like Flask, need to import 'was':
+
+.. code:: python
+
+  from skitai import was
+  
+  @app.route ("/")
+  def hello ():
+    was.get ("http://...")
+    ...    
+
+But Saddle WSGI container integrated with Skitai, use just like Python 'self'.
+
+It will be easy to understand think like that:
+
+- Skitai is Python class instance
+- 'was' is 'self' which first argument of instance method
+- Your app functions are methods of Skitai instance
+
+.. code:: python
+  
+  @app.route ("/")
+  def hello (was, name = "Hans Roh"):
+    was.get ("http://...")
+    ...
+
+Simply just remember, if you use WSGI container like Flask, Bottle, ... - NOT Saddle - and want to use Skitai asynchronous services, you should import 'was'. Usage is exactly same. But for my convinient, I wrote example codes Saddle version mostly.
+
+
+
+Async Requests Service
+------------------------
+
+Most importance service of 'was' is making requests to HTTP, REST, RPC and Database Engines. The modules related theses features from aquests_.
+
+You can read aquests_ usage first.
+
+I think it just fine explains some differences with aquests.
+
+First of all, usage is somewhat different.
+
+Usage
+``````
+
+At aquests,
+
+.. code:: python
+
+  import aquests
+  
+  def display_result (response):
+    print (reponse.data)
+    
+  aquests.get (url)
+  aquests.post (
+    url, {"user": "Hans Roh", "comment": "Hello"}, 
+    callback = display_result
+   )
+  aquests.fetchall ()
+
+At Skitai,
+  
+.. code:: python
+  
+  def request (was):
+    req1 = was.get (url)
+    req2 = was.post (url, {"user": "Hans Roh", "comment": "Hello"})    
+    respones1 = req1.getwait (timeout = 3)
+    response2 = req2.getwait (timeout = 3)    
+    return [respones1.data, respones2.data]
+    
+  def query (was):
+    dbo = was.postgresql ("127.0.0.1:5432", "mydb", ("username", "password"))
+    s = dbo.excute ("SELECT city, t_high, t_low FROM weather;")
+    result = s.getwait (2)
+    
+    for row in result.data:
+      row.city, row.t_high, row.t_low
+    
+.. _aquests: https://pypi.python.org/pypi/aquests
+
+Also note you can't use meta argument at Skitai.
+
+
+Addional Response Methods and Properties
+``````````````````````````````````````````
+
+Above respones1, respones2 has 1 more methods than aquests' response object.
+
+- cache (timeout): response caching
+- status: it indicate requests processed status and note it is not related response.status_code.
+
+  - 0: Initial Default Value
+  - 1: Operation Timeout
+  - 2: Exception Occured
+  - 3: Normal Terminated
+
+
+Load-Balancing
+````````````````
+
+Skitai support load-balancing requests.
+
+If server members are pre defined, skitai choose one automatically per each request supporting *fail-over*.
+
+At first, let's add mysearch members to config file (ex. /etc/skitaid/servers-enabled/sample.conf),
+
+.. code:: python
+
+  [@mysearch]
+  ssl = yes
+  members = search1.mayserver.com:443, search2.mayserver.com:443
+    
+
+Then let's request XMLRPC result to one of mysearch members.
+   
+.. code:: python
+
+  @app.route ("/search")
+  def search (was, keyword = "Mozart"):
+    s = was.rpc.lb ("@mysearch/rpc2").search (keyword)
+    results = s.getwait (5)
+    return result.data
+
+It just small change from was.rpc () to was.rpc.lb ()
+
+*Note:* If @mysearch member is only one, was.get.lb ("@mydb") is equal to was.get ("@mydb").
+
+*Note2:* You can mount cluster @mysearch to specific path as proxypass like this:
+
+At config file
+
+.. code:: bash
+  
+  [routes:line]  
+  ; for files like images, css
+  / = /var/wsgi/static
+  
+  ; app mount syntax is path/module:callable
+  /search = @mysearch  
+  
+It can be accessed from http://127.0.0.1:5000/search, and handled as load-balanced proxypass.
+
+This sample is to show querying sharded database.
+Add mydb members to config file.
+
+.. code:: python
+
+    [@mydb]
+    type = postresql
+    members = s1.yourserver.com:5432/mydb/user/passwd, s2.yourserver.com:5432/mydb/user/passwd
+
+    @app.route ("/query")
+    def query (was, keyword):
+      dbo = was.postgresql.lb ("@mydb")
+      s = dbo.do("INSERT INTO CITIES VALUES ('New York');")
+      s.wait (2) # no return, just wait for completing query, if failed exception will be raised
+      
+      s = dbo.do("SELECT * FROM CITIES;")
+      result = s.getwait (2)  
+
+
+Map-Reducing
+``````````````
+
+Basically same with load_balancing except Skitai requests to all members per each request.
+
+.. code:: python
+
+    @app.route ("/search")
+    def search (was, keyword = "Mozart"):
+      stub = was.rpc.map ("@mysearch/rpc2").search (keyword)
+      results = stub.getswait (2)
+			
+      all_results = []
+      for result in results:
+         all_results.extend (result.data)
+      return all_results
+
+There are 2 changes:
+
+1. from was.rpc.lb () to was.rpc.map ()
+2. form s.getwait () to s.getswait () for multiple results
+
+
+Caching Result
+````````````````
+
+Every results returned by getwait(), getswait() can cache.
+
+.. code:: python
+
+  s = was.rpc.lb ("@mysearch/rpc2").getinfo ()
+  result = s.getwait (2)
+  if result.status_code == 200:
+  	result.cache (60) # 60 seconds
+  
+  s = was.rpc.map ("@mysearch/rpc2").getinfo ()
+  results = s.getswait (2)
+  # assume @mysearch has 3 members
+  if results.status_code == [200, 200, 200]:
+    result.cache (60)
+
+Although code == 200 alredy implies status == 3, anyway if status is not 3, cache() will be ignored. If cached, it wil return cached result for 60 seconds.
+
+*New in version 0.15.28*
+
+If you getwait with reraise argument, code can be simple.
+
+.. code:: python
+
+  s = was.rpc.lb ("@mysearch/rpc2").getinfo ()
+  content = s.getswait (2, reraise = True).data
+  s.cache (60)
+
+Please remember cache () method is both available request and result objects.
+
+For expiring cached result by updating new data:
+
+*New in version 0.14.9*
+
+.. code:: python
+  
+  refreshed = False
+  if was.request.command == "post":
+    ...
+    refreshed = True
+  
+  s = was.rpc.lb (
+  	"@mysearch/rpc2", 
+  	use_cache = not refreshed and True or False
+  ).getinfo ()
+  result = s.getwait (2)
+  if result.status_code == 200:
+  	result.cache (60) # 60 seconds  
+
+API Transaction ID
+`````````````````````
+
+*New in version 0.21*
+
+For tracing REST API call, Skitai use global/local transaction IDs.
+
+If a client call a API first, global transaction ID (gtxnid) is assigned automatically like 'GTID-C4676-R67' and local transaction ID (ltxnid) is '1000'.
+
+You call was.get (), was.post () or etc, both IDs will be forwarded via HTTP request header. Most important thinng is that gtxnid is never changed by client call, but ltxnid will be changed per API call.
+
+when client calls gateway API or HTML, ltxnid is 1000. And if it calls APIs internally, ltxnid will increase to 2001, 2002. If ltxnid 2001 API calls internal sub API, ltxnid will increase to 3002, and ltxnid 2002 to 3003. Briefly 1st digit is call depth and rest digits are sequence of API calls.
+
+This IDs is logged to Skitai request log file like this. 
+
+.. code:: bash
+
+  2016.12.30 18:05:06 [info] 127.0.0.1:1778 127.0.0.1:5000 GET / \
+  HTTP/1.1 200 0 32970 \
+  GTID-C3-R8 1000 - - \
+  "Mozilla/5.0 (Windows NT 6.1;) Gecko/20100101 Firefox/50.0" \
+  4ms 3ms
+
+Focus 3rd line above log message. Then you can trace a series of API calls from each Skitai instance's log files for finding some kind of problems.
+
+
+Utility Services of 'was'
+---------------------------
+
+This chapter's 'was' services are also avaliable for all WSGI middelwares.
+
+- was.status () # HTML formatted status information like phpinfo() in PHP.
+- was.tojson (object)
+- was.fromjson (string)
+- was.toxml (object) # XMLRPC
+- was.fromxml (string) # XMLRPC
+- was.restart () # Restart Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
+- was.shutdown () # Shutdown Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
+
+
 
 
 
@@ -2529,9 +1940,27 @@ Links
 Change Log
 ==============
   
+  0.23 (Jan 2017)
+  
+  - See News  
+  
   0.22 (Jan 2017)
   
-  - See News
+  - 0.22.7 fix was.upload(), was.post*()
+  - 0.22.5 fix xml-rpc service
+  - 0.22.4 fix proxy
+  - 0.22.3
+    
+    - fix https REST, XML-RPC call
+    - fix DB pool
+  
+  - 0.22 
+    
+    - Skitai REST/RPC call now uses HTTP2 if possible
+    - Fix HTTP2 opening with POST method
+    - Add logging on disconnecting of Websocket, HTTP2, Proxy Tunnel channels
+    
+    - See News
     
   0.21 (Dec 2016)
   

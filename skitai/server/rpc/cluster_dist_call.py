@@ -1,6 +1,6 @@
 import time
-from skitai.server.threads import socket_map
-from skitai.server.threads import trigger
+from aquests.lib.athreads import socket_map
+from aquests.lib.athreads import trigger
 from aquests.client.asynconnect import AsynSSLConnect
 import threading
 from aquests.protocols.http import request as http_request
@@ -19,38 +19,28 @@ class Result (rcache.Result):
 	def __init__ (self, id, status, response, ident = None):
 		rcache.Result.__init__ (self, status, ident)		
 		self.node = id
-		self._response = response
-		try:
-			self.set_result ()
-		except:
-			self.status, self.code, self.msg = 2, 720, "Result Error"
+		self.__response = response
 		
 	def __getattr__ (self, attr):
-		return getattr (self._response, attr)
-					
-	def set_result (self):
-		self.code = self._response.code
-		self.msg = self._response.msg
-		self.data = self._response.data
+		return getattr (self.__response, attr)
 	
 	def reraise (self):
 		if self.status != 3:
-			raise OperationError ("%d %s" % (self.code, self.msg))
-	
-	def get_error_as_string (self):
-		return "<OperationError> %d %s" % (self.code, self.msg)		
-				
+			self.__response.raise_for_status ()
+		
 	def cache (self, timeout = 300):
-		self._response = None
 		if self.status != 3:
 			return
 		rcache.Result.cache (self, timeout)
-		
+	
+	def close (self):
+		self.__response = None	
+
 
 class Results (rcache.Result):
 	def __init__ (self, results, ident = None):
 		self.results = results
-		self.code = [rs.code for rs in results]
+		self.status_code = self.status_code = [rs.status_code for rs in results]
 		rcache.Result.__init__ (self, [rs.status for rs in self.results], ident)
 		
 	def __iter__ (self):
@@ -153,8 +143,7 @@ class ClusterDistCall:
 		params = None,
 		reqtype = "get",
 		headers = None,
-		auth = None,
-		encoding = None,	
+		auth = None,		
 		use_cache = False,	
 		mapreduce = True,
 		filter = None,
@@ -169,8 +158,7 @@ class ClusterDistCall:
 		self._headers = headers
 		self._reqtype = reqtype
 			
-		self._auth = auth
-		self._encoding = encoding
+		self._auth = auth		
 		self._use_cache = use_cache
 		self._mapreduce = mapreduce
 		self._filter = filter
@@ -287,7 +275,7 @@ class ClusterDistCall:
 			try:
 				if _reqtype in ("ws", "wss"):
 					handler = ws_request_handler.RequestHandler					
-					request = ws_request.Request (self._uri, params, self._headers, self._encoding, self._auth, self._logger)
+					request = ws_request.Request (self._uri, params, self._headers, self._auth, self._logger)
 												
 				else:				
 					if not self._use_cache:
@@ -295,15 +283,15 @@ class ClusterDistCall:
 					
 					handler = http_request_handler.RequestHandler					
 					if _reqtype == "rpc":
-						request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)				
+						request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._auth, self._logger)				
 					elif _reqtype == "grpc":
-						request = GRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)						
+						request = GRPCRequest (self._uri, method, params, self._headers, self._auth, self._logger)						
 					elif _reqtype == "upload":
-						request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
+						request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._auth, self._logger)
 					else:
 						if params:
 							_reqtype = self._map_content_type (_reqtype)
-						request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)				
+						request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._auth, self._logger)				
 				
 				requests += self._handle_request (request, rs, asyncon, handler)
 					
@@ -448,7 +436,7 @@ class ClusterDistCallCreator:
 	def __getattr__ (self, name):	
 		return getattr (self.cluster, name)
 		
-	def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, encoding = None, use_cache = True, mapreduce = False, filter = None, callback = None):
+	def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, use_cache = True, mapreduce = False, filter = None, callback = None):
 		# reqtype: rpc, get, post, head, put, delete
 		if type (headers) is list:
 			h = {}
@@ -457,53 +445,8 @@ class ClusterDistCallCreator:
 			headers = h
 		
 		if reqtype.endswith ("rpc"):
-			return Proxy (ClusterDistCall, self.cluster, uri, params, reqtype, headers, auth, encoding, use_cache, mapreduce, filter, callback, self.cachesfs, self.logger)
+			return Proxy (ClusterDistCall, self.cluster, uri, params, reqtype, headers, auth, use_cache, mapreduce, filter, callback, self.cachesfs, self.logger)
 		else:	
-			return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, encoding, use_cache, mapreduce, filter, callback, self.cachesfs, self.logger)
+			return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, use_cache, mapreduce, filter, callback, self.cachesfs, self.logger)
 		
 	
-if __name__ == "__main__":
-	from aquests.lib  import logger
-	from . import cluster_manager
-	import sys
-	import asyncore
-	import time
-	from aquests.client import socketpool
-	
-	def _reduce (asyncall):
-		for rs in asyncall.getswait (5):
-			print("Result:", rs.id, rs.status, rs.code, repr(rs.result [:60]))
-					
-	def testCluster ():	
-		sc = cluster_manager.ClusterManager ("tt", ["210.116.122.187:3424 1", "210.116.122.184:3424 1", "175.115.53.148:3424 1"], logger= logger.screen_logger ())
-		clustercall = ClusterDistCallCreator (sc, logger.screen_logger ())	
-		s = clustercall.Server ("rpc2", login = "admin/whddlgkr")
-		s.bladese.util.status ("openfos.v2")		
-		threading.Thread (target = _reduce, args = (s,)).start ()
-		
-		while 1:
-			asyncore.loop (timeout = 1, count = 2)
-			if len (asyncore.socket_map) == 1:
-				break
-	
-	def testSocketPool ():
-		sc = socketpool.SocketPool (logger.screen_logger ())
-		clustercall = ClusterDistCallCreator (sc, logger.screen_logger ())			
-		s = clustercall.Server ("http://www.bidmain.com/")
-		s.request ()
-		
-		#s = clustercall.Server ("http://210.116.122.187:3424/rpc2", "admin/whddlgkr")
-		#s.bladese.util.status ("openfos.v2")
-		
-		threading.Thread (target = __reduce, args = (s,)).start ()
-		
-		while 1:
-			asyncore.loop (timeout = 1, count = 2)
-			print(asyncore.socket_map)
-			if len (asyncore.socket_map) == 1:
-				break
-	
-	trigger.start_trigger ()
-	
-	testCluster ()
-	testSocketPool ()

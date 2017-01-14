@@ -2,7 +2,7 @@ from aquests.protocols.http import http_util
 from . import cookie
 from aquests.lib.reraise import reraise 
 import sys
-from skitai.server.threads import trigger
+from aquests.lib.athreads import trigger
 from aquests.lib.attrdict import AttrDict
 from aquests.protocols.http import respcodes
 

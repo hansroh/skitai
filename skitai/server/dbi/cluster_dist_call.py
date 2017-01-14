@@ -1,6 +1,6 @@
 import time
-from skitai.server.threads import socket_map
-from skitai.server.threads import trigger
+from aquests.lib.athreads import socket_map
+from aquests.lib.athreads import trigger
 import threading
 from skitai.server.rpc import cluster_dist_call, rcache
 from aquests.lib.attrdict import AttrDict
@@ -13,36 +13,6 @@ class OperationTimeout (Exception):
 
 class RequestFailed (Exception):
 	pass
-	
-class Result (rcache.Result):
-	def __init__ (self, id, status, request = None, ident = None):
-		rcache.Result.__init__ (self, status, ident)		
-		self.node = id
-		self.request = request
-		
-		# For Results competitable
-		if self.status == 3:
-			self.code, self.msg = 200, "OK"
-		else:
-			self.code, self.msg = 500, "Server Error"
-	
-	def __getattr__ (self, attr):
-		return getattr (self.request, attr)
-	
-	def reraise (self):
-		if self.request.expt_class:
-			raise self.request.expt_class ("%s (status: %d)" % (self.request.expt_str, self.status))
-	
-	def get_error_as_string (self):
-		if self.request.expt_class:
-			return "%s %s" % (self.request.expt_class, self.request.expt_str)		
-		return ""	
-		
-	def cache (self, timeout = 300):
-		if self.status != 3:
-			return
-		rcache.Result.cache (self, timeout)
-
 
 class FailedRequest:
 	def __init__ (self, expt_class, expt_msg):
@@ -87,9 +57,9 @@ class Dispatcher:
 	def get_result (self):
 		if self.result is None:
 			if self.get_status () == -1:
-				self.result = Result (self.id, -1, FailedRequest (RequestFailed, "Request Failed"), self.ident)
+				self.result = cluster_dist_call.Result (self.id, -1, FailedRequest (RequestFailed, "Request Failed"), self.ident)
 			else:
-				self.result = Result (self.id, 1, FailedRequest (OperationTimeout, "Operation Timeout"), self.ident)
+				self.result = cluster_dist_call.Result (self.id, 1, FailedRequest (OperationTimeout, "Operation Timeout"), self.ident)
 		return self.result
 	
 	def do_filter (self):
@@ -106,8 +76,8 @@ class Dispatcher:
 		else:
 			status = 3
 		
-		self.result = Result (self.id, status, request, self.ident)
-		self.set_status (status)		
+		self.result = cluster_dist_call.Result (self.id, status, request, self.ident)
+		self.set_status (status)
 		        	     
 #-----------------------------------------------------------
 # Cluster Base Call
@@ -118,8 +88,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		cluster,
 		server, 
 		dbname, 
-		user, 
-		password,
+		auth,
 		dbtype,
 		use_cache,
 		mapreduce,
@@ -130,18 +99,16 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		
 		self.server = server
 		self.dbname = dbname
-			
-		self.user = user
-		self.password = password
-		self.dbtype = dbtype
 		
+		self.auth = auth		
+		self.dbtype = dbtype
 		if self.dbtype == DB_PGSQL:
 			if self.dbname in (DB_SQLITE3, DB_REDIS):
 				self.dbtype = self.dbname
 				self.dbname = ""
-			elif self.user in (DB_MONGODB,):
-				self.dbtype = self.user
-				self.user = ""
+			elif self.auth in (DB_MONGODB,):
+				self.dbtype = self.auth
+				self.auth = None
 				
 		self._use_cache = use_cache		
 		self._filter = filter
@@ -173,7 +140,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 	def _get_ident (self):
 		cluster_name = self._cluster.get_name ()
 		if cluster_name == "dbpool":
-			_id = "%s/%s/%s/%s" % (self.server, self.dbname, self.user, self.password)
+			_id = "%s/%s/%s" % (self.server, self.dbname, self.auth)
 		else:
 			_id = cluster_name
 		_id += "/%s%s" % (
@@ -187,7 +154,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		else: self._nodes = []
 			
 		if self.server:
-			asyncon = self._cluster.get (self.server, self.dbname, self.user, self.password, self.dbtype)		
+			asyncon = self._cluster.get (self.server, self.dbname, self.auth, self.dbtype)		
 		else:	
 			asyncon = self._cluster.get (id)
 		
@@ -226,54 +193,9 @@ class ClusterDistCallCreator:
 	def __getattr__ (self, name):	
 		return getattr (self.cluster, name)
 		
-	def Server (self, server = None, dbname = None, user = None, password = None, dbtype = None, use_cache = True, mapreduce = False, filter = None, callback = None):
+	def Server (self, server = None, dbname = None, auth = None, dbtype = None, use_cache = True, mapreduce = False, filter = None, callback = None):
 		# reqtype: xmlrpc, rpc2, json, jsonrpc, http
 		#return ClusterDistCall (self.cluster, server, dbname, user, password, dbtype, use_cache, mapreduce, filter, callback, self.logger)
-		return cluster_dist_call.Proxy (ClusterDistCall, self.cluster, server, dbname, user, password, dbtype, use_cache, mapreduce, filter, callback, self.logger)
+		return cluster_dist_call.Proxy (ClusterDistCall, self.cluster, server, dbname, auth, dbtype, use_cache, mapreduce, filter, callback, self.logger)
 		
-	
-if __name__ == "__main__":
-	from aquests.lib  import logger
-	from . import cluster_manager
-	import sys
-	import asyncore
-	import time
-	from aquests.client import socketpool
-	
-	def _reduce (asyncall):
-		for rs in asyncall.getswait (5):
-			print("Result:", rs.id, rs.status, rs.code, repr(rs.result [:60]))
-					
-	def testCluster ():	
-		sc = cluster_manager.ClusterManager ("tt", ["210.116.122.187:3424 1", "210.116.122.184:3424 1", "175.115.53.148:3424 1"], logger= logger.screen_logger ())
-		clustercall = ClusterDistCallCreator (sc, logger.screen_logger ())	
-		s = clustercall.Server ("rpc2", login = "admin/whddlgkr")
-		s.bladese.util.status ("openfos.v2")		
-		threading.Thread (target = _reduce, args = (s,)).start ()
 		
-		while 1:
-			asyncore.loop (timeout = 1, count = 2)
-			if len (asyncore.socket_map) == 1:
-				break
-	
-	def testSocketPool ():
-		sc = socketpool.SocketPool (logger.screen_logger ())
-		clustercall = ClusterDistCallCreator (sc, logger.screen_logger ())			
-		s = clustercall.Server ("http://www.bidmain.com/")
-		s.request ()
-		
-		#s = clustercall.Server ("http://210.116.122.187:3424/rpc2", "admin/whddlgkr")
-		#s.bladese.util.status ("openfos.v2")
-		
-		threading.Thread (target = __reduce, args = (s,)).start ()
-		
-		while 1:
-			asyncore.loop (timeout = 1, count = 2)
-			print(asyncore.socket_map)
-			if len (asyncore.socket_map) == 1:
-				break
-	
-	trigger.start_trigger ()
-	
-	testCluster ()
-	testSocketPool ()	

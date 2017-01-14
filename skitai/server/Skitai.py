@@ -15,7 +15,7 @@ from skitai import start_was
 if os.name == "nt":	
 	from . import schedule			
 from .handlers import proxy_handler, ipbl_handler, vhost_handler
-from .threads import threadlib, trigger
+from aquests.lib.athreads import threadlib, trigger
 from aquests.lib import logger, confparse, pathtool, flock
 from .rpc import cluster_dist_call, rcache
 from aquests.client import socketpool

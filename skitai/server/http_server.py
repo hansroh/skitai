@@ -5,7 +5,7 @@ import asyncore, asynchat
 import re, socket, time, threading, os
 from . import http_request, counter
 from aquests.protocols.http import http_util, http_date
-from .threads import threadlib
+from aquests.lib.athreads import threadlib
 from skitai import lifetime
 from aquests.lib import producers, compressors
 import signal

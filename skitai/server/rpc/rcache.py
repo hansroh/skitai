@@ -111,6 +111,8 @@ class RCache:
 	def expire (self, obj):
 		with self.lock:
 			h = self.hash (obj.ident)
+			try: h.close ()
+			except AttributeError: pass	
 			try: del self.__cache [h]
 			except KeyError: pass
 	

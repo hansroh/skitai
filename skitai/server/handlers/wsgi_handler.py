@@ -6,7 +6,7 @@ except ImportError:
 import sys
 from aquests.lib import producers
 from skitai.server.http_response import catch
-from skitai.server.threads import trigger
+from aquests.lib.athreads import trigger
 from . import collectors
 from skitai import version_info, was as the_was
 from skitai.saddle import Saddle

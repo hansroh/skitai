@@ -2,7 +2,7 @@ import sys
 import struct
 from .. import wsgi_handler
 from skitai.server.http_response import catch
-from skitai.server.threads import trigger
+from aquests.lib.athreads import trigger
 try:
 	from urllib.parse import quote_plus
 except ImportError:

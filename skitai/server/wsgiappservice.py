@@ -139,9 +139,9 @@ class WAS:
 			if uri [0] == "@": 
 				fn = "lb"
 			else:
-				fn = (command == "db" and "db" or "rest")
+				fn = (command in ("db", "postgresql", "sqlite3", "redis", "mongodb") and "db" or "rest")
 
-		if command == "db":		
+		if command == "db":
 			return getattr (self, "_d" + fn) (*args, **karg)
 		elif command in ("postgresql", "sqlite3", "redis", "mongodb"):
 			return getattr (self, "_a" + fn) ("*" + command, *args, **karg)		
@@ -159,23 +159,23 @@ class WAS:
 		nheader ["X-Ltxn-Id"] = self.request.get_ltxid (1)
 		return nheader
 		
-	def _rest (self, method, uri, data = None, auth = None, headers = None, use_cache = True, filter = None, callback = None, encoding = None):
+	def _rest (self, method, uri, data = None, headers = None, auth = None, use_cache = True, filter = None, callback = None):
 		#auth = (user, password)
-		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, self.rebuild_header (headers), auth, encoding, use_cache, mapreduce = False, filter = filter, callback = callback)
+		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, self.rebuild_header (headers), auth, use_cache, mapreduce = False, filter = filter, callback = callback)
 			
-	def _map (self, method, uri, data = None, auth = None, headers = None, use_cache = True, filter = None, callback = None, encoding = None):		
+	def _map (self, method, uri, data = None, headers = None, auth = None, use_cache = True, filter = None, callback = None):		
 		clustername, uri = self.__detect_cluster (uri)		
-		return self.clusters_for_distcall [clustername].Server (uri, data, method, self.rebuild_header (headers), auth, encoding, use_cache, mapreduce = True, filter = filter, callback = callback)
+		return self.clusters_for_distcall [clustername].Server (uri, data, method, self.rebuild_header (headers), auth, use_cache, mapreduce = True, filter = filter, callback = callback)
 	
-	def _lb (self, method, uri, data = None, auth = None, headers = None, use_cache = True, filter = None, callback = None, encoding = None):
+	def _lb (self, method, uri, data = None, headers = None, auth = None, use_cache = True, filter = None, callback = None):
 		clustername, uri = self.__detect_cluster (uri)
-		return self.clusters_for_distcall [clustername].Server (uri, data, method, self.rebuild_header (headers), auth, encoding, use_cache, mapreduce = False, filter = filter, callback = callback)
+		return self.clusters_for_distcall [clustername].Server (uri, data, method, self.rebuild_header (headers), auth, use_cache, mapreduce = False, filter = filter, callback = callback)
 	
-	def _adb (self, dbtype, server, dbname, user = "", password = "", use_cache = True, filter = None, callback = None):
-		return self._ddb (server, dbname, user, password, dbtype, use_cache, filter, callback)
+	def _adb (self, dbtype, server, dbname = "", auth = None, use_cache = True, filter = None, callback = None):
+		return self._ddb (server, dbname, auth, dbtype, use_cache, filter, callback)
 		
-	def _ddb (self, server, dbname, user = "", password = "", dbtype = DB_PGSQL, use_cache = True, filter = None, callback = None):
-		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, user, password, dbtype, use_cache, mapreduce = False, filter = filter, callback = callback)
+	def _ddb (self, server, dbname = "", auth = None, dbtype = DB_PGSQL, use_cache = True, filter = None, callback = None):
+		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, auth, dbtype, use_cache, mapreduce = False, filter = filter, callback = callback)
 	
 	def _dlb (self, clustername, use_cache = True, filter = None, callback = None):
 		clustername = self.__detect_cluster (clustername) [0]
@@ -184,7 +184,13 @@ class WAS:
 	def _dmap (self, clustername, use_cache = True, filter = None, callback = None):
 		clustername = self.__detect_cluster (clustername) [0]
 		return self.clusters_for_distcall [clustername].Server (use_cache = use_cache, mapreduce = True, filter = None, callback = None)
-		
+	
+	def _alb (self, dbtype, clustername, use_cache = True, filter = None, callback = None):
+		return self._dlb (clustername, use_cache, filter, callback)
+	
+	def _amap (self, dbtype, clustername, use_cache = True, filter = None, callback = None):
+		return self._dmap (clustername, use_cache, filter, callback)
+			
 	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		return self.app.render (self, template_file, _do_not_use_this_variable_name_, **karg)
 	

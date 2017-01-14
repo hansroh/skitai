@@ -15,7 +15,7 @@ class ClusterManager (cluster_manager.ClusterManager):
 			asyncon = synsqlite3.SynConnect (member, None, self.lock, self.logger)
 			nodeid = member
 		
-		else:	
+		else:
 			db, user, passwd = "", "", ""
 			args = member.split ("/", 3)
 			if len (args) == 4: 	server, db, user, passwd = args
@@ -38,7 +38,7 @@ class ClusterManager (cluster_manager.ClusterManager):
 			else:
 				raise TypeError ("Unknown DB type: %s" % self.dbtype)
 			
-			asyncon = conn_class (server, (db, user, passwd), self.lock, self.logger)	
+			asyncon = conn_class (server, (db, (user, passwd)), self.lock, self.logger)	
 			nodeid = server
 				
 		return nodeid, asyncon # nodeid, asyncon
