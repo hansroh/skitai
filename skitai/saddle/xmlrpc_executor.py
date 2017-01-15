@@ -11,7 +11,7 @@ class Executor (wsgi_executor.Executor):
 		
 		data = self.env ["wsgi.input"].read ()
 		args, methodname = xmlrpclib.loads (data)
-		
+
 		if methodname != "system.multicall":
 			thunks = [(methodname, args)]
 		else:

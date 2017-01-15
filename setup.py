@@ -42,15 +42,11 @@ packages = [
 	'skitai.server.handlers.http2',
 	'skitai.server.handlers.websocket',
 	'skitai.server.handlers.proxy',
-	'skitai.saddle',
-	'skitai.examples'
+	'skitai.saddle'
 ]
 
 package_dir = {'skitai': 'skitai'}
-
-package_data = {
-	"skitai": ["examples/grpc/*.proto"]
-}
+package_data = {}
 
 with open('skitai/__init__.py', 'r') as fd:
 	version = re.search(r'^__version__\s*=\s*"(.*?)"',fd.read(), re.M).group(1)

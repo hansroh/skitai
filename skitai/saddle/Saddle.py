@@ -198,11 +198,7 @@ class Saddle (part.Part):
 			try:
 				i, o = discover.find_type (request.uri [1:])
 			except KeyError:
-				raise NotImplementedError		
-			
-			#if i[1] and o[1]:
-			#	return grpc_collector.grpc_stream_collector
-			#else:	
+				raise NotImplementedError			
 			return grpc_collector.grpc_collector			
 			
 	def get_method (self, path_info, command = None, content_type = None, authorization = None):		

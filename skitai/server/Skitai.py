@@ -75,7 +75,7 @@ class Loader:
 				delattr (self.wasc, attr)
 		start_was (self.wasc)
 		
-	def config_cachefs (self, cache_dir, memmax = 8, diskmax = 0): 
+	def config_cachefs (self, cache_dir = None, memmax = 8, diskmax = 0): 
 		self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir, memmax, diskmax)
 		
 		socketfarm = socketpool.SocketPool (self.wasc.logger.get ("server"))
@@ -173,7 +173,9 @@ class Loader:
 				entity, appname = entity
 			else:
 				entity, appname = entity, 'app'
-									
+			
+			if type (entity) is not str:
+				entity = os.path.join (os.getcwd (), sys.argv [0])				
 			if entity.endswith (".py") or entity.endswith (".pyc"):
 				entity = os.path.join (os.getcwd (), entity) [:-3]
 				if entity [-1] == ".": 
@@ -190,6 +192,8 @@ class Loader:
 			apigateway_realm = "API Gateway",
 			apigateway_secret_key = None
 		):
+		if routes	and type (routes) is not list:
+			routes = [routes]
 		if routes and type (routes [0]) is tuple:
 			routes = self.install_handler_with_tuple (routes)
 		

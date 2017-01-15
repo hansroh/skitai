@@ -149,6 +149,9 @@ class CacheFileSystem:
 		return True
 					
 	def get (self, key, undecompressible = 0):
+		if not self.path:
+			return None, None, None, None, None
+			
 		path, initial, fn = self.getpath (key)
 		
 		try:

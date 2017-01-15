@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.23b1"
+__version__ = "0.23b7"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -79,25 +79,24 @@ def run (**conf):
 	from . import lifetime
 	from .server import Skitai
 	
-	class TestServer (Skitai.Loader):
+	class SkitaiServer (Skitai.Loader):
 		def __init__ (self, conf):
 			self.conf = conf
 			Skitai.Loader.__init__ (self, 'test.conf')
 			
 		def configure (self):
-			conf = self.conf
-			
+			conf = self.conf			
 			self.set_num_worker (1)
-			if conf.get ("certfile"):		
+			if conf.get ("certfile"):
 				self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
+			self.config_cachefs ()
 			self.config_rcache (100)
 			self.config_webserver (
-				conf.get ('port', 5000), conf.get ('address', '127.0.0.1'), 
-				"Skitai Test Server", conf.get ("certfile") is not None, 
+				conf.get ('port', 5000), conf.get ('address', '0.0.0.0'),
+				"Skitai Server", conf.get ("certfile") is not None,
 				5, 10
 			)
-			self.config_threads (conf.get ('threads', 4))
-			
+			self.config_threads (conf.get ('threads', 4))						
 			for name, (ctype, members, ssl) in conf.get ("clusters", {}):
 				self.add_cluster (ctype, name, members, ssl)
 			
@@ -107,12 +106,11 @@ def run (**conf):
 				conf.get ("static_max_age", 300)
 			)
 			lifetime.init ()
-	
+			
 	if not conf.get ('mount'):
 		raise ValueError ('Dictionary mount {mount point: path or app} required')
 	
-	server = TestServer (conf)
+	server = SkitaiServer (conf)
 	# timeout for fast keyboard interrupt on win32	
 	server.run (2.0)
-	
 	

@@ -1,37 +1,20 @@
 import sys
 import struct
+import threading
+import json
 from .. import wsgi_handler
 from skitai.server.http_response import catch
 from aquests.lib.athreads import trigger
-try:
-	from urllib.parse import quote_plus
-except ImportError:
-	from urllib import quote_plus	
 from aquests.lib import strutil
-from skitai import version_info, was as the_was
-try:
-	from cStringIO import StringIO as BytesIO
-except ImportError:
-	from io import BytesIO
-import threading
-import json
 from aquests.protocols.grpc import discover
-import xmlrpc.client
-
-FIN    = 0x80
-OPCODE = 0x0f
-MASKED = 0x80
-PAYLOAD_LEN = 0x7f
-PAYLOAD_LEN_EXT16 = 0x7e
-PAYLOAD_LEN_EXT64 = 0x7f
-
-OPCODE_CONTINUATION = 0x0
-OPCODE_TEXT = 0x1
-OPCODE_BINARY = 0x2
-OPCODE_CLOSE = 0x8
-OPCODE_PING = 0x9
-OPCODE_PONG = 0xa
-
+from aquests.protocols.ws import *
+from skitai import version_info, was as the_was
+try: import xmlrpc.client as xmlrpclib
+except ImportError: import xmlrpclib
+try: from urllib.parse import quote_plus
+except ImportError: from urllib import quote_plus	
+try: from cStringIO import StringIO as BytesIO
+except ImportError: from io import BytesIO
 
 class WebSocket:
 	collector = None
@@ -241,8 +224,8 @@ class WebSocket2 (WebSocket):
 			self.message_encode = json.dumps
 			self.message_decode = json.loads
 		elif message_encoding == "xmlrpc":
-			self.message_encode = xmlrpc.client.dumps
-			self.message_decode = xmlrpc.client.loads
+			self.message_encode = xmlrpclib.dumps
+			self.message_decode = xmlrpclib.loads
 		else:
 			self.message_encode = self.transport
 			self.message_decode = self.transport

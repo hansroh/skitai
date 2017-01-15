@@ -143,9 +143,7 @@ class ModuleManager:
 		cands = []
 		for route in self.modules:
 			if script_name == route:
-				cands.append (route)				
-			#elif script_name [-1] == "/" and script_name [:-1] == route:
-				#return 2
+				cands.append (route)
 			elif script_name + "/" == route:
 				return 1
 			elif script_name.startswith (route [-1] != "/" and route + "/" or route):

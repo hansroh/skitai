@@ -57,17 +57,9 @@ Installation
 
 **Requirements**
 
-On win32, required *pywin32 binary* - http://sourceforge.net/projects/pywin32/files/pywin32/Build%20219/
+On win32, required `pywin32 binary`_
 
-**Optional Requirements**
-
-* Skitaid can find at least one DNS server from system configuration for Async-DNS query. Possibly it is only problem on dynamic IP allocated desktop, then set DNS manually, please.
-
-- *psycopg2* for querying PostgreSQL asynchronously (`win32 binary`_)
-- *Jinja2* for HTML Rendering
-- *hyper-h2* for HTTP/2 protocol
-
-.. _`win32 binary`: http://www.stickpeople.com/projects/python/win-psycopg/
+.. _`pywin32 binary`: http://sourceforge.net/projects/pywin32/files/pywin32/Build%20219/
 
 
 **Installation**
@@ -115,7 +107,7 @@ Basic Usage
     import skitai
     
     skitai.run (
-      mount = [('/', __file__)]
+      mount = ('/', app)
     )
 
 At now, run this code from console.
@@ -133,7 +125,7 @@ If you want to allow access to your public IPs, or specify port:
   skitai.run (
     address = "0.0.0.0",
     port = 5000,
-    mount = [('/', __file__)]
+    mount = ('/', app)
   )
 
 if you want to change number of threads for WSGI app:
@@ -142,7 +134,7 @@ if you want to change number of threads for WSGI app:
 
   skitai.run (
     threads = 4,
-    mount = [('/', __file__)]
+    mount = ('/', app)
   )
 
 
@@ -210,7 +202,7 @@ Enabling Proxy Server
 .. code:: python
 
   skitai.run (
-    mount = [('/', __file__)],
+    mount = ('/', app),
     proxy = True
   )
 
@@ -227,7 +219,7 @@ To genrate self-signed certification file:
 .. code:: python
 
   skitai.run (
-    mount = [('/', __file__)],
+    mount = ('/', app),
     certfile = '/var/www/certs/server.pem' # combined certification with private key
     passphrase = 'your pass phrase'
   )
@@ -275,14 +267,6 @@ For using it, you just call was.response.hint_promise (uri) before return respon
     was.response.hint_promise ('/images/B.png')
     
     return was.response ("200 OK", 'Promise Sent<br><br><img src="/images/A.png"><img src="/images/B.png">')	
-
-
-**As A Client**
-
-*New in version 0.22*
-
-Skitai's all REST/RPC call uses HTTP2 protocol if target server supports. Obiously between Skitai App Engines, they communicate using HTTP2.
-
 
 .. _`HTTP2 server push`: https://tools.ietf.org/html/rfc7540#section-8.2
 
@@ -700,18 +684,20 @@ Add mydb members to config file.
 
 .. code:: python
 
-    [@mydb]
-    type = postresql
-    members = s1.yourserver.com:5432/mydb/user/passwd, s2.yourserver.com:5432/mydb/user/passwd
-
-    @app.route ("/query")
-    def query (was, keyword):
-      dbo = was.postgresql.lb ("@mydb")
-      s = dbo.do("INSERT INTO CITIES VALUES ('New York');")
-      s.wait (2) # no return, just wait for completing query, if failed exception will be raised
-      
-      s = dbo.do("SELECT * FROM CITIES;")
-      result = s.getwait (2)  
+  [@mydb]
+  type = postresql
+  members = s1.yourserver.com:5432/mydb/user/passwd, s2.yourserver.com:5432/mydb/user/passwd
+ 
+  @app.route ("/query")
+  def query (was, keyword):
+    dbo = was.postgresql.lb ("@mydb")
+    req = dbo.execute ("INSERT INTO CITIES VALUES ('New York');")
+    req.wait (2) 
+    # no return, just wait for completing query
+    #if failed exception will be raised    
+    
+    req = dbo.execute ("SELECT * FROM CITIES;")
+    result = req.getwait (2)  
 
 
 Map-Reducing
@@ -723,8 +709,9 @@ Basically same with load_balancing except Skitai requests to all members per eac
 
     @app.route ("/search")
     def search (was, keyword = "Mozart"):
-      stub = was.rpc.map ("@mysearch/rpc2").search (keyword)
-      results = stub.getswait (2)
+      stub = was.rpc.map ("@mysearch/rpc2")
+      req = stub.search (keyword)
+      results = req.getswait (2)
 			
       all_results = []
       for result in results:
@@ -734,7 +721,7 @@ Basically same with load_balancing except Skitai requests to all members per eac
 There are 2 changes:
 
 1. from was.rpc.lb () to was.rpc.map ()
-2. form s.getwait () to s.getswait () for multiple results
+2. from s.getwait () to s.getswait () for multiple results
 
 
 Caching Result
@@ -1520,8 +1507,10 @@ File Upload
     + o - overwrite
 
 
-Registering Event Calls To App and was.g
+App and Method Decorators and was.g
 -----------------------------------------
+
+Method decorators called automatically when each method is requested in a app.
 
 .. code:: python
 
@@ -1596,7 +1585,7 @@ If you handle exception with failed_request (), return custom error content, or 
     	was.render ("err501.htm", msg = "We're sorry but something's going wrong")
     )
     
-Also there're another kind of method group,
+Also there're another kind of decorator group, App decorators.
 
 .. code:: python
 
@@ -1717,36 +1706,63 @@ If authorization is successful, app can access username and userinfo vi was.requ
 If your server run with SSL, you can use app.authorization = "basic", otherwise recommend using "digest" for your password safety.
 
 
-Mount Saddlery On Saddle (Packaging for Larger App)
------------------------------------------------------
+Building for Larger App
+-------------------------
 
-*Changed in version 0.15*
+You have 2 options for extending your app scale.
 
-Before 0.15
+1. Mount multiple microservices
+2. Mount saddlery on saldde
+
+Mount Multiple Microservices
+``````````````````````````````
+
+I personally recommend this way by current developing trend.
 
 .. code:: python
   
-  # admin.py
-  from skitai.saddle import Package
-  app = Package ("/admin") # mount point
+  import skitai    
   
-  @app.route ("/<name>")
-  def hello (was):
-    # can build other module's method url
-    return was.ab ("index", 1, 2) 
-    
-  # app.py
-  from skitai.saddle import Saddle
-  from . import admin
+  skitai.run (
+    mount = [
+      ('/service', ('/service/app', 'app')),
+      ('/service/trade', ('/service/trade/app', 'app')),
+      ('/service/intro', ('/service/intro/app', 'app')),
+      ('/service/admin', ('/service/admin/app', 'app')),
+      ('/', '/service/static')
+    ]
+  )
+
+And your pysical directory structure is,
+
+.. code:: bash
+
+  /service/app.py
+  /service/templates/*.html
+  /service/apppackages/*.py
   
-  app = Saddle (__name__)
-  app.add_package (admin, "app")
+  /service/trade/app.py
+  /service/trade/templates/*.html  
+  /service/trade/apppackages/*.py
   
-  @app.route ("/")
-  def index (was, num1, num2):  
-    return was.ab ("hello", "Hans Roh") # url building
+  /service/intro/app.py
+  /service/intro/templates/*.html
+  /service/intro/apppackages/*.py
   
-For now, if your app is very large or want to manage codes by categories, you can seperate your app.
+  /service/admin/app.py
+  /service/admin/templates/*.html
+  /service/admin/apppackages/*.py
+  
+  /service/static/images
+  /service/static/js
+  /service/static/css
+  
+This structure make highly focus on each microservices and make easy to move or apply scaling by serivce traffic increment.
+
+Mount Saddlery On Saddle
+``````````````````````````
+
+If your app is very large or want to manage codes by categories, you can seperate your app.
 
 admin.py
   
@@ -1869,11 +1885,11 @@ Client Side:
 
 .. code:: python
 
-  import xmlrpc.client as rpc
-  
-  s = rpc.Server ("http://127.0.0.1:5000/rpc") # RPC App mount point
-  result = s.add (10000, 5000)  
-  
+  import aquests
+      
+  stub = aquests.rpc ("http://127.0.0.1:5000/rpc")
+  stub.add (10000, 5000)  
+  fetchall ()
   
 Server Side:
 
@@ -1884,6 +1900,51 @@ Server Side:
     return num1 + num2
 
 Is there nothing to diffrence? Yes. Saddle app methods are also used for XMLRPC service if return values are XMLRPC dumpable.
+
+
+Implementing gRPC Service
+-----------------------------
+
+Client Side:
+
+.. code:: python
+  
+  import aquests
+  import route_guide_pb2
+  
+  stub = aquests.grpc ("http://127.0.0.1:5000/routeguide.RouteGuide")
+  point = route_guide_pb2.Point (latitude=409146138, longitude=-746188906)
+  stub.GetFeature (point)
+  aquests.fetchall ()
+  
+  
+Server Side:
+
+.. code:: python
+  
+  import route_guide_pb2
+  
+  @app.route ("/GetFeature")
+  def GetFeature (was, point):
+    feature = get_feature(db, point)
+  if feature is None:
+    return route_guide_pb2.Feature(name="", location=point)
+  else:
+    return feature
+
+  if __name__ == "__main__":  
+  
+    skitai.run (
+      mount = [
+        ('/routeguide.RouteGuide', (__file__, 'app')),      
+      ]
+    )
+
+For more about gRPC and route_guide_pb2, go to `gRPC Basics - Python`_.
+
+Note: I think I don't understand about gRPC's stream request and response. Does it means chatting style? Why does data stream has interval like GPS data be handled as stream type?
+
+.. _`gRPC Basics - Python`: http://www.grpc.io/docs/tutorials/basic/python.html
 
 
 Logging and Traceback

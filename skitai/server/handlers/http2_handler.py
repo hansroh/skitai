@@ -109,7 +109,7 @@ class http2_request_handler:
 		return headers
 					
 	def collect_incoming_data (self, data):
-		#print ("RECV", repr (data), len (data), '::', self.channel.get_terminator ())		
+		#print ("RECV", repr (data), len (data), '::', self.channel.get_terminator ())
 		if not data:
 			# closed connection
 			self.close (True)
@@ -142,7 +142,7 @@ class http2_request_handler:
 			self.request.version = "2.0" # upgrade
 			data = self.rfile.getvalue ()
 			with self._clock:
-				r = self.requests [1]
+				r = self.requests [1]			
 			r.channel.set_data (data, len (data))
 
 			self.data_length = 0
@@ -318,9 +318,14 @@ class http2_request_handler:
 		self.send_data ()
 	
 	def reset_stream (self, stream_id, errcode = CANCEL):
+		closed = False
 		with self._plock:
-			self.conn.reset_stream (stream_id, error_code = errcode)
-		self.send_data ()
+			try:
+				self.conn.reset_stream (stream_id, error_code = errcode)
+			except StreamClosedError:	
+				closed = True
+		if not closed:		
+			self.send_data ()
 		self.remove_request (stream_id)
 		self.request.logger ("stream reset (stream_id:%d, error:%d)" % (stream_id, errcode), "info")
 	
@@ -403,9 +408,13 @@ class http2_request_handler:
 				except: pass
 					
 			else:
-				if should_have_collector and cl > 0 and r.collector is None:
-					# too large body
-					self.reset_stream (stream_id)						
+				if should_have_collector and cl > 0 and r.collector is None:					
+					# POST but too large body or 301, 401, 404
+					if stream_id == 1:						
+						self.channel.close_when_done ()
+						self.remove_request (1)
+					else:						
+						self.reset_stream (stream_id)
 					
 				elif cl > 0:
 					if stream_id == 1:

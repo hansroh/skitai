@@ -118,7 +118,7 @@ class Handler:
 
 		return collector
 	
-	def isauthorized (self, app, request):		
+	def isauthorized (self, app, request, err_handler):		
 		try:
 			authenticate_required = app.authenticate
 		except AttributeError: 
@@ -130,7 +130,7 @@ class Handler:
 			www_authenticate = app.authorize (request.get_header ("Authorization"), request.command, request.uri)
 			if type (www_authenticate) is str:
 				request.response ['WWW-Authenticate'] = www_authenticate
-				request.response.error (401)
+				err_handler (401)
 				return False
 			elif www_authenticate:
 				request.user = www_authenticate
@@ -144,18 +144,19 @@ class Handler:
 		path, params, query, fragment = request.split_uri ()
 		
 		has_route = self.apps.has_route (path)
-		if has_route == 0:
-			return request.response.error (404)
-		if has_route == 1:
-			request.response ["Location"] = "%s/" % path
+		if request.command in ('post', 'put'):
+			err_handler = request.response.abort
+		else:	
+			err_handler = request.response.error
 			
-			if request.command in ('post', 'put'):
-				return request.response.abort (301)
-			else:	
-				return request.response.error (301)
-		
-		app = self.apps.get_app (has_route).get_callable()		
-		if not self.isauthorized (app, request):
+		if has_route == 0:
+			return err_handler (404)
+		if has_route == 1:
+			request.response ["Location"] = "%s/" % path			
+			return err_handler (301)
+			
+		app = self.apps.get_app (has_route).get_callable()
+		if not self.isauthorized (app, request, err_handler):
 			return 
 		
 		if request.command in ('post', 'put'):
