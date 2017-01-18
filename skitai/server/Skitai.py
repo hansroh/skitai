@@ -25,6 +25,8 @@ import multiprocessing
 from . import wsgiappservice, cachefs
 from .dbi import cluster_dist_call as dcluster_dist_call
 from aquests.dbapi import dbpool
+from aquests.protocols.http import request_handler
+from aquests.protocols import http2
 import types
 
 class Loader:
@@ -68,7 +70,11 @@ class Loader:
 		
 		self.wasc.register ("lock", threading.RLock ())
 		self.wasc.register ("lifetime", lifetime)		
-		
+		# internal connection should be http 1.1
+		# because http2 single connection feature is useless on accessing internal resources
+		# BUT we will use http2 when gRPC call, with just 1 stream per connection for speeding
+		http2.MAX_HTTP2_CONCURRENT_STREAMS = 1
+		request_handler.RequestHandler.FORCE_HTTP_11 = True
 		adns.init (self.wasc.logger.get ("server"))		
 		if not hasattr (self.wasc, "threads"):
 			for attr in ("map", "rpc", "rest", "wget", "lb", "db", "dlb", "dmap"):
@@ -162,8 +168,11 @@ class Loader:
 			self.wasc.numthreads = numthreads
 					
 	def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0, access = None):
-		if ssl in ("1", "yes"): ssl = 1
-		else: ssl = 0
+		ssl = 0
+		if ssl in (1, True, "1", "yes") or clustertype in ("https", "wss", "grpcs", "rpcs"):
+			ssl = 1
+		if type (clusterlist)	is str:
+			clusterlist = [clusterlist]
 		self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl, access = access)
 	
 	def install_handler_with_tuple (self, routes):
@@ -175,12 +184,14 @@ class Loader:
 				entity, appname = entity, 'app'
 			
 			if type (entity) is not str:
-				entity = os.path.join (os.getcwd (), sys.argv [0])				
-			if entity.endswith (".py") or entity.endswith (".pyc"):
+				entity = os.path.join (os.getcwd (), sys.argv [0])			
+			if entity [0] == "@":
+				sroutes.append ("%s=%s" % (route, entity))
+			elif entity.endswith (".py") or entity.endswith (".pyc"):
 				entity = os.path.join (os.getcwd (), entity) [:-3]
 				if entity [-1] == ".": 
 					entity = entity [:-1]
-			sroutes.append ("%s=%s:%s" % (route, entity, appname))
+				sroutes.append ("%s=%s:%s" % (route, entity, appname))
 		return sroutes
 			
 	def install_handler (self, 

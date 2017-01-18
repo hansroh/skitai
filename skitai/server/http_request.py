@@ -110,7 +110,7 @@ class http_request:
 	def set_header (self, name, value):
 		self.header.append ("%s: %s" % (name, value))		
 		
-	def get_header (self, header = None, default = None):
+	def get_header (self, header = None, default = None):		
 		if header is None:
 			return self.header
 		header = header.lower()
@@ -190,5 +190,6 @@ class http_request:
 				)
 			
 	def response_finished (self):
-		self.response.request = None
+		if self.response:
+			self.response.request = None
 	

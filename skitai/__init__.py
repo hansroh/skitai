@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.23b7"
+__version__ = "0.23b8"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -97,7 +97,14 @@ def run (**conf):
 				5, 10
 			)
 			self.config_threads (conf.get ('threads', 4))						
-			for name, (ctype, members, ssl) in conf.get ("clusters", {}):
+			for name, args in conf.get ("clusters", {}).items ():
+				if name [0] == "@":
+					name = name [1:]
+				if len (args) == 3:
+					ctype, members, ssl = args
+				else:
+					ctype, members = args	
+					ssl = 0
 				self.add_cluster (ctype, name, members, ssl)
 			
 			self.install_handler (

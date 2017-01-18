@@ -94,16 +94,13 @@ class Handler:
 		while path and path [0] == '/':
 			path = path[1:]
 		
-		if self.filesystem.isdir (path):
+		if self.filesystem.isdir (path):		
 			if path and path[-1] != '/':
 				request.response['Location'] = '/%s/' % path
 				request.response.error (301)
 				return
-
-			found = False
-			if path and path[-1] != '/':
-				path = path + '/'
 			
+			found = False
 			for default in self.directory_defaults:
 				p = path + default
 				if self.filesystem.isfile (p):
@@ -115,10 +112,12 @@ class Handler:
 				self.handle_alternative (request)
 				return
 		
-		elif not self.filesystem.isfile (path):
-			self.handle_alternative (request)
-			return
+		elif not self.filesystem.isfile (path):			
+			return self.handle_alternative (request)
 		
+		if path and path [-1] == "/":
+			return request.response.error (404)
+					
 		if self.isprohibited (request, path):
 			return
 		

@@ -3,8 +3,9 @@ import skitai
 from aquests.lib import producers
 from h2.connection import H2Connection, GoAwayFrame, DataFrame
 from h2.exceptions import ProtocolError, NoSuchStreamError, StreamClosedError
-from h2.events import DataReceived, RequestReceived, StreamEnded, PriorityUpdated, ConnectionTerminated, StreamReset, WindowUpdated
+from h2.events import DataReceived, RequestReceived, StreamEnded, PriorityUpdated, ConnectionTerminated, StreamReset, WindowUpdated, RemoteSettingsChanged
 from h2.errors import CANCEL, PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
+import h2.settings
 from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
 from aquests.protocols.http2.producers import h2stream_producer, h2header_producer, h2data_producer
@@ -14,7 +15,6 @@ try:
 	from cStringIO import StringIO as BytesIO
 except ImportError:
 	from io import BytesIO
-
 
 class http2_request_handler:
 	collector = None
@@ -43,16 +43,10 @@ class http2_request_handler:
 		
 		self._send_stream_id = 0
 		self._closed = False
-		self._got_preamble = False
-
+		self._got_preamble = False		
+		
 		self._plock = threading.Lock () # for self.conn
 		self._clock = threading.Lock () # for self.x
-		
-	def go_away (self, errcode = 0, msg = None):
-		with self._plock:
-			self.conn.close_connection (errcode, msg)
-		self.send_data ()
-		self.channel.close_when_done ()		
 				
 	def close (self, errcode = 0, msg = None):
 		if self._closed: return
@@ -138,11 +132,11 @@ class http2_request_handler:
 		#print ("FOUND", repr (buf), '::', self.data_length, self.channel.get_terminator ())
 		#print ("FOUND", self.request.version, self.request.command, self.data_length)
 		events = None	
-		if self.request.version == "1.1" and self.request.command in ("post", "put") and self.data_length:
+		if self.request.version == "1.1" and self.data_length:
 			self.request.version = "2.0" # upgrade
 			data = self.rfile.getvalue ()
 			with self._clock:
-				r = self.requests [1]			
+				r = self.requests [1]
 			r.channel.set_data (data, len (data))
 
 			self.data_length = 0
@@ -219,22 +213,20 @@ class http2_request_handler:
 			)
 			self.channel.push_with_producer (outgoing_producer)
 		
+		if r.is_stream_ended () or not r.is_async_streaming ():
+			# needn't recv data any more
+			self.remove_request (stream_id)
+		
 		if force_close:
-			self.reset_stream (stream_id, CANCEL)
-		else:	
-			if r.is_stream_ended () or not r.is_async_streaming ():
-				# needn't recv data any more
-				self.remove_request (stream_id)
-
-		#print ('=========', len (self.requests))
-		#print ('===========', self.promises)
+			return self.go_away (CANCEL)
+				
 		current_promises = []
 		with self._clock:
 			while self.promises:
 				current_promises.append (self.promises.popitem ())				
 		for promise_stream_id, promise_headers in current_promises:
 			self.handle_request (promise_stream_id, promise_headers, is_promise = True)
-	
+
 	def remove_request (self, stream_id):
 		r = self.get_request (stream_id)
 		if not r: return
@@ -278,7 +270,15 @@ class http2_request_handler:
 						
 			elif isinstance(event, ConnectionTerminated):
 				self.close (True)
-				
+			
+			elif isinstance(event, RemoteSettingsChanged):
+				try:
+					iws = event.changed_settings [h2.settings.INITIAL_WINDOW_SIZE].new_value
+				except KeyError:
+					pass
+				else:		
+					self.increment_flow_control_window ((2 ** 31 - 1) - iws)
+					
 			elif isinstance(event, PriorityUpdated):
 				if event.exclusive:
 					# rebuild depend_ons
@@ -293,17 +293,17 @@ class http2_request_handler:
 			elif isinstance(event, DataReceived):				
 				r = self.get_request (event.stream_id)				
 				if not r:
-					self.reset_stream (event.stream_id, PROTOCOL_ERROR)
+					self.go_away (PROTOCOL_ERROR)
 				else:
 					try:
 						r.channel.set_data (event.data, event.flow_controlled_length)
-					except ValueError:
+					except ValueError:						
 						# from vchannel.handle_read () -> collector.collect_inconing_data ()
-						self.reset_stream (event.stream_id)
+						self.go_away (CANCEL)
 					else:
 						rfcw = self.conn.remote_flow_control_window (event.stream_id)
 						if rfcw < 131070:
-							self.increment_flow_control_window (event.stream_id, 1048576)
+							self.increment_flow_control_window (1048576, event.stream_id)
 				
 			elif isinstance(event, StreamEnded):
 				r = self.get_request (event.stream_id)
@@ -317,6 +317,23 @@ class http2_request_handler:
 					
 		self.send_data ()
 	
+	def go_away (self, errcode = 0, msg = None):
+		with self._plock:
+			self.conn.close_connection (errcode, msg)
+		self.send_data ()
+		self.channel.close_when_done ()
+		
+	def end_stream (self, stream_id):
+		with self._plock:
+			try:
+				self.conn.reset_stream (stream_id, error_code = errcode)
+			except StreamClosedError:	
+				closed = True
+		if not closed:		
+			self.send_data ()
+		self.remove_request (stream_id)
+				#self.request.logger ("stream ended (stream_id:%d, error:%d)" % (stream_id, errcode), "info")
+			
 	def reset_stream (self, stream_id, errcode = CANCEL):
 		closed = False
 		with self._plock:
@@ -327,19 +344,19 @@ class http2_request_handler:
 		if not closed:		
 			self.send_data ()
 		self.remove_request (stream_id)
-		self.request.logger ("stream reset (stream_id:%d, error:%d)" % (stream_id, errcode), "info")
+		#self.request.logger ("stream reset (stream_id:%d, error:%d)" % (stream_id, errcode), "info")
 	
-	def increment_flow_control_window (self, stream_id, cl):
-		with self._plock:
-			rfcw = self.conn.remote_flow_control_window (stream_id)
-			if cl > rfcw:
-				try:
-					self.conn.increment_flow_control_window (cl - rfcw, stream_id)
-				except StreamClosedError:
-					pass
-				else:	
-					self.conn.increment_flow_control_window (cl)	
-		self.send_data ()								
+	def increment_flow_control_window (self, cl, stream_id = 0):
+		if stream_id == 0:
+			with self._plock:
+				self.conn.increment_flow_control_window (cl)
+			self.send_data ()	
+		else:	
+			with self._plock:
+				try: self.conn.increment_flow_control_window (cl, stream_id)
+				except StreamClosedError: pass
+				else: self.send_data ()	
+		
 		
 	def handle_request (self, stream_id, headers, is_promise = False):
 		#print ("++REQUEST: %d" % stream_id, headers)
@@ -381,7 +398,8 @@ class http2_request_handler:
 				should_have_collector = True
 				vchannel = data_channel (stream_id, self.channel, cl)
 			else:
-				self.request.version = "2.0"
+				if stream_id == 1:
+					self.request.version = "2.0"
 				vchannel = fake_channel (stream_id, self.channel)
 		
 		r = http2_request (
@@ -408,21 +426,21 @@ class http2_request_handler:
 				except: pass
 					
 			else:
-				if should_have_collector and cl > 0 and r.collector is None:					
-					# POST but too large body or 301, 401, 404
-					if stream_id == 1:						
-						self.channel.close_when_done ()
-						self.remove_request (1)
-					else:						
-						self.reset_stream (stream_id)
-					
-				elif cl > 0:
-					if stream_id == 1:
-						self.data_length = cl	
-						self.set_terminator (cl)							
-					else:
-						# give permission for sending data to a client
-						self.increment_flow_control_window (stream_id, cl)
+				if should_have_collector and cl > 0:
+					if r.collector is None:
+						# POST but too large body or 3xx, 4xx
+						if stream_id == 1 and self.request.version == "1.1":						
+							self.channel.close_when_done ()
+							self.remove_request (1)
+						else:						
+							self.go_away (PROTOCOL_ERROR)
+					else:	
+						if stream_id == 1 and self.request.version == "1.1":
+							self.data_length = cl
+							self.set_terminator (cl)
+						else:
+							# give permission for sending data to a client						
+							self.increment_flow_control_window (cl, stream_id)
 			return
 					
 		try: r.response.error (404)

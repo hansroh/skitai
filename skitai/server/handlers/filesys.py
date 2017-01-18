@@ -178,7 +178,7 @@ class os_filesystem:
 	def normalize (self, path):
 		# watch for the ever-sneaky '/+' path element
 		path = re.sub ('/+', '/', path)
-		p = self.path_module.normpath (path)
+		p = self.path_module.normpath (path)		
 		# remove 'dangling' cdup's.
 		if len(p) > 2 and p[:3] == '/..':
 			p = '/'

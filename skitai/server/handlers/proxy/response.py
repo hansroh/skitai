@@ -1,4 +1,4 @@
-from aquests.protocols.http import response as http_response
+from aquests.protocols.http import response as http_response, buffers
 from aquests.lib import compressors
 import time
 
@@ -58,12 +58,15 @@ class ProxyResponse (http_response.Response):
 				return False
 		
 		if self.p is None:
-			self.p, self.u = http_response.getfakeparser (http_response.list_buffer, cache = self.max_age)
+			self.p, self.u = buffers.getfakeparser (buffers.list_buffer, cache = self.max_age)
 			if self.make_decompressor:
 				self.decompressor = compressors.GZipDecompressor ()
 			
 		return True
-		
+	
+	def get_header_lines (self):
+		return self.header
+			
 	def init_buffer (self):
 		# do this job will be executed in body_expected ()
 		pass

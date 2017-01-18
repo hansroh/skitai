@@ -124,8 +124,6 @@ def loop (timeout = 30.0):
 	else:
 		graceful_shutdown_loop()	
 
-poll_fun = lifetime.poll_fun
-
 def lifetime_loop (timeout = 30.0):
 	global _last_maintern
 	global _maintern_interval
@@ -158,13 +156,7 @@ def graceful_shutdown_loop ():
 					obj.handle_error()
 					
 		if veto and time_in_this_phase < _shutdown_timeout:
-			try:
-				poll_fun(timeout, map)
-			except select.error as why:
-				if os.name == "nt":
-					if whay.args [0] == WSAENOTSOCK: # sometimes postgresql connection forcely closed
-						lifetime.remove_notsocks (map)
-					
+			lifetime.poll_fun_wrap (timeout, map)					
 		else:
 			_shutdown_phase += 1
 			timestamp = time.time()

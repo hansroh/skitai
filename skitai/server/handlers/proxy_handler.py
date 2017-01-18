@@ -14,10 +14,11 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		self.collector = collector
 		self.client_request = client_request
 		self.is_tunnel = False
+		self.should_http2 = False
 		self.new_handler = None
 			
-	def add_reply_headers (self):		
-		for line in self.response.get_headers ():			
+	def add_reply_headers (self):
+		for line in self.response.get_header_lines ():			
 			try: k, v = line.split (": ", 1)
 			except:	continue			
 			ll = k.lower ()
@@ -32,8 +33,10 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 	def has_been_connected (self):
 		if self.request.method == "connect":
 			self.buffer =	b"HTTP/" + self.client_request.version.encode ("utf8") + self.ESTABLISHED			
-			self.found_terminator ()
-	
+			self.found_terminator ()		
+		elif self.should_http2:
+			self.switch_to_http2 ()
+		
 	def will_open_tunneling (self):
 		return self.response.code == 200 and self.response.msg.lower () == "connection established"
 	
@@ -117,14 +120,14 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 					
 		self.buffer, self.response = b"", None
 		self.asyncon.set_terminator (b"\r\n\r\n")
-		
-		if self.request.method != "connect":
+		if self.client_request.get_header ('content-type', '').startswith ('application/grpc'):
+			self.should_http2 = True
+		if self.request.method != "connect" and not self.should_http2:
 			self.asyncon.push (self.get_request_header ())
 			payload = self.get_request_payload ()
 			if payload:
 				# don't init_send cause of producer has no data yet
-				self.asyncon.push_with_producer (payload, init_send = False)
-				
+				self.asyncon.push_with_producer (payload, init_send = False)												
 		self.asyncon.begin_tran (self)
 		self.asyncon.set_proxy_client ()
 	

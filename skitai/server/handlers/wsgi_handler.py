@@ -98,7 +98,7 @@ class Handler:
 		if collector.content_length is None:
 			if not request.version.startswith ("2."):
 				del collector
-				request.response.error (411)
+				self.handle_error_before_collecting (request, 411)
 				return
 			else:
 				collector.set_max_content_length (max_cl)
@@ -107,9 +107,9 @@ class Handler:
 			self.wasc.logger ("server", "too large request body (%d bytes)" % collector.content_length, "wran")
 			del collector
 			if request.get_header ("expect") == "100-continue":							
-				request.response.error (413) # client doesn't send data any more, I wish.
+				self.handle_error_before_collecting (request, 413, False) # client doesn't send data any more, I wish.
 			else:
-				request.response.abort (413)	# forcely disconnect
+				self.handle_error_before_collecting (request, 413)	# forcely disconnect
 			return
 		
 		# ok. allow form-data
@@ -118,7 +118,7 @@ class Handler:
 
 		return collector
 	
-	def isauthorized (self, app, request, err_handler):		
+	def isauthorized (self, app, request):		
 		try:
 			authenticate_required = app.authenticate
 		except AttributeError: 
@@ -130,7 +130,7 @@ class Handler:
 			www_authenticate = app.authorize (request.get_header ("Authorization"), request.command, request.uri)
 			if type (www_authenticate) is str:
 				request.response ['WWW-Authenticate'] = www_authenticate
-				err_handler (401)
+				self.handle_error_before_collecting (request, 401)
 				return False
 			elif www_authenticate:
 				request.user = www_authenticate
@@ -139,24 +139,34 @@ class Handler:
 			pass
 			
 		return True
+	
+	def handle_error_before_collecting (self, request, code, force_close = True):
+		if request.version != "2.0":
+			if request.command in ('post', 'put') and force_close:
+				request.response.abort (code)
+			else:	
+				request.response.error (code)
+		else:
+			# keep connecting on HTTP/2 as possible
+			if request.command in ('post', 'put'):
+				collector = collectors.HTTP2DummyCollector (self, request, code)
+				request.collector = collector
+				collector.start_collect ()
+			else:
+				request.response.error (code)
 			
 	def handle_request (self, request):
 		path, params, query, fragment = request.split_uri ()
 		
 		has_route = self.apps.has_route (path)
-		if request.command in ('post', 'put'):
-			err_handler = request.response.abort
-		else:	
-			err_handler = request.response.error
-			
 		if has_route == 0:
-			return err_handler (404)
+			return self.handle_error_before_collecting (request, 404)				
 		if has_route == 1:
-			request.response ["Location"] = "%s/" % path			
-			return err_handler (301)
+			request.response ["Location"] = "%s/" % path
+			return self.handle_error_before_collecting (request, 308)
 			
 		app = self.apps.get_app (has_route).get_callable()
-		if not self.isauthorized (app, request, err_handler):
+		if not self.isauthorized (app, request):
 			return 
 		
 		if request.command in ('post', 'put'):
@@ -166,7 +176,7 @@ class Handler:
 			except AttributeError:
 				collector_class = None
 			except NotImplementedError:				
-				return request.response.error (404)
+				return self.handle_error_before_collecting (request, 404)
 			
 			ct = request.get_header ("content-type")	
 			if ct.startswith ("multipart/form-data"):
@@ -184,7 +194,7 @@ class Handler:
 				app.config.max_upload_file_size, 
 				app.config.max_cache_size
 			)				
-			collector = self.make_collector (collector_class, request, max_size, *args)			
+			collector = self.make_collector (collector_class, request, max_size, *args)
 			if collector:
 				request.collector = collector
 				collector.start_collect ()
@@ -193,9 +203,15 @@ class Handler:
 			self.continue_request(request)
 			
 		else:
-			request.response.error (405)
+			self.handle_error_before_collecting (request, 405)
 	
-	def continue_request (self, request, data = None):
+	def continue_request (self, request, data = None, respcode = None):		
+		if respcode: # delayed resp code on POST
+			if respcode [1]:
+				# force close
+				return request.response.abort (respcode [0])
+			return request.response.error (respcode [0])
+		
 		try:
 			path, params, query, fragment = request.split_uri ()
 			apph = self.apps.get_app (path)

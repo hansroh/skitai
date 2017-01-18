@@ -12,19 +12,19 @@ class VHost:
 		self.cachefs = cachefs
 		
 		self.apps = wsgi_apps.ModuleManager(self.wasc, self)
+		self.handlers = []
+		
 		self.proxypass_handler = proxypass_handler.Handler (self.wasc, clusters, cachefs)
 		if enable_apigateway:
 			self.access_handler = api_access_handler.Handler (self.wasc, apigateway_authenticate, apigateway_realm, self.proxypass_handler, apigateway_secret_key)
-			self.handlers = [self.access_handler]
+			alternative_handlers = [self.access_handler]
 		else:
 			self.access_handler = None
-			self.handlers = [self.proxypass_handler]
-		
-		alternative_handlers = [			
-			websocket_handler.Handler (self.wasc, self.apps),
-			wsgi_handler.Handler (self.wasc, self.apps)
-		]
+			alternative_handlers = [self.proxypass_handler]			
+		alternative_handlers.append (websocket_handler.Handler (self.wasc, self.apps))
+		alternative_handlers.append (wsgi_handler.Handler (self.wasc, self.apps))
 		self.default_handler = default_handler.Handler (self.wasc, {}, static_max_age, alternative_handlers)
+		
 		if skitai.HTTP2:
 			self.handlers.append (http2_handler.Handler (self.wasc, self.default_handler))
 		else:

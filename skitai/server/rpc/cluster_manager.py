@@ -1,6 +1,6 @@
 import threading
 from aquests.client import asynconnect
-from aquests.client.socketpool import PROTO_LOADBALANCE
+from aquests.client.socketpool import PROTO_CONCURRENT_STREAMS, select_channel
 import time
 import re
 import copy
@@ -297,7 +297,7 @@ class ClusterManager:
 			self.logger.trace ()
 				
 		self._last_maintern = time.time ()
-			
+	
 	def get (self, specific = None, index = -1):
 		asyncon = None
 		self.lock.acquire ()
@@ -326,6 +326,11 @@ class ClusterManager:
 				cluster = []
 				for node in nodes:
 					avails = [x for x in self._cluster [node]["connection"] if not x.isactive ()]
+					if self._proto and self._proto in PROTO_CONCURRENT_STREAMS:
+						# socket load-balancing
+						selected = select_channel (avails)						
+						avail = selected and [selected] or []
+													
 					if not avails:
 						continue
 					
@@ -337,12 +342,7 @@ class ClusterManager:
 					else:
 						capability = 1.0 - (actives / float (weight))
 					
-					if self._proto and self._proto in PROTO_LOADBALANCE:
-						# socket load-balancing
-						avail = random.choice (avails)
-					else:
-						avail = avails [0]
-					#print ('-----', avail, self._cluster [node]["connection"])
+					avail = avails [0]
 					cluster.append ((avail, capability, weight))
 				
 				if cluster:
