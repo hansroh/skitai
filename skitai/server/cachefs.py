@@ -113,7 +113,7 @@ class CacheFileSystem:
 				with self.lock:			
 					self.current_memory.dec (usage)					
 				del self.files [initial][fn]				
-			else:	
+			elif self.path:	
 				try: os.remove (os.path.join (self.path, initial, fn))
 				except (OSError, IOError): pass
 				else:	
@@ -133,7 +133,11 @@ class CacheFileSystem:
 		key = key.encode ("utf8")		
 		file = md5 (key).hexdigest ()
 		initial = "0" + file [0] + "/" + file [1:3]
-		return os.path.join (self.path, initial, file), initial, file
+		if self.path:	
+			path = os.path.join (self.path, initial, file), initial, file
+		else:
+			path = None			
+		return path, initial, file	
 	
 	def is_cachable (self, cache_control, has_cookie, has_auth, pragma):
 		if pragma == "no-cache":			
@@ -148,10 +152,7 @@ class CacheFileSystem:
 				cachable = False						
 		return True
 					
-	def get (self, key, undecompressible = 0):
-		if not self.path:
-			return None, None, None, None, None
-			
+	def get (self, key, undecompressible = 0):			
 		path, initial, fn = self.getpath (key)
 		
 		try:
@@ -170,9 +171,9 @@ class CacheFileSystem:
 				del self.files [initial][fn]
 				with self.lock:
 					self.current_memory.dec (cached [2])
-			else:
+			elif path:
 				try: 
-					os.remove (os.path.join (self.path, initial, fn))
+					os.remove (path)
 				except (OSError, IOError): 
 					pass
 				else:
@@ -205,6 +206,7 @@ class CacheFileSystem:
 	def save (self, key, content_type, content, max_age, compressed = 0):		
 		if self.max_memory == 0 or not self.max_disk == 0:
 			return
+			
 		usage = len (content)
 		if usage > 10000000:
 			return

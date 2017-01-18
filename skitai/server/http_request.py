@@ -177,7 +177,7 @@ class http_request:
 		else:
 			self.logger.log (
 				'dropping %d bytes of incoming request data' % len(data),
-				'warning'
+				'warn'
 				)
 
 	def found_terminator (self):		
@@ -186,7 +186,7 @@ class http_request:
 		else:
 			self.logger.log (
 				'unexpected end-of-record for incoming request',
-				'warning'
+				'warn'
 				)
 			
 	def response_finished (self):

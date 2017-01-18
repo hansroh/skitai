@@ -81,7 +81,7 @@ class Loader:
 				delattr (self.wasc, attr)
 		start_was (self.wasc)
 		
-	def config_cachefs (self, cache_dir = None, memmax = 8, diskmax = 0): 
+	def config_cachefs (self, cache_dir = None, memmax = 0, diskmax = 0):
 		self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir, memmax, diskmax)
 		
 		socketfarm = socketpool.SocketPool (self.wasc.logger.get ("server"))

@@ -14,7 +14,7 @@ class response (http_response.http_response):
 	def build_reply_header (self):	
 		h = [(b":status", str (self.reply_code).encode ("utf8"))]
 		for k, v in self.reply_headers:
-			h.append ((k.encode ("utf8"), str (v).encode ("utf8")))		
+			h.append ((k.encode ("utf8"), str (v).encode ("utf8")))
 		return h
 	
 	def hint_promise (self, uri):

@@ -30,7 +30,7 @@ class ready_producer_fifo:
 	def __getitem__(self, index):
 		if index != 0:
 			return self.l [index]			
-	
+		
 		if self.l and hasattr (self.l [0], 'ready') and not self.l [0].ready ():
 			item = self.l.pop (0)
 			self.r.append (item)
@@ -94,7 +94,7 @@ class ready_producer_fifo:
 			return # deny adding	
 		
 		if hasattr (item, 'ready'):
-			self.r.insert (index, item)
+			self.r.insert (index, item)			
 			return
 					
 		self.l.insert (index, item)		
@@ -175,7 +175,7 @@ class http2_producer_fifo (ready_producer_ts_fifo):
 			if self.has_None:
 				return # deny adding	
 		
-		if hasattr (item, 'ready'):
+		if hasattr (item, 'ready'):			
 			with self._lock:
 				self.r.insert (index, item)
 			return

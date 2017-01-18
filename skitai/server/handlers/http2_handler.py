@@ -26,6 +26,7 @@ class http2_request_handler:
 		self.request = request
 		self.channel = request.channel
 		
+		# replace fifo with supporting priority, ready, removing
 		self.channel.producer_fifo = http2_producer_fifo ()
 		
 		self.conn = H2Connection(client_side = False)
@@ -188,7 +189,7 @@ class http2_request_handler:
 		self.send_data ()
 					
 	def handle_response (self, stream_id, headers, producer, force_close = False):
-		#print ("++RESPONSE", headers, producer)
+		# some collector reset request
 		r = self.get_request (stream_id)
 		with self._clock:			
 			try:
@@ -478,7 +479,7 @@ class Handler (wsgi_handler.Handler):
 		else:	
 			upgrade = request.get_header ("upgrade")		
 			is_http2 = upgrade and upgrade.lower () == "h2c" and request.version == "1.1"
-		
+
 		if not is_http2:
 			return self.default_handler.handle_request (request)
 	

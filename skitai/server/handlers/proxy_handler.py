@@ -107,8 +107,10 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		if self.response.body_expected ():
 			self.client_request.response.push (self.response)
 			self.client_request.response.die_with (self.response)
-						
-			# in relay mode, possibly delayed
+			
+			# for http2			
+			self.client_request.response.set_streaming ()
+			# for http 1, in relay mode, possibly delayed
 			self.client_request.channel.ready = self.response.ready
 			self.asyncon.affluent = self.response.affluent
 		
