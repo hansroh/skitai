@@ -9,7 +9,7 @@ import h2.settings
 from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
 from aquests.protocols.http2.producers import h2stream_producer, h2header_producer, h2data_producer
-from aquests.lib.athreads.fifo import http2_producer_fifo
+from aquests.protocols.http2.fifo import http2_producer_fifo
 import threading
 try:
 	from cStringIO import StringIO as BytesIO
@@ -244,7 +244,6 @@ class http2_request_handler:
 			
 	def handle_events (self, events):
 		for event in events:
-			#print ('EVENT:', event, self.requests)
 			if isinstance(event, RequestReceived):
 				#print ('======local_flow_control_window', self.conn.local_flow_control_window (event.stream_id))				
 				#print ('======remote_flow_control_window', self.conn.remote_flow_control_window (event.stream_id))				
@@ -350,12 +349,14 @@ class http2_request_handler:
 		if stream_id == 0:
 			with self._plock:
 				self.conn.increment_flow_control_window (cl)
-			self.send_data ()	
+			self.send_data ()
 		else:	
+			do_send = True
 			with self._plock:
 				try: self.conn.increment_flow_control_window (cl, stream_id)
-				except StreamClosedError: pass
-				else: self.send_data ()	
+				except StreamClosedError: do_send = False
+			if do_send: 
+				self.send_data ()
 		
 	def handle_request (self, stream_id, headers, is_promise = False):
 		#print ("++REQUEST: %d" % stream_id, headers)
@@ -400,7 +401,7 @@ class http2_request_handler:
 				if stream_id == 1:
 					self.request.version = "2.0"
 				vchannel = fake_channel (stream_id, self.channel)
-		
+
 		r = http2_request (
 			self,  scheme, stream_id, is_promise, 
 			vchannel, first_line, command.lower (), uri, "2.0", h
@@ -412,39 +413,39 @@ class http2_request_handler:
 			self.channel.server.total_requests.inc()
 		
 		h = self.handler.default_handler
-		if h.match (r):
-			with self._clock:
-				self.requests [stream_id] = r
+		if not h.match (r):
+			try: r.response.error (404)			
+			except: pass
+			return	
+			
+		with self._clock:
+			self.requests [stream_id] = r
 
-			try:					
-				h.handle_request (r)
+		try:					
+			h.handle_request (r)
+			
+		except:
+			self.channel.server.trace()
+			try: r.response.error (500)
+			except: pass
 				
-			except:
-				self.channel.server.trace()
-				try: r.response.error (500)
-				except: pass
-					
-			else:
-				if should_have_collector and cl > 0:					
-					if r.collector is None:
-						# POST but too large body or 3xx, 4xx
-						if stream_id == 1 and self.request.version == "1.1":						
-							self.channel.close_when_done ()
-							self.remove_request (1)
-						else:						
-							self.go_away (PROTOCOL_ERROR)
-					else:	
-						if stream_id == 1 and self.request.version == "1.1":
-							self.data_length = cl
-							self.set_terminator (cl)
-						else:
-							# give permission for sending data to a client						
-							self.increment_flow_control_window (cl, stream_id)
-			return
-					
-		try: r.response.error (404)
-		except: pass
-
+		else:
+			if should_have_collector and cl > 0:		
+				if r.collector is None:
+					# POST but too large body or 3xx, 4xx
+					if stream_id == 1 and self.request.version == "1.1":						
+						self.channel.close_when_done ()
+						self.remove_request (1)
+					else:						
+						self.go_away (PROTOCOL_ERROR)
+				else:							
+					if stream_id == 1 and self.request.version == "1.1":
+						self.data_length = cl
+						self.set_terminator (cl)
+					else:
+						# give permission for sending data to a client						
+						self.increment_flow_control_window (cl, stream_id)
+							
 
 class h2_request_handler (http2_request_handler):
 	http11_terminator = None

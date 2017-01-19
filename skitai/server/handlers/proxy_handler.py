@@ -44,19 +44,16 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 	def connection_closed (self, why, msg):
 		# asyncon disconnected
 		if self.client_request.channel and self.response:			
-			# abort channel suddenly
+			# http 1.0
 			self.response.done ()
-			return self.client_request.channel.close_when_done ()
+			#return self.client_request.channel.close_when_done ()
+			return
+		# abort channel suddenly	
 		return http_request_handler.RequestHandler.connection_closed (self, why, msg)
 					
 	def close_case (self):		
 		# unbind readable/writable methods
-		if self.asyncon:
-			self.asyncon.ready = None
-			self.asyncon.affluent = None
-			if self.client_request.channel:
-				self.client_request.channel.ready = None
-				self.client_request.channel.affluent = None
+		if self.asyncon:			
 			self.asyncon.handler = self.new_handler
 		
 		if self.callback:			
@@ -109,12 +106,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		if self.response.body_expected ():			
 			self.client_request.response.push (self.response)
 			self.client_request.response.die_with (self.response)
-			
-			# for http2			
-			self.client_request.response.set_streaming ()
-			# for http 1, in relay mode, possibly delayed
-			self.client_request.channel.ready = self.response.ready
-			self.asyncon.affluent = self.response.affluent
+			self.client_request.response.set_streaming ()			
 		
 		self.client_request.response.set_streaming ()
 		self.client_request.response.done ()
@@ -123,7 +115,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		if not self.client_request.channel: return
 		
 		self.buffer, self.response = b"", None
-		self.asyncon.set_terminator (b"\r\n\r\n")
+		self.asyncon.set_terminator (b"\r\n\r\n")		
 		if self.client_request.get_header ('content-type', '').startswith ('application/grpc'):
 			self.should_http2 = True
 		if self.request.method != "connect" and not self.should_http2:
@@ -139,11 +131,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		if self.collector:
 			self.collector.reuse_cache ()
 			if not self.collector.got_all_data:
-				# for http2
-				self.client_request.set_streaming ()
-				# for http1
-				self.asyncon.ready = self.collector.ready				
-				self.client_request.channel.affluent = self.collector.affluent				
+				self.client_request.set_streaming ()				
 		return self.collector
 		
 	def get_request_header (self, http_version = "1.1"):
@@ -209,7 +197,7 @@ class Handler (wsgi_handler.Handler):
 			current_post_max_size = ct.startswith ("multipart/form-data") and UPLOAD_MAX_SIZE or POST_MAX_SIZE
 			collector = self.make_collector (Collector, request, current_post_max_size)
 			if collector:
-				request.collector = collector
+				request.collector = collector				
 				collector.start_collect ()
 			else:
 				return # error was already called in make_collector ()							
@@ -226,7 +214,7 @@ class Handler (wsgi_handler.Handler):
 				asyncon_key = request.uri					
 			asyncon = self.clusters ["__socketpool__"].get (asyncon_key)
 		
-		try:	
+		try:				
 			req = http_request.HTTPRequest (request.uri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))				
 			r = proxy_request_handler (asyncon, req, self.callback, request, collector)			
 			if collector:

@@ -79,10 +79,6 @@ class ProxyResponse (http_response.Response):
 		self.client_request.producer = None		
 		self.asyncon.handle_abort ()		
 		#self.asyncon.handle_close (710, "Channel Closed")
-			
-	def affluent (self):
-		# if channel doesn't consume data, delay recv data
-		return len (self.u) < 1000
 		
 	def ready (self):
 		# if exist consumable data or wait
@@ -92,4 +88,4 @@ class ProxyResponse (http_response.Response):
 		self.flushed_time = time.time ()
 		data = self.u.read ()
 		return data
-		
+	

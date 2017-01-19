@@ -8,6 +8,7 @@ from aquests.protocols.http import http_util, http_date
 from aquests.lib.athreads import threadlib
 from skitai import lifetime
 from aquests.lib import producers, compressors
+from aquests.lib.athreads.fifo import ready_producer_fifo
 import signal
 import ssl
 import skitai
@@ -25,8 +26,6 @@ DEBUG = False
 class http_channel (asynchat.async_chat):	
 	current_request = None
 	channel_count = counter.counter ()
-	ready = None
-	affluent = None
 	closed = False
 	is_rejected = False
 	
@@ -40,7 +39,12 @@ class http_channel (asynchat.async_chat):
 		self.bytes_out = counter.counter()
 		self.bytes_in = counter.counter()
 		
-		asynchat.async_chat.__init__ (self, conn)
+		#asynchat.async_chat.__init__ (self, conn)
+		self.ac_in_buffer = b''
+		self.incoming = []
+		self.producer_fifo = ready_producer_fifo ()
+		asyncore.dispatcher.__init__(self, conn)
+		
 		self.server = server
 		self.addr = addr		
 		self.set_terminator (b'\r\n\r\n')
@@ -66,36 +70,20 @@ class http_channel (asynchat.async_chat):
 		lock = self.__sendlock
 		lock.acquire ()
 		try:
-			ret = asynchat.async_chat.initiate_send (self)		
-			try:
-				is_working = self.producer_fifo.working ()
-			except AttributeError:
-				is_working = len (self.producer_fifo)
+			asynchat.async_chat.initiate_send (self)		
+			is_working = self.producer_fifo.working ()
 		finally:	
-			lock.release ()				
+			lock.release ()			
 		if not is_working:
-			self.done_request ()
-		return ret
+			self.done_request ()		
 		
 	def initiate_send (self):
-		ret = asynchat.async_chat.initiate_send (self)		
-		try:
-			is_working = self.producer_fifo.working ()
-		except AttributeError:	
-			is_working = len (self.producer_fifo)		
-		if not is_working:
-			self.done_request ()
-		return ret
+		asynchat.async_chat.initiate_send (self)		
+		if not self.producer_fifo.working ():
+			self.done_request ()		
 			
 	def readable (self):		
-		if self.affluent is not None:
-			return not self.is_rejected and asynchat.async_chat.readable (self)	and self.affluent ()
 		return not self.is_rejected and asynchat.async_chat.readable (self)
-			
-	def writable (self):
-		if self.ready is not None:
-			return asynchat.async_chat.writable (self) and self.ready ()
-		return asynchat.async_chat.writable (self)
 		
 	def issent (self):
 		return self.bytes_out.as_long ()
@@ -134,29 +122,13 @@ class http_channel (asynchat.async_chat):
 					self.server.trace()
 
 		self.things_die_with = []
-		if len (self.producer_fifo) and self.producer_fifo [-1] is not None:
-			# not be called close_when_done, then close forcely
-			self.close ()
-	
+		self.close ()
+		
 	def set_response_timeout (self, timeout):
 		self.response_timeout = timeout
 	
 	def set_keep_alive (self, timeout):
 		self.keep_alive = timeout	
-		
-	def set_timeout_by_case (self):
-		if self.affluent or self.ready:
-			self.zombie_timeout = self.response_timeout * 2
-		else:	
-			self.zombie_timeout = self.response_timeout
-		
-	def handle_read (self):
-		self.set_timeout_by_case ()
-		asynchat.async_chat.handle_read (self)
-		
-	def handle_write (self):
-		self.set_timeout_by_case ()
-		asynchat.async_chat.handle_write (self)		
 		
 	def attend_to (self, thing):
 		if not thing: return
@@ -169,8 +141,6 @@ class http_channel (asynchat.async_chat):
 	def done_request (self):	
 		self.zombie_timeout = self.keep_alive
 		self.producers_attend_to = [] # all producers are finished
-		self.ready = None
-		self.affluent = None
 							
 	def send (self, data):
 		#print	("SEND", str (data), self.get_terminator ())
