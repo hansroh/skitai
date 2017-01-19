@@ -2,6 +2,7 @@ from . import wsgi_handler
 import skitai
 from aquests.protocols.http import request as http_request
 from aquests.protocols.http import request_handler as http_request_handler
+from aquests.lib.athreads.fifo import ready_producer_fifo
 from .proxy import POST_MAX_SIZE, UPLOAD_MAX_SIZE
 from .proxy.collector import Collector
 from .proxy.tunnel import TunnelHandler
@@ -44,18 +45,19 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		# asyncon disconnected
 		if self.client_request.channel and self.response:			
 			# abort channel suddenly
-			return self.client_request.channel.handle_abort ()
+			self.response.done ()
+			return self.client_request.channel.close_when_done ()
 		return http_request_handler.RequestHandler.connection_closed (self, why, msg)
 					
-	def close_case (self):
+	def close_case (self):		
 		# unbind readable/writable methods
 		if self.asyncon:
 			self.asyncon.ready = None
-			self.asyncon.affluent = None			
+			self.asyncon.affluent = None
 			if self.client_request.channel:
 				self.client_request.channel.ready = None
 				self.client_request.channel.affluent = None
-			self.asyncon.handler = self.new_handler			
+			self.asyncon.handler = self.new_handler
 		
 		if self.callback:			
 			self.callback (self)
@@ -104,7 +106,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		if self.response.is_gzip_compressed ():
 			self.client_request.response ["Content-Encoding"] = "gzip"
 		
-		if self.response.body_expected ():
+		if self.response.body_expected ():			
 			self.client_request.response.push (self.response)
 			self.client_request.response.die_with (self.response)
 			
@@ -119,7 +121,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 	
 	def handle_request (self):
 		if not self.client_request.channel: return
-					
+		
 		self.buffer, self.response = b"", None
 		self.asyncon.set_terminator (b"\r\n\r\n")
 		if self.client_request.get_header ('content-type', '').startswith ('application/grpc'):
@@ -129,7 +131,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 			payload = self.get_request_payload ()
 			if payload:
 				# don't init_send cause of producer has no data yet
-				self.asyncon.push_with_producer (payload, init_send = False)												
+				self.asyncon.push_with_producer (payload, init_send = False)
 		self.asyncon.begin_tran (self)
 		self.asyncon.set_proxy_client ()
 	
@@ -137,9 +139,12 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		if self.collector:
 			self.collector.reuse_cache ()
 			if not self.collector.got_all_data:
-				self.asyncon.ready = self.collector.ready
+				# for http2
+				self.client_request.set_streaming ()
+				# for http1
+				self.asyncon.ready = self.collector.ready				
 				self.client_request.channel.affluent = self.collector.affluent				
-		return self.collector		
+		return self.collector
 		
 	def get_request_header (self, http_version = "1.1"):
 		hc = {}	

@@ -63,7 +63,7 @@ class ProxyResponse (http_response.Response):
 				self.decompressor = compressors.GZipDecompressor ()
 			
 		return True
-	
+		
 	def get_header_lines (self):
 		return self.header
 			
@@ -85,10 +85,11 @@ class ProxyResponse (http_response.Response):
 		return len (self.u) < 1000
 		
 	def ready (self):
-		# if exist consumable data or wait		
+		# if exist consumable data or wait
 		return len (self.u) or self.got_all_data
 		
 	def more (self):
 		self.flushed_time = time.time ()
-		return self.u.read ()
+		data = self.u.read ()
+		return data
 		

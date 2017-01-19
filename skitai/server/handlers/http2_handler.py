@@ -9,7 +9,7 @@ import h2.settings
 from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
 from aquests.protocols.http2.producers import h2stream_producer, h2header_producer, h2data_producer
-from .http2.fifo import http2_producer_fifo
+from aquests.lib.athreads.fifo import http2_producer_fifo
 import threading
 try:
 	from cStringIO import StringIO as BytesIO
@@ -137,9 +137,9 @@ class http2_request_handler:
 			self.request.version = "2.0" # upgrade
 			data = self.rfile.getvalue ()
 			with self._clock:
-				r = self.requests [1]
+				r = self.requests [1]				
 			r.channel.set_data (data, len (data))
-
+			r.set_stream_ended ()
 			self.data_length = 0
 			self.rfile.seek (0)
 			self.rfile.truncate ()			
@@ -189,7 +189,6 @@ class http2_request_handler:
 		self.send_data ()
 					
 	def handle_response (self, stream_id, headers, producer, force_close = False):
-		# some collector reset request
 		r = self.get_request (stream_id)
 		with self._clock:			
 			try:
@@ -198,7 +197,7 @@ class http2_request_handler:
 				depends_on, weight = 0, 1	
 			else:
 				del self.priorities [stream_id]				
-
+		
 		self.channel.push_with_producer (
 			h2header_producer (stream_id, headers, producer, self.conn, self._plock)
 		)
@@ -358,7 +357,6 @@ class http2_request_handler:
 				except StreamClosedError: pass
 				else: self.send_data ()	
 		
-		
 	def handle_request (self, stream_id, headers, is_promise = False):
 		#print ("++REQUEST: %d" % stream_id, headers)
 		command = "GET"
@@ -427,7 +425,7 @@ class http2_request_handler:
 				except: pass
 					
 			else:
-				if should_have_collector and cl > 0:
+				if should_have_collector and cl > 0:					
 					if r.collector is None:
 						# POST but too large body or 3xx, 4xx
 						if stream_id == 1 and self.request.version == "1.1":						

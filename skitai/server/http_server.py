@@ -67,16 +67,23 @@ class http_channel (asynchat.async_chat):
 		lock.acquire ()
 		try:
 			ret = asynchat.async_chat.initiate_send (self)		
-			len_fifo = len (self.producer_fifo)
+			try:
+				is_working = self.producer_fifo.working ()
+			except AttributeError:
+				is_working = len (self.producer_fifo)
 		finally:	
 			lock.release ()				
-		if len_fifo == 0:
+		if not is_working:
 			self.done_request ()
 		return ret
 		
 	def initiate_send (self):
 		ret = asynchat.async_chat.initiate_send (self)		
-		if len (self.producer_fifo) == 0:
+		try:
+			is_working = self.producer_fifo.working ()
+		except AttributeError:	
+			is_working = len (self.producer_fifo)		
+		if not is_working:
 			self.done_request ()
 		return ret
 			

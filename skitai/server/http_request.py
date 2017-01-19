@@ -36,7 +36,7 @@ class http_request:
 	def make_response (self):
 		self.response = http_response.http_response (self)
 	
-	def set_async_streaming (self):
+	def set_streaming (self):
 			self._is_async_streaming = True
 	
 	def is_async_streaming (self):

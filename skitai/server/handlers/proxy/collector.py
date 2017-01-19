@@ -40,11 +40,10 @@ class Collector (collectors.FormCollector):
 			self.asyncon.handle_close (710, "Channel Closed")
 				
 	def collect_incoming_data (self, data):
-		#print "proxy_handler.collector << %d" % len (data), id (self)
 		self.length += len (data)
 		self.data.append (data)
 
-	def found_terminator (self):
+	def found_terminator (self):		
 		self.request.channel.set_terminator (b'\r\n\r\n')
 		self.got_all_data = True
 		self.request.collector = None
@@ -69,12 +68,11 @@ class Collector (collectors.FormCollector):
 		tl = 0
 		while self.data:
 			tl += len (self.data [0])
+			data.append (self.data.pop (0))
 			if tl > self.ac_in_buffer_size:
 				break
-			data.append (self.data.pop (0))
 		
 		if self.cached:			
 			self.cache += data
-		#print "proxy_handler.collector.more >> %d" % tl, id (self)
 		return b"".join (data)
 		
