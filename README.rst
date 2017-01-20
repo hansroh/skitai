@@ -9,7 +9,8 @@ News & Changes
 - encoding argument was eliminated from REST call 
 - changed RPC, DBO request spec
 - added gRPC as server and client
-
+- support static files with http2
+- fix POST method on reverse proxying
 
 .. contents:: Table of Contents
 
