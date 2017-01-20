@@ -4,8 +4,8 @@ from . import mime_type_table
 import os
 from . import filesys
 from skitai.server import http_date
-from skitai.lib import producers
-from skitai.server.utility import *
+from aquests.lib import producers
+from aquests.protocols.http.http_util import *
 from hashlib import md5
 
 IF_MODIFIED_SINCE = re.compile (
@@ -94,16 +94,13 @@ class Handler:
 		while path and path [0] == '/':
 			path = path[1:]
 		
-		if self.filesystem.isdir (path):
+		if self.filesystem.isdir (path):		
 			if path and path[-1] != '/':
 				request.response['Location'] = '/%s/' % path
 				request.response.error (301)
 				return
-
-			found = False
-			if path and path[-1] != '/':
-				path = path + '/'
 			
+			found = False
 			for default in self.directory_defaults:
 				p = path + default
 				if self.filesystem.isfile (p):
@@ -115,10 +112,12 @@ class Handler:
 				self.handle_alternative (request)
 				return
 		
-		elif not self.filesystem.isfile (path):
-			self.handle_alternative (request)
-			return
+		elif not self.filesystem.isfile (path):			
+			return self.handle_alternative (request)
 		
+		if path and path [-1] == "/":
+			return request.response.error (404)
+					
 		if self.isprohibited (request, path):
 			return
 		
@@ -174,9 +173,10 @@ class Handler:
 			if self.max_age:
 				request.response ['Cache-Control'] = "max-age=%d" % self.max_age		
 		self.set_content_type (path, request)
-		
+
 		if request.command == 'get':
-			request.response.push (producers.file_producer (file))			
+			request.response.push (producers.file_producer (file))
+			
 		request.response.done()
 	
 	def make_etag (self, file_length, mtime):

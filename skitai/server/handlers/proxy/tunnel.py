@@ -11,14 +11,12 @@ class AsynTunnel:
 		self.bytes = 0
 		self.asyncon.set_terminator (None)
 		
-	def collect_incoming_data (self, data):
-		#print (">>>>>>>>>>>>", data)
+	def collect_incoming_data (self, data):		
 		self.bytes += len (data)		
 		self.asyncon.push (data)
 	
 	def close (self):
-		# will be closed by channel
-		#print (">>>>>>>>>>>>> AsynTunnel xlosed", self.handler.request.uri)
+		# closed by channel		
 		self.handler.channel_closed ()
 		
 	
@@ -32,7 +30,7 @@ class TunnelHandler:
 		self.asyntunnel = AsynTunnel (asyncon, self)		
 		self.channel.set_response_timeout	(PROXY_TUNNEL_KEEP_ALIVE)
 		self.asyncon.set_network_delay_timeout (PROXY_TUNNEL_KEEP_ALIVE)
-		self.channel.add_closing_partner (self.asyntunnel)
+		self.channel.die_with (self.asyntunnel, "tunnel")
 		
 		self.bytes = 0
 		self.stime = time.time ()
@@ -46,8 +44,7 @@ class TunnelHandler:
 		uri = "tunnel://%s:%d" % self.asyncon.address
 		self.channel.log ("%s - %s" % (uri, message), type)
 					
-	def collect_incoming_data (self, data):	
-		#print ("<<<<<<<<<<<<", data[:20])
+	def collect_incoming_data (self, data):			
 		self.bytes += len (data)
 		self.channel.push (data)
 		
@@ -70,15 +67,12 @@ class TunnelHandler:
 			)
 		)
 		
-	def connection_closed (self, why, msg):
-		#print ("------------Asyncon_disconnected", self.request.uri, self.bytes)
-		# Disconnected by server mostly caused by Connection: close header				
+	def connection_closed (self, why, msg):	
+		# another word, asyncon closed	
 		if self.channel:
-			self.channel.close_when_done ()
+			self.channel.handle_abort ()
 			self.channel.current_request = None
 		
 	def channel_closed (self):
-		#print ("------------channel_closed", self.request.uri, self.bytes)
-		self.asyncon.handler = None
-		self.asyncon.disconnect ()
-		self.asyncon.end_tran ()
+		self.asyncon.handle_abort ()
+		

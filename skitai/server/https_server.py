@@ -8,6 +8,7 @@ from skitai import lifetime
 import os, sys, errno
 import skitai
 from errno import EWOULDBLOCK
+from aquests.protocols.http2 import H2_PROTOCOLS
 			
 class https_channel (http_server.http_channel):
 	ac_out_buffer_size = 65536
@@ -15,7 +16,7 @@ class https_channel (http_server.http_channel):
 	
 	def __init__(self, server, conn, addr):
 		http_server.http_channel.__init__(self, server, conn, addr)
-	
+		
 	def send(self, data):	
 		#print	("SEND", str (data), self.get_terminator ())
 		try:
@@ -52,7 +53,7 @@ class https_channel (http_server.http_channel):
 				return result
 		
 		except MemoryError:
-			lifetime.shutdown (1, 1)
+			lifetime.shutdown (1, 1.0)
 		
 		except ssl.SSLError as why:			
 			if why.errno == ssl.SSL_ERROR_WANT_READ:				
@@ -100,9 +101,9 @@ def init_context (certfile, keyfile, pass_phrase):
 	ctx = ssl.SSLContext (protocol)
 	if skitai.HTTP2:
 		try:	
-			ctx.set_alpn_protocols (["h2", "h2-16", "h2-15", "h2-14"])
+			ctx.set_alpn_protocols (H2_PROTOCOLS)
 		except AttributeError:		
-			ctx.set_npn_protocols (["h2", "h2-16", "h2-15", "h2-14"])
+			ctx.set_npn_protocols (H2_PROTOCOLS)
 	ctx.load_cert_chain (certfile, keyfile, pass_phrase)
 	ctx.check_hostname = False
 	return ctx
@@ -110,7 +111,7 @@ def init_context (certfile, keyfile, pass_phrase):
 		
 if __name__ == "__main__":
 	import module_loader
-	from .threads import threadlib
+	from aquests.lib.athreads import threadlib
 	import file_handler, xmlrpc_handler, soap_handler, cgi_handler, graph_handler, proxy_handler, logger
 	
 	pools = threadlib.request_queue()	

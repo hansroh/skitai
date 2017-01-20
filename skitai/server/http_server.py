@@ -3,13 +3,14 @@
 import sys
 import asyncore, asynchat
 import re, socket, time, threading, os
-from . import http_date, http_request, utility, counter
-from .threads import threadlib
+from . import http_request, counter
+from aquests.protocols.http import http_util, http_date
+from aquests.lib.athreads import threadlib
 from skitai import lifetime
-from skitai.lib import producers, compressors
+from aquests.lib import producers, compressors
+from aquests.lib.athreads.fifo import ready_producer_fifo
 import signal
 import ssl
-from skitai import VERSION
 import skitai
 
 PID = []
@@ -25,8 +26,6 @@ DEBUG = False
 class http_channel (asynchat.async_chat):	
 	current_request = None
 	channel_count = counter.counter ()
-	ready = None
-	affluent = None
 	closed = False
 	is_rejected = False
 	
@@ -38,8 +37,14 @@ class http_channel (asynchat.async_chat):
 		self.channel_number = http_channel.channel_count.inc ()
 		self.request_counter = counter.counter()
 		self.bytes_out = counter.counter()
+		self.bytes_in = counter.counter()
 		
-		asynchat.async_chat.__init__ (self, conn)
+		#asynchat.async_chat.__init__ (self, conn)
+		self.ac_in_buffer = b''
+		self.incoming = []
+		self.producer_fifo = ready_producer_fifo ()
+		asyncore.dispatcher.__init__(self, conn)
+		
 		self.server = server
 		self.addr = addr		
 		self.set_terminator (b'\r\n\r\n')
@@ -47,25 +52,38 @@ class http_channel (asynchat.async_chat):
 		self.creation_time = int (time.time())
 		self.event_time = int (time.time())
 		self.__history = []
+		self.__sendlock = None
+		self.producers_attend_to = []
+		self.things_die_with = []
 		
-		self.closable_producers = []
-		self.closable_partners = []
-	
+	def use_sendlock (self):
+		self.__sendlock  = threading.Lock ()
+		self.initiate_send = self._initiate_send_ts
+			
 	def get_history (self):
 		return self.__history
 			
 	def reject (self):
 		self.is_rejected = True		
+	
+	def _initiate_send_ts (self):
+		lock = self.__sendlock
+		lock.acquire ()
+		try:
+			asynchat.async_chat.initiate_send (self)		
+			is_working = self.producer_fifo.working ()
+		finally:	
+			lock.release ()			
+		if not is_working:
+			self.done_request ()		
 		
-	def readable (self):		
-		if self.affluent is not None:
-			return not self.is_rejected and asynchat.async_chat.readable (self)	and self.affluent ()
-		return not self.is_rejected and asynchat.async_chat.readable (self)
+	def initiate_send (self):
+		asynchat.async_chat.initiate_send (self)		
+		if not self.producer_fifo.working ():
+			self.done_request ()		
 			
-	def writable (self):
-		if self.ready is not None:
-			return asynchat.async_chat.writable (self) and self.ready ()
-		return asynchat.async_chat.writable (self)
+	def readable (self):		
+		return not self.is_rejected and asynchat.async_chat.readable (self)
 		
 	def issent (self):
 		return self.bytes_out.as_long ()
@@ -91,60 +109,38 @@ class http_channel (asynchat.async_chat):
 	
 	def handle_timeout (self):
 		self.log ("killing zombie channel %s" % ":".join (map (str, self.addr)))
-		if not self.closable_partners:
+		if not self.things_die_with:
 			self.close ()
 			return
 		
 		# for graceful shutdown for partners	
-		for closable in self.closable_partners:
+		for closable in self.things_die_with:
 			if closable and hasattr (closable, "close"):
 				try:
 					closable.close ()
 				except:
 					self.server.trace()
 
-		self.closable_partners = []
-		if len (self.producer_fifo) and self.producer_fifo [-1] is not None:
-			# not be called close_when_done, then close forcely
-			self.close ()
-	
+		self.things_die_with = []
+		self.close ()
+		
 	def set_response_timeout (self, timeout):
 		self.response_timeout = timeout
 	
 	def set_keep_alive (self, timeout):
 		self.keep_alive = timeout	
 		
-	def set_timeout_by_case (self):
-		if self.affluent or self.ready:
-			self.zombie_timeout = self.response_timeout * 2
-		else:	
-			self.zombie_timeout = self.response_timeout
-		
-	def handle_read (self):
-		self.set_timeout_by_case ()
-		asynchat.async_chat.handle_read (self)
-		
-	def handle_write (self):
-		self.set_timeout_by_case ()
-		asynchat.async_chat.handle_write (self)		
+	def attend_to (self, thing):
+		if not thing: return
+		self.producers_attend_to.append (thing)
 	
-	def initiate_send (self):
-		ret = asynchat.async_chat.initiate_send (self)		
-		if len (self.producer_fifo) == 0:
-			self.done_request ()
-		return ret	
-	
-	def add_closable_producer (self, thing):
-		self.closable_producers.append (thing)
-	
-	def add_closing_partner (self, thing):
-		self.closable_partners.append (thing)
+	def die_with (self, thing, tag):
+		if not thing: return
+		self.things_die_with.append ((thing, tag))		
 		
 	def done_request (self):	
 		self.zombie_timeout = self.keep_alive
-		self.closable_producers = [] # all producers are finished
-		self.ready = None
-		self.affluent = None
+		self.producers_attend_to = [] # all producers are finished
 							
 	def send (self, data):
 		#print	("SEND", str (data), self.get_terminator ())
@@ -158,7 +154,9 @@ class http_channel (asynchat.async_chat):
 		self.event_time = int (time.time())		
 		try:
 			result = asynchat.async_chat.recv (self, buffer_size)
-			self.server.bytes_in.inc (len (result))
+			lr = len (result)
+			self.server.bytes_in.inc (lr)
+			self.bytes_in.inc (lr)
 			if not result:
 				self.handle_close ()
 				return b""		
@@ -166,7 +164,7 @@ class http_channel (asynchat.async_chat):
 			return result
 			
 		except MemoryError:
-			lifetime.shutdown (1, 1)
+			lifetime.shutdown (1, 1.0)
 				
 	def collect_incoming_data (self, data):
 		#print ("collect_incoming_data", repr (data [:180]), self.current_request)
@@ -201,7 +199,7 @@ class http_channel (asynchat.async_chat):
 
 			request = lines[0]
 			try:
-				command, uri, version = utility.crack_request (request)
+				command, uri, version = http_util.crack_request (request)
 			except:
 				self.log_info ("channel-%s invaild request header" % self.channel_number, "fail")
 				return self.close ()
@@ -209,7 +207,7 @@ class http_channel (asynchat.async_chat):
 			if DEBUG: 
 				self.__history.append ("START REQUEST: %s/%s %s" % (command, version, uri))				
 			
-			header = utility.join_headers (lines[1:])
+			header = http_util.join_headers (lines[1:])
 			r = http_request.http_request (self, request, command, uri, version, header)
 			
 			self.request_counter.inc()
@@ -234,37 +232,56 @@ class http_channel (asynchat.async_chat):
 					
 			try: r.response.error (404)
 			except: pass	
-		      				
-	def close (self):
+	
+	def handle_abort (self):
+		self.close (ignore_die_partner = True)
+		self.log_info ("channel-%s aborted" % self.channel_number, "info")
+			      				
+	def close (self, ignore_die_partner = False):
 		if self.closed:
 			return
 		
+		for closable, tag in self.things_die_with:
+			if closable and hasattr (closable, "channel"):
+				closable.channel = None
+			self.journal (tag)
+			if not ignore_die_partner:
+				self.producers_attend_to.append (closable)
+				
 		if self.current_request is not None:
-			self.closable_producers.append (self.current_request.collector)
-			self.closable_producers.append (self.current_request.producer)
+			self.producers_attend_to.append (self.current_request.collector)
+			self.producers_attend_to.append (self.current_request.producer)
 			# 1. close forcely or by error, make sure that channel is None
 			# 2. by close_when_done ()
 			self.current_request.channel = None
 			self.current_request = None
-		
-		for closable in self.closable_partners:
-			if closable and hasattr (closable, "channel"):
-				closable.channel = None
 			
-		for closable in self.closable_producers + self.closable_partners:
+		for closable in self.producers_attend_to:
 			if closable and hasattr (closable, "close"):
 				try:
 					closable.close ()
 				except:
 					self.server.trace()
 		
-		self.closable_producers, self.closable_partners = [], []
+		self.producers_attend_to, self.things_die_with = [], []
 		self.discard_buffers ()
 		asynchat.async_chat.close (self)
 		self.connected = False		
 		self.closed = True
 		self.log_info ("channel-%s closed" % self.channel_number, "info")
-			
+	
+	def journal (self, reporter):
+		self.log (
+			"%s closed, client %s:%s, bytes in: %s, bytes out: %s for %d seconds " % (
+				reporter,
+				self.addr [0], 
+				self.addr [1], 
+				self.bytes_in,
+				self.bytes_out,
+				time.time () - self.creation_time
+			)
+		)
+					
 	def log (self, message, type = "info"):
 		self.server.log (message, type)
 	
@@ -465,10 +482,10 @@ def hCHLD (signum, frame):
 	os.wait ()
 
 def hTERMWORKER (signum, frame):			
-	lifetime.shutdown (0, 1)
+	lifetime.shutdown (0, 1.0)
 
 def hQUITWORKER (signum, frame):			
-	lifetime.shutdown (0, 0)
+	lifetime.shutdown (0, 30.0)
 	
 def DO_SHUTDOWN (sig):
 	global SURVAIL, PID

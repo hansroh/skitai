@@ -1,5 +1,5 @@
 from . import wsgi_handler, proxy_handler
-from skitai.protocol.http import request as http_request
+from aquests.protocols.http import request as http_request
 import re
 
 
@@ -69,7 +69,7 @@ class Handler (proxy_handler.Handler):
 		
 		fetcher = http_request.HTTPRequest (psysicaluri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))		
 		r = proxy_handler.proxy_request_handler (asyncon, fetcher, self.callback, request, collector)	
-		r.start ()
+		r.handle_request ()
 	
 	def callback (self, handler):
 		request, response, collector = handler.client_request, handler.response, handler.collector		

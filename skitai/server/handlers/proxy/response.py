@@ -1,5 +1,5 @@
-from skitai.protocol.http import response as http_response
-from skitai.lib import compressors
+from aquests.protocols.http import response as http_response, buffers
+from aquests.lib import compressors
 import time
 
 
@@ -58,12 +58,15 @@ class ProxyResponse (http_response.Response):
 				return False
 		
 		if self.p is None:
-			self.p, self.u = http_response.getfakeparser (cache = self.max_age)
+			self.p, self.u = buffers.getfakeparser (buffers.list_buffer, cache = self.max_age)
 			if self.make_decompressor:
 				self.decompressor = compressors.GZipDecompressor ()
 			
 		return True
 		
+	def get_header_lines (self):
+		return self.header
+			
 	def init_buffer (self):
 		# do this job will be executed in body_expected ()
 		pass
@@ -72,21 +75,21 @@ class ProxyResponse (http_response.Response):
 		return self.gzip_compressed
 	
 	def close (self):
-		self.client_request.producer = None
-		try: self.u.data = []
-		except AttributeError: pass		
-		#self.asyncon.disconnect ()		
-		#self.asyncon.end_tran ()
-		self.asyncon.handle_close (710, "Channel Closed")
-			
-	def affluent (self):
-		# if channel doesn't consume data, delay recv data
-		return len (self.u.data) < 1000
+		# channel closed and called automatically by channel
+		self.client_request.producer = None		
+		self.asyncon.handle_abort ()		
+		#self.asyncon.handle_close (710, "Channel Closed")
 		
 	def ready (self):
-		# if exist consumable data or wait		
-		return len (self.u.data) or self.got_all_data
+		#print ('====== READYU', len (self.u), self.got_all_data)
+		return len (self.u) or self.got_all_data
 		
 	def more (self):
 		self.flushed_time = time.time ()
-		return self.u.read ()
+		data = self.u.read ()		
+		#print ('-----', data [:70])
+		return data
+	
+	def collect_incoming_data (self, data):
+		http_response.Response.collect_incoming_data (self, data)
+		

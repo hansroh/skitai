@@ -1,12 +1,15 @@
 import time
-from skitai.server.threads import socket_map
-from skitai.server.threads import trigger
+from aquests.lib.athreads import socket_map
+from aquests.lib.athreads import trigger
+from aquests.client.asynconnect import AsynSSLConnect
 import threading
-from skitai.protocol.http import request as http_request
-from skitai.protocol.http import request_handler as http_request_handler
-from skitai.protocol.http import response as http_response
-from skitai.protocol.ws import request_handler as ws_request_handler
-from skitai.protocol.ws import request as ws_request
+from aquests.protocols.http import request as http_request
+from aquests.protocols.http import request_handler as http_request_handler
+from aquests.protocols.http2 import request_handler as http2_request_handler
+from aquests.protocols.grpc.request import GRPCRequest
+from aquests.protocols.http import response as http_response
+from aquests.protocols.ws import request_handler as ws_request_handler
+from aquests.protocols.ws import request as ws_request
 from . import rcache
 
 class OperationError (Exception):
@@ -16,40 +19,28 @@ class Result (rcache.Result):
 	def __init__ (self, id, status, response, ident = None):
 		rcache.Result.__init__ (self, status, ident)		
 		self.node = id
-		self._response = response
-		try:
-			self.set_result ()
-		except:			 
-			self.status, self.code, self.msg = 2, 720, "Result Set Error"
-	
+		self.__response = response
+		
 	def __getattr__ (self, attr):
-		return getattr (self._response, attr)
-			
-	def set_result (self):
-		self.data = self._response.get_content ()
-		self.header = self._response.header
-		self.code = self._response.code
-		self.msg = self._response.msg
-		self.version = self._response.version
+		return getattr (self.__response, attr)
 	
 	def reraise (self):
 		if self.status != 3:
-			raise OperationError ("%d %s" % (self.code, self.msg))
-	
-	def get_error_as_string (self):
-		return "<OperationError> %d %s" % (self.code, self.msg)		
-				
+			self.__response.raise_for_status ()
+		
 	def cache (self, timeout = 300):
-		self._response = None
 		if self.status != 3:
 			return
 		rcache.Result.cache (self, timeout)
-		
+	
+	def close (self):
+		self.__response = None	
+
 
 class Results (rcache.Result):
 	def __init__ (self, results, ident = None):
 		self.results = results
-		self.code = [rs.code for rs in results]
+		self.status_code = self.status_code = [rs.status_code for rs in results]
 		rcache.Result.__init__ (self, [rs.status for rs in self.results], ident)
 		
 	def __iter__ (self):
@@ -102,8 +93,10 @@ class Dispatcher:
 		
 	def get_result (self):
 		if self.result is None: # timeout
-			self.result = Result (self.id, 1, http_response.FailedResponse (70, "Timeout"), self.ident)				
-			self.do_filter ()
+			if self.get_status () == -1:
+				self.result = Result (self.id, -1, http_response.FailedResponse (731, "Request Failed"), self.ident)
+			else:	
+				self.result = Result (self.id, 1, http_response.FailedResponse (730, "Timeout"), self.ident)
 		return self.result
 	
 	def do_filter (self):
@@ -127,14 +120,14 @@ class Dispatcher:
 		else:
 			status = 3
 		
-		self.result = Result (self.id, status, response, self.ident)				
+		self.result = Result (self.id, status, response, self.ident)
 		self.set_status (status)
 		
 		cakey = response.request.get_cache_key ()
 		if self.cachefs and cakey and response.max_age:
 			self.cachefs.save (
-				cakey, response.request.data,
-				response.get_header ("content-type"), response.get_content (), 
+				cakey,
+				response.get_header ("content-type"), response.content, 
 				response.max_age, 0
 			)
 
@@ -142,22 +135,6 @@ class Dispatcher:
 		handler.callback = None
 		handler.response = None
 		
-   	        	     
-#-----------------------------------------------------------
-# Cluster Base Call
-#-----------------------------------------------------------
-class _Method:
-	def __init__(self, send, name):
-		self.__send = send
-		self.__name = name
-		
-	def __getattr__(self, name):
-		return _Method(self.__send, "%s.%s" % (self.__name, name))
-		
-	def __call__(self, *args):
-		return self.__send(self.__name, args)
-
-
 
 class ClusterDistCall:
 	def __init__ (self,
@@ -166,8 +143,7 @@ class ClusterDistCall:
 		params = None,
 		reqtype = "get",
 		headers = None,
-		auth = None,
-		encoding = None,	
+		auth = None,		
 		use_cache = False,	
 		mapreduce = True,
 		filter = None,
@@ -182,8 +158,7 @@ class ClusterDistCall:
 		self._headers = headers
 		self._reqtype = reqtype
 			
-		self._auth = auth
-		self._encoding = encoding
+		self._auth = auth		
 		self._use_cache = use_cache
 		self._mapreduce = mapreduce
 		self._filter = filter
@@ -211,9 +186,6 @@ class ClusterDistCall:
 		
 		if not self._reqtype.lower ().endswith ("rpc"):
 			self._request ("", self._params)
-		
-	def __getattr__ (self, name):	  
-		return _Method(self._request, name)
 	
 	def __del__ (self):
 		self._cv = None
@@ -231,9 +203,24 @@ class ClusterDistCall:
 			)
 		return _id
 	
-	def _handle_request (self, request, rs, asyncon, handler):		
-		self._requests[rs] = asyncon
-		
+	def _add_header (self, n, v):
+		if self._headers is None:
+			self._headers = {}
+		self._headers [n] = v
+	
+	_TYPEMAP = [
+		("form", "application/x-www-form-urlencoded"),
+		("xml", "text/xml"),	
+		("nvp", "text/namevalue")		
+	]
+	def _map_content_type (self, _reqtype):
+		for alias, ct in self._TYPEMAP:
+			if _reqtype.endswith (alias):
+				self._add_header ("Content-Type", ct)
+				return _reqtype [:-len (alias)]
+		return _reqtype
+	
+	def _handle_request (self, request, rs, asyncon, handler):
 		if self._cachefs:
 			# IMP: mannual address setting
 			request.set_address (asyncon.address)
@@ -243,11 +230,11 @@ class ClusterDistCall:
 					request.get_header ("cache-control"),
 					request.get_header ("cookie") is not None, 
 					request.get_header ("authorization") is not None,
-					request.get_header ("pragma")					
+					request.get_header ("pragma")
 				)
 				
 				if cachable:
-					hit, compressed, max_age, content_type, content = self._cachefs.get (cakey, request.data, undecompressible = 0)			
+					hit, compressed, max_age, content_type, content = self._cachefs.get (cakey, undecompressible = 0)			
 					if hit:
 						header = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nX-Skitaid-Cache-Lookup: %s" % (
 							content_type, hit == 1 and "MEM_HIT" or "HIT"
@@ -259,27 +246,14 @@ class ClusterDistCall:
 						rs.handle_cache (response)						
 						return 0
 		
-		r = handler (asyncon, request, self._callback and self._callback or rs.handle_result)
-		r.start ()
+		r = handler (asyncon, request, self._callback and self._callback or rs.handle_result)		
+		if asyncon.get_proto () and asyncon.isconnected ():
+			asyncon.handler.handle_request (r)
+		else:				
+			r.handle_request ()
+		
 		return 1
-	
-	def _add_header (self, n, v):
-		if self._headers is None:
-			self._headers = {}
-		self._headers [n] = v
-	
-	_TYPEMAP = [
-		("form", "application/x-www-form-urlencoded"),
-		("xml", "text/xml"),	
-		("nvp", "text/namevalue")
-	]
-	def _map_content_type (self, _reqtype):
-		for alias, ct in self._TYPEMAP:
-			if _reqtype.endswith (alias):
-				self._add_header ("Content-Type", ct)
-				return _reqtype [:-len (alias)]
-		return _reqtype
-					
+						
 	def _request (self, method, params):
 		self._cached_request_args = (method, params) # backup for retry
 		if self._use_cache and rcache.the_rcache:
@@ -296,30 +270,44 @@ class ClusterDistCall:
 			
 			_reqtype = self._reqtype.lower ()
 			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._filter, cachefs = self._cachefs)
+			self._requests[rs] = asyncon
 			
-			if _reqtype in ("ws", "wss"):					
-				handler = ws_request_handler.RequestHandler					
-				request = ws_request.Request (self._uri, params, self._headers, self._encoding, self._auth, self._logger)
-											
-			else:				
-				if not self._use_cache:
-					self._add_header ("Cache-Control", "no-cache")				
+			try:
+				if _reqtype in ("ws", "wss"):
+					handler = ws_request_handler.RequestHandler					
+					request = ws_request.Request (self._uri, params, self._headers, self._auth, self._logger)
+												
+				else:				
+					if not self._use_cache:
+						self._add_header ("Cache-Control", "no-cache")				
+					
+					handler = http_request_handler.RequestHandler					
+					if _reqtype == "rpc":
+						request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._auth, self._logger)				
+					elif _reqtype == "grpc":
+						request = GRPCRequest (self._uri, method, params, self._headers, self._auth, self._logger)						
+					elif _reqtype == "upload":
+						request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._auth, self._logger)
+					else:
+						if params:
+							_reqtype = self._map_content_type (_reqtype)
+						request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._auth, self._logger)				
 				
-				handler = http_request_handler.RequestHandler		
-				if _reqtype == "rpc":
-					request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._encoding, self._auth, self._logger)				
-				elif _reqtype == "upload":
-					request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)
-				else:
-					if params:
-						_reqtype = self._map_content_type (_reqtype)
-					request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._encoding, self._auth, self._logger)				
+				requests += self._handle_request (request, rs, asyncon, handler)
+					
+			except:
+				self._logger ("Request Creating Failed", "fail")
+				self._logger.trace ()
+				rs.set_status (-1)
+				asyncon.set_active (False)
+				continue
 			
-			requests += self._handle_request (request, rs, asyncon, handler)
-		
-		if requests:				
+		if requests:
 			trigger.wakeup ()
 		
+		if _reqtype [-3:] == "rpc":
+			return self
+			
 	def _avails (self):
 		return len (self._nodes)
 	
@@ -368,15 +356,20 @@ class ClusterDistCall:
 	
 	def _collect_result (self):
 		for rs, asyncon in list(self._requests.items ()):
-			status = rs.get_status ()
-			if not self._mapreduce and status == 2 and self._retry < (self._numnodes - 1):
-				self._logger ("cluster response error, switch to another...", "info")
+			status = rs.get_status ()			
+			if status == -1:
+				del self._requests [rs]
+				self._results.append (rs)
+				self._cluster.report (asyncon, True) # not asyncons' Fault				
+			
+			elif not self._mapreduce and status == 2 and self._retry < (self._numnodes - 1):
+				self._logger ("Cluster Response Error, Switch To Another...", "fail")
 				self._cluster.report (asyncon, False) # exception occured
 				del self._requests [rs]
 				self._retry += 1
 				self._nodes = [None]
 				self._request (*self._cached_request_args)
-			
+				
 			elif status >= 2:
 				del self._requests [rs]
 				self._results.append (rs)
@@ -384,7 +377,7 @@ class ClusterDistCall:
 					self._cluster.report (asyncon, False) # exception occured
 				else:	
 					self._cluster.report (asyncon, True) # well-functioning
-				rs.do_filter ()
+					rs.do_filter ()
 					
 	def _wait (self, timeout = 3):
 		self._collect_result ()
@@ -398,13 +391,41 @@ class ClusterDistCall:
 		
 		# timeouts	
 		for rs, asyncon in list(self._requests.items ()):
-			asyncon.set_zombie_timeout (0) # make zombie channel
-			asyncon.handle_timeout ()
+			asyncon.handle_abort () # abort imme
 			rs.set_status (1)
 			self._cluster.report (asyncon, False) # maybe dead
 			self._results.append (rs)
 			del self._requests [rs]
+
+#-----------------------------------------------------------
+# Cluster Base Call
+#-----------------------------------------------------------
+class _Method:
+	def __init__(self, send, name):
+		self.__send = send
+		self.__name = name
 		
+	def __getattr__(self, name):
+		return _Method(self.__send, "%s.%s" % (self.__name, name))
+		
+	def __call__(self, *args):
+		return self.__send(self.__name, args)
+
+		
+class Proxy:
+	def __init__ (self, __class, *args, **kargs):
+		self.__class = __class
+		self.__args = args
+		self.__kargs = kargs		
+	
+	def __getattr__ (self, name):	  
+		return _Method(self.__request, name)
+	
+	def __request (self, method, params):		
+		cdc = self.__class (*self.__args, **self.__kargs)
+		cdc._request (method, params)
+		return cdc
+
 	
 class ClusterDistCallCreator:
 	def __init__ (self, cluster, logger, cachesfs):
@@ -415,58 +436,17 @@ class ClusterDistCallCreator:
 	def __getattr__ (self, name):	
 		return getattr (self.cluster, name)
 		
-	def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, encoding = None, use_cache = True, mapreduce = False, filter = None, callback = None):
+	def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, use_cache = True, mapreduce = False, filter = None, callback = None):
 		# reqtype: rpc, get, post, head, put, delete
 		if type (headers) is list:
 			h = {}
 			for n, v in headers:
 				h [n] = v
-			headers = h	
-		return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, encoding, use_cache, mapreduce, filter, callback, self.cachesfs, self.logger)
+			headers = h
+		
+		if reqtype.endswith ("rpc"):
+			return Proxy (ClusterDistCall, self.cluster, uri, params, reqtype, headers, auth, use_cache, mapreduce, filter, callback, self.cachesfs, self.logger)
+		else:	
+			return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, use_cache, mapreduce, filter, callback, self.cachesfs, self.logger)
 		
 	
-if __name__ == "__main__":
-	from skitai.lib  import logger
-	from . import cluster_manager
-	import sys
-	import asyncore
-	import time
-	from skitai.client import socketpool
-	
-	def _reduce (asyncall):
-		for rs in asyncall.getswait (5):
-			print("Result:", rs.id, rs.status, rs.code, repr(rs.result [:60]))
-					
-	def testCluster ():	
-		sc = cluster_manager.ClusterManager ("tt", ["210.116.122.187:3424 1", "210.116.122.184:3424 1", "175.115.53.148:3424 1"], logger= logger.screen_logger ())
-		clustercall = ClusterDistCallCreator (sc, logger.screen_logger ())	
-		s = clustercall.Server ("rpc2", login = "admin/whddlgkr")
-		s.bladese.util.status ("openfos.v2")		
-		threading.Thread (target = _reduce, args = (s,)).start ()
-		
-		while 1:
-			asyncore.loop (timeout = 1, count = 2)
-			if len (asyncore.socket_map) == 1:
-				break
-	
-	def testSocketPool ():
-		sc = socketpool.SocketPool (logger.screen_logger ())
-		clustercall = ClusterDistCallCreator (sc, logger.screen_logger ())			
-		s = clustercall.Server ("http://www.bidmain.com/")
-		s.request ()
-		
-		#s = clustercall.Server ("http://210.116.122.187:3424/rpc2", "admin/whddlgkr")
-		#s.bladese.util.status ("openfos.v2")
-		
-		threading.Thread (target = __reduce, args = (s,)).start ()
-		
-		while 1:
-			asyncore.loop (timeout = 1, count = 2)
-			print(asyncore.socket_map)
-			if len (asyncore.socket_map) == 1:
-				break
-	
-	trigger.start_trigger ()
-	
-	testCluster ()
-	testSocketPool ()

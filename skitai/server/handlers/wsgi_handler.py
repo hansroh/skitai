@@ -4,13 +4,14 @@ try:
 except ImportError:
 	from urllib import unquote	
 import sys
-from skitai.server import utility
-from skitai.lib import producers
+from aquests.lib import producers
 from skitai.server.http_response import catch
-from skitai.server.threads import trigger
+from aquests.lib.athreads import trigger
 from . import collectors
 from skitai import version_info, was as the_was
 from skitai.saddle import Saddle
+from collections import Iterable
+import threading
 try:
 	from cStringIO import StringIO as BytesIO
 except ImportError:
@@ -24,6 +25,8 @@ header2env = {
 
 PY_MAJOR_VERSION = sys.version_info.major
 SKITAI_VERSION = ".".join (map (lambda x: str (x), version_info [:3]))
+if PY_MAJOR_VERSION == 3:	
+	unicode = str
 	
 class Handler:
 	GATEWAY_INTERFACE = 'CGI/1.1'	
@@ -49,7 +52,7 @@ class Handler:
 		self.ENV ["wsgi.multiprocess"] = self.wasc.workers > 1 and os.name != "nt"
 		self.ENV ['SERVER_PORT'] = str (self.wasc.httpserver.port)
 		self.ENV ['SERVER_NAME'] = self.wasc.httpserver.server_name
-		
+	
 	def match (self, request):
 		return 1
 			
@@ -68,7 +71,8 @@ class Handler:
 		if query: env['QUERY_STRING'] = query		
 		env ['REMOTE_ADDR'] = request.channel.addr [0]
 		env ['REMOTE_SERVER'] = request.channel.addr [0]		
-		env ['SCRIPT_NAME'] = apph.route		
+		env ['SCRIPT_NAME'] = apph.route
+		env ['SCRPIT_PATH'] = apph.abspath
 		env ['PATH_INFO'] = apph.get_path_info (path)
 		
 		for header in request.header:
@@ -90,17 +94,22 @@ class Handler:
 	
 	def make_collector (self, collector_class, request, max_cl, *args, **kargs):
 		collector = collector_class (self, request, *args, **kargs)
-				
+		
 		if collector.content_length is None:
-			request.response.error (411)
-			return
+			if not request.version.startswith ("2."):
+				del collector
+				self.handle_error_before_collecting (request, 411)
+				return
+			else:
+				collector.set_max_content_length (max_cl)
 			
 		elif collector.content_length > max_cl: #5M			
-			self.wasc.logger ("server", "too large request body (%d)" % collector.content_length, "wran")
+			self.wasc.logger ("server", "too large request body (%d bytes)" % collector.content_length, "wran")
+			del collector
 			if request.get_header ("expect") == "100-continue":							
-				request.response.error (413) # client doesn't send data any more, I wish.
+				self.handle_error_before_collecting (request, 413, False) # client doesn't send data any more, I wish.
 			else:
-				request.response.abort (413)	# forcely disconnect
+				self.handle_error_before_collecting (request, 413)	# forcely disconnect
 			return
 		
 		# ok. allow form-data
@@ -121,7 +130,7 @@ class Handler:
 			www_authenticate = app.authorize (request.get_header ("Authorization"), request.command, request.uri)
 			if type (www_authenticate) is str:
 				request.response ['WWW-Authenticate'] = www_authenticate
-				request.response.error (401)
+				self.handle_error_before_collecting (request, 401)
 				return False
 			elif www_authenticate:
 				request.user = www_authenticate
@@ -130,52 +139,62 @@ class Handler:
 			pass
 			
 		return True
+	
+	def handle_error_before_collecting (self, request, code, force_close = True):
+		if request.version != "2.0":
+			if request.command in ('post', 'put') and force_close:
+				request.response.abort (code)
+			else:	
+				request.response.error (code)
+		else:
+			# keep connecting on HTTP/2 as possible
+			if request.command in ('post', 'put'):
+				collector = collectors.HTTP2DummyCollector (self, request, code)
+				request.collector = collector
+				collector.start_collect ()
+			else:
+				request.response.error (code)
 			
 	def handle_request (self, request):
 		path, params, query, fragment = request.split_uri ()
 		
 		has_route = self.apps.has_route (path)
 		if has_route == 0:
-			return request.response.error (404)
+			return self.handle_error_before_collecting (request, 404)				
 		if has_route == 1:
 			request.response ["Location"] = "%s/" % path
+			return self.handle_error_before_collecting (request, 308)
 			
-			if request.command in ('post', 'put'):
-				return request.response.abort (301)
-			else:	
-				return request.response.error (301)
-		
-		app = self.apps.get_app (has_route).get_callable()		
+		app = self.apps.get_app (has_route).get_callable()
 		if not self.isauthorized (app, request):
 			return 
 		
-		ct = request.get_header ("content-type")		
-		if request.command == 'post' and ct and ct.startswith ("multipart/form-data"):
-			# handle stream by app
-			# shoud have constructor __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size)
+		if request.command in ('post', 'put'):
 			try:
-				#self.wasc.apps.get_app (has_route) - module (that has callable) wrapper
-				#.get_callable() - callable, like WSGI function, Saddle or Falsk app
-				AppCollector = app.get_multipart_collector ()
+				# shoud have constructor __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size)
+				collector_class = app.get_collector (request)
 			except AttributeError:
-				AppCollector = None
+				collector_class = None
+			except NotImplementedError:				
+				return self.handle_error_before_collecting (request, 404)
 			
+			ct = request.get_header ("content-type")	
+			if ct.startswith ("multipart/form-data"):
+				max_size = app.config.max_multipart_body_size
+			else:
+				max_size = app.config.max_post_body_size
+					
+			if collector_class is None:
+				if ct.startswith ("multipart/form-data"):
+					collector_class = collectors.MultipartCollector					
+				else:
+					collector_class = collectors.FormCollector
 			args = (				
 				app.config.max_multipart_body_size, 
 				app.config.max_upload_file_size, 
 				app.config.max_cache_size
-			)			
-			if AppCollector:
-				collector = self.make_collector (AppCollector, request, app.config.max_multipart_body_size, *args)
-			else:
-				collector = self.make_collector (collectors.MultipartCollector, request,  app.config.max_multipart_body_size, *args)
-
-			if collector:
-				request.collector = collector
-				collector.start_collect ()
-			
-		elif request.command in ('post', 'put'):
-			collector = self.make_collector (collectors.FormCollector, request, app.config.max_post_body_size)
+			)				
+			collector = self.make_collector (collector_class, request, max_size, *args)
 			if collector:
 				request.collector = collector
 				collector.start_collect ()
@@ -184,9 +203,15 @@ class Handler:
 			self.continue_request(request)
 			
 		else:
-			request.response.error (405)
+			self.handle_error_before_collecting (request, 405)
 	
-	def continue_request (self, request, data = None):
+	def continue_request (self, request, data = None, respcode = None):		
+		if respcode: # delayed resp code on POST
+			if respcode [1]:
+				# force close
+				return request.response.abort (respcode [0])
+			return request.response.error (respcode [0])
+		
 		try:
 			path, params, query, fragment = request.split_uri ()
 			apph = self.apps.get_app (path)
@@ -211,14 +236,13 @@ class Handler:
 			Job (request, apph, args, self.wasc.logger) ()
 
 
-
 class Job:
 	# Multi-Threaded Jobs
 	def __init__(self, request, apph, args, logger):
 		self.request = request
 		self.apph = apph
 		self.args = args
-		self.logger = logger
+		self.logger = logger		
 		
 	def __repr__(self):
 		return "<Job %s %s HTTP/%s>" % (self.request.command.upper (), self.request.uri, self.request.version)
@@ -236,8 +260,8 @@ class Job:
 		try:
 			content = self.apph (*self.args)
 			
-			if not response.responsable ():
-				# already called response.done () or dicinnected channel
+			if not response.is_responsable ():
+				# already called response.done () or diconnected channel
 				return
 			
 			if content is None: # Possibly no return mistake
@@ -258,36 +282,38 @@ class Job:
 				content_length = 0
 			else:
 				content_length = None
-					
+			
 			for part in content:
-				if hasattr (part, "read"):
-					part = producers.closing_stream_producer (part)	
-				elif hasattr (part, "_next") or hasattr (part, "next"): # flask etc.
-					part = producers.closing_iter_producer (part)
-					
-				if isinstance (part, producers.simple_producer) or hasattr (part, "more"):
-					content_length = None
-					# streaming obj
-					if hasattr (part, "close"):
-						# automatic close	when channel suddenly closed
-						response.add_closable_producer (part)
-					will_be_push.append (part)
-				
-				else:
-					type_of_part = type (part)					
+				type_of_part = type (part)				
+				if type_of_part in (bytes, str, unicode):
 					if type_of_part is not bytes: # unicode
 						try: 
 							part = part.encode ("utf8")
 						except AttributeError:
-							raise AssertionError ("%s is not supportable content type" % str (type (part)).replace ("<", "&lt;").replace (">", "&gt;"))
-								
+							raise AssertionError ("%s is not supportable content type" % str (type (part)).replace ("<", "&lt;").replace (">", "&gt;"))								
 						type_of_part = bytes
 						
 					if type_of_part is bytes:
 						if content_length is not None:
 							content_length += len (part)
 						will_be_push.append (part)
-						
+				
+				else:	
+					if hasattr (part, "read"):
+						part = producers.closing_stream_producer (part)				
+					elif type (part) is list:
+						part = producers.list_producer (part)
+					elif isinstance(part, Iterable): # flask etc.
+						part = producers.iter_producer (part)
+					
+					if isinstance (part, producers.simple_producer) or hasattr (part, "more"):
+						content_length = None
+						# streaming obj
+						if hasattr (part, "close"):
+							# automatic close	when channel suddenly closed
+							response.die_with (part)
+						will_be_push.append (part)
+				
 					else:
 						raise AssertionError ("Streaming content should be single element")
 			
@@ -306,13 +332,13 @@ class Job:
 				if len (will_be_push) == 1 and type (part) is bytes and len (response) == 0:
 					response.update ("Content-Length", len (part))
 				response.push (part)
-			trigger.wakeup (lambda p=response: (p.done(),))			
+			trigger.wakeup (lambda p=response: (p.done(),))
 											
-	def __call__(self):
+	def __call__(self):		
 		try:
 			try:
 				self.exec_app ()
-			finally:
+			finally:				
 				self.deallocate	()
 		except:
 			# no response, alredy done. just log
@@ -329,7 +355,6 @@ class Job:
 				except: self.logger.trace ("app")
 		
 		was = env.get ("skitai.was")
-		if was is not None and was.in__dict__ ("request"):
-			was.request.response = None
+		if was is not None and was.in__dict__ ("request"):			
 			del was.request
-			
+		

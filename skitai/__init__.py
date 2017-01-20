@@ -1,7 +1,7 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.21.17"
-version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
+__version__ = "0.23.1"
+version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
 import threading
@@ -15,10 +15,7 @@ WEBSOCKET_DEDICATE = 2
 WEBSOCKET_MULTICAST = 3
 WEBSOCKET_DEDICATE_THREADSAFE = 4
 
-DB_PGSQL = "*postgresql"
-DB_SQLITE3 = "*sqlite3"
-DB_REDIS = "*redis"
-DB_MONGODB = "*mongodb"
+from aquests.dbapi import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 
 class _WASPool:
 	def __init__ (self):
@@ -61,7 +58,7 @@ class _WASPool:
 			del self.__p [_id]
 		except KeyError:
 			pass
-				
+
 	def _get (self):
 		_id = self.__get_id ()
 		try:
@@ -82,26 +79,32 @@ def run (**conf):
 	from . import lifetime
 	from .server import Skitai
 	
-	class TestServer (Skitai.Loader):
+	class SkitaiServer (Skitai.Loader):
 		def __init__ (self, conf):
 			self.conf = conf
 			Skitai.Loader.__init__ (self, 'test.conf')
 			
 		def configure (self):
-			conf = self.conf
-			
+			conf = self.conf			
 			self.set_num_worker (1)
-			if conf.get ("certfile"):		
+			if conf.get ("certfile"):
 				self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
+			self.config_cachefs ()
 			self.config_rcache (100)
 			self.config_webserver (
-				conf.get ('port', 5000), conf.get ('address', '127.0.0.1'), 
-				"Skitai Test Server", conf.get ("certfile") is not None, 
+				conf.get ('port', 5000), conf.get ('address', '0.0.0.0'),
+				"Skitai Server", conf.get ("certfile") is not None,
 				5, 10
 			)
-			self.config_threads (conf.get ('threads', 4))
-			
-			for name, (ctype, members, ssl) in conf.get ("clusters", {}):
+			self.config_threads (conf.get ('threads', 4))						
+			for name, args in conf.get ("clusters", {}).items ():
+				if name [0] == "@":
+					name = name [1:]
+				if len (args) == 3:
+					ctype, members, ssl = args
+				else:
+					ctype, members = args	
+					ssl = 0
 				self.add_cluster (ctype, name, members, ssl)
 			
 			self.install_handler (
@@ -110,12 +113,11 @@ def run (**conf):
 				conf.get ("static_max_age", 300)
 			)
 			lifetime.init ()
-	
+			
 	if not conf.get ('mount'):
 		raise ValueError ('Dictionary mount {mount point: path or app} required')
 	
-	server = TestServer (conf)
+	server = SkitaiServer (conf)
 	# timeout for fast keyboard interrupt on win32	
 	server.run (2.0)
-	
 	

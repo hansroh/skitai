@@ -2,8 +2,8 @@ import pickle as pickle
 from skitai.server import http_date
 import time
 import random
-from skitai.lib import pathtool
-from skitai.lib import udict
+from aquests.lib import pathtool
+from aquests.lib import udict
 import os, sys
 try:
 	from urllib.parse import quote_plus, unquote_plus

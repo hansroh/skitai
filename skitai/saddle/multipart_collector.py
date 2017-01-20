@@ -1,7 +1,7 @@
 import tempfile
 import os
 from skitai.server.handlers import collectors
-from skitai.lib import pathtool
+from aquests.lib import pathtool
 import shutil
 
 class File:
@@ -67,14 +67,14 @@ class Part:
 			return default, d
 			
 		v2 = v.split (";")
-		if len (v2) == 1:
-			return v, d
-		for each in v2 [1:]:
+		for each in v2:
+			each = each.strip ()
+			if not each: continue
 			try:
-				a, b = each.strip ().split ("=", 1)
+				a, b = each.split ("=", 1)
 			except ValueError:
-				a, b = each.strip (), None
-			d [a] = b
+				a, b = each, None
+			d [a.lower ()] = b
 		return v2 [0], d	
 			
 	def get_header (self, header, default = None):
@@ -136,6 +136,11 @@ class FileWrapper:
 		# depricate
 		self.file = self.path
 	
+	def __repr__ (self):
+		return "<File %s (%d bytes, %s) saved as %s>" % (
+			self.name, self.size, self.mimetype, self.path
+		)
+		
 	def save (self, into, name = None, mkdir = False, dup = "u"):
 		if name is None: name = self.name
 		# u: make unique, o: overwrite
@@ -184,7 +189,7 @@ class MultipartCollector (collectors.FormCollector):
 		self.cache_max_size = cache_max_size
 		
 		self.end_of_data = b""
-		self.cached = False
+		self.cached = True
 		self.cache = []
 		self.parts = Part (self.request.header, self.file_max_size)
 		self.current_part = None
@@ -201,8 +206,8 @@ class MultipartCollector (collectors.FormCollector):
 		if self.content_length == 0: 
 			return self.found_terminator()
 		
-		if self.content_length <= self.cache_max_size: #5M
-			self.cached = True
+		if self.content_length is not None and self.content_length > self.cache_max_size: #5M
+			self.cached = False
 									
 		self.trackable_tail = None
 		self.top_boundary = self.parts.get_boundary ()
@@ -213,7 +218,7 @@ class MultipartCollector (collectors.FormCollector):
 		if self.upload_max_size and self.size > self.upload_max_size:
 			raise ValueError("file size is over %d MB" % (self.size/1024./1024,))
 			
-		if self.cache_max_size and self.size > self.cache_max_size:
+		if self.cached and self.cache_max_size and self.size > self.cache_max_size:
 			self.cached = False
 			self.cache = []
 				
@@ -227,7 +232,7 @@ class MultipartCollector (collectors.FormCollector):
 			if self.buffer == b"--" and self.trackable_tail == self.top_boundary:
 				self.stop_collect ()
 		
-		self.trackable_tail = None		
+		self.trackable_tail = None
 	
 	def close (self):
 		self.buffer = b""

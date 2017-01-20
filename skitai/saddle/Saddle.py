@@ -2,10 +2,11 @@ import threading
 import time
 import os
 import sys
-from . import part, multipart_collector, cookie, session
-from . import wsgi_executor, xmlrpc_executor
-from skitai.lib import producers
-from skitai.server import utility
+from . import part, multipart_collector, cookie, session, grpc_collector
+from . import wsgi_executor, xmlrpc_executor, grpc_executor
+from aquests.lib import producers
+from aquests.protocols.grpc import discover
+from aquests.protocols.http import http_util
 from hashlib import md5
 import random
 import base64
@@ -105,7 +106,7 @@ class Saddle (part.Part):
 			if self.opaque is None:
 				self.opaque = md5 (self.realm.encode ("utf8")).hexdigest ()
 			return 'Digest realm="%s", qop="auth", nonce="%s", opaque="%s"' % (
-				self.realm, utility.md5uniqid (), self.opaque
+				self.realm, http_util.md5uniqid (), self.opaque
 			)
 	
 	def get_password (self, user):
@@ -187,9 +188,19 @@ class Saddle (part.Part):
 		self.debug = debug
 		self.use_reloader = use_reloader
 	
-	def get_multipart_collector (self):
-		return multipart_collector.MultipartCollector
-	
+	def get_collector (self, request):
+		ct = request.get_header ("content-type")
+		if not ct: return
+		if ct.startswith ("multipart/form-data"):
+			return multipart_collector.MultipartCollector
+			
+		if ct.startswith ("application/grpc"):
+			try:
+				i, o = discover.find_type (request.uri [1:])
+			except KeyError:
+				raise NotImplementedError			
+			return grpc_collector.grpc_collector			
+			
 	def get_method (self, path_info, command = None, content_type = None, authorization = None):		
 		current_app, method = self, None
 		
@@ -283,10 +294,12 @@ class Saddle (part.Part):
 		was.response = was.request.response
 		
 		content_type = env.get ("CONTENT_TYPE", "")				
-		if content_type.startswith ("text/xml") or content_type.startswith ("application/xml+rpc"):
+		if content_type.startswith ("text/xml") or content_type.startswith ("application/xml"):
 			result = xmlrpc_executor.Executor (env, self.get_method) ()
+		elif content_type.startswith ("application/grpc"):
+			result = grpc_executor.Executor (env, self.get_method) ()			
 		else:	
-			result = wsgi_executor.Executor (env, self.get_method) ()		
+			result = wsgi_executor.Executor (env, self.get_method) ()
 		
 		del was.response
 		del was.ab		

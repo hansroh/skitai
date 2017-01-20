@@ -1,5 +1,6 @@
 import threading
-from skitai.client import asynconnect
+from aquests.client import asynconnect
+from aquests.client.socketpool import PROTO_CONCURRENT_STREAMS, select_channel
 import time
 import re
 import copy
@@ -59,6 +60,7 @@ class ClusterManager:
 		self._name = name
 		self.access = access
 		self.set_ssl (ssl)		
+		self._proto = None
 		self._havedeadnode = 0
 		self._numget = 0
 		self._nummget = 0
@@ -295,7 +297,7 @@ class ClusterManager:
 			self.logger.trace ()
 				
 		self._last_maintern = time.time ()
-			
+	
 	def get (self, specific = None, index = -1):
 		asyncon = None
 		self.lock.acquire ()
@@ -324,6 +326,11 @@ class ClusterManager:
 				cluster = []
 				for node in nodes:
 					avails = [x for x in self._cluster [node]["connection"] if not x.isactive ()]
+					if self._proto and self._proto in PROTO_CONCURRENT_STREAMS:
+						# socket load-balancing
+						selected = select_channel (avails)						
+						avail = selected and [selected] or []
+													
 					if not avails:
 						continue
 					
@@ -334,8 +341,9 @@ class ClusterManager:
 						capability = 1.0
 					else:
 						capability = 1.0 - (actives / float (weight))
-
-					cluster.append ((avails [0], capability, weight))
+					
+					avail = avails [0]
+					cluster.append ((avail, capability, weight))
 				
 				if cluster:
 					random.shuffle (cluster) # load balancing between same weighted members
@@ -348,15 +356,18 @@ class ClusterManager:
 					node = t [0][1]
 					asyncon = self._cluster [node]["connection"][0].duplicate ()
 					self._cluster [node]["connection"].append (asyncon)
-									
-				asyncon.set_active (True, nolock = True)							
+				
+				asyncon.set_active (True)
 				
 			finally:
 				self.lock.release ()	
 		
 		except:
 			self.logger.trace ()
-					
+		
+		if self._proto is None:
+			self._proto = asyncon.get_proto ()
+						
 		return asyncon
 	
 	def sortfunc (self, a, b):

@@ -1,4 +1,5 @@
 from . import http_response, counter
+import time
 import re
 
 class http_request:
@@ -19,15 +20,34 @@ class http_request:
 		self.reply_message = ""		
 		self.loadbalance_retry = 0
 		self.rbytes = 0
+		self.created = time.time ()
 		self.gzip_encoded = False
-		self.is_promise = False
-		
 		self._split_uri = None
 		self._header_cache = {}
-
+		self._is_stream_ended = False
+		self._is_async_streaming = False
+		self._is_promise = False
 		self.set_log_info ()
+		self.make_response ()
+	
+	def is_promise (self):
+		return self._is_promise
+		
+	def make_response (self):
 		self.response = http_response.http_response (self)
 	
+	def set_streaming (self):
+			self._is_async_streaming = True
+	
+	def is_async_streaming (self):
+		return self._is_async_streaming
+	
+	def set_stream_ended (self):	
+		self._is_stream_ended = True
+	
+	def is_stream_ended (self):
+		return self._is_stream_ended
+			
 	def set_log_info (self):
 		self.gtxid = self.get_header ("X-Gtxn-Id")
 		if not self.gtxid:
@@ -90,7 +110,7 @@ class http_request:
 	def set_header (self, name, value):
 		self.header.append ("%s: %s" % (name, value))		
 		
-	def get_header (self, header = None, default = None):
+	def get_header (self, header = None, default = None):		
 		if header is None:
 			return self.header
 		header = header.lower()
@@ -115,14 +135,14 @@ class http_request:
 			return default, d
 			
 		v2 = v.split (";")
-		if len (v2) == 1:
-			return v, d
 		for each in v2 [1:]:
+			each = each.strip ()
+			if not each: continue
 			try:
-				a, b = each.strip ().split ("=", 1)
+				a, b = each.split ("=", 1)
 			except ValueError:
-				a, b = each.strip (), None
-			d [a] = b
+				a, b = each, None
+			d [a.lower ()] = b
 		return v2 [0], d	
 	
 	def get_content_length (self):
@@ -157,7 +177,7 @@ class http_request:
 		else:
 			self.logger.log (
 				'dropping %d bytes of incoming request data' % len(data),
-				'warning'
+				'warn'
 				)
 
 	def found_terminator (self):		
@@ -166,6 +186,10 @@ class http_request:
 		else:
 			self.logger.log (
 				'unexpected end-of-record for incoming request',
-				'warning'
+				'warn'
 				)
 			
+	def response_finished (self):
+		if self.response:
+			self.response.request = None
+	

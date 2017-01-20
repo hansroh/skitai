@@ -1,7 +1,7 @@
 import threading
 import sched, time, re
 import bisect, sys, os
-from skitai.lib  import confparse, logger as logger_module, processutil
+from aquests.lib  import confparse, logger as logger_module, processutil
 import subprocess
 import signal
 import win32process, win32api, win32con, pywintypes

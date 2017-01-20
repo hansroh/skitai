@@ -1,25 +1,20 @@
 from skitai.server import http_response
-from skitai.lib import producers
+from aquests.lib import producers
+from h2.errors import CANCEL, PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
 import time
-
-
-class response (http_response.http_response):
-	USE_DATA_COMPRESS = True
 	
+
+class response (http_response.http_response):	
 	def __init__ (self, request):
 		http_response.http_response.__init__ (self, request)
 	
-	def push (self, thing):
-		if not self.responsable (): return
-		if type(thing) is bytes:			
-			self.outgoing.push (producers.simple_producer (thing))
-		else:
-			self.outgoing.push (thing)
-			
+	def set_streaming (self):
+		self._is_async_streaming = True
+		
 	def build_reply_header (self):	
 		h = [(b":status", str (self.reply_code).encode ("utf8"))]
 		for k, v in self.reply_headers:
-			h.append ((k.encode ("utf8"), str (v).encode ("utf8")))		
+			h.append ((k.encode ("utf8"), str (v).encode ("utf8")))
 		return h
 	
 	def hint_promise (self, uri):
@@ -42,17 +37,36 @@ class response (http_response.http_response):
 	    
 		self.request.http2.push_promise (self.request.stream_id, headers, additional_headers)
 		
-	def done (self, globbing = True, compress = True, force_close = False, next_request = None):
+	def done (self, force_close = False, upgrade_to = None):
+		if not self.is_responsable (): return
+		self._is_done = True
+		if self.request.http2 is None: return
+		
+		self.htime = (time.time () - self.stime) * 1000
+		self.stime = time.time () #for delivery time
+		
 		# removed by HTTP/2.0 Spec.
 		self.delete ('transfer-encoding')
 		self.delete ('connection')
 		
-		if len (self.outgoing) == 0:
+		# compress payload and globbing production
+		do_optimize = True
+		if upgrade_to or self.is_async_streaming ():
+			do_optimize = False
+		
+		if not self.outgoing:
+			self.delete ('content-type')
+			self.delete ('content-length')
 			outgoing_producer = None
+			
+		elif len (self.outgoing) == 1 and hasattr (self.outgoing.first (), "ready"):
+			outgoing_producer = producers.composite_producer (self.outgoing)
+			do_optimize = False
 		
 		else:
-			way_to_compress = ""
-			if self.USE_DATA_COMPRESS and not self.has_key ('Content-Encoding'):
+			outgoing_producer = producers.composite_producer (self.outgoing)			
+			if do_optimize and not self.has_key ('Content-Encoding'):
+				way_to_compress = ""			
 				maybe_compress = self.request.get_header ("Accept-Encoding")
 				if maybe_compress and self.has_key ("content-length") and int (self ["Content-Length"]) <= http_response.UNCOMPRESS_MAX:
 					maybe_compress = ""
@@ -68,31 +82,34 @@ class response (http_response.http_response):
 				if way_to_compress:
 					if self.has_key ('Content-Length'):
 						self.delete ("content-length") # rebuild
-					self.update ('Content-Encoding', way_to_compress)
-			
-			if way_to_compress:
-				if way_to_compress == "gzip":
-					producer = producers.gzipped_producer
-				else: # deflate
-					producer = producers.compressed_producer
-				outgoing_producer = producer (producers.composite_producer (self.outgoing))						
-			else:
-				outgoing_producer = producers.composite_producer (self.outgoing)			
-			outgoing_producer = producers.globbing_producer (producers.hooked_producer (outgoing_producer, self.log))
+					self.update ('Content-Encoding', way_to_compress)			
+					if way_to_compress == "gzip":
+						compressing_producer = producers.gzipped_producer
+					else: # deflate
+						compressing_producer = producers.compressed_producer		
+					outgoing_producer = compressing_producer (outgoing_producer)
 		
+		if outgoing_producer:
+			outgoing_producer = producers.hooked_producer (outgoing_producer, self.log)
+			if do_optimize:
+				outgoing_producer = producers.globbing_producer (outgoing_producer)				
+
+		if self.request.http2 is None: return
+		if upgrade_to:
+			# do not change http2 channel
+			request, terminator = upgrade_to
+			self.request.channel.current_request = request
+			self.request.channel.set_terminator (terminator)
+		
+		logger = self.request.logger #IMP: for  disconnect with request		
 		try:
-			self.request.http2.push_response (
+			self.request.http2.handle_response (
 				self.request.stream_id, 
 				self.build_reply_header (),
-				outgoing_producer
+				outgoing_producer,
+				force_close = force_close
 			)
 			
 		except:
-			self.request.logger.trace ()			
-			self.request.http2.close (True)		
-		else:
-			if next_request: # like ssl tunnel
-				request, terminator = next_request
-				self.request.channel.current_request = request
-				self.request.channel.set_terminator (terminator)
-	
+			logger.trace ()			
+		

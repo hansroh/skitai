@@ -1,8 +1,8 @@
 def shutdown (root):
 	import md5
 	import os
-	from skitai.lib  import confparse	
-	from skitai.lib  import timeoutsocket
+	from aquests.lib  import confparse	
+	from aquests.lib  import timeoutsocket
 	import urllib.request, urllib.parse, urllib.error
 	
 	cf = confparse.ConfParse (os.path.join (root, "etc/server.conf"))	

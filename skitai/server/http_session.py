@@ -2,8 +2,8 @@ import pickle as pickle
 from . import http_date
 import time
 import random
-from skitai.lib import pathtool
-from skitai.lib import udict
+from aquests.lib import pathtool
+from aquests.lib import udict
 import os, sys
 import md5
 import urllib.request, urllib.parse, urllib.error

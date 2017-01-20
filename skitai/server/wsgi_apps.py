@@ -1,5 +1,5 @@
 import os, sys, re, types
-from skitai.lib  import pathtool, importer
+from aquests.lib  import pathtool, importer
 import threading
 from types import FunctionType as function
 
@@ -84,7 +84,7 @@ class Module:
 		return path_info	
 	
 	def __call__ (self, env, start_response):
-		self.use_reloader and self.maybe_reload ()	
+		self.use_reloader and self.maybe_reload ()
 		return getattr (self.module, self.appname) (env, start_response)
 
 
@@ -143,9 +143,7 @@ class ModuleManager:
 		cands = []
 		for route in self.modules:
 			if script_name == route:
-				cands.append (route)				
-			#elif script_name [-1] == "/" and script_name [:-1] == route:
-				#return 2
+				cands.append (route)
 			elif script_name + "/" == route:
 				return 1
 			elif script_name.startswith (route [-1] != "/" and route + "/" or route):

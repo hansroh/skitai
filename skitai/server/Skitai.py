@@ -5,7 +5,7 @@
 #-------------------------------------------------------
 
 HTTPS = True
-from skitai.client import adns
+from aquests.client import adns
 import sys, time, os, threading
 from . import http_server
 from skitai import lifetime
@@ -15,16 +15,18 @@ from skitai import start_was
 if os.name == "nt":	
 	from . import schedule			
 from .handlers import proxy_handler, ipbl_handler, vhost_handler
-from .threads import threadlib, trigger
-from skitai.lib import logger, confparse, pathtool, flock
+from aquests.lib.athreads import threadlib, trigger
+from aquests.lib import logger, confparse, pathtool, flock
 from .rpc import cluster_dist_call, rcache
-from skitai.client import socketpool
+from aquests.client import socketpool
 import socket
 import signal
 import multiprocessing
 from . import wsgiappservice, cachefs
 from .dbi import cluster_dist_call as dcluster_dist_call
-from skitai.dbapi import dbpool
+from aquests.dbapi import dbpool
+from aquests.protocols.http import request_handler
+from aquests.protocols import http2
 import types
 
 class Loader:
@@ -68,14 +70,18 @@ class Loader:
 		
 		self.wasc.register ("lock", threading.RLock ())
 		self.wasc.register ("lifetime", lifetime)		
-		
+		# internal connection should be http 1.1
+		# because http2 single connection feature is useless on accessing internal resources
+		# BUT we will use http2 when gRPC call, with just 1 stream per connection for speeding
+		http2.MAX_HTTP2_CONCURRENT_STREAMS = 1
+		request_handler.RequestHandler.FORCE_HTTP_11 = True
 		adns.init (self.wasc.logger.get ("server"))		
 		if not hasattr (self.wasc, "threads"):
 			for attr in ("map", "rpc", "rest", "wget", "lb", "db", "dlb", "dmap"):
 				delattr (self.wasc, attr)
 		start_was (self.wasc)
 		
-	def config_cachefs (self, cache_dir, memmax = 8, diskmax = 0): 
+	def config_cachefs (self, cache_dir = None, memmax = 0, diskmax = 0):
 		self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir, memmax, diskmax)
 		
 		socketfarm = socketpool.SocketPool (self.wasc.logger.get ("server"))
@@ -162,8 +168,11 @@ class Loader:
 			self.wasc.numthreads = numthreads
 					
 	def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0, access = None):
-		if ssl in ("1", "yes"): ssl = 1
-		else: ssl = 0
+		ssl = 0
+		if ssl in (1, True, "1", "yes") or clustertype in ("https", "wss", "grpcs", "rpcs"):
+			ssl = 1
+		if type (clusterlist)	is str:
+			clusterlist = [clusterlist]
 		self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl, access = access)
 	
 	def install_handler_with_tuple (self, routes):
@@ -173,12 +182,16 @@ class Loader:
 				entity, appname = entity
 			else:
 				entity, appname = entity, 'app'
-									
-			if entity.endswith (".py") or entity.endswith (".pyc"):
+			
+			if type (entity) is not str:
+				entity = os.path.join (os.getcwd (), sys.argv [0])			
+			if entity [0] == "@":
+				sroutes.append ("%s=%s" % (route, entity))
+			elif entity.endswith (".py") or entity.endswith (".pyc"):
 				entity = os.path.join (os.getcwd (), entity) [:-3]
 				if entity [-1] == ".": 
 					entity = entity [:-1]
-			sroutes.append ("%s=%s:%s" % (route, entity, appname))
+				sroutes.append ("%s=%s:%s" % (route, entity, appname))
 		return sroutes
 			
 	def install_handler (self, 
@@ -190,6 +203,8 @@ class Loader:
 			apigateway_realm = "API Gateway",
 			apigateway_secret_key = None
 		):
+		if routes	and type (routes) is not list:
+			routes = [routes]
 		if routes and type (routes [0]) is tuple:
 			routes = self.install_handler_with_tuple (routes)
 		
@@ -233,7 +248,16 @@ class Loader:
 		
 	def close (self):
 		for attr, obj in list(self.wasc.objects.items ()):
-			if attr == "logger": continue
+			if attr == "logger": 
+				continue
+			
+			if attr == "clusters":
+				self.wasc.logger ("server", "[info] clenaup %s" % attr)
+				for name, cluster in obj.items ():
+					self.wasc.logger ("server", "[info] ...clenaup %s" % name)
+					cluster.cleanup ()
+				continue	
+					
 			try:
 				self.wasc.logger ("server", "[info] clenaup %s" % attr)
 				obj.cleanup ()

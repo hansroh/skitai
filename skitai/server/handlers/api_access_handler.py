@@ -1,5 +1,5 @@
 import time
-from skitai.lib import jwt
+from aquests.lib import jwt
 
 class AuthorizedUser:
 	def __init__ (self, user, roles, realm):
@@ -77,5 +77,4 @@ class Handler:
 				return request.response.abort (403)
 		
 		self.proxypass_handler.handle_request (request)
-		
 		

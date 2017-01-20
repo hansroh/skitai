@@ -1,4 +1,4 @@
-from skitai.lib import pathtool
+from aquests.lib import pathtool
 from skitai.server import http_server
 
 class Devnull:
@@ -24,7 +24,7 @@ def shutdown (root):
 
 def lock (root, redirect_error = 1):
 	import os, sys
-	from skitai.lib import pathtool
+	from aquests.lib import pathtool
 	
 	pathtool.mkdir (os.path.join (root, "var/lock"))	
 	if redirect_error:
