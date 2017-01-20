@@ -307,12 +307,7 @@ class http2_request_handler:
 				if r:
 					if r.collector:
 						r.channel.handle_read ()
-						r.channel.found_terminator ()
-					else:
-						self.request.logger ("stream ended (stream_id:%d) but no collector" % event.stream_id, "warn")	
-						self.remove_request (event.stream_id)
-						self.go_away (PROTOCOL_ERROR)
-						return
+						r.channel.found_terminator ()					
 					r.set_stream_ended ()
 					if r.response.is_done ():
 						# DO NOT REMOVE before responsing
