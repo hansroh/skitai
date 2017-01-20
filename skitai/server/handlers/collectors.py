@@ -30,9 +30,9 @@ class FormCollector:
 		return cl
 		
 	def start_collect (self):
-			if self.content_length == 0: 
-				return self.found_terminator()
-			self.request.channel.set_terminator (self.content_length)
+		if self.content_length == 0: 
+			return self.found_terminator()
+		self.request.channel.set_terminator (self.content_length)
 
 	def collect_incoming_data (self, data):
 		self.size += len (data)

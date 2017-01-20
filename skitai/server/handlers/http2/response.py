@@ -41,7 +41,7 @@ class response (http_response.http_response):
 		if not self.is_responsable (): return
 		self._is_done = True
 		if self.request.http2 is None: return
-				
+		
 		self.htime = (time.time () - self.stime) * 1000
 		self.stime = time.time () #for delivery time
 		
@@ -53,34 +53,41 @@ class response (http_response.http_response):
 		do_optimize = True
 		if upgrade_to or self.is_async_streaming ():
 			do_optimize = False
+		
+		if not self.outgoing:
+			self.delete ('content-type')
+			self.delete ('content-length')
+			outgoing_producer = None
 			
-		outgoing_producer = None	
-		if len (self.outgoing):
+		elif len (self.outgoing) == 1 and hasattr (self.outgoing.first (), "ready"):
 			outgoing_producer = producers.composite_producer (self.outgoing)
+			do_optimize = False
 		
-		if do_optimize and not self.has_key ('Content-Encoding'):
-			way_to_compress = ""			
-			maybe_compress = self.request.get_header ("Accept-Encoding")
-			if maybe_compress and self.has_key ("content-length") and int (self ["Content-Length"]) <= http_response.UNCOMPRESS_MAX:
-				maybe_compress = ""
-			else:	
-				content_type = self ["Content-Type"]
-				if maybe_compress and content_type and (content_type.startswith ("text/") or content_type.endswith ("/json-rpc")):
-					accept_encoding = [x.strip () for x in maybe_compress.split (",")]
-					if "gzip" in accept_encoding:
-						way_to_compress = "gzip"
-					elif "deflate" in accept_encoding:
-						way_to_compress = "deflate"
-		
-			if way_to_compress:
-				if self.has_key ('Content-Length'):
-					self.delete ("content-length") # rebuild
-				self.update ('Content-Encoding', way_to_compress)			
-				if way_to_compress == "gzip":
-					producer = producers.gzipped_producer
-				else: # deflate
-					producer = producers.compressed_producer		
-				outgoing_producer = producer (outgoing_producer)
+		else:
+			outgoing_producer = producers.composite_producer (self.outgoing)			
+			if do_optimize and not self.has_key ('Content-Encoding'):
+				way_to_compress = ""			
+				maybe_compress = self.request.get_header ("Accept-Encoding")
+				if maybe_compress and self.has_key ("content-length") and int (self ["Content-Length"]) <= http_response.UNCOMPRESS_MAX:
+					maybe_compress = ""
+				else:	
+					content_type = self ["Content-Type"]
+					if maybe_compress and content_type and (content_type.startswith ("text/") or content_type.endswith ("/json-rpc")):
+						accept_encoding = [x.strip () for x in maybe_compress.split (",")]
+						if "gzip" in accept_encoding:
+							way_to_compress = "gzip"
+						elif "deflate" in accept_encoding:
+							way_to_compress = "deflate"
+			
+				if way_to_compress:
+					if self.has_key ('Content-Length'):
+						self.delete ("content-length") # rebuild
+					self.update ('Content-Encoding', way_to_compress)			
+					if way_to_compress == "gzip":
+						compressing_producer = producers.gzipped_producer
+					else: # deflate
+						compressing_producer = producers.compressed_producer		
+					outgoing_producer = compressing_producer (outgoing_producer)
 		
 		if outgoing_producer:
 			outgoing_producer = producers.hooked_producer (outgoing_producer, self.log)

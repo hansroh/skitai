@@ -35,14 +35,13 @@ class Collector (collectors.FormCollector):
 		if self.asyncon:
 			self.asyncon.handle_close (710, "Channel Closed")
 				
-	def collect_incoming_data (self, data):		
+	def collect_incoming_data (self, data):
 		self.length += len (data)
 		self.data.append (data)
 
 	def found_terminator (self):
 		self.request.channel.set_terminator (b'\r\n\r\n')
 		self.got_all_data = True
-		self.request.collector = None
 		# don't request.collector = None => do it at callback ()
 		# because this collector will be used in Request.continue_start() later
 	
@@ -52,7 +51,7 @@ class Collector (collectors.FormCollector):
 	def ready (self):
 		return len (self.data) or self.got_all_data
 	
-	def more (self):
+	def more (self):		
 		if not self.data:
 			return b""		
 		data = b"".join (self.data)

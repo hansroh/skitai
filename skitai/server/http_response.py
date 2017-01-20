@@ -278,11 +278,11 @@ class http_response:
 		# ignore in version 1.x
 		pass
 		
-	def push (self, thing):
+	def push (self, thing):		
 		if not self.is_responsable (): return
 		if type(thing) is bytes:
 			self.outgoing.push (producers.simple_producer (thing))
-		else:
+		else:			
 			self.outgoing.push (thing)
 	      					
 	def done (self, force_close = False, upgrade_to = None):		
@@ -324,7 +324,7 @@ class http_response:
 					self.update ('Connection', 'close')
 				#else:
 					#self.update ('Keep-Alive', 'timeout=%d' % self.request.channel.keep_alive)	
-				if not self.has_key ('content-length'):
+				if not self.has_key ('transfer-encoding') and not self.has_key ('content-length') and self.has_key ('content-type'):
 					wrap_in_chunking = True
 					
 			else:
@@ -332,7 +332,23 @@ class http_response:
 				self.update ('Connection', 'close')
 				close_it = True
 		
-		if do_optimize and not self.has_key ('Content-Encoding'):
+		if not self.outgoing:
+			self.delete ('transfer-encoding')
+			self.delete ('content-length')
+			self.delete ('content-type')
+			outgoing_producer = producers.simple_producer (self.build_reply_header().encode ("utf8"))
+			do_optimize = False
+			
+		elif len (self.outgoing) == 1 and hasattr (self.outgoing.first (), "ready"):
+			outgoing_producer = producers.composite_producer (self.outgoing)
+			if wrap_in_chunking:
+				self.update ('Transfer-Encoding', 'chunked')
+				outgoing_producer = producers.chunked_producer (outgoing_producer)
+			outgoing_header = producers.simple_producer (self.build_reply_header().encode ("utf8"))				
+			self.request.channel.push_with_producer (outgoing_header)
+			do_optimize = False
+			
+		elif do_optimize and not self.has_key ('Content-Encoding'):
 			maybe_compress = self.request.get_header ("Accept-Encoding")
 			if maybe_compress and self.has_key ("content-length") and int (self ["Content-Length"]) <= UNCOMPRESS_MAX:
 				maybe_compress = ""
@@ -351,59 +367,45 @@ class http_response:
 					self.delete ("content-length") # rebuild
 					wrap_in_chunking = True
 				self.update ('Content-Encoding', way_to_compress)	
-		
-		if len (self.outgoing) == 0:
-			self.delete ('transfer-encoding')
-			self.delete ('content-length')
-			#self.update ('Content-Length', 0)
-			self.outgoing.push_front (producers.simple_producer (self.build_reply_header().encode ("utf8")))
-			outgoing_producer = producers.composite_producer (self.outgoing)
-			
-		else:	
-			if wrap_in_chunking:
+
+			if wrap_in_chunking:				
+				outgoing_producer = producers.composite_producer (self.outgoing)
 				self.delete ('content-length')
-				self.update ('Transfer-Encoding', 'chunked')
-				
+				self.update ('Transfer-Encoding', 'chunked')				
 				if way_to_compress:
 					if way_to_compress == "gzip": 
-						producer = producers.gzipped_producer
+						compressing_producer = producers.gzipped_producer
 					else: # deflate
-						producer = producers.compressed_producer
-					outgoing_producer = producer (producers.composite_producer (self.outgoing))
-					
-				else:
-					outgoing_producer = producers.composite_producer (self.outgoing)				
-					
+						compressing_producer = producers.compressed_producer
+					outgoing_producer = compressing_producer (outgoing_producer)
 				outgoing_producer = producers.chunked_producer (outgoing_producer)
-				outgoing_header = producers.simple_producer (self.build_reply_header().encode ("utf8"))
-				outgoing_producer = producers.composite_producer (
-					producers.fifo([outgoing_header, outgoing_producer])
-				)
+				outgoing_header = producers.simple_producer (self.build_reply_header().encode ("utf8"))				
 				
-			else:						
+			else:
 				self.delete ('transfer-encoding')
 				if way_to_compress:					
 					if way_to_compress == "gzip":
 						compressor = compressors.GZipCompressor ()
 					else: # deflate
 						compressor = zlib.compressobj (6, zlib.DEFLATED)
-					
 					cdata = ""
 					has_producer = 1
 					while 1:
 						has_producer, producer = self.outgoing.pop ()
 						if not has_producer: break
 						cdata += compressor.compress (producer.data)				
-					cdata += compressor.flush ()
-					
+					cdata += compressor.flush ()					
 					self.update ("Content-Length", len (cdata))
-					self.outgoing = producers.fifo ([producers.simple_producer (cdata)])
-				
-				outgoing_header = producers.simple_producer (self.build_reply_header().encode ("utf8"))
-				self.outgoing.push_front (outgoing_header)
-				outgoing_producer = producers.composite_producer (self.outgoing)
-		
-		outgoing_producer = producers.hooked_producer (outgoing_producer, self.log)
+					outgoing_producer = producers.simple_producer (cdata)						
+				else:
+					outgoing_producer = producers.composite_producer (self.outgoing)						
+				outgoing_header = producers.simple_producer (self.build_reply_header().encode ("utf8"))				
+			
+			outgoing_producer = producers.composite_producer (
+				producers.fifo([outgoing_header, outgoing_producer])
+			)
+
+		outgoing_producer = producers.hooked_producer (outgoing_producer, self.log)			
 		if do_optimize:
 			outgoing_producer = producers.globbing_producer (outgoing_producer)
 		
@@ -427,7 +429,8 @@ class http_response:
 		
 		logger = self.request.logger #IMP: for  disconnect with request
 		try:
-			self.request.channel.push_with_producer (outgoing_producer)		
+			if outgoing_producer:
+				self.request.channel.push_with_producer (outgoing_producer)
 			if close_it:
 				self.request.channel.close_when_done ()
 		except:			

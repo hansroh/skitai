@@ -71,7 +71,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		self.new_handler = TunnelHandler (self.asyncon, self.request, self.client_request.channel)
 		self.client_request.response.done (upgrade_to = (self.new_handler.asyntunnel, None))
 			
-	def create_response (self):		
+	def create_response (self):
 		if not self.client_request.channel: return
 
 		buffer, self.buffer = self.buffer, b""
@@ -79,7 +79,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		accept_encoding = self.client_request.get_header ("Accept-Encoding")
 		if accept_encoding and accept_encoding.find ("gzip") != -1:
 			accept_gzip = "gzip"
-		
+
 		try:
 			self.response = ProxyResponse (self.request, buffer.decode ("utf8"), accept_gzip, self.client_request, self.asyncon)
 		except:
@@ -102,8 +102,8 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		
 		if self.response.is_gzip_compressed ():
 			self.client_request.response ["Content-Encoding"] = "gzip"
-		
-		if self.response.body_expected ():			
+				
+		if self.response.body_expected ():
 			self.client_request.response.push (self.response)
 			self.client_request.response.die_with (self.response)
 			self.client_request.response.set_streaming ()			
@@ -190,12 +190,12 @@ class Handler (wsgi_handler.Handler):
 		return 0
 		
 	def handle_request (self, request):
-		collector = None
+		collector = None		
 		if request.command in ('post', 'put'):
 			ct = request.get_header ("content-type")
 			if not ct: ct = ""
 			current_post_max_size = ct.startswith ("multipart/form-data") and UPLOAD_MAX_SIZE or POST_MAX_SIZE
-			collector = self.make_collector (Collector, request, current_post_max_size)
+			collector = self.make_collector (Collector, request, current_post_max_size)			
 			if collector:
 				request.collector = collector				
 				collector.start_collect ()

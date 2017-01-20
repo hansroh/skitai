@@ -81,11 +81,15 @@ class ProxyResponse (http_response.Response):
 		#self.asyncon.handle_close (710, "Channel Closed")
 		
 	def ready (self):
-		# if exist consumable data or wait
+		#print ('====== READYU', len (self.u), self.got_all_data)
 		return len (self.u) or self.got_all_data
 		
 	def more (self):
 		self.flushed_time = time.time ()
-		data = self.u.read ()
+		data = self.u.read ()		
+		#print ('-----', data [:70])
 		return data
 	
+	def collect_incoming_data (self, data):
+		http_response.Response.collect_incoming_data (self, data)
+		

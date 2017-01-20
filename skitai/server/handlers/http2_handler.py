@@ -202,7 +202,7 @@ class http2_request_handler:
 			h2header_producer (stream_id, headers, producer, self.conn, self._plock)
 		)
 		
-		if producer:			
+		if producer:
 			if r.response.is_async_streaming ():
 				h2_class = h2stream_producer
 			else:
@@ -213,7 +213,7 @@ class http2_request_handler:
 			)
 			self.channel.push_with_producer (outgoing_producer)
 		
-		if r.is_stream_ended () or not r.is_async_streaming ():
+		if r.is_stream_ended ():
 			# needn't recv data any more
 			self.remove_request (stream_id)
 		
@@ -233,7 +233,7 @@ class http2_request_handler:
 		with self._clock:
 			try: del self.requests [stream_id]
 			except KeyError: pass		
-		r.http2 = None		
+		r.http2 = None
 		
 	def get_request (self, stream_id):
 		r = None
@@ -244,9 +244,7 @@ class http2_request_handler:
 			
 	def handle_events (self, events):
 		for event in events:
-			if isinstance(event, RequestReceived):
-				#print ('======local_flow_control_window', self.conn.local_flow_control_window (event.stream_id))				
-				#print ('======remote_flow_control_window', self.conn.remote_flow_control_window (event.stream_id))				
+			if isinstance(event, RequestReceived):				
 				self.handle_request (event.stream_id, event.headers)				
 					
 			elif isinstance(event, StreamReset):
@@ -310,8 +308,15 @@ class http2_request_handler:
 					if r.collector:
 						r.channel.handle_read ()
 						r.channel.found_terminator ()
+					else:
+						self.request.logger ("stream ended (stream_id:%d) but no collector" % event.stream_id, "warn")	
+						self.remove_request (event.stream_id)
+						self.go_away (PROTOCOL_ERROR)
+						return
 					r.set_stream_ended ()
-					if r.is_async_streaming () or r.response is None or r.response.is_done ():	
+					if r.response.is_done ():
+						# DO NOT REMOVE before responsing
+						# this is for async streaming request like proxy request
 						self.remove_request (event.stream_id)
 					
 		self.send_data ()
@@ -430,7 +435,7 @@ class http2_request_handler:
 			except: pass
 				
 		else:
-			if should_have_collector and cl > 0:		
+			if should_have_collector and cl > 0:
 				if r.collector is None:
 					# POST but too large body or 3xx, 4xx
 					if stream_id == 1 and self.request.version == "1.1":						
