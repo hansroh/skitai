@@ -8,7 +8,7 @@ from aquests.protocols.http import http_util, http_date
 from aquests.lib.athreads import threadlib
 from skitai import lifetime
 from aquests.lib import producers, compressors
-from aquests.lib.athreads.fifo import ready_producer_fifo
+from collections import deque
 import signal
 import ssl
 import skitai
@@ -32,6 +32,7 @@ class http_channel (asynchat.async_chat):
 	zombie_timeout = 5
 	keep_alive = 5
 	response_timeout = 10
+	fifo_class = deque
 	
 	def __init__ (self, server, conn, addr):
 		self.channel_number = http_channel.channel_count.inc ()
@@ -42,7 +43,7 @@ class http_channel (asynchat.async_chat):
 		#asynchat.async_chat.__init__ (self, conn)
 		self.ac_in_buffer = b''
 		self.incoming = []
-		self.producer_fifo = ready_producer_fifo ()
+		self.producer_fifo = self.fifo_class ()
 		asyncore.dispatcher.__init__(self, conn)
 		
 		self.server = server
@@ -71,7 +72,8 @@ class http_channel (asynchat.async_chat):
 		lock.acquire ()
 		try:
 			asynchat.async_chat.initiate_send (self)		
-			is_working = self.producer_fifo.working ()
+			try: is_working = self.producer_fifo.working ()
+			except AttributeError: 	is_working = len (self.producer_fifo)
 		finally:	
 			lock.release ()			
 		if not is_working:
@@ -79,7 +81,9 @@ class http_channel (asynchat.async_chat):
 		
 	def initiate_send (self):
 		asynchat.async_chat.initiate_send (self)		
-		if not self.producer_fifo.working ():
+		try: is_working = self.producer_fifo.working ()
+		except AttributeError: 	is_working = len (self.producer_fifo)
+		if not is_working:
 			self.done_request ()		
 			
 	def readable (self):		

@@ -6,12 +6,12 @@ Skitai Library
 News & Changes
 ===============
 
+- ready_producer_fifo only activated when proxy or reverse proxy is enabled, default deque will be used
 - encoding argument was eliminated from REST call 
 - changed RPC, DBO request spec
 - added gRPC as server and client
 - support static files with http2
 - fix POST method on reverse proxying
-
 
 .. contents:: Table of Contents
 
@@ -577,7 +577,7 @@ You can read aquests_ usage first.
 
 I think it just fine explains some differences with aquests.
 
-First of all, usage is somewhat different.
+First of all, usage is somewhat different because aquests is used within threadings on skitai. Skitai takes some threading advantages and compromise with them for avoiding callback heaven.
 
 Usage
 ``````
@@ -1796,11 +1796,11 @@ app.py
         
 Now, hello function's can be accessed by '/[app mount point]/admin/Hans_Roh'.
   
-App's configs like debug & use_reloader, etc, will be applied to packages except event calls.
+App's configs like debug & use_reloader, etc, will be applied to packages except decorators.
 
 *Note:* was.app is always main Saddle app NOT current Saddlery sub app.
 
-Saddlery can have own sub Saddlery and event calls.
+Saddlery can have own sub saddlery and decorators.
 
 .. code:: python
   
@@ -1838,7 +1838,7 @@ Saddlery can have own sub Saddlery and event calls.
     # can build other module's method url
     return was.ab ("index", 1, 2) 
 
-In this case, app and sub-app's event calls are nested executed in this order.
+In this case, app and sub-app's method decorators are nested executed in this order.
 
 .. code:: python
 
@@ -1934,17 +1934,14 @@ Server Side:
   else:
     return feature
 
-  if __name__ == "__main__":  
-  
+  if __name__ == "__main__":
     skitai.run (
-      mount = [
-        ('/routeguide.RouteGuide', (__file__, 'app')),      
-      ]
+      mount = [('/routeguide.RouteGuide', app)
     )
 
 For more about gRPC and route_guide_pb2, go to `gRPC Basics - Python`_.
 
-Note: I think I don't understand about gRPC's stream request and response. Does it means chatting style? Why does data stream has interval like GPS data be handled as stream type?
+Note: I think I don't understand about gRPC's stream request and response. Does it means chatting style? Why does data stream has interval like GPS data be handled as stream type? If it is chat style stream, is it more efficient that use proto buffer on Websocket protocol? In this case, it is even possible collaborating between multiple gRPC clients.
 
 .. _`gRPC Basics - Python`: http://www.grpc.io/docs/tutorials/basic/python.html
 

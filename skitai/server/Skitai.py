@@ -5,28 +5,31 @@
 #-------------------------------------------------------
 
 HTTPS = True
-from aquests.client import adns
 import sys, time, os, threading
 from . import http_server
 from skitai import lifetime
 from warnings import warn
 from . import https_server
 from skitai import start_was
+from collections import deque
+from aquests.lib.athreads.fifo import await_fifo
+from aquests.client import asynconnect
+from aquests.client import socketpool
+from aquests.lib.athreads import threadlib, trigger
+from aquests.lib import logger, confparse, pathtool, flock
+from aquests.dbapi import dbpool
+from aquests.protocols.http import request_handler
+from aquests.protocols import http2
+from aquests.client import adns
 if os.name == "nt":	
 	from . import schedule			
 from .handlers import proxy_handler, ipbl_handler, vhost_handler
-from aquests.lib.athreads import threadlib, trigger
-from aquests.lib import logger, confparse, pathtool, flock
 from .rpc import cluster_dist_call, rcache
-from aquests.client import socketpool
 import socket
 import signal
 import multiprocessing
 from . import wsgiappservice, cachefs
 from .dbi import cluster_dist_call as dcluster_dist_call
-from aquests.dbapi import dbpool
-from aquests.protocols.http import request_handler
-from aquests.protocols import http2
 import types
 
 class Loader:
@@ -41,6 +44,7 @@ class Loader:
 		self.ssl = False
 		self.ctx = None
 		self._exit_code = None
+		self._fifo_switched = False
 		self.config_logger (self.logpath)
 		self.WAS_initialize ()
 		self.configure ()
@@ -63,7 +67,7 @@ class Loader:
 		self.wasc.register ("clusters",  {})
 		self.wasc.register ("clusters_for_distcall",  {})
 		self.wasc.register ("workers", 1)
-		self.wasc.register ("cachefs", None)
+		self.wasc.register ("cachefs", None)		
 		
 	def WAS_finalize (self):
 		global the_was
@@ -91,7 +95,15 @@ class Loader:
 		dp = dbpool.DBPool (self.wasc.logger.get ("server"))
 		self.wasc.clusters ["__dbpool__"] = dp
 		self.wasc.clusters_for_distcall ["__dbpool__"] = dcluster_dist_call.ClusterDistCallCreator (dp, self.wasc.logger.get ("server"))
-		
+	
+	def switch_fifo (self):
+		if self._fifo_switched: return
+		asynconnect.AsynConnect.fifo_class = await_fifo
+		asynconnect.AsynSSLConnect.fifo_class = await_fifo
+		http_server.http_channel.fifo_class = await_fifo
+		https_server.https_channel.fifo_class = await_fifo
+		self._fifo_switched = True
+			
 	def config_rcache (self, maxobj = 1000):
 		rcache.start_rcache (maxobj)
 		self.wasc.register ("rcache", rcache.the_rcache)		
@@ -186,7 +198,7 @@ class Loader:
 			if type (entity) is not str:
 				entity = os.path.join (os.getcwd (), sys.argv [0])			
 			if entity [0] == "@":
-				sroutes.append ("%s=%s" % (route, entity))
+				sroutes.append ("%s=%s" % (route, entity))				
 			elif entity.endswith (".py") or entity.endswith (".pyc"):
 				entity = os.path.join (os.getcwd (), entity) [:-3]
 				if entity [-1] == ".": 
@@ -211,6 +223,7 @@ class Loader:
 		if blacklist_dir:
 			self.wasc.add_handler (0, ipbl_handler.Handler, blacklist_dir)
 		if proxy:
+			self.switch_fifo ()
 			self.wasc.add_handler (1, proxy_handler.Handler, self.wasc.clusters, self.wasc.cachefs, unsecure_https)		
 		
 		vh = self.wasc.add_handler (
@@ -226,10 +239,12 @@ class Loader:
 			if line.startswith (";") or line.startswith ("#"):
 				continue
 			elif line.startswith ("/"):
-				vh.add_route (current_rule, line)
+				reverse_proxing = vh.add_route (current_rule, line)
+				if reverse_proxing:
+					self.switch_fifo ()
 			elif line:
 				if line [0] == "@":
-					line = line [1:].strip ()
+					line = line [1:].strip ()					
 				current_rule = line
 			
 	def run (self, timeout = 30):

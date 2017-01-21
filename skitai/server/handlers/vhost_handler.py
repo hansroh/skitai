@@ -73,6 +73,7 @@ class Handler:
 				break
 			
 	def add_route (self, rule, routepair):
+		reverse_proxing = False
 		if rule.strip () in ("*", "default"):
 			rule = None
 		else:
@@ -87,6 +88,7 @@ class Handler:
 			if route [-1] == "/":
 				route = route [:-1]
 			vhost.add_proxypass (route, target [1:].strip ())
+			reverse_proxing = True
 		
 		elif os.path.isdir (target):
 			if route [-1] == "/":
@@ -96,6 +98,7 @@ class Handler:
 		else:
 			fullpath = os.path.split (target.strip())
 			vhost.add_module (route, os.sep.join (fullpath[:-1]), fullpath [-1])
+		return reverse_proxing
 		
 	def find (self, host):
 		if host:
