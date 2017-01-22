@@ -621,11 +621,7 @@ At Skitai,
 
 Also note you can't use meta argument at Skitai.
 
-
-Addional Response Methods and Properties
-``````````````````````````````````````````
-
-Above respones1, respones2 has 1 more methods than aquests' response object.
+Here're addtional methods and properties above response obkect compared with aquests' response one.
 
 - cache (timeout): response caching
 - status: it indicate requests processed status and note it is not related response.status_code.

@@ -6,8 +6,8 @@ import time
 class ProxyResponse (http_response.Response):
 	SIZE_LIMIT = 2**24
 	
-	def __init__ (self, request, header, accept_gzip, client_request, asyncon):		
-		self.client_request = client_request
+	def __init__ (self, request, header, accept_gzip, client_request, asyncon):				
+		self.client_request = client_request 
 		self.asyncon = asyncon
 		self.accept_gzip = accept_gzip		
 		self.request = request
