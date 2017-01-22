@@ -110,7 +110,13 @@ def run (**conf):
 			self.install_handler (
 				conf.get ("mount"), 
 				conf.get ("proxy", False),
-				conf.get ("static_max_age", 300)
+				conf.get ("static_max_age", 300),
+				None, # blacklistdir
+				conf.get ("proxy_hacked_https", False),
+				conf.get ("enable_gw", False), # API gateway
+				conf.get ("gw_auth", False),
+				conf.get ("gw_realm", "API Gateway"),
+				conf.get ("gw_secret_key", None)
 			)
 			lifetime.init ()
 			
