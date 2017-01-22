@@ -231,7 +231,9 @@ Using Skitai's reverse proxy feature, it can be used as API Gateway Server. All 
     gw_secret_key = 'secret key for JWT'
   )
 
-Gateway use only bearer tokens like OAuth2 and JWT(Json Web Token) for authorization.
+Gateway use only bearer tokens like OAuth2 and JWT(Json Web Token) for authorization. And token issuance is at your hands.
+
+Skitai also create API Transaction ID for each API call, and this will eb explained in Skitai 'was' Service chapter.
 
 
 Run as HTTPS Server
