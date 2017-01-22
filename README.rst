@@ -212,14 +212,14 @@ Enabling Proxy Server
 Enabling API Gateway Server
 -----------------------------
 
-Using Skitai's reverse proxy feature, it can be used as API Gateway Server. All backend API servers can be mounted at gateway server.
+Using Skitai's reverse proxy feature, it can be used as API Gateway Server. All backend API servers can be mounted at gateway server with client authentification and transaction ID logging feature.
 				
 .. code:: python
 
   skitai.run (
     clusters = {
-      "@members": ("https", "members.exanple.com"),
-      "@photos": ("http", ["photos1.exanple.com", "photos2.exanple.com"]) # load-balancing
+      "@members": ("https", "members.example.com"),
+      "@photos": ("http", ["photos1.example.com", "photos2.example.com"]) # for load-balancing
     },
     mount = [
       ('/', app),
