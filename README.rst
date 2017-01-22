@@ -208,6 +208,34 @@ Enabling Proxy Server
     proxy = True
   )
 
+
+Enabling API Gateway Server
+-----------------------------
+
+Using Skitai's reverse proxy feature, it can be used as API Gateway Server. All backend API servers can be mounted at gateway server with client authentification and transaction ID logging feature.
+				
+.. code:: python
+
+  skitai.run (
+    clusters = {
+      "@members": ("https", "members.example.com"),
+      "@photos": ("http", ["photos1.example.com", "photos2.example.com"]) # for load-balancing
+    },
+    mount = [
+      ('/', app),
+      ('/members', '@members'),
+      ('/photos', '@photos')
+    ],
+    enable_gw = True,
+    gw_auth = True, # enable GW Authenification
+    gw_secret_key = 'secret key for JWT'
+  )
+
+Gateway use only bearer tokens like OAuth2 and JWT(Json Web Token) for authorization. And token issuance is at your hands.
+
+Skitai also create API Transaction ID for each API call, and this will eb explained in Skitai 'was' Service chapter.
+
+
 Run as HTTPS Server
 ------------------------
 
