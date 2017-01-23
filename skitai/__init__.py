@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.23.7"
+__version__ = "0.23.8.2"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -112,7 +112,7 @@ def run (**conf):
 				conf.get ("proxy", False),
 				conf.get ("static_max_age", 300),
 				None, # blacklistdir
-				conf.get ("proxy_hacked_https", False),
+				False, # disable unsecure https
 				conf.get ("enable_gw", False), # API gateway
 				conf.get ("gw_auth", False),
 				conf.get ("gw_realm", "API Gateway"),

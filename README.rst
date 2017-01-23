@@ -213,27 +213,69 @@ Enabling API Gateway Server
 -----------------------------
 
 Using Skitai's reverse proxy feature, it can be used as API Gateway Server. All backend API servers can be mounted at gateway server with client authentification and transaction ID logging feature.
-				
+
 .. code:: python
 
-  skitai.run (
-    clusters = {
-      "@members": ("https", "members.example.com"),
-      "@photos": ("http", ["photos1.example.com", "photos2.example.com"]) # for load-balancing
-    },
-    mount = [
-      ('/', app),
-      ('/members', '@members'),
-      ('/photos', '@photos')
-    ],
-    enable_gw = True,
-    gw_auth = True, # enable GW Authenification
-    gw_secret_key = 'secret key for JWT'
-  )
+  class Authorizer:
+    def __init__ (self):
+      self.tokens = {
+        "12345678-1234-123456": ("hansroh", ["user", "admin"], 0)
+      }
+      
+    # For Token
+    def handle_token (self, request, callback):
+      username, roles, expires = self.tokens.get (request.token)
+      if expires and expires < time.time ():
+        # remove expired token
+        self.tokens.popitem (request.token)
+        return callback (request)
+      callback (request, username, roles)
+    
+    # For JWT Claim
+    def handle_claim (self, request, callback):
+      claim = request.claim    
+      expires = claim.get ("expires", 0)
+      if expires and expires < time.time ():
+        return callback (request)
+      callback (request, claim.get ("user"), claim.get ("roles"))
+    
+  @app.startup
+  def startup (wasc):
+    wasc.handler.set_auth_handler (Authorizer ())
+    
+  @app.route ("/")
+  def index (was):
+    return "<h1>Skitai App Engine: API Gateway</h1>"
+  
+  
+  if __name__ == "__main__":
+    import skitai
+    
+    skitai.run (
+      clusters = {
+       "@members": ("https", "members.example.com"),
+       "@photos": ("http", ["photos1.example.com", "photos2.example.com"]) # for load-balancing
+      },
+      mount = [
+        ('/', app),
+        ('/members', '@members'),
+        ('/photos', '@photos')
+      ],
+        enable_gw = True
+        gw_auth = True,
+        gw_secret_key = "8fa06210-e109-11e6-934f-001b216d6e71"
+    )
+    
+Gateway use only bearer tokens like OAuth2 and JWT(Json Web Token) for authorization. And token issuance is at your own hands. But JWT creation, 
 
-Gateway use only bearer tokens like OAuth2 and JWT(Json Web Token) for authorization. And token issuance is at your hands.
+.. code:: python
 
-Skitai also create API Transaction ID for each API call, and this will eb explained in Skitai 'was' Service chapter.
+  from aquests.lib import jwt
+  
+  secret_key = b"8fa06210-e109-11e6-934f-001b216d6e71"
+  token = jwt.gen_token (secret_key, {'user': 'Hans Roh', 'roles': ['user']}, "HS256")
+
+Also Skitai create API Transaction ID for each API call, and this will eb explained in Skitai 'was' Service chapter.
 
 
 Run as HTTPS Server
@@ -1681,14 +1723,17 @@ WWW-Authenticate
 
 Saddle provide simple authenticate for administration or perform access control from other system's call.
 
+Authentication On Entire App
+```````````````````````````````
+
 .. code:: python
 
   app = Saddle (__name__)
   
   app.authorization = "digest"
-  app.authenticate = True
   app.realm = "Partner App Area of mysite.com"
   app.users = {"app": ("iamyourpartnerapp", 0, {'role': 'root'})}
+  app.authenticate = True
 	
   @app.route ("/hello/<name>")
   def hello (was, name = "Hans Roh"):
@@ -1696,14 +1741,24 @@ Saddle provide simple authenticate for administration or perform access control 
 
 If app.authenticate is True, all routes of app require authorization (default is False).
 
+
+Authentication On Specific Methods Only
+`````````````````````````````````````````
+
 Otherwise you can make some routes requirigng authorization like this:
 
 .. code:: python
+
+  # False is default, you can omit this line
+  app.authenticate = False
  
   @app.route ("/hello/<name>", authenticate = True)
   def hello (was, name = "Hans Roh"):
     return "Hello, %s" % name
 
+
+User Collection
+`````````````````
 
 The return of app.users.get (username) can be:
 
