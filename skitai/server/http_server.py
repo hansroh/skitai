@@ -30,8 +30,6 @@ class http_channel (asynchat.async_chat):
 	is_rejected = False
 	
 	zombie_timeout = 5
-	keep_alive = 5
-	response_timeout = 10
 	fifo_class = deque
 	
 	def __init__ (self, server, conn, addr):
@@ -127,23 +125,19 @@ class http_channel (asynchat.async_chat):
 
 		self.things_die_with = []
 		self.close ()
-		
-	def set_response_timeout (self, timeout):
-		self.response_timeout = timeout
 	
-	def set_keep_alive (self, timeout):
-		self.keep_alive = timeout	
-		
+	def set_timeout (self, timeout):
+		self.zombie_timeout = timeout		
+			
 	def attend_to (self, thing):
 		if not thing: return
 		self.producers_attend_to.append (thing)
 	
 	def die_with (self, thing, tag):
 		if not thing: return
-		self.things_die_with.append ((thing, tag))		
+		self.things_die_with.append ((thing, tag))
 		
 	def done_request (self):	
-		self.zombie_timeout = self.keep_alive
 		self.producers_attend_to = [] # all producers are finished
 							
 	def send (self, data):
@@ -518,8 +512,7 @@ def configure (name, response, keep_alive):
 	from . import https_server
 	http_server.SERVER_IDENT = name
 	https_server.https_server.SERVER_IDENT = name + " (SSL)"
-	http_channel.response_timeout = https_server.https_channel.response_timeout = not response and 10 or response
-	http_channel.keep_alive = https_server.https_channel.keep_alive = not keep_alive and 10 or keep_alive
+	http_channel.zombie_timeout = https_server.https_channel.zombie_timeout = not keep_alive and 10 or keep_alive
 
 		
 if __name__ == "__main__":

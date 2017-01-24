@@ -12,8 +12,11 @@ from aquests.protocols.http import http_util
 from skitai import version_info, was as the_was
 import threading		
 from .websocket import specs
-from .websocket.servers import websocket_servers
+from .websocket import servers
 import time
+import skitai
+import inspect
+from skitai.saddle import part
 
 class Handler (wsgi_handler.Handler):
 	def match (self, request):
@@ -21,7 +24,7 @@ class Handler (wsgi_handler.Handler):
 		return upgrade and upgrade.lower ().startswith ("websocket") and request.version == "1.1" and request.command == "get"
 	
 	def close (self):
-		websocket_servers.close ()
+		servers.websocket_servers.close ()
 	
 	GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'.encode ()
 	def calculate_response_key (self, key):		
@@ -60,25 +63,64 @@ class Handler (wsgi_handler.Handler):
 		was.request = request
 		env ["skitai.was"] = was
 		env ["websocket_init"] = ""
-		# app should reply  (design type one of (1,2,3), keep-alive seconds)
-		# when env has 'skitai.websocket_init'
-		apph (env, donot_response)
-		wsconfig = env ["websocket_init"]
-		del env ["websocket_init"]
 		
-		try:	
-			if len (wsconfig) == 4:
-				design_spec, keep_alive, param_name, message_encoding = wsconfig
-			elif len (wsconfig) == 3:
-				design_spec, keep_alive, param_name = wsconfig
-				message_encoding = 'text'
+		is_saddle = isinstance (apph.get_callable (), part.Part)
+		message_encoding = skitai.WS_MSG_DEFAULT	
+			
+		if not is_saddle:	# not Skitao-Saddle				
+			apph (env, donot_response)
+			wsconfig = env ["websocket_init"]
+			if len (wsconfig) == 3:
+				design_spec, keep_alive, varnames = wsconfig				
+				if type (varnames) not in (list, tuple):
+					varnames = (varnames,)
 			else:
-				raise AssertionError ("You should return (design_spec, keep_alive, param_name, message_encoding) where env has key 'skitai.websocket_init'")				
-			assert design_spec in (1,2,3,4), "design_spec  should be one of (WEBSOCKET_REQDATA, WEBSOCKET_DEDICATE, WEBSOCKET_DEDICATE_THREADSAFE, WEBSOCKET_MULTICAST)"
-		except:
-			self.wasc.logger.trace ("server",  request.uri)
-			return request.response.error (500, why = apph.debug and catch (1) or "")
+				raise AssertionError ("You should return (design_spec, keep_alive, var_names) where env has key 'skitai.websocket_init'")
+				
+		else:	
+			current_app, method, kargs, resp_code = apph.get_callable().get_method (env ["PATH_INFO"])
+			if resp_code:
+				return request.response.error (resp_code)
+			
+			wsfunc = method [1]
+			fspec = inspect.getargspec (wsfunc)
+			savedqs = env.get ('QUERY_STRING', '')
+			current_args = {}
+			defaults = 0
+			if savedqs:
+				current_args = http_util.crack_query (env ['QUERY_STRING'])
+			if fspec.defaults:
+				defaults = len (fspec.defaults)
+			varnames = fspec.args [1:]
+				
+			temporary_args = "&".join ([arg + "=" for arg in varnames [:len (varnames) - defaults] if current_args.get (arg) is None])			
+			if temporary_args:
+				if savedqs:
+					env ['QUERY_STRING'] = savedqs + "&" + temporary_args
+				else:
+					env ['QUERY_STRING'] = temporary_args
+					
+			apph (env, donot_response)
+			wsconfig = env ["websocket_init"]
+			if not savedqs:
+				del env ["QUERY_STRING"]
+			else:	
+				env ["QUERY_STRING"] = savedqs
+			
+			keep_alive = 60
+			try:	
+				if len (wsconfig) == 3:
+					design_spec, keep_alive, message_encoding = wsconfig					
+				elif len (wsconfig) == 2:
+					design_spec, keep_alive = wsconfig
+				elif len (wsconfig) == 1:
+					design_spec = wsconfig [0]				
+			except:
+				self.wasc.logger.trace ("server",  request.uri)
+				return request.response.error (500, why = apph.debug and catch (1) or "")			
 		
+		del env ["websocket_init"]
+		assert design_spec in (1,2,4,5), "design_spec  should be one of (WS_SIMPLE, WS_GROUPCHAT, WS_DEDICATE, WS_DEDICATE_TS)"			
 		headers = [
 			("Sec-WebSocket-Accept", self.calculate_response_key (securekey)),
 			("Upgrade", "Websocket"),
@@ -86,37 +128,53 @@ class Handler (wsgi_handler.Handler):
       ("WebSocket-Protocol", protocol),
       ("WebSocket-Location", "ws://" + host + path)
 		]
-		request.response ("101 Web Socket Protocol Handshake", headers = headers)
+		request.response ("101 Web Socket Protocol Handshake", headers = headers)		
 		
-		if design_spec == 1: 
+		if design_spec == skitai.WS_SIMPLE:
+			varnames = varnames [:1]
 			# WEBSOCKET_REQDATA			
 			# Like AJAX, simple request of client, simple response data
 			# the simplest version of stateless HTTP protocol using basic skitai thread pool
-			ws = specs.WebSocket1 (self, request, apph, env, param_name)
-			env ["websocket"] = ws		
-			self.channel_config (request, ws, keep_alive)
-		
-		elif design_spec in (2, 4):
-			# WEBSOCKET_DEDICATE 			
-			# 1:1 wesocket:thread
-			# Be careful, it will be consume massive thread resources			
-			if design_spec == 2:
-				ws = specs.WebSocket2 (self, request, message_encoding)
-			else:
-				ws = specs.WebSocket4 (self, request, message_encoding)
-			request.channel.die_with (ws, "websocket spec. %d" % design_spec)
-			request.channel.use_sendlock ()
+			ws = specs.WebSocket1 (self, request, apph, env, varnames, message_encoding)
 			env ["websocket"] = ws
+			if is_saddle: env ["websocket.handler"] = (current_app, wsfunc)		
 			self.channel_config (request, ws, keep_alive)
-			job = specs.Job2 (request, apph, (env, donot_response), self.wasc.logger)
-			threading.Thread (target = job).start ()
 		
-		else: 
+		elif design_spec == skitai.WS_GROUPCHAT:
+			# WEBSOCKET_GROUPCHAT
+			# /chat?roomid=456, 
+			# return (WEBSOCKET_GROUPCHAT, 600)
+			# non-threaded websocketserver
+			# can send to all clients of group / specific client
+			varnames = varnames [:4]
+			param_name = varnames [2]
+			gid = http_util.crack_query (query).get (param_name, None)
+			try:
+				assert gid, "%s value can't find" % param_name
+			except:
+				self.wasc.logger.trace ("server",  request.uri)
+				return request.response.error (500, why = apph.debug and catch (1) or "")
+			gid = "%s/%s" % (path, gid)
+			
+			if not servers.websocket_servers.has_key (gid):
+				server = servers.websocket_servers.create (gid, self, request, apph, env, message_encoding)				
+				env ["websocket"] = server
+				if is_saddle: env ["websocket.handler"] = (current_app, wsfunc)
+			
+			server = servers.websocket_servers.get (gid)				
+			ws = specs.WebSocket5 (self, request, server, env, varnames)
+			server.add_client (ws)
+			request.channel.die_with (ws, "websocket spec. %d" % design_spec)
+			self.channel_config (request, ws, keep_alive)
+		
+		elif design_spec == skitai.WS_MULTICAST:
+			# DEPRECATED
 			# WEBSOCKET_MULTICAST
 			# /chat?roomid=456, 
 			# return (WEBSOCKET_MULTICAST, 600, "roomid")
 			# websocketserver thread will be created by roomid
 			# can send to all clients of group / specific client
+			param_name = varnames [0]
 			if not param_name:
 				gidkey = path
 			else:	
@@ -128,22 +186,36 @@ class Handler (wsgi_handler.Handler):
 					return request.response.error (500, why = apph.debug and catch (1) or "")
 				gid = "%s/%s" % (path, gid)
 			
-			if not websocket_servers.has_key (gid):
-				server = websocket_servers.create (gid, message_encoding)
-				request.channel.die_with (server, "websocket spec. %d" % design_spec)
+			if not servers.websocket_servers.has_key (gid):
+				server = servers.websocket_servers.create_threaded (gid, message_encoding)
 				request.channel.use_sendlock ()
 				env ["websocket"] = server
-				job = specs.Job3 (server, request, apph, (env, donot_response), self.wasc.logger)
-				threading.Thread (target = job).start ()	
+				job = specs.ThreadedServerJob (server, request, apph, (env, donot_response), self.wasc.logger)
+				threading.Thread (target = job).start ()
 			
-			server = websocket_servers.get (gid)				
+			server = servers.websocket_servers.get (gid)				
 			ws = specs.WebSocket3 (self, request, server)
 			server.add_client (ws)
-			self.channel_config (request, ws, keep_alive)			
+			request.channel.die_with (ws, "websocket spec. %d" % design_spec)
+			self.channel_config (request, ws, keep_alive)		
+				
+		else: # 2, 4
+			# WEBSOCKET_DEDICATE 			
+			# 1:1 wesocket:thread
+			# Be careful, it will be consume massive thread resources			
+			if design_spec == skitai.WS_DEDICATE:
+				ws = specs.WebSocket2 (self, request, message_encoding)
+			else:
+				ws = specs.WebSocket4 (self, request, message_encoding)
+			request.channel.die_with (ws, "websocket spec. %d" % design_spec)
+			request.channel.use_sendlock ()
+			env ["websocket"] = ws
+			self.channel_config (request, ws, keep_alive)
+			job = specs.DedicatedJob (request, apph, (env, donot_response), self.wasc.logger)
+			threading.Thread (target = job).start ()
 		
 	def channel_config (self, request, ws, keep_alive):
-		request.response.done (upgrade_to =  (ws, 2))
-		request.channel.set_response_timeout (keep_alive)
-		request.channel.set_keep_alive (keep_alive)
+		request.response.done (upgrade_to =  (ws, 2))		
+		request.channel.set_timeout (keep_alive)
 	
 	

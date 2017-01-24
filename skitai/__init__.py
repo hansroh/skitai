@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.23.8.2"
+__version__ = "0.24b1"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -10,10 +10,28 @@ HTTP2 = True
 try: import h2
 except ImportError: HTTP2 = False
 
-WEBSOCKET_REQDATA = 1
+WEBSOCKET_REQDATA = 1 # deprecated
+WEBSOCKET_MULTICAST = 3 # deprecated
+
+WEBSOCKET_SIMPLE = 1
 WEBSOCKET_DEDICATE = 2
-WEBSOCKET_MULTICAST = 3
 WEBSOCKET_DEDICATE_THREADSAFE = 4
+WEBSOCKET_GROUPCHAT = 5
+
+WS_SIMPLE = 1
+WS_DEDICATE = 2
+WS_MULTICAST = 3
+WS_DEDICATE_TS = 4
+WS_GROUPCHAT = 5
+
+WS_EVT_ENTER = "enter"
+WS_EVT_EXIT = "exit"
+WS_EVT_NONE = None
+
+WS_MSG_JSON = "json"
+WS_MSG_XMLRPC = "xmlrpc"
+WS_MSG_GRPC = "grpc"
+WS_MSG_DEFAULT = None
 
 from aquests.dbapi import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 

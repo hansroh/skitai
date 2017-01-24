@@ -180,7 +180,7 @@ class http_response:
 	def send_error (self, status, why = "", disconnect = False):
 		# for Saddle App
 		if not self.is_responsable ():
-			raise AssertionError ("Relponse already sent!")
+			raise AssertionError ("Response already sent!")
 		self ["Content-Type"] = "text/html"		
 		if type (why) is tuple: # render exc_info
 			why = catch (1, why)			

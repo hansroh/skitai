@@ -2,7 +2,7 @@ import threading
 import time
 import os
 import sys
-from . import part, multipart_collector, cookie, session, grpc_collector
+from . import part, multipart_collector, cookie, session, grpc_collector, ws_executor
 from . import wsgi_executor, xmlrpc_executor, grpc_executor
 from aquests.lib import producers
 from aquests.protocols.grpc import discover
@@ -63,20 +63,8 @@ class Saddle (part.Part):
 		self.config = Config ()
 	
 	def jinja_overlay (self, line_statement = "%", variable_string = "#", block_start_string = "{%", block_end_string = "}", **karg):
-		from . import jinjapatch
-				
-		self.jinja_env = jinjapatch.Environment (
-			loader = PackageLoader (self.app_name),
-		  variable_start_string=variable_string,
-		  variable_end_string=variable_string,
-		  line_statement_prefix=line_statement,
-		  block_end_string = block_end_string,
-		  block_start_string = block_start_string,
-		  line_comment_prefix=line_statement * 2,
-		  trim_blocks = True,
-			lstrip_blocks = True,
-		  **karg
-		)
+		from . import jinjapatch				
+		self.jinja_env = jinjapatch.overlay (self.app_name, line_statement, variable_string, block_start_string, block_end_string, **karg)
 	
 	def render (self, was, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		while template_file and template_file [0] == "/":
@@ -253,7 +241,7 @@ class Saddle (part.Part):
 				return current_app, None, None, 415 # unsupported media type
 			resp_code = options.get ("authenticate", False) and 401 or 0
 									
-		return current_app, method, kargs, resp_code			
+		return current_app, method, kargs, resp_code
 	
 	def restart (self, wasc, route):
 		self.start (wasc, route, self.packages)
@@ -298,6 +286,8 @@ class Saddle (part.Part):
 			result = xmlrpc_executor.Executor (env, self.get_method) ()
 		elif content_type.startswith ("application/grpc"):
 			result = grpc_executor.Executor (env, self.get_method) ()			
+		elif env.get ("websocket.params"):
+			result = ws_executor.Executor (env, None) ()
 		else:	
 			result = wsgi_executor.Executor (env, self.get_method) ()
 		

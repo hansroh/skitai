@@ -31,6 +31,7 @@ import multiprocessing
 from . import wsgiappservice, cachefs
 from .dbi import cluster_dist_call as dcluster_dist_call
 import types
+from skitai.server.handlers.websocket import servers as websocekts
 
 class Loader:
 	def __init__ (self, config, logpath = None, varpath = None, debug = 0):
@@ -67,7 +68,9 @@ class Loader:
 		self.wasc.register ("clusters",  {})
 		self.wasc.register ("clusters_for_distcall",  {})
 		self.wasc.register ("workers", 1)
-		self.wasc.register ("cachefs", None)		
+		self.wasc.register ("cachefs", None)	
+		websocekts.start_websocket (self.wasc)
+		self.wasc.register ("websockets", websocekts.websocket_servers)
 		
 	def WAS_finalize (self):
 		global the_was

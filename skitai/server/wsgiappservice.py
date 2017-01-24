@@ -256,6 +256,10 @@ class WAS:
 	def shutdown (self, timeout = 0):
 		lifetime.shutdown (0, timeout)
 	
+	def wsconfig (self, spec, timeout = 60, encoding = "text"):
+		self.env ["websocket_init"] = (spec, timeout, encoding)
+		return ""
+		
 	
 class Logger:
 	def __init__ (self, media, path):

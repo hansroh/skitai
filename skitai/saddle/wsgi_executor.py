@@ -178,7 +178,7 @@ class Executor:
 				
 		return current_app, thing, param, respcode
 		
-	def __call__ (self):		
+	def __call__ (self):
 		request = self.env ["skitai.was"].request
 		current_app, thing, param, respcode = self.find_method (request, self.env ["PATH_INFO"])
 		

@@ -2,17 +2,6 @@
 Skitai Library
 ===============
 
-
-News & Changes
-===============
-
-- ready_producer_fifo only activated when proxy or reverse proxy is enabled, default deque will be used
-- encoding argument was eliminated from REST call 
-- changed RPC, DBO request spec
-- added gRPC as server and client
-- support static files with http2
-- fix POST method on reverse proxying
-
 .. contents:: Table of Contents
 
 
@@ -362,7 +351,7 @@ I think there're 3 handling ways to use websockets.
 
 3. one thread manages n websockets connection
 
-So skitai supports above all 3 ways.
+So skitai supports 1 and 2.
 
 First of all, see conceptual client side java script for websocket.
 
@@ -408,39 +397,50 @@ First of all, see conceptual client side java script for websocket.
 
 If your WSGI app enable handle websocket, it should give  initial parameters to Skitai.
 
-You should check exist of env ["websocket_init"], set initializing parameters.
+You should check exist of env ["websocket_init"], set initializing websocket like this (but except Skito-Saddle, initializing is different).
 
-initializing parameters should be tuple of (websocket design spec, keep alive timeout, variable name)
+.. code:: python
+  
+  def websocket (was, message):
+    if "websocket_init" in was.env:
+      return was.wsconfig (websocket design specs, keep_alive_timeout = 60, message_encoding = None)		
 
-*websocket design specs* can  be choosen one of 3 .
+*websocket design specs* can  be choosen one of 4.
 
-WEBSOCKET_REQDATA
+WS_SIMPLE (before version 0.24, WEBSOCKET_REQDATA)
 
   - Thread pool manages n websocket connection
   - It's simple request and response way like AJAX
   - Use skitai initail thread pool, no additional thread created
   - Low cost on threads resources, but reposne cost is relatvley high than the others
+
+WS_GROUPCHAT
   
-WEBSOCKET_DEDICATE
+  - Trhead pool manages n websockets connection
+  - Chat room model
+  
+WS_DEDICATE (before version 0.24, WEBSOCKET_DEDICATE)
 
   - One thread per websocket connection
   - Use when interactives takes long time like websocket version telnet or subprocess stdout streaming
   - New thread created per websocket connection
  
-WEBSOCKET_DEDICATE_THREADSAFE
+WS_DEDICATE_TS (before version 0.24, WEBSOCKET_DEDICATE_THREADSAFE)
 
   - Thread safe version of WEBSOCKET_DEDICATE
   - Multiple threads can call websocket.send (msg)
  
-WEBSOCKET_MULTICAST
-  
-  - One thread manages n websockets connection
-  - Chat room model, all websockets will be managed by single thread
-  - New thread created per chat room
+WEBSOCKET_MULTICAST: DEPRECATED
+
 
 *keep alive timeout* is seconds.
 
-*variable name* is various usage per each design spec.
+*message_encoding*
+
+Websocket messages will be automatically converted to theses objects. Note that option is only available with Skito-Saddle WSGI container.
+
+  - WS_MSG_JSON
+  - WS_MSG_XMLRPC
 
 
 Simple Data Request & Response
@@ -462,13 +462,15 @@ Client can connect by ws://localhost:5000/websocket/chat.
   app.use_reloader = True
 
   @app.route ("/websocket/echo")
-  def echo (was, message = ""):
+  def echo (was, message):
     if "websocket_init" in was.env:
-      was.env ["websocket_init"] = (skitai.WEBSOCKET_REQDATA, 60, "message")
-      return ""
+      return was.wsconfig (skitai.WS_SIMPLE, 60)      
     return "ECHO:" + message
 
+
 *Flask Style*
+
+At Flask, Skitai can't know which variable name receive websocket message, then should specify.
 
 .. code:: python
 
@@ -482,16 +484,58 @@ Client can connect by ws://localhost:5000/websocket/chat.
   @app.route ("/websocket/echo")
   def echo ():
     if "websocket_init" in request.environ:
-      request.environ ["websocket_init"] = (skitai.WEBSOCKET_REQDATA, 60, "message")
+      request.environ ["websocket_init"] = (skitai.WS_SIMPLE, 60, "message")
       return ""
     return "ECHO:" + request.args.get ("message")
 
 In this case, variable name is "message", It means take websocket's message as "message" arg.
 
+
+Group Chat Websocket
+---------------------
+
+This is just extension of Simple Data Request & Response. Here's simple mutiuser chatting app.
+
+Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can chat between all clients.
+
+.. code:: python
+
+  @app.route ("/chat")
+  def chat (was, message, client_id, room_id, event = None):    
+    if "websocket_init" in was.env:
+      return was.wsconfig (skitai.WS_GROUPCHAT, 60)    
+    if event == skitai.WS_EVT_ENTER:
+      return "Client %s has entered" % client_id
+    if event == skitai.WS_EVT_EXIT:
+      return "Client %s has leaved" % client_id
+    return "Client %s Said: %s" % (client_id, message)
+
+In this case, first 4 args (message, client_id, room_id, event = None) are nessassory.
+
+For sending message to specific client_id,
+
+.. code:: python
+  
+  ws = was.env.get ('websocket')
+  clients = list (ws.clients.keys ())
+  receiver = client [0]
+  return "Client %s Said To %d: %s" % (client_id, message, receiver), receiver
+
+
+At Flask, should setup for variable names you want to use,
+
+.. code:: python
+  
+  if "websocket_init" in was.env:
+    request.environ ["websocket_init"] = (skitai.WS_GROUPCHAT, 60, ("message", "client_id", "room_id", "event"))
+    return ""
+   
+
+
 Dedicated Websocket
 -----------------------
 
-This app will handle only one websocket client. and if new websocekt connected, will be created new thread.
+This spec is for very special situation. It will handle only one websocket client. And if new websocekt connected, will be created new thread. It is designed for long running app and few users like web version of telnet.
 
 Client can connect by ws://localhost:5000/websocket/talk?name=Member.
 
@@ -500,8 +544,7 @@ Client can connect by ws://localhost:5000/websocket/talk?name=Member.
   @app.route ("/websocket/talk")
   def talk (was, name):
     if "websocket_init" in was.env:
-      was.env ["websocket_init"] = (skitai.WEBSOCKET_DEDICATE, 60, None)
-      return ""
+      return was.wsconfig (skitai.WS_DEDICATE, 60)
     
     ws = was.env ["websocket"]
     while 1:
@@ -518,14 +561,19 @@ Client can connect by ws://localhost:5000/websocket/talk?name=Member.
         else:  
           ws.send ("You Said:" + m)
 
-In this case, variable name should be None. If exists, will be ignored.
+At Flask,
+
+.. code:: python
+  
+  if "websocket_init" in was.env:
+    request.environ ["websocket_init"] = (skitai.WS_DEDICATE, 60, ())
+    return ""
+
 
 Threadsafe-Dedicated Websocket
 -------------------------------
 
-This app will handle only one websocket client. and if new websocekt connected, will be created new thread.
-
-Also you can new threads in your function which use websocket.send ().
+Very same as Dedicated Websocket above. But you can new threads in your function which use websocket.send ().
 
 .. code:: python
   
@@ -542,8 +590,7 @@ Also you can new threads in your function which use websocket.send ().
   @app.route ("/websocket/calculate")
   def calculate (was):
     if "websocket_init" in was.env:
-      was.env ["websocket_init"] = (skitai.WEBSOCKET_DEDICATE_THREADSAFE, 60, None)
-      return ""
+      return was.wsconfig (skitai.WS_GROUPCHAT, 60)
     
     workers = 0
     ws = was.env ["websocket"]
@@ -561,34 +608,6 @@ Also you can new threads in your function which use websocket.send ().
           workers +=1
         else:  
           ws.send ("You said %s but I can't understatnd" % m)
-
-In this case, variable name should be None. If exists, will be ignored.
-
-
-Multicasting Websocket
-------------------------
-
-Here's simple mutiuser chatting app.
-
-Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can chat between all clients.
-
-.. code:: python
-
-  @app.route ("/websocket/chat")
-  def chat (was, roomid):
-    if "websocket_init" in was.env:
-      was.env ["websocket_init"] = (skitai.WEBSOCKET_MULTICAST, 60, "roomid")
-      return ""
-    
-    ws = was.env ["websocket"]  
-    while 1:
-      messages = ws.getswait (10)
-      if messages is None:
-        break  
-      for client_id, m in messages:
-        ws.sendall ("Client %d Said: %s" % (client_id, m))
-
-In this case, variable name is "roomid", then Skitai will create websocket group seperatly by roomid value.
 
 
 You can access all examples by skitai sample app after installing skitai.
@@ -2079,9 +2098,19 @@ Links
 Change Log
 ==============
   
+  0.24 (Jan 2017)
+  
+  - change websocket initializing, not lower version compatible
+  - WEBSOCKET_MULTICAST deprecated, and new WEBSOCKET_GROUPCHAT does not create new thread any more
+  
   0.23 (Jan 2017)
   
-  - See News  
+  - ready_producer_fifo only activated when proxy or reverse proxy is enabled, default deque will be used
+  - encoding argument was eliminated from REST call 
+  - changed RPC, DBO request spec
+  - added gRPC as server and client
+  - support static files with http2
+  - fix POST method on reverse proxying
   
   0.22 (Jan 2017)
   

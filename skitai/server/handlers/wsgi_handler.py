@@ -259,7 +259,6 @@ class Job:
 		
 		try:
 			content = self.apph (*self.args)
-			
 			if not response.is_responsable ():
 				# already called response.done () or diconnected channel
 				return
@@ -323,7 +322,7 @@ class Job:
 		except MemoryError:
 			raise
 			
-		except:
+		except:			
 			was.traceback ()
 			trigger.wakeup (lambda p=response, d=self.apph.debug and catch (1) or "": (p.send_error ("508 WSGI App Error", d), p.done ()) )			
 				
