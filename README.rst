@@ -494,7 +494,7 @@ In this case, variable name is "message", It means take websocket's message as "
 Group Chat Websocket
 ---------------------
 
-This is just extension of Simple Data Request & Response. Here's simple mutiuser chatting app.
+This is just extension of Simple Data Request & Response. Here's simple multi-users chatting app.
 
 Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can chat between all clients.
 
@@ -518,7 +518,7 @@ For sending message to specific client_id,
   
   ws = was.env.get ('websocket')
   clients = list (ws.clients.keys ())
-  receiver = client [0]
+  receiver = clients [0]
   return "Client %s Said To %d: %s" % (client_id, message, receiver), receiver
 
 
@@ -527,7 +527,11 @@ At Flask, should setup for variable names you want to use,
 .. code:: python
   
   if "websocket_init" in was.env:
-    request.environ ["websocket_init"] = (skitai.WS_GROUPCHAT, 60, ("message", "client_id", "room_id", "event"))
+    request.environ ["websocket_init"] = (
+      skitai.WS_GROUPCHAT, 
+      60, 
+      ("message", "client_id", "room_id", "event")
+    )
     return ""
    
 
