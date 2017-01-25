@@ -192,7 +192,8 @@ class Executor:
 			content = self.generate_content (thing, (), param)
 		except:				
 			self.rollback ()
-			content = request.response ("500 Internal Server Error", exc_info = self.was.app.debug and sys.exc_info () or None)
+			if request.response.is_responsable ():
+				content = request.response ("500 Internal Server Error", exc_info = self.was.app.debug and sys.exc_info () or None)				
 			del self.was.env
 			del self.was.subapp
 			raise

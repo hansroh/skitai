@@ -207,7 +207,7 @@ class http_response:
 				finally:
 					exc_info = None	
 			else:
-				raise AssertionError ("Relponse already sent!")		
+				raise AssertionError ("Response already sent!")		
 			return
 		
 		code, status = self.parse_ststus (status)

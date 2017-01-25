@@ -402,7 +402,7 @@ You should check exist of env ["websocket_init"], set initializing websocket lik
 .. code:: python
   
   def websocket (was, message):
-    if "websocket_init" in was.env:
+    if was.wsinit ():
       return was.wsconfig (websocket design specs, keep_alive_timeout = 60, message_encoding = None)		
 
 *websocket design specs* can  be choosen one of 4.
@@ -414,7 +414,7 @@ WS_SIMPLE (before version 0.24, WEBSOCKET_REQDATA)
   - Use skitai initail thread pool, no additional thread created
   - Low cost on threads resources, but reposne cost is relatvley high than the others
 
-WS_GROUPCHAT
+WS_GROUPCHAT (New in version 0.24)
   
   - Trhead pool manages n websockets connection
   - Chat room model
@@ -450,8 +450,6 @@ Here's a echo app for showing simple request-respone.
 
 Client can connect by ws://localhost:5000/websocket/chat.
 
-*Skito-Saddle Style*
-
 .. code:: python
 
   from skitai.saddle import Saddle
@@ -463,12 +461,13 @@ Client can connect by ws://localhost:5000/websocket/chat.
 
   @app.route ("/websocket/echo")
   def echo (was, message):
-    if "websocket_init" in was.env:
+    if was.wsinit ():
       return was.wsconfig (skitai.WS_SIMPLE, 60)      
     return "ECHO:" + message
 
 
-*Flask Style*
+For Flask Users
+``````````````````
 
 At Flask, Skitai can't know which variable name receive websocket message, then should specify.
 
@@ -490,6 +489,53 @@ At Flask, Skitai can't know which variable name receive websocket message, then 
 
 In this case, variable name is "message", It means take websocket's message as "message" arg.
 
+If returned object is python str type, websocket will send messages as text tpye, if bytes type, as binary. But Flask's return object is assumed as text type.
+
+
+Send Messages Through Websocket Directly
+``````````````````````````````````````````
+
+It needn't return message, but you can send directly multiple messages through was.websocket,
+
+.. code:: python
+
+  @app.route ("/websocket/echo")
+  def echo (was, message):
+    if was.wsinit ():
+      return was.wsconfig (skitai.WS_SIMPLE, 60)
+
+    was.websocket.send ("You said," + message)	
+    was.websocket.send ("I said acknowledge")
+
+This way is very useful for Flask users, because Flask's return object is bytes, so Skitai try to decode with utf-8 and send message as text type. If Flask users want to send binary data,
+
+.. code:: python
+
+  @app.route ("/websocket/echo")
+  def echo ():
+    if "websocket_init" in request.environ:
+      request.environ ["websocket_init"] = (skitai.WS_SIMPLE, 60, "message")
+    
+    request.environ ["websocket"].send (("You said, %s" % message).encode ('iso8859-1'), skitai.WS_OPCODE_BINARY)
+
+
+Use Message Encoding
+`````````````````````
+
+For your convinient, message automatically load and dump object like JSON. But this feature is only available with Skitai-Saddle.
+
+.. code:: python
+
+  @app.route ("/websocket/json")
+  def json (was, message):
+    if was.wsinit ():
+      return was.wsconfig (skitai.WS_SIMPLE, 60, skitai.WS_MSG_JSON)
+    return datasearch (message ['query'], message ['offset'], message ['limit'])
+
+JSON message is automatically loaded to Python object, and returning object also will dump to JSON.
+
+Currently you can use WS_MSG_JSON and WS_MSG_XMLRPC. And I guess streaming and multi-chatable gRPC over websocket also possible, I am testing it.
+
 
 Group Chat Websocket
 ---------------------
@@ -502,7 +548,7 @@ Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can
 
   @app.route ("/chat")
   def chat (was, message, client_id, room_id, event = None):    
-    if "websocket_init" in was.env:
+    if was.wsinit ():
       return was.wsconfig (skitai.WS_GROUPCHAT, 60)    
     if event == skitai.WS_EVT_ENTER:
       return "Client %s has entered" % client_id
@@ -526,7 +572,7 @@ At Flask, should setup for variable names you want to use,
 
 .. code:: python
   
-  if "websocket_init" in was.env:
+  if was.wsinit ():
     request.environ ["websocket_init"] = (
       skitai.WS_GROUPCHAT, 
       60, 
@@ -539,7 +585,7 @@ At Flask, should setup for variable names you want to use,
 Dedicated Websocket
 -----------------------
 
-This spec is for very special situation. It will handle only one websocket client. And if new websocekt connected, will be created new thread. It is designed for long running app and few users like web version of telnet.
+This spec is for very special situation. It will handle only one websocket client. And if new websocekt connected, will be created new thread and this thread will be long until your loop is ended. It is designed for long running app and few users like web version of telnet.
 
 Client can connect by ws://localhost:5000/websocket/talk?name=Member.
 
@@ -547,23 +593,21 @@ Client can connect by ws://localhost:5000/websocket/talk?name=Member.
 
   @app.route ("/websocket/talk")
   def talk (was, name):
-    if "websocket_init" in was.env:
+    if was.wsinit ():
       return was.wsconfig (skitai.WS_DEDICATE, 60)
-    
-    ws = was.env ["websocket"]
+    ws = was.websocket
     while 1:
-      messages = ws.getswait (10)
-      if messages is None:
-        break  
-      for m in messages:
-        if m.lower () == "bye":
-          ws.send ("Bye, have a nice day." + m)
-          ws.close ()
-          break
-        elif m.lower () == "hello":
-          ws.send ("Hello, " + name)        
-        else:  
-          ws.send ("You Said:" + m)
+      message = ws.getwait (10)
+      if message is None:
+        break   
+      if message.lower () == "bye":
+        ws.send ("Bye, have a nice day." + message)
+        ws.close ()
+        break
+      elif message.lower () == "hello":
+        ws.send ("Hello, " + name)        
+      else:  
+        ws.send ("You Said:" + message)
 
 At Flask,
 
@@ -577,7 +621,7 @@ At Flask,
 Threadsafe-Dedicated Websocket
 -------------------------------
 
-Very same as Dedicated Websocket above. But you can new threads in your function which use websocket.send ().
+Very same as Dedicated Websocket above. But you can create new threads in your method which use websocket.send () concurrently.
 
 .. code:: python
   
@@ -587,31 +631,31 @@ Very same as Dedicated Websocket above. But you can new threads in your function
       universal_newlines=True,
       stdout=PIPE, shell = False
     )    
-    for line in iter(p.stdout.readline, ''):	 
+    for line in iter(p.stdout.readline, ''):
       self.ws.send (line)	
     p.stdout.close ()
   
   @app.route ("/websocket/calculate")
   def calculate (was):
-    if "websocket_init" in was.env:
-      return was.wsconfig (skitai.WS_GROUPCHAT, 60)
+    if was.wsinit ():
+      return was.wsconfig (skitai.WS_DEDICATE_TS, 60)
     
     workers = 0
-    ws = was.env ["websocket"]
+    ws = was.websocket
     while 1:
-      messages = ws.getswait (10)
-      if messages is None:
+      m = ws.getwait (10)
+      if m is None:
         break 
-      for m in messages:
-        if m.lower () == "bye":
-          ws.send ("Bye, have a nice day." + m)
-          ws.close ()
-          break
-        elif m.lower () == "run":
-          threading.Thread (target = calculate, args = (ws, workers, m[3:].strip ()).start ()
-          workers +=1
-        else:  
-          ws.send ("You said %s but I can't understatnd" % m)
+    
+      if m.lower () == "bye":
+        ws.send ("Bye, have a nice day." + m)
+        ws.close ()
+        break
+      elif m.lower () == "run":
+        threading.Thread (target = calculate, args = (ws, workers, m[3:].strip ()).start ()
+        workers +=1
+      else:  
+        ws.send ("You said %s but I can't understatnd" % m)
 
 
 You can access all examples by skitai sample app after installing skitai.
@@ -1310,7 +1354,18 @@ As a result, template can be written:
     % endfor
   % endfor
 
-If you like this style, just call 'app.jinja_overlay ()'. In my case, above template is more easy to read/write if applying proper syntax highlighting to text editor.
+If you like this style, just call 'app.jinja_overlay ()'. In my case, above template is more easy to read/write if applying proper syntax highlighting to text editor. 
+
+On Flask,
+
+.. code:: python
+  
+  from flask import Flask
+  from skitai.saddle import jinjapatch
+  
+  app = Flask (__name__)
+  app.jinja_env = jinjapatch.overlay (__name__)
+  
 
 For more detail, `Jinja2 Line Statements and Escape`_.
 

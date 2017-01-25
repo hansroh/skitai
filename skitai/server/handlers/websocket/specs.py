@@ -172,10 +172,16 @@ class WebSocket:
 		
 		else:
 			raise AssertionError ("Web socket frame decode error")
+				
+	def send (self, message, op_code = -1):
+		if isinstance (message, ClosingIterator):
+			msgs = []
+			for msg in message:
+				msgs.append (msg)
+			message = b''.join (msgs).decode ("utf8")
+		else:
+			message = self.message_encode (message)
 			
-	def send (self, message, op_code = -1):	
-		message = self.message_encode (message)
-		
 		if type (message) is str:
 			op_code = OPCODE_TEXT
 		elif type (message) is bytes:	
@@ -211,6 +217,7 @@ class WebSocket:
 			raise AssertionError ("Message is too big. Consider breaking it into chunks.")
 		
 		m = header + payload
+		
 		if self.channel:
 			trigger.wakeup (lambda p=self.channel, d=m: (p.push (d),))
 	
@@ -226,14 +233,10 @@ class WebSocket1 (WebSocket):
 		self.env = env
 		self.param_names = param_names		
 		self.set_query_string ()
-		self.is_saddle = isinstance (apph.get_callable (), part.Part)
-	
+		
 	def start_response (self, message, headers = None, exc_info = None):		
 		if exc_info:
-			reraise (*exc_info)
-		if headers:			
-			return
-		self.send (message)
+			reraise (*exc_info)		
 	
 	def set_query_string (self):
 		param_name = self.param_names [0]
@@ -249,7 +252,7 @@ class WebSocket1 (WebSocket):
 		self.env ["websocket.params"] = self.params
 		self.env ["websocket.params"][self.param_names [0]] = self.message_decode (msg)
 		
-		args = (self.request, self.apph, (self.env, self.is_saddle and self.send or self.start_response), self.wasc.logger)
+		args = (self.request, self.apph, (self.env, self.start_response), self.wasc.logger)
 		if self.env ["wsgi.multithread"]:			
 			self.wasc.queue.put (PooledJob (*args))
 		else:
@@ -261,7 +264,7 @@ class WebSocket2 (WebSocket):
 	def __init__ (self, handler, request, message_encoding = None):
 		WebSocket.__init__ (self, handler, request, message_encoding)
 		self.cv = threading.Condition (threading.RLock ())
-		self.messages = []		
+		self.message = None
 		self.message_encoding = self.setup_encoding (message_encoding)
 	
 	def close (self):
@@ -270,42 +273,25 @@ class WebSocket2 (WebSocket):
 		self.cv.notify ()
 		self.cv.release ()
 							
-	def getswait (self, timeout = 10):
+	def getwait (self, timeout = 10):
 		if self._closed:
 			return None # closed channel
 		self.cv.acquire()
-		while not self.messages and not self._closed:
+		while not self.message and not self._closed:
 			self.cv.wait(timeout)
 		if self._closed:
 			self.cv.release()
 			return None
-		messages = self.messages
-		self.messages = []
+		message = self.message
+		self.message = None
 		self.cv.release()
-		return messages
+		return self.message_decode (message)
 			
 	def handle_message (self, msg):		
-		msg = self.message_decode (msg)
 		self.cv.acquire()
-		self.messages.append (msg)
+		self.message = msg
 		self.cv.notify ()
 		self.cv.release ()
-		
-
-class WebSocket3 (WebSocket):
-	# WEBSOCKET_MULTICAST
-	def __init__ (self, handler, request, server):
-		WebSocket.__init__ (self, handler, request)
-		self.client_id = request.channel.channel_number
-		self.server = server
-	
-	def handle_message (self, msg):
-		self.server.handle_message (self.client_id, msg)
-	
-	def close (self):
-		WebSocket.close (self)
-		self.server.handle_close (self.client_id)		
-		
 		
 class WebSocket4 (WebSocket2):
 	# WEBSOCKET_DEDICATE_THREADSAFE
@@ -319,7 +305,6 @@ class WebSocket4 (WebSocket2):
 			WebSocket2.send (self, message, op_code)
 		finally:
 			self.lock.release ()
-
 
 class WebSocket5 (WebSocket):
 	# WEBSOCKET_MULTICAST
@@ -364,17 +349,14 @@ class WebSocket5 (WebSocket):
 class PooledJob (wsgi_handler.Job):
 	def exec_app (self):
 		was = the_was._get ()
-		was.request = self.request
+		was.request = self.request		
+		was.websocket = self.args [0]["websocket"]
 		self.args [0]["skitai.was"] = was
 		content = self.apph (*self.args)
-		#if type (content) not in (str, bytes, tuple) and isinstance (content, Iterable):
-		if isinstance (content, ClosingIterator):
-			msgs = []
-			for msg in content:
-				msgs.append (msg)
-			content = b''.join (msgs).decode ("utf8")
 		if content:
-			self.args [1] (content)
+			was.websocket.send (content)
+		del was.request
+		del was.websocket
 
 class DedicatedJob (PooledJob):
 	def handle_error (self):
@@ -383,18 +365,13 @@ class DedicatedJob (PooledJob):
 	def exec_app (self):
 		was = the_was._get () # create new was, cause of non thread pool
 		was.request = self.request
+		was.websocket = self.args [0]["websocket"]
 		self.args [0]["skitai.was"] = was
 		try:
-			self.apph (*self.args)
+			self.apph (*self.args)			
 		except:
 			self.handle_error ()
 			self.logger.trace ("app")
 		the_was._del () # remove
-
-class ThreadedServerJob (DedicatedJob):
-	def __init__(self, server, request, apph, args, logger):
-		self.server = server
-		DedicatedJob.__init__(self, request, apph, args, logger)
-		
-	def handle_error (self):
-		self.server.close ()
+		del was.request
+		del was.websocket

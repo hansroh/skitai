@@ -56,74 +56,6 @@ class WebSocketServers:
 		self.close ()
 		
 
-class ThreadedWebSocketServer (specs.WebSocket2):
-	def __init__ (self, gid, message_encoding = None):
-		self._closed = False
-		self.gid = gid
-		self.lock = threading.RLock ()
-		self.cv = threading.Condition ()
-		self.messages = []
-		self.clients = {}
-		
-		self.default_op_code = specs.OPCODE_TEXT
-		self.encoder_config = None
-		self.message_encoding = self.setup_encoding (message_encoding)
-		
-	def add_client (self, ws):
-		self.lock.acquire ()
-		self.clients [ws.client_id] = ws
-		self.lock.release ()
-		self.handle_message (ws.client_id, 1)
-	
-	def handle_close (self, client_id):
-		self.lock.acquire ()
-		try: del self.clients [client_id]
-		except KeyError: pass		
-		self.lock.release ()
-		if not self.clients:
-			return self.close ()				
-		self.handle_message (client_id, -1)
-		
-	def handle_message (self, client_id, msg):
-		msg = self.message_decode (msg)
-		self.cv.acquire()
-		self.messages.append ((client_id, msg))
-		self.cv.notifyAll ()
-		self.cv.release ()
-			
-	def close (self):
-		websocket_servers.remove (self.gid)
-		self.clients = {}
-		self.cv.acquire()
-		self._closed = True
-		self.cv.notifyAll ()
-		self.cv.release ()
-		
-	def send (self, *args, **karg):
-		raise AssertionError ("Can't use send() on WEBSOCKET_MULTICAST spec, use send_to(client_id, msg, op_code)")
-	
-	def sendto (self, client_id, msg, op_code = -1):		
-		if op_code == -1:
-			op_code = self.default_op_code
-		msg = self.message_encode (msg)	
-						
-		self.lock.acquire ()
-		try:
-			client = self.clients [client_id]
-		except KeyError:
-			client = None	
-		self.lock.release ()
-		if client:
-			client.send (msg, op_code)
-		
-	def sendall (self, msg, op_code = -1):
-		self.lock.acquire ()
-		clients = list (self.clients.keys ())
-		self.lock.release ()
-		for client_id in clients:
-			self.sendto (client_id, msg)
-			
-			
 class WebSocketServer (specs.WebSocket1):
 	def __init__ (self, gid, handler, request, apph, env, message_encoding = None):
 		specs.WebSocket.__init__ (self, handler, request, message_encoding)
@@ -132,8 +64,7 @@ class WebSocketServer (specs.WebSocket1):
 		self.apph = apph
 		self.env = env
 		self.messages = []
-		self.clients = {}
-		self.is_saddle = isinstance (apph.get_callable (), part.Part)
+		self.clients = {}		
 			
 	def add_client (self, ws):
 		self.clients [ws.client_id] = ws
@@ -152,8 +83,8 @@ class WebSocketServer (specs.WebSocket1):
 		self.env ["QUERY_STRING"] = querystring + quote_plus (msg)			
 		self.env ["websocket.params"] = params
 		self.env ["websocket.params"][message_param] = self.message_decode (msg)		
+		args = (self.request, self.apph, (self.env, self.start_response), self.wasc.logger)
 		if self.env ["wsgi.multithread"]:
-			args = (self.request, self.apph, (self.env, self.is_saddle and self.send or self.start_response), self.wasc.logger)
 			self.wasc.queue.put (specs.PooledJob (*args))
 		else:
 			specs.PooledJob (*args) ()

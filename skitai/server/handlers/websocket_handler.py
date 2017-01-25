@@ -138,8 +138,7 @@ class Handler (wsgi_handler.Handler):
 			ws = specs.WebSocket1 (self, request, apph, env, varnames, message_encoding)
 			env ["websocket"] = ws
 			if is_saddle: env ["websocket.handler"] = (current_app, wsfunc)		
-			self.channel_config (request, ws, keep_alive)
-		
+			
 		elif design_spec == skitai.WS_GROUPCHAT:
 			# WEBSOCKET_GROUPCHAT
 			# /chat?roomid=456, 
@@ -161,44 +160,10 @@ class Handler (wsgi_handler.Handler):
 				env ["websocket"] = server
 				if is_saddle: env ["websocket.handler"] = (current_app, wsfunc)
 			
-			server = servers.websocket_servers.get (gid)				
+			server = servers.websocket_servers.get (gid)							
 			ws = specs.WebSocket5 (self, request, server, env, varnames)
 			server.add_client (ws)
-			request.channel.die_with (ws, "websocket spec. %d" % design_spec)
-			self.channel_config (request, ws, keep_alive)
-		
-		elif design_spec == skitai.WS_MULTICAST:
-			# DEPRECATED
-			# WEBSOCKET_MULTICAST
-			# /chat?roomid=456, 
-			# return (WEBSOCKET_MULTICAST, 600, "roomid")
-			# websocketserver thread will be created by roomid
-			# can send to all clients of group / specific client
-			param_name = varnames [0]
-			if not param_name:
-				gidkey = path
-			else:	
-				gid = http_util.crack_query (query).get (param_name, None)
-				try:
-					assert gid, "%s value can't find" % param_name
-				except:
-					self.wasc.logger.trace ("server",  request.uri)
-					return request.response.error (500, why = apph.debug and catch (1) or "")
-				gid = "%s/%s" % (path, gid)
 			
-			if not servers.websocket_servers.has_key (gid):
-				server = servers.websocket_servers.create_threaded (gid, message_encoding)
-				request.channel.use_sendlock ()
-				env ["websocket"] = server
-				job = specs.ThreadedServerJob (server, request, apph, (env, donot_response), self.wasc.logger)
-				threading.Thread (target = job).start ()
-			
-			server = servers.websocket_servers.get (gid)				
-			ws = specs.WebSocket3 (self, request, server)
-			server.add_client (ws)
-			request.channel.die_with (ws, "websocket spec. %d" % design_spec)
-			self.channel_config (request, ws, keep_alive)		
-				
 		else: # 2, 4
 			# WEBSOCKET_DEDICATE 			
 			# 1:1 wesocket:thread
@@ -207,12 +172,13 @@ class Handler (wsgi_handler.Handler):
 				ws = specs.WebSocket2 (self, request, message_encoding)
 			else:
 				ws = specs.WebSocket4 (self, request, message_encoding)
-			request.channel.die_with (ws, "websocket spec. %d" % design_spec)
 			request.channel.use_sendlock ()
 			env ["websocket"] = ws
-			self.channel_config (request, ws, keep_alive)
 			job = specs.DedicatedJob (request, apph, (env, donot_response), self.wasc.logger)
 			threading.Thread (target = job).start ()
+		
+		request.channel.die_with (ws, "websocket spec. %d" % design_spec)
+		self.channel_config (request, ws, keep_alive)
 		
 	def channel_config (self, request, ws, keep_alive):
 		request.response.done (upgrade_to =  (ws, 2))		

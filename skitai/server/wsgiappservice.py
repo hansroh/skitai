@@ -260,6 +260,8 @@ class WAS:
 		self.env ["websocket_init"] = (spec, timeout, encoding)
 		return ""
 		
+	def wsinit (self):
+		return "websocket_init" in self.env
 	
 class Logger:
 	def __init__ (self, media, path):

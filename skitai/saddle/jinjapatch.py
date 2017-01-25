@@ -156,7 +156,14 @@ class Environment (environment.Environment):
 # enable 'raw' line statement
 environment.Environment = property(get_lexer, doc="The lexer for this environment.")
 
-def overlay (app_name, line_statement = "%", variable_string = "#", block_start_string = "{%", block_end_string = "}", **karg):
+def overlay (
+	app_name, 
+	line_statement = "%", 
+	variable_string = "#", 
+	block_start_string = "{%", 
+	block_end_string = "}", 
+	**karg
+	):
 	from jinja2 import PackageLoader
 			
 	return Environment (
@@ -171,5 +178,4 @@ def overlay (app_name, line_statement = "%", variable_string = "#", block_start_
 		lstrip_blocks = True,
 	  **karg
 	)
-		
 		

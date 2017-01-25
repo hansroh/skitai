@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.24"
+__version__ = "0.24.2"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -32,6 +32,9 @@ WS_MSG_JSON = "json"
 WS_MSG_XMLRPC = "xmlrpc"
 WS_MSG_GRPC = "grpc"
 WS_MSG_DEFAULT = None
+
+WS_OPCODE_TEXT = 0x1
+WS_OPCODE_BINARY = 0x2
 
 from aquests.dbapi import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 
