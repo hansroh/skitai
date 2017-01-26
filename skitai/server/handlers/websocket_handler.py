@@ -120,7 +120,7 @@ class Handler (wsgi_handler.Handler):
 				return request.response.error (500, why = apph.debug and catch (1) or "")			
 		
 		del env ["websocket_init"]
-		assert design_spec in (1,2,4,5), "design_spec  should be one of (WS_SIMPLE, WS_GROUPCHAT, WS_DEDICATE, WS_DEDICATE_TS)"			
+		assert design_spec in (1,4,5), "design_spec  should be one of (WS_SIMPLE, WS_GROUPCHAT, WS_DEDICATE, WS_DEDICATE_TS)"			
 		headers = [
 			("Sec-WebSocket-Accept", self.calculate_response_key (securekey)),
 			("Upgrade", "Websocket"),
@@ -131,13 +131,14 @@ class Handler (wsgi_handler.Handler):
 		request.response ("101 Web Socket Protocol Handshake", headers = headers)		
 		
 		if design_spec == skitai.WS_SIMPLE:
-			varnames = varnames [:1]
+			varnames = varnames [:3]
 			# WEBSOCKET_REQDATA			
 			# Like AJAX, simple request of client, simple response data
 			# the simplest version of stateless HTTP protocol using basic skitai thread pool
 			ws = specs.WebSocket1 (self, request, apph, env, varnames, message_encoding)
 			env ["websocket"] = ws
 			if is_saddle: env ["websocket.handler"] = (current_app, wsfunc)		
+			ws.open ()
 			
 		elif design_spec == skitai.WS_GROUPCHAT:
 			# WEBSOCKET_GROUPCHAT
@@ -146,7 +147,7 @@ class Handler (wsgi_handler.Handler):
 			# non-threaded websocketserver
 			# can send to all clients of group / specific client
 			varnames = varnames [:4]
-			param_name = varnames [2]
+			param_name = varnames [3]
 			gid = http_util.crack_query (query).get (param_name, None)
 			try:
 				assert gid, "%s value can't find" % param_name
@@ -164,14 +165,11 @@ class Handler (wsgi_handler.Handler):
 			ws = specs.WebSocket5 (self, request, server, env, varnames)
 			server.add_client (ws)
 			
-		else: # 2, 4
+		else: # 4
 			# WEBSOCKET_DEDICATE 			
 			# 1:1 wesocket:thread
 			# Be careful, it will be consume massive thread resources			
-			if design_spec == skitai.WS_DEDICATE:
-				ws = specs.WebSocket2 (self, request, message_encoding)
-			else:
-				ws = specs.WebSocket4 (self, request, message_encoding)
+			ws = specs.WebSocket4 (self, request, message_encoding)
 			request.channel.use_sendlock ()
 			env ["websocket"] = ws
 			job = specs.DedicatedJob (request, apph, (env, donot_response), self.wasc.logger)

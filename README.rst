@@ -343,16 +343,6 @@ Skitai can be HTML5 websocket server and any WSGI containers can use it.
 
 But I'm not sure my implemetation is right way, so it is experimental and could be changable.
 
-I think there're 3 handling ways to use websockets.
-
-1. thread pool manages n websocket connection
-
-2. one thread per websocket connection
-
-3. one thread manages n websockets connection
-
-So skitai supports 1 and 2.
-
 First of all, see conceptual client side java script for websocket.
 
 .. code:: html
@@ -395,15 +385,17 @@ First of all, see conceptual client side java script for websocket.
   </body>
 
 
-If your WSGI app enable handle websocket, it should give  initial parameters to Skitai.
-
-You should check exist of env ["websocket_init"], set initializing websocket like this (but except Skito-Saddle, initializing is different).
+If your WSGI app enable handle websocket, it should give  initial parameters to Skitai like this,
 
 .. code:: python
   
   def websocket (was, message):
     if was.wsinit ():
-      return was.wsconfig (websocket design specs, keep_alive_timeout = 60, message_encoding = None)		
+      return was.wsconfig (
+        websocket design specs, 
+        keep_alive_timeout = 60, 
+        message_encoding = None
+      )		
 
 *websocket design specs* can  be choosen one of 4.
 
@@ -419,19 +411,12 @@ WS_GROUPCHAT (New in version 0.24)
   - Trhead pool manages n websockets connection
   - Chat room model
   
-WS_DEDICATE (before version 0.24, WEBSOCKET_DEDICATE)
+WS_DEDICATE (before version 0.24, WEBSOCKET_DEDICATE_THREADSAFE)
 
   - One thread per websocket connection
   - Use when interactives takes long time like websocket version telnet or subprocess stdout streaming
   - New thread created per websocket connection
  
-WS_DEDICATE_TS (before version 0.24, WEBSOCKET_DEDICATE_THREADSAFE)
-
-  - Thread safe version of WEBSOCKET_DEDICATE
-  - Multiple threads can call websocket.send (msg)
- 
-WEBSOCKET_MULTICAST: DEPRECATED
-
 
 *keep alive timeout* is seconds.
 
@@ -460,10 +445,37 @@ Client can connect by ws://localhost:5000/websocket/chat.
   app.use_reloader = True
 
   @app.route ("/websocket/echo")
-  def echo (was, message):
+  def echo (was, message, client_id, event):
     if was.wsinit ():
-      return was.wsconfig (skitai.WS_SIMPLE, 60)      
+      return was.wsconfig (skitai.WS_SIMPLE, 60)
+    if event == skitai.WS_EVT_ENTER:
+      return "Welcome Client %s" % client_id
     return "ECHO:" + message
+
+First 3 args (message, client_id, event except 'was') are essential. Although you need other args, you must position after theses 3 essential args. client_id is unique channel id for distinquishing websocket channel and it makes managing client state using global object.
+
+.. code:: python
+  
+  num_sent = {}  
+  
+  @app.route ("/websocket/echo")
+  def echo (was, message, client_id, event, clinent_name):
+    global num_sent
+  
+    if was.wsinit ():
+      num_sent [client_id] = 0      
+      return was.wsconfig (skitai.WS_SIMPLE, 60)
+    if event == skitai.WS_EVT_ENTER:
+      return
+    if event == skitai.WS_EVT_EXIT:      
+      del num_sent [client_id]
+      return
+    num_sent [client_id] += 1
+    return "%s said:" % (clinent_name, message)
+
+Now client can connect by ws://localhost:5000/websocket/chat?client_name=stevemartine.
+    
+Once websocket configured by was.wsconfig (), whenever message is arrived from this websocket connection, called this *echo* method. And you can use all was services as same as other WSGI methods.
 
 
 For Flask Users
@@ -483,14 +495,38 @@ At Flask, Skitai can't know which variable name receive websocket message, then 
   @app.route ("/websocket/echo")
   def echo ():
     if "websocket_init" in request.environ:
-      request.environ ["websocket_init"] = (skitai.WS_SIMPLE, 60, "message")
+      request.environ ["websocket_init"] = (skitai.WS_SIMPLE, 60, ("message", "client_id", "event"))
       return ""
+    if request.args.get ("event"):
+      return  
     return "ECHO:" + request.args.get ("message")
 
-In this case, variable name is "message", It means take websocket's message as "message" arg.
+In this case, variable name is ("message", "client_id", "event"), It means take websocket's message and channel_id as "message" and "client_id" arg.
 
 If returned object is python str type, websocket will send messages as text tpye, if bytes type, as binary. But Flask's return object is assumed as text type.
 
+
+Events
+``````````
+
+Currently websocket has 2 envets.
+
+- WS_EVT_ENTER: just after websocket configured
+- WS_EVT_EXIT: client websocket channel disconnected
+
+When event occured, message is null string, so WS_EVT_EXIT is not need handle, but WS_EVT_ENTER would be handled - normally just return None value.
+
+If you do not want to handle any events just add 2 lines.
+
+.. code:: python
+  
+  @app.route ("/websocket/echo")
+  def echo (was, message, client_id, event):
+    if was.wsinit ():
+      return was.wsconfig (skitai.WS_SIMPLE, 60)
+    if event: # ignore all events
+      return
+		  
 
 Send Messages Through Websocket Directly
 ``````````````````````````````````````````
@@ -500,37 +536,45 @@ It needn't return message, but you can send directly multiple messages through w
 .. code:: python
 
   @app.route ("/websocket/echo")
-  def echo (was, message):
+  def echo (was, message, client_id, event):
     if was.wsinit ():
       return was.wsconfig (skitai.WS_SIMPLE, 60)
-
+    if event: # ignore all events
+      return
     was.websocket.send ("You said," + message)	
     was.websocket.send ("I said acknowledge")
 
-This way is very useful for Flask users, because Flask's return object is bytes, so Skitai try to decode with utf-8 and send message as text type. If Flask users want to send binary data,
+This way is very useful for Flask users, because Flask's return object is bytes, so Skitai try to decode with utf-8 and send message as text type. If Flask users want to send binary data, just send bytes type.
 
 .. code:: python
 
   @app.route ("/websocket/echo")
   def echo ():
     if "websocket_init" in request.environ:
-      request.environ ["websocket_init"] = (skitai.WS_SIMPLE, 60, "message")
-    
-    request.environ ["websocket"].send (("You said, %s" % message).encode ('iso8859-1'), skitai.WS_OPCODE_BINARY)
+      request.environ ["websocket_init"] = (skitai.WS_SIMPLE, 60, ("message", "client_id"))
+      retrurn ''
+    if request.args.get ("event"):
+      return    
+    request.environ ["websocket"].send (
+      ("You said, %s" % message).encode ('iso8859-1')
+    )
 
 
 Use Message Encoding
 `````````````````````
 
-For your convinient, message automatically load and dump object like JSON. But this feature is only available with Skitai-Saddle.
+For your convinient, message automatically load and dump object like JSON. But this feature is only available with Skito-Saddle.
 
 .. code:: python
 
   @app.route ("/websocket/json")
-  def json (was, message):
+  def json (was, message, client_id, event):
     if was.wsinit ():
       return was.wsconfig (skitai.WS_SIMPLE, 60, skitai.WS_MSG_JSON)
-    return datasearch (message ['query'], message ['offset'], message ['limit'])
+    if event: # ignore all events
+      return
+            
+    return dbsearch (message ['query'], message ['offset'])
 
 JSON message is automatically loaded to Python object, and returning object also will dump to JSON.
 
@@ -547,7 +591,7 @@ Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can
 .. code:: python
 
   @app.route ("/chat")
-  def chat (was, message, client_id, room_id, event = None):    
+  def chat (was, message, client_id, event, room_id):    
     if was.wsinit ():
       return was.wsconfig (skitai.WS_GROUPCHAT, 60)    
     if event == skitai.WS_EVT_ENTER:
@@ -556,104 +600,102 @@ Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can
       return "Client %s has leaved" % client_id
     return "Client %s Said: %s" % (client_id, message)
 
-In this case, first 4 args (message, client_id, room_id, event = None) are nessassory.
+In this case, first 4 args (message, client_id, event, room_id) are essential.
 
 For sending message to specific client_id,
 
 .. code:: python
   
-  ws = was.env.get ('websocket')
-  clients = list (ws.clients.keys ())
-  receiver = clients [0]
-  return "Client %s Said To %d: %s" % (client_id, message, receiver), receiver
+  clients = list (was.websocket.clients.keys ())
+  was.websocket.send ('Hi', clients [0])
+  # OR
+  return 'Hi', clients [0]
 
 
 At Flask, should setup for variable names you want to use,
 
 .. code:: python
   
-  if was.wsinit ():
+  if "websocket_init" in request.environ:
     request.environ ["websocket_init"] = (
       skitai.WS_GROUPCHAT, 
       60, 
-      ("message", "client_id", "room_id", "event")
+      ("message", "client_id", "event", "room_id")
     )
     return ""
    
 
-
-Dedicated Websocket
------------------------
-
-This spec is for very special situation. It will handle only one websocket client. And if new websocekt connected, will be created new thread and this thread will be long until your loop is ended. It is designed for long running app and few users like web version of telnet.
-
-Client can connect by ws://localhost:5000/websocket/talk?name=Member.
-
-.. code:: python
-
-  @app.route ("/websocket/talk")
-  def talk (was, name):
-    if was.wsinit ():
-      return was.wsconfig (skitai.WS_DEDICATE, 60)
-    ws = was.websocket
-    while 1:
-      message = ws.getwait (10)
-      if message is None:
-        break   
-      if message.lower () == "bye":
-        ws.send ("Bye, have a nice day." + message)
-        ws.close ()
-        break
-      elif message.lower () == "hello":
-        ws.send ("Hello, " + name)        
-      else:  
-        ws.send ("You Said:" + message)
-
-At Flask,
-
-.. code:: python
-  
-  if "websocket_init" in was.env:
-    request.environ ["websocket_init"] = (skitai.WS_DEDICATE, 60, ())
-    return ""
-
-
 Threadsafe-Dedicated Websocket
 -------------------------------
 
-Very same as Dedicated Websocket above. But you can create new threads in your method which use websocket.send () concurrently.
+It is NOT for general serices. Please read carefully.
+
+This spec is for very special situation. It will create new work thread and that thread handles only one  client. And The thread will be continued until message receiving loop is ended. It is designed for long running app and for limited users - firms's employees or special clients who need to use server-side resources or long applications take long time to finish and need to observe output message stream.
+
+Briefly, it can be helpful for making web version frontend UI to controlling your backend application with jquery, HTML5 easily.
+
+Client can connect by ws://localhost:5000/websocket/talk?name=jamesmilton.
 
 .. code:: python
-  
-  def calculate (ws, id, count):
-    p = Popen (
-      [sys.executable, r'calucate.py', '-c', count],
-      universal_newlines=True,
-      stdout=PIPE, shell = False
-    )    
-    for line in iter(p.stdout.readline, ''):
-      self.ws.send (line)	
-    p.stdout.close ()
-  
+
+  class Calcultor:  
+    def __init__ (self, ws):
+      self.ws = ws
+      self.p = None
+      
+    def calculate (self, count):
+      self.p = Popen (
+        [sys.executable, r'calucate.py', '-c', count],
+        universal_newlines=True,
+        stdout=PIPE, shell = False
+      )    
+      for line in iter(p.stdout.readline, ''):
+        self.ws.send (line)	      
+      self.p.stdout.close ()
+      self.p = None
+    
+    def run (self, count):
+      if self.p is None:
+        threading.Thread (target = self.calculate, args = (count,)).start ()
+        return 1
+      
+    def kill (self):
+      if self.p:
+        os.kill (self.p.pid)
+        return 1
+           
+        
   @app.route ("/websocket/calculate")
   def calculate (was):
     if was.wsinit ():
-      return was.wsconfig (skitai.WS_DEDICATE_TS, 60)
+      return was.wsconfig (skitai.WS_DEDICATE, 60)
     
-    workers = 0
     ws = was.websocket
+    calcultor = Calcultor (ws)    
     while 1:
-      m = ws.getwait (10)
-      if m is None:
-        break 
-    
+      m = ws.getwait ()
+      if m is None: # client disconnected
+        calcultor.kill ()
+        break
+                        
       if m.lower () == "bye":
+        calcultor.kill ()
         ws.send ("Bye, have a nice day." + m)
         ws.close ()
         break
-      elif m.lower () == "run":
-        threading.Thread (target = calculate, args = (ws, workers, m[3:].strip ()).start ()
-        workers +=1
+        
+      elif m.lower () == "kill":  
+        if calcultor.kill ():
+          self.ws.send ('killed')	
+        else:
+          self.ws.send ('Error: not running')	   
+        
+      elif m.lower () [:3] == "run":
+        if calcultor.run (int (m [3:].strip ())):
+          self.ws.send ('started')	
+        else:
+          self.ws.send ('Error: already running')
+        
       else:  
         ws.send ("You said %s but I can't understatnd" % m)
 
@@ -727,12 +769,11 @@ At aquests,
   
   def display_result (response):
     print (reponse.data)
+  
+  aquests.configure (callback = display_result, timeout = 3)
     
   aquests.get (url)
-  aquests.post (
-    url, {"user": "Hans Roh", "comment": "Hello"}, 
-    callback = display_result
-   )
+  aquests.post (url, {"user": "Hans Roh", "comment": "Hello"})
   aquests.fetchall ()
 
 At Skitai,
@@ -745,15 +786,49 @@ At Skitai,
     respones1 = req1.getwait (timeout = 3)
     response2 = req2.getwait (timeout = 3)    
     return [respones1.data, respones2.data]
+
+The significant differnce is calling getwait (timeout) for getting response data.
+
+PostgreSQL query at aquests,
+
+.. code:: python
+
+  import aquests
+  
+  def display_result (response):
+    for row in response.data:
+      row.city, row.t_high, row.t_low
+  
+  aquests.configure (callback = display_result, timeout = 3)
+  
+  dbo = aquests.postgresql ("127.0.0.1:5432", "mydb")
+  dbo.excute ("SELECT city, t_high, t_low FROM weather;")
+  aquests.fetchall ()
+
+At Skitai,
+
+.. code:: python
     
   def query (was):
-    dbo = was.postgresql ("127.0.0.1:5432", "mydb", ("username", "password"))
+    dbo = was.postgresql ("127.0.0.1:5432", "mydb")
     s = dbo.excute ("SELECT city, t_high, t_low FROM weather;")
-    result = s.getwait (2)
     
-    for row in result.data:
+    response = s.getwait (2)
+    for row in response.data:
       row.city, row.t_high, row.t_low
-    
+
+
+If you needn't returned data and just wait for completing query,
+
+.. code:: python
+
+    dbo = was.postgresql ("127.0.0.1:5432", "mydb")
+    req = dbo.execute ("INSERT INTO CITIES VALUES ('New York');")
+    req.wait (2) 
+
+If failed, exception will be raised.
+
+
 .. _aquests: https://pypi.python.org/pypi/aquests
 
 Also note you can't use meta argument at Skitai.
@@ -778,12 +853,6 @@ If server members are pre defined, skitai choose one automatically per each requ
 
 At first, let's add mysearch members to config file (ex. /etc/skitaid/servers-enabled/sample.conf),
 
-.. code:: python
-
-  [@mysearch]
-  ssl = yes
-  members = search1.mayserver.com:443, search2.mayserver.com:443
-    
 
 Then let's request XMLRPC result to one of mysearch members.
    
@@ -794,46 +863,73 @@ Then let's request XMLRPC result to one of mysearch members.
     s = was.rpc.lb ("@mysearch/rpc2").search (keyword)
     results = s.getwait (5)
     return result.data
-
+  
+  if __name__ == "__main__":
+    import skitai
+    
+    skitai.run (
+      clusters = {        
+        '@mysearch': 
+        ('https', ["s1.myserver.com:443", "s2.myserver.com:443"])
+      },
+      mount = ("/", app)
+    )
+  
+  
 It just small change from was.rpc () to was.rpc.lb ()
 
 *Note:* If @mysearch member is only one, was.get.lb ("@mydb") is equal to was.get ("@mydb").
 
 *Note2:* You can mount cluster @mysearch to specific path as proxypass like this:
 
-At config file
-
 .. code:: bash
   
-  [routes:line]  
-  ; for files like images, css
-  / = /var/wsgi/static
-  
-  ; app mount syntax is path/module:callable
-  /search = @mysearch  
+  if __name__ == "__main__":
+    import skitai
+    
+    skitai.run (
+      clusters = {        
+        '@mysearch': 
+        ('https', ["s1.myserver.com:443", "s2.myserver.com:443"])        
+      },
+      mount = [
+        ("/", app),
+        ("/search", '@mysearch')
+      ]
+    )
   
 It can be accessed from http://127.0.0.1:5000/search, and handled as load-balanced proxypass.
 
-This sample is to show querying sharded database.
+This sample is to show loadbalanced querying database.
 Add mydb members to config file.
 
 .. code:: python
 
-  [@mydb]
-  type = postresql
-  members = s1.yourserver.com:5432/mydb/user/passwd, s2.yourserver.com:5432/mydb/user/passwd
- 
   @app.route ("/query")
   def query (was, keyword):
-    dbo = was.postgresql.lb ("@mydb")
-    req = dbo.execute ("INSERT INTO CITIES VALUES ('New York');")
-    req.wait (2) 
-    # no return, just wait for completing query
-    #if failed exception will be raised    
-    
+    dbo = was.postgresql.lb ("@mydb")    
     req = dbo.execute ("SELECT * FROM CITIES;")
-    result = req.getwait (2)  
-
+    result = req.getwait (2)
+  
+   if __name__ == "__main__":
+    import skitai
+    
+    skitai.run (
+      clusters = {        
+        '@mydb': 
+        (
+          'postresql', 
+          [
+            "s1.yourserver.com:5432/mydb/user/passwd", 
+            "s2.yourserver.com:5432/mydb/user/passwd"
+          ]
+        )
+      },
+      mount = [
+        ("/", app)
+      ]
+    )
+    
 
 Map-Reducing
 ``````````````
@@ -849,14 +945,14 @@ Basically same with load_balancing except Skitai requests to all members per eac
       results = req.getswait (2)
 			
       all_results = []
-      for result in results:
+      for result in results:      
          all_results.extend (result.data)
       return all_results
 
 There are 2 changes:
 
 1. from was.rpc.lb () to was.rpc.map ()
-2. from s.getwait () to s.getswait () for multiple results
+2. from s.getwait () to s.getswait () for multiple results, and results is iterable.
 
 
 Caching Result

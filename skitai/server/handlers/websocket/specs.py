@@ -100,7 +100,6 @@ class WebSocket:
 			self.buf += data
 	
 	def found_terminator (self):
-		#print ("-----", self.buf, self.opcode, self.payload_length, self.masks)
 		buf, self.buf = self.buf, b""
 		if self.masks or (not self.has_masks and self.payload_length):
 			# end of message
@@ -122,7 +121,10 @@ class WebSocket:
 			self.rfile.seek (0)
 			self.rfile.truncate ()
 			self.channel.set_terminator (2)
-			self.handle_message (data)
+			if self.opcode == OPCODE_PING:
+				self.send (data, OPCODE_PONG)
+			else:	
+				self.handle_message (data)
 		
 		elif self.payload_length:
 			self.masks = buf
@@ -172,8 +174,8 @@ class WebSocket:
 		
 		else:
 			raise AssertionError ("Web socket frame decode error")
-				
-	def send (self, message, op_code = -1):
+	
+	def build_data (self, message, op_code):
 		if isinstance (message, ClosingIterator):
 			msgs = []
 			for msg in message:
@@ -181,13 +183,20 @@ class WebSocket:
 			message = b''.join (msgs).decode ("utf8")
 		else:
 			message = self.message_encode (message)
-			
-		if type (message) is str:
-			op_code = OPCODE_TEXT
-		elif type (message) is bytes:	
-			op_code = OPCODE_BINARY
+		
 		if op_code == -1:
-			op_code = self.default_op_code
+			if type (message) is str:
+				op_code = OPCODE_TEXT
+			elif type (message) is bytes:	
+				op_code = OPCODE_BINARY
+			if op_code == -1:
+				op_code = self.default_op_code
+		
+		return message, op_code
+							
+	def send (self, message, op_code = -1):
+		if not self.channel: return
+		message, op_code = self.build_data (message, op_code)		
 
 		header  = bytearray()
 		if strutil.is_encodable (message):
@@ -229,6 +238,7 @@ class WebSocket1 (WebSocket):
 	# WEBSOCKET_REQDATA			
 	def __init__ (self, handler, request, apph, env, param_names, message_encoding = None):
 		WebSocket.__init__ (self, handler, request, message_encoding)
+		self.client_id = request.channel.channel_number		
 		self.apph = apph		
 		self.env = env
 		self.param_names = param_names		
@@ -239,18 +249,42 @@ class WebSocket1 (WebSocket):
 			reraise (*exc_info)		
 	
 	def set_query_string (self):
-		param_name = self.param_names [0]
-		self.querystring = self.env.get ("QUERY_STRING", "")
-		if self.querystring:
-			self.querystring += "&"
-		self.querystring += "%s=" % param_name
+		querystring = []		
+		if self.env.get ("QUERY_STRING"):
+			querystring.append (self.env.get ("QUERY_STRING"))
+		querystring.append ("%s=%s" % (self.param_names [1], self.client_id))
+		querystring.append ("%s=" % self.param_names [2]) # events
+		querystring.append ("%s=" % self.param_names [0])
+		self.querystring = "&".join (querystring)		
 		self.params = http_util.crack_query (self.querystring)
+		
+	def close (self):		
+		self.handle_message (-1, skitai.WS_EVT_EXIT)
+		WebSocket.close (self)
+		
+	def make_params (self, msg, event):
+		querystring = self.querystring
+		params = self.params
+		if event:			
+			querystring = querystring.replace ("&%s=&" % self.param_names [2], "&%s=%s&" % (self.param_names [2], event))
+			querystring = "%s=%s&" % (self.param_names [2], event) + querystring
+			params [self.param_names [2]] = event
+			msg = ""
+		else:	
+			params [self.param_names [2]] = None
 			
-	def handle_message (self, msg):
+		querystring = querystring + quote_plus (msg)		
+		params [self.param_names [0]] = self.message_decode (msg)
+		return querystring, params	
+	
+	def open (self):		
+		self.handle_message (-1, skitai.WS_EVT_ENTER)
+							
+	def handle_message (self, msg, event = None):
 		if not msg: return			
-		self.env ["QUERY_STRING"] = self.querystring + quote_plus (msg)
-		self.env ["websocket.params"] = self.params
-		self.env ["websocket.params"][self.param_names [0]] = self.message_decode (msg)
+		querystring, params = self.make_params (msg, event)			
+		self.env ["QUERY_STRING"] = querystring
+		self.env ["websocket.params"] = params
 		
 		args = (self.request, self.apph, (self.env, self.start_response), self.wasc.logger)
 		if self.env ["wsgi.multithread"]:			
@@ -259,20 +293,25 @@ class WebSocket1 (WebSocket):
 			PooledJob (*args) ()
 
 
-class WebSocket2 (WebSocket):
+class WebSocket4 (WebSocket):
 	# WEBSOCKET_DEDICATE if lock is None, or WEBSOCKET_MULTICAST
 	def __init__ (self, handler, request, message_encoding = None):
 		WebSocket.__init__ (self, handler, request, message_encoding)
 		self.cv = threading.Condition (threading.RLock ())
+		self.lock = threading.Lock ()
 		self.message = None
 		self.message_encoding = self.setup_encoding (message_encoding)
 	
-	def close (self):
+	def close (self):		
 		WebSocket.close (self)
 		self.cv.acquire()
 		self.cv.notify ()
 		self.cv.release ()
-							
+	
+	def send (self, message, op_code = -1):
+		with self.lock:
+			WebSocket.send (self, message, op_code)						
+			
 	def getwait (self, timeout = 10):
 		if self._closed:
 			return None # closed channel
@@ -284,7 +323,7 @@ class WebSocket2 (WebSocket):
 			return None
 		message = self.message
 		self.message = None
-		self.cv.release()
+		self.cv.release()		
 		return self.message_decode (message)
 			
 	def handle_message (self, msg):		
@@ -293,20 +332,8 @@ class WebSocket2 (WebSocket):
 		self.cv.notify ()
 		self.cv.release ()
 		
-class WebSocket4 (WebSocket2):
-	# WEBSOCKET_DEDICATE_THREADSAFE
-	def __init__ (self, handler, request):
-		WebSocket2.__init__ (self, handler, request)
-		self.lock = threading.Lock ()
-		
-	def send (self, message, op_code = -1):
-		self.lock.acquire ()
-		try:
-			WebSocket2.send (self, message, op_code)
-		finally:
-			self.lock.release ()
-
-class WebSocket5 (WebSocket):
+					
+class WebSocket5 (WebSocket1):
 	# WEBSOCKET_MULTICAST
 	def __init__ (self, handler, request, server, env, param_names):
 		WebSocket.__init__ (self, handler, request)
@@ -317,21 +344,12 @@ class WebSocket5 (WebSocket):
 		self.set_query_string ()
 	
 	def set_query_string (self):
-		querystring = [self.env.get ("QUERY_STRING", "")]		
-		querystring.append ("%s=%s" % (self.param_names [1], self.client_id))
-		querystring.append ("%s=" % self.param_names [0])
-		self.querystring = "&".join (querystring)		
-		self.params = http_util.crack_query (self.querystring)
+		WebSocket1.set_query_string (self)
 		self.env = None
 		
 	def handle_message (self, msg, event = None):
-		querystring = self.querystring
-		params = copy.copy (self.params)
-		if event:
-			querystring = "%s=%s&" % (self.param_names [3], event) + self.querystring
-			params [self.param_names [3]] = event
-		elif not msg: 
-			return
+		if not msg: return			
+		querystring, params = self.make_params (msg, event)			
 
 		self.server.handle_message (
 			self.client_id, 
@@ -340,10 +358,6 @@ class WebSocket5 (WebSocket):
 			params, 
 			self.param_names [0]
 		)
-		
-	def close (self):		
-		self.handle_message (-1, skitai.WS_EVT_EXIT)
-		WebSocket.close (self)
 
 
 class PooledJob (wsgi_handler.Job):
@@ -354,9 +368,12 @@ class PooledJob (wsgi_handler.Job):
 		self.args [0]["skitai.was"] = was
 		content = self.apph (*self.args)
 		if content:
-			was.websocket.send (content)
+			if type (content) is not tuple:
+				content = (content,)
+			was.websocket.send (*content)
 		del was.request
 		del was.websocket
+
 
 class DedicatedJob (PooledJob):
 	def handle_error (self):

@@ -93,24 +93,20 @@ class WebSocketServer (specs.WebSocket1):
 		websocket_servers.remove (self.gid)
 		self.clients = {}
 		self._closed = True
-		
-	def send (self, msg, op_code = -1):
-		if type (msg) is tuple:
-			try: msg, client, op_code = msg
-			except ValueError: msg, client = msg
-		else:
-			client = None		
-		
-		if op_code == -1:
-			op_code = self.default_op_code		
-		msg = self.message_encode (msg)
-		
-		if client:
-			self.sendto (client, msg, op_code)
-		else:
-			self.sendall (msg, op_code)
 			
-	def sendto (self, client_id, msg, op_code = -1):		
+	def send (self, msg, client_id = None, op_code = -1):
+		msg, op_code = self.build_data (msg, op_code)						
+		if client_id:
+			self.__sendto (client_id, msg, op_code)
+		else:
+			self.__sendall (msg, op_code)
+	
+	def __sendall (self, msg, op_code = -1):
+		clients = list (self.clients.keys ())
+		for client_id in clients:
+			self.__sendto (client_id, msg, op_code)
+			
+	def __sendto (self, client_id, msg, op_code = -1):
 		try:
 			client = self.clients [client_id]
 		except KeyError:
@@ -118,11 +114,7 @@ class WebSocketServer (specs.WebSocket1):
 		if client:
 			client.send (msg, op_code)
 		
-	def sendall (self, msg, op_code = -1):
-		clients = list (self.clients.keys ())
-		for client_id in clients:
-			self.sendto (client_id, msg)
-
+	
 websocket_servers = None
 
 def start_websocket (wasc):

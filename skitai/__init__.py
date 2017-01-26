@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.24.2"
+__version__ = "0.24.3.11"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -14,14 +14,11 @@ WEBSOCKET_REQDATA = 1 # deprecated
 WEBSOCKET_MULTICAST = 3 # deprecated
 
 WEBSOCKET_SIMPLE = 1
-WEBSOCKET_DEDICATE = 2
 WEBSOCKET_DEDICATE_THREADSAFE = 4
 WEBSOCKET_GROUPCHAT = 5
 
 WS_SIMPLE = 1
-WS_DEDICATE = 2
-WS_MULTICAST = 3
-WS_DEDICATE_TS = 4
+WS_DEDICATE = 4
 WS_GROUPCHAT = 5
 
 WS_EVT_ENTER = "enter"
@@ -35,6 +32,9 @@ WS_MSG_DEFAULT = None
 
 WS_OPCODE_TEXT = 0x1
 WS_OPCODE_BINARY = 0x2
+WS_OPCODE_CLOSE = 0x8
+WS_OPCODE_PING = 0x9
+WS_OPCODE_PONG = 0xa
 
 from aquests.dbapi import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 
