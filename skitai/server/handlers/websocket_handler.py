@@ -158,6 +158,8 @@ class Handler (wsgi_handler.Handler):
 			
 			if not servers.websocket_servers.has_key (gid):
 				server = servers.websocket_servers.create (gid, self, request, apph, env, message_encoding)				
+				if server is None:
+					return request.response.error (503)
 				env ["websocket"] = server
 				if is_saddle: env ["websocket.handler"] = (current_app, wsfunc)
 			

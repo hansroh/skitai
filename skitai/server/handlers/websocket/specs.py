@@ -22,7 +22,11 @@ import copy
 from collections import Iterable
 from skitai.saddle import part
 from aquests.lib.reraise import reraise 
-from werkzeug.wsgi import ClosingIterator 
+has_werkzeug = True
+try:
+	from werkzeug.wsgi import ClosingIterator 
+except ImportError:
+	has_werkzeug = False	
 
 class WebSocket:
 	collector = None
@@ -176,7 +180,7 @@ class WebSocket:
 			raise AssertionError ("Web socket frame decode error")
 	
 	def build_data (self, message, op_code):
-		if isinstance (message, ClosingIterator):
+		if has_werkzeug and isinstance (message, ClosingIterator):
 			msgs = []
 			for msg in message:
 				msgs.append (msg)
@@ -303,27 +307,28 @@ class WebSocket4 (WebSocket):
 		self.message_encoding = self.setup_encoding (message_encoding)
 	
 	def close (self):		
-		WebSocket.close (self)
 		self.cv.acquire()
+		WebSocket.close (self)		
 		self.cv.notify ()
 		self.cv.release ()
 	
 	def send (self, message, op_code = -1):
 		with self.lock:
-			WebSocket.send (self, message, op_code)						
+			WebSocket.send (self, message, op_code)
 			
 	def getwait (self, timeout = 10):
-		if self._closed:
-			return None # closed channel
 		self.cv.acquire()
 		while not self.message and not self._closed:
 			self.cv.wait(timeout)
+		
 		if self._closed:
 			self.cv.release()
 			return None
+		
 		message = self.message
 		self.message = None
-		self.cv.release()		
+		self.cv.release()
+		
 		return self.message_decode (message)
 			
 	def handle_message (self, msg):		

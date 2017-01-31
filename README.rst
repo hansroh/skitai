@@ -586,6 +586,8 @@ Group Chat Websocket
 
 This is just extension of Simple Data Request & Response. Here's simple multi-users chatting app.
 
+This feature will NOT work on multi-processes run mode.
+
 Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can chat between all clients.
 
 .. code:: python
@@ -623,12 +625,12 @@ At Flask, should setup for variable names you want to use,
       ("message", "client_id", "event", "room_id")
     )
     return ""
-   
+
 
 Threadsafe-Dedicated Websocket
 -------------------------------
 
-It is NOT for general serices. Please read carefully.
+It is NOT for general customer services. Please read carefully.
 
 This spec is for very special situation. It will create new work thread and that thread handles only one  client. And The thread will be continued until message receiving loop is ended. It is designed for long running app and for limited users - firms's employees or special clients who need to use server-side resources or long applications take long time to finish and need to observe output message stream.
 
@@ -699,14 +701,6 @@ Client can connect by ws://localhost:5000/websocket/talk?name=jamesmilton.
       else:  
         ws.send ("You said %s but I can't understatnd" % m)
 
-
-You can access all examples by skitai sample app after installing skitai.
-
-.. code:: python
-
-  sudo skitaid-instance.py -v -f sample
-
-Then goto http://localhost:5000/websocket in your browser.
 
 In next chapter's features of 'was' are only available for *Skito-Saddle WSGI container*. So if you have no plan to use Saddle, just skip.
 
@@ -2255,6 +2249,8 @@ Change Log
   
   0.24 (Jan 2017)
   
+  - fix proxy tunnel
+  - fix websocket cleanup
   - change websocket initializing, not lower version compatible
   - WEBSOCKET_MULTICAST deprecated, and new WEBSOCKET_GROUPCHAT does not create new thread any more
   
