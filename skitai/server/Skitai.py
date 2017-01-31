@@ -192,21 +192,14 @@ class Loader:
 	
 	def install_handler_with_tuple (self, routes):
 		sroutes = []
-		for route, entity in routes:
-			if type (entity) is tuple:
-				entity, appname = entity
-			else:
-				entity, appname = entity, 'app'
-			
+		for route, entity in routes:			
 			if type (entity) is not str:
 				entity = os.path.join (os.getcwd (), sys.argv [0])			
-			if entity [0] == "@":
-				sroutes.append ("%s=%s" % (route, entity))				
-			elif entity.endswith (".py") or entity.endswith (".pyc"):
+			if entity.endswith (".py") or entity.endswith (".pyc"):
 				entity = os.path.join (os.getcwd (), entity) [:-3]
 				if entity [-1] == ".": 
 					entity = entity [:-1]
-				sroutes.append ("%s=%s:%s" % (route, entity, appname))
+			sroutes.append ("%s=%s" % (route, entity))				
 		return sroutes
 			
 	def install_handler (self, 
@@ -222,7 +215,6 @@ class Loader:
 			routes = [routes]
 		if routes and type (routes [0]) is tuple:
 			routes = self.install_handler_with_tuple (routes)
-		
 		if blacklist_dir:
 			self.wasc.add_handler (0, ipbl_handler.Handler, blacklist_dir)
 		if proxy:

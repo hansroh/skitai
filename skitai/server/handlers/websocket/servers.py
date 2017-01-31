@@ -8,49 +8,43 @@ from skitai.saddle import part
 class WebSocketServers:
 	def __init__ (self, wasc):
 		self.wasc = wasc
+		self._nomore = False
 		self.lock = threading.RLock ()
 		self.wss = {}
 	
-	def get (self, gid):
-		self.lock.acquire ()
-		wss = self.wss [gid]
-		self.lock.release ()
-		return wss
+	def get (self, gid, default = None):
+		with self.lock:
+			return self.wss.get (gid, default)		
 		
 	def has_key (self, gid):	
-		self.lock.acquire ()
-		has = gid in self.wss
-		self.lock.release ()
+		with self.lock:
+			has = gid in self.wss		
 		return has
 		
 	def create (self, gid, *args):	
-		self.lock.acquire ()
+		with self.lock:
+			if self._nomore: 
+				return
+				
 		wss = WebSocketServer (gid, *args)
-		self.wss [gid] = wss
-		self.lock.release ()
-		return wss
-	
-	def create_threaded (self, gid, *args):	
-		self.lock.acquire ()
-		wss = ThreadedWebSocketServer (gid, *args)
-		self.wss [gid] = wss
-		self.lock.release ()
+		with self.lock:
+			self.wss [gid] = wss		
 		return wss
 		
 	def remove (self, gid):
-		self.lock.acquire ()
-		try: 
-			del self.wss [gid]			
-		except KeyError: 
-			pass	
-		self.lock.release ()
+		with self.lock:
+			try: 
+				del self.wss [gid]			
+			except KeyError: 
+				pass		
 	
 	def close (self):
-		self.lock.acquire ()
-		for k, s in list (self.wss.items ()):
+		with self.lock:
+			wss = list (self.wss.items ())
+			self._nomore = True
+		for k, s in wss:
 			self.wasc.logger ('server', '...closing websockket %s' % k)
 			s.close ()
-		self.lock.release ()
 	
 	def cleanup (self):
 		self.close ()
