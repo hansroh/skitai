@@ -62,20 +62,20 @@ class Handler (wsgi_handler.Handler):
 		was = the_was._get ()
 		was.request = request
 		env ["skitai.was"] = was
-		env ["websocket_init"] = ""
-		
+		env ["websocket.event"] = skitai.WS_EVT_INIT
+
 		is_saddle = isinstance (apph.get_callable (), part.Part)
 		message_encoding = skitai.WS_MSG_DEFAULT	
 			
 		if not is_saddle:	# not Skitao-Saddle				
 			apph (env, donot_response)
-			wsconfig = env ["websocket_init"]
+			wsconfig = env.get ("websocket.config", ())			
 			if len (wsconfig) == 3:
 				design_spec, keep_alive, varnames = wsconfig				
 				if type (varnames) not in (list, tuple):
 					varnames = (varnames,)
 			else:
-				raise AssertionError ("You should return (design_spec, keep_alive, var_names) where env has key 'skitai.websocket_init'")
+				raise AssertionError ("You should config (design_spec, keep_alive, var_names) where env has key 'skitai.websocket.config'")
 				
 		else:	
 			current_app, method, kargs, resp_code = apph.get_callable().get_method (env ["PATH_INFO"])
@@ -101,25 +101,25 @@ class Handler (wsgi_handler.Handler):
 					env ['QUERY_STRING'] = temporary_args
 					
 			apph (env, donot_response)
-			wsconfig = env ["websocket_init"]
+			wsconfig = env.get ("websocket.config")			
+			if not wsconfig:
+				raise AssertionError ("You should config (design_spec, keep_alive, [data_encoding]) where env has key 'was.wsconfig ()'")
+			
 			if not savedqs:
 				del env ["QUERY_STRING"]
 			else:	
 				env ["QUERY_STRING"] = savedqs
 			
 			keep_alive = 60
-			try:	
-				if len (wsconfig) == 3:
-					design_spec, keep_alive, message_encoding = wsconfig					
-				elif len (wsconfig) == 2:
-					design_spec, keep_alive = wsconfig
-				elif len (wsconfig) == 1:
-					design_spec = wsconfig [0]				
-			except:
-				self.wasc.logger.trace ("server",  request.uri)
-				return request.response.error (500, why = apph.debug and catch (1) or "")			
-		
-		del env ["websocket_init"]
+			if len (wsconfig) == 3:
+				design_spec, keep_alive, message_encoding = wsconfig					
+			elif len (wsconfig) == 2:
+				design_spec, keep_alive = wsconfig
+			elif len (wsconfig) == 1:
+				design_spec = wsconfig [0]	
+				
+		del env ["websocket.event"]
+		del env ["websocket.config"]
 		assert design_spec in (1,4,5), "design_spec  should be one of (WS_SIMPLE, WS_GROUPCHAT, WS_DEDICATE, WS_DEDICATE_TS)"			
 		headers = [
 			("Sec-WebSocket-Accept", self.calculate_response_key (securekey)),
@@ -131,7 +131,7 @@ class Handler (wsgi_handler.Handler):
 		request.response ("101 Web Socket Protocol Handshake", headers = headers)		
 		
 		if design_spec == skitai.WS_SIMPLE:
-			varnames = varnames [:3]
+			varnames = varnames [:2]
 			# WEBSOCKET_REQDATA			
 			# Like AJAX, simple request of client, simple response data
 			# the simplest version of stateless HTTP protocol using basic skitai thread pool
@@ -146,8 +146,8 @@ class Handler (wsgi_handler.Handler):
 			# return (WEBSOCKET_GROUPCHAT, 600)
 			# non-threaded websocketserver
 			# can send to all clients of group / specific client
-			varnames = varnames [:4]
-			param_name = varnames [3]
+			varnames = varnames [:3]
+			param_name = varnames [2]
 			gid = http_util.crack_query (query).get (param_name, None)
 			try:
 				assert gid, "%s value can't find" % param_name

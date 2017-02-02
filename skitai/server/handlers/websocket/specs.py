@@ -257,32 +257,27 @@ class WebSocket1 (WebSocket):
 		if self.env.get ("QUERY_STRING"):
 			querystring.append (self.env.get ("QUERY_STRING"))
 		querystring.append ("%s=%s" % (self.param_names [1], self.client_id))
-		querystring.append ("%s=" % self.param_names [2]) # events
 		querystring.append ("%s=" % self.param_names [0])
 		self.querystring = "&".join (querystring)		
 		self.params = http_util.crack_query (self.querystring)
 		
 	def close (self):		
-		self.handle_message (-1, skitai.WS_EVT_EXIT)
+		self.handle_message (-1, skitai.WS_EVT_CLOSE)
 		WebSocket.close (self)
 		
 	def make_params (self, msg, event):
 		querystring = self.querystring
 		params = self.params
-		if event:			
-			querystring = querystring.replace ("&%s=&" % self.param_names [2], "&%s=%s&" % (self.param_names [2], event))
-			querystring = "%s=%s&" % (self.param_names [2], event) + querystring
-			params [self.param_names [2]] = event
-			msg = ""
+		if event:
+			self.env ['websocket.event'] = event
 		else:	
-			params [self.param_names [2]] = None
-			
-		querystring = querystring + quote_plus (msg)		
-		params [self.param_names [0]] = self.message_decode (msg)
+			self.env ['websocket.event'] = None
+			querystring = querystring + quote_plus (msg)		
+			params [self.param_names [0]] = self.message_decode (msg)
 		return querystring, params	
 	
 	def open (self):		
-		self.handle_message (-1, skitai.WS_EVT_ENTER)
+		self.handle_message (-1, skitai.WS_EVT_OPEN)
 							
 	def handle_message (self, msg, event = None):
 		if not msg: return			
@@ -350,7 +345,6 @@ class WebSocket5 (WebSocket1):
 	
 	def set_query_string (self):
 		WebSocket1.set_query_string (self)
-		self.env = None
 		
 	def handle_message (self, msg, event = None):
 		if not msg: return			

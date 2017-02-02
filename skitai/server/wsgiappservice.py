@@ -1,4 +1,4 @@
-from skitai import __version__, WS_EVT_STARTED, WS_EVT_CLOSED
+from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT
 import multiprocessing
 from aquests.lib import pathtool, logger
 from .rpc import cluster_manager, cluster_dist_call
@@ -257,17 +257,20 @@ class WAS:
 		lifetime.shutdown (0, timeout)
 	
 	def wsconfig (self, spec, timeout = 60, encoding = "text"):
-		self.env ["websocket_init"] = (spec, timeout, encoding)
+		self.env ["websocket.config"] = (spec, timeout, encoding)
 		return ""
 		
 	def wsinit (self):
-		return "websocket_init" in self.env
+		return self.env.get ('websocket.event') == WS_EVT_INIT
 	
-	def wsstarted (self, event):
-		return event == WS_EVT_STARTED
+	def wsopened (self):
+		return self.env.get ('websocket.event') == WS_EVT_OPEN
 	
-	def wsclosed (self, event):
-		return event == WS_EVT_CLOSED	
+	def wsclosed (self):
+		return self.env.get ('websocket.event') == WS_EVT_CLOSE
+	
+	def wshasevent (self):
+		return self.env.get ('websocket.event')
 		
 class Logger:
 	def __init__ (self, media, path):

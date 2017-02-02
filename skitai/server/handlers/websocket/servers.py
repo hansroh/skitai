@@ -62,8 +62,11 @@ class WebSocketServer (specs.WebSocket1):
 			
 	def add_client (self, ws):
 		self.clients [ws.client_id] = ws
-		ws.handle_message (1, skitai.WS_EVT_ENTER)
+		ws.handle_message (1, skitai.WS_EVT_OPEN)
 	
+	def make_params (self, msg, event):
+		specs.WebSocket1.make_params (self, msg, event)
+		
 	def handle_message (self, client_id, msg, querystring, params, message_param):		
 		if msg == -1: # exit
 			try: del self.clients [client_id]

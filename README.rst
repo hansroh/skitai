@@ -448,11 +448,12 @@ Client can connect by ws://localhost:5000/websocket/chat.
   def echo (was, message, client_id, event):
     if was.wsinit ():
       return was.wsconfig (skitai.WS_SIMPLE, 60)
-    if was.wsstarted (event):
+    elif was.wsopened ():
       return "Welcome Client %s" % client_id
+      
     return "ECHO:" + message
 
-First 3 args (message, client_id, event except 'was') are essential. Although you need other args, you must position after theses 3 essential args. client_id is unique channel id for distinquishing websocket channel and it makes managing client state using global object.
+First 2 args (message, client_id except 'was') are essential. Although you need other args, you must position after theses essential args. client_id is unique channel id for distinquishing websocket channel and it makes managing client state using global object.
 
 .. code:: python
   
@@ -465,11 +466,12 @@ First 3 args (message, client_id, event except 'was') are essential. Although yo
     if was.wsinit ():
       num_sent [client_id] = 0      
       return was.wsconfig (skitai.WS_SIMPLE, 60)
-    if was.wsstarted (event):
+    elif was.wsopened ():
       return
-    if was.wsclosed (event):      
+    elif was.wsclosed ():      
       del num_sent [client_id]
       return
+      
     num_sent [client_id] += 1
     return "%s said:" % (clinent_name, message)
 
@@ -494,47 +496,57 @@ At Flask, Skitai can't know which variable name receive websocket message, then 
 
   @app.route ("/websocket/echo")
   def echo ():
-    if "websocket_init" in request.environ:
-      request.environ ["websocket_init"] = (skitai.WS_SIMPLE, 60, ("message", "client_id", "event"))
+    event = request.environ.get ('websocket.event')
+    if event == skitai.WS_EVT_INIT:
+      request.environ ["websocket.config"] = (skitai.WS_SIMPLE, 60, ("message", "client_id"))
       return ""
-    if request.args.get ("event") == skitai.WS_EVT_STARTED:
+    elif event == skitai.WS_EVT_OPEN:
       return "Welcome"
+      
     return "ECHO:" + request.args.get ("message")
 
-In this case, variable name is ("message", "client_id", "event"), It means take websocket's message and channel_id as "message" and "client_id" arg.
+In this case, variable name is ("message", "client_id"), It means take websocket's message and channel_id as "message" and "client_id" arg.
 
-If returned object is python str type, websocket will send messages as text tpye, if bytes type, as binary. But Flask's return object is assumed as text type.
+If returned object is python str type, websocket will send messages as text tpye, if bytes type, as binary. But Flask's return object is assumed as text type. 
+
+Also note, at flask, you should not return None, so you should return null string, if you do not want to send any message.
 
 
 Events
 ``````````
 
-Currently websocket has 2 envets.
+Currently websocket has 3 envets.
 
-- WS_EVT_STARTED: just after websocket configured
-- WS_EVT_CLOSED: client websocket channel disconnected
+- WS_EVT_INIT: in handsahking progress
+- WS_EVT_OPEN: just after websocket configured
+- WS_EVT_CLOSE: client websocket channel disconnected
 
-When event occured, message is null string, so WS_EVT_CLOSED is not need handle, but WS_EVT_STARTED would be handled - normally just return None value.
+When event occured, message is null string, so WS_EVT_CLOSE is not need handle, but WS_EVT_OPEN would be handled - normally just return None value.
 
 At Skito-Saddle, checking events is replacable to,
 
 .. code:: python
   
-  if was.wsstarted (event):
-    return    
+  if was.wsinit (event):
+    return was.wsconfig ()    
+  if was.wsopened (event):
+    return
   if was.wsclosed (event):  
     return
 
-If you do not want to handle any events just add 2 lines.
+If you do not want to handle any events, check by was.wshasevent (),
 
 .. code:: python
   
-  @app.route ("/websocket/echo")
-  def echo (was, message, client_id, event):
-    if was.wsinit ():
-      return was.wsconfig (skitai.WS_SIMPLE, 60)
-    if event: # ignore all events
-      return
+  if was.wshasevent (): # ignore all events
+    return
+    
+At Flask,
+
+.. code:: python
+  
+  if request.environ.get ('websocket.event'):
+    return '' # should return null string
 		  
 
 Send Messages Through Websocket Directly
@@ -548,8 +560,9 @@ It needn't return message, but you can send directly multiple messages through w
   def echo (was, message, client_id, event):
     if was.wsinit ():
       return was.wsconfig (skitai.WS_SIMPLE, 60)
-    if event: # ignore all events
+    elif was.wshasevent (): # ignore all events
       return
+      
     was.websocket.send ("You said," + message)	
     was.websocket.send ("I said acknowledge")
 
@@ -559,11 +572,13 @@ This way is very useful for Flask users, because Flask's return object is bytes,
 
   @app.route ("/websocket/echo")
   def echo ():
-    if "websocket_init" in request.environ:
-      request.environ ["websocket_init"] = (skitai.WS_SIMPLE, 60, ("message", "client_id"))
+    event = request.environ.get ('websocket.event')
+    if event == skitai.WS_EVT_INIT:
+      request.environ ["websocket.config"] = (skitai.WS_SIMPLE, 60, ("message", "client_id"))
       retrurn ''
-    if request.args.get ("event"):
-      return    
+    elif event:
+      return ''   
+      
     request.environ ["websocket"].send (
       ("You said, %s" % message).encode ('iso8859-1')
     )
@@ -580,7 +595,7 @@ For your convinient, message automatically load and dump object like JSON. But t
   def json (was, message, client_id, event):
     if was.wsinit ():
       return was.wsconfig (skitai.WS_SIMPLE, 60, skitai.WS_MSG_JSON)
-    if event: # ignore all events
+    elif was.wshasevent ():
       return
             
     return dbsearch (message ['query'], message ['offset'])
@@ -605,13 +620,14 @@ Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can
   def chat (was, message, client_id, event, room_id):    
     if was.wsinit ():
       return was.wsconfig (skitai.WS_GROUPCHAT, 60)    
-    if was.wsstarted (event):
+    elif was.wsopened (event):
       return "Client %s has entered" % client_id
-    if was.wsclosed (event):
+    elif was.wsclosed (event):
       return "Client %s has leaved" % client_id
+      
     return "Client %s Said: %s" % (client_id, message)
 
-In this case, first 4 args (message, client_id, event, room_id) are essential.
+In this case, first 3 args (message, client_id, room_id) are essential.
 
 For sending message to specific client_id,
 
@@ -627,11 +643,11 @@ At Flask, should setup for variable names you want to use,
 
 .. code:: python
   
-  if "websocket_init" in request.environ:
-    request.environ ["websocket_init"] = (
+  if request.environ.get ("websocket.event") == skitai.WS_EVT_INIT:
+    request.environ ["websocket.config"] = (
       skitai.WS_GROUPCHAT, 
       60, 
-      ("message", "client_id", "event", "room_id")
+      ("message", "client_id", "room_id")
     )
     return ""
 
@@ -709,6 +725,18 @@ Client can connect by ws://localhost:5000/websocket/talk?name=jamesmilton.
         
       else:  
         ws.send ("You said %s but I can't understatnd" % m)
+
+At Flask,
+
+.. code:: python
+  
+  if request.environ.get ("websocket.event") == skitai.WS_EVT_INIT:
+    request.environ ["websocket.config"] = (
+      skitai.WS_GROUPCHAT, 
+      60, 
+      None
+    )
+    return ""
 
 
 In next chapter's features of 'was' are only available for *Skito-Saddle WSGI container*. So if you have no plan to use Saddle, just skip.
@@ -2258,6 +2286,7 @@ Change Log
   
   0.24 (Jan 2017)
   
+  - 0.24.5 eliminate event arg from websocket config
   - fix proxy tunnel
   - fix websocket cleanup
   - change websocket initializing, not lower version compatible
