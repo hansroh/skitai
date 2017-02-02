@@ -271,6 +271,10 @@ class WAS:
 	
 	def wshasevent (self):
 		return self.env.get ('websocket.event')
+	
+	def wsclient (self):
+		return self.env.get ('websocket.client')	
+
 		
 class Logger:
 	def __init__ (self, media, path):

@@ -58,7 +58,7 @@ class WebSocketServer (specs.WebSocket1):
 		self.apph = apph
 		self.env = env
 		self.messages = []
-		self.clients = {}		
+		self.clients = {}
 			
 	def add_client (self, ws):
 		self.clients [ws.client_id] = ws
@@ -78,8 +78,9 @@ class WebSocketServer (specs.WebSocket1):
 			msg = ""
 			
 		self.env ["QUERY_STRING"] = querystring + quote_plus (msg)			
-		self.env ["websocket.params"] = params
-		self.env ["websocket.params"][message_param] = self.message_decode (msg)		
+		params [message_param] = self.message_decode (msg)
+		self.env ["websocket.params"] = params		
+		self.env ["websocket.client"] = client_id
 		args = (self.request, self.apph, (self.env, self.start_response), self.wasc.logger)
 		if self.env ["wsgi.multithread"]:
 			self.wasc.queue.put (specs.PooledJob (*args))

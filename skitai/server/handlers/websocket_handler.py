@@ -131,7 +131,7 @@ class Handler (wsgi_handler.Handler):
 		request.response ("101 Web Socket Protocol Handshake", headers = headers)		
 		
 		if design_spec == skitai.WS_SIMPLE:
-			varnames = varnames [:2]
+			varnames = varnames [:1]
 			# WEBSOCKET_REQDATA			
 			# Like AJAX, simple request of client, simple response data
 			# the simplest version of stateless HTTP protocol using basic skitai thread pool
@@ -146,8 +146,8 @@ class Handler (wsgi_handler.Handler):
 			# return (WEBSOCKET_GROUPCHAT, 600)
 			# non-threaded websocketserver
 			# can send to all clients of group / specific client
-			varnames = varnames [:3]
-			param_name = varnames [2]
+			varnames = varnames [:2]
+			param_name = varnames [1]
 			gid = http_util.crack_query (query).get (param_name, None)
 			try:
 				assert gid, "%s value can't find" % param_name

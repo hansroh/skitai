@@ -255,8 +255,7 @@ class WebSocket1 (WebSocket):
 	def set_query_string (self):
 		querystring = []		
 		if self.env.get ("QUERY_STRING"):
-			querystring.append (self.env.get ("QUERY_STRING"))
-		querystring.append ("%s=%s" % (self.param_names [1], self.client_id))
+			querystring.append (self.env.get ("QUERY_STRING"))		
 		querystring.append ("%s=" % self.param_names [0])
 		self.querystring = "&".join (querystring)		
 		self.params = http_util.crack_query (self.querystring)
@@ -284,6 +283,7 @@ class WebSocket1 (WebSocket):
 		querystring, params = self.make_params (msg, event)			
 		self.env ["QUERY_STRING"] = querystring
 		self.env ["websocket.params"] = params
+		self.env ["websocket.client"] = self.client_id
 		
 		args = (self.request, self.apph, (self.env, self.start_response), self.wasc.logger)
 		if self.env ["wsgi.multithread"]:			

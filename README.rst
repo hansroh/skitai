@@ -428,10 +428,8 @@ Websocket messages will be automatically converted to theses objects. Note that 
   - WS_MSG_XMLRPC
 
 
-Simple Data Request & Response
--------------------------------
-
-Here's a echo app for showing simple request-respone.
+General Usages
+---------------
 
 Client can connect by ws://localhost:5000/websocket/chat.
 
@@ -445,24 +443,24 @@ Client can connect by ws://localhost:5000/websocket/chat.
   app.use_reloader = True
 
   @app.route ("/websocket/echo")
-  def echo (was, message, client_id, event):
+  def echo (was, message):
     if was.wsinit ():
       return was.wsconfig (skitai.WS_SIMPLE, 60)
     elif was.wsopened ():
-      return "Welcome Client %s" % client_id
+      return "Welcome Client %s" % was.wsclient ()
       
     return "ECHO:" + message
 
-First 2 args (message, client_id except 'was') are essential. Although you need other args, you must position after theses essential args. client_id is unique channel id for distinquishing websocket channel and it makes managing client state using global object.
+For gettinh another args,
 
 .. code:: python
   
   num_sent = {}  
   
   @app.route ("/websocket/echo")
-  def echo (was, message, client_id, event, clinent_name):
-    global num_sent
-  
+  def echo (was, message, clinent_name):
+    global num_sent    
+    client_id = was.wsclient ()
     if was.wsinit ():
       num_sent [client_id] = 0      
       return was.wsconfig (skitai.WS_SIMPLE, 60)
@@ -497,15 +495,17 @@ At Flask, Skitai can't know which variable name receive websocket message, then 
   @app.route ("/websocket/echo")
   def echo ():
     event = request.environ.get ('websocket.event')
+    client_id = request.environ.get ('websocket.client')
+    
     if event == skitai.WS_EVT_INIT:
-      request.environ ["websocket.config"] = (skitai.WS_SIMPLE, 60, ("message", "client_id"))
+      request.environ ["websocket.config"] = (skitai.WS_SIMPLE, 60, ("message",))
       return ""
     elif event == skitai.WS_EVT_OPEN:
-      return "Welcome"
+      return "Welcome %d" % client_id
       
     return "ECHO:" + request.args.get ("message")
 
-In this case, variable name is ("message", "client_id"), It means take websocket's message and channel_id as "message" and "client_id" arg.
+In this case, variable name is ("message",), It means take websocket's message as "message" arg.
 
 If returned object is python str type, websocket will send messages as text tpye, if bytes type, as binary. But Flask's return object is assumed as text type. 
 
@@ -557,7 +557,7 @@ It needn't return message, but you can send directly multiple messages through w
 .. code:: python
 
   @app.route ("/websocket/echo")
-  def echo (was, message, client_id, event):
+  def echo (was, message):
     if was.wsinit ():
       return was.wsconfig (skitai.WS_SIMPLE, 60)
     elif was.wshasevent (): # ignore all events
@@ -574,7 +574,7 @@ This way is very useful for Flask users, because Flask's return object is bytes,
   def echo ():
     event = request.environ.get ('websocket.event')
     if event == skitai.WS_EVT_INIT:
-      request.environ ["websocket.config"] = (skitai.WS_SIMPLE, 60, ("message", "client_id"))
+      request.environ ["websocket.config"] = (skitai.WS_SIMPLE, 60, ("message",))
       retrurn ''
     elif event:
       return ''   
@@ -592,7 +592,7 @@ For your convinient, message automatically load and dump object like JSON. But t
 .. code:: python
 
   @app.route ("/websocket/json")
-  def json (was, message, client_id, event):
+  def json (was, message):
     if was.wsinit ():
       return was.wsconfig (skitai.WS_SIMPLE, 60, skitai.WS_MSG_JSON)
     elif was.wshasevent ():
@@ -603,6 +603,27 @@ For your convinient, message automatically load and dump object like JSON. But t
 JSON message is automatically loaded to Python object, and returning object also will dump to JSON.
 
 Currently you can use WS_MSG_JSON and WS_MSG_XMLRPC. And I guess streaming and multi-chatable gRPC over websocket also possible, I am testing it.
+
+
+Simple Data Request & Response
+-------------------------------
+
+Here's a echo app for showing simple request-respone.
+
+Client can connect by ws://localhost:5000/websocket/chat.
+
+.. code:: python
+
+  @app.route ("/websocket/echo")
+  def echo (was, message):
+    if was.wsinit ():
+      return was.wsconfig (skitai.WS_SIMPLE, 60)
+    elif was.wshasevent ():
+      return
+            
+    return "ECHO:" + message
+
+First args (message) are essential. Although you need other args, you must position after this essential arg.
 
 
 Group Chat Websocket
@@ -617,7 +638,9 @@ Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can
 .. code:: python
 
   @app.route ("/chat")
-  def chat (was, message, client_id, event, room_id):    
+  def chat (was, message, room_id):   
+    client_id = was.wsclient ()
+    
     if was.wsinit ():
       return was.wsconfig (skitai.WS_GROUPCHAT, 60)    
     elif was.wsopened (event):
@@ -627,7 +650,7 @@ Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can
       
     return "Client %s Said: %s" % (client_id, message)
 
-In this case, first 3 args (message, client_id, room_id) are essential.
+In this case, first 2 args (message, room_id) are essential.
 
 For sending message to specific client_id,
 
@@ -647,7 +670,7 @@ At Flask, should setup for variable names you want to use,
     request.environ ["websocket.config"] = (
       skitai.WS_GROUPCHAT, 
       60, 
-      ("message", "client_id", "room_id")
+      ("message", "room_id")
     )
     return ""
 
@@ -1063,7 +1086,19 @@ This IDs is logged to Skitai request log file like this.
 Focus 3rd line above log message. Then you can trace a series of API calls from each Skitai instance's log files for finding some kind of problems.
 
 
-Utility Services of 'was'
+Websocket Related Methods of 'was'
+------------------------------------
+
+For more detail, see Websocket section.
+
+- was.wsinit () # wheather handshaking is in progress
+- was.wsconfig (spec, timeout, message_type)
+- was.wsopened ()
+- was.wsclosed ()
+- was.wsclient () # get websocket client ID
+
+
+Utility Methods of 'was'
 ---------------------------
 
 This chapter's 'was' services are also avaliable for all WSGI middelwares.
@@ -2286,6 +2321,7 @@ Change Log
   
   0.24 (Jan 2017)
   
+  - 0.24.5 eliminate client arg from websocket config
   - 0.24.5 eliminate event arg from websocket config
   - fix proxy tunnel
   - fix websocket cleanup
@@ -2387,7 +2423,7 @@ Change Log
   - fix proxy occupies CPU on POST method failing
   - was.log(), was.traceback() added
   - fix valid time in message box 
-  - changed @failed_request event call arguments and can return custom error page
+  - changed @failed_request arguments and can return custom error page
   - changed skitaid.py command line options, see 'skitaid.py --help'
   - batch task scheduler added
   - e-mail sending fixed
