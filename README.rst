@@ -448,7 +448,7 @@ Client can connect by ws://localhost:5000/websocket/chat.
   def echo (was, message, client_id, event):
     if was.wsinit ():
       return was.wsconfig (skitai.WS_SIMPLE, 60)
-    if event == skitai.WS_EVT_CONNECTED:
+    if was.wsclosed (event):      
       return "Welcome Client %s" % client_id
     return "ECHO:" + message
 
@@ -465,9 +465,9 @@ First 3 args (message, client_id, event except 'was') are essential. Although yo
     if was.wsinit ():
       num_sent [client_id] = 0      
       return was.wsconfig (skitai.WS_SIMPLE, 60)
-    if event == skitai.WS_EVT_CONNECTED:
+    if was.wsstarted (event):
       return
-    if event == skitai.WS_EVT_DISCONNECTED:      
+    if was.wsclosed (event):      
       del num_sent [client_id]
       return
     num_sent [client_id] += 1
@@ -497,8 +497,8 @@ At Flask, Skitai can't know which variable name receive websocket message, then 
     if "websocket_init" in request.environ:
       request.environ ["websocket_init"] = (skitai.WS_SIMPLE, 60, ("message", "client_id", "event"))
       return ""
-    if request.args.get ("event"):
-      return  
+    if request.args.get ("event") == skitai.WS_EVT_STARTED:
+      return "Welcome"
     return "ECHO:" + request.args.get ("message")
 
 In this case, variable name is ("message", "client_id", "event"), It means take websocket's message and channel_id as "message" and "client_id" arg.
@@ -511,10 +511,19 @@ Events
 
 Currently websocket has 2 envets.
 
-- WS_EVT_CONNECTED: just after websocket configured
-- WS_EVT_DISCONNECTED: client websocket channel disconnected
+- WS_EVT_STARTED: just after websocket configured
+- WS_EVT_CLOSED: client websocket channel disconnected
 
-When event occured, message is null string, so WS_EVT_DISCONNECTED is not need handle, but WS_EVT_CONNECTED would be handled - normally just return None value.
+When event occured, message is null string, so WS_EVT_CLOSED is not need handle, but WS_EVT_STARTED would be handled - normally just return None value.
+
+At Skito-Saddle, checking events is replacable to,
+
+.. code:: python
+  
+  if was.wsstarted (event):
+    return    
+  if was.wsclosed (event):  
+    return
 
 If you do not want to handle any events just add 2 lines.
 
@@ -596,9 +605,9 @@ Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can
   def chat (was, message, client_id, event, room_id):    
     if was.wsinit ():
       return was.wsconfig (skitai.WS_GROUPCHAT, 60)    
-    if event == skitai.WS_EVT_CONNECTED:
+    if was.wsstarted (event):
       return "Client %s has entered" % client_id
-    if event == skitai.WS_EVT_DISCONNECTED:
+    if was.wsclosed (event):
       return "Client %s has leaved" % client_id
     return "Client %s Said: %s" % (client_id, message)
 

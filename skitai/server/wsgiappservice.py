@@ -1,4 +1,4 @@
-from skitai import __version__
+from skitai import __version__, WS_EVT_STARTED, WS_EVT_CLOSED
 import multiprocessing
 from aquests.lib import pathtool, logger
 from .rpc import cluster_manager, cluster_dist_call
@@ -263,6 +263,12 @@ class WAS:
 	def wsinit (self):
 		return "websocket_init" in self.env
 	
+	def wsstarted (self, event):
+		return event == WS_EVT_STARTED
+	
+	def wsclosed (self, event):
+		return event == WS_EVT_CLOSED	
+		
 class Logger:
 	def __init__ (self, media, path):
 		self.media = media
