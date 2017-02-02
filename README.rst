@@ -448,7 +448,7 @@ Client can connect by ws://localhost:5000/websocket/chat.
   def echo (was, message, client_id, event):
     if was.wsinit ():
       return was.wsconfig (skitai.WS_SIMPLE, 60)
-    if was.wsclosed (event):      
+    if was.wsstarted (event):
       return "Welcome Client %s" % client_id
     return "ECHO:" + message
 
