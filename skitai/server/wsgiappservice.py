@@ -51,7 +51,7 @@ class WAS:
 	@classmethod
 	def register (cls, name, obj):
 		if hasattr (cls, name):
-			raise KeyError("server object `%s` is already exists" % name)			
+			raise AttributeError ("server object `%s` is already exists" % name)
 		cls.objects [name] = obj		
 		setattr (cls, name, obj)
 	

@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.24.4.2"
+__version__ = "0.24.4.3"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -20,6 +20,8 @@ WS_GROUPCHAT = 5
 
 WS_EVT_ENTER = "enter"
 WS_EVT_EXIT = "exit"
+WS_EVT_CONNECTED = "enter"
+WS_EVT_DISCONNECTED = "exit"
 WS_EVT_NONE = None
 
 WS_MSG_JSON = "json"
