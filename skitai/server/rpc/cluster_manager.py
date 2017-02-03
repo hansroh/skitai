@@ -75,6 +75,8 @@ class ClusterManager:
 		return len (self._cluster)
 	
 	def has_permission (self, request, roles):
+		if self.access is None:
+			return True
 		return self.access.is_valid_request (request) and self.access.has_role (roles)
 				
 	def get_name (self):

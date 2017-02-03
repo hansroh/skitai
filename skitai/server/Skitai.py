@@ -60,7 +60,7 @@ class Loader:
 		self.num_worker = num
 		self.wasc.workers = num
 			
-	def WAS_initialize (self):		
+	def WAS_initialize (self):
 		self.wasc.log_base_path = self.logpath and os.path.split (os.path.split (self.logpath)[0])[0]
 		self.wasc.var_base_path = self.varpath and os.path.split (os.path.split (self.varpath)[0])[0]
 		self.wasc.register ("debug", self.debug)
@@ -71,6 +71,7 @@ class Loader:
 		self.wasc.register ("cachefs", None)	
 		websocekts.start_websocket (self.wasc)
 		self.wasc.register ("websockets", websocekts.websocket_servers)
+		self.switch_to_await_fifo ()
 		
 	def WAS_finalize (self):
 		global the_was
@@ -82,10 +83,7 @@ class Loader:
 		# BUT we will use http2 when gRPC call, with just 1 stream per connection for speeding
 		http2.MAX_HTTP2_CONCURRENT_STREAMS = 1
 		request_handler.RequestHandler.FORCE_HTTP_11 = True
-		adns.init (self.wasc.logger.get ("server"))		
-		if not hasattr (self.wasc, "threads"):
-			for attr in ("map", "rpc", "rest", "wget", "lb", "db", "dlb", "dmap"):
-				delattr (self.wasc, attr)
+		adns.init (self.wasc.logger.get ("server"))
 		start_was (self.wasc)
 		
 	def config_cachefs (self, cache_dir = None, memmax = 0, diskmax = 0):
@@ -99,7 +97,7 @@ class Loader:
 		self.wasc.clusters ["__dbpool__"] = dp
 		self.wasc.clusters_for_distcall ["__dbpool__"] = dcluster_dist_call.ClusterDistCallCreator (dp, self.wasc.logger.get ("server"))
 	
-	def switch_fifo (self):
+	def switch_to_await_fifo (self):
 		if self._fifo_switched: return
 		asynconnect.AsynConnect.fifo_class = await_fifo
 		asynconnect.AsynSSLConnect.fifo_class = await_fifo
@@ -217,8 +215,7 @@ class Loader:
 			routes = self.install_handler_with_tuple (routes)
 		if blacklist_dir:
 			self.wasc.add_handler (0, ipbl_handler.Handler, blacklist_dir)
-		if proxy:
-			self.switch_fifo ()
+		if proxy:			
 			self.wasc.add_handler (1, proxy_handler.Handler, self.wasc.clusters, self.wasc.cachefs, unsecure_https)		
 		
 		vh = self.wasc.add_handler (
@@ -234,9 +231,7 @@ class Loader:
 			if line.startswith (";") or line.startswith ("#"):
 				continue
 			elif line.startswith ("/"):
-				reverse_proxing = vh.add_route (current_rule, line)
-				if reverse_proxing:
-					self.switch_fifo ()
+				reverse_proxing = vh.add_route (current_rule, line)					
 			elif line:
 				if line [0] == "@":
 					line = line [1:].strip ()					

@@ -267,6 +267,39 @@ Gateway use only bearer tokens like OAuth2 and JWT(Json Web Token) for authoriza
 Also Skitai create API Transaction ID for each API call, and this will eb explained in Skitai 'was' Service chapter.
 
 
+Using Database Engine For Token Storage
+`````````````````````````````````````````
+
+*New in version 0.24.8*
+
+If you are not familar with Skitai 'was' request services, it would be better to skip and read later.
+
+You can query for getting user information to database engines asynchronously. Here's example for MongDB.
+
+.. code:: python
+  
+  from skitai import was
+  
+  class Authorizer:  
+    def handle_user (self, response):
+      username = response.data ['username']
+      roles = response.data ['roles']
+      expires = response.data ['expires']
+      
+      request, callback = response.meta ['recall']      
+      if expires and expires < time.time ():
+        callback (request)
+      else: 
+        callback (request, username, roles)
+          
+    def handle_token (self, request, callback):
+      dbo = was.mongodb (
+        "@my-mongodb", "mydb", callback = self.handle_user,
+        meta = {'recall': (request, callback)}
+      )
+      dbo.findone ('tokens', {"token": request.token})
+
+
 Run as HTTPS Server
 ------------------------
 
@@ -306,30 +339,349 @@ Also app should can handle mount point.
 In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Skito-Saddle can handle obiously. But I don't know other WSGI containers will work properly.
 
 
-HTTP/2.0
-============
+Skitai 'was' Services
+=======================
 
-*New in version 0.16*
+'was' means (Skitai) *WSGI Application Support*. 
 
-Skiai supports HTPT2 both 'h2' protocl over encrypted TLS and 'h2c' for clear text (But now Sep 2016, there is no browser supporting h2c protocol).
-
-**As A Server**
-
-Basically you have nothing to do for HTTP2. Client's browser will handle it except `HTTP2 server push`_.
-
-For using it, you just call was.response.hint_promise (uri) before return response data. It will work only client browser support HTTP2, otherwise will be ignored.
+WSGI container like Flask, need to import 'was':
 
 .. code:: python
 
-  @app.route ("/promise")
-  def promise (was):
+  from skitai import was
   
-    was.response.hint_promise ('/images/A.png')
-    was.response.hint_promise ('/images/B.png')
-    
-    return was.response ("200 OK", 'Promise Sent<br><br><img src="/images/A.png"><img src="/images/B.png">')	
+  @app.route ("/")
+  def hello ():
+    was.get ("http://...")
+    ...    
 
-.. _`HTTP2 server push`: https://tools.ietf.org/html/rfc7540#section-8.2
+But Saddle WSGI container integrated with Skitai, use just like Python 'self'.
+
+It will be easy to understand think like that:
+
+- Skitai is Python class instance
+- 'was' is 'self' which first argument of instance method
+- Your app functions are methods of Skitai instance
+
+.. code:: python
+  
+  @app.route ("/")
+  def hello (was, name = "Hans Roh"):
+    was.get ("http://...")
+    ...
+
+Simply just remember, if you use WSGI container like Flask, Bottle, ... - NOT Saddle - and want to use Skitai asynchronous services, you should import 'was'. Usage is exactly same. But for my convinient, I wrote example codes Saddle version mostly.
+
+
+
+Async Requests Service
+------------------------
+
+Most importance service of 'was' is making requests to HTTP, REST, RPC and Database Engines. The modules related theses features from aquests_.
+
+You can read aquests_ usage first.
+
+I think it just fine explains some differences with aquests.
+
+First of all, usage is somewhat different because aquests is used within threadings on skitai. Skitai takes some threading advantages and compromise with them for avoiding callback heaven.
+
+Usage
+``````
+
+At aquests,
+
+.. code:: python
+
+  import aquests
+  
+  def display_result (response):
+    print (reponse.data)
+  
+  aquests.configure (callback = display_result, timeout = 3)
+    
+  aquests.get (url)
+  aquests.post (url, {"user": "Hans Roh", "comment": "Hello"})
+  aquests.fetchall ()
+
+At Skitai,
+  
+.. code:: python
+  
+  def request (was):
+    req1 = was.get (url)
+    req2 = was.post (url, {"user": "Hans Roh", "comment": "Hello"})    
+    respones1 = req1.getwait (timeout = 3)
+    response2 = req2.getwait (timeout = 3)    
+    return [respones1.data, respones2.data]
+
+The significant differnce is calling getwait (timeout) for getting response data.
+
+PostgreSQL query at aquests,
+
+.. code:: python
+
+  import aquests
+  
+  def display_result (response):
+    for row in response.data:
+      row.city, row.t_high, row.t_low
+  
+  aquests.configure (callback = display_result, timeout = 3)
+  
+  dbo = aquests.postgresql ("127.0.0.1:5432", "mydb")
+  dbo.excute ("SELECT city, t_high, t_low FROM weather;")
+  aquests.fetchall ()
+
+At Skitai,
+
+.. code:: python
+    
+  def query (was):
+    dbo = was.postgresql ("127.0.0.1:5432", "mydb")
+    s = dbo.excute ("SELECT city, t_high, t_low FROM weather;")
+    
+    response = s.getwait (2)
+    for row in response.data:
+      row.city, row.t_high, row.t_low
+
+
+If you needn't returned data and just wait for completing query,
+
+.. code:: python
+
+    dbo = was.postgresql ("127.0.0.1:5432", "mydb")
+    req = dbo.execute ("INSERT INTO CITIES VALUES ('New York');")
+    req.wait (2) 
+
+If failed, exception will be raised.
+
+Here're addtional methods and properties above response obkect compared with aquests' response one.
+
+- cache (timeout): response caching
+- status: it indicate requests processed status and note it is not related response.status_code.
+
+  - 0: Initial Default Value
+  - 1: Operation Timeout
+  - 2: Exception Occured
+  - 3: Normal Terminated
+
+.. _aquests: https://pypi.python.org/pypi/aquests
+
+Load-Balancing
+````````````````
+
+Skitai support load-balancing requests.
+
+If server members are pre defined, skitai choose one automatically per each request supporting *fail-over*.
+
+At first, let's add mysearch members to config file (ex. /etc/skitaid/servers-enabled/sample.conf),
+
+
+Then let's request XMLRPC result to one of mysearch members.
+   
+.. code:: python
+
+  @app.route ("/search")
+  def search (was, keyword = "Mozart"):
+    s = was.rpc.lb ("@mysearch/rpc2").search (keyword)
+    results = s.getwait (5)
+    return result.data
+  
+  if __name__ == "__main__":
+    import skitai
+    
+    skitai.run (
+      clusters = {        
+        '@mysearch': 
+        ('https', ["s1.myserver.com:443", "s2.myserver.com:443"])
+      },
+      mount = ("/", app)
+    )
+  
+  
+It just small change from was.rpc () to was.rpc.lb ()
+
+*Note:* If @mysearch member is only one, was.get.lb ("@mydb") is equal to was.get ("@mydb").
+
+*Note2:* You can mount cluster @mysearch to specific path as proxypass like this:
+
+.. code:: bash
+  
+  if __name__ == "__main__":
+    import skitai
+    
+    skitai.run (
+      clusters = {        
+        '@mysearch': 
+        ('https', ["s1.myserver.com:443", "s2.myserver.com:443"])        
+      },
+      mount = [
+        ("/", app),
+        ("/search", '@mysearch')
+      ]
+    )
+  
+It can be accessed from http://127.0.0.1:5000/search, and handled as load-balanced proxypass.
+
+This sample is to show loadbalanced querying database.
+Add mydb members to config file.
+
+.. code:: python
+
+  @app.route ("/query")
+  def query (was, keyword):
+    dbo = was.postgresql.lb ("@mydb")    
+    req = dbo.execute ("SELECT * FROM CITIES;")
+    result = req.getwait (2)
+  
+   if __name__ == "__main__":
+    import skitai
+    
+    skitai.run (
+      clusters = {        
+        '@mydb': 
+        (
+          'postresql', 
+          [
+            "s1.yourserver.com:5432/mydb/user/passwd", 
+            "s2.yourserver.com:5432/mydb/user/passwd"
+          ]
+        )
+      },
+      mount = [
+        ("/", app)
+      ]
+    )
+    
+
+Map-Reducing
+``````````````
+
+Basically same with load_balancing except Skitai requests to all members per each request.
+
+.. code:: python
+
+    @app.route ("/search")
+    def search (was, keyword = "Mozart"):
+      stub = was.rpc.map ("@mysearch/rpc2")
+      req = stub.search (keyword)
+      results = req.getswait (2)
+			
+      all_results = []
+      for result in results:      
+         all_results.extend (result.data)
+      return all_results
+
+There are 2 changes:
+
+1. from was.rpc.lb () to was.rpc.map ()
+2. from s.getwait () to s.getswait () for multiple results, and results is iterable.
+
+
+Caching Result
+````````````````
+
+Every results returned by getwait(), getswait() can cache.
+
+.. code:: python
+
+  s = was.rpc.lb ("@mysearch/rpc2").getinfo ()
+  result = s.getwait (2)
+  if result.status_code == 200:
+  	result.cache (60) # 60 seconds
+  
+  s = was.rpc.map ("@mysearch/rpc2").getinfo ()
+  results = s.getswait (2)
+  # assume @mysearch has 3 members
+  if results.status_code == [200, 200, 200]:
+    result.cache (60)
+
+Although code == 200 alredy implies status == 3, anyway if status is not 3, cache() will be ignored. If cached, it wil return cached result for 60 seconds.
+
+*New in version 0.15.28*
+
+If you getwait with reraise argument, code can be simple.
+
+.. code:: python
+
+  s = was.rpc.lb ("@mysearch/rpc2").getinfo ()
+  content = s.getswait (2, reraise = True).data
+  s.cache (60)
+
+Please remember cache () method is both available request and result objects.
+
+For expiring cached result by updating new data:
+
+*New in version 0.14.9*
+
+.. code:: python
+  
+  refreshed = False
+  if was.request.command == "post":
+    ...
+    refreshed = True
+  
+  s = was.rpc.lb (
+  	"@mysearch/rpc2", 
+  	use_cache = not refreshed and True or False
+  ).getinfo ()
+  result = s.getwait (2)
+  if result.status_code == 200:
+  	result.cache (60) # 60 seconds  
+
+API Transaction ID
+`````````````````````
+
+*New in version 0.21*
+
+For tracing REST API call, Skitai use global/local transaction IDs.
+
+If a client call a API first, global transaction ID (gtxnid) is assigned automatically like 'GTID-C4676-R67' and local transaction ID (ltxnid) is '1000'.
+
+You call was.get (), was.post () or etc, both IDs will be forwarded via HTTP request header. Most important thinng is that gtxnid is never changed by client call, but ltxnid will be changed per API call.
+
+when client calls gateway API or HTML, ltxnid is 1000. And if it calls APIs internally, ltxnid will increase to 2001, 2002. If ltxnid 2001 API calls internal sub API, ltxnid will increase to 3002, and ltxnid 2002 to 3003. Briefly 1st digit is call depth and rest digits are sequence of API calls.
+
+This IDs is logged to Skitai request log file like this. 
+
+.. code:: bash
+
+  2016.12.30 18:05:06 [info] 127.0.0.1:1778 127.0.0.1:5000 GET / \
+  HTTP/1.1 200 0 32970 \
+  GTID-C3-R8 1000 - - \
+  "Mozilla/5.0 (Windows NT 6.1;) Gecko/20100101 Firefox/50.0" \
+  4ms 3ms
+
+Focus 3rd line above log message. Then you can trace a series of API calls from each Skitai instance's log files for finding some kind of problems.
+
+In next chapters' features of 'was' are only available for *Skito-Saddle WSGI container*. So if you have no plan to use Saddle, just skip.
+
+
+Websocket Related Methods of 'was'
+------------------------------------
+
+For more detail, see Websocket section.
+
+- was.wsinit () # wheather handshaking is in progress
+- was.wsconfig (spec, timeout, message_type)
+- was.wsopened ()
+- was.wsclosed ()
+- was.wsclient () # get websocket client ID
+
+
+Utility Methods of 'was'
+---------------------------
+
+This chapter's 'was' services are also avaliable for all WSGI middelwares.
+
+- was.status () # HTML formatted status information like phpinfo() in PHP.
+- was.tojson (object)
+- was.fromjson (string)
+- was.toxml (object) # XMLRPC
+- was.fromxml (string) # XMLRPC
+- was.restart () # Restart Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
+- was.shutdown () # Shutdown Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
+
 
 
 HTML5 Websocket
@@ -431,7 +783,65 @@ Websocket messages will be automatically converted to theses objects. Note that 
 General Usages
 ---------------
 
-Client can connect by ws://localhost:5000/websocket/chat.
+Handling websocket has 2 parts - event handling and message handling.
+
+Websocket Events
+``````````````````
+
+Currently websocket has 3 envets.
+
+- skitai.WS_EVT_INIT: in handsahking progress
+- skitai.WS_EVT_OPEN: just after websocket configured
+- skitai.WS_EVT_CLOSE: client websocket channel disconnected
+
+When event occured, message is null string, so WS_EVT_CLOSE is not need handle, but WS_EVT_OPEN would be handled - normally just return None value.
+
+At Flask, use like this.
+
+.. code:: python
+  
+  event = request.environ.get ('websocket.event')
+  if event == skitai.WS_EVT_INIT:
+    return request.environ ['websocket.config'] = (...)
+  if event == skitai.WS_EVT_OPEN:
+    return ''
+  if event == skitai.WS_EVT_CLOSE:
+    return ''
+  if event:
+    return '' # should return null string
+      
+At Skito-Saddle, handling events is more simpler,
+
+.. code:: python
+  
+  if was.wsinit ():
+    return was.wsconfig (spec, timeout, message_type)    
+  if was.wsopened ():
+    return
+  if was.wsclosed ():
+    return  
+  if was.wshasevent (): # ignore all events
+    return
+        
+
+Handling Message
+``````````````````
+
+Message is received by first arg (at below exapmle, message arg), and you response for this by returning value.
+
+.. code:: python
+
+  @app.route ("/websocket/echo")
+  def echo (was, message):    
+    return "ECHO:" + message
+    
+
+Full Example
+``````````````
+
+Websocket method MUST have both of event and message handling parts.
+
+Let's see full example, client can connect by ws://localhost:5000/websocket/echo.
 
 .. code:: python
 
@@ -444,14 +854,16 @@ Client can connect by ws://localhost:5000/websocket/chat.
 
   @app.route ("/websocket/echo")
   def echo (was, message):
+    #-- event handling
     if was.wsinit ():
       return was.wsconfig (skitai.WS_SIMPLE, 60)
     elif was.wsopened ():
       return "Welcome Client %s" % was.wsclient ()
-      
+    
+    #-- message handling  
     return "ECHO:" + message
 
-For gettinh another args,
+For getting another args, just add args behind message arg.
 
 .. code:: python
   
@@ -461,6 +873,7 @@ For gettinh another args,
   def echo (was, message, clinent_name):
     global num_sent    
     client_id = was.wsclient ()
+    
     if was.wsinit ():
       num_sent [client_id] = 0      
       return was.wsconfig (skitai.WS_SIMPLE, 60)
@@ -476,6 +889,8 @@ For gettinh another args,
 Now client can connect by ws://localhost:5000/websocket/chat?client_name=stevemartine.
     
 Once websocket configured by was.wsconfig (), whenever message is arrived from this websocket connection, called this *echo* method. And you can use all was services as same as other WSGI methods.
+
+was.wsclient () is equivalent to was.env.get ('websocket.client') and has numeric unique client id.
 
 
 For Flask Users
@@ -511,43 +926,6 @@ If returned object is python str type, websocket will send messages as text tpye
 
 Also note, at flask, you should not return None, so you should return null string, if you do not want to send any message.
 
-
-Events
-``````````
-
-Currently websocket has 3 envets.
-
-- WS_EVT_INIT: in handsahking progress
-- WS_EVT_OPEN: just after websocket configured
-- WS_EVT_CLOSE: client websocket channel disconnected
-
-When event occured, message is null string, so WS_EVT_CLOSE is not need handle, but WS_EVT_OPEN would be handled - normally just return None value.
-
-At Skito-Saddle, checking events is replacable to,
-
-.. code:: python
-  
-  if was.wsinit (event):
-    return was.wsconfig ()    
-  if was.wsopened (event):
-    return
-  if was.wsclosed (event):  
-    return
-
-If you do not want to handle any events, check by was.wshasevent (),
-
-.. code:: python
-  
-  if was.wshasevent (): # ignore all events
-    return
-    
-At Flask,
-
-.. code:: python
-  
-  if request.environ.get ('websocket.event'):
-    return '' # should return null string
-		  
 
 Send Messages Through Websocket Directly
 ``````````````````````````````````````````
@@ -762,359 +1140,6 @@ At Flask,
     return ""
 
 
-In next chapter's features of 'was' are only available for *Skito-Saddle WSGI container*. So if you have no plan to use Saddle, just skip.
-
-
-
-Skitai 'was' Services
-=======================
-
-'was' means (Skitai) *WSGI Application Support*. 
-
-WSGI container like Flask, need to import 'was':
-
-.. code:: python
-
-  from skitai import was
-  
-  @app.route ("/")
-  def hello ():
-    was.get ("http://...")
-    ...    
-
-But Saddle WSGI container integrated with Skitai, use just like Python 'self'.
-
-It will be easy to understand think like that:
-
-- Skitai is Python class instance
-- 'was' is 'self' which first argument of instance method
-- Your app functions are methods of Skitai instance
-
-.. code:: python
-  
-  @app.route ("/")
-  def hello (was, name = "Hans Roh"):
-    was.get ("http://...")
-    ...
-
-Simply just remember, if you use WSGI container like Flask, Bottle, ... - NOT Saddle - and want to use Skitai asynchronous services, you should import 'was'. Usage is exactly same. But for my convinient, I wrote example codes Saddle version mostly.
-
-
-
-Async Requests Service
-------------------------
-
-Most importance service of 'was' is making requests to HTTP, REST, RPC and Database Engines. The modules related theses features from aquests_.
-
-You can read aquests_ usage first.
-
-I think it just fine explains some differences with aquests.
-
-First of all, usage is somewhat different because aquests is used within threadings on skitai. Skitai takes some threading advantages and compromise with them for avoiding callback heaven.
-
-Usage
-``````
-
-At aquests,
-
-.. code:: python
-
-  import aquests
-  
-  def display_result (response):
-    print (reponse.data)
-  
-  aquests.configure (callback = display_result, timeout = 3)
-    
-  aquests.get (url)
-  aquests.post (url, {"user": "Hans Roh", "comment": "Hello"})
-  aquests.fetchall ()
-
-At Skitai,
-  
-.. code:: python
-  
-  def request (was):
-    req1 = was.get (url)
-    req2 = was.post (url, {"user": "Hans Roh", "comment": "Hello"})    
-    respones1 = req1.getwait (timeout = 3)
-    response2 = req2.getwait (timeout = 3)    
-    return [respones1.data, respones2.data]
-
-The significant differnce is calling getwait (timeout) for getting response data.
-
-PostgreSQL query at aquests,
-
-.. code:: python
-
-  import aquests
-  
-  def display_result (response):
-    for row in response.data:
-      row.city, row.t_high, row.t_low
-  
-  aquests.configure (callback = display_result, timeout = 3)
-  
-  dbo = aquests.postgresql ("127.0.0.1:5432", "mydb")
-  dbo.excute ("SELECT city, t_high, t_low FROM weather;")
-  aquests.fetchall ()
-
-At Skitai,
-
-.. code:: python
-    
-  def query (was):
-    dbo = was.postgresql ("127.0.0.1:5432", "mydb")
-    s = dbo.excute ("SELECT city, t_high, t_low FROM weather;")
-    
-    response = s.getwait (2)
-    for row in response.data:
-      row.city, row.t_high, row.t_low
-
-
-If you needn't returned data and just wait for completing query,
-
-.. code:: python
-
-    dbo = was.postgresql ("127.0.0.1:5432", "mydb")
-    req = dbo.execute ("INSERT INTO CITIES VALUES ('New York');")
-    req.wait (2) 
-
-If failed, exception will be raised.
-
-
-.. _aquests: https://pypi.python.org/pypi/aquests
-
-Also note you can't use meta argument at Skitai.
-
-Here're addtional methods and properties above response obkect compared with aquests' response one.
-
-- cache (timeout): response caching
-- status: it indicate requests processed status and note it is not related response.status_code.
-
-  - 0: Initial Default Value
-  - 1: Operation Timeout
-  - 2: Exception Occured
-  - 3: Normal Terminated
-
-
-Load-Balancing
-````````````````
-
-Skitai support load-balancing requests.
-
-If server members are pre defined, skitai choose one automatically per each request supporting *fail-over*.
-
-At first, let's add mysearch members to config file (ex. /etc/skitaid/servers-enabled/sample.conf),
-
-
-Then let's request XMLRPC result to one of mysearch members.
-   
-.. code:: python
-
-  @app.route ("/search")
-  def search (was, keyword = "Mozart"):
-    s = was.rpc.lb ("@mysearch/rpc2").search (keyword)
-    results = s.getwait (5)
-    return result.data
-  
-  if __name__ == "__main__":
-    import skitai
-    
-    skitai.run (
-      clusters = {        
-        '@mysearch': 
-        ('https', ["s1.myserver.com:443", "s2.myserver.com:443"])
-      },
-      mount = ("/", app)
-    )
-  
-  
-It just small change from was.rpc () to was.rpc.lb ()
-
-*Note:* If @mysearch member is only one, was.get.lb ("@mydb") is equal to was.get ("@mydb").
-
-*Note2:* You can mount cluster @mysearch to specific path as proxypass like this:
-
-.. code:: bash
-  
-  if __name__ == "__main__":
-    import skitai
-    
-    skitai.run (
-      clusters = {        
-        '@mysearch': 
-        ('https', ["s1.myserver.com:443", "s2.myserver.com:443"])        
-      },
-      mount = [
-        ("/", app),
-        ("/search", '@mysearch')
-      ]
-    )
-  
-It can be accessed from http://127.0.0.1:5000/search, and handled as load-balanced proxypass.
-
-This sample is to show loadbalanced querying database.
-Add mydb members to config file.
-
-.. code:: python
-
-  @app.route ("/query")
-  def query (was, keyword):
-    dbo = was.postgresql.lb ("@mydb")    
-    req = dbo.execute ("SELECT * FROM CITIES;")
-    result = req.getwait (2)
-  
-   if __name__ == "__main__":
-    import skitai
-    
-    skitai.run (
-      clusters = {        
-        '@mydb': 
-        (
-          'postresql', 
-          [
-            "s1.yourserver.com:5432/mydb/user/passwd", 
-            "s2.yourserver.com:5432/mydb/user/passwd"
-          ]
-        )
-      },
-      mount = [
-        ("/", app)
-      ]
-    )
-    
-
-Map-Reducing
-``````````````
-
-Basically same with load_balancing except Skitai requests to all members per each request.
-
-.. code:: python
-
-    @app.route ("/search")
-    def search (was, keyword = "Mozart"):
-      stub = was.rpc.map ("@mysearch/rpc2")
-      req = stub.search (keyword)
-      results = req.getswait (2)
-			
-      all_results = []
-      for result in results:      
-         all_results.extend (result.data)
-      return all_results
-
-There are 2 changes:
-
-1. from was.rpc.lb () to was.rpc.map ()
-2. from s.getwait () to s.getswait () for multiple results, and results is iterable.
-
-
-Caching Result
-````````````````
-
-Every results returned by getwait(), getswait() can cache.
-
-.. code:: python
-
-  s = was.rpc.lb ("@mysearch/rpc2").getinfo ()
-  result = s.getwait (2)
-  if result.status_code == 200:
-  	result.cache (60) # 60 seconds
-  
-  s = was.rpc.map ("@mysearch/rpc2").getinfo ()
-  results = s.getswait (2)
-  # assume @mysearch has 3 members
-  if results.status_code == [200, 200, 200]:
-    result.cache (60)
-
-Although code == 200 alredy implies status == 3, anyway if status is not 3, cache() will be ignored. If cached, it wil return cached result for 60 seconds.
-
-*New in version 0.15.28*
-
-If you getwait with reraise argument, code can be simple.
-
-.. code:: python
-
-  s = was.rpc.lb ("@mysearch/rpc2").getinfo ()
-  content = s.getswait (2, reraise = True).data
-  s.cache (60)
-
-Please remember cache () method is both available request and result objects.
-
-For expiring cached result by updating new data:
-
-*New in version 0.14.9*
-
-.. code:: python
-  
-  refreshed = False
-  if was.request.command == "post":
-    ...
-    refreshed = True
-  
-  s = was.rpc.lb (
-  	"@mysearch/rpc2", 
-  	use_cache = not refreshed and True or False
-  ).getinfo ()
-  result = s.getwait (2)
-  if result.status_code == 200:
-  	result.cache (60) # 60 seconds  
-
-API Transaction ID
-`````````````````````
-
-*New in version 0.21*
-
-For tracing REST API call, Skitai use global/local transaction IDs.
-
-If a client call a API first, global transaction ID (gtxnid) is assigned automatically like 'GTID-C4676-R67' and local transaction ID (ltxnid) is '1000'.
-
-You call was.get (), was.post () or etc, both IDs will be forwarded via HTTP request header. Most important thinng is that gtxnid is never changed by client call, but ltxnid will be changed per API call.
-
-when client calls gateway API or HTML, ltxnid is 1000. And if it calls APIs internally, ltxnid will increase to 2001, 2002. If ltxnid 2001 API calls internal sub API, ltxnid will increase to 3002, and ltxnid 2002 to 3003. Briefly 1st digit is call depth and rest digits are sequence of API calls.
-
-This IDs is logged to Skitai request log file like this. 
-
-.. code:: bash
-
-  2016.12.30 18:05:06 [info] 127.0.0.1:1778 127.0.0.1:5000 GET / \
-  HTTP/1.1 200 0 32970 \
-  GTID-C3-R8 1000 - - \
-  "Mozilla/5.0 (Windows NT 6.1;) Gecko/20100101 Firefox/50.0" \
-  4ms 3ms
-
-Focus 3rd line above log message. Then you can trace a series of API calls from each Skitai instance's log files for finding some kind of problems.
-
-
-Websocket Related Methods of 'was'
-------------------------------------
-
-For more detail, see Websocket section.
-
-- was.wsinit () # wheather handshaking is in progress
-- was.wsconfig (spec, timeout, message_type)
-- was.wsopened ()
-- was.wsclosed ()
-- was.wsclient () # get websocket client ID
-
-
-Utility Methods of 'was'
----------------------------
-
-This chapter's 'was' services are also avaliable for all WSGI middelwares.
-
-- was.status () # HTML formatted status information like phpinfo() in PHP.
-- was.tojson (object)
-- was.fromjson (string)
-- was.toxml (object) # XMLRPC
-- was.fromxml (string) # XMLRPC
-- was.restart () # Restart Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
-- was.shutdown () # Shutdown Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
-
-
-
-
-
 Request Handling with Skito-Saddle
 ====================================
 
@@ -1191,8 +1216,8 @@ For adding some restrictions:
 If method is not GET, Saddle will response http error code 405 (Method Not Allowed), and content-type is not text/xml, 415 (Unsupported Content Type).
     
   
-Access Request
-----------------
+Request
+---------
 
 Reqeust object provides these methods and attributes:
 
@@ -1278,7 +1303,7 @@ You can return various objects.
       for row in iter_all_rows():
         yield ','.join(row) + '\n'
     return was.response ("200 OK", generate (), headers = [("Content-Type", "text/csv")])   
-    
+
 
 All available return types are:
 
@@ -1301,6 +1326,104 @@ The object has 'close ()' method, will be called when all data consumed, or sock
 - was.response.get_header (k)
 - was.response.del_header (k)
 - was.response.hint_promise (uri) # *New in version 0.16.4*, only works with HTTP/2.x and will be ignored HTTP/1.x
+
+
+Async Response
+````````````````
+
+*New in version 0.24.8*
+
+If you use was' requests services, and they're expected taking a long time to fetch, you can use async response.
+
+- Async response has advantage at multi threads environment returning current thread to thread pool early for handling the other requests
+- Async response should be used at single thread evironment. If you run Skitai with threads = 0, you can't use wait(), getwait() or getswiat() for receiving response for HTTP/DBO requests.
+
+.. code:: python
+  
+  def response_handler (reqid, response, collector):
+    content = "<h3>Error</h3>"
+    if response.data:
+      content = response.data.decode ("utf8")        
+    collector [reqid]  = content
+      
+    if collector.fetched_all ():
+      collector.push (collector.render_all ("example.html"))
+      # or just join response data
+      collector.push (collector ['skitai'] + "<hr>" + collector ['aquests'])
+        
+  @app.route ("/aresponse_example")
+  def aresponse_example (was):
+    collector = was.aresponse (response_handler)
+    
+    collector.get ('skitai', "https://pypi.python.org/pypi/skitai")
+    collector.get ('aquests', "https://pypi.python.org/pypi/aquests")
+
+    return collector
+
+'example.html' Jinja2 template is,
+
+.. code:: html
+
+  <div>{{ skitai }}</div>
+  <hr>
+  <div>{{ aquests }}</div>
+  
+Above producer can make requests as same as was object except first argument is identical request name (reqid). Compare below things.
+
+  * was.get ("https://pypi.python.org/pypi/skitai")
+  * AsyncRequest.get ('skitai', "https://pypi.python.org/pypi/skitai")
+
+This identifier can handle responses at executing callback. reqid SHOULD follow Python variable naming rules because might be used as template variable.
+
+Finally, you SHOULD call push (content) to start sending contents.
+
+
+Creating async response:
+
+- was.aresponse (response_handler): return AsyncResponse
+
+response_handler should receive 3 args: reqid, response and AsyncResponse.
+
+Note: It's impossible requesting map-reduce requests at async response mode.
+
+collect_producer has these methods.
+
+- AsyncResponse.get (), post (), ...
+- AsyncResponse.fetched_all (): True if numer of requests is same as responses
+- AsyncResponse.render (template_file, single dictionary object or keyword args, ...): render per response, and can assign AsyncResponse  like dictionary
+- AsyncResponse.render_all (template_file): render all responses, in template file, reqids of each responses are used as template variable.
+
+
+
+HTTP/2.0 Server Push
+``````````````````````
+
+*New in version 0.16*
+
+Skiai supports HTPT2 both 'h2' protocl over encrypted TLS and 'h2c' for clear text (But now Sep 2016, there is no browser supporting h2c protocol).
+
+Basically you have nothing to do for HTTP2. Client's browser will handle it except `HTTP2 server push`_.
+
+For using it, you just call was.response.hint_promise (uri) before return response data. It will work only client browser support HTTP2, otherwise will be ignored.
+
+.. code:: python
+
+  @app.route ("/promise")
+  def promise (was):
+  
+    was.response.hint_promise ('/images/A.png')
+    was.response.hint_promise ('/images/B.png')
+    
+    return was.response (
+      "200 OK", 
+      (
+        'Promise Sent<br><br>'
+        '<img src="/images/A.png">'
+        '<img src="/images/B.png">'
+      )
+    )	
+
+.. _`HTTP2 server push`: https://tools.ietf.org/html/rfc7540#section-8.2
 
 
 Getting URL Parameters
@@ -2321,6 +2444,8 @@ Change Log
   
   0.24 (Jan 2017)
   
+  - 0.24.8 add async response, fix await_fifo bug
+  - 0.24.7 fix websocket shutdown
   - 0.24.5 eliminate client arg from websocket config
   - 0.24.5 eliminate event arg from websocket config
   - fix proxy tunnel

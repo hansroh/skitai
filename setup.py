@@ -37,6 +37,7 @@ packages = [
 	'skitai',
 	'skitai.server',
 	'skitai.server.dbi',
+	'skitai.server.wastuff',
 	'skitai.server.handlers',
 	'skitai.server.rpc',	
 	'skitai.server.handlers.http2',
@@ -64,6 +65,6 @@ setup(
 	license='BSD',
 	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/skitai",
-	install_requires = ["jinja2==2.9.4", "h2==2.5.1", "aquests"],
+	install_requires = ["jinja2==2.9.4", "h2==2.5.1", "aquests>=0.6.4"],
 	classifiers=classifiers
 )

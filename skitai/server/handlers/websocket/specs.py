@@ -306,7 +306,7 @@ class WebSocket4 (WebSocket):
 		WebSocket.close (self)		
 		self.cv.notify ()
 		self.cv.release ()
-	
+		
 	def send (self, message, op_code = -1):
 		with self.lock:
 			WebSocket.send (self, message, op_code)

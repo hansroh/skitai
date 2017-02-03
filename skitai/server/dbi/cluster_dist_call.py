@@ -25,11 +25,12 @@ class FailedRequest:
 			
 			
 class Dispatcher:
-	def __init__ (self, cv, id, ident = None, filterfunc = None):
+	def __init__ (self, cv, id, ident = None, filterfunc = None, callback = None):
 		self.__cv = cv
 		self.id = id
 		self.ident = ident
 		self.filterfunc = filterfunc
+		self.callback = callback
 		self.creation_time = time.time ()
 		self.status = 0
 		self.result = None
@@ -78,7 +79,12 @@ class Dispatcher:
 		
 		self.result = cluster_dist_call.Result (self.id, status, request, self.ident)
 		self.set_status (status)
-		        	     
+
+		if self.callback:
+			self.callback	(self.result)
+
+		
+				        	     
 #-----------------------------------------------------------
 # Cluster Base Call
 #-----------------------------------------------------------
@@ -90,10 +96,12 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		dbname, 
 		auth,
 		dbtype,
+		meta,
 		use_cache,
 		mapreduce,
 		filter,
 		callback,
+		timeout,
 		logger
 		):
 		
@@ -109,10 +117,11 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 			elif self.auth in (DB_MONGODB,):
 				self.dbtype = self.auth
 				self.auth = None
-				
+		self._meta = meta				
 		self._use_cache = use_cache		
 		self._filter = filter
 		self._callback = callback
+		self._timeout = timeout
 		self._mapreduce = mapreduce		
 		self._cluster = cluster
 		self._cached_request_args = None
@@ -128,7 +137,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		self._numnodes = 0
 		
 		self._sent_result = None
-		
+			
 		if self._cluster:
 			nodes = self._cluster.get_nodes ()
 			self._numnodes = len (nodes)
@@ -156,10 +165,8 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		if self.server:
 			asyncon = self._cluster.get (self.server, self.dbname, self.auth, self.dbtype)		
 		else:	
-			asyncon = self._cluster.get (id)
-		
-		if self._cv is None:
-			self._cv = asyncon._cv
+			asyncon = self._cluster.get (id)		
+		self._setup (asyncon)
 		return asyncon
 	
 	def _request (self, method, params):
@@ -171,15 +178,17 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		
 		while self._avails ():
 			asyncon = self._get_connection (None)			
-			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._filter)
+			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._filter, callback = self._callback)
+			self._requests [rs] = asyncon	
+			
 			req = request.Request (
 				self.dbtype,
 				self.server, 
 				self.dbname,
 				method, params, 
-				self._callback and self._callback or rs.handle_result
-			)
-			self._requests [rs] = asyncon
+				rs.handle_result,
+				self._meta
+			)			
 			asyncon.execute (req)			
 		trigger.wakeup ()
 		return self
@@ -193,9 +202,9 @@ class ClusterDistCallCreator:
 	def __getattr__ (self, name):	
 		return getattr (self.cluster, name)
 		
-	def Server (self, server = None, dbname = None, auth = None, dbtype = None, use_cache = True, mapreduce = False, filter = None, callback = None):
-		# reqtype: xmlrpc, rpc2, json, jsonrpc, http
-		#return ClusterDistCall (self.cluster, server, dbname, user, password, dbtype, use_cache, mapreduce, filter, callback, self.logger)
-		return cluster_dist_call.Proxy (ClusterDistCall, self.cluster, server, dbname, auth, dbtype, use_cache, mapreduce, filter, callback, self.logger)
+	def Server (self, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10):
+		if cluster_dist_call.is_main_thread () and not callback:
+			raise RuntimeError ('Should have callback in Main thread')
+		return cluster_dist_call.Proxy (ClusterDistCall, self.cluster, server, dbname, auth, dbtype, meta, use_cache, mapreduce, filter, callback, timeout, self.logger)
 		
 		

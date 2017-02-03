@@ -111,19 +111,6 @@ class http_channel (asynchat.async_chat):
 	
 	def handle_timeout (self):
 		self.log ("killing zombie channel %s" % ":".join (map (str, self.addr)))
-		if not self.things_die_with:
-			self.close ()
-			return
-		
-		# for graceful shutdown for partners	
-		for closable in self.things_die_with:
-			if closable and hasattr (closable, "close"):
-				try:
-					closable.close ()
-				except:
-					self.server.trace()
-
-		self.things_die_with = []
 		self.close ()
 	
 	def set_timeout (self, timeout):

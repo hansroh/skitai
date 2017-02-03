@@ -1,45 +1,32 @@
 from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT
 import multiprocessing
 from aquests.lib import pathtool, logger
-from .rpc import cluster_manager, cluster_dist_call
+from aquests.lib.producers import simple_producer
+from aquests.lib.athreads import trigger
 from aquests.protocols.smtp import composer
+from .rpc import cluster_manager, cluster_dist_call
 from .dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from . import server_info, http_date
 import os
 import time
 from skitai.server.handlers import api_access_handler
-
 try: 
 	from urllib.parse import urljoin
 except ImportError:
 	from urlparse import urljoin	
-	
 import json
 try:
 	import xmlrpc.client as xmlrpclib
 except ImportError:
-	import xmlrpclib
-	
+	import xmlrpclib	
 try: 
 	import _thread
 except ImportError:
 	import thread as _thread	
-	
 from skitai import lifetime
-
-
-class _Method:
-	def __init__(self, send, name):
-		self.__send = send
-		self.__name = name
-		
-	def __getattr__(self, name):
-		return _Method(self.__send, "%s.%s" % (self.__name, name))
-		
-	def __call__(self, *args, **karg):		
-		return self.__send(self.__name, args, karg)
-
+from .wastuff.aresponse import AsyncResponse, _Method
+from .wastuff.triple_logger import Logger
 
 class WAS:
 	version = __version__
@@ -99,7 +86,7 @@ class WAS:
 		new_was = self.__class__ ()
 		for k, v in self.__dict__.items ():
 			setattr (new_was, k, v)
-		return new_was	
+		return new_was
 			
 	VALID_COMMANDS = [
 		"ws", "get", "post", "postform", "postjson", "postxml", "postnvp", 
@@ -130,7 +117,7 @@ class WAS:
 		uri = None
 		if args:		uri = args [0]
 		elif karg:	uri = karg.get ("uri", "")
-		if not uri:	raise AssertionError ("missing param uri or cluster name")
+		if not uri:	raise AssertionError ("Missing param uri or cluster name")
 
 		try: 
 			command, fn = method.split (".")
@@ -141,6 +128,9 @@ class WAS:
 			else:
 				fn = (command in ("db", "postgresql", "sqlite3", "redis", "mongodb") and "db" or "rest")
 
+		if fn == "map" and not hasattr (self, "threads"):
+			raise AttributeError ("Cannot use Map-Reduce with Single Thread")
+		
 		if command == "db":
 			return getattr (self, "_d" + fn) (*args, **karg)
 		elif command in ("postgresql", "sqlite3", "redis", "mongodb"):
@@ -159,41 +149,49 @@ class WAS:
 		nheader ["X-Ltxn-Id"] = self.request.get_ltxid (1)
 		return nheader
 		
-	def _rest (self, method, uri, data = None, headers = None, auth = None, use_cache = True, filter = None, callback = None):
-		#auth = (user, password)
-		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, self.rebuild_header (headers), auth, use_cache, mapreduce = False, filter = filter, callback = callback)
-			
-	def _map (self, method, uri, data = None, headers = None, auth = None, use_cache = True, filter = None, callback = None):		
-		clustername, uri = self.__detect_cluster (uri)		
-		return self.clusters_for_distcall [clustername].Server (uri, data, method, self.rebuild_header (headers), auth, use_cache, mapreduce = True, filter = filter, callback = callback)
+	def _rest (self, method, uri, data = None, auth = None, headers = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):
+		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, self.rebuild_header (headers), auth, meta, use_cache, False, filter, callback, timeout)
 	
-	def _lb (self, method, uri, data = None, headers = None, auth = None, use_cache = True, filter = None, callback = None):
+	def _crest (self, mapreduce = False, method = None, uri = None, data = None, auth = None, headers = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):
 		clustername, uri = self.__detect_cluster (uri)
-		return self.clusters_for_distcall [clustername].Server (uri, data, method, self.rebuild_header (headers), auth, use_cache, mapreduce = False, filter = filter, callback = callback)
-	
-	def _adb (self, dbtype, server, dbname = "", auth = None, use_cache = True, filter = None, callback = None):
-		return self._ddb (server, dbname, auth, dbtype, use_cache, filter, callback)
+		return self.clusters_for_distcall [clustername].Server (uri, data, method, self.rebuild_header (headers), auth, meta, use_cache, mapreduce, filter, callback, timeout)
+				
+	def _lb (self, *args, **karg):
+		return self._crest (False, *args, **karg)	
 		
-	def _ddb (self, server, dbname = "", auth = None, dbtype = DB_PGSQL, use_cache = True, filter = None, callback = None):
-		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, auth, dbtype, use_cache, mapreduce = False, filter = filter, callback = callback)
+	def _map (self, *args, **karg):		
+		return self._crest (True, *args, **karg)
+		
+	def _ddb (self, server, dbname = "", auth = None, dbtype = DB_PGSQL, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):
+		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, auth, dbtype, meta, use_cache, False, filter, callback, timeout)
 	
-	def _dlb (self, clustername, use_cache = True, filter = None, callback = None):
+	def _cddb (self, mapreduce = False, clustername = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):
+		if mapreduce and callback: raise RuntimeError ("Cannot use callback with Map-Reduce")
 		clustername = self.__detect_cluster (clustername) [0]
-		return self.clusters_for_distcall [clustername].Server (use_cache = use_cache, mapreduce = False, filter = None, callback = None)
+		return self.clusters_for_distcall [clustername].Server (None, None, None, None, meta, use_cache, mapreduce, filter, callback, timeout)	
 	
-	def _dmap (self, clustername, use_cache = True, filter = None, callback = None):
-		clustername = self.__detect_cluster (clustername) [0]
-		return self.clusters_for_distcall [clustername].Server (use_cache = use_cache, mapreduce = True, filter = None, callback = None)
+	def _dlb (self, *args, **karg):
+		return self._cddb (False, *args, **karg)
 	
-	def _alb (self, dbtype, clustername, use_cache = True, filter = None, callback = None):
-		return self._dlb (clustername, use_cache, filter, callback)
+	def _dmap (self, *args, **karg):
+		return self._cddb (True, *args, **karg)
 	
-	def _amap (self, dbtype, clustername, use_cache = True, filter = None, callback = None):
-		return self._dmap (clustername, use_cache, filter, callback)
+	def _adb (self, dbtype, server, dbname = "", auth = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):
+		return self._ddb (server, dbname, auth, dbtype, meta, use_cache, filter, callback, timeout)
+	
+	def _alb (self, dbtype, *args, **karg):
+		return self._cddb (False, *args, **karg)
+	
+	def _amap (self, dbtype, *args, **karg):
+		return self._cddb (True, *args, **karg)
 			
 	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		return self.app.render (self, template_file, _do_not_use_this_variable_name_, **karg)
 	
+	def aresponse (self, handler):
+		self.response.set_streaming ()
+		return AsyncResponse (self, handler)
+		
 	REDIRECT_TEMPLATE =  (
 		"<head><title>%s</title></head>"
 		"<body><h1>%s</h1>"
@@ -275,60 +273,4 @@ class WAS:
 	def wsclient (self):
 		return self.env.get ('websocket.client')	
 
-		
-class Logger:
-	def __init__ (self, media, path):
-		self.media = media
-		self.path = path
-		if self.path: 
-			pathtool.mkdir (path)			
-		self.logger_factory = {}
-		self.lock = multiprocessing.Lock ()
-		
-		self.make_logger ("server", "monthly")
-		self.make_logger ("app", "daily")
-		self.make_logger ("request", "daily")
-		
-	def make_logger (self, prefix, freq = "daily"):
-		self.lock.acquire ()
-		has_prefix = prefix in self.logger_factory
-		if has_prefix:
-			self.lock.release ()
-			raise TypeError("%s is already used" % prefix)
-								
-		_logger = logger.multi_logger ()
-		if self.path:
-			_logger.add_logger (logger.rotate_logger (self.path, prefix, freq))
-		else:
-			_logger.add_logger (logger.screen_logger ()	)
-		
-		self.logger_factory [prefix] = _logger		
-		self.lock.release ()	
-	
-	def add_screen_logger (self):
-		for prefix, _logger in list(self.logger_factory.items ()):
-			_logger.add_logger (logger.screen_logger ())
-		
-	def get (self, prefix):
-		return self.logger_factory [prefix]
-			
-	def trace (self, prefix, ident = ""):
-		self.get (prefix).trace (ident)		
-		
-	def __call__ (self, prefix, msg, log_type = ""):		
-		self.get (prefix).log (msg, log_type)
-	
-	def rotate (self):
-		self.lock.acquire ()
-		loggers = list(self.logger_factory.items ())
-		self.lock.release ()
-		
-		for mlogger in loggers:
-			for logger in mlogger.loggers:
-				if hasattr (logger, "rotate"):
-					logger.rotate ()
-		
-	def close (self):
-		self.__application.close ()
-		self.__request.close ()
-		self.__server.close ()
+				

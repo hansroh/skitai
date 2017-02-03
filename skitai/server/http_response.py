@@ -344,7 +344,7 @@ class http_response:
 			if wrap_in_chunking:
 				self.update ('Transfer-Encoding', 'chunked')
 				outgoing_producer = producers.chunked_producer (outgoing_producer)
-			outgoing_header = producers.simple_producer (self.build_reply_header().encode ("utf8"))				
+			outgoing_header = producers.simple_producer (self.build_reply_header().encode ("utf8"))
 			self.request.channel.push_with_producer (outgoing_header)
 			do_optimize = False
 			
@@ -405,7 +405,7 @@ class http_response:
 				producers.fifo([outgoing_header, outgoing_producer])
 			)
 
-		outgoing_producer = producers.hooked_producer (outgoing_producer, self.log)			
+		outgoing_producer = producers.hooked_producer (outgoing_producer, self.log)		
 		if do_optimize:
 			outgoing_producer = producers.globbing_producer (outgoing_producer)
 		
