@@ -1,94 +1,6 @@
 from jinja2 import environment
-from jinja2 import lexer as olexer
 from jinja2 import parser
 from jinja2 import nodes
-import re
-
-
-# patch for enabling line_statement_prefix raw
-from jinja2.lexer import TOKEN_DATA, TOKEN_RAW_END, Failure, \
-	TOKEN_WHITESPACE, TOKEN_FLOAT, TOKEN_INTEGER, TOKEN_NAME, TOKEN_STRING, TOKEN_OPERATOR, \
-	whitespace_re, float_re, integer_re, name_re, string_re, operator_re, compile_rules
-
-
-def get_lexer (environment):
-	c = lambda x: re.compile(x, re.M | re.S)
-	e = re.escape
-	tag_rules = [
-	    (whitespace_re, TOKEN_WHITESPACE, None),
-	    (float_re, TOKEN_FLOAT, None),
-	    (integer_re, TOKEN_INTEGER, None),
-	    (name_re, TOKEN_NAME, None),
-	    (string_re, TOKEN_STRING, None),
-	    (operator_re, TOKEN_OPERATOR, None)
-	]	
-	root_tag_rules = compile_rules(environment)
-	block_suffix_re = environment.trim_blocks and '\\n?' or ''
-	block_prefix_re = '%s' % e(environment.block_start_string)
-	prefix_re = {}
-	
-	if environment.lstrip_blocks:
-		no_lstrip_re = e('+')
-		block_diff = c(r'^%s(.*)' % e(environment.block_start_string))
-		m = block_diff.match(environment.comment_start_string)
-		no_lstrip_re += m and r'|%s' % e(m.group(1)) or ''
-		m = block_diff.match(environment.variable_start_string)
-		no_lstrip_re += m and r'|%s' % e(m.group(1)) or ''
-		
-		comment_diff = c(r'^%s(.*)' % e(environment.comment_start_string))
-		m = comment_diff.match(environment.variable_start_string)
-		no_variable_re = m and r'(?!%s)' % e(m.group(1)) or ''
-		
-		lstrip_re = r'^[ \t]*'
-		block_prefix_re = r'%s%s(?!%s)|%s\+?' % (
-		        lstrip_re,
-		        e(environment.block_start_string),
-		        no_lstrip_re,
-		        e(environment.block_start_string),
-		        )
-		comment_prefix_re = r'%s%s%s|%s\+?' % (
-		        lstrip_re,
-		        e(environment.comment_start_string),
-		        no_variable_re,
-		        e(environment.comment_start_string),
-		        )
-		prefix_re['block'] = block_prefix_re
-		prefix_re['comment'] = comment_prefix_re
-		
-	else:
-		block_prefix_re = '%s' % e(environment.block_start_string)
-
-	lexer = olexer.get_lexer(environment)
-	lexer.rules['root'] = [
-			# directives
-			(c('(.*?)(?:%s)' % '|'.join(
-				[r'(?P<raw_begin>(?:\s*%s\-|%s|^[ \t\v]*%s)\s*raw\s*(?:\-%s\s*|%s|\s*:?\s*))' % (
-					e(environment.block_start_string),
-					block_prefix_re,
-					e(environment.line_statement_prefix),
-					e(environment.block_end_string),
-					e(environment.block_end_string)
-				)] + [
-					r'(?P<%s_begin>\s*%s\-|%s)' % (n, r, prefix_re.get(n,r))
-					for n, r in root_tag_rules
-				])), (TOKEN_DATA, '#bygroup'), '#bygroup'),
-			# data
-			(c('.+'), TOKEN_DATA, None)
-		]
-	
-	lexer.rules [olexer.TOKEN_RAW_BEGIN] = [
-			(c(r'(.*?)((?:\s*%s\-|%s|^[ \t\v]*%s)\s*endraw\s*(?:\-%s\s*|%s%s|$))' % (
-				e(environment.block_start_string),
-				block_prefix_re,
-				e(environment.line_statement_prefix),
-				e(environment.block_end_string),
-				e(environment.block_end_string),
-				block_suffix_re
-			)), (TOKEN_DATA, TOKEN_RAW_END), '#pop'),
-			(c('(.)'), (Failure('Missing end of raw directive'),), None)
-		]		
-	return lexer
-	
 	
 class Parser (parser.Parser):			
 	def subparse(self, end_tokens=None):
@@ -151,25 +63,22 @@ class Parser (parser.Parser):
 class Environment (environment.Environment):
 	def _parse(self, source, name, filename):
 		return Parser(self, source, name, environment.encode_filename(filename)).parse()
-	lexer = property(get_lexer, doc="The lexer for this environment.")
-
-# enable 'raw' line statement
-environment.Environment = property(get_lexer, doc="The lexer for this environment.")
-
+	
 def overlay (
 	app_name, 
 	line_statement = "%", 
-	variable_string = "#", 
-	block_start_string = "{%", 
-	block_end_string = "}", 
+	variable_start_string = "#", 
+	variable_end_string = "#",
+	block_start_string = "<j-", 
+	block_end_string = "/>", 
 	**karg
 	):
 	from jinja2 import PackageLoader
-			
+	
 	return Environment (
 		loader = PackageLoader (app_name),
-	  variable_start_string=variable_string,
-	  variable_end_string=variable_string,
+	  variable_start_string=variable_start_string,
+	  variable_end_string=variable_end_string,
 	  line_statement_prefix=line_statement,
 	  block_end_string = block_end_string,
 	  block_start_string = block_start_string,
@@ -178,4 +87,4 @@ def overlay (
 		lstrip_blocks = True,
 	  **karg
 	)
-		
+	

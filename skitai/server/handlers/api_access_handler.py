@@ -53,7 +53,7 @@ class Handler:
 			request.token = token.split (".")[1]
 			if self.auth_handler and hasattr (self.auth_handler, "handle_claim"):					
 				request.claim = claim
-				self.auth_handler.handle_claim (request, self.continue_request)					
+				self.auth_handler.handle_claim (self, request)					
 			else:
 				self.continue_request (request, claim.get ("user"), claim.get ("roles"))
 			
@@ -62,7 +62,7 @@ class Handler:
 				self.set_error (request, "token_handler_error", "Token handler error")
 				return request.response.error (500)			
 			request.token = token
-			self.auth_handler.handle_token (request, self.continue_request)
+			self.auth_handler.handle_token (self, request)
 	
 	def continue_request (self, request, username = None, roles = None):
 		if self.authenticate:			

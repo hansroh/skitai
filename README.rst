@@ -1,6 +1,6 @@
-===============
-Skitai Library
-===============
+===================
+Skitai App Engine
+===================
 
 .. contents:: Table of Contents
 
@@ -68,7 +68,7 @@ Another way from Git:
     python setup.py install
 
 
-But generally you don't need install alone. When you install Skitai App Engine, proper version of Skitai Library will be installed.
+But generally you don't need install alone. When you install Skitai App Engine, proper version of Skitai App Engine will be installed.
 
 
 Starting Skitai
@@ -212,21 +212,21 @@ Using Skitai's reverse proxy feature, it can be used as API Gateway Server. All 
       }
       
     # For Token
-    def handle_token (self, request, callback):
+    def handle_token (self, handler, request):
       username, roles, expires = self.tokens.get (request.token)
       if expires and expires < time.time ():
         # remove expired token
         self.tokens.popitem (request.token)
-        return callback (request)
-      callback (request, username, roles)
+        return handler.continue_request (request)
+      handler.continue_request (request, username, roles)
     
     # For JWT Claim
-    def handle_claim (self, request, callback):
+    def handle_claim (self, handler, request):
       claim = request.claim    
       expires = claim.get ("expires", 0)
       if expires and expires < time.time ():
-        return callback (request)
-      callback (request, claim.get ("user"), claim.get ("roles"))
+        return handler.continue_request (request)
+      handler.continue_request (request, claim.get ("user"), claim.get ("roles"))
     
   @app.startup
   def startup (wasc):
@@ -267,8 +267,8 @@ Gateway use only bearer tokens like OAuth2 and JWT(Json Web Token) for authoriza
 Also Skitai create API Transaction ID for each API call, and this will eb explained in Skitai 'was' Service chapter.
 
 
-Using Database Engine For Token Storage
-`````````````````````````````````````````
+Using Database Engine For Verifying Token
+```````````````````````````````````````````
 
 *New in version 0.24.8*
 
@@ -286,18 +286,20 @@ You can query for getting user information to database engines asynchronously. H
       roles = response.data ['roles']
       expires = response.data ['expires']
       
-      request, callback = response.meta ['recall']      
+      handler, request = response.meta ['recall']      
       if expires and expires < time.time ():
-        callback (request)
+        was.mongodb (
+          "@my-mongodb", "mydb", callback = lambda x: None,
+        ).delete ('tokens', {"token": request.token})
+        handler.continue_request (request)
       else: 
-        callback (request, username, roles)
+        handler.continue_request (request, username, roles)
           
-    def handle_token (self, request, callback):
-      dbo = was.mongodb (
+    def handle_token (self, handler, request):
+      was.mongodb (
         "@my-mongodb", "mydb", callback = self.handle_user,
-        meta = {'recall': (request, callback)}
-      )
-      dbo.findone ('tokens', {"token": request.token})
+        meta = {'recall': (handler, request)}
+      ).findone ('tokens', {"token": request.token})
 
 
 Run as HTTPS Server
@@ -466,6 +468,27 @@ Here're addtional methods and properties above response obkect compared with aqu
   - 3: Normal Terminated
 
 .. _aquests: https://pypi.python.org/pypi/aquests
+
+
+Usage At Single Threaded Environment
+`````````````````````````````````````
+
+If you run Skitai with single treaded mode, you can't use req.wait(), req.getwait() or req.getswait(). Instead you should use callback for this, and Skitai provide async response.
+
+.. code:: python
+  
+  def response_handler (reqid, response, proxy):
+    content = response.data.decode ("utf8")        
+    proxy.push (response.data)
+        
+  @app.route ("/aresponse_example")
+  def aresponse_example (was):
+    proxy = was.aresponse (response_handler)    
+    proxy.get ('skitai', "https://pypi.python.org/pypi/skitai")    
+    return proxy
+
+This usage will be explained 'Skito-Saddle Async Response' chapter and you could skip now.
+
 
 Load-Balancing
 ````````````````
@@ -1340,25 +1363,23 @@ If you use was' requests services, and they're expected taking a long time to fe
 
 .. code:: python
   
-  def response_handler (reqid, response, collector):
+  def response_handler (reqid, response, proxy):
     content = "<h3>Error</h3>"
     if response.data:
       content = response.data.decode ("utf8")        
-    collector [reqid]  = content
+    proxy [reqid]  = content
       
-    if collector.fetched_all ():
-      collector.push (collector.render_all ("example.html"))
+    if proxy.fetched_all ():
+      proxy.push (proxy.render_all ("example.html"))
       # or just join response data
-      collector.push (collector ['skitai'] + "<hr>" + collector ['aquests'])
+      # proxy.push (proxy ['skitai'] + "<hr>" + proxy ['aquests'])
         
   @app.route ("/aresponse_example")
   def aresponse_example (was):
-    collector = was.aresponse (response_handler)
-    
-    collector.get ('skitai', "https://pypi.python.org/pypi/skitai")
-    collector.get ('aquests', "https://pypi.python.org/pypi/aquests")
-
-    return collector
+    proxy = was.aresponse (response_handler)    
+    proxy.get ('skitai', "https://pypi.python.org/pypi/skitai")
+    proxy.get ('aquests', "https://pypi.python.org/pypi/aquests")
+    return proxy
 
 'example.html' Jinja2 template is,
 
@@ -1580,9 +1601,10 @@ Added new app.jinja_overlay () for easy calling app.jinja_env.overlay ().
   app.use_reloader = True
   app.jinja_overlay (
   	line_statement = "%", 
-  	variable_string = "#", 
-  	block_start_string = "{%", 
-  	block_end_string = "}"
+  	variable_start_string = "#", 
+  	variable_end_string = "#", 
+  	block_start_string = "<j-", 
+  	block_end_string = "/>"
   )
 
 Original Jinja2 form is:
@@ -1601,14 +1623,14 @@ Original Jinja2 form is:
     {% endfor %}
   {% endfor %}
 
-app.jinja_overlay ("%", "#", "{%", "}") changes jinja environment,
+app.jinja_overlay ("%", "#", "#", "<j-", "/>") changes jinja environment,
 
 - variable_start_string = from {{ to #
 - variable_end_string = from }} to #
 - line_statement_prefix = from None to %
 - line_comment_prefix = from None to %%
-- block_start_string = unchange, keep {%
-- block_end_string = from %} to }
+- block_start_string = from {% to <j=
+- block_end_string = from %} to />
 - trim_blocks = from False to True
 - lstrip_blocks = from False to True
 
@@ -1616,28 +1638,28 @@ Important note for escaping charcter '#', use '##', but this is only valid when 
 
 .. code:: html
 
-  % raw:
+  <j-raw />
     %HOME%/bin
     <a href="#" onclick="javascript: create_map ();">Map</a>
-  % endraw
+  <j-endraw />
 
 As a result, template can be written:
 
 .. code:: html
 
-  % extends "layout.htm"
-  % block title:
+  %extends "layout.htm"
+  <j-block title />
     Dash Board
-  % endblock  
+  <j-endblock />
   
-  % for group in stat|groupby ('nation'):
-    <h1>{% block sectionname }Population of #group.grouper#{% endblock }</h1>
-    % for row in group.list:
+  <j-for group in stat|groupby ('nation') />
+    <h1><j-block sectionname />Population of #group.grouper#<j-endblock /></h1>
+    <j-for row in group.list />
       <h2>#row.state#</h1>
       <a href="#was.ab ('state_view', row.nation, loop.index)#">#row.population#</a>
       <a href="##" onclick="javascript: create_map ('#row.state#');">Map</a>
-    % endfor
-  % endfor
+    <j-endfor />
+  <j-endfor />
 
 If you like this style, just call 'app.jinja_overlay ()'. In my case, above template is more easy to read/write if applying proper syntax highlighting to text editor. 
 
@@ -2442,8 +2464,14 @@ Links
 Change Log
 ==============
   
+  0.25 (Feb 2017)
+  
+  - 0.25.1 change app.jinja_overlay () default values and number of args, remove raw line statement
+  - project name chnaged: Skitai Library => Skitai App Engine
+  
   0.24 (Jan 2017)
   
+  - 0.24.9 bearer token handler spec changed
   - 0.24.8 add async response, fix await_fifo bug
   - 0.24.7 fix websocket shutdown
   - 0.24.5 eliminate client arg from websocket config

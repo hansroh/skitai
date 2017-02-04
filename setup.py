@@ -55,7 +55,7 @@ with open('skitai/__init__.py', 'r') as fd:
 setup(
 	name='skitai',
 	version=version,
-	description='Skitai Library',
+	description='Skitai App Engine',
 	url = 'https://gitlab.com/hansroh/skitai',
 	author='Hans Roh',
 	author_email='hansroh@gmail.com',	

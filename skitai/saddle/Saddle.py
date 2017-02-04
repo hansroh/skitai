@@ -62,9 +62,17 @@ class Saddle (part.Part):
 		self.cached_rules = []
 		self.config = Config ()
 	
-	def jinja_overlay (self, line_statement = "%", variable_string = "#", block_start_string = "{%", block_end_string = "}", **karg):
+	def jinja_overlay (
+		self, 
+		line_statement = "%", 
+		variable_start_string = "#", 
+		variable_end_string = "#", 
+		block_start_string = "<j-", 
+		block_end_string = "/>", 
+		**karg
+	):
 		from . import jinjapatch				
-		self.jinja_env = jinjapatch.overlay (self.app_name, line_statement, variable_string, block_start_string, block_end_string, **karg)
+		self.jinja_env = jinjapatch.overlay (self.app_name, line_statement, variable_start_string, variable_end_string, block_start_string, block_end_string, **karg)
 	
 	def render (self, was, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		while template_file and template_file [0] == "/":
