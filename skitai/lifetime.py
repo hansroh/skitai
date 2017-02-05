@@ -23,39 +23,33 @@ _select_errors = 0
 def status ():
 	fds = []
 	for fdno, channel in list(asyncore.socket_map.items ()):
-		try:
-			d = {}
-			d ["name"] = "%s.%s" % (channel.__module__, channel.__class__.__name__)
-			d ["fdno"] = fdno
-			
-			status = "NOTCON"
-			if channel.accepting and channel.addr: status = "LISTEN"
-			elif channel.connected: status = "CONNECTED"
-			d ["status"] = status
-			
-			addr = ""
-			if channel.addr is not None:
-				try: addr = "%s:%d" % channel.addr
-				except TypeError: addr = "%s" % repr (channel.addr)
-			if addr:
-				d ["address"] = addr			
-			if hasattr (channel, "channel_number"):
-				d ["channel_number"] = channel.channel_number
-			if hasattr (channel, "request_counter"):	
-				d ["request_counter"] = channel.request_counter
-			if hasattr (channel, "event_time"):
-				d ["last_event_time"] = time.asctime (time.localtime (channel.event_time))
-			if hasattr (channel, "zombie_timeout"):
-				d ["zombie_timeout"] = channel.zombie_timeout
-			if hasattr (channel, "get_history"):
-				d ["history"] = channel.get_history ()
-							
-		except:
-			raise
-			pass
+		d = {}	
+		d ["name"] = "%s.%s" % (channel.__module__, channel.__class__.__name__)
+		d ["fdno"] = fdno
 		
-		else:		
-			fds.append (d)
+		status = "NOTCON"
+		if channel.accepting and channel.addr: status = "LISTEN"
+		elif channel.connected: status = "CONNECTED"
+		d ["status"] = status		
+		addr = ""
+		if channel.addr is not None:
+			try: addr = "%s:%d" % channel.addr
+			except TypeError: addr = "%s" % repr (channel.addr)
+		if addr:
+			d ["address"] = addr
+
+		if hasattr (channel, "channel_number"):
+			d ["channel_number"] = channel.channel_number
+		if hasattr (channel, "request_counter"):	
+			d ["request_counter"] = channel.request_counter
+		if hasattr (channel, "event_time"):
+			d ["last_event_time"] = time.asctime (time.localtime (channel.event_time))
+		if hasattr (channel, "zombie_timeout"):
+			d ["zombie_timeout"] = channel.zombie_timeout
+		if hasattr (channel, "get_history"):
+			d ["history"] = channel.get_history ()
+						
+		fds.append (d)
 		
 	return {
 		"killed_zombies": _killed_zombies,

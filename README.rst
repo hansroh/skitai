@@ -473,18 +473,18 @@ Here're addtional methods and properties above response obkect compared with aqu
 Usage At Single Threaded Environment
 `````````````````````````````````````
 
-If you run Skitai with single treaded mode, you can't use req.wait(), req.getwait() or req.getswait(). Instead you should use callback for this, and Skitai provide async response.
+If you run Skitai with single threaded mode, you can't use req.wait(), req.getwait() or req.getswait(). Instead you should use callback for this, and Skitai provide async response.
 
 .. code:: python
   
   def response_handler (reqid, response, proxy):
     content = response.data.decode ("utf8")        
-    proxy.push (response.data)
+    proxy.done (response.data)
         
   @app.route ("/aresponse_example")
   def aresponse_example (was):
     proxy = was.aresponse (response_handler)    
-    proxy.get ('skitai', "https://pypi.python.org/pypi/skitai")    
+    proxy.get ('req-0', "https://pypi.python.org/pypi/skitai")    
     return proxy
 
 This usage will be explained 'Skito-Saddle Async Response' chapter and you could skip now.
@@ -1370,10 +1370,10 @@ If you use was' requests services, and they're expected taking a long time to fe
     proxy [reqid]  = content
       
     if proxy.fetched_all ():
-      proxy.push (proxy.render_all ("example.html"))
+      proxy.done (proxy.render_all ("example.html"))
       # or just join response data
-      # proxy.push (proxy ['skitai'] + "<hr>" + proxy ['aquests'])
-        
+      # proxy.done (proxy ['skitai'] + "<hr>" + proxy ['aquests'])
+
   @app.route ("/aresponse_example")
   def aresponse_example (was):
     proxy = was.aresponse (response_handler)    
@@ -1396,9 +1396,28 @@ Above producer can make requests as same as was object except first argument is 
 
 This identifier can handle responses at executing callback. reqid SHOULD follow Python variable naming rules because might be used as template variable.
 
-Finally, you SHOULD call push (content) to start sending contents.
+You MUST call AsyncRequest.done(content_to_send) finally, and if you have chunk content to send, you can call AsyncRequest.push(chunk_content_to_send) for sending middle part of contents before calling done ().
 
+*New in version 0.25.2*
 
+You can set meta data dictionary per requests if you need.
+
+.. code:: python
+
+  def response_handler (reqid, response, proxy):
+    due = time.time () - response.meta ['created']
+    proxy.push ('Fetch done in %2.3f seconds' % due)
+    proxy.done ()
+    
+  @app.route ("/aresponse_example")
+  def aresponse_example (was):
+    proxy = was.aresponse (response_handler)    
+    proxy.get ('req-0', "http://my-server.com", meta = {'created': time.time ()})    
+    return was.response ("200 OK", proxy, [('Content-Type', 'text/plain')])
+
+But it is important that meta arg should be as keyword arg, and DON'T use '__reqid' as meta data key. '__reqid' is used internally.
+
+    
 Creating async response:
 
 - was.aresponse (response_handler): return AsyncResponse
@@ -1413,6 +1432,8 @@ collect_producer has these methods.
 - AsyncResponse.fetched_all (): True if numer of requests is same as responses
 - AsyncResponse.render (template_file, single dictionary object or keyword args, ...): render per response, and can assign AsyncResponse  like dictionary
 - AsyncResponse.render_all (template_file): render all responses, in template file, reqids of each responses are used as template variable.
+- AsyncResponse.push (content_to_send)
+- AsyncResponse.done (content_to_send = None)
 
 
 
@@ -1629,7 +1650,7 @@ app.jinja_overlay ("%", "#", "#", "<j-", "/>") changes jinja environment,
 - variable_end_string = from }} to #
 - line_statement_prefix = from None to %
 - line_comment_prefix = from None to %%
-- block_start_string = from {% to <j=
+- block_start_string = from {% to <j-
 - block_end_string = from %} to />
 - trim_blocks = from False to True
 - lstrip_blocks = from False to True
@@ -1647,10 +1668,8 @@ As a result, template can be written:
 
 .. code:: html
 
-  %extends "layout.htm"
-  <j-block title />
-    Dash Board
-  <j-endblock />
+  <j-extends "layout.htm" />
+  <j-block title />Dash Board<j-endblock />
   
   <j-for group in stat|groupby ('nation') />
     <h1><j-block sectionname />Population of #group.grouper#<j-endblock /></h1>
@@ -1661,7 +1680,7 @@ As a result, template can be written:
     <j-endfor />
   <j-endfor />
 
-If you like this style, just call 'app.jinja_overlay ()'. In my case, above template is more easy to read/write if applying proper syntax highlighting to text editor. 
+I want to use JInja2 with Vue.js without conflicts, and I like python because there aren't {, } in statement. Anyway it's a personal favor and if you like this style, just call 'app.jinja_overlay ()'.
 
 On Flask,
 
@@ -2466,6 +2485,7 @@ Change Log
   
   0.25 (Feb 2017)
   
+  - 0.25.2 fix aresponse exception handling, aresponse can send streaming chunk data
   - 0.25.1 change app.jinja_overlay () default values and number of args, remove raw line statement
   - project name chnaged: Skitai Library => Skitai App Engine
   

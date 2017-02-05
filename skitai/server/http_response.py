@@ -305,7 +305,11 @@ class http_response:
 		
 		if force_close:
 			close_it = True
-		
+			if self.request.version == '1.1':
+				self.update ('Connection', 'close')
+			else:	
+				self.delete ('Connection')
+				
 		else:
 			if self.request.version == '1.0':
 				if connection == 'keep-alive':
@@ -313,17 +317,14 @@ class http_response:
 						close_it = True
 						self.update ('Connection', 'close')
 					else:
-						self.update ('Connection', 'keep-alive')
-						#self.update ('Keep-Alive', 'timeout=%d' % self.request.channel.keep_alive)
+						self.update ('Connection', 'keep-alive')						
 				else:
 					close_it = True
 			
 			elif self.request.version == '1.1':
 				if connection == 'close':
 					close_it = True
-					self.update ('Connection', 'close')
-				#else:
-					#self.update ('Keep-Alive', 'timeout=%d' % self.request.channel.keep_alive)	
+					self.update ('Connection', 'close')				
 				if not self.has_key ('transfer-encoding') and not self.has_key ('content-length') and self.has_key ('content-type'):
 					wrap_in_chunking = True
 					

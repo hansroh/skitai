@@ -1,5 +1,6 @@
 from aquests.lib.producers import simple_producer
 from aquests.lib.athreads import trigger
+from skitai.server.http_response import catch
 
 class _Method:
 	def __init__(self, send, name):
@@ -12,24 +13,15 @@ class _Method:
 	def __call__(self, *args, **karg):		
 		return self.__send(self.__name, args, karg)
 
-
-class FakeWAS: 
-	def __init__ (self, was):
-		self.env = was.env
-		self.request = was.request
-		self.app = was.app
-		self.ab = was.ab
-		if hasattr (was, 'g'):
-			self.g = was.g
-		
 class AsyncResponse (simple_producer):
 	def __init__ (self, was, handler):
 		self.__was = was
-		self.was = FakeWAS (was)
+		self.was = was._clone ()
+		del self.was.response
 		self.handler = handler
 		self.app_renderer = was.app.render
 		
-		self._data = None
+		self._data = []
 		self._parts = {}
 		self._numreq = 0
 		self._numres = 0
@@ -42,13 +34,19 @@ class AsyncResponse (simple_producer):
 		return _Method(self._call, name)
 	
 	def _call (self, method, args, karg):
+		if not karg.get ('meta'):
+			karg ['meta'] = {}
+		karg ['meta'] = {'__reqid': args [0]}
 		karg ['callback'] = self
-		karg ['meta'] = {'name': args [0]}
 		self.__was._call (method, args [1:], karg)
 		
 	def __call__ (self, response):
 		self._numres += 1
-		self.handler (response.meta ["name"], response, self)
+		try:
+			self.handler (response.meta ["__reqid"], response, self)
+		except:
+			self.was.traceback ()
+			self.done ("<div style='padding: 8px; border: 1px solid #000; background: #efefef;'><h1>Error Occured While Processing</h1>%s</div>" % (self.was.app.debug and catch (1) or "",))
 	
 	def __setitem__ (self, name, data):
 		self._parts [name] = data
@@ -57,12 +55,12 @@ class AsyncResponse (simple_producer):
 		return self._parts.get (name, default)
 		
 	def ready (self):
-		return self._done
+		return self._data or self._done
 		
 	def more (self):		
-		if not self._data:
+		if self._done and not self._data:
 			return b''
-		d, self._data = self._data, None
+		d, self._data = b''.join (self._data), []
 		return d
 	
 	def fetched_all (self):
@@ -73,12 +71,18 @@ class AsyncResponse (simple_producer):
 	
 	def render_all (self, template_file):
 		return self.render (template_file, self._parts)
-			
-	def push (self, data):
-		self._data = data
-		if type (self._data) is str:
-			self._data = self._data.encode ('utf8')
+	
+	def done (self, data = None):
+		if data:
+			self.push (data)
 		self._done = True
+				
+	def push (self, data):
+		if self._done:
+			return
+		if type (data) is str:
+			data = data.encode ('utf8')
+		self._data.append (data)
 		if self.was.env ['wsgi.multithread']:
 			trigger.wakeup ()
 		
