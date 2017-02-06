@@ -1363,11 +1363,11 @@ If you use was' requests services, and they're expected taking a long time to fe
 
 .. code:: python
   
-  def response_handler (reqid, response, proxy):
+  def response_handler (response, proxy):
     content = "<h3>Error</h3>"
     if response.data:
       content = response.data.decode ("utf8")        
-    proxy [reqid]  = content
+    proxy [response.reqid]  = content
       
     if proxy.fetched_all ():
       proxy.done (proxy.render_all ("example.html"))
@@ -1389,14 +1389,14 @@ If you use was' requests services, and they're expected taking a long time to fe
   <hr>
   <div>{{ aquests }}</div>
   
-Above producer can make requests as same as was object except first argument is identical request name (reqid). Compare below things.
+Above proxy can make requests as same as was object except first argument is identical request name (reqid). Compare below things.
 
   * was.get ("https://pypi.python.org/pypi/skitai")
   * AsyncRequest.get ('skitai', "https://pypi.python.org/pypi/skitai")
 
 This identifier can handle responses at executing callback. reqid SHOULD follow Python variable naming rules because might be used as template variable.
 
-You MUST call AsyncRequest.done(content_to_send) finally, and if you have chunk content to send, you can call AsyncRequest.push(chunk_content_to_send) for sending middle part of contents before calling done ().
+You MUST call ResProxy.done(content_to_send) finally, and if you have chunk content to send, you can call ResProxy.push(chunk_content_to_send) for sending middle part of contents before calling done ().
 
 *New in version 0.25.2*
 
@@ -1404,10 +1404,10 @@ You can set meta data dictionary per requests if you need.
 
 .. code:: python
 
-  def response_handler (reqid, response, proxy):
+  def response_handler (response, proxy):
     due = time.time () - response.meta ['created']
     proxy.push ('Fetch done in %2.3f seconds' % due)
-    proxy.done ()
+    proxy.done () # Should call
     
   @app.route ("/aresponse_example")
   def aresponse_example (was):
@@ -1418,22 +1418,22 @@ You can set meta data dictionary per requests if you need.
 But it is important that meta arg should be as keyword arg, and DON'T use '__reqid' as meta data key. '__reqid' is used internally.
 
     
-Creating async response:
+Creating async response proxy:
 
-- was.aresponse (response_handler): return AsyncResponse
+- was.aresponse (response_handler): return ResProxy
 
-response_handler should receive 3 args: reqid, response and AsyncResponse.
+response_handler should receive 2 args: response for your external resource request and ResProxy.
 
 Note: It's impossible requesting map-reduce requests at async response mode.
 
 collect_producer has these methods.
 
-- AsyncResponse.get (), post (), ...
-- AsyncResponse.fetched_all (): True if numer of requests is same as responses
-- AsyncResponse.render (template_file, single dictionary object or keyword args, ...): render per response, and can assign AsyncResponse  like dictionary
-- AsyncResponse.render_all (template_file): render all responses, in template file, reqids of each responses are used as template variable.
-- AsyncResponse.push (content_to_send)
-- AsyncResponse.done (content_to_send = None)
+- ResProxy.get (), post (), ...
+- ResProxy.fetched_all (): True if numer of requests is same as responses
+- ResProxy.render (template_file, single dictionary object or keyword args, ...): render per response, and can assign ResProxy  like dictionary
+- ResProxy.render_all (template_file): render all responses, in template file, reqids of each responses are used as template variable.
+- ResProxy.push (content_to_send)
+- ResProxy.done (content_to_send = None)
 
 
 
@@ -2485,6 +2485,8 @@ Change Log
   
   0.25 (Feb 2017)
   
+  - 0.25.4 license changed from BSD to MIT
+  - 0.25.3 aresponse response handler args spec changed, class name is cahnged from AsyncResponse to ResProxy
   - 0.25.2 fix aresponse exception handling, aresponse can send streaming chunk data
   - 0.25.1 change app.jinja_overlay () default values and number of args, remove raw line statement
   - project name chnaged: Skitai Library => Skitai App Engine

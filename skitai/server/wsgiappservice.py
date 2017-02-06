@@ -25,7 +25,7 @@ try:
 except ImportError:
 	import thread as _thread	
 from skitai import lifetime
-from .wastuff.aresponse import AsyncResponse, _Method
+from .wastuff.aresponse import ResProxy, _Method
 from .wastuff.triple_logger import Logger
 
 class WAS:
@@ -190,7 +190,7 @@ class WAS:
 	
 	def aresponse (self, handler):
 		self.response.set_streaming ()
-		return AsyncResponse (self, handler)
+		return ResProxy (self, handler)
 		
 	REDIRECT_TEMPLATE =  (
 		"<head><title>%s</title></head>"

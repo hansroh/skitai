@@ -20,7 +20,7 @@ if sys.argv[-1] == 'publish':
 	sys.exit()
 
 classifiers = [
-  'License :: OSI Approved :: BSD License',
+  'License :: OSI Approved :: MIT License',
   'Development Status :: 4 - Beta',
   'Topic :: Internet :: WWW/HTTP :: HTTP Servers',	
 	'Topic :: Internet :: WWW/HTTP :: WSGI',
@@ -62,7 +62,7 @@ setup(
 	packages=packages,
 	package_dir=package_dir,
 	package_data = package_data,
-	license='BSD',
+	license='MIT',
 	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/skitai",
 	install_requires = ["jinja2==2.9.4", "h2==2.5.1", "aquests>=0.6.4"],

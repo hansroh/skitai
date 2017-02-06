@@ -13,13 +13,12 @@ class _Method:
 	def __call__(self, *args, **karg):		
 		return self.__send(self.__name, args, karg)
 
-class AsyncResponse (simple_producer):
+
+class ResProxy (simple_producer):
 	def __init__ (self, was, handler):
 		self.__was = was
-		self.was = was._clone ()
-		del self.was.response
+		self.was = was._clone ()		
 		self.handler = handler
-		self.app_renderer = was.app.render
 		
 		self._data = []
 		self._parts = {}
@@ -42,8 +41,9 @@ class AsyncResponse (simple_producer):
 		
 	def __call__ (self, response):
 		self._numres += 1
+		response.reqid = response.meta ["__reqid"]
 		try:
-			self.handler (response.meta ["__reqid"], response, self)
+			self.handler (response, self)
 		except:
 			self.was.traceback ()
 			self.done ("<div style='padding: 8px; border: 1px solid #000; background: #efefef;'><h1>Error Occured While Processing</h1>%s</div>" % (self.was.app.debug and catch (1) or "",))
@@ -67,7 +67,7 @@ class AsyncResponse (simple_producer):
 		return self._numreq == self._numres
 
 	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):		
-		return self.app_renderer (self.was, template_file, _do_not_use_this_variable_name_, **karg)
+		return self.was.render (template_file, _do_not_use_this_variable_name_, **karg)
 	
 	def render_all (self, template_file):
 		return self.render (template_file, self._parts)
@@ -75,7 +75,7 @@ class AsyncResponse (simple_producer):
 	def done (self, data = None):
 		if data:
 			self.push (data)
-		self._done = True
+		self._done = True		
 				
 	def push (self, data):
 		if self._done:
