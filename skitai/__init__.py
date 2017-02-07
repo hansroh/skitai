@@ -1,14 +1,12 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.25.3.2"
+__version__ = "0.25.4.6"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
 import threading
 import sys
-HTTP2 = True
-try: import h2
-except ImportError: HTTP2 = False
+import h2
 
 WEBSOCKET_SIMPLE = 1
 WEBSOCKET_DEDICATE_THREADSAFE = 4

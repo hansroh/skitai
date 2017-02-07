@@ -1,6 +1,7 @@
 import time
 from aquests.lib.athreads import socket_map
 from aquests.lib.athreads import trigger
+from aquests.lib.cbutil import tuple_cb
 from aquests.client.asynconnect import AsynSSLConnect
 import threading
 from aquests.protocols.http import request as http_request
@@ -137,7 +138,7 @@ class Dispatcher:
 		handler.response = None
 		
 		if self.callback:
-			self.callback	(self.result)
+			tuple_cb (self.result, self.callback)
 
 
 class ClusterDistCall:

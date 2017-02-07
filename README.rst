@@ -119,14 +119,34 @@ If you want to allow access to your public IPs, or specify port:
     mount = ('/', app)
   )
 
-if you want to change number of threads for WSGI app:
+
+Run with Threads Pool
+------------------------
+
+Skitai run defaultly multi-threading mode and number of threads are 4. 
+If you want to change number of threads for handling WSGI app:
 
 .. code:: python
 
   skitai.run (
-    threads = 4,
+    threads = 8,
     mount = ('/', app)
   )
+
+
+Run with Single-Thread
+------------------------
+
+If you want to run Skitai with entirely single thread,
+
+.. code:: python
+
+  skitai.run (
+    threads = 0,
+    mount = ('/', app)
+  )
+
+This features is limited by your WSGI container. If you use Skito-Saddle container, you can run with single threading mode by using Skito-Saddle's async streaming response method. But you don't and if you have plan to use Skitai 'was' requests services, you can't single threading mode and you SHOULD run with multi-threading mode.
 
 
 Mount Multiple WSGI Apps And Static Directories
@@ -281,12 +301,11 @@ You can query for getting user information to database engines asynchronously. H
   from skitai import was
   
   class Authorizer:  
-    def handle_user (self, response):
+    def handle_user (self, response, handler, request):
       username = response.data ['username']
       roles = response.data ['roles']
       expires = response.data ['expires']
       
-      handler, request = response.meta ['recall']      
       if expires and expires < time.time ():
         was.mongodb (
           "@my-mongodb", "mydb", callback = lambda x: None,
@@ -297,8 +316,7 @@ You can query for getting user information to database engines asynchronously. H
           
     def handle_token (self, handler, request):
       was.mongodb (
-        "@my-mongodb", "mydb", callback = self.handle_user,
-        meta = {'recall': (handler, request)}
+        "@my-mongodb", "mydb", callback = (self.handle_user, (handler, request))
       ).findone ('tokens', {"token": request.token})
 
 
@@ -339,6 +357,16 @@ Above /hello can called, http://127.0.0.1:5000/flaskapp/hello
 
 Also app should can handle mount point. 
 In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Skito-Saddle can handle obiously. But I don't know other WSGI containers will work properly.
+
+
+Skitai App Examples
+--------------------
+
+Please visit to `Skitai app examples`_ on GitLab.
+
+
+.. _`Skitai app examples`: https://gitlab.com/hansroh/skitaid/tree/master/skitaid/wsgi/example
+
 
 
 Skitai 'was' Services
@@ -477,17 +505,18 @@ If you run Skitai with single threaded mode, you can't use req.wait(), req.getwa
 
 .. code:: python
   
-  def response_handler (reqid, response, proxy):
-    content = response.data.decode ("utf8")        
-    proxy.done (response.data)
+  def response_handler (response, proxy):
+    proxy.done (response.content)
         
-  @app.route ("/aresponse_example")
+  @app.route ("/index")
   def aresponse_example (was):
     proxy = was.aresponse (response_handler)    
-    proxy.get ('req-0', "https://pypi.python.org/pypi/skitai")    
+    proxy.get (None, "https://pypi.python.org/pypi/skitai")    
     return proxy
 
-This usage will be explained 'Skito-Saddle Async Response' chapter and you could skip now.
+Unfortunately this feature is available on Skito-Saddle WSGI container only (It means Flask or other WSGI container users can only use Skitai with multi-threading mode). 
+
+For more detail usage will be explained 'Skito-Saddle Async Streaming Response' chapter and you could skip now.
 
 
 Load-Balancing
@@ -1351,8 +1380,8 @@ The object has 'close ()' method, will be called when all data consumed, or sock
 - was.response.hint_promise (uri) # *New in version 0.16.4*, only works with HTTP/2.x and will be ignored HTTP/1.x
 
 
-Async Response
-````````````````
+Async Streaming Response
+``````````````````````````
 
 *New in version 0.24.8*
 
@@ -1363,11 +1392,14 @@ If you use was' requests services, and they're expected taking a long time to fe
 
 .. code:: python
   
-  def response_handler (response, proxy):
-    content = "<h3>Error</h3>"
-    if response.data:
-      content = response.data.decode ("utf8")        
-    proxy [response.reqid]  = content
+  def response_handler (resp, proxy):
+    if resp.status_code == 200:      
+      proxy [resp.reqid]  = proxy.render (
+        '%s.html' % resp.reqid,
+        r = response
+      )
+    else:
+      proxy [resp.reqid] = '<div>Error in %s</div>' % resp.reqid
       
     if proxy.fetched_all ():
       proxy.done (proxy.render_all ("example.html"))
@@ -1381,18 +1413,27 @@ If you use was' requests services, and they're expected taking a long time to fe
     proxy.get ('aquests', "https://pypi.python.org/pypi/aquests")
     return proxy
 
-'example.html' Jinja2 template is,
+'skitai.html' Jinja2 template used in render() is,
+
+.. code:: html
+
+  <div>{{ r.url }} </div> 
+  <div>{{ r.text }}</div>
+
+'example.html' Jinja2 template used in render_all() is,
 
 .. code:: html
 
   <div>{{ skitai }}</div>
   <hr>
   <div>{{ aquests }}</div>
+
+And you can use almost was.* objects at render() and render_all() like was.request, was.app, was.ab or was.g etc. But remember that response header had been already sent so you cannot use aquests features and connot set new header values like cookie or mbox (but reading is still possible).
   
 Above proxy can make requests as same as was object except first argument is identical request name (reqid). Compare below things.
 
   * was.get ("https://pypi.python.org/pypi/skitai")
-  * AsyncRequest.get ('skitai', "https://pypi.python.org/pypi/skitai")
+  * ResProxy.get ('skitai', "https://pypi.python.org/pypi/skitai")
 
 This identifier can handle responses at executing callback. reqid SHOULD follow Python variable naming rules because might be used as template variable.
 
@@ -1406,12 +1447,13 @@ You can set meta data dictionary per requests if you need.
 
   def response_handler (response, proxy):
     due = time.time () - response.meta ['created']
-    proxy.push ('Fetch done in %2.3f seconds' % due)
+    proxy.push (response.content)
+    proxy.push ('\n\nFetch in %2.3f seconds' % due)
     proxy.done () # Should call
     
   @app.route ("/aresponse_example")
   def aresponse_example (was):
-    proxy = was.aresponse (response_handler)    
+    proxy = was.aresponse (response_handler)
     proxy.get ('req-0', "http://my-server.com", meta = {'created': time.time ()})    
     return was.response ("200 OK", proxy, [('Content-Type', 'text/plain')])
 
@@ -1420,7 +1462,7 @@ But it is important that meta arg should be as keyword arg, and DON'T use '__req
     
 Creating async response proxy:
 
-- was.aresponse (response_handler): return ResProxy
+- was.aresponse (response_handler, prolog = None, epilog = None): return ResProxy, prolog and epilog is like html header and footer
 
 response_handler should receive 2 args: response for your external resource request and ResProxy.
 
@@ -1430,9 +1472,9 @@ collect_producer has these methods.
 
 - ResProxy.get (), post (), ...
 - ResProxy.fetched_all (): True if numer of requests is same as responses
-- ResProxy.render (template_file, single dictionary object or keyword args, ...): render per response, and can assign ResProxy  like dictionary
+- ResProxy.render (template_file, single dictionary object or keyword args, ...): render per response, and can assign into ResProxy like dictionary
 - ResProxy.render_all (template_file): render all responses, in template file, reqids of each responses are used as template variable.
-- ResProxy.push (content_to_send)
+- ResProxy.push (content_to_send): push chunk data to channel
 - ResProxy.done (content_to_send = None)
 
 
@@ -2485,7 +2527,7 @@ Change Log
   
   0.25 (Feb 2017)
   
-  - 0.25.4 license changed from BSD to MIT
+  - 0.25.4 license changed from BSD to MIT, fix websocket init at single thread
   - 0.25.3 aresponse response handler args spec changed, class name is cahnged from AsyncResponse to ResProxy
   - 0.25.2 fix aresponse exception handling, aresponse can send streaming chunk data
   - 0.25.1 change app.jinja_overlay () default values and number of args, remove raw line statement

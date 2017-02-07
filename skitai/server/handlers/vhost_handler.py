@@ -1,7 +1,6 @@
 from . import default_handler, wsgi_handler, proxypass_handler, websocket_handler, api_access_handler
 import skitai
-if skitai.HTTP2:
-	from . import http2_handler		
+from . import http2_handler		
 from .. import wsgi_apps
 import os
 
@@ -23,12 +22,8 @@ class VHost:
 			alternative_handlers = [self.proxypass_handler]			
 		alternative_handlers.append (websocket_handler.Handler (self.wasc, self.apps))
 		alternative_handlers.append (wsgi_handler.Handler (self.wasc, self.apps))
-		self.default_handler = default_handler.Handler (self.wasc, {}, static_max_age, alternative_handlers)
-		
-		if skitai.HTTP2:
-			self.handlers.append (http2_handler.Handler (self.wasc, self.default_handler))
-		else:
-			self.handlers.append (self.default_handler)
+		self.default_handler = default_handler.Handler (self.wasc, {}, static_max_age, alternative_handlers)		
+		self.handlers.append (http2_handler.Handler (self.wasc, self.default_handler))
 		
 	def close (self):	
 		for h in self.handlers:

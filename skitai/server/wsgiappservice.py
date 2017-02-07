@@ -82,17 +82,19 @@ class WAS:
 	def in__dict__ (self, name):
 		return name in self.__dict__
 	
-	def _clone (self):
+	def _clone (self, disable_aquests = False):
 		new_was = self.__class__ ()
 		for k, v in self.__dict__.items ():
-			setattr (new_was, k, v)
+			setattr (new_was, k, v)	
+		if disable_aquests:
+			new_was.VALID_COMMANDS = []
 		return new_was
 			
 	VALID_COMMANDS = [
 		"ws", "get", "post", "postform", "postjson", "postxml", "postnvp", 
 		"rpc", "grpc", "put", "upload", "delete", "options", "db",
 		"postgresql", "sqlite3", "redis", "mongodb"
-	]
+	]		
 	def __getattr__ (self, name):
 		# method magic		
 		if name in self.VALID_COMMANDS:
@@ -188,9 +190,9 @@ class WAS:
 	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		return self.app.render (self, template_file, _do_not_use_this_variable_name_, **karg)
 	
-	def aresponse (self, handler):
+	def aresponse (self, handler, *args, **karg):
 		self.response.set_streaming ()
-		return ResProxy (self, handler)
+		return ResProxy (self, handler, *args, **karg)
 		
 	REDIRECT_TEMPLATE =  (
 		"<head><title>%s</title></head>"

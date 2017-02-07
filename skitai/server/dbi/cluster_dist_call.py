@@ -7,6 +7,7 @@ from aquests.lib.attrdict import AttrDict
 from aquests.dbapi import request
 import asyncore
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
+from aquests.lib.cbutil import tuple_cb
 
 class OperationTimeout (Exception):
 	pass
@@ -81,9 +82,8 @@ class Dispatcher:
 		self.set_status (status)
 
 		if self.callback:
-			self.callback	(self.result)
-
-		
+			tuple_cb (self.result, self.callback)
+			
 				        	     
 #-----------------------------------------------------------
 # Cluster Base Call

@@ -15,10 +15,12 @@ class _Method:
 
 
 class ResProxy (simple_producer):
-	def __init__ (self, was, handler):
+	def __init__ (self, was, handler, prolog = None, epilog = None):
 		self.__was = was
 		self.was = was._clone ()		
 		self.handler = handler
+		self.prolog = self.encode (prolog)
+		self.epilog = self.encode (epilog)
 		
 		self._data = []
 		self._parts = {}
@@ -30,7 +32,7 @@ class ResProxy (simple_producer):
 		if name.split (".")[0] not in self.__was.VALID_COMMANDS:
 			raise AttributeError ('%s is not member' % name)
 		self._numreq += 1
-		return _Method(self._call, name)
+		return _Method (self._call, name)
 	
 	def _call (self, method, args, karg):
 		if not karg.get ('meta'):
@@ -63,6 +65,11 @@ class ResProxy (simple_producer):
 		d, self._data = b''.join (self._data), []
 		return d
 	
+	def encode (self, d):
+		if type (d) is str:
+			return d.encode ('utf8')
+		return d
+			
 	def fetched_all (self):
 		return self._numreq == self._numres
 
@@ -75,14 +82,18 @@ class ResProxy (simple_producer):
 	def done (self, data = None):
 		if data:
 			self.push (data)
+		if self.epilog:
+			self._data.append (self.epilog)
+			self.epilog = None
 		self._done = True		
 				
 	def push (self, data):
 		if self._done:
 			return
-		if type (data) is str:
-			data = data.encode ('utf8')
-		self._data.append (data)
+		if self.prolog:
+			self._data.append (self.prolog)
+			self.prolog = None
+		self._data.append (self.encode (data))
 		if self.was.env ['wsgi.multithread']:
 			trigger.wakeup ()
 		

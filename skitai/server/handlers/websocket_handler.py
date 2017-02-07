@@ -136,6 +136,7 @@ class Handler (wsgi_handler.Handler):
 			# Like AJAX, simple request of client, simple response data
 			# the simplest version of stateless HTTP protocol using basic skitai thread pool
 			ws = specs.WebSocket1 (self, request, apph, env, varnames, message_encoding)
+			self.channel_config (request, ws, keep_alive)
 			env ["websocket"] = ws
 			if is_saddle: env ["websocket.handler"] = (current_app, wsfunc)		
 			ws.open ()
@@ -165,6 +166,7 @@ class Handler (wsgi_handler.Handler):
 			
 			server = servers.websocket_servers.get (gid)							
 			ws = specs.WebSocket5 (self, request, server, env, varnames)
+			self.channel_config (request, ws, keep_alive)
 			server.add_client (ws)
 			
 		else: # 4
@@ -173,15 +175,15 @@ class Handler (wsgi_handler.Handler):
 			# Be careful, it will be consume massive thread resources			
 			ws = specs.WebSocket4 (self, request, message_encoding)
 			request.channel.use_sendlock ()
+			self.channel_config (request, ws, keep_alive)
 			env ["websocket"] = ws
 			job = specs.DedicatedJob (request, apph, (env, donot_response), self.wasc.logger)
 			threading.Thread (target = job).start ()
 		
-		request.channel.die_with (ws, "websocket spec. %d" % design_spec)
-		self.channel_config (request, ws, keep_alive)
+		request.channel.die_with (ws, "websocket spec. %d" % design_spec)		
 		
 	def channel_config (self, request, ws, keep_alive):
-		request.response.done (upgrade_to =  (ws, 2))		
+		request.response.done (upgrade_to =  (ws, 2))
 		request.channel.set_timeout (keep_alive)
 	
 	

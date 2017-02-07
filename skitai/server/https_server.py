@@ -99,11 +99,10 @@ def init_context (certfile, keyfile, pass_phrase):
 	except AttributeError:
 		protocol = ssl.PROTOCOL_SSLv23			
 	ctx = ssl.SSLContext (protocol)
-	if skitai.HTTP2:
-		try:	
-			ctx.set_alpn_protocols (H2_PROTOCOLS)
-		except AttributeError:		
-			ctx.set_npn_protocols (H2_PROTOCOLS)
+	try:	
+		ctx.set_alpn_protocols (H2_PROTOCOLS)
+	except AttributeError:		
+		ctx.set_npn_protocols (H2_PROTOCOLS)
 	ctx.load_cert_chain (certfile, keyfile, pass_phrase)
 	ctx.check_hostname = False
 	return ctx

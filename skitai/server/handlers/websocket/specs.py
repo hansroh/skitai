@@ -229,10 +229,12 @@ class WebSocket:
 		else:
 			raise AssertionError ("Message is too big. Consider breaking it into chunks.")
 		
-		m = header + payload
-		
+		m = header + payload		
 		if self.channel:
-			trigger.wakeup (lambda p=self.channel, d=m: (p.push (d),))
+			if hasattr (self.wasc, 'threads'):
+				trigger.wakeup (lambda p=self.channel, d=m: (p.push (d),))
+			else:				
+				self.channel.push (m)				
 	
 	def handle_message (self, msg):
 		raise NotImplementedError ("handle_message () not implemented")
@@ -361,7 +363,7 @@ class WebSocket5 (WebSocket1):
 
 class PooledJob (wsgi_handler.Job):
 	def exec_app (self):
-		was = the_was._get ()
+		was = the_was._get ()		
 		was.request = self.request		
 		was.websocket = self.args [0]["websocket"]
 		self.args [0]["skitai.was"] = was
@@ -369,7 +371,7 @@ class PooledJob (wsgi_handler.Job):
 		if content:
 			if type (content) is not tuple:
 				content = (content,)
-			was.websocket.send (*content)
+			was.websocket.send (*content)			
 		del was.request
 		del was.websocket
 
