@@ -24,9 +24,9 @@ Skitai is not a framework for convinient developing, module reusability and plug
 Also note it is inspired by Zope_ and Flask_ a lot.
 
 
-From version 0.17 (Oct 2016), `Skitai WSGI App Engine`_ is seperated from this project.
+From version 0.17 (Oct 2016), `Skitai WSGI App Engine Daemon`_ is seperated from this project.
 
-If you want to run Skitai with fully pre-configured functional WSGI app engine as daemon or win32 service, install `Skitai WSGI App Engine`_.
+If you want to run Skitai with fully pre-configured functional WSGI app engine as daemon or win32 service, install `Skitai WSGI App Engine Daemon`_.
 
 
 Conceptually, Skitai has been seperated into two components:
@@ -74,7 +74,7 @@ But generally you don't need install alone. When you install Skitai App Engine, 
 Starting Skitai
 ================
 
-If you want to run Skitai as daemon or win32 service with configuration file, you can install `Skitai WSGI App Engine`_.
+If you want to run Skitai as daemon or win32 service with configuration file, you can install `Skitai WSGI App Engine Daemon`_.
 
 Otherwise if your purpose is just WSGI app developement, you can run Skitai easily at console.
 
@@ -2519,7 +2519,7 @@ Links
 
 .. _`GitLab Repository`: https://gitlab.com/hansroh/skitai
 .. _`GitLab issues`: https://gitlab.com/hansroh/skitai/issues
-.. _`Skitai WSGI App Engine`: https://pypi.python.org/pypi/skitaid
+.. _`Skitai WSGI App Engine Daemon`: https://pypi.python.org/pypi/skitaid
 
 
 Change Log
@@ -2576,7 +2576,7 @@ Change Log
   
   - 0.21.17 - fix JWT base64 padding problem
   - 0.21.8 - connected with MongoDB asynchronously
-  - 0.21.3 - add JWT (JSON Web Token) handler, see `Skitai WSGI App Engine`_
+  - 0.21.3 - add JWT (JSON Web Token) handler, see `Skitai WSGI App Engine Daemon`_
   - 0.21.2 - applied global/local-transaction-ID to app logging: was.log (msg, logtype), was.traceback ()
   - 0.21 - change request log format, add global/local-transaction-ID to log file for backtrace
 
@@ -2599,7 +2599,7 @@ Change Log
   
   0.17 (Oct 2016)
   
-  - `Skitai WSGI App Engine`_ is seperated
+  - `Skitai WSGI App Engine Daemon`_ is seperated
   
   0.16 (Sep 2016)
   
