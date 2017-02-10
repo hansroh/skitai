@@ -459,7 +459,6 @@ class ClusterDistCallCreator:
 	def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10):
 		if is_main_thread () and not callback:
 			raise RuntimeError ('Should have callback in Main thread')
-			
 		# reqtype: rpc, get, post, head, put, delete
 		if type (headers) is list:
 			h = {}

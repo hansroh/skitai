@@ -19,7 +19,6 @@ class ProxyResponse (http_response.Response):
 		self.header = header [1:]
 		self._header_cache = {}
 		self.flushed_time = 0
-		self.client_request.producer = self
 		self.version, self.code, self.msg = http_response.crack_response (self.response)
 		self.p, self.u = None, None
 		self.decompressor = None
@@ -76,8 +75,8 @@ class ProxyResponse (http_response.Response):
 	
 	def close (self):
 		# channel closed and called automatically by channel
-		self.client_request.producer = None		
 		self.asyncon.handle_abort ()		
+		self.done ()
 		#self.asyncon.handle_close (710, "Channel Closed")
 		
 	def ready (self):

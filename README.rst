@@ -2527,6 +2527,7 @@ Change Log
   
   0.25 (Feb 2017)
   
+  - 0.25.4.8: fix proxy retrying
   - 0.25.4 license changed from BSD to MIT, fix websocket init at single thread
   - 0.25.3 aresponse response handler args spec changed, class name is cahnged from AsyncResponse to ResProxy
   - 0.25.2 fix aresponse exception handling, aresponse can send streaming chunk data
