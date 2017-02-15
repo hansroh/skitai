@@ -62,17 +62,23 @@ class Saddle (part.Part):
 		self.cached_rules = []
 		self.config = Config ()
 	
+	def skito_jinja (self):
+		self.jinja_overlay ("{#", "#}", "<%", "%>", "<!---", "--->")
+		
 	def jinja_overlay (
 		self, 
-		line_statement = "%", 
-		variable_start_string = "#", 
-		variable_end_string = "#", 
-		block_start_string = "<j-", 
-		block_end_string = "/>", 
+		variable_start_string = "{{",
+		variable_end_string = "}}", 
+		block_start_string = "{%", 
+		block_end_string = "%}", 
+		comment_start_string = "{#",
+		comment_end_string = "#}",
+		line_statement_prefix = "%", 
+		line_comment_prefix = "%%",
 		**karg
 	):
-		from . import jinjapatch				
-		self.jinja_env = jinjapatch.overlay (self.app_name, line_statement, variable_start_string, variable_end_string, block_start_string, block_end_string, **karg)
+		from . import jinjapatch
+		self.jinja_env = jinjapatch.overlay (self.app_name, variable_start_string, variable_end_string, block_start_string, block_end_string, comment_start_string, comment_end_string, line_statement_prefix, line_comment_prefix, **karg)
 	
 	def render (self, was, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		while template_file and template_file [0] == "/":

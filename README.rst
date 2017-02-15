@@ -911,7 +911,9 @@ Let's see full example, client can connect by ws://localhost:5000/websocket/echo
       return was.wsconfig (skitai.WS_SIMPLE, 60)
     elif was.wsopened ():
       return "Welcome Client %s" % was.wsclient ()
-    
+    elif was.wshasevent ():
+      return
+      
     #-- message handling  
     return "ECHO:" + message
 
@@ -934,7 +936,9 @@ For getting another args, just add args behind message arg.
     elif was.wsclosed ():      
       del num_sent [client_id]
       return
-      
+    elif was.wshasevent ():
+      return
+        
     num_sent [client_id] += 1
     return "%s said:" % (clinent_name, message)
 
@@ -969,7 +973,8 @@ At Flask, Skitai can't know which variable name receive websocket message, then 
       return ""
     elif event == skitai.WS_EVT_OPEN:
       return "Welcome %d" % client_id
-      
+    elif event:
+      return ""  
     return "ECHO:" + request.args.get ("message")
 
 In this case, variable name is ("message",), It means take websocket's message as "message" arg.
@@ -1073,9 +1078,9 @@ Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can
     
     if was.wsinit ():
       return was.wsconfig (skitai.WS_GROUPCHAT, 60)    
-    elif was.wsopened (event):
+    elif was.wsopened ():
       return "Client %s has entered" % client_id
-    elif was.wsclosed (event):
+    elif was.wsclosed ():
       return "Client %s has leaved" % client_id
       
     return "Client %s Said: %s" % (client_id, message)
@@ -1657,72 +1662,23 @@ If you want modify Jinja2 envrionment, can through was.app.jinja_env object.
 
 Added new app.jinja_overlay () for easy calling app.jinja_env.overlay ().
 
+Recently JS HTML renderers like Vue.js, React.js have confilicts with default jinja mustache variable. In this case you mightbe need change it.
+
 .. code:: python
 
   app = Saddle (__name__)
   app.debug = True
   app.use_reloader = True
   app.jinja_overlay (
-  	line_statement = "%", 
-  	variable_start_string = "#", 
-  	variable_end_string = "#", 
-  	block_start_string = "<j-", 
-  	block_end_string = "/>"
+    variable_start_string = "{{", 
+    variable_end_string = "}}", 
+    block_start_string = "{%", 
+    block_end_string = "%}",
+    comment_start_string = "{#",
+    comment_end_string = "#}",
+    line_statement_prefix = "%",
+    line_comment_prefix = "%"
   )
-
-Original Jinja2 form is:
-
-.. code:: html
-  
-  {% extends "layout.htm" %}  
-  {% block title %}Dash Board{% endblock %}
-  
-  {% for group in stat|groupby ('nation') %}
-    <h1>{% block sectionname %}Population of {{group.grouper}}{% endblock %}</h1>
-    {% for row in group.list  %}
-      <h2>{{row.state}}</h1>
-      <a href="{{ was.ab ('bp_state', row.nation, loop.index)}}">{{row.population}}</a>
-      <a href="#" onclick="javascript: create_map ('{{row.state}}');">Map</a>
-    {% endfor %}
-  {% endfor %}
-
-app.jinja_overlay ("%", "#", "#", "<j-", "/>") changes jinja environment,
-
-- variable_start_string = from {{ to #
-- variable_end_string = from }} to #
-- line_statement_prefix = from None to %
-- line_comment_prefix = from None to %%
-- block_start_string = from {% to <j-
-- block_end_string = from %} to />
-- trim_blocks = from False to True
-- lstrip_blocks = from False to True
-
-Important note for escaping charcter '#', use '##', but this is only valid when variable_start_string and variable_end_string are same. Also escaping '%' which appears at first of line excluding space/tab:
-
-.. code:: html
-
-  <j-raw />
-    %HOME%/bin
-    <a href="#" onclick="javascript: create_map ();">Map</a>
-  <j-endraw />
-
-As a result, template can be written:
-
-.. code:: html
-
-  <j-extends "layout.htm" />
-  <j-block title />Dash Board<j-endblock />
-  
-  <j-for group in stat|groupby ('nation') />
-    <h1><j-block sectionname />Population of #group.grouper#<j-endblock /></h1>
-    <j-for row in group.list />
-      <h2>#row.state#</h1>
-      <a href="#was.ab ('state_view', row.nation, loop.index)#">#row.population#</a>
-      <a href="##" onclick="javascript: create_map ('#row.state#');">Map</a>
-    <j-endfor />
-  <j-endfor />
-
-I want to use JInja2 with Vue.js without conflicts, and I like python because there aren't {, } in statement. Anyway it's a personal favor and if you like this style, just call 'app.jinja_overlay ()'.
 
 On Flask,
 
@@ -1732,15 +1688,12 @@ On Flask,
   from skitai.saddle import jinjapatch
   
   app = Flask (__name__)
-  app.jinja_env = jinjapatch.overlay (__name__)
-  
+  app.jinja_env = jinjapatch.overlay (__name__, '%', "${", "}")
 
-For more detail, `Jinja2 Line Statements and Escape`_.
+if you set same start and end string, please note for escaping charcter, use double escape. for example '#', use '##' for escaping.
 
-*Warning*: Current Jinja2 2.8 dose not support double escaping (##) and 'raw' line_statement but it will be applied to runtime patch by Saddle. So if you use app.jinja_overlay, you have compatible problems with official Jinja2.
+*Warning*: Current Jinja2 2.8 dose not support double escaping (##) but it will be applied to runtime patch by Saddle. So if you use app.jinja_overlay, you have compatible problems with official Jinja2.
 
-
-.. _`Jinja2 Line Statements and Escape`: http://jinja.pocoo.org/docs/dev/templates/#line-statements
 .. _Jinja2: http://jinja.pocoo.org/
 
 
@@ -1752,9 +1705,9 @@ was.cookie has almost dictionary methods.
 .. code:: python
 
   if "user_id" not in was.cookie:
-  	was.cookie.set ("user_id", "hansroh")  	
-  	# or  	
-  	was.cookie ["user_id"] = "hansroh"
+    was.cookie.set ("user_id", "hansroh")  	
+    # or  	
+    was.cookie ["user_id"] = "hansroh"
 
 
 *Changed in version 0.15.30*
@@ -2527,6 +2480,7 @@ Change Log
   
   0.25 (Feb 2017)
   
+  - 0.25.5: app.jinja_overlay ()'s default args become jinja2 default
   - 0.25.4.8: fix proxy retrying
   - 0.25.4 license changed from BSD to MIT, fix websocket init at single thread
   - 0.25.3 aresponse response handler args spec changed, class name is cahnged from AsyncResponse to ResProxy
