@@ -80,15 +80,15 @@ def overlay (
 	
 	return Environment (
 		loader = PackageLoader (app_name),
-	  variable_start_string=variable_start_string,
-	  variable_end_string=variable_end_string,	  
-	  block_end_string = block_end_string,
-	  block_start_string = block_start_string,
-	  comment_start_string = comment_start_string,
-	  comment_end_string = comment_end_string,	  
-	  line_statement_prefix = line_statement_prefix,
-	  line_comment_prefix = line_comment_prefix,
-	  trim_blocks = True,
+		variable_start_string=variable_start_string,
+		variable_end_string=variable_end_string,	  
+		block_end_string = block_end_string,
+		block_start_string = block_start_string,
+		comment_start_string = comment_start_string,
+		comment_end_string = comment_end_string,	  
+		line_statement_prefix = line_statement_prefix,
+		line_comment_prefix = line_comment_prefix,
+		trim_blocks = True,
 		lstrip_blocks = True,
-	  **karg
+		**karg
 	)

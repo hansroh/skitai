@@ -1677,18 +1677,8 @@ Recently JS HTML renderers like Vue.js, React.js have confilicts with default ji
     comment_start_string = "{#",
     comment_end_string = "#}",
     line_statement_prefix = "%",
-    line_comment_prefix = "%"
+    line_comment_prefix = "%%"
   )
-
-On Flask,
-
-.. code:: python
-  
-  from flask import Flask
-  from skitai.saddle import jinjapatch
-  
-  app = Flask (__name__)
-  app.jinja_env = jinjapatch.overlay (__name__, '%', "${", "}")
 
 if you set same start and end string, please note for escaping charcter, use double escape. for example '#', use '##' for escaping.
 
