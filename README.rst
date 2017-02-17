@@ -1599,8 +1599,8 @@ was.env is just Python dictionary object.
   was.env.get ("CONTENT_TYPE")
 
 
-Jinja2 Templates Engine
---------------------------
+Jinja2 Templats Engine
+------------------------
 
 Although You can use any template engine, Skitai provides was.render() which uses Jinja2_ template engine. For providing arguments to Jinja2, use dictionary or keyword arguments.
 
@@ -1685,6 +1685,20 @@ if you set same start and end string, please note for escaping charcter, use dou
 *Warning*: Current Jinja2 2.8 dose not support double escaping (##) but it will be applied to runtime patch by Saddle. So if you use app.jinja_overlay, you have compatible problems with official Jinja2.
 
 .. _Jinja2: http://jinja.pocoo.org/
+
+
+Chameleon Template Engine
+----------------------------
+
+*New in version 0.26.6*
+
+For using Chameleon_ template engine, you just make template file extention with '.pt'.
+
+.. code:: python
+    
+  return was.render ("index.pt", choice = 2, product = "Apples")
+
+Note: Chameleon 3.0 - current latest version has a problem to using with Vue.js javascript renderer related XML namespace, so tiny modifications were added. Please refer skitai/saddle/chameleonpatch.py.
 
 
 Access Cookie
@@ -2470,6 +2484,7 @@ Change Log
   
   0.25 (Feb 2017)
   
+  - 0.25.6: add Chameleon_ template engine
   - 0.25.5: app.jinja_overlay ()'s default args become jinja2 default
   - 0.25.4.8: fix proxy retrying
   - 0.25.4 license changed from BSD to MIT, fix websocket init at single thread
@@ -2604,3 +2619,4 @@ Change Log
   
   0.10 (Dec 2015) - WSGI support
   
+.. _Chameleon: https://chameleon.readthedocs.io/en/latest/index.html

@@ -11,12 +11,8 @@ from hashlib import md5
 import random
 import base64
 from skitai.saddle import cookie
-JINJA2 = True
-try:	
-	from jinja2 import Environment, PackageLoader
-except ImportError:
-	JINJA2 = False
-		
+from jinja2 import Environment, PackageLoader
+from chameleon import PageTemplateLoader
 try:
 	import xmlrpc.client as xmlrpclib
 except ImportError:
@@ -55,7 +51,9 @@ class Saddle (part.Part):
 	def __init__ (self, app_name):
 		part.Part.__init__ (self)
 		self.app_name = app_name
-		self.jinja_env = JINJA2 and Environment (loader = PackageLoader (app_name)) or None		
+		self.home = None
+		self.jinja_env = Environment (loader = PackageLoader (app_name)) or None
+		self.chameleon = None
 		self.lock = threading.RLock ()
 		self.cache_sorted = 0
 		self.cached_paths = {}
@@ -63,7 +61,7 @@ class Saddle (part.Part):
 		self.config = Config ()
 	
 	def skito_jinja (self):
-		self.jinja_overlay ("{#", "#}", "<%", "%>", "<!---", "--->")
+		self.jinja_overlay ("${", "}", "<%", "%>", "<!---", "--->")
 		
 	def jinja_overlay (
 		self, 
@@ -80,10 +78,20 @@ class Saddle (part.Part):
 		from . import jinjapatch
 		self.jinja_env = jinjapatch.overlay (self.app_name, variable_start_string, variable_end_string, block_start_string, block_end_string, comment_start_string, comment_end_string, line_statement_prefix, line_comment_prefix, **karg)
 	
+	def set_home (self, path):
+		from . import chameleonpatch
+		
+		self.home = path
+		self.chameleon = PageTemplateLoader (
+			os.path.join(path, "templates"), 
+			auto_reload = self.use_reloader, 
+			restricted_namespace = False
+		)
+			
 	def render (self, was, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		while template_file and template_file [0] == "/":
 			template_file = template_file [1:]	
-											
+
 		if _do_not_use_this_variable_name_: 
 			assert not karg, "Can't Use Dictionary and Keyword Args Both"
 			karg = _do_not_use_this_variable_name_
@@ -92,14 +100,14 @@ class Saddle (part.Part):
 		template = self.get_template (template_file)
 		self.when_got_template (was, template, karg)
 			
-		rendered = template.render (karg)
+		rendered = template.render (**karg)
 		self.when_template_rendered (was, template, karg, rendered)
-		return rendered	
+		return rendered
 					
 	def get_template (self, name):
-		if JINJA2:
-			return self.jinja_env.get_template (name)
-		raise ImportError ("jinja2 required.")
+		if name.endswith ('.pt'):
+			return self.chameleon [name]
+		return self.jinja_env.get_template (name)		
 			
 	def get_www_authenticate (self):
 		if self.authorization == "basic":

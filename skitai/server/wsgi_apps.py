@@ -29,11 +29,12 @@ class Module:
 		self.set_devel_env ()
 		self.update_file_info ()
 		func = None
+		app = getattr (self.module, self.appname)
 		try:			
 			if not reloded:
-				func = getattr (self.module, self.appname).start 
+				func = app.start 
 			else:
-				func = getattr (self.module, self.appname).restart
+				func = app.restart
 		except AttributeError:			
 			pass
 			
@@ -42,6 +43,9 @@ class Module:
 			self.wasc.handler = self.handler
 			func (self.wasc, self.route)
 			self.wasc.handler = None
+		
+		if hasattr (app, "set_home"):
+			app.set_home (os.path.dirname (self.abspath))
 	
 	def cleanup (self):
 		try: getattr (self.module, self.appname).cleanup ()
