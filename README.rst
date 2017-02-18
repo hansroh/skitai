@@ -1599,7 +1599,7 @@ was.env is just Python dictionary object.
   was.env.get ("CONTENT_TYPE")
 
 
-Jinja2 Templats Engine
+Jinja2 Template Engine
 ------------------------
 
 Although You can use any template engine, Skitai provides was.render() which uses Jinja2_ template engine. For providing arguments to Jinja2, use dictionary or keyword arguments.
