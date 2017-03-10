@@ -1692,11 +1692,11 @@ Chameleon Template Engine
 
 *New in version 0.26.6*
 
-For using Chameleon_ template engine, you just make template file extention with '.pt'.
+For using Chameleon_ template engine, you just make template file extention with '.pt' or '.ptal' (Page Template or Page Template Attribute Language).
 
 .. code:: python
     
-  return was.render ("index.pt", choice = 2, product = "Apples")
+  return was.render ("index.ptal", choice = 2, product = "Apples")
 
 Note: Chameleon 3.0 - current latest version has a problem to using with Vue.js javascript renderer related XML namespace, so tiny modifications were added. Please refer skitai/saddle/chameleonpatch.py.
 
