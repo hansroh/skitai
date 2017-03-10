@@ -8,7 +8,7 @@ from .rpc import cluster_manager, cluster_dist_call
 from .dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from . import server_info, http_date
-import os
+import os, sys
 import time
 from skitai.server.handlers import api_access_handler
 try: 
@@ -236,12 +236,16 @@ class WAS:
 		return message.ParseFromString (obj)
 			
 	def tojson (self, obj):
+		self.response.set_header ("Content-Type", "application/json")
 		return json.dumps (obj)
 		
 	def toxml (self, obj):
+		self.response.set_header ("Content-Type", "text/xml")
 		return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")	
 	
 	def fromjson (self, obj):
+		if type (obj) is bytes:
+			obj = obj.decode ('utf8')
 		return json.loads (obj)
 	
 	def fromxml (self, obj, use_datetime=0):
@@ -274,5 +278,4 @@ class WAS:
 	
 	def wsclient (self):
 		return self.env.get ('websocket.client')	
-
-				
+		

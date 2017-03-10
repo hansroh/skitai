@@ -2484,6 +2484,7 @@ Change Log
   
   0.25 (Feb 2017)
   
+  - 0.25.7: fix fancy url, non content-type header post/put request
   - 0.25.6: add Chameleon_ template engine
   - 0.25.5: app.jinja_overlay ()'s default args become jinja2 default
   - 0.25.4.8: fix proxy retrying

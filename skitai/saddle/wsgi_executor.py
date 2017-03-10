@@ -85,7 +85,7 @@ class Executor:
 		_input = self.env ["wsgi.input"]
 		if _input:
 			ct = self.was.request.get_header ('content-type', '')
-			if ct.startswith ("multipart/form-data") and type (_input) is dict: # multipart
+			if ct.startswith ("multipart/form-data") and type (_input) is dict:
 				self.merge_args (allkarg, _input)
 			elif ct.startswith ("application/x-www-form-urlencoded"):
 				data = _input.read ()

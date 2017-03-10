@@ -221,7 +221,7 @@ class Part:
 				else:
 					rulenames.append ((n, "string"))
 					rule = rule.replace (r, "/([^/]+)")
-			rule = rule + "$"
+			rule = "^" + rule + "$"			
 			re_rule = re.compile (rule)				
 			self.route_map [re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), func.__code__.co_argcount - 1, s_rule, options)
 			self.route_priority.append ((s, re_rule))
