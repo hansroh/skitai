@@ -72,7 +72,7 @@ class Executor:
 		teardown and teardown (self.was)
 		return response
 		
-	def generate_content (self, method, _args, karg):	
+	def generate_content (self, method, _args, karg):
 		karg = self.parse_kargs (karg)
 		self.was.request.args = karg
 		response = self.chained_exec (method, _args, karg)
@@ -84,9 +84,10 @@ class Executor:
 		data = None
 		_input = self.env ["wsgi.input"]
 		if _input:
-			if type (_input) is dict: # multipart
+			ct = self.was.request.get_header ('content-type', '')
+			if ct.startswith ("multipart/form-data") and type (_input) is dict: # multipart
 				self.merge_args (allkarg, _input)
-			else:
+			elif ct.startswith ("application/x-www-form-urlencoded"):
 				data = _input.read ()
 		
 		if kargs:

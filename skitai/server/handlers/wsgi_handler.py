@@ -178,7 +178,7 @@ class Handler:
 			except NotImplementedError:				
 				return self.handle_error_before_collecting (request, 404)
 			
-			ct = request.get_header ("content-type")	
+			ct = request.get_header ("content-type", "")	
 			if ct.startswith ("multipart/form-data"):
 				max_size = app.config.max_multipart_body_size
 			else:

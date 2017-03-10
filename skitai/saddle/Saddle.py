@@ -75,12 +75,12 @@ class Saddle (part.Part):
 		line_comment_prefix = "%%",
 		**karg
 	):
-		from . import jinjapatch
+		from .patches import jinjapatch
 		self.jinja_env = jinjapatch.overlay (self.app_name, variable_start_string, variable_end_string, block_start_string, block_end_string, comment_start_string, comment_end_string, line_statement_prefix, line_comment_prefix, **karg)
 	
 	def set_home (self, path):
-		from . import chameleonpatch
-		
+		#chameleonpatch needn't from chameleon version 3.1
+		#from .patches import chameleonpatch
 		self.home = path
 		self.chameleon = PageTemplateLoader (
 			os.path.join(path, "templates"), 
@@ -105,7 +105,7 @@ class Saddle (part.Part):
 		return rendered
 					
 	def get_template (self, name):
-		if name.endswith ('.pt'):
+		if name.endswith ('.pt') or name [-5:] == ".ptal":
 			return self.chameleon [name]
 		return self.jinja_env.get_template (name)		
 			
