@@ -729,8 +729,10 @@ This chapter's 'was' services are also avaliable for all WSGI middelwares.
 - was.status () # HTML formatted status information like phpinfo() in PHP.
 - was.tojson (object)
 - was.fromjson (string)
-- was.toxml (object) # XMLRPC
+- was.toxml (object, usedatetime = 0) # XMLRPC
 - was.fromxml (string) # XMLRPC
+- was.togrpc (object) # gRPC
+- was.fromgrpc (message, obj) # gRPC
 - was.restart () # Restart Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
 - was.shutdown () # Shutdown Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
 
@@ -1385,6 +1387,27 @@ The object has 'close ()' method, will be called when all data consumed, or sock
 - was.response.hint_promise (uri) # *New in version 0.16.4*, only works with HTTP/2.x and will be ignored HTTP/1.x
 
 
+Useful Response Shortcuts
+````````````````````````````
+
+When In cases you want to retrun JSON, XMLRPC, gRPC or local file content, below methods will be useful.
+
+.. code:: python
+
+  @app.route ("/")
+  def getjson (was):  
+    return was.jstream ({'mydata': 'myvalue'})
+  
+  @app.route ("/<filename>")
+  def getfile (was, filename):  
+    return was.fstream ('/data/%s' % filename)    
+    
+- was.jstream (obj) # shortcut for was.response ("200 OK", was.tojson (obj), [("Content-Type", "application/json")])
+- was.xstream (obj, usedatetime = 0) # shortcut for was.response ("200 OK", was.toxml (obj), [("Content-Type", "text/xml")])
+- was.gstream (obj) # shortcut for was.response ("200 OK", was.togrpc (obj), [("Content-Type", "application/grpc")])
+- was.fstream (abspath, mimetype = 'application/octet-stream') # return file stream object
+
+
 Async Streaming Response
 ``````````````````````````
 
@@ -1481,7 +1504,6 @@ collect_producer has these methods.
 - ResProxy.render_all (template_file): render all responses, in template file, reqids of each responses are used as template variable.
 - ResProxy.push (content_to_send): push chunk data to channel
 - ResProxy.done (content_to_send = None)
-
 
 
 HTTP/2.0 Server Push

@@ -189,10 +189,6 @@ class WAS:
 			
 	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		return self.app.render (self, template_file, _do_not_use_this_variable_name_, **karg)
-	
-	def aresponse (self, handler, *args, **karg):
-		self.response.set_streaming ()
-		return ResProxy (self, handler, *args, **karg)
 		
 	REDIRECT_TEMPLATE =  (
 		"<head><title>%s</title></head>"
@@ -234,13 +230,11 @@ class WAS:
 	
 	def fromgrpc (self, message, obj):
 		return message.ParseFromString (obj)
-			
+		
 	def tojson (self, obj):
-		self.response.set_header ("Content-Type", "application/json")
 		return json.dumps (obj)
 		
-	def toxml (self, obj):
-		self.response.set_header ("Content-Type", "text/xml")
+	def toxml (self, obj):		
 		return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")	
 	
 	def fromjson (self, obj):
@@ -248,7 +242,7 @@ class WAS:
 			obj = obj.decode ('utf8')
 		return json.loads (obj)
 	
-	def fromxml (self, obj, use_datetime=0):
+	def fromxml (self, obj, use_datetime = 0):
 		return xmlrpclib.loads (obj)
 											
 	def status (self, flt = None, fancy = True):
@@ -258,7 +252,23 @@ class WAS:
 		self.response.set_header ('Content-Type',  mimetype)
 		self.response.set_header ('Content-Length', str (os.path.getsize (path)))	
 		return file_producer (open (path, "rb"))
+	
+	def jstream (self, obj):		
+		self.response.set_header ("Content-Type", "application/json")
+		return self.tojson (obj)
+	
+	def xstream (self, obj, use_datetime = 0):			
+		self.response.set_header ("Content-Type", "text/xml")
+		return self.toxml (obj, use_datetime)
+	
+	def gstream (self, obj):
+		self.response.set_header ("Content-Type", "application/grpc")
+		return self.togrpc (obj)
 		
+	def aresponse (self, handler, *args, **karg):
+		self.response.set_streaming ()
+		return ResProxy (self, handler, *args, **karg)
+				
 	def restart (self, timeout = 0):
 		lifetime.shutdown (3, timeout)
 	
