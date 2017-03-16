@@ -1,7 +1,7 @@
 from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT
 import multiprocessing
 from aquests.lib import pathtool, logger
-from aquests.lib.producers import simple_producer
+from aquests.lib.producers import simple_producer, file_producer
 from aquests.lib.athreads import trigger
 from aquests.protocols.smtp import composer
 from .rpc import cluster_manager, cluster_dist_call
@@ -254,6 +254,11 @@ class WAS:
 	def status (self, flt = None, fancy = True):
 		return server_info.make (self, flt, fancy)
 	
+	def fstream (self, path, mimetype = 'application/octet-stream'):	
+		self.response.set_header ('Content-Type',  mimetype)
+		self.response.set_header ('Content-Length', str (os.path.getsize (path)))	
+		return file_producer (open (path, "rb"))
+		
 	def restart (self, timeout = 0):
 		lifetime.shutdown (3, timeout)
 	
