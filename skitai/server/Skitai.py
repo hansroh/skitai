@@ -181,11 +181,13 @@ class Loader:
 			self.wasc.numthreads = numthreads
 					
 	def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0, access = None):
+		if clustertype and clustertype [0] == "*":
+			clustertype = clustertype [1:]
 		ssl = 0
 		if ssl in (1, True, "1", "yes") or clustertype in ("https", "wss", "grpcs", "rpcs"):
 			ssl = 1
 		if type (clusterlist)	is str:
-			clusterlist = [clusterlist]
+			clusterlist = [clusterlist]		
 		self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl, access = access)
 	
 	def install_handler_with_tuple (self, routes):
