@@ -63,6 +63,15 @@ class WAS:
 			cluster = cluster_manager.ClusterManager (clustername, clusterlist, ssl, access, cls.logger.get ("server"))
 			cls.clusters_for_distcall [clustername] = cluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"), cls.cachefs)
 		cls.clusters [clustername] = cluster
+	
+	@classmethod
+	def ajob (cls, clustername, callback = None, timeout = 10):
+		# Async Job with cluster
+		if clustername [0] == "@":
+			clustername = clustername [1:]
+		if not callback:
+			callback = lambda x: None
+		return cls.clusters_for_distcall [clustername].Server (None, None, None, None, None, False, False, None, callback, timeout)
 				
 	def __dir__ (self):
 		return self.objects.keys ()
