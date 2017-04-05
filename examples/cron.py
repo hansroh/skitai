@@ -17,6 +17,8 @@ if __name__ == "__main__":
 		mount = [('/', app)],
 		cron = [
 			r"* * * * * %s resources%scronjob.py  > resources%scronjob.log 2>&1" % (sys.executable, os.sep, os.sep)
-		]
+		],
+		smtpda = {},
+		workers = 2
 	)
 	
