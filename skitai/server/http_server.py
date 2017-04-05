@@ -331,22 +331,26 @@ class http_server (asyncore.dispatcher):
 		
 		if os.name == "posix":
 			while SURVAIL:
-				if ACTIVE_WORKERS < numworker:
-					pid = os.fork ()
-					if pid == 0:				
-						self.worker_ident = "worker #%d" % len (PID)
-						PID = []
-						signal.signal(signal.SIGTERM, hTERMWORKER)
-						signal.signal(signal.SIGQUIT, hQUITWORKER)
-						break
-					else:
-						PID.append (pid)
-						ACTIVE_WORKERS += 1
-						signal.signal(signal.SIGHUP, hHUPMASTER)
-						signal.signal(signal.SIGTERM, hTERMMASTER)
-						signal.signal(signal.SIGQUIT, hQUITMASTER)
-						signal.signal (signal.SIGCHLD, hCHLD)
-				time.sleep (1)
+				try:
+					if ACTIVE_WORKERS < numworker:
+						pid = os.fork ()
+						if pid == 0:				
+							self.worker_ident = "worker #%d" % len (PID)
+							PID = []
+							signal.signal(signal.SIGTERM, hTERMWORKER)
+							signal.signal(signal.SIGQUIT, hQUITWORKER)
+							break
+						else:
+							PID.append (pid)
+							ACTIVE_WORKERS += 1
+							signal.signal(signal.SIGHUP, hHUPMASTER)
+							signal.signal(signal.SIGTERM, hTERMMASTER)
+							signal.signal(signal.SIGQUIT, hQUITMASTER)
+							signal.signal (signal.SIGCHLD, hCHLD)
+					time.sleep (1)
+				
+				except KeyboardInterrupt:
+					pass	
 			
 			if self.worker_ident == "master":
 				return EXITCODE

@@ -40,6 +40,7 @@ class Process:
 				os.kill (pid, signal.CTRL_C_EVENT)
 			elif req == "kill":	
 				os.kill (pid, signal.CTRL_BREAK_EVENT)
+	
 		else:			
 			if pid:					
 				if req == "terminate": sig = signal.SIGTERM				
