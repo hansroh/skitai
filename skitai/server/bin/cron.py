@@ -139,14 +139,14 @@ class	CronManager (daemon.Daemon):
 		self.jobs = []				
 		
 		if not jobs: return
-		for args in jobs:
-			args = args.split (" ", 5)
+		for job in jobs:
+			args = job.split (" ", 5)
 			if len (args) != 6:
 				self.logger ("[error] invalid cron command %s" % (args,))
 				continue
 			
 			try:
-				job = (
+				sched = (
 					self.parse (args [0], 60),
 					self.parse (args [1], 24),
 					self.parse (args [2], 31),
@@ -156,16 +156,16 @@ class	CronManager (daemon.Daemon):
 				)					
 			
 			except ValueError as why:
-				self.logger ("[error] %s, %s" % (args [5], why))
+				self.logger ("[error] %s, %s" % (job, why))
 				continue	
 				
 			except:
-				self.logger.trace ()
+				self.logger.trace (job)
 				continue	
 			
 			else:
-				self.jobs.append (job)
-				self.logger ("[info] job added %s" % str (job))
+				self.jobs.append (sched)
+				self.logger ("[info] job added %s" % job)
 					
 		now = datetime.now ().timetuple ()	
 		for m, h, d, M, w, cmd in self.jobs:			
@@ -185,7 +185,6 @@ class	CronManager (daemon.Daemon):
 	def setup (self):
 		self.make_logger ()
 		self.bind_signal (hTERM, hTERM, hHUP)		
-		self.update_jobs (self.config.get ('jobs', []))
 		
 	def execute (self, cmd):					
 		if os.name == "nt":
@@ -206,6 +205,7 @@ class	CronManager (daemon.Daemon):
 	
 	def loop (self):
 		while 1:
+			self.update_jobs (self.config.get ('jobs', []))
 			if daemon.EXIT_CODE is not None:
 				break
 			now = time.time ()				

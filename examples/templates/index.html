@@ -1,0 +1,53 @@
+{% raw %}
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Skitai WSGI App Engine</title>
+<style type="text/css"><!-- *{font-family:verdana,sans-serif;}body{margin:0;padding:0;background:#efefef;font-size:12px;color:#1e1e1e;} #titles{margin-left:0px;padding:10px;}#titles h1,h2{color: #000000;} #titles h1{color: #808080; font-size: 30px;} #content{min-height: 330px;padding:10px;background:#ffffff;} #error p,h3,b{font-size:11px;}#error{margin:0;padding:0;} hr{margin:0;padding:0;} #error hr{border-top:#888888 1px solid;} #error li,i{font-weight:normal;}#footer {font-size:9px;padding-left:10px;} pre{border:1px solid #888888;padding:7px;background:#efefef;margin:0 12px 12px 12px;} --></style>
+</head>
+<body>
+<div id="titles"><h1>Skitai WSGI App Engine</h1></div>
+<hr />
+<div id="content">
+
+<div style="float: right; margin: 20px 10px 10px 20px;"><img src="/reindeer.jpg"></div>
+<h1>Skitai WSGI App Engine</h1>
+<div>Copyright (c) 2015-present, Hans Roh
+<div>License: MIT</div>
+</div>
+
+<div>
+<ul>
+	<li><a href="/documentation">Documentation</a>: Be patient for a while retrieving from PyPI
+	(<a href="/documentation2">Async Response Version For Single Thread</a>)</li>
+	<li><a href="/websocket">Websocket Test</a></li>
+</ul>
+</div>
+
+Skitai is a kind of branch of <a href="http://www.nightmare.com/medusa/medusa.html" rel="nofollow">Medusa Web Server</a> - A High-Performance Internet Server Architecture.</p>
+<p>Medusa is different from most other servers because it runs as a single process, multiplexing I/O with its various client and server connections within a single process/thread.</p>
+<p>Skitai orients light-weight, simplicity  and strengthen networking operations with external resources - HTTP / HTTPS / XML-RPC / <a href="http://www.postgresql.org/" rel="nofollow">PostgreSQL</a> - keeping very low costs.</p>
+<ul>
+<li>Working as Web, XML-RPC and Reverse Proxy Loadbancing Server</li>
+<li>HTML5 Websocket &amp; HTTP/2.0 implemeted</li>
+<li>Handling massive RESTful API/RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily</li>
+<li>Asynchronous connection pool with PostgreSQL, MongoDB and Redis</li>
+</ul>
+<p>Skitai is not a framework for convinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your WSGI apps as both server and client.</p>
+<p>Also note it is inspired by <a href="http://www.zope.org/" rel="nofollow">Zope</a> and <a href="http://flask.pocoo.org/" rel="nofollow">Flask</a> a lot.</p>
+<p>From version 0.17 (Oct 2016), <a href="https://pypi.python.org/pypi/skitaid" rel="nofollow">Skitai WSGI App Engine</a> is seperated from this project.</p>
+<p>If you want to run Skitai with fully pre-configured functional WSGI app engine as daemon or win32 service, install <a href="https://pypi.python.org/pypi/skitaid" rel="nofollow">Skitai WSGI App Engine Daemon</a>.</p>
+<p>Conceptually, Skitai has been seperated into two components:</p>
+<ol>
+<li>Skitai App Engine Server, for WSGI apps</li>
+<li>Skito-Saddle, the small WSGI container integrated with Skitai. But you can also mount any WSGI apps and frameworks like Flask.</li>
+
+</div>
+<hr />
+<div id="footer">
+<p>Generated Tue, 15 Dec 2015 06:14:39 GMT</p>
+</div>
+</body>
+</html>
+{% endraw %}

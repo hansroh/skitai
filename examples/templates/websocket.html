@@ -1,0 +1,98 @@
+{% raw %}
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Skitai WSGI App Engine</title>
+<style type="text/css"><!-- *{font-family:verdana,sans-serif;}body{margin:0;padding:0;background:#efefef;font-size:12px;color:#1e1e1e;} #titles{margin-left:0px;padding:10px;}#titles h1,h2{color: #000000;} #titles h1{color: #808080; font-size: 30px;} #content{min-height: 330px;padding:10px;background:#ffffff;} #error p,h3,b{font-size:11px;}#error{margin:0;padding:0;} hr{margin:0;padding:0;} #error hr{border-top:#888888 1px solid;} #error li,i{font-weight:normal;}#footer {font-size:9px;padding-left:10px;} pre{border:1px solid #888888;padding:7px;background:#efefef;margin:0 12px 12px 12px;} --></style>
+<meta charset="utf-8" />
+<title>WebSocket Test</title>
+{% endraw %}
+<script language="javascript" type="text/javascript">
+var wsUri = "{{was.request.scheme == 'https' and 'wss' or 'ws'}}://{{was.request.get_header ("host")}}{{was.ab ("/" + path)}}";
+{% raw %}
+var output;
+var sents = 0;
+function init()
+{
+  output = document.getElementById("output");
+  testWebSocket();
+}
+
+function testWebSocket()
+{
+  websocket = new WebSocket(wsUri);
+  websocket.onopen = function(evt) { onOpen(evt) };
+  websocket.onclose = function(evt) { onClose(evt) };
+  websocket.onmessage = function(evt) { onMessage(evt) };
+  websocket.onerror = function(evt) { onError(evt) };
+}
+
+function onOpen(evt)
+{
+  writeToScreen("CONNECTED");
+  doSend("Hello"); 
+}
+function onClose(evt)
+{
+  writeToScreen("DISCONNECTED");
+}
+
+function onMessage(evt)
+{
+  writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');  
+}
+
+function onError(evt)
+{
+  writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);
+}
+
+function doClose () {
+	websocket.close();
+}
+
+function doSend(message)
+{
+  writeToScreen("SENT: " + message);
+  websocket.send(message);
+}
+
+function writeToScreen(message)
+{
+  var pre = document.createElement("p");
+  pre.style.wordWrap = "break-word";
+  pre.innerHTML = message;
+  output.appendChild(pre);
+}
+
+window.addEventListener("load", init, false);
+{% endraw %}
+
+</script>
+</head>
+
+<body>
+<div id="titles"><h1>Skitai WSGI App Engine</h1></div>
+<hr />
+<div id="content">
+<h1>Websocket Examples</h1>
+<h3>Choose Websocket Design Spec.</h3>
+<ul>
+	<li><a href="{{was.ab ('/?mode=echo')}}">WEBSOCKET_SIMPLE</a></li>
+	<li><a href="{{was.ab ('/?mode=chat')}}">WEBSOCKET_GROUPCHAT</a></li>
+	<li><a href="{{was.ab ('/?mode=talk')}}">WEBSOCKET_DEDICATE</a></li>
+	<!--li><a href="{{was.ab ('/?mode=multi')}}">WEBSOCKET_MULTICAST</a></li-->
+</ul>
+<form onsubmit="doSend(this.msg.value); this.msg.value = ''; return false;">
+<input type="text" name="msg" value="" size="40"><input type="submit" value="Send Message">
+<input type="button" value="Leave" onclick="doClose ();">
+</form>
+<div id="output"></div>
+</div>
+
+<div id="footer">
+<p>Generated Tue, 15 Dec 2015 06:14:39 GMT</p>
+</div>
+</body>
+</html>

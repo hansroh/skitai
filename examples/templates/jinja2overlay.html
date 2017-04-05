@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset=utf-8">
+<title>Skitai WSGI App Engine</title>
+<style>
+<% raw %>
+	.strike {
+		text-decoration: line-through;
+		color: #aaa;
+	}
+	.box {
+		background-color: pink;
+		width: 250px;
+		height: 250px;
+	}	
+<% endraw %>
+</style>
+<link rel="stylesheet" href="http://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+</head>
+<body>
+<div id="titles"><h1>Jinja2 with Vue.js</h1></div>
+
+<div id='testapp'>
+	<h2>directives</h2>
+	<header>
+		<button @click="showbox = !showbox"><i class="ion-navicon"></i></button>
+	</header>
+	
+	<button @click="showbox = !showbox">{{ showbox? "Hide":"Show" }}</button>
+	<div class="box" v-show="showbox"></div>
+	
+	<h2>v-for</h2>
+	<ul>
+		<li v-for="bear in bears" v-bind:class="{ strike: bear.status }">{{ bear.name }}</li>
+	</ul>
+	
+	<h2>Event</h2>
+	<input type="text" v-model="message" v-on:keyup.enter="onClick">	
+	<button v-on:click.prevent="onClick">Log Concole</button>	
+	<div>Log: {{ message }}</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.1.10/vue.js"></script>
+<% raw %>
+<script>
+	new Vue ({
+		el: "#testapp",
+		data: {
+			bears: [
+				{name: 'White Bear', status: false},
+				{name: 'Balck Bear', status: true},
+				{name: 'Half Moon Bear', status: false}
+			],
+			message: '',
+			showbox: true
+		},
+		methods: {
+			onClick: function () {
+				console.log (this.message);
+			}
+		}
+	})
+</script>
+<% endraw %>
+</body>
+</html>
+
