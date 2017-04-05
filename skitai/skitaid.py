@@ -44,7 +44,7 @@ class Service (daemon.Daemon):
 	
 	def shutdown (self):
 		self.logger ("[info] try to kill %s..." % self.child.name)
-		self.child.kill ()				
+		self.child.kill ()
 		for i in range (30):
 			time.sleep (1)
 			if self.child.poll () is None:

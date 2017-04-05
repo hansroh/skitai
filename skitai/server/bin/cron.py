@@ -207,11 +207,11 @@ class	CronManager (daemon.Daemon):
 	
 	def loop (self):
 		while 1:
-			self.update_jobs (self.config.get ('jobs', []))
 			if daemon.EXIT_CODE is not None:
-				break
-			now = time.time ()				
+				break				
+			now = time.time ()			
 			self.maintern (now)
+			self.update_jobs (self.config.get ('jobs', []))
 			for i in range (60):
 				if os.name == "nt" and i % 10 == 0:
 					self.maintern_shutdown_request (now)
