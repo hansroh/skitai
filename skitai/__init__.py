@@ -286,5 +286,5 @@ def run (**conf):
 			if _exit_code is not None: # master process
 				sys.exit (_exit_code)
 			else: # worker process				
-				sys.exit (lifetime._exit_code)	
+				sys.exit (lifetime._exit_code)
 			

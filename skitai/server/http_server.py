@@ -355,6 +355,7 @@ class http_server (asyncore.dispatcher):
 				EXITCODE = 0
 				DO_SHUTDOWN (signal.SIGTERM)
 			
+			print ('self.worker_ident', self.worker_ident)
 			if self.worker_ident == "master":
 				return EXITCODE
 				
