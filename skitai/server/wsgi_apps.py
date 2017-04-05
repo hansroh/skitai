@@ -102,10 +102,6 @@ class ModuleManager:
 		self.cc = 0
 			
 	def add_module (self, route, directory, modname):
-		self.cc += 1
-		if self.cc > 1:
-			x=y
-			
 		if modname in self.modnames:
 			self.wasc.logger ("app", "Collision detected '%s'" % modname, "error")
 			self.wasc.logger ("app", "Couldn't import '%s'" % modname, "error")
@@ -124,6 +120,7 @@ class ModuleManager:
 			self.wasc.logger ("app", "[error] application load failed: %s" % modname)
 			
 		else: 
+			x=y
 			self.wasc.logger ("app", "[info] application %s imported." % route)
 			if route in self.modules:
 				self.wasc.logger ("app", "[info] application route collision detected: %s at %s <-> %s" % (route, module.abspath, self.modules [route].abspath), "warn")
