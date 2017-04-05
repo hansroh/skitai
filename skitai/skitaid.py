@@ -79,29 +79,33 @@ class Service (daemon.Daemon):
 	
 	def start (self):
 		self.create ()
-		while 1:
-			exitcode = self.child.poll ()			
-			if exitcode is None:
-				self.set_backoff (True)
-				continue
-			
-			if exitcode == 0:
-				self.logger ("[info] instance has been shutdowned cleanly")
+		try:
+			while 1:
+				exitcode = self.child.poll ()			
+				if exitcode is None:
+					self.set_backoff (True)
+					continue
 				
-			elif exitcode == 3:
-				self.logger ("[info] try re-starting up instance")
-				self.create ()
-				
-			else:
-				self.set_backoff ()
-				if time.time() - self.backoff_start_time >= self.backoff_interval:
-					self.logger ("[fail] instance encountered unexpected error and terminated, try re-starting up (current backoff interval is %d)" % self.backoff_interval)
-					self.backoff_interval = self.backoff_interval * 2
-					if self.backoff_interval > self.BACKOFF_MAX_INTERVAL:
-						self.backoff_interval = self.BACKOFF_MAX_INTERVAL
+				if exitcode == 0:
+					self.logger ("[info] instance has been shutdowned cleanly")
+					
+				elif exitcode == 3:
+					self.logger ("[info] try re-starting up instance")
 					self.create ()
-				
-		time.sleep (1)
+					
+				else:
+					self.set_backoff ()
+					if time.time() - self.backoff_start_time >= self.backoff_interval:
+						self.logger ("[fail] instance encountered unexpected error and terminated, try re-starting up (current backoff interval is %d)" % self.backoff_interval)
+						self.backoff_interval = self.backoff_interval * 2
+						if self.backoff_interval > self.BACKOFF_MAX_INTERVAL:
+							self.backoff_interval = self.BACKOFF_MAX_INTERVAL
+						self.create ()
+										
+				time.sleep (3)
+		
+		except KeyboardInterrupt:
+			pass	
 
 	
 if __name__ == "__main__":
