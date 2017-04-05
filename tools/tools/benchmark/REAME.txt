@@ -1,0 +1,94 @@
+###########################################
+Banchmarking
+
+2015.12.09 by Hans Roh
+###########################################
+
+
+
+I. Install softwares
+-------------------------------------------
+
+sudo apt-get update
+sudo apt-get install python-all-dev
+sudo apt-get install libevent-dev
+sudo pip install greenlet
+sudo pip install gevent
+
+sudo pip install flask
+sudo pip install uwsgi
+sudo apt-get install nginx
+
+
+
+II. Running Server
+-------------------------------------------
+
+1. flask + uwsgi + nginx
+
+Edit /etc/nginx/sites-enabled/default
+  
+	listen 5002 default_server;
+	location / {
+		try_files $uri @myapps;
+	}
+	location @myapps {
+		include uwsgi_params;
+		uwsgi_pass unix:/tmp/uwsgi.sock;
+	}
+	
+
+Edit ./uwsgi.ini
+
+uwsgi uwsgi.ini > uwsgi.log 2>&1
+sudo service nginx restart
+
+
+
+2. gevent
+
+./gevent_wsgi_server.py > gevent.log 2>&1
+
+Note: default gevent_wsgi_server.py'port is 5001.
+
+
+
+3 .skitai
+
+Edit /etc/skitaid/servers-enabled/default.conf
+
+sudo skitaid-instance.py -f default -v > skitaid.log 2>&1
+or
+sudo service skitaid restart
+
+Note: skitai_pingpong_handler.py was temporary installed.
+
+
+
+III. Attack
+-------------------------------------------
+
+1. WeighTHHP
+
+Download WeighTHHP from 
+posix
+	https://github.com/lighttpd/weighttp
+win32
+	https://code.google.com/p/wlmp-project/downloads/detail?name=WeigHTTP-0.3-Win32.zip&can=2&q=
+
+
+weighttp -c 1000 -n 6000 -k http://target_host:5000/ping
+ 
+ -c concurrent clients
+ -n total requests
+ -k use keep-alive
+ 
+
+2. Benchtai (using skitai library)
+
+./benchtai.py -c 2000 -r 3 -k http://target_host:5000/ping
+
+ -c concurrent clients
+ -r requests per client
+ -k use keep-alive
+

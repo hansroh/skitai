@@ -192,15 +192,19 @@ class Loader:
 		self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl, access = access)
 	
 	def install_handler_with_tuple (self, routes):
+		if type (routes) is list:
+			routes = {'default': routes}
 		sroutes = []
-		for route, entity in routes:			
-			if type (entity) is not str:
-				entity = os.path.join (os.getcwd (), sys.argv [0])			
-			if entity.endswith (".py") or entity.endswith (".pyc"):
-				entity = os.path.join (os.getcwd (), entity) [:-3]
-				if entity [-1] == ".": 
-					entity = entity [:-1]
-			sroutes.append ("%s=%s" % (route, entity))				
+		for domain in routes:
+			sroutes.append ("@%s" % domain)
+			for route, entity in routes [domain]:				
+				if type (entity) is not str:
+					entity = os.path.join (os.getcwd (), sys.argv [0])			
+				if entity.endswith (".py") or entity.endswith (".pyc"):
+					entity = os.path.join (os.getcwd (), entity) [:-3]
+					if entity [-1] == ".": 
+						entity = entity [:-1]
+				sroutes.append ("%s=%s" % (route, entity))				
 		return sroutes
 			
 	def install_handler (self, 

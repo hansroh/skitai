@@ -98,6 +98,8 @@ Basic Usage
     import skitai
     
     skitai.run (
+    	address = "127.0.0.1",
+    	port = 5000,
       mount = ('/', app)
     )
 
@@ -105,7 +107,7 @@ At now, run this code from console.
 
 .. code-block:: bash
 
-  python wsgiapp.py
+  python app.py
 
 You can access this WSGI app by visiting http://127.0.0.1:5000/.
 
@@ -118,6 +120,27 @@ If you want to allow access to your public IPs, or specify port:
     port = 5000,
     mount = ('/', app)
   )
+
+
+Logging and Console Displaying
+--------------------------------
+
+If you do not specify log file path, all logs will be displayed in console, bu specifed all logs will be written into file.
+
+.. code:: python
+
+  skitai.run (
+    address = "0.0.0.0",
+    port = 5000,
+    mount = ('/', app),
+    logpath = '/var/logs/skitai'
+  )
+
+If you also want to view logs throught console for spot developing, you run app.py with-v option.
+
+.. code:: bash
+
+  python3 app.py -v
 
 
 Run with Threads Pool
@@ -207,6 +230,23 @@ Then place this code at bottom of above WSGI app.
       ]
     )
 
+
+Mounting With Virtual Host
+-------------------------------
+
+.. code:: python
+  
+  if __name__ == "__main__": 
+  
+    import skitai
+    
+    skitai.run (
+      mount = {
+      	'www.site1.com': [('/', '/var/wsgi/site1.py')],
+      	'www.site2.com': [('/', '/var/wsgi/site2.py')]        
+      }
+    )
+    
 Enabling Proxy Server
 ------------------------
 
@@ -357,6 +397,121 @@ Above /hello can called, http://127.0.0.1:5000/flaskapp/hello
 
 Also app should can handle mount point. 
 In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Skito-Saddle can handle obiously. But I don't know other WSGI containers will work properly.
+
+
+SMTP Delivery Agent
+---------------------
+
+*New in version 0.26*
+
+e-Mail sending service is executed seperated system process not threading. Every e-mail is temporary save to file system, e-Mail delivery process check new mail and will send. So there's possibly some delay time.
+
+You can send e-Mail in your app like this:
+
+.. code:: python
+
+    # email delivery service
+    e = was.email (subject, snd, rcpt)
+    e.set_smtp ("127.0.0.1:465", "username", "password", ssl = True)
+    e.add_content ("Hello World<div><img src='cid:ID_A'></div>", "text/html")
+    e.add_attachment (r"001.png", cid="ID_A")
+    e.send ()
+
+With asynchronous email delivery service, can add default SMTP Server. If it is configured, you can skip e.set_smtp(). But be careful for keeping your smtp password.
+
+.. code:: python
+
+  skitai.run (
+    mount = ('/', app),
+    smtpda = {			
+			'max-retry': 10,
+			'keep-days': 30,
+			'smtpserver': '127.0.0.1:25',
+			'user': 'user',
+			'password': 'password',
+			'ssl': 1			
+    }
+  )
+
+Batch Task Scheduler
+--------------------
+
+*New in version 0.26*
+
+Sometimes app need batch tasks for minimum response time to clients. At this situateion, you can use taks scheduling tool of OS - cron, taks scheduler - or can use Skitai's batch task scheduling service for consistent app management. for this, add jobs configuration to skitaid.conf (/etc/skitaid/skitaid.conf or c:\\skitaid\\etc\\skitaid.conf) like this.
+
+.. code:: python
+
+  skitai.run (
+    mount = ('/', app),
+    cron = [
+	    "*/2 */2 * * * /home/apps/monitor.py  > /home/apps/monitor.log 2>&1",
+	    "9 2/12 * * * /home/apps/remove_pended_files.py > /dev/null 2>&1"    		
+    ]
+  )
+  
+Taks configuarion is very same with posix crontab.
+
+
+Skitai with Nginx / Squid
+---------------------------
+
+From version 0.10.5, Skitai supports virtual hosting itself, but there're so many other reasons using with reverse proxy servers.
+
+Here's some helpful sample works for virtual hosting using Nginx / Squid.
+
+If you want 2 different and totaly unrelated websites:
+
+- www.jeans.com
+- www.carsales.com
+
+And make two config in /etc/skitaid/servers-enabled
+
+- jeans.conf *using port 5000*
+- carsales.conf *using port 5001*
+
+Then you can reverse proxying using Nginx, Squid or many others.
+
+Example Squid config file (squid.conf) is like this:
+
+.. code:: python
+    
+    http_port 80 accel defaultsite=www.carsales.com
+    
+    cache_peer 192.168.1.100 parent 5000 0 no-query originserver name=jeans    
+    acl jeans-domain dstdomain www.jeans.com
+    http_access allow jeans-domain
+    cache_peer_access jeans allow jeans-domain
+    cache_peer_access jeans deny all
+    
+    cache_peer 192.168.1.100 parent 5001 0 no-query originserver name=carsales
+    acl carsales-domain dstdomain www.carsales.com
+    http_access allow carsales-domain
+    cache_peer_access carsales allow carsales-domain
+    cache_peer_access carsales deny all
+
+For Nginx might be 2 config files (I'm not sure):
+
+.. code:: python
+
+    ; /etc/nginx/sites-enabled/jeans.com
+    server {
+	    listen 80;
+	    server_name www.jeans.com;
+      location / {
+        proxy_pass http://192.168.1.100:5000;
+      }
+    }
+    
+    ; /etc/nginx/sites-enabled/carsales.com    
+    server {
+	    listen 80;
+	    server_name www.carsales.com;
+      location / {
+        proxy_pass http://192.168.1.100:5001;
+      }
+    }
+
 
 
 Skitai App Examples
@@ -2136,7 +2291,29 @@ These methods will be called,
 1. startup: when app imported on skitai server started
 2. onreload: when app.use_reloader is True and app is reloaded
 3. shutdown: when skitai server is shutdowned
+
+
+Building Cache With App Decorator
+----------------------------------
+
+New in version 0.26
+
+If you have pre-defined database cluster, and want to create cache object on app starting, you can use was.ajob method.
+
+.. code:: python
   
+  app.cache = {}
+  
+  def create_cache (res):
+    for row in res.data:
+      app.cache ['STATENAMES'][row.code] = row.name
+  
+  @app.startup
+  def startup (wasc):
+	  wasc.ajob ('@rfpentity', create_cache).execute ("select code, name from states;")
+	
+Now you can access cache by was.app.cache or app.cache.
+	
 
 WWW-Authenticate
 -------------------
