@@ -350,7 +350,7 @@ class http_server (asyncore.dispatcher):
 					time.sleep (1)
 				
 			except KeyboardInterrupt:
-				pass
+				EXITCODE = 0
 			
 			if self.worker_ident == "master":
 				return EXITCODE

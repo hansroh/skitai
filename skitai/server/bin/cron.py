@@ -219,7 +219,7 @@ class	CronManager (daemon.Daemon):
 					break
 				time.sleep (1)
 		
-		
+
 def usage ():
 		print("""
 Usage:
