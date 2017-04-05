@@ -88,6 +88,7 @@ class Service (daemon.Daemon):
 				
 				if exitcode == 0:
 					self.logger ("[info] instance has been shutdowned cleanly")
+					break
 					
 				elif exitcode == 3:
 					self.logger ("[info] try re-starting up instance")
@@ -100,8 +101,7 @@ class Service (daemon.Daemon):
 						self.backoff_interval = self.backoff_interval * 2
 						if self.backoff_interval > self.BACKOFF_MAX_INTERVAL:
 							self.backoff_interval = self.BACKOFF_MAX_INTERVAL
-						self.create ()
-										
+						self.create ()										
 				time.sleep (3)
 		
 		except KeyboardInterrupt:
