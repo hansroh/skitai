@@ -284,7 +284,7 @@ def run (**conf):
 		finally:	
 			_exit_code = server.get_exit_code ()
 			if _exit_code is not None: # master process
-				self.close ()
+				server.close ()
 				sys.exit (_exit_code)
 			else: # worker process				
 				sys.exit (lifetime._exit_code)
