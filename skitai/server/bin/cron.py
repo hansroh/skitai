@@ -77,6 +77,8 @@ class	CronManager (daemon.Daemon):
 		try:
 			try:
 				self.loop ()
+			except KeyboardInterrupt:
+				pass
 			except:
 				self.logger.trace ()
 		finally:
