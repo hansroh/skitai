@@ -89,21 +89,125 @@ class _WASPool:
 was = _WASPool ()
 def start_was (wasc):
 	global was
-	was._start (wasc)	
+	was._start (wasc)
 
-	
 def run (**conf):
+	import os, sys, time
 	from . import lifetime
-	from .server import Skitai
-	
+	from .server import Skitai	
+	from .server.wastuff import process, daemon
+	from aquests.lib import flock
+	import getopt
+		
 	class SkitaiServer (Skitai.Loader):
+		NAME = 'instance'
+		
 		def __init__ (self, conf):
 			self.conf = conf
-			Skitai.Loader.__init__ (self, 'test.conf')
+			self.children = []
+			self.flock = None
+			Skitai.Loader.__init__ (self, 'config', conf.get ('logpath'), conf.get ('varpath'))
+			
+		def close (self):
+			if self.children:
+				for child in self.children:
+					self.wasc.logger ("server", "[info] try to kill %s..." % child.name)
+					child.kill ()				
+				
+				for i in range (30):
+					time.sleep (1)
+					veto = False
+					for child in self.children:
+						veto = (child.poll () is None)
+						if veto:
+							self.wasc.logger ("server", "[info] %s is still alive" % child.name)
+							break														
+					if not veto:
+						break
+				
+				if veto:
+					for child in self.children:
+						if child.poll () is None:
+							self.wasc.logger ("server", "[info] force to kill %s..." % child.name)
+							child.send_signal ('kill')
+			
+			Skitai.Loader.close (self)
+			
+		def create_process (self, name, args, karg):
+			argsall = []
+			if self.conf.get ("varpath"):
+				karg ['var-path'] = self.conf.get ("varpath")
+			if self.conf.get ("logpath"):
+				karg ['log-path'] = self.conf.get ("logpath")
+			if self.conf.get ("verbose"):
+				karg ['verbose'] = self.conf.get ("verbose")
+		
+			if karg:
+				for k, v in karg.items ():
+					if len (k) == 1:
+						h = "-"
+					else:
+						h = "--"
+					if v is None:
+						argsall.append ('%s%s' % (h, k))
+					else:
+						argsall.append ('%s%s "%s"' % (h, k, str (v).replace ('"', '\\"')))
+			
+			if args:
+				for each in args:
+					argsall.append ('"%s"' % each.replace ('"', '\\"'))
+								
+			cmd = "%s %s %s" % (
+				sys.executable, 
+				os.path.join (os.path.dirname (Skitai.__file__), "bin", name + ".py"), 
+				" ".join (argsall)
+			)
+			print (cmd)
+			self.children.append (
+				process.Process (
+					cmd, 
+					name,
+					self.get_varpath ()
+				)
+			)
+		
+		def get_varpath (self):
+			return self.conf.get ('varpath', daemon.get_default_varpath ())
+			
+		def config_logger (self, path):
+			media = []
+			if path is not None:
+				media.append ("file")
+			if self.conf.get ('verbose', 1):
+				media.append ("screen")			
+			Skitai.Loader.config_logger (self, path, media)		
+		
+		def maintern_shutdown_request (self, now):
+			req = self.flock.lockread ("signal")
+			if not req: return
+			self.wasc.logger ("server", "[info] got signal - %s" % req)
+			if req == "terminate":			
+				lifetime.shutdown (0, 30.0)
+			elif req == "restart":			
+				lifetime.shutdown (3, 30.0)
+			elif req == "kill":
+				lifetime.shutdown (0, 1.0)
+			elif req == "rotate":
+				self.wasc.logger.rotate ()
+			else:
+				self.wasc.logger ("server", "[error] unknown signal - %s" % req)
+			self.flock.unlock ("signal")
 			
 		def configure (self):
 			conf = self.conf			
-			self.set_num_worker (1)
+			smtpda = conf.get ('smtpda')
+			if smtpda is not None:
+				self.create_process ('smtpda', [], smtpda)			
+			cron = conf.get ('cron')
+			if cron is not None:
+				self.create_process ('cron', cron, {})
+			
+			self.set_num_worker (conf.get ('workers', 1))
 			if conf.get ("certfile"):
 				self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
 			self.config_cachefs ()
@@ -135,12 +239,42 @@ def run (**conf):
 				conf.get ("gw_realm", "API Gateway"),
 				conf.get ("gw_secret_key", None)
 			)
-			lifetime.init ()
 			
+			lifetime.init ()
+			if os.name == "nt":				
+				lifetime.maintern.sched (10.0, self.maintern_shutdown_request)
+				self.flock = flock.Lock (os.path.join (self.get_varpath (), "lock.%s" % self.NAME))
+				
 	if not conf.get ('mount'):
 		raise ValueError ('Dictionary mount {mount point: path or app} required')
 	
-	server = SkitaiServer (conf)
-	# timeout for fast keyboard interrupt on win32	
-	server.run (2.0)
+	argopt = getopt.getopt(sys.argv[1:], "vs", [])
+	karg = {}
+	for k, v in argopt [0]:
+		karg [k] = v
+			
+	if "-s" in karg:
+		from skitai import skitaid
+		skitaid.Service (
+			"%s %s %s" % (sys.executable, os.path.join (os.getcwd (), sys.argv [0]), '-v' in karg and '-v' or ''),
+			conf.get ('logpath'),
+			conf.get ('varpath'),
+			'-v' in karg
+		).run ()
 	
+	else:
+		os.chdir (os.path.dirname (os.path.join (os.getcwd (), sys.argv [0])))
+		if '-v' in karg:			
+			conf ['verbose'] = 1
+		server = SkitaiServer (conf)
+		# timeout for fast keyboard interrupt on win32	
+		try:
+			server.run (os.name == "nt"  and conf.get ('verbose') and 2.0 or 30.0)
+		
+		finally:	
+			_exit_code = server.get_exit_code ()
+			if _exit_code is not None: # master process
+				sys.exit (_exit_code)
+			else: # worker process				
+				sys.exit (lifetime._exit_code)	
+			

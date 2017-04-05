@@ -22,10 +22,10 @@ class Logger:
 			raise TypeError("%s is already used" % prefix)
 								
 		_logger = logger.multi_logger ()
-		if self.path:
+		if self.path and 'file' in self.media:
 			_logger.add_logger (logger.rotate_logger (self.path, prefix, freq))
-		else:
-			_logger.add_logger (logger.screen_logger ()	)
+		if 'screen' in self.media:
+			_logger.add_logger (logger.screen_logger ())
 		
 		self.logger_factory [prefix] = _logger		
 		self.lock.release ()	

@@ -37,6 +37,7 @@ packages = [
 	'skitai',
 	'skitai.server',
 	'skitai.server.dbi',
+	'skitai.server.bin',
 	'skitai.server.wastuff',
 	'skitai.server.handlers',
 	'skitai.server.rpc',	

@@ -34,7 +34,7 @@ import types
 from skitai.server.handlers.websocket import servers as websocekts
 
 class Loader:
-	def __init__ (self, config, logpath = None, varpath = None, debug = 0):
+	def __init__ (self, config = None, logpath = None, varpath = None, debug = 0):
 		self.config = config
 		self.instance_name = os.path.split (config)[-1][:-5]
 		self.logpath = logpath
@@ -107,7 +107,7 @@ class Loader:
 			
 	def config_rcache (self, maxobj = 1000):
 		rcache.start_rcache (maxobj)
-		self.wasc.register ("rcache", rcache.the_rcache)		
+		self.wasc.register ("rcache", rcache.the_rcache)
 		
 	def config_certification (self, certfile, keyfile = None, pass_phrase = None):
 		if not HTTPS:
@@ -159,13 +159,14 @@ class Loader:
 			scheduler = schedule.Scheduler (self.wasc, conffile, self.wasc.logger.get ("server"))		
 			self.wasc.register ("scheduler", scheduler)
 	
-	def config_logger (self, path):
-		if path is not None:
-			media = ["file"]
-		else:
-			media = ["screen"]
+	def config_logger (self, path, media = None):
+		if not media:
+			if path is not None:
+				media = ["file"]
+			else:
+				media = ["screen"]
 		
-		self.wasc.register ("logger", wsgiappservice.Logger (media, path))		
+		self.wasc.register ("logger", wsgiappservice.Logger (media, path))
 		if os.name != "nt" and path:
 			def hUSR1 (signum, frame):	
 				self.wasc.logger.rotate ()
