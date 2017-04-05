@@ -485,7 +485,8 @@ def DO_SHUTDOWN (sig):
 		try: os.kill (pid, sig)
 		except OSError: pass
 			
-def hTERMMASTER (signum, frame):		
+def hTERMMASTER (signum, frame):	
+	print ('@@@@@@@@@', signum)	
 	global EXITCODE
 	EXITCODE = 0
 	DO_SHUTDOWN (signal.SIGTERM)
