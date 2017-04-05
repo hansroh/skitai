@@ -109,27 +109,28 @@ def run (**conf):
 			Skitai.Loader.__init__ (self, 'config', conf.get ('logpath'), conf.get ('varpath'))
 			
 		def close (self):
-			if self.children:
-				for child in self.children:
-					self.wasc.logger ("server", "[info] try to kill %s..." % child.name)
-					child.kill ()				
-				
-				for i in range (30):
-					time.sleep (1)
-					veto = False
+			if self.wasc.httpserver.worker_ident == "master":
+				if self.children:
 					for child in self.children:
-						veto = (child.poll () is None)
-						if veto:
-							self.wasc.logger ("server", "[info] %s is still alive" % child.name)
-							break														
-					if not veto:
-						break
-				
-				if veto:
-					for child in self.children:
-						if child.poll () is None:
-							self.wasc.logger ("server", "[info] force to kill %s..." % child.name)
-							child.send_signal ('kill')
+						self.wasc.logger ("server", "[info] try to kill %s..." % child.name)
+						child.kill ()				
+					
+					for i in range (30):
+						time.sleep (1)
+						veto = False
+						for child in self.children:
+							veto = (child.poll () is None)
+							if veto:
+								self.wasc.logger ("server", "[info] %s is still alive" % child.name)
+								break														
+						if not veto:
+							break
+					
+					if veto:
+						for child in self.children:
+							if child.poll () is None:
+								self.wasc.logger ("server", "[info] force to kill %s..." % child.name)
+								child.send_signal ('kill')
 			
 			Skitai.Loader.close (self)
 			
