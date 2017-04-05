@@ -37,7 +37,7 @@ class	SMTPDeliverAgent (daemon.Daemon):
 			self.shutdown_in_progress = True
 	
 	def close (self):
-		self.logger ("[info] ~~~~~~~~~~~ service %s stopped" % self.NAME)
+		self.logger ("[info] service %s stopped" % self.NAME)
 						
 	def run (self):
 		self.logger ("[info] service %s started" % self.NAME)

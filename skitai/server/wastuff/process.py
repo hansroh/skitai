@@ -65,5 +65,9 @@ class Process:
 		self.send_signal ("terminate")
 	
 	def poll (self):
-		return self.child.poll ()
+		try:
+			return self.child.poll ()
+		except TypeError:
+			# already killed
+			return 0	
 		
