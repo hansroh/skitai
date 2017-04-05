@@ -336,7 +336,7 @@ class http_server (asyncore.dispatcher):
 						pid = os.fork ()
 						if pid == 0:				
 							self.worker_ident = "worker #%d" % len (PID)
-							self.log_info ("starting" % self.worker_ident)
+							self.log_info ("starting %s" % self.worker_ident)
 							PID = []
 							signal.signal(signal.SIGTERM, hTERMWORKER)
 							signal.signal(signal.SIGQUIT, hQUITWORKER)
