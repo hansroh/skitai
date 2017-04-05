@@ -481,15 +481,15 @@ def hQUITWORKER (signum, frame):
 	lifetime.shutdown (0, 30.0)
 	
 def DO_SHUTDOWN (sig):
-	global SURVAIL, PID
-	SURVAIL = False	
+	global PID	
 	signal.signal (signal.SIGCHLD, signal.SIG_IGN)
 	for pid in PID:
 		try: os.kill (pid, sig)
 		except OSError: pass
 			
 def hTERMMASTER (signum, frame):
-	global EXITCODE
+	global EXITCODE, SURVAIL
+	SURVAIL = False
 	EXITCODE = 0
 	DO_SHUTDOWN (signal.SIGTERM)
 
