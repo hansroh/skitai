@@ -68,6 +68,7 @@ class Process:
 		try:
 			return self.child.poll ()
 		except TypeError:
+			raise
 			# already killed
-			return 0	
+			return 0
 		
