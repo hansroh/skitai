@@ -103,7 +103,7 @@ class ModuleManager:
 			
 	def add_module (self, route, directory, modname):
 		self.cc += 1
-		if self.cc == 3:
+		if self.cc > 1:
 			x=y
 			
 		if modname in self.modnames:
