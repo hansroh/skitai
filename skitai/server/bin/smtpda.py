@@ -37,13 +37,15 @@ class	SMTPDeliverAgent (daemon.Daemon):
 			self.shutdown_in_progress = True
 	
 	def close (self):
-		self.logger ("[info] service %s stopped" % self.NAME)
+		self.logger ("[info] ~~~~~~~~~~~ service %s stopped" % self.NAME)
 						
 	def run (self):
 		self.logger ("[info] service %s started" % self.NAME)
 		try:
 			try:
 				lifetime.loop (os.name == 'nt' and 2.0 or 30.0)
+			except KeyboardInterrupt:
+				pass	
 			except:
 				self.logger.trace ()
 		finally:
