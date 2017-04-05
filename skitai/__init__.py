@@ -224,6 +224,7 @@ def run (**conf):
 			)
 			
 			if self.wasc.httpserver.worker_ident == "master":
+				# master does not work
 				return
 			
 			self.config_threads (conf.get ('threads', 4))						
