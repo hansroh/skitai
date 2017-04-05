@@ -108,7 +108,7 @@ class Service (daemon.Daemon):
 						if self.backoff_interval > self.BACKOFF_MAX_INTERVAL:
 							self.backoff_interval = self.BACKOFF_MAX_INTERVAL
 						self.create ()
-				time.sleep (3)
+				time.sleep (1)
 		
 		except KeyboardInterrupt:
 			pass	
