@@ -330,8 +330,8 @@ class http_server (asyncore.dispatcher):
 		self.listen (os.name == "posix" and 65535 or 256)
 		
 		if os.name == "posix":
-			while SURVAIL:
-				try:
+			try:	
+				while SURVAIL:				
 					if ACTIVE_WORKERS < numworker:
 						pid = os.fork ()
 						if pid == 0:				
@@ -349,8 +349,8 @@ class http_server (asyncore.dispatcher):
 							signal.signal (signal.SIGCHLD, hCHLD)
 					time.sleep (1)
 				
-				except KeyboardInterrupt:
-					pass	
+			except KeyboardInterrupt:
+				pass
 			
 			if self.worker_ident == "master":
 				return EXITCODE
