@@ -351,7 +351,8 @@ class http_server (asyncore.dispatcher):
 					time.sleep (1)
 				
 			except KeyboardInterrupt:
-				pass
+				EXITCODE = 0
+				DO_SHUTDOWN (signal.SIGTERM)
 			
 			if self.worker_ident == "master":
 				return EXITCODE
@@ -485,8 +486,7 @@ def DO_SHUTDOWN (sig):
 		try: os.kill (pid, sig)
 		except OSError: pass
 			
-def hTERMMASTER (signum, frame):	
-	print ('@@@@@@@@@', signum)	
+def hTERMMASTER (signum, frame):
 	global EXITCODE
 	EXITCODE = 0
 	DO_SHUTDOWN (signal.SIGTERM)
