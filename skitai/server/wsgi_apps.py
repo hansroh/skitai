@@ -99,8 +99,13 @@ class ModuleManager:
 		self.handler = handler
 		self.modules = {}
 		self.modnames = {}
+		self.cc = 0
 			
 	def add_module (self, route, directory, modname):
+		self.cc += 1
+		if self.cc == 3:
+			x=y
+			
 		if modname in self.modnames:
 			self.wasc.logger ("app", "Collision detected '%s'" % modname, "error")
 			self.wasc.logger ("app", "Couldn't import '%s'" % modname, "error")
