@@ -51,7 +51,7 @@ class Daemon:
 			def hUSR1 (signum, frame):	
 				self.logger.rotate ()			
 			signal.signal(signal.SIGTERM, term)
-			signal.signal(signal.SIGKILL, kill)		
+			#signal.signal(signal.SIGKILL, kill)
 			signal.signal(signal.SIGHUP, hup)
 			signal.signal(signal.SIGUSR1, hUSR1)
 	
