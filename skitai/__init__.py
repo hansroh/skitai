@@ -204,7 +204,7 @@ def run (**conf):
 			self.flock.unlock ("signal")
 			
 		def configure (self):
-			conf = self.conf			
+			conf = self.conf
 			smtpda = conf.get ('smtpda')
 			if smtpda is not None:
 				self.create_process ('smtpda', [], smtpda)			
@@ -284,8 +284,7 @@ def run (**conf):
 		
 		finally:	
 			_exit_code = server.get_exit_code ()
-			if _exit_code is not None: # master process
-				server.close ()
+			if _exit_code is not None: # master process				
 				sys.exit (_exit_code)
 			else: # worker process				
 				sys.exit (lifetime._exit_code)

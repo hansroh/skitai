@@ -241,7 +241,8 @@ class Loader:
 				current_rule = line
 			
 	def run (self, timeout = 30):
-		if self._exit_code is not None: 			
+		if self._exit_code is not None: 	
+			self.close ()		
 			return self._exit_code # master process
 			
 		try:
