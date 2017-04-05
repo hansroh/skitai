@@ -29,6 +29,7 @@ class Service (daemon.Daemon):
 		self.backoff_start_time = None
 		self.backoff_interval = 5
 		self.child = None
+		self.loop = 1
 	
 	def set_backoff (self, reset = False):
 		if reset:
@@ -57,7 +58,7 @@ class Service (daemon.Daemon):
 			self.child.send_signal ('kill')
 	
 	def hTERM (self, signum, frame):			
-		self.shutdown ()
+		self.loop = 0
 		
 	def run (self):
 		if os.name == "nt":
@@ -66,11 +67,14 @@ class Service (daemon.Daemon):
 			signal.signal(signal.SIGTERM, self.hTERM)
 	
 		try:
-			self.start ()
-		except KeyboardInterrupt:
-			pass
-		except:
-			self.logger.trace ()
+			try:
+				self.start ()
+			except KeyboardInterrupt:
+				pass
+			except:
+				self.logger.trace ()
+		finally:
+			self.shutdown ()		
 	
 	def create (self):		
 		self.child = process.Process (
@@ -82,7 +86,7 @@ class Service (daemon.Daemon):
 	def start (self):
 		self.create ()
 		try:
-			while 1:
+			while self.loop:
 				exitcode = self.child.poll ()			
 				if exitcode is None:
 					self.set_backoff (True)
@@ -103,7 +107,7 @@ class Service (daemon.Daemon):
 						self.backoff_interval = self.backoff_interval * 2
 						if self.backoff_interval > self.BACKOFF_MAX_INTERVAL:
 							self.backoff_interval = self.BACKOFF_MAX_INTERVAL
-						self.create ()										
+						self.create ()
 				time.sleep (3)
 		
 		except KeyboardInterrupt:
