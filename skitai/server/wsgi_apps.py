@@ -119,8 +119,7 @@ class ModuleManager:
 			self.wasc.logger.trace ("app")
 			self.wasc.logger ("app", "[error] application load failed: %s" % modname)
 			
-		else: 
-			x=y
+		else: 			
 			self.wasc.logger ("app", "[info] application %s imported." % route)
 			if route in self.modules:
 				self.wasc.logger ("app", "[info] application route collision detected: %s at %s <-> %s" % (route, module.abspath, self.modules [route].abspath), "warn")
