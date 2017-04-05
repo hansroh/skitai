@@ -1,14 +1,22 @@
-﻿
-if __name__ == "__main__":
-	import skitai
-	import app
+﻿from skitai.saddle import Saddle
+import skitai
+
+app = Saddle (__name__)
+app.debug = True
+app.use_reloader = True
+
+@app.route ("/")
+def index (was):	
+	return "Hello"
 	
-	skitai.run (		
-		address = "0.0.0.0",
-		port = 5000,
-		clusters = app.clusters,
-		mount = app.mount,
+if __name__ == "__main__":
+	import skitai	
+	import os, sys
+	
+	skitai.run (
+		mount = [('/', app)],
 		cron = [
-			r"* * * * * python3 /home/cronjob.py  > /home/cronjob.log 2>&1"
-		]		
+			r"* * * * * %s resources%scronjob.py  > resources%scronjob.log 2>&1" % (sys.executable, os.sep, os.sep)
+		]
 	)
+	

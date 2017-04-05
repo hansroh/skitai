@@ -243,7 +243,7 @@ if __name__ == "__main__":
 		]	
 	)
 	
-	_consol = False
+	_consol = "no"
 	_cf = {}
 	_logpath, _varpath = None, None
 	
@@ -252,12 +252,12 @@ if __name__ == "__main__":
 			usage ()
 			sys.exit ()		
 		elif k == "--verbose" or k == "-v":
-			_consol = True
+			_consol = v
 		elif k == "--log-path":	
 			_logpath = v
 		elif k == "--var-path":	
 			_varpath = v
-	
+
 	_cf ['jobs'] = []
 	for job in argopt [1]:
 		_cf ['jobs'].append (job)
@@ -266,7 +266,7 @@ if __name__ == "__main__":
 	try:
 		service.run ()
 	finally:	
-		if not _consol:
+		if _consol not in ("1", "yes"):
 			sys.stderr.close ()
 		sys.exit (daemon.EXIT_CODE)
 		

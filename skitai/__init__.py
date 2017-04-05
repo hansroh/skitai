@@ -139,8 +139,8 @@ def run (**conf):
 				karg ['var-path'] = self.conf.get ("varpath")
 			if self.conf.get ("logpath"):
 				karg ['log-path'] = self.conf.get ("logpath")
-			if self.conf.get ("verbose"):
-				karg ['verbose'] = self.conf.get ("verbose")
+			if self.conf.get ("verbose", "no") in ("yes", 1, "1"):
+				karg ['verbose'] = "yes"
 		
 			if karg:
 				for k, v in karg.items ():
@@ -178,9 +178,13 @@ def run (**conf):
 			media = []
 			if path is not None:
 				media.append ("file")
-			if self.conf.get ('verbose', 1):
-				media.append ("screen")			
-			Skitai.Loader.config_logger (self, path, media)		
+			if self.conf.get ('verbose', "no") in ("yes", "1", 1):				
+				media.append ("screen")
+				self.conf ['verbose'] = "yes"
+			if not media:
+				media.append ("screen")
+				self.conf ['verbose'] = "yes"
+			Skitai.Loader.config_logger (self, path, media)					
 		
 		def maintern_shutdown_request (self, now):
 			req = self.flock.lockread ("signal")
@@ -252,11 +256,14 @@ def run (**conf):
 	karg = {}
 	for k, v in argopt [0]:
 		karg [k] = v
-			
+	
+	if '-v' in karg or conf.get ('logpath') is None:
+		verbose = 1
+	
 	if "-s" in karg:
 		from skitai import skitaid
 		skitaid.Service (
-			"%s %s %s" % (sys.executable, os.path.join (os.getcwd (), sys.argv [0]), '-v' in karg and '-v' or ''),
+			"%s %s %s" % (sys.executable, os.path.join (os.getcwd (), sys.argv [0]), verbose and '-v' or ''),
 			conf.get ('logpath'),
 			conf.get ('varpath'),
 			'-v' in karg
@@ -264,12 +271,15 @@ def run (**conf):
 	
 	else:
 		os.chdir (os.path.dirname (os.path.join (os.getcwd (), sys.argv [0])))
-		if '-v' in karg:			
-			conf ['verbose'] = 1
+		if verbose:
+			conf ['verbose'] = 'yes'		
 		server = SkitaiServer (conf)
 		# timeout for fast keyboard interrupt on win32	
 		try:
-			server.run (os.name == "nt"  and conf.get ('verbose') and 2.0 or 30.0)
+			try:
+				server.run (os.name == "nt"  and conf.get ('verbose') and 2.0 or 30.0)
+			except KeyboardInterrupt:
+				pass	
 		
 		finally:	
 			_exit_code = server.get_exit_code ()

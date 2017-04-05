@@ -40,8 +40,7 @@ class Daemon:
 			self.logger.add_logger (logger.screen_logger ())
 		if self.logpath:
 			self.logger.add_logger (logger.rotate_logger (self.logpath, self.NAME, "daily"))
-		if create_flock and os.name == "nt":
-			print (os.path.join (self.varpath, "lock.%s" % self.NAME))
+		if create_flock and os.name == "nt":			
 			self.flock = flock.Lock (os.path.join (self.varpath, "lock.%s" % self.NAME))
 			self.flock.unlockall ()
 			
@@ -74,8 +73,8 @@ def make_service (service_class, config, logpath, varpath, consol):
 	if pidlock.isalive ():
 		print("[error] already running")
 		sys.exit (0)
-		
-	if not consol: # service mode
+	
+	if consol not in ("1", "yes"): # service mode
 		from aquests.lib import devnull		
 		sys.stdout = devnull.devnull ()		
 		sys.stderr = open (os.path.join (logpath, "stderr-%s.log" % service_class.NAME), "a")

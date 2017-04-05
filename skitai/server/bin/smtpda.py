@@ -195,7 +195,7 @@ if __name__ == "__main__":
 			"max-retry=", "keep-days=", "server=", "user=", "password=", "ssl"
 		]
 	)
-	_consol = False
+	_consol = "no"
 	_cf = {}
 	_logpath, _varpath = None, None
 	for k, v in argopt [0]:
@@ -203,7 +203,7 @@ if __name__ == "__main__":
 			usage ()
 			sys.exit ()		
 		elif k == "--verbose" or k == "-v":
-			_consol = True
+			_consol = v
 		elif k == "--log-path":	
 			_logpath = v
 		elif k == "--var-path":	
@@ -225,6 +225,6 @@ if __name__ == "__main__":
 	try:
 		service.run ()		
 	finally:	
-		if not _consol:
+		if _consol not in ("1", "yes"):
 			sys.stderr.close ()	
 		sys.exit (lifetime._exit_code)

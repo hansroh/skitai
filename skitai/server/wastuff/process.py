@@ -9,8 +9,7 @@ class Process:
 		self.vardir = vardir		
 		self.child = None
 		if os.name == "nt":
-			self.flock = flock.Lock (os.path.join (self.vardir, "lock.%s" % self.name))
-			print (os.path.join (self.vardir, "lock.%s" % self.name))
+			self.flock = flock.Lock (os.path.join (self.vardir, "lock.%s" % self.name))			
 		self.create ()
 	
 	def create (self):	
