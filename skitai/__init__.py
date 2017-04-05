@@ -222,6 +222,10 @@ def run (**conf):
 				"Skitai Server", conf.get ("certfile") is not None,
 				5, 10
 			)
+			
+			if self.wasc.httpserver.worker_ident == "master":
+				return
+			
 			self.config_threads (conf.get ('threads', 4))						
 			for name, args in conf.get ("clusters", {}).items ():
 				if name [0] == "@":
