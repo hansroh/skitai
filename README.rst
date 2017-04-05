@@ -1,6 +1,6 @@
-===================
-Skitai App Engine
-===================
+========================================
+Skitai App Engine For Microservices
+========================================
 
 .. contents:: Table of Contents
 
@@ -12,7 +12,7 @@ Skitai is a kind of branch of `Medusa Web Server`__ - A High-Performance Interne
 
 Medusa is different from most other servers because it runs as a single process, multiplexing I/O with its various client and server connections within a single process/thread.
 
-Skitai orients light-weight, simplicity  and strengthen networking operations with external resources - HTTP / HTTPS / XML-RPC / PostgreSQL_ - keeping very low costs.
+Skitai orients light-weight, simplicity and strengthen networking operations with external resources - HTTP / HTTPS / XML-RPC / PostgreSQL_ - keeping very low costs. And it is being optimized for building microservices.
 
 - Working as Web, XML-RPC and Reverse Proxy Loadbancing Server
 - HTML5 Websocket & HTTP/2.0 implemeted
@@ -22,11 +22,6 @@ Skitai orients light-weight, simplicity  and strengthen networking operations wi
 Skitai is not a framework for convinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your WSGI apps as both server and client.
 
 Also note it is inspired by Zope_ and Flask_ a lot.
-
-
-From version 0.17 (Oct 2016), `Skitai WSGI App Engine Daemon`_ is seperated from this project.
-
-If you want to run Skitai with fully pre-configured functional WSGI app engine as daemon or win32 service, install `Skitai WSGI App Engine Daemon`_.
 
 
 Conceptually, Skitai has been seperated into two components:
@@ -73,10 +68,6 @@ But generally you don't need install alone. When you install Skitai App Engine, 
 
 Starting Skitai
 ================
-
-If you want to run Skitai as daemon or win32 service with configuration file, you can install `Skitai WSGI App Engine Daemon`_.
-
-Otherwise if your purpose is just WSGI app developement, you can run Skitai easily at console.
 
 
 Basic Usage
