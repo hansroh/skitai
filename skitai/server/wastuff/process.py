@@ -36,18 +36,28 @@ class Process:
 		pid	 = self.child.pid
 		if os.name == "nt":		
 			self.flock.lock ("signal", req)
+			
 			if req == "terminate":
-				os.kill (pid, signal.CTRL_C_EVENT)
+				sig = signal.CTRL_C_EVENT
 			elif req == "kill":	
-				os.kill (pid, signal.CTRL_BREAK_EVENT)
-	
+				sig = signal.CTRL_BREAK_EVENT
+			
+			try:
+				os.kill (pid, sig)
+			except ProcessLookupError:
+				pass	
+					
 		else:			
 			if pid:					
 				if req == "terminate": sig = signal.SIGTERM				
 				elif req == "kill": sig = signal.SIGKILL
 				elif req == "restart": sig = signal.SIGHUP				
 				elif req == "rotate": sig = signal.SIGUSR1
-				os.kill (pid, sig)
+				try:
+					os.kill (pid, sig)
+				except ProcessLookupError:
+					pass
+						
 			elif req == "restart":
 				self.flock.lock ("signal", req)
 			
