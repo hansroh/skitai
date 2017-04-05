@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26b3"
+__version__ = "0.26b5"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -230,13 +230,16 @@ def run (**conf):
 			self.config_threads (conf.get ('threads', 4))						
 			for name, args in conf.get ("clusters", {}).items ():
 				if name [0] == "@":
-					name = name [1:]
-				if len (args) == 3:
+					name = name [1:]				
+				access = None
+				ssl = 0
+				if if len (args) == 4:
+					ctype, members, ssl, access = args
+				elif len (args) == 3:
 					ctype, members, ssl = args
 				else:
-					ctype, members = args	
-					ssl = 0
-				self.add_cluster (ctype, name, members, ssl)
+					ctype, members = args
+				self.add_cluster (ctype, name, members, ssl, access)
 			
 			self.install_handler (
 				conf.get ("mount"), 
@@ -253,7 +256,7 @@ def run (**conf):
 			lifetime.init ()
 			if os.name == "nt":				
 				lifetime.maintern.sched (10.0, self.maintern_shutdown_request)
-				self.flock = flock.Lock (os.path.join (self.get_varpath (), "lock.%s" % self.NAME))
+				self.flock = flock.Lock (os.path.join (self.get_varpath (), ".%s" % self.NAME))
 				
 	if not conf.get ('mount'):
 		raise ValueError ('Dictionary mount {mount point: path or app} required')

@@ -80,7 +80,7 @@ class Service (daemon.Daemon):
 		self.child = process.Process (
 			self.cmd, 
 			'instance',
-			not self.varpath and (os.name == "posix" and '/var/skitai' or r'c:\var\skitai')
+			self.varpath and self.varpath or daemon.get_default_varpath ()
 		)
 	
 	def start (self):

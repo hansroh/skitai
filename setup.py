@@ -21,7 +21,7 @@ if sys.argv[-1] == 'publish':
 
 classifiers = [
   'License :: OSI Approved :: MIT License',
-  'Development Status :: 4 - Beta',
+  'Development Status :: 3 - Alpha',
   'Topic :: Internet :: WWW/HTTP :: HTTP Servers',	
 	'Topic :: Internet :: WWW/HTTP :: WSGI',
 	'Environment :: Console',
@@ -57,7 +57,7 @@ with open('skitai/__init__.py', 'r') as fd:
 setup(
 	name='skitai',
 	version=version,
-	description='Skitai App Engine For Micoroservices',
+	description='Skitai App Engine For Microservices',
 	url = 'https://gitlab.com/hansroh/skitai',
 	author='Hans Roh',
 	author_email='hansroh@gmail.com',	

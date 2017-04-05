@@ -420,9 +420,13 @@ With asynchronous email delivery service, can add default SMTP Server. If it is 
 			'smtpserver': '127.0.0.1:25',
 			'user': 'user',
 			'password': 'password',
-			'ssl': 1			
-    }
+			'ssl': 1
+    },
+    varpath = '/var/skitai'
   )
+
+All e-mails are saved into *varpath* and varpath is not specified default is /var/temp/skitai
+
 
 Batch Task Scheduler
 --------------------
@@ -511,7 +515,7 @@ Skitai App Examples
 Please visit to `Skitai app examples`_ on GitLab.
 
 
-.. _`Skitai app examples`: https://gitlab.com/hansroh/skitaid/tree/master/skitaid/wsgi/example
+.. _`Skitai app examples`: https://gitlab.com/hansroh/skitai/tree/master/examples
 
 
 
@@ -2671,6 +2675,14 @@ Links
 
 Change Log
 ==============
+  
+  0.26 (Apr 2017)
+  
+  - 0.26
+    
+    - integrated with skitaid package, single app file can contain all configure options
+    - level down developement status  
+    - fix sqlite3 closing
   
   0.25 (Feb 2017)
   

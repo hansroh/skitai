@@ -1,6 +1,6 @@
 from skitai import lifetime
 from aquests.lib import flock, pathtool, logger
-import os, signal, sys
+import os, signal, sys, tempfile
 
 EXIT_CODE = None
 
@@ -41,7 +41,7 @@ class Daemon:
 		if self.logpath:
 			self.logger.add_logger (logger.rotate_logger (self.logpath, self.NAME, "daily"))
 		if create_flock and os.name == "nt":			
-			self.flock = flock.Lock (os.path.join (self.varpath, "lock.%s" % self.NAME))
+			self.flock = flock.Lock (os.path.join (self.varpath, ".%s" % self.NAME))
 			self.flock.unlockall ()
 			
 	def bind_signal (self, term, kill, hup):		
@@ -59,7 +59,7 @@ class Daemon:
 		raise NotImplementedError
 					
 def get_default_varpath ():
-	return os.name == "posix" and '/var/skitai' or r'c:\var\skitai'
+	return os.name == "posix" and '/var/tmp/skitai' or os.path.join (tempfile.gettempdir(), "skitai")
 			
 def make_service (service_class, config, logpath, varpath, consol):
 	if logpath:
@@ -68,7 +68,7 @@ def make_service (service_class, config, logpath, varpath, consol):
 		varpath = get_default_varpath ()
 	pathtool.mkdir (varpath)
 	
-	lck = flock.Lock (os.path.join (varpath, "lock.%s" % service_class.NAME))
+	lck = flock.Lock (os.path.join (varpath, ".%s" % service_class.NAME))
 	pidlock = lck.get_pidlock ()
 	if pidlock.isalive ():
 		print("[error] already running")
