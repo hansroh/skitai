@@ -25,7 +25,7 @@ class Service (daemon.Daemon):
 		self.varpath = varpath
 		self.consol = verbose
 		self.make_logger (False)
-		
+
 		self.backoff_start_time = None
 		self.backoff_interval = 5
 		self.child = None
@@ -55,20 +55,22 @@ class Service (daemon.Daemon):
 		if self.child.poll () is None:
 			self.logger ("[info] force to kill %s" % self.child.name)
 			self.child.send_signal ('kill')
-			
+	
+	def hTERM (self, signum, frame):			
+		self.shutdown ()
+		
 	def run (self):
 		if os.name == "nt":
-			signal.signal(signal.SIGBREAK, self.shutdown)
+			signal.signal(signal.SIGBREAK, self.hTERM)
 		else:
-			signal.signal(signal.SIGTERM, self.shutdown)
-			
+			signal.signal(signal.SIGTERM, self.hTERM)
+	
 		try:
-			try:
-				self.start ()
-			except:
-				self.logger.trace ()
-		finally:
-			self.shutdown ()
+			self.start ()
+		except KeyboardInterrupt:
+			pass
+		except:
+			self.logger.trace ()
 	
 	def create (self):		
 		self.child = process.Process (
