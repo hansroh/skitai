@@ -162,7 +162,7 @@ def run (**conf):
 				os.path.join (os.path.dirname (Skitai.__file__), "bin", name + ".py"), 
 				" ".join (argsall)
 			)
-			print (cmd)
+			
 			self.children.append (
 				process.Process (
 					cmd, 

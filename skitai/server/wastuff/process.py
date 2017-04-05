@@ -44,7 +44,7 @@ class Process:
 		else:			
 			if pid:					
 				if req == "terminate": sig = signal.SIGTERM				
-				#elif req == "kill": sig = signal.SIGKILL
+				elif req == "kill": sig = signal.SIGKILL
 				elif req == "restart": sig = signal.SIGHUP				
 				elif req == "rotate": sig = signal.SIGUSR1
 				os.kill (pid, sig)
