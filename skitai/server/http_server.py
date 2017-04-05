@@ -345,12 +345,13 @@ class http_server (asyncore.dispatcher):
 							ACTIVE_WORKERS += 1
 							signal.signal(signal.SIGHUP, hHUPMASTER)
 							signal.signal(signal.SIGTERM, hTERMMASTER)
+							signal.signal(signal.SIGINT, hTERMMASTER)
 							signal.signal(signal.SIGQUIT, hQUITMASTER)
 							signal.signal (signal.SIGCHLD, hCHLD)
 					time.sleep (1)
 				
 			except KeyboardInterrupt:
-				EXITCODE = 0
+				pass
 			
 			if self.worker_ident == "master":
 				return EXITCODE
