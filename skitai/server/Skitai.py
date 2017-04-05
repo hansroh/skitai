@@ -255,6 +255,7 @@ class Loader:
 		return None # worker process
 		
 	def close (self):
+		print ('11111111', self.wasc.httpserver.worker_ident)
 		for attr, obj in list(self.wasc.objects.items ()):
 			if attr == "logger": 
 				continue
@@ -275,7 +276,7 @@ class Loader:
 			except:
 				self.wasc.logger.trace ("server")
 		
-		print ('@@@@@@', self.wasc.httpserver.worker_ident)
+		print ('222222222', self.wasc.httpserver.worker_ident)
 		if self.wasc.httpserver.worker_ident == "master":
 			self.wasc.logger ("server", "[info] cleanup done, closing logger... bye")
 			try:
