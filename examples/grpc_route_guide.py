@@ -1,7 +1,7 @@
 from skitai.saddle import Saddle
 import time, math
 import json
-from apppackages import route_guide_pb2
+from appack import route_guide_pb2
 
 app = Saddle (__name__)
 app.debug = True
