@@ -67,6 +67,6 @@ setup(
 	license='MIT',
 	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/skitai",
-	install_requires = ["jinja2==2.9.4", "chameleon==3.1", "h2==2.5.1", "aquests>=0.6.4"],
+	install_requires = ["jinja2==2.9.4", "chameleon==3.1", "h2==2.5.1", "aquests>=0.6.11"],
 	classifiers=classifiers
 )
