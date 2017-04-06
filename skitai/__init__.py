@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26b6"
+__version__ = "0.26b7"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -96,6 +96,7 @@ def run (**conf):
 	from . import lifetime
 	from .server import Skitai	
 	from .server.wastuff import process, daemon
+	from .server.rpc.cluster_manager import AccessPolicy
 	from aquests.lib import flock
 	import getopt
 		
@@ -230,16 +231,23 @@ def run (**conf):
 			self.config_threads (conf.get ('threads', 4))						
 			for name, args in conf.get ("clusters", {}).items ():
 				if name [0] == "@":
-					name = name [1:]				
-				access = None
+					name = name [1:]
+
+				policy = None
 				ssl = 0
 				if len (args) == 4:
 					ctype, members, ssl, access = args
+					if access:
+						policy = AccessPolicy (
+							access.get ("role", ""), 
+							access.get ("source", "")
+						)						
 				elif len (args) == 3:
 					ctype, members, ssl = args
 				else:
 					ctype, members = args
-				self.add_cluster (ctype, name, members, ssl, access)
+				
+				self.add_cluster (ctype, name, members, ssl, policy)
 			
 			self.install_handler (
 				conf.get ("mount"), 
