@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26b5"
+__version__ = "0.26b6"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -223,7 +223,7 @@ def run (**conf):
 				5, 10
 			)
 			
-			if self.wasc.httpserver.worker_ident == "master":
+			if os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
 				# master does not work
 				return
 			
@@ -233,7 +233,7 @@ def run (**conf):
 					name = name [1:]				
 				access = None
 				ssl = 0
-				if if len (args) == 4:
+				if len (args) == 4:
 					ctype, members, ssl, access = args
 				elif len (args) == 3:
 					ctype, members, ssl = args

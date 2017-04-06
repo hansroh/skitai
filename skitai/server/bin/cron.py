@@ -71,7 +71,7 @@ class	CronManager (daemon.Daemon):
 			self.logger ("[info] job has been finished pid:%d with rcode:%d for %s, %s" % (pid, rcode, due, cmd))
 			del self.currents [pid]
 		self.last_maintern = time.time ()
-							
+
 	def run (self):
 		self.logger ("[info] service cron started")
 		try:
@@ -133,7 +133,7 @@ class	CronManager (daemon.Daemon):
 			del units [0]
 			units [7] = None
 			
-		r = list (units.iterkeys ())
+		r = list (units.keys ())
 		r.sort ()
 		return r
 	
@@ -168,7 +168,8 @@ class	CronManager (daemon.Daemon):
 			else:
 				self.jobs.append (sched)
 				self.logger ("[info] job added %s" % job)
-					
+	
+	def check_sched_per_minute (self):				
 		now = datetime.now ().timetuple ()	
 		for m, h, d, M, w, cmd in self.jobs:			
 			if M and now.tm_mon not in M:
@@ -187,6 +188,7 @@ class	CronManager (daemon.Daemon):
 	def setup (self):
 		self.make_logger ()
 		self.bind_signal (hTERM, hTERM, hHUP)		
+		self.update_jobs (self.config.get ('jobs', []))
 		
 	def execute (self, cmd):					
 		if os.name == "nt":
@@ -211,7 +213,7 @@ class	CronManager (daemon.Daemon):
 				break				
 			now = time.time ()			
 			self.maintern (now)
-			self.update_jobs (self.config.get ('jobs', []))
+			self.check_sched_per_minute ()
 			for i in range (60):
 				if os.name == "nt" and i % 10 == 0:
 					self.maintern_shutdown_request (now)

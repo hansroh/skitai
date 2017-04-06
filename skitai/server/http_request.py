@@ -1,6 +1,7 @@
 from . import http_response, counter
 import time
 import re
+from aquests.lib.attrdict import NocaseDict
 
 class http_request:
 	version = "1.1"
@@ -84,6 +85,14 @@ class http_request:
 		return self.header
 	get_headers = get_raw_header
 	
+	@property
+	def headers (self):
+		h = NocaseDict ()
+		for line in self.header:
+			k, v = line.split (":", 1)
+			h [k] = v.strip ()
+		return h
+		
 	path_regex = re.compile (r'([^;?#]*)(;[^?#]*)?(\?[^#]*)?(#.*)?')
 	def split_uri (self):
 		if self._split_uri is None:

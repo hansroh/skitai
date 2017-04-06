@@ -65,8 +65,8 @@ def make_service (service_class, config, logpath, varpath, consol):
 	if logpath:
 		pathtool.mkdir (logpath)
 	if not varpath:	
-		varpath = get_default_varpath ()
-	pathtool.mkdir (varpath)
+		varpath = get_default_varpath ()		
+	pathtool.mkdir (varpath)	
 	
 	lck = flock.Lock (os.path.join (varpath, ".%s" % service_class.NAME))
 	pidlock = lck.get_pidlock ()

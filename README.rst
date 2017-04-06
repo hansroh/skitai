@@ -433,7 +433,7 @@ Batch Task Scheduler
 
 *New in version 0.26*
 
-Sometimes app need batch tasks for minimum response time to clients. At this situateion, you can use taks scheduling tool of OS - cron, taks scheduler - or can use Skitai's batch task scheduling service for consistent app management. for this, add jobs configuration to skitaid.conf (/etc/skitaid/skitaid.conf or c:\\skitaid\\etc\\skitaid.conf) like this.
+Sometimes app need batch tasks for minimum response time to clients. At this situateion, you can use taks scheduling tool of OS - cron, taks scheduler - or can use Skitai's batch task scheduling service for consistent app management.
 
 .. code:: python
 
@@ -459,11 +459,6 @@ If you want 2 different and totaly unrelated websites:
 
 - www.jeans.com
 - www.carsales.com
-
-And make two config in /etc/skitaid/servers-enabled
-
-- jeans.conf *using port 5000*
-- carsales.conf *using port 5001*
 
 Then you can reverse proxying using Nginx, Squid or many others.
 
@@ -506,7 +501,6 @@ For Nginx might be 2 config files (I'm not sure):
         proxy_pass http://192.168.1.100:5001;
       }
     }
-
 
 
 Skitai App Examples
@@ -675,9 +669,6 @@ Load-Balancing
 Skitai support load-balancing requests.
 
 If server members are pre defined, skitai choose one automatically per each request supporting *fail-over*.
-
-At first, let's add mysearch members to config file (ex. /etc/skitaid/servers-enabled/sample.conf),
-
 
 Then let's request XMLRPC result to one of mysearch members.
    
@@ -2681,7 +2672,7 @@ Change Log
   - 0.26
     
     - integrated with skitaid package, single app file can contain all configure options
-    - level down developement status  
+    - level down developement status to alpha
     - fix sqlite3 closing
   
   0.25 (Feb 2017)

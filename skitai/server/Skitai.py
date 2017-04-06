@@ -280,7 +280,7 @@ class Loader:
 			except:
 				self.wasc.logger.trace ("server")
 		
-		if self.wasc.httpserver.worker_ident == "master":
+		if os.name == "nt" or self.wasc.httpserver.worker_ident == "master":
 			self.wasc.logger ("server", "[info] cleanup done, closing logger... bye")
 			try:
 				self.wasc.logger.close ()
