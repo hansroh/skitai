@@ -34,7 +34,7 @@ class http_request:
 	
 	@property
 	def method (self):
-		return self.command
+		return self.command.upper ()
 	
 	@property
 	def headers (self):

@@ -1448,7 +1448,8 @@ Request
 
 Reqeust object provides these methods and attributes:
 
-- was.request.method # lower case get, post, put, ...
+- was.request.method # upper case GET, POST, ...
+- was.request.command # lower case get, post, ...
 - was.request.uri
 - was.request.version # HTTP Version, 1.0, 1.1
 - was.request.body
