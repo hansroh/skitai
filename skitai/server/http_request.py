@@ -24,6 +24,7 @@ class http_request:
 		self.created = time.time ()
 		self.gzip_encoded = False
 		self._split_uri = None
+		self._headers_cache = None
 		self._header_cache = {}
 		self._is_stream_ended = False
 		self._is_async_streaming = False
@@ -31,6 +32,21 @@ class http_request:
 		self.set_log_info ()
 		self.make_response ()
 	
+	@property
+	def method (self):
+		return self.command
+	
+	@property
+	def headers (self):
+		if self._headers_cache:
+			return self._headers_cache						
+		h = NocaseDict ()
+		for line in self.header:
+			k, v = line.split (":", 1)
+			h [k] = v.strip ()
+		self._headers_cache = h	
+		return h
+			
 	def is_promise (self):
 		return self._is_promise
 		
@@ -84,14 +100,6 @@ class http_request:
 	def get_raw_header (self):
 		return self.header
 	get_headers = get_raw_header
-	
-	@property
-	def headers (self):
-		h = NocaseDict ()
-		for line in self.header:
-			k, v = line.split (":", 1)
-			h [k] = v.strip ()
-		return h
 		
 	path_regex = re.compile (r'([^;?#]*)(;[^?#]*)?(\?[^#]*)?(#.*)?')
 	def split_uri (self):

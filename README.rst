@@ -248,6 +248,33 @@ Enabling Proxy Server
     proxy = True
   )
 
+Adding Server Alias or Groups
+-----------------------------
+
+Cluster should be defined like this: (cluster_type, servers, [access_conrol, ssl]).
+
+- cluster_type: one of 'http', 'https', skitai.DB_POSTGRESQL, skitai.DB_PGSQL, skitai.DB_SQLITE3, skitai.DB_REDIS, skitai.DB_MONGODB
+- server: single or server list
+- access_conrol: it is valid only when cluster_type is http or https for controlling API access, and should be dictinary has theses one of these keys: source and role
+- ssl: use SSL connection or not, 'https' use SSL defaultly
+
+.. code:: python
+
+  skitai.run (
+    clusters = {
+     "@members": (
+       "https", 
+       "members.example.com", 
+       {'source': '172.30.1.0/24,192.168.1/24', 'role': 'admin'}
+     ),
+     "@mysqlite3": (
+       skitai.DB_SQLITE3, 
+       ["/var/tmp/db1", "/var/tmp/db2"]
+     )
+    },
+    mount = [('/', app)]  
+  )
+
 
 Enabling API Gateway Server
 -----------------------------
@@ -1421,9 +1448,11 @@ Request
 
 Reqeust object provides these methods and attributes:
 
-- was.request.command # lower case get, post, put, ...
-- was.request.version # HTTP Version, 1.0, 1.1
+- was.request.method # lower case get, post, put, ...
 - was.request.uri
+- was.request.version # HTTP Version, 1.0, 1.1
+- was.request.body
+- was.request.headers # case insensitive dictioanry
 - was.request.args # dictionary contains url/form parameters
 - was.request.split_uri () # (script, param, querystring, fragment)
 - was.request.get_header ("content-type") # case insensitive
@@ -2296,7 +2325,7 @@ If you have pre-defined database cluster, and want to create cache object on app
   
   @app.startup
   def startup (wasc):
-	  wasc.ajob ('@rfpentity', create_cache).execute ("select code, name from states;")
+    wasc.ajob ('@mydb', create_cache).execute ("select code, name from states;")
 	
 Now you can access cache by was.app.cache or app.cache.
 	

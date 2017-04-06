@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26b7"
+__version__ = "0.26b9"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -236,14 +236,14 @@ def run (**conf):
 				policy = None
 				ssl = 0
 				if len (args) == 4:
-					ctype, members, ssl, access = args
+					ctype, members, access, ssl = args
 					if access:
 						policy = AccessPolicy (
 							access.get ("role", ""), 
 							access.get ("source", "")
 						)						
 				elif len (args) == 3:
-					ctype, members, ssl = args
+					ctype, members, access = args
 				else:
 					ctype, members = args
 				
