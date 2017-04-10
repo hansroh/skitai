@@ -185,7 +185,8 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 				self.dbtype,
 				self.server, 
 				self.dbname,
-				method, params, 
+				self.auth,
+				method, params, 				
 				rs.handle_result,
 				self._meta
 			)			

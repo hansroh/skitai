@@ -533,9 +533,12 @@ For Nginx might be 2 config files (I'm not sure):
 Skitai App Examples
 --------------------
 
-Please visit to `Skitai app examples`_ on GitLab.
+Assai_ is an RESTful implementation for Wissen_ with Skitai App Engine.
+
+Also please visit to `Skitai app examples`_.
 
 
+.. _Assai: https://gitlab.com/hansroh/assai
 .. _`Skitai app examples`: https://gitlab.com/hansroh/skitai/tree/master/examples
 
 
