@@ -1459,6 +1459,7 @@ Reqeust object provides these methods and attributes:
 - was.request.headers # case insensitive dictioanry
 - was.request.args # dictionary contains url/form parameters
 - was.request.split_uri () # (script, param, querystring, fragment)
+- was.request.json () # load request body as json
 - was.request.get_header ("content-type") # case insensitive
 - was.request.get_headers () # retrun header all list
 - was.request.get_body ()
@@ -2704,6 +2705,7 @@ Change Log
   
   - 0.26
     
+    - was.request.json ()
     - integrated with skitaid package, single app file can contain all configure options
     - level down developement status to alpha
     - fix sqlite3 closing

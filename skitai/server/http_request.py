@@ -1,6 +1,7 @@
 from . import http_response, counter
 import time
 import re
+import json
 from aquests.lib.attrdict import NocaseDict
 
 class http_request:
@@ -46,7 +47,10 @@ class http_request:
 			h [k] = v.strip ()
 		self._headers_cache = h	
 		return h
-			
+	
+	def json (self):		
+		return json.loads (self.body.decode ('utf8'))
+		
 	def is_promise (self):
 		return self._is_promise
 		
