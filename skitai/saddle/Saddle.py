@@ -5,6 +5,7 @@ import sys
 from . import part, multipart_collector, cookie, session, grpc_collector, ws_executor
 from . import wsgi_executor, xmlrpc_executor, grpc_executor
 from aquests.lib import producers
+from aquests.lib import importer
 from aquests.protocols.grpc import discover
 from aquests.protocols.http import http_util
 from hashlib import md5
@@ -55,14 +56,15 @@ class Saddle (part.Part):
 		self.jinja_env = Environment (loader = PackageLoader (app_name)) or None
 		self.chameleon = None
 		self.lock = threading.RLock ()
-		self.cache_sorted = 0
+		
 		self.cached_paths = {}
+		self.reloadables = {}
 		self.cached_rules = []
 		self.config = Config ()
 	
 	def skito_jinja (self):
 		self.jinja_overlay ("${", "}", "<%", "%>", "<!---", "--->")
-		
+					
 	def jinja_overlay (
 		self, 
 		variable_start_string = "{{",
@@ -78,15 +80,36 @@ class Saddle (part.Part):
 		from .patches import jinjapatch
 		self.jinja_env = jinjapatch.overlay (self.app_name, variable_start_string, variable_end_string, block_start_string, block_end_string, comment_start_string, comment_end_string, line_statement_prefix, line_comment_prefix, **karg)
 	
+	def watch (self, module):
+		fi = self.get_file_info (module)
+		self.reloadables [module] = fi		
+	
+	def check_reload (self):		
+		for module in self.reloadables:
+			fi = self.get_file_info (module)
+			if self.reloadables [module] != fi:				
+				importer.reloader (module)
+				self.reloadables [module] = fi
+	
+	def get_file_info (self, module):
+		stat = os.stat (module.__file__)
+		return stat.st_mtime, stat.st_size
+		
 	def set_home (self, path):
-		#chameleonpatch needn't from chameleon version 3.1
-		#from .patches import chameleonpatch
 		self.home = path
 		self.chameleon = PageTemplateLoader (
 			os.path.join(path, "templates"), 
-			auto_reload = self.use_reloader, 
+			auto_reload = self.use_reloader,
 			restricted_namespace = False
 		)
+		appack_dir = os.path.join (path, 'appack')
+		for k, v in sys.modules.items ():
+			try:
+				modpath = v.__spec__.origin
+			except AttributeError:
+				continue									
+			if modpath and modpath.startswith (appack_dir):
+				self.watch (v)
 			
 	def render (self, was, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		while template_file and template_file [0] == "/":
@@ -213,22 +236,27 @@ class Saddle (part.Part):
 			
 	def get_method (self, path_info, command = None, content_type = None, authorization = None):		
 		current_app, method = self, None
-		
 		with self.lock:
+			if self.use_reloader:
+				self.check_reload ()
+				
 			try:
 				method, options = self.cached_paths [path_info]
+				kargs = {}
 			except KeyError:
-				ind = 0
-				for rulepack, freg, options in self.cached_rules:
-					method, kargs = self.try_rule (path_info, rulepack)
-					if method:						
-						self.cached_rules [ind][1] += 1
+				ind = 0				
+				for rulepack, _method, _options in self.cached_rules:
+					_found, _kargs = self.try_rule (path_info, rulepack [0], rulepack [1])
+					if _found:
+						method = _method
+						kargs = _kargs
+						options = _options
 						break
-					ind += 1					
-								
+					ind += 1
+									
 		if not method:
 			if self.use_reloader:
-				self.lock.acquire ()																
+				self.lock.acquire ()
 			try:	
 				current_app, method, kargs, options, match, matchtype = self.get_package_method (path_info, command, content_type, authorization, self.use_reloader)
 			finally:	
@@ -248,10 +276,9 @@ class Saddle (part.Part):
 								
 				elif matchtype == 2:
 					with self.lock:
-						self.cached_rules.append ([match, 1, options])
-						if time.time () - self.cache_sorted > 300:
-							self.cached_rules.sort (key = lambda x: x[1], reverse = True)
-							self.cache_sorted = time.time ()
+						self.cached_rules.append ([match, method, options])
+						# sort by length of rule desc
+						self.cached_rules.sort (key = lambda x: len (x [0][-1][-2]), reverse = True)
 		
 		resp_code = 0
 		if options:
@@ -262,7 +289,7 @@ class Saddle (part.Part):
 			if allowed and content_type not in allowed:
 				return current_app, None, None, 415 # unsupported media type
 			resp_code = options.get ("authenticate", False) and 401 or 0
-									
+				
 		return current_app, method, kargs, resp_code
 	
 	def restart (self, wasc, route):

@@ -1379,6 +1379,14 @@ Flask and other WSGI container have their own way to handle request. So If you c
 
 And note below objects and methods *ARE NOT WORKING* in any other WSGI containers except Saddle.
 
+Before you begin, recommended Saddle App's directory structure is like this:
+
+- app.py: File, Main app
+- appack: Directory, Module package for helping app like config.py, model.py etc...
+- static: Directory, Static file like css, js, images. This directory should be mounted
+- templates: Directory, Jinaja and Chameleon template files
+- resources: Directory, Various files as app need like sqlite db file. In you app, you use these files, you can use relative path like os.path.join ('resources', ...), because app's working directory will always location of app.py
+
 
 Access Saddle App
 ------------------
@@ -1422,7 +1430,13 @@ If use_reloader is True, Skito-Saddle will detect file changes and reload app au
   app = Saddle (__name__)
   app.debug = True # output exception information
   app.use_reloader = True # auto realod on file changed
+
+
+Reloading App Package
+-----------------------
   
+If app.use_reloader is True, all module of appack - sub package directory of app.py - will be reloaded automatically if file is modified.
+
 
 Routing
 --------
@@ -2705,7 +2719,9 @@ Change Log
   
   - 0.26
     
-    - was.request.json ()
+    - fix route caching
+    - auto reload sub modules in appack directory, if app.use_reloader = True
+    - new was.request.json ()
     - integrated with skitaid package, single app file can contain all configure options
     - level down developement status to alpha
     - fix sqlite3 closing
