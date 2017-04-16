@@ -30,6 +30,9 @@ class Module:
 		self.update_file_info ()
 		func = None
 		app = getattr (self.module, self.appname)
+		if hasattr (app, "set_home"):
+			app.set_home (os.path.dirname (self.abspath))
+			
 		try:			
 			if not reloded:
 				func = app.start 
@@ -44,9 +47,6 @@ class Module:
 			func (self.wasc, self.route)
 			self.wasc.handler = None
 		
-		if hasattr (app, "set_home"):
-			app.set_home (os.path.dirname (self.abspath))
-	
 	def cleanup (self):
 		try: getattr (self.module, self.appname).cleanup ()
 		except AttributeError: pass

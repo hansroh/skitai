@@ -1383,9 +1383,9 @@ Before you begin, recommended Saddle App's directory structure is like this:
 
 - app.py: File, Main app
 - appack: Directory, Module package for helping app like config.py, model.py etc...
-- static: Directory, Static file like css, js, images. This directory should be mounted
+- static: Directory, Static file like css, js, images. This directory would be mounted for using
 - templates: Directory, Jinaja and Chameleon template files
-- resources: Directory, Various files as app need like sqlite db file. In you app, you use these files, you can use relative path like os.path.join ('resources', ...), because app's working directory will always location of app.py
+- resources: Directory, Various files as app need like sqlite db file. In you app, you use these files, you can access file in resources by app.get_resource ("db", "sqlite3.db") like os.path.join manner.
 
 
 Access Saddle App

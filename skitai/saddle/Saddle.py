@@ -94,6 +94,9 @@ class Saddle (part.Part):
 	def get_file_info (self, module):
 		stat = os.stat (module.__file__)
 		return stat.st_mtime, stat.st_size
+	
+	def get_resource (self, *args):
+		return os.path.join (self.home, "resources", *args)
 		
 	def set_home (self, path):
 		self.home = path
