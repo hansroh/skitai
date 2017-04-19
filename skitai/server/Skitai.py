@@ -209,17 +209,25 @@ class Loader:
 			
 	def install_handler (self, 
 			routes = [], 
-			proxy = False, static_max_age = 300, 
-			blacklist_dir = None, unsecure_https = False, 
+			proxy = False, 
+			static_max_ages = None, 
+			blacklist_dir = None, 
+			unsecure_https = False, 
 			enable_apigateway = False,
 			apigateway_authenticate = False, 
 			apigateway_realm = "API Gateway",
 			apigateway_secret_key = None
 		):
-		if routes	and type (routes) is not list:
-			routes = [routes]
-		if routes and type (routes [0]) is tuple:
-			routes = self.install_handler_with_tuple (routes)
+		
+		if routes:
+			if type (routes) is dict:
+				routes = self.install_handler_with_tuple (routes)
+			else:
+				if type (routes) is not list:
+					routes = [routes]
+				if type (routes [0]) is tuple:
+					routes = self.install_handler_with_tuple (routes)
+
 		if blacklist_dir:
 			self.wasc.add_handler (0, ipbl_handler.Handler, blacklist_dir)
 		if proxy:			
@@ -228,7 +236,7 @@ class Loader:
 		vh = self.wasc.add_handler (
 			1, vhost_handler.Handler, 
 			self.wasc.clusters, self.wasc.cachefs, 
-			static_max_age, 
+			static_max_ages, 
 			enable_apigateway, apigateway_authenticate, apigateway_realm, apigateway_secret_key
 		)
 		

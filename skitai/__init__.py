@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26b18"
+__version__ = "0.26b24"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -33,6 +33,10 @@ WS_OPCODE_PING = 0x9
 WS_OPCODE_PONG = 0xa
 
 from aquests.dbapi import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
+PROTO_HTTP = "http"
+PROTO_HTTPS = "https"
+PROTO_WS = "ws"
+PROTO_WSS = "wss"
 
 class _WASPool:
 	def __init__ (self):
@@ -91,12 +95,93 @@ def start_was (wasc):
 	global was
 	was._start (wasc)
 
+
+#------------------------------------------------
+# Configure
+#------------------------------------------------
+dconf = {'mount': {"default": []}, 'clusters': {}, 'cron': [], 'max_ages': {}}
+def set_max_age (self, path, maxage = 300):
+	global dconf
+	dconf ["max_ages"][path] = max_age
+
+def set_max_rcache (self, objmax = 300):
+	global dconf
+	dconf ["rcache_objmax"] = objmax
+	
+def mount (point, target, appname = None):
+	global dconf
+	if appname:
+		app = (target, appname)
+	else:
+		app = target
+	dconf ['mount']["default"].append ((point, app))
+
+def vmount (vhost, point, target, appname = None):
+	global dconf
+	if appname:
+		app = (target, appname)
+	else:
+		app = target
+	if vhost not in dconf ['mount']:
+		dconf ['mount'][vhost] = []
+	dconf ['mount'][vhost].append ((point, app))	
+	
+def cron (sched, cmd):
+	global dconf
+	dconf ["cron"].append ('%s %s' % (sched, cmd))
+
+def alias (name, ctype, members, role = "", source = "", ssl = False):
+	from .server.rpc.cluster_manager import AccessPolicy
+	global dconf	
+	if name [0] == "@":
+		name = name [1:]	
+	policy = AccessPolicy (role, source)
+	args = (ctype, members, policy, ssl)
+	dconf ["clusters"][name] = args	
+	
+def enable_gateway (enable_auth = False, secure_key = None, realm = "Skitai API Gateway"):
+	global dconf
+	dconf ["enable_gw"] = True
+	dconf ["gw_auth"] = enable_auth,
+	dconf ["gw_realm"] = realm,
+	dconf ["gw_secret_key"] = secure_key
+
+def enable_cachefs (path = None, memmax = 0, diskmax = 0):
+	global dconf	
+	dconf ["cachefs_dir"] = path
+	dconf ["cachefs_memmax"] = memmax
+	dconf ["cachefs_diskmax"] = diskmax	
+				
+def enable_proxy (unsecure_https = False):
+	global dconf
+	dconf ["proxy"] = True
+	dconf ["proxy_unsecure_https"] = unsecure_https
+
+def enable_blacklist (path):
+	global dconf
+	dconf ["blacklist_dir"] = path
+
+def enable_ssl (certfile, keyfile, passphrase):
+	global dconf			
+	dconf ["certfile"] = certfile
+	dconf ["keyfile"] = keyfile
+	dconf ["passphrase"] = passphrase
+	
+def enable_smtpda (server = None, user = None, password = None, ssl = None, max_retry = None, keep_days = None):
+	global dconf
+	smtpda = {}
+	if server: smtpda ["user"] = user
+	if password: smtpda ["password"] = password
+	if ssl: smtpda ["ssl"] = ssl
+	if max_retry: smtpda ["max-retry"] = max_retry
+	if keep_days: smtpda ["keep-days"] = keep_days
+	dconf ["smtpda"] = smtpda
+
 def run (**conf):
 	import os, sys, time
 	from . import lifetime
 	from .server import Skitai	
-	from .server.wastuff import process, daemon
-	from .server.rpc.cluster_manager import AccessPolicy
+	from .server.wastuff import process, daemon	
 	from aquests.lib import flock
 	import getopt
 		
@@ -210,51 +295,38 @@ def run (**conf):
 			if smtpda is not None:
 				self.create_process ('smtpda', [], smtpda)			
 			cron = conf.get ('cron')
-			if cron is not None:
+			if cron:
 				self.create_process ('cron', cron, {})
 			
 			self.set_num_worker (conf.get ('workers', 1))
 			if conf.get ("certfile"):
 				self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
-			self.config_cachefs ()
-			self.config_rcache (100)
+			self.config_cachefs (
+				conf.get ("cachefs_dir", None), 
+				conf.get ("cachefs_memmax", 0),
+				conf.get ("cachefs_diskmax", 0)				
+			)
+			self.config_rcache (conf.get ("rcache_objmax", 100))
 			self.config_webserver (
 				conf.get ('port', 5000), conf.get ('address', '0.0.0.0'),
 				"Skitai Server", conf.get ("certfile") is not None,
 				5, 10
 			)
-			
 			if os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
 				# master does not work
 				return
 			
 			self.config_threads (conf.get ('threads', 4))						
-			for name, args in conf.get ("clusters", {}).items ():
-				if name [0] == "@":
-					name = name [1:]
-
-				policy = None
-				ssl = 0
-				if len (args) == 4:
-					ctype, members, access, ssl = args
-					if access:
-						policy = AccessPolicy (
-							access.get ("role", ""), 
-							access.get ("source", "")
-						)						
-				elif len (args) == 3:
-					ctype, members, access = args
-				else:
-					ctype, members = args
-				
+			for name, args in conf.get ("clusters", {}).items ():				
+				ctype, members, policy, ssl = args
 				self.add_cluster (ctype, name, members, ssl, policy)
 			
 			self.install_handler (
 				conf.get ("mount"), 
 				conf.get ("proxy", False),
-				conf.get ("static_max_age", 300),
-				None, # blacklistdir
-				False, # disable unsecure https
+				conf.get ("max_ages", {}),
+				conf.get ("blacklist_dir"), # blacklist_dir
+				conf.get ("proxy_unsecure_https", False), # disable unsecure https
 				conf.get ("enable_gw", False), # API gateway
 				conf.get ("gw_auth", False),
 				conf.get ("gw_realm", "API Gateway"),
@@ -265,6 +337,13 @@ def run (**conf):
 			if os.name == "nt":				
 				lifetime.maintern.sched (10.0, self.maintern_shutdown_request)
 				self.flock = flock.Lock (os.path.join (self.get_varpath (), ".%s" % self.NAME))
+	
+	
+	global dconf
+	
+	for k, v in dconf.items ():
+		if k not in conf:
+			conf [k] = v
 				
 	if not conf.get ('mount'):
 		raise ValueError ('Dictionary mount {mount point: path or app} required')

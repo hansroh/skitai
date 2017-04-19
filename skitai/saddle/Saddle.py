@@ -64,7 +64,7 @@ class Saddle (part.Part):
 	
 	def skito_jinja (self):
 		self.jinja_overlay ("${", "}", "<%", "%>", "<!---", "--->")
-					
+
 	def jinja_overlay (
 		self, 
 		variable_start_string = "{{",

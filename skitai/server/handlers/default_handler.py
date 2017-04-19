@@ -31,9 +31,14 @@ class Handler:
 		'index.html'
 		]
 		
-	def __init__ (self, wasc, pathmap = {}, max_age = 300, alt_handlers = []):
+	def __init__ (self, wasc, pathmap = {}, max_ages = None, alt_handlers = []):
 		self.wasc = wasc
-		self.max_age = max_age
+		
+		self.max_ages = []
+		if max_ages:
+			self.max_ages = [(k, v[-1] == "/" and v [:-1] or v) for k, v in max_ages.items ()]
+			self.max_ages.sort (key = lambda x: len (x), reverse = True)
+		
 		self.alt_handlers = alt_handlers
 		self.permit_cache = {}
 		self.filesystem = filesys.mapped_filesystem ()
@@ -164,14 +169,15 @@ class Handler:
 			return
 
 		request.response ['Content-Length'] = file_length
+		max_age = self.max_ages and self.get_max_age (path) or 0
 		if request.version == "1.0":
-			request.response ['Last-Modified'] = http_date.build_http_date (mtime)
-			if self.max_age:
-				request.response ['Expires'] = http_date.build_http_date (mtime + self.max_age)
+			request.response ['Last-Modified'] = http_date.build_http_date (mtime)			
+			if max_age:
+				request.response ['Expires'] = http_date.build_http_date (mtime + max_age)
 		else:
 			request.response ['Etag'] = '"' + etag + '"'
-			if self.max_age:
-				request.response ['Cache-Control'] = "max-age=%d" % self.max_age		
+			if max_age:
+				request.response ['Cache-Control'] = "max-age=%d" % max_age		
 		self.set_content_type (path, request)
 
 		if request.command == 'get':
@@ -179,6 +185,11 @@ class Handler:
 			
 		request.response.done()
 	
+	def get_max_age (self, path):
+		for prefix, value in self.max_ages:
+			if path.startswith (prefix + "/"):
+				return value
+		
 	def make_etag (self, file_length, mtime):
 		return md5 (("%d:%d" % (file_length, int (mtime))).encode ("utf8")).hexdigest()
 	

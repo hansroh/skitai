@@ -5,7 +5,7 @@ from .. import wsgi_apps
 import os
 
 class VHost:
-	def __init__ (self, wasc, clusters, cachefs, static_max_age, enable_apigateway, apigateway_authenticate, apigateway_realm, apigateway_secret_key):
+	def __init__ (self, wasc, clusters, cachefs, static_max_ages, enable_apigateway, apigateway_authenticate, apigateway_realm, apigateway_secret_key):
 		self.wasc = wasc
 		self.clusters = clusters
 		self.cachefs = cachefs
@@ -22,7 +22,7 @@ class VHost:
 			alternative_handlers = [self.proxypass_handler]			
 		alternative_handlers.append (websocket_handler.Handler (self.wasc, self.apps))
 		alternative_handlers.append (wsgi_handler.Handler (self.wasc, self.apps))
-		self.default_handler = default_handler.Handler (self.wasc, {}, static_max_age, alternative_handlers)		
+		self.default_handler = default_handler.Handler (self.wasc, {}, static_max_ages, alternative_handlers)		
 		self.handlers.append (http2_handler.Handler (self.wasc, self.default_handler))
 		
 	def close (self):	

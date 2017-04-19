@@ -88,12 +88,12 @@ Basic Usage
   
     import skitai
     
+    skitai.mount ('/', app)
     skitai.run (
     	address = "127.0.0.1",
-    	port = 5000,
-      mount = ('/', app)
+    	port = 5000      
     )
-
+    
 At now, run this code from console.
 
 .. code-block:: bash
@@ -105,13 +105,12 @@ You can access this WSGI app by visiting http://127.0.0.1:5000/.
 If you want to allow access to your public IPs, or specify port:
 
 .. code:: python
-
+  
+  skitai.mount ('/', app)
   skitai.run (
     address = "0.0.0.0",
-    port = 5000,
-    mount = ('/', app)
+    port = 5000
   )
-
 
 Logging and Console Displaying
 --------------------------------
@@ -119,11 +118,11 @@ Logging and Console Displaying
 If you do not specify log file path, all logs will be displayed in console, bu specifed all logs will be written into file.
 
 .. code:: python
-
+  
+  skitai.mount ('/', app)
   skitai.run (
     address = "0.0.0.0",
-    port = 5000,
-    mount = ('/', app),
+    port = 5000,    
     logpath = '/var/logs/skitai'
   )
 
@@ -142,9 +141,9 @@ If you want to change number of threads for handling WSGI app:
 
 .. code:: python
 
+  skitai.mount ('/', app)
   skitai.run (
-    threads = 8,
-    mount = ('/', app)
+    threads = 8
   )
 
 
@@ -154,10 +153,10 @@ Run with Single-Thread
 If you want to run Skitai with entirely single thread,
 
 .. code:: python
-
+  
+  skitai.mount ('/', app)
   skitai.run (
-    threads = 0,
-    mount = ('/', app)
+    threads = 0
   )
 
 This features is limited by your WSGI container. If you use Skito-Saddle container, you can run with single threading mode by using Skito-Saddle's async streaming response method. But you don't and if you have plan to use Skitai 'was' requests services, you can't single threading mode and you SHOULD run with multi-threading mode.
@@ -172,12 +171,12 @@ Here's three WSGI app samples:
   
   #WSGI App
 
-  def app (env, start_response):
+  def app1 (env, start_response):
     start_response ("200 OK", [("Content-Type", "text/plain")])
     return ['Hello World']
     
-  app.use_reloader = True
-  app.debug = True
+  app1.use_reloader = True
+  app1.debug = True
 
 
   # Flask App*
@@ -212,15 +211,82 @@ Then place this code at bottom of above WSGI app.
   
     import skitai
     
-    skitai.run (
-      mount = [
-        ('/', (__file__, 'app')), # mount WSGI app
-        ('/flask', (__file__, 'app2')), # mount Flask app
-        ('/skitai', (__file__, 'app3')), # mount Skitai app
-        ('/', '/var/www/test/static') # mount static directory
-      ]
-    )
+    skitai.mount ('/t1', __file__, 'app1')
+    skitai.mount ('/t2', __file__, 'app2')
+    skitai.mount ('/t3', __file__, 'app3')
+    skitai.mount ('/', 'static')
+    skitai.run ()
 
+These feaure can used for managing version. 
+
+Let's assume initail version of app file is app_v1.py.
+
+.. code:: python  
+
+  app = Saddle (__name__)
+    
+  @app.route('/')
+  def index (was):	 
+    return "Hello World Ver.1"
+
+And in same directory 2nd version of app file is app_v2.py.
+
+.. code:: python  
+
+  app = Saddle (__name__)
+      
+  @app.route('/')
+  def index (was):	 
+    return "Hello World Ver.2"
+  
+Now service.py is like this:
+
+.. code:: python
+
+  import skitai
+    
+  skitai.mount ('/', 'static')
+  skitai.mount ('/v1', 'app_v1')  
+  skitai.mount ('/v2', 'app_v2')
+  skitai.run ()
+
+Then run with:
+
+.. code:: bash
+
+  python service.py
+  
+  
+You can access ver.1 by http://127.0.0.1:5009/v1/ and vwe.2 by http://127.0.0.1:5009/v2/.
+
+Note: Above 3 files is in the same directory and then both share templates directory. If you intend to seperate from app_v1 and app_v2, you should seperate app with directory like this:
+
+
+.. code:: bash
+
+  service.py
+
+  app_v1/app.py
+  app_v1/templates
+  app_v1/static
+
+  app_v2/app.py
+  app_v2/templates
+  app_v2/static
+
+
+and your service.py:
+
+.. code:: python
+
+  import skitai
+  
+  skitai.mount ('/v1', 'app_v1/static'),
+  skitai.mount ('/v1', 'app_v1/app'),
+  skitai.mount ('/v2', 'app_v2/static'),
+  skitai.mount ('/v2', 'app_v2/app')        
+  skitai.run ()
+   
 
 Mounting With Virtual Host
 -------------------------------
@@ -230,50 +296,182 @@ Mounting With Virtual Host
   if __name__ == "__main__": 
   
     import skitai
+    skitai.vmount ('www.site1.com', '/', 'site1.py')
+    skitai.vmount ('www.site2.com', '/', 'site2.py')
+    skitai.run ()
     
-    skitai.run (
-      mount = {
-      	'www.site1.com': [('/', '/var/wsgi/site1.py')],
-      	'www.site2.com': [('/', '/var/wsgi/site2.py')]        
-      }
-    )
     
 Enabling Proxy Server
 ------------------------
 
 .. code:: python
+  
+  skitai.enable_proxy ()
+  skitai.mount ('/', app)
+  skitai.run ()
 
-  skitai.run (
-    mount = ('/', app),
-    proxy = True
-  )
+Adding Server(s) Alias
+------------------------
 
-Adding Server Alias or Groups
------------------------------
+Cluster should be defined like this: (alias_type, servers, role = "", source = "", ssl = False).
 
-Cluster should be defined like this: (cluster_type, servers, [access_conrol, ssl]).
+- alias_type: available database or protocol types are:
 
-- cluster_type: one of 'http', 'https', skitai.DB_POSTGRESQL, skitai.DB_PGSQL, skitai.DB_SQLITE3, skitai.DB_REDIS, skitai.DB_MONGODB
+  - PROTO_HTTP
+  - PROTO_HTTPS
+  - PROTO_WS: websocket
+  - PROTO_WSS: SSL websocket
+  - DB_PGSQL
+  - DB_SQLITE3
+  - DB_REDIS
+  - DB_MONGODB
+
 - server: single or server list
-- access_conrol: it is valid only when cluster_type is http or https for controlling API access, and should be dictinary has theses one of these keys: source and role
-- ssl: use SSL connection or not, 'https' use SSL defaultly
+- role (optional): it is valid only when cluster_type is http or https for controlling API access
+- source (optional): comma seperated ipv4/mask
+- ssl (optional): use SSL connection or not, PROTO_HTTPS and PROTO_WSS use SSL defaultly
+
+.. code:: python
+  
+  skitai.mount ('/', app)
+  skitai.alias (
+    '@members', skitai.PROTO_HTTP, "members.example.com", 
+    role = 'admin', source = '172.30.1.0/24,192.168.1/24'  
+  )
+  skitai.alias (
+    '@mysqlite3', skitai.DB_SQLITE3, ["/var/tmp/db1", "/var/tmp/db2"]
+  )  
+  skitai.run ()
+
+Run as HTTPS Server
+------------------------
+
+To genrate self-signed certification file:
 
 .. code:: python
 
-  skitai.run (
-    clusters = {
-     "@members": (
-       "https", 
-       "members.example.com", 
-       {'source': '172.30.1.0/24,192.168.1/24', 'role': 'admin'}
-     ),
-     "@mysqlite3": (
-       skitai.DB_SQLITE3, 
-       ["/var/tmp/db1", "/var/tmp/db2"]
-     )
-    },
-    mount = [('/', app)]  
+    openssl req -new -newkey rsa:2048 -x509 -keyout server.pem -out server.pem -days 365 -nodes
+
+
+.. code:: python
+  
+  skitai.mount ('/', app)
+  skitai.enable_ssl ('server.pem', 'key.pem', 'your pass phrase')
+  skitai.run ()
+
+
+About Mount Point & App Routing
+--------------------------------
+
+If app is mounted to '/flaskapp',
+
+.. code:: python
+   
+  from flask import Flask    
+  app = Flask (__name__)       
+  
+  @app.route ("/hello")
+  def hello ():
+    return "Hello"
+
+Above /hello can called, http://127.0.0.1:5000/flaskapp/hello
+
+Also app should can handle mount point. 
+In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Skito-Saddle can handle obiously. But I don't know other WSGI containers will work properly.
+
+
+SMTP Delivery Agent
+---------------------
+
+*New in version 0.26*
+
+e-Mail sending service is executed seperated system process not threading. Every e-mail is temporary save to file system, e-Mail delivery process check new mail and will send. So there's possibly some delay time.
+
+You can send e-Mail in your app like this:
+
+.. code:: python
+
+    # email delivery service
+    e = was.email (subject, snd, rcpt)
+    e.set_smtp ("127.0.0.1:465", "username", "password", ssl = True)
+    e.add_content ("Hello World<div><img src='cid:ID_A'></div>", "text/html")
+    e.add_attachment (r"001.png", cid="ID_A")
+    e.send ()
+
+With asynchronous email delivery service, can add default SMTP Server. If it is configured, you can skip e.set_smtp(). But be careful for keeping your smtp password.
+
+.. code:: python
+  
+  skitai.enable_smtpda (
+    '127.0.0.1:25', 'user', 'password', 
+    ssl = False, max_retry = 10, keep_days = 3
   )
+  skitai.mount ('/', app)
+  skitai.run ()
+
+All e-mails are saved into *varpath* and varpath is not specified default is /var/temp/skitai
+
+
+Batch Task Scheduler
+--------------------
+
+*New in version 0.26*
+
+Sometimes app need batch tasks for minimum response time to clients. At this situateion, you can use taks scheduling tool of OS - cron, taks scheduler - or can use Skitai's batch task scheduling service for consistent app management.
+
+.. code:: python
+  
+  skitai.cron ("*/2 */2 * * *", "/home/apps/monitor.py  > /home/apps/monitor.log 2>&1")
+  skitai.cron ("9 2/12 * * *", "/home/apps/remove_pended_files.py > /dev/null 2>&1")
+  skitai.mount ('/', app)  
+  skitai.run ()
+  
+Taks configuarion is very same with posix crontab.
+
+
+Enable Cache File System
+------------------------------
+
+If you make massive HTTP requests, you can cache contents by HTTP headers - Cache-Control and Expires
+
+.. code:: python
+  
+  skitai.enable_cachefs (path = '/var/skitai/cache', memmax = 0, diskmax = 0)
+  skitai.mount ('/', app)
+  skitai.run ()
+ 
+ 
+Configure Max Age For Static Files
+--------------------------------------
+  
+You can set max-age for static files' respone header like,
+
+..code:: bash
+
+  Cache-Control: max-age=300
+  Expires: Sun, 06 Nov 2017 08:49:37 GMT
+
+If max-age is only set to "/", applied to all files. But you can specify it to any sub directories.
+
+.. code:: python
+
+  skitai.mount ('/', 'static')
+  skitai.set_max_age ("/", 300)
+  skitai.set_max_age ('/js', 0)
+  skitai.set_max_age ('/images', 3600)
+  skitai.run ()
+
+
+Enable Cache File System
+------------------------------
+
+If you make massive HTTP requests, you can cache contents by HTTP headers - Cache-Control and Expires
+
+.. code:: python
+  
+  skitai.enable_cachefs (path = '/var/skitai/cache', memmax = 0, diskmax = 0)
+  skitai.mount ('/', app)
+  skitai.run ()
 
 
 Enabling API Gateway Server
@@ -318,20 +516,18 @@ Using Skitai's reverse proxy feature, it can be used as API Gateway Server. All 
   if __name__ == "__main__":
     import skitai
     
-    skitai.run (
-      clusters = {
-       "@members": ("https", "members.example.com"),
-       "@photos": ("http", ["photos1.example.com", "photos2.example.com"]) # for load-balancing
-      },
-      mount = [
-        ('/', app),
-        ('/members', '@members'),
-        ('/photos', '@photos')
-      ],
-        enable_gw = True
-        gw_auth = True,
-        gw_secret_key = "8fa06210-e109-11e6-934f-001b216d6e71"
+    skitai.alias (
+      '@members', 'https', "members.example.com", 
+      role = 'admin', source = '172.30.1.0/24,192.168.1/24'  
     )
+    skitai.alias (
+      '@photos', skitai.DB_SQLITE3, ["/var/tmp/db1", "/var/tmp/db2"]
+    )
+    skitai.mount ('/', app)
+    skitai.mount ('/members', '@members')
+    skitai.mount ('/photos', '@photos')      
+    skitai.enable_gateway (True, "8fa06210-e109-11e6-934f-001b216d6e71")
+    skitai.run ()
     
 Gateway use only bearer tokens like OAuth2 and JWT(Json Web Token) for authorization. And token issuance is at your own hands. But JWT creation, 
 
@@ -376,103 +572,6 @@ You can query for getting user information to database engines asynchronously. H
       was.mongodb (
         "@my-mongodb", "mydb", callback = (self.handle_user, (handler, request))
       ).findone ('tokens', {"token": request.token})
-
-
-Run as HTTPS Server
-------------------------
-
-To genrate self-signed certification file:
-
-.. code:: python
-
-    openssl req -new -newkey rsa:2048 -x509 -keyout server.pem -out server.pem -days 365 -nodes
-
-
-.. code:: python
-
-  skitai.run (
-    mount = ('/', app),
-    certfile = '/var/www/certs/server.pem' # combined certification with private key
-    passphrase = 'your pass phrase'
-  )
-
-
-About Mount Point & App Routing
---------------------------------
-
-If app is mounted to '/flaskapp',
-
-.. code:: python
-   
-  from flask import Flask    
-  app = Flask (__name__)       
-  
-  @app.route ("/hello")
-  def hello ():
-    return "Hello"
-
-Above /hello can called, http://127.0.0.1:5000/flaskapp/hello
-
-Also app should can handle mount point. 
-In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Skito-Saddle can handle obiously. But I don't know other WSGI containers will work properly.
-
-
-SMTP Delivery Agent
----------------------
-
-*New in version 0.26*
-
-e-Mail sending service is executed seperated system process not threading. Every e-mail is temporary save to file system, e-Mail delivery process check new mail and will send. So there's possibly some delay time.
-
-You can send e-Mail in your app like this:
-
-.. code:: python
-
-    # email delivery service
-    e = was.email (subject, snd, rcpt)
-    e.set_smtp ("127.0.0.1:465", "username", "password", ssl = True)
-    e.add_content ("Hello World<div><img src='cid:ID_A'></div>", "text/html")
-    e.add_attachment (r"001.png", cid="ID_A")
-    e.send ()
-
-With asynchronous email delivery service, can add default SMTP Server. If it is configured, you can skip e.set_smtp(). But be careful for keeping your smtp password.
-
-.. code:: python
-
-  skitai.run (
-    mount = ('/', app),
-    smtpda = {			
-			'max-retry': 10,
-			'keep-days': 30,
-			'smtpserver': '127.0.0.1:25',
-			'user': 'user',
-			'password': 'password',
-			'ssl': 1
-    },
-    varpath = '/var/skitai'
-  )
-
-All e-mails are saved into *varpath* and varpath is not specified default is /var/temp/skitai
-
-
-Batch Task Scheduler
---------------------
-
-*New in version 0.26*
-
-Sometimes app need batch tasks for minimum response time to clients. At this situateion, you can use taks scheduling tool of OS - cron, taks scheduler - or can use Skitai's batch task scheduling service for consistent app management.
-
-.. code:: python
-
-  skitai.run (
-    mount = ('/', app),
-    cron = [
-	    "*/2 */2 * * * /home/apps/monitor.py  > /home/apps/monitor.log 2>&1",
-	    "9 2/12 * * * /home/apps/remove_pended_files.py > /dev/null 2>&1"    		
-    ]
-  )
-  
-Taks configuarion is very same with posix crontab.
 
 
 Skitai with Nginx / Squid
@@ -831,11 +930,20 @@ If you getwait with reraise argument, code can be simple.
   content = s.getswait (2, reraise = True).data
   s.cache (60)
 
-Please remember cache () method is both available request and result objects.
+Please note cache () method is both available request and result objects.
 
-For expiring cached result by updating new data:
+You can control number of caches by your system memory before running app.
+
+.. code:: python
+  
+  skitai.set_max_rcache (300)
+  skitai.mount ('/', app)
+  skitai.run ()
+
 
 *New in version 0.14.9*
+
+For expiring cached result by updating new data:
 
 .. code:: python
   
@@ -1381,6 +1489,7 @@ And note below objects and methods *ARE NOT WORKING* in any other WSGI container
 
 Before you begin, recommended Saddle App's directory structure is like this:
 
+- service.py: Skitai runner
 - app.py: File, Main app
 - appack: Directory, Module package for helping app like config.py, model.py etc...
 - static: Directory, Static file like css, js, images. This directory would be mounted for using
@@ -1908,8 +2017,6 @@ For using Chameleon_ template engine, you just make template file extention with
 .. code:: python
     
   return was.render ("index.ptal", choice = 2, product = "Apples")
-
-Note: Chameleon 3.0 - current latest version has a problem to using with Vue.js javascript renderer related XML namespace, so tiny modifications were added. Please refer skitai/saddle/chameleonpatch.py.
 
 
 Access Cookie
@@ -2718,7 +2825,7 @@ Change Log
   0.26 (Apr 2017)
   
   - 0.26
-    
+        
     - fix route caching
     - auto reload sub modules in appack directory, if app.use_reloader = True
     - new was.request.json ()
