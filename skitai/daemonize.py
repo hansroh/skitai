@@ -2,10 +2,10 @@ import os
 import sys
 
 class Daemonizer:
-	def __init__(self, chdir="/", umask=0o22, pidfile = None):
+	def __init__(self, chdir="/", umask=0o22):
 		self.chdir = chdir
 		self.umask = umask
-		self.pidfile = pidfile
+		self.pidfile = os.path.join (chdir, '.pid')
 		
 	def runAsDaemon(self):
 		self.fork_and_die()
@@ -16,7 +16,7 @@ class Daemonizer:
 		sys.stderr.flush()
 		self.attach_stream('stdin', 'r')
 		self.attach_stream('stdout', 'a+')
-		self.attach_stream('stderr', 'a+', '/home/ubuntu/err')
+		self.attach_stream('stderr', 'a+')
 		
 	def dettach_env (self):
 		os.setsid()
@@ -50,6 +50,5 @@ if __name__ == "__main__"	:
 		f.write ('asdkljaldjalkdjalkdsa\n')
 		f.flush()
 	f.close ()
-		
-		
+
 		

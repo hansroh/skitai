@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26b24"
+__version__ = "0.26b26"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -348,17 +348,32 @@ def run (**conf):
 	if not conf.get ('mount'):
 		raise ValueError ('Dictionary mount {mount point: path or app} required')
 	
+	working_dir = os.path.dirname (os.path.join (os.getcwd (), sys.argv [0]))
+		
 	argopt = getopt.getopt(sys.argv[1:], "vds", [])
 	karg = {}
 	for k, v in argopt [0]:
 		karg [k] = v
 	
-	working_dir = os.path.dirname (os.path.join (os.getcwd (), sys.argv [0]))
-	if '-d' in karg:
+	try: cmd = argopt [1][0]
+	except: cmd = None	
+		
+	if cmd == "stop":
+		import signal
+		pidfile = os.path.join (working_dir, '.pid')
+		if not os.path.isfile (pidfile):
+			raise SystemError ('Cannot find process')
+		with open (pidfile, "r") as f:
+			pid = int (f.read ())
+		os.kill (pid, signal.SIGTERM)
+		os.remove (pidfile)
+		return
+
+	if cmd == "start" or '-d' in karg:
 		if os.name == "nt":
-			raise SystemError ('daemonizing not supported')
+			raise SystemError ('Daemonizing not supported')
 		if '-v' in karg:
-			raise SystemError ('-d option cannot be with -v, it is meaningless')
+			raise SystemError ('Daemonizer cannot be run with -v, It is meaningless')
 		from .daemonize import Daemonizer
 		Daemonizer (working_dir).runAsDaemon ()
 		
@@ -378,12 +393,12 @@ def run (**conf):
 	else:
 		os.chdir (working_dir)
 		if verbose:
-			conf ['verbose'] = 'yes'		
+			conf ['verbose'] = 'yes'
 		server = SkitaiServer (conf)
 		# timeout for fast keyboard interrupt on win32	
 		try:
 			try:
-				server.run (os.name == "nt"  and conf.get ('verbose') and 2.0 or 30.0)
+				server.run (conf.get ('verbose') and 2.0 or 30.0)
 			except KeyboardInterrupt:
 				pass	
 		

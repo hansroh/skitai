@@ -114,6 +114,7 @@ def loop (timeout = 30.0):
 	try: 
 		lifetime_loop(timeout)
 	except KeyboardInterrupt:
+		_shutdown_timeout = 1
 		graceful_shutdown_loop()
 	else:
 		graceful_shutdown_loop()	
@@ -154,7 +155,3 @@ def graceful_shutdown_loop ():
 		else:
 			_shutdown_phase += 1
 			timestamp = time.time()
-
-
-
-
