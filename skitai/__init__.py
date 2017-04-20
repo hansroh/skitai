@@ -350,7 +350,7 @@ def run (**conf):
 	
 	working_dir = os.path.dirname (os.path.join (os.getcwd (), sys.argv [0]))
 		
-	argopt = getopt.getopt(sys.argv[1:], "vds", [])
+	argopt = getopt.getopt(sys.argv[1:], "vdf", [])
 	karg = {}
 	for k, v in argopt [0]:
 		karg [k] = v
@@ -381,9 +381,10 @@ def run (**conf):
 	if '-v' in karg or conf.get ('logpath') is None:
 		verbose = 1
 	
-	if "-s" in karg:
-		from . import skitaid
-		skitaid.Service (
+	if "-f" in karg:
+		# failsafe run
+		from . import failsafer
+		failsafer.Service (
 			"%s %s %s" % (sys.executable, os.path.join (os.getcwd (), sys.argv [0]), verbose and '-v' or ''),
 			conf.get ('logpath'),
 			conf.get ('varpath'),

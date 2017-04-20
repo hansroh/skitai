@@ -1,9 +1,3 @@
-#!/usr/bin/python3
-# 2014. 12. 9 by Hans Roh hansroh@gmail.com
-
-__version__ = "0.8.8.1"
-version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
-
 import sys
 import subprocess
 import os		
