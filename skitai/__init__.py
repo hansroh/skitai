@@ -348,17 +348,26 @@ def run (**conf):
 	if not conf.get ('mount'):
 		raise ValueError ('Dictionary mount {mount point: path or app} required')
 	
-	argopt = getopt.getopt(sys.argv[1:], "vs", [])
+	argopt = getopt.getopt(sys.argv[1:], "vds", [])
 	karg = {}
 	for k, v in argopt [0]:
 		karg [k] = v
 	
+	working_dir = os.path.dirname (os.path.join (os.getcwd (), sys.argv [0]))
+	if '-d' in karg:
+		if os.name == "nt":
+			raise SystemError ('daemonizing not supported')
+		if '-v' in karg:
+			raise SystemError ('-d option cannot be with -v, it is meaningless')
+		from .daemonize import Daemonizer
+		Daemonizer (working_dir).runAsDaemon ()
+		
 	verbose = 0
 	if '-v' in karg or conf.get ('logpath') is None:
 		verbose = 1
 	
 	if "-s" in karg:
-		from skitai import skitaid
+		from . import skitaid
 		skitaid.Service (
 			"%s %s %s" % (sys.executable, os.path.join (os.getcwd (), sys.argv [0]), verbose and '-v' or ''),
 			conf.get ('logpath'),
@@ -367,7 +376,7 @@ def run (**conf):
 		).run ()
 	
 	else:
-		os.chdir (os.path.dirname (os.path.join (os.getcwd (), sys.argv [0])))
+		os.chdir (working_dir)
 		if verbose:
 			conf ['verbose'] = 'yes'		
 		server = SkitaiServer (conf)
