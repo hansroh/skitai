@@ -167,7 +167,7 @@ Skitai provide runtime preference setting.
   skitai.run ()
   
 Above pref's all properties will be overriden on your app.
-  
+
 
 Logging and Console Displaying
 --------------------------------

@@ -34,9 +34,11 @@ class Module:
 		if self.pref:
 			for k, v in copy.copy (self.pref).items ():
 				if k == "config":
-					for k, v in copy.copy (self.pref.config).items ():
-						print (k, v)
-						app.config [k] = v
+					if not hasattr (app, 'config'):
+						app.config = v
+					else:	
+						for k, v in copy.copy (self.pref.config).items ():
+							app.config [k] = v
 				else:	
 					setattr (app, k, v)
 		
