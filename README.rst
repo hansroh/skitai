@@ -143,7 +143,7 @@ Usally, your app preference setting is like this:
 
 .. code:: python
 
-  app = Saddle(__name__)  
+  app = Saddle(__name__)
   
   app.use_reloader = True
   app.debug = True
@@ -163,10 +163,33 @@ Skitai provide runtime preference setting.
   pref.config ["prefA"] = 1
   pref.config.prefB = 2
   
-  skitai.mount ("/v1", "app_v1", "app", pref)
+  skitai.mount ("/v1", "app_v1/app.py", "app", pref)
   skitai.run ()
   
 Above pref's all properties will be overriden on your app.
+
+Runtime preference can be used with skitai initializing or complicated initializing process for your app.
+
+You can create __init__.py at same directory with app. And init_app () function is needed.
+
+__init__.py
+
+.. code:: python
+  
+  import skitai
+  from . import cronjob
+  
+  def init_app (pref):
+    if pref.config.get ('enable_cron')
+      skitai.cron ('*/10 * * * *', "%s >> /var/log/sitai/cron.log" % cronjob.__file__)
+      skitai.mount ('/cron-log', '/var/log/sitai')
+            
+    with open (pref.config.urlfile, "r") as f:
+      pref.config.urllist = [] 
+      while 1:
+      	line = f.readline ().strip ()
+      	if not line: break
+      	pref.config.urllist.append (line.split ("\t", 4))
 
 
 Logging and Console Displaying
@@ -741,13 +764,13 @@ Also please visit to `Skitai app examples`_.
 Export API From Your Module Through Skitai
 =============================================
 
-If your module need export API, include app in your module for Skitai.
+If your module need export APIs or web pages, you can include app in your module for Skitai App Engine.
 
 Let's assume your package name is 'unsub'.
 
-Your app should be located at unsub/export/skitai/app_v1.py
+Your app should be located at unsub/export/skitai/app.py
 
-Then users using your module can mount on skitai,
+Then users uses your module can mount on skitai by like this,
 
 .. code:: python
   
@@ -755,25 +778,35 @@ Then users using your module can mount on skitai,
   
   pref = skitai.pref ()  
   pref.config.urlfile = skitai.joinpath ('resources', 'urllist.txt')
-  skitai.mount ("/v1", (unsub, "app_v1"), "app", pref)
+  
+  skitai.mount ("/v1", unsub, "app", pref)
   skitai.run ()
+  
+If your app filename is not app.py but app_v1.py for version management,
+
+.. code:: python
+  
+  skitai.mount ("/v1", (unsub, "app_v1.py"), "app", pref)
+  
 
 If your app need to complicated initialize process from simple options, write code to unsub/export/skitai/__init__.py.
 
 .. code:: python
   
   import skitai
-  from . import cronjob
   
-  def init_app (pref):
-    skitai.cron ('*/10 * * * *', cronjob.__file__)
+  def init_app (pref):    
+    if pref.config.get ('enable_cron'):
+      from . import cronjob
+      skitai.cron ('*/10 * * * *', cronjob.__file__)
             
     with open (pref.config.urlfile, "r") as f:
-      pref.config.urllist = [] 
+      urllist = [] 
       while 1:
       	line = f.readline ().strip ()
       	if not line: break
-      	pref.config.urllist.append (line.split ("\t", 4))
+      	urllist.append (line.split ("\t", 4))
+      pref.config.urllist = urllist	
      
  
 Example
@@ -781,7 +814,7 @@ Example
 
 `Wissen RESTful API`_ is an WSGI implementation for Wissen_ with Skitai App Engine.
 
-.. _`Wissen RESTful API`: https://gitlab.com/hansroh/wissen/blob/master/wissen/export/skitai/app_v1.py
+.. _`Wissen RESTful API`: https://gitlab.com/hansroh/wissen/blob/master/wissen/export/skitai/
     
 
 
@@ -2969,7 +3002,7 @@ Change Log
   
   - 0.26
         
-    - runtime app preferences
+    - runtime app preferences and add __init__.init_app (preference)
     - fix route caching
     - auto reload sub modules in appack directory, if app.use_reloader = True
     - new was.request.json ()
