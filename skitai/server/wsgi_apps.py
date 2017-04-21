@@ -33,7 +33,12 @@ class Module:
 		app = getattr (self.module, self.appname)
 		if self.pref:
 			for k, v in copy.copy (self.pref).items ():
-				setattr (app, k, v)
+				if k == "config":
+					for k, v in copy.copy (self.pref.config).items ():
+						print (k, v)
+						app.config [k] = v
+				else:	
+					setattr (app, k, v)
 		
 		if hasattr (app, "set_home"):
 			app.set_home (os.path.dirname (self.abspath))

@@ -201,8 +201,6 @@ class Loader:
 				appname = None
 				if type (entity) is tuple:
 					entity, appname = entity				
-				if type (entity) is not str:
-					entity = os.path.join (os.getcwd (), sys.argv [0])
 				if entity.endswith (".py") or entity.endswith (".pyc"):
 					entity = os.path.join (os.getcwd (), entity) [:-3]
 					if entity [-1] == ".":

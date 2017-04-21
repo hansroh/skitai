@@ -131,18 +131,19 @@ mount (mount_point, mount_object, app_name = "app", pref = None)
   In case module object, the module should support skitai exporting spec.
   
 - app_name: variable name of app
-- pref: see nect section
+- pref: supported by Saddle
 
 
 Runtime App Preference
 -------------------------
 
+**New in version 0.26**
+
 Usally, your app preference setting is like this:
 
 .. code:: python
 
-  from flask import Flask  
-  app = Flask(__name__)  
+  app = Saddle(__name__)  
   
   app.use_reloader = True
   app.debug = True
@@ -155,7 +156,7 @@ Skitai provide runtime preference setting.
   
   import skitai
   
-  pref = skitai.apppref ()
+  pref = skitai.pref ()
   pref.use_reloader = 1
   pref.debug = 1
   

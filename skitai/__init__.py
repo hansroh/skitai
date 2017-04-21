@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26b31"
+__version__ = "0.26b33"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -107,7 +107,7 @@ def pref ():
 	from .saddle.Saddle import Config
 	
 	d = AttrDict ()
-	d.config = Config
+	d.config = Config ()
 	return d
 	
 def getswd ():
@@ -127,16 +127,22 @@ def set_max_rcache (self, objmax = 300):
 def mount (point, target, appname = "app", pref = None):
 	global dconf
 	
-	if type (target) is tuple: 
-		module, appfile = target
-		modinit = os.path.join (os.path.dirname (module.__file__), "export", "skitai", "__init__.py")
+	def init_app (modpath, pref):
+		modinit = os.path.join (os.path.dirname (modpath), "__init__.py")
 		if os.path.isfile (modinit):
 			loader = machinery.SourceFileLoader('temp', modinit)
 			mod = loader.load_module()
 			if hasattr (mod, "init_app"):
 				mod.init_app (pref)
-		target = os.path.join (os.path.dirname (module.__file__), "export", "skitai", appfile)
 	
+	if type (target) is tuple: 
+		module, appfile = target
+		target = os.path.join (os.path.dirname (module.__file__), "export", "skitai", appfile)
+	if type (target) is not str:
+		# app instance
+		target = os.path.join (os.getcwd (), sys.argv [0])
+	
+	init_app (target, pref)
 	if appname:
 		app = (target, appname)
 	else:

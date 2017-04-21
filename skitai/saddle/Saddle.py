@@ -5,25 +5,19 @@ import sys
 from . import part, multipart_collector, cookie, session, grpc_collector, ws_executor
 from . import wsgi_executor, xmlrpc_executor, grpc_executor
 from aquests.lib import producers
-from aquests.lib import importer, attrdict
 from aquests.protocols.grpc import discover
 from aquests.protocols.http import http_util
 from hashlib import md5
 import random
 import base64
-from skitai.saddle import cookie
+from . import cookie
+from .config import Config
 from jinja2 import Environment, PackageLoader
 from chameleon import PageTemplateLoader
 try:
 	import xmlrpc.client as xmlrpclib
 except ImportError:
 	import xmlrpclib
-
-Config = attrdict.AttrDict ()
-Config.max_post_body_size = 5 * 1024 * 1024
-Config.max_cache_size = 5 * 1024 * 1024
-Config.max_multipart_body_size = 20 * 1024 * 1024
-Config.max_upload_file_size = 20000000
 
 class AuthorizedUser:
 	def __init__ (self, user, realm, info = None):
@@ -58,7 +52,7 @@ class Saddle (part.Part):
 		self.cached_paths = {}
 		self.reloadables = {}
 		self.cached_rules = []
-		self.config = Config
+		self.config = Config ()		
 	
 	def skito_jinja (self):
 		self.jinja_overlay ("${", "}", "<%", "%>", "<!---", "--->")
