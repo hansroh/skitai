@@ -2,18 +2,19 @@ import os, sys, re, types
 from aquests.lib  import pathtool, importer
 import threading
 from types import FunctionType as function
-
+import copy
 
 class Module:
-	def __init__ (self, wasc, handler, route, directory, libpath):
+	def __init__ (self, wasc, handler, route, directory, libpath, pref = None):
 		self.wasc = wasc
 		self.handler = handler
+		self.pref = pref
 								
 		try:
 			libpath, self.appname = libpath.split (":", 1)		
 		except ValueError:
 			libpath, self.appname = libpath, "app"
-
+		
 		self.script_name = "%s.py" % libpath
 		self.module, self.abspath = importer.importer (directory, libpath)				
 		self.set_route (route)
@@ -30,6 +31,10 @@ class Module:
 		self.update_file_info ()
 		func = None
 		app = getattr (self.module, self.appname)
+		if self.pref:
+			for k, v in copy.copy (self.pref).items ():
+				setattr (app, k, v)
+		
 		if hasattr (app, "set_home"):
 			app.set_home (os.path.dirname (self.abspath))
 			
@@ -101,7 +106,7 @@ class ModuleManager:
 		self.modnames = {}
 		self.cc = 0
 			
-	def add_module (self, route, directory, modname):
+	def add_module (self, route, directory, modname, pref):
 		if modname in self.modnames:
 			self.wasc.logger ("app", "Collision detected '%s'" % modname, "error")
 			self.wasc.logger ("app", "Couldn't import '%s'" % modname, "error")
@@ -113,7 +118,7 @@ class ModuleManager:
 		elif not route.endswith ("/"):
 			route = route + "/"
 		try: 
-			module = Module (self.wasc, self.handler, route, directory, modname)
+			module = Module (self.wasc, self.handler, route, directory, modname, pref)
 			
 		except: 
 			self.wasc.logger.trace ("app")

@@ -41,8 +41,8 @@ class VHost:
 	def add_route (self, route, target):
 		self.default_handler.add_route (route, target)		
 		
-	def add_module (self, route, path, module):
-		self.apps.add_module (route, path, module)
+	def add_module (self, route, path, module, pref):
+		self.apps.add_module (route, path, module, pref)
 
 
 class Handler:
@@ -67,7 +67,7 @@ class Handler:
 				h.handle_request (request)
 				break
 			
-	def add_route (self, rule, routepair):
+	def add_route (self, rule, routepair, config = None):
 		reverse_proxing = False
 		if rule.strip () in ("*", "default"):
 			rule = None
@@ -92,7 +92,7 @@ class Handler:
 			
 		else:
 			fullpath = os.path.split (target.strip())
-			vhost.add_module (route, os.sep.join (fullpath[:-1]), fullpath [-1])
+			vhost.add_module (route, os.sep.join (fullpath[:-1]), fullpath [-1], config)
 		return reverse_proxing
 		
 	def find (self, host):

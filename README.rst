@@ -112,6 +112,62 @@ If you want to allow access to your public IPs, or specify port:
     port = 5000
   )
 
+skital.mount () spec is:
+
+mount (mount_point, mount_object, app_name = "app", pref = None)
+
+- mount_point
+- mount_object: app, app file path or module object
+  
+  .. code:: python
+  
+    skitai.mount ('/', app)
+    skitai.mount ('/', 'app_v1/app.py', 'app')
+    
+    import wissen
+    skitai.mount ('/', wissen, 'app')
+    skitai.mount ('/', (wissen, 'app_v1.py'), 'app')
+    
+  In case module object, the module should support skitai exporting spec.
+  
+- app_name: variable name of app
+- pref: see nect section
+
+
+Runtime App Preference
+-------------------------
+
+Usally, your app preference setting is like this:
+
+.. code:: python
+
+  from flask import Flask  
+  app = Flask(__name__)  
+  
+  app.use_reloader = True
+  app.debug = True
+  app.config ["prefA"] = 1
+  app.config ["prefB"] = 2
+  
+Skitai provide runtime preference setting.
+
+.. code:: python
+  
+  import skitai
+  
+  pref = skitai.apppref ()
+  pref.use_reloader = 1
+  pref.debug = 1
+  
+  pref.config ["prefA"] = 1
+  pref.config.prefB = 2
+  
+  skitai.mount ("/v1", "app_v1", "app", pref)
+  skitai.run ()
+  
+Above pref's all properties will be overriden on your app.
+  
+
 Logging and Console Displaying
 --------------------------------
 
@@ -131,6 +187,24 @@ If you also want to view logs throught console for spot developing, you run app.
 .. code:: bash
 
   python3 app.py -v
+
+
+Run As Daemon
+--------------
+
+.. code:: bash
+  
+  python3 app.py start
+  
+  or 
+  
+  python3 app.py -d
+  
+For stopping daemon,
+
+.. code:: bash
+  
+  python3 app.py stop
 
 
 Run with Threads Pool
@@ -429,6 +503,31 @@ Sometimes app need batch tasks for minimum response time to clients. At this sit
 Taks configuarion is very same with posix crontab.
 
 
+Asccessing File Reources On Startup
+-------------------------------------
+
+Skitai's working directory is where the script call skitai.run (). Even you run skitai at root directory,
+
+.. code:: bash
+
+  /app/example/app.py -d
+  
+Skitai will change working directory to /app/example on startup.
+
+So your file resources exist within skitai run script, you can access them by relative path,
+
+.. code:: python
+  
+  monitor = skital.joinpath ('appack', 'monitor.py')
+  skitai.cron ("*/2 */2 * * *", "%s > /home/apps/monitor.log 2>&1" % monitor)
+
+Also, you need absolute path on script,
+
+.. code:: python
+
+  skitai.getswd () # get skitai working directory
+
+
 Enable Cache File System
 ------------------------------
 
@@ -630,16 +729,59 @@ For Nginx might be 2 config files (I'm not sure):
 
 
 Skitai App Examples
---------------------
-
-Assai_ is an RESTful implementation for Wissen_ with Skitai App Engine.
+---------------------
 
 Also please visit to `Skitai app examples`_.
 
-
-.. _Assai: https://gitlab.com/hansroh/assai
 .. _`Skitai app examples`: https://gitlab.com/hansroh/skitai/tree/master/examples
 
+
+
+Export API From Your Module Throught Skitai
+=============================================
+
+If your module need export API, include app in your module for Skitai.
+
+Let's assume your package name is 'unsub'.
+
+Your app should be located at unsub/export/skitai/app_v1.py
+
+Then users using your module can mount on skitai,
+
+.. code:: python
+  
+  import unsub
+  
+  pref = skitai.apppref ()  
+  pref.config.urlfile = skitai.joinpath ('resources', 'urllist.txt')
+  skitai.mount ("/v1", (unsub, "app_v1"), "app", pref)
+  skitai.run ()
+
+If your app need to complicated initialize process from simple options, write code to unsub/export/skitai/__init__.py.
+
+.. code:: python
+  
+  import skitai
+  from . import cronjob
+  
+  def init_app (pref):
+    skitai.cron ('*/10 * * * *', cronjob.__file__)
+            
+    with open (pref.config.urlfile, "r") as f:
+      pref.config.urllist = [] 
+      while 1:
+      	line = f.readline ().strip ()
+      	if not line: break
+      	pref.config.urllist.append (line.split ("\t", 4))
+     
+ 
+Example
+`````````
+
+`Wissen RESTful API`_ is an WSGI implementation for Wissen_ with Skitai App Engine.
+
+.. _`Wissen RESTful API`: https://gitlab.com/hansroh/wissen/blob/master/wissen/export/skitai/app_v1.py
+    
 
 
 Skitai 'was' Services
@@ -2826,6 +2968,7 @@ Change Log
   
   - 0.26
         
+    - runtime app preferences
     - fix route caching
     - auto reload sub modules in appack directory, if app.use_reloader = True
     - new was.request.json ()

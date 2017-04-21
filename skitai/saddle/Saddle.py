@@ -5,7 +5,7 @@ import sys
 from . import part, multipart_collector, cookie, session, grpc_collector, ws_executor
 from . import wsgi_executor, xmlrpc_executor, grpc_executor
 from aquests.lib import producers
-from aquests.lib import importer
+from aquests.lib import importer, attrdict
 from aquests.protocols.grpc import discover
 from aquests.protocols.http import http_util
 from hashlib import md5
@@ -19,13 +19,11 @@ try:
 except ImportError:
 	import xmlrpclib
 
-
-class Config:
-	max_post_body_size = 5 * 1024 * 1024
-	max_cache_size = 5 * 1024 * 1024
-	max_multipart_body_size = 20 * 1024 * 1024
-	max_upload_file_size = 20000000
-
+Config = attrdict.AttrDict ()
+Config.max_post_body_size = 5 * 1024 * 1024
+Config.max_cache_size = 5 * 1024 * 1024
+Config.max_multipart_body_size = 20 * 1024 * 1024
+Config.max_upload_file_size = 20000000
 
 class AuthorizedUser:
 	def __init__ (self, user, realm, info = None):
@@ -60,7 +58,7 @@ class Saddle (part.Part):
 		self.cached_paths = {}
 		self.reloadables = {}
 		self.cached_rules = []
-		self.config = Config ()
+		self.config = Config
 	
 	def skito_jinja (self):
 		self.jinja_overlay ("${", "}", "<%", "%>", "<!---", "--->")

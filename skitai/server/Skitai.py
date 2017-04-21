@@ -197,14 +197,17 @@ class Loader:
 		sroutes = []
 		for domain in routes:
 			sroutes.append ("@%s" % domain)
-			for route, entity in routes [domain]:				
+			for route, entity, pref in routes [domain]:				
+				appname = None
+				if type (entity) is tuple:
+					entity, appname = entity				
 				if type (entity) is not str:
-					entity = os.path.join (os.getcwd (), sys.argv [0])			
+					entity = os.path.join (os.getcwd (), sys.argv [0])
 				if entity.endswith (".py") or entity.endswith (".pyc"):
 					entity = os.path.join (os.getcwd (), entity) [:-3]
-					if entity [-1] == ".": 
+					if entity [-1] == ".":
 						entity = entity [:-1]
-				sroutes.append ("%s=%s" % (route, entity))				
+				sroutes.append (("%s=%s%s" % (route, entity, appname and ":" + appname or ""), pref))
 		return sroutes
 			
 	def install_handler (self, 
@@ -241,12 +244,15 @@ class Loader:
 		)
 		
 		current_rule = "default"
-		for line in routes:
+		for line in routes:			
+			config = None
+			if type (line) is tuple:
+				line, pref = line
 			line = line.strip ()
 			if line.startswith (";") or line.startswith ("#"):
 				continue
 			elif line.startswith ("/"):
-				reverse_proxing = vh.add_route (current_rule, line)					
+				reverse_proxing = vh.add_route (current_rule, line, pref)					
 			elif line:
 				if line [0] == "@":
 					line = line [1:].strip ()					

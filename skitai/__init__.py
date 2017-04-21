@@ -1,12 +1,14 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26b26"
+__version__ = "0.26b29"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
 import threading
 import sys, os
 import h2
+from aquests.lib.attrdict import AttrDict
+from importlib import machinery
 
 WEBSOCKET_SIMPLE = 1
 WEBSOCKET_DEDICATE_THREADSAFE = 4
@@ -100,6 +102,13 @@ def start_was (wasc):
 # Configure
 #------------------------------------------------
 dconf = {'mount': {"default": []}, 'clusters': {}, 'cron': [], 'max_ages': {}}
+
+def pref ():
+	from .saddle.Saddle import Config
+	
+	d = AttrDict ()
+	d.config = Config
+	return d
 	
 def getswd ():
 	return os.path.dirname (os.path.join (os.getcwd (), sys.argv [0]))
@@ -115,13 +124,24 @@ def set_max_rcache (self, objmax = 300):
 	global dconf
 	dconf ["rcache_objmax"] = objmax
 	
-def mount (point, target, appname = None):
+def mount (point, target, appname = "app", pref = None):
 	global dconf
+	
+	if type (target) is tuple: 
+		module, appfile = target
+		modinit = os.path.join (os.path.dirname (module.__file__), "export", "skitai", "__init__.py")
+		if os.path.isfile (modinit):
+			loader = machinery.SourceFileLoader('temp', modinit)
+			mod = loader.load_module()
+			if hasattr (mod, "init_app"):
+				mod.init_app (pref)
+		target = os.path.join (os.path.dirname (module.__file__), "export", "skitai", appfile)
+	
 	if appname:
 		app = (target, appname)
 	else:
 		app = target
-	dconf ['mount']["default"].append ((point, app))
+	dconf ['mount']["default"].append ((point, app, pref))
 
 def vmount (vhost, point, target, appname = None):
 	global dconf
