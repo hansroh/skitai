@@ -5,7 +5,7 @@ version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __versi
 NAME = "SWAE/%s.%s" % version_info [:2]
 
 import threading
-import sys
+import sys, os
 import h2
 
 WEBSOCKET_SIMPLE = 1
@@ -100,6 +100,13 @@ def start_was (wasc):
 # Configure
 #------------------------------------------------
 dconf = {'mount': {"default": []}, 'clusters': {}, 'cron': [], 'max_ages': {}}
+	
+def getswd ():
+	return os.path.dirname (os.path.join (os.getcwd (), sys.argv [0]))
+	
+def joinpath (*pathes):
+	return os.path.join (getswd (), *pathes)
+	
 def set_max_age (self, path, maxage = 300):
 	global dconf
 	dconf ["max_ages"][path] = max_age
@@ -348,7 +355,7 @@ def run (**conf):
 	if not conf.get ('mount'):
 		raise ValueError ('Dictionary mount {mount point: path or app} required')
 	
-	working_dir = os.path.dirname (os.path.join (os.getcwd (), sys.argv [0]))
+	working_dir = getswd ()
 		
 	argopt = getopt.getopt(sys.argv[1:], "vdf", [])
 	karg = {}
