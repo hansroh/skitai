@@ -182,7 +182,7 @@ If you do not specify log file path, all logs will be displayed in console, bu s
     logpath = '/var/logs/skitai'
   )
 
-If you also want to view logs throught console for spot developing, you run app.py with-v option.
+If you also want to view logs through console for spot developing, you run app.py with-v option.
 
 .. code:: bash
 
@@ -737,7 +737,7 @@ Also please visit to `Skitai app examples`_.
 
 
 
-Export API From Your Module Throught Skitai
+Export API From Your Module Through Skitai
 =============================================
 
 If your module need export API, include app in your module for Skitai.
@@ -752,7 +752,7 @@ Then users using your module can mount on skitai,
   
   import unsub
   
-  pref = skitai.apppref ()  
+  pref = skitai.pref ()  
   pref.config.urlfile = skitai.joinpath ('resources', 'urllist.txt')
   skitai.mount ("/v1", (unsub, "app_v1"), "app", pref)
   skitai.run ()
@@ -776,7 +776,7 @@ If your app need to complicated initialize process from simple options, write co
      
  
 Example
-`````````
+----------
 
 `Wissen RESTful API`_ is an WSGI implementation for Wissen_ with Skitai App Engine.
 
