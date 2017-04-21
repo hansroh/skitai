@@ -52,7 +52,7 @@ class Saddle (part.Part):
 		self.cached_paths = {}
 		self.reloadables = {}
 		self.cached_rules = []
-		self.config = Config ()		
+		self.config = Config (preset = True)
 	
 	def skito_jinja (self):
 		self.jinja_overlay ("${", "}", "<%", "%>", "<!---", "--->")
