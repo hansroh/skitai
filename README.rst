@@ -170,7 +170,7 @@ Above pref's all properties will be overriden on your app.
 
 Runtime preference can be used with skitai initializing or complicated initializing process for your app.
 
-You can create __init__.py at same directory with app. And init_app () function is needed.
+You can create __init__.py at same directory with app. And bootstrap () function is needed.
 
 __init__.py
 
@@ -179,7 +179,7 @@ __init__.py
   import skitai
   from . import cronjob
   
-  def init_app (pref):
+  def bootstrap (pref):
     if pref.config.get ('enable_cron')
       skitai.cron ('*/10 * * * *', "%s >> /var/log/sitai/cron.log" % cronjob.__file__)
       skitai.mount ('/cron-log', '/var/log/sitai')
@@ -789,13 +789,13 @@ If your app filename is not app.py but app_v1.py for version management,
   skitai.mount ("/v1", (unsub, "app_v1.py"), "app", pref)
   
 
-If your app need to complicated initialize process from simple options, write code to unsub/export/skitai/__init__.py.
+If your app need bootstraping or capsulizing complicated initialize process from simple user settings, write code to unsub/export/skitai/__init__.py.
 
 .. code:: python
   
   import skitai
   
-  def init_app (pref):    
+  def bootstrap (pref):    
     if pref.config.get ('enable_cron'):
       from . import cronjob
       skitai.cron ('*/10 * * * *', cronjob.__file__)
@@ -3002,7 +3002,7 @@ Change Log
   
   - 0.26
         
-    - runtime app preferences and add __init__.init_app (preference)
+    - runtime app preferences and add __init__.bootstrap (preference)
     - fix route caching
     - auto reload sub modules in appack directory, if app.use_reloader = True
     - new was.request.json ()

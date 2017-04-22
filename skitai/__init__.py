@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26b37"
+__version__ = "0.26b41"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -132,8 +132,7 @@ def mount (point, target, appname = "app", pref = None):
 		if os.path.isfile (modinit):
 			loader = machinery.SourceFileLoader('temp', modinit)
 			mod = loader.load_module()
-			if hasattr (mod, "init_app"):
-				mod.init_app (pref)
+			hasattr (mod, "bootstrap") and mod.bootstrap (pref)
 	
 	if type (target) is tuple: 
 		module, appfile = target
