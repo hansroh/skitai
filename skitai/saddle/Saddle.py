@@ -4,7 +4,7 @@ import os
 import sys
 from . import part, multipart_collector, cookie, session, grpc_collector, ws_executor
 from . import wsgi_executor, xmlrpc_executor, grpc_executor
-from aquests.lib import producers
+from aquests.lib import producers, importer
 from aquests.protocols.grpc import discover
 from aquests.protocols.http import http_util
 from hashlib import md5
