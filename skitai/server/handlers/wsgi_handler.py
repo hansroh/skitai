@@ -265,13 +265,13 @@ class Job:
 			
 			if content is None: # Possibly no return mistake
 				raise AssertionError ("Content or part should not be None")
-
-			if response ["content-type"] is None: 
-				response ["Content-Type"] = "text/html"
 			
 			if not content: # explicit empty not content
 				trigger.wakeup (lambda p=response: (p.done(),))
 				return
+				
+			if response ["content-type"] is None: 
+				response ["Content-Type"] = "text/html"
 			
 			if type (content) not in (list, tuple):
 				content = (content,) # make iterable
@@ -285,6 +285,8 @@ class Job:
 			for part in content:
 				type_of_part = type (part)				
 				if type_of_part in (bytes, str, unicode):
+					if len (part) == 0:
+						continue
 					if type_of_part is not bytes: # unicode
 						try: 
 							part = part.encode ("utf8")

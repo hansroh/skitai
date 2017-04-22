@@ -282,7 +282,8 @@ class http_response:
 		pass
 		
 	def push (self, thing):		
-		if not self.is_responsable (): return
+		if not self.is_responsable (): 
+			return
 		if type(thing) is bytes:
 			self.outgoing.push (producers.simple_producer (thing))
 		else:			
@@ -336,7 +337,7 @@ class http_response:
 				self.update ('Connection', 'close')
 				close_it = True
 		
-		if not self.outgoing:
+		if len (self.outgoing) == 0:
 			self.delete ('transfer-encoding')
 			self.delete ('content-length')
 			self.delete ('content-type')
