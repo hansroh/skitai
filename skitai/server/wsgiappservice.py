@@ -8,6 +8,7 @@ from .rpc import cluster_manager, cluster_dist_call
 from .dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from . import server_info, http_date
+from . import http_response
 import os, sys
 import time
 from skitai.server.handlers import api_access_handler
@@ -257,6 +258,9 @@ class WAS:
 	def status (self, flt = None, fancy = True):
 		return server_info.make (self, flt, fancy)
 	
+	def render_ei (self, exc_info, format = 0):
+		return http_response.catch (format, exc_info)		
+		
 	def fstream (self, path, mimetype = 'application/octet-stream'):	
 		self.response.set_header ('Content-Type',  mimetype)
 		self.response.set_header ('Content-Length', str (os.path.getsize (path)))	

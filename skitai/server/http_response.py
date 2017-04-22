@@ -41,8 +41,7 @@ Generated %(gentime)s by <i>Skitai WSGI App Engine</i>
 </body>
 </html>"""
 
-
-def catch (htmlformating = 0, exc_info = None):
+def catch (format = 0, exc_info = None):
 	if exc_info is None:
 		exc_info = sys.exc_info()
 	t, v, tb = exc_info
@@ -59,20 +58,24 @@ def catch (htmlformating = 0, exc_info = None):
 	del tb
 	file, function, line = tbinfo [-1]
 	
-	if htmlformating:
+	# format 0 - text
+	# format 1 - html
+	# format 2 - list
+	if format == 1:
 		buf = ["<hr><h3>%s</h3><h4>%s</h4>" % (t.__name__.replace (">", "&gt;").replace ("<", "&lt;"), v)]
 		buf.append ("<b>at %s at line %s, %s</b>" % (file, line, function == "?" and "__main__" or "function " + function))
 		buf.append ("<ul type='square'>")
 		buf += ["<li><i>%s</i> <span class='f'>%s</span> <span class='n'><b>%s</b></font></li>" % x for x in tbinfo]
 		buf.append ("</ul>")		
 		return "\n".join (buf)
-		
-	else:
-		buf = []
-		buf.append ("%s %s" % (t, v))
-		buf.append ("in file %s at line %s, %s" % (file, line, function == "?" and "__main__" or "function " + function))
-		buf += ["%s %s %s" % x for x in tbinfo]
+
+	buf = []
+	buf.append ("%s %s" % (t, v))
+	buf.append ("in file %s at line %s, %s" % (file, line, function == "?" and "__main__" or "function " + function))
+	buf += ["%s %s %s" % x for x in tbinfo]
+	if format == 0:
 		return "\n".join (buf)
+	return buf	
 
 
 class http_response:
