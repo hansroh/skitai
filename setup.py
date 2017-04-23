@@ -51,6 +51,13 @@ packages = [
 package_dir = {'skitai': 'skitai'}
 package_data = {}
 
+install_requires = [
+	"jinja2==2.9.4", 
+	"chameleon==3.1", 
+	"h2==2.5.1", 
+	"aquests>=0.7.3.2"
+]
+
 with open('skitai/__init__.py', 'r') as fd:
 	version = re.search(r'^__version__\s*=\s*"(.*?)"',fd.read(), re.M).group(1)
 
@@ -67,6 +74,6 @@ setup(
 	license='MIT',
 	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/skitai",
-	install_requires = ["jinja2==2.9.4", "chameleon==3.1", "h2==2.5.1", "aquests>=0.7"],
+	install_requires = install_requires,
 	classifiers=classifiers
 )

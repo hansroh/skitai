@@ -133,7 +133,6 @@ mount (mount_point, mount_object, app_name = "app", pref = None)
 - app_name: variable name of app
 - pref: supported by Saddle
 
-
 Runtime App Preference
 -------------------------
 
@@ -584,7 +583,6 @@ If max-age is only set to "/", applied to all files. But you can specify it to a
   skitai.set_max_age ('/images', 3600)
   skitai.run ()
 
-
 Enable Cache File System
 ------------------------------
 
@@ -751,6 +749,17 @@ For Nginx might be 2 config files (I'm not sure):
       }
     }
 
+Self-Descriptive App
+---------------------
+
+Skitai's one of philasophy is self-descriptive app. This means that you once make your app, this app can be run without any configuration or config files (at least, if you need own your resources/log files directoring policy). Your app contains all configurations for not only its own app but also Skitai. As a result, you can just install Skitai with pip, and run your app.py immediately.
+
+.. code:: bash
+
+  pip3 install skitai
+  # if your app has dependencies
+  pip3 install -Ur requirements.txt
+  python3 app.py
 
 Skitai App Examples
 ---------------------

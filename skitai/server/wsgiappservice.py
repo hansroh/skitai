@@ -270,9 +270,12 @@ class WAS:
 		self.response.set_header ('Content-Length', str (os.path.getsize (path)))	
 		return file_producer (open (path, "rb"))
 	
-	def jstream (self, obj):		
+	def jstream (self, obj, key = None):		
 		self.response.set_header ("Content-Type", "application/json")
-		return self.tojson (obj)
+		if key:			
+			return self.tojson ({key: obj})
+		else:
+			return self.tojson (obj)		
 	
 	def xstream (self, obj, use_datetime = 0):			
 		self.response.set_header ("Content-Type", "text/xml")
