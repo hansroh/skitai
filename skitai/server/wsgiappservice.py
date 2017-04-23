@@ -101,9 +101,13 @@ class WAS:
 		return new_was
 			
 	VALID_COMMANDS = [
-		"ws", "get", "post", "postform", "postjson", "postxml", "postnvp", 
-		"rpc", "grpc", "put", "upload", "delete", "options", "db",
-		"postgresql", "sqlite3", "redis", "mongodb"
+		"get", "delete", 
+		"post", "postform", "postjson", "postxml", "postnvp", 
+		"put", "poutform", "putjson", "putxml", "putnvp", 
+		"patch", "patchform", "patchjson", "patchxml", "patchnvp", 
+		"rpc", "grpc", "ws", 
+		"db", "postgresql", "sqlite3", "redis", "mongodb",
+		"options", "trace", "upload"
 	]		
 	def __getattr__ (self, name):
 		# method magic		

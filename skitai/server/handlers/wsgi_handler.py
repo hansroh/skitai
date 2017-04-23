@@ -142,13 +142,13 @@ class Handler:
 	
 	def handle_error_before_collecting (self, request, code, force_close = True):
 		if request.version != "2.0":
-			if request.command in ('post', 'put') and force_close:
+			if request.command in ('post', 'put', 'patch') and force_close:
 				request.response.abort (code)
 			else:	
 				request.response.error (code)
 		else:
 			# keep connecting on HTTP/2 as possible
-			if request.command in ('post', 'put'):
+			if request.command in ('post', 'put', 'patch'):
 				collector = collectors.HTTP2DummyCollector (self, request, code)
 				request.collector = collector
 				collector.start_collect ()
@@ -169,7 +169,7 @@ class Handler:
 		if not self.isauthorized (app, request):
 			return 
 		
-		if request.command in ('post', 'put'):
+		if request.command in ('post', 'put', 'patch'):
 			try:
 				# shoud have constructor __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size)
 				collector_class = app.get_collector (request)

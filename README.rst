@@ -3001,7 +3001,8 @@ Change Log
   0.26 (Apr 2017)
   
   - 0.26
-        
+    
+    - support PATCH method
     - runtime app preferences and add __init__.bootstrap (preference)
     - fix route caching
     - auto reload sub modules in appack directory, if app.use_reloader = True

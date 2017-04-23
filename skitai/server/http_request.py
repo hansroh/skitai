@@ -130,7 +130,7 @@ class http_request:
 	
 	def set_header (self, name, value):
 		self.header.append ("%s: %s" % (name, value))		
-		
+	
 	def get_header (self, header = None, default = None):		
 		if header is None:
 			return self.header
@@ -149,7 +149,7 @@ class http_request:
 		else:
 			return hc[header] is not None and hc[header] or default
 	
-	def get_header_with_attr (self, header, default = None):
+	def get_header_params (self, header, default = None):
 		d = {}
 		v = self.get_header (header, default)
 		if v is None:
@@ -164,8 +164,20 @@ class http_request:
 			except ValueError:
 				a, b = each, None
 			d [a.lower ()] = b
-		return v2 [0], d	
+		return v2 [0], d		
+	get_header_with_attr = get_header_params
 	
+	def get_header_noparam (self, header, default = None):
+		return self.get_header_params (header, default) [0]
+			
+	def get_attr (self, header, attrname = None, default = None):
+		value, attrs = self.get_header_params (header, None)
+		if not value:
+			return default
+		if not attrname:	
+			return attrs
+		return attrs.get (attrname, default)
+					
 	def get_content_length (self):
 		try: return int (self.get_header ("content-length"))
 		except ValueError: return None
