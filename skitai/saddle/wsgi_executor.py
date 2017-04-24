@@ -177,7 +177,7 @@ class Executor:
 			else:
 				response = request.response
 				response.set_header ("Access-Control-Allow-Methods", ",".join (allowed_methods))
-				if current_app.allow_origin:
+				if current_app.acess_control_allow_origin:
 					response.set_header ("Access-Control-Allow-Origin", current_app.acess_control_allow_origin)
 				if current_app.acess_control_max_age:
 					response.set_header ("Access-Control-Max-Age", str (current_app.acess_control_max_age))
