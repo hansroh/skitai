@@ -30,13 +30,13 @@ class Saddle (part.Part):
 	use_reloader = False
 	debug = False
 	
-	CORS = False
-	
 	# Session
 	securekey = None
 	session_timeout = None
 	
 	#WWW-Authenticate	
+	acess_control_allow_origin = None
+	acess_control_max_age = 0
 	authenticate = False
 	authorization = "digest"	
 	realm = None

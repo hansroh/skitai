@@ -2625,29 +2625,20 @@ These methods will be called,
 CORS (Cross Origin Resource Sharing) and Preflight
 -----------------------------------------------------
 
-For allowing CORS, you should allow OPTIONS methods.
+For allowing CORS, you should 2 things:
+
+- set app.aloow_origin
+- allow OPTIONS methods for routing
 
 .. code:: python
-
+  
+  app = Saddle (__name__)
+  app.acess_control_allow_origin = "*"
+  
   @app.route ("/post", methods = ["POST", "OPTIONS"])
   def post (was):
     args = was.request.json ()	
     return was.jstream ({...})	
-
-Then should handle OPTIONS at every requests like this,
-
-  @app.before_request
-  def before_request (was):
-    if was.request.command == "options":
-      allowed_methods = was.request.routable.get ("methods")
-      request_method = was.request.get_header ("Access-Control-Request-Method")
-      if request_method and request_method not in methods:
-        return was.response ("405 Method Not Allowed")
-      was.response.set_header ("Access-Control-Allow-Origin", "*")
-      was.response.set_header ("Access-Control-Allow-Methods", ",".join (allowed_methods))
-      was.response.set_header ("Access-Control-Max-Age", "3600")
-      was.response.set_header ("Access-Control-Allow-Headers", "x-requested-with")
-      return ""		
 
 
 Building Cache With App Decorator
@@ -3042,6 +3033,7 @@ Change Log
   
   - 0.26
     
+    - support CORS (Cross Origin Resource Sharing)
     - support PATCH method
     - runtime app preferences and add __init__.bootstrap (preference)
     - fix route caching

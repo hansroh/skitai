@@ -169,18 +169,36 @@ class Executor:
 			request.routed_function = thing [1]
 			request.routable = options
 		
-		if respcode == 401 and self.isauthorized (current_app, request):
-			# passed then be normal
-			respcode = 0
+		if respcode != 405 and request.command == "options":
+			allowed_methods = request.routable.get ("methods")
+			request_method = request.get_header ("Access-Control-Request-Method")
+			if request_method and request_method not in allowed_methods:
+				respcode = 405
+			else:
+				response = request.response
+				response.set_header ("Access-Control-Allow-Methods", ",".join (allowed_methods))
+				if current_app.allow_origin:
+					response.set_header ("Access-Control-Allow-Origin", current_app.acess_control_allow_origin)
+				if current_app.acess_control_max_age:
+					response.set_header ("Access-Control-Max-Age", str (current_app.acess_control_max_age))
+				if respcode == 401:
+					response.set_header ("Access-Control-Allow-Headers", "Authorization")
+					response.set_header ("Access-Control-Allow-Credentials", "true")
+				respcode = 200
 		
-		if handle_response:
-			if respcode:
-				if respcode == 301:
-					request.response ["Location"] = thing
-					request.response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % thing)							
-				else:
-					request.response.send_error ("%d %s" % (respcode, respcodes.get (respcode, "Undefined Error")))
-		
+		else:	
+			if respcode == 401 and self.isauthorized (current_app, request):
+				# passed then be normal
+				respcode = 0
+			
+			if handle_response:
+				if respcode:
+					if respcode == 301:
+						request.response ["Location"] = thing
+						request.response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % thing)							
+					else:
+						request.response.send_error ("%d %s" % (respcode, respcodes.get (respcode, "Undefined Error")))
+			
 		return current_app, thing, param, respcode
 		
 	def __call__ (self):
