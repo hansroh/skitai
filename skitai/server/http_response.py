@@ -338,8 +338,8 @@ class http_response:
 				close_it = True
 		
 		if len (self.outgoing) == 0:
-			self.delete ('transfer-encoding')
-			self.delete ('content-length')
+			self.update ('Content-Length', "0")
+			self.delete ('transfer-encoding')			
 			self.delete ('content-type')
 			outgoing_producer = producers.simple_producer (self.build_reply_header().encode ("utf8"))
 			do_optimize = False

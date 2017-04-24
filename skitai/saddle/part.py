@@ -198,7 +198,7 @@ class Part:
 				kargs [an] = unquote_plus (arglist [i]).replace ("_", " ")
 		return f, kargs
 	
-	def add_route (self, rule, func, **options):
+	def add_route (self, rule, func, **options):					
 		if not rule or rule [0] != "/":
 			raise AssertionError ("Url rule should be starts with '/'")
 					

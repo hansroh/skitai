@@ -199,7 +199,7 @@ class Handler:
 				request.collector = collector
 				collector.start_collect ()
 								
-		elif request.command in ('get', 'delete'):
+		elif request.command in ('get', 'delete', 'options'):
 			self.continue_request(request)
 			
 		else:

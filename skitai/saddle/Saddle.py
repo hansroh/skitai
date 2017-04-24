@@ -30,11 +30,13 @@ class Saddle (part.Part):
 	use_reloader = False
 	debug = False
 	
+	CORS = False
+	
 	# Session
 	securekey = None
 	session_timeout = None
 	
-	#WWW-Authenticate
+	#WWW-Authenticate	
 	authenticate = False
 	authorization = "digest"	
 	realm = None
@@ -259,10 +261,10 @@ class Saddle (part.Part):
 					self.lock.release ()
 			
 			if matchtype == -1:
-				return current_app, method, None, 301
+				return current_app, method, None, options, 301
 			
 			if not method:
-				return current_app, None, None, 404
+				return current_app, None, None, options, 404
 				
 			if not self.use_reloader:
 				if matchtype == 1:
@@ -279,13 +281,13 @@ class Saddle (part.Part):
 		if options:
 			allowed = options.get ("methods", [])
 			if allowed and command not in allowed:
-				return current_app, None, None, 405 # method not allowed		
+				return current_app, None, None, options, 405 # method not allowed
 			allowed = options.get ("content_types", [])	
 			if allowed and content_type not in allowed:
 				return current_app, None, None, 415 # unsupported media type
 			resp_code = options.get ("authenticate", False) and 401 or 0
 				
-		return current_app, method, kargs, resp_code
+		return current_app, method, kargs, options, resp_code
 	
 	def restart (self, wasc, route):
 		self.start (wasc, route, self.packages)

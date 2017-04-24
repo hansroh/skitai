@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26b49"
+__version__ = "0.26b50"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -142,7 +142,7 @@ def mount (point, target, appname = "app", pref = None):
 		target = os.path.join (os.getcwd (), sys.argv [0])
 	else:
 		target = os.path.join (getswd (), target)
-	
+
 	if os.path.isdir (target):
 		dconf ['mount']["default"].append ((point, target, None))
 	else:	

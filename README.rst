@@ -1752,7 +1752,7 @@ For adding some restrictions:
     return was.render ("hello.htm")
 
 If method is not GET, Saddle will response http error code 405 (Method Not Allowed), and content-type is not text/xml, 415 (Unsupported Content Type).
-    
+
   
 Request
 ---------
@@ -1766,6 +1766,8 @@ Reqeust object provides these methods and attributes:
 - was.request.body
 - was.request.headers # case insensitive dictioanry
 - was.request.args # dictionary contains url/form parameters
+- was.request.routed_function
+- was.request.routable # {'methods': ["POST", "OPTIONS"], 'content_types': ["text/xml"] }
 - was.request.split_uri () # (script, param, querystring, fragment)
 - was.request.json () # load request body as json
 - was.request.get_header ("content-type") # case insensitive
@@ -1777,6 +1779,7 @@ Reqeust object provides these methods and attributes:
 - was.request.get_content_type ()
 - was.request.get_main_type ()
 - was.request.get_sub_type ()
+
 
 
 Response
@@ -2617,6 +2620,34 @@ These methods will be called,
 1. startup: when app imported on skitai server started
 2. onreload: when app.use_reloader is True and app is reloaded
 3. shutdown: when skitai server is shutdowned
+
+
+CORS (Cross Origin Resource Sharing) and Preflight
+-----------------------------------------------------
+
+For allowing CORS, you should allow OPTIONS methods.
+
+.. code:: python
+
+  @app.route ("/post", methods = ["POST", "OPTIONS"])
+  def post (was):
+    args = was.request.json ()	
+    return was.jstream ({...})	
+
+Then should handle OPTIONS at every requests like this,
+
+  @app.before_request
+  def before_request (was):
+    if was.request.command == "options":
+      allowed_methods = was.request.routable.get ("methods")
+      request_method = was.request.get_header ("Access-Control-Request-Method")
+      if request_method and request_method not in methods:
+        return was.response ("405 Method Not Allowed")
+      was.response.set_header ("Access-Control-Allow-Origin", "*")
+      was.response.set_header ("Access-Control-Allow-Methods", ",".join (allowed_methods))
+      was.response.set_header ("Access-Control-Max-Age", "3600")
+      was.response.set_header ("Access-Control-Allow-Headers", "x-requested-with")
+      return ""		
 
 
 Building Cache With App Decorator

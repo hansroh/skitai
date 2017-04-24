@@ -43,7 +43,7 @@ class Executor:
 		try:
 			if before:
 				response = before (self.was)
-				if response:
+				if response is not None:
 					return response
 					
 			if type (func) is list:
@@ -158,12 +158,16 @@ class Executor:
 		return True
 	
 	def find_method (self, request, path, handle_response = True):
-		current_app, thing, param, respcode = self.get_method (
+		current_app, thing, param, options, respcode = self.get_method (
 			path, 
 			request.command.upper (), 
 			request.get_header ('content-type'),
 			request.get_header ('authorization')
 		)
+		
+		if thing:
+			request.routed_function = thing [1]
+			request.routable = options
 		
 		if respcode == 401 and self.isauthorized (current_app, request):
 			# passed then be normal
@@ -176,7 +180,7 @@ class Executor:
 					request.response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % thing)							
 				else:
 					request.response.send_error ("%d %s" % (respcode, respcodes.get (respcode, "Undefined Error")))
-				
+		
 		return current_app, thing, param, respcode
 		
 	def __call__ (self):
