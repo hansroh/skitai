@@ -1731,6 +1731,8 @@ Reloading App Package
   
 If app.use_reloader is True, all module of appack - sub package directory of app.py - will be reloaded automatically if file is modified.
 
+But It will not work when you edit both app.py and appack/somefile.py because Skitai reloads app.py first app.py and lost its appack module information. So in this case you should make small changes on appack/somefile.py and then it will work fine.
+
 
 Routing
 --------
@@ -2640,6 +2642,23 @@ For allowing CORS, you should do 2 things:
   def post (was):
     args = was.request.json ()	
     return was.jstream ({...})	
+    
+
+If you want function specific CORS,
+
+.. code:: python
+  
+  app = Saddle (__name__)
+  
+  @app.route (
+   "/post", methods = ["POST", "OPTIONS"], 
+   acess_control_allow_origin = "*",
+   acess_control_max_age = 3600
+  )
+  def post (was):
+    args = was.request.json ()	
+    return was.jstream ({...})	
+
 
 
 Building Cache With App Decorator

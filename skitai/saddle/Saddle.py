@@ -51,8 +51,8 @@ class Saddle (part.Part):
 		self.chameleon = None
 		self.lock = threading.RLock ()
 		
-		self.cached_paths = {}
 		self.reloadables = {}
+		self.cached_paths = {}		
 		self.cached_rules = []
 		self.config = Config (preset = True)
 	
@@ -75,7 +75,7 @@ class Saddle (part.Part):
 		self.jinja_env = jinjapatch.overlay (self.app_name, variable_start_string, variable_end_string, block_start_string, block_end_string, comment_start_string, comment_end_string, line_statement_prefix, line_comment_prefix, **karg)
 	
 	def watch (self, module):
-		self.reloadables [module] = (0., -1)
+		self.reloadables [module] = self.get_file_info (module)
 	
 	def check_reload (self):		
 		for module in self.reloadables:
@@ -281,16 +281,18 @@ class Saddle (part.Part):
 			allowed = options.get ("methods", [])
 			if allowed and command not in allowed:
 				return current_app, None, None, options, 405 # method not allowed
+				
 			allowed = options.get ("content_types", [])	
 			if allowed and content_type not in allowed:
 				return current_app, None, None, 415 # unsupported media type
+				
 			resp_code = options.get ("authenticate", False) and 401 or 0
 				
 		return current_app, method, kargs, options, resp_code
 	
 	def restart (self, wasc, route):
 		self.start (wasc, route, self.packages)
-	
+			
 	def create_on_demand (self, was, name):
 		class G: 
 			pass

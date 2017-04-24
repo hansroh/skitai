@@ -161,26 +161,21 @@ class Executor:
 		current_app, thing, param, options, respcode = self.get_method (
 			path, 
 			request.command.upper (), 
-			request.get_header ('content-type'),
+			request.get_header_noparam ('content-type'),
 			request.get_header ('authorization')
 		)
 		
-		if thing:
-			request.routed_function = thing [1]
-			request.routable = options
-		
 		if respcode != 405 and request.command == "options":
-			allowed_methods = request.routable.get ("methods")
+			allowed_methods = options.get ("methods")
 			request_method = request.get_header ("Access-Control-Request-Method")
 			if request_method and request_method not in allowed_methods:
 				respcode = 405
 			else:
 				response = request.response
 				response.set_header ("Access-Control-Allow-Methods", ",".join (allowed_methods))
-				if current_app.acess_control_allow_origin:
-					response.set_header ("Access-Control-Allow-Origin", current_app.acess_control_allow_origin)
-				if current_app.acess_control_max_age:
-					response.set_header ("Access-Control-Max-Age", str (current_app.acess_control_max_age))
+				acess_control_max_age = options.get ("acess_control_max_age", current_app.acess_control_max_age)	
+				if acess_control_max_age:
+					response.set_header ("Access-Control-Max-Age", str (acess_control_max_age))
 				if respcode == 401:
 					response.set_header ("Access-Control-Allow-Headers", "Authorization")
 					response.set_header ("Access-Control-Allow-Credentials", "true")
@@ -198,7 +193,15 @@ class Executor:
 						request.response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % thing)							
 					else:
 						request.response.send_error ("%d %s" % (respcode, respcodes.get (respcode, "Undefined Error")))
-			
+		
+		acess_control_allow_origin = options.get ("acess_control_allow_origin", current_app.acess_control_allow_origin)
+		if acess_control_allow_origin and acess_control_allow_origin != 'same':
+			request.response.set_header ("Access-Control-Allow-Origin", acess_control_allow_origin)
+		
+		if thing:
+			request.routed_function = thing [1]
+			request.routable = options
+							
 		return current_app, thing, param, respcode
 		
 	def __call__ (self):
