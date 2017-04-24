@@ -272,7 +272,8 @@ class WAS:
 	
 	def jstream (self, obj, key = None):		
 		self.response.set_header ("Content-Type", "application/json")
-		if key:			
+		if key:
+			# for single skeleton data is not dict
 			return self.tojson ({key: obj})
 		else:
 			return self.tojson (obj)		

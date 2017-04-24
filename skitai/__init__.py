@@ -140,13 +140,18 @@ def mount (point, target, appname = "app", pref = None):
 	if type (target) is not str:
 		# app instance
 		target = os.path.join (os.getcwd (), sys.argv [0])
-	
-	init_app (target, pref)
-	if appname:
-		app = (target, appname)
 	else:
-		app = target
-	dconf ['mount']["default"].append ((point, app, pref))
+		target = os.path.join (getswd (), target)
+	
+	if os.path.isdir (target):
+		dconf ['mount']["default"].append ((point, target, None))
+	else:	
+		init_app (target, pref)
+		if appname:
+			app = (target, appname)
+		else:
+			app = target
+		dconf ['mount']["default"].append ((point, app, pref))
 
 def vmount (vhost, point, target, appname = None):
 	global dconf
