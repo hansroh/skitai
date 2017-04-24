@@ -2625,7 +2625,7 @@ These methods will be called,
 CORS (Cross Origin Resource Sharing) and Preflight
 -----------------------------------------------------
 
-For allowing CORS, you should 2 things:
+For allowing CORS, you should do 2 things:
 
 - set app.aloow_origin
 - allow OPTIONS methods for routing

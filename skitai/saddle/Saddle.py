@@ -75,8 +75,7 @@ class Saddle (part.Part):
 		self.jinja_env = jinjapatch.overlay (self.app_name, variable_start_string, variable_end_string, block_start_string, block_end_string, comment_start_string, comment_end_string, line_statement_prefix, line_comment_prefix, **karg)
 	
 	def watch (self, module):
-		fi = self.get_file_info (module)
-		self.reloadables [module] = fi		
+		self.reloadables [module] = (0., -1)
 	
 	def check_reload (self):		
 		for module in self.reloadables:
