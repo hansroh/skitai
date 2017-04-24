@@ -27,8 +27,6 @@ class Module:
 		return getattr (self.module, self.appname)
 		
 	def start_app (self, reloded = False):					
-		self.set_devel_env ()
-		self.update_file_info ()
 		func = None
 		app = getattr (self.module, self.appname)
 		if self.pref:
@@ -44,6 +42,9 @@ class Module:
 		
 		if hasattr (app, "set_home"):
 			app.set_home (os.path.dirname (self.abspath))
+		
+		self.set_devel_env ()
+		self.update_file_info ()
 			
 		try:			
 			if not reloded:
