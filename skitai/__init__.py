@@ -2,7 +2,7 @@
 
 __version__ = "0.26b53"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
-NAME = "SWAE/%s.%s" % version_info [:2]
+NAME = "Skitai/%s.%s" % version_info [:2]
 
 import threading
 import sys, os
