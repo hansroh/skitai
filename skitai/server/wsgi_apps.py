@@ -29,6 +29,7 @@ class Module:
 	def start_app (self, reloded = False):					
 		func = None
 		app = getattr (self.module, self.appname)
+		
 		if self.pref:
 			for k, v in copy.copy (self.pref).items ():
 				if k == "config":
@@ -81,8 +82,19 @@ class Module:
 		stat = os.stat (self.abspath)
 		reloadable = self.file_info != (stat.st_mtime, stat.st_size)		
 		if reloadable and self.use_reloader:
+			
+			app = getattr (self.module, self.appname)
+			PRESERVED = []
+			if hasattr (app, "PRESERVE_ON_RELOAD"):
+				PRESERVED = [(attr, getattr (app, attr)) for attr in app.PRESERVES_ON_RELOAD]
+				
 			importer.reloader (self.module)
 			self.start_app (reloded = True)
+			
+			newapp = getattr (self.module, self.appname)
+			for attr, value in PRESERVED:
+				setattr (newapp, attr, value)
+				
 			return True
 		return False
 				

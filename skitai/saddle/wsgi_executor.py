@@ -160,28 +160,10 @@ class Executor:
 	def find_method (self, request, path, handle_response = True):
 		current_app, thing, param, options, respcode = self.get_method (
 			path, 
-			request.command.upper (), 
-			request.get_header_noparam ('content-type'),
-			request.get_header ('authorization')
+			request
 		)
 		
-		if respcode != 405 and request.command == "options":
-			allowed_methods = options.get ("methods")
-			request_method = request.get_header ("Access-Control-Request-Method")
-			if request_method and request_method not in allowed_methods:
-				respcode = 405
-			else:
-				response = request.response
-				response.set_header ("Access-Control-Allow-Methods", ",".join (allowed_methods))
-				acess_control_max_age = options.get ("acess_control_max_age", current_app.acess_control_max_age)	
-				if acess_control_max_age:
-					response.set_header ("Access-Control-Max-Age", str (acess_control_max_age))
-				if respcode == 401:
-					response.set_header ("Access-Control-Allow-Headers", "Authorization")
-					response.set_header ("Access-Control-Allow-Credentials", "true")
-				respcode = 200
-		
-		else:	
+		if respcode:			
 			if respcode == 401 and self.isauthorized (current_app, request):
 				# passed then be normal
 				respcode = 0
@@ -194,12 +176,8 @@ class Executor:
 					else:
 						request.response.send_error ("%d %s" % (respcode, respcodes.get (respcode, "Undefined Error")))
 		
-		acess_control_allow_origin = options.get ("acess_control_allow_origin", current_app.acess_control_allow_origin)
-		if acess_control_allow_origin and acess_control_allow_origin != 'same':
-			request.response.set_header ("Access-Control-Allow-Origin", acess_control_allow_origin)
-		
 		if thing:
-			request.routed_function = thing [1]
+			request.routed = thing [1]
 			request.routable = options
 							
 		return current_app, thing, param, respcode

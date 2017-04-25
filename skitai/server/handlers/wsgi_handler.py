@@ -166,7 +166,8 @@ class Handler:
 			return self.handle_error_before_collecting (request, 308)
 			
 		app = self.apps.get_app (has_route).get_callable()
-		if not self.isauthorized (app, request):
+		if request.command != "options" and not self.isauthorized (app, request):
+			# pass through options, because options want authentification info.
 			return 
 		
 		if request.command in ('post', 'put', 'patch'):

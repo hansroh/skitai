@@ -43,6 +43,8 @@ class Saddle (part.Part):
 	users = {}	
 	opaque = None	
 	
+	PRESERVES_ON_RELOAD = ["reloadables"]
+	
 	def __init__ (self, app_name):
 		part.Part.__init__ (self)
 		self.app_name = app_name
@@ -230,8 +232,12 @@ class Saddle (part.Part):
 				raise NotImplementedError			
 			return grpc_collector.grpc_collector			
 			
-	def get_method (self, path_info, command = None, content_type = None, authorization = None):		
+	def get_method (self, path_info, request):		
+		command = request.command.upper ()
+		content_type = request.get_header_noparam ('content-type')
+		authorization = request.get_header ('authorization')		
 		current_app, method = self, None
+		
 		with self.lock:
 			if self.use_reloader:
 				self.check_reload ()
@@ -278,16 +284,39 @@ class Saddle (part.Part):
 		
 		resp_code = 0
 		if options:
-			allowed = options.get ("methods", [])
-			if allowed and command not in allowed:
+			allowed_types = options.get ("content_types", [])	
+			if allowed_types and content_type not in allowed_types:
+				return current_app, None, None, options, 415 # unsupported media type
+			
+			allowed_methods = options.get ("methods", [])			
+			if allowed_methods and command not in allowed_methods:				
 				return current_app, None, None, options, 405 # method not allowed
+			
+			if command == "OPTIONS":				
+				request_method = request.get_header ("Access-Control-Request-Method")
+				if request_method and request_method not in allowed_methods:
+					return current_app, None, None, options, 405 # method not allowed
+			
+				response = request.response
+				response.set_header ("Access-Control-Allow-Methods", ",".join (allowed_methods))
+				acess_control_max_age = options.get ("acess_control_max_age", self.acess_control_max_age)	
+				if acess_control_max_age:
+					response.set_header ("Access-Control-Max-Age", str (acess_control_max_age))
 				
-			allowed = options.get ("content_types", [])	
-			if allowed and content_type not in allowed:
-				return current_app, None, None, 415 # unsupported media type
-				
-			resp_code = options.get ("authenticate", False) and 401 or 0
-				
+				authenticate = options.get ("authenticate", self.authenticate)
+				if authenticate:
+					response.set_header ("Access-Control-Allow-Headers", "Authorization")
+					response.set_header ("Access-Control-Allow-Credentials", "true")
+					
+				resp_code = 200
+			
+			else:
+				resp_code = options.get ("authenticate", self.authenticate) and 401 or 0
+			
+		acess_control_allow_origin = options.get ("acess_control_allow_origin", self.acess_control_allow_origin)
+		if acess_control_allow_origin and acess_control_allow_origin != 'same':
+			request.response.set_header ("Access-Control-Allow-Origin", acess_control_allow_origin)
+		
 		return current_app, method, kargs, options, resp_code
 	
 	def restart (self, wasc, route):
