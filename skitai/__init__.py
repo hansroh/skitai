@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26b52"
+__version__ = "0.26b53"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "SWAE/%s.%s" % version_info [:2]
 
@@ -116,9 +116,9 @@ def getswd ():
 def joinpath (*pathes):
 	return os.path.join (getswd (), *pathes)
 	
-def set_max_age (self, path, maxage = 300):
+def set_max_age (path, max_age = 300):
 	global dconf
-	dconf ["max_ages"][path] = max_age
+	dconf ["max_ages"][path] = max_age	
 
 def set_max_rcache (self, objmax = 300):
 	global dconf

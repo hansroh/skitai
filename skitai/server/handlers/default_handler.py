@@ -36,9 +36,9 @@ class Handler:
 		
 		self.max_ages = []
 		if max_ages:
-			self.max_ages = [(k, v[-1] == "/" and v [:-1] or v) for k, v in max_ages.items ()]
-			self.max_ages.sort (key = lambda x: len (x), reverse = True)
-		
+			self.max_ages = [(k, v) for k, v in max_ages.items ()]
+			self.max_ages.sort (key = lambda x: len (x [0]), reverse = True)
+			
 		self.alt_handlers = alt_handlers
 		self.permit_cache = {}
 		self.filesystem = filesys.mapped_filesystem ()
@@ -168,7 +168,7 @@ class Handler:
 			self.handle_alternative (request)
 			return
 
-		request.response ['Content-Length'] = file_length
+		request.response ['Content-Length'] = file_length		
 		max_age = self.max_ages and self.get_max_age (path) or 0
 		if request.version == "1.0":
 			request.response ['Last-Modified'] = http_date.build_http_date (mtime)			
@@ -186,8 +186,9 @@ class Handler:
 		request.response.done()
 	
 	def get_max_age (self, path):
-		for prefix, value in self.max_ages:
-			if path.startswith (prefix + "/"):
+		path = not path and "/" or "/" + path
+		for prefix, value in self.max_ages:			
+			if path.startswith (prefix):
 				return value
 		
 	def make_etag (self, file_length, mtime):
