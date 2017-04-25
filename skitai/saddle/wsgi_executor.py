@@ -168,18 +168,17 @@ class Executor:
 				# passed then be normal
 				respcode = 0
 			
-			if handle_response:
-				if respcode:
-					if respcode == 301:
-						request.response ["Location"] = thing
-						request.response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % thing)							
-					else:
-						request.response.send_error ("%d %s" % (respcode, respcodes.get (respcode, "Undefined Error")))
-		
+			if handle_response and respcode:			
+				if respcode == 301:
+					request.response ["Location"] = thing
+					request.response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % thing)							
+				elif respcode != 200:
+					request.response.send_error ("%d %s" % (respcode, respcodes.get (respcode, "Undefined Error")))
+	
 		if thing:
 			request.routed = thing [1]
 			request.routable = options
-							
+
 		return current_app, thing, param, respcode
 		
 	def __call__ (self):
