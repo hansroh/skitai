@@ -29,7 +29,7 @@ class http_channel (asynchat.async_chat):
 	closed = False
 	is_rejected = False
 	
-	zombie_timeout = 5
+	zombie_timeout = 2
 	fifo_class = deque
 	
 	def __init__ (self, server, conn, addr):

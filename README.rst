@@ -133,64 +133,6 @@ mount (mount_point, mount_object, app_name = "app", pref = None)
 - app_name: variable name of app
 - pref: supported by Saddle
 
-Runtime App Preference
--------------------------
-
-**New in version 0.26**
-
-Usally, your app preference setting is like this:
-
-.. code:: python
-
-  app = Saddle(__name__)
-  
-  app.use_reloader = True
-  app.debug = True
-  app.config ["prefA"] = 1
-  app.config ["prefB"] = 2
-  
-Skitai provide runtime preference setting.
-
-.. code:: python
-  
-  import skitai
-  
-  pref = skitai.pref ()
-  pref.use_reloader = 1
-  pref.debug = 1
-  
-  pref.config ["prefA"] = 1
-  pref.config.prefB = 2
-  
-  skitai.mount ("/v1", "app_v1/app.py", "app", pref)
-  skitai.run ()
-  
-Above pref's all properties will be overriden on your app.
-
-Runtime preference can be used with skitai initializing or complicated initializing process for your app.
-
-You can create __init__.py at same directory with app. And bootstrap () function is needed.
-
-__init__.py
-
-.. code:: python
-  
-  import skitai
-  from . import cronjob
-  
-  def bootstrap (pref):
-    if pref.config.get ('enable_cron')
-      skitai.cron ('*/10 * * * *', "%s >> /var/log/sitai/cron.log" % cronjob.__file__)
-      skitai.mount ('/cron-log', '/var/log/sitai')
-            
-    with open (pref.config.urlfile, "r") as f:
-      pref.config.urllist = [] 
-      while 1:
-      	line = f.readline ().strip ()
-      	if not line: break
-      	pref.config.urllist.append (line.split ("\t", 4))
-
-
 Logging and Console Displaying
 --------------------------------
 
@@ -396,8 +338,75 @@ Mounting With Virtual Host
     skitai.vmount ('www.site1.com', '/', 'site1.py')
     skitai.vmount ('www.site2.com', '/', 'site2.py')
     skitai.run ()
-    
-    
+
+Runtime App Preference
+-------------------------
+
+**New in version 0.26**
+
+Usally, your app preference setting is like this:
+
+.. code:: python
+
+  app = Saddle(__name__)
+  
+  app.use_reloader = True
+  app.debug = True
+  app.config ["prefA"] = 1
+  app.config ["prefB"] = 2
+  
+Skitai provide runtime preference setting.
+
+.. code:: python
+  
+  import skitai
+  
+  pref = skitai.pref ()
+  pref.use_reloader = 1
+  pref.debug = 1
+  
+  pref.config ["prefA"] = 1
+  pref.config.prefB = 2
+  
+  skitai.mount ("/v1", "app_v1/app.py", "app", pref)
+  skitai.run ()
+  
+Above pref's all properties will be overriden on your app.
+
+Runtime preference can be used with skitai initializing or complicated initializing process for your app.
+
+You can create __init__.py at same directory with app. And bootstrap () function is needed.
+
+__init__.py
+
+.. code:: python
+  
+  import skitai
+  from . import cronjob
+  
+  def bootstrap (pref):
+    if pref.config.get ('enable_cron')
+      skitai.cron ('*/10 * * * *', "%s >> /var/log/sitai/cron.log" % cronjob.__file__)
+      skitai.mount ('/cron-log', '/var/log/sitai')
+            
+    with open (pref.config.urlfile, "r") as f:
+      pref.config.urllist = [] 
+      while 1:
+      	line = f.readline ().strip ()
+      	if not line: break
+      	pref.config.urllist.append (line.split ("\t", 4))
+
+
+Setting Keep Alive Timeout
+----------------------------
+
+.. code:: python
+  
+  skitai.set_keep_alive (300) # default = 2
+  skitai.mount ('/', app)
+  skitai.run ()
+  
+      
 Enabling Proxy Server
 ------------------------
 

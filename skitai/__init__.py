@@ -120,9 +120,12 @@ def set_max_age (path, max_age = 300):
 	global dconf
 	dconf ["max_ages"][path] = max_age	
 
-def set_max_rcache (self, objmax = 300):
+def set_max_rcache (objmax = 300):
 	global dconf
 	dconf ["rcache_objmax"] = objmax
+
+def set_keep_alive (timeout = 2):	
+	dconf ["keep_alive"] = timeout
 	
 def mount (point, target, appname = "app", pref = None):
 	global dconf
@@ -347,7 +350,7 @@ def run (**conf):
 			self.config_webserver (
 				conf.get ('port', 5000), conf.get ('address', '0.0.0.0'),
 				"Skitai Server", conf.get ("certfile") is not None,
-				5, 10
+				conf.get ('keep_alive', 2), 10
 			)
 			if os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
 				# master does not work
