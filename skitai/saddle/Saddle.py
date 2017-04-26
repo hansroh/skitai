@@ -339,7 +339,7 @@ class Saddle (part.Part):
 		if resp_code in (401, 200):
 			authenticate = options.get ("authenticate", self.authenticate)
 			if authenticate:
-				response.set_header ("Access-Control-Allow-Credentials", "true")
+				request.response.set_header ("Access-Control-Allow-Credentials", "true")
 							
 		access_control_allow_origin = options.get ("access_control_allow_origin", self.access_control_allow_origin)
 		if access_control_allow_origin and access_control_allow_origin != 'same':
