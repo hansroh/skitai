@@ -215,7 +215,9 @@ class Saddle (part.Part):
 		
 		return self.get_www_authenticate ()
 	
-	def is_allowed_origin (self, request, allowed_origins):		
+	def is_allowed_origin (self, request, allowed_origins):
+		if self.debug:
+			return True
 		if not allowed_origins:
 			return True
 		if "*" in allowed_origins:
