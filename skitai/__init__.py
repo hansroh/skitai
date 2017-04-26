@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26b56"
+__version__ = "0.26b57"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -349,7 +349,7 @@ def run (**conf):
 			self.config_rcache (conf.get ("rcache_objmax", 100))
 			self.config_webserver (
 				conf.get ('port', 5000), conf.get ('address', '0.0.0.0'),
-				"Skitai Server", conf.get ("certfile") is not None,
+				NAME, conf.get ("certfile") is not None,
 				conf.get ('keep_alive', 2), 10
 			)
 			if os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
