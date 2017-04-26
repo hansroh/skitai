@@ -124,7 +124,7 @@ class http_response:
 			
 	def set (self, key, value):
 		self.reply_headers.append ((key, value))
-	
+		
 	def get (self, key):
 		key = key.lower ()
 		for k, v in self.reply_headers:
@@ -149,6 +149,13 @@ class http_response:
 		self.delete (key)
 		self.set (key, value)
 	
+	def append_header (self, key, value):
+		val = self.get (key)
+		if not val:
+			self.set (key, value)
+		else:
+			self.set (key, val + ", " + value)
+
 	def build_reply_header (self):		
 		h = '\r\n'.join (
 				[self.response(self.reply_code, self.reply_message)] + ['%s: %s' % x for x in self.reply_headers]
@@ -470,10 +477,14 @@ class http_response:
 	set_header = set
 	get_header = get
 	del_header = delete
-	
+		
 	def set_headers (self, headers):
 		for k, v in headers:
 			self.set (k, v)
+	
+	def append_headers (self, headers):
+		for k, v in headers:
+			self.set (k, v)		
 			
 	def get_hedaers (self):	
 		return self.reply_headers

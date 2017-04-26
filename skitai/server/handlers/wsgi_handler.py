@@ -118,28 +118,6 @@ class Handler:
 
 		return collector
 	
-	def isauthorized (self, app, request):		
-		try:
-			authenticate_required = app.authenticate
-		except AttributeError: 
-			return True
-		if not authenticate_required:
-			return True
-		
-		try: 
-			www_authenticate = app.authorize (request.get_header ("Authorization"), request.command, request.uri)
-			if type (www_authenticate) is str:
-				request.response ['WWW-Authenticate'] = www_authenticate
-				self.handle_error_before_collecting (request, 401)
-				return False
-			elif www_authenticate:
-				request.user = www_authenticate
-					
-		except AttributeError: 
-			pass
-			
-		return True
-	
 	def handle_error_before_collecting (self, request, code, force_close = True):
 		if request.version != "2.0":
 			if request.command in ('post', 'put', 'patch') and force_close:
@@ -166,10 +144,15 @@ class Handler:
 			return self.handle_error_before_collecting (request, 308)
 			
 		app = self.apps.get_app (has_route).get_callable()
-		if request.command != "options" and not self.isauthorized (app, request):
+		if request.command != "options" and isinstance (app, Saddle):
 			# pass through options, because options want authentification info.
-			return 
-		
+			if not app.is_authorized (request, app.authenticate):					
+				self.handle_error_before_collecting (request, 401)
+				return
+			if not app.is_allowed_origin (request, app.access_control_allow_origin):					
+				self.handle_error_before_collecting (request, 403)
+				return
+				
 		if request.command in ('post', 'put', 'patch'):
 			try:
 				# shoud have constructor __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size)

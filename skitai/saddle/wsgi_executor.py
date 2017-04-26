@@ -142,39 +142,19 @@ class Executor:
 			self.was.mbox and self.was.mbox.rollback ()
 		self.was.cookie.rollback ()
 	
-	def isauthorized (self, app, request):			
-		try: 
-			www_authenticate = app.authorize (request.get_header ("Authorization"), request.command, request.uri)
-			if type (www_authenticate) is str:
-				request.response ['WWW-Authenticate'] = www_authenticate
-				request.response.send_error ("401 Unauthorized")
-				return False				
-			elif www_authenticate:
-				request.user = www_authenticate
-					
-		except AttributeError: 
-			pass
-			
-		return True
-	
 	def find_method (self, request, path, handle_response = True):
 		current_app, thing, param, options, respcode = self.get_method (
 			path, 
 			request
 		)
 		
-		if respcode:			
-			if respcode == 401 and self.isauthorized (current_app, request):
-				# passed then be normal
-				respcode = 0
-			
-			if handle_response and respcode:			
-				if respcode == 301:
-					request.response ["Location"] = thing
-					request.response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % thing)							
-				elif respcode != 200:
-					request.response.send_error ("%d %s" % (respcode, respcodes.get (respcode, "Undefined Error")))
-	
+		if respcode and handle_response:			
+			if respcode == 301:
+				request.response ["Location"] = thing
+				request.response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % thing)							
+			elif respcode != 200:
+				request.response.send_error ("%d %s" % (respcode, respcodes.get (respcode, "Undefined Error")))
+
 		if thing:
 			request.routed = thing [1]
 			request.routable = options

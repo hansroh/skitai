@@ -54,19 +54,23 @@ class Handler (wsgi_handler.Handler):
 		if type (has_route) is int:
 			return request.response.error (404)
 		
-		apph = self.apps.get_app (path)
-		if not self.isauthorized (apph.get_callable(), request):
-			return
-			
+		apph = self.apps.get_app (path)		
+		app = apph.get_callable()
+		is_saddle = isinstance (app, part.Part)
+		
+		if is_saddle:
+			if not app.is_authorized (request, app.authenticate):
+				return request.response.error (401)
+			if not app.is_allowed_origin (request, app.access_control_allow_origin):
+				return request.response.error (403)
+				
 		env = self.build_environ (request, apph)
 		was = the_was._get ()
 		was.request = request
 		env ["skitai.was"] = was
 		env ["websocket.event"] = skitai.WS_EVT_INIT
 
-		is_saddle = isinstance (apph.get_callable (), part.Part)
-		message_encoding = skitai.WS_MSG_DEFAULT	
-			
+		message_encoding = skitai.WS_MSG_DEFAULT				
 		if not is_saddle:	# not Skitao-Saddle				
 			apph (env, donot_response)
 			wsconfig = env.get ("websocket.config", ())			

@@ -35,8 +35,8 @@ class Saddle (part.Part):
 	session_timeout = None
 	
 	#WWW-Authenticate	
-	acess_control_allow_origin = None
-	acess_control_max_age = 0
+	access_control_allow_origin = None
+	access_control_max_age = 0
 	authenticate = False
 	authorization = "digest"	
 	realm = None
@@ -214,7 +214,28 @@ class Saddle (part.Part):
 				pass
 		
 		return self.get_www_authenticate ()
-			
+	
+	def is_allowed_origin (self, request, allowed_origins):		
+		if not allowed_origins:
+			return True
+		if "*" in allowed_origins:
+			return True
+		if request.get_header ('Origin', '') in allowed_origins:
+			return True
+		return False
+		
+	def is_authorized (self, request, authenticate):
+		if not authenticate:
+			return True
+		
+		www_authenticate = self.authorize (request.get_header ("Authorization"), request.command, request.uri)
+		if type (www_authenticate) is str:
+			request.response.set_header ('WWW-Authenticate', www_authenticate)
+			return False
+		elif www_authenticate:
+			request.user = www_authenticate				
+		return True
+	
 	def set_devel (self, debug = True, use_reloader = True):
 		self.debug = debug
 		self.use_reloader = use_reloader
@@ -284,7 +305,7 @@ class Saddle (part.Part):
 		
 		resp_code = 0
 		if options:
-			allowed_types = options.get ("content_types", [])	
+			allowed_types = options.get ("content_types", [])
 			if allowed_types and content_type not in allowed_types:
 				return current_app, None, None, options, 415 # unsupported media type
 			
@@ -298,24 +319,31 @@ class Saddle (part.Part):
 					return current_app, None, None, options, 405 # method not allowed
 			
 				response = request.response
-				response.set_header ("Access-Control-Allow-Methods", ",".join (allowed_methods))
-				acess_control_max_age = options.get ("acess_control_max_age", self.acess_control_max_age)	
-				if acess_control_max_age:
-					response.set_header ("Access-Control-Max-Age", str (acess_control_max_age))
+				response.set_header ("Access-Control-Allow-Methods", ", ".join (allowed_methods))
+				access_control_max_age = options.get ("access_control_max_age", self.access_control_max_age)	
+				if access_control_max_age:
+					response.set_header ("Access-Control-Max-Age", str (access_control_max_age))
 				
-				authenticate = options.get ("authenticate", self.authenticate)
-				if authenticate:
-					response.set_header ("Access-Control-Allow-Headers", "Authorization")
-					response.set_header ("Access-Control-Allow-Credentials", "true")
+				requeste_headers = request.get_header ("Access-Control-Request-Headers", "")		
+				if requeste_headers:
+					response.set_header ("Access-Control-Allow-Headers", requeste_headers)
 					
 				resp_code = 200
 			
 			else:
-				resp_code = options.get ("authenticate", self.authenticate) and 401 or 0
-			
-		acess_control_allow_origin = options.get ("acess_control_allow_origin", self.acess_control_allow_origin)
-		if acess_control_allow_origin and acess_control_allow_origin != 'same':
-			request.response.set_header ("Access-Control-Allow-Origin", acess_control_allow_origin)
+				if not self.is_allowed_origin (request, options.get ("access_control_allow_origin", self.access_control_allow_origin)):
+					resp_code =  403
+				elif not self.is_authorized (request, options.get ("authenticate", self.authenticate)):
+					resp_code =  401				
+		
+		if resp_code in (401, 200):
+			authenticate = options.get ("authenticate", self.authenticate)
+			if authenticate:
+				response.set_header ("Access-Control-Allow-Credentials", "true")
+							
+		access_control_allow_origin = options.get ("access_control_allow_origin", self.access_control_allow_origin)
+		if access_control_allow_origin and access_control_allow_origin != 'same':
+			request.response.set_header ("Access-Control-Allow-Origin", ", ".join (access_control_allow_origin))
 		
 		return current_app, method, kargs, options, resp_code
 	

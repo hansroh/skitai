@@ -2633,8 +2633,8 @@ For allowing CORS, you should do 2 things:
 .. code:: python
   
   app = Saddle (__name__)
-  app.acess_control_allow_origin = "*"
-  app.acess_control_max_age = 3600
+  app.access_control_allow_origin = "*"
+  app.access_control_max_age = 3600
   
   @app.route ("/post", methods = ["POST", "OPTIONS"])
   def post (was):
@@ -2650,8 +2650,8 @@ If you want function specific CORS,
   
   @app.route (
    "/post", methods = ["POST", "OPTIONS"], 
-   acess_control_allow_origin = "*",
-   acess_control_max_age = 3600
+   access_control_allow_origin = "*",
+   access_control_max_age = 3600
   )
   def post (was):
     args = was.request.json ()	
