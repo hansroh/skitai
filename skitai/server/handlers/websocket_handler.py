@@ -40,8 +40,8 @@ class Handler (wsgi_handler.Handler):
 		
 		origin = request.get_header ("origin")
 		host = request.get_header ("host")
-		protocol = request.get_header ("http_sec_websocket_protocol", 'unknown')
-		securekey = request.get_header ("sec-webSocket-key")
+		protocol = request.get_header ("sec-websocket-protocol", 'unknown')
+		securekey = request.get_header ("sec-websocket-key")
 		
 		if not origin or not host or not securekey:
 			return request.response.error (400)
