@@ -43,11 +43,8 @@ class Handler (wsgi_handler.Handler):
 		protocol = request.get_header ("http_sec_websocket_protocol", 'unknown')
 		securekey = request.get_header ("sec-webSocket-key")
 		
-		if not origin or not host or not securekey: 
+		if not origin or not host or not securekey:
 			return request.response.error (400)
-		
-		if not (host.startswith ("localhost:") or origin.find (host) != -1 or origin == "null"):
-			return request.response.error (403)
 		
 		path, params, query, fragment = request.split_uri ()		
 		has_route = self.apps.has_route (path)

@@ -77,7 +77,7 @@ class http_channel (asynchat.async_chat):
 		if not is_working:
 			self.done_request ()		
 		
-	def initiate_send (self):		
+	def initiate_send (self):
 		asynchat.async_chat.initiate_send (self)		
 		try: is_working = self.producer_fifo.working ()
 		except AttributeError: 	is_working = len (self.producer_fifo)

@@ -216,13 +216,14 @@ class Saddle (part.Part):
 		return self.get_www_authenticate ()
 	
 	def is_allowed_origin (self, request, allowed_origins):
-		if self.debug:
-			return True
-		if not allowed_origins:
+		origin = request.get_header ('Origin')
+		if not origin:
 			return True
 		if "*" in allowed_origins:
 			return True
-		if request.get_header ('Origin', '') in allowed_origins:
+		if not allowed_origins:
+			allowed_origins = [request.get_header ("host", "")]
+		if orgin in allowed_origins:
 			return True
 		return False
 		
