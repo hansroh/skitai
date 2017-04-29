@@ -53,8 +53,7 @@ package_data = {}
 
 install_requires = [
 	"jinja2==2.9.4", 
-	"chameleon==3.1", 
-	"h2==2.5.1", 
+	"chameleon==3.1", 	
 	"aquests>=0.7.3.2"
 ]
 
