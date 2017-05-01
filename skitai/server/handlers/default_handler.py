@@ -1,5 +1,6 @@
 import re
 import stat
+import time
 from . import mime_type_table
 import os
 from . import filesys
@@ -167,11 +168,12 @@ class Handler:
 		except IOError:
 			self.handle_alternative (request)
 			return
-
+		
 		request.response ['Content-Length'] = file_length		
 		max_age = self.max_ages and self.get_max_age (path) or 0
-		if request.version == "1.0":
-			request.response ['Last-Modified'] = http_date.build_http_date (mtime)			
+		
+		if request.version == "1.0":			
+			request.response ['Last-Modified'] = http_date.build_http_date (mtime)
 			if max_age:
 				request.response ['Expires'] = http_date.build_http_date (mtime + max_age)
 		else:

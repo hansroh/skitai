@@ -72,7 +72,7 @@ class http_request:
 	def set_log_info (self):
 		self.gtxid = self.get_header ("X-Gtxn-Id")
 		if not self.gtxid:
-			self.gtxid = "gtid-%s-c%s-r%s" % (
+			self.gtxid = "%s-%s-%s" % (
 				self.channel.server.hash_id,
 				self.channel.channel_number, 
 				self.request_count

@@ -12,6 +12,7 @@ from collections import deque
 import signal
 import ssl
 import skitai
+from hashlib import md5
 
 PID = []
 ACTIVE_WORKERS = 0
@@ -320,7 +321,7 @@ class http_server (asyncore.dispatcher):
 			self.server_name = socket.gethostbyaddr (ip)[0]
 		except socket.error:			
 			self.server_name = ip
-		self.hash_id = hex (abs (hash (self.server_name)))[2:10]	
+		self.hash_id = md5 (self.server_name.encode ('utf8')).hexdigest() [:4]
 		self.server_port = port
 	
 	def fork_and_serve (self, numworker = 1):
