@@ -54,6 +54,7 @@ class Saddle (part.Part):
 		self.lock = threading.RLock ()
 		
 		self.reloadables = {}
+		self.last_reloaded = time.time ()
 		self.cached_paths = {}		
 		self.cached_rules = []
 		self.config = Config (preset = True)
@@ -79,13 +80,18 @@ class Saddle (part.Part):
 	def watch (self, module):
 		self.reloadables [module] = self.get_file_info (module)
 	
-	def check_reload (self):		
+	def maybe_reload (self):
+		if time.time () - self.last_reloaded < 1.0:
+			return
+			
 		for module in self.reloadables:
 			fi = self.get_file_info (module)
 			if self.reloadables [module] != fi:				
 				importer.reloader (module)
 				self.reloadables [module] = fi
-	
+		
+		self.last_reloaded = time.time ()
+		
 	def get_file_info (self, module):
 		stat = os.stat (module.__file__)
 		return stat.st_mtime, stat.st_size
@@ -264,7 +270,7 @@ class Saddle (part.Part):
 		
 		with self.lock:
 			if self.use_reloader:
-				self.check_reload ()
+				self.maybe_reload ()
 				
 			try:
 				method, options = self.cached_paths [path_info]

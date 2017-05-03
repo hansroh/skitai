@@ -1,4 +1,4 @@
-import os, sys, re, types
+import os, sys, re, types, time
 from aquests.lib  import pathtool, importer
 import threading
 from types import FunctionType as function
@@ -9,7 +9,8 @@ class Module:
 		self.wasc = wasc
 		self.handler = handler
 		self.pref = pref
-								
+		self.last_reloaded = time.time ()
+									
 		try:
 			libpath, self.appname = libpath.split (":", 1)		
 		except ValueError:
@@ -79,24 +80,24 @@ class Module:
 		self.file_info = (stat.st_mtime, stat.st_size)	
 	
 	def maybe_reload (self):
+		if time.time () - self.last_reloaded < 1.0:
+			return
+
 		stat = os.stat (self.abspath)
 		reloadable = self.file_info != (stat.st_mtime, stat.st_size)		
-		if reloadable and self.use_reloader:
-			
+		if reloadable and self.use_reloader:						
 			app = getattr (self.module, self.appname)
 			PRESERVED = []
 			if hasattr (app, "PRESERVE_ON_RELOAD"):
 				PRESERVED = [(attr, getattr (app, attr)) for attr in app.PRESERVES_ON_RELOAD]
 				
 			importer.reloader (self.module)
-			self.start_app (reloded = True)
-			
+			self.start_app (reloded = True)			
 			newapp = getattr (self.module, self.appname)
 			for attr, value in PRESERVED:
-				setattr (newapp, attr, value)
-				
-			return True
-		return False
+				setattr (newapp, attr, value)			
+		
+		self.last_reloaded = time.time ()
 				
 	def set_route (self, route):
 		route = route
