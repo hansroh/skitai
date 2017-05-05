@@ -450,12 +450,13 @@ class http_response:
 						
 	def log (self, bytes):				
 		self.request.channel.server.log_request (
-			'%s:%d %s %s %s %s %d %d %s %s %s %s %s %dms %dms'
+			'%s:%d %s %s %s %s %s %d %d %s %s %s %s %s %dms %dms'
 			% (
 			self.request.channel.addr[0],
 			self.request.channel.addr[1],			
 			self.request.host,
 			self.request.is_promise () and "PUSH" or self.request.method,
+			self.request.uri,
 			self.request.version,
 			self.reply_code,
 			self.request.rbytes,

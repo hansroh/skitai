@@ -60,10 +60,14 @@ install_requires = [
 with open('skitai/__init__.py', 'r') as fd:
 	version = re.search(r'^__version__\s*=\s*"(.*?)"',fd.read(), re.M).group(1)
 
+with open ('README.rst', encoding='utf-8') as f:
+	long_description = f.read()
+    
 setup(
 	name='skitai',
 	version=version,
 	description='Skitai App Engine For Microservices',
+	long_description=long_description,
 	url = 'https://gitlab.com/hansroh/skitai',
 	author='Hans Roh',
 	author_email='hansroh@gmail.com',	

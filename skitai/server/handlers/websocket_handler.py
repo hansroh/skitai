@@ -79,10 +79,14 @@ class Handler (wsgi_handler.Handler):
 				raise AssertionError ("You should config (design_spec, keep_alive, var_names) where env has key 'skitai.websocket.config'")
 				
 		else:	
-			current_app, method, kargs, resp_code = apph.get_callable().get_method (env ["PATH_INFO"])
+			current_app, method, kargs, options, resp_code = apph.get_callable().get_method (env ["PATH_INFO"], request)
 			if resp_code:
 				return request.response.error (resp_code)
-			
+							
+			if method:
+				request.routed = method [1]
+				request.routable = options
+				
 			wsfunc = method [1]
 			fspec = inspect.getargspec (wsfunc)
 			savedqs = env.get ('QUERY_STRING', '')

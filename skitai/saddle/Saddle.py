@@ -225,11 +225,11 @@ class Saddle (part.Part):
 		origin = request.get_header ('Origin')
 		if not origin:
 			return True
-		if "*" in allowed_origins:
-			return True
 		if not allowed_origins:
-			allowed_origins = [request.get_header ("host", "")]
-		if orgin in allowed_origins:
+			allowed_origins = ["%s://%s" % (request.get_scheme (), request.get_header ("host", ""))]
+		elif "*" in allowed_origins:
+			return True		
+		if origin in allowed_origins:
 			return True
 		return False
 		
