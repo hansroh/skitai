@@ -7,6 +7,7 @@ except ImportError:
 import os
 from aquests.lib import importer, strutil
 from types import FunctionType as function
+import inspect
 
 	
 RX_RULE = re.compile ("(/<(.+?)>)")
@@ -201,10 +202,18 @@ class Part:
 	def add_route (self, rule, func, **options):					
 		if not rule or rule [0] != "/":
 			raise AssertionError ("Url rule should be starts with '/'")
-					
+		
+		fspec = inspect.getargspec(func)
+		if fspec [3]:
+			defaults = {}
+			argnames = fspec [0][(len (fspec [0]) - len (fspec [3])):]
+			for i in range (len (fspec [3])):
+				defaults [argnames [i]] = fspec [3][i]
+			options ["defaults"] = defaults
+		
 		s = rule.find ("/<")
 		if s == -1:	
-			self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, func.__code__.co_argcount - 1, rule, options)
+			self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, func.__code__.co_argcount - 1, rule, options)			
 		else:
 			s_rule = rule
 			rulenames = []
@@ -225,7 +234,7 @@ class Part:
 			re_rule = re.compile (rule)				
 			self.route_map [re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), func.__code__.co_argcount - 1, s_rule, options)
 			self.route_priority.append ((s, re_rule))
-			self.route_priority.sort (key = lambda x: x [0], reverse = True)
+			self.route_priority.sort (key = lambda x: x [0], reverse = True)			
 			
 	def route_search (self, path_info):
 		if path_info + "/" == self.mount_p:
@@ -287,7 +296,7 @@ class Part:
 		
 		if matchtype == -1: # 301 move
 			return app, method, None, None, None, -1
-		
+			
 		return app, [self._binds_request [0], method] + self._binds_request [1:4], kargs, options, match, matchtype
 	
 	#----------------------------------------------

@@ -30,9 +30,17 @@ class http_request:
 		self._is_stream_ended = False
 		self._is_async_streaming = False
 		self._is_promise = False
+		self.args = {}
 		self.set_log_info ()
 		self.make_response ()
 	
+	def set_args (self, args):
+		self.args = args
+		if "defaults" in self.routable:
+			for k, v in self.routable ["defaults"].items ():
+				if k not in self.args:
+					self.args [k] = v
+					
 	@property
 	def method (self):
 		return self.command.upper ()

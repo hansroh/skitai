@@ -46,7 +46,7 @@ class Handler (wsgi_handler.Handler):
 		if not origin or not host or not securekey:
 			return request.response.error (400)
 		
-		path, params, query, fragment = request.split_uri ()		
+		path, params, query, fragment = request.split_uri ()
 		has_route = self.apps.has_route (path)
 		if type (has_route) is int:
 			return request.response.error (404)
@@ -82,7 +82,7 @@ class Handler (wsgi_handler.Handler):
 			current_app, method, kargs, options, resp_code = apph.get_callable().get_method (env ["PATH_INFO"], request)
 			if resp_code:
 				return request.response.error (resp_code)
-							
+
 			if method:
 				request.routed = method [1]
 				request.routable = options

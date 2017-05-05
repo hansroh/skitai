@@ -74,7 +74,7 @@ class Executor:
 		
 	def generate_content (self, method, _args, karg):
 		karg = self.parse_kargs (karg)
-		self.was.request.args = karg
+		self.was.request.set_args (karg)
 		response = self.chained_exec (method, _args, karg)
 		return response
 	
