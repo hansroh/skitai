@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26b63"
+__version__ = "0.26b67"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -189,10 +189,10 @@ def enable_gateway (enable_auth = False, secure_key = None, realm = "Skitai API 
 	dconf ["gw_realm"] = realm,
 	dconf ["gw_secret_key"] = secure_key
 
-def enable_cachefs (path = None, memmax = 0, diskmax = 0):
+def enable_cachefs (memmax = 0, diskmax = 0, path = None):
 	global dconf	
-	dconf ["cachefs_dir"] = path
 	dconf ["cachefs_memmax"] = memmax
+	dconf ["cachefs_dir"] = path
 	dconf ["cachefs_diskmax"] = diskmax	
 				
 def enable_proxy (unsecure_https = False):
@@ -344,6 +344,9 @@ def run (**conf):
 			self.set_num_worker (conf.get ('workers', 1))
 			if conf.get ("certfile"):
 				self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
+			
+			if conf.get ("cachefs_diskmax", 0) and not conf.get ("cachefs_dir"):
+				conf ["cachefs_dir"] = os.path.join (self.get_varpath (), "cachefs")
 			self.config_cachefs (
 				conf.get ("cachefs_dir", None), 
 				conf.get ("cachefs_memmax", 0),

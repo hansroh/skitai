@@ -175,7 +175,7 @@ class Handler (wsgi_handler.Handler):
 	def __init__ (self, wasc, clusters, cachefs = None, unsecure_https = False):
 		self.wasc = wasc
 		self.clusters = clusters
-		self.cachefs = cachefs
+		self.cachefs = cachefs		
 		self.unsecure_https = unsecure_https
 		self.q = {}
 				

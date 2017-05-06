@@ -563,14 +563,20 @@ Also, you need absolute path on script,
 Enable Cache File System
 ------------------------------
 
-If you make massive HTTP requests, you can cache contents by HTTP headers - Cache-Control and Expires
+If you make massive HTTP requests, you can cache contents by HTTP headers - Cache-Control and Expires. these configures will affect to 'was' request services, proxy and reverse proxy.
 
 .. code:: python
   
-  skitai.enable_cachefs (path = '/var/skitai/cache', memmax = 0, diskmax = 0)
+  skitai.enable_cachefs (memmax = 10000000, diskmax = 100000000, path = '/var/tmp/skitai/cache')
   skitai.mount ('/', app)
   skitai.run ()
- 
+
+Default values are:
+
+- memmax: 0
+- diskmax: 0
+- path: None
+
  
 Configure Max Age For Static Files
 --------------------------------------
@@ -870,13 +876,12 @@ It will be easy to understand think like that:
 Simply just remember, if you use WSGI container like Flask, Bottle, ... - NOT Saddle - and want to use Skitai asynchronous services, you should import 'was'. Usage is exactly same. But for my convinient, I wrote example codes Saddle version mostly.
 
 
-
 Async Requests Service
 ------------------------
 
-Most importance service of 'was' is making requests to HTTP, REST, RPC and Database Engines. The modules related theses features from aquests_.
+Most importance service of 'was' is making requests to HTTP, REST, RPC and several database engines. And this is mostly useful for fast Server Side Rendering with outside resources.
 
-You can read aquests_ usage first.
+The modules is related theses features from aquests_ and you could read aquests_ usage first.
 
 I think it just fine explains some differences with aquests.
 
@@ -1096,6 +1101,8 @@ There are 2 changes:
 
 Caching Result
 ````````````````
+
+By default, all HTTP requests keep server's cache policy given by HTTP response header (Cache-Control, Expire etc). But you can control cache as your own terms including even database query results.
 
 Every results returned by getwait(), getswait() can cache.
 
@@ -1686,7 +1693,7 @@ Before you begin, recommended Saddle App's directory structure is like this:
 - service.py: Skitai runner
 - app.py: File, Main app
 - appack: Directory, Module package for helping app like config.py, model.py etc...
-- static: Directory, Static file like css, js, images. This directory would be mounted for using
+- statics: Directory, Place static files like css, js, images. This directory should be mounted for using
 - templates: Directory, Jinaja and Chameleon template files
 - resources: Directory, Various files as app need like sqlite db file. In you app, you use these files, you can access file in resources by app.get_resource ("db", "sqlite3.db") like os.path.join manner.
 
@@ -2211,9 +2218,36 @@ Chameleon Template Engine
 
 For using Chameleon_ template engine, you just make template file extention with '.pt' or '.ptal' (Page Template or Page Template Attribute Language).
 
+I personally prefer Chameleon with `Vue.js`_ for HTML rendering.
+
 .. code:: python
     
-  return was.render ("index.ptal", choice = 2, product = "Apples")
+  return was.render (
+    "index.ptal", 
+    dashboard = [
+      {'population': 235642, 'school': 34, 'state': 'NY', 'nation': 'USA'}, 
+      {'population': 534556, 'school': 54, 'state': 'BC', 'nation': 'Canada'}, 
+       ]
+     )
+
+Here's example part of index.ptal.
+
+.. code:: html
+  
+  ${ was.request.args ['query'] }
+  
+  <tr tal:repeat="each dashboard">
+    <td>
+      <a tal:define="entity_name '%s, %s' % (each ['state'], each ['nation'])" 
+         tal:attributes="href was.ab ('entities', was.request.args ['level'], each ['state'])" 
+         tal:content="entity_name">
+      </a>
+    </td>
+    <td tal:content="each ['population']" />
+    <td>${ each ['schools'] }</td>    
+  </tr>
+
+.. _`Vue.js`: https://vuejs.org/
 
 
 Access Cookie
