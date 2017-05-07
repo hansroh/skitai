@@ -137,6 +137,7 @@ class Handler:
 		etag = self.make_etag (file_length, mtime)		
 		inm = get_header_match (IF_NONE_MATCH, request.header)
 		if inm and etag == inm.group (1):
+			self.set_cache_control (request, path, mtime, etag)
 			request.response.start (304)
 			request.response.done()
 			return
@@ -159,6 +160,7 @@ class Handler:
 
 		if length_match and ims_date:
 			if mtime <= ims_date:
+				self.set_cache_control (request, path, mtime, etag)
 				request.response.start (304)
 				request.response.done()
 				return
@@ -170,8 +172,16 @@ class Handler:
 			return
 		
 		request.response ['Content-Length'] = file_length		
+		self.set_cache_control (request, path, mtime, etag)
+		self.set_content_type (path, request)
+
+		if request.command == 'get':
+			request.response.push (producers.file_producer (file))
+			
+		request.response.done()
+	
+	def set_cache_control (self, request, path, mtime, etag):
 		max_age = self.max_ages and self.get_max_age (path) or 0
-		
 		if request.version == "1.0":			
 			request.response ['Last-Modified'] = http_date.build_http_date (mtime)
 			if max_age:
@@ -180,13 +190,7 @@ class Handler:
 			request.response ['Etag'] = '"' + etag + '"'
 			if max_age:
 				request.response ['Cache-Control'] = "max-age=%d" % max_age		
-		self.set_content_type (path, request)
-
-		if request.command == 'get':
-			request.response.push (producers.file_producer (file))
-			
-		request.response.done()
-	
+				
 	def get_max_age (self, path):
 		path = not path and "/" or "/" + path
 		for prefix, value in self.max_ages:			
