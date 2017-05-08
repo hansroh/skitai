@@ -103,6 +103,11 @@ class Saddle (part.Part):
 	
 	def get_resource (self, *args):
 		return os.path.join (self.home, "resources", *args)
+	
+	PACKAGE_DIRS = ["package", "appack", "contrib"]	
+	def add_package (self, *names):
+		for name in names:
+			self.PACKAGE_DIRS.append (name)
 		
 	def set_home (self, path):
 		self.home = path
@@ -111,14 +116,24 @@ class Saddle (part.Part):
 			auto_reload = self.use_reloader,
 			restricted_namespace = False
 		)
-		appack_dir = os.path.join (path, 'appack')
+		
+		package_dirs = []
+		for d in self.PACKAGE_DIRS:
+			maybe_dir = os.path.join (path, d)
+			if os.path.isdir (maybe_dir):
+				package_dirs.append (maybe_dir)
+		
 		for k, v in sys.modules.items ():
 			try:
 				modpath = v.__spec__.origin
 			except AttributeError:
-				continue									
-			if modpath and modpath.startswith (appack_dir):
-				self.watch (v)
+				continue
+			
+			if modpath:
+				for package_dir in package_dirs:
+					if modpath.startswith (package_dir):						
+						self.watch (v)
+						break
 			
 	def render (self, was, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		while template_file and template_file [0] == "/":

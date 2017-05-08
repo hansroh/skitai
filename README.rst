@@ -550,7 +550,7 @@ So your file resources exist within skitai run script, you can access them by re
 
 .. code:: python
   
-  monitor = skital.joinpath ('appack', 'monitor.py')
+  monitor = skital.joinpath ('package', 'monitor.py')
   skitai.cron ("*/2 */2 * * *", "%s > /home/apps/monitor.log 2>&1" % monitor)
 
 Also, you need absolute path on script,
@@ -1692,7 +1692,7 @@ Before you begin, recommended Saddle App's directory structure is like this:
 
 - service.py: Skitai runner
 - app.py: File, Main app
-- appack: Directory, Module package for helping app like config.py, model.py etc...
+- package: Directory, Module package for helping app like config.py, model.py etc...
 - statics: Directory, Place static files like css, js, images. This directory should be mounted for using
 - templates: Directory, Jinaja and Chameleon template files
 - resources: Directory, Various files as app need like sqlite db file. In you app, you use these files, you can access file in resources by app.get_resource ("db", "sqlite3.db") like os.path.join manner.
@@ -1742,10 +1742,19 @@ If use_reloader is True, Skito-Saddle will detect file changes and reload app au
   app.use_reloader = True # auto realod on file changed
 
 
-Reloading App Package
------------------------
+App Package
+------------
+
+If app.use_reloader is True, all module of package - sub package directory of app.py - will be reloaded automatically if file is modified.
+
+Saddle will watch default package directory: 'package' and 'contrib'
+
+If you use other packages and need to reload,
+
+.. code:: python
   
-If app.use_reloader is True, all module of appack - sub package directory of app.py - will be reloaded automatically if file is modified.
+  app = Saddle (__name__)
+  app.add_package ('mylib', 'corplib')
 
 
 Routing
@@ -3098,7 +3107,7 @@ Change Log
     - support PATCH method
     - runtime app preferences and add __init__.bootstrap (preference)
     - fix route caching
-    - auto reload sub modules in appack directory, if app.use_reloader = True
+    - auto reload sub modules in package directory, if app.use_reloader = True
     - new was.request.json ()
     - integrated with skitaid package, single app file can contain all configure options
     - level down developement status to alpha
