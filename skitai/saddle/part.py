@@ -21,6 +21,7 @@ class Part:
 		
 		self.logger = None
 		self.mount_p = "/"
+		self.path_suffix_len = 0
 		self.route_map = {}
 		self.route_priority = []
 		self._binds_server = [None] * 3
@@ -34,6 +35,7 @@ class Part:
 			self.mount_p = mount + "/"
 		else:
 			self.mount_p = mount
+		self.path_suffix_len = len (self.mount_p) - 1
 				
 	def init (self, module, packagename = "app", mount = "/"):
 		self.module = module	
@@ -170,7 +172,7 @@ class Part:
 	def set_route_map (self, route_map):
 		self.route_map = route_map
 	
-	def mount (self, mount, module, partname = "part"):
+	def mount (self, mount, module, partname = "app"):
 		part = getattr (module, partname)
 		part.init (module, partname, self.mount_p [:-1] + mount)
 		self.packages [id (part)] = part
@@ -250,6 +252,10 @@ class Part:
 		raise KeyError
 					
 	def get_package_method (self, path_info, command, content_type, authorization, use_reloader = False):		
+		if not path_info.startswith (self.mount_p):
+			return None, None, None, None, None, 0
+		
+		path_info = path_info [self.path_suffix_len:]			
 		app, method, kargs, matchtype = self, None, {}, 0				
 		# 1st, try find in self
 		try:			
@@ -260,7 +266,7 @@ class Part:
 				current_rule = self.route_map [rule]
 				method, kargs = self.try_rule (path_info, rule, current_rule)
 				if method: 
-					match = (rule, current_rule)					
+					match = (rule, current_rule)
 					matchtype = 2
 					options = current_rule [-1]
 					break
@@ -274,11 +280,12 @@ class Part:
 				matchtype = 1
 				options = current_rule [-1]
 			
-		# 2nd, try find in sub packages
+		# 2nd, try find in sub packages		
 		if method is None and self.packages:
 			for pid in list (self.packages.keys ()):
 				package = self.packages [pid]
 				subapp = getattr (package.module, package.packagename)
+								
 				if use_reloader and subapp.is_reloadable ():
 					del self.packages [pid]
 					args, its_packages = (package.mount_p, package.module, package.packagename), package.packages

@@ -1239,8 +1239,7 @@ First of all, see conceptual client side java script for websocket using Vuejs.
     <ul>
       <li v-for="log in logs" v-html="log.text"></li>
     </ul>
-    <input type="Text" v-model="msg">
-    <button @click.native="push (msg); msg='';">Send</button>
+    <input type="Text" v-model="msg" @keyup.enter="push (msg); msg='';">
   </div>
   
   <script>  
