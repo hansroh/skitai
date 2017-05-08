@@ -1314,6 +1314,11 @@ Websocket messages will be automatically converted to theses objects. Note that 
   - WS_MSG_XMLRPC
 
 
+WWW-Authenticate
+-----------------
+
+Some browsers do not support WWW-Authenticate on websocket like Safari, then Skitai currently disabled WWW-Authenticate for websocket, so you should be careful for this situation.
+
 General Usages
 ---------------
 
@@ -3103,6 +3108,7 @@ Change Log
   
   - 0.26
     
+    - disable WWW-Authenticate on websocket protocol
     - support CORS (Cross Origin Resource Sharing)
     - support PATCH method
     - runtime app preferences and add __init__.bootstrap (preference)

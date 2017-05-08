@@ -56,7 +56,8 @@ class Handler (wsgi_handler.Handler):
 		is_saddle = isinstance (app, part.Part)
 		
 		if is_saddle:
-			if not app.is_authorized (request, app.authenticate):
+			# safari does not support Authorization
+			if request.get_header ("authorization") and not app.is_authorized (request, app.authenticate):
 				return request.response.error (401)
 			if not app.is_allowed_origin (request, app.access_control_allow_origin):
 				return request.response.error (403)
@@ -110,7 +111,7 @@ class Handler (wsgi_handler.Handler):
 			if not wsconfig:
 				raise AssertionError ("You should config (design_spec, keep_alive, [data_encoding]) where env has key 'was.wsconfig ()'")
 			
-			if not savedqs:
+			if not savedqs and "QUERY_STRING" in env:
 				del env ["QUERY_STRING"]
 			else:	
 				env ["QUERY_STRING"] = savedqs

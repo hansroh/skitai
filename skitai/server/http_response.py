@@ -19,11 +19,11 @@ DEFAULT_ERROR_MESSAGE = """<!DOCTYPE html>
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>ERROR: %(code)d %(message)s</title>
+<title>%(code)d %(message)s</title>
 <style type="text/css"><!-- *{font-family:verdana,sans-serif;}body{margin:0;padding:0;background:#efefef;font-size:14px;color:#1e1e1e;} #titles{margin-left:15px;padding:10px;}#titles h1,h2{color: #000000;} #content{padding:16px 10px 30px 16px;background:#ffffff;} #error h2 {font-size: 14px;} #error h3{font-size: 13px; color: #d90000;} #error p,b,h4,li {font-size:12px;}#error h4{color: #999999;} #error li{margin-bottom: 6px;} #error .f {color:#d90000;} #error .n {color:#003366;font-weight:bold;} #error{margin:0;padding:0;} hr{margin:0;padding:0;} #error hr{border-top:#888888 1px solid;} #error li,i{font-weight:normal;}#footer {font-size:12px;padding-left:10px;} --></style>
 </head>
 <body>
-<div id="titles"><h1>ERROR</h1><h2>%(code)d %(message)s</h2></div>
+<div id="titles"><h1>%(code)d %(message)s</h1></div>
 <hr />
 <div id="content">
 <p>The following error was encountered while trying to retrieve the URL:</p>
@@ -35,7 +35,7 @@ DEFAULT_ERROR_MESSAGE = """<!DOCTYPE html>
 <hr />
 <div id="footer">
 <p>
-Generated %(gentime)s by <i>Skitai WSGI App Engine</i>
+Generated %(gentime)s by <i>Skitai App Engine</i>
 </p>
 </div>
 </body>
