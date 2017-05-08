@@ -104,7 +104,7 @@ class Saddle (part.Part):
 	def get_resource (self, *args):
 		return os.path.join (self.home, "resources", *args)
 	
-	PACKAGE_DIRS = ["package", "appack", "contrib"]	
+	PACKAGE_DIRS = ["package", "appack", "contrib"]
 	def add_package (self, *names):
 		for name in names:
 			self.PACKAGE_DIRS.append (name)
@@ -112,7 +112,7 @@ class Saddle (part.Part):
 	def set_home (self, path):
 		self.home = path
 		self.chameleon = PageTemplateLoader (
-			os.path.join(path, "templates"), 
+			os.path.join(path, "templates"),
 			auto_reload = self.use_reloader,
 			restricted_namespace = False
 		)

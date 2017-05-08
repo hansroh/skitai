@@ -14,6 +14,9 @@ import pickle
 from hmac import new as hmac
 from . import named_session
 
+NS_MBOX = "MBOX"
+NS_SESSION = "SESS"
+
 def crack_cookie (r):
 	if not r: return {}
 	arg={}
@@ -21,7 +24,7 @@ def crack_cookie (r):
 	for k in q:
 		key = unquote_plus (k [0])
 		if len (k) == 2:			
-			if not key.startswith ("SESSION") and not key.startswith ("NOTIS"):
+			if not key.startswith (NS_SESSION) and not key.startswith (NS_MBOX):
 				arg[key] = unquote_plus (k[1])
 			else:
 				arg[key] = k[1]
@@ -93,9 +96,9 @@ class Cookie (BasicMethods):
 		self.data = {}	
 		cookie = crack_cookie (self.request.get_header ("cookie"))
 		for k, v in list(cookie.items ()):
-			if k.startswith ("SESSION") or k.startswith ("NOTIS"):
-				self.sessions [k] = v					
-				continue			
+			if k.startswith (NS_SESSION) or k.startswith (NS_MBOX):
+				self.sessions [k] = v
+				continue
 			self.data [k] = v
 		
 	def get (self, k, a = None):
@@ -146,7 +149,7 @@ class Cookie (BasicMethods):
 			cl = ["%s=%s" % (name, "")]
 			cl.append ("path=%s" % path)
 		else:
-			if name.startswith ("SESSION") or name.startswith ("NOTIS"):
+			if name.startswith (NS_SESSION) or name.startswith (NS_MBOX):
 				cl.append ("%s=%s" % (name, val))
 			else:
 				cl.append ("%s=%s" % (quote_plus (name), quote_plus (val)))
@@ -170,7 +173,7 @@ class Cookie (BasicMethods):
 		if expires == 0:
 			try: del self.data [name]
 			except KeyError: pass										
-		elif not name.startswith ("SESSION") and not name.startswith ("NOTIS"):
+		elif not name.startswith (NS_SESSION) and not name.startswith (NS_MBOX):
 			self.data [name] = val
 	
 	def get_named_session_data (self, name):
