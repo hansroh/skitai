@@ -84,15 +84,20 @@ class Saddle (part.Part):
 		if time.time () - self.last_reloaded < 1.0:
 			return
 			
-		for module in self.reloadables:
-			fi = self.get_file_info (module)
+		for module in list (self.reloadables.keys ()):			
+			try:
+				fi = self.get_file_info (module)
+			except FileNotFoundError:
+				del self.reloadables [module]
+				continue
+				
 			if self.reloadables [module] != fi:				
 				importer.reloader (module)
 				self.reloadables [module] = fi
 		
 		self.last_reloaded = time.time ()
 		
-	def get_file_info (self, module):
+	def get_file_info (self, module):		
 		stat = os.stat (module.__file__)
 		return stat.st_mtime, stat.st_size
 	
