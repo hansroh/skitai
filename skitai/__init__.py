@@ -384,27 +384,15 @@ def run (**conf):
 				lifetime.maintern.sched (10.0, self.maintern_shutdown_request)
 				self.flock = flock.Lock (os.path.join (self.get_varpath (), ".%s" % self.NAME))
 	
+	#----------------------------------------------------------------------------
 	
-	global dconf
-	
-	for k, v in dconf.items ():
-		if k not in conf:
-			conf [k] = v
-				
-	if not conf.get ('mount'):
-		raise ValueError ('Dictionary mount {mount point: path or app} required')
-	
-	working_dir = getswd ()
-		
-	argopt = getopt.getopt(sys.argv[1:], "vdf", [])
-	karg = {}
-	for k, v in argopt [0]:
-		karg [k] = v
-	
-	try: cmd = argopt [1][0]
-	except: cmd = None	
-		
-	if cmd == "stop":
+	def start (working_dir):
+		if os.name == "nt":
+			raise SystemError ('Daemonizing not supported')		
+		from .daemonize import Daemonizer
+		Daemonizer (working_dir).runAsDaemon ()
+			
+	def stop (working_dir):
 		import signal
 		pidfile = os.path.join (working_dir, '.pid')
 		if not os.path.isfile (pidfile):
@@ -414,14 +402,39 @@ def run (**conf):
 		os.kill (pid, signal.SIGTERM)
 		os.remove (pidfile)
 		return
-
-	if cmd == "start" or '-d' in karg:
-		if os.name == "nt":
-			raise SystemError ('Daemonizing not supported')
-		if '-v' in karg:
-			raise SystemError ('Daemonizer cannot be run with -v, It is meaningless')
-		from .daemonize import Daemonizer
-		Daemonizer (working_dir).runAsDaemon ()
+	
+	#----------------------------------------------------------------------------
+	
+	global dconf
+	
+	for k, v in dconf.items ():
+		if k not in conf:
+			conf [k] = v
+				
+	if not conf.get ('mount'):
+		raise systemError ('No mount point')
+	
+	argopt = getopt.getopt(sys.argv[1:], "vfdsr", [])
+	working_dir = getswd ()
+	try: cmd = argopt [1][0]
+	except: cmd = None
+	karg = {}
+	for k, v in argopt [0]:
+		if k == "-d": cmd = "start"
+		elif k == "-r": cmd = "retart"
+		elif k == "-s": cmd = "stop"
+		else: karg [k] = v
+			
+	if cmd in ("start", "restart") and '-v' in karg:
+		raise SystemError ('Daemonizer cannot be run with -v, It is meaningless')
+				
+	if cmd == "stop":
+		return stop (working_dir)
+	elif cmd == "start":
+		start (working_dir)
+	elif cmd == "restart":
+		stop (working_dir)
+		start (working_dir)	
 		
 	verbose = 0
 	if '-v' in karg or conf.get ('logpath') is None:

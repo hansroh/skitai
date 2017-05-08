@@ -161,16 +161,18 @@ Run As Daemon
   
   python3 app.py start
   
-  or 
-  
-  python3 app.py -d
-  
 For stopping daemon,
 
 .. code:: bash
   
   python3 app.py stop
 
+Or for restarting,
+  
+.. code:: bash
+  
+  python3 app.py restart
+  
 
 Run with Threads Pool
 ------------------------
