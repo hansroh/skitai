@@ -1229,46 +1229,98 @@ Skitai can be HTML5 websocket server and any WSGI containers can use it.
 
 But I'm not sure my implemetation is right way, so it is experimental and could be changable.
 
-First of all, see conceptual client side java script for websocket.
+First of all, see conceptual client side java script for websocket using Vuejs.
 
 .. code:: html
+
+  <div id="app">
+    <ul>
+      <li v-for="log in logs" v-html="log.text"></li>
+    </ul>
+    <input type="Text" v-model="msg">
+    <button @click.native="push (msg); msg='';">Send</button>
+  </div>
   
-  <body>
-  <ul id="display"></ul>
-  <input id="mymsg" type="text">
-  <button onclick='talk ();'>Submit<button>
+  <script>  
+  vapp = new Vue({
+    el: "#app",
+    data: {  
+      ws_uri: "ws://www.yourserver.com/websocket",
+      websocket: null,
+      out_buffer: [],
+      logs: [],
+      msg = '',
+    },
+        
+    methods: {
+      
+      push: function (msg) {
+        if (!msg) {
+          return
+        }      
+        this.out_buffer.push (msg)
+        if (this.websocket == null) {
+          this.connect ()
+        } else {
+          this.send ()
+        }
+      },
+      
+      handle_read: function (evt)  {
+        this.log_info(evt.data)
+      },
+      
+      log_info: function (msg) {    
+        if (this.logs.length == 10000) {
+          this.logs.shift ()
+        }      
+        this.logs.push ({text: msg})      
+      },
+      
+      connect: function () {
+        this.log_info ("connecting to " + this.ws_uri)
+        this.websocket = new WebSocket(this.ws_uri)      
+        this.websocket.onopen = this.handle_connect
+        this.websocket.onmessage = this.handle_read
+        this.websocket.onclose = this.handle_close
+        this.websocket.onerror = this.handle_error
+      },
+      
+      send: function () {      
+        for (var i = 0; i < this.out_buffer.length; i++ ) {
+          this.handle_write (this.out_buffer.shift ())
+        }
+      },
+      
+      handle_write: function (msg) {
+        this.log_info ("SEND: " + msg)
+        this.websocket.send (msg)
+      },
+      
+      handle_connect: function () {
+        this.log_info ("connected")
+        this.send ()
+      },
+      
+      handle_close: function (evt)  {
+        this.websocket.close()
+        this.websocket = null
+        this.log_info("DISCONNECTED")
+      },
+      
+      handle_error: function (evt)  {
+        this.log_info('ERROR: ' + evt.data)
+      },
+      
+    },
+    
+    mounted: function () {      
+      this.push ('Hello!')
+    },
+    
+  })
   
-  <script language="javascript" type="text/javascript">  
-  var wsUri = "ws://localhost:5000/websocket/chat";
-  testWebSocket();
-  
-  function testWebSocket()
-  {
-    websocket = new WebSocket(wsUri);
-    websocket.onopen = function(evt) { onOpen(evt) };
-    websocket.onclose = function(evt) { onClose(evt) };
-    websocket.onmessage = function(evt) { onMessage(evt) };
-    websocket.onerror = function(evt) { onError(evt) };
-  }
-  
-  function onOpen(evt) {doSend("Hello");}
-  function onClose(evt) {log_info ("DISCONNECTED");}  
-  function onMessage(evt) {log_info('evt.data');}
-  function onError(evt) {log_info('ERROR: ' + evt.data));}  
-  function doClose () {websocket.close();}  
-  function doSend(message) {
-  	log_info('SENT: ' + message));
-  	websocket.send(message);
-  }
-  function talk () {
-    doSend ($("#mymsg").val());
-    $("#mymsg").val("");
-  }
-  function log_info (message) {
-   $('<li>' + message + '</li>').appendTo ("#display");
-  }    
-  </script>  
-  </body>
+  </script>
 
 
 If your WSGI app enable handle websocket, it should give  initial parameters to Skitai like this,
@@ -1317,7 +1369,7 @@ Websocket messages will be automatically converted to theses objects. Note that 
 WWW-Authenticate
 -----------------
 
-Some browsers do not support WWW-Authenticate on websocket like Safari, then Skitai currently disabled WWW-Authenticate for websocket, so you should be careful for this situation.
+Some browsers do not support WWW-Authenticate on websocket like Safari, then Skitai currently disables WWW-Authenticate for websocket, so you should be careful for requiring secured messages.
 
 General Usages
 ---------------
