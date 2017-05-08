@@ -83,12 +83,11 @@ class Handler (wsgi_handler.Handler):
 			current_app, method, kargs, options, resp_code = apph.get_callable().get_method (env ["PATH_INFO"], request)
 			if resp_code:
 				return request.response.error (resp_code)
-
-			if method:
-				request.routed = method [1]
-				request.routable = options
 				
-			wsfunc = method [1]
+			request.routed = current_app.get_routed (method)
+			request.routable = options	
+			
+			wsfunc = request.routed
 			fspec = inspect.getargspec (wsfunc)
 			savedqs = env.get ('QUERY_STRING', '')
 			current_args = {}

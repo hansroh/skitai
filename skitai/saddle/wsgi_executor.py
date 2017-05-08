@@ -156,7 +156,7 @@ class Executor:
 				request.response.send_error ("%d %s" % (respcode, respcodes.get (respcode, "Undefined Error")))
 
 		if thing:
-			request.routed = thing [1]
+			request.routed = current_app.get_routed (thing)
 			request.routable = options
 
 		return current_app, thing, param, respcode

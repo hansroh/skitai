@@ -281,7 +281,7 @@ class Saddle (part.Part):
 			except KeyError:
 				raise NotImplementedError			
 			return grpc_collector.grpc_collector			
-			
+					
 	def get_method (self, path_info, request):		
 		command = request.command.upper ()
 		content_type = request.get_header_noparam ('content-type')

@@ -237,14 +237,21 @@ class Part:
 			self.route_map [re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), func.__code__.co_argcount - 1, s_rule, options)
 			self.route_priority.append ((s, re_rule))
 			self.route_priority.sort (key = lambda x: x [0], reverse = True)			
-			
+	
+	def get_routed (self, method_pack):
+		if not method_pack: 
+			return
+		temp = method_pack
+		while 1:
+			routed = temp [1]
+			if type (routed) is not list:
+				return routed
+			temp = routed
+					
 	def route_search (self, path_info):
-		if path_info + "/" == self.mount_p:
+		if not path_info:
 			return self.url_for ("/"), self.route_map ["/"]
-		if not path_info.startswith (self.mount_p):
-			raise KeyError
-		path_info = "/" + path_info [len (self.mount_p):]		
-		if path_info in self.route_map:			
+		if path_info in self.route_map:
 			return self.route_map [path_info][0], self.route_map [path_info]
 		trydir = path_info + "/"
 		if trydir in self.route_map:
@@ -252,15 +259,15 @@ class Part:
 		raise KeyError
 					
 	def get_package_method (self, path_info, command, content_type, authorization, use_reloader = False):		
-		if not path_info.startswith (self.mount_p):
+		if not (path_info.startswith (self.mount_p) or (path_info + "/").startswith (self.mount_p)):
 			return None, None, None, None, None, 0
 		
-		path_info = path_info [self.path_suffix_len:]			
+		path_info = path_info [self.path_suffix_len:]
 		app, method, kargs, matchtype = self, None, {}, 0				
 		# 1st, try find in self
 		try:			
 			method, current_rule = self.route_search (path_info)
-		
+			
 		except KeyError:
 			for priority, rule in self.route_priority:
 				current_rule = self.route_map [rule]
