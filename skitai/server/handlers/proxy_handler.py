@@ -41,7 +41,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 	def will_open_tunneling (self):
 		return self.response.code == 200 and self.response.msg.lower () == "connection established"
 	
-	def connection_closed (self, why, msg):
+	def connection_closed (self, why, msg):		
 		# asyncon disconnected
 		if self.client_request.channel and self.response:			
 			# http 1.0
@@ -82,16 +82,14 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 
 		try:
 			self.response = ProxyResponse (self.request, buffer.decode ("utf8"), accept_gzip, self.client_request, self.asyncon)
+			if self.handle_response_code ():				
+				return
+		except http_request_handler.ProtocolSwitchError:
+			return self.asyncon.handle_close (716)			
 		except:
-			#print (buffer)
 			self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
-			self.asyncon.handle_close (708, "Response Header Error")
-			return
-
-		if self.is_continue_response ():
-			# maybe response code is 100 continue
-			return
-		
+			return self.asyncon.handle_close (715)
+			
 		if self.will_open_tunneling ():
 			self.create_tunnel ()
 			self.close_case ()
@@ -293,6 +291,7 @@ class Handler (wsgi_handler.Handler):
 	def callback (self, handler):
 		response, request = handler.response, handler.client_request
 		
+		print (response.code, response)
 		if request.channel:
 			if response.code >= 700:
 				request.response.error (506, response.msg)

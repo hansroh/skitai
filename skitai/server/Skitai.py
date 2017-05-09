@@ -204,7 +204,7 @@ class Loader:
 				if entity.endswith (".py") or entity.endswith (".pyc"):
 					entity = os.path.join (os.getcwd (), entity) [:-3]
 					if entity [-1] == ".":
-						entity = entity [:-1]
+						entity = entity [:-1]					
 				sroutes.append (("%s=%s%s" % (route, entity, appname and ":" + appname or ""), pref))
 		return sroutes
 			
@@ -228,7 +228,7 @@ class Loader:
 					routes = [routes]
 				if type (routes [0]) is tuple:
 					routes = self.install_handler_with_tuple (routes)
-
+		
 		if blacklist_dir:
 			self.wasc.add_handler (0, ipbl_handler.Handler, blacklist_dir)
 		if proxy:			

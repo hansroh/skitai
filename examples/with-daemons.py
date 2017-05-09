@@ -13,12 +13,13 @@ if __name__ == "__main__":
 	import skitai	
 	import os, sys
 	
+	skitai.mount = ('/', app)
+	skitai.cron (
+		"* * * * *", 
+		"%s resources%scronjob.py  > resources%scronjob.log 2>&1" % (sys.executable, os.sep, os.sep)
+	)
+	skitai.enable_smtpda ()
 	skitai.run (
-		mount = [('/', app)],
-		cron = [
-			r"* * * * * %s resources%scronjob.py  > resources%scronjob.log 2>&1" % (sys.executable, os.sep, os.sep)
-		],
-		smtpda = {},
 		workers = 2
 	)
 	

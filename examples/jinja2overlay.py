@@ -15,11 +15,6 @@ def index (was):
 if __name__ == "__main__":
 	import skitai	
 	
-	skitai.run (
-		address = "0.0.0.0",
-		port = 5000,		
-		mount = [				
-			("/", 'static'),
-			("/", app),
-		]		
-	)
+	skitai.mount ("/", 'statics')
+	skitai.mount ("/", app)			
+	skitai.run ()

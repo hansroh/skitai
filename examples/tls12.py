@@ -1,14 +1,18 @@
 
 if __name__ == "__main__":
 	import skitai
-	import app
 	
-	skitai.run (
-		address = "0.0.0.0",
-		port = 5000,
-		clusters = app.clusters,
-		mount = app.mount,
-		certfile = r"C:\skitaid\etc\certifications\example.pem",
-		keyfile = r"C:\skitaid\etc\certifications\example.key",
-		passphrase = "fatalbug"
+	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.python.org")
+	skitai.mount ("/", 'statics')
+	skitai.mount ("/", app)
+	skitai.mount ("/websocket", 'websocket.py')
+	skitai.mount ("/rpc2", 'rpc2.py')
+	skitai.mount ("/routeguide.RouteGuide", 'grpc_route_guide.py')
+	skitai.mount ("/members", 'auth.py')
+	skitai.mount ("/lb", "@pypi")
+	skitai.enable_ssl (
+		"reosurces/certifications/example.pem",
+		"reosurces/certifications/example.key",
+		"fatalbug"
 	)
+	skitai.run ()

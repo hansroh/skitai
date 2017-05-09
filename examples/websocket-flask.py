@@ -47,9 +47,7 @@ def websocket ():
 	
 if __name__ == "__main__":
 	import skitai
-	skitai.run (
-		address = "0.0.0.0",
-		port = 5000,
-		mount = ("/websocket", app)
-	)
+	
+	skitai.mount = ("/websocket", app)	
+	skitai.run ()
 	

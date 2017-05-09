@@ -1,7 +1,7 @@
 from skitai.saddle import Saddle
 import time, math
 import json
-from appack import route_guide_pb2
+from package import route_guide_pb2
 
 app = Saddle (__name__)
 app.debug = True
@@ -716,9 +716,6 @@ db = read_route_guide_database ()
 
 if __name__ == "__main__":
 	import skitai
-	skitai.run (
-		address = "0.0.0.0",
-		port = 5000,
-		mount = ("/routeguide.RouteGuide", app)
-	)
+	skitai.mount = ("/routeguide.RouteGuide", app)
+	skitai.run ()
 	

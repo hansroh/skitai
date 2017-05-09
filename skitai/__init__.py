@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26b71"
+__version__ = "0.26.1"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -129,8 +129,8 @@ def set_max_rcache (objmax = 300):
 
 def set_keep_alive (timeout = 2):	
 	dconf ["keep_alive"] = timeout
-	
-def mount (point, target, appname = "app", pref = None):
+
+def mount (point, target, appname = "app", pref = None, host = "default"):
 	global dconf
 	
 	def init_app (modpath, pref):
@@ -147,27 +147,21 @@ def mount (point, target, appname = "app", pref = None):
 		# app instance
 		target = os.path.join (os.getcwd (), sys.argv [0])
 	else:
-		target = os.path.join (getswd (), target)
-
+		appname = ""
+		if target [0] != "@":		
+			target = os.path.join (getswd (), target)
+	
+	if host not in dconf ['mount']:
+		dconf ['mount'][host] = []
 	if os.path.isdir (target):
-		dconf ['mount']["default"].append ((point, target, None))
+		dconf ['mount'][host].append ((point, target, None))
 	else:	
 		init_app (target, pref)
 		if appname:
 			app = (target, appname)
 		else:
 			app = target
-		dconf ['mount']["default"].append ((point, app, pref))
-
-def vmount (vhost, point, target, appname = None):
-	global dconf
-	if appname:
-		app = (target, appname)
-	else:
-		app = target
-	if vhost not in dconf ['mount']:
-		dconf ['mount'][vhost] = []
-	dconf ['mount'][vhost].append ((point, app))	
+		dconf ['mount'][host].append ((point, app, pref))
 	
 def cron (sched, cmd):
 	global dconf

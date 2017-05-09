@@ -1,7 +1,7 @@
 from skitai.saddle import Saddle
 import time, math
 import json
-from appack import route_guide_pb2
+from package import route_guide_pb2
 
 app = Saddle (__name__)
 app.debug = True
@@ -17,11 +17,8 @@ def RouteChat (was):
 	
 if __name__ == "__main__":
 	import skitai
-	skitai.run (		
-		clusters = {"@pypi": ("https", "pypi.python.org")},
-		mount = [
-			("/", app),
-			("/lb", "@pypi"),
-		]
-	)
-
+	
+	skitai.alias ("@pypi", skitai.PROTO_HTTP, "pypi.python.org")
+	skitai.mount ("/", app)
+	skitai.mount ("/lb", "@pypi")
+	skitai.run ()

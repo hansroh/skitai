@@ -46,18 +46,10 @@ def index (was):
 
 if __name__ == "__main__":
 	import skitai
-	
-	skitai.run (
-		clusters = {
-			"@pypi": ("http", "gall.dcinside.com"),
-			"@postgres": ("postgresql", "127.0.0.1:5432/mydb/postgres/!kms2000")
-		},
-		mount = [
-			('/', app),
-			('/lb', '@pypi')			
-		],
-		enable_gw = True,
-		gw_auth = True,
-		gw_secret_key = "8fa06210-e109-11e6-934f-001b216d6e71"
-	)
+	skitai.alias ("@pypi", skitai.PROTO_HTTP, "gall.dcinside.com")
+	skitai.alias ("@postgres", skitai.DB_PGSQL, "127.0.0.1:5432/mydb/postgres/1111")
+	skitai.mount ('/', app)
+	skitai.mount ('/lb', '@pypi')
+	skitai.enable_gateway (True, "8fa06210-e109-11e6-934f-001b216d6e71", "Skitai API Gateway")
+	skitai.run ()
 	

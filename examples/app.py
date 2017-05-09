@@ -66,27 +66,21 @@ def upload (was, **karg):
 def post (was, username):	
 		return 'USER: %s' % username
 
-
-cpath = os.path.split (__file__) [0]
-mount = [
-	("/", 'static'),
-	("/", os.path.join (cpath, 'app.py')),
-	("/websocket", os.path.join (cpath, 'websocket.py')),
-	("/rpc2", os.path.join (cpath, 'rpc2.py')),
-	("/routeguide.RouteGuide", os.path.join (cpath, 'grpc_route_guide.py')),
-	("/members", os.path.join (cpath, 'auth.py')),
-	("/lb", "@pypi"),
-]	
-clusters = {"@pypi": ("https", "pypi.python.org")}
-	
 if __name__ == "__main__":
 	import skitai	
 	
+	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.python.org")
+	skitai.mount ("/", 'statics')
+	skitai.mount ("/", app)
+	skitai.mount ("/websocket", 'websocket.py')
+	skitai.mount ("/rpc2", 'rpc2.py')
+	skitai.mount ("/routeguide.RouteGuide", 'grpc_route_guide.py')
+	skitai.mount ("/members", 'auth.py')
+	skitai.mount ("/lb", "@pypi")
+	skitai.enable_proxy ()
+
 	skitai.run (
 		address = "0.0.0.0",
-		port = 5000,
-		clusters = clusters,
-		mount = mount,
-		proxy = True
+		port = 5000				
 	)
 	

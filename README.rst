@@ -3157,20 +3157,21 @@ Links
 Change Log
 ==============
   
-  0.26 (Apr 2017)
+  0.26 (May 2017)
   
-  - 0.26
-    
-    - disable WWW-Authenticate on websocket protocol
-    - support CORS (Cross Origin Resource Sharing)
-    - support PATCH method
-    - runtime app preferences and add __init__.bootstrap (preference)
-    - fix route caching
-    - auto reload sub modules in package directory, if app.use_reloader = True
-    - new was.request.json ()
-    - integrated with skitaid package, single app file can contain all configure options
-    - level down developement status to alpha
-    - fix sqlite3 closing
+  - 0.26.1: fix proxy & proxypass
+  - change development status to Beta
+  - fix Saddlery routing
+  - disable WWW-Authenticate on websocket protocol
+  - support CORS (Cross Origin Resource Sharing)
+  - support PATCH method
+  - runtime app preferences and add __init__.bootstrap (preference)
+  - fix route caching
+  - auto reload sub modules in package directory, if app.use_reloader = True
+  - new was.request.json ()
+  - integrated with skitaid package, single app file can contain all configure options
+  - level down developement status to alpha
+  - fix sqlite3 closing
   
   0.25 (Feb 2017)
   
