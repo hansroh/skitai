@@ -46,6 +46,10 @@ class http_request:
 		return self.command.upper ()
 	
 	@property
+	def scheme (self):
+		return self.get_scheme ()
+		
+	@property
 	def headers (self):
 		if self._headers_cache:
 			return self._headers_cache						
@@ -108,7 +112,7 @@ class http_request:
 	def get_scheme (self):	
 		from .https_server import https_channel		
 		return isinstance (self.channel, https_channel) and "https" or "http"
-	
+		
 	def get_raw_header (self):
 		return self.header
 	get_headers = get_raw_header

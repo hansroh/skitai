@@ -9,16 +9,12 @@ app.use_reloader = True
 
 @app.route ("/")
 def RouteChat (was):
-	return "<h1>Reverse Proxing</h1><a href='/lb/proxed'>Click Here</a>"
+	return "<h1>Reverse Proxing</h1><a href='/lb/pypi'>Click Here</a>"
 
-@app.route ("/proxed")
-def RouteChat (was):
-	return "<h1>Reverse Proxed</h1><a href='/lb/'>Click Here</a>"
-	
 if __name__ == "__main__":
 	import skitai
 	
-	skitai.alias ("@pypi", skitai.PROTO_HTTP, "pypi.python.org")
+	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.python.org")
 	skitai.mount ("/", app)
 	skitai.mount ("/lb", "@pypi")
 	skitai.run ()

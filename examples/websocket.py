@@ -60,6 +60,6 @@ def websocket (was, mode = "echo"):
 if __name__ == "__main__":
 	import skitai
 	
-	skitai.mount = ("/websocket", app)
+	skitai.mount ("/websocket", app)
 	skitai.run ()
 	

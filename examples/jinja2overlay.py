@@ -6,7 +6,7 @@ app = Saddle (__name__)
 
 app.debug = True
 app.use_reloader = True
-app.skito_jinja_overlay ()
+app.skito_jinja ()
 
 @app.route ("/")
 def index (was):	
