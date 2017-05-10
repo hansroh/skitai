@@ -337,9 +337,10 @@ Mounting With Virtual Host
   if __name__ == "__main__": 
   
     import skitai
-    skitai.vmount ('www.site1.com', '/', 'site1.py')
-    skitai.vmount ('www.site2.com', '/', 'site2.py')
+    skitai.mount ('/', 'site1.py', host = 'www.site1.com')
+    skitai.mount ('/', 'site2.py', host = 'www.site2.com')
     skitai.run ()
+
 
 Runtime App Preference
 -------------------------
@@ -1846,6 +1847,7 @@ Reqeust object provides these methods and attributes:
 - was.request.command # lower case get, post, ...
 - was.request.uri
 - was.request.version # HTTP Version, 1.0, 1.1
+- was.request.scheme # http or https
 - was.request.body
 - was.request.headers # case insensitive dictioanry
 - was.request.args # dictionary contains url/form parameters
@@ -2737,7 +2739,7 @@ CORS (Cross Origin Resource Sharing) and Preflight
 
 For allowing CORS, you should do 2 things:
 
-- set app.aloow_origin
+- set app.access_control_allow_origin
 - allow OPTIONS methods for routing
 
 .. code:: python
@@ -3159,7 +3161,7 @@ Change Log
   
   0.26 (May 2017)
   
-  - 0.26.1: fix proxy & proxypass
+  - 0.26.1: fix proxy & proxypass, add was.request.scheme and update examples
   - change development status to Beta
   - fix Saddlery routing
   - disable WWW-Authenticate on websocket protocol

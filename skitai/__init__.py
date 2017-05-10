@@ -117,7 +117,8 @@ def is_devel ():
 	return not os.environ.get ('SKITAI_PRODUCTION')
 	
 def joinpath (*pathes):
-	return os.path.join (getswd (), *pathes)
+	return os.path.normpath (os.path.join (getswd (), *pathes))
+abspath = joinpath
 	
 def set_max_age (path, max_age = 300):
 	global dconf
