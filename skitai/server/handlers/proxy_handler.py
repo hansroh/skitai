@@ -290,8 +290,7 @@ class Handler (wsgi_handler.Handler):
 			
 	def callback (self, handler):
 		response, request = handler.response, handler.client_request
-		
-		print (response.code, response)
+
 		if request.channel:
 			if response.code >= 700:
 				request.response.error (506, response.msg)

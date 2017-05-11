@@ -26,7 +26,7 @@ try:
 except ImportError:
 	import thread as _thread	
 from skitai import lifetime
-from .wastuff.aresponse import ResProxy, _Method
+from .wastuff.promise import Promise, _Method
 from .wastuff.triple_logger import Logger
 
 class WAS:
@@ -239,6 +239,10 @@ class WAS:
 			pathtool.mkdir (composer.Composer.SAVE_PATH)
 		return composer.Composer (subject, snd, rcpt)
 	
+	def promise (self, handler, *args, **karg):
+		self.response.set_streaming ()
+		return Promise (self, handler, *args, **karg)
+	
 	def togrpc (self, obj):
 		return obj.SerializeToString ()
 	
@@ -285,10 +289,6 @@ class WAS:
 	def gstream (self, obj):
 		self.response.set_header ("Content-Type", "application/grpc")
 		return self.togrpc (obj)
-		
-	def aresponse (self, handler, *args, **karg):
-		self.response.set_streaming ()
-		return ResProxy (self, handler, *args, **karg)
 				
 	def restart (self, timeout = 0):
 		lifetime.shutdown (3, timeout)

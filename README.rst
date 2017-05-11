@@ -538,7 +538,7 @@ Sometimes app need batch tasks for minimum response time to clients. At this sit
 Taks configuarion is very same with posix crontab.
 
 
-Asccessing File Reources On Startup
+Asccessing File Resources On Startup
 -------------------------------------
 
 Skitai's working directory is where the script call skitai.run (). Even you run skitai at root directory,
@@ -553,7 +553,7 @@ So your file resources exist within skitai run script, you can access them by re
 
 .. code:: python
   
-  monitor = skital.joinpath ('package', 'monitor.py')
+  monitor = skital.abspath ('package', 'monitor.py')
   skitai.cron ("*/2 */2 * * *", "%s > /home/apps/monitor.log 2>&1" % monitor)
 
 Also, you need absolute path on script,
@@ -804,7 +804,7 @@ Then users uses your module can mount on skitai by like this,
   import unsub
   
   pref = skitai.pref ()  
-  pref.config.urlfile = skitai.joinpath ('resources', 'urllist.txt')
+  pref.config.urlfile = skitai.abspath ('resources', 'urllist.txt')
   
   skitai.mount ("/v1", unsub, "app", pref)
   skitai.run ()
@@ -980,14 +980,14 @@ If you run Skitai with single threaded mode, you can't use req.wait(), req.getwa
 
 .. code:: python
   
-  def response_handler (response, proxy):
-    proxy.done (response.content)
+  def response_handler (promise, response):
+    promise.settle (response.content)
         
   @app.route ("/index")
-  def aresponse_example (was):
-    proxy = was.aresponse (response_handler)    
-    proxy.get (None, "https://pypi.python.org/pypi/skitai")    
-    return proxy
+  def promise_example (was):
+    promise = was.promise (response_handler)    
+    promise.get (None, "https://pypi.python.org/pypi/skitai")    
+    return promise
 
 Unfortunately this feature is available on Skito-Saddle WSGI container only (It means Flask or other WSGI container users can only use Skitai with multi-threading mode). 
 
@@ -1014,13 +1014,13 @@ Then let's request XMLRPC result to one of mysearch members.
   if __name__ == "__main__":
     import skitai
     
-    skitai.run (
-      clusters = {        
-        '@mysearch': 
-        ('https', ["s1.myserver.com:443", "s2.myserver.com:443"])
-      },
-      mount = ("/", app)
+    skitai.alias (
+      '@mysearch',
+       skitai.PROTO_HTTP, 
+       ["s1.myserver.com:443", "s2.myserver.com:443"]
     )
+    skitia.mount ("/", app)
+    skitai.run ()
   
   
 It just small change from was.rpc () to was.rpc.lb ()
@@ -1034,16 +1034,14 @@ It just small change from was.rpc () to was.rpc.lb ()
   if __name__ == "__main__":
     import skitai
     
-    skitai.run (
-      clusters = {        
-        '@mysearch': 
-        ('https', ["s1.myserver.com:443", "s2.myserver.com:443"])        
-      },
-      mount = [
-        ("/", app),
-        ("/search", '@mysearch')
-      ]
+    skitai.alias (
+      '@mysearch',
+       skitai.PROTO_HTTP, 
+       ["s1.myserver.com:443", "s2.myserver.com:443"]
     )
+    skitia.mount ("/", app)
+    skitia.mount ("/search", '@mysearch')
+    skitai.run ()
   
 It can be accessed from http://127.0.0.1:5000/search, and handled as load-balanced proxypass.
 
@@ -1061,21 +1059,16 @@ Add mydb members to config file.
    if __name__ == "__main__":
     import skitai
     
-    skitai.run (
-      clusters = {        
-        '@mydb': 
-        (
-          'postresql', 
-          [
-            "s1.yourserver.com:5432/mydb/user/passwd", 
-            "s2.yourserver.com:5432/mydb/user/passwd"
-          ]
-        )
-      },
-      mount = [
-        ("/", app)
-      ]
+    skitai.alias (
+    	'@mydb',
+       skitai.PGSQL, 
+       [
+         "s1.yourserver.com:5432/mydb/user/passwd", 
+         "s2.yourserver.com:5432/mydb/user/passwd"
+       ]
     )
+    skitia.mount ("/", app)
+    skitai.run ()
     
 
 Map-Reducing
@@ -1991,26 +1984,26 @@ If you use was' requests services, and they're expected taking a long time to fe
 
 .. code:: python
   
-  def response_handler (resp, proxy):
-    if resp.status_code == 200:      
-      proxy [resp.reqid]  = proxy.render (
+  def promise_handler (promise, resp):
+    if resp.status_code == 200:
+      promise [resp.reqid]  = proxy.render (
         '%s.html' % resp.reqid,
-        r = response
+        data = response.json ()
       )
     else:
-      proxy [resp.reqid] = '<div>Error in %s</div>' % resp.reqid
+      promise [resp.reqid] = '<div>Error in %s</div>' % resp.reqid
       
-    if proxy.fetched_all ():
-      proxy.done (proxy.render_all ("example.html"))
+    if promise.fulfilled ():
+      promise.settle (proxy.render ("final.html"))
       # or just join response data
-      # proxy.done (proxy ['skitai'] + "<hr>" + proxy ['aquests'])
+      # promise.settle (proxy ['skitai'] + "<hr>" + proxy ['aquests'])
 
-  @app.route ("/aresponse_example")
-  def aresponse_example (was):
-    proxy = was.aresponse (response_handler)    
-    proxy.get ('skitai', "https://pypi.python.org/pypi/skitai")
-    proxy.get ('aquests', "https://pypi.python.org/pypi/aquests")
-    return proxy
+  @app.route ("/promise")
+  def promise (was):
+    promise = was.promise (promise_handler)    
+    promise.get ('skitai', "https://pypi.python.org/pypi/skitai")
+    promise.get ('aquests', "https://pypi.python.org/pypi/aquests")
+    return promise
 
 'skitai.html' Jinja2 template used in render() is,
 
@@ -2019,7 +2012,7 @@ If you use was' requests services, and they're expected taking a long time to fe
   <div>{{ r.url }} </div> 
   <div>{{ r.text }}</div>
 
-'example.html' Jinja2 template used in render_all() is,
+'example.html' Jinja2 template used in render() is,
 
 .. code:: html
 
@@ -2027,16 +2020,16 @@ If you use was' requests services, and they're expected taking a long time to fe
   <hr>
   <div>{{ aquests }}</div>
 
-And you can use almost was.* objects at render() and render_all() like was.request, was.app, was.ab or was.g etc. But remember that response header had been already sent so you cannot use aquests features and connot set new header values like cookie or mbox (but reading is still possible).
+And you can use almost was.* objects at render() and render() like was.request, was.app, was.ab or was.g etc. But remember that response header had been already sent so you cannot use aquests features and connot set new header values like cookie or mbox (but reading is still possible).
   
 Above proxy can make requests as same as was object except first argument is identical request name (reqid). Compare below things.
 
   * was.get ("https://pypi.python.org/pypi/skitai")
-  * ResProxy.get ('skitai', "https://pypi.python.org/pypi/skitai")
+  * Promise.get ('skitai', "https://pypi.python.org/pypi/skitai")
 
 This identifier can handle responses at executing callback. reqid SHOULD follow Python variable naming rules because might be used as template variable.
 
-You MUST call ResProxy.done(content_to_send) finally, and if you have chunk content to send, you can call ResProxy.push(chunk_content_to_send) for sending middle part of contents before calling done ().
+You MUST call Promise.settle (content_to_send) finally, and if you have chunk content to send, you can call Promise.push(chunk_content_to_send) for sending middle part of contents before calling done ().
 
 *New in version 0.25.2*
 
@@ -2044,37 +2037,41 @@ You can set meta data dictionary per requests if you need.
 
 .. code:: python
 
-  def response_handler (response, proxy):
+  def promise_handler (promise, response):
     due = time.time () - response.meta ['created']
-    proxy.push (response.content)
-    proxy.push ('\n\nFetch in %2.3f seconds' % due)
-    proxy.done () # Should call
+    promise.send (response.content)
+    promise.send ('\n\nFetch in %2.3f seconds' % due)
+    promise.settle () # Should call
     
-  @app.route ("/aresponse_example")
-  def aresponse_example (was):
-    proxy = was.aresponse (response_handler)
-    proxy.get ('req-0', "http://my-server.com", meta = {'created': time.time ()})    
-    return was.response ("200 OK", proxy, [('Content-Type', 'text/plain')])
+  @app.route ("/promise")
+  def promise (was):
+    promise = was.promise (promise_handler)
+    promise.get ('req-0', "http://my-server.com", meta = {'created': time.time ()})    
+    return was.response ("200 OK", promise, [('Content-Type', 'text/plain')])
 
 But it is important that meta arg should be as keyword arg, and DON'T use '__reqid' as meta data key. '__reqid' is used internally.
 
     
 Creating async response proxy:
 
-- was.aresponse (response_handler, prolog = None, epilog = None): return ResProxy, prolog and epilog is like html header and footer
+- was.promise (promise_handler, prolog = None, epilog = None): return Promise, prolog and epilog is like html header and footer
 
-response_handler should receive 2 args: response for your external resource request and ResProxy.
+response_handler should receive 2 args: response for your external resource request and Promise.
 
 Note: It's impossible requesting map-reduce requests at async response mode.
 
 collect_producer has these methods.
 
-- ResProxy.get (), post (), ...
-- ResProxy.fetched_all (): True if numer of requests is same as responses
-- ResProxy.render (template_file, single dictionary object or keyword args, ...): render per response, and can assign into ResProxy like dictionary
-- ResProxy.render_all (template_file): render all responses, in template file, reqids of each responses are used as template variable.
-- ResProxy.push (content_to_send): push chunk data to channel
-- ResProxy.done (content_to_send = None)
+- Promise.get (), post (), ...
+- Promise.set (name, data): save data for generating full contents
+- Promise.fulfilled (): True if numer of requests is same as responses
+- Promise.settled (): True if numer of requests is same as responses
+- Promise.rejected (): True if numer of requests is same as responses
+- Promise.pending (): True if numer of requests is same as responses
+- Promise.render (template_file, single dictionary object or keyword args, ...): render each response, if no args render with promise's data set before
+- Promise.send (content_to_send): push chunk data to channel
+- Promise.settle (content_to_send = None)
+- Promise.reject (content_to_send = None)
 
 
 HTTP/2.0 Server Push
@@ -3161,6 +3158,9 @@ Change Log
   
   0.26 (May 2017)
   
+  - 0.26.2.1: remove was.promise.render_all (), change method name from was.promise.push () to send ()
+  - 0.26.2: change name from was.aresponse to was.promise
+  - 0.26.1.1: add skitai.abspath (\*args)
   - 0.26.1: fix proxy & proxypass, add was.request.scheme and update examples
   - change development status to Beta
   - fix Saddlery routing
@@ -3182,8 +3182,8 @@ Change Log
   - 0.25.5: app.jinja_overlay ()'s default args become jinja2 default
   - 0.25.4.8: fix proxy retrying
   - 0.25.4 license changed from BSD to MIT, fix websocket init at single thread
-  - 0.25.3 aresponse response handler args spec changed, class name is cahnged from AsyncResponse to ResProxy
-  - 0.25.2 fix aresponse exception handling, aresponse can send streaming chunk data
+  - 0.25.3 handler of promise args spec changed, class name is cahnged from AsyncResponse to Promise
+  - 0.25.2 fix promise exception handling, promise can send streaming chunk data
   - 0.25.1 change app.jinja_overlay () default values and number of args, remove raw line statement
   - project name chnaged: Skitai Library => Skitai App Engine
   
