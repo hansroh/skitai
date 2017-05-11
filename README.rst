@@ -1972,15 +1972,16 @@ When In cases you want to retrun JSON, XMLRPC, gRPC or local file content, below
 - was.fstream (abspath, mimetype = 'application/octet-stream') # return file stream object
 
 
-Async Streaming Response
+Async Promise Response
 ``````````````````````````
 
 *New in version 0.24.8*
 
 If you use was' requests services, and they're expected taking a long time to fetch, you can use async response.
 
-- Async response has advantage at multi threads environment returning current thread to thread pool early for handling the other requests
-- Async response should be used at single thread evironment. If you run Skitai with threads = 0, you can't use wait(), getwait() or getswiat() for receiving response for HTTP/DBO requests.
+- Async promise response has advantage at multi threads environment returning current thread to thread pool early for handling the other requests
+- Async promise response should be used at single thread evironment. If you run Skitai with threads = 0, you can't use wait(), getwait() or getswiat() for receiving response for HTTP/DBO requests.
+- Unlike general promises, Skitai promise handle multiple funtions with only single handler.
 
 .. code:: python
   
