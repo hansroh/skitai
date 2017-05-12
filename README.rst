@@ -980,12 +980,12 @@ If you run Skitai with single threaded mode, you can't use req.wait(), req.getwa
 
 .. code:: python
   
-  def response_handler (promise, response):
+  def promise_handler (promise, response):
     promise.settle (response.content)
         
   @app.route ("/index")
   def promise_example (was):
-    promise = was.promise (response_handler)    
+    promise = was.promise (promise_handler)    
     promise.get (None, "https://pypi.python.org/pypi/skitai")    
     return promise
 
@@ -2030,7 +2030,7 @@ Above proxy can make requests as same as was object except first argument is ide
 
 This identifier can handle responses at executing callback. reqid SHOULD follow Python variable naming rules because might be used as template variable.
 
-You MUST call Promise.settle (content_to_send) finally, and if you have chunk content to send, you can call Promise.push(chunk_content_to_send) for sending middle part of contents before calling done ().
+You MUST call Promise.settle (content_to_send) finally, and if you have chunk content to send, you can call Promise.send(chunk_content_to_send) for sending middle part of contents before calling settle ().
 
 *New in version 0.25.2*
 
@@ -2041,7 +2041,7 @@ You can set meta data dictionary per requests if you need.
   def promise_handler (promise, response):
     due = time.time () - response.meta ['created']
     promise.send (response.content)
-    promise.send ('\n\nFetch in %2.3f seconds' % due)
+    promise.send ('Fetch in %2.3f seconds' % due)
     promise.settle () # Should call
     
   @app.route ("/promise")
@@ -2050,7 +2050,7 @@ You can set meta data dictionary per requests if you need.
     promise.get ('req-0', "http://my-server.com", meta = {'created': time.time ()})    
     return was.response ("200 OK", promise, [('Content-Type', 'text/plain')])
 
-But it is important that meta arg should be as keyword arg, and DON'T use '__reqid' as meta data key. '__reqid' is used internally.
+But it is important that meta arg should be as keyword arg, and DON'T use 'reqid' as meta data key. 'reqid' is used internally.
 
     
 Creating async response proxy:
@@ -2063,12 +2063,12 @@ Note: It's impossible requesting map-reduce requests at async response mode.
 
 collect_producer has these methods.
 
-- Promise.get (), post (), ...
+- Promise.get (reqid, url, ...), post (reqid, url, data, ...) and etc
 - Promise.set (name, data): save data for generating full contents
+- Promise.pending (): True if numer of requests is not same as responses
 - Promise.fulfilled (): True if numer of requests is same as responses
-- Promise.settled (): True if numer of requests is same as responses
-- Promise.rejected (): True if numer of requests is same as responses
-- Promise.pending (): True if numer of requests is same as responses
+- Promise.settled (): True if settle () is called
+- Promise.rejected (): ignore all response after called
 - Promise.render (template_file, single dictionary object or keyword args, ...): render each response, if no args render with promise's data set before
 - Promise.send (content_to_send): push chunk data to channel
 - Promise.settle (content_to_send = None)
