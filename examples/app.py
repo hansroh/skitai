@@ -26,7 +26,7 @@ def documentation (was):
 				pypi_content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></h4>" + content [s:e]	
 	return was.render ("documentation.html", content = pypi_content)
 
-def handle_response (rs, proxy):
+def handle_response (promise, rs):
 	pypi_content = "<h3>Error</h3>"
 	if rs.data:
 		content = rs.data.decode ("utf8")
@@ -35,15 +35,15 @@ def handle_response (rs, proxy):
 			e = content.find ('<a name="downloads">', s)
 			if e != -1:						
 				content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></h4>" + content [s:e]		
-		proxy [rs.reqid]	= content	
-	if proxy.fetched_all ():
-		proxy.done (proxy.render_all ("documentation2.html"))
+		promise [rs.reqid]	= content	
+	if promise.fulfilled ():
+		promise.settle (promise.render ("documentation2.html"))
 		
 @app.route ("/documentation2")
 def documentation2 (was):
-	proxy = was.aresponse (handle_response)
-	proxy.get ('skitai', "https://pypi.python.org/pypi/skitai")
-	return proxy
+	promise = was.promise (handle_response)
+	promise.get ('skitai', "https://pypi.python.org/pypi/skitai")
+	return promise
 	
 @app.route ("/hello")
 def hello (was, num = 1):

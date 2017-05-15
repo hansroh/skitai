@@ -455,17 +455,25 @@ Cluster should be defined like this: (alias_type, servers, role = "", source = "
 Run as HTTPS Server
 ------------------------
 
-To genrate self-signed certification file:
+To generate self-signed certification file:
 
 .. code:: python
-
-    openssl req -new -newkey rsa:2048 -x509 -keyout server.pem -out server.pem -days 365 -nodes
-
+  
+  ; Create the Server Key and Certificate Signing Request
+  sudo openssl genrsa -des3 -out server.key 2048
+  sudo openssl req -new -key server.key -out server.csr
+  
+  ; Remove the Passphrase If you need
+  sudo cp server.key server.key.org
+  sudo openssl rsa -in server.key.org -out server.key
+  
+  ; Sign your SSL Certificate
+  sudo openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt
 
 .. code:: python
   
   skitai.mount ('/', app)
-  skitai.enable_ssl ('server.pem', 'key.pem', 'your pass phrase')
+  skitai.enable_ssl ('server.crt', 'server.key', 'your pass phrase')
   skitai.run ()
 
 If you want to forward all HTTP requests to HTTPS,
@@ -3169,6 +3177,7 @@ Change Log
   
   0.26 (May 2017)
   
+  - 0.26.3.1: update making for self-signing certification
   - 0.26.3: add skitai.enable_forward
   - 0.26.2.1: remove was.promise.render_all (), change method name from was.promise.push () to send ()
   - 0.26.2: change name from was.aresponse to was.promise

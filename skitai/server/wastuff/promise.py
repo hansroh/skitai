@@ -51,7 +51,7 @@ class Promise (simple_producer):
 			self.handler (self, response)
 		except:
 			self.was.traceback ()
-			self.done ("<div style='padding: 8px; border: 1px solid #000; background: #efefef;'><h1>Error Occured While Processing</h1>%s</div>" % (self.was.app.debug and catch (1) or "",))
+			self.reject ("<div style='padding: 8px; border: 1px solid #000; background: #efefef;'><h1>Error Occured While Processing</h1>%s</div>" % (self.was.app.debug and catch (1) or "",))
 		
 	def __setitem__ (self, name, data):
 		self._parts [name] = data
@@ -78,7 +78,7 @@ class Promise (simple_producer):
 			trigger.wakeup ()
 				
 	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):	
-		if not _do_not_use_this_variable_name_ and not kargs:
+		if not _do_not_use_this_variable_name_ and not karg:
 			return self.render (template_file, self._parts)
 		return self.was.render (template_file, _do_not_use_this_variable_name_, **karg)
 	

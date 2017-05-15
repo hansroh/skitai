@@ -11,8 +11,8 @@ if __name__ == "__main__":
 	skitai.mount ("/members", 'auth.py')
 	skitai.mount ("/lb", "@pypi")
 	skitai.enable_ssl (
-		"resources/certifications/example.pem",
-		"resources/certifications/example.key",
+		"resources/certifications/server.crt",
+		"resources/certifications/server.key",
 		"fatalbug"
 	)
-	skitai.run ()
+	skitai.run (port = 443)

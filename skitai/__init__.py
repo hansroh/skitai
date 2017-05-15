@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.3"
+__version__ = "0.26.3.1"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -348,25 +348,26 @@ def run (**conf):
 			
 			if conf.get ("cachefs_diskmax", 0) and not conf.get ("cachefs_dir"):
 				conf ["cachefs_dir"] = os.path.join (self.get_varpath (), "cachefs")
+
 			self.config_cachefs (
 				conf.get ("cachefs_dir", None), 
 				conf.get ("cachefs_memmax", 0),
 				conf.get ("cachefs_diskmax", 0)				
 			)
 			self.config_rcache (conf.get ("rcache_objmax", 100))
+			if conf.get ('fws_to'):
+				self.config_forward_server (
+					conf.get ('fws_address', '0.0.0.0'), conf.get ('fws_port', 80), conf.get ('fws_to', 443)
+				)
+
 			self.config_webserver (
 				conf.get ('port', 5000), conf.get ('address', '0.0.0.0'),
 				NAME, conf.get ("certfile") is not None,
 				conf.get ('keep_alive', 2), 10
 			)
 			
-			if conf.get ('fws_to'):
-				self.config_forward_server (
-					conf.get ('fws_address', '0.0.0.0'), conf.get ('fws_port', 80), conf.get ('fws_to', 443)
-				)
-			
 			if os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
-				# master does not work
+				# master does not serve
 				return
 			
 			self.config_threads (conf.get ('threads', 4))						
