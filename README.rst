@@ -1973,7 +1973,7 @@ When In cases you want to retrun JSON, XMLRPC, gRPC or local file content, below
 
 
 Async Promise Response
-``````````````````````````
+--------------------------
 
 *New in version 0.24.8*
 
@@ -2076,7 +2076,7 @@ collect_producer has these methods.
 
 
 HTTP/2.0 Server Push
-``````````````````````
+-----------------------
 
 *New in version 0.16*
 
