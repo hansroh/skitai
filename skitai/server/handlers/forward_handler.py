@@ -1,4 +1,3 @@
-from .. import https_server
 
 class Handler:
 	def __init__ (self, wasc, forward_to = 443):
@@ -6,8 +5,7 @@ class Handler:
 		self.forward_to = forward_to
 		
 	def match (self, request):
-		if not isinstance (request.channel, https_server.https_channel):
-			return 1
+		return 1
 	
 	def handle_request (self, request):
 		location = "https://%s%s%s" % (
