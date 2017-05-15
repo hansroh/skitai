@@ -9,7 +9,7 @@ import sys, time, os, threading
 from . import http_server
 from skitai import lifetime
 from warnings import warn
-from . import https_server
+from . import https_server, wsgi_apps
 from skitai import start_was
 from collections import deque
 from aquests.lib.athreads.fifo import await_fifo
@@ -23,7 +23,7 @@ from aquests.protocols import http2
 from aquests.client import adns
 if os.name == "nt":	
 	from . import schedule			
-from .handlers import proxy_handler, ipbl_handler, vhost_handler
+from .handlers import proxy_handler, ipbl_handler, vhost_handler, forward_handler
 from .rpc import cluster_dist_call, rcache
 import socket
 import signal
@@ -31,7 +31,7 @@ import multiprocessing
 from . import wsgiappservice, cachefs
 from .dbi import cluster_dist_call as dcluster_dist_call
 import types
-from skitai.server.handlers.websocket import servers as websocekts
+from .handlers.websocket import servers as websocekts
 
 class Loader:
 	def __init__ (self, config = None, logpath = None, varpath = None, debug = 0):
@@ -114,7 +114,13 @@ class Loader:
 			return
 		self.ctx = https_server.init_context (certfile, keyfile, pass_phrase)
 		self.ssl = True
-				
+	
+	def config_forward_server (self, ip = "", port = 80, forward_to = 443):
+		forward_server = http_server.http_server (ip or "", port, self.wasc.logger.get ("server"), self.wasc.logger.get ("request"))
+		forward_server.zombie_timeout = 1
+		forward_server.install_handler (forward_handler.Handler (self.wasc, forward_to))
+		forward_server.serve ()
+		
 	def config_webserver (self, port, ip = "", name = "", ssl = False, keep_alive = 10, response_timeout = 10):
 		# maybe be configured	at first.
 		if ssl and not HTTPS:
@@ -128,14 +134,14 @@ class Loader:
 			raise ValueError("SSL ctx not setup")
 		
 		if ssl:
-			server_class = https_server.https_server			
+			server_class = https_server.https_server
 		else:	
 			server_class = http_server.http_server
 		
 		if self.ssl:
-			httpserver = server_class (ip and ip or "", port, self.ctx, self.wasc.logger.get ("server"), self.wasc.logger.get ("request"))	
+			httpserver = server_class (ip or "", port, self.ctx, self.wasc.logger.get ("server"), self.wasc.logger.get ("request"))	
 		else:
-			httpserver = server_class (ip and ip or "", port, self.wasc.logger.get ("server"), self.wasc.logger.get ("request"))	
+			httpserver = server_class (ip or "", port, self.wasc.logger.get ("server"), self.wasc.logger.get ("request"))	
 		
 		self.wasc.register ("httpserver", httpserver)
 		

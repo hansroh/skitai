@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.2.4"
+__version__ = "0.26.3"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -176,7 +176,13 @@ def alias (name, ctype, members, role = "", source = "", ssl = False):
 	policy = AccessPolicy (role, source)
 	args = (ctype, members, policy, ssl)
 	dconf ["clusters"][name] = args	
-	
+
+def enable_forward (forward_to = 443, port = 80, ip = ""):
+	global dconf
+	dconf ['fws_address'] = ip
+	dconf ['fws_port'] = forward_to
+	dconf ['fws_to'] = port
+		
 def enable_gateway (enable_auth = False, secure_key = None, realm = "Skitai API Gateway"):
 	global dconf
 	dconf ["enable_gw"] = True
@@ -353,6 +359,12 @@ def run (**conf):
 				NAME, conf.get ("certfile") is not None,
 				conf.get ('keep_alive', 2), 10
 			)
+			
+			if conf.get ('fws_to'):
+				self.config_forward_server (
+					conf.get ('fws_address', '0.0.0.0'), conf.get ('fws_port', 80), conf.get ('fws_to', 443)
+				)
+			
 			if os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
 				# master does not work
 				return

@@ -66,11 +66,13 @@ class Handler:
 		
 		env = self.ENV.copy ()
 		env ['REQUEST_METHOD'] = request.command.upper()		
+		env ['REQUEST_URI'] = request.uri
+		env ['REQUEST_VERSION'] = request.version
 		env ['SERVER_PROTOCOL'] = "HTTP/" + request.version
 		env ['CHANNEL_CREATED'] = request.channel.creation_time
 		if query: env['QUERY_STRING'] = query		
-		env ['REMOTE_ADDR'] = request.channel.addr [0]
-		env ['REMOTE_SERVER'] = request.channel.addr [0]		
+		env ['REMOTE_ADDR'] = request.channel.addr [0]		
+		env ['REMOTE_SERVER'] = request.channel.addr [0]
 		env ['SCRIPT_NAME'] = apph.route
 		env ['SCRPIT_PATH'] = apph.abspath
 		env ['PATH_INFO'] = apph.get_path_info (path)

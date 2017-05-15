@@ -324,6 +324,9 @@ class http_server (asyncore.dispatcher):
 		self.hash_id = md5 (self.server_name.encode ('utf8')).hexdigest() [:4]
 		self.server_port = port
 	
+	def serve (self):
+		self.listen (os.name == "posix" and 65535 or 256)
+		
 	def fork_and_serve (self, numworker = 1):
 		global ACTIVE_WORKERS, SURVAIL, PID, EXITCODE
 		

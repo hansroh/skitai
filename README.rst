@@ -468,6 +468,16 @@ To genrate self-signed certification file:
   skitai.enable_ssl ('server.pem', 'key.pem', 'your pass phrase')
   skitai.run ()
 
+If you want to forward all HTTP requests to HTTPS,
+
+.. code:: python
+  
+  skitai.enable_forward (80, 443)
+  
+  skitai.mount ('/', app)
+  skitai.enable_ssl ('server.pem', 'key.pem', 'your pass phrase')
+  skitai.run (port = 443)
+
 
 About Mount Point & App Routing
 --------------------------------
@@ -3159,6 +3169,7 @@ Change Log
   
   0.26 (May 2017)
   
+  - 0.26.3: add skitai.enable_forward
   - 0.26.2.1: remove was.promise.render_all (), change method name from was.promise.push () to send ()
   - 0.26.2: change name from was.aresponse to was.promise
   - 0.26.1.1: add skitai.abspath (\*args)
