@@ -147,7 +147,7 @@ class Loader:
 		self.wasc.register ("httpserver", httpserver)
 		
 		#fork here 
-		_exit_code = self.wasc.httpserver.fork_and_serve (self.num_worker)				
+		_exit_code = self.wasc.httpserver.fork_and_serve (self.num_worker, hasattr (self.wasc, "forwardserver") and self.wasc.forwardserver or None)				
 		if _exit_code is not None:
 			self.handle_exit_code (_exit_code)
 		

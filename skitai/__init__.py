@@ -359,7 +359,6 @@ def run (**conf):
 				self.config_forward_server (
 					conf.get ('fws_address', '0.0.0.0'), conf.get ('fws_port', 80), conf.get ('fws_to', 443)
 				)
-
 			self.config_webserver (
 				conf.get ('port', 5000), conf.get ('address', '0.0.0.0'),
 				NAME, conf.get ("certfile") is not None,
