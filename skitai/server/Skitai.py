@@ -120,6 +120,7 @@ class Loader:
 		forward_server.zombie_timeout = 2
 		forward_server.install_handler (forward_handler.Handler (self.wasc, forward_to))
 		forward_server.serve (shutdown_phase = 1)
+		self.wasc.register ("forwardserver", forward_server)
 		
 	def config_webserver (self, port, ip = "", name = "", ssl = False, keep_alive = 10, response_timeout = 10):
 		# maybe be configured	at first.
