@@ -117,9 +117,9 @@ class Loader:
 	
 	def config_forward_server (self, ip = "", port = 80, forward_to = 443):
 		forward_server = http_server.http_server (ip or "", port, self.wasc.logger.get ("server"), self.wasc.logger.get ("request"))
-		forward_server.zombie_timeout = 1
+		forward_server.zombie_timeout = 2
 		forward_server.install_handler (forward_handler.Handler (self.wasc, forward_to))
-		forward_server.serve ()
+		forward_server.serve (shutdown_phase = 1)
 		
 	def config_webserver (self, port, ip = "", name = "", ssl = False, keep_alive = 10, response_timeout = 10):
 		# maybe be configured	at first.

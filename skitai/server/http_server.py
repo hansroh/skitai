@@ -312,6 +312,7 @@ class http_server (asyncore.dispatcher):
 		self.exceptions = counter.mpcounter()
 		self.bytes_out = counter.mpcounter()
 		self.bytes_in  = counter.mpcounter()
+		self.shutdown_phase = 2
 		
 		host, port = self.socket.getsockname()
 		if not ip:
@@ -324,14 +325,15 @@ class http_server (asyncore.dispatcher):
 		self.hash_id = md5 (self.server_name.encode ('utf8')).hexdigest() [:4]
 		self.server_port = port
 	
-	def serve (self):
-		self.listen (os.name == "posix" and 65535 or 256)
+	def serve (self, shutdown_phase = 2):
+		self.shutdown_phase = shutdown_phase
+		self.listen (os.name == "posix" and 4096 or 256)
 		
 	def fork_and_serve (self, numworker = 1):
 		global ACTIVE_WORKERS, SURVAIL, PID, EXITCODE
 		
-		child = 0	
-		self.listen (os.name == "posix" and 65535 or 256)
+		child = 0
+		self.serve ()
 		
 		if os.name == "posix":
 			while SURVAIL:				
@@ -381,7 +383,7 @@ class http_server (asyncore.dispatcher):
 		self.set_socket(sock)
 	
 	def clean_shutdown_control (self, phase, time_in_this_phase):
-		if phase == 2:
+		if phase == self.shutdown_phase:
 			self.log_info ('shutting down web server: %s' % self.server_name)
 			self.close ()		
 	
