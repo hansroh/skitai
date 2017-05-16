@@ -3177,6 +3177,7 @@ Change Log
   
   0.26 (May 2017)
   
+  - 0.26.3.2: fix multiworkers
   - 0.26.3.1: update making for self-signing certification
   - 0.26.3: add skitai.enable_forward
   - 0.26.2.1: remove was.promise.render_all (), change method name from was.promise.push () to send ()

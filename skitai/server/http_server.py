@@ -329,10 +329,11 @@ class http_server (asyncore.dispatcher):
 		self.shutdown_phase = shutdown_phase
 		self.listen (os.name == "posix" and 4096 or 256)
 		
-	def fork_and_serve (self, numworker = 1, forward_server = None):
+	def fork_and_serve (self, numworker = 1, sub_server = None):
 		global ACTIVE_WORKERS, SURVAIL, PID, EXITCODE
 		
-		child = 0
+		if sub_server:
+			sub_server.serve (max (1, self.shutdown_phase - 1))
 		self.serve ()
 		
 		if os.name == "posix":
@@ -356,12 +357,12 @@ class http_server (asyncore.dispatcher):
 								signal.signal (signal.SIGCHLD, hCHLD)
 																
 								self.close ()
-								if forward_server:									
-									forward_server.close ()																		
+								if sub_server:									
+									sub_server.close ()																		
 							
 							PID.append (pid)
 							ACTIVE_WORKERS += 1
-							print ('-----', PID, ACTIVE_WORKERS)
+							#print ('-----', PID, ACTIVE_WORKERS)
 							
 					time.sleep (1)
 					
