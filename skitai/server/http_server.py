@@ -348,17 +348,21 @@ class http_server (asyncore.dispatcher):
 							break
 							
 						else:
-							if not PID:
+							if not PID:								
+								signal.signal(signal.SIGHUP, hHUPMASTER)
+								signal.signal(signal.SIGTERM, hTERMMASTER)
+								signal.signal(signal.SIGINT, hTERMMASTER)
+								signal.signal(signal.SIGQUIT, hQUITMASTER)
+								signal.signal (signal.SIGCHLD, hCHLD)
+																
 								self.close ()
-								if forward_server:
+								if forward_server:									
 									forward_server.close ()																		
+							
 							PID.append (pid)
 							ACTIVE_WORKERS += 1
-							signal.signal(signal.SIGHUP, hHUPMASTER)
-							signal.signal(signal.SIGTERM, hTERMMASTER)
-							signal.signal(signal.SIGINT, hTERMMASTER)
-							signal.signal(signal.SIGQUIT, hQUITMASTER)
-							signal.signal (signal.SIGCHLD, hCHLD)
+							print ('-----', PID, ACTIVE_WORKERS)
+							
 					time.sleep (1)
 					
 				except KeyboardInterrupt:

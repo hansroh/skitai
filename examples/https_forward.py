@@ -8,4 +8,4 @@ if __name__ == "__main__":
 		"resources/certifications/server.key",
 		"fatalbug"
 	)
-	skitai.run (port = 443)
+	skitai.run (port = 443, workers = 2)
