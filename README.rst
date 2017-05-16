@@ -470,20 +470,22 @@ To generate self-signed certification file:
   ; Sign your SSL Certificate
   sudo openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt
 
+Then,
+
 .. code:: python
   
   skitai.mount ('/', app)
   skitai.enable_ssl ('server.crt', 'server.key', 'your pass phrase')
   skitai.run ()
 
-If you want to forward all HTTP requests to HTTPS,
+If you want to redirect all HTTP requests to HTTPS,
 
 .. code:: python
   
   skitai.enable_forward (80, 443)
   
   skitai.mount ('/', app)
-  skitai.enable_ssl ('server.pem', 'key.pem', 'your pass phrase')
+  kitai.enable_ssl ('server.crt', 'server.key', 'your pass phrase')
   skitai.run (port = 443)
 
 

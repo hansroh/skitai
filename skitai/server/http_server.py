@@ -332,14 +332,20 @@ class http_server (asyncore.dispatcher):
 	def fork_and_serve (self, numworker = 1, sub_server = None):
 		global ACTIVE_WORKERS, SURVAIL, PID, EXITCODE
 		
-		if sub_server:
-			sub_server.serve (max (1, self.shutdown_phase - 1))
-		self.serve ()
+		if os.name == "nt":
+			if sub_server:
+				sub_server.serve (max (1, self.shutdown_phase - 1))
+			self.serve ()			
+			signal.signal(signal.SIGTERM, hTERMWORKER)			
 		
-		if os.name == "posix":
+		else:	
+			if sub_server:
+				sub_server.serve (max (1, self.shutdown_phase - 1))
+			self.serve ()
+			
 			while SURVAIL:
 				try:	
-					if ACTIVE_WORKERS < numworker:
+					if ACTIVE_WORKERS < numworker:						
 						pid = os.fork ()
 						if pid == 0:				
 							self.worker_ident = "worker #%d" % len (PID)							
@@ -356,9 +362,9 @@ class http_server (asyncore.dispatcher):
 								signal.signal(signal.SIGQUIT, hQUITMASTER)
 								signal.signal (signal.SIGCHLD, hCHLD)
 																
-								self.close ()
-								if sub_server:									
-									sub_server.close ()																		
+							self.close ()
+							if sub_server:									
+								sub_server.close ()															
 							
 							PID.append (pid)
 							ACTIVE_WORKERS += 1
@@ -373,9 +379,6 @@ class http_server (asyncore.dispatcher):
 			
 			if self.worker_ident == "master":
 				return EXITCODE
-				
-		else:
-			signal.signal(signal.SIGTERM, hTERMWORKER)			
 				
 		self.log_info ('%s (%s) started on %s:%d' % (
 			self.SERVER_IDENT, self.worker_ident, self.server_name, self.port)
