@@ -202,6 +202,22 @@ If you want to run Skitai with entirely single thread,
 
 This features is limited by your WSGI container. If you use Skito-Saddle container, you can run with single threading mode by using Skito-Saddle's async streaming response method. But you don't and if you have plan to use Skitai 'was' requests services, you can't single threading mode and you SHOULD run with multi-threading mode.
 
+Run with Multiple Workers
+---------------------------
+
+*Available on posix only*
+
+Skitai can run with multiple workers(processes) internally using fork for socket sharing.
+
+.. code:: python
+  
+  skitai.mount ('/', app)
+  skitai.run (
+  	port = 5000,
+    workers = 4,
+    threads = 8
+  )
+
 
 Mount Multiple WSGI Apps And Static Directories
 ------------------------------------------------
@@ -3179,6 +3195,7 @@ Change Log
   
   0.26 (May 2017)
   
+  - 0.26.3.5: revert multiworkers
   - 0.26.3.2: fix multiworkers
   - 0.26.3.1: update making for self-signing certification
   - 0.26.3: add skitai.enable_forward
