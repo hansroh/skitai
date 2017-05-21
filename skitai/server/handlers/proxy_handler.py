@@ -17,7 +17,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		self.is_tunnel = False
 		self.should_http2 = False
 		self.new_handler = None
-			
+		
 	def add_reply_headers (self):
 		for line in self.response.get_header_lines ():			
 			try: k, v = line.split (": ", 1)
@@ -33,7 +33,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 	ESTABLISHED = b" 200 Connection Established\r\nServer: " + skitai.NAME.encode ("utf8")
 	def has_been_connected (self):
 		if self.request.method == "connect":
-			self.buffer =	b"HTTP/" + self.client_request.version.encode ("utf8") + self.ESTABLISHED			
+			self.buffer =	b"HTTP/" + self.client_request.version.encode ("utf8") + self.ESTABLISHED
 			self.found_terminator ()		
 		elif self.should_http2:
 			self.switch_to_http2 ()
@@ -41,7 +41,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 	def will_open_tunneling (self):
 		return self.response.code == 200 and self.response.msg.lower () == "connection established"
 	
-	def connection_closed (self, why, msg):		
+	def connection_closed (self, why, msg):
 		# asyncon disconnected
 		if self.client_request.channel and self.response:			
 			# http 1.0
@@ -69,7 +69,12 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 	def create_tunnel (self):
 		self.asyncon.established = True		
 		self.new_handler = TunnelHandler (self.asyncon, self.request, self.client_request.channel)
-		self.client_request.response.done (upgrade_to = (self.new_handler.asyntunnel, None))
+		self.client_request.response ("200 Connection Established")
+		if self.client_request.version == "1.0":
+			self.client_request.version = "1.1"
+		self.client_request.response.done (
+			upgrade_to = (self.new_handler.asyntunnel, None)			
+		)
 			
 	def create_response (self):
 		if not self.client_request.channel: return
@@ -90,7 +95,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 			self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
 			return self.asyncon.handle_close (715)
 			
-		if self.will_open_tunneling ():
+		if self.will_open_tunneling ():			
 			self.create_tunnel ()
 			self.close_case ()
 			return
@@ -201,8 +206,8 @@ class Handler (wsgi_handler.Handler):
 				return # error was already called in make_collector ()							
 		self.continue_request(request, collector)
 					
-	def continue_request (self, request, collector, asyncon = None):		
-		if self.has_valid_cache (request, collector is not None):
+	def continue_request (self, request, collector, asyncon = None):
+		if request.command != "connect" and self.has_valid_cache (request, collector is not None):
 			return
 		
 		if asyncon is None:		
@@ -226,12 +231,12 @@ class Handler (wsgi_handler.Handler):
 			
 	def has_valid_cache (self, request, has_data):
 		if not self.cachefs:
-			request.response ["X-Skitaid-Cache-Lookup"] = "NOCACHE"
+			request.response ["X-Cache-Lookup"] = "NOCACHE"
 			return False
 		
 		if has_data:
 			# have collector, cna't cache
-			request.response ["X-Skitaid-Cache-Lookup"] = "PASSED"
+			request.response ["X-Cache-Lookup"] = "PASSED"
 			return False
 				
 		cachable = self.cachefs.is_cachable (
@@ -241,7 +246,7 @@ class Handler (wsgi_handler.Handler):
 			request.get_header ("pragma")			
 		)		
 		if not cachable:
-			request.response ["X-Skitaid-Cache-Lookup"] = "PASSED"
+			request.response ["X-Cache-Lookup"] = "PASSED"
 			return False
 		
 		try:
@@ -254,10 +259,10 @@ class Handler (wsgi_handler.Handler):
 		
 		else:
 			if hit is None:
-				request.response ["X-Skitaid-Cache-Lookup"] = "MISS"
+				request.response ["X-Cache-Lookup"] = "MISS"
 				return False
 				
-		request.response ["X-Skitaid-Cache-Lookup"] = hit == 1 and "MEM_HIT" or "HIT"
+		request.response ["X-Cache-Lookup"] = hit == 1 and "MEM_HIT" or "HIT"
 		if content_type:
 			request.response ["Content-Type"] = content_type					
 		request.response ["Cache-Control"] = "max-age=%d" % max_age

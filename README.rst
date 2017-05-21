@@ -47,7 +47,12 @@ On win32, required `pywin32 binary`_
 
 .. _`pywin32 binary`: http://sourceforge.net/projects/pywin32/files/pywin32/Build%20219/
 
+On posix, for compiling psycopg2 module, requires theses packages,
 
+.. code:: bash
+    
+  apt-get install libpq-dev python-dev
+  
 **Installation**
 
 .. code-block:: bash
@@ -213,7 +218,7 @@ Skitai can run with multiple workers(processes) internally using fork for socket
   
   skitai.mount ('/', app)
   skitai.run (
-  	port = 5000,
+    port = 5000,
     workers = 4,
     threads = 8
   )
@@ -622,7 +627,7 @@ Configure Max Age For Static Files
   
 You can set max-age for static files' respone header like,
 
-..code:: bash
+.. code:: bash
 
   Cache-Control: max-age=300
   Expires: Sun, 06 Nov 2017 08:49:37 GMT
@@ -3195,6 +3200,7 @@ Change Log
   
   0.26 (May 2017)
   
+  - 0.26.3.7: enforce response to HTTP version 1.1 for 1.0 CONNECT with 1.0 request
   - 0.26.3.5: revert multiworkers
   - 0.26.3.2: fix multiworkers
   - 0.26.3.1: update making for self-signing certification
