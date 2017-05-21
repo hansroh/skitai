@@ -129,7 +129,7 @@ class http_channel (asynchat.async_chat):
 		self.producers_attend_to = [] # all producers are finished
 							
 	def send (self, data):
-		#print	("SEND", str (data), self.get_terminator ())
+		#print	("SEND", repr (data), self.get_terminator ())
 		self.event_time = int (time.time())
 		result = asynchat.async_chat.send (self, data)		
 		self.server.bytes_out.inc (result)

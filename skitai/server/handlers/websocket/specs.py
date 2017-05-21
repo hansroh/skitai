@@ -195,7 +195,6 @@ class WebSocket:
 				op_code = OPCODE_BINARY
 			if op_code == -1:
 				op_code = self.default_op_code
-		
 		return message, op_code
 							
 	def send (self, message, op_code = -1):

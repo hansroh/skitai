@@ -44,7 +44,7 @@ class TunnelHandler:
 		uri = "tunnel://%s:%d" % self.asyncon.address
 		self.channel.log ("%s - %s" % (uri, message), type)
 					
-	def collect_incoming_data (self, data):			
+	def collect_incoming_data (self, data):		
 		self.bytes += len (data)
 		self.channel.push (data)
 		

@@ -156,10 +156,11 @@ class http_response:
 		else:
 			self.set (key, val + ", " + value)
 
-	def build_reply_header (self):		
-		h = '\r\n'.join (
-				[self.response(self.reply_code, self.reply_message)] + ['%s: %s' % x for x in self.reply_headers]
-				) + '\r\n\r\n'			
+	def build_reply_header (self, with_header = 1):
+		h = [self.response (self.reply_code, self.reply_message)]
+		if with_header:
+			h.extend (['%s: %s' % x for x in self.reply_headers])
+		h = '\r\n'.join (h) + '\r\n\r\n'			
 		return h		
 	
 	def get_status_msg (self, code):
@@ -296,7 +297,7 @@ class http_response:
 		else:			
 			self.outgoing.push (thing)
 	      					
-	def done (self, force_close = False, upgrade_to = None):		
+	def done (self, force_close = False, upgrade_to = None, with_header = 1):
 		if not self.is_responsable (): return
 		self._is_done = True
 		if self.request.channel is None: return
@@ -348,7 +349,7 @@ class http_response:
 			self.update ('Content-Length', "0")
 			self.delete ('transfer-encoding')			
 			self.delete ('content-type')
-			outgoing_producer = producers.simple_producer (self.build_reply_header().encode ("utf8"))
+			outgoing_producer = producers.simple_producer (self.build_reply_header(with_header).encode ("utf8"))
 			do_optimize = False
 			
 		elif len (self.outgoing) == 1 and hasattr (self.outgoing.first (), "ready"):
@@ -356,7 +357,7 @@ class http_response:
 			if wrap_in_chunking:
 				self.update ('Transfer-Encoding', 'chunked')
 				outgoing_producer = producers.chunked_producer (outgoing_producer)
-			outgoing_header = producers.simple_producer (self.build_reply_header().encode ("utf8"))
+			outgoing_header = producers.simple_producer (self.build_reply_header(with_header).encode ("utf8"))
 			self.request.channel.push_with_producer (outgoing_header)
 			do_optimize = False
 			
@@ -391,7 +392,7 @@ class http_response:
 						compressing_producer = producers.compressed_producer
 					outgoing_producer = compressing_producer (outgoing_producer)
 				outgoing_producer = producers.chunked_producer (outgoing_producer)
-				outgoing_header = producers.simple_producer (self.build_reply_header().encode ("utf8"))				
+				outgoing_header = producers.simple_producer (self.build_reply_header(with_header).encode ("utf8"))				
 				
 			else:
 				self.delete ('transfer-encoding')
@@ -411,7 +412,7 @@ class http_response:
 					outgoing_producer = producers.simple_producer (cdata)						
 				else:
 					outgoing_producer = producers.composite_producer (self.outgoing)						
-				outgoing_header = producers.simple_producer (self.build_reply_header().encode ("utf8"))				
+				outgoing_header = producers.simple_producer (self.build_reply_header(with_header).encode ("utf8"))				
 			
 			outgoing_producer = producers.composite_producer (
 				producers.fifo([outgoing_header, outgoing_producer])
