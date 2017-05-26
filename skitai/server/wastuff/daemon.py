@@ -59,8 +59,13 @@ class Daemon:
 		raise NotImplementedError
 					
 def get_default_varpath ():
-	return os.name == "posix" and '/var/tmp/skitai' or os.path.join (tempfile.gettempdir(), "skitai")
-			
+	fullpath = os.path.join (os.getcwd (), sys.argv [0])
+	script = os.path.split (fullpath)[-1]
+	if script.endswith (".py"):
+		script = script [:-3]	
+	_var = 'skitai-%s-%s' % (script, abs (hash (fullpath) & 0xffffffff))
+	return os.name == "posix" and '/var/tmp/%s' % _var or os.path.join (tempfile.gettempdir(), _var)
+
 def make_service (service_class, config, logpath, varpath, consol):
 	if logpath:
 		pathtool.mkdir (logpath)

@@ -179,6 +179,13 @@ Or for restarting,
   python3 app.py restart
   
 
+For automatic starting on system start, add a line to /etc/rc.local file like this:
+
+.. code:: bash
+
+  sudo - ubuntu -c "/usr/bin/python3 /home/ubuntu/app.py -d"
+  exit 0
+
 Run with Threads Pool
 ------------------------
 

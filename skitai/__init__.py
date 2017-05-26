@@ -392,7 +392,6 @@ def run (**conf):
 				self.flock = flock.Lock (os.path.join (self.get_varpath (), ".%s" % self.NAME))
 	
 	#----------------------------------------------------------------------------
-	
 	def start (working_dir):
 		if os.name == "nt":
 			raise SystemError ('Daemonizing not supported')		
@@ -412,6 +411,7 @@ def run (**conf):
 	
 	#----------------------------------------------------------------------------
 	
+	print ('-------------', daemon.get_default_varpath ())
 	global dconf
 	
 	for k, v in dconf.items ():
