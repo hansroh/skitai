@@ -406,7 +406,11 @@ class http_response:
 					while 1:
 						has_producer, producer = self.outgoing.pop ()
 						if not has_producer: break
-						cdata += compressor.compress (producer.data)				
+						while 1:	
+							data = producer.more ()
+							if not data:
+								break
+							cdata += compressor.compress (data)									
 					cdata += compressor.flush ()					
 					self.update ("Content-Length", len (cdata))
 					outgoing_producer = producers.simple_producer (cdata)						

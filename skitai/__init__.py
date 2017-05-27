@@ -411,7 +411,6 @@ def run (**conf):
 	
 	#----------------------------------------------------------------------------
 	
-	print ('-------------', daemon.get_default_varpath ())
 	global dconf
 	
 	for k, v in dconf.items ():
