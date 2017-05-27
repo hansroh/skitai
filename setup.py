@@ -6,6 +6,7 @@ import re
 import sys
 import os
 import shutil, glob
+import codecs
 from warnings import warn
 try:
 	from setuptools import setup
@@ -16,7 +17,7 @@ if sys.argv[-1] == 'publish':
 	if os.name == "nt":
 		os.system('python setup.py sdist upload') # bdist_wininst --target-version=2.7
 	else:
-		os.system('python setup.py sdist upload')
+		os.system('python setup.py sdist; twine upload dist/*; rm dist/*')
 	sys.exit()
 
 classifiers = [
@@ -60,7 +61,7 @@ install_requires = [
 with open('skitai/__init__.py', 'r') as fd:
 	version = re.search(r'^__version__\s*=\s*"(.*?)"',fd.read(), re.M).group(1)
 
-with open ('README.rst', encoding='utf-8') as f:
+with codecs.open ('README.rst', 'r', encoding='utf-8') as f:
 	long_description = f.read()
     
 setup(
