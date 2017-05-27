@@ -428,16 +428,28 @@ __init__.py
       	pref.config.urllist.append (line.split ("\t", 4))
 
 
-Setting Keep Alive Timeout
-----------------------------
+Setting Timeout
+-----------------
+
+Keep alive timeout means seconds gap of each requests. For setting HTTP connection keep alive timeout,
 
 .. code:: python
   
-  skitai.set_keep_alive (300) # default = 2
+  skitai.set_keep_alive (2) # default = 30
   skitai.mount ('/', app)
   skitai.run ()
-  
-      
+
+If you intend to use skitai as backend application server behind reverse proxy server like Nginx, it is recommended over 300.
+
+Network timeout means seconds gap of data packet recv/sending events,
+
+.. code:: python
+
+  skitai.set_network_timeout (10) # default = 30
+
+In under high traffic, these values are more higher, response fail rate will be decreased and response time will be increaesed. But if response time is over 30 seconds, isn't it already failed?
+
+
 Enabling Proxy Server
 ------------------------
 
@@ -3209,6 +3221,7 @@ Change Log
   
   0.26 (May 2017)
   
+  - 0.26.4.1: add set_network_timeout (timoutout = 30) and change default keep alive timeout from 2 to 30
   - 0.26.4: fix incomplete sending when resuested with connection: close header
   - 0.26.3.7: enforce response to HTTP version 1.1 for 1.0 CONNECT with 1.0 request
   - 0.26.3.5: revert multiworkers

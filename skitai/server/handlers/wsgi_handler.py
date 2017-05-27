@@ -228,7 +228,7 @@ class Job:
 		self.request = request
 		self.apph = apph
 		self.args = args
-		self.logger = logger		
+		self.logger = logger
 		
 	def __repr__(self):
 		return "<Job %s %s HTTP/%s>" % (self.request.command.upper (), self.request.uri, self.request.version)

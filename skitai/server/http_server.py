@@ -30,7 +30,10 @@ class http_channel (asynchat.async_chat):
 	closed = False
 	is_rejected = False
 	
-	zombie_timeout = 2
+	keep_alive = 2
+	network_timeout = 60	
+	zombie_timeout = 60
+	
 	fifo_class = deque
 	
 	def __init__ (self, server, conn, addr):
@@ -55,8 +58,6 @@ class http_channel (asynchat.async_chat):
 		self.__sendlock = None
 		self.producers_attend_to = []
 		self.things_die_with = []		
-		self.keep_alive = self.zombie_timeout
-		self.zombie_timeout = 60
 		
 	def use_sendlock (self):
 		self.__sendlock  = threading.Lock ()
@@ -128,8 +129,8 @@ class http_channel (asynchat.async_chat):
 		self.things_die_with.append ((thing, tag))
 		
 	def done_request (self):	
-		self.producers_attend_to = [] # all producers are finished		
-		self.zombie_timeout = self.keep_alive
+		self.producers_attend_to = [] # all producers are finished	
+		self.set_timeout (self.keep_alive)		
 							
 	def send (self, data):
 		#print	("SEND", repr (data), self.get_terminator ())
@@ -198,6 +199,7 @@ class http_channel (asynchat.async_chat):
 			
 			header = http_util.join_headers (lines[1:])
 			r = http_request.http_request (self, request, command, uri, version, header)
+			self.set_timeout (self.network_timeout)
 			
 			self.request_counter.inc()
 			self.server.total_requests.inc()
@@ -518,11 +520,12 @@ def hHUPMASTER (signum, frame):
 	EXITCODE = 3
 	DO_SHUTDOWN (signal.SIGTERM)
 
-def configure (name, response, keep_alive):
+def configure (name, network_timeout = 0, keep_alive = 0):
 	from . import https_server
 	http_server.SERVER_IDENT = name
 	https_server.https_server.SERVER_IDENT = name + " (SSL)"
-	http_channel.zombie_timeout = https_server.https_channel.zombie_timeout = not keep_alive and 10 or keep_alive
+	http_channel.keep_alive = https_server.https_channel.keep_alive = not keep_alive and 2 or keep_alive
+	http_channel.network_timeout = https_server.https_channel.network_timeout = not network_timeout and 30 or network_timeout
 	
 		
 if __name__ == "__main__":

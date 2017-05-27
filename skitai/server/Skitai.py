@@ -121,14 +121,14 @@ class Loader:
 		forward_server.install_handler (forward_handler.Handler (self.wasc, forward_to))
 		self.wasc.register ("forwardserver", forward_server)
 		
-	def config_webserver (self, port, ip = "", name = "", ssl = False, keep_alive = 10, response_timeout = 10):
+	def config_webserver (self, port, ip = "", name = "", ssl = False, keep_alive = 10, network_timeout = 10):
 		# maybe be configured	at first.
 		if ssl and not HTTPS:
 			raise SystemError("Can't start SSL Web Server")
 		
 		if not name:
 			name = self.instance_name		
-		http_server.configure (name, response_timeout, keep_alive)
+		http_server.configure (name, network_timeout, keep_alive)
 				
 		if ssl and self.ctx is None:
 			raise ValueError("SSL ctx not setup")
