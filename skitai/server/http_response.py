@@ -377,11 +377,10 @@ class http_response:
 		
 			if way_to_compress:
 				if self.has_key ('Content-Length'):
-					self.delete ("content-length") # rebuild
-					wrap_in_chunking = True
+					self.delete ("content-length") # rebuild					
 				self.update ('Content-Encoding', way_to_compress)	
 
-			if wrap_in_chunking:				
+			if wrap_in_chunking:
 				outgoing_producer = producers.composite_producer (self.outgoing)
 				self.delete ('content-length')
 				self.update ('Transfer-Encoding', 'chunked')				
@@ -401,17 +400,22 @@ class http_response:
 						compressor = compressors.GZipCompressor ()
 					else: # deflate
 						compressor = zlib.compressobj (6, zlib.DEFLATED)
-					cdata = ""
+					cdata = b""
 					has_producer = 1
 					while 1:
 						has_producer, producer = self.outgoing.pop ()
 						if not has_producer: break
-						cdata += compressor.compress (producer.data)				
+						while 1:	
+							data = producer.more ()
+							if not data:
+								break
+							cdata += compressor.compress (data)
 					cdata += compressor.flush ()					
 					self.update ("Content-Length", len (cdata))
-					outgoing_producer = producers.simple_producer (cdata)						
-				else:
-					outgoing_producer = producers.composite_producer (self.outgoing)						
+					outgoing_producer = producers.simple_producer (cdata)
+				else:					
+					outgoing_producer = producers.composite_producer (self.outgoing)
+					
 				outgoing_header = producers.simple_producer (self.build_reply_header(with_header).encode ("utf8"))				
 			
 			outgoing_producer = producers.composite_producer (
@@ -440,11 +444,13 @@ class http_response:
 		self.die_with (self.request.collector)
 		self.die_with (self.request.producer)
 		
+		print ('2222222222222', close_it)
 		logger = self.request.logger #IMP: for  disconnect with request
 		try:
 			if outgoing_producer:
 				self.request.channel.push_with_producer (outgoing_producer)
 			if close_it:
+				print ('111111111111111111')
 				self.request.channel.close_when_done ()
 		except:			
 			logger.trace ()			
