@@ -764,8 +764,6 @@ You can query for getting user information to database engines asynchronously. H
 Skitai with Nginx / Squid
 ---------------------------
 
-From version 0.10.5, Skitai supports virtual hosting itself, but there're so many other reasons using with reverse proxy servers.
-
 Here's some helpful sample works for virtual hosting using Nginx / Squid.
 
 If you want 2 different and totaly unrelated websites:
@@ -796,24 +794,28 @@ Example Squid config file (squid.conf) is like this:
 For Nginx might be 2 config files (I'm not sure):
 
 .. code:: python
-
-    ; /etc/nginx/sites-enabled/jeans.com
-    server {
-	    listen 80;
-	    server_name www.jeans.com;
-      location / {
-        proxy_pass http://192.168.1.100:5000;
-      }
-    }
     
-    ; /etc/nginx/sites-enabled/carsales.com    
-    server {
-	    listen 80;
-	    server_name www.carsales.com;
-      location / {
-        proxy_pass http://192.168.1.100:5001;
-      }
-    }
+  proxy_http_version 1.1;
+  proxy_set_header Connection "";
+  
+  upstream backend {
+  	server 127.0.0.1:5000;
+  	keepalive 100;
+  }
+  
+  server {
+  	listen 80;
+  	server_name www.jeans.com;
+  	
+  	location / {		
+  		proxy_pass http://backend;
+  		add_header X-Backend Skitai App Engine;
+  	}
+  	
+  	location /assets/ {
+  		alias /home/ubuntu/yolocast/statics/assets/;		
+  	}
+  }
 
 Self-Descriptive App
 ---------------------

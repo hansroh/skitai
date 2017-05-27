@@ -54,7 +54,9 @@ class http_channel (asynchat.async_chat):
 		self.__history = []
 		self.__sendlock = None
 		self.producers_attend_to = []
-		self.things_die_with = []
+		self.things_die_with = []		
+		self.keep_alive = self.zombie_timeout
+		self.zombie_timeout = 60
 		
 	def use_sendlock (self):
 		self.__sendlock  = threading.Lock ()
@@ -126,7 +128,8 @@ class http_channel (asynchat.async_chat):
 		self.things_die_with.append ((thing, tag))
 		
 	def done_request (self):	
-		self.producers_attend_to = [] # all producers are finished
+		self.producers_attend_to = [] # all producers are finished		
+		self.zombie_timeout = self.keep_alive
 							
 	def send (self, data):
 		#print	("SEND", repr (data), self.get_terminator ())
