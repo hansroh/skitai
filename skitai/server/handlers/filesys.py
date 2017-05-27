@@ -93,7 +93,8 @@ class os_filesystem:
 	def __init__ (self, root, wd='/'):
 		self.root = root
 		self.wd = wd
-
+		self.stat_cache = {}
+		
 	def current_directory (self):
 		return self.wd
 
@@ -155,8 +156,13 @@ class os_filesystem:
 
 	# TODO: implement a cache w/timeout for stat()
 	def stat (self, path):
-		p = self.translate (path)
-		return os.stat (p)
+		ctime = time.time ()
+		cached = self.stat_cache.get (path)		
+		p = self.translate (path)		
+		if cached is None or ctime - cached [0] > 1:
+			stat = os.stat (p)
+			self.stat_cache [path] = (ctime, stat)		
+		return self.stat_cache [path][1]
 
 	def open (self, path, mode):
 		p = self.translate (path)		

@@ -10,12 +10,12 @@ from aquests.protocols.http.http_util import *
 from hashlib import md5
 
 IF_MODIFIED_SINCE = re.compile (
-	'If-Modified-Since: ([^;]+)((; length=([0-9]+)$)|$)',
+	'([^;]+)((; length=([0-9]+)$)|$)',
 	re.IGNORECASE
 	)
 
 IF_NONE_MATCH = re.compile (
-	'If-None-Match: "?(.+?)(?:$|")',
+	'"?(.+?)(?:$|")',
 	re.IGNORECASE
 	)
 	
@@ -26,6 +26,24 @@ CONTENT_TYPE = re.compile (
 	re.IGNORECASE
 	)
 
+def get_re_match (head_reg, value):
+	m = head_reg.match (value)
+	if m and m.end() == len (value):
+		return m
+	return ''		
+	
+class MemCache:
+	def __init__ (self):
+		self.d = {}
+	
+	def read (self, path, file, etag):	
+		cached = self.d.get (path)
+		if cached is None or cached [0] != etag:			
+			with open (file, "rb") as f:
+				self.d [path] = (etag, f.read ())
+		return self.d [path][1]
+
+			
 class Handler:
 	directory_defaults = [
 		'index.htm',
@@ -35,6 +53,7 @@ class Handler:
 	def __init__ (self, wasc, pathmap = {}, max_ages = None, alt_handlers = []):
 		self.wasc = wasc
 		
+		self.memcache = MemCache ()
 		self.max_ages = []
 		if max_ages:
 			self.max_ages = [(k, v) for k, v in max_ages.items ()]
@@ -73,7 +92,7 @@ class Handler:
 		dirname = os.path.split(path) [0]				
 		permission = self.filesystem.get_permission (dirname)
 		if not permission:
-			return False								
+			return False
 		if not self.wasc.authorizer.has_permission (request, permission):
 			return True			
 		return False	
@@ -128,55 +147,67 @@ class Handler:
 			return
 		
 		try:
-			mtime = self.filesystem.stat (path)[stat.ST_MTIME]
-			file_length = self.filesystem.stat (path)[stat.ST_SIZE]
+			current_stat = self.filesystem.stat (path)
+			mtime = current_stat [stat.ST_MTIME]
+			file_length = current_stat [stat.ST_SIZE]			
 		except:
 			self.handle_alternative (request)
-			return		
-		
-		etag = self.make_etag (file_length, mtime)		
-		inm = get_header_match (IF_NONE_MATCH, request.header)
-		if inm and etag == inm.group (1):
-			self.set_cache_control (request, path, mtime, etag)
-			request.response.start (304)
-			request.response.done()
 			return
-			
-		ims = get_header_match (IF_MODIFIED_SINCE, request.header)
-		length_match = 1
-		if ims:
-			length = ims.group (4)
-			if length:
-				try:
-					length = int(length)
-					if length != file_length:
-						length_match = 0
-				except:
-					pass
-					
-		ims_date = 0
-		if ims:
-			ims_date = http_date.parse_http_date (ims.group (1))
-
-		if length_match and ims_date:
-			if mtime <= ims_date:
+		
+		etag = self.make_etag (file_length, mtime)	
+		inm_h = request.get_header ("if-none-match")	
+		if inm_h:
+			inm = get_re_match (IF_NONE_MATCH, inm_h)			
+			if inm and etag == inm.group (1):
 				self.set_cache_control (request, path, mtime, etag)
 				request.response.start (304)
 				request.response.done()
 				return
 		
+		ims_h = request.get_header ("if-modified-since")
+		if ims_h:
+			ims = get_re_match (IF_MODIFIED_SINCE, ims_h)
+			length_match = 1
+			if ims:
+				length = ims.group (4)
+				if length:
+					try:
+						length = int(length)
+						if length != file_length:
+							length_match = 0
+					except:
+						pass
+						
+			ims_date = 0
+			if ims:
+				ims_date = http_date.parse_http_date (ims.group (1))
+	
+			if length_match and ims_date:
+				if mtime <= ims_date:
+					self.set_cache_control (request, path, mtime, etag)
+					request.response.start (304)
+					request.response.done()
+				return
+		
+		cached_data = None
 		try:
-			file = self.filesystem.open (path, 'rb')
+			if file_length < 4096:
+				cached_data = self.memcache.read (path, self.filesystem.translate (path), etag)		
+			else:	
+				file = self.filesystem.open (path, 'rb')				
 		except IOError:
 			self.handle_alternative (request)
 			return
-		
-		request.response ['Content-Length'] = file_length		
+			
+		request.response ['Content-Length'] = file_length
 		self.set_cache_control (request, path, mtime, etag)
 		self.set_content_type (path, request)
-
+				
 		if request.command == 'get':
-			request.response.push (producers.file_producer (file))
+			if cached_data:
+				request.response.push (cached_data)
+			else:	
+				request.response.push (producers.file_producer (file))
 			
 		request.response.done()
 	
