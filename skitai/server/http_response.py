@@ -378,7 +378,6 @@ class http_response:
 			if way_to_compress:
 				if self.has_key ('Content-Length'):
 					self.delete ("content-length") # rebuild
-					wrap_in_chunking = True
 				self.update ('Content-Encoding', way_to_compress)	
 
 			if wrap_in_chunking:				
@@ -401,7 +400,7 @@ class http_response:
 						compressor = compressors.GZipCompressor ()
 					else: # deflate
 						compressor = zlib.compressobj (6, zlib.DEFLATED)
-					cdata = ""
+					cdata = b""
 					has_producer = 1
 					while 1:
 						has_producer, producer = self.outgoing.pop ()

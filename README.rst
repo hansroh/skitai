@@ -3207,6 +3207,7 @@ Change Log
   
   0.26 (May 2017)
   
+  - 0.26.4: fix incomplete sending when resuested with connection: close header
   - 0.26.3.7: enforce response to HTTP version 1.1 for 1.0 CONNECT with 1.0 request
   - 0.26.3.5: revert multiworkers
   - 0.26.3.2: fix multiworkers
