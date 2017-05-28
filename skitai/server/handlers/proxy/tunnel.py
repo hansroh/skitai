@@ -28,7 +28,7 @@ class TunnelHandler:
 		self.channel = channel
 		
 		self.asyntunnel = AsynTunnel (asyncon, self)		
-		self.channel.set_timeout (PROXY_TUNNEL_KEEP_ALIVE)
+		self.channel.set_socket_timeout (PROXY_TUNNEL_KEEP_ALIVE)		
 		self.asyncon.set_timeout (PROXY_TUNNEL_KEEP_ALIVE)
 		self.channel.die_with (self.asyntunnel, "tunnel")
 		

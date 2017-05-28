@@ -30,9 +30,9 @@ class http_channel (asynchat.async_chat):
 	closed = False
 	is_rejected = False
 	
-	keep_alive = 2
-	network_timeout = 60	
-	zombie_timeout = 60
+	keep_alive = 30
+	network_timeout = 30
+	zombie_timeout = 30
 	
 	fifo_class = deque
 	
@@ -118,7 +118,11 @@ class http_channel (asynchat.async_chat):
 		self.close ()
 	
 	def set_timeout (self, timeout):
-		self.zombie_timeout = timeout		
+		self.zombie_timeout = timeout
+	
+	def set_socket_timeout (self, timeout):	
+		self.keep_alive = timeout
+		self.network_timeout = timeout
 			
 	def attend_to (self, thing):
 		if not thing: return

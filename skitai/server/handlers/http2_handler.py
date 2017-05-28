@@ -484,7 +484,7 @@ class Handler (wsgi_handler.Handler):
 	
 		http2 = http2_request_handler (self, request)		
 		request.channel.die_with (http2, "http2 stream")
-		request.channel.set_timeout (self.keep_alive)
+		request.channel.set_socket_timeout (self.keep_alive)
 		
 		if request.version == "1.1":
 			request.response (
