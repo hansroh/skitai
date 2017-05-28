@@ -80,8 +80,7 @@ window.addEventListener("load", init, false);
 <h3>Choose Websocket Design Spec.</h3>
 <ul>
 	<li><a href="{{was.ab ('/?mode=echo')}}">WEBSOCKET_SIMPLE</a></li>
-	<li><a href="{{was.ab ('/?mode=chat')}}">WEBSOCKET_GROUPCHAT</a></li>
-	<li><a href="{{was.ab ('/?mode=talk')}}">WEBSOCKET_DEDICATE</a></li>
+	<li><a href="{{was.ab ('/?mode=chat')}}">WEBSOCKET_GROUPCHAT</a></li>	
 	<!--li><a href="{{was.ab ('/?mode=multi')}}">WEBSOCKET_MULTICAST</a></li-->
 </ul>
 <form onsubmit="doSend(this.msg.value); this.msg.value = ''; return false;">

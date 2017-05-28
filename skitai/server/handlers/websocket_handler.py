@@ -125,7 +125,7 @@ class Handler (wsgi_handler.Handler):
 				
 		del env ["websocket.event"]
 		del env ["websocket.config"]
-		assert design_spec in (1,4,5), "design_spec  should be one of (WS_SIMPLE, WS_GROUPCHAT, WS_DEDICATE, WS_DEDICATE_TS)"			
+		assert design_spec in (1,5,6), "design_spec  should be one of (WS_SIMPLE, WS_GROUPCHAT, WS_THREADSAFE)"			
 		headers = [
 			("Sec-WebSocket-Accept", self.calculate_response_key (securekey)),
 			("Upgrade", "Websocket"),
@@ -135,12 +135,12 @@ class Handler (wsgi_handler.Handler):
 		]
 		request.response ("101 Web Socket Protocol Handshake", headers = headers)		
 		
-		if design_spec == skitai.WS_SIMPLE:
+		if design_spec in (skitai.WS_SIMPLE, skitai.WS_THREADSAFE):
 			varnames = varnames [:1]
-			# WEBSOCKET_REQDATA			
 			# Like AJAX, simple request of client, simple response data
 			# the simplest version of stateless HTTP protocol using basic skitai thread pool
-			ws = specs.WebSocket1 (self, request, apph, env, varnames, message_encoding)
+			ws_calss = design_spec == skitai.WS_SIMPLE and specs.WebSocket1 or specs.WebSocket6			
+			ws = ws_calss (self, request, apph, env, varnames, message_encoding)
 			self.channel_config (request, ws, keep_alive)
 			env ["websocket"] = ws
 			if is_saddle: env ["websocket.handler"] = (current_app, wsfunc)		
@@ -173,22 +173,10 @@ class Handler (wsgi_handler.Handler):
 			ws = specs.WebSocket5 (self, request, server, env, varnames)
 			self.channel_config (request, ws, keep_alive)
 			server.add_client (ws)
-			
-		else: # 4
-			# WEBSOCKET_DEDICATE 			
-			# 1:1 wesocket:thread
-			# Be careful, it will be consume massive thread resources			
-			ws = specs.WebSocket4 (self, request, message_encoding)
-			request.channel.use_sendlock ()
-			self.channel_config (request, ws, keep_alive)
-			env ["websocket"] = ws
-			job = specs.DedicatedJob (request, apph, (env, donot_response), self.wasc.logger)
-			threading.Thread (target = job).start ()
 		
 		request.channel.die_with (ws, "websocket spec. %d" % design_spec)		
 		
 	def channel_config (self, request, ws, keep_alive):
 		request.response.done (upgrade_to =  (ws, 2))
-		request.channel.set_timeout (keep_alive)
-	
-	
+		request.channel.set_socket_timeout (keep_alive)
+		

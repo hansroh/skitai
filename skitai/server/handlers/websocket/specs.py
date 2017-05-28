@@ -228,12 +228,15 @@ class WebSocket:
 		else:
 			raise AssertionError ("Message is too big. Consider breaking it into chunks.")
 		
-		m = header + payload		
+		m = header + payload
+		self._send (m)
+	
+	def _send (self, msg):	
 		if self.channel:
 			if hasattr (self.wasc, 'threads'):
-				trigger.wakeup (lambda p=self.channel, d=m: (p.push (d),))
-			else:				
-				self.channel.push (m)				
+				trigger.wakeup (lambda p=self.channel, d=msg: (p.push (d),))
+			else:
+				self.channel.push (msg)
 	
 	def handle_message (self, msg):
 		raise NotImplementedError ("handle_message () not implemented")
@@ -262,8 +265,9 @@ class WebSocket1 (WebSocket):
 		self.params = http_util.crack_query (self.querystring)
 		
 	def close (self):		
-		self.handle_message (-1, skitai.WS_EVT_CLOSE)
-		WebSocket.close (self)
+		if not self.closed ():
+			self.handle_message (-1, skitai.WS_EVT_CLOSE)
+			WebSocket.close (self)
 		
 	def make_params (self, msg, event):
 		querystring = self.querystring
@@ -272,9 +276,9 @@ class WebSocket1 (WebSocket):
 			self.env ['websocket.event'] = event
 		else:	
 			self.env ['websocket.event'] = None
-			querystring = querystring + quote_plus (msg)		
+			querystring = querystring + quote_plus (msg)
 			params [self.param_names [0]] = self.message_decode (msg)
-		return querystring, params	
+		return querystring, params
 	
 	def open (self):		
 		self.handle_message (-1, skitai.WS_EVT_OPEN)
@@ -288,51 +292,19 @@ class WebSocket1 (WebSocket):
 		
 		args = (self.request, self.apph, (self.env, self.start_response), self.wasc.logger)
 		if self.env ["wsgi.multithread"]:			
-			self.wasc.queue.put (PooledJob (*args))
+			self.wasc.queue.put (Job (*args))
 		else:
-			PooledJob (*args) ()
+			Job (*args) ()
 
-
-class WebSocket4 (WebSocket):
-	# WEBSOCKET_DEDICATE if lock is None, or WEBSOCKET_MULTICAST
-	def __init__ (self, handler, request, message_encoding = None):
-		WebSocket.__init__ (self, handler, request, message_encoding)
-		self.cv = threading.Condition (threading.RLock ())
+class WebSocket6 (WebSocket1):
+	# WEBSOCKET_REQDATA			
+	def __init__ (self, handler, request, apph, env, param_names, message_encoding = None):
+		WebSocket1.__init__ (self, handler, request, apph, env, param_names, message_encoding)
 		self.lock = threading.Lock ()
-		self.message = None
-		self.message_encoding = self.setup_encoding (message_encoding)
 	
-	def close (self):		
-		self.cv.acquire()
-		WebSocket.close (self)		
-		self.cv.notify ()
-		self.cv.release ()
-		
-	def send (self, message, op_code = -1):
+	def _send (self, msg):
 		with self.lock:
-			WebSocket.send (self, message, op_code)
-			
-	def getwait (self, timeout = 10):
-		self.cv.acquire()
-		while not self.message and not self._closed:
-			self.cv.wait(timeout)
-		
-		if self._closed:
-			self.cv.release()
-			return None
-		
-		message = self.message
-		self.message = None
-		self.cv.release()
-		
-		return self.message_decode (message)
-			
-	def handle_message (self, msg):		
-		self.cv.acquire()
-		self.message = msg
-		self.cv.notify ()
-		self.cv.release ()
-		
+			WebSocket1._send (self, msg)
 					
 class WebSocket5 (WebSocket1):
 	# WEBSOCKET_MULTICAST
@@ -359,36 +331,19 @@ class WebSocket5 (WebSocket1):
 			self.param_names [0]
 		)
 
-
-class PooledJob (wsgi_handler.Job):
+class Job (wsgi_handler.Job):
 	def exec_app (self):
 		was = the_was._get ()		
 		was.request = self.request		
 		was.websocket = self.args [0]["websocket"]
 		self.args [0]["skitai.was"] = was
-		content = self.apph (*self.args)
+				
+		content = self.apph (*self.args)		
 		if content:
 			if type (content) is not tuple:
 				content = (content,)
-			was.websocket.send (*content)			
-		del was.request
-		del was.websocket
-
-
-class DedicatedJob (PooledJob):
-	def handle_error (self):
-		pass
+			was.websocket.send (*content)
 		
-	def exec_app (self):
-		was = the_was._get () # create new was, cause of non thread pool
-		was.request = self.request
-		was.websocket = self.args [0]["websocket"]
-		self.args [0]["skitai.was"] = was
-		try:
-			self.apph (*self.args)			
-		except:
-			self.handle_error ()
-			self.logger.trace ("app")
-		the_was._del () # remove
 		del was.request
 		del was.websocket
+

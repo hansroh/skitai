@@ -2,6 +2,25 @@
 Skitai App Engine For Microservices
 ========================================
 
+At a Glance
+=============
+
+Here's a simple equation:
+
+.. code:: bash
+
+  Skitai = Nginx + uWSGI + Flask + Aquests
+  
+And simple to run:
+
+.. code:: bash
+
+  pip3 install skitai
+  python3 app.py -d
+
+Your app will work for your thousands or miliions of customers.
+
+
 .. contents:: Table of Contents
 
 
@@ -43,7 +62,12 @@ Installation
 
 **Requirements**
 
-On win32, required `pywin32 binary`_
+Tested Python Versions
+
+  - 3.4
+  - 3.5
+
+On win32, required `pywin32 binary`_.
 
 .. _`pywin32 binary`: http://sourceforge.net/projects/pywin32/files/pywin32/Build%20219/
 
@@ -55,17 +79,19 @@ On posix, for compiling psycopg2 module, requires theses packages,
   
 **Installation**
 
+With pip
+
 .. code-block:: bash
 
-    pip install skitai    
+    pip3 install skitai    
 
-Another way from Git:
+From git
 
 .. code-block:: bash
 
     git clone https://gitlab.com/hansroh/skitai.git
     cd skitai
-    python setup.py install
+    python3 setup.py install
 
 
 But generally you don't need install alone. When you install Skitai App Engine, proper version of Skitai App Engine will be installed.
@@ -74,6 +100,7 @@ But generally you don't need install alone. When you install Skitai App Engine, 
 Starting Skitai
 ================
 
+Here's a very simple WSGI app,
 
 Basic Usage
 ------------
@@ -84,7 +111,7 @@ Basic Usage
 
   def app (env, start_response):
     start_response ("200 OK", [("Content-Type", "text/plain")])
-    return ['Hello World']
+    return 'Hello World'
     
   app.use_reloader = True
   app.debug = True
@@ -96,14 +123,14 @@ Basic Usage
     skitai.mount ('/', app)
     skitai.run (
     	address = "127.0.0.1",
-    	port = 5000      
+    	port = 5000
     )
     
 At now, run this code from console.
 
 .. code-block:: bash
 
-  python app.py
+  python3 app.py
 
 You can access this WSGI app by visiting http://127.0.0.1:5000/.
 
@@ -162,28 +189,32 @@ If you also want to view logs through console for spot developing, you run app.p
 Run As Daemon
 --------------
 
+For making a daemon,
+
 .. code:: bash
   
-  python3 app.py start
+  python3 app.py start (or -d)
+  
   
 For stopping daemon,
 
 .. code:: bash
   
-  python3 app.py stop
+  python3 app.py stop (or -s)
 
-Or for restarting,
+Or for restarting daemon,
   
 .. code:: bash
   
-  python3 app.py restart
+  python3 app.py restart (or -r)
   
 
 For automatic starting on system start, add a line to /etc/rc.local file like this:
 
 .. code:: bash
 
-  sudo - ubuntu -c "/usr/bin/python3 /home/ubuntu/app.py -d"
+  su - ubuntu -c "/usr/bin/python3 /home/ubuntu/app.py -d"
+  
   exit 0
 
 Run with Threads Pool
@@ -286,7 +317,7 @@ Then place this code at bottom of above WSGI app.
     skitai.mount ('/', 'static')
     skitai.run ()
 
-These feaure can used for managing version. 
+These feature can be used for managing versions. 
 
 Let's assume initail version of app file is app_v1.py.
 
@@ -444,14 +475,18 @@ If you intend to use skitai as backend application server behind reverse proxy s
 Network timeout means seconds gap of data packet recv/sending events,
 
 .. code:: python
-
+  
   skitai.set_network_timeout (10) # default = 30
+  skitai.mount ('/', app)
+  skitai.run ()
 
-In under high traffic, these values are more higher, response fail rate will be decreased and response time will be increaesed. But if response time is over 30 seconds, isn't it already failed?
+Note that under massive traffic situation, meaning of keep alive timeout become as same as network timeout beacuse a clients requests are delayed by network/HW capability unintensionally.
+
+Anyway, these timeout values are higher, lower response fail rate and longger response time. But if response time is over 10 seconds, you might consider loadbalancing things. Skitai's default value 30 seconds is for lower failing rate under extreme situation.
 
 
-Enabling Proxy Server
-------------------------
+Enabling HTTP/HTTPS Proxy
+---------------------------
 
 .. code:: python
   
@@ -459,10 +494,10 @@ Enabling Proxy Server
   skitai.mount ('/', app)
   skitai.run ()
 
-Adding Server(s) Alias
-------------------------
+Adding Upstream Servers For Reverse Proxy
+-------------------------------------------
 
-Cluster should be defined like this: (alias_type, servers, role = "", source = "", ssl = False).
+Upstream server can be defined like this: (alias_type, servers, role = "", source = "", ssl = False).
 
 - alias_type: available database or protocol types are:
 
@@ -484,16 +519,21 @@ Cluster should be defined like this: (alias_type, servers, role = "", source = "
   
   skitai.mount ('/', app)
   skitai.alias (
-    '@members', skitai.PROTO_HTTP, "members.example.com", 
-    role = 'admin', source = '172.30.1.0/24,192.168.1/24'  
+    '@members', 
+    skitai.PROTO_HTTP, 
+    ["members.example.com"], 
+    role = 'admin', 
+    source = '172.30.1.0/24,192.168.1/24'  
   )
   skitai.alias (
-    '@mysqlite3', skitai.DB_SQLITE3, ["/var/tmp/db1", "/var/tmp/db2"]
+    '@mysqlite3', 
+    skitai.DB_SQLITE3, 
+    ["/var/tmp/db1", "/var/tmp/db2"]
   )  
   skitai.run ()
 
 Run as HTTPS Server
-------------------------
+---------------------
 
 To generate self-signed certification file:
 
@@ -778,30 +818,17 @@ Skitai with Nginx / Squid
 
 Here's some helpful sample works for virtual hosting using Nginx / Squid.
 
-If you want 2 different and totaly unrelated websites:
-
-- www.jeans.com
-- www.carsales.com
-
-Then you can reverse proxying using Nginx, Squid or many others.
-
 Example Squid config file (squid.conf) is like this:
 
 .. code:: python
     
     http_port 80 accel defaultsite=www.carsales.com
     
-    cache_peer 192.168.1.100 parent 5000 0 no-query originserver name=jeans    
+    cache_peer 127.0.0.1 parent 5000 0 no-query originserver name=jeans    
     acl jeans-domain dstdomain www.jeans.com
     http_access allow jeans-domain
     cache_peer_access jeans allow jeans-domain
-    cache_peer_access jeans deny all
-    
-    cache_peer 192.168.1.100 parent 5001 0 no-query originserver name=carsales
-    acl carsales-domain dstdomain www.carsales.com
-    http_access allow carsales-domain
-    cache_peer_access carsales allow carsales-domain
-    cache_peer_access carsales deny all
+    cache_peer_access jeans deny all 
 
 For Nginx might be 2 config files (I'm not sure):
 
@@ -1394,24 +1421,23 @@ If your WSGI app enable handle websocket, it should give  initial parameters to 
 
 *websocket design specs* can  be choosen one of 4.
 
-WS_SIMPLE (before version 0.24, WEBSOCKET_REQDATA)
+WS_SIMPLE
 
   - Thread pool manages n websocket connection
   - It's simple request and response way like AJAX
   - Use skitai initail thread pool, no additional thread created
   - Low cost on threads resources, but reposne cost is relatvley high than the others
 
+WS_THREADSAFE (New in version 0.26)
+
+  - Mostly same as WS_SIMPLE
+  - Message sending is thread safe
+ 
 WS_GROUPCHAT (New in version 0.24)
   
   - Trhead pool manages n websockets connection
   - Chat room model
-  
-WS_DEDICATE (before version 0.24, WEBSOCKET_DEDICATE_THREADSAFE)
 
-  - One thread per websocket connection
-  - Use when interactives takes long time like websocket version telnet or subprocess stdout streaming
-  - New thread created per websocket connection
- 
 
 *keep alive timeout* is seconds.
 
@@ -1702,93 +1728,6 @@ At Flask, should setup for variable names you want to use,
       skitai.WS_GROUPCHAT, 
       60, 
       ("message", "room_id")
-    )
-    return ""
-
-
-Threadsafe-Dedicated Websocket
--------------------------------
-
-It is NOT for general customer services. Please read carefully.
-
-This spec is for very special situation. It will create new work thread and that thread handles only one  client. And The thread will be continued until message receiving loop is ended. It is designed for long running app and for limited users - firms's employees or special clients who need to use server-side resources or long applications take long time to finish and need to observe output message stream.
-
-Briefly, it can be helpful for making web version frontend UI to controlling your backend application with jquery, HTML5 easily.
-
-Client can connect by ws://localhost:5000/websocket/talk?name=jamesmilton.
-
-.. code:: python
-
-  class Calcultor:  
-    def __init__ (self, ws):
-      self.ws = ws
-      self.p = None
-      
-    def calculate (self, count):
-      self.p = Popen (
-        [sys.executable, r'calucate.py', '-c', count],
-        universal_newlines=True,
-        stdout=PIPE, shell = False
-      )    
-      for line in iter(p.stdout.readline, ''):
-        self.ws.send (line)	      
-      self.p.stdout.close ()
-      self.p = None
-    
-    def run (self, count):
-      if self.p is None:
-        threading.Thread (target = self.calculate, args = (count,)).start ()
-        return 1
-      
-    def kill (self):
-      if self.p:
-        os.kill (self.p.pid)
-        return 1
-           
-        
-  @app.route ("/websocket/calculate")
-  def calculate (was):
-    if was.wsinit ():
-      return was.wsconfig (skitai.WS_DEDICATE, 60)
-    
-    ws = was.websocket
-    calcultor = Calcultor (ws)    
-    while 1:
-      m = ws.getwait ()
-      if m is None: # client disconnected
-        calcultor.kill ()
-        break
-                        
-      if m.lower () == "bye":
-        calcultor.kill ()
-        ws.send ("Bye, have a nice day." + m)
-        ws.close ()
-        break
-        
-      elif m.lower () == "kill":  
-        if calcultor.kill ():
-          self.ws.send ('killed')	
-        else:
-          self.ws.send ('Error: not running')	   
-        
-      elif m.lower () [:3] == "run":
-        if calcultor.run (int (m [3:].strip ())):
-          self.ws.send ('started')	
-        else:
-          self.ws.send ('Error: already running')
-        
-      else:  
-        ws.send ("You said %s but I can't understatnd" % m)
-
-At Flask,
-
-.. code:: python
-  
-  if request.environ.get ("websocket.event") == skitai.WS_EVT_INIT:
-    request.environ ["websocket.config"] = (
-      skitai.WS_GROUPCHAT, 
-      60, 
-      None
     )
     return ""
 
@@ -3221,6 +3160,11 @@ Change Log
   
   0.26 (May 2017)
   
+  - 0.26.7
+    
+    - websocket design spec, WEBSOCKET_DEDICATE_THREADSAFE has been removed and WEBSOCKET_THREADSAFE is added
+    - fix websocket, http2, https proxy tunnel timeout, related set_network_timeout () is recently added
+    
   - 0.26.4.1: add set_network_timeout (timoutout = 30) and change default keep alive timeout from 2 to 30
   - 0.26.4: fix incomplete sending when resuested with connection: close header
   - 0.26.3.7: enforce response to HTTP version 1.1 for 1.0 CONNECT with 1.0 request

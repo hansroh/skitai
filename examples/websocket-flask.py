@@ -37,9 +37,7 @@ def chat ():
 @app.route ("/")
 def websocket ():
 	mode = request.args.get('mode', '')
-	if mode == "talk":
-		mode += "?name=Hans"
-	elif mode == "chat":	
+	if mode == "chat":	
 		mode += "?room_id=1"
 	elif mode == "multi":	
 		mode += "?room_id=2"

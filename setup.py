@@ -27,11 +27,13 @@ classifiers = [
 	'Topic :: Internet :: WWW/HTTP :: WSGI',
 	'Environment :: Console',
 	'Environment :: No Input/Output (Daemon)',
+	'Topic :: Internet',
 	'Topic :: Software Development :: Libraries :: Python Modules',
 	'Intended Audience :: Developers',
-	'Intended Audience :: Science/Research',
 	'Programming Language :: Python',	
-	'Programming Language :: Python :: 3'
+	'Programming Language :: Python :: 3',
+	'Programming Language :: Python :: 3.4',
+	'Programming Language :: Python :: 3.5',
 ]
 
 packages = [

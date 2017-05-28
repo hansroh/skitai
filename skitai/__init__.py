@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.4.3"
+__version__ = "0.26.5b1"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -11,12 +11,13 @@ from aquests.lib.attrdict import AttrDict
 from importlib import machinery
 
 WEBSOCKET_SIMPLE = 1
-WEBSOCKET_DEDICATE_THREADSAFE = 4
 WEBSOCKET_GROUPCHAT = 5
+#WEBSOCKET_DEDICATE_THREADSAFE = 4
 
 WS_SIMPLE = 1
-WS_DEDICATE = 4
+WS_THREADSAFE = 6
 WS_GROUPCHAT = 5
+#WS_DEDICATE = 4
 
 WS_EVT_INIT = "init"
 WS_EVT_OPEN = "open"
