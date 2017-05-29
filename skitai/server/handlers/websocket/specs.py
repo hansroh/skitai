@@ -240,7 +240,26 @@ class WebSocket:
 	
 	def handle_message (self, msg):
 		raise NotImplementedError ("handle_message () not implemented")
+
+#---------------------------------------------------------
+
+class Job (wsgi_handler.Job):
+	def exec_app (self):
+		was = the_was._get ()		
+		was.request = self.request		
+		was.websocket = self.args [0]["websocket"]
+		self.args [0]["skitai.was"] = was
+				
+		content = self.apph (*self.args)
+		if content:
+			if type (content) is not tuple:
+				content = (content,)
+			was.websocket.send (*content)
 		
+		del was.request
+		del was.websocket
+		
+#---------------------------------------------------------
 	
 class WebSocket1 (WebSocket):
 	# WEBSOCKET_REQDATA			
@@ -296,15 +315,6 @@ class WebSocket1 (WebSocket):
 		else:
 			Job (*args) ()
 
-class WebSocket6 (WebSocket1):
-	# WEBSOCKET_REQDATA			
-	def __init__ (self, handler, request, apph, env, param_names, message_encoding = None):
-		WebSocket1.__init__ (self, handler, request, apph, env, param_names, message_encoding)
-		self.lock = threading.Lock ()
-	
-	def _send (self, msg):
-		with self.lock:
-			WebSocket1._send (self, msg)
 					
 class WebSocket5 (WebSocket1):
 	# WEBSOCKET_MULTICAST
@@ -331,19 +341,12 @@ class WebSocket5 (WebSocket1):
 			self.param_names [0]
 		)
 
-class Job (wsgi_handler.Job):
-	def exec_app (self):
-		was = the_was._get ()		
-		was.request = self.request		
-		was.websocket = self.args [0]["websocket"]
-		self.args [0]["skitai.was"] = was
-				
-		content = self.apph (*self.args)		
-		if content:
-			if type (content) is not tuple:
-				content = (content,)
-			was.websocket.send (*content)
-		
-		del was.request
-		del was.websocket
-
+class WebSocket6 (WebSocket1):
+	# WEBSOCKET_REQDATA			
+	def __init__ (self, handler, request, apph, env, param_names, message_encoding = None):
+		WebSocket1.__init__ (self, handler, request, apph, env, param_names, message_encoding)
+		self.lock = threading.Lock ()
+	
+	def _send (self, msg):
+		with self.lock:
+			WebSocket1._send (self, msg)

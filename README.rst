@@ -1412,32 +1412,32 @@ If your WSGI app enable handle websocket, it should give  initial parameters to 
 .. code:: python
   
   def websocket (was, message):
-    if was.wsinit ():
-      return was.wsconfig (
-        websocket design specs, 
-        keep_alive_timeout = 60, 
-        message_encoding = None
-      )		
+    if was.wshasevent ():
+      if was.wsinit ():
+        return was.wsconfig (
+          websocket design specs, 
+          keep_alive_timeout = 60, 
+          message_encoding = None
+        )		
 
 *websocket design specs* can  be choosen one of 4.
 
 WS_SIMPLE
 
   - Thread pool manages n websocket connection
-  - It's simple request and response way like AJAX
-  - Use skitai initail thread pool, no additional thread created
+  - It's simple request and response way like AJAX  
   - Low cost on threads resources, but reposne cost is relatvley high than the others
 
 WS_THREADSAFE (New in version 0.26)
 
   - Mostly same as WS_SIMPLE
   - Message sending is thread safe
+  - Most case you needn't this option, but you create uourself one or more threads using websocket.send () method you need this for your convinience
  
 WS_GROUPCHAT (New in version 0.24)
   
-  - Trhead pool manages n websockets connection
+  - Thread pool manages n websockets connection
   - Chat room model
-
 
 *keep alive timeout* is seconds.
 
@@ -1475,26 +1475,27 @@ At Flask, use like this.
 .. code:: python
   
   event = request.environ.get ('websocket.event')
-  if event == skitai.WS_EVT_INIT:
-    return request.environ ['websocket.config'] = (...)
-  if event == skitai.WS_EVT_OPEN:
-    return ''
-  if event == skitai.WS_EVT_CLOSE:
-    return ''
   if event:
-    return '' # should return null string
+    if event == skitai.WS_EVT_INIT:
+      return request.environ ['websocket.config'] = (...)
+    elif event == skitai.WS_EVT_OPEN:
+      return ''
+    elif event == skitai.WS_EVT_CLOSE:
+      return ''
+    elif event:
+      return '' # should return null string
       
 At Skito-Saddle, handling events is more simpler,
 
 .. code:: python
   
-  if was.wsinit ():
-    return was.wsconfig (spec, timeout, message_type)    
-  if was.wsopened ():
-    return
-  if was.wsclosed ():
-    return  
-  if was.wshasevent (): # ignore all events
+  if was.wshasevent ():
+    if was.wsinit ():
+      return was.wsconfig (spec, timeout, message_type)    
+    elif was.wsopened ():
+      return
+    elif was.wsclosed ():
+      return  
     return
         
 
@@ -1506,7 +1507,7 @@ Message is received by first arg (at below exapmle, message arg), and you respon
 .. code:: python
 
   @app.route ("/websocket/echo")
-  def echo (was, message):    
+  def echo (was, message):
     return "ECHO:" + message
     
 
@@ -1529,14 +1530,14 @@ Let's see full example, client can connect by ws://localhost:5000/websocket/echo
   @app.route ("/websocket/echo")
   def echo (was, message):
     #-- event handling
-    if was.wsinit ():
-      return was.wsconfig (skitai.WS_SIMPLE, 60)
-    elif was.wsopened ():
-      return "Welcome Client %s" % was.wsclient ()
-    elif was.wshasevent ():
-      return
-      
+    if was.wshasevent ():
+      if was.wsinit ():
+        return was.wsconfig (skitai.WS_SIMPLE, 60)
+      elif was.wsopened ():
+        return "Welcome Client %s" % was.wsclient ()
+      return      
     #-- message handling  
+    
     return "ECHO:" + message
 
 For getting another args, just add args behind message arg.
@@ -1550,15 +1551,15 @@ For getting another args, just add args behind message arg.
     global num_sent    
     client_id = was.wsclient ()
     
-    if was.wsinit ():
-      num_sent [client_id] = 0      
-      return was.wsconfig (skitai.WS_SIMPLE, 60)
-    elif was.wsopened ():
-      return
-    elif was.wsclosed ():      
-      del num_sent [client_id]
-      return
-    elif was.wshasevent ():
+    if was.wshasevent ():
+      if was.wsinit ():
+        num_sent [client_id] = 0      
+        return was.wsconfig (skitai.WS_SIMPLE, 60)
+      elif was.wsopened ():
+        return
+      elif was.wsclosed ():      
+        del num_sent [client_id]
+        return
       return
         
     num_sent [client_id] += 1
@@ -1683,6 +1684,66 @@ Client can connect by ws://localhost:5000/websocket/chat.
 First args (message) are essential. Although you need other args, you must position after this essential arg.
 
 
+Thread Safe Websocket
+-----------------------
+
+Here's a websocket app example creating sub thread(s),
+
+.. code:: python
+  
+  class myProgram:
+    def __init__ (websocket):
+      self.websocket = websocket
+      self.__active = 0
+      self.__lock = trheading.Lock ()
+    
+    def run (self):
+      while 1:
+        with self.lock:
+          active = self.__active
+        if not active: break           
+        self.websocket.send ('Keep running...')
+        time.sleep (1)
+      self.websocket.send ('Terminated')
+          
+    def handle_command (self, cmd):
+      if cmd == "start":        
+        with self.lock:
+          self.__active = 1
+        threading.Thread (self.run).start ()
+                
+      elif cmd == "stop":
+        with self.lock:
+          self.__active = 0
+        self.websocket.send ('Try to stop...')
+      
+      else:
+        self.websocket.send ('I cannot understand your command')
+  
+  app = Saddle (__name__)
+  
+  @app.startup
+  def startup (wasc):  
+    wasc.register ('wspool', {})
+    
+  @app.route ("/websocket/run")
+  def run (was, message):
+    if was.wshasevent ():
+      if was.wsinit ():    
+        was.wsconfig (skitai.WS_THREADSAFE, 7200)        
+      elif was.wsopened ():
+        was.wspool [id (was.websocket)] = myProgram (was.websocket)        
+      elif was.wsclosed ():
+        ukey = id (was.websocket)
+        if ukey in was.wspool:
+          was.wspool [ukey].kill ()
+          del was.wspool [ukey]          
+      return
+    
+    runner = was.hounds [id (was.websocket)]
+    runner.handle_command (m)
+
+
 Group Chat Websocket
 ---------------------
 
@@ -1697,13 +1758,14 @@ Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can
   @app.route ("/chat")
   def chat (was, message, room_id):   
     client_id = was.wsclient ()
-    
-    if was.wsinit ():
-      return was.wsconfig (skitai.WS_GROUPCHAT, 60)    
-    elif was.wsopened ():
-      return "Client %s has entered" % client_id
-    elif was.wsclosed ():
-      return "Client %s has leaved" % client_id
+    if was.wshasevent ():
+      if was.wsinit ():
+        return was.wsconfig (skitai.WS_GROUPCHAT, 60)    
+      elif was.wsopened ():
+        return "Client %s has entered" % client_id
+      elif was.wsclosed ():
+        return "Client %s has leaved" % client_id
+      return
       
     return "Client %s Said: %s" % (client_id, message)
 
