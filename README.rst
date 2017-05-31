@@ -744,8 +744,8 @@ Using Skitai's reverse proxy feature, it can be used as API Gateway Server. All 
       handler.continue_request (request, claim.get ("user"), claim.get ("roles"))
     
   @app.startup
-  def startup (wasc):
-    wasc.handler.set_auth_handler (Authorizer ())
+  def startup (wac):
+    wac.handler.set_auth_handler (Authorizer ())
     
   @app.route ("/")
   def index (was):
@@ -1723,8 +1723,8 @@ Here's a websocket app example creating sub thread(s),
   app = Saddle (__name__)
   
   @app.startup
-  def startup (wasc):  
-    wasc.register ('wspool', {})
+  def startup (wac):  
+    wac.register ('wspool', {})
     
   @app.route ("/websocket/run")
   def run (was, message):
@@ -2740,28 +2740,28 @@ Also there're another kind of decorator group, App decorators.
 .. code:: python
 
   @app.startup
-  def startup (wasc):
-    logger = wasc.logger.get ("app")
+  def startup (wac):
+    logger = wac.logger.get ("app")
     # OR
-    logger = wasc.logger.make_logger ("login", "daily")
-    config = wasc.config
-    wasc.register ("loginengine", SNSLoginEngine (logger))
-    wasc.register ("searcher", FulltextSearcher (wasc.numthreads))    
+    logger = wac.logger.make_logger ("login", "daily")
+    config = wac.config
+    wac.register ("loginengine", SNSLoginEngine (logger))
+    wac.register ("searcher", FulltextSearcher (wac.numthreads))    
   
   @app.onreload  
-  def onreload (wasc):
-    wasc.loginengine.reset ()
+  def onreload (wac):
+    wac.loginengine.reset ()
   
   @app.shutdown    
-  def shutdown (wasc):
-    wasc.searcher.close ()
+  def shutdown (wac):
+    wac.searcher.close ()
         
-    wasc.unregister ("loginengine")
-    wasc.unregister ("searcher")
+    wac.unregister ("loginengine")
+    wac.unregister ("searcher")
   
-'wasc' is Python Class object of 'was', so mainly used for sharing Skitai server-wide object via was.object.
+'wac' is Python Class object of 'was', so mainly used for sharing Skitai server-wide object via was.object.
 
-And you can access numthreads, logger, config from wasc.
+And you can access numthreads, logger, config from wac.
 
 As a result, myobject can be accessed by all your current app functions even all other apps mounted on Skitai.
 
@@ -2832,27 +2832,34 @@ If you want function specific CORS,
 
 
 
-Building Cache With App Decorator
+Using Aquests With App Decorator
 ----------------------------------
 
 New in version 0.26
 
-If you have pre-defined database cluster, and want to create cache object on app starting, you can use was.ajob method.
+If you have pre-defined database cluster, and want to create cache object on app starting, you can use several wac method. But can use only akiased upstream servers only.
 
 .. code:: python
   
-  app.cache = {}
-  
+  app.cache = {}  
   def create_cache (res):
     for row in res.data:
       app.cache ['STATENAMES'][row.code] = row.name
   
   @app.startup
-  def startup (wasc):
-    wasc.ajob ('@mydb', create_cache).execute ("select code, name from states;")
-	
+  def startup (wac):
+    wac.make_dbo ('@mydb', callback = create_cache).execute ("select code, name from states;")    
+    # or use REST API
+    wac.make_request ('GET', '@myapi/v1/states', callback = create_cache)
+    # or use RPC
+    wac.make_stub ('XMLRPC', '@myrpc/rpc2', callback = create_cache).get_states ()
+  
 Now you can access cache by was.app.cache or app.cache.
-	
+
+- wac.make_dbo (alias = None, meta = None, callback = None, timeout = 10)
+- wac.make_request (method, uri, data = None, auth = None, headers = None, meta = None, callback = None, timeout = 10)
+- wac.make_stub (rpc_type, uri, data = None, auth = None, headers = None, meta = None, callback = None, timeout = 10)
+
 
 WWW-Authenticate
 -------------------
@@ -3032,16 +3039,16 @@ Saddlery can have own sub saddlery and decorators.
   part.mount ("/admin/sub", admin_sub, "app")
   
   @part.startup
-  def startup (wasc):
-    wasc.register ("loginengine", SNSLoginEngine ())
-    wasc.register ("searcher", FulltextSearcher ())    
+  def startup (wac):
+    wac.register ("loginengine", SNSLoginEngine ())
+    wac.register ("searcher", FulltextSearcher ())    
   
   @part.shutdown    
-  def shutdown (wasc):
-    wasc.searcher.close ()
+  def shutdown (wac):
+    wac.searcher.close ()
         
-    wasc.unregister ("loginengine")
-    wasc.unregister ("searcher")
+    wac.unregister ("loginengine")
+    wac.unregister ("searcher")
     
   @part.before_request
   def before_request (was):
@@ -3222,7 +3229,13 @@ Change Log
   
   0.26 (May 2017)
   
-  - 0.26.7
+  - 0.26.6.1
+    
+    - add wac.make_dbo (), wac.make_stub () and wac.make_request ()
+    - wac.ajob () has been removed
+    - change repr name from wasc to wac
+    
+  - 0.26.6
     
     - websocket design spec, WEBSOCKET_DEDICATE_THREADSAFE has been removed and WEBSOCKET_THREADSAFE is added
     - fix websocket, http2, https proxy tunnel timeout, related set_network_timeout () is recently added

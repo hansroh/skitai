@@ -66,14 +66,26 @@ class WAS:
 		cls.clusters [clustername] = cluster
 	
 	@classmethod
-	def ajob (cls, clustername, callback = None, timeout = 10):
-		# Async Job with cluster
+	def make_dbo (cls, clustername = None, meta = None, callback = None, timeout = 10):
 		if clustername [0] == "@":
 			clustername = clustername [1:]
 		if not callback:
 			callback = lambda x: None
-		return cls.clusters_for_distcall [clustername].Server (None, None, None, None, None, False, False, None, callback, timeout)
-				
+		return cls.clusters_for_distcall [clustername].Server (None, None, None, None, meta, False, False, None, callback, timeout)
+	
+	@classmethod
+	def make_request (cls, method, uri, data = None, auth = None, headers = None, meta = None, callback = None, timeout = 10):
+		try: 
+			clustername, uri = clustername.split ("/", 1)
+		except ValueError:
+			clustername, uri = clustername, ""
+		if clustername [0] == "@":
+			clustername = clustername [1:]
+		if not callback:
+			callback = lambda x: None
+		return cls.clusters_for_distcall [clustername].Server ("/" + uri, data, method.lower (), headers, auth, meta, False, False, None, callback, timeout)	
+	make_stub = make_request
+						
 	def __dir__ (self):
 		return self.objects.keys ()
 	
@@ -175,7 +187,7 @@ class WAS:
 	def _lb (self, *args, **karg):
 		return self._crest (False, *args, **karg)	
 		
-	def _map (self, *args, **karg):		
+	def _map (self, *args, **karg):
 		return self._crest (True, *args, **karg)
 		
 	def _ddb (self, server, dbname = "", auth = None, dbtype = DB_PGSQL, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):
