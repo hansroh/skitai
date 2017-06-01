@@ -66,25 +66,23 @@ class WAS:
 		cls.clusters [clustername] = cluster
 	
 	@classmethod
-	def make_dbo (cls, clustername = None, meta = None, callback = None, timeout = 10):
-		if clustername [0] == "@":
-			clustername = clustername [1:]
-		if not callback:
-			callback = lambda x: None
-		return cls.clusters_for_distcall [clustername].Server (None, None, None, None, meta, False, False, None, callback, timeout)
-	
-	@classmethod
-	def make_request (cls, method, uri, data = None, auth = None, headers = None, meta = None, callback = None, timeout = 10):
+	def make_request (cls, method, alias_uri = None, data = None, callback = None, timeout = 10, auth = None, headers = None, meta = None):
 		try: 
-			clustername, uri = clustername.split ("/", 1)
+			alias, uri = alias_uri.split ("/", 1)
 		except ValueError:
-			clustername, uri = clustername, ""
-		if clustername [0] == "@":
-			clustername = clustername [1:]
+			alias, uri = alias_uri, "/"
+		else:
+			uri = "/" + uri
+		if alias [0] == "@":
+			alias = alias [1:]
+		method = method.lower ()
 		if not callback:
-			callback = lambda x: None
-		return cls.clusters_for_distcall [clustername].Server ("/" + uri, data, method.lower (), headers, auth, meta, False, False, None, callback, timeout)	
-	make_stub = make_request
+			callback = lambda x: None		
+		
+		if method in ("db", "sqlite3", "postgresql", "redis", "mongodb"):
+			return cls.clusters_for_distcall [alias].Server (None, None, None, None, meta, False, False, None, callback, timeout)
+		else:
+			return cls.clusters_for_distcall [alias].Server (uri, data, method, headers, auth, meta, False, False, None, callback, timeout)
 						
 	def __dir__ (self):
 		return self.objects.keys ()

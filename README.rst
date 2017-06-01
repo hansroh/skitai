@@ -510,27 +510,39 @@ Upstream server can be defined like this: (alias_type, servers, role = "", sourc
   - DB_REDIS
   - DB_MONGODB
 
-- server: single or server list
+- server: single or server list, server form is [ username : password @ server_address : server_port / database_name weight ]. if your username or password contains "@" characters, you should replace to '%40'
 - role (optional): it is valid only when cluster_type is http or https for controlling API access
 - source (optional): comma seperated ipv4/mask
 - ssl (optional): use SSL connection or not, PROTO_HTTPS and PROTO_WSS use SSL defaultly
 
 .. code:: python
   
-  skitai.mount ('/', app)
   skitai.alias (
     '@members', 
     skitai.PROTO_HTTP, 
-    ["members.example.com"], 
+    ["username:password@members.example.com:5001"],
     role = 'admin', 
-    source = '172.30.1.0/24,192.168.1/24'  
+    source = '172.30.1.0/24,192.168.1/24'
   )
+  
+  skitai.alias (
+    '@mypostgres', 
+    skitai.DB_POSTGRESQL, 
+    [
+      "postgres:1234@172.30.0.1:5432/test 20",
+      "postgres:1234@172.30.0.2:5432/test 10"
+    ]
+  )  
+  
   skitai.alias (
     '@mysqlite3', 
     skitai.DB_SQLITE3, 
-    ["/var/tmp/db1", "/var/tmp/db2"]
-  )  
-  skitai.run ()
+    [
+      "/var/tmp/db1",
+      "/var/tmp/db2"
+    ]
+  )
+    
 
 Run as HTTPS Server
 ---------------------
@@ -2831,34 +2843,33 @@ If you want function specific CORS,
     return was.jstream ({...})	
 
 
-
-Using Aquests With App Decorator
-----------------------------------
+Using External Resources With App Decorator
+--------------------------------------------
 
 New in version 0.26
 
-If you have pre-defined database cluster, and want to create cache object on app starting, you can use several wac method. But can use only akiased upstream servers only.
+If you have pre-defined database cluster, and want to create cache object on app starting, you can use several wac method. But youn can only use with pre aliased upstream servers only.
 
 .. code:: python
   
-  app.cache = {}  
+  app.cache = {}
   def create_cache (res):
     for row in res.data:
       app.cache ['STATENAMES'][row.code] = row.name
   
   @app.startup
   def startup (wac):
-    wac.make_dbo ('@mydb', callback = create_cache).execute ("select code, name from states;")    
+    wac.make_request ('sqlite3', '@mydb', callback = create_cache).execute ("select code, name from states;")    
     # or use REST API
-    wac.make_request ('GET', '@myapi/v1/states', callback = create_cache)
+    wac.make_request ('get', '@myapi/v1/states', callback = create_cache)
     # or use RPC
-    wac.make_stub ('XMLRPC', '@myrpc/rpc2', callback = create_cache).get_states ()
-  
+    wac.make_request ('rpc', '@myrpc/rpc2', callback = create_cache).get_states ()
+
 Now you can access cache by was.app.cache or app.cache.
 
-- wac.make_dbo (alias = None, meta = None, callback = None, timeout = 10)
-- wac.make_request (method, uri, data = None, auth = None, headers = None, meta = None, callback = None, timeout = 10)
-- wac.make_stub (rpc_type, uri, data = None, auth = None, headers = None, meta = None, callback = None, timeout = 10)
+wac.make_request () is a sort of low level method for making requests before wac is instantialized.
+
+- wac.make_request (method, alias_uri = None, data = None, callback = None, timeout = 10, auth = None, headers = None, meta = None)
 
 
 WWW-Authenticate
@@ -3228,6 +3239,10 @@ Change Log
 ==============
   
   0.26 (May 2017)
+  
+  - 0.26.7 
+    
+    - drop wac.make_dbo () and wac.make_stub ()
   
   - 0.26.6.1
     

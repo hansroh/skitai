@@ -16,13 +16,22 @@ class ClusterManager (cluster_manager.ClusterManager):
 			nodeid = member
 		
 		else:
-			db, user, passwd = "", "", ""
-			args = member.split ("/", 3)
-			if len (args) == 4: 	server, db, user, passwd = args
-			elif len (args) == 3: 	server, db, user = args	
-			elif len (args) == 2: 	server, db = args		
-			else: 					server = args [0]
-			
+			if member.find ("@") != -1:
+				auth, netloc = self.parse_member (member)
+				try:
+					server, db = netloc.split ("/", 1)
+				except ValueError:
+					server, db = netloc, ""
+					
+			else:				
+				db, user, passwd = "", "", ""
+				args = member.split ("/", 3)
+				if len (args) == 4: 	server, db, user, passwd = args
+				elif len (args) == 3: 	server, db, user = args
+				elif len (args) == 2: 	server, db = args		
+				else: server = args [0]
+				auth = (user, passwd)
+				
 			try: 
 				host, port = server.split (":", 1)
 				server = (host, int (port))
@@ -38,7 +47,7 @@ class ClusterManager (cluster_manager.ClusterManager):
 			else:
 				raise TypeError ("Unknown DB type: %s" % self.dbtype)
 			
-			asyncon = conn_class (server, (db, (user, passwd)), self.lock, self.logger)	
+			asyncon = conn_class (server, (db, auth), self.lock, self.logger)	
 			nodeid = server
 				
 		return nodeid, asyncon # nodeid, asyncon

@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.6.1"
+__version__ = "0.26.7b1"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -179,7 +179,7 @@ def alias (name, ctype, members, role = "", source = "", ssl = False):
 		name = name [1:]	
 	policy = AccessPolicy (role, source)
 	args = (ctype, members, policy, ssl)
-	dconf ["clusters"][name] = args	
+	dconf ["clusters"][name] = args
 
 def enable_forward (forward_to = 443, port = 80, ip = ""):
 	global dconf

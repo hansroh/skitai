@@ -276,6 +276,7 @@ class ClusterDistCall:
 				asyncon = self._get_connection (None)
 			else:
 				asyncon = self._get_connection (self._uri)
+			self._auth = self._auth or asyncon.get_auth ()
 			
 			_reqtype = self._reqtype.lower ()
 			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._filter, cachefs = self._cachefs, callback = self._callback)

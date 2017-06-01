@@ -7,6 +7,7 @@ import copy
 import random
 from operator import itemgetter
 import math
+from urllib.parse import unquote
 
 class AccessPolicy:	
 	def __init__ (self, roles, ips):
@@ -162,16 +163,32 @@ class ClusterManager:
 	def get_cluster (self):
 		return self._cluster
 	
+	def parse_member (self, memeber):
+		auth = None
+		try:			
+			userpass, netloc =  member.split ("@", 1)
+		except ValueError:
+			netloc =	member
+		else:	
+			try: 
+				user, passwd = userpass.split (":", 1)
+			except ValueError:
+				user, passwd = userpass, ""
+			auth  = (unquote (user), unquote (passwd))
+		return auth, netloc
+					
 	def create_asyncon (self, member):
+		auth, netloc = self.parse_member (member)
 		try: 
-			host, port = member.split (":", 1)
+			host, port = netloc.split (":", 1)
 			server = (host, int (port))
 		except ValueError: 
 			if not self._use_ssl:
-				server	= (member, 80)			
+				server	= (netloc, 80)			
 			else:	
-				server	= (member, 443)
+				server	= (netloc, 443)
 		asyncon = self._conn_class (server, self.lock, self.logger)
+		asyncon.set_auth (auth)
 		return server, asyncon # nodeid, asyncon
 		
 	def add_node (self, member):
