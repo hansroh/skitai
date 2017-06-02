@@ -494,10 +494,10 @@ Enabling HTTP/HTTPS Proxy
   skitai.mount ('/', app)
   skitai.run ()
 
-Adding Upstream Servers For Reverse Proxy
--------------------------------------------
+Adding Backend Servers
+-----------------------
 
-Upstream server can be defined like this: (alias_type, servers, role = "", source = "", ssl = False).
+Backend server can be defined like this: (alias_type, servers, role = "", source = "", ssl = False).
 
 - alias_type: available database or protocol types are:
 
@@ -980,8 +980,8 @@ It will be easy to understand think like that:
 Simply just remember, if you use WSGI container like Flask, Bottle, ... - NOT Saddle - and want to use Skitai asynchronous services, you should import 'was'. Usage is exactly same. But for my convinient, I wrote example codes Saddle version mostly.
 
 
-Async Requests Service
-------------------------
+Async Requests Service To Backend Servers
+-------------------------------------------
 
 Most importance service of 'was' is making requests to HTTP, REST, RPC and several database engines. And this is mostly useful for fast Server Side Rendering with outside resources.
 
@@ -2848,7 +2848,7 @@ Using External Resources With App Decorator
 
 New in version 0.26
 
-If you have pre-defined database cluster, and want to create cache object on app starting, you can use several wac method. But youn can only use with pre aliased upstream servers only.
+If you have databases or API servers, and want to create cache object on app starting, you can use wac.backend (). But youn can only use with pre-aliased upstream servers only.
 
 .. code:: python
   
@@ -2859,17 +2859,17 @@ If you have pre-defined database cluster, and want to create cache object on app
   
   @app.startup
   def startup (wac):
-    wac.make_request ('sqlite3', '@mydb', callback = create_cache).execute ("select code, name from states;")    
+    wac.backend ('sqlite3', '@mydb', callback = create_cache).execute ("select code, name from states;")    
     # or use REST API
-    wac.make_request ('get', '@myapi/v1/states', callback = create_cache)
+    wac.backend ('get', '@myapi/v1/states', callback = create_cache)
     # or use RPC
-    wac.make_request ('rpc', '@myrpc/rpc2', callback = create_cache).get_states ()
+    wac.backend ('rpc', '@myrpc/rpc2', callback = create_cache).get_states ()
 
 Now you can access cache by was.app.cache or app.cache.
 
-wac.make_request () is a sort of low level method for making requests before wac is instantialized.
+wac.backend () is a sort of low level method for making requests before wac is instantialized.
 
-- wac.make_request (method, alias_uri = None, data = None, callback = None, timeout = 10, auth = None, headers = None, meta = None, mapreduce = False)
+- wac.backend (method, alias_uri = None, data = None, auth = None, headers = None, meta = None, callback = None, timeout = 10)
 
   - method: can be all of was' request methods like postgresql, sqlite3, redis, get, post, pus, rpc ... etc
 
@@ -3244,6 +3244,7 @@ Change Log
   
   - 0.26.7 
     
+    - change class method name from make_request () to backend ()
     - retry once if database is disconnected by keep-live timeout
     - drop wac.make_dbo () and wac.make_stub ()
   

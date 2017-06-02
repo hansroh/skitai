@@ -66,7 +66,7 @@ class WAS:
 		cls.clusters [clustername] = cluster
 	
 	@classmethod
-	def make_request (cls, method, alias_uri = None, data = None, callback = None, timeout = 10, auth = None, headers = None, meta = None):
+	def backend (cls, method, alias_uri = None, data = None, auth = None, headers = None, meta = None, callback = None, timeout = 10):
 		try: 
 			alias, uri = alias_uri.split ("/", 1)
 		except ValueError:
