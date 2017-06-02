@@ -35,7 +35,7 @@ WS_OPCODE_CLOSE = 0x8
 WS_OPCODE_PING = 0x9
 WS_OPCODE_PONG = 0xa
 
-from aquests.dbapi import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
+from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 PROTO_HTTP = "http"
 PROTO_HTTPS = "https"
 PROTO_WS = "ws"
