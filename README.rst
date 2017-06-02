@@ -3244,6 +3244,7 @@ Change Log
   
   - 0.26.7 
     
+    - retry once if database is disconnected by keep-live timeout
     - drop wac.make_dbo () and wac.make_stub ()
   
   - 0.26.6.1

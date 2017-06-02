@@ -128,7 +128,6 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 				# don't init_send cause of producer has no data yet
 				self.asyncon.push_with_producer (payload, init_send = False)
 		self.asyncon.begin_tran (self)
-		self.asyncon.set_proxy_client ()
 	
 	def get_request_payload (self):								
 		if self.collector:
