@@ -77,13 +77,13 @@ class WAS:
 			alias = alias [1:]
 		method = method.lower ()
 		if not callback:
-			callback = lambda x: None		
+			callback = lambda x: None
 		
 		if method in ("db", "sqlite3", "postgresql", "redis", "mongodb"):
-			return cls.clusters_for_distcall [alias].Server (None, None, None, None, meta, False, False, None, callback, timeout)
+			return cls.clusters_for_distcall [alias].Server (None, None, auth, None, meta, False, False, None, callback, timeout)
 		else:
 			return cls.clusters_for_distcall [alias].Server (uri, data, method, headers, auth, meta, False, False, None, callback, timeout)
-						
+
 	def __dir__ (self):
 		return self.objects.keys ()
 	

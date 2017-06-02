@@ -520,29 +520,29 @@ Upstream server can be defined like this: (alias_type, servers, role = "", sourc
   skitai.alias (
     '@members', 
     skitai.PROTO_HTTP, 
-    ["username:password@members.example.com:5001"],
+    [ "username:password@members.example.com:5001" ],
     role = 'admin', 
     source = '172.30.1.0/24,192.168.1/24'
   )
   
   skitai.alias (
-    '@mypostgres', 
+    '@mypostgres',
     skitai.DB_POSTGRESQL, 
     [
       "postgres:1234@172.30.0.1:5432/test 20",
       "postgres:1234@172.30.0.2:5432/test 10"
     ]
-  )  
+  )
   
   skitai.alias (
-    '@mysqlite3', 
+    '@mysqlite3',
     skitai.DB_SQLITE3, 
     [
       "/var/tmp/db1",
       "/var/tmp/db2"
     ]
   )
-    
+
 
 Run as HTTPS Server
 ---------------------
@@ -2869,7 +2869,9 @@ Now you can access cache by was.app.cache or app.cache.
 
 wac.make_request () is a sort of low level method for making requests before wac is instantialized.
 
-- wac.make_request (method, alias_uri = None, data = None, callback = None, timeout = 10, auth = None, headers = None, meta = None)
+- wac.make_request (method, alias_uri = None, data = None, callback = None, timeout = 10, auth = None, headers = None, meta = None, mapreduce = False)
+
+  - method: can be all of was' request methods like postgresql, sqlite3, redis, get, post, pus, rpc ... etc
 
 
 WWW-Authenticate

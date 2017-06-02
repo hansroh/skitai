@@ -112,6 +112,7 @@ class ClusterManager:
 								"request_count": asyncon.get_request_count (),
 								"event_time": time.asctime (time.localtime (asyncon.event_time)),
 								"zombie_timeout": asyncon.zombie_timeout,	
+								"keep_alive": asyncon.keep_alive,	
 							}
 						if hasattr (asyncon, "get_history"):
 							conn ["history"] = asyncon.get_history ()								
@@ -163,7 +164,7 @@ class ClusterManager:
 	def get_cluster (self):
 		return self._cluster
 	
-	def parse_member (self, memeber):
+	def parse_member (self, member):
 		auth = None
 		try:			
 			userpass, netloc =  member.split ("@", 1)
@@ -189,6 +190,7 @@ class ClusterManager:
 				server	= (netloc, 443)
 		asyncon = self._conn_class (server, self.lock, self.logger)
 		asyncon.set_auth (auth)
+		asyncon.keep_alive = 300
 		return server, asyncon # nodeid, asyncon
 		
 	def add_node (self, member):
@@ -393,3 +395,9 @@ class ClusterManager:
 		r = b [1] - a [1]
 		if r != 0: return r
 		return b [2] - a [2]		
+
+
+if __name__ == "__main__":
+	f = ClusterManager ('', [])
+	print (f.parse_member ('asdada@www.myserver.com:5678/test'))
+	
