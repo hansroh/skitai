@@ -494,26 +494,36 @@ Enabling HTTP/HTTPS Proxy
   skitai.mount ('/', app)
   skitai.run ()
 
-Adding Backend Servers
------------------------
+Adding Backend Server Alias
+----------------------------
 
 Backend server can be defined like this: (alias_type, servers, role = "", source = "", ssl = False).
 
 - alias_type: available database or protocol types are:
-
-  - PROTO_HTTP
-  - PROTO_HTTPS
-  - PROTO_WS: websocket
-  - PROTO_WSS: SSL websocket
-  - DB_PGSQL
-  - DB_SQLITE3
-  - DB_REDIS
-  - DB_MONGODB
+  
+  - All of HTTP based services like web, RPC, RESTful API
+  
+    - PROTO_HTTP
+    - PROTO_HTTPS
+  
+  - Websocket  
+    
+    - PROTO_WS: websocket
+    - PROTO_WSS: SSL websocket
+  
+  - Database Engines
+    
+    - DB_PGSQL
+    - DB_SQLITE3
+    - DB_REDIS
+    - DB_MONGODB
 
 - server: single or server list, server form is [ username : password @ server_address : server_port / database_name weight ]. if your username or password contains "@" characters, you should replace to '%40'
 - role (optional): it is valid only when cluster_type is http or https for controlling API access
 - source (optional): comma seperated ipv4/mask
 - ssl (optional): use SSL connection or not, PROTO_HTTPS and PROTO_WSS use SSL defaultly
+
+Some examples,
 
 .. code:: python
   
@@ -1073,6 +1083,38 @@ Here're addtional methods and properties above response obkect compared with aqu
 
 .. _aquests: https://pypi.python.org/pypi/aquests
 
+
+Methods List
+````````````````
+
+All supoorted request methods are:
+
+  - Web/API related
+  
+    - was.get ()
+    - was.post (): also avaliable shortcuts postform, postxml, postjson, postnvp
+    - was.put (): also avaliable shortcuts putform, putxml, putjson, putnvp
+    - was.delete ()
+    - was.patch ()
+    - was.options ()
+  
+  - RPCs
+    
+    - was.rpc (): XMLRPC
+    - was.grpc (): gRPC
+  
+  - Database Engines
+    
+    - was.postgresql, pgsql ()
+    - was.mongodb ()
+    - was.redis ()
+    - was.sqlite3 ()
+    
+  - Websocket
+    
+    - was.ws ()
+    - was.wss ()
+    
 
 Usage At Single Threaded Environment
 `````````````````````````````````````
