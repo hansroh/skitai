@@ -189,26 +189,19 @@ class Handler:
 					request.response.done()
 				return
 		
-		cached_data = None
-		try:
-			if file_length < 4096:
-				cached_data = self.memcache.read (path, self.filesystem.translate (path), etag)		
-			else:	
-				file = self.filesystem.open (path, 'rb')				
-		except IOError:
-			self.handle_alternative (request)
-			return
-			
 		request.response ['Content-Length'] = file_length
 		self.set_cache_control (request, path, mtime, etag)
-		self.set_content_type (path, request)
-				
+		self.set_content_type (path, request)				
 		if request.command == 'get':
-			if cached_data:
-				request.response.push (cached_data)
-			else:	
-				request.response.push (producers.file_producer (file))
-			
+			# if head, don't send contents
+			if file_length < 4096:
+				request.response.push (
+					self.memcache.read (path, self.filesystem.translate (path), etag)
+				)
+			else:					
+				request.response.push (producers.file_producer (
+					self.filesystem.open (path, 'rb'))
+				)
 		request.response.done()
 	
 	def set_cache_control (self, request, path, mtime, etag):
