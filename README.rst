@@ -29,25 +29,21 @@ Introduce
 
 Skitai is a kind of branch of `Medusa Web Server`__ - A High-Performance Internet Server Architecture.
 
-Medusa is different from most other servers because it runs as a single process, multiplexing I/O with its various client and server connections within a single process/thread.
+Medusa is different from most other servers because it runs as a single process, multiplexing I/O with its various client and server connections within a single process/thread. 
 
 Skitai orients light-weight, simplicity and strengthen networking operations with external resources - HTTP / HTTPS / XML-RPC / PostgreSQL_ - keeping very low costs. And it is being optimized for building microservices.
 
-- Working as Web, XML-RPC and Reverse Proxy Loadbancing Server
-- HTML5 Websocket & HTTP/2.0 implemeted
-- Handling massive RESTful API/RPC/HTTP(S) connections based on asynchronous socket framework at your apps easily
-- Asynchronous connection pool with PostgreSQL, MongoDB and Redis
-
-Skitai is not a framework for convinient developing, module reusability and plugin flexibility etc. It just provides some powerful communicating services for your WSGI apps as both server and client.
-
-Also note it is inspired by Zope_ and Flask_ a lot.
-
+- Working as WSGI application server, Web, XML-RPC and reverse proxy and loadbancing server
+- Handling massive requests to your backend servers including RESTful API, RPCs and database engines - PostgreSQL, MongoDB and Redis - with asynchronous manner
+- HTTP/2.0 & HTML5 Websocket implemented
 
 Conceptually, Skitai has been seperated into two components:
 
 1. Skitai App Engine Server, for WSGI apps
-
 2. Skito-Saddle, the small WSGI container integrated with Skitai. But you can also mount any WSGI apps and frameworks like Flask.
+
+Skitai is not a just developing server like some frameworks provides. It is supporsed working fine under real service situation by alone. And it makes your app take off to the world, just by appending a few lines on your app.
+
 
 .. _hyper-h2: https://pypi.python.org/pypi/h2
 .. _Zope: http://www.zope.org/
@@ -125,7 +121,7 @@ Basic Usage
     	address = "127.0.0.1",
     	port = 5000
     )
-    
+
 At now, run this code from console.
 
 .. code-block:: bash
@@ -499,7 +495,7 @@ Adding Backend Server Alias
 
 Backend server can be defined like this: (alias_type, servers, role = "", source = "", ssl = False).
 
-- alias_type: available database or protocol types are:
+alias_types can be one of these:
   
   - All of HTTP based services like web, RPC, RESTful API
   
@@ -1089,32 +1085,32 @@ Methods List
 
 All supoorted request methods are:
 
-  - Web/API related
+- Web/API related
+
+  - was.get ()
+  - was.delete ()  
+  - was.options ()
+  - was.post (): also available shortcuts postform, postxml, postjson, postnvp
+  - was.put (): also available shortcuts putform, putxml, putjson, putnvp
+  - was.patch (): also available shortcuts patchform, patchxml, patchjson, patchnvp  
+
+- RPCs
   
-    - was.get ()
-    - was.post (): also avaliable shortcuts postform, postxml, postjson, postnvp
-    - was.put (): also avaliable shortcuts putform, putxml, putjson, putnvp
-    - was.delete ()
-    - was.patch ()
-    - was.options ()
+  - was.rpc (): XMLRPC
+  - was.grpc (): gRPC
+
+- Database Engines
   
-  - RPCs
-    
-    - was.rpc (): XMLRPC
-    - was.grpc (): gRPC
+  - was.postgresql ()
+  - was.mongodb ()
+  - was.redis ()
+  - was.sqlite3 ()
   
-  - Database Engines
-    
-    - was.postgresql, pgsql ()
-    - was.mongodb ()
-    - was.redis ()
-    - was.sqlite3 ()
-    
-  - Websocket
-    
-    - was.ws ()
-    - was.wss ()
-    
+- Websocket
+  
+  - was.ws ()
+  - was.wss ()
+
 
 Usage At Single Threaded Environment
 `````````````````````````````````````
