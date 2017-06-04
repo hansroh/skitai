@@ -159,8 +159,8 @@ mount (mount_point, mount_object, app_name = "app", pref = None)
 - app_name: variable name of app
 - pref: supported by Saddle
 
-Logging and Console Displaying
---------------------------------
+Logging and Console Displaying For Developing/Debugging
+----------------------------------------------------------
 
 If you do not specify log file path, all logs will be displayed in console, bu specifed all logs will be written into file.
 
@@ -178,73 +178,6 @@ If you also want to view logs through console for spot developing, you run app.p
 .. code:: bash
 
   python3 app.py -v
-
-
-Run As Daemon
---------------
-
-*Available on posix only*
-
-For making a daemon,
-
-.. code:: bash
-  
-  python3 app.py start (or -d)
-  
-  
-For stopping daemon,
-
-.. code:: bash
-  
-  python3 app.py stop (or -s)
-
-Or for restarting daemon,
-  
-.. code:: bash
-  
-  python3 app.py restart (or -r)
-  
-
-For automatic starting on system start, add a line to /etc/rc.local file like this:
-
-.. code:: bash
-
-  su - ubuntu -c "/usr/bin/python3 /home/ubuntu/app.py -d"
-  
-  exit 0
-
-Run as Win32 Service
------------------------
-
-*Available on win32 only*
-
-.. code:: python
-
-  from skitai.saddle import Saddle
-  from skitai.win32service import ServiceFramework
-  
-  class ServiceConfig (ServiceFramework):
-  	_svc_name_ = "SAE_EXAMPLE"
-  	_svc_display_name_ = "Skitai Example Service"
-  	_svc_app_ = __file__
-  	_svc_python_ = r"c:\python34\python.exe"
-  
-  app = Saddle (__name__)
-  
-  if __name__ == "__main__":
-    skitai.mount ('/', app)
-    skitai.set_service (ServiceConfig)
-    skitai.run ()
-
-Then at command line,
-
-.. code:: bash
-
-  app.py install # for installing windows service
-  app.py start
-  app.py stop
-  app.py update # when service class is updated
-  app.py remove # removing from windwos service
 
 
 Run with Threads Pool
@@ -518,12 +451,80 @@ Anyway, these timeout values are higher, lower response fail rate and longger re
 Enabling HTTP/HTTPS Proxy
 ---------------------------
 
+Make sure you really need proxy.
+
 .. code:: python
   
   skitai.enable_proxy ()
   skitai.mount ('/', app)
   skitai.run ()
 
+Run as Daemon
+--------------
+
+*Available on posix only*
+
+For making a daemon,
+
+.. code:: bash
+  
+  python3 app.py start (or -d)
+  
+  
+For stopping daemon,
+
+.. code:: bash
+  
+  python3 app.py stop (or -s)
+
+Or for restarting daemon,
+  
+.. code:: bash
+  
+  python3 app.py restart (or -r)
+  
+
+For automatic starting on system start, add a line to /etc/rc.local file like this:
+
+.. code:: bash
+
+  su - ubuntu -c "/usr/bin/python3 /home/ubuntu/app.py -d"
+  
+  exit 0
+
+Run as Win32 Service
+-----------------------
+
+*Available on win32 only*
+
+.. code:: python
+
+  from skitai.saddle import Saddle
+  from skitai.win32service import ServiceFramework
+  
+  class ServiceConfig (ServiceFramework):
+    _svc_name_ = "SAE_EXAMPLE"
+    _svc_display_name_ = "Skitai Example Service"
+    _svc_app_ = __file__
+    _svc_python_ = r"c:\python34\python.exe"
+  
+  app = Saddle (__name__)
+  
+  if __name__ == "__main__":
+    skitai.mount ('/', app)
+    skitai.set_service (ServiceConfig)
+    skitai.run ()
+
+Then at command line,
+
+.. code:: bash
+
+  app.py install # for installing windows service
+  app.py start
+  app.py stop
+  app.py update # when service class is updated
+  app.py remove # removing from windwos service
+  
 Adding Backend Server Alias
 ----------------------------
 
