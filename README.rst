@@ -2486,6 +2486,7 @@ Template file 404.html is like this:
   <div>URL: {{ error.url }}</div>
   <div>Time: {{ error.time }}</div>  
 
+Note that custom error templates can not be used before routing to the app.
 
 Access Cookie
 ----------------

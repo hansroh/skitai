@@ -259,9 +259,8 @@ class http_response:
 			'time': http_date.build_http_date (time.time ()),
 			'url': urljoin ("%s://%s/" % (self.request.get_scheme (), self.request.get_header ("host")), self.request.uri)
 			}
-		
 		content = None	
-		if self.current_app:
+		if self.current_app and hasattr (self.current_app, 'get_error_page'):
 			try:
 				content = self.current_app.get_error_page (error)
 			except:
