@@ -1777,7 +1777,7 @@ Here's a websocket app example creating sub thread(s),
 .. code:: python
   
   class myProgram:
-    def __init__ (websocket):
+    def __init__ (self, websocket):
       self.websocket = websocket
       self.__active = 0
       self.__lock = trheading.Lock ()
@@ -2474,7 +2474,7 @@ Custom Error Template
 
   @app.errorhandler (404)
   def not_found (was, error):
-	  return was.render ('404.htm', error = error)
+    return was.render ('404.htm', error = error)
 
 Template file 404.html is like this:
 
