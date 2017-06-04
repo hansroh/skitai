@@ -3339,6 +3339,7 @@ Change Log
   
   - 0.26.7 
     
+    - add custom error template on Saddle
     - add win32 service tools
     - change class method name from make_request () to backend ()
     - retry once if database is disconnected by keep-live timeout

@@ -259,7 +259,14 @@ class http_response:
 			'time': http_date.build_http_date (time.time ()),
 			'url': urljoin ("%s://%s/" % (self.request.get_scheme (), self.request.get_header ("host")), self.request.uri)
 			}
-		return self.current_app and self.current_app.get_error_page (error) or (DEFAULT_ERROR_MESSAGE % error)
+		
+		content = None	
+		if self.current_app:
+			try:
+				content = self.current_app.get_error_page (error)
+			except:
+				self.request.logger.trace ()				
+		return content or (DEFAULT_ERROR_MESSAGE % error)
 				
 	def error (self, code, status = "", why = "", force_close = False, push_only = False):
 		if not self.is_responsable (): return
