@@ -27,22 +27,20 @@ Your app will work for your thousands or miliions of customers.
 Introduce
 ===========
 
-Skitai is a kind of branch of `Medusa Web Server`__ - A High-Performance Internet Server Architecture.
+Skitai is a kind of branch of `Medusa Web Server`__ - A High-Performance Internet Server Architecture. Medusa is different from most other servers because it runs as a single process, multiplexing I/O with its various client and server connections within a single process/thread. 
 
-Medusa is different from most other servers because it runs as a single process, multiplexing I/O with its various client and server connections within a single process/thread. 
-
-Skitai orients light-weight, simplicity and strengthen networking operations with external resources - HTTP / HTTPS / XML-RPC / PostgreSQL_ - keeping very low costs. And it is being optimized for building microservices.
+Skitai orients light-weight, simplicity and strengthen networking operations with your backend resources keeping very low costs. And it is being optimized for building and operating microservices.
 
 - Working as WSGI application server, Web, XML-RPC and reverse proxy and loadbancing server
-- Handling massive requests to your backend servers including RESTful API, RPCs and database engines - PostgreSQL, MongoDB and Redis - with asynchronous manner
+- Handling massive requests to your backend servers including RESTful API, RPCs and database engines - PostgreSQL_, MongoDB and Redis - with asynchronous manner
 - HTTP/2.0 & HTML5 Websocket implemented
 
 Conceptually, Skitai has been seperated into two components:
 
 1. Skitai App Engine Server, for WSGI apps
-2. Skito-Saddle, the small WSGI container integrated with Skitai. But you can also mount any WSGI apps and frameworks like Flask.
+2. Skito-Saddle, the small WSGI container integrated with Skitai. But you can also mount any WSGI apps and frameworks like Flask_.
 
-Skitai is not a just developing server like some frameworks provides. It is supporsed working fine under real service situation by alone. And it makes your app take off to the world, just by appending a few lines on your app.
+Skitai is not a just developing server like some frameworks provides. It is supporsed to work fine under real service situation by alone. And it makes your app take off to the world, just by appending a few lines on your app.
 
 
 .. _hyper-h2: https://pypi.python.org/pypi/h2
@@ -93,8 +91,8 @@ From git
 But generally you don't need install alone. When you install Skitai App Engine, proper version of Skitai App Engine will be installed.
 
 
-Starting Skitai
-================
+Enginize Your App with Skitai
+===============================
 
 Here's a very simple WSGI app,
 
@@ -185,6 +183,8 @@ If you also want to view logs through console for spot developing, you run app.p
 Run As Daemon
 --------------
 
+*Available on posix only*
+
 For making a daemon,
 
 .. code:: bash
@@ -212,6 +212,40 @@ For automatic starting on system start, add a line to /etc/rc.local file like th
   su - ubuntu -c "/usr/bin/python3 /home/ubuntu/app.py -d"
   
   exit 0
+
+Run as Win32 Service
+-----------------------
+
+*Available on win32 only*
+
+.. code:: python
+
+  from skitai.saddle import Saddle
+  from skitai.win32service import ServiceFramework
+  
+  class ServiceConfig (ServiceFramework):
+  	_svc_name_ = "SAE_EXAMPLE"
+  	_svc_display_name_ = "Skitai Example Service"
+  	_svc_app_ = __file__
+  	_svc_python_ = r"c:\python34\python.exe"
+  
+  app = Saddle (__name__)
+  
+  if __name__ == "__main__":
+    skitai.mount ('/', app)
+    skitai.set_service (ServiceConfig)
+    skitai.run ()
+
+Then at command line,
+
+.. code:: bash
+
+  app.py install # for installing windows service
+  app.py start
+  app.py stop
+  app.py update # when service class is updated
+  app.py remove # removing from windwos service
+
 
 Run with Threads Pool
 ------------------------
@@ -3282,6 +3316,7 @@ Change Log
   
   - 0.26.7 
     
+    - add win32 service tools
     - change class method name from make_request () to backend ()
     - retry once if database is disconnected by keep-live timeout
     - drop wac.make_dbo () and wac.make_stub ()

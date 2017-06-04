@@ -1,9 +1,15 @@
 import os
 from skitai.saddle import Saddle
+from skitai.win32service import ServiceFramework
 import skitai
 
-app = Saddle (__name__)
+class ServiceConfig (ServiceFramework):
+	_svc_name_ = "SAE_EXAMPLE"
+	_svc_display_name_ = "Skitai Example Service"
+	_svc_app_ = __file__
+	_svc_python_ = r"c:\python34\python.exe"
 
+app = Saddle (__name__)
 app.debug = True
 app.use_reloader = True
 app.jinja_overlay ()
@@ -66,9 +72,11 @@ def upload (was, **karg):
 def post (was, username):	
 		return 'USER: %s' % username
 
+
 if __name__ == "__main__":
-	import skitai	
-	
+	import skitai		
+			
+	skitai.set_service (ServiceConfig)
 	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.python.org")
 	skitai.mount ("/", 'statics')
 	skitai.mount ("/", app)

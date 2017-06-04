@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.7b5"
+__version__ = "0.26.7b9"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -97,8 +97,7 @@ was = _WASPool ()
 def start_was (wasc):
 	global was
 	was._start (wasc)
-
-
+		
 #------------------------------------------------
 # Configure
 #------------------------------------------------
@@ -120,10 +119,15 @@ def is_devel ():
 def joinpath (*pathes):
 	return os.path.normpath (os.path.join (getswd (), *pathes))
 abspath = joinpath
-	
+
+Win32Service = None
+def set_service (service_class):
+	global Win32Service
+	Win32Service = service_class
+		
 def set_max_age (path, max_age):
 	global dconf
-	dconf ["max_ages"][path] = max_age	
+	dconf ["max_ages"][path] = max_age
 
 def set_max_rcache (objmax):
 	global dconf
@@ -397,22 +401,44 @@ def run (**conf):
 				self.flock = flock.Lock (os.path.join (self.get_varpath (), ".%s" % self.NAME))
 	
 	#----------------------------------------------------------------------------
+	if os.name == "nt":
+		import win32serviceutil
+		
+		def set_service_config (argv = []):
+			global Win32Service			
+			#sys.stdout = sys.stderr = open (r"D:\apps\skitai\examples\err.log", "a")
+			argv.insert (0, "")			
+			script = os.path.join (os.getcwd (), sys.argv [0])
+			win32serviceutil.HandleCommandLine(Win32Service, "%s.%s" % (script [:-3], Win32Service.__name__), argv)
+				
+		def install (working_dir):
+			set_service_config (['--startup', 'auto', 'install'])
+	
+		def remove (working_dir):
+			set_service_config (['remove'])
+		
+		def update (working_dir):
+			set_service_config (['update'])
+				
 	def start (working_dir):
-		if os.name == "nt":
-			raise SystemError ('Daemonizing not supported')		
-		from .daemonize import Daemonizer
-		Daemonizer (working_dir).runAsDaemon ()
+		if os.name == "nt":	
+			set_service_config (['start'])
+		else:	
+			from .daemonize import Daemonizer
+			Daemonizer (working_dir).runAsDaemon ()
 			
 	def stop (working_dir):
-		import signal
-		pidfile = os.path.join (working_dir, '.pid')
-		if not os.path.isfile (pidfile):
-			raise SystemError ('Cannot find process')
-		with open (pidfile, "r") as f:
-			pid = int (f.read ())
-		os.kill (pid, signal.SIGTERM)
-		os.remove (pidfile)
-		return
+		if os.name == "nt":			
+			set_service_config (['stop'])
+		else:	
+			import signal
+			pidfile = os.path.join (working_dir, '.pid')
+			if not os.path.isfile (pidfile):
+				raise SystemError ('Cannot find process')
+			with open (pidfile, "r") as f:
+				pid = int (f.read ())
+			os.kill (pid, signal.SIGTERM)
+			os.remove (pidfile)		
 	
 	#----------------------------------------------------------------------------
 	
@@ -442,11 +468,22 @@ def run (**conf):
 	if cmd == "stop":
 		return stop (working_dir)
 	elif cmd == "start":
-		start (working_dir)
+		start (working_dir)		
+	elif cmd == "install":	
+		install (working_dir)		
+	elif cmd == "update":	
+		update (working_dir)
+	elif cmd == "remove":	
+		remove (working_dir)	
 	elif cmd == "restart":
 		stop (working_dir)
-		start (working_dir)	
-		
+		start (working_dir)
+	elif cmd:
+		raise SystemError ('Unknown command %s' % cmd)
+			
+	if cmd and os.name == "nt":
+		return
+				
 	verbose = 0
 	if '-v' in karg or conf.get ('logpath') is None:
 		verbose = 1

@@ -191,7 +191,8 @@ class Handler:
 		
 		request.response ['Content-Length'] = file_length
 		self.set_cache_control (request, path, mtime, etag)
-		self.set_content_type (path, request)				
+		self.set_content_type (path, request)
+		
 		if request.command == 'get':
 			# if head, don't send contents
 			if file_length < 4096:
