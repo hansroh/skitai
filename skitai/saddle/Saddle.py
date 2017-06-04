@@ -7,6 +7,7 @@ from . import wsgi_executor, xmlrpc_executor, grpc_executor
 from aquests.lib import producers, importer
 from aquests.protocols.grpc import discover
 from aquests.protocols.http import http_util
+from skitai import was as the_was
 from hashlib import md5
 import random
 import base64
@@ -55,7 +56,8 @@ class Saddle (part.Part):
 		
 		self.reloadables = {}
 		self.last_reloaded = time.time ()
-		self.cached_paths = {}		
+		self.cached_paths = {}
+		self.handlers = {}		
 		self.cached_rules = []
 		self.config = Config (preset = True)
 	
@@ -77,6 +79,20 @@ class Saddle (part.Part):
 		from .patches import jinjapatch
 		self.jinja_env = jinjapatch.overlay (self.app_name, variable_start_string, variable_end_string, block_start_string, block_end_string, comment_start_string, comment_end_string, line_statement_prefix, line_comment_prefix, **karg)
 	
+	def get_error_page (self, error):
+		handler = self.handlers.get (error ['code'])
+		if not handler:
+			return
+		return handler [0](the_was._get (), error)
+		
+	def add_error_handler (self, errcode, f, **k):
+		self.handlers [errcode] = (f, k)		
+		
+	def errorhandler (self, errcode, **k):
+		def decorator(f):
+			self.add_error_handler (errcode, f, **k)
+		return decorator
+		
 	def watch (self, module):
 		self.reloadables [module] = self.get_file_info (module)
 	

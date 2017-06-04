@@ -7,6 +7,7 @@ from aquests.lib.reraise import reraise
 from aquests.lib import producers, compressors
 from aquests.protocols.http import respcodes
 import skitai
+
 try: 
 	from urllib.parse import urljoin
 except ImportError:
@@ -28,14 +29,14 @@ DEFAULT_ERROR_MESSAGE = """<!DOCTYPE html>
 <div id="content">
 <p>The following error was encountered while trying to retrieve the URL:</p>
 <blockquote>
-<div id="error"><h2>%(message)s</h2><p>%(info)s</p></div>
+<div id="error"><h2>%(message)s</h2><p>%(detail)s</p></div>
 <a href="%(url)s">%(url)s</a>
 </blockquote>
 </div>
 <hr />
 <div id="footer">
 <p>
-Generated %(gentime)s by <i>Skitai App Engine</i>
+Generated %(time)s by <i>Skitai App Engine</i>
 </p>
 </div>
 </body>
@@ -93,6 +94,7 @@ class http_response:
 		self._is_done = False
 		self.stime = time.time ()
 		self.htime = 0
+		self.current_app = None
 		
 	def is_async_streaming (self):
 		return self._is_async_streaming
@@ -248,19 +250,18 @@ class http_response:
 				self.set (k, v)
 	reply = start
 	
-	def build_default_template (self, why = ""):
+	def build_error_template (self, why = ""):
 		global DEFAULT_ERROR_MESSAGE
-		
-		return (DEFAULT_ERROR_MESSAGE % {
+		error = {
 			'code': self.reply_code,
 			'message': self.reply_message,
-			'info': why,
-			'gentime': http_date.build_http_date (time.time ()),
+			'detail': why,
+			'time': http_date.build_http_date (time.time ()),
 			'url': urljoin ("%s://%s/" % (self.request.get_scheme (), self.request.get_header ("host")), self.request.uri)
-			})
+			}
+		return self.current_app and self.current_app.get_error_page (error) or (DEFAULT_ERROR_MESSAGE % error)
 				
 	def error (self, code, status = "", why = "", force_close = False, push_only = False):
-		global DEFAULT_ERROR_MESSAGE
 		if not self.is_responsable (): return
 		self.outgoing.clear ()
 		self.reply_code = code
@@ -270,7 +271,7 @@ class http_response:
 		if type (why) is tuple: # sys.exc_info ()
 			why = catch (1, why)
 		
-		body = self.build_default_template (why).encode ("utf8")	
+		body = self.build_error_template (why).encode ("utf8")	
 		self.update ('Content-Length', len(body))
 		self.update ('Content-Type', 'text/html')
 		self.update ('Cache-Control', 'max-age=0')
@@ -502,10 +503,9 @@ class http_response:
 		return "%d %s" % self.get_reply ()
 					
 	def __call__ (self, status = "200 OK", body = None, headers = None, exc_info = None):
-		global DEFAULT_ERROR_MESSAGE
 		self.start_response (status, headers)
 		if not body:
-			return self.build_default_template (exc_info and catch (1, exc_info) or "")
+			return self.build_error_template (exc_info and catch (1, exc_info) or "")
 		return body
 	
 	

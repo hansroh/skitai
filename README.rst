@@ -495,7 +495,7 @@ For automatic starting on system start, add a line to /etc/rc.local file like th
 Run as Win32 Service
 -----------------------
 
-*Available on win32 only*
+*Available on win32 only, New in version 0.26.7*
 
 .. code:: python
 
@@ -2463,6 +2463,28 @@ Here's example part of index.ptal.
   </tr>
 
 .. _`Vue.js`: https://vuejs.org/
+
+
+Custom Error Template
+-----------------------
+
+*New in version 0.26.7*
+
+.. code:: python
+
+  @app.errorhandler (404)
+  def not_found (was, error):
+	  return was.render ('404.htm', error = error)
+
+Template file 404.html is like this:
+
+.. code:: html
+
+  <h1>{{ error.code }} {{ error.message }}</h1>  
+  <p>{{ error.detail }}</p>
+  <hr>
+  <div>URL: {{ error.url }}</div>
+  <div>Time: {{ error.time }}</div>  
 
 
 Access Cookie

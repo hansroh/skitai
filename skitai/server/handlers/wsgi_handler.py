@@ -146,6 +146,10 @@ class Handler:
 			return self.handle_error_before_collecting (request, 308)
 			
 		app = self.apps.get_app (has_route).get_callable()
+		# for rendering error template
+		request.response.current_app = app
+		request.response.current_was = app
+								
 		if request.command != "options" and isinstance (app, Saddle):
 			# pass through options, because options want authentification info.
 			if not app.is_authorized (request, app.authenticate):					
