@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.7b13"
+__version__ = "0.26.7"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -120,7 +120,7 @@ abspath = joinpath
 
 Win32Service = None
 def set_service (service_class):
-	global Win32Service
+	global Win32Service	
 	Win32Service = service_class
 		
 def set_max_age (path, max_age):
@@ -321,7 +321,7 @@ def run (**conf):
 			if not media:
 				media.append ("screen")
 				self.conf ['verbose'] = "yes"
-			Skitai.Loader.config_logger (self, path, media)					
+			Skitai.Loader.config_logger (self, path, media)
 		
 		def maintern_shutdown_request (self, now):
 			req = self.flock.lockread ("signal")

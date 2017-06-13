@@ -429,7 +429,7 @@ class Saddle (part.Part):
 		was.app = self
 		was.ab = self.build_url
 		was.response = was.request.response
-		
+			
 		content_type = env.get ("CONTENT_TYPE", "")				
 		if content_type.startswith ("text/xml") or content_type.startswith ("application/xml"):
 			result = xmlrpc_executor.Executor (env, self.get_method) ()
@@ -441,7 +441,7 @@ class Saddle (part.Part):
 			result = wsgi_executor.Executor (env, self.get_method) ()
 		
 		del was.response
-		del was.ab		
+		del was.ab
 		self.cleanup_on_demands (was) # del session, mbox, cookie, g
 			
 		return result

@@ -249,7 +249,6 @@ class Job (wsgi_handler.Job):
 		was.request = self.request		
 		was.websocket = self.args [0]["websocket"]
 		self.args [0]["skitai.was"] = was
-				
 		content = self.apph (*self.args)
 		if content:
 			if type (content) is not tuple:
@@ -302,7 +301,7 @@ class WebSocket1 (WebSocket):
 	def open (self):		
 		self.handle_message (-1, skitai.WS_EVT_OPEN)
 							
-	def handle_message (self, msg, event = None):
+	def handle_message (self, msg, event = None):		
 		if not msg: return			
 		querystring, params = self.make_params (msg, event)			
 		self.env ["QUERY_STRING"] = querystring
