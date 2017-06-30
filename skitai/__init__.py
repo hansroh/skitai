@@ -419,24 +419,28 @@ def run (**conf):
 			set_service_config (['update'])
 				
 	def start (working_dir):
-		if os.name == "nt":	
+		if os.name == "nt":
 			set_service_config (['start'])
 		else:	
-			from .daemonize import Daemonizer
-			Daemonizer (working_dir).runAsDaemon ()
+			from aquests.lib.daemonize import Daemonizer
+			if not Daemonizer (working_dir).runAsDaemon ():
+				print ("already running")
+				sys.exit ()
 			
 	def stop (working_dir):
 		if os.name == "nt":			
 			set_service_config (['stop'])
 		else:	
-			import signal
-			pidfile = os.path.join (working_dir, '.pid')
-			if not os.path.isfile (pidfile):
-				raise SystemError ('Cannot find process')
-			with open (pidfile, "r") as f:
-				pid = int (f.read ())
-			os.kill (pid, signal.SIGTERM)
-			os.remove (pidfile)		
+			from aquests.lib import daemonize
+			daemonize.kill (working_dir, False)
+	
+	def status (working_dir):
+		from aquests.lib import daemonize
+		pid = daemonize.status (working_dir)
+		if pid:
+			print ("running [%d]" % pid)
+		else:
+			print ("stopped")
 	
 	#----------------------------------------------------------------------------
 	
@@ -465,6 +469,8 @@ def run (**conf):
 				
 	if cmd == "stop":
 		return stop (working_dir)
+	elif cmd == "status":
+		return status (working_dir)
 	elif cmd == "start":
 		start (working_dir)		
 	elif cmd == "install":	
