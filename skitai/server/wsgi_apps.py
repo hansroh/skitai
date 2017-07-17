@@ -136,8 +136,7 @@ class ModuleManager:
 		
 	def add_module (self, route, directory, modname, pref):
 		if modname in self.modnames:
-			self.wasc.logger ("app", "Collision detected '%s'" % modname, "error")
-			self.wasc.logger ("app", "Couldn't import '%s'" % modname, "error")
+			self.wasc.logger ("app", "app file name collision detected '%s'" % modname, "error")			
 			return
 		
 		if not route:

@@ -33,7 +33,7 @@ class Handler:
 	ENV = {
 			'GATEWAY_INTERFACE': 'CGI/1.1',
 			'SERVER_SOFTWARE': "Skitai App Engine/%s Python/%d.%d" % ((SKITAI_VERSION,) + sys.version_info[:2]),
-			'skitai.version': tuple (version_info [:3]),			
+			'skitai.version': tuple (version_info [:3]),
 			"wsgi.version": (1, 0),
 			"wsgi.errors": sys.stderr,
 			"wsgi.run_once": False,
