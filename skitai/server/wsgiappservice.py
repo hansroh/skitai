@@ -11,7 +11,7 @@ from . import server_info, http_date
 from . import http_response
 import os, sys
 import time
-from skitai.server.handlers import api_access_handler
+from skitai.server.handlers import api_access_handler, vhost_handler
 try: 
 	from urllib.parse import urljoin
 except ImportError:
@@ -53,7 +53,7 @@ class WAS:
 		h = handler (cls, *args, **karg)
 		if hasattr (cls, "httpserver"):
 			cls.httpserver.install_handler (h, back)
-		return h	
+		return h
 						
 	@classmethod
 	def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0, access = []):
@@ -222,7 +222,12 @@ class WAS:
 	)
 	def txnid (self):
 		return "%s/%s" % (self.request.gtxid, self.request.ltxid)
-		
+	
+	def ab (self, thing, *args, **karg):
+		if thing.startswith ("/") or thing.find (".") == -1:
+			return self.app.build_url (thing, *args, **karg)
+		return self.apps.build_url (thing, *args, **karg)		
+			
 	def redirect (self, url, status = "302 Object Moved", body = None, headers = None):
 		redirect_headers = [
 			("Location", url), 

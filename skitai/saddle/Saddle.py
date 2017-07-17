@@ -426,8 +426,7 @@ class Saddle (part.Part):
 										
 	def __call__ (self, env, start_response):
 		was = env ["skitai.was"]		
-		was.app = self
-		was.ab = self.build_url
+		was.app = self		
 		was.response = was.request.response
 			
 		content_type = env.get ("CONTENT_TYPE", "")				
@@ -440,8 +439,7 @@ class Saddle (part.Part):
 		else:	
 			result = wsgi_executor.Executor (env, self.get_method) ()
 		
-		del was.response
-		del was.ab
+		del was.response		
 		self.cleanup_on_demands (was) # del session, mbox, cookie, g
 			
 		return result

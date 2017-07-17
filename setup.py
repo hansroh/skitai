@@ -57,7 +57,7 @@ package_data = {}
 install_requires = [
 	"jinja2==2.9.4", 
 	"chameleon==3.1", 	
-	"aquests>=0.7.3.2"
+	"aquests>=0.7.5.5"
 ]
 
 with open('skitai/__init__.py', 'r') as fd:

@@ -126,30 +126,36 @@ class ModuleManager:
 		self.modules = {}
 		self.modnames = {}
 		self.cc = 0
-			
+	
+	def __getitem__ (self, name):
+		return self.modnames [name].get_callable ()
+		
+	def build_url (self, thing, *args, **kargs):
+		a, b = thing.split (".", 1)
+		return self.modnames [a].get_callable ().build_url (b, *args, **kargs)
+		
 	def add_module (self, route, directory, modname, pref):
 		if modname in self.modnames:
 			self.wasc.logger ("app", "Collision detected '%s'" % modname, "error")
 			self.wasc.logger ("app", "Couldn't import '%s'" % modname, "error")
 			return
 		
-		self.modnames [modname] = None		
 		if not route:
 			route = "/"
 		elif not route.endswith ("/"):
 			route = route + "/"
-		try: 
-			module = Module (self.wasc, self.handler, route, directory, modname, pref)
 			
+		try: 
+			module = Module (self.wasc, self.handler, route, directory, modname, pref)			
 		except: 
 			self.wasc.logger.trace ("app")
-			self.wasc.logger ("app", "[error] application load failed: %s" % modname)
-			
+			self.wasc.logger ("app", "[error] application load failed: %s" % modname)			
 		else: 			
 			self.wasc.logger ("app", "[info] application %s imported." % route)
 			if route in self.modules:
 				self.wasc.logger ("app", "[info] application route collision detected: %s at %s <-> %s" % (route, module.abspath, self.modules [route].abspath), "warn")
 			self.modules [route] = module
+			self.modnames [modname] = module
 	
 	def get_app (self, script_name):		
 		route = self.has_route (script_name)		

@@ -221,15 +221,16 @@ class Handler:
 			return request.response.error (500, why = apph.debug and catch (1) or "")
 		
 		if env ["wsgi.multithread"]:
-			self.wasc.queue.put (Job (request, apph, args, self.wasc.logger))
+			self.wasc.queue.put (Job (request, apph, args, self.apps, self.wasc.logger))
 		else:
-			Job (request, apph, args, self.wasc.logger) ()
+			Job (request, apph, args, self.apps, self.wasc.logger) ()
 
 
 class Job:
 	# Multi-Threaded Jobs
-	def __init__(self, request, apph, args, logger):
+	def __init__(self, request, apph, args, apps, logger):
 		self.request = request
+		self.apps = apps
 		self.apph = apph
 		self.args = args
 		self.logger = logger
@@ -242,6 +243,7 @@ class Job:
 	
 	def exec_app (self):
 		was = the_was._get ()
+		was.apps = self.apps
 		self.args [0]["skitai.was"] = was
 		
 		request = was.request = self.request
@@ -346,6 +348,7 @@ class Job:
 				except: self.logger.trace ("app")
 		
 		was = env.get ("skitai.was")
+		was.apps = None
 		if was is not None and was.in__dict__ ("request"):			
 			del was.request
 		

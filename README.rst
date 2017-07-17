@@ -1926,6 +1926,28 @@ Currently was.app.config has these properties and you can reconfig by setting ne
 - was.app.config.max_upload_file_size = 20000000
 
 
+Access Saddle App
+------------------
+
+*New in version 0.26.7.2*
+
+You can mount multiple app on Skitai, and maybe need to another app is mounted seperatly.
+
+.. code:: python
+
+  skitai.mount ("/", "main")
+  skitai.mount ("/search", "search")
+
+And you can access from filename of app from each apps,
+
+.. code:: python
+
+  search_app = was.apps ["search"]
+  save_path = search_app.config.save_path
+
+But this is only functioning between apps are mounted within same host.
+  
+
 Debugging and Reloading App
 -----------------------------
 
@@ -2325,6 +2347,28 @@ If your app is mounted at "/math",
 	
   was.ab ("hello", "Your Name") # returned '/math/hello/Your_Name'
  
+
+*New in version 0.26.7.2*
+  
+If you mount multiple apps like this,
+
+.. code:: python
+
+  skitai.mount ("/", "main")
+  skitai.mount ("/search", "search")
+
+For building url in `main` app from a query function of `search` app, you should specify app file name with dot.
+
+.. code:: python
+
+  was.ab ('search.query', "Your Name") # returned '/search/query?q=Your%20Name'
+  
+And this is exactly same as,
+
+  was.apps ["search"].build_url ("query", "Your Name")  
+
+But this is only functioning between apps are mounted within same host.
+
 
 Access Environment Variables
 ------------------------------
@@ -3050,10 +3094,10 @@ Building for Larger App
 You have 2 options for extending your app scale.
 
 1. Mount multiple microservices
-2. Mount saddlery on saldde
+2. Mount saddlery on Saddle
 
 Mount Multiple Microservices
-``````````````````````````````
+`````````````````````````````
 
 I personally recommend this way by current developing trend.
 
@@ -3097,8 +3141,11 @@ And your pysical directory structure is,
   
 This structure make highly focus on each microservices and make easy to move or apply scaling by serivce traffic increment.
 
+
 Mount Saddlery On Saddle
 ``````````````````````````
+
+This is like BluePrint of Flask.
 
 If your app is very large or want to manage codes by categories, you can seperate your app.
 
@@ -3338,6 +3385,11 @@ Change Log
   
   0.26 (May 2017)
   
+  - 0.26.7.2
+    
+    - add was.apps
+    - was.ab works between apps are mounted seperatly
+   
   - 0.26.7 
     
     - add custom error template on Saddle
