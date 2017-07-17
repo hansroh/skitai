@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.8"
+__version__ = "0.26.8.1"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -425,7 +425,7 @@ def run (**conf):
 			from aquests.lib.daemonize import Daemonizer
 			if not Daemonizer (working_dir).runAsDaemon ():
 				print ("already running")
-				sys.exit ()
+				sys.exit ()			
 			
 	def stop (working_dir):
 		if os.name == "nt":			
@@ -480,7 +480,8 @@ def run (**conf):
 	elif cmd == "remove":	
 		remove (working_dir)	
 	elif cmd == "restart":
-		stop (working_dir)
+		stop (working_dir)		
+		time.sleep (2)
 		start (working_dir)
 	elif cmd:
 		raise SystemError ('Unknown command %s' % cmd)

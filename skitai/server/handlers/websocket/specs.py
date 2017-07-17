@@ -243,10 +243,10 @@ class WebSocket:
 
 #---------------------------------------------------------
 
-class Job (wsgi_handler.Job):
+class Job (wsgi_handler.Job):	
 	def exec_app (self):
 		was = the_was._get ()		
-		was.request = self.request		
+		was.request = self.request
 		was.websocket = self.args [0]["websocket"]
 		self.args [0]["skitai.was"] = was
 		content = self.apph (*self.args)
@@ -308,7 +308,7 @@ class WebSocket1 (WebSocket):
 		self.env ["websocket.params"] = params
 		self.env ["websocket.client"] = self.client_id
 		
-		args = (self.request, self.apph, (self.env, self.start_response), self.wasc.logger)
+		args = (self.request, self.apph, (self.env, self.start_response), None, self.wasc.logger)
 		if self.env ["wsgi.multithread"]:			
 			self.wasc.queue.put (Job (*args))
 		else:
