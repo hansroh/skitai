@@ -3385,8 +3385,9 @@ Change Log
   
   0.26 (May 2017)
   
-  - 0.26.7.2
+  - 0.26.8
     
+    - fix websocket GROUPCAHT
     - add was.apps
     - was.ab works between apps are mounted seperatly
    

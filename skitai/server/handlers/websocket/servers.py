@@ -81,11 +81,11 @@ class WebSocketServer (specs.WebSocket1):
 		params [message_param] = self.message_decode (msg)
 		self.env ["websocket.params"] = params		
 		self.env ["websocket.client"] = client_id
-		args = (self.request, self.apph, (self.env, self.start_response), self.wasc.logger)
+		args = (self.request, self.apph, (self.env, self.start_response), None, self.wasc.logger)
 		if self.env ["wsgi.multithread"]:
-			self.wasc.queue.put (specs.PooledJob (*args))
+			self.wasc.queue.put (specs.Job (*args))
 		else:
-			specs.PooledJob (*args) ()
+			specs.Job (*args) ()
 		
 	def close (self):
 		websocket_servers.remove (self.gid)
