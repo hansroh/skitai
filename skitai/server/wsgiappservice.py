@@ -227,7 +227,10 @@ class WAS:
 		if thing.startswith ("/") or thing.find (".") == -1:
 			return self.app.build_url (thing, *args, **karg)
 		return self.apps.build_url (thing, *args, **karg)		
-			
+	
+	def emit (self, event, *args, **kargs):
+		self.apps.bus.emit (event, self, *args, **kargs)
+
 	def redirect (self, url, status = "302 Object Moved", body = None, headers = None):
 		redirect_headers = [
 			("Location", url), 

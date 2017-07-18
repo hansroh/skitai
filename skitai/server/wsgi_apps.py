@@ -4,9 +4,18 @@ import threading
 from types import FunctionType as function
 import copy
 
+if sys.version_info [:2] > (3, 4):
+	from event_bus import EventBus
+else:
+	class EventBus:
+		def add_event (self, event):
+			raise SystemError ("Required Python 3.5+")
+						
+
 class Module:
-	def __init__ (self, wasc, handler, route, directory, libpath, pref = None):
+	def __init__ (self, wasc, handler, bus, route, directory, libpath, pref = None):
 		self.wasc = wasc
+		self.bus = bus
 		self.handler = handler
 		self.pref = pref
 		self.last_reloaded = time.time ()
@@ -27,11 +36,11 @@ class Module:
 	def get_callable (self):
 		return getattr (self.module, self.appname)
 		
-	def start_app (self, reloded = False):					
+	def start_app (self, reloded = False):
 		func = None
 		app = getattr (self.module, self.appname)
 		
-		if self.pref:
+		if self.pref:			
 			for k, v in copy.copy (self.pref).items ():
 				if k == "config":
 					if not hasattr (app, 'config'):
@@ -40,10 +49,12 @@ class Module:
 						for k, v in copy.copy (self.pref.config).items ():
 							app.config [k] = v
 				else:	
-					setattr (app, k, v)
+					setattr (app, k, v)					
 		
 		if hasattr (app, "set_home"):
 			app.set_home (os.path.dirname (self.abspath))
+		if hasattr (app, "set_bus"):
+			app.set_bus (self.bus)
 		
 		self.set_devel_env ()
 		self.update_file_info ()
@@ -85,8 +96,9 @@ class Module:
 
 		stat = os.stat (self.abspath)
 		reloadable = self.file_info != (stat.st_mtime, stat.st_size)		
-		if reloadable and self.use_reloader:						
+		if reloadable and self.use_reloader:
 			app = getattr (self.module, self.appname)
+			app.remove_events ()
 			PRESERVED = []
 			if hasattr (app, "PRESERVE_ON_RELOAD"):
 				PRESERVED = [(attr, getattr (app, attr)) for attr in app.PRESERVES_ON_RELOAD]
@@ -95,8 +107,8 @@ class Module:
 			self.start_app (reloded = True)			
 			newapp = getattr (self.module, self.appname)
 			for attr, value in PRESERVED:
-				setattr (newapp, attr, value)			
-		
+				setattr (newapp, attr, value)
+				
 		self.last_reloaded = time.time ()
 				
 	def set_route (self, route):
@@ -121,10 +133,11 @@ class Module:
 class ModuleManager:
 	modules = {}	
 	def __init__(self, wasc, handler):
-		self.wasc = wasc		
+		self.wasc = wasc
 		self.handler = handler
 		self.modules = {}
-		self.modnames = {}
+		self.modnames = {}		
+		self.bus = EventBus ()
 		self.cc = 0
 	
 	def __getitem__ (self, name):
@@ -145,7 +158,7 @@ class ModuleManager:
 			route = route + "/"
 			
 		try: 
-			module = Module (self.wasc, self.handler, route, directory, modname, pref)			
+			module = Module (self.wasc, self.handler, self.bus, route, directory, modname, pref)			
 		except: 
 			self.wasc.logger.trace ("app")
 			self.wasc.logger ("app", "[error] application load failed: %s" % modname)			

@@ -1926,28 +1926,6 @@ Currently was.app.config has these properties and you can reconfig by setting ne
 - was.app.config.max_upload_file_size = 20000000
 
 
-Access Saddle App Cross Mount
-------------------------------
-
-*New in version 0.26.7.2*
-
-You can mount multiple app on Skitai, and maybe need to another app is mounted seperatly.
-
-.. code:: python
-
-  skitai.mount ("/", "main")
-  skitai.mount ("/search", "search")
-
-And you can access from filename of app from each apps,
-
-.. code:: python
-
-  search_app = was.apps ["search"]
-  save_path = search_app.config.save_path
-
-But this is only functioning between apps are mounted within same host.
-  
-
 Debugging and Reloading App
 -----------------------------
 
@@ -2346,18 +2324,92 @@ If your app is mounted at "/math",
     return "Hello, %s" % name
 	
   was.ab ("hello", "Your Name") # returned '/math/hello/Your_Name'
- 
+
+
+Cross App Communication & Accessing Resources
+----------------------------------------------
+
+Skitai prefer spliting apps to small microservices and mount them each. This feature make easy to move some of your mounted apps move to another machine. But this make difficult to communicate between apps. 
+
+Here's some helpful solutions.
+
+
+Accessing App Object Properties
+`````````````````````````````````
 
 *New in version 0.26.7.2*
+
+You can mount multiple app on Skitai, and maybe need to another app is mounted seperatly.
+
+.. code:: python
+
+  skitai.mount ("/", "main.py")
+  skitai.mount ("/query", "search.py")
+
+And you can access from filename of app from each apps,
+
+.. code:: python
+
+  search_app = was.apps ["search"]
+  save_path = search_app.config.save_path
+
+
+Communication with Event
+``````````````````````````
+
+*New in version 0.26.9*
+*Availabe only on Python 3.5+*
+
+Let's assume that an users.py app handle only user data, and another photo.py app handle only photos of users.
+
+.. code:: python
+
+  skitai.mount ('/users', 'users.py')
+  skitai.mount ('/photos', 'photos.py')
+
+If a user update own profile, sometimes photo information should be updated.
+
+At photos.py, you can prepare for listening to 'user:data-added' event and this event will be emited from 'was'.
+
+.. code:: python
+  
+  @app.listento ('user:data-added'):
+  def refresh_user_cache (was, userid):
+    was.sqlite3 ('@photodb').execute ('update ...').wait ()
+
+and uses.py, you just emit 'user:data-added' event to 'was'.
+
+.. code:: python
+  
+  @app.route ('/users', methods = ["PATCH"]):
+  def users (was):
+    args = was.request.json ()
+    was.sqlite3 ('@userdb').execute ('update ...').wait ()
+    
+    was.emit ('user:data-added', args ['userid'])
+    
+    return was.response (
+      "200 OK", 
+      json.dumps ({}), 
+      [("Content-Type", "application/json")]
+    )
+
+
+URL Builing for Resource Accessing
+````````````````````````````````````
+ 
+*New in version 0.26.7.2*
+
+URL building has same problem like cross app communication.
   
 If you mount multiple apps like this,
 
 .. code:: python
 
-  skitai.mount ("/", "main")
-  skitai.mount ("/search", "search")
+  skitai.mount ("/", "main.py")
+  skitai.mount ("/search", "search.py")
 
-For building url in `main` app from a query function of `search` app, you should specify app file name with dot.
+For building url in `main.py` app from a query function of `search.py` app, you should specify app file name with dot.
 
 .. code:: python
 
@@ -3385,9 +3437,13 @@ Change Log
   
   0.26 (May 2017)
   
+  - 0.26.9
+    
+    - add event bus: @app.listento (event) and was.emit (event, args...)
+    
   - 0.26.8
     
-    - fix websocket GROUPCAHT
+    - fix websocket GROUPCHAT
     - add was.apps
     - was.ab works between apps are mounted seperatly
    

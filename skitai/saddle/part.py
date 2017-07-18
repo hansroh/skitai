@@ -1,4 +1,5 @@
 import re, sys
+from functools import wraps
 try:
 	from urllib.parse import unquote_plus, quote_plus, urljoin
 except ImportError:
@@ -18,6 +19,7 @@ class Part:
 		self.packagename = None
 		self.wasc = None		
 		self.packages = {}
+		self.events = []
 		
 		self.logger = None
 		self.mount_p = "/"
@@ -166,6 +168,29 @@ class Part:
 			self.add_route (rule, f, **k)
 		return decorator
 	
+	def set_bus (self, bus):
+		self.bus = bus
+		for fname, event in self.events:
+			self.bus.add_event (fname, event)
+		
+	def add_events (self, event, f):
+		self.events.append ((f, event))
+	
+	def remove_events (self):
+		for fname, event in self.events:
+			self.bus.remove_event (fname.__name__, event)
+		
+	def listento (self, event):
+		def decorator(f):
+			self.add_events (event, f)	
+			
+			@wraps(f)
+			def wrapper(*args, **kwargs):
+				return func(*args, **kwargs)
+			return wrapper
+			
+		return decorator
+		
 	def get_route_map (self):
 		return self.route_map
 	
