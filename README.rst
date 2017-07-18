@@ -2354,13 +2354,38 @@ And you can access from filename of app from each apps,
   save_path = search_app.config.save_path
 
 
+URL Building for Resource Accessing
+````````````````````````````````````
+ 
+*New in version 0.26.7.2*
+  
+If you mount multiple apps like this,
+
+.. code:: python
+
+  skitai.mount ("/", "main.py")
+  skitai.mount ("/search", "search.py")
+
+For building url in `main.py` app from a query function of `search.py` app, you should specify app file name with dot.
+
+.. code:: python
+
+  was.ab ('search.query', "Your Name") # returned '/search/query?q=Your%20Name'
+  
+And this is exactly same as,
+
+  was.apps ["search"].build_url ("query", "Your Name")  
+
+But this is only functioning between apps are mounted within same host.
+
+
 Communication with Event
 ``````````````````````````
 
 *New in version 0.26.9*
 *Availabe only on Python 3.5+*
 
-Let's assume that an users.py app handle only user data, and another photo.py app handle only photos of users.
+'was' can work as an event bus. Let's assume that an users.py app handle only user data, and another photo.py app handle only photos of users.
 
 .. code:: python
 
@@ -2393,33 +2418,6 @@ and uses.py, you just emit 'user:data-added' event to 'was'.
       json.dumps ({}), 
       [("Content-Type", "application/json")]
     )
-
-
-URL Builing for Resource Accessing
-````````````````````````````````````
- 
-*New in version 0.26.7.2*
-
-URL building has same problem like cross app communication.
-  
-If you mount multiple apps like this,
-
-.. code:: python
-
-  skitai.mount ("/", "main.py")
-  skitai.mount ("/search", "search.py")
-
-For building url in `main.py` app from a query function of `search.py` app, you should specify app file name with dot.
-
-.. code:: python
-
-  was.ab ('search.query', "Your Name") # returned '/search/query?q=Your%20Name'
-  
-And this is exactly same as,
-
-  was.apps ["search"].build_url ("query", "Your Name")  
-
-But this is only functioning between apps are mounted within same host.
 
 
 Access Environment Variables
