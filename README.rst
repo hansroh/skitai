@@ -20,25 +20,28 @@ And simple to run:
 
 Your app will work for your thousands or miliions of customers.
 
-
-.. contents:: Table of Contents
-
-
 Introduce
 ===========
 
 Skitai is a kind of branch of `Medusa Web Server`__ - A High-Performance Internet Server Architecture. Medusa is different from most other servers because it runs as a single process, multiplexing I/O with its various client and server connections within a single process/thread. 
 
-Skitai orients light-weight, simplicity and strengthen networking operations with your backend resources keeping very low costs. And it is being optimized for building and operating microservices.
+Skitai orients light-weight, simplicity and strengthen networking operations with your backend resources keeping very low costs.
 
 - Working as WSGI application server, Web, XML-RPC and reverse proxy and loadbancing server
 - Handling massive requests to your backend servers including RESTful API, RPCs and database engines - PostgreSQL_, MongoDB and Redis - with asynchronous manner
 - HTTP/2.0 & HTML5 Websocket implemented
 
+And it is optimized for building and operating microservices. 
+
+1. Split your valuable service into small microservices
+2. Make each microservice into independet microapp, It would be better each microapp has own model and resources
+3. Mount your microapps on Skitai
+4. If extension is need, dettach micro app and mount another Skitai instance or another skitai machine
+
 Conceptually, Skitai has been seperated into two components:
 
 1. Skitai App Engine Server, for WSGI apps
-2. Skito-Saddle, the small WSGI container integrated with Skitai. But you can also mount any WSGI apps and frameworks like Flask_.
+2. Skito-Saddle, the small WSGI container integrated with Skitai. But you can also mount any WSGI apps and frameworks like Flask (I cannot sure).
 
 Skitai is not a just developing server like some frameworks provides. It is supporsed to work fine under real service situation by alone. And it makes your app take off to the world, just by appending a few lines on your app.
 
@@ -49,6 +52,8 @@ Skitai is not a just developing server like some frameworks provides. It is supp
 .. _PostgreSQL: http://www.postgresql.org/
 .. __: http://www.nightmare.com/medusa/medusa.html
 
+
+.. contents:: Table of Contents
 
 
 Installation
