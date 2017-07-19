@@ -228,9 +228,19 @@ class WAS:
 			return self.app.build_url (thing, *args, **karg)
 		return self.apps.build_url (thing, *args, **karg)		
 	
-	def emit (self, event, *args, **kargs):
+	def broadcast (self, event, *args, **kargs):
 		return self.apps.bus.emit (event, self, *args, **kargs)
-
+	
+	def broadcast_after (self, event):
+		def outer (f):
+			@wraps (f)
+			def wrapper(*args, **kwargs):
+				returned = f (*args, **kwargs)
+				self.apps.emit (event)
+				return returned
+			return wrapper
+		return outer
+		
 	def redirect (self, url, status = "302 Object Moved", body = None, headers = None):
 		redirect_headers = [
 			("Location", url), 

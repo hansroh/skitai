@@ -2331,6 +2331,62 @@ If your app is mounted at "/math",
   was.ab ("hello", "Your Name") # returned '/math/hello/Your_Name'
 
 
+Creating and Handling Event
+-----------------------------
+
+For creating event and event handler,
+
+.. code:: python
+
+  @app.on ("user-updated")
+  def user_updated (was, user):
+    ...
+
+For emitting,
+
+.. code:: python
+    
+  @app.route ('/users', methods = ["POST"])
+  def users (was):
+    args = was.request.json ()
+    ...
+    
+    app.emit ("user-updated", args ['userid'])
+    
+    return ''
+
+If event hasn't args, you can use `emit_after` decorator,
+
+.. code:: python
+    
+  @app.route ('/users', methods = ["POST"])
+  @app.emit_after ("user-updated")
+  def users (was):
+    args = was.request.json ()
+    ...    
+    return ''
+
+Using this, you can build automatic excution chain,
+
+.. code:: python
+  
+  @app.on ("photo-updated")
+  def photo_updated (was):
+    ...        
+    
+  @app.on ("user-updated")
+  @app.emit_after ("photo-updated")
+  def user_updated (was):
+    ...        
+      
+  @app.route ('/users', methods = ["POST"])
+  @app.emit_after ("user-updated")
+  def users (was):
+    args = was.request.json ()
+    ...
+    return ''
+
+
 Cross App Communication & Accessing Resources
 ----------------------------------------------
 
@@ -2387,10 +2443,10 @@ But this is only functioning between apps are mounted within same host.
 Communication with Event
 ``````````````````````````
 
-*New in version 0.26.9*
+*New in version 0.26.10*
 *Availabe only on Python 3.5+*
 
-'was' can work as an event bus. Let's assume that an users.py app handle only user data, and another photo.py app handle only photos of users.
+'was' can work as an event bus using app.listen () - was.broadcast () pair. Let's assume that an users.py app handle only user data, and another photo.py app handle only photos of users.
 
 .. code:: python
 
@@ -2403,7 +2459,7 @@ At photos.py, you can prepare for listening to 'user:data-added' event and this 
 
 .. code:: python
   
-  @app.listento ('user:data-added'):
+  @app.listen ('user:data-added'):
   def refresh_user_cache (was, userid):
     was.sqlite3 ('@photodb').execute ('update ...').wait ()
 
@@ -2416,7 +2472,8 @@ and uses.py, you just emit 'user:data-added' event to 'was'.
     args = was.request.json ()
     was.sqlite3 ('@userdb').execute ('update ...').wait ()
     
-    was.emit ('user:data-added', args ['userid'])
+    # broadcasting event to all mounted apps
+    was.broadcast ('user:data-added', args ['userid'])
     
     return was.response (
       "200 OK", 
@@ -2424,6 +2481,20 @@ and uses.py, you just emit 'user:data-added' event to 'was'.
       [("Content-Type", "application/json")]
     )
 
+If resource always broadcasts event without args, use `broadcast_after` decorator.
+
+.. code:: python
+  
+  @app.route ('/', methods = ["PATCH"]):
+  @app.broadcast_after ('some-event')
+  def users (was):
+    args = was.request.json ()
+    was.sqlite3 ('@userdb').execute ('update ...').wait ()    
+    return was.response (
+      "200 OK", 
+      json.dumps ({}), 
+      [("Content-Type", "application/json")]
+    )
 
 Access Environment Variables
 ------------------------------
@@ -3002,6 +3073,7 @@ These methods will be called,
 3. shutdown: when skitai server is shutdowned
 
 
+
 CORS (Cross Origin Resource Sharing) and Preflight
 -----------------------------------------------------
 
@@ -3440,6 +3512,12 @@ Change Log
   
   0.26 (May 2017)
   
+  - 0.26.10
+    
+    - add was-wide broadcast event bus: @app.listen (event), was.broadcast (event, args...) and @was.broadcast_after (event)
+    - add app-wide event bus: @app.on (event), was.emit (event, args...) and @was.emit_after (event)
+    - remove @app.listento (event) and was.emit (event, args...)
+    
   - 0.26.9
     
     - add event bus: @app.listento (event) and was.emit (event, args...)

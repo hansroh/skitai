@@ -1,16 +1,8 @@
 import os, sys, re, types, time
-from aquests.lib  import pathtool, importer
+from aquests.lib  import pathtool, importer, evbus
 import threading
 from types import FunctionType as function
 import copy
-
-if sys.version_info [:2] > (3, 4):
-	from event_bus import EventBus
-else:
-	class EventBus:
-		def add_event (self, event):
-			raise SystemError ("Required Python 3.5+")
-						
 
 class Module:
 	def __init__ (self, wasc, handler, bus, route, directory, libpath, pref = None):
@@ -137,7 +129,7 @@ class ModuleManager:
 		self.handler = handler
 		self.modules = {}
 		self.modnames = {}		
-		self.bus = EventBus ()
+		self.bus = evbus.EventBus ()
 		self.cc = 0
 	
 	def __getitem__ (self, name):

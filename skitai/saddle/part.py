@@ -6,11 +6,10 @@ except ImportError:
 	from urllib import unquote_plus, quote_plus
 	from urlparse import urljoin
 import os
-from aquests.lib import importer, strutil
+from aquests.lib import importer, strutil, evbus
 from types import FunctionType as function
 import inspect
-
-	
+			
 RX_RULE = re.compile ("(/<(.+?)>)")
 
 class Part:
@@ -20,7 +19,7 @@ class Part:
 		self.wasc = None		
 		self.packages = {}
 		self.events = []
-		
+		self.bus = evbus.EventBus ()
 		self.logger = None
 		self.mount_p = "/"
 		self.path_suffix_len = 0
@@ -29,6 +28,8 @@ class Part:
 		self._binds_server = [None] * 3
 		self._binds_request = [None] * 4
 		self._binds_when = [None] * 5		
+		# for bus, set by wsgi_executor
+		self._was = None
 				
 	def set_mount_point (self, mount):	
 		if not mount:
@@ -73,35 +74,72 @@ class Part:
 		self.file_info = (stat.st_mtime, stat.st_size)
 	
 	#----------------------------------------------
-	# Decorators
+	# Event Bus
 	#----------------------------------------------
 	def startup (self, f):
 		self._binds_server [0] = f
+		return f
+	start_up = startup
 	
 	def onreload (self, f):
 		self._binds_server [1] = f
-		
+		return f
+	reload = startup
+	
 	def shutdown (self, f):
 		self._binds_server [2] = f
+		return f
 		
 	def before_request (self, f):
 		self._binds_request [0] = f
+		return f
 	
 	def finish_request (self, f):
 		self._binds_request [1] = f
+		return f
 	
 	def failed_request (self, f):
 		self._binds_request [2] = f
+		return f
 	
 	def teardown_request (self, f):
 		self._binds_request [3] = f
+		return f
 	
 	def got_template (self, f):
 		self._binds_when [0] = f
+		return f
 	
 	def template_rendered (self, f):
 		self._binds_when [1] = f
+		return f
 	
+	def message_flashed (self, f):
+		self._binds_when [2] = f
+		return f
+	
+	def on (self, event):
+		def decorator(f):
+			self.bus.add_event (f, event)
+			@wraps(f)
+			def wrapper(*args, **kwargs):
+				return f (*args, **kwargs)
+			return wrapper
+		return decorator
+		
+	def emit_after (self, event):
+		def outer (f):
+			@wraps (f)
+			def wrapper(*args, **kwargs):
+				returned = f (*args, **kwargs)
+				self.emit (event)
+				return returned
+			return wrapper
+		return outer
+			
+	def emit (self, event, *args, **kargs):
+		self.bus.emit (event, self._was, *args, **kargs)
+		
 	#----------------------------------------------
 	# Event Binding
 	#----------------------------------------------
@@ -159,15 +197,10 @@ class Part:
 			url = self.packages [p].build_url (thing, *args, **kargs)
 			if url:
 				return url
-				
-	#----------------------------------------------
-	# Routing
-	#----------------------------------------------						
-	def route (self, rule, **k):
-		def decorator(f):
-			self.add_route (rule, f, **k)
-		return decorator
 	
+	#----------------------------------------------
+	# Event Bus
+	#----------------------------------------------		
 	def set_bus (self, bus):
 		self.bus = bus
 		for fname, event in self.events:
@@ -180,15 +213,25 @@ class Part:
 		for fname, event in self.events:
 			self.bus.remove_event (fname.__name__, event)
 		
-	def listento (self, event):
+	def listen (self, event):
 		def decorator(f):
-			self.add_events (event, f)	
-			
+			self.add_events (event, f)
 			@wraps(f)
 			def wrapper(*args, **kwargs):
-				return func(*args, **kwargs)
+				return f (*args, **kwargs)
 			return wrapper
-			
+		return decorator
+					
+	#----------------------------------------------
+	# Routing
+	#----------------------------------------------						
+	def route (self, rule, **k):
+		def decorator (f):
+			self.add_route (rule, f, **k)
+			@wraps(f)
+			def wrapper (*args, **kwargs):
+				return f (*args, **kwargs)
+			return wrapper
 		return decorator
 		
 	def get_route_map (self):

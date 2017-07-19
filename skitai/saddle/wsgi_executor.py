@@ -171,18 +171,21 @@ class Executor:
 		
 		self.build_was ()
 		self.was.subapp = current_app
+		
 		try:
 			content = self.generate_content (thing, (), param)
 		except:				
 			self.rollback ()
 			if request.response.is_responsable ():
-				content = request.response ("500 Internal Server Error", exc_info = self.was.app.debug and sys.exc_info () or None)				
+				content = request.response ("500 Internal Server Error", exc_info = self.was.app.debug and sys.exc_info () or None)
+
 			del self.was.env
 			del self.was.subapp
 			raise
 		
 		self.commit ()		
 		# clean was
+		self.was.app._was = None
 		del self.was.env
 		del self.was.subapp
 		return content
