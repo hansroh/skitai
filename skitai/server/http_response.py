@@ -6,6 +6,7 @@ from aquests.protocols.http import http_date, http_util
 from aquests.lib.reraise import reraise 
 from aquests.lib import producers, compressors
 from aquests.protocols.http import respcodes
+from . import http_date
 import skitai
 
 try: 
@@ -491,7 +492,13 @@ class http_response:
 	set_header = set
 	get_header = get
 	del_header = delete
-		
+	
+	def set_cache (self, max_age = 0):
+		if self.request.version == "1.0":			
+			self.set_header ('Expires', http_date.build_http_date (time.time() + max_age))				
+		else:
+			self.set_header ('Cache-Control', "max-age=%d" % max_age)
+					
 	def set_headers (self, headers):
 		for k, v in headers:
 			self.set (k, v)

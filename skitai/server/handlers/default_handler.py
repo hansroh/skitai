@@ -4,7 +4,7 @@ import time
 from . import mime_type_table
 import os
 from . import filesys
-from skitai.server import http_date
+from .. import http_date
 from aquests.lib import producers
 from aquests.protocols.http.http_util import *
 from hashlib import md5
