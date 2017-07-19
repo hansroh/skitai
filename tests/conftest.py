@@ -14,7 +14,7 @@ def log ():
 @pytest.fixture
 def conn ():
 	sock = MagicMock (name="socket", spec = socket.socket)
-	sock.send.fileno = 10
+	sock.fileno.return_value = 10
 	return sock
 
 @pytest.fixture
