@@ -71,7 +71,7 @@ class https_channel (http_server.http_channel):
 
 class https_server (http_server.http_server):
 	def __init__ (self, ip, port, ctx, server_logger = None, request_logger = None):
-		http_server.http_server.__init__ (self, ip, port, server_logger, request_logger)	
+		http_server.http_server.__init__ (self, ip, port, server_logger, request_logger)
 		self.ctx = ctx
 		self.socket = self.ctx.wrap_socket (self.socket, server_side = True)
 		

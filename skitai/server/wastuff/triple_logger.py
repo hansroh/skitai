@@ -3,7 +3,7 @@ from aquests.lib import pathtool, logger
 
 class Logger:
 	def __init__ (self, media, path):
-		self.media = media
+		self.media = type (media) is list and media  or [media]		
 		self.path = path
 		if self.path: 
 			pathtool.mkdir (path)			
@@ -27,7 +27,7 @@ class Logger:
 		if 'screen' in self.media:
 			_logger.add_logger (logger.screen_logger ())
 		
-		self.logger_factory [prefix] = _logger		
+		self.logger_factory [prefix] = _logger
 		self.lock.release ()	
 	
 	def add_screen_logger (self):
@@ -45,7 +45,7 @@ class Logger:
 	
 	def rotate (self):
 		self.lock.acquire ()
-		loggers = list(self.logger_factory.items ())
+		loggers = list(self.logger_factory.values ())
 		self.lock.release ()
 		
 		for mlogger in loggers:
@@ -54,6 +54,8 @@ class Logger:
 					logger.rotate ()
 		
 	def close (self):
-		self.__application.close ()
-		self.__request.close ()
-		self.__server.close ()
+		with self.lock:
+			for mlogger in self.logger_factory.values ():
+				mlogger.close ()
+			self.logger_factory = {}
+			

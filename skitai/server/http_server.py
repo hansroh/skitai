@@ -167,7 +167,7 @@ class http_channel (asynchat.async_chat):
 		else:
 			self.in_buffer = self.in_buffer + data
 				
-	def found_terminator (self):
+	def found_terminator (self):		
 		if self.is_rejected:
 			return
 			
@@ -190,7 +190,7 @@ class http_channel (asynchat.async_chat):
 			if not lines:
 				self.close_when_done()
 				return
-
+			
 			request = lines[0]
 			try:
 				command, uri, version = http_util.crack_request (request)
@@ -226,7 +226,7 @@ class http_channel (asynchat.async_chat):
 					return
 					
 			try: r.response.error (404)
-			except: pass	
+			except: pass
 	
 	def handle_abort (self):
 		self.close (ignore_die_partner = True)
@@ -481,7 +481,9 @@ class http_server (asyncore.dispatcher):
 		return 	{
 			"child_pids": PID,
 			"ident": "%s for %s" % (self.worker_ident, self.SERVER_IDENT),
-			"start_time": self.start_time, 			
+			'server_name': self.server_name,	
+			"start_time": self.start_time, 		
+			'hash_id': self.hash_id,	
 			"port": self.port,
 			"total_clients": self.total_clients.as_long(),
 			"total_request": self.total_requests.as_long(), 
