@@ -31,7 +31,7 @@ class data_channel (fake_channel, asynchat.async_chat):
 		d = {}
 		for c in self._chunks:
 			d [c] = None
-		return len (d) == 1 and c
+		return len (d) == 1 and c or 0
 			
 	def get_data_size (self):
 		return self._data_size
@@ -39,7 +39,7 @@ class data_channel (fake_channel, asynchat.async_chat):
 	def get_content_length (self):
 		return self._content_length
 		
-	def recv (self, buffer_size):
+	def recv (self, buffer_size):		
 		data, self._data = self._data, []
 		return b"".join (data)
 

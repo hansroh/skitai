@@ -107,8 +107,3 @@ class MultipartCollector (FormCollector):
 		self.buffer.close ()		
 		self.handler.continue_request (self.request, open (self.buffer.name, "rb"))
 		self.request.channel.set_terminator (b'\r\n\r\n')
-
-
-
-	
-	

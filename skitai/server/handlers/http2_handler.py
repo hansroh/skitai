@@ -11,10 +11,7 @@ from .http2.vchannel import fake_channel, data_channel
 from aquests.protocols.http2.producers import h2stream_producer, h2header_producer, h2data_producer
 from aquests.protocols.http2.fifo import http2_producer_fifo
 import threading
-try:
-	from cStringIO import StringIO as BytesIO
-except ImportError:
-	from io import BytesIO
+from io import BytesIO
 
 class http2_request_handler:
 	collector = None
