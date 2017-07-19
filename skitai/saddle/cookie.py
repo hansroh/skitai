@@ -1,5 +1,5 @@
 import pickle as pickle
-from skitai.server import http_date
+from aquests.protocols.http import http_date
 import time
 import random
 from aquests.lib import pathtool
