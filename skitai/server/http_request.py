@@ -16,7 +16,7 @@ class http_request:
 		 self.command, self.uri, self.version,
 		 self.header) = args
 		self.logger = self.channel.server.server_logger
-		self.server_ident = self.channel.server.SERVER_IDENT		
+		self.server_ident = self.channel.server.SERVER_IDENT
 		self.body = None
 		self.reply_code = 200
 		self.reply_message = ""		
@@ -59,6 +59,10 @@ class http_request:
 			h [k] = v.strip ()
 		self._headers_cache = h	
 		return h
+	
+	@property
+	def payload (self):
+		return self.get_body ()
 	
 	def json (self):		
 		return json.loads (self.body.decode ('utf8'))
@@ -139,6 +143,7 @@ class http_request:
 	
 	def get_body (self):
 		return self.body
+	get_payload = get_body
 	
 	def set_header (self, name, value):
 		self.header.append ("%s: %s" % (name, value))		
@@ -181,7 +186,10 @@ class http_request:
 	
 	def get_header_noparam (self, header, default = None):
 		return self.get_header_params (header, default) [0]
-			
+	
+	def get_charset (self):
+		return self.get_attr ("content-type", "charset")
+				
 	def get_attr (self, header, attrname = None, default = None):
 		value, attrs = self.get_header_params (header, None)
 		if not value:
@@ -192,7 +200,7 @@ class http_request:
 					
 	def get_content_length (self):
 		try: return int (self.get_header ("content-length"))
-		except ValueError: return None
+		except: return None
 					
 	def get_content_type (self):
 		return self.get_header_with_attr ("content-type") [0]
@@ -238,3 +246,6 @@ class http_request:
 		if self.response:
 			self.response.request = None
 	
+	def xmlrpc_serialized (self):
+		# for compat with client request
+		return False

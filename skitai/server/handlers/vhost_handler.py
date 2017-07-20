@@ -5,7 +5,7 @@ from .. import wsgi_apps
 import os
 
 class VHost:
-	def __init__ (self, wasc, clusters, cachefs, static_max_ages, enable_apigateway, apigateway_authenticate, apigateway_realm, apigateway_secret_key):
+	def __init__ (self, wasc, clusters, cachefs, static_max_ages, enable_apigateway = False, apigateway_authenticate = False, apigateway_realm = "API Gateway", apigateway_secret_key = None):
 		self.wasc = wasc
 		self.clusters = clusters
 		self.cachefs = cachefs
@@ -19,7 +19,7 @@ class VHost:
 			alternative_handlers = [self.access_handler]
 		else:
 			self.access_handler = None
-			alternative_handlers = [self.proxypass_handler]			
+			alternative_handlers = [self.proxypass_handler]
 		alternative_handlers.append (websocket_handler.Handler (self.wasc, self.apps))
 		alternative_handlers.append (wsgi_handler.Handler (self.wasc, self.apps))
 		self.default_handler = default_handler.Handler (self.wasc, {}, static_max_ages, alternative_handlers)		
@@ -66,19 +66,28 @@ class Handler:
 			if h.match (request):
 				h.handle_request (request)
 				break
-			
-	def add_route (self, rule, routepair, config = None):
-		reverse_proxing = False
+	
+	def get_vhost (self, rule):
 		if rule.strip () in ("*", "default"):
 			rule = None
 		else:
-			rule = tuple (rule.split ())
-		
+			rule = tuple (rule.split ())				
 		if rule not in self.sites:				
 			self.sites [rule] = VHost (self.wasc, *self.vhost_args)
-
-		vhost = self.sites [rule]
+		return self.sites [rule]
+		
+	def add_route (self, rule, routepair, config = None):
+		reverse_proxing = False
+		vhost = self.get_vhost (rule)
+		
+		if type (routepair) is tuple:
+			# direct app mount
+			route, module, path = routepair
+			vhost.add_module (route, path, module, config)		
+			return reverse_proxing
+			
 		route, target = [x.strip () for x in routepair.split ("=", 1)]
+		
 		if target.startswith ("@"):
 			if route [-1] == "/":
 				route = route [:-1]
@@ -93,8 +102,9 @@ class Handler:
 		else:
 			fullpath = os.path.split (target.strip())
 			vhost.add_module (route, os.sep.join (fullpath[:-1]), fullpath [-1], config)
+
 		return reverse_proxing
-		
+			
 	def find (self, host):
 		if host:
 			host = host.split (":", 1)[0]

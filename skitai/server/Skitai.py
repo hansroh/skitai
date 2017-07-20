@@ -256,7 +256,7 @@ class Loader:
 			if line.startswith (";") or line.startswith ("#"):
 				continue
 			elif line.startswith ("/"):
-				reverse_proxing = vh.add_route (current_rule, line, pref)					
+				reverse_proxing = vh.add_route (current_rule, line, pref)
 			elif line:
 				if line [0] == "@":
 					line = line [1:].strip ()					

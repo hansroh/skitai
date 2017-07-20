@@ -11,27 +11,33 @@ class Module:
 		self.handler = handler
 		self.pref = pref
 		self.last_reloaded = time.time ()
-									
-		try:
-			libpath, self.appname = libpath.split (":", 1)		
-		except ValueError:
-			libpath, self.appname = libpath, "app"
-		
-		self.script_name = "%s.py" % libpath
-		self.module, self.abspath = importer.importer (directory, libpath)				
-		self.set_route (route)
-		self.start_app ()
-	
+		self.app = None
+		self.set_route (route)		
+		if type (libpath) is str:
+			try:
+				libpath, self.appname = libpath.split (":", 1)		
+			except ValueError:
+				libpath, self.appname = libpath, "app"
+			self.script_name = "%s.py" % libpath
+			self.module, self.abspath = importer.importer (directory, libpath)
+			self.start_app ()
+			
+		else:
+			self.appname, self.module, self.abspath = "app", None, os.path.join (directory, 'dummy')
+			self.app = libpath
+			self.app.use_reloader = False
+			self.start_app ()
+			
 	def __repr__ (self):
 		return "<Module routing to %s at %x>" % (self.route, id(self))
 		
 	def get_callable (self):
-		return getattr (self.module, self.appname)
+		return self.app or getattr (self.module, self.appname)
 		
 	def start_app (self, reloded = False):
 		func = None
-		app = getattr (self.module, self.appname)
-		
+		app = self.app or getattr (self.module, self.appname)
+			
 		if self.pref:			
 			for k, v in copy.copy (self.pref).items ():
 				if k == "config":
@@ -66,19 +72,23 @@ class Module:
 			self.wasc.handler = None
 		
 	def cleanup (self):
-		try: getattr (self.module, self.appname).cleanup ()
+		app = self.app or getattr (self.module, self.appname)
+		try: app.cleanup ()
 		except AttributeError: pass
 		
 	def set_devel_env (self):
 		self.debug = False
 		self.use_reloader = False
-		app = getattr (self.module, self.appname)
+		app = self.app or getattr (self.module, self.appname)
 		try: self.debug = app.debug
 		except AttributeError: pass
 		try: self.use_reloader = app.use_reloader
 		except AttributeError: pass
 
 	def update_file_info (self):
+		if self.app:
+			# app directly mounted
+			return
 		stat = os.stat (self.abspath)
 		self.file_info = (stat.st_mtime, stat.st_size)	
 	
@@ -119,7 +129,8 @@ class Module:
 	
 	def __call__ (self, env, start_response):
 		self.use_reloader and self.maybe_reload ()
-		return getattr (self.module, self.appname) (env, start_response)
+		app = self.app or getattr (self.module, self.appname)
+		return app (env, start_response)
 
 
 class ModuleManager:

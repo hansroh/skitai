@@ -32,7 +32,7 @@ class Handler (wsgi_handler.Handler):
 		response_key = b64encode(hash.digest()).strip()
 		return response_key.decode('ASCII')
 		
-	def handle_request (self, request):				
+	def handle_request (self, request):
 		def donot_response (self, *args, **kargs):
 			def push (thing):
 				raise AssertionError ("Websocket can't use start_response ()")
@@ -73,7 +73,7 @@ class Handler (wsgi_handler.Handler):
 			apph (env, donot_response)
 			wsconfig = env.get ("websocket.config", ())			
 			if len (wsconfig) == 3:
-				design_spec, keep_alive, varnames = wsconfig				
+				design_spec, keep_alive, varnames = wsconfig
 				if type (varnames) not in (list, tuple):
 					varnames = (varnames,)
 			else:
@@ -133,7 +133,7 @@ class Handler (wsgi_handler.Handler):
       ("WebSocket-Protocol", protocol),
       ("WebSocket-Location", "ws://" + host + path)
 		]
-		request.response ("101 Web Socket Protocol Handshake", headers = headers)		
+		request.response ("101 Web Socket Protocol Handshake", headers = headers)
 		
 		if design_spec in (skitai.WS_SIMPLE, skitai.WS_THREADSAFE):
 			varnames = varnames [:1]

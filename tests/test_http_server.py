@@ -9,7 +9,7 @@ def test_http_server (log):
 	s.close ()
 	
 def test_https_server (log):
-	cert_dir = "../examples/resources/certifications"	
+	cert_dir = "./examples/resources/certifications"	
 	ctx = init_context (
 		os.path.join (cert_dir, "server.crt"),
 		os.path.join (cert_dir, "server.key"),
@@ -22,19 +22,16 @@ def test_http_channel (channel):
 	conn = channel.socket
 	conn.recv.return_value = b"GET /ping HTTP/1.1\r\nUser-Agent: pytest\r\n\r\n"
 	content = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n"
-	conn.send.return_value = 0	
 	
 	channel.use_sendlock ()
 	channel.handle_read ()
 	assert channel.request_counter.as_long () == 1
 	assert channel.server.total_requests.as_long () == 1
-	result = channel.producer_fifo [0]
-	assert result [:15] == b"HTTP/1.1 200 OK"
-	
-	conn.send.return_value = 2048	
+	result = conn.getvalue ()
+	assert result [:15] == b"HTTP/1.1 200 OK"	
 	channel.initiate_send ()
 	channel.handle_write ()
-	assert channel.bytes_out.as_long () == 2048
+	assert channel.bytes_out.as_long () == len (result)
 	assert len (channel.producer_fifo) == 0 
 	assert channel.writable () == 0
 	

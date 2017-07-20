@@ -45,10 +45,10 @@ class Handler:
 		self.apps = apps
 		self.ENV ["skitai.process"] = self.wasc.workers
 		self.ENV ["skitai.thread"] = 0
-		if hasattr (self.wasc, "threads"):
-			self.ENV ["skitai.thread"] = len (self.wasc.threads)			
-		self.ENV ["wsgi.url_scheme"] = hasattr (self.wasc.httpserver, "ctx") and "https" or "http"
-		self.ENV ["wsgi.multithread"] = hasattr (self.wasc, "threads")
+		if hasattr (self.wasc, "threads") and self.wasc.threads:
+			self.ENV ["skitai.thread"] = len (self.wasc.threads)
+		self.ENV ["wsgi.multithread"] = hasattr (self.wasc, "threads") and self.wasc.threads	
+		self.ENV ["wsgi.url_scheme"] = hasattr (self.wasc.httpserver, "ctx") and "https" or "http"		
 		self.ENV ["wsgi.multiprocess"] = self.wasc.workers > 1 and os.name != "nt"
 		self.ENV ['SERVER_PORT'] = str (self.wasc.httpserver.port)
 		self.ENV ['SERVER_NAME'] = self.wasc.httpserver.server_name
@@ -137,7 +137,6 @@ class Handler:
 			
 	def handle_request (self, request):
 		path, params, query, fragment = request.split_uri ()
-		
 		has_route = self.apps.has_route (path)
 		if has_route == 0:
 			return self.handle_error_before_collecting (request, 404)				
@@ -195,7 +194,7 @@ class Handler:
 		else:
 			self.handle_error_before_collecting (request, 405)
 	
-	def continue_request (self, request, data = None, respcode = None):		
+	def continue_request (self, request, data = None, respcode = None):
 		if respcode: # delayed resp code on POST
 			if respcode [1]:
 				# force close
@@ -245,11 +244,10 @@ class Job:
 		was = the_was._get ()
 		was.apps = self.apps
 		self.args [0]["skitai.was"] = was
-		
 		request = was.request = self.request
 		response = request.response
 		
-		try:
+		try:			
 			content = self.apph (*self.args)
 			if not response.is_responsable ():
 				# already called response.done () or diconnected channel
