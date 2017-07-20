@@ -14,7 +14,7 @@ def test_default_handler (wasc):
 	resp = assert_request (vh, request, 200)
 	assert resp.get_header ('cache-control') is None
 	
-	request = client.get ("http://www.skitai.com/img/reindeer.jpg")	
+	request = client.get ("http://www.skitai.com/img/reindeer.jpg")
 	resp = assert_request (vh, request, 200)
 	assert resp.get_header ('cache-control')
 	
