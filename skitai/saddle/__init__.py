@@ -5,7 +5,9 @@ Hans Roh
 from . import Saddle, part
 
 Saddle = Saddle.Saddle
-Saddlery = part.Part
+
+# deprecated in version 0.26.11
+#Saddlery = part.Part
 
 request_started = 0
 request_finished = 1
