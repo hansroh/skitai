@@ -931,7 +931,7 @@ Skitai App Examples
 
 Also please visit to `Skitai app examples`_.
 
-.. _`Skitai app examples`: https://gitlab.com/hansroh/skitai/tree/master/examples
+.. _`Skitai app examples`: https://gitlab.com/hansroh/skitai/tree/master/tests/examples
 
 
 
