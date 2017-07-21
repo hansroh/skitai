@@ -14,7 +14,7 @@ import random
 import base64
 from . import cookie
 from .config import Config
-from jinja2 import Environment, PackageLoader
+from jinja2 import Environment, PackageLoader, FileSystemLoader
 from chameleon import PageTemplateLoader
 import xmlrpc.client as xmlrpclib
 
@@ -24,7 +24,6 @@ class AuthorizedUser:
 		self.realm = realm
 		self.info = info
 		
-				
 class Saddle (part.Part):
 	use_reloader = False
 	debug = False
@@ -48,7 +47,7 @@ class Saddle (part.Part):
 		part.Part.__init__ (self)
 		self.app_name = app_name
 		self.home = None
-		self.jinja_env = Environment (loader = PackageLoader (app_name)) or None
+		self.jinja_env = None
 		self.chameleon = None
 		self.lock = threading.RLock ()
 		
@@ -114,7 +113,12 @@ class Saddle (part.Part):
 			os.path.join(path, "templates"),
 			auto_reload = self.use_reloader,
 			restricted_namespace = False
-		)
+		)		
+		loader = FileSystemLoader (os.path.join (path, "templates"))
+		if self.jinja_env:
+			self.jinja_env.loader = loader
+		else:
+			self.jinja_env = Environment (loader = loader)
 		
 		package_dirs = []
 		for d in self.PACKAGE_DIRS:

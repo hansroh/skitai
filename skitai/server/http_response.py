@@ -370,24 +370,29 @@ class http_response:
 			
 		elif do_optimize and not self.has_key ('Content-Encoding'):
 			maybe_compress = self.request.get_header ("Accept-Encoding")
-			if maybe_compress and self.has_key ("content-length") and int (self ["Content-Length"]) <= UNCOMPRESS_MAX:
-				maybe_compress = ""
+			if maybe_compress:
+				cl = self.has_key ("content-length") and int (self.get ("Content-Length")) or -1
+				if 0 < cl  <= UNCOMPRESS_MAX:
+					maybe_compress = ""
+				elif not wrap_in_chunking and (cl == -1 or cl > 1024000):
+					# size unknowm or too big, do not compress
+					maybe_compress = ""	
 			
-			else:	
-				content_type = self ["Content-Type"]
-				if maybe_compress and content_type and (content_type.startswith ("text/") or content_type.endswith ("/json-rpc")):
+			if maybe_compress:
+				content_type = self.get ("Content-Type")
+				if content_type and (content_type.startswith ("text/") or content_type.endswith ("/json-rpc")):
 					accept_encoding = [x.strip () for x in maybe_compress.split (",")]
 					if "gzip" in accept_encoding:
 						way_to_compress = "gzip"
 					elif "deflate" in accept_encoding:
 						way_to_compress = "deflate"
-		
+			
 			if way_to_compress:
 				if self.has_key ('Content-Length'):
 					self.delete ("content-length") # rebuild
 				self.update ('Content-Encoding', way_to_compress)	
-
-			if wrap_in_chunking:				
+			
+			if wrap_in_chunking:
 				outgoing_producer = producers.composite_producer (self.outgoing)
 				self.delete ('content-length')
 				self.update ('Transfer-Encoding', 'chunked')				
@@ -396,7 +401,7 @@ class http_response:
 						compressing_producer = producers.gzipped_producer
 					else: # deflate
 						compressing_producer = producers.compressed_producer
-					outgoing_producer = compressing_producer (outgoing_producer)
+					outgoing_producer = compressing_producer (outgoing_producer)					
 				outgoing_producer = producers.chunked_producer (outgoing_producer)
 				outgoing_header = producers.simple_producer (self.build_reply_header(with_header).encode ("utf8"))				
 				
@@ -416,7 +421,7 @@ class http_response:
 							data = producer.more ()
 							if not data:
 								break
-							cdata += compressor.compress (data)									
+							cdata += compressor.compress (data)
 					cdata += compressor.flush ()					
 					self.update ("Content-Length", len (cdata))
 					outgoing_producer = producers.simple_producer (cdata)						

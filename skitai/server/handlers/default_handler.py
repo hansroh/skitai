@@ -1,7 +1,7 @@
 import re
 import stat
 import time
-from . import mime_type_table
+from mimetypes import types_map
 import os
 from . import filesys
 from aquests.lib import producers
@@ -226,9 +226,6 @@ class Handler:
 		return md5 (("%d:%d" % (file_length, int (mtime))).encode ("utf8")).hexdigest()
 	
 	def set_content_type (self, path, request):
-		ext = get_extension (path).lower()
-		if ext in mime_type_table.content_type_map:
-			request.response['Content-Type'] = mime_type_table.content_type_map[ext]
-		else:
-			request.response['Content-Type'] = 'text/plain'
-			
+		ext = get_extension (path).lower()		
+		request.response['Content-Type'] = types_map.get ("." + ext, 'application/octet-stream')
+		

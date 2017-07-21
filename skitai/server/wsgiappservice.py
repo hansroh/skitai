@@ -29,10 +29,30 @@ except ImportError:
 from skitai import lifetime
 from .wastuff.promise import Promise, _Method
 from .wastuff.triple_logger import Logger
+from multiprocessing import RLock
 
+class Persist:
+	def __init__ (self):
+		self.__lock = RLock ()
+		self.__d = {}
+		
+	def get (self, k, d = None):
+		with self.__lock:
+			return self.__d.get (k, d)
+	
+	def set (self, k, v):
+		with self.__lock:
+			self.__d [k] = v
+	
+	def pop (self, k):
+		with self.__lock:
+			return self.__d.pop (k)
+			
+	
 class WAS:
 	version = __version__
 	objects = {}
+	p = Persist ()
 	
 	#----------------------------------------------------
 	# application friendly methods
