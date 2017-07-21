@@ -16,10 +16,7 @@ from . import cookie
 from .config import Config
 from jinja2 import Environment, PackageLoader
 from chameleon import PageTemplateLoader
-try:
-	import xmlrpc.client as xmlrpclib
-except ImportError:
-	import xmlrpclib
+import xmlrpc.client as xmlrpclib
 
 class AuthorizedUser:
 	def __init__ (self, user, realm, info = None):
@@ -62,11 +59,14 @@ class Saddle (part.Part):
 		
 		self.reloadables = {}
 		self.last_reloaded = time.time ()
-		self.cached_paths = {}
-		self.handlers = {}		
+		self.cached_paths = {}		
 		self.cached_rules = []
 		self.config = Config (preset = True)
 	
+	def set_devel (self, debug = True, use_reloader = True):
+		self.debug = debug
+		self.use_reloader = use_reloader
+		
 	def skito_jinja (self):
 		self.jinja_overlay ("${", "}", "<%", "%>", "<!---", "--->")
 
@@ -85,52 +85,29 @@ class Saddle (part.Part):
 		from .patches import jinjapatch
 		self.jinja_env = jinjapatch.overlay (self.app_name, variable_start_string, variable_end_string, block_start_string, block_end_string, comment_start_string, comment_end_string, line_statement_prefix, line_comment_prefix, **karg)
 	
-	def get_error_page (self, error):
-		handler = self.handlers.get (error ['code'])
-		if not handler:
-			return
-		return handler [0](the_was._get (), error)
-		
-	def add_error_handler (self, errcode, f, **k):
-		self.handlers [errcode] = (f, k)		
-		
-	def errorhandler (self, errcode, **k):
-		def decorator(f):
-			self.add_error_handler (errcode, f, **k)
-		return decorator
-		
-	def watch (self, module):
-		self.reloadables [module] = self.get_file_info (module)
-	
-	def maybe_reload (self):
-		if time.time () - self.last_reloaded < 1.0:
-			return
+	def render (self, was, template_file, _do_not_use_this_variable_name_ = {}, **karg):
+		while template_file and template_file [0] == "/":
+			template_file = template_file [1:]	
+
+		if _do_not_use_this_variable_name_: 
+			assert not karg, "Can't Use Dictionary and Keyword Args Both"
+			karg = _do_not_use_this_variable_name_
+
+		karg ["was"] = was		
+		template = self.get_template (template_file)
+		self.when_got_template (was, template, karg)
 			
-		for module in list (self.reloadables.keys ()):			
-			try:
-				fi = self.get_file_info (module)
-			except FileNotFoundError:
-				del self.reloadables [module]
-				continue
-				
-			if self.reloadables [module] != fi:				
-				importer.reloader (module)
-				self.reloadables [module] = fi
-		
-		self.last_reloaded = time.time ()
-		
-	def get_file_info (self, module):		
-		stat = os.stat (module.__file__)
-		return stat.st_mtime, stat.st_size
+		rendered = template.render (**karg)
+		self.when_template_rendered (was, template, karg, rendered)
+		return rendered
+					
+	def get_template (self, name):
+		if name.endswith ('.pt') or name [-5:] == ".ptal":
+			return self.chameleon [name]
+		return self.jinja_env.get_template (name)		
 	
-	def get_resource (self, *args):
-		return os.path.join (self.home, "resources", *args)
+	#------------------------------------------------------
 	
-	PACKAGE_DIRS = ["package", "appack", "contrib"]
-	def add_package (self, *names):
-		for name in names:
-			self.PACKAGE_DIRS.append (name)
-		
 	def set_home (self, path):
 		self.home = path
 		self.chameleon = PageTemplateLoader (
@@ -156,6 +133,40 @@ class Saddle (part.Part):
 					if modpath.startswith (package_dir):						
 						self.watch (v)
 						break
+								
+	def get_resource (self, *args):
+		return os.path.join (self.home, "resources", *args)
+	
+	#------------------------------------------------------
+		
+	def watch (self, module):
+		self.reloadables [module] = self.get_file_info (module)
+	
+	def maybe_reload (self):
+		if time.time () - self.last_reloaded < 1.0:
+			return
+			
+		for module in list (self.reloadables.keys ()):			
+			try:
+				fi = self.get_file_info (module)
+			except FileNotFoundError:
+				del self.reloadables [module]
+				continue
+				
+			if self.reloadables [module] != fi:				
+				importer.reloader (module)
+				self.reloadables [module] = fi
+		
+		self.last_reloaded = time.time ()
+		
+	def get_file_info (self, module):		
+		stat = os.stat (module.__file__)
+		return stat.st_mtime, stat.st_size
+	
+	PACKAGE_DIRS = ["package", "appack", "contrib"]
+	def add_package (self, *names):
+		for name in names:
+			self.PACKAGE_DIRS.append (name)
 	
 	#----------------------------------------------
 	
@@ -179,7 +190,7 @@ class Saddle (part.Part):
 		return outer
 			
 	def emit (self, event, *args, **kargs):
-		self.bus.emit (event, self._was, *args, **kargs)
+		self.bus.emit (event, the_was._get (), *args, **kargs)
 	
 	#-----------------------------------------------
 	
@@ -204,28 +215,7 @@ class Saddle (part.Part):
 			self.bus.remove_event (fname.__name__, event)
 		
 	#----------------------------------------------
-				
-	def render (self, was, template_file, _do_not_use_this_variable_name_ = {}, **karg):
-		while template_file and template_file [0] == "/":
-			template_file = template_file [1:]	
-
-		if _do_not_use_this_variable_name_: 
-			assert not karg, "Can't Use Dictionary and Keyword Args Both"
-			karg = _do_not_use_this_variable_name_
-
-		karg ["was"] = was		
-		template = self.get_template (template_file)
-		self.when_got_template (was, template, karg)
-			
-		rendered = template.render (**karg)
-		self.when_template_rendered (was, template, karg, rendered)
-		return rendered
-					
-	def get_template (self, name):
-		if name.endswith ('.pt') or name [-5:] == ".ptal":
-			return self.chameleon [name]
-		return self.jinja_env.get_template (name)		
-			
+	
 	def get_www_authenticate (self):
 		if self.authorization == "basic":
 			return 'Basic realm="%s"' % self.realm
@@ -235,7 +225,7 @@ class Saddle (part.Part):
 			return 'Digest realm="%s", qop="auth", nonce="%s", opaque="%s"' % (
 				self.realm, http_util.md5uniqid (), self.opaque
 			)
-	
+			
 	def get_password (self, user):
 		info = self.users.get (user)
 		if not info:
@@ -334,10 +324,6 @@ class Saddle (part.Part):
 		elif www_authenticate:
 			request.user = www_authenticate				
 		return True
-	
-	def set_devel (self, debug = True, use_reloader = True):
-		self.debug = debug
-		self.use_reloader = use_reloader
 	
 	def get_collector (self, request):
 		ct = request.get_header ("content-type")
@@ -446,9 +432,8 @@ class Saddle (part.Part):
 		
 		return current_app, method, kargs, options, resp_code
 	
-	def restart (self, wasc, route):
-		self.start (wasc, route, self.packages)
-			
+	#------------------------------------------------------
+	
 	def create_on_demand (self, was, name):
 		class G: 
 			pass

@@ -1,14 +1,11 @@
 import re, sys
 from functools import wraps
-try:
-	from urllib.parse import unquote_plus, quote_plus, urljoin
-except ImportError:
-	from urllib import unquote_plus, quote_plus
-	from urlparse import urljoin
+from urllib.parse import unquote_plus, quote_plus, urljoin
 import os
 from aquests.lib import importer, strutil
 from types import FunctionType as function
 import inspect
+from skitai import was as the_was
 			
 RX_RULE = re.compile ("(/<(.+?)>)")
 
@@ -16,8 +13,7 @@ class Part:
 	def __init__ (self, *args, **kargs):			
 		self.module = None
 		self.packagename = None
-		self.wasc = None		
-		self.packages = {}
+		self.wasc = None				
 		
 		self.logger = None
 		self.mount_p = "/"
@@ -27,6 +23,7 @@ class Part:
 		self._binds_server = [None] * 3
 		self._binds_request = [None] * 4
 		self._binds_when = [None] * 5		
+		self.handlers = {}		
 				
 	def set_mount_point (self, mount):	
 		if not mount:
@@ -114,6 +111,26 @@ class Part:
 	def message_flashed (self, f):
 		self._binds_when [2] = f
 		return f
+	
+	#------------------------------------------------------
+		
+	def get_error_page (self, error):
+		handler = self.handlers.get (error ['code'])
+		if not handler:
+			return
+		return handler [0] (the_was._get (), error)
+		
+	def add_error_handler (self, errcode, f, **k):
+		self.handlers [errcode] = (f, k)		
+		
+	def errorhandler (self, errcode, **k):
+		def decorator(f):
+			self.add_error_handler (errcode, f, **k)
+			@wraps(f)
+			def wrapper (*args, **kwargs):
+				return f (*args, **kwargs)
+			return wrapper			
+		return decorator
 		
 	#----------------------------------------------
 	# Event Binding
@@ -167,11 +184,6 @@ class Part:
 		url = self.url_for (thing, *args, **kargs)
 		if url:
 			return url			
-		
-		for p in self.packages:
-			url = self.packages [p].build_url (thing, *args, **kargs)
-			if url:
-				return url
 					
 	#----------------------------------------------
 	# Routing
@@ -184,17 +196,12 @@ class Part:
 				return f (*args, **kwargs)
 			return wrapper
 		return decorator
-		
+			
 	def get_route_map (self):
 		return self.route_map
 	
 	def set_route_map (self, route_map):
 		self.route_map = route_map
-	
-	def mount (self, mount, module, partname = "app"):
-		part = getattr (module, partname)
-		part.init (module, partname, self.mount_p [:-1] + mount)
-		self.packages [id (part)] = part
 									
 	def try_rule (self, path_info, rule, rulepack):
 		f, n, l, a, c, s, options = rulepack
@@ -305,24 +312,6 @@ class Part:
 			else:	
 				matchtype = 1
 				options = current_rule [-1]
-			
-		# 2nd, try find in sub packages		
-		if method is None and self.packages:
-			for pid in list (self.packages.keys ()):
-				package = self.packages [pid]
-				subapp = getattr (package.module, package.packagename)
-								
-				if use_reloader and subapp.is_reloadable ():
-					del self.packages [pid]
-					args, its_packages = (package.mount_p, package.module, package.packagename), package.packages
-					subapp.reload_package ()
-					self.mount (*args)
-					package.start (self.wasc, self.route, its_packages)
-					subapp = getattr (package.module, package.packagename)
-										
-				app, method, kargs, options, match, matchtype = subapp.get_package_method (path_info, method, content_type, authorization, use_reloader)				
-				if method:
-					break
 		
 		if method is None:
 			return None, None, None, None, None, 0
@@ -338,25 +327,18 @@ class Part:
 	def cleanup (self):
 		# initing app & packages		
 		self._binds_server [2] and self._binds_server [2] (self.wasc)
-		for p in list (self.packages.values ()):
-			p.cleanup ()
 			
-	def start (self, wasc, route, packages = None):
+	def start (self, wasc, route):
 		self.wasc = wasc
 		if not route: 
 			self.route = "/"
 		elif not route.endswith ("/"):			
 			self.route = route + "/"
 		else:
-			self.route = route
+			self.route = route			
+		# initing app
+		self._binds_server [0] and self._binds_server [0] (self.wasc)
+	
+	def restart (self, wasc, route):
+		self.start (wasc, route)
 			
-		if packages is None:
-			# initing app & packages
-			self._binds_server [0] and self._binds_server [0] (self.wasc)
-			for p in list (self.packages.values ()):
-				p.start (self.wasc, route)
-				
-		else:
-			self._binds_server [1] and self._binds_server [1] (self.wasc)
-			self.packages = packages
-

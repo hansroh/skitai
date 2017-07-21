@@ -184,8 +184,7 @@ class Executor:
 			raise
 		
 		self.commit ()		
-		# clean was
-		self.was.app._was = None
+		# clean was		
 		del self.was.env
 		del self.was.subapp
 		return content
