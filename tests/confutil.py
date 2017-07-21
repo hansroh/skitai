@@ -1,23 +1,86 @@
-from aquests.protocols.http import http_util, request, response
-from skitai.server.http_request import http_request
 import pytest, os
-from skitai.server.wastuff import triple_logger
-from skitai.server.http_server import http_server, http_channel
-from skitai.server.handlers import pingpong_handler
 from mock import MagicMock
 import socket
+import multiprocessing, threading
+from base64 import b64encode
+
+from aquests.lib.athreads import threadlib
+from aquests.protocols.http import http_util, request, response
 from aquests.protocols.grpc import request as grpc_request
 from aquests.protocols.ws import request as ws_request, response as ws_response
-from skitai.server import wsgiappservice
-import multiprocessing
-from skitai.server.handlers.websocket import servers as websocekts
-import threading
+
 import skitai
 from skitai import was as the_was
-from aquests.lib.athreads import threadlib
-from base64 import b64encode
+from skitai.server.http_request import http_request
+from skitai.server.wastuff import triple_logger
+from skitai.server.http_server import http_server, http_channel
+from skitai.server.handlers import pingpong_handler, proxy_handler
+from skitai.server import wsgiappservice
+from skitai.server.handlers.websocket import servers as websocekts
 from skitai.server.handlers import vhost_handler
 
+#---------------------------------------------
+
+def getroot ():
+	return os.path.join (os.path.dirname (__file__), "examples")	
+	
+def rprint (*args):
+	print ('++++++++++', *args)
+
+def assert_request (h, r, expect_code):
+	assert h.match (r)	
+	h.handle_request (r)
+	if r.command in ('post', 'put', 'patch'):
+		r.collector.collect_incoming_data (r.payload)
+		r.collector.found_terminator ()			
+	result = r.channel.socket.getvalue ()
+	header, payload = result.split (b"\r\n\r\n", 1)
+	resp = response.Response (request, header.decode ("utf8"))
+	resp.collect_incoming_data (payload)
+	#rprint (result)
+	assert resp.status_code == expect_code
+	return resp
+
+#---------------------------------------------
+
+def clear_handler (wasc):
+	# reset handler
+	wasc.httpserver.handlers = []
+	
+def install_vhost_handler (wasc, apigateway = 0, apigateway_authenticate = 0):
+	clear_handler (wasc)			
+	static_max_ages = {"/img": 3600}	
+	enable_apigateway = apigateway
+	apigateway_authenticate = apigateway_authenticate 
+	apigateway_realm = "Pytest"
+	apigateway_secret_key = "secret-pytest"	
+	
+	vh = wasc.add_handler (
+		1, 
+		vhost_handler.Handler, 
+		wasc.clusters, 
+		wasc.cachefs, 
+		static_max_ages,
+		enable_apigateway,
+		apigateway_authenticate,
+		apigateway_realm,
+		apigateway_secret_key
+	)	
+	return vh
+
+def install_proxy_handler (wasc):
+	clear_handler (wasc)
+	h = wasc.add_handler (
+		1, 
+		proxy_handler.Handler, 
+		wasc.clusters, 
+		wasc.cachefs, 
+		False
+	)	
+	return h
+
+#---------------------------------------------
+	
 def logger ():
 	return triple_logger.Logger ("screen", None)	
 	
@@ -49,6 +112,18 @@ def channel ():
 	c.connected = True
 	return c
 
+def disable_threads ():	
+	[the_was.queue.put (None) for each in range (the_was.numthreads)]
+	the_was.queue = None
+	the_was.threads = None
+	the_was.numthreads = 0
+
+def enable_threads (numthreads = 1):
+	queue = threadlib.request_queue2 ()
+	the_was.queue =  queue
+	the_was.threads = threadlib.thread_pool (queue, numthreads, wasc.logger.get ("server"))
+	the_was.numthreads = numthreads
+	
 wasc = wsgiappservice.WAS
 wasc.register ("logger", logger ())
 wasc.register ("httpserver", server ())
@@ -63,19 +138,9 @@ websocekts.start_websocket (wasc)
 wasc.register ("websockets", websocekts.websocket_servers)
 wasc.numthreads = 0
 skitai.start_was (wasc)
-	
-def disable_threads ():	
-	[the_was.queue.put (None) for each in range (the_was.numthreads)]
-	the_was.queue = None
-	the_was.threads = None
-	the_was.numthreads = 0
 
-def enable_threads (numthreads = 1):
-	queue = threadlib.request_queue2 ()
-	the_was.queue =  queue
-	the_was.threads = threadlib.thread_pool (queue, numthreads, wasc.logger.get ("server"))
-	the_was.numthreads = numthreads
-			
+#---------------------------------------------
+
 DEFAULT_HEADERS = {
 	"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
 	"Accept-Encoding": "gzip, deflate, br",
@@ -164,46 +229,3 @@ class Client:
 			
 client = Client ()
 
-def install_vhost_handler (wasc, apigateway = 0, apigateway_authenticate = 0):
-	# reset handler
-	wasc.httpserver.handlers = []
-		
-	static_max_ages = {"/img": 3600}	
-	enable_apigateway = apigateway
-	apigateway_authenticate = apigateway_authenticate 
-	apigateway_realm = "Pytest"
-	apigateway_secret_key = "secret-pytest"	
-	
-	vh = wasc.add_handler (
-		1, 
-		vhost_handler.Handler, 
-		wasc.clusters, 
-		wasc.cachefs, 
-		static_max_ages,
-		enable_apigateway,
-		apigateway_authenticate,
-		apigateway_realm,
-		apigateway_secret_key
-	)	
-	return vh
-
-def getroot ():
-	return os.path.join (os.path.dirname (__file__), "examples")	
-	
-def rprint (*args):
-	print ('++++++++++', *args)
-
-def assert_request (h, r, expect_code):
-	assert h.match (r)	
-	h.handle_request (r)
-	if r.command in ('post', 'put', 'patch'):
-		r.collector.collect_incoming_data (r.payload)
-		r.collector.found_terminator ()			
-	result = r.channel.socket.getvalue ()
-	header, payload = result.split (b"\r\n\r\n", 1)
-	resp = response.Response (request, header.decode ("utf8"))
-	resp.collect_incoming_data (payload)
-	#rprint (result)
-	assert resp.status_code == expect_code
-	return resp
-	

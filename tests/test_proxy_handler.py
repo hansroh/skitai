@@ -4,7 +4,6 @@ from skitai.server.handlers import vhost_handler
 import skitai
 import os
 	
-def test_proxypass_handler (wasc, app):
-	vh = confutil.install_vhost_handler (wasc)
+def test_proxy_handler (wasc, app):
+	ph = confutil.install_proxy_handler (wasc)
 	
-
