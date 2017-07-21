@@ -4,7 +4,8 @@ import os
 import sys
 from . import part, multipart_collector, cookie, session, grpc_collector, ws_executor
 from . import wsgi_executor, xmlrpc_executor, grpc_executor
-from aquests.lib import producers, importer
+from aquests.lib import producers, importer, evbus
+from functools import wraps
 from aquests.protocols.grpc import discover
 from aquests.protocols.http import http_util
 from skitai import was as the_was
@@ -53,6 +54,11 @@ class Saddle (part.Part):
 		self.jinja_env = Environment (loader = PackageLoader (app_name)) or None
 		self.chameleon = None
 		self.lock = threading.RLock ()
+		
+		self.bus = evbus.EventBus ()
+		self.events = []
+		# for bus, set by wsgi_executor
+		self._was = None
 		
 		self.reloadables = {}
 		self.last_reloaded = time.time ()
@@ -150,7 +156,55 @@ class Saddle (part.Part):
 					if modpath.startswith (package_dir):						
 						self.watch (v)
 						break
+	
+	#----------------------------------------------
+	
+	def on (self, event):
+		def decorator(f):
+			self.bus.add_event (f, event)
+			@wraps(f)
+			def wrapper(*args, **kwargs):
+				return f (*args, **kwargs)
+			return wrapper
+		return decorator
+		
+	def emit_after (self, event):
+		def outer (f):
+			@wraps (f)
+			def wrapper(*args, **kwargs):
+				returned = f (*args, **kwargs)
+				self.emit (event)
+				return returned
+			return wrapper
+		return outer
 			
+	def emit (self, event, *args, **kargs):
+		self.bus.emit (event, self._was, *args, **kargs)
+	
+	#-----------------------------------------------
+	
+	def listen (self, event):
+		def decorator(f):
+			self.add_event (event, f)
+			@wraps(f)
+			def wrapper(*args, **kwargs):
+				return f (*args, **kwargs)
+			return wrapper
+		return decorator
+	
+	def add_event (self, event, f):
+		self.events.append ((f, event))
+	
+	def commit_events_to (self, broad_bus):
+		for fname, event in self.events:
+			broad_bus.add_event (fname, event)
+		
+	def remove_events (self):
+		for fname, event in self.events:
+			self.bus.remove_event (fname.__name__, event)
+		
+	#----------------------------------------------
+				
 	def render (self, was, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		while template_file and template_file [0] == "/":
 			template_file = template_file [1:]	

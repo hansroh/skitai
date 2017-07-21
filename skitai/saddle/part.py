@@ -6,7 +6,7 @@ except ImportError:
 	from urllib import unquote_plus, quote_plus
 	from urlparse import urljoin
 import os
-from aquests.lib import importer, strutil, evbus
+from aquests.lib import importer, strutil
 from types import FunctionType as function
 import inspect
 			
@@ -18,8 +18,7 @@ class Part:
 		self.packagename = None
 		self.wasc = None		
 		self.packages = {}
-		self.events = []
-		self.bus = evbus.EventBus ()
+		
 		self.logger = None
 		self.mount_p = "/"
 		self.path_suffix_len = 0
@@ -28,8 +27,6 @@ class Part:
 		self._binds_server = [None] * 3
 		self._binds_request = [None] * 4
 		self._binds_when = [None] * 5		
-		# for bus, set by wsgi_executor
-		self._was = None
 				
 	def set_mount_point (self, mount):	
 		if not mount:
@@ -74,7 +71,7 @@ class Part:
 		self.file_info = (stat.st_mtime, stat.st_size)
 	
 	#----------------------------------------------
-	# Event Bus
+	# App Decorators
 	#----------------------------------------------
 	def startup (self, f):
 		self._binds_server [0] = f
@@ -117,28 +114,6 @@ class Part:
 	def message_flashed (self, f):
 		self._binds_when [2] = f
 		return f
-	
-	def on (self, event):
-		def decorator(f):
-			self.bus.add_event (f, event)
-			@wraps(f)
-			def wrapper(*args, **kwargs):
-				return f (*args, **kwargs)
-			return wrapper
-		return decorator
-		
-	def emit_after (self, event):
-		def outer (f):
-			@wraps (f)
-			def wrapper(*args, **kwargs):
-				returned = f (*args, **kwargs)
-				self.emit (event)
-				return returned
-			return wrapper
-		return outer
-			
-	def emit (self, event, *args, **kargs):
-		self.bus.emit (event, self._was, *args, **kargs)
 		
 	#----------------------------------------------
 	# Event Binding
@@ -197,30 +172,6 @@ class Part:
 			url = self.packages [p].build_url (thing, *args, **kargs)
 			if url:
 				return url
-	
-	#----------------------------------------------
-	# Event Bus
-	#----------------------------------------------		
-	def set_bus (self, bus):
-		self.bus = bus
-		for fname, event in self.events:
-			self.bus.add_event (fname, event)
-		
-	def add_events (self, event, f):
-		self.events.append ((f, event))
-	
-	def remove_events (self):
-		for fname, event in self.events:
-			self.bus.remove_event (fname.__name__, event)
-		
-	def listen (self, event):
-		def decorator(f):
-			self.add_events (event, f)
-			@wraps(f)
-			def wrapper(*args, **kwargs):
-				return f (*args, **kwargs)
-			return wrapper
-		return decorator
 					
 	#----------------------------------------------
 	# Routing
