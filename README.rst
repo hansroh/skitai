@@ -3215,179 +3215,49 @@ If authorization is successful, app can access username and userinfo vi was.requ
 If your server run with SSL, you can use app.authorization = "basic", otherwise recommend using "digest" for your password safety.
 
 
-Building for Larger App
--------------------------
+Building Larger Scale App
+---------------------------
 
-You have 2 options for extending your app scale.
+*Saddlery deprecated in version 0.26.11*
 
-1. Mount multiple microservices
-2. Mount saddlery on Saddle
+Skitai recommend your big service into seperated micro-apps.
 
-Mount Multiple Microservices
-`````````````````````````````
-
-I personally recommend this way by current developing trend.
+app.py is starter script by importing skitai and mounting multiple apps.
 
 .. code:: python
   
   import skitai    
   
-  skitai.run (
-    mount = [
-      ('/service', ('/service/app', 'app')),
-      ('/service/trade', ('/service/trade/app', 'app')),
-      ('/service/intro', ('/service/intro/app', 'app')),
-      ('/service/admin', ('/service/admin/app', 'app')),
-      ('/', '/service/static')
-    ]
-  )
+  pref = skitai.pref ()
+  pref.use_reloader = True
+  
+  skitai.mount ('/', 'static')
+  skitai.mount ('/', 'index.py', 'app', pref)
+  skitai.mount ('/admin', 'admin.py', 'app', pref)
+  skitai.mount ('/trade', 'trade.py', 'app', pref)  
+  skitai.run ()  
 
-And your pysical directory structure is,
+And your pysical directory structure including app.py is,
 
 .. code:: bash
 
-  /service/app.py
-  /service/templates/*.html
-  /service/apppackages/*.py
+  templates/layout/*.html # for shared layout templates
+  templates/*.html
   
-  /service/trade/app.py
-  /service/trade/templates/*.html  
-  /service/trade/apppackages/*.py
+  packages/*.py # app library, all modules in this directory will be watched for reloading
   
-  /service/intro/app.py
-  /service/intro/templates/*.html
-  /service/intro/apppackages/*.py
+  static/images # static files
+  static/js
+  static/css
   
-  /service/admin/app.py
-  /service/admin/templates/*.html
-  /service/admin/apppackages/*.py
-  
-  /service/static/images
-  /service/static/js
-  /service/static/css
+  app.py # this is starter script
+  index.py
+  trade.py  
+  admin.py
   
 This structure make highly focus on each microservices and make easy to move or apply scaling by serivce traffic increment.
 
-
-Mount Saddlery On Saddle
-``````````````````````````
-
-This is like BluePrint of Flask.
-
-If your app is very large or want to manage codes by categories, you can seperate your app.
-
-admin.py
-  
-.. code:: python
-
-  from skitai.saddle import Saddlery
-  part = Saddlery ()
-  
-  @part.route ("/<name>")
-  def hello (was):
-    # can build other module's method url
-    return was.ab ("index", 1, 2) 
-
-app.py
-
-.. code:: python
-
-  from skitai.saddle import Saddle
-  from . import admin
-  
-  app = Saddle (__name__)
-  app.debug = True
-  app.use_reloader = True  
-  app.mount ("/admin", admin, "part")
-  
-  @app.route ("/")
-  def index (was, num1, num2):  
-    return was.ab ("hello", "Hans Roh") # url building
-        
-Now, hello function's can be accessed by '/[app mount point]/admin/Hans_Roh'.
-  
-App's configs like debug & use_reloader, etc, will be applied to packages except decorators.
-
-*Note:* was.app is always main Saddle app NOT current Saddlery sub app.
-
-Saddlery can have own sub saddlery and decorators.
-
-.. code:: python
-  
-  from skitai.saddle import Saddlery
-  from . import admin_sub
-  
-  part = Saddlery () # mount point
-  # Saddlery also can have sub Saddlery
-  part.mount ("/admin/sub", admin_sub, "app")
-  
-  @part.startup
-  def startup (wac):
-    wac.register ("loginengine", SNSLoginEngine ())
-    wac.register ("searcher", FulltextSearcher ())    
-  
-  @part.shutdown    
-  def shutdown (wac):
-    wac.searcher.close ()
-        
-    wac.unregister ("loginengine")
-    wac.unregister ("searcher")
-    
-  @part.before_request
-  def before_request (was):
-    if not login ():
-      return "Not Authorized"
-  
-  @part.teardown_request
-  def teardown_request (was):
-    was.g.resouce.close ()
-    ...
-  
-  @part.route ("/<name>")
-  def hello (was):
-    # can build other module's method url
-    return was.ab ("index", 1, 2) 
-
-In this case, app and sub-app's method decorators are nested executed in this order.
-
-.. code:: python
-
-  app.before_request()
-    sub-app.before_request()
-      hello()
-    sub-app.finish_request() or package.failed_request()
-    sub-app.teardown_request ()
-  app.finish_request() or app.failed_request()
-  app.teardown_request ()
-
-
-**Saddlery and Jinja2 Templates**
-
-was.render (template_path) always find templates directory where app.py exists, even if admin.py is located in sub directory with package form. This is somewhat conflicated but I think it's more easier way to maintain template files and template include policy. Remeber one app can have one templates directoty. But you can seperate into templates files by sub directory. For example:
-
-.. code:: python
-
-  /app.py
-  /admin.py
-  /members/__init__.py
-  /static
-  /templates/includes/header.html  
-  /templates/includes/footer.html
-  /templates/app/index.html  
-  /templates/admin/index.html
-  /templates/members/index.html
-
-But if you want to use independent templates under own templates directory:
-
-.. code:: python
-
-  from skitai.saddle import Saddlery
-  
-  part = Saddlery (__name__)
-  
-  @part.route ("/<name>")
-  def hello (was):
-    return was.render2 ("show.htm", name = name)
+For communicating between apps using events, URL building and accessing another app, please refer previous chapters.
 
 
 Implementing XMLRPC Service
@@ -3514,6 +3384,7 @@ Change Log
   
   - 0.26.10
     
+    - start making pytest scripts
     - add was-wide broadcast event bus: @app.listen (event), was.broadcast (event, args...) and @was.broadcast_after (event)
     - add app-wide event bus: @app.on (event), was.emit (event, args...) and @was.emit_after (event)
     - remove @app.listento (event) and was.emit (event, args...)

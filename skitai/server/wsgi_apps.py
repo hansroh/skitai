@@ -51,8 +51,8 @@ class Module:
 		
 		if hasattr (app, "set_home"):
 			app.set_home (os.path.dirname (self.abspath))
-		if hasattr (app, "set_bus"):
-			app.set_bus (self.bus)
+		if hasattr (app, "register_events"):
+			app.commit_events_to (self.bus)
 		
 		self.set_devel_env ()
 		self.update_file_info ()
@@ -86,7 +86,7 @@ class Module:
 		except AttributeError: pass
 
 	def update_file_info (self):
-		if self.app:
+		if self.module is None:
 			# app directly mounted
 			return
 		stat = os.stat (self.abspath)
