@@ -78,6 +78,9 @@ class ProxyResponse (http_response.Response):
 		self.asyncon.handle_abort ()		
 		self.done ()
 		#self.asyncon.handle_close (710, "Channel Closed")
+	
+	def get_size (self):
+		return -1
 		
 	def ready (self):
 		#print ('====== READYU', len (self.u), self.got_all_data)

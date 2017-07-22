@@ -20,6 +20,6 @@ def index (was):
 
 if __name__ == "__main__":
 	import skitai
-	skitai.mount = ("/", app)
+	skitai.mount ("/", app)
 	skitai.run ()
 	

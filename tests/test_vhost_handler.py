@@ -18,6 +18,11 @@ def test_default_handler (wasc):
 	resp = assert_request (vh, request, 200)
 	assert resp.get_header ('cache-control')
 	
+	request = client.get ("http://www.skitai.com/img/reindeer.jpg", version = "2.0")
+	resp = assert_request (vh, request, 200)
+	assert resp.get_header ('cache-control')
+	
+	
 def test_wsgi_handler (wasc, app):
 	@app.route ("/")
 	def index (was):
@@ -37,6 +42,10 @@ def test_wsgi_handler (wasc, app):
 	resp = assert_request (vh, request, 200)	
 	assert resp.text == "Hello"
 	
+	request = client.get ("http://www.skitai.com/", version = "2.0")	
+	resp = assert_request (vh, request, 200)	
+	assert resp.text == "Hello"
+	
 	request = client.get ("http://www.skitai.com/a")	
 	resp = assert_request (vh, request, 404)
 	
@@ -53,6 +62,9 @@ def test_wsgi_handler (wasc, app):
 	request = client.post ("http://www.skitai.com/json", {'a': 1})	
 	resp = assert_request (vh, request, 200)
 	
+	request = client.post ("http://www.skitai.com/json", {'a': 1}, version = "2.0")	
+	resp = assert_request (vh, request, 200)
+	
 	confutil.disable_threads ()
 	assert wasc.numthreads == 0
 	assert wasc.threads is None
@@ -60,4 +72,6 @@ def test_wsgi_handler (wasc, app):
 	request = client.post ("http://www.skitai.com/json", {'a': 1})	
 	resp = assert_request (vh, request, 200)
 	
+	request = client.post ("http://www.skitai.com/json", {'a': 1}, version = "2.0")	
+	resp = assert_request (vh, request, 200)
 	

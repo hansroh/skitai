@@ -201,7 +201,7 @@ class Handler:
 				)
 			else:					
 				request.response.push (producers.file_producer (
-					self.filesystem.open (path, 'rb'))
+					self.filesystem.open (path, 'rb'), proxsize = file_length)					
 				)
 		request.response.done()
 	

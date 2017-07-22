@@ -2,7 +2,6 @@ from skitai.server import http_response
 from aquests.lib import producers
 from h2.errors import CANCEL, PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
 import time
-	
 
 class response (http_response.http_response):	
 	def __init__ (self, request):
@@ -68,11 +67,17 @@ class response (http_response.http_response):
 			if do_optimize and not self.has_key ('Content-Encoding'):
 				way_to_compress = ""			
 				maybe_compress = self.request.get_header ("Accept-Encoding")
-				if maybe_compress and self.has_key ("content-length") and int (self ["Content-Length"]) <= http_response.UNCOMPRESS_MAX:
-					maybe_compress = ""
-				else:	
-					content_type = self ["Content-Type"]
-					if maybe_compress and content_type and (content_type.startswith ("text/") or content_type.endswith ("/json-rpc")):
+				
+				if maybe_compress:
+					cl = self.has_key ("content-length") and int (self.get ("Content-Length")) or -1
+					if cl == -1:
+						cl = self.outgoing.get_estimate_content_length ()
+					if 0 < cl <= http_response.UNCOMPRESS_MAX:
+						maybe_compress = ""
+					
+				if maybe_compress:
+					content_type = self.get ("Content-Type")
+					if maybe_compress and content_type and (content_type.startswith ("text/") or content_type.startswith ("application/json")):
 						accept_encoding = [x.strip () for x in maybe_compress.split (",")]
 						if "gzip" in accept_encoding:
 							way_to_compress = "gzip"

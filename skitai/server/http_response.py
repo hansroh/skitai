@@ -14,6 +14,7 @@ except ImportError:
 	from urlparse import urljoin	
 
 UNCOMPRESS_MAX = 2048
+ONETIME_COMPRESS_MAX = 1048576
 
 # Default error message
 DEFAULT_ERROR_MESSAGE = """<!DOCTYPE html>
@@ -303,7 +304,7 @@ class http_response:
 			self.outgoing.push (producers.simple_producer (thing))
 		else:			
 			self.outgoing.push (thing)
-	      					
+			    					
 	def done (self, force_close = False, upgrade_to = None, with_header = 1):
 		if not self.is_responsable (): return
 		self._is_done = True
@@ -372,15 +373,18 @@ class http_response:
 			maybe_compress = self.request.get_header ("Accept-Encoding")
 			if maybe_compress:
 				cl = self.has_key ("content-length") and int (self.get ("Content-Length")) or -1
+				if cl == -1:
+					cl = self.outgoing.get_estimate_content_length ()
+					
 				if 0 < cl  <= UNCOMPRESS_MAX:
 					maybe_compress = ""
-				elif not wrap_in_chunking and (cl == -1 or cl > 1024000):
-					# size unknowm or too big, do not compress
-					maybe_compress = ""	
+				elif not wrap_in_chunking and cl > ONETIME_COMPRESS_MAX:
+					# too big for memory, do not compress
+					maybe_compress = ""
 			
 			if maybe_compress:
 				content_type = self.get ("Content-Type")
-				if content_type and (content_type.startswith ("text/") or content_type.endswith ("/json-rpc")):
+				if content_type and (content_type.startswith ("text/") or content_type.startswith ("application/json")):
 					accept_encoding = [x.strip () for x in maybe_compress.split (",")]
 					if "gzip" in accept_encoding:
 						way_to_compress = "gzip"
@@ -462,7 +466,7 @@ class http_response:
 			if close_it:
 				self.request.channel.close_when_done ()
 		except:			
-			logger.trace ()			
+			logger.trace ()
 						
 	def log (self, bytes):				
 		self.request.channel.server.log_request (
@@ -525,4 +529,7 @@ class http_response:
 			return self.build_error_template (exc_info and catch (1, exc_info) or "")
 		return body
 	
+	def push_and_done (self, thing, *args, **kargs):
+		self.push (thing)
+		self.done (*args, **kargs)
 	

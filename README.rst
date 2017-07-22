@@ -3382,6 +3382,10 @@ Change Log
   
   0.26 (May 2017)
   
+  - 0.26.12
+    
+    - HTTP response optimized
+    
   - 0.26.10
     
     - start making pytest scripts
