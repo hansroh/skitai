@@ -3384,6 +3384,7 @@ Change Log
   
   - 0.26.12
     
+    - change default mime-type from text/plain to application/octet-stream in response header
     - HTTP response optimized
     
   - 0.26.10

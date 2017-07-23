@@ -1,7 +1,13 @@
 import pytest, os
 import confutil
 from skitai.saddle import Saddle
+from aquests.lib import commprocess, logger
 
+@pytest.fixture (scope = "module")
+def runner ():
+	p = commprocess.Process (communicate = False)
+	return p
+	
 @pytest.fixture (scope = "module")
 def app ():
 	return Saddle (__name__)

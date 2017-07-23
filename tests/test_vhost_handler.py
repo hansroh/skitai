@@ -1,8 +1,9 @@
 from confutil import client, rprint, assert_request
 import confutil
 import skitai
-import os
+import os, pytest
 
+@pytest.mark.run (order = 1)
 def test_default_handler (wasc):
 	vh = confutil.install_vhost_handler (wasc)
 	vh.add_route ("default", "/ = ./examples/statics", None)
@@ -22,7 +23,7 @@ def test_default_handler (wasc):
 	resp = assert_request (vh, request, 200)
 	assert resp.get_header ('cache-control')
 	
-	
+@pytest.mark.run (order = 2)	
 def test_wsgi_handler (wasc, app):
 	@app.route ("/")
 	def index (was):

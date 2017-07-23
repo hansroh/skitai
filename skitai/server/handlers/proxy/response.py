@@ -1,7 +1,7 @@
 from aquests.protocols.http import response as http_response, buffers
 from aquests.lib import compressors
+from aquests.lib.athreads import trigger
 import time
-
 
 class ProxyResponse (http_response.Response):
 	SIZE_LIMIT = 2**24

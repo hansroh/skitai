@@ -3,6 +3,7 @@ import skitai
 
 app = Saddle (__name__)
 
+app.access_control_allow_origin = ["*"]
 app.debug = True
 app.use_reloader = True
 app.jinja_overlay ()

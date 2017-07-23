@@ -1,8 +1,7 @@
 import confutil
 from confutil import rprint, client
-from mock import MagicMock
+
 import pytest
-from aquests.lib import commprocess, logger
 import sys, os
 import requests
 import threading
@@ -10,12 +9,7 @@ import time
 from requests.auth import HTTPDigestAuth
 import xmlrpc.client
 from examples.package import route_guide_pb2
-import aquests
 
-@pytest.fixture
-def runner ():
-	p = commprocess.Process (logger.screen_logger (), False)
-	return p
 
 def start_skitai (runner, script):
 	runner.start ([sys.executable, os.path.join (confutil.getroot (), script)])

@@ -34,10 +34,14 @@ def assert_request (h, r, expect_code):
 		r.collector.collect_incoming_data (r.payload)
 		r.collector.found_terminator ()			
 	result = r.channel.socket.getvalue ()
-	header, payload = result.split (b"\r\n\r\n", 1)
+	try:
+		header, payload = result.split (b"\r\n\r\n", 1)
+	except ValueError:
+		rprint (result)
+		raise		
 	resp = response.Response (request, header.decode ("utf8"))
 	resp.collect_incoming_data (payload)
-	#rprint (result)
+	
 	assert resp.status_code == expect_code
 	return resp
 

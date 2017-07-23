@@ -110,8 +110,6 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 			self.client_request.response.push (self.response)
 			self.client_request.response.die_with (self.response)
 			self.client_request.response.set_streaming ()			
-		
-		self.client_request.response.set_streaming ()
 		self.client_request.response.done ()
 	
 	def handle_request (self):
