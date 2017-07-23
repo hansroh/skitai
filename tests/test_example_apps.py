@@ -32,10 +32,10 @@ def assert_post_requests (expect, url, data, *args, **karg):
 	assert resp.status_code == expect
 
 def test_auth (runner):
-	start_skitai (runner, "auth.py")
+	start_skitai (runner, "app.py")
 	try:
-		assert_request (401, "/")
-		#assert_request (401, "/", auth = HTTPDigestAuth ("admin", "1111"))
+		assert_request (401, "/members/")
+		assert_request (200, "/members/", auth = HTTPDigestAuth ("admin", "1111"))
 	finally:		
 		runner.kill ()
 					
@@ -68,7 +68,7 @@ def test_app_single_thread (runner):
 	finally:		
 		runner.kill ()
 
-@pytest.mark.skip	
+#@pytest.mark.skip	
 def test_https (runner):
 	start_skitai (runner, "https.py")
 	try:

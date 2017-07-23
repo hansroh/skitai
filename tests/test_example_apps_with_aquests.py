@@ -41,17 +41,12 @@ def makeset (https = 0):
 		point = route_guide_pb2.Point (latitude=409146138, longitude=-746188906)		
 		stub.GetFeature (point)	
 
-@pytest.mark.run (order = -2)
+@pytest.mark.run (order = -1)
 def test_app (runner):
 	global ERRS
-	
 	ERRS = 0	
 	start_skitai (runner, "app.py")
 	try:
-		aquests.configure (1, callback = assert_status, force_http1 = True)
-		makeset ()
-		aquests.fetchall ()		
-		
 		aquests.configure (2, callback = assert_status, force_http1 = True)
 		[ makeset () for i in range (2) ]
 		aquests.fetchall ()	
@@ -62,9 +57,39 @@ def test_app (runner):
 	assert ERRS < 4	
 
 @pytest.mark.run (order = -1)
-def test_websocket (runner):
-	import aquests
+def test_app (runner):
+	global ERRS
 	
+	ERRS = 0	
+	start_skitai (runner, "app.py")
+	try:
+		aquests.configure (2, callback = assert_status)
+		[ makeset () for i in range (2) ]
+		aquests.fetchall ()	
+		
+	finally:
+		runner.kill ()	
+	
+	assert ERRS < 4
+
+@pytest.mark.run (order = -1)
+def test_https (runner):	
+	global ERRS
+		
+	ERRS = 0
+	start_skitai (runner, "https.py")
+	try:
+		aquests.configure (2, callback = assert_status)
+		[ makeset (1) for i in range (2) ]
+		aquests.fetchall ()	
+	
+	finally:
+		runner.kill ()	
+	
+	assert ERRS < 4
+
+@pytest.mark.run (order = -1)
+def test_websocket (runner):
 	global ERRS	
 	ERRS = 0
 	start_skitai (runner, "websocket.py")	
@@ -79,26 +104,4 @@ def test_websocket (runner):
 		runner.kill ()	
 	
 	assert ERRS == 0
-
-@pytest.mark.skip
-@pytest.mark.run (order = -1)
-def test_https (runner):	
-	global ERRS
 	
-	ERRS = 0
-	start_skitai (runner, "https.py")
-	try:			
-		aquests.configure (1, callback = assert_status)
-		makeset (1)
-		aquests.fetchall ()
-		
-		aquests.configure (2, callback = assert_status)
-		[ makeset (1) for i in range (2) ]
-		aquests.fetchall ()	
-	
-	finally:
-		runner.kill ()	
-	
-	assert ERRS < 4
-
-			
