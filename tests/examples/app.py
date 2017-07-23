@@ -62,8 +62,12 @@ def hello (was, num = 1):
 	was.response ["Content-Type"] = "text/plain"
 	return "\n".join (["hello" for i in range (int(num))])
 
+@app.route ("/redirect0")
+def redirect0 (was):	
+	return ""
+	
 @app.route ("/redirect1")
-def redirect1 (was):
+def redirect1 (was):	
 	return was.response ("301 Object Moved", "", headers = [("Location", "/redirect2")])
 
 @app.route ("/redirect2")

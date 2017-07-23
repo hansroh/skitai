@@ -3384,6 +3384,7 @@ Change Log
   
   - 0.26.12
     
+    - http_response.outgoing is replaced by deque
     - change default mime-type from text/plain to application/octet-stream in response header
     - HTTP response optimized
     

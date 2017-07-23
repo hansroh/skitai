@@ -6,6 +6,7 @@ from h2.exceptions import ProtocolError, NoSuchStreamError, StreamClosedError
 from h2.events import DataReceived, RequestReceived, StreamEnded, PriorityUpdated, ConnectionTerminated, StreamReset, WindowUpdated, RemoteSettingsChanged
 from h2.errors import CANCEL, PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
 import h2.settings
+from aquests.lib import producers
 from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
 from aquests.protocols.http2.producers import h2stream_producer, h2header_producer, h2data_producer
@@ -185,7 +186,7 @@ class http2_request_handler:
 			self.conn.push_stream (stream_id, promise_stream_id, request_headers	+ addtional_request_headers)
 		self.send_data ()
 					
-	def handle_response (self, stream_id, headers, producer, force_close = False):
+	def handle_response (self, stream_id, headers, producer, do_optimize, logfunc, force_close = False):
 		r = self.get_request (stream_id)
 		with self._clock:			
 			try:
@@ -195,19 +196,25 @@ class http2_request_handler:
 			else:
 				del self.priorities [stream_id]				
 		
-		self.channel.push_with_producer (
-			h2header_producer (stream_id, headers, producer, self.conn, self._plock)
-		)
+		hp = h2header_producer (stream_id, headers, producer, self.conn, self._plock)		
+		if not producer:
+			hp = producers.hooked_producer (hp, logfunc)			
+		self.channel.push_with_producer (hp)
 		
 		if producer:
+			producer = producers.hooked_producer (producer, logfunc)
+			if do_optimize:
+				producer = producers.globbing_producer (producer)
+				
 			if r.response.is_async_streaming ():
 				h2_class = h2stream_producer
 			else:
 				h2_class = h2data_producer
-
+			
 			outgoing_producer = h2_class (
 				stream_id, depends_on, weight, producer, self.conn, self._plock
 			)
+			
 			self.channel.push_with_producer (outgoing_producer)
 		
 		if r.is_stream_ended ():

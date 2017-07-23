@@ -3,6 +3,7 @@ from aquests.lib import producers
 from h2.errors import CANCEL, PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
 import time
 
+
 class response (http_response.http_response):	
 	def __init__ (self, request):
 		http_response.http_response.__init__ (self, request)
@@ -93,25 +94,23 @@ class response (http_response.http_response):
 					else: # deflate
 						compressing_producer = producers.compressed_producer		
 					outgoing_producer = compressing_producer (outgoing_producer)
-		
-		if outgoing_producer:
-			outgoing_producer = producers.hooked_producer (outgoing_producer, self.log)
-			if do_optimize:
-				outgoing_producer = producers.globbing_producer (outgoing_producer)				
-
+			
 		if self.request.http2 is None: return
+
 		if upgrade_to:
 			# do not change http2 channel
 			request, terminator = upgrade_to
 			self.request.channel.current_request = request
 			self.request.channel.set_terminator (terminator)
 		
-		logger = self.request.logger #IMP: for  disconnect with request		
+		logger = self.request.logger #IMP: for  disconnect with request
 		try:
 			self.request.http2.handle_response (
 				self.request.stream_id, 
 				self.build_reply_header (),
 				outgoing_producer,
+				do_optimize,
+				self.log,
 				force_close = force_close
 			)
 			

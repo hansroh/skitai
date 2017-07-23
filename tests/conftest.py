@@ -2,6 +2,12 @@ import pytest, os
 import confutil
 from skitai.saddle import Saddle
 from aquests.lib import commprocess, logger
+try:
+	import pytest_ordering
+except ImportError:
+	raise
+else:
+	del pytest_ordering	
 
 @pytest.fixture (scope = "module")
 def runner ():

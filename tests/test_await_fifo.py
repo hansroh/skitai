@@ -37,16 +37,17 @@ def fill (f, num):
 		else:
 			depends_on = random.choice ([0, random.randrange (1, i-1, 8)])	
 			if depends_on % 3 == 0:
-				depends_on = 0
-				
+				depends_on = 0				
 		f.append (producers [i % 3] (i, random.randrange (10), depends_on))
+
+TESTS = 1000
 		
 def assert_fifo (f):
-	fill (f, 300)
+	fill (f, TESTS)
 	loop = 0
 	while f:
 		first = f [0]
-		print (first)
+		#rprint (first)
 		if hasattr (first, "_ready"):			
 			assert first._ready
 			first.rand ()
@@ -55,17 +56,17 @@ def assert_fifo (f):
 			f.appendleft (first)
 		loop += 1
 	rprint (loop)	
-	return loop		
+	return loop
 	
 def test_await_fifo ():
 	for i in range (1):
-		assert_fifo (fifo.await_fifo ()) < 750
-		assert_fifo (fifo.await_ts_fifo ()) < 750
-		assert_fifo (fifo2.http2_producer_fifo ()) < 750
+		assert assert_fifo (fifo.await_fifo ()) < TESTS * 2.5
+		assert assert_fifo (fifo.await_ts_fifo ()) < TESTS * 2.5
+		assert assert_fifo (fifo2.http2_producer_fifo ()) < TESTS * 2.5
 		
 		# priority sorting test
 		f = fifo2.http2_producer_fifo ()
-		fill (f, 1000)
+		fill (f, TESTS)
 		
 		streams = []
 		prev_weight = 100000000
@@ -75,7 +76,7 @@ def test_await_fifo ():
 				continue
 			else:		
 				streams.append (p.stream_id)
-				rprint (p.stream_id, p.depends_on, p.weight)		
+				#rprint (p.stream_id, p.depends_on, p.weight)		
 				if p.depends_on:
 					assert p.depends_on in streams									
 				if prev_depends_on != p.depends_on:
