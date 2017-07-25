@@ -7,7 +7,7 @@ from skitai.server.handlers.http2.response import response as http2_response
 from mock import MagicMock
 from aquests.lib import producers
 import os
-from aquests.protocols.http2.producers import h2stream_producer, h2data_producer, h2header_producer
+from aquests.protocols.http2.producers import h2stream_producer, h2frame_producer, h2header_producer
 import threading
 from h2.connection import H2Connection
 
@@ -182,7 +182,7 @@ def test_producers ():
 	jpg = open (os.path.join (confutil.getroot (), "statics", "reindeer.jpg"), "rb")
 	conn = MagicMock ()
 	conn.data_to_send.return_value = jpg.read ()
-	p = h2data_producer (
+	p = h2frame_producer (
 		1, 0, 1, producers.file_producer (jpg), conn, threading.Lock ()
 	)			
 	response.push_and_done (p)

@@ -9,7 +9,7 @@ import h2.settings
 from aquests.lib import producers
 from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
-from aquests.protocols.http2.producers import h2stream_producer, h2header_producer, h2data_producer
+from aquests.protocols.http2.producers import h2stream_producer, h2header_producer, h2frame_producer, h2_globbing_producer
 from aquests.protocols.http2.fifo import http2_producer_fifo
 import threading
 from io import BytesIO
@@ -186,35 +186,40 @@ class http2_request_handler:
 			self.conn.push_stream (stream_id, promise_stream_id, request_headers	+ addtional_request_headers)
 		self.send_data ()
 					
-	def handle_response (self, stream_id, headers, producer, do_optimize, logfunc, force_close = False):
+	def handle_response (self, stream_id, headers, producer, do_optimize, force_close = False):
 		r = self.get_request (stream_id)
+		
 		with self._clock:			
 			try:
 				depends_on, weight = self.priorities [stream_id]
 			except KeyError:
 				depends_on, weight = 0, 1	
 			else:
-				del self.priorities [stream_id]				
+				del self.priorities [stream_id]
 		
-		hp = h2header_producer (stream_id, headers, producer, self.conn, self._plock)		
+		header_producer = h2header_producer (stream_id, headers, producer, self.conn, self._plock)				
+		
 		if not producer:
-			hp = producers.hooked_producer (hp, logfunc)			
-		self.channel.push_with_producer (hp)
-		
-		if producer:
-			producer = producers.hooked_producer (producer, logfunc)
-			if do_optimize:
-				producer = producers.globbing_producer (producer)
-				
-			if r.response.is_async_streaming ():
-				h2_class = h2stream_producer
-			else:
-				h2_class = h2data_producer
+			header_producer = producers.hooked_producer (header_producer, r.response.log)
+			self.channel.push_with_producer (header_producer)
 			
-			outgoing_producer = h2_class (
-				stream_id, depends_on, weight, producer, self.conn, self._plock
+		else:
+			if not do_optimize:
+				self.channel.push_with_producer (header_producer)
+								
+			outgoing_producer = producers.hooked_producer (producer, r.response.log)
+			if do_optimize:
+				outgoing_producer = producers.globbing_producer (outgoing_producer)				
+			
+			h2producer = r.response.is_async_streaming () and h2stream_producer or h2frame_producer
+			outgoing_producer = h2producer (
+				stream_id, depends_on, weight, outgoing_producer, self.conn, self._plock
 			)
 			
+			if do_optimize:
+				outgoing_producer = h2_globbing_producer (stream_id, depends_on, weight, producers.composite_producer (producers.fifo ([header_producer, outgoing_producer])))
+				#outgoing_producer = h2_globbing_producer (stream_id, depends_on, weight, outgoing_producer)
+				
 			self.channel.push_with_producer (outgoing_producer)
 		
 		if r.is_stream_ended ():

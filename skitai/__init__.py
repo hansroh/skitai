@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.12.1"
+__version__ = "0.26.12.3"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -482,10 +482,10 @@ def run (**conf):
 	elif cmd == "restart":
 		stop (working_dir)		
 		time.sleep (2)
-		start (working_dir)
-	elif cmd:
-		raise SystemError ('Unknown command %s' % cmd)
-			
+		start (working_dir)	
+	else:
+		cmd = None
+				
 	if cmd and os.name == "nt":
 		return
 				

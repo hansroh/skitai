@@ -8,6 +8,7 @@ from aquests.lib.athreads import threadlib
 from aquests.protocols.http import http_util, request, response
 from aquests.protocols.grpc import request as grpc_request
 from aquests.protocols.ws import request as ws_request, response as ws_response
+from aquests.dbapi import request as dbo_request
 
 import skitai
 from skitai import was as the_was
@@ -218,7 +219,22 @@ class Client:
 		hr = self.geneate (r)	
 		hr.set_body (self.serialize (r.get_payload ()))
 		return hr
+		
+	def make_dbo (self, dbtype, server, dbname = None, auth = None, method = None, params = None, callback = None, meta = {}):
+		return dbo_request.Request (dbtype, server, dbname, auth, method, params, callback, meta)
 	
+	def postgresql (self, server, dbname, *args, **kargs):
+		return self.make_dbo ('postgresql', server, dbname, *args, **kargs)
+	
+	def mongdb (self, serverr, dbname, *args, **kargs):
+		return self.make_dbo ('mongodb', serverr, dbname, *args, **kargs)
+	
+	def sqlite3 (self, server, *args, **kargs):
+		return self.make_dbo ('sqlite3', server, *args, **kargs)
+	
+	def redis (self, server, *args, **kargs):
+		return self.make_dbo ('redis', server, *args, **kargs)
+			
 	def ws (self, uri, message, headers = [], auth = None, meta = {}, version = "1.1"):
 		r = ws_request.Request (uri, message, self.override (headers), auth, None, meta, version)
 		r.headers ['Origin'] = "http://%s:%d" % r.address

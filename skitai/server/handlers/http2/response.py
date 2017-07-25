@@ -109,8 +109,7 @@ class response (http_response.http_response):
 				self.request.stream_id, 
 				self.build_reply_header (),
 				outgoing_producer,
-				do_optimize,
-				self.log,
+				do_optimize,				
 				force_close = force_close
 			)
 			

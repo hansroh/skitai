@@ -35,7 +35,7 @@ def makeset (https = 0):
 	aquests.postform (server + "/post", {"username": "pytest"})	
 	aquests.upload (server +"/upload", {"username": "pytest", "file1": jpg})	
 	stub = aquests.rpc (server +"/rpc2/")
-	stub.add_number (5, 7)	
+	stub.add_number (5, 7)
 	if GRPC:
 		stub = aquests.grpc (server +"/routeguide.RouteGuide/")
 		point = route_guide_pb2.Point (latitude=409146138, longitude=-746188906)		
@@ -57,7 +57,7 @@ def test_app (runner):
 	assert ERRS < 4	
 
 @pytest.mark.run (order = -1)
-def test_app (runner):
+def test_app_h2 (runner):
 	global ERRS
 	
 	ERRS = 0	
@@ -72,6 +72,7 @@ def test_app (runner):
 	
 	assert ERRS < 4
 
+@pytest.mark.skip
 @pytest.mark.run (order = -1)
 def test_https (runner):	
 	global ERRS
@@ -88,6 +89,7 @@ def test_https (runner):
 	
 	assert ERRS < 4
 
+@pytest.mark.skip
 @pytest.mark.run (order = -1)
 def test_websocket (runner):
 	global ERRS	
@@ -104,4 +106,21 @@ def test_websocket (runner):
 		runner.kill ()	
 	
 	assert ERRS == 0
+
+@pytest.mark.skip
+@pytest.mark.run (order = -1)
+def test_dns_error (runner):
+	global ERRS	
+	ERRS = 0
 	
+	try:			
+		aquests.configure (1, callback = assert_status, force_http1 = 1)	
+		[ aquests.get ("http://sdfiusdoiksdflsdkfjslfjlsf.com", meta = {"expect": 200}) for i in range (100) ]
+		aquests.fetchall ()	
+		
+	finally:
+		runner.kill ()	
+	
+	# 100 of 7034 error
+	assert ERRS == 100
+		

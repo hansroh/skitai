@@ -311,7 +311,7 @@ class http_response:
 		if self.request.channel is None: return
 			
 		self.htime = (time.time () - self.stime) * 1000
-		self.stime = time.time () #for delivery time		
+		self.stime = time.time () #for delivery time
 		
 		# compress payload and globbing production
 		do_optimize = True
@@ -430,7 +430,8 @@ class http_response:
 					self.update ("Content-Length", len (cdata))
 					outgoing_producer = producers.simple_producer (cdata)						
 				else:
-					outgoing_producer = producers.composite_producer (self.outgoing)						
+					outgoing_producer = producers.composite_producer (self.outgoing)
+					
 				outgoing_header = producers.simple_producer (self.build_reply_header(with_header).encode ("utf8"))				
 			
 			outgoing_producer = producers.composite_producer (

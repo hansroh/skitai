@@ -12,6 +12,7 @@ from examples.package import route_guide_pb2
 
 
 def start_skitai (runner, script):
+	time.sleep (3)
 	runner.start ([sys.executable, os.path.join (confutil.getroot (), script)])
 	time.sleep (3)
 	
@@ -58,13 +59,15 @@ def test_app (runner):
 
 def test_app_single_thread (runner):
 	start_skitai (runner, "app_single_thread.py")
+	
 	try:
 		for url in ("/", "/documentation2", "/hello", "/redirect1", "/redirect2"):
-			assert_request (200, url)			
+			assert_request (200, url)
 		assert_request (508, "/documentation")
 		assert_post_request (200, "/post", {"username": "pytest"})
 		jpg = open (os.path.join (confutil.getroot (), "statics", "reindeer.jpg"), "rb")	
 		assert_post_request (200, "/upload", {"username": "pytest"}, files = {"file1": jpg})
+		
 	finally:		
 		runner.kill ()
 

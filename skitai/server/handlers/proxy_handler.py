@@ -109,7 +109,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		if self.response.body_expected ():
 			self.client_request.response.push (self.response)
 			self.client_request.response.die_with (self.response)
-			self.client_request.response.set_streaming ()			
+			self.client_request.response.set_streaming ()
 		self.client_request.response.done ()
 	
 	def handle_request (self):
@@ -127,7 +127,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 				self.asyncon.push_with_producer (payload, init_send = False)
 		self.asyncon.begin_tran (self)
 	
-	def get_request_payload (self):								
+	def get_request_payload (self):
 		if self.collector:
 			self.collector.reuse_cache ()
 			if not self.collector.got_all_data:
