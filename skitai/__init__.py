@@ -323,14 +323,18 @@ def run (**conf):
 				self.conf ['verbose'] = "yes"
 			Skitai.Loader.config_logger (self, path, media)
 		
-		def run_daemons (self):
+		def master_jobs (self):
 			smtpda = self.conf.get ('smtpda')
 			if smtpda is not None:				
 				self.create_process ('smtpda', [], smtpda)			
 			cron = self.conf.get ('cron')
 			if cron:
 				self.create_process ('cron', cron, {})
-					
+			
+			self.wasc.logger ("server", "[info] active var dir: %s" % self.get_varpath ())
+			if self.logpath:
+				self.wasc.logger ("server", "[info] active log dir: %s" % self.logpath)
+						
 		def maintern_shutdown_request (self, now):
 			req = self.flock.lockread ("signal")
 			if not req: return
@@ -374,11 +378,11 @@ def run (**conf):
 			)
 			
 			if os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
-				self.run_daemons ()
+				self.master_jobs ()
 				# master does not serve
 				return			
 			elif os.name == "nt":
-				self.run_daemons ()
+				self.master_jobs ()
 			
 			self.config_threads (conf.get ('threads', 4))						
 			for name, args in conf.get ("clusters", {}).items ():				
@@ -401,10 +405,6 @@ def run (**conf):
 			if os.name == "nt":				
 				lifetime.maintern.sched (10.0, self.maintern_shutdown_request)				
 				self.flock = flock.Lock (os.path.join (self.get_varpath (), ".%s" % self.NAME))
-			
-			self.wasc.logger ("server", "[info] active var dir: %s" % self.get_varpath ())
-			if self.logpath:
-				self.wasc.logger ("server", "[info] active log dir: %s" % self.logpath)
 			
 	#----------------------------------------------------------------------------
 	if os.name == "nt":
