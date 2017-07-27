@@ -370,6 +370,10 @@ def run (**conf):
 				self.config_forward_server (
 					conf.get ('fws_address', '0.0.0.0'), conf.get ('fws_port', 80), conf.get ('fws_to', 443)
 				)
+			
+			# before fork
+			self.master_jobs ()
+				
 			self.config_webserver (
 				conf.get ('port', 5000), conf.get ('address', '0.0.0.0'),
 				NAME, conf.get ("certfile") is not None,
@@ -378,11 +382,8 @@ def run (**conf):
 			)
 			
 			if os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
-				self.master_jobs ()
 				# master does not serve
 				return			
-			elif os.name == "nt":
-				self.master_jobs ()
 			
 			self.config_threads (conf.get ('threads', 4))						
 			for name, args in conf.get ("clusters", {}).items ():				
