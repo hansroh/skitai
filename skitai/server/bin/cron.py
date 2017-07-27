@@ -26,12 +26,12 @@ class	CronManager (daemon.Daemon):
 		daemon.Daemon.__init__ (self, config, logpath, varpath, consol)
 		
 	def close (self):
-		self.logger ("[info] trying to kill childs...")
+		self.logger ("trying to kill childs...")
 		self.maintern (time.time (), kill = True)
-		self.logger ("[info] service cron stopped")
+		self.logger ("service cron stopped")
 	
 	def kill (self, pid, cmd):
-		self.logger ("[info] trying to kill pid:%d %s" % (pid, cmd))			
+		self.logger ("trying to kill pid:%d %s" % (pid, cmd))			
 		if os.name == "nt":
 			import win32api, win32con, pywintypes
 			try:
@@ -41,7 +41,7 @@ class	CronManager (daemon.Daemon):
 				
 			except pywintypes.error as why:
 				if why.errno != 87:
-					self.logger ("[error] failed killing job pid:%d %s" % (pid, cmd))
+					self.logger ("failed killing job pid:%d %s" % (pid, cmd), "error")
 					
 		else:
 			child.kill ()			
@@ -65,15 +65,15 @@ class	CronManager (daemon.Daemon):
 					 self.kill (pid, cmd)					 
 					 del self.currents [pid]					 
 				else:
-					self.logger ("[info] job still running pid:%d for %s, %s" % (pid, due, cmd))
+					self.logger ("job still running pid:%d for %s, %s" % (pid, due, cmd))
 				continue
 			
-			self.logger ("[info] job has been finished pid:%d with rcode:%d for %s, %s" % (pid, rcode, due, cmd))
+			self.logger ("job has been finished pid:%d with rcode:%d for %s, %s" % (pid, rcode, due, cmd))
 			del self.currents [pid]
 		self.last_maintern = time.time ()
 
 	def run (self):
-		self.logger ("[info] service cron started")
+		self.logger ("service cron started")
 		try:
 			try:
 				self.loop ()
@@ -144,7 +144,7 @@ class	CronManager (daemon.Daemon):
 		for job in jobs:
 			args = job.split (" ", 5)
 			if len (args) != 6:
-				self.logger ("[error] invalid cron command %s" % (args,))
+				self.logger ("invalid cron command %s" % (args,), "error")
 				continue
 			
 			try:
@@ -158,7 +158,7 @@ class	CronManager (daemon.Daemon):
 				)					
 			
 			except ValueError as why:
-				self.logger ("[error] %s, %s" % (job, why))
+				self.logger ("%s, %s" % (job, why), "error")
 				continue	
 				
 			except:
@@ -167,7 +167,7 @@ class	CronManager (daemon.Daemon):
 			
 			else:
 				self.jobs.append (sched)
-				self.logger ("[info] job added %s" % job)
+				self.logger ("job added %s" % job)
 	
 	def check_sched_per_minute (self):				
 		now = datetime.now ().timetuple ()	
@@ -204,7 +204,7 @@ class	CronManager (daemon.Daemon):
 				shell = True
 			)
 		
-		self.logger ("[info] job started with pid:%d %s" % (child.pid, cmd))
+		self.logger ("job started with pid:%d %s" % (child.pid, cmd))
 		self.currents [child.pid] = (cmd, time.time (), child)
 	
 	def loop (self):

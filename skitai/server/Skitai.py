@@ -33,8 +33,9 @@ from .dbi import cluster_dist_call as dcluster_dist_call
 import types
 from .handlers.websocket import servers as websocekts
 
+
 class Loader:
-	def __init__ (self, config = None, logpath = None, varpath = None, debug = 0):
+	def __init__ (self, config = None, logpath = None, varpath = None, debug = 0):		
 		self.config = config
 		self.instance_name = os.path.split (config)[-1][:-5]
 		self.logpath = logpath
@@ -61,8 +62,8 @@ class Loader:
 		self.wasc.workers = num
 			
 	def WAS_initialize (self):
-		self.wasc.log_base_path = self.logpath and os.path.split (os.path.split (self.logpath)[0])[0]
-		self.wasc.var_base_path = self.varpath and os.path.split (os.path.split (self.varpath)[0])[0]
+		self.wasc.log_base_path = self.logpath
+		self.wasc.var_base_path = self.varpath				
 		self.wasc.register ("debug", self.debug)
 		self.wasc.register ("plock", multiprocessing.RLock ())
 		self.wasc.register ("clusters",  {})

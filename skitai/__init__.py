@@ -220,7 +220,8 @@ def enable_ssl (certfile, keyfile, passphrase):
 def enable_smtpda (server = None, user = None, password = None, ssl = None, max_retry = None, keep_days = None):
 	global dconf
 	smtpda = {}
-	if server: smtpda ["user"] = user
+	if server: smtpda ["server"] = server
+	if user: smtpda ["user"] = user
 	if password: smtpda ["password"] = password
 	if ssl: smtpda ["ssl"] = ssl
 	if max_retry: smtpda ["max-retry"] = max_retry
@@ -242,7 +243,7 @@ def run (**conf):
 			self.conf = conf
 			self.children = []
 			self.flock = None
-			Skitai.Loader.__init__ (self, 'config', conf.get ('logpath'), conf.get ('varpath'))
+			Skitai.Loader.__init__ (self, 'config', conf.get ('logpath'), self.get_varpath ())
 			
 		def close (self):
 			if self.wasc.httpserver.worker_ident == "master":
@@ -272,13 +273,12 @@ def run (**conf):
 			
 		def create_process (self, name, args, karg):
 			argsall = []
-			if self.conf.get ("varpath"):
-				karg ['var-path'] = self.conf.get ("varpath")
+			karg ['var-path'] = self.get_varpath ()
 			if self.conf.get ("logpath"):
-				karg ['log-path'] = self.conf.get ("logpath")
+				karg ['log-path'] = self.conf.get ("logpath")		
 			if self.conf.get ("verbose", "no") in ("yes", 1, "1"):
 				karg ['verbose'] = "yes"
-		
+			
 			if karg:
 				for k, v in karg.items ():
 					if len (k) == 1:
@@ -342,7 +342,7 @@ def run (**conf):
 		def configure (self):
 			conf = self.conf
 			smtpda = conf.get ('smtpda')
-			if smtpda is not None:
+			if smtpda is not None:				
 				self.create_process ('smtpda', [], smtpda)			
 			cron = conf.get ('cron')
 			if cron:

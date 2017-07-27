@@ -22,7 +22,7 @@ def hHUP (signum, frame):
 
 
 class	SMTPDeliverAgent (daemon.Daemon):
-	CONCURRENTS = 4
+	CONCURRENTS = 2
 	MAX_RETRY = 10
 	UNDELIVERS_KEEP_MAX = 2592000
 	NAME = "smtpda"
@@ -37,10 +37,10 @@ class	SMTPDeliverAgent (daemon.Daemon):
 			self.shutdown_in_progress = True
 	
 	def close (self):
-		self.logger ("[info] service %s stopped" % self.NAME)
+		self.logger ("service %s stopped" % self.NAME)
 						
 	def run (self):
-		self.logger ("[info] service %s started" % self.NAME)
+		self.logger ("service %s started" % self.NAME)
 		try:
 			try:
 				lifetime.loop (os.name == 'nt' and 2.0 or 30.0)
@@ -82,17 +82,17 @@ class	SMTPDeliverAgent (daemon.Daemon):
 			select_trigger.trigger.address = ('127.9.9.9', 19998)
 		select_trigger.trigger ()
 		
-		self.path_spool = os.path.join (self.varpath, "mail", "spool")
+		self.path_spool = os.path.join (self.varpath, ".smtpda",  "mail", "spool")
 		pathtool.mkdir (self.path_spool)
 		composer.Composer.SAVE_PATH = self.path_spool
 		
-		self.path_undeliver = os.path.join (self.varpath, "mail", "undeliver")
+		self.path_undeliver = os.path.join (self.varpath, ".smtpda", "mail", "undeliver")
 		pathtool.mkdir (self.path_undeliver)
 		
 		lifetime.init ()		
 		lifetime.maintern.sched (3.0, self.handle_spool)		
 		if os.name == "nt":			
-			lifetime.maintern.sched (10.0, self.maintern_shutdown_request)		
+			lifetime.maintern.sched (3.0, self.maintern_shutdown_request)		
 		
 	def send (self):
 		if self.shutdown_in_progress:
@@ -105,7 +105,7 @@ class	SMTPDeliverAgent (daemon.Daemon):
 			self.actives [fn] = time.time ()
 			path = os.path.join (self.path_spool, fn)
 			cmps = composer.load (path)
-			if cmps.get_SMTP () is None:
+			if cmps.get_SMTP () is None:		
 				cmps.set_smtp (*self.default_smtp)
 			if cmps.is_SSL ():
 				request = async_smtp.SMTP_SSL
@@ -194,11 +194,15 @@ if __name__ == "__main__":
 		"hv", 
 		[
 			"help", "verbose=", "log-path=", "var-path=",
-			"max-retry=", "keep-days=", "server=", "user=", "password=", "ssl"
+			"max-retry=", "keep-days=", "server=", "user=", "password=", "ssl="
 		]
 	)
 	_consol = "no"
-	_cf = {}
+	_cf = {
+		"max-retry": 3,
+		"keep-days": 3,	
+		"ssl": 0,
+	}
 	_logpath, _varpath = None, None
 	for k, v in argopt [0]:
 		if k == "--help" or k == "-h":
@@ -222,8 +226,8 @@ if __name__ == "__main__":
 			_cf ['password'] = v	
 		elif k == "--ssl":	
 			_cf ['ssl'] = 1
-		
-	service = daemon.make_service (SMTPDeliverAgent, _cf, _logpath, _varpath, _consol)	
+	
+	service = daemon.make_service (SMTPDeliverAgent, _cf, _logpath, _varpath, _consol)
 	try:
 		service.run ()		
 	finally:	

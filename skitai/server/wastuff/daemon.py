@@ -21,7 +21,7 @@ class Daemon:
 		
 		req = self.flock.lockread ("signal")
 		if not req: return
-		self.logger ("[info] got signal - %s" % req)
+		self.logger ("got signal - %s" % req)
 		if req in ("terminate", "kill"):
 			EXIT_CODE = 0
 		elif req == "restart":
@@ -30,14 +30,14 @@ class Daemon:
 			try: self.logger.rotate ()
 			except: self.logger.trace ()
 		else:
-			self.logger ("[error] unknown signal - %s" % req)
+			self.logger ("unknown signal - %s" % req, "error")
 		self.flock.unlock ("signal")
 		return req
 	
-	def make_logger (self, create_flock = True):
+	def make_logger (self, create_flock = True):		
 		self.logger = logger.multi_logger ()
 		if self.consol:
-			self.logger.add_logger (logger.screen_logger ())
+			self.logger.add_logger (logger.screen_logger ())			
 		if self.logpath:
 			self.logger.add_logger (logger.rotate_logger (self.logpath, self.NAME, "daily"))
 		if create_flock and os.name == "nt":			
@@ -63,7 +63,7 @@ def get_default_varpath ():
 	script = os.path.split (fullpath)[-1]
 	if script.endswith (".py"):
 		script = script [:-3]	
-	_var = 'skitai-%s-%s' % (script, abs (hash (fullpath) & 0xffffffff))
+	_var = 'skitai-%s-%s' % (script, fullpath.replace (":", ".").replace ("\\", "/").replace ("/", "."))
 	return os.name == "posix" and '/var/tmp/%s' % _var or os.path.join (tempfile.gettempdir(), _var)
 
 def make_service (service_class, config, logpath, varpath, consol):
@@ -82,6 +82,6 @@ def make_service (service_class, config, logpath, varpath, consol):
 	if consol not in ("1", "yes"): # service mode
 		from aquests.lib import devnull		
 		sys.stdout = devnull.devnull ()		
-		sys.stderr = open (os.path.join (logpath, "stderr-%s.log" % service_class.NAME), "a")
-	
+		sys.stderr = open (os.path.join (varpath, "stderr-%s.log" % service_class.NAME), "a")
+		
 	return service_class (config, logpath, varpath, consol)
