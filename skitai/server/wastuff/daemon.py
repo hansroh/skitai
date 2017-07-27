@@ -63,7 +63,7 @@ def get_default_varpath ():
 	script = os.path.split (fullpath)[-1]
 	if script.endswith (".py"):
 		script = script [:-3]	
-	_var = 'skitai-%s-%s' % (script, fullpath.replace (":", ".").replace ("\\", "/").replace ("/", "."))
+	_var = 'skitai-%s-%s' % (script, fullpath.replace (":", ".").replace ("\\", "/").replace ("/", "."))	
 	return os.name == "posix" and '/var/tmp/%s' % _var or os.path.join (tempfile.gettempdir(), _var)
 
 def make_service (service_class, config, logpath, varpath, consol):

@@ -82,11 +82,11 @@ class	SMTPDeliverAgent (daemon.Daemon):
 			select_trigger.trigger.address = ('127.9.9.9', 19998)
 		select_trigger.trigger ()
 		
-		self.path_spool = os.path.join (self.varpath, ".smtpda",  "mail", "spool")
+		self.path_spool = os.path.join (self.varpath, "smtpda",  "mail", "spool")
 		pathtool.mkdir (self.path_spool)
 		composer.Composer.SAVE_PATH = self.path_spool
 		
-		self.path_undeliver = os.path.join (self.varpath, ".smtpda", "mail", "undeliver")
+		self.path_undeliver = os.path.join (self.varpath, "smtpda", "mail", "undeliver")
 		pathtool.mkdir (self.path_undeliver)
 		
 		lifetime.init ()		
