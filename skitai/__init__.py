@@ -188,7 +188,7 @@ def enable_forward (forward_to = 443, port = 80, ip = ""):
 	dconf ['fws_address'] = ip
 	dconf ['fws_port'] = forward_to
 	dconf ['fws_to'] = port
-		
+
 def enable_gateway (enable_auth = False, secure_key = None, realm = "Skitai API Gateway"):
 	global dconf
 	dconf ["enable_gw"] = True
@@ -331,9 +331,9 @@ def run (**conf):
 			if cron:
 				self.create_process ('cron', cron, {})
 			
-			self.wasc.logger ("server", "[info] active var dir: %s" % self.get_varpath ())
+			self.wasc.logger ("server", "[info] active var dir %s" % self.get_varpath ())
 			if self.logpath:
-				self.wasc.logger ("server", "[info] active log dir: %s" % self.logpath)
+				self.wasc.logger ("server", "[info] active log dir %s" % self.logpath)
 						
 		def maintern_shutdown_request (self, now):
 			req = self.flock.lockread ("signal")
