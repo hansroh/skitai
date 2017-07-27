@@ -309,7 +309,7 @@ def run (**conf):
 			)
 		
 		def get_varpath (self):
-			return self.conf.get ('varpath', daemon.get_default_varpath ())
+			return self.conf.get ('varpath') or daemon.get_default_varpath ()
 			
 		def config_logger (self, path):
 			media = []
@@ -323,6 +323,14 @@ def run (**conf):
 				self.conf ['verbose'] = "yes"
 			Skitai.Loader.config_logger (self, path, media)
 		
+		def run_daemons (self):
+			smtpda = self.conf.get ('smtpda')
+			if smtpda is not None:				
+				self.create_process ('smtpda', [], smtpda)			
+			cron = self.conf.get ('cron')
+			if cron:
+				self.create_process ('cron', cron, {})
+					
 		def maintern_shutdown_request (self, now):
 			req = self.flock.lockread ("signal")
 			if not req: return
@@ -338,16 +346,9 @@ def run (**conf):
 			else:
 				self.wasc.logger ("server", "[error] unknown signal - %s" % req)
 			self.flock.unlock ("signal")
-			
+				
 		def configure (self):
 			conf = self.conf
-			smtpda = conf.get ('smtpda')
-			if smtpda is not None:				
-				self.create_process ('smtpda', [], smtpda)			
-			cron = conf.get ('cron')
-			if cron:
-				self.create_process ('cron', cron, {})
-			
 			self.set_num_worker (conf.get ('workers', 1))
 			if conf.get ("certfile"):
 				self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
@@ -373,8 +374,11 @@ def run (**conf):
 			)
 			
 			if os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
+				self.run_daemons ()
 				# master does not serve
-				return
+				return			
+			elif os.name == "nt":
+				self.run_daemons ()
 			
 			self.config_threads (conf.get ('threads', 4))						
 			for name, args in conf.get ("clusters", {}).items ():				
@@ -395,9 +399,13 @@ def run (**conf):
 			
 			lifetime.init ()
 			if os.name == "nt":				
-				lifetime.maintern.sched (10.0, self.maintern_shutdown_request)
+				lifetime.maintern.sched (10.0, self.maintern_shutdown_request)				
 				self.flock = flock.Lock (os.path.join (self.get_varpath (), ".%s" % self.NAME))
-	
+			
+			self.wasc.logger ("server", "[info] active var dir: %s" % self.get_varpath ())
+			if self.logpath:
+				self.wasc.logger ("server", "[info] active log dir: %s" % self.logpath)
+			
 	#----------------------------------------------------------------------------
 	if os.name == "nt":
 		import win32serviceutil

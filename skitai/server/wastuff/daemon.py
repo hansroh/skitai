@@ -41,7 +41,7 @@ class Daemon:
 		if self.logpath:
 			self.logger.add_logger (logger.rotate_logger (self.logpath, self.NAME, "daily"))
 		if create_flock and os.name == "nt":			
-			self.flock = flock.Lock (os.path.join (self.varpath, ".%s" % self.NAME))
+			self.flock = flock.Lock (os.path.join (self.varpath, "%s" % self.NAME))
 			self.flock.unlockall ()
 			
 	def bind_signal (self, term, kill, hup):		
@@ -59,11 +59,12 @@ class Daemon:
 		raise NotImplementedError
 					
 def get_default_varpath ():
+	from hashlib import md5
 	fullpath = os.path.join (os.getcwd (), sys.argv [0])
-	script = os.path.split (fullpath)[-1]
+	dpath, script = os.path.split (fullpath)
 	if script.endswith (".py"):
-		script = script [:-3]	
-	_var = 'skitai-%s-%s' % (script, fullpath.replace (":", ".").replace ("\\", "/").replace ("/", "."))	
+		script = script [:-3]
+	_var = 'skitai-%s-%s' % (script, md5 (dpath.encode ('utf8')).hexdigest ()[:8])
 	return os.name == "posix" and '/var/tmp/%s' % _var or os.path.join (tempfile.gettempdir(), _var)
 
 def make_service (service_class, config, logpath, varpath, consol):
@@ -73,7 +74,7 @@ def make_service (service_class, config, logpath, varpath, consol):
 		varpath = get_default_varpath ()		
 	pathtool.mkdir (varpath)	
 	
-	lck = flock.Lock (os.path.join (varpath, ".%s" % service_class.NAME))
+	lck = flock.Lock (os.path.join (varpath, "%s" % service_class.NAME))
 	pidlock = lck.get_pidlock ()
 	if pidlock.isalive ():
 		print("[error] already running")

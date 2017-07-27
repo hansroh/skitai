@@ -3,13 +3,13 @@ import subprocess, os, sys, signal, subprocess
 from aquests.lib import flock
 
 class Process:
-	def __init__ (self, cmd, name, vardir = None):
+	def __init__ (self, cmd, name, vardir = None):		
 		self.cmd = cmd
 		self.name = name
 		self.vardir = vardir		
 		self.child = None
 		if os.name == "nt":
-			self.flock = flock.Lock (os.path.join (self.vardir, ".%s" % self.name))			
+			self.flock = flock.Lock (os.path.join (self.vardir, "%s" % self.name))			
 		self.create ()
 	
 	def create (self):	
