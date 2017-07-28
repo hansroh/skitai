@@ -22,7 +22,7 @@ class Process:
 		else:
 			self.child = subprocess.Popen (
 				"exec " + self.cmd, 
-				shell = False
+				shell = True
 			)
 		
 	def send_signal (self, req):
@@ -36,11 +36,14 @@ class Process:
 		pid	 = self.child.pid
 		if os.name == "nt":		
 			self.flock.lock ("signal", req)
-		
+			
+			if req == "kill":
+				if processutil.is_running (pid)	:
+					killtree.kill (pid)
+					return
+					
 			if req == "terminate":
 				sig = signal.CTRL_C_EVENT
-			elif req == "kill":	
-				sig = signal.CTRL_BREAK_EVENT
 			
 			try:
 				os.kill (pid, sig)
@@ -51,7 +54,7 @@ class Process:
 			if pid:					
 				if req == "kill":
 					if processutil.is_running (pid)	:
-						killtree.kill (pid, False)
+						killtree.kill (pid)
 						return
 				
 				if req == "terminate": sig = signal.SIGTERM				

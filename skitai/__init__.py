@@ -260,7 +260,7 @@ def run (**conf):
 							if veto:
 								if i % 3 == 0:
 									self.wasc.logger ("server", "[info] %s is still alive" % child.name)
-								break														
+								break
 						if not veto:
 							break
 					
