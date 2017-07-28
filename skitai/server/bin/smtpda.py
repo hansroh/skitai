@@ -20,7 +20,6 @@ def hKILL (signum, frame):
 def hHUP (signum, frame):			
 	lifetime.shutdown (3, 30.0)
 
-
 class	SMTPDeliverAgent (daemon.Daemon):
 	CONCURRENTS = 2
 	MAX_RETRY = 10
@@ -51,19 +50,9 @@ class	SMTPDeliverAgent (daemon.Daemon):
 		finally:
 			self.close ()		
 	
-	def maintern_shutdown_request (self, now):
-		req = daemon.Daemon.maintern_shutdown_request (self, now)
-		if daemon.EXIT_CODE is not None:
-			if req == "terminate":
-				lifetime.shutdown (0, 30.0)
-			elif req == "kill":
-				lifetime.shutdown (0, 1.0)	
-			elif req == "restart":
-				lifetime.shutdown (3, 30.0)
-						
 	def setup (self):
 		self.make_logger ()
-		self.bind_signal (hTERM, hKILL, hHUP)		
+		self.bind_signal (hTERM, hKILL, hHUP)
 		
 		val = self.config.get ("max_retry", 10)
 		if val: self.MAX_RETRY = val

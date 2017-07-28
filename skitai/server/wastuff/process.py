@@ -1,6 +1,6 @@
 ﻿import os
 import subprocess, os, sys, signal, subprocess
-from aquests.lib import flock
+from aquests.lib import flock, killtree, processutil
 
 class Process:
 	def __init__ (self, cmd, name, vardir = None):		
@@ -16,15 +16,15 @@ class Process:
 		if os.name == "nt":
 			self.child = subprocess.Popen (
 				self.cmd, 
-				shell = True,
+				shell = False,
 				creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
 			)							
 		else:
 			self.child = subprocess.Popen (
 				"exec " + self.cmd, 
-				shell = True
+				shell = False
 			)
-
+		
 	def send_signal (self, req):
 		if req == "start": 
 			req = "restart"
@@ -36,7 +36,7 @@ class Process:
 		pid	 = self.child.pid
 		if os.name == "nt":		
 			self.flock.lock ("signal", req)
-			
+		
 			if req == "terminate":
 				sig = signal.CTRL_C_EVENT
 			elif req == "kill":	
@@ -49,10 +49,15 @@ class Process:
 					
 		else:			
 			if pid:					
+				if req == "kill":
+					if processutil.is_running (pid)	:
+						killtree.kill (pid, False)
+						return
+				
 				if req == "terminate": sig = signal.SIGTERM				
-				elif req == "kill": sig = signal.SIGKILL
 				elif req == "restart": sig = signal.SIGHUP				
 				elif req == "rotate": sig = signal.SIGUSR1
+					
 				try:
 					os.kill (pid, sig)
 				except ProcessLookupError:
@@ -61,8 +66,11 @@ class Process:
 			elif req == "restart":
 				self.flock.lock ("signal", req)
 			
-	def kill (self):
-		self.send_signal ("terminate")
+	def kill (self, force = 0):
+		if force:
+			self.send_signal ("kill")
+		else:	
+			self.send_signal ("terminate")
 	
 	def poll (self):
 		return self.child.poll ()

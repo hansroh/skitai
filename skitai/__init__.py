@@ -248,17 +248,18 @@ def run (**conf):
 		def close (self):
 			if self.wasc.httpserver.worker_ident == "master":
 				if self.children:
-					for child in self.children:
-						self.wasc.logger ("server", "[info] try to kill %s..." % child.name)
-						child.kill ()				
+					for child in self.children:					
+						self.wasc.logger ("server", "[info] try to kill %s..." % child.name)						
+						child.kill (0)
 					
-					for i in range (30):
+					for i in range (10):
 						time.sleep (1)
 						veto = False
 						for child in self.children:
 							veto = (child.poll () is None)
 							if veto:
-								self.wasc.logger ("server", "[info] %s is still alive" % child.name)
+								if i % 3 == 0:
+									self.wasc.logger ("server", "[info] %s is still alive" % child.name)
 								break														
 						if not veto:
 							break
@@ -267,7 +268,7 @@ def run (**conf):
 						for child in self.children:
 							if child.poll () is None:
 								self.wasc.logger ("server", "[info] force to kill %s..." % child.name)
-								child.send_signal ('kill')
+								child.kill (1)
 			
 			Skitai.Loader.close (self)
 			

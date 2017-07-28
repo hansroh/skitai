@@ -3,7 +3,7 @@
 
 import subprocess
 import sys, os, getopt
-from aquests.lib import flock, pathtool, logger, confparse
+from aquests.lib import flock, pathtool, logger, confparse, killtree, processutil
 import signal
 import time
 import glob
@@ -31,20 +31,9 @@ class	CronManager (daemon.Daemon):
 		self.logger ("service cron stopped")
 	
 	def kill (self, pid, cmd):
-		self.logger ("trying to kill pid:%d %s" % (pid, cmd))			
-		if os.name == "nt":
-			import win32api, win32con, pywintypes
-			try:
-				handle = win32api.OpenProcess (win32con.PROCESS_TERMINATE, 0, pid)
-				win32api.TerminateProcess (handle, 0)
-				win32api.CloseHandle (handle)
-				
-			except pywintypes.error as why:
-				if why.errno != 87:
-					self.logger ("failed killing job pid:%d %s" % (pid, cmd), "error")
-					
-		else:
-			child.kill ()			
+		self.logger ("trying to kill pid:%d %s" % (pid, cmd))		
+		if processutil.is_running (pid)	:
+			killtree.kill (pid, True)
 			
 	def maintern (self, current_time, kill = False):
 		for pid, (cmd, started, child) in list (self.currents.items ()):			
