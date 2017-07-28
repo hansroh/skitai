@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.12.4"
+__version__ = "0.26.12.5"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -249,7 +249,7 @@ def run (**conf):
 			if self.wasc.httpserver.worker_ident == "master":
 				if self.children:
 					for child in self.children:					
-						self.wasc.logger ("server", "[info] try to kill %s..." % child.name)						
+						self.wasc.logger ("server", "[info] killing %s..." % child.name)						
 						child.kill (0)
 					
 					for i in range (10):

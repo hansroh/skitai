@@ -38,13 +38,13 @@ class Process:
 			self.flock.lock ("signal", req)
 			
 			if req == "kill":
-				if processutil.is_running (pid)	:
-					killtree.kill (pid)
-					return
+				return self.killtree ()
 					
 			if req == "terminate":
-				sig = signal.CTRL_C_EVENT
-			
+				sig = signal.CTRL_C_EVENT			
+			#elif req == "kill":
+			#	sig = signal.CTRL_BREAK_EVENT
+				
 			try:
 				os.kill (pid, sig)
 			except ProcessLookupError:
@@ -53,14 +53,12 @@ class Process:
 		else:			
 			if pid:					
 				if req == "kill":
-					if processutil.is_running (pid)	:
-						killtree.kill (pid)
-						return
+					return self.killtree ()
 				
 				if req == "terminate": sig = signal.SIGTERM				
 				elif req == "restart": sig = signal.SIGHUP				
 				elif req == "rotate": sig = signal.SIGUSR1
-					
+
 				try:
 					os.kill (pid, sig)
 				except ProcessLookupError:
@@ -68,7 +66,11 @@ class Process:
 						
 			elif req == "restart":
 				self.flock.lock ("signal", req)
-			
+	
+	def killtree (self):		
+		if processutil.is_running (self.child.pid)	:
+			killtree.kill (self.child.pid)
+						
 	def kill (self, force = 0):
 		if force:
 			self.send_signal ("kill")

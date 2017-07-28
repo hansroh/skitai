@@ -3384,6 +3384,7 @@ Change Log
   
   - 0.26.12
     
+    - fix smtpda & default var directory
     - optimize HTTP/2 response data
     - fix HTTP/2 logging when empty response body
     - http_response.outgoing is replaced by deque
