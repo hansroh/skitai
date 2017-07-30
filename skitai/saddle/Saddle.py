@@ -139,8 +139,11 @@ class Saddle (part.Part):
 						break
 								
 	def get_resource (self, *args):
-		return os.path.join (self.home, "resources", *args)
+		return self.joinpath ("resources", *args)
 	
+	def joinpath (self, *args):		
+		return os.path.join (self.home, *args)
+		
 	#------------------------------------------------------
 		
 	def watch (self, module):

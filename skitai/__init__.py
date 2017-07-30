@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.12.5"
+__version__ = "0.26.12.6"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -101,11 +101,11 @@ def start_was (wasc):
 #------------------------------------------------
 dconf = {'mount': {"default": []}, 'clusters': {}, 'cron': [], 'max_ages': {}}
 
-def pref ():
+def pref (preset = False):
 	from .saddle.Saddle import Config
 	
 	d = AttrDict ()
-	d.config = Config ()
+	d.config = Config (preset)
 	return d
 	
 def getswd ():
@@ -113,7 +113,7 @@ def getswd ():
 
 def is_devel ():
 	return not os.environ.get ('SKITAI_PRODUCTION')
-	
+
 def joinpath (*pathes):
 	return os.path.normpath (os.path.join (getswd (), *pathes))
 abspath = joinpath
@@ -137,7 +137,7 @@ def set_keep_alive (timeout):
 def set_network_timeout (timeout):
 	dconf ["network_timeout"] = timeout
 	
-def mount (point, target, appname = "app", pref = None, host = "default"):
+def mount (point, target, appname = "app", pref = pref (True), host = "default"):
 	global dconf
 	
 	def init_app (modpath, pref):
@@ -146,7 +146,7 @@ def mount (point, target, appname = "app", pref = None, host = "default"):
 			loader = machinery.SourceFileLoader('temp', modinit)
 			mod = loader.load_module()
 			hasattr (mod, "bootstrap") and mod.bootstrap (pref)
-	
+		
 	if type (target) is tuple: 
 		module, appfile = target
 		target = os.path.join (os.path.dirname (module.__file__), "export", "skitai", appfile)
@@ -154,14 +154,13 @@ def mount (point, target, appname = "app", pref = None, host = "default"):
 		# app instance
 		target = os.path.join (os.getcwd (), sys.argv [0])
 	else:
-		appname = ""
 		if target [0] != "@":		
 			target = os.path.join (getswd (), target)
 	
 	if host not in dconf ['mount']:
 		dconf ['mount'][host] = []
 	if os.path.isdir (target):
-		dconf ['mount'][host].append ((point, target, None))
+		dconf ['mount'][host].append ((point, target, None))		
 	else:	
 		init_app (target, pref)
 		if appname:

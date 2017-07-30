@@ -3,6 +3,10 @@ from aquests.lib  import pathtool, importer, evbus
 import threading
 from types import FunctionType as function
 import copy
+try:
+	from django.utils import autoreload
+except ImportError:
+	pass	
 
 class Module:
 	def __init__ (self, wasc, handler, bus, route, directory, libpath, pref = None):
@@ -12,7 +16,8 @@ class Module:
 		self.pref = pref
 		self.last_reloaded = time.time ()
 		self.app = None
-		self.set_route (route)		
+		self.django = False
+		self.set_route (route)
 		if type (libpath) is str:
 			try:
 				libpath, self.appname = libpath.split (":", 1)		
@@ -37,7 +42,8 @@ class Module:
 	def start_app (self, reloded = False):
 		func = None
 		app = self.app or getattr (self.module, self.appname)
-			
+		self.django = str (app.__class__).find ("django.") != -1
+		
 		if self.pref:			
 			for k, v in copy.copy (self.pref).items ():
 				if k == "config":
@@ -93,21 +99,32 @@ class Module:
 		self.file_info = (stat.st_mtime, stat.st_size)	
 	
 	def maybe_reload (self):
+		if not self.use_reloader:
+			return
+			
 		if time.time () - self.last_reloaded < 1.0:
 			return
-
-		stat = os.stat (self.abspath)
-		reloadable = self.file_info != (stat.st_mtime, stat.st_size)		
-		if reloadable and self.use_reloader:
+		
+		reloadable = False
+		if self.django:
+			if autoreload.code_changed ():
+				reloadable = True
+		else:	
+			stat = os.stat (self.abspath)		
+			reloadable = self.file_info != (stat.st_mtime, stat.st_size)		
+			
+		if reloadable:
 			app = getattr (self.module, self.appname)
-			app.remove_events ()
+			if hasattr (app, "remove_events"):
+				app.remove_events ()
+			
 			PRESERVED = []
 			if hasattr (app, "PRESERVE_ON_RELOAD"):
 				PRESERVED = [(attr, getattr (app, attr)) for attr in app.PRESERVES_ON_RELOAD]
 				
 			importer.reloader (self.module)
-			self.start_app (reloded = True)			
-			newapp = getattr (self.module, self.appname)
+			self.start_app (reloded = True)
+			newapp = getattr (self.module, self.appname)			
 			for attr, value in PRESERVED:
 				setattr (newapp, attr, value)
 				
@@ -131,7 +148,7 @@ class Module:
 		self.use_reloader and self.maybe_reload ()
 		app = self.app or getattr (self.module, self.appname)
 		return app (env, start_response)
-
+		
 
 class ModuleManager:
 	modules = {}	

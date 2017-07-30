@@ -42,7 +42,7 @@ class	SMTPDeliverAgent (daemon.Daemon):
 		self.logger ("service %s started" % self.NAME)
 		try:
 			try:
-				lifetime.loop (os.name == 'nt' and 2.0 or 30.0)
+				lifetime.loop (3.0)
 			except KeyboardInterrupt:
 				pass	
 			except:
@@ -79,9 +79,9 @@ class	SMTPDeliverAgent (daemon.Daemon):
 		pathtool.mkdir (self.path_undeliver)
 		
 		lifetime.init ()		
-		lifetime.maintern.sched (3.0, self.handle_spool)		
+		lifetime.maintern.sched (2.0, self.handle_spool)		
 		if os.name == "nt":			
-			lifetime.maintern.sched (3.0, self.maintern_shutdown_request)		
+			lifetime.maintern.sched (2.0, self.maintern_shutdown_request)		
 		
 	def send (self):
 		if self.shutdown_in_progress:
@@ -112,7 +112,8 @@ class	SMTPDeliverAgent (daemon.Daemon):
 			if cmps.get_RETRYS () > self.MAX_RETRY:
 				cmps.moveto (self.path_undeliver)
 			else:	
-				cmps.moveto (self.path_spool)		
+				cmps.moveto (self.path_spool)
+		
 		del self.actives [fn]
 		self.send ()
 	

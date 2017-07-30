@@ -23,7 +23,7 @@ class Daemon:
 		
 		req = self.flock.lockread ("signal")
 		if not req: return
-		self.logger ("got signal - %s" % req)
+		self.logger ("%s: got signal - %s" % (self.NAME, req))
 		if req in ("terminate", "kill"):
 			EXIT_CODE = 0
 		elif req == "restart":
@@ -32,7 +32,7 @@ class Daemon:
 			try: self.logger.rotate ()
 			except: self.logger.trace ()
 		else:
-			self.logger ("unknown signal - %s" % req, "error")
+			self.logger ("%s: unknown signal - %s" % (self.NAME, req), "error")
 		self.flock.unlock ("signal")
 		
 		if EXIT_CODE is not None:

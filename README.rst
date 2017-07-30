@@ -104,6 +104,29 @@ Here's a very simple WSGI app,
 Basic Usage
 ------------
 
+
+Mount Static Directories
+````````````````````````````
+
+.. code:: python
+  
+  if __name__ == "__main__": 
+  
+    import skitai
+    
+    skitai.mount ('/', '/home/www')
+    skitai.mount ('/uploads', '/var/www/uploads')
+    skitai.mount ('/uploads/bigfiles', '/data/www/bifgiles')
+    
+    skitai.run (
+    	address = "127.0.0.1",
+    	port = 5000
+    )
+
+
+Mount WSGI App
+```````````````````````
+
 .. code:: python
   
   #WSGI App
@@ -162,7 +185,23 @@ mount (mount_point, mount_object, app_name = "app", pref = None)
   In case module object, the module should support skitai exporting spec.
   
 - app_name: variable name of app
-- pref: supported by Saddle
+- pref: run time app config, pref will override app.config
+
+
+Mount Django App
+```````````````````
+
+Assume your Django app project is '/mydjnago' and skitai app engine script is '/app.py'.
+
+  # first all, add django root to sys.path 
+  sys.path.insert (0, skitai.joinpath ("mydjnago"))
+  
+  # and mount static dir used bt Django
+  skitai.mount ("/static", skitai.joinpath ("mydjnago", "static"))
+  
+  # finally nout django wsgi.py
+  skitai.mount ("/", "mydjnago/mydjnago/wsgi.py", "application")
+  
 
 Logging and Console Displaying For Developing/Debugging
 ----------------------------------------------------------
@@ -3384,6 +3423,7 @@ Change Log
   
   - 0.26.12
     
+    - Django can be mounted
     - fix smtpda & default var directory
     - optimize HTTP/2 response data
     - fix HTTP/2 logging when empty response body

@@ -167,23 +167,25 @@ class Handler:
 			except NotImplementedError:				
 				return self.handle_error_before_collecting (request, 404)
 			
-			ct = request.get_header ("content-type", "")	
+			ct = request.get_header ("content-type", "")			
 			if ct.startswith ("multipart/form-data"):
 				max_size = app.config.max_multipart_body_size
 			else:
 				max_size = app.config.max_post_body_size
-					
+				
 			if collector_class is None:
 				if ct.startswith ("multipart/form-data"):
 					collector_class = collectors.MultipartCollector					
 				else:
 					collector_class = collectors.FormCollector
-			args = (				
+			
+			args = (
 				app.config.max_multipart_body_size, 
 				app.config.max_upload_file_size, 
 				app.config.max_cache_size
-			)				
+			)
 			collector = self.make_collector (collector_class, request, max_size, *args)
+			
 			if collector:
 				request.collector = collector
 				collector.start_collect ()
@@ -273,6 +275,13 @@ class Job:
 				content_length = None
 			
 			for part in content:
+				# like Django response
+				try: part = part.content
+				except AttributeError: pass
+					
+				try: part.streaming and response.set_streaming ()
+				except AttributeError: pass	
+					
 				type_of_part = type (part)				
 				if type_of_part in (bytes, str, unicode):
 					if len (part) == 0:
@@ -294,7 +303,7 @@ class Job:
 						part = producers.closing_stream_producer (part)				
 					elif type (part) is list:
 						part = producers.list_producer (part)
-					elif isinstance(part, Iterable): # flask etc.
+					elif isinstance(part, Iterable): # flask etc.						
 						part = producers.iter_producer (part)
 					
 					if isinstance (part, producers.simple_producer) or hasattr (part, "more"):

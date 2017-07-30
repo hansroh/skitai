@@ -198,7 +198,7 @@ class Loader:
 			clusterlist = [clusterlist]		
 		self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl, access = access)
 	
-	def install_handler_with_tuple (self, routes):
+	def install_handler_with_tuple (self, routes):		
 		if type (routes) is list:
 			routes = {'default': routes}
 		sroutes = []
