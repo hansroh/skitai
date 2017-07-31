@@ -163,7 +163,7 @@ class ModuleManager:
 	def __getitem__ (self, name):
 		return self.modnames [name].get_callable ()
 		
-	def build_url (self, thing, *args, **kargs):
+	def build_url (self, thing, *args, **kargs):		
 		a, b = thing.split (".", 1)
 		return self.modnames [a].get_callable ().build_url (b, *args, **kargs)
 		
@@ -186,8 +186,9 @@ class ModuleManager:
 			self.wasc.logger ("app", "[info] application %s imported." % route)
 			if route in self.modules:
 				self.wasc.logger ("app", "[info] application route collision detected: %s at %s <-> %s" % (route, module.abspath, self.modules [route].abspath), "warn")
-			self.modules [route] = module
-			self.modnames [modname] = module
+			self.modules [route] = module]
+			# remove appname
+			self.modnames [modname.split (":", 1)[0]] = module
 	
 	def get_app (self, script_name):		
 		route = self.has_route (script_name)		

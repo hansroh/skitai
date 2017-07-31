@@ -192,6 +192,8 @@ Mount Django App
 ```````````````````
 
 Assume your Django app project is '/mydjnago' and skitai app engine script is '/app.py'.
+   
+.. code:: python
 
   # first all, add django root to sys.path 
   sys.path.insert (0, skitai.joinpath ("mydjnago"))
@@ -3423,6 +3425,7 @@ Change Log
   
   - 0.26.12
     
+    - fix cross app URL building
     - Django can be mounted
     - fix smtpda & default var directory
     - optimize HTTP/2 response data
