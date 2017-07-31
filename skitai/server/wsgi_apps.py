@@ -186,8 +186,7 @@ class ModuleManager:
 			self.wasc.logger ("app", "[info] application %s imported." % route)
 			if route in self.modules:
 				self.wasc.logger ("app", "[info] application route collision detected: %s at %s <-> %s" % (route, module.abspath, self.modules [route].abspath), "warn")
-			self.modules [route] = module]
-			# remove appname
+			self.modules [route] = module
 			self.modnames [modname.split (":", 1)[0]] = module
 	
 	def get_app (self, script_name):		
