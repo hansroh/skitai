@@ -245,7 +245,7 @@ class WAS:
 		return "%s/%s" % (self.request.gtxid, self.request.ltxid)
 	
 	def ab (self, thing, *args, **karg):
-		if "/" in thing or thing.find (".") == -1:
+		if thing.startswith ("/") or thing.find (".") == -1:
 			return self.app.build_url (thing, *args, **karg)
 		return self.apps.build_url (thing, *args, **karg)
 	
