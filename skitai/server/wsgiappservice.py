@@ -99,7 +99,7 @@ class WAS:
 		cls.clusters [clustername] = cluster
 	
 	@classmethod
-	def _database (cls, alias = None, data = None, meta = None, callback = None, timeout = 10):
+	def _backend (cls, alias = None, data = None, meta = None, callback = None, timeout = 10):
 		if alias [0] == "@":
 			alias = alias [1:]		
 		if not callback:
