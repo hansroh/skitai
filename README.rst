@@ -191,18 +191,16 @@ mount (mount_point, mount_object, app_name = "app", pref = None)
 Mount Django App
 ```````````````````
 
-Assume your Django app project is '/mydjnago' and skitai app engine script is '/app.py'.
+Assume your Django app project is '/mydjango' and skitai app engine script is '/app.py'.
    
 .. code:: python
 
-  # first all, add django root to sys.path 
-  sys.path.insert (0, skitai.joinpath ("mydjnago"))
-  
+  # first all, add django project root (which contains manage.py) to sys.path 
+  sys.path.insert (0, "mydjango")  
   # and mount static dir used bt Django
-  skitai.mount ("/static", skitai.joinpath ("mydjnago", "static"))
-  
-  # finally nout django wsgi.py
-  skitai.mount ("/", "mydjnago/mydjnago/wsgi.py", "application")
+  skitai.mount ("/static", "mydjango/static")  
+  # finally mount django wsgi.py
+  skitai.mount ("/", "mydjango/mydjango/wsgi.py", "application")
   
 
 Logging and Console Displaying For Developing/Debugging
@@ -278,36 +276,36 @@ Here's three WSGI app samples:
 
 .. code:: python
   
-  #WSGI App
+  # WSGI App
 
-  def app1 (env, start_response):
+  def app (env, start_response):
     start_response ("200 OK", [("Content-Type", "text/plain")])
     return ['Hello World']
     
-  app1.use_reloader = True
-  app1.debug = True
+  app.use_reloader = True
+  app.debug = True
 
 
-  # Flask App*
+  # OR Flask App
   from flask import Flask  
-  app2 = Flask(__name__)  
+  app = Flask(__name__)  
   
-  app2.use_reloader = True
-  app2.debug = True
+  app.use_reloader = True
+  app.debug = True
   
-  @app2.route("/")
+  @app.route("/")
   def index ():	 
     return "Hello World"
 
 
-  # Skito-Saddle App  
+  # OR Skito-Saddle App  
   from skitai.saddle import Saddle  
-  app3 = Saddle (__name__)
+  app = Saddle (__name__)
   
-  app3.use_reloader = True
-  app3.debug = True
+  app.use_reloader = True
+  app.debug = True
     
-  @app3.route('/')
+  @app.route('/')
   def index (was):	 
     return "Hello World"
 
@@ -320,9 +318,7 @@ Then place this code at bottom of above WSGI app.
   
     import skitai
     
-    skitai.mount ('/t1', __file__, 'app1')
-    skitai.mount ('/t2', __file__, 'app2')
-    skitai.mount ('/t3', __file__, 'app3')
+    skitai.mount ('/', __file__, 'app')
     skitai.mount ('/', 'static')
     skitai.run ()
 
@@ -1186,6 +1182,7 @@ All supoorted request methods are:
   - was.mongodb ()
   - was.redis ()
   - was.sqlite3 ()
+  - was.backend (): if you make alias for your database, you needn't specify db type, just use backend ()
   
 - Websocket
   
@@ -1313,6 +1310,14 @@ There are 2 changes:
 
 1. from was.rpc.lb () to was.rpc.map ()
 2. from s.getwait () to s.getswait () for multiple results, and results is iterable.
+
+
+Using Aliased Database
+``````````````````````````
+
+If you have alias your database server, you needn't specify db type like 'dbo = was.postgresql ("@mydb")'. Just use 'dbo = was.backend ("@mydb")'.
+
+It makes easy to handle both Sqlite3 and PostgreSQL. If you intend to use Sqlite3 at developing, but use PostgreSQL at production, you just change alias on Skitai startup time.
 
 
 Caching Result
@@ -3156,7 +3161,7 @@ Using External Resources With App Decorator
 
 New in version 0.26
 
-If you have databases or API servers, and want to create cache object on app starting, you can use wac.backend (). But youn can only use with pre-aliased upstream servers only.
+If you have databases or API servers, and want to create cache object on app starting, you can use wac._backend () and wac._upstream (). But youn can only use with pre-aliased upstream servers only.
 
 .. code:: python
   
@@ -3167,17 +3172,18 @@ If you have databases or API servers, and want to create cache object on app sta
   
   @app.startup
   def startup (wac):
-    wac.backend ('sqlite3', '@mydb', callback = create_cache).execute ("select code, name from states;")    
+    wac._backend ('@mydb', callback = create_cache).execute ("select code, name from states;")    
     # or use REST API
-    wac.backend ('get', '@myapi/v1/states', callback = create_cache)
+    wac._upstream ('get', '@myapi/v1/states', callback = create_cache)
     # or use RPC
-    wac.backend ('rpc', '@myrpc/rpc2', callback = create_cache).get_states ()
+    wac._upstream ('rpc', '@myrpc/rpc2', callback = create_cache).get_states ()
 
 Now you can access cache by was.app.cache or app.cache.
 
-wac.backend () is a sort of low level method for making requests before wac is instantialized.
+wac._backend and wac._upstream are a sort of low level method for making requests before wac is instantialized.
 
-- wac.backend (method, alias_uri = None, data = None, auth = None, headers = None, meta = None, callback = None, timeout = 10)
+- wac._backend (alias = None, data = None, meta = None, callback = None, timeout = 10)
+- wac._upstream (method, alias_uri = None, data = None, auth = None, headers = None, meta = None, callback = None, timeout = 10)
 
   - method: can be all of was' request methods like postgresql, sqlite3, redis, get, post, pus, rpc ... etc
 
@@ -3367,6 +3373,47 @@ Note: I think I don't understand about gRPC's stream request and response. Does 
 .. _`gRPC Basics - Python`: http://www.grpc.io/docs/tutorials/basic/python.html
 
 
+Route Proxing Django Views & Working with Django Models
+---------------------------------------------------------
+
+For Django route proxing, 
+
+.. code:: python
+
+  from djangoapp import views
+  
+  @app,route ('/django/hello')
+  def django_hello (was):
+    return views.somefunc (was.django)
+
+You can use also Django models.
+
+.. code:: python
+
+  from djangoapp import models
+
+  @app,route ('/django/hello')
+  def django_hello (was):
+    models.Photo.objects.create (user='Hans Roh', title = 'My Photo')	
+    result = models.Photo.filter (user='hansroh').order_by ('-create_at')
+
+You can use Django Query Set as SQL generator for Skitai's asynchronous query execution. But it has some limitations.
+
+- just select query and prefetch_related () will be ignored
+- only effetive on PostgreSQL
+
+.. code:: python
+
+  from djangoapp import models
+
+  @app,route ('/django/hello')
+  def django_hello (was):    
+    queryset = models.Photo.objects.filter (topic=1).order_by ('title')	
+	  return was.jstream (was.sqlite3 ("@entity").execute (queryset).getwait ().data, 'data')	
+
+And remember, before using Django views and models, you should mount Django apps on Skitai first.
+
+  
 Logging and Traceback
 ------------------------
 
@@ -3425,6 +3472,7 @@ Change Log
   
   - 0.26.12
     
+    - fix WSGI response handler
     - fix cross app URL building
     - Django can be mounted
     - fix smtpda & default var directory

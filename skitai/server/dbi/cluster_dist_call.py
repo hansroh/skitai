@@ -8,7 +8,11 @@ from aquests.dbapi import request
 import asyncore
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from aquests.lib.cbutil import tuple_cb
-
+try:
+	from django.db.models.query import QuerySet
+except ImportError:
+	QuerySet = None
+		
 class OperationTimeout (Exception):
 	pass
 
@@ -135,7 +139,6 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		self._cv = None
 		self._retry = 0	
 		self._numnodes = 0
-		
 		self._sent_result = None
 			
 		if self._cluster:
@@ -170,6 +173,9 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		return asyncon
 	
 	def _request (self, method, params):
+		if QuerySet and isinstance (params [0], QuerySet):			
+			params = (str (params [0].query),)
+			
 		self._cached_request_args = (method, params) # backup for retry
 		if self._use_cache and rcache.the_rcache:
 			self._cached_result = rcache.the_rcache.get (self._get_ident ())
@@ -193,8 +199,8 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 			asyncon.execute (req)			
 		trigger.wakeup ()
 		return self
-
-
+	
+	
 class ClusterDistCallCreator:
 	def __init__ (self, cluster, logger):
 		self.cluster = cluster

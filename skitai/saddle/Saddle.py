@@ -18,6 +18,7 @@ from jinja2 import Environment, PackageLoader, FileSystemLoader
 from chameleon import PageTemplateLoader
 import xmlrpc.client as xmlrpclib
 
+
 class AuthorizedUser:
 	def __init__ (self, user, realm, info = None):
 		self.name = user

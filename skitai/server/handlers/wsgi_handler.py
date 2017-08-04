@@ -279,9 +279,6 @@ class Job:
 				try: part = part.content
 				except AttributeError: pass
 					
-				try: part.streaming and response.set_streaming ()
-				except AttributeError: pass	
-					
 				type_of_part = type (part)				
 				if type_of_part in (bytes, str, unicode):
 					if len (part) == 0:
@@ -306,16 +303,17 @@ class Job:
 					elif isinstance(part, Iterable): # flask etc.						
 						part = producers.iter_producer (part)
 					
-					if isinstance (part, producers.simple_producer) or hasattr (part, "more"):
+					if hasattr (part, "more"):
+						# producer
 						content_length = None
+						# automatic close	when channel suddenly closed
+						hasattr (part, "close") and response.die_with (part)
 						# streaming obj
-						if hasattr (part, "close"):
-							# automatic close	when channel suddenly closed
-							response.die_with (part)
+						hasattr (part, "ready") and response.set_streaming ()
 						will_be_push.append (part)
-				
+					
 					else:
-						raise AssertionError ("Streaming content should be single element")
+						raise AssertionError ("Unsupoorted response object")
 			
 			if content_length is not None:
 				response ["Content-Length"] = content_length

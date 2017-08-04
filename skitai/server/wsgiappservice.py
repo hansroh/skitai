@@ -30,7 +30,11 @@ from skitai import lifetime
 from .wastuff.promise import Promise, _Method
 from .wastuff.triple_logger import Logger
 from multiprocessing import RLock
-
+try:
+	from django.core.handlers.wsgi import WSGIRequest
+except ImportError:
+	WSGIRequest = None
+		
 class Persist:
 	def __init__ (self):
 		self.__lock = RLock ()
@@ -338,7 +342,11 @@ class WAS:
 	def gstream (self, obj):
 		self.response.set_header ("Content-Type", "application/grpc")
 		return self.togrpc (obj)
-				
+	
+	@property
+	def django (self):
+		return WSGIRequest (self.env)
+		
 	def restart (self, timeout = 0):
 		lifetime.shutdown (3, timeout)
 	
