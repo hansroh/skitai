@@ -259,7 +259,7 @@ class WAS:
 	def ab (self, thing, *args, **karg):
 		if thing.startswith ("/") or thing.find (".") == -1:
 			return self.app.build_url (thing, *args, **karg)
-		return self.apps.build_url (thing, *args, **karg)		
+		return self.apps.build_url (thing, *args, **karg)
 	
 	def broadcast (self, event, *args, **kargs):
 		return self.apps.bus.emit (event, self, *args, **kargs)
