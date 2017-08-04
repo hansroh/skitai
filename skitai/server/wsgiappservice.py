@@ -18,6 +18,7 @@ try:
 except ImportError:
 	from urlparse import urljoin	
 import json
+from datetime import date
 try:
 	import xmlrpc.client as xmlrpclib
 except ImportError:
@@ -52,7 +53,13 @@ class Persist:
 		with self.__lock:
 			return self.__d.pop (k)
 			
-	
+class DateEncoder(json.JSONEncoder):
+	def default(self, obj):
+		if isinstance(obj, date):
+			return str(obj)			
+		return json.JSONEncoder.default(self, obj)
+
+
 class WAS:
 	version = __version__
 	objects = {}
@@ -60,7 +67,8 @@ class WAS:
 	
 	#----------------------------------------------------
 	# application friendly methods
-	#----------------------------------------------------		
+	#----------------------------------------------------
+	
 	@classmethod
 	def register (cls, name, obj):
 		if hasattr (cls, name):
@@ -91,7 +99,15 @@ class WAS:
 		cls.clusters [clustername] = cluster
 	
 	@classmethod
-	def backend (cls, method, alias_uri = None, data = None, auth = None, headers = None, meta = None, callback = None, timeout = 10):
+	def _database (cls, alias = None, data = None, meta = None, callback = None, timeout = 10):
+		if alias [0] == "@":
+			alias = alias [1:]		
+		if not callback:
+			callback = lambda x: None		
+		return cls.clusters_for_distcall [alias].Server (None, None, None, None, meta, False, False, None, callback, timeout)
+		
+	@classmethod
+	def _upstream (cls, method, alias_uri = None, data = None, auth = None, headers = None, meta = None, callback = None, timeout = 10):
 		try: 
 			alias, uri = alias_uri.split ("/", 1)
 		except ValueError:
@@ -102,12 +118,8 @@ class WAS:
 			alias = alias [1:]
 		method = method.lower ()
 		if not callback:
-			callback = lambda x: None
-		
-		if method in ("db", "sqlite3", "postgresql", "redis", "mongodb"):
-			return cls.clusters_for_distcall [alias].Server (None, None, auth, None, meta, False, False, None, callback, timeout)
-		else:
-			return cls.clusters_for_distcall [alias].Server (uri, data, method, headers, auth, meta, False, False, None, callback, timeout)
+			callback = lambda x: None		
+		return cls.clusters_for_distcall [alias].Server (uri, data, method, headers, auth, meta, False, False, None, callback, timeout)
 
 	def __dir__ (self):
 		return self.objects.keys ()
@@ -141,7 +153,7 @@ class WAS:
 		"put", "poutform", "putjson", "putxml", "putnvp", 
 		"patch", "patchform", "patchjson", "patchxml", "patchnvp", 
 		"rpc", "grpc", "ws", 
-		"db", "postgresql", "sqlite3", "redis", "mongodb",
+		"db", "postgresql", "sqlite3", "redis", "mongodb", "backend",
 		"options", "trace", "upload"
 	]		
 	def __getattr__ (self, name):
@@ -177,14 +189,14 @@ class WAS:
 			if uri [0] == "@": 
 				fn = "lb"
 			else:
-				fn = (command in ("db", "postgresql", "sqlite3", "redis", "mongodb") and "db" or "rest")
+				fn = (command in ("db", "postgresql", "sqlite3", "redis", "mongodb", "backend") and "db" or "rest")
 
 		if fn == "map" and not hasattr (self, "threads"):
 			raise AttributeError ("Cannot use Map-Reduce with Single Thread")
 		
 		if command == "db":
 			return getattr (self, "_d" + fn) (*args, **karg)
-		elif command in ("postgresql", "sqlite3", "redis", "mongodb"):
+		elif command in ("postgresql", "sqlite3", "redis", "mongodb", "backend"):
 			return getattr (self, "_a" + fn) ("*" + command, *args, **karg)		
 		else:	
 			return getattr (self, "_" + fn) (command, *args, **karg)
@@ -303,7 +315,7 @@ class WAS:
 		return message.ParseFromString (obj)
 		
 	def tojson (self, obj):
-		return json.dumps (obj)
+		return json.dumps (obj, cls=DateEncoder)
 		
 	def toxml (self, obj):		
 		return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")	
