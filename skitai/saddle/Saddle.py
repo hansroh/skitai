@@ -67,9 +67,12 @@ class Saddle (part.Part):
 		self.debug = debug
 		self.use_reloader = use_reloader
 		
-	def skito_jinja (self):
-		self.jinja_overlay ("${", "}", "<%", "%>", "<!---", "--->")
-
+	def skito_jinja (self, option = 0):
+		if option == 0:	
+			self.jinja_overlay ("${", "}", "<%", "%>", "<!---", "--->")
+		else:
+			self.jinja_overlay ("${", "}", "{%", "%}", "{#", "#}")
+		
 	def jinja_overlay (
 		self, 
 		variable_start_string = "{{",

@@ -32,6 +32,7 @@ class Result:
 			
 		if self.is_cached:
 			return
+			
 		if the_rcache is None or self.status != 3 or not self.ident:
 			return		
 				
@@ -41,7 +42,7 @@ class Result:
 	
 	def expire (self):
 		global the_rcache
-				
+		
 		if not self.is_cached:
 			return
 		the_rcache.expire (self)

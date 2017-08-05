@@ -78,7 +78,12 @@ def overlay (
 	):
 	from jinja2 import PackageLoader
 	
-	return Environment (
+	if len (variable_start_string) == 1 and len (variable_end_string) == 1:
+		env_class = Environment
+	else:	
+		env_class = environment.Environment
+		
+	return env_class (
 		loader = PackageLoader (app_name),
 		variable_start_string=variable_start_string,
 		variable_end_string=variable_end_string,	  
