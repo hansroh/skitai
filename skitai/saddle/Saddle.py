@@ -476,7 +476,7 @@ class Saddle (part.Part):
 		was.app = self
 		self._was = was
 		was.response = was.request.response
-			
+		
 		content_type = env.get ("CONTENT_TYPE", "")				
 		if content_type.startswith ("text/xml") or content_type.startswith ("application/xml"):
 			result = xmlrpc_executor.Executor (env, self.get_method) ()

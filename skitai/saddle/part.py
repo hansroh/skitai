@@ -115,10 +115,15 @@ class Part:
 	#------------------------------------------------------
 		
 	def get_error_page (self, error):
-		handler = self.handlers.get (error ['code'])
+		handler = self.handlers.get (error ['code'], self.handlers.get (0))
 		if not handler:
 			return
-		return handler [0] (the_was._get (), error)
+		was = the_was._get ()	
+		# reset was.app for rendering
+		was.app = self
+		content =  handler [0] (was, error)
+		was.app = None
+		return content
 		
 	def add_error_handler (self, errcode, f, **k):
 		self.handlers [errcode] = (f, k)		
@@ -129,9 +134,13 @@ class Part:
 			@wraps(f)
 			def wrapper (*args, **kwargs):
 				return f (*args, **kwargs)
-			return wrapper			
+			return wrapper
 		return decorator
-		
+	
+	def defaulterrorhandler (self, f):
+		self.add_error_handler (0, f)
+		return f
+			
 	#----------------------------------------------
 	# Event Binding
 	#----------------------------------------------

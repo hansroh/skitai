@@ -147,7 +147,6 @@ class Handler:
 		app = self.apps.get_app (has_route).get_callable()
 		# for rendering error template
 		request.response.current_app = app
-		request.response.current_was = app
 								
 		if request.command != "options" and isinstance (app, Saddle):
 			# pass through options, because options want authentification info.
@@ -353,7 +352,7 @@ class Job:
 				except: self.logger.trace ("app")
 		
 		was = env.get ("skitai.was")
-		was.apps = None
-		if was is not None and was.in__dict__ ("request"):			
-			del was.request
-		
+		if was is not None:
+			was.apps = None
+			if was.in__dict__ ("request"):			
+				del was.request

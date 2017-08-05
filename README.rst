@@ -2688,6 +2688,10 @@ Custom Error Template
 
 .. code:: python
 
+  @app.defaulterrorhandler
+  def not_found (was, error):
+    return was.render ('default.htm', error = error)
+
   @app.errorhandler (404)
   def not_found (was, error):
     return was.render ('404.htm', error = error)
@@ -3472,6 +3476,7 @@ Change Log
   
   - 0.26.12
     
+    - fix errorhandler and add defaulterrorhandler
     - fix WSGI response handler
     - fix cross app URL building
     - Django can be mounted

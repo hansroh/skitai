@@ -349,7 +349,7 @@ class ClusterDistCall:
 	def wait (self, timeout = 3, reraise = True):
 		self.getswait (timeout, reraise)
 		self._cached_result = None
-		
+	
 	def getwait (self, timeout = 3, reraise = False):
 		if self._cached_result is not None:
 			return self._cached_result
