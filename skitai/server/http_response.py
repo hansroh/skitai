@@ -21,7 +21,7 @@ DEFAULT_ERROR_MESSAGE = """<!DOCTYPE html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>%(code)d %(message)s</title>
-<style type="text/css"><!-- *{font-family:sans-serif, verdana;}body{margin:0;padding:0;font-size:14px;color:#1e1e1e;font-family:verdana,sans-serif;} #titles{margin-left:16px;}#titles h1{color: #000000;} #content{padding:16px 16px 30px 16px;} #debug h2 {font-size: 14px;} #debug h3{font-size: 16px; color: #d90000;} #debug p,b,h4,li {font-size:14px;}#debug h4{color: #999999;} #debug li{margin-bottom: 6px;} #debug .f {color:#8AB088; font-weight: bold;} #debug .n {color:#003366;font-weight:bold;} #debug{margin:0;padding:0;} hr{margin:0;padding:0;} #debug #debug li,i{font-weight:normal;}#footer {font-size:12px;padding-left:10px;} --></style>
+<style type="text/css"><!-- *{font-family:sans-serif, verdana;}body{margin:0;padding:0;font-size:14px;color:#1e1e1e;font-family:verdana,sans-serif;} #titles{margin-left:16px;}#titles h1{color: #000000;} #content{padding:16px 16px 30px 16px;} #debug h2 {font-size: 18px; font-weight: 600;} #debug h3{font-size: 16px; color: #d90000;} #debug p,b,h4,li {font-size:14px;}#debug h4{color: #999999;} #debug li{margin-bottom: 6px;} #debug .f {color:#8AB088; font-weight: bold;} #debug .n {color:#003366;font-weight:bold;} #debug{margin:0;padding:0;} hr{margin:0;padding:0;} #debug #debug li,i{font-weight:normal;}#footer {font-size:12px;padding-left:10px;} --></style>
 </head>
 <body>
 <div id="titles"><h1>%(code)d %(message)s</h1></div>
@@ -57,10 +57,12 @@ def catch (format = 0, exc_info = None):
 		v = repr (v)
 		
 	if format == 1:
+		if v.find ('\n') != -1:
+			v = v.replace ("\r", "").replace ("\n", "<br>")
 		buf = ["<h3>%s</h3><h4>%s</h4>" % (t.__name__.replace (">", "&gt;").replace ("<", "&lt;"), v)]
 		buf.append ("<b>at %s at line %s, %s</b>" % (file, line, function == "?" and "__main__" or "function " + function))
 		buf.append ("<ul type='square'>")
-		buf += ["<li><i>%s</i> <span class='f'>%s</span> <span class='n'><b>%s</b></font></li>" % x for x in tbinfo]
+		buf += ["<li>%s <span class='f'>%s</span> <span class='n'><b>%s</b></font></li>" % x for x in tbinfo]
 		buf.append ("</ul>")		
 		return "\n".join (buf)
 
@@ -261,7 +263,7 @@ class http_response:
 			except:							
 				self.request.logger.trace ()				
 				if self.current_app.debug:
-					error ["detail"] += "<h3 style='padding-top: 40px;'>Another Exception Occured During Building Error Template</h3>" + catch (1)
+					error ["detail"] += "<h2 style='padding-top: 40px;'>Exception Occured During Building Error Template</h2>" + catch (1)
 		
 		return content or (DEFAULT_ERROR_MESSAGE % error)
 				
