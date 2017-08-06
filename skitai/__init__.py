@@ -107,7 +107,14 @@ def pref (preset = False):
 	d = AttrDict ()
 	d.config = Config (preset)
 	return d
-		
+
+def get_proc_title ():
+	a, b = os.path.split (os.path.join (os.getcwd (), sys.argv [0]))
+	return "skitai(%s/%s)" % (
+		os.path.basename (a),
+		b.split(".")[0]
+	)	
+	 		
 def getswd ():
 	return os.path.dirname (os.path.join (os.getcwd (), sys.argv [0]))
 
@@ -432,7 +439,7 @@ def run (**conf):
 			set_service_config (['start'])
 		else:	
 			from aquests.lib.daemonize import Daemonizer
-			if not Daemonizer (working_dir).runAsDaemon ():
+			if not Daemonizer (working_dir, 'skitai').runAsDaemon ():
 				print ("already running")
 				sys.exit ()			
 			
@@ -441,11 +448,11 @@ def run (**conf):
 			set_service_config (['stop'])
 		else:	
 			from aquests.lib import daemonize
-			daemonize.kill (working_dir, True)
+			daemonize.kill (working_dir, 'skitai', True)
 	
 	def status (working_dir):
 		from aquests.lib import daemonize
-		pid = daemonize.status (working_dir)
+		pid = daemonize.status (working_dir, 'skitai')
 		if pid:
 			print ("running [%d]" % pid)
 		else:

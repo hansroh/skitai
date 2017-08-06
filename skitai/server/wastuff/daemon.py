@@ -16,7 +16,7 @@ class Daemon:
 		self.flock = None
 		self.shutdown_in_progress = False	
 		self.handlers = {}	
-		setproctitle ("skitai: %s" % (self.NAME))
+		setproctitle ("%s: %s" % (skitai.get_proc_title (), self.NAME))
 		self.setup ()
 	
 	def maintern_shutdown_request (self, now):

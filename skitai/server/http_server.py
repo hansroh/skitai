@@ -347,7 +347,7 @@ class http_server (asyncore.dispatcher):
 		self.serve ()			
 		
 		if os.name == "nt":
-			setproctitle ("skitai")
+			setproctitle (skitai.get_proc_title ())
 			signal.signal(signal.SIGTERM, hTERMWORKER)			
 		
 		else:			
@@ -357,14 +357,14 @@ class http_server (asyncore.dispatcher):
 						pid = os.fork ()
 						if pid == 0:							
 							self.worker_ident = "worker #%d" % len (PID)
-							setproctitle ("skitai: %s" % (self.worker_ident))
+							setproctitle ("%s: %s" % (skitai.get_proc_title (), self.worker_ident))
 							PID = []
 							signal.signal(signal.SIGTERM, hTERMWORKER)
 							signal.signal(signal.SIGQUIT, hQUITWORKER)
 							break
 							
 						else:
-							setproctitle ("skitai: master")
+							setproctitle ("%s: master" % skitai.get_proc_title ())
 							if not PID:								
 								signal.signal(signal.SIGHUP, hHUPMASTER)
 								signal.signal(signal.SIGTERM, hTERMMASTER)
