@@ -3478,6 +3478,7 @@ Change Log
   
   - 0.26.12
     
+    - fix http2 flow controling    
     - fix errorhandler and add defaulterrorhandler
     - fix WSGI response handler
     - fix cross app URL building

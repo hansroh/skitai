@@ -9,7 +9,7 @@ import h2.settings
 from aquests.lib import producers
 from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
-from aquests.protocols.http2.producers import h2stream_producer, h2header_producer, h2frame_producer, h2_globbing_producer
+from aquests.protocols.http2.producers import h2header_producer, h2frame_producer
 from aquests.protocols.http2.fifo import http2_producer_fifo
 import threading
 from io import BytesIO
@@ -188,7 +188,6 @@ class http2_request_handler:
 					
 	def handle_response (self, stream_id, headers, producer, do_optimize, force_close = False):
 		r = self.get_request (stream_id)
-		
 		with self._clock:			
 			try:
 				depends_on, weight = self.priorities [stream_id]
@@ -204,22 +203,14 @@ class http2_request_handler:
 			self.channel.push_with_producer (header_producer)
 			
 		else:
-			if not do_optimize:
-				self.channel.push_with_producer (header_producer)
-								
+			self.channel.push_with_producer (header_producer)
 			outgoing_producer = producers.hooked_producer (producer, r.response.log)
 			if do_optimize:
-				outgoing_producer = producers.globbing_producer (outgoing_producer)				
-			
-			h2producer = r.response.is_async_streaming () and h2stream_producer or h2frame_producer
-			outgoing_producer = h2producer (
+				outgoing_producer = producers.globbing_producer (outgoing_producer)
+				
+			outgoing_producer = h2frame_producer (
 				stream_id, depends_on, weight, outgoing_producer, self.conn, self._plock
 			)
-			
-			if do_optimize:
-				outgoing_producer = h2_globbing_producer (stream_id, depends_on, weight, producers.composite_producer (producers.fifo ([header_producer, outgoing_producer])))
-				#outgoing_producer = h2_globbing_producer (stream_id, depends_on, weight, outgoing_producer)
-				
 			self.channel.push_with_producer (outgoing_producer)
 		
 		if r.is_stream_ended ():
@@ -330,18 +321,7 @@ class http2_request_handler:
 			self.conn.close_connection (errcode, msg)
 		self.send_data ()
 		self.channel.close_when_done ()
-		
-	def end_stream (self, stream_id):
-		with self._plock:
-			try:
-				self.conn.reset_stream (stream_id, error_code = errcode)
-			except StreamClosedError:	
-				closed = True
-		if not closed:		
-			self.send_data ()
-		self.remove_request (stream_id)
-				#self.request.logger ("stream ended (stream_id:%d, error:%d)" % (stream_id, errcode), "info")
-			
+	
 	def reset_stream (self, stream_id, errcode = CANCEL):
 		closed = False
 		with self._plock:

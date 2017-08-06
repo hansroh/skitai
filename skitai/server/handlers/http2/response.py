@@ -61,8 +61,8 @@ class response (http_response.http_response):
 			
 		elif len (self.outgoing) == 1 and hasattr (self.outgoing.first (), "ready"):
 			outgoing_producer = producers.composite_producer (self.outgoing)
-			do_optimize = False
-		
+			do_optimize = False			
+			
 		else:
 			outgoing_producer = producers.composite_producer (self.outgoing)			
 			if do_optimize and not self.has_key ('Content-Encoding'):
@@ -72,7 +72,7 @@ class response (http_response.http_response):
 				if maybe_compress:
 					cl = self.has_key ("content-length") and int (self.get ("Content-Length")) or -1
 					if cl == -1:
-						cl = self.outgoing.get_estimate_content_length ()
+						cl = self.outgoing.get_estimate_content_length ()					
 					if 0 < cl <= http_response.UNCOMPRESS_MAX:
 						maybe_compress = ""
 					
