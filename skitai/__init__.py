@@ -107,7 +107,7 @@ def pref (preset = False):
 	d = AttrDict ()
 	d.config = Config (preset)
 	return d
-	
+		
 def getswd ():
 	return os.path.dirname (os.path.join (os.getcwd (), sys.argv [0]))
 

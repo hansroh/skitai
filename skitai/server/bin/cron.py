@@ -11,6 +11,7 @@ import threading
 from datetime import datetime
 from skitai.server.wastuff import daemon
 
+
 def hTERM (signum, frame):			
 	daemon.EXIT_CODE = 0
 
