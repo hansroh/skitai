@@ -1,11 +1,11 @@
 from . import wsgi_handler
 import skitai
 from aquests.lib import producers
-from h2.connection import H2Connection, GoAwayFrame, DataFrame
+from h2.connection import H2Connection, GoAwayFrame, DataFrame, H2Configuration
 from h2.exceptions import ProtocolError, NoSuchStreamError, StreamClosedError
 from h2.events import DataReceived, RequestReceived, StreamEnded, PriorityUpdated, ConnectionTerminated, StreamReset, WindowUpdated, RemoteSettingsChanged
-from h2.errors import CANCEL, PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
-import h2.settings
+from h2.settings import SettingCodes
+from h2.errors import ErrorCodes
 from aquests.lib import producers
 from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
@@ -27,7 +27,7 @@ class http2_request_handler:
 		# replace fifo with supporting priority, ready, removing
 		self.channel.producer_fifo = http2_producer_fifo ()
 		
-		self.conn = H2Connection(client_side = False)
+		self.conn = H2Connection(H2Configuration(client_side=False))
 		self.frame_buf = self.conn.incoming_buffer
 		self.frame_buf.max_frame_size = self.conn.max_inbound_frame_size
 		
@@ -59,7 +59,7 @@ class http2_request_handler:
 			self.remove_request (stream_id)
 	
 	def enter_shutdown_process (self):
-		self.close (NO_ERROR)
+		self.close (ErrorCodes.NO_ERROR)
 			
 	def closed (self):
 		return self._closed
@@ -218,7 +218,7 @@ class http2_request_handler:
 			self.remove_request (stream_id)
 		
 		if force_close:
-			return self.go_away (CANCEL)
+			return self.go_away (ErrorCodes.CANCEL)
 				
 		current_promises = []
 		with self._clock:
@@ -270,7 +270,7 @@ class http2_request_handler:
 			
 			elif isinstance(event, RemoteSettingsChanged):
 				try:
-					iws = event.changed_settings [h2.settings.INITIAL_WINDOW_SIZE].new_value
+					iws = event.changed_settings [SettingCodes.INITIAL_WINDOW_SIZE].new_value
 				except KeyError:
 					pass
 				else:		
@@ -290,13 +290,13 @@ class http2_request_handler:
 			elif isinstance(event, DataReceived):				
 				r = self.get_request (event.stream_id)				
 				if not r:
-					self.go_away (PROTOCOL_ERROR)
+					self.go_away (ErrorCodes.PROTOCOL_ERROR)
 				else:
 					try:
 						r.channel.set_data (event.data, event.flow_controlled_length)
 					except ValueError:						
 						# from vchannel.handle_read () -> collector.collect_inconing_data ()
-						self.go_away (CANCEL)
+						self.go_away (ErrorCodes.CANCEL)
 					else:
 						rfcw = self.conn.remote_flow_control_window (event.stream_id)
 						if rfcw < 131070:
@@ -322,7 +322,7 @@ class http2_request_handler:
 		self.send_data ()
 		self.channel.close_when_done ()
 	
-	def reset_stream (self, stream_id, errcode = CANCEL):
+	def reset_stream (self, stream_id, errcode = ErrorCodes.CANCEL):
 		closed = False
 		with self._plock:
 			try:
@@ -356,8 +356,12 @@ class http2_request_handler:
 		cl = 0
 		h = []
 		cookies = []
+		
+		if type (headers [0][0]) is bytes:
+			headers = [(k.decode ("utf8"), v.decode ("utf8")) for k, v in headers]
+			
 		for k, v in headers:
-			#print ('HEADER:', k, v)
+			#print ('HEADER:', k, v)								
 			if k[0] == ":":
 				if k == ":method": command = v.upper ()
 				elif k == ":path": uri = v
@@ -426,7 +430,7 @@ class http2_request_handler:
 						self.channel.close_when_done ()
 						self.remove_request (1)
 					else:						
-						self.go_away (PROTOCOL_ERROR)
+						self.go_away (ErrorCodes.PROTOCOL_ERROR)
 				else:							
 					if stream_id == 1 and self.request.version == "1.1":
 						self.data_length = cl
