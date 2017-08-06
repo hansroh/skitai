@@ -28,6 +28,8 @@ DEFAULT_ERROR_MESSAGE = """<!DOCTYPE html>
 <div id="content">
 <div id="debug"><p>%(detail)s</p></div>
 </div>
+<hr noshade>
+%{software}
 </body>
 </html>"""
 
@@ -254,7 +256,8 @@ class http_response:
 			'message': self.reply_message,
 			'detail': why,
 			'time': http_date.build_http_date (time.time ()),
-			'url': urljoin ("%s://%s/" % (self.request.get_scheme (), self.request.get_header ("host")), self.request.uri)
+			'url': urljoin ("%s://%s/" % (self.request.get_scheme (), self.request.get_header ("host")), self.request.uri),
+			'software': skitai.NAME,
 			}
 		content = None	
 		if self.current_app and hasattr (self.current_app, 'get_error_page'):
