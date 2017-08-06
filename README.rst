@@ -2647,7 +2647,7 @@ Chameleon Template Engine
 
 *New in version 0.26.6*
 
-*Note*: I don't know it is my fault, but Chameleon is unstable with multithreading environment (or heavy under load) on win32 and even crash Skitai. I recommend do not use it with these environment.
+*Note added in version 0.26.12*: I don't know it is my fault, but Chameleon is unstable with multithreading environment (or heavy under load) on win32 and even crash Skitai. I recommend do not use it with these environment. And Chameleon will not be installed when pip install. If you need this one, install manually.
 
 For using Chameleon_ template engine, you just make template file extention with '.pt' or '.ptal' (Page Template or Page Template Attribute Language).
 

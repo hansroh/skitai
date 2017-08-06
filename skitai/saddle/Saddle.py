@@ -14,10 +14,11 @@ import random
 import base64
 from . import cookie
 from .config import Config
-from jinja2 import Environment, PackageLoader, FileSystemLoader
-from chameleon import PageTemplateLoader
-import xmlrpc.client as xmlrpclib
-
+from jinja2 import Environment, FileSystemLoader
+try:
+	from chameleon import PageTemplateLoader
+except:
+	PageTemplateLoader = None		
 
 class AuthorizedUser:
 	def __init__ (self, user, realm, info = None):
@@ -105,7 +106,9 @@ class Saddle (part.Part):
 		return rendered
 					
 	def get_template (self, name):
-		if name.endswith ('.pt') or name [-5:] == ".ptal":
+		if name.endswith ('.pt') or name.endswith (".ptal"):
+			if self.chameleon is None:
+				raise SystemError ('Chameleon template engine is not installed')
 			return self.chameleon [name]
 		return self.jinja_env.get_template (name)		
 	
@@ -113,13 +116,15 @@ class Saddle (part.Part):
 	
 	def set_home (self, path):
 		self.home = path
-		self.chameleon = PageTemplateLoader (
-			os.path.join(path, "templates"),
-			auto_reload = self.use_reloader,
-			restricted_namespace = False
-		)		
+		if PageTemplateLoader is not None:
+			self.chameleon = PageTemplateLoader (
+				os.path.join(path, "templates"),
+				auto_reload = self.use_reloader,
+				restricted_namespace = False
+			)
 		loader = FileSystemLoader (os.path.join (path, "templates"))
 		if self.jinja_env:
+			# activated skito_jinja
 			self.jinja_env.loader = loader
 		else:
 			self.jinja_env = Environment (loader = loader)
