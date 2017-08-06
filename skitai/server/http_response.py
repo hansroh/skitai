@@ -21,15 +21,14 @@ DEFAULT_ERROR_MESSAGE = """<!DOCTYPE html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>%(code)d %(message)s</title>
-<style type="text/css"><!-- *{font-family:sans-serif, verdana;}body{margin:0;padding:0;font-size:14px;color:#1e1e1e;font-family:verdana,sans-serif;} #titles{margin-left:16px;}#titles h1{color: #000000;} #content{padding:16px 16px 30px 16px;} #debug h2 {font-size: 18px; font-weight: 600;} #debug h3{font-size: 16px; color: #d90000;} #debug p,b,h4,li {font-size:14px;}#debug h4{color: #999999;} #debug li{margin-bottom: 6px;} #debug .f {color:#8AB088; font-weight: bold;} #debug .n {color:#003366;font-weight:bold;} #debug{margin:0;padding:0;} hr{margin:0;padding:0;} #debug #debug li,i{font-weight:normal;}#footer {font-size:12px;padding-left:10px;} --></style>
+<style type="text/css"><!-- *{font-family:sans-serif, verdana;}body{margin:0;padding:0;font-size:14px;color:#1e1e1e;font-family:verdana,sans-serif;} #titles{margin-left:16px;}#titles h1{color: #000000;} #content{padding:16px 16px 30px 16px;} #debug h2 {font-size: 18px; font-weight: 600;} #debug h3{font-size: 16px; color: #d90000;} #debug p,b,h4,li {font-size:14px;}#debug h4{color: #999999;} #debug li{margin-bottom: 6px;} #debug .f {color:#8AB088; font-weight: bold;} #debug .n {color:#003366;font-weight:bold;} #debug{background-color: #E9F5F9; ; margin-bottom: 32px; padding:8px 16px 8px 16px; border-radius: 6px;} hr{margin:0;padding:0} #debug #debug li,i{font-weight:normal;}#footer {font-size:12px;padding-left:10px;}#software div {padding-top: 10px; font-size: 16px;} --></style>
 </head>
 <body>
 <div id="titles"><h1>%(code)d %(message)s</h1></div>
 <div id="content">
-<div id="debug"><p>%(detail)s</p></div>
+<div id="%(debug)s"><p>%(detail)s</p></div>
+<div id="software"><hr noshade size="1"><div>%(software)s</div></div>
 </div>
-<hr noshade>
-%{software}
 </body>
 </html>"""
 
@@ -255,6 +254,7 @@ class http_response:
 			'code': self.reply_code,
 			'message': self.reply_message,
 			'detail': why,
+			'debug': why and 'debug' or '',
 			'time': http_date.build_http_date (time.time ()),
 			'url': urljoin ("%s://%s/" % (self.request.get_scheme (), self.request.get_header ("host")), self.request.uri),
 			'software': skitai.NAME,
