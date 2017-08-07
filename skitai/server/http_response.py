@@ -479,7 +479,8 @@ class http_response:
 		server = self.request.channel.server		
 		referer = self.request.get_header ('referer')
 		forwared_for = self.request.get_header ('x-forwarded-for')
-		worker = server.worker_ident [7:] or "M"
+		worker_id = server.worker_ident [8:]
+		worker = worker_id and ("W" + worker_id) or "M"
 			
 		server.log_request (
 			'%s %s %s %s %s %d %s %d %s %s %s %s %s %s %s %s %d %d %d'
