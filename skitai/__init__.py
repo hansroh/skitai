@@ -113,7 +113,7 @@ def get_proc_title ():
 	return "skitai(%s/%s)" % (
 		os.path.basename (a),
 		b.split(".")[0]
-	)	
+	)
 	 		
 def getswd ():
 	return os.path.dirname (os.path.join (os.getcwd (), sys.argv [0]))
@@ -279,7 +279,7 @@ def run (**conf):
 			Skitai.Loader.close (self)
 			
 		def create_process (self, name, args, karg):
-			argsall = []
+			argsall = ["--pname=%s" % get_proc_title ()]
 			karg ['var-path'] = self.get_varpath ()
 			if self.conf.get ("logpath"):
 				karg ['log-path'] = self.conf.get ("logpath")		
