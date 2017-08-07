@@ -91,6 +91,7 @@ class http_response:
 		self._is_done = False
 		self.stime = time.time ()
 		self.htime = 0
+		self.content_type = None
 		self.current_app = None
 		self.current_env = None
 		
@@ -308,6 +309,8 @@ class http_response:
 			self.outgoing.push (thing)
 			    					
 	def done (self, force_close = False, upgrade_to = None, with_header = 1):
+		self.content_type = self.get ('content-type')
+				
 		if not self.is_responsable (): return
 		self._is_done = True
 		if self.request.channel is None: return
@@ -471,9 +474,9 @@ class http_response:
 		except:			
 			logger.trace ()
 						
-	def log (self, bytes):				
+	def log (self, bytes):	
 		self.request.channel.server.log_request (
-			'%s:%d %s %s %s %s %s %d %d %s %s %s %s %s %dms %dms'
+			'%s:%d %s %s %s %s %d %s %s %d %s %s %s %s %s %d %d'
 			% (
 			self.request.channel.addr[0],
 			self.request.channel.addr[1],			
@@ -481,16 +484,17 @@ class http_response:
 			self.request.is_promise () and "PUSH" or self.request.method,
 			self.request.uri,
 			self.request.version,
+			self.request.rbytes, # recv body size
 			self.reply_code,
-			self.request.rbytes,
-			bytes,
+			self.content_type or '-',
+			bytes, # send body size
 			self.request.gtxid or "-",
 			self.request.ltxid or "-",
 			self.request.user and '"' + self.request.user.name + '"' or "-",
 			self.request.token or "-",
 			self.request.user_agent and '"' + self.request.user_agent + '"' or "-",
-			self.htime,
-			(time.time () - self.stime) * 1000
+			self.htime, # due time to request handling
+			(time.time () - self.stime) * 1000 # due time to sending data
 			)
 		)
 		# clearing resources, back refs
