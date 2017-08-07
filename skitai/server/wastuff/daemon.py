@@ -1,7 +1,7 @@
 from skitai import lifetime
 from aquests.lib import flock, pathtool, logger
 import os, signal, sys, tempfile
-from setproctitle import setproctitle
+from aquests.lib.processutil import set_process_name
 import skitai
 EXIT_CODE = None
 
@@ -16,7 +16,7 @@ class Daemon:
 		self.flock = None
 		self.shutdown_in_progress = False	
 		self.handlers = {}	
-		setproctitle ("%s: %s" % (skitai.get_proc_title (), self.NAME))
+		set_process_name ("%s: %s" % (config.get ("pname") or skitai.get_proc_title (), self.NAME))
 		self.setup ()
 	
 	def maintern_shutdown_request (self, now):

@@ -13,7 +13,7 @@ import signal
 import ssl
 import skitai
 from hashlib import md5
-from setproctitle import setproctitle
+from aquests.lib.processutil import set_process_name
 
 PID = []
 ACTIVE_WORKERS = 0
@@ -347,7 +347,7 @@ class http_server (asyncore.dispatcher):
 		self.serve ()			
 		
 		if os.name == "nt":
-			setproctitle (skitai.get_proc_title ())
+			set_process_name (skitai.get_proc_title ())
 			signal.signal(signal.SIGTERM, hTERMWORKER)			
 		
 		else:			
@@ -357,14 +357,14 @@ class http_server (asyncore.dispatcher):
 						pid = os.fork ()
 						if pid == 0:							
 							self.worker_ident = "worker #%d" % len (PID)
-							setproctitle ("%s: %s" % (skitai.get_proc_title (), self.worker_ident))
+							set_process_name ("%s: %s" % (skitai.get_proc_title (), self.worker_ident))
 							PID = []
 							signal.signal(signal.SIGTERM, hTERMWORKER)
 							signal.signal(signal.SIGQUIT, hQUITWORKER)
 							break
 							
 						else:
-							setproctitle ("%s: master" % skitai.get_proc_title ())
+							set_process_name ("%s: master" % skitai.get_proc_title ())
 							if not PID:								
 								signal.signal(signal.SIGHUP, hHUPMASTER)
 								signal.signal(signal.SIGTERM, hTERMMASTER)

@@ -279,7 +279,8 @@ def run (**conf):
 			Skitai.Loader.close (self)
 			
 		def create_process (self, name, args, karg):
-			argsall = ["--pname=%s" % get_proc_title ()]
+			argsall = []
+			karg ['pname'] = get_proc_title ()
 			karg ['var-path'] = self.get_varpath ()
 			if self.conf.get ("logpath"):
 				karg ['log-path'] = self.conf.get ("logpath")		

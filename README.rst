@@ -108,6 +108,8 @@ Basic Usage
 Mount Static Directories
 ````````````````````````````
 
+Your myproject/app.py,
+
 .. code:: python
   
   if __name__ == "__main__": 
@@ -119,9 +121,24 @@ Mount Static Directories
     skitai.mount ('/uploads/bigfiles', '/data/www/bifgiles')
     
     skitai.run (
-    	address = "127.0.0.1",
+    	address = "127.0.0.1",    	
     	port = 5000
     )
+
+At command line,
+
+.. code:: bash
+
+  python3 app.py
+
+For checking processes,
+  
+.. code:: bash
+  
+  $ ps -ef | grep skitai
+  
+  ubuntu   25219     1  0 08:25 ?        00:00:00 skitai(myproject/app): master  
+  ubuntu   25221 25219  1 08:25 ?        00:00:00 skitai(myproject/app): worker #0  
 
 
 Mount WSGI App
@@ -268,7 +285,18 @@ Skitai can run with multiple workers(processes) internally using fork for socket
     threads = 8
   )
 
-
+Skitai processes are,
+  
+.. code:: bash
+  
+  $ ps -ef | grep skitai
+  
+  ubuntu   25219     1  0 08:25 ?        00:00:00 skitai(myproject/app): master  
+  ubuntu   25221 25219  1 08:25 ?        00:00:00 skitai(myproject/app): worker #0  
+  ubuntu   25222 25219  1 08:25 ?        00:00:00 skitai(myproject/app): worker #1  
+  ubuntu   25223 25219  1 08:25 ?        00:00:00 skitai(myproject/app): worker #2
+  ubuntu   25224 25219  1 08:25 ?        00:00:00 skitai(myproject/app): worker #3
+  
 Mount Multiple WSGI Apps And Static Directories
 ------------------------------------------------
 
@@ -3476,6 +3504,11 @@ Change Log
   
   0.26 (May 2017)
   
+  - 0.26.13
+  
+    - add reply content-type to request log, and change log format
+    - change posix process display name
+    
   - 0.26.12
     
     - adaptation to h2 3.0.1

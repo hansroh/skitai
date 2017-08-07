@@ -37,6 +37,8 @@ class response (http_response.http_response):
 		self.request.http2.push_promise (self.request.stream_id, headers, additional_headers)
 		
 	def done (self, force_close = False, upgrade_to = None):
+		self.content_type = self.get ('content-type')
+		
 		if not self.is_responsable (): return
 		self._is_done = True
 		if self.request.http2 is None: return
