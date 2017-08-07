@@ -183,7 +183,7 @@ if __name__ == "__main__":
 		sys.argv[1:], 
 		"hv", 
 		[
-			"help", "verbose=", "log-path=", "var-path=", "pname",
+			"help", "verbose=", "log-path=", "var-path=", "pname=",
 			"max-retry=", "keep-days=", "server=", "user=", "password=", "ssl="
 		]
 	)

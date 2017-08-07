@@ -499,7 +499,10 @@ class http_server (asyncore.dispatcher):
 def hCHLD (signum, frame):
 	global ACTIVE_WORKERS
 	ACTIVE_WORKERS -= 1
-	os.wait ()
+	try:
+		os.wait ()
+	except ChildProcessError:
+		pass	
 
 def hTERMWORKER (signum, frame):			
 	lifetime.shutdown (0, 1.0)
