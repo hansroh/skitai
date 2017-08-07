@@ -7,6 +7,7 @@ from aquests.lib.reraise import reraise
 from aquests.lib import producers, compressors
 from aquests.protocols.http import respcodes
 import skitai
+import asyncore
 
 try: 
 	from urllib.parse import urljoin
@@ -475,26 +476,38 @@ class http_response:
 			logger.trace ()
 						
 	def log (self, bytes):
-		self.request.channel.server.log_request (
-			'%s:%d %s %s %s %s %d %s %s %d %s %s %s %s %s %d %d'
+		server = self.request.channel.server		
+		referer = self.request.get_header ('referer')
+		forwared_for = self.request.get_header ('x-forwarded-for')
+		worker = server.worker_ident [7:] or "M"
+			
+		server.log_request (
+			'%s %s %s %s %s %d %s %d %s %s %s %s %s %s %s %s %d %d %d'
 			% (
 			self.request.channel.addr[0],
-			self.request.channel.addr[1],
+			
 			self.request.host or "-",
 			self.request.is_promise () and "PUSH" or self.request.method,
 			self.request.uri,
 			self.request.version,
-			self.request.rbytes, # recv body size
-			self.reply_code,
-			self.content_type or '-',
+			self.request.rbytes, # recv body size			
+			
+			self.reply_code,			
 			bytes, # send body size
+			
 			self.request.gtxid or "-",
 			self.request.ltxid or "-",
 			self.request.user and '"' + self.request.user.name + '"' or "-",
 			self.request.token or "-",
+			
+			referer and '"' + referer + '"' or "-",
 			self.request.user_agent and '"' + self.request.user_agent + '"' or "-",
+			forwared_for or '-',
+			
+			worker,
+			len (asyncore.socket_map) - 2, # exclude trigger, server
 			self.htime, # due time to request handling
-			(time.time () - self.stime) * 1000 # due time to sending data
+			(time.time () - self.stime) * 1000, # due time to sending data			
 			)
 		)
 		# clearing resources, back refs
