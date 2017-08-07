@@ -57,7 +57,6 @@ package_data = {}
 install_requires = [
 	"jinja2==2.9.4", 	
 	"aquests",
-	"setproctitle",
 ]
 
 with open('skitai/__init__.py', 'r') as fd:
