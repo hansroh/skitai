@@ -474,12 +474,12 @@ class http_response:
 		except:			
 			logger.trace ()
 						
-	def log (self, bytes):	
+	def log (self, bytes):
 		self.request.channel.server.log_request (
 			'%s:%d %s %s %s %s %d %s %s %d %s %s %s %s %s %d %d'
 			% (
 			self.request.channel.addr[0],
-			self.request.channel.addr[1],			
+			self.request.channel.addr[1],
 			self.request.host or "-",
 			self.request.is_promise () and "PUSH" or self.request.method,
 			self.request.uri,

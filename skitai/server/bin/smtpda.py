@@ -183,7 +183,7 @@ if __name__ == "__main__":
 		sys.argv[1:], 
 		"hv", 
 		[
-			"help", "verbose=", "log-path=", "var-path=",
+			"help", "verbose=", "log-path=", "var-path=", "pname",
 			"max-retry=", "keep-days=", "server=", "user=", "password=", "ssl="
 		]
 	)
@@ -215,8 +215,10 @@ if __name__ == "__main__":
 		elif k == "--password":	
 			_cf ['password'] = v	
 		elif k == "--ssl":	
-			_cf ['ssl'] = 1
-	
+			_cf ['ssl'] = 1		
+		elif k == "--pname":	
+			_cf ['pname'] = v
+				
 	service = daemon.make_service (SMTPDeliverAgent, _cf, _logpath, _varpath, _consol)
 	try:
 		service.run ()		

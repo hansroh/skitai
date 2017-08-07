@@ -16,7 +16,7 @@ class Daemon:
 		self.flock = None
 		self.shutdown_in_progress = False	
 		self.handlers = {}	
-		set_process_name ("%s: %s" % (skitai.get_proc_title (), self.NAME))
+		set_process_name ("%s: %s" % (config.get ("pname") or skitai.get_proc_title (), self.NAME))
 		self.setup ()
 	
 	def maintern_shutdown_request (self, now):

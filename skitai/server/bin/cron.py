@@ -233,7 +233,7 @@ if __name__ == "__main__":
 		sys.argv[1:], 
 		"hv", 
 		[
-			"help", "verbose=", "log-path=", "var-path="
+			"help", "verbose=", "log-path=", "var-path=", "pname"
 		]	
 	)
 	
@@ -251,7 +251,9 @@ if __name__ == "__main__":
 			_logpath = v
 		elif k == "--var-path":	
 			_varpath = v
-
+		elif k == "--pname":	
+			_cf ["pname"] = v
+			
 	_cf ['jobs'] = []
 	for job in argopt [1]:
 		_cf ['jobs'].append (job)
