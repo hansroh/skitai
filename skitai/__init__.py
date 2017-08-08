@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.13.2"
+__version__ = "0.26.13.5"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -99,7 +99,7 @@ def start_was (wasc):
 #------------------------------------------------
 # Configure
 #------------------------------------------------
-dconf = {'mount': {"default": []}, 'clusters': {}, 'cron': [], 'max_ages': {}}
+dconf = {'mount': {"default": []}, 'clusters': {}, 'cron': [], 'max_ages': {}, 'log_off': []}
 
 def pref (preset = False):
 	from .saddle.Saddle import Config
@@ -129,7 +129,12 @@ Win32Service = None
 def set_service (service_class):
 	global Win32Service	
 	Win32Service = service_class
-		
+
+def log_off (*path):		
+	global dconf
+	for each in path:
+		dconf ['log_off'].append (each)	
+	
 def set_max_age (path, max_age):
 	global dconf
 	dconf ["max_ages"][path] = max_age
@@ -329,7 +334,7 @@ def run (**conf):
 			if not media:
 				media.append ("screen")
 				self.conf ['verbose'] = "yes"
-			Skitai.Loader.config_logger (self, path, media)
+			Skitai.Loader.config_logger (self, path, media, self.conf ["log_off"])
 		
 		def master_jobs (self):
 			smtpda = self.conf.get ('smtpda')

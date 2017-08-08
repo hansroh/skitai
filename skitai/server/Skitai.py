@@ -28,11 +28,11 @@ from .rpc import cluster_dist_call, rcache
 import socket
 import signal
 import multiprocessing
-from . import wsgiappservice, cachefs
+from . import wsgiappservice, cachefs, http_response
 from .dbi import cluster_dist_call as dcluster_dist_call
 import types
 from .handlers.websocket import servers as websocekts
-
+from .wastuff import selective_logger
 
 class Loader:
 	def __init__ (self, config = None, logpath = None, varpath = None, debug = 0):		
@@ -166,14 +166,16 @@ class Loader:
 			scheduler = schedule.Scheduler (self.wasc, conffile, self.wasc.logger.get ("server"))		
 			self.wasc.register ("scheduler", scheduler)
 	
-	def config_logger (self, path, media = None):
+	def config_logger (self, path, media = None, log_off = []):
 		if not media:
 			if path is not None:
 				media = ["file"]
 			else:
 				media = ["screen"]
 		
+		http_response.http_response.selective_logger = selective_logger.SelectiveLogger (log_off)		
 		self.wasc.register ("logger", wsgiappservice.Logger (media, path))
+		
 		if os.name != "nt" and path:
 			def hUSR1 (signum, frame):	
 				self.wasc.logger.rotate ()

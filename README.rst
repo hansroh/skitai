@@ -936,6 +936,59 @@ You can query for getting user information to database engines asynchronously. H
       ).findone ('tokens', {"token": request.token})
 
 
+Request Logging
+-----------------
+
+Turn Request Logging Off For Specific Path
+`````````````````````````````````````````````
+
+For turn off request log for specific path, 
+
+.. code:: python
+
+  # turned off starting with
+  skitai.log_off ('/static/')
+  
+  # turned off ending with
+  skitai.log_off ('*.css')
+  
+  # you can multiple args
+  skitai.log_off ('*.css', '/static/images/', '/static/js/')
+
+
+Log Format
+````````````
+
+Blank seperated items of log line are,
+
+- log date
+- log time
+- client ip or proxy ip
+
+- request host: default '-' if not available
+- request methods
+- request uri
+- request version
+- request body size
+
+- reply code
+- reply body size
+
+- global transaction ID: for backtracing request if multiple backends related
+- local transaction ID: for backtracing request if multiple backends related
+- username when HTTP auth: default '-', wrapped by double quotations if value available
+- bearer token when HTTP bearer auth
+
+- referer: default '-', wrapped by double quotations if value available
+- user agent: default '-', wrapped by double quotations if value available
+- x-forwared-for, real client ip before through proxy
+
+- Skitai engine's worker ID like M(Master), W0, W1 (Worker #0, #1,... Posix only)
+- number of active connections when logged, these connections include not only clients but your backend/upstream servers
+- duration ms for request handling
+- duration ms for transfering response data
+
+
 Skitai with Nginx / Squid
 ---------------------------
 
@@ -961,23 +1014,26 @@ For Nginx might be 2 config files (I'm not sure):
   proxy_set_header Connection "";
   
   upstream backend {
-  	server 127.0.0.1:5000;
-  	keepalive 100;
+    server 127.0.0.1:5000;
+    keepalive 100;
   }
   
   server {
-  	listen 80;
-  	server_name www.jeans.com;
+    listen 80;
+    server_name www.jeans.com;
   	
-  	location / {		
-  		proxy_pass http://backend;
-  		add_header X-Backend Skitai App Engine;
-  	}
+    location / {		
+      proxy_pass http://backend;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      add_header X-Backend "Skitai App Engine";
+    }
   	
-  	location /assets/ {
-  		alias /home/ubuntu/yolocast/statics/assets/;		
-  	}
+    location /assets/ {
+      alias /home/ubuntu/www/statics/assets/;		
+    }
   }
+
 
 Self-Descriptive App
 ---------------------
@@ -3505,7 +3561,8 @@ Change Log
   0.26 (May 2017)
   
   - 0.26.13
-  
+    
+    - add skitai.log_off (path,...)
     - add reply content-type to request log, and change log format
     - change posix process display name
     
