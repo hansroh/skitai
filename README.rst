@@ -757,8 +757,10 @@ Sometimes app need batch tasks for minimum response time to clients. At this sit
   skitai.cron ("9 2/12 * * *", "/home/apps/remove_pended_files.py > /dev/null 2>&1")
   skitai.mount ('/', app)  
   skitai.run ()
-  
+
 Taks configuarion is very same with posix crontab.
+
+Note that these tasks run only with Skitai, If Skitai is stopped, tasks will also stopped.
 
 
 Asccessing File Resources On Startup
