@@ -79,7 +79,7 @@ def catch (format = 0, exc_info = None):
 
 
 class http_response:
-	selective_logger = selective_logger.SelectiveLogger ()
+	log_or_not = selective_logger.SelectiveLogger ()
 	reply_code = 200
 	reply_message = "OK"
 	_is_async_streaming = False
@@ -446,7 +446,7 @@ class http_response:
 				producers.fifo([outgoing_header, outgoing_producer])
 			)
 
-		outgoing_producer = self.selective_logger.bind (self.request.uri, outgoing_producer, self.log)				
+		outgoing_producer = self.log_or_not (self.request.uri, outgoing_producer, self.log)				
 		if do_optimize:
 			outgoing_producer = producers.globbing_producer (outgoing_producer)
 		

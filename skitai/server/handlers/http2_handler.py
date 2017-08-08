@@ -196,15 +196,15 @@ class http2_request_handler:
 			else:
 				del self.priorities [stream_id]
 		
-		header_producer = h2header_producer (stream_id, headers, producer, self.conn, self._plock)				
+		header_producer = h2header_producer (stream_id, headers, producer, self.conn, self._plock)
 		
 		if not producer:
-			header_producer = r.response.selective_logger.bind (r.uri, header_producer, r.response.log)			
+			header_producer = r.response.log_or_not (r.uri, header_producer, r.response.log)			
 			self.channel.push_with_producer (header_producer)
 			
 		else:
 			self.channel.push_with_producer (header_producer)
-			outgoing_producer = r.response.selective_logger.bind (r.uri, producer, r.response.log)
+			outgoing_producer = r.response.log_or_not (r.uri, producer, r.response.log)
 			
 			if do_optimize:
 				outgoing_producer = producers.globbing_producer (outgoing_producer)

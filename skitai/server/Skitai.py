@@ -173,7 +173,7 @@ class Loader:
 			else:
 				media = ["screen"]
 		
-		http_response.http_response.selective_logger = selective_logger.SelectiveLogger (log_off)		
+		http_response.http_response.log_or_not = selective_logger.SelectiveLogger (log_off)		
 		self.wasc.register ("logger", wsgiappservice.Logger (media, path))
 		
 		if os.name != "nt" and path:

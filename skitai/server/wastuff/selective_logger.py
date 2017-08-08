@@ -1,4 +1,5 @@
 from aquests.lib import producers
+import threading
 import os
 
 class SelectiveLogger:
@@ -9,6 +10,7 @@ class SelectiveLogger:
 		self.endswiths = []
 		self.startswiths = []
 		self.cache = {}
+		self.lock = threading.RLock ()
 		for each in log_off:
 			if each.startswith ("*"):
 				self.endswiths.append (each [1:])
@@ -17,16 +19,19 @@ class SelectiveLogger:
 			else:				
 				self.startswiths.append (each)		
 	
-	def add_cache (self, key, val):			
-		if len (self.cache) > self.MAX_CACHE:
-			return
-		self.cache [key]	 = val
+	def add_cache (self, key, val):	
+		with self.lock:
+			if len (self.cache) > self.MAX_CACHE:
+				return
+			self.cache [key] = val
 		
-	def bind (self, uri, producer, logfunc):
+	def __call__ (self, uri, producer, logfunc):
 		if not self.log_off or uri == "/":
 			return producers.hooked_producer (producer, logfunc)		
 		
-		if self.cache.get (uri) == -1:
+		with self.lock:
+			cached = self.cache.get (uri)
+		if cached == -1:
 			return producer
 		
 		for each in self.endswiths:
@@ -35,7 +40,8 @@ class SelectiveLogger:
 				return producer
 				
 		d = os.path.dirname (uri)
-		cached = self.cache.get (d)
+		with self.lock:
+			cached = self.cache.get (d)
 		if cached == -1:
 			return producer
 		elif cached == 1:
