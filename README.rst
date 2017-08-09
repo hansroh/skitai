@@ -3475,6 +3475,8 @@ Note: I think I don't understand about gRPC's stream request and response. Does 
 Route Proxing Django Views & Working with Django Models
 ---------------------------------------------------------
 
+I barely use Django, but recently I have opportunity using Django and it is very fantastic and especially impressive to Django Admin System.
+
 Here are some examples collaborating with Djnago and Saddle.
 
 Route Proxing Django Views
@@ -3555,10 +3557,40 @@ This example show that if Django admin app is mounted to Skitai, whenever model 
   def newdphoto (was):
     was.backend ('@entity').execute ('insert into my_model ...').wait () 
     return 'success'
-  
-And remember, before using Django views and models, you should mount Django apps on Skitai first.
 
+You can skip binding django signals by use listen_django_model_signal (),
+
+.. code:: python
   
+  app = Saddle (__name__)  
+  # activate wathcing model
+  app.listen_django_model_signal (within_app = True, broadcast = False)
+  
+  @app.on ("django-model-changed:myapp.models.Photo")
+  def model_changed (was, sender, *karg):
+    # starts with 'x_', added by Saddle
+    karg ['x_operation'] # one of C, U, D
+    karg ['x_model_class'] # string name of model class like myapp.models.Photo
+    
+    # else Django's model signal args
+    karg ['instance']
+    karg ['update_fields']
+
+For watching multiple models.
+
+.. code:: python
+
+  @app.on ("django-model-changed:myapp.models.Photo", "django-model-changed:myapp.models.User")
+
+If you would like listening all mounted Django model signals,
+  
+.. code:: python
+
+  @app.on ("django-model-changed")
+
+*Remember*, before using Django views and models, you should mount Django apps on Skitai first.
+
+
 Logging and Traceback
 ------------------------
 
@@ -3617,6 +3649,7 @@ Change Log
   
   - 0.26.13
     
+    - add app.storage
     - removed wac._backend and wac._upstream, use @app.mounted and @app.umount
     - replaced app.listen by app.on_broadcast
     - add skitai.log_off (path,...)

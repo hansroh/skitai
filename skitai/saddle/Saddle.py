@@ -15,7 +15,7 @@ import base64
 from . import cookie
 from .config import Config
 from .storage import Storage
-
+	
 from jinja2 import Environment, FileSystemLoader
 try:
 	from chameleon import PageTemplateLoader
@@ -27,7 +27,8 @@ class AuthorizedUser:
 		self.name = user
 		self.realm = realm
 		self.info = info
-		
+
+	
 class Saddle (part.Part):
 	use_reloader = False
 	debug = False
@@ -58,14 +59,13 @@ class Saddle (part.Part):
 		self.bus = evbus.EventBus ()
 		self.events = []
 		# for bus, set by wsgi_executor
-		self._was = None
 		
 		self.reloadables = {}
 		self.last_reloaded = time.time ()
 		self.cached_paths = {}		
 		self.cached_rules = []
 		self.config = Config (preset = True)
-	
+		
 	def set_devel (self, debug = True, use_reloader = True):
 		self.debug = debug
 		self.use_reloader = use_reloader
@@ -91,6 +91,31 @@ class Saddle (part.Part):
 		from .patches import jinjapatch
 		self.jinja_env = jinjapatch.overlay (self.app_name, variable_start_string, variable_end_string, block_start_string, block_end_string, comment_start_string, comment_end_string, line_statement_prefix, line_comment_prefix, **karg)
 	
+	def _model_changed (self, sender, **karg):
+		model_name = str (sender)[8:-2]
+		karg ['x_model_class'] = model_name
+		if 'created' not in karg:
+			karg ["x_operation"] = 'D'
+		elif karg["created"]:
+			karg ["x_operation"] = 'C'
+		else:
+			karg ["x_operation"] = 'U'
+  
+		if self._django_models_watch_scope [0]:
+			self.emit ("django-model-changed", sender, **karg)
+			self.emit ("django-model-changed:%s" % model_name, sender, **karg)
+		elif self._django_models_watch_scope [1]:
+			was = the_was._get ()
+			was.broadcast ("django-model-changed", sender, **karg)
+			was.broadcast ("django-model-changed:%s" % model_name, sender, **karg)
+		
+	def listen_django_model_signal (self, within_app = True, broadcast = False):
+		self._django_models_watch_scope = (within_app, broadcast)
+		from django.db.models.signals import post_save, post_delete
+		
+		post_save.connect (self._model_changed)
+		post_delete.connect (self._model_changed)
+		
 	def render (self, was, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		while template_file and template_file [0] == "/":
 			template_file = template_file [1:]	
@@ -190,7 +215,12 @@ class Saddle (part.Part):
 	
 	def on (self, event):
 		def decorator(f):
-			self.bus.add_event (f, event)
+			if isinstance (event, (list, tuple)):				
+				for e in event:
+					self.bus.add_event (f, e)
+			else:
+				self.bus.add_event (f, event)
+				
 			@wraps(f)
 			def wrapper(*args, **kwargs):
 				return f (*args, **kwargs)
@@ -214,7 +244,12 @@ class Saddle (part.Part):
 	
 	def on_broadcast (self, event):
 		def decorator(f):
-			self.add_event (event, f)
+			if isinstance (event, (list, tuple)):				
+				for e in event:
+					self.bus.add_event (f, e)
+			else:
+				self.bus.add_event (f, event)
+				
 			@wraps(f)
 			def wrapper(*args, **kwargs):
 				return f (*args, **kwargs)
@@ -483,8 +518,7 @@ class Saddle (part.Part):
 										
 	def __call__ (self, env, start_response):
 		was = env ["skitai.was"]		
-		was.app = self
-		self._was = was
+		was.app = self		
 		was.response = was.request.response
 		
 		content_type = env.get ("CONTENT_TYPE", "")				
@@ -498,8 +532,7 @@ class Saddle (part.Part):
 			result = wsgi_executor.Executor (env, self.get_method) ()
 	
 		self.cleanup_on_demands (was) # del session, mbox, cookie, g
-		del was.response				
-		self._was = None # break back ref
+		del was.response		
 		was.app = None
 			
 		return result
