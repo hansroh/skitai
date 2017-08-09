@@ -210,7 +210,7 @@ class Saddle (part.Part):
 	
 	#-----------------------------------------------
 	
-	def listen (self, event):
+	def on_broadcast (self, event):
 		def decorator(f):
 			self.add_event (event, f)
 			@wraps(f)

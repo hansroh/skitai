@@ -2578,7 +2578,7 @@ Communication with Event
 *New in version 0.26.10*
 *Availabe only on Python 3.5+*
 
-'was' can work as an event bus using app.listen () - was.broadcast () pair. Let's assume that an users.py app handle only user data, and another photo.py app handle only photos of users.
+'was' can work as an event bus using app.on_broadcast () - was.broadcast () pair. Let's assume that an users.py app handle only user data, and another photo.py app handle only photos of users.
 
 .. code:: python
 
@@ -2591,7 +2591,7 @@ At photos.py, you can prepare for listening to 'user:data-added' event and this 
 
 .. code:: python
   
-  @app.listen ('user:data-added'):
+  @app.on_broadcast ('user:data-added')
   def refresh_user_cache (was, userid):
     was.sqlite3 ('@photodb').execute ('update ...').wait ()
 
@@ -2599,7 +2599,7 @@ and uses.py, you just emit 'user:data-added' event to 'was'.
 
 .. code:: python
   
-  @app.route ('/users', methods = ["PATCH"]):
+  @app.route ('/users', methods = ["PATCH"])
   def users (was):
     args = was.request.json ()
     was.sqlite3 ('@userdb').execute ('update ...').wait ()
@@ -2617,7 +2617,7 @@ If resource always broadcasts event without args, use `broadcast_after` decorato
 
 .. code:: python
   
-  @app.route ('/', methods = ["PATCH"]):
+  @app.route ('/', methods = ["PATCH"])
   @app.broadcast_after ('some-event')
   def users (was):
     args = was.request.json ()
@@ -3570,6 +3570,7 @@ Change Log
     
   - 0.26.12
     
+    - change event decorator: @app.listen -> @app.on_broadcast
     - adaptation to h2 3.0.1
     - fix http2 flow controling    
     - fix errorhandler and add defaulterrorhandler
