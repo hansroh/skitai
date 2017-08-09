@@ -506,7 +506,8 @@ def run (**conf):
 		time.sleep (2)
 		start (working_dir)	
 	else:
-		cmd = None
+		print ('unknown command: %s' % cmd)
+		return
 				
 	if cmd and os.name == "nt":
 		return
