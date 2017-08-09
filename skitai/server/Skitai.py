@@ -9,7 +9,7 @@ import sys, time, os, threading
 from . import http_server
 from skitai import lifetime
 from warnings import warn
-from . import https_server, wsgi_apps
+from . import https_server
 from skitai import start_was
 from collections import deque
 from aquests.lib.athreads.fifo import await_fifo
@@ -73,7 +73,15 @@ class Loader:
 		websocekts.start_websocket (self.wasc)
 		self.wasc.register ("websockets", websocekts.websocket_servers)
 		self.switch_to_await_fifo ()
-		
+	
+	def app_cycle (self, func):		
+		_was = self.wasc ()
+		for h in self.wasc.httpserver.handlers:
+			if isinstance (h, vhost_handler.Handler):
+				for vhost in h.sites.values ():
+					for apph in vhost.apps.modules.values ():
+						getattr (apph, func) (_was)
+							
 	def WAS_finalize (self):
 		global the_was
 		
@@ -85,6 +93,7 @@ class Loader:
 		http2.MAX_HTTP2_CONCURRENT_STREAMS = 1
 		request_handler.RequestHandler.FORCE_HTTP_11 = True
 		adns.init (self.wasc.logger.get ("server"))
+		self.app_cycle ('mounted')
 		start_was (self.wasc)
 		
 	def config_cachefs (self, cache_dir = None, memmax = 0, diskmax = 0):
@@ -281,6 +290,8 @@ class Loader:
 		return None # worker process
 		
 	def close (self):
+		self.app_cycle ('umount')
+		
 		for attr, obj in list(self.wasc.objects.items ()):
 			if attr == "logger": 
 				continue

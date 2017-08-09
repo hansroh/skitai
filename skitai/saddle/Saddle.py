@@ -14,6 +14,8 @@ import random
 import base64
 from . import cookie
 from .config import Config
+from .storage import Storage
+
 from jinja2 import Environment, FileSystemLoader
 try:
 	from chameleon import PageTemplateLoader
@@ -29,7 +31,7 @@ class AuthorizedUser:
 class Saddle (part.Part):
 	use_reloader = False
 	debug = False
-	
+	storage = Storage ()
 	# Session
 	securekey = None
 	session_timeout = None
@@ -143,7 +145,7 @@ class Saddle (part.Part):
 			
 			if modpath:
 				for package_dir in package_dirs:
-					if modpath.startswith (package_dir):						
+					if modpath.startswith (package_dir):
 						self.watch (v)
 						break
 								

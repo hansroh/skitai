@@ -35,7 +35,21 @@ class Module:
 			
 	def __repr__ (self):
 		return "<Module routing to %s at %x>" % (self.route, id(self))
-		
+	
+	def mounted (self, was):	
+		app = self.app or getattr (self.module, self.appname)
+		try: f = getattr (app, "onmounted")
+		except AttributeError: pass
+		else:	
+			f (was)			
+	
+	def umount (self, was):
+		app = self.app or getattr (self.module, self.appname)
+		try: f = getattr (app, "onumount")
+		except AttributeError: pass
+		else:	
+			f (was)		
+				
 	def get_callable (self):
 		return self.app or getattr (self.module, self.appname)
 		
@@ -124,10 +138,12 @@ class Module:
 				
 			importer.reloader (self.module)
 			self.start_app (reloded = True)
-			newapp = getattr (self.module, self.appname)			
+			newapp = getattr (self.module, self.appname)
 			for attr, value in PRESERVED:
 				setattr (newapp, attr, value)
-				
+			# remount	
+			self.mounted (self.wasc ())
+					
 		self.last_reloaded = time.time ()
 				
 	def set_route (self, route):

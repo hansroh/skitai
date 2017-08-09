@@ -98,29 +98,6 @@ class WAS:
 			cls.clusters_for_distcall [clustername] = cluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"), cls.cachefs)
 		cls.clusters [clustername] = cluster
 	
-	@classmethod
-	def _backend (cls, alias = None, data = None, meta = None, callback = None, timeout = 10):
-		if alias [0] == "@":
-			alias = alias [1:]		
-		if not callback:
-			callback = lambda x: None		
-		return cls.clusters_for_distcall [alias].Server (None, None, None, None, meta, False, False, None, callback, timeout)
-		
-	@classmethod
-	def _upstream (cls, method, alias_uri = None, data = None, auth = None, headers = None, meta = None, callback = None, timeout = 10):
-		try: 
-			alias, uri = alias_uri.split ("/", 1)
-		except ValueError:
-			alias, uri = alias_uri, "/"
-		else:
-			uri = "/" + uri
-		if alias [0] == "@":
-			alias = alias [1:]
-		method = method.lower ()
-		if not callback:
-			callback = lambda x: None		
-		return cls.clusters_for_distcall [alias].Server (uri, data, method, headers, auth, meta, False, False, None, callback, timeout)
-
 	def __dir__ (self):
 		return self.objects.keys ()
 	

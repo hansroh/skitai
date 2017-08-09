@@ -20,7 +20,7 @@ class Part:
 		self.path_suffix_len = 0
 		self.route_map = {}
 		self.route_priority = []
-		self._binds_server = [None] * 3
+		self._binds_server = [None] * 5
 		self._binds_request = [None] * 4
 		self._binds_when = [None] * 5		
 		self.handlers = {}		
@@ -75,15 +75,23 @@ class Part:
 		return f
 	start_up = startup
 	
-	def onreload (self, f):
+	def reload (self, f):
 		self._binds_server [1] = f
 		return f
-	reload = startup
+	onreload = reload
 	
 	def shutdown (self, f):
 		self._binds_server [2] = f
 		return f
-		
+	
+	def mounted (self, f):
+		self._binds_server [3] = f
+		return f
+	
+	def umount (self, f):
+		self._binds_server [4] = f
+		return f
+				
 	def before_request (self, f):
 		self._binds_request [0] = f
 		return f
@@ -336,6 +344,12 @@ class Part:
 	def cleanup (self):
 		# initing app & packages		
 		self._binds_server [2] and self._binds_server [2] (self.wasc)
+	
+	def onmounted (self, was)	:
+		self._binds_server [3] and self._binds_server [3] (was)
+	
+	def onumount (self, was):
+		self._binds_server [4] and self._binds_server [4] (was)
 			
 	def start (self, wasc, route):
 		self.wasc = wasc

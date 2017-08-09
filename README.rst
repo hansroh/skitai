@@ -996,19 +996,7 @@ Skitai with Nginx / Squid
 
 Here's some helpful sample works for virtual hosting using Nginx / Squid.
 
-Example Squid config file (squid.conf) is like this:
-
-.. code:: python
-    
-    http_port 80 accel defaultsite=www.carsales.com
-    
-    cache_peer 127.0.0.1 parent 5000 0 no-query originserver name=jeans    
-    acl jeans-domain dstdomain www.jeans.com
-    http_access allow jeans-domain
-    cache_peer_access jeans allow jeans-domain
-    cache_peer_access jeans deny all 
-
-For Nginx might be 2 config files (I'm not sure):
+For Nginx:
 
 .. code:: python
     
@@ -1022,13 +1010,13 @@ For Nginx might be 2 config files (I'm not sure):
   
   server {
     listen 80;
-    server_name www.jeans.com;
+    server_name www.oh-my-jeans.com;
   	
     location / {		
       proxy_pass http://backend;
       proxy_set_header Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      add_header X-Backend "Skitai App Engine";
+      add_header X-Backend "skitai app engine";
     }
   	
     location /assets/ {
@@ -1036,6 +1024,17 @@ For Nginx might be 2 config files (I'm not sure):
     }
   }
 
+Example Squid config file (squid.conf) is like this:
+
+.. code:: python
+    
+    http_port 80 accel defaultsite=www.oh-my-jeans.com
+    
+    cache_peer 127.0.0.1 parent 5000 0 no-query originserver name=jeans    
+    acl jeans-domain dstdomain www.oh-my-jeans.com
+    http_access allow jeans-domain
+    cache_peer_access jeans allow jeans-domain
+    cache_peer_access jeans deny all 
 
 Self-Descriptive App
 ---------------------
@@ -2865,9 +2864,6 @@ If you don't specify cookie path when set, cookie path will be automatically set
 - was.cookie.values ()
 - was.cookie.items ()
 - was.cookie.has_key ()
-- was.cookie.iterkyes ()
-- was.cookie.itervalues ()
-- was.cookie.iteritems ()
 
 
 Access Session
@@ -2901,10 +2897,22 @@ To enable session for app, random string formatted securekey should be set for e
 - was.session.values ()
 - was.session.items ()
 - was.session.has_key ()
-- was.session.iterkyes ()
-- was.session.itervalues ()
-- was.session.iteritems ()
 
+Access App Storage
+--------------------
+
+was.storage is thread safe object for storing data.
+
+.. code:: python
+
+  @app.route ("/")
+  def hello_world (was):  
+    app.storage.set ("episodes", some_data)
+    
+- was.storage.set (key, val)
+- was.storage.get (key, default = None)
+- was.storage.remove (key)
+- was.storage.clear ()
 
 Messaging Box
 ----------------
@@ -3150,7 +3158,8 @@ If you handle exception with failed_request (), return custom error content, or 
     	"501 Server Error", 
     	was.render ("err501.htm", msg = "We're sorry but something's going wrong")
     )
-    
+
+
 Also there're another kind of decorator group, App decorators.
 
 .. code:: python
@@ -3164,8 +3173,8 @@ Also there're another kind of decorator group, App decorators.
     wac.register ("loginengine", SNSLoginEngine (logger))
     wac.register ("searcher", FulltextSearcher (wac.numthreads))    
   
-  @app.onreload  
-  def onreload (wac):
+  @app.reload  
+  def reload (wac):
     wac.loginengine.reset ()
   
   @app.shutdown    
@@ -3204,13 +3213,43 @@ As a result, myobject can be accessed by all your current app functions even all
 
 It maybe used like plugin system. If a app which should be mounted loads pulgin-like objects, theses can be used by Skitai server wide apps via was.object1, was.object2,...
 
-These methods will be called,
+*New in version 0.26*
 
-1. startup: when app imported on skitai server started
-2. onreload: when app.use_reloader is True and app is reloaded
-3. shutdown: when skitai server is shutdowned
+If you have databases or API servers, and want to create cache object on app starting, you can use @app.mounted decorator.
 
+.. code:: python
+  
+  def create_cache (res):
+    d = {}
+    for row in res.data:
+      d [row.code] = row.name
+    app.storage.set ('STATENAMES', d)
+  
+  @app.mounted
+  def mounted (was):
+    was.backend ('@mydb', callback = create_cache).execute ("select code, name from states;")    
+    # or use REST API
+    was.get ('@myapi/v1/states', callback = create_cache)
+    # or use RPC
+    was.rpc ('@myrpc/rpc2', callback = create_cache).get_states ()
+  
+  @app.umount
+  def umount (was):
+    was.delete ('@session/v1/sessions', callback = lambda x: None)    
+    
+But both are not called by request, you CAN'T use request related objects like was.request, was.cookie etc. And SHOULD use callback because these are executed within Main thread.
 
+These methods will be called  by this order,
+
+- startup (wac): when app imported on skitai server started
+- mounted (was): called first with was (instance of wac)
+- loop whenever app is reloaded,
+
+  - reload (wac): when app.use_reloader is True and app is reloaded
+  - mounted (was): called first with was (instance of wac)
+
+- umount (was): called last with was (instance of wac)
+- shutdown (wac): when skitai server enter shutdown process
 
 CORS (Cross Origin Resource Sharing) and Preflight
 -----------------------------------------------------
@@ -3246,38 +3285,6 @@ If you want function specific CORS,
   def post (was):
     args = was.request.json ()	
     return was.jstream ({...})	
-
-
-Using External Resources With App Decorator
---------------------------------------------
-
-New in version 0.26
-
-If you have databases or API servers, and want to create cache object on app starting, you can use wac._backend () and wac._upstream (). But youn can only use with pre-aliased upstream servers only.
-
-.. code:: python
-  
-  app.cache = {}
-  def create_cache (res):
-    for row in res.data:
-      app.cache ['STATENAMES'][row.code] = row.name
-  
-  @app.startup
-  def startup (wac):
-    wac._backend ('@mydb', callback = create_cache).execute ("select code, name from states;")    
-    # or use REST API
-    wac._upstream ('get', '@myapi/v1/states', callback = create_cache)
-    # or use RPC
-    wac._upstream ('rpc', '@myrpc/rpc2', callback = create_cache).get_states ()
-
-Now you can access cache by was.app.cache or app.cache.
-
-wac._backend and wac._upstream are a sort of low level method for making requests before wac is instantialized.
-
-- wac._backend (alias = None, data = None, meta = None, callback = None, timeout = 10)
-- wac._upstream (method, alias_uri = None, data = None, auth = None, headers = None, meta = None, callback = None, timeout = 10)
-
-  - method: can be all of was' request methods like postgresql, sqlite3, redis, get, post, pus, rpc ... etc
 
 
 WWW-Authenticate
@@ -3468,6 +3475,11 @@ Note: I think I don't understand about gRPC's stream request and response. Does 
 Route Proxing Django Views & Working with Django Models
 ---------------------------------------------------------
 
+Here are some examples collaborating with Djnago and Saddle.
+
+Route Proxing Django Views
+``````````````````````````````
+
 For Django route proxing, 
 
 .. code:: python
@@ -3477,6 +3489,9 @@ For Django route proxing,
   @app,route ('/django/hello')
   def django_hello (was):
     return views.somefunc (was.django)
+
+Using Django Models
+`````````````````````
 
 You can use also Django models.
 
@@ -3491,8 +3506,8 @@ You can use also Django models.
 
 You can use Django Query Set as SQL generator for Skitai's asynchronous query execution. But it has some limitations.
 
-- just select query and prefetch_related () will be ignored
-- only effetive on PostgreSQL
+- just vaild only select query and prefetch_related () will be ignored
+- effetive on PostgreSQL and SQLite3
 
 .. code:: python
 
@@ -3500,9 +3515,47 @@ You can use Django Query Set as SQL generator for Skitai's asynchronous query ex
 
   @app,route ('/django/hello')
   def django_hello (was):    
-    queryset = models.Photo.objects.filter (topic=1).order_by ('title')	
-	  return was.jstream (was.sqlite3 ("@entity").execute (queryset).getwait ().data, 'data')	
+    query = models.Photo.objects.filter (topic=1).order_by ('title')	
+    return was.jstream (was.sqlite3 ("@entity").execute (query).getwait ().data, 'data')	
 
+Redirect Django Model Signals To Saddle Event
+`````````````````````````````````````````````````
+
+*Available on Python 3.5+*
+
+Using with saddle's event, you can monitor the change of Django model and can do your jobs like updating cache.
+
+This example show that if Django admin app is mounted to Skitai, whenever model is changed in Django admin, Saddle will receive signal and update cache data.
+
+.. code:: python
+  
+  from django.db.models.signals import post_save
+  from django.dispatch import receiver
+  from myapp.models import MyModel
+  
+  @receiver (post_save, sender = MyModel)
+  def model_saved (sender, instance, created, **karg):
+    app.emit ("model-saved", sender)
+  
+  # rebuild cache when app mounted or model is changed
+  @app.on ("model-saved")
+  @app.mounted
+  def rebuild_cache (was, model = None):
+    if not model:
+      model = MyModel
+    query = model.objects.all ().order_by ('created_at')
+    req = was.backend (
+    	'@entity', 
+    	callback = lambda x, y = app: y.storage.set ('my-cache', x.data)
+    ).execute (query)
+  
+  # if you update change model directly, emit event
+  @app.emit_after ("model-saved")
+  @app.mount ("/photo")
+  def newdphoto (was):
+    was.backend ('@entity').execute ('insert into my_model ...').wait () 
+    return 'success'
+  
 And remember, before using Django views and models, you should mount Django apps on Skitai first.
 
   
@@ -3564,6 +3617,8 @@ Change Log
   
   - 0.26.13
     
+    - removed wac._backend and wac._upstream, use @app.mounted and @app.umount
+    - replaced app.listen by app.on_broadcast
     - add skitai.log_off (path,...)
     - add reply content-type to request log, and change log format
     - change posix process display name
