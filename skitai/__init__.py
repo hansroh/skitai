@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.13.5"
+__version__ = "0.26.13.7"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -505,7 +505,7 @@ def run (**conf):
 		stop (working_dir)		
 		time.sleep (2)
 		start (working_dir)	
-	else:
+	elif cmd:
 		print ('unknown command: %s' % cmd)
 		return
 				
