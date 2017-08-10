@@ -14,7 +14,7 @@ import random
 import base64
 from . import cookie
 from .config import Config
-from .storage import Storage
+
 	
 from jinja2 import Environment, FileSystemLoader
 try:
@@ -32,7 +32,7 @@ class AuthorizedUser:
 class Saddle (part.Part):
 	use_reloader = False
 	debug = False
-	storage = Storage ()
+	
 	# Session
 	securekey = None
 	session_timeout = None
@@ -54,7 +54,6 @@ class Saddle (part.Part):
 		self.home = None
 		self.jinja_env = None
 		self.chameleon = None
-		self.lock = threading.RLock ()
 		
 		self.bus = evbus.EventBus ()
 		self.events = []
@@ -90,31 +89,6 @@ class Saddle (part.Part):
 	):
 		from .patches import jinjapatch
 		self.jinja_env = jinjapatch.overlay (self.app_name, variable_start_string, variable_end_string, block_start_string, block_end_string, comment_start_string, comment_end_string, line_statement_prefix, line_comment_prefix, **karg)
-	
-	def _model_changed (self, sender, **karg):
-		model_name = str (sender)[8:-2]
-		karg ['x_model_class'] = model_name
-		if 'created' not in karg:
-			karg ["x_operation"] = 'D'
-		elif karg["created"]:
-			karg ["x_operation"] = 'C'
-		else:
-			karg ["x_operation"] = 'U'
-  
-		if self._django_models_watch_scope [0]:
-			self.emit ("django-model-changed", sender, **karg)
-			self.emit ("django-model-changed:%s" % model_name, sender, **karg)
-		elif self._django_models_watch_scope [1]:
-			was = the_was._get ()
-			was.broadcast ("django-model-changed", sender, **karg)
-			was.broadcast ("django-model-changed:%s" % model_name, sender, **karg)
-		
-	def listen_django_model_signal (self, within_app = True, broadcast = False):
-		self._django_models_watch_scope = (within_app, broadcast)
-		from django.db.models.signals import post_save, post_delete
-		
-		post_save.connect (self._model_changed)
-		post_delete.connect (self._model_changed)
 		
 	def render (self, was, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		while template_file and template_file [0] == "/":
@@ -213,13 +187,10 @@ class Saddle (part.Part):
 	
 	#----------------------------------------------
 	
-	def on (self, event):
-		def decorator(f):
-			if isinstance (event, (list, tuple)):				
-				for e in event:
-					self.bus.add_event (f, e)
-			else:
-				self.bus.add_event (f, event)
+	def on (self, *events):
+		def decorator(f):			
+			for e in events:				
+				self.bus.add_event (f, e)
 				
 			@wraps(f)
 			def wrapper(*args, **kwargs):
@@ -242,13 +213,10 @@ class Saddle (part.Part):
 	
 	#-----------------------------------------------
 	
-	def on_broadcast (self, event):
+	def on_broadcast (self, *events):
 		def decorator(f):
-			if isinstance (event, (list, tuple)):				
-				for e in event:
-					self.bus.add_event (f, e)
-			else:
-				self.bus.add_event (f, event)
+			for e in events:
+				self.add_event (e, f)
 				
 			@wraps(f)
 			def wrapper(*args, **kwargs):

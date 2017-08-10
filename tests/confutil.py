@@ -138,7 +138,6 @@ wasc.register ("clusters",  {})
 wasc.register ("clusters_for_distcall",  {})
 wasc.register ("workers", 1)
 wasc.register ("cachefs", None)	
-wasc.register ("lock", threading.RLock ())
 websocekts.start_websocket (wasc)
 wasc.register ("websockets", websocekts.websocket_servers)
 wasc.numthreads = 0

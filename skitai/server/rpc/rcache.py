@@ -42,7 +42,7 @@ class Result:
 	
 	def expire (self):
 		global the_rcache
-		
+
 		if not self.is_cached:
 			return
 		the_rcache.expire (self)
@@ -58,7 +58,10 @@ class RCache:
 		self.cached = 0
 		self.reqs = 0
 		self.hits = 0
-		
+	
+	def __len__ (self):
+		return len (self.__cache)
+			
 	def hash (self, hashable):
 		return md5 (hashable.encode ("utf8")).hexdigest ()
 	
@@ -81,10 +84,11 @@ class RCache:
 		with self.lock:
 			if h not in self.__cache:
 				obj.remain_secs = obj.timeout
+				obj.is_cached = True
 				self.__cache [h] = obj
 				self.cached += 1
 	
-	def get (self, hashable):
+	def get (self, hashable, last_update = 0):
 		h = self.hash (hashable)
 		self.lock.acquire ()
 		self.reqs += 1
@@ -95,6 +99,20 @@ class RCache:
 			return None		
 		self.lock.release ()
 		
+		try:
+			last_update = int (last_update)
+		except:
+			last_update = 0
+		else:
+			if last_update == 1:
+				last_update = 0
+
+		if last_update and last_update > obj.cached_time:
+			with self.lock:
+				try: del self.__cache [h]
+				except KeyError: pass
+			return None
+			
 		passed = time.time () - obj.cached_time
 		if passed > obj.timeout:
 			with self.lock:
@@ -106,10 +124,9 @@ class RCache:
 			obj.remain_secs = obj.timeout - passed
 			self.hits += 1
 		
-		obj.is_cached = True
 		return obj
 		
-	def expire (self, obj):
+	def expire (self, obj):		
 		with self.lock:
 			h = self.hash (obj.ident)
 			try: h.close ()
@@ -117,23 +134,23 @@ class RCache:
 			try: del self.__cache [h]
 			except KeyError: pass
 	
+	def ratio (self):
+		if self.reqs:
+			ratio = "%2.1f %%" % (1.0 * self.hits / self.reqs * 100.,)
+		else:	
+			ratio = "N/A"
+		
 	def status (self):
 		with self.lock:
-			if self.reqs:
-				ratio = "%2.1f %%" % (1.0 * self.hits / self.reqs * 100.,)
-			else:	
-				ratio = "N/A"
-			
 			d = {
 				"current_cached": len (self.__cache),
 				"cached": self.cached,
 				"hits": self.hits,
 				"requests": self.reqs,
-				"hits_success_ratio": ratio
+				"hits_success_ratio": self.ratio ()
 			}
 		
 		return d
-		
 
 the_rcache = None
 

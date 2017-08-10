@@ -30,28 +30,13 @@ except ImportError:
 from skitai import lifetime
 from .wastuff.promise import Promise, _Method
 from .wastuff.triple_logger import Logger
+from .wastuff.storage import Storage
 from multiprocessing import RLock
 try:
 	from django.core.handlers.wsgi import WSGIRequest
 except ImportError:
 	WSGIRequest = None
-		
-class Persist:
-	def __init__ (self):
-		self.__lock = RLock ()
-		self.__d = {}
-		
-	def get (self, k, d = None):
-		with self.__lock:
-			return self.__d.get (k, d)
-	
-	def set (self, k, v):
-		with self.__lock:
-			self.__d [k] = v
-	
-	def pop (self, k):
-		with self.__lock:
-			return self.__d.pop (k)
+
 			
 class DateEncoder(json.JSONEncoder):
 	def default(self, obj):
@@ -63,8 +48,9 @@ class DateEncoder(json.JSONEncoder):
 class WAS:
 	version = __version__
 	objects = {}
-	p = Persist ()
-	
+	storage = Storage ({"was.models.status": ({}, 0)})
+	lock = RLock ()
+	init_time = time.time ()	
 	#----------------------------------------------------
 	# application friendly methods
 	#----------------------------------------------------
@@ -360,4 +346,21 @@ class WAS:
 	
 	def wsclient (self):
 		return self.env.get ('websocket.client')	
+		
+	def setlu (self, name, *args, **karg):		
+		objs = self.storage.get ("was.models.status")						
+		with self.lock:
+			objs [name] = time.time ()
+		self.broadcast ("model-changed", *args, **karg)
+		self.broadcast ("model-changed:%s" % name, *args, **karg)			
+		
+	def getlu (self, *names):
+		objs = self.storage.get ("was.models.status")
+		mtimes = []
+		for name in names:
+			with self.lock:
+				mtime = objs.get (name, self.init_time)
+			mtimes.append (mtime)
+		return max (mtimes)
+		
 		

@@ -85,7 +85,6 @@ class Loader:
 	def WAS_finalize (self):
 		global the_was
 		
-		self.wasc.register ("lock", threading.RLock ())
 		self.wasc.register ("lifetime", lifetime)		
 		# internal connection should be http 1.1
 		# because http2 single connection feature is useless on accessing internal resources

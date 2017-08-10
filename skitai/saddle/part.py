@@ -6,7 +6,9 @@ from aquests.lib import importer, strutil
 from types import FunctionType as function
 import inspect
 from skitai import was as the_was
-			
+import time, threading
+from ..server.wastuff.storage import Storage
+	
 RX_RULE = re.compile ("(/<(.+?)>)")
 
 class Part:
@@ -20,10 +22,15 @@ class Part:
 		self.path_suffix_len = 0
 		self.route_map = {}
 		self.route_priority = []
+		self.storage = Storage ()
+		
+		self.lock = threading.RLock ()
+		self.init_time = time.time ()
+		
 		self._binds_server = [None] * 5
 		self._binds_request = [None] * 4
 		self._binds_when = [None] * 5		
-		self.handlers = {}		
+		self.handlers = {}
 				
 	def set_mount_point (self, mount):	
 		if not mount:
@@ -129,7 +136,7 @@ class Part:
 		was = the_was._get ()	
 		# reset was.app for rendering
 		was.app = self
-		content =  handler [0] (was, error)
+		content =	handler [0] (was, error)
 		was.app = None
 		return content
 		
@@ -339,6 +346,27 @@ class Part:
 		return app, [self._binds_request [0], method] + self._binds_request [1:4], kargs, options, match, matchtype
 	
 	#----------------------------------------------
+	# Django Model
+	#----------------------------------------------
+	
+	def _model_changed (self, sender, **karg):
+		model_name = str (sender)[8:-2]
+		karg ['x_model_class'] = model_name
+		if 'created' not in karg:
+			karg ["x_operation"] = 'D'
+		elif karg["created"]:
+			karg ["x_operation"] = 'C'
+		else:
+			karg ["x_operation"] = 'U'			
+		the_was._get ().setlu (model_name, sender, **karg)
+	
+	def model_signal (self, modeler = "django"):	
+		from django.db.models.signals import post_save, post_delete
+		
+		post_save.connect (self._model_changed)
+		post_delete.connect (self._model_changed)
+			
+	#----------------------------------------------
 	# Starting App
 	#----------------------------------------------
 	def cleanup (self):
@@ -353,6 +381,7 @@ class Part:
 			
 	def start (self, wasc, route):
 		self.wasc = wasc
+		
 		if not route: 
 			self.route = "/"
 		elif not route.endswith ("/"):			

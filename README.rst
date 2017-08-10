@@ -1467,6 +1467,33 @@ For expiring cached result by updating new data:
   if result.status_code == 200:
   	result.cache (60) # 60 seconds  
 
+
+More About Cache Control
+```````````````````````````
+
+`use_cache` value can be True, False or last updated time of base object. If last updated is greater than cached time, cache will be expired immediately and begin new query/request.
+
+If you use Saddle as WSGI middleware, you can integrate your models changing and cache control.
+
+.. code:: python
+
+  app = Saddle (__name__)
+  
+  @app.route ("/update")
+  def update (was):
+    # update users tabale
+    was.backend ('@mydb').execute (...)
+    # update last update time by key string
+    was.setlu ('tables.users')
+  
+  @app.route ("/query")
+  def query (was):
+    # determine if use cache or not by last update information 'users'
+    was.backend ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
+    
+It makes controling all caches easily refering 'users' table.
+
+
 API Transaction ID
 `````````````````````
 
@@ -3479,18 +3506,32 @@ I barely use Django, but recently I have opportunity using Django and it is very
 
 Here are some examples collaborating with Djnago and Saddle.
 
+Before it begin, you should mount Django app,
+
+.. code:: python
+  
+  # mount django app as backend app likely
+  sys.path.insert (0, 'mydjangoapp')
+  skitai.mount ("/django", 'mydjangoapp/mydjangoapp/wsgi.py', 'application')
+  # main app
+  skitai.mount ('/', 'app.py', 'app')
+  skitai.run ()
+  
+FYI, you can access Django admin by /django/admin with default django setting.
+
 Route Proxing Django Views
 ``````````````````````````````
 
-For Django route proxing, 
+If mydjangoapp has photos app, for proxing Django views, 
 
 .. code:: python
 
-  from djangoapp import views
+  from mydjangoapp.photos import views as photos_views
   
-  @app,route ('/django/hello')
+  @app.route ('/hello')
   def django_hello (was):
-    return views.somefunc (was.django)
+    return photos_views.somefunc (was.django)
+    
 
 Using Django Models
 `````````````````````
@@ -3499,7 +3540,7 @@ You can use also Django models.
 
 .. code:: python
 
-  from djangoapp import models
+  from mydjangoapp.photos import models
 
   @app,route ('/django/hello')
   def django_hello (was):
@@ -3509,16 +3550,17 @@ You can use also Django models.
 You can use Django Query Set as SQL generator for Skitai's asynchronous query execution. But it has some limitations.
 
 - just vaild only select query and prefetch_related () will be ignored
-- effetive on PostgreSQL and SQLite3
+- effetive only to PostgreSQL and SQLite3 (but SQLite3 dose not support asynchronous execution, so it is practically meaningless)
 
 .. code:: python
 
-  from djangoapp import models
+  from mydjangoapp.photos import models
 
-  @app,route ('/django/hello')
+  @app,route ('/hello')
   def django_hello (was):    
     query = models.Photo.objects.filter (topic=1).order_by ('title')	
     return was.jstream (was.sqlite3 ("@entity").execute (query).getwait ().data, 'data')	
+
 
 Redirect Django Model Signals To Saddle Event
 `````````````````````````````````````````````````
@@ -3531,62 +3573,75 @@ This example show that if Django admin app is mounted to Skitai, whenever model 
 
 .. code:: python
   
-  from django.db.models.signals import post_save
-  from django.dispatch import receiver
-  from myapp.models import MyModel
+  app = Saddle (__name__)  
+  # activate wathcing model, and make accessible from was
+  app.model_signal (modeler = "django")
   
-  @receiver (post_save, sender = MyModel)
-  def model_saved (sender, instance, created, **karg):
-    app.emit ("model-saved", sender)
-  
-  # rebuild cache when app mounted or model is changed
-  @app.on ("model-saved")
+  @app.on_broadcast ("model-changed:myapp.models.Photo")
   @app.mounted
-  def rebuild_cache (was, model = None):
-    if not model:
-      model = MyModel
-    query = model.objects.all ().order_by ('created_at')
-    req = was.backend (
+  def model_changed (was, sender = None, *karg):
+    from myapp.models import Photo
+    
+    # when app.mounted, sender is None
+    if sender:
+      # starts with 'x_', added by Saddle
+      karg ['x_operation'] # one of C, U, D
+      karg ['x_model_class'] # string name of model class like myapp.models.Photo
+      
+      # else Django's model signal args
+      karg ['instance']
+      karg ['update_fields']
+    
+    # creating cache object
+    query = (sender or Photo).objects.all ().order_by ('created_at')
+    was.backend (
     	'@entity', 
     	callback = lambda x, y = app: y.storage.set ('my-cache', x.data)
     ).execute (query)
-  
-  # if you update change model directly, emit event
-  @app.emit_after ("model-saved")
-  @app.mount ("/photo")
-  def newdphoto (was):
-    was.backend ('@entity').execute ('insert into my_model ...').wait () 
-    return 'success'
-
-You can skip binding django signals by use listen_django_model_signal (),
-
-.. code:: python
-  
-  app = Saddle (__name__)  
-  # activate wathcing model
-  app.listen_django_model_signal (within_app = True, broadcast = False)
-  
-  @app.on ("django-model-changed:myapp.models.Photo")
-  def model_changed (was, sender, *karg):
-    # starts with 'x_', added by Saddle
-    karg ['x_operation'] # one of C, U, D
-    karg ['x_model_class'] # string name of model class like myapp.models.Photo
-    
-    # else Django's model signal args
-    karg ['instance']
-    karg ['update_fields']
 
 For watching multiple models.
 
 .. code:: python
 
-  @app.on ("django-model-changed:myapp.models.Photo", "django-model-changed:myapp.models.User")
+  @app.on_broadcast ("model-changed:myapp.models.Photo", "model-changed:myapp.models.User")
 
 If you would like listening all mounted Django model signals,
   
 .. code:: python
 
-  @app.on ("django-model-changed")
+  @app.on_broadcast ("model-changed")
+
+
+Integrating With Skitai's Result Object Caching
+`````````````````````````````````````````````````
+
+.. code:: python
+
+  app.model_signal (modeler = "django")
+
+In backgound, app catch Django's model signal, and automatically was.setlu (your model class name like 'myapp.models.User'). Then you can just use was.getlu (your model class name).
+
+.. code:: python
+
+  @app.route ("/query")
+  def query (was):
+    req = was.backend (
+      "@entity", 
+      use_cache = was.getlu ("myapp.models.User")
+    ).execute (...) 
+    
+    result = req.getwait ()
+    result.cache (86400)
+    return result.data
+
+If your query related with multiple models,
+
+.. code:: python
+  
+  use_cache = was.getlu ("myapp.models.User", "myapp.models.Photo")
+
+was.getlu () returns most recent update time of given models.
+
 
 *Remember*, before using Django views and models, you should mount Django apps on Skitai first.
 
@@ -3649,7 +3704,9 @@ Change Log
   
   - 0.26.13
     
-    - add app.storage
+    - fix result object caching
+    - add app.model_signal (), was.setlu () and was.getlu ()
+    - add app.storage and was.storage
     - removed wac._backend and wac._upstream, use @app.mounted and @app.umount
     - replaced app.listen by app.on_broadcast
     - add skitai.log_off (path,...)
