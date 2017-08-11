@@ -200,7 +200,6 @@ class WebSocket:
 	def send (self, message, op_code = -1):
 		if not self.channel: return
 		message, op_code = self.build_data (message, op_code)		
-
 		header  = bytearray()
 		if strutil.is_encodable (message):
 			payload = message.encode ("utf8")
@@ -254,8 +253,8 @@ class Job (wsgi_handler.Job):
 			if type (content) is not tuple:
 				content = (content,)
 			was.websocket.send (*content)
-		
-		del was.request
+		if hasattr (was, 'request'):
+			was.request = None
 		del was.websocket
 		
 #---------------------------------------------------------
@@ -280,10 +279,10 @@ class WebSocket1 (WebSocket):
 			querystring.append (self.env.get ("QUERY_STRING"))		
 		querystring.append ("%s=" % self.param_names [0])
 		self.querystring = "&".join (querystring)		
-		self.params = http_util.crack_query (self.querystring)
+		self.params = http_util.crack_query (self.querystring)		
 		
 	def close (self):		
-		if not self.closed ():
+		if not self.closed ():			
 			self.handle_message (-1, skitai.WS_EVT_CLOSE)
 			WebSocket.close (self)
 		
@@ -303,7 +302,7 @@ class WebSocket1 (WebSocket):
 							
 	def handle_message (self, msg, event = None):		
 		if not msg: return			
-		querystring, params = self.make_params (msg, event)			
+		querystring, params = self.make_params (msg, event)
 		self.env ["QUERY_STRING"] = querystring
 		self.env ["websocket.params"] = params
 		self.env ["websocket.client"] = self.client_id

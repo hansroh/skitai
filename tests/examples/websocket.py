@@ -8,6 +8,15 @@ app.debug = True
 app.use_reloader = True
 app.jinja_overlay ()
 
+@app.route ("/echo-single")
+def echo_single (was, message):
+	# return a single message, use aquests.ws (DO NOT USE /echo)
+	if was.wsinit ():
+		return was.wsconfig (skitai.WS_SIMPLE, 60)
+	elif was.wshasevent (): # ignore the other events
+		return
+	return "You said," + message
+	
 @app.route ("/echo")
 def echo (was, message):
 	if was.wsinit ():
@@ -29,7 +38,6 @@ def chat (was, message, room_id):
 	elif was.wsclosed ():
 		return "Client %s has leaved" % was.wsclient ()
 	return "Client %s Said: %s" % (was.wsclient (), message)
-
 		
 @app.route ("/")
 def websocket (was, mode = "echo"):

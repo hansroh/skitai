@@ -24,6 +24,12 @@ app.authenticate = False
 def index (was):	
 	return was.render ("index.html")
 
+@app.route ("/dnserror")
+def dnserror (was):
+	req = was.get ("https://pypi.python.orgx/pypi/skitai")
+	rs = req.getwait (10)
+	return "%d %d %s" % (rs.status, rs.status_code, rs.reason)
+
 @app.route ("/documentation")
 def documentation (was):
 	req = was.get ("https://pypi.python.org/pypi/skitai")

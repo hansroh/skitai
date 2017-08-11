@@ -9,6 +9,7 @@ class Result:
 
 		self.timeout = 0
 		self.cached_time = 0
+		self.remain_secs = 0
 		self.is_cached = False
 	
 	def is_normal (self):
