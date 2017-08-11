@@ -1468,12 +1468,14 @@ For expiring cached result by updating new data:
   	result.cache (60) # 60 seconds  
 
 
-More About Cache Control
-```````````````````````````
+More About Cache Control: Model Synchronized Cache
+`````````````````````````````````````````````````````
+
+*New in version 0.26.15*
 
 `use_cache` value can be True, False or last updated time of base object. If last updated is greater than cached time, cache will be expired immediately and begin new query/request.
 
-If you use Saddle as WSGI middleware, you can integrate your models changing and cache control.
+You can integrate your models changing and cache control.
 
 .. code:: python
 
@@ -1486,13 +1488,45 @@ If you use Saddle as WSGI middleware, you can integrate your models changing and
     # update last update time by key string
     was.setlu ('tables.users')
   
-  @app.route ("/query")
-  def query (was):
+  @app.route ("/query1")
+  def query1 (was):
     # determine if use cache or not by last update information 'users'
     was.backend ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
-    
-It makes controling all caches easily refering 'users' table.
+  
+  @app.route ("/query2")
+  def query2 (was):
+    # determine if use cache or not by last update information 'users'
+    was.backend ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
 
+It makes helping to reduce the needs for building or managing caches.
+    
+If your query related with multiple models,
+
+.. code:: python
+  
+  use_cache = was.getlu ("myapp.models.User", "myapp.models.Photo")
+
+was.getlu () returns most recent update time stamp of given models.
+
+*Available on Python 3.5+*
+
+Also was.setlu () emits 'model-changed' events. You can handle event if you need. But this event system only available on Skito-Saddle middle-ware.
+
+.. code:: python
+  
+  app = Saddle (__name__)
+  
+  @app.route ("/update")
+  def update (was):
+    # update users tabale
+    was.backend ('@mydb').execute (...)
+    # update last update time by key string
+    was.setlu ('tables.users', something...)
+  
+  @app.on_broadcast ("model-changed:tables.users")
+  def on_broadcast (was, *args, **kargs):
+    # your code
+    
 
 API Transaction ID
 `````````````````````
@@ -3108,8 +3142,8 @@ File Upload
     + o - overwrite
 
 
-App and Method Decorators and was.g
------------------------------------------
+Registering Per Request Calling Functions
+-------------------------------------------
 
 Method decorators called automatically when each method is requested in a app.
 
@@ -3178,7 +3212,7 @@ If you handle exception with failed_request (), return custom error content, or 
 
 .. code:: python
 
- @app.failed_request
+  @app.failed_request
   def failed_request (was, exc_info):
     # releasing resources
     return was.response (
@@ -3187,7 +3221,23 @@ If you handle exception with failed_request (), return custom error content, or 
     )
 
 
-Also there're another kind of decorator group, App decorators.
+App Lifecycle Hook
+----------------------
+
+These app life cycle methods will be called by this order,
+
+- startup (wac): when app imported on skitai server started
+- mounted (*was*): called first with was (instance of wac)
+- loop whenever app is reloaded,
+
+  - reload (wac): when app.use_reloader is True and app is reloaded
+    
+    - mounted (*was*): recalled whenver reloaded
+
+- umount (*was*): called last with was (instance of wac)
+- shutdown (wac): when skitai server enter shutdown process
+
+Please note that first arg of startup, reload and shutdown is *wac* not *was*. *wac* is Python Class object of 'was', so mainly used for sharing Skitai server-wide object via was.object before instancelizing to *was*.
 
 .. code:: python
 
@@ -3210,20 +3260,12 @@ Also there're another kind of decorator group, App decorators.
         
     wac.unregister ("loginengine")
     wac.unregister ("searcher")
-  
-'wac' is Python Class object of 'was', so mainly used for sharing Skitai server-wide object via was.object.
 
-And you can access numthreads, logger, config from wac.
+You can access numthreads, logger, config from wac.
 
 As a result, myobject can be accessed by all your current app functions even all other apps mounted on Skitai.
 
 .. code:: python
-  
-  # app mounted to 'abc.com/members'
-  @app.route ("/")
-  def index (was):
-    was.loginengine.get_user_info ()
-    was.searcher.query ("ipad")
   
   # app mounted to 'abc.com/register'
   @app.route ("/")
@@ -3266,17 +3308,6 @@ If you have databases or API servers, and want to create cache object on app sta
     
 But both are not called by request, you CAN'T use request related objects like was.request, was.cookie etc. And SHOULD use callback because these are executed within Main thread.
 
-These methods will be called  by this order,
-
-- startup (wac): when app imported on skitai server started
-- mounted (was): called first with was (instance of wac)
-- loop whenever app is reloaded,
-
-  - reload (wac): when app.use_reloader is True and app is reloaded
-  - mounted (was): called first with was (instance of wac)
-
-- umount (was): called last with was (instance of wac)
-- shutdown (wac): when skitai server enter shutdown process
 
 CORS (Cross Origin Resource Sharing) and Preflight
 -----------------------------------------------------
@@ -3502,6 +3533,8 @@ Note: I think I don't understand about gRPC's stream request and response. Does 
 Route Proxing Django Views & Working with Django Models
 ---------------------------------------------------------
 
+*New in version 0.26.15*
+
 I barely use Django, but recently I have opportunity using Django and it is very fantastic and especially impressive to Django Admin System.
 
 Here are some examples collaborating with Djnago and Saddle.
@@ -3615,6 +3648,8 @@ If you would like listening all mounted Django model signals,
 Integrating With Skitai's Result Object Caching
 `````````````````````````````````````````````````
 
+*New in version 0.26.15*
+
 .. code:: python
 
   app.model_signal (modeler = "django")
@@ -3633,15 +3668,6 @@ In backgound, app catch Django's model signal, and automatically was.setlu (your
     result = req.getwait ()
     result.cache (86400)
     return result.data
-
-If your query related with multiple models,
-
-.. code:: python
-  
-  use_cache = was.getlu ("myapp.models.User", "myapp.models.Photo")
-
-was.getlu () returns most recent update time of given models.
-
 
 *Remember*, before using Django views and models, you should mount Django apps on Skitai first.
 
@@ -3702,13 +3728,19 @@ Change Log
   
   0.26 (May 2017)
   
-  - 0.26.13
+  - 0.26.15
     
     - fix result object caching
     - add app.model_signal (), was.setlu () and was.getlu ()
+    
+  - 0.26.14
+    
     - add app.storage and was.storage
     - removed wac._backend and wac._upstream, use @app.mounted and @app.umount
     - replaced app.listen by app.on_broadcast
+    
+  - 0.26.13
+    
     - add skitai.log_off (path,...)
     - add reply content-type to request log, and change log format
     - change posix process display name
