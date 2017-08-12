@@ -48,7 +48,8 @@ class DateEncoder(json.JSONEncoder):
 class WAS:
 	version = __version__
 	objects = {}
-	storage = Storage ({"was.models.status": ({}, 0)})
+	storage = Storage ()
+	storage.new_storage ("skitai.was.models.status")
 	lock = RLock ()
 	init_time = time.time ()	
 	#----------------------------------------------------
@@ -348,18 +349,16 @@ class WAS:
 		return self.env.get ('websocket.client')	
 		
 	def setlu (self, name, *args, **karg):		
-		objs = self.storage.get ("was.models.status")						
-		with self.lock:
-			objs [name] = time.time ()
+		objs = self.storage.get ("skitai.was.models.status")						
+		objs [name] = time.time ()
 		self.broadcast ("model-changed", *args, **karg)
 		self.broadcast ("model-changed:%s" % name, *args, **karg)			
 		
 	def getlu (self, *names):
-		objs = self.storage.get ("was.models.status")
+		objs = self.storage.get ("skitai.was.models.status")
 		mtimes = []
 		for name in names:
-			with self.lock:
-				mtime = objs.get (name, self.init_time)
+			mtime = objs.get (name, self.init_time)
 			mtimes.append (mtime)
 		return max (mtimes)
 		

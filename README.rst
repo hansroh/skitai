@@ -1584,6 +1584,38 @@ This chapter's 'was' services are also avaliable for all WSGI middelwares.
 - was.shutdown () # Shutdown Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
 
 
+Access 'was' Storage
+------------------------
+
+*New in version 0.26.15*
+
+was.storage is thread safe memory based object for storing & accessing data. Note that is storage is not persistant.
+
+Note that you should NOT use string key value starts with 'skitai.was.', this is reserved for `was` services.
+
+.. code:: python
+
+  @app.route ("/")
+  def hello_world (was):  
+    was.storage.set ("episodes", some_data)
+
+You can create sub storage with thread-safe for convinient usaeg.
+
+.. code:: python
+
+  @app.mounted
+  def mounted (was):  
+    was.storage.new_storage ("sub.storage")
+ 
+- was.storage.set (key, val)
+- was.storage.get (key, default = None)
+- was.storage.remove (key)
+- was.storage.has_key (key)
+- was.storage.keys ()
+- was.storage.values ()
+- was.storage.items ()
+- was.storage.new_storage (key)
+
 
 HTML5 Websocket
 ====================
@@ -2123,6 +2155,37 @@ Currently was.app.config has these properties and you can reconfig by setting ne
 - was.app.config.max_upload_file_size = 20000000
 
 
+Access App Storage
+--------------------
+
+*New in version 0.26.15*
+
+app.storage is thread safe memory based object for storing & accessing data. Note that is storage is not persistant.
+
+.. code:: python
+
+  @app.route ("/")
+  def hello_world (was):  
+    app.storage.set ("episodes", some_data)
+
+You can create sub storage with thread-safe for convinient usaeg.
+
+.. code:: python
+
+  @app.mounted
+  def mounted (was):  
+    app.storage.new_storage ("sub.storage")
+ 
+- app.storage.set (key, val)
+- app.storage.get (key, default = None)
+- app.storage.remove (key)
+- app.storage.has_key (key)
+- app.storage.keys ()
+- app.storage.values ()
+- app.storage.items ()
+- app.storage.new_storage (key)
+
+
 Debugging and Reloading App
 -----------------------------
 
@@ -2605,11 +2668,12 @@ And you can access from filename of app from each apps,
 
   search_app = was.apps ["search"]
   save_path = search_app.config.save_path
+  save_path = search_app.storage.get ('log')
 
 
 URL Building for Resource Accessing
 ````````````````````````````````````
- 
+
 *New in version 0.26.7.2*
   
 If you mount multiple apps like this,
@@ -2915,8 +2979,6 @@ If you don't specify cookie path when set, cookie path will be automatically set
   was.cookie.set ('private_cookie', val)
         
   was.cookie.set ('public_cookie', val, path = '/')
-  
-
   	
 - was.cookie.set (key, val, expires = None, path = None, domain = None, secure = False, http_only = False)
 - was.cookie.remove (key, path, domain)
@@ -2959,21 +3021,6 @@ To enable session for app, random string formatted securekey should be set for e
 - was.session.items ()
 - was.session.has_key ()
 
-Access App Storage
---------------------
-
-was.storage is thread safe object for storing data.
-
-.. code:: python
-
-  @app.route ("/")
-  def hello_world (was):  
-    app.storage.set ("episodes", some_data)
-    
-- was.storage.set (key, val)
-- was.storage.get (key, default = None)
-- was.storage.remove (key)
-- was.storage.clear ()
 
 Messaging Box
 ----------------
@@ -3098,6 +3145,7 @@ mount() is create named session or mbox if not exists, exists() is just check wh
       
   if not was.session.exists ("ADM"):
     return "Your admin session maybe expired or signed out, please sign in again"
+
 
 
 File Upload
@@ -3320,7 +3368,9 @@ For allowing CORS, you should do 2 things:
 .. code:: python
   
   app = Saddle (__name__)
-  app.access_control_allow_origin = "*"
+  app.access_control_allow_origin = ["*"]
+  # OR specific origins
+  app.access_control_allow_origin = ["http://www.skitai.com:5001"]
   app.access_control_max_age = 3600
   
   @app.route ("/post", methods = ["POST", "OPTIONS"])
@@ -3337,7 +3387,7 @@ If you want function specific CORS,
   
   @app.route (
    "/post", methods = ["POST", "OPTIONS"], 
-   access_control_allow_origin = "*",
+   access_control_allow_origin = ["http://www.skitai.com:5001"],
    access_control_max_age = 3600
   )
   def post (was):

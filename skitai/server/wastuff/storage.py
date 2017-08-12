@@ -4,7 +4,7 @@ import time
 class Storage:
 	def __init__ (self, d = {}):
 		self.__d = d
-		self.__lock = threading.Lock ()
+		self.__lock = threading.RLock ()
 	
 	def __len__ (self):
 		return len (self.__d)
@@ -12,6 +12,21 @@ class Storage:
 	def __contains__ (self, k):
 		with self.__lock:
 			return k in self.__d
+	
+	def __setitem__ (self, k, v):
+		self.set (k, v)
+	
+	def __getitem__ (self, k, d):
+		self.get (k, d)
+	
+	def __delitem__ (self, k, d):
+		self.remove (k)
+	
+	def popitem (self, k):
+		self.remove (k)
+		
+	def new_storage (self, k, d = {}):
+		self.set (k, Storage (d))
 		
 	def set (self, k, v, timeout = 0):	
 		with self.__lock:
@@ -38,4 +53,20 @@ class Storage:
 				self.__d.pop (k)
 			except KeyError:
 				pass	
+	
+	def keys (self):
+		with self.__lock:
+			return self.__d.keys ()
+	
+	def values (self):
+		with self.__lock:
+			return self.__d.values ()
+			
+	def items (self):
+		with self.__lock:
+			return self.__d.items ()
+	
+	def has_key (self, k):
+		with self.__lock:
+			return self.__d.has_key (k)
 	

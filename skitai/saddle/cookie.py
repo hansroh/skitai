@@ -47,33 +47,21 @@ class BasicMethods:
 		self.data is None and self.__parse ()
 		return k in self.data
 	
-	def iterkeys (self):		
-		self.data is None and self.__parse ()
-		return self.data.iterkeys ()
-	
-	def itervalues (self):		
-		self.data is None and self.__parse ()
-		return self.data.itervalues ()	
-	
-	def iteritems (self):		
-		self.data is None and self.__parse ()
-		return self.data.iteritems ()	
-		
 	def has_key (self, k):
 		self.data is None and self.__parse ()
 		return k in self.data
 	
 	def items (self):
 		self.data is None and self.__parse ()
-		return list(self.data.items ())
+		return self.data.items ()
 	
 	def keys (self):
 		self.data is None and self.__parse ()
-		return list(self.data.keys ())	
+		return self.data.keys ()
 	
 	def values (self):
 		self.data is None and self.__parse ()
-		return list(self.data.values ())	
+		return self.data.values ()
 		
 
 class Cookie (BasicMethods):
