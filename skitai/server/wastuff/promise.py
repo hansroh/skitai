@@ -15,15 +15,13 @@ class _Method:
 
 
 class Promise (simple_producer):
-	def __init__ (self, was, handler, prolog = None, epilog = None):
+	def __init__ (self, was, handler, **karg):
 		self.__was = was
 		self.was = was._clone ()
 		self.handler = handler
-		self.prolog = self.encode (prolog)
-		self.epilog = self.encode (epilog)
 		
 		self._data = []
-		self._parts = {}
+		self._parts = karg
 		self._numreq = 0
 		self._numres = 0
 		self._done = False
@@ -34,7 +32,7 @@ class Promise (simple_producer):
 			raise AttributeError ('%s is not member' % name)
 		self._numreq += 1
 		return _Method (self._call, name)
-	
+		
 	def _call (self, method, args, karg):
 		if not karg.get ('meta'):
 			karg ['meta'] = {}
@@ -69,10 +67,7 @@ class Promise (simple_producer):
 	
 	def send (self, data):
 		if self._done:
-			return
-		if self.prolog:
-			self._data.append (self.prolog)
-			self.prolog = None
+			return		
 		self._data.append (self.encode (data))
 		if self.was.env ['wsgi.multithread']:
 			trigger.wakeup ()
@@ -102,11 +97,6 @@ class Promise (simple_producer):
 	def settle (self, data = None):
 		if data:
 			self.send (data)
-			
-		if self.epilog:
-			self._data.append (self.epilog)
-			self.epilog = None
-			
 		self._done = True
 	
 	def reject (self, data):

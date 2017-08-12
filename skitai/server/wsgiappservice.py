@@ -268,9 +268,9 @@ class WAS:
 			pathtool.mkdir (composer.Composer.SAVE_PATH)
 		return composer.Composer (subject, snd, rcpt)
 	
-	def promise (self, handler, *args, **karg):
+	def promise (self, handler, **karg):
 		self.response.set_streaming ()
-		return Promise (self, handler, *args, **karg)
+		return Promise (self, handler, **karg)
 	
 	def togrpc (self, obj):
 		return obj.SerializeToString ()

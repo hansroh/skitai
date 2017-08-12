@@ -2395,7 +2395,7 @@ If you use was' requests services, and they're expected taking a long time to fe
   
   def promise_handler (promise, resp):
     if resp.status_code == 200:
-      promise [resp.reqid]  = proxy.render (
+      promise [resp.reqid]  = promise.render (
         '%s.html' % resp.reqid,
         data = response.json ()
       )
@@ -2409,25 +2409,26 @@ If you use was' requests services, and they're expected taking a long time to fe
 
   @app.route ("/promise")
   def promise (was):
-    promise = was.promise (promise_handler)    
-    promise.get ('skitai', "https://pypi.python.org/pypi/skitai")
-    promise.get ('aquests', "https://pypi.python.org/pypi/aquests")
+    promise = was.promise (promise_handler, A = "123", B = "456")
+    promise.get ('C', "https://pypi.python.org/pypi/skitai")
+    promise.get ('D', "https://pypi.python.org/pypi/aquests")
     return promise
 
 'skitai.html' Jinja2 template used in render() is,
 
 .. code:: html
 
-  <div>{{ r.url }} </div> 
+  <div>{{ r.url }} </div>
   <div>{{ r.text }}</div>
 
 'example.html' Jinja2 template used in render() is,
 
 .. code:: html
-
-  <div>{{ skitai }}</div>
+  
+  <h1>{{ A }} of {{ B }}</h1>
+  <div>{{ C }}</div>
   <hr>
-  <div>{{ aquests }}</div>
+  <div>{{ D }}</div>
 
 And you can use almost was.* objects at render() and render() like was.request, was.app, was.ab or was.g etc. But remember that response header had been already sent so you cannot use aquests features and connot set new header values like cookie or mbox (but reading is still possible).
   
@@ -2471,6 +2472,7 @@ Note: It's impossible requesting map-reduce requests at async response mode.
 
 collect_producer has these methods.
 
+- Promise (handler, keyword args, ...)
 - Promise.get (reqid, url, ...), post (reqid, url, data, ...) and etc
 - Promise.set (name, data): save data for generating full contents
 - Promise.pending (): True if numer of requests is not same as responses

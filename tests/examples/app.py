@@ -53,7 +53,7 @@ def handle_response (promise, rs):
 			e = content.find ('<a name="downloads">', s)
 			if e != -1:						
 				content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></h4>" + content [s:e]		
-		promise [rs.reqid]	= content	
+		promise [rs.reqid]	= content		
 	if promise.fulfilled ():
 		promise.settle (promise.render ("documentation2.html"))
 		
