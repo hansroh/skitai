@@ -2401,11 +2401,12 @@ If you use was' requests services, and they're expected taking a long time to fe
       )
     else:
       promise [resp.reqid] = '<div>Error in %s</div>' % resp.reqid
-      
-    if promise.fulfilled ():
-      promise.settle (proxy.render ("final.html"))
+     
+    # check if all requests are done
+    if promise.fulfilled ():    
+      promise.settle (promise.render ("final.html"))
       # or just join response data
-      # promise.settle (proxy ['skitai'] + "<hr>" + proxy ['aquests'])
+      # promise.settle (promise ['skitai'] + "<hr>" + promise ['aquests'])
 
   @app.route ("/promise")
   def promise (was):
