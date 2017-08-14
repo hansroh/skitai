@@ -307,7 +307,12 @@ class http_server (asyncore.dispatcher):
 		self.ip = ip
 		self.port = port
 		asyncore.dispatcher.__init__ (self)
-		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)		
+
+		if ip.find (":") != -1:
+			self.create_socket (socket.AF_INET6, socket.SOCK_STREAM)		
+		else:			
+			self.create_socket (socket.AF_INET, socket.SOCK_STREAM)		
+
 		self.set_reuse_addr ()
 		self.bind ((ip, port))
 		

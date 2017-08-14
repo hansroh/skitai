@@ -94,7 +94,10 @@ class http2_request_handler:
 			(":path", self.request.uri),
 		]
 		for line in self.request.get_header ():
-			k, v = line.split (": ", 1) 
+			try:
+				k, v = line.split (": ", 1) 
+			except ValueError:
+				k, v = line.split (":", 1) 	
 			k = k.lower ()
 			if k in ("http2-settings", "connection", "upgrade"):
 				continue

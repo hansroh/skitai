@@ -20,8 +20,10 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		
 	def add_reply_headers (self):
 		for line in self.response.get_header_lines ():			
-			try: k, v = line.split (": ", 1)
-			except:	continue			
+			try: 
+				k, v = line.split (": ", 1)
+			except ValueError:
+				k, v = line.split (":", 1)								
 			ll = k.lower ()
 			if ll in ("expires", "date", "connection", "keep-alive", "content-length", "transfer-encoding", "content-encoding", "age", "vary"):
 				continue
@@ -149,7 +151,10 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		
 		if additional_headers:
 			for line in additional_headers:
-				k, v = line.split (": ", 1)
+				try:
+					k, v = line.split (": ", 1)
+				except ValueError:
+					k, v = line.split (":", 1)	
 				ll = k.lower ()
 				if ll in ("connection", "keep-alive", "accept-encoding", "host"):
 					continue
