@@ -48,7 +48,7 @@ class ClusterManager (cluster_manager.ClusterManager):
 				raise TypeError ("Unknown DB type: %s" % self.dbtype)
 			
 			asyncon = conn_class (server, (db, auth), self.lock, self.logger)	
-			asyncon.keep_alive = 300
+			self.backend and asyncon.set_backend ()			
 			nodeid = server
 				
 		return nodeid, asyncon # nodeid, asyncon

@@ -54,6 +54,8 @@ class AccessPolicy:
 class ClusterManager:
 	object_timeout = 1200
 	maintern_interval = 60
+	# I cannot sure this is faster
+	backend = False
 	
 	def __init__ (self, name, cluster, ssl = 0, access = None, logger = None):
 		self.logger = logger
@@ -190,7 +192,7 @@ class ClusterManager:
 				server	= (netloc, 443)
 		asyncon = self._conn_class (server, self.lock, self.logger)
 		asyncon.set_auth (auth)
-		asyncon.keep_alive = 300
+		self.backend and asyncon.set_backend ()
 		return server, asyncon # nodeid, asyncon
 		
 	def add_node (self, member):
