@@ -78,7 +78,7 @@ class	SMTPDeliverAgent (daemon.Daemon):
 		self.path_undeliver = os.path.join (self.varpath, "smtpda", "mail", "undeliver")
 		pathtool.mkdir (self.path_undeliver)
 		
-		lifetime.init ()		
+		lifetime.init (logger = self.logger)		
 		lifetime.maintern.sched (2.0, self.handle_spool)		
 		if os.name == "nt":			
 			lifetime.maintern.sched (2.0, self.maintern_shutdown_request)		

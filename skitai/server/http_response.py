@@ -508,7 +508,7 @@ class http_response:
 			forwared_for or '-',
 			
 			worker,
-			len (asyncore.socket_map) - 2, # exclude trigger, server
+			len (asyncore.socket_map),
 			self.htime, # due time to request handling
 			(time.time () - self.stime) * 1000, # due time to sending data			
 			)

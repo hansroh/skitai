@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.15"
+__version__ = "0.26.15.1"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -415,7 +415,7 @@ def run (**conf):
 				conf.get ("gw_secret_key", None)
 			)
 			
-			lifetime.init ()
+			lifetime.init (logger = self.wasc.logger.get ("server"))
 			if os.name == "nt":				
 				lifetime.maintern.sched (10.0, self.maintern_shutdown_request)				
 				self.flock = flock.Lock (os.path.join (self.get_varpath (), ".%s" % self.NAME))

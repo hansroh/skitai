@@ -75,8 +75,10 @@ def maintern_zombie_channel (now):
 					channel.handle_error ()
 
 maintern = None
-def init (kill_zombie_interval = 10.0):
+def init (kill_zombie_interval = 10.0, logger = None):
 	global maintern
+	
+	lifetime._logger = logger
 	maintern = lifetime.Maintern ()
 	maintern.sched (kill_zombie_interval, lifetime.maintern_zombie_channel)
 	maintern.sched (300.0, lifetime.maintern_gc)
