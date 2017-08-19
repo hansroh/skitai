@@ -15,7 +15,7 @@ import skitai
 from hashlib import md5
 from aquests.lib.processutil import set_process_name
 
-PID = []
+PID = {}
 ACTIVE_WORKERS = 0
 SURVAIL = True
 EXITCODE = 0
@@ -303,6 +303,7 @@ class http_server (asyncore.dispatcher):
 	SERVER_IDENT = skitai.NAME
 	def __init__ (self, ip, port, server_logger = None, request_logger = None):
 		global PID
+		
 		self.handlers = []
 		self.ip = ip
 		self.port = port
@@ -363,7 +364,7 @@ class http_server (asyncore.dispatcher):
 						if pid == 0:							
 							self.worker_ident = "worker #%d" % len (PID)
 							set_process_name ("%s: %s" % (skitai.get_proc_title (), self.worker_ident))
-							PID = []
+							PID = {}
 							signal.signal(signal.SIGTERM, hTERMWORKER)
 							signal.signal(signal.SIGQUIT, hQUITWORKER)
 							break
@@ -377,7 +378,7 @@ class http_server (asyncore.dispatcher):
 								signal.signal(signal.SIGQUIT, hQUITMASTER)
 								signal.signal (signal.SIGCHLD, hCHLD)
 							
-							PID.append (pid)
+							PID [pid] = 1
 							ACTIVE_WORKERS += 1
 							#print ('-----', PID, ACTIVE_WORKERS)
 							
@@ -502,12 +503,15 @@ class http_server (asyncore.dispatcher):
 		}
 			
 def hCHLD (signum, frame):
-	global ACTIVE_WORKERS
+	global ACTIVE_WORKERS, PID
+	
 	ACTIVE_WORKERS -= 1
 	try:
-		os.wait ()
+		pid = os.waitpid ()
 	except ChildProcessError:
-		pass	
+		pass
+	else:
+		PID [pid]	 = 0	
 
 def hTERMWORKER (signum, frame):			
 	lifetime.shutdown (0, 1.0)
@@ -516,9 +520,12 @@ def hQUITWORKER (signum, frame):
 	lifetime.shutdown (0, 30.0)
 	
 def DO_SHUTDOWN (sig):
-	global PID	
+	global PID
+	
 	signal.signal (signal.SIGCHLD, signal.SIG_IGN)
 	for pid in PID:
+		if not PID [pid]:
+			continue			
 		try: os.kill (pid, sig)
 		except OSError: pass
 			
