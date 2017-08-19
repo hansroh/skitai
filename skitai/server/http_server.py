@@ -507,7 +507,7 @@ def hCHLD (signum, frame):
 	
 	ACTIVE_WORKERS -= 1
 	try:
-		pid = os.waitpid ()
+		pid, status = os.waitpid (0, 0)
 	except ChildProcessError:
 		pass
 	else:
