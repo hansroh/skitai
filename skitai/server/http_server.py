@@ -304,8 +304,10 @@ class http_channel (asynchat.async_chat):
 #-------------------------------------------------------------------
 class http_server (asyncore.dispatcher):
 	SERVER_IDENT = skitai.NAME
+	
 	maintern_interval = 20
 	critical_point_cpu_overload = 60.0
+	critical_point_continuous = 3
 	
 	def __init__ (self, ip, port, server_logger = None, request_logger = None):
 		global PID
@@ -348,7 +350,7 @@ class http_server (asyncore.dispatcher):
 			self.server_name = ip
 		self.hash_id = md5 (self.server_name.encode ('utf8')).hexdigest() [:4]
 		self.server_port = port
-	
+		
 	def serve (self, shutdown_phase = 2):
 		self.shutdown_phase = shutdown_phase
 		self.listen (os.name == "posix" and 4096 or 256)
@@ -444,9 +446,9 @@ class http_server (asyncore.dispatcher):
 				continue
 				
 			ps.x_overloads += 1	
-			if ps.x_overloads > 3:
+			if ps.x_overloads > self.critical_point_continuous:
 				self.log ("process %d is overloading, try to kill..." % ps.pid, 'fatal')
-				sig = ps.x_overloads > 5 and signal.SIGKILL or signal.SIGTERM
+				sig = ps.x_overloads > (self.critical_point_continuous + 2) and signal.SIGKILL or signal.SIGTERM
 				try:
 					os.kill (ps.pid, sig)
 				except OSError:

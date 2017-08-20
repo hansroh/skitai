@@ -296,6 +296,23 @@ Skitai processes are,
   ubuntu   25222 25219  1 08:25 ?        00:00:00 skitai(myproject/app): worker #1  
   ubuntu   25223 25219  1 08:25 ?        00:00:00 skitai(myproject/app): worker #2
   ubuntu   25224 25219  1 08:25 ?        00:00:00 skitai(myproject/app): worker #3
+
+
+Managing Workers
+``````````````````
+ 
+*New In Version 0.26.15.2, Available only on posix*
+
+You can set parameters for managing overloading workers,
+ 
+.. code:: python
+
+  skitai.set_worker_critical_point (usage = 60.0, continuous = 3, interval = 20)
+  
+This means if a worker's CPU usage is 60% for 20 seconds continuously 3 times, Skitai try to kill this worker and start a new worker.
+
+If you expect high CPU loads, you should increase usage parameter.
+
   
 Mount Multiple WSGI Apps And Static Directories
 ------------------------------------------------
@@ -3783,6 +3800,7 @@ Change Log
   
   - 0.26.15
     
+    - master process mainterns children's CPU loads
     - fix result object caching
     - add app.model_signal (), was.setlu () and was.getlu ()
     

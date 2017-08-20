@@ -130,6 +130,14 @@ def set_service (service_class):
 	global Win32Service	
 	Win32Service = service_class
 
+def set_worker_critical_point (usage = 60.0, continuous = 3, interval = 20):
+	from .server.http_server import http_server
+	from .server.https_server import https_server	
+	
+	http_server.maintern_interval = https_server.maintern_interval = interval
+	http_server.critical_point_cpu_overload = https_server.critical_point_cpu_overload = usage
+	http_server.critical_point_continuous = https_server.critical_point_continuous = continuous
+
 def log_off (*path):		
 	global dconf
 	for each in path:
