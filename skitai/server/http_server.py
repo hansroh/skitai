@@ -420,9 +420,14 @@ class http_server (asyncore.dispatcher):
 		usages = []
 		for ps in PID.values ():
 			if ps is None:
-				continue			
-			usage = ps.cpu_percent ()	
-			usages.append ((ps, usage))		
+				continue
+							
+			try:
+				usage = ps.cpu_percent ()
+			except (psutil.NoSuchProcess, AttributeError):
+				# process changed, maybe next time
+				usage = 0.0
+			usages.append ((ps, usage))
 		
 		self.usages.append (sum ([x [1] for x in usages]) / len (usages))
 		self.usages = self.usages [-45:]
@@ -438,26 +443,11 @@ class http_server (asyncore.dispatcher):
 			# 60% for 1m
 			self.log ("CPU percent: " + ", ".join (["%d/%d" % unit for unit in self.cpu_stat]))
 			
-		# find child consume abnormal cpu_uasge or time and kill it
-		usages.sort (key = lambda x: x [1])
-		min_usage = usages [0]
-		max_usage = usages [-1]
-		
-		killables = {}
-		# relative
-		if max_usage [1] > (self.critical_point_cpu_overload * 0.7) and max_usage [1] > min_usage [1] * 3:
-			killables [max_usage [0].pid] = None
-		
-		# absolute					
 		for ps, usage in usages:						
-			if usage > self.critical_point_cpu_overload:
-				killables [ps.pid] = None
-	
-		for ps, usage in usages:
-			if ps.pid not in killables:
+			if usage < self.critical_point_cpu_overload:
 				ps.x_overloads = 0 #reset count
 				continue
-				
+							
 			ps.x_overloads += 1	
 			if ps.x_overloads > self.critical_point_continuous:				
 				self.log ("process %d is overloading, try to kill..." % ps.pid, 'fatal')
