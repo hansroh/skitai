@@ -2,7 +2,6 @@ from . import wsgi_handler
 import skitai
 from aquests.protocols.http import request as http_request
 from aquests.protocols.http import request_handler as http_request_handler
-from aquests.lib.athreads.fifo import await_fifo
 from .proxy import POST_MAX_SIZE, UPLOAD_MAX_SIZE
 from .proxy.collector import Collector
 from .proxy.tunnel import TunnelHandler
