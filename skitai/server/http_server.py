@@ -419,8 +419,10 @@ class http_server (asyncore.dispatcher):
 		for ps in PID.values ():
 			if ps is None:
 				continue			
-			usages.append ((ps, ps.cpu_percent ()))
-		
+			usage = ps.cpu_percent ()	
+			usages.append ((ps, usage))		
+			#print ('---usage', ps.pid, usage)
+			
 		# find child consume abnormal cpu_uasge or time and kill it
 		usages.sort (key = lambda x: x [1])
 		min_usage = usages [0]
