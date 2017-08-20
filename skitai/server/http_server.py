@@ -305,7 +305,7 @@ class http_channel (asynchat.async_chat):
 class http_server (asyncore.dispatcher):
 	SERVER_IDENT = skitai.NAME
 	
-	maintern_interval = 20
+	maintern_interval = 0
 	critical_point_cpu_overload = 90.0
 	critical_point_continuous = 3
 	
@@ -395,7 +395,7 @@ class http_server (asyncore.dispatcher):
 							#print ('-----', PID, ACTIVE_WORKERS)
 					
 					now = time.time ()
-					if now - self.__last_maintern > self.maintern_interval:						
+					if self.maintern_interval and now - self.__last_maintern > self.maintern_interval:						
 						self.maintern (now)		
 					time.sleep (1)
 					
