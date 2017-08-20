@@ -14,6 +14,9 @@ import ssl
 import skitai
 from hashlib import md5
 from aquests.lib.processutil import set_process_name
+if os.name == "posix":
+	import psutil
+	CPUs = psutil.cpu_count()
 
 PID = {}
 ACTIVE_WORKERS = 0
@@ -301,6 +304,9 @@ class http_channel (asynchat.async_chat):
 #-------------------------------------------------------------------
 class http_server (asyncore.dispatcher):
 	SERVER_IDENT = skitai.NAME
+	maintern_interval = 20
+	critical_point_cpu_overload = 60.0
+	
 	def __init__ (self, ip, port, server_logger = None, request_logger = None):
 		global PID
 		
@@ -330,6 +336,8 @@ class http_server (asyncore.dispatcher):
 		self.bytes_in  = counter.mpcounter()
 		self.shutdown_phase = 2		
 		
+		self.__last_maintern = time.time ()
+				
 		host, port = self.socket.getsockname()
 		if not ip:
 			ip = socket.gethostname()		
@@ -378,10 +386,15 @@ class http_server (asyncore.dispatcher):
 								signal.signal(signal.SIGQUIT, hQUITMASTER)
 								signal.signal (signal.SIGCHLD, hCHLD)
 							
-							PID [pid] = 1
+							ps = psutil.Process (pid)
+							ps.x_overloads = 0
+							PID [pid] = ps
 							ACTIVE_WORKERS += 1
 							#print ('-----', PID, ACTIVE_WORKERS)
-							
+					
+					now = time.time ()
+					if now - self.__last_maintern > self.maintern_interval:						
+						self.maintern (now)		
 					time.sleep (1)
 					
 				except KeyboardInterrupt:
@@ -395,7 +408,50 @@ class http_server (asyncore.dispatcher):
 		self.log_info ('%s (%s) started on %s:%d' % (
 			self.SERVER_IDENT, self.worker_ident, self.server_name, self.port)
 		)
+	
+	def maintern (self, now):
+		global PID, CPUs
 		
+		self.__last_maintern = now
+		usages = []
+		for ps in PID.values ():
+			if ps is None:
+				continue			
+			usages.append ((ps, ps.cpu_percent ()))
+		
+		# find child consume abnormal cpu_uasge or time and kill it
+		usages.sort (key = lambda x: x [1])
+		min_usage = usages [0]
+		max_usage = usages [-1]
+		
+		killables = {}
+		# relative
+		if max_usage [1] > (self.critical_point_cpu_overload * 0.7) and max_usage [1] > min_usage [1] * 3:
+			killables [max_usage [0].pid] = None
+		
+		# absolute					
+		for ps, usage in usages:						
+			if usage > self.critical_point_cpu_overload:
+				killables [ps.pid] = None
+		
+		# testing
+		#	killables [ps.pid] = None
+		#print ("killables", killables)
+			
+		for ps, usage in usages:
+			if ps.pid not in killables:
+				ps.x_overloads = 0 #reset count
+				continue
+				
+			ps.x_overloads += 1	
+			if ps.x_overloads > 3:
+				self.log ("process %d is overloading, try to kill..." % ps.pid, 'fatal')
+				sig = ps.x_overloads > 5 and signal.SIGKILL or signal.SIGTERM
+				try:
+					os.kill (ps.pid, sig)
+				except OSError:
+					pass
+			
 	def create_socket(self, family, type):
 		if hasattr (socket, "_no_timeoutsocket"):
 			sock_class = socket._no_timeoutsocket
@@ -511,7 +567,7 @@ def hCHLD (signum, frame):
 	except ChildProcessError:
 		pass
 	else:
-		PID [pid]	 = 0	
+		PID [pid]	= None
 
 def hTERMWORKER (signum, frame):			
 	lifetime.shutdown (0, 1.0)
@@ -524,7 +580,7 @@ def DO_SHUTDOWN (sig):
 	
 	signal.signal (signal.SIGCHLD, signal.SIG_IGN)
 	for pid in PID:
-		if not PID [pid]:
+		if PID [pid] is None:
 			continue			
 		try: os.kill (pid, sig)
 		except OSError: pass
