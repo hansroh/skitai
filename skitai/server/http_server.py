@@ -306,7 +306,7 @@ class http_server (asyncore.dispatcher):
 	SERVER_IDENT = skitai.NAME
 	
 	maintern_interval = 20
-	critical_point_cpu_overload = 60.0
+	critical_point_cpu_overload = 90.0
 	critical_point_continuous = 3
 	
 	def __init__ (self, ip, port, server_logger = None, request_logger = None):
@@ -411,6 +411,8 @@ class http_server (asyncore.dispatcher):
 			self.SERVER_IDENT, self.worker_ident, self.server_name, self.port)
 		)
 	
+	usages = []
+	cpu_stat = []
 	def maintern (self, now):
 		global PID, CPUs
 		
@@ -421,7 +423,20 @@ class http_server (asyncore.dispatcher):
 				continue			
 			usage = ps.cpu_percent ()	
 			usages.append ((ps, usage))		
-			#print ('---usage', ps.pid, usage)
+		
+		self.usages.append (sum ([x [1] for x in usages]) / len (usages))
+		self.usages = self.usages [-45:]
+		
+		self.cpu_stat = []
+		max_usage = 0
+		for c in (3, 15, 45):
+			# 1m, 5m, 15
+			array = self.usages [-c:]
+			self.cpu_stat.append ((max (array), int (sum (array) / c)))					
+		
+		if self.cpu_stat [0][0] > 10:
+			# 60% for 1m
+			self.log ("CPU percent: " + ", ".join (["%d/%d" % unit for unit in self.cpu_stat]))
 			
 		# find child consume abnormal cpu_uasge or time and kill it
 		usages.sort (key = lambda x: x [1])
@@ -437,18 +452,14 @@ class http_server (asyncore.dispatcher):
 		for ps, usage in usages:						
 			if usage > self.critical_point_cpu_overload:
 				killables [ps.pid] = None
-		
-		# testing
-		#	killables [ps.pid] = None
-		#print ("killables", killables)
-			
+	
 		for ps, usage in usages:
 			if ps.pid not in killables:
 				ps.x_overloads = 0 #reset count
 				continue
 				
 			ps.x_overloads += 1	
-			if ps.x_overloads > self.critical_point_continuous:
+			if ps.x_overloads > self.critical_point_continuous:				
 				self.log ("process %d is overloading, try to kill..." % ps.pid, 'fatal')
 				sig = ps.x_overloads > (self.critical_point_continuous + 2) and signal.SIGKILL or signal.SIGTERM
 				try:
@@ -546,10 +557,11 @@ class http_server (asyncore.dispatcher):
 		self.log_info('server shutdown', 'warning')
 		self.close()
 	
-	def status(self):
+	def status (self):
 		global PID
+		
 		return 	{
-			"child_pids": PID,
+			"child_pids": list (PID.keys ()),
 			"ident": "%s for %s" % (self.worker_ident, self.SERVER_IDENT),
 			'server_name': self.server_name,	
 			"start_time": self.start_time, 		
@@ -559,7 +571,8 @@ class http_server (asyncore.dispatcher):
 			"total_request": self.total_requests.as_long(), 
 			"total_exceptions": self.exceptions.as_long(), 
 			"bytes_out": self.bytes_out.as_long(), 
-			"bytes_in": self.bytes_in.as_long()
+			"bytes_in": self.bytes_in.as_long(),
+			"cpu_percent":	self.cpu_stat
 		}
 			
 def hCHLD (signum, frame):
