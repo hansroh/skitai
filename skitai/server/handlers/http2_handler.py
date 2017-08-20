@@ -10,7 +10,7 @@ from aquests.lib import producers
 from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
 from aquests.protocols.http2.producers import h2header_producer, h2frame_producer
-from aquests.protocols.http2.fifo import http2_producer_fifo
+from aquests.protocols.http2.fifo import http2_producer_fifo, http2_producer_ts_fifo
 import threading
 from io import BytesIO
 
@@ -25,7 +25,10 @@ class http2_request_handler:
 		self.channel = request.channel
 		
 		# replace fifo with supporting priority, ready, removing
-		self.channel.producer_fifo = http2_producer_fifo ()
+		if self.wasc.numthreads:
+			self.channel.producer_fifo = http2_producer_ts_fifo ()
+		else:	
+			self.channel.producer_fifo = http2_producer_fifo ()
 		
 		self.conn = H2Connection(H2Configuration(client_side=False))
 		self.frame_buf = self.conn.incoming_buffer

@@ -63,6 +63,7 @@ def test_await_fifo ():
 		assert assert_fifo (fifo.await_fifo ()) < TESTS * 2.5
 		assert assert_fifo (fifo.await_ts_fifo ()) < TESTS * 2.5
 		assert assert_fifo (fifo2.http2_producer_fifo ()) < TESTS * 2.5
+		assert assert_fifo (fifo2.http2_producer_ts_fifo ()) < TESTS * 2.5
 		
 		# priority sorting test
 		f = fifo2.http2_producer_fifo ()

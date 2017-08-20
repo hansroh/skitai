@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.15.1"
+__version__ = "0.26.15.2"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -130,13 +130,13 @@ def set_service (service_class):
 	global Win32Service	
 	Win32Service = service_class
 
-def set_worker_critical_point (usage = 60.0, continuous = 3, interval = 20):
+def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20):
 	from .server.http_server import http_server
 	from .server.https_server import https_server	
 	
-	http_server.maintern_interval = https_server.maintern_interval = interval
-	http_server.critical_point_cpu_overload = https_server.critical_point_cpu_overload = usage
+	http_server.critical_point_cpu_overload = https_server.critical_point_cpu_overload = cpu_percent
 	http_server.critical_point_continuous = https_server.critical_point_continuous = continuous
+	http_server.maintern_interval = https_server.maintern_interval = interval
 
 def log_off (*path):		
 	global dconf
