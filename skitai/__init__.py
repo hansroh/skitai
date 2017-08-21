@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.15.2"
+__version__ = "0.26.15.3"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -152,12 +152,15 @@ def set_max_rcache (objmax):
 	dconf ["rcache_objmax"] = objmax
 
 def set_keep_alive (timeout):	
+	global dconf
 	dconf ["keep_alive"] = timeout
 
 def set_network_timeout (timeout):
+	global dconf	
 	dconf ["network_timeout"] = timeout
 
-def set_model_keys (keys):
+def lukeys (keys):
+	global dconf	
 	dconf ["models-keys"] = keys
 		
 def mount (point, target, appname = "app", pref = pref (True), host = "default"):

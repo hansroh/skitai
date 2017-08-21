@@ -21,12 +21,12 @@ def test_with_resource (wasc, app):
 def test_events (wasc, app):
 	@app.on ("pytest:event")
 	def a (was):
-		was.storage.set ("a", 256)
+		app.storage.set ("a", 256)
 	
 	@app.route ("/")
 	def b	(was):
 		was.app.emit ("pytest:event")
-		return was.storage.get ("a")
+		return app.storage.get ("a")
 		
 	was = wasc ()
 	was.app = app

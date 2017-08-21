@@ -3,11 +3,11 @@ import time
 import random
 import pytest
 from mock import MagicMock
-from skitai.server.wastuff import mpstorage
+from skitai.server.wastuff.modelkeys import ModelKeys
 
 def test_models_in_storage (wasc):
 	was = wasc ()
-	was._luwatcher = mpstorage.Storage (["a", "b"])	
+	was._luwatcher = ModelKeys (["a", "b"])	
 	was.apps = MagicMock ()
 	was.setlu ('a')
 	assert time.time () - was.getlu ('a') < 1

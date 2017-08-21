@@ -1500,7 +1500,7 @@ First of all you should set all model keys to skitai for sharing model state bee
 
 .. code:: python
 
-  skitai.set_model_keys (
+  skitai.lukeys (
     ['tables.users']
   )
   
@@ -3722,7 +3722,7 @@ In backgound, app catch Django's model signal, and automatically was.setlu (your
 
 .. code:: python
 
-  skitai.set_model_keys (
+  skitai.lukeys (
     ['myapp.models.User']
   )
   
@@ -3785,8 +3785,8 @@ Change Log
   
   - 0.26.15
     
+    - add skitai.lukeys () and fix inconsistency of was.setlu & was.getlu between multi workers
     - remove was.storage
-    - fix was.setlu & was.getlu on multi workers
     - add skitai.set_worker_critical_point ()
     - fix result object caching
     - add app.model_signal (), was.setlu () and was.getlu ()
