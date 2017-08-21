@@ -357,7 +357,8 @@ class Part:
 		elif karg["created"]:
 			karg ["x_operation"] = 'C'
 		else:
-			karg ["x_operation"] = 'U'			
+			karg ["x_operation"] = 'U'
+		karg ["x_ignore"]	= True
 		the_was._get ().setlu (model_name, sender, **karg)
 	
 	def model_signal (self, modeler = "django"):	

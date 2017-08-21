@@ -346,8 +346,8 @@ class WAS:
 	def wsclient (self):
 		return self.env.get ('websocket.client')	
 				
-	def setlu (self, name, *args, **karg):		
-		self._luwatcher [name] = time.time ()
+	def setlu (self, name, *args, **karg):
+		self._luwatcher.set (name, time.time (), karg.get ("x_ignore", False))
 		self.broadcast ("model-changed", *args, **karg)
 		self.broadcast ("model-changed:%s" % name, *args, **karg)			
 		

@@ -1,6 +1,6 @@
 import multiprocessing
 
-class Storage:
+class ModelKeys:
 	def __init__ (self, keys):
 		self._keys  = keys
 		self._arr = multiprocessing.Array ('d', [0.0] * len (keys), lock = multiprocessing.RLock ())		
@@ -19,19 +19,20 @@ class Storage:
 		self.set (k, v)
 	
 	def __getitem__ (self, k):
-		self.get (k)
+		return self._d [k]
 		
-	def set (self, k, v):
+	def set (self, k, v, ignore_nokey = False):
 		try:
 			self._arr [self._d [k]] = v
 		except KeyError:
-			pass	
+			if not ignore_nokey:
+				raise
 	
 	def get (self, k, d = None):
 		try:
 			v = self._arr [self._d [k]]
 		except KeyError:
-			return d	
+			return d
 		return v or d
 	
 	def keys (self):

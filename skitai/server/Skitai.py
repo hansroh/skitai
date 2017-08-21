@@ -33,7 +33,7 @@ from .dbi import cluster_dist_call as dcluster_dist_call
 import types
 from .handlers.websocket import servers as websocekts
 from .wastuff import selective_logger
-from .wastuff.mpstorage import Storage
+from .wastuff.modelkeys import ModelKeys
 
 class Loader:
 	def __init__ (self, config = None, logpath = None, varpath = None, debug = 0):		
@@ -76,7 +76,7 @@ class Loader:
 		self.switch_to_await_fifo ()
 	
 	def set_model_keys (self, keys):
-		self.wasc._luwatcher = Storage (keys)
+		self.wasc._luwatcher = ModelKeys (keys)
 			
 	def app_cycle (self, func):		
 		_was = self.wasc ()

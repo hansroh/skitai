@@ -17,12 +17,10 @@ class Storage:
 		self.set (k, v)
 	
 	def __getitem__ (self, k):
-		self.get (k, d)
+		with self.__lock:
+			return self.__d [k]
 	
 	def __delitem__ (self, k):
-		self.remove (k)
-	
-	def popitem (self, k):
 		self.remove (k)
 		
 	def new_storage (self, k, d = {}):
