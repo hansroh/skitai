@@ -1496,13 +1496,17 @@ More About Cache Control: Model Synchronized Cache
 
 You can integrate your models changing and cache control.
 
-First of all you should set all model keys to skitai for sharing model state beetween worker processes.
+First of all, you should set all cache control keys to Skitai for sharing model state beetween worker processes.
 
 .. code:: python
 
   skitai.lukeys (
-    ['tables.users']
+    ['tables.users', 'table.photos']
   )
+
+These Key names are might be related your database model names nor table names. Especially you bind Django model signal, these keys should be exaclty nodel class name. But in general cases, key names are fine if you easy to recognize.
+  
+These key names are not mutable or removale after calling skitai.run ().
   
 Then you can use setlu, getlu (),
 
@@ -1527,8 +1531,8 @@ Then you can use setlu, getlu (),
     # determine if use cache or not by last update information 'users'
     was.backend ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
 
-It makes helping to reduce the needs for building or managing caches.
-    
+It makes helping to reduce the needs for building or managing caches. And the values by setlu() are synchronzed between Skitai workers by multiprocessing.Array.
+
 If your query related with multiple models,
 
 .. code:: python
@@ -3723,8 +3727,9 @@ In backgound, app catch Django's model signal, and automatically was.setlu (your
 .. code:: python
 
   skitai.lukeys (
-    ['myapp.models.User']
+    ['myapp.models.User', 'myapp.models.Photo']
   )
+  skitai.run ()
   
 
 Logging and Traceback
