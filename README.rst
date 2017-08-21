@@ -298,12 +298,12 @@ Skitai processes are,
   ubuntu   25224 25219  1 08:25 ?        00:00:00 skitai(myproject/app): worker #3
 
 
-Managing Worker Processes
-```````````````````````````
+Set Critical Point to Worker Processes
+``````````````````````````````````````````
  
 *New In Version 0.26.15.2, Available only on posix*
 
-You can set parameters for managing overloading workers,
+You can set parameters for restarting overloaded workers,
  
 .. code:: python
 
@@ -311,7 +311,9 @@ You can set parameters for managing overloading workers,
   
 This means if a worker's CPU usage is 90% for 20 seconds continuously 3 times, Skitai try to kill this worker and start a new worker.
 
-If you do not want to use this, you just do not call set_worker_critical_point (). But I recommend use this for minimum protection against Skitai's bugs.
+If you do not want to use this, you just do not call set_worker_critical_point () or set interval to zero (0).
+
+But I strongly recommend use this setting especially if you running Sktiai on single CPU processor machine or like AWS t1.x limited computing instances. Also this is for minimum protection against Skitai's unexpected bugs.
 
   
 Mount Multiple WSGI Apps And Static Directories
@@ -1606,32 +1608,13 @@ Access 'was' Storage
 
 *New in version 0.26.15*
 
-was.storage is thread safe memory based object for storing & accessing data. Note that is storage is not persistant.
-
-Note that you should NOT use string key value starts with 'skitai.was.', this is reserved for `was` services.
+was.storage is dictionary of multiprocessing.manager.Manager (). This object can be shared between worker processes.
 
 .. code:: python
 
   @app.route ("/")
   def hello_world (was):  
     was.storage.set ("episodes", some_data)
-
-You can create sub storage with thread-safe for convinient usaeg.
-
-.. code:: python
-
-  @app.mounted
-  def mounted (was):  
-    was.storage.new_storage ("sub.storage")
- 
-- was.storage.set (key, val)
-- was.storage.get (key, default = None)
-- was.storage.remove (key)
-- was.storage.has_key (key)
-- was.storage.keys ()
-- was.storage.values ()
-- was.storage.items ()
-- was.storage.new_storage (key)
 
 
 HTML5 Websocket

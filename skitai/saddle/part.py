@@ -7,7 +7,7 @@ from types import FunctionType as function
 import inspect
 from skitai import was as the_was
 import time, threading
-from ..server.wastuff.storage import Storage
+from .storage import Storage
 	
 RX_RULE = re.compile ("(/<(.+?)>)")
 

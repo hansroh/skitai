@@ -30,7 +30,6 @@ except ImportError:
 from skitai import lifetime
 from .wastuff.promise import Promise, _Method
 from .wastuff.triple_logger import Logger
-from .wastuff.storage import Storage
 from multiprocessing import RLock
 try:
 	from django.core.handlers.wsgi import WSGIRequest
@@ -44,12 +43,13 @@ class DateEncoder(json.JSONEncoder):
 			return str(obj)			
 		return json.JSONEncoder.default(self, obj)
 
+mp_manager = multiprocessing.Manager ()
 
 class WAS:
-	version = __version__
-	objects = {}
-	storage = Storage ()
-	storage.new_storage ("skitai.was.models.status")
+	version = __version__	
+	objects = {"stroage": mp_manager.dict ()}	
+	_luwatcher = mp_manager.dict ()
+	
 	lock = RLock ()
 	init_time = time.time ()	
 	#----------------------------------------------------
@@ -60,7 +60,7 @@ class WAS:
 	def register (cls, name, obj):
 		if hasattr (cls, name):
 			raise AttributeError ("server object `%s` is already exists" % name)
-		cls.objects [name] = obj		
+		cls.objects [name] = obj
 		setattr (cls, name, obj)
 	
 	@classmethod
@@ -347,19 +347,16 @@ class WAS:
 	
 	def wsclient (self):
 		return self.env.get ('websocket.client')	
-		
+				
 	def setlu (self, name, *args, **karg):		
-		objs = self.storage.get ("skitai.was.models.status")						
-		objs [name] = time.time ()
+		self._luwatcher [name] = time.time ()
 		self.broadcast ("model-changed", *args, **karg)
 		self.broadcast ("model-changed:%s" % name, *args, **karg)			
 		
 	def getlu (self, *names):
-		objs = self.storage.get ("skitai.was.models.status")
 		mtimes = []
 		for name in names:
-			mtime = objs.get (name, self.init_time)
+			mtime = self._luwatcher.get (name, self.init_time)
 			mtimes.append (mtime)
 		return max (mtimes)
-		
 		
