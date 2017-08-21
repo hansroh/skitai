@@ -1496,6 +1496,16 @@ More About Cache Control: Model Synchronized Cache
 
 You can integrate your models changing and cache control.
 
+First of all you should set all model keys to skitai for sharing model state beetween worker processes.
+
+.. code:: python
+
+  skitai.set_model_keys (
+    ['tables.users']
+  )
+  
+Then you can use setlu, getlu (),
+
 .. code:: python
 
   app = Saddle (__name__)
@@ -1601,20 +1611,6 @@ This chapter's 'was' services are also avaliable for all WSGI middelwares.
 - was.fromgrpc (message, obj) # gRPC
 - was.restart () # Restart Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
 - was.shutdown () # Shutdown Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
-
-
-Access 'was' Storage
-------------------------
-
-*New in version 0.26.15*
-
-was.storage is dictionary of multiprocessing.manager.Manager (). This object can be shared between worker processes.
-
-.. code:: python
-
-  @app.route ("/")
-  def hello_world (was):  
-    was.storage.set ("episodes", some_data)
 
 
 HTML5 Websocket
@@ -3706,7 +3702,7 @@ Integrating With Skitai's Result Object Caching
 .. code:: python
 
   app.model_signal (modeler = "django")
-
+  
 In backgound, app catch Django's model signal, and automatically was.setlu (your model class name like 'myapp.models.User'). Then you can just use was.getlu (your model class name).
 
 .. code:: python
@@ -3722,8 +3718,14 @@ In backgound, app catch Django's model signal, and automatically was.setlu (your
     result.cache (86400)
     return result.data
 
-*Remember*, before using Django views and models, you should mount Django apps on Skitai first.
+*Remember*, before using Django views and models, you should mount Django apps on Skitai first, and you should set all model keys using in apps.
 
+.. code:: python
+
+  skitai.set_model_keys (
+    ['myapp.models.User']
+  )
+  
 
 Logging and Traceback
 ------------------------
@@ -3783,6 +3785,8 @@ Change Log
   
   - 0.26.15
     
+    - remove was.storage
+    - fix was.setlu & was.getlu on multi workers
     - add skitai.set_worker_critical_point ()
     - fix result object caching
     - add app.model_signal (), was.setlu () and was.getlu ()

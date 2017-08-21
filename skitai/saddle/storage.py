@@ -16,10 +16,10 @@ class Storage:
 	def __setitem__ (self, k, v):
 		self.set (k, v)
 	
-	def __getitem__ (self, k, d):
+	def __getitem__ (self, k):
 		self.get (k, d)
 	
-	def __delitem__ (self, k, d):
+	def __delitem__ (self, k):
 		self.remove (k)
 	
 	def popitem (self, k):

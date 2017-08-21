@@ -156,7 +156,10 @@ def set_keep_alive (timeout):
 
 def set_network_timeout (timeout):
 	dconf ["network_timeout"] = timeout
-	
+
+def set_model_keys (keys):
+	dconf ["models-keys"] = keys
+		
 def mount (point, target, appname = "app", pref = pref (True), host = "default"):
 	global dconf
 	
@@ -355,7 +358,9 @@ def run (**conf):
 			self.wasc.logger ("server", "[info] active var dir %s" % self.get_varpath ())
 			if self.logpath:
 				self.wasc.logger ("server", "[info] active log dir %s" % self.logpath)
-					
+			
+			self.conf.get ("models-keys") and self.set_model_keys (self.conf ["models-keys"])
+						
 		def maintern_shutdown_request (self, now):
 			req = self.flock.lockread ("signal")
 			if not req: return
