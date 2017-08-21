@@ -355,7 +355,7 @@ def run (**conf):
 			self.wasc.logger ("server", "[info] active var dir %s" % self.get_varpath ())
 			if self.logpath:
 				self.wasc.logger ("server", "[info] active log dir %s" % self.logpath)
-						
+					
 		def maintern_shutdown_request (self, now):
 			req = self.flock.lockread ("signal")
 			if not req: return
@@ -550,6 +550,9 @@ def run (**conf):
 			_exit_code = server.get_exit_code ()
 			if _exit_code is not None: # master process				
 				sys.exit (_exit_code)
-			else: # worker process				
-				sys.exit (lifetime._exit_code)
+			else: 
+				# worker process				
+				# for avoiding multiprocessing.manager process's join error
+				# use os._exit
+				os._exit (lifetime._exit_code)
 			

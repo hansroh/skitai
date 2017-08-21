@@ -1,5 +1,4 @@
 from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT
-import multiprocessing
 from aquests.lib import pathtool, logger
 from aquests.lib.producers import simple_producer, file_producer
 from aquests.lib.athreads import trigger
@@ -43,12 +42,11 @@ class DateEncoder(json.JSONEncoder):
 			return str(obj)			
 		return json.JSONEncoder.default(self, obj)
 
-mp_manager = multiprocessing.Manager ()
 
 class WAS:
 	version = __version__	
-	objects = {"stroage": mp_manager.dict ()}	
-	_luwatcher = mp_manager.dict ()
+	objects = {}	
+	_luwatcher = None
 	
 	lock = RLock ()
 	init_time = time.time ()	

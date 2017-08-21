@@ -73,7 +73,11 @@ class Loader:
 		websocekts.start_websocket (self.wasc)
 		self.wasc.register ("websockets", websocekts.websocket_servers)
 		self.switch_to_await_fifo ()
-	
+		
+		mp_manager = multiprocessing.Manager ()
+		self.wasc.register ("stroage", mp_manager.dict ())
+		self.wasc._luwatcher = mp_manager.dict ()
+		
 	def app_cycle (self, func):		
 		_was = self.wasc ()
 		for h in self.wasc.httpserver.handlers:
@@ -159,7 +163,7 @@ class Loader:
 		if _exit_code is not None:
 			self.handle_exit_code (_exit_code)
 		
-	def handle_exit_code (self, _exit_code):		
+	def handle_exit_code (self, _exit_code):
 		self._exit_code = _exit_code				
 		try:
 			os.wait ()
