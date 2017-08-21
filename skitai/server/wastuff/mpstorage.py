@@ -22,10 +22,16 @@ class Storage:
 		self.get (k)
 		
 	def set (self, k, v):
-		self._arr [self._d [k]] = v
+		try:
+			self._arr [self._d [k]] = v
+		except KeyError:
+			pass	
 	
 	def get (self, k, d = None):
-		v = self._arr [self._d [k]]
+		try:
+			v = self._arr [self._d [k]]
+		except KeyError:
+			return d	
 		return v or d
 	
 	def keys (self):
