@@ -312,7 +312,9 @@ class ClusterManager:
 					if asyncon.isactive ():
 						cannot_closes.append (asyncon)
 					else:						
-						asyncon.disconnect ()
+						asyncon.disconnect ()				
+						if hasattr (asyncon, "producer_fifo"):
+							asyncon.producer_fifo = None
 						del asyncon
 				self._close_desires = cannot_closes
 				

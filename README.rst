@@ -1506,9 +1506,9 @@ First of all, you should set all cache control keys to Skitai for sharing model 
 
 These Key names are might be related your database model names nor table names. Especially you bind Django model signal, these keys should be exaclty nodel class name. But in general cases, key names are fine if you easy to recognize.
   
-These key names are not mutable or removale after calling skitai.run ().
+These key names are not mutable and you cannot add new key after calling skitai.run ().
   
-Then you can use setlu, getlu (),
+Then you can use setlu () and getlu (),
 
 .. code:: python
 
@@ -1531,7 +1531,7 @@ Then you can use setlu, getlu (),
     # determine if use cache or not by last update information 'users'
     was.backend ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
 
-It makes helping to reduce the needs for building or managing caches. And the values by setlu() are synchronzed between Skitai workers by multiprocessing.Array.
+It makes helping to reduce the needs for building or managing caches. And the values by setlu() are synchronized between Skitai workers by multiprocessing.Array.
 
 If your query related with multiple models,
 
@@ -2155,37 +2155,6 @@ Currently was.app.config has these properties and you can reconfig by setting ne
 - was.app.config.max_upload_file_size = 20000000
 
 
-Access App Storage
---------------------
-
-*New in version 0.26.15*
-
-app.storage is thread safe memory based object for storing & accessing data. Note that is storage is not persistant.
-
-.. code:: python
-
-  @app.route ("/")
-  def hello_world (was):  
-    app.storage.set ("episodes", some_data)
-
-You can create sub storage with thread-safe for convinient usaeg.
-
-.. code:: python
-
-  @app.mounted
-  def mounted (was):  
-    app.storage.new_storage ("sub.storage")
- 
-- app.storage.set (key, val)
-- app.storage.get (key, default = None)
-- app.storage.remove (key)
-- app.storage.has_key (key)
-- app.storage.keys ()
-- app.storage.values ()
-- app.storage.items ()
-- app.storage.new_storage (key)
-
-
 Debugging and Reloading App
 -----------------------------
 
@@ -2670,8 +2639,7 @@ And you can access from filename of app from each apps,
 .. code:: python
 
   search_app = was.apps ["search"]
-  save_path = search_app.config.save_path
-  save_path = search_app.storage.get ('log')
+  save_path = search_app.config.save_path  
 
 
 URL Building for Resource Accessing
@@ -3790,8 +3758,9 @@ Change Log
   
   - 0.26.15
     
+    - app.storage had been remove officially, I cannot find any usage. but unoficially it will be remains by some day
     - add skitai.lukeys () and fix inconsistency of was.setlu & was.getlu between multi workers
-    - remove was.storage
+    - was.storage had been remove
     - add skitai.set_worker_critical_point ()
     - fix result object caching
     - add app.model_signal (), was.setlu () and was.getlu ()

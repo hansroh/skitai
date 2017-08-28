@@ -2,7 +2,7 @@ from . import http_response, counter
 import time
 import re
 import json
-from aquests.lib.attrdict import NocaseDict
+from aquests.lib.attrdict import CaseInsensitiveDict
 
 class http_request:
 	version = "1.1"
@@ -53,7 +53,7 @@ class http_request:
 	def headers (self):
 		if self._headers_cache:
 			return self._headers_cache						
-		h = NocaseDict ()
+		h = CaseInsensitiveDict ()
 		for line in self.header:
 			k, v = line.split (":", 1)
 			h [k] = v.strip ()
