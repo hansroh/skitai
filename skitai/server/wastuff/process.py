@@ -1,7 +1,6 @@
 ﻿import os
 import subprocess, os, sys, signal, subprocess
-from aquests.lib import flock
-from aquests.lib.pmaster import processutil, killtree
+from aquests.lib.pmaster import processutil, killtree, flock
 
 class Process:
 	def __init__ (self, cmd, name, vardir = None):		

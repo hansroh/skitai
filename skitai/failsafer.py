@@ -3,7 +3,7 @@ import subprocess
 import os		
 import signal
 import time
-from aquests.lib import confparse, logger, flock, pathtool
+from aquests.lib import confparse, logger, pathtool
 from skitai.server.wastuff import process, daemon
 import time
 			

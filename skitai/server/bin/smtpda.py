@@ -3,7 +3,7 @@
 
 import sys, os, getopt
 from skitai import lifetime
-from aquests.lib import flock, pathtool, logger
+from aquests.lib import pathtool, logger
 from aquests.lib.athreads import select_trigger
 from aquests.protocols.smtp import async_smtp, composer
 import signal

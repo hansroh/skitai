@@ -258,7 +258,7 @@ def run (**conf):
 	from . import lifetime
 	from .server import Skitai	
 	from .server.wastuff import process, daemon	as wasdaemon
-	from aquests.lib import flock
+	from aquests.lib.pmaster import flock
 	import getopt
 		
 	class SkitaiServer (Skitai.Loader):

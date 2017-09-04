@@ -1,7 +1,8 @@
 from skitai import lifetime
-from aquests.lib import flock, pathtool, logger
+from aquests.lib import pathtool, logger
 import os, signal, sys, tempfile
 from aquests.lib.pmaster.processutil import set_process_name
+from aquests.lib.pmaster import flock
 import skitai
 EXIT_CODE = None
 

@@ -16,7 +16,7 @@ from aquests.lib.athreads.fifo import await_fifo
 from aquests.client import asynconnect
 from aquests.client import socketpool
 from aquests.lib.athreads import threadlib, trigger
-from aquests.lib import logger, confparse, pathtool, flock
+from aquests.lib import logger, confparse, pathtool
 from aquests.dbapi import dbpool
 from aquests.protocols.http import request_handler
 from aquests.protocols import http2

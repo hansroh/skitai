@@ -3,7 +3,7 @@
 
 import subprocess
 import sys, os, getopt
-from aquests.lib import flock, pathtool, logger, confparse
+from aquests.lib import pathtool, logger, confparse
 from aquests.lib.pmaster import killtree, processutil
 import signal
 import time
