@@ -473,7 +473,7 @@ def run (**conf):
 			daemon.kill (working_dir, 'skitai', True)
 	
 	def status (working_dir):
-		from aquests.lib import daemon
+		from aquests.lib.pmaster import daemon
 		pid = daemon.status (working_dir, 'skitai')
 		if pid:
 			print ("running [%d]" % pid)
