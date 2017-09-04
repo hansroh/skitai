@@ -257,7 +257,7 @@ def run (**conf):
 	import os, sys, time
 	from . import lifetime
 	from .server import Skitai	
-	from .server.wastuff import process, daemon	
+	from .server.wastuff import process, daemon	as wasdaemon
 	from aquests.lib import flock
 	import getopt
 		
@@ -336,7 +336,7 @@ def run (**conf):
 			)
 		
 		def get_varpath (self):
-			return self.conf.get ('varpath') or daemon.get_default_varpath ()
+			return self.conf.get ('varpath') or wasdaemon.get_default_varpath ()
 			
 		def config_logger (self, path):
 			media = []
@@ -460,7 +460,7 @@ def run (**conf):
 		if os.name == "nt":
 			set_service_config (['start'])
 		else:	
-			from aquests.lib.daemonize import Daemonizer
+			from aquests.lib.pmaster import Daemonizer
 			if not Daemonizer (working_dir, 'skitai').runAsDaemon ():
 				print ("already running")
 				sys.exit ()			
@@ -469,12 +469,12 @@ def run (**conf):
 		if os.name == "nt":			
 			set_service_config (['stop'])
 		else:	
-			from aquests.lib import daemonize
-			daemonize.kill (working_dir, 'skitai', True)
+			from aquests.lib.pmaster import daemon
+			daemon.kill (working_dir, 'skitai', True)
 	
 	def status (working_dir):
-		from aquests.lib import daemonize
-		pid = daemonize.status (working_dir, 'skitai')
+		from aquests.lib import daemon
+		pid = daemon.status (working_dir, 'skitai')
 		if pid:
 			print ("running [%d]" % pid)
 		else:

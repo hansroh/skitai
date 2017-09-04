@@ -1,7 +1,8 @@
 import threading
 import sched, time, re
 import bisect, sys, os
-from aquests.lib  import confparse, logger as logger_module, processutil
+from aquests.lib import confparse, logger as logger_module
+from aquests.lib.pmaster import processutil
 import subprocess
 import signal
 import win32process, win32api, win32con, pywintypes

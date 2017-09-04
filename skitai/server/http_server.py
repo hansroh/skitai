@@ -13,7 +13,7 @@ import signal
 import ssl
 import skitai
 from hashlib import md5
-from aquests.lib.processutil import set_process_name
+from aquests.lib.pmaster.processutil import set_process_name
 if os.name == "posix":
 	import psutil
 	CPUs = psutil.cpu_count()
