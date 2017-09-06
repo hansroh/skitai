@@ -1,7 +1,8 @@
 import pytest, os
 import confutil
 from skitai.saddle import Saddle
-from aquests.lib import commprocess, logger
+from aquests.lib import logger
+from aquests.lib.pmaster import Puppet
 try:
 	import pytest_ordering
 except ImportError:
@@ -11,7 +12,7 @@ else:
 
 @pytest.fixture (scope = "module")
 def runner ():
-	p = commprocess.Process (communicate = False)
+	p = Puppet (communicate = False)
 	return p
 	
 @pytest.fixture (scope = "module")
