@@ -172,10 +172,13 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default")
 			loader = machinery.SourceFileLoader('temp', modinit)
 			mod = loader.load_module()
 			hasattr (mod, "bootstrap") and mod.bootstrap (pref)
-		
+	
+	if hasattr (target, "__file__"):
+		target = (target, "app")
 	if type (target) is tuple: 
 		module, appfile = target
 		target = os.path.join (os.path.dirname (module.__file__), "export", "skitai", appfile)
+			
 	if type (target) is not str:
 		# app instance
 		target = os.path.join (os.getcwd (), sys.argv [0])
