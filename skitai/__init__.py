@@ -162,7 +162,10 @@ def set_network_timeout (timeout):
 def lukeys (keys):
 	global dconf	
 	dconf ["models-keys"] = keys
-		
+
+def trackers (*keys):
+	lukeys (keys)
+			
 def mount (point, target, appname = "app", pref = pref (True), host = "default"):
 	global dconf
 	
