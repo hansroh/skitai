@@ -1500,9 +1500,7 @@ First of all, you should set all cache control keys to Skitai for sharing model 
 
 .. code:: python
 
-  skitai.lukeys (
-    ['tables.users', 'table.photos']
-  )
+  skitai.trackers ('tables.users', 'table.photos')
 
 These Key names are might be related your database model names nor table names. Especially you bind Django model signal, these keys should be exaclty nodel class name. But in general cases, key names are fine if you easy to recognize.
   
@@ -3694,9 +3692,7 @@ In backgound, app catch Django's model signal, and automatically was.setlu (your
 
 .. code:: python
 
-  skitai.lukeys (
-    ['myapp.models.User', 'myapp.models.Photo']
-  )
+  skitai.trackers ('myapp.models.User', 'myapp.models.Photo')
   skitai.run ()
   
 
@@ -3758,6 +3754,7 @@ Change Log
   
   - 0.26.15
     
+    - add skitai.trackers (args,...) that is equivalant to skitai.lukeys ([args])
     - fix mounting module
     - app.storage had been remove officially, I cannot find any usage. but unoficially it will be remains by some day
     - add skitai.lukeys () and fix inconsistency of was.setlu & was.getlu between multi workers
