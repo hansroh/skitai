@@ -3758,6 +3758,7 @@ Change Log
   
   - 0.26.15
     
+    - fix mounting module
     - app.storage had been remove officially, I cannot find any usage. but unoficially it will be remains by some day
     - add skitai.lukeys () and fix inconsistency of was.setlu & was.getlu between multi workers
     - was.storage had been remove
