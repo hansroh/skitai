@@ -117,7 +117,7 @@ class ClusterManager:
 								"keep_alive": asyncon.keep_alive,	
 							}
 						if hasattr (asyncon, "get_history"):
-							conn ["history"] = asyncon.get_history ()								
+							conn ["history"] = asyncon.get_history ()
 						conns.append (conn)
 								
 					_node ["connection"] = conns
