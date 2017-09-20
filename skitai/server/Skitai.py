@@ -34,6 +34,8 @@ import types
 from .handlers.websocket import servers as websocekts
 from .wastuff import selective_logger
 from .wastuff.modelkeys import ModelKeys
+from .dbi import cluster_manager as dcluster_manager
+from .rpc import cluster_manager as rcluster_manager
 
 class Loader:
 	def __init__ (self, config = None, logpath = None, varpath = None, debug = 0):		
@@ -201,7 +203,11 @@ class Loader:
 			self.wasc.register ("queue",  queue)
 			self.wasc.register ("threads", tpool)
 			self.wasc.numthreads = numthreads
-					
+	
+	def config_backends (self, backend_keep_alive = 10):
+		rcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive
+		dcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive
+						
 	def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0, access = None):
 		if clustertype and clustertype [0] == "*":
 			clustertype = clustertype [1:]

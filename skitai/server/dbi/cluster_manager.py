@@ -2,7 +2,9 @@ from skitai.server.rpc import cluster_manager
 from aquests.dbapi import asynpsycopg2, synsqlite3, asynredis, asynmongo
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 
-class ClusterManager (cluster_manager.ClusterManager):	
+class ClusterManager (cluster_manager.ClusterManager):
+	backend_keep_alive = 120
+	
 	def __init__ (self, name, cluster, dbtype = DB_PGSQL, access = [], logger = None):
 		self.dbtype = dbtype
 		cluster_manager.ClusterManager.__init__ (self, name, cluster, 0, access, logger)
@@ -48,7 +50,7 @@ class ClusterManager (cluster_manager.ClusterManager):
 				raise TypeError ("Unknown DB type: %s" % self.dbtype)
 			
 			asyncon = conn_class (server, (db, auth), self.lock, self.logger)	
-			self.backend and asyncon.set_backend ()			
+			self.backend and asyncon.set_backend (self.backend_keep_alive)			
 			nodeid = server
 				
 		return nodeid, asyncon # nodeid, asyncon
