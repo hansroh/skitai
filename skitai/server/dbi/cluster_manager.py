@@ -10,7 +10,7 @@ class ClusterManager (cluster_manager.ClusterManager):
 	def match (self, request):
 		return False # not serverd by url
 	
-	def create_asyncon (self, member):
+	def create_asyncon (self, member):		
 		if self.dbtype == DB_SQLITE3:
 			asyncon = synsqlite3.SynConnect (member, None, self.lock, self.logger)
 			nodeid = member

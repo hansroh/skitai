@@ -210,7 +210,10 @@ class Loader:
 			ssl = 1
 		if type (clusterlist)	is str:
 			clusterlist = [clusterlist]		
-		self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl, access = access)
+		try:
+			self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl, access = access)
+		except:
+			self.wasc.logger.trace ("server")
 	
 	def install_handler_with_tuple (self, routes):		
 		if type (routes) is list:

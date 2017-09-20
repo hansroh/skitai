@@ -254,7 +254,7 @@ class ClusterManager:
 	def create_pool (self, cluster):
 		for member in cluster:
 			self.add_node (member)
-	
+			
 	def report (self, asyncon, well_functioning):
 		node = asyncon.address
 		self.lock.acquire ()
