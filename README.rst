@@ -521,7 +521,7 @@ Keep alive timeout means seconds gap of each requests. For setting HTTP connecti
   skitai.set_keep_alive (2) # default = 30
   skitai.mount ('/', app)
   skitai.run ()
-
+  
 If you intend to use skitai as backend application server behind reverse proxy server like Nginx, it is recommended over 300.
 
 Network timeout means seconds gap of data packet recv/sending events,
@@ -535,6 +535,17 @@ Network timeout means seconds gap of data packet recv/sending events,
 Note that under massive traffic situation, meaning of keep alive timeout become as same as network timeout beacuse a clients requests are delayed by network/HW capability unintensionally.
 
 Anyway, these timeout values are higher, lower response fail rate and longger response time. But if response time is over 10 seconds, you might consider loadbalancing things. Skitai's default value 30 seconds is for lower failing rate under extreme situation.
+
+*New in version 0.26.15*
+
+You can set connection timeout for your backends. Basue of Skitai's ondemend polling feature, it is hard to know disconnected by server side, then Skitai will forcley reconnect if over backend_keep_alive after last interaction. Make sure your backends keep_alive setting value is matched with this value.
+
+.. code:: python
+  
+  skitai.set_backend_keep_alive (1200) # default is 10
+  skitai.mount ('/', app)
+  skitai.run ()
+
 
 
 Enabling HTTP/HTTPS Proxy
