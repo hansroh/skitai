@@ -155,6 +155,10 @@ def set_keep_alive (timeout):
 	global dconf
 	dconf ["keep_alive"] = timeout
 
+def set_backend_keep_alive (timeout):	
+	global dconf
+	dconf ["backend_keep_alive"] = timeout
+	
 def set_network_timeout (timeout):
 	global dconf	
 	dconf ["network_timeout"] = timeout
@@ -413,14 +417,15 @@ def run (**conf):
 				conf.get ('port', 5000), conf.get ('address', '0.0.0.0'),
 				NAME, conf.get ("certfile") is not None,
 				conf.get ('keep_alive', 30), 
-				conf.get ('network_timeout', 30), 
+				conf.get ('network_timeout', 30)
 			)
 			
 			if os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
 				# master does not serve
 				return			
 			
-			self.config_threads (conf.get ('threads', 4))						
+			self.config_threads (conf.get ('threads', 4))			
+			self.config_backends (conf.get ('backend_keep_alive', 10))
 			for name, args in conf.get ("clusters", {}).items ():				
 				ctype, members, policy, ssl = args
 				self.add_cluster (ctype, name, members, ssl, policy)
