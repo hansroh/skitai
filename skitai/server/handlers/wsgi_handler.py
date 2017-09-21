@@ -10,7 +10,7 @@ from aquests.lib.athreads import trigger
 from . import collectors
 from skitai import version_info, was as the_was
 from skitai.saddle import Saddle
-from collections import Iterable
+from collections import Iterator
 import threading
 try:
 	from cStringIO import StringIO as BytesIO
@@ -299,7 +299,7 @@ class Job:
 						part = producers.closing_stream_producer (part)				
 					elif type (part) is list:
 						part = producers.list_producer (part)
-					elif isinstance(part, Iterable): # flask etc.						
+					elif isinstance(part, Iterator): # flask etc.
 						part = producers.iter_producer (part)
 					
 					if hasattr (part, "more"):

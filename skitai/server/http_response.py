@@ -548,7 +548,7 @@ class http_response:
 					
 	def __call__ (self, status = "200 OK", body = None, headers = None, exc_info = None):
 		self.start_response (status, headers)
-		if not body:
+		if body is None:
 			return self.build_error_template (exc_info and catch (1, exc_info) or "")
 		return body
 	
