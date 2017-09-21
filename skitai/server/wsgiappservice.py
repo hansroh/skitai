@@ -43,6 +43,34 @@ class DateEncoder(json.JSONEncoder):
 		return json.JSONEncoder.default(self, obj)
 
 
+class JSONAPI:
+	def __init__ (self):
+		self.data = {}		
+		self.errors = []
+	
+	def add_error (self, code, mag):
+		self.errors.append ((code, msg))
+	
+	def __setitem__ (self, k, v):
+		self.data [k] = v
+	
+	def __getitem__ (self, k, v):
+		return self.data.get (k, v)
+			
+	def to_string (self, data = "", exc_info = None):
+		if exc_info:
+			self.add_error ('traceback', catch (2, exc_info))
+		
+		if self.errors:
+			data = {'errors': self.errors}						
+		elif data:
+			if not isinstance (data, dict):
+				data = {'data': data}
+			self.data.update (data)			
+		
+		return data and json.dumps (data) or ""
+		
+		
 class WAS:
 	version = __version__	
 	objects = {}	
@@ -110,7 +138,7 @@ class WAS:
 		return new_was
 			
 	VALID_COMMANDS = [
-		"get", "delete", 
+		"get", "delete",
 		"post", "postform", "postjson", "postxml", "postnvp", 
 		"put", "poutform", "putjson", "putxml", "putnvp", 
 		"patch", "patchform", "patchjson", "patchxml", "patchnvp", 
@@ -295,7 +323,11 @@ class WAS:
 	
 	def render_ei (self, exc_info, format = 0):
 		return http_response.catch (format, exc_info)		
-		
+	
+	def api (self):
+		self.response.set_header ("Content-Type", "application/json")
+		return JSONAPI ()
+				
 	def fstream (self, path, mimetype = 'application/octet-stream'):	
 		self.response.set_header ('Content-Type',  mimetype)
 		self.response.set_header ('Content-Length', str (os.path.getsize (path)))	

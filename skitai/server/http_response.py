@@ -9,6 +9,7 @@ from aquests.protocols.http import respcodes
 from .wastuff import selective_logger
 import skitai
 import asyncore
+import json
 
 try: 
 	from urllib.parse import urljoin
@@ -252,29 +253,42 @@ class http_response:
 				self.set (k, v)
 	reply = start
 	
-	def build_error_template (self, why = ""):
+	def catch (self, exc_info = None):
+		if self.request.get_header ('accept').find ("application/json") != -1:
+		
+	def build_error_template (self, why = '', exc_info = None):
 		global DEFAULT_ERROR_MESSAGE
+		
 		error = {
 			'code': self.reply_code,
 			'message': self.reply_message,
 			'detail': why,
-			'debug': why and 'debug' or '',
+			'debug': None,
 			'time': http_date.build_http_date (time.time ()),
 			'url': urljoin ("%s://%s/" % (self.request.get_scheme (), self.request.get_header ("host")), self.request.uri),
 			'software': skitai.NAME,
 			}
-		content = None	
-		if self.current_app and hasattr (self.current_app, 'get_error_page'):
-			try:
-				content = self.current_app.get_error_page (error)
-			except:							
-				self.request.logger.trace ()				
-				if self.current_app.debug:
-					error ["detail"] += "<h2 style='padding-top: 40px;'>Exception Occured During Building Error Template</h2>" + catch (1)
 		
-		return content or (DEFAULT_ERROR_MESSAGE % error)
+		if self.request.get_header ('accept').find ("application/json") != -1:
+			self.update ('Content-Type', 'application/json')
+			if exc_info:
+				error ['debug'] = exc_info and catch (2, exc_info) or []
+			return content or json.dumps ({'errors': [(10, error)]})
+			
+		else:	
+			self.update ('Content-Type', 'text/html')
+			error ["debug"] = exc_info and catch (1, exc_info) or ""
+			content = None	
+			if self.current_app and hasattr (self.current_app, 'get_error_page'):
+				try:
+					content = self.current_app.get_error_page (error)
+				except:							
+					self.request.logger.trace ()				
+					if self.current_app.debug:
+						error ["debug"] += "<h2 style='padding-top: 40px;'>Exception Occured During Building Error Template</h2>" + catch (1)			
+			return content or (DEFAULT_ERROR_MESSAGE % error)
 				
-	def error (self, code, status = "", why = "", force_close = False, push_only = False):
+	def error (self, code, status = "", why = "", exc_info = None, force_close = False, push_only = False):
 		if not self.is_responsable (): return
 		self.outgoing.clear ()
 		self.reply_code = code
@@ -282,11 +296,10 @@ class http_response:
 		else:	self.reply_message = self.get_status_msg (code)
 			
 		if type (why) is tuple: # sys.exc_info ()
-			why = catch (1, why)
+			exc_info, why  = why, None			
 		
-		body = self.build_error_template (why).encode ("utf8")	
-		self.update ('Content-Length', len(body))
-		self.update ('Content-Type', 'text/html')
+		body = self.build_error_template (why, exc_info).encode ("utf8")	
+		self.update ('Content-Length', len(body))				
 		self.update ('Cache-Control', 'max-age=0')
 		self.push (body)
 		if not push_only:
@@ -549,7 +562,7 @@ class http_response:
 	def __call__ (self, status = "200 OK", body = None, headers = None, exc_info = None):
 		self.start_response (status, headers)
 		if body is None:
-			return self.build_error_template (exc_info and catch (1, exc_info) or "")
+			return self.build_error_template (exc_info = exc_info)
 		return body
 	
 	def push_and_done (self, thing, *args, **kargs):
