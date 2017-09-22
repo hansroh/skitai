@@ -228,7 +228,7 @@ class Handler (wsgi_handler.Handler):
 		except:
 			asyncon.set_active (False)
 			self.wasc.logger.trace ("server")			
-			request.response.error (500, "", "Proxy Request Failed")
+			request.response.error (500, "Proxy Failed")
 			
 	def has_valid_cache (self, request, has_data):
 		if not self.cachefs:

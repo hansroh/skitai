@@ -29,47 +29,13 @@ except ImportError:
 from skitai import lifetime
 from .wastuff.promise import Promise, _Method
 from .wastuff.triple_logger import Logger
+from .wastuff.api import DateEncoder
 from multiprocessing import RLock
 try:
 	from django.core.handlers.wsgi import WSGIRequest
 except ImportError:
 	WSGIRequest = None
 
-			
-class DateEncoder(json.JSONEncoder):
-	def default(self, obj):
-		if isinstance(obj, date):
-			return str(obj)			
-		return json.JSONEncoder.default(self, obj)
-
-
-class JSONAPI:
-	def __init__ (self):
-		self.data = {}		
-		self.errors = []
-	
-	def add_error (self, code, mag):
-		self.errors.append ((code, msg))
-	
-	def __setitem__ (self, k, v):
-		self.data [k] = v
-	
-	def __getitem__ (self, k, v):
-		return self.data.get (k, v)
-			
-	def to_string (self, data = "", exc_info = None):
-		if exc_info:
-			self.add_error ('traceback', catch (2, exc_info))
-		
-		if self.errors:
-			data = {'errors': self.errors}						
-		elif data:
-			if not isinstance (data, dict):
-				data = {'data': data}
-			self.data.update (data)			
-		
-		return data and json.dumps (data) or ""
-		
 		
 class WAS:
 	version = __version__	
@@ -305,9 +271,9 @@ class WAS:
 		return message.ParseFromString (obj)
 		
 	def tojson (self, obj):
-		return json.dumps (obj, cls=DateEncoder)
+		return json.dumps (obj, cls = DateEncoder)
 		
-	def toxml (self, obj):		
+	def toxml (self, obj):
 		return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")	
 	
 	def fromjson (self, obj):
@@ -322,32 +288,7 @@ class WAS:
 		return server_info.make (self, flt, fancy)
 	
 	def render_ei (self, exc_info, format = 0):
-		return http_response.catch (format, exc_info)		
-	
-	def api (self):
-		self.response.set_header ("Content-Type", "application/json")
-		return JSONAPI ()
-				
-	def fstream (self, path, mimetype = 'application/octet-stream'):	
-		self.response.set_header ('Content-Type',  mimetype)
-		self.response.set_header ('Content-Length', str (os.path.getsize (path)))	
-		return file_producer (open (path, "rb"))
-	
-	def jstream (self, obj, key = None):		
-		self.response.set_header ("Content-Type", "application/json")
-		if key:
-			# for single skeleton data is not dict
-			return self.tojson ({key: obj})
-		else:
-			return self.tojson (obj)		
-	
-	def xstream (self, obj, use_datetime = 0):			
-		self.response.set_header ("Content-Type", "text/xml")
-		return self.toxml (obj, use_datetime)
-	
-	def gstream (self, obj):
-		self.response.set_header ("Content-Type", "application/grpc")
-		return self.togrpc (obj)
+		return http_response.catch (format, exc_info)
 	
 	@property
 	def django (self):
@@ -389,4 +330,29 @@ class WAS:
 			mtime = self._luwatcher.get (name, self.init_time)
 			mtimes.append (mtime)
 		return max (mtimes)
+	
+	#-----------------------------------------
+	# will be deprecated
+	#-----------------------------------------
+	
+	def fstream (self, path, mimetype = 'application/octet-stream'):	
+		self.response.set_header ('Content-Type',  mimetype)
+		self.response.set_header ('Content-Length', str (os.path.getsize (path)))	
+		return file_producer (open (path, "rb"))
+			
+	def jstream (self, obj, key = None):
+		self.response.set_header ("Content-Type", "application/json")
+		if key:
+			# for single skeleton data is not dict
+			return self.tojson ({key: obj})
+		else:
+			return self.tojson (obj)		
+	
+	def xstream (self, obj, use_datetime = 0):			
+		self.response.set_header ("Content-Type", "text/xml")
+		return self.toxml (obj, use_datetime)
+	
+	def gstream (self, obj):
+		self.response.set_header ("Content-Type", "application/grpc")
+		return self.togrpc (obj)
 		

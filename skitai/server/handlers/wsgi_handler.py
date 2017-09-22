@@ -11,6 +11,7 @@ from . import collectors
 from skitai import version_info, was as the_was
 from skitai.saddle import Saddle
 from collections import Iterator
+from ..wastuff.api import API
 import threading
 try:
 	from cStringIO import StringIO as BytesIO
@@ -208,7 +209,7 @@ class Handler:
 					
 		except:
 			self.wasc.logger.trace ("server",  request.uri)
-			return request.response.error (500, why = apph.debug and catch (1) or "")
+			return request.response.error (500, why = apph.debug and sys.exc_info () or None)
 		
 		try:
 			env = self.build_environ (request, apph)
@@ -218,7 +219,7 @@ class Handler:
 
 		except:
 			self.wasc.logger.trace ("server",  request.uri)
-			return request.response.error (500, why = apph.debug and catch (1) or "")
+			return request.response.error (500, why = apph.debug and csys.exc_info () or None)
 		
 		if env ["wsgi.multithread"]:
 			self.wasc.queue.put (Job (request, apph, args, self.apps, self.wasc.logger))
@@ -253,14 +254,14 @@ class Job:
 			if not response.is_responsable ():
 				# already called response.done () or diconnected channel
 				return
-			
+				
 			if content is None: # Possibly no return mistake
 				raise AssertionError ("Content or part should not be None")
 			
 			if not content: # explicit empty not content
 				trigger.wakeup (lambda p=response: (p.done(),))
 				return
-				
+					
 			if response ["content-type"] is None: 
 				response ["Content-Type"] = "text/html"
 			
@@ -278,8 +279,14 @@ class Job:
 				try: part = part.content
 				except AttributeError: pass
 					
-				type_of_part = type (part)				
-				if type_of_part in (bytes, str, unicode):
+				type_of_part = type (part)
+				
+				if isinstance (part, API):
+					response ["Content-Type"] = part.get_content_type ()
+					part = part.to_string ().encode ("utf8")
+					will_be_push.append (part)
+					
+				elif type_of_part in (bytes, str, unicode):
 					if len (part) == 0:
 						continue
 					if type_of_part is not bytes: # unicode
@@ -322,7 +329,7 @@ class Job:
 			
 		except:			
 			was.traceback ()
-			trigger.wakeup (lambda p=response, d=self.apph.debug and catch (1) or "": (p.send_error ("508 WSGI App Error", d), p.done ()) )			
+			trigger.wakeup (lambda p=response, d=self.apph.debug and sys.exc_info () or None: (p.error (508, "WSGI App Error", d), p.done ()) )			
 				
 		else:
 			for part in will_be_push:				

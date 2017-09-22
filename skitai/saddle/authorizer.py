@@ -50,7 +50,7 @@ class Authorizer:
 			return False
 		if not self._has_permission (group, permission):
 			if push_error: 
-				request.response.error (403, "", "You haven't permission for accessing this page")
+				request.response.error (403)
 			return False
 		return True
 

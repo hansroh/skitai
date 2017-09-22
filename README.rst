@@ -2337,26 +2337,94 @@ The object has 'close ()' method, will be called when all data consumed, or sock
 - was.response.hint_promise (uri) # *New in version 0.16.4*, only works with HTTP/2.x and will be ignored HTTP/1.x
 
 
-Useful Response Shortcuts
-````````````````````````````
+JSON API Response
+````````````````````
 
-When In cases you want to retrun JSON, XMLRPC, gRPC or local file content, below methods will be useful.
+Response provides some methods for special objects.
+
+First of all, for send a file, 
 
 .. code:: python
 
-  @app.route ("/")
-  def getjson (was):  
-    return was.jstream ({'mydata': 'myvalue'})
-  
   @app.route ("/<filename>")
   def getfile (was, filename):  
-    return was.fstream ('/data/%s' % filename)    
-    
-- was.jstream (obj) # shortcut for was.response ("200 OK", was.tojson (obj), [("Content-Type", "application/json")])
-- was.xstream (obj, usedatetime = 0) # shortcut for was.response ("200 OK", was.toxml (obj), [("Content-Type", "text/xml")])
-- was.gstream (obj) # shortcut for was.response ("200 OK", was.togrpc (obj), [("Content-Type", "application/grpc")])
-- was.fstream (abspath, mimetype = 'application/octet-stream') # return file stream object
+    return was.response.file ('/data/%s' % filename)    
 
+When In cases you want to retrun JSON API reponse,
+
+.. code:: python
+
+  return was.response.api () return empty dictionary
+  return was.response.api ({'data': [1, 2, 3]})
+  return was.response (
+    '200 OK',
+    was.response.api ({'data': [1, 2, 3]})
+  )
+  return was.response (
+    '201 Accept',
+    was.response.api ({'data': [1, 2, 3]})
+  )
+  
+For sending error response with error information,
+
+.. code:: python
+  
+  return was.response (
+    '400 Bad Request',
+    was.response.eapi ('missing parameter', 10021) # msg and error code
+  )
+  
+  # client see
+  {"message": "parameter q required", "code": 10021}  
+
+Also you can use api obkject as object container,
+
+.. code:: python
+
+  api = was.response.api ()
+  api.set ('user_id', 'hansroh')
+  api.set ('name', 'Hans Roh')
+  return api  
+  return was.response ('200 OK', api)
+  
+  # client see
+  {"user_id": "hansroh", "name": "Hans Roh"}
+  
+  api = was.response.api ()
+  api.error ('missing parameter', 10021)
+  return was.response ('400 Bad Request', api)
+  
+  # client see
+  {"message": "parameter q required", "code": 10021}  
+
+  api = was.response.api ()
+  api.error (
+    'missing parameter', 10021, 
+    'need parameter offset and limit', # detailed debug information
+    'http://127.0.0.1/moreinfo/10021', # more detail URL something    
+  )
+  return was.response ('400 Bad Request', api)
+  
+  # client see
+  {
+    "code": 10021,
+    "message": "parameter q required", 
+    "debug": "need parameter offset and limit",
+    "more_info": "http://127.0.0.1/moreinfo/10021"
+  }
+
+Make sure if you return just api object, HTTP status will be sent with 200 OK.
+
+If your resource raise exception, and your client send header with 'Accept: application/json' and app.debug is True, Skitai returns traceback information.
+
+.. code:: python
+  {
+    "code": 50000, 
+    "traceback": [
+      "name 'aa' is not defined", 
+      "in file app.py at line 276, function search"      
+    ]
+  }
 
 Async Promise Response
 --------------------------
