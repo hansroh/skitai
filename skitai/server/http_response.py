@@ -215,7 +215,7 @@ class http_response:
 			exc_info, why  = why, ''
 		
 		error = {}	
-		if self.request.get_header ('accept').find ("application/json") != -1:
+		if self.request.get_header ('accept', '').find ("application/json") != -1:
 			self.update ('content-type', 'application/json')
 			if exc_info:
 				error ["code"] = 10001

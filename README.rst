@@ -2377,7 +2377,7 @@ For sending error response with error information,
   # client see
   {"message": "parameter q required", "code": 10021}  
 
-Also you can use api obkject as object container,
+Also you can use api object as container,
 
 .. code:: python
 
@@ -2385,7 +2385,6 @@ Also you can use api obkject as object container,
   api.set ('user_id', 'hansroh')
   api.set ('name', 'Hans Roh')
   return api  
-  return was.response ('200 OK', api)
   
   # client see
   {"user_id": "hansroh", "name": "Hans Roh"}

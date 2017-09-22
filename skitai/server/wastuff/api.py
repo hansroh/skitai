@@ -1,4 +1,5 @@
 import json
+from datetime import date
 
 def catch (format = 0, exc_info = None):
 	if exc_info is None:
