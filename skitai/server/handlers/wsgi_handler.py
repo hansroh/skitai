@@ -282,7 +282,7 @@ class Job:
 				type_of_part = type (part)
 				
 				if isinstance (part, API):
-					response ["Content-Type"] = part.get_content_type ()
+					response.update ("Content-Type", part.get_content_type ())
 					part = part.to_string ().encode ("utf8")
 					will_be_push.append (part)
 					
