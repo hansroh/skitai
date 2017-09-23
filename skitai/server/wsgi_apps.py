@@ -18,11 +18,13 @@ class Module:
 		self.app = None
 		self.django = False
 		self.set_route (route)
+		self.directory = directory
 		if type (libpath) is str:
 			try:
 				libpath, self.appname = libpath.split (":", 1)		
 			except ValueError:
 				libpath, self.appname = libpath, "app"
+			self.libpath = libpath
 			self.script_name = "%s.py" % libpath
 			self.module, self.abspath = importer.importer (directory, libpath)
 			self.start_app ()
@@ -135,8 +137,8 @@ class Module:
 			PRESERVED = []
 			if hasattr (app, "PRESERVE_ON_RELOAD"):
 				PRESERVED = [(attr, getattr (app, attr)) for attr in app.PRESERVES_ON_RELOAD]
-				
-			importer.reloader (self.module)
+			
+			self.module, self.abspath = importer.reimporter (self.module, self.directory, self.libpath)			
 			self.start_app (reloded = True)
 			newapp = getattr (self.module, self.appname)
 			for attr, value in PRESERVED:
