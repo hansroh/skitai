@@ -74,11 +74,8 @@ class API:
 	def to_string (self):		
 		return json.dumps (self.data, cls = DateEncoder)
 				
-	def traceback (self, exc_info = None):
-		self.data = {}
-		self.data ["code"] = 10001
-		self.data ["message"] = 'exception occured, see traceback'
-		self.data ["traceback"] = catch (2, exc_info)
+	def traceback (self, msg = 'exception ovvured, see traceback', code = 20000, debug = None, more_info = None):
+		self.error (msg, code, debug, more_info)
 		
 	def error (self, msg, code = 20000, debug = None, more_info = None, exc_info = None):
 		self.data = {}
@@ -90,4 +87,3 @@ class API:
 			self.data ['more_info'] = more_info
 		if exc_info:
 			self.data ["traceback"] = catch (2, exc_info)	
-			

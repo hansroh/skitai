@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.15.9b9"
+__version__ = "0.26.15.9b10"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -181,7 +181,8 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default")
 			hasattr (mod, "bootstrap") and mod.bootstrap (pref)
 	
 	if hasattr (target, "__file__"):
-		target = (target, "app")
+		target = (target, target.__name__)
+		
 	if type (target) is tuple: 
 		module, appfile = target
 		target = os.path.join (os.path.dirname (module.__file__), "export", "skitai", appfile)

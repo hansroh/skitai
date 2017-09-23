@@ -2327,6 +2327,8 @@ All available return types are:
 The object has 'close ()' method, will be called when all data consumed, or socket is disconnected with client by any reasons.
 
 - was.response (status = "200 OK", body = None, headers = None, exc_info = None)
+- was.response.api (data = None): return api response container
+- was.response.fault (msg, code, debug, more_info, exc_info): return api response container with setting error information
 - was.response.set_status (status) # "200 OK", "404 Not Found"
 - was.response.get_status ()
 - was.response.set_headers (headers) # [(key, value), ...]
@@ -2337,9 +2339,8 @@ The object has 'close ()' method, will be called when all data consumed, or sock
 - was.response.hint_promise (uri) # *New in version 0.16.4*, only works with HTTP/2.x and will be ignored HTTP/1.x
 
 
-JSON API Response
-````````````````````
-
+File Stream 
+`````````````
 Response provides some methods for special objects.
 
 First of all, for send a file, 
@@ -2350,7 +2351,12 @@ First of all, for send a file,
   def getfile (was, filename):  
     return was.response.file ('/data/%s' % filename)    
 
-When In cases you want to retrun JSON API reponse,
+
+JSON API Response
+````````````````````
+*New in version 0.26.15.9*
+
+In cases you want to retrun JSON API reponse,
 
 .. code:: python
 
@@ -2371,7 +2377,7 @@ For sending error response with error information,
   
   return was.response (
     '400 Bad Request',
-    was.response.eapi ('missing parameter', 10021) # msg and error code
+    was.response.fault ('missing parameter', 10021) # msg and error code
   )
   
   # client see
@@ -2414,16 +2420,30 @@ Also you can use api object as container,
 
 Make sure if you return just api object, HTTP status will be sent with 200 OK.
 
-If your resource raise exception, and your client send header with 'Accept: application/json' and app.debug is True, Skitai returns traceback information.
+You can traceback inforamtion,
 
 .. code:: python
+  
+  api = was.response.api ()
+  try:
+    do something
+  except:
+    return api.traceback () 
+
+  # client see,
   {
-    "code": 50000, 
+    "code": 20000, 
     "traceback": [
       "name 'aa' is not defined", 
       "in file app.py at line 276, function search"      
     ]
   }
+
+But if your client send header with 'Accept: application/json' and app.debug is True, Skitai returns traceback information automatically.
+
+- api (data = None): contructor
+- api.error (msg, code = 20000, debug = None, more_info = None, exc_info = None)
+- api.traceback (msg = 'exception ovvured, see traceback', code = 20000, debug = None, more_info = None)
 
 Async Promise Response
 --------------------------

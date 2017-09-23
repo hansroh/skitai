@@ -519,10 +519,11 @@ class http_response:
 	def api (self, data = None, type = 'json'):
 		return API (data, type)
 	
-	def eapi (self, msg, code = 20000,  debug = None, more_info = None, exc_info = None):
+	def fault (self, msg, code = 20000,  debug = None, more_info = None, exc_info = None):
 		api = self.api ()
 		api.error (msg, code, debug, more_info, exc_info)
 		return api
+	eapi = fault
 	
 	def file (self, path, mimetype = 'application/octet-stream'):
 		self.set_header ('Content-Type',  mimetype)
