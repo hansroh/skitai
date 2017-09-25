@@ -104,14 +104,15 @@ class WAS:
 		return new_was
 			
 	VALID_COMMANDS = [
-		"get", "delete",
-		"post", "postform", "postjson", "postxml", "postnvp", 
-		"put", "poutform", "putjson", "putxml", "putnvp", 
-		"patch", "patchform", "patchjson", "patchxml", "patchnvp", 
-		"rpc", "grpc", "ws", 
-		"db", "postgresql", "sqlite3", "redis", "mongodb", "backend",
-		"options", "trace", "upload"
-	]		
+		"options", "trace", "upload",
+		"get", "getjson",
+		"delete", "deletejson",
+		"post", "postjson",
+		"put", "putjson",
+		"patch", "patchjson",
+		"rpc", "grpc", "ws", "wss", 
+		"db", "postgresql", "sqlite3", "redis", "mongodb", "backend",		
+	]
 	def __getattr__ (self, name):
 		# method magic		
 		if name in self.VALID_COMMANDS:
@@ -159,11 +160,14 @@ class WAS:
 	
 	def rebuild_header (self, header):
 		if not header:
-			nheader = {}			
+			nheader = {}
 		elif type (header) is list:
 			nheader = {}			
 			for k, v in header:
 				nheader [k] = v
+		else:
+			nheader = header
+					
 		nheader ["X-Gtxn-Id"] = self.request.get_gtxid ()
 		nheader ["X-Ltxn-Id"] = self.request.get_ltxid (1)
 		return nheader

@@ -217,15 +217,16 @@ class ClusterDistCall:
 			self._headers = {}
 		self._headers [n] = v
 	
-	_TYPEMAP = [
-		("form", "application/x-www-form-urlencoded"),
-		("xml", "text/xml"),	
-		("nvp", "text/namevalue")		
+	_TYPEMAP = [		
+		("xml", "text/xml", "text/xml"),
+		("json", "application/json", "application/json"),
 	]
-	def _map_content_type (self, _reqtype):
-		for alias, ct in self._TYPEMAP:
+	def _map_content_type (self, _reqtype, has_params = False):
+		for alias, ct, ac in self._TYPEMAP:
 			if _reqtype.endswith (alias):
-				self._add_header ("Content-Type", ct)
+				self._add_header ("Accept", ac)
+				if has_params:
+					self._add_header ("Content-Type", ct)
 				return _reqtype [:-len (alias)]
 		return _reqtype
 	
@@ -289,7 +290,7 @@ class ClusterDistCall:
 												
 				else:				
 					if not self._use_cache:
-						self._add_header ("Cache-Control", "no-cache")				
+						self._add_header ("Cache-Control", "no-cache")
 					
 					handler = http_request_handler.RequestHandler					
 					if _reqtype == "rpc":
@@ -299,8 +300,7 @@ class ClusterDistCall:
 					elif _reqtype == "upload":
 						request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._auth, self._logger, self._meta)
 					else:
-						if params:
-							_reqtype = self._map_content_type (_reqtype)
+						_reqtype = self._map_content_type (_reqtype, params)						
 						request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._auth, self._logger, self._meta)				
 				
 				requests += self._handle_request (request, rs, asyncon, handler)
