@@ -231,7 +231,7 @@ class http_response:
 			error ['detail'] = why
 			error ['time'] = http_date.build_http_date (time.time ()),
 			error ['url'] = urljoin ("%s://%s/" % (self.request.get_scheme (), self.request.get_header ("host")), self.request.uri),
-			error ['software'] = skitai.NAME,			
+			error ['software'] = skitai.NAME			
 			error ['mode'] = exc_info and 'debug' or 'normal'				
 			error ['code'] = self.reply_code
 			error ['message'] = self.reply_message
