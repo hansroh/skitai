@@ -3852,6 +3852,7 @@ Change Log
   
   - 0.26.15
     
+    - increase https tunnel keep alive timeout to 600 sec.
     - fix broad event bus
     - add getjson, deletejson, this request automatically add header 'Accept: application/json'
     - change default request content-type from json to form data, if you post/put json data, you should change postjson/putjson
