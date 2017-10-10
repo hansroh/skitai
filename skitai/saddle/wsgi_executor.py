@@ -151,9 +151,9 @@ class Executor:
 		if respcode and handle_response:			
 			if respcode == 301:
 				request.response ["Location"] = thing
-				request.response.send_error ("301 Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % thing)							
+				request.response.error (301, "Object Moved", why = 'Object Moved To <a href="%s">Here</a>' % thing)							
 			elif respcode != 200:
-				request.response.send_error ("%d %s" % (respcode, respcodes.get (respcode, "Undefined Error")))
+				request.response.error (respcode, respcodes.get (respcode, "Undefined Error"))
 
 		if thing:
 			request.routed = current_app.get_routed (thing)

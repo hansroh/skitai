@@ -159,7 +159,7 @@ class Handler (wsgi_handler.Handler):
 				assert gid, "%s value can't find" % param_name
 			except:
 				self.wasc.logger.trace ("server",  request.uri)
-				return request.response.error (500, why = apph.debug and catch (1) or "")
+				return request.response.error (500, why = apph.debug and sys.exc_info () or None)
 			gid = "%s/%s" % (path, gid)
 			
 			if not servers.websocket_servers.has_key (gid):

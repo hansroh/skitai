@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.15.6"
+__version__ = "0.26.15.14"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -155,6 +155,10 @@ def set_keep_alive (timeout):
 	global dconf
 	dconf ["keep_alive"] = timeout
 
+def set_backend_keep_alive (timeout):	
+	global dconf
+	dconf ["backend_keep_alive"] = timeout
+	
 def set_network_timeout (timeout):
 	global dconf	
 	dconf ["network_timeout"] = timeout
@@ -177,7 +181,8 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default")
 			hasattr (mod, "bootstrap") and mod.bootstrap (pref)
 	
 	if hasattr (target, "__file__"):
-		target = (target, "app")
+		target = (target, target.__name__)
+		
 	if type (target) is tuple: 
 		module, appfile = target
 		target = os.path.join (os.path.dirname (module.__file__), "export", "skitai", appfile)
@@ -413,14 +418,15 @@ def run (**conf):
 				conf.get ('port', 5000), conf.get ('address', '0.0.0.0'),
 				NAME, conf.get ("certfile") is not None,
 				conf.get ('keep_alive', 30), 
-				conf.get ('network_timeout', 30), 
+				conf.get ('network_timeout', 30)
 			)
 			
 			if os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
 				# master does not serve
 				return			
 			
-			self.config_threads (conf.get ('threads', 4))						
+			self.config_threads (conf.get ('threads', 4))			
+			self.config_backends (conf.get ('backend_keep_alive', 10))
 			for name, args in conf.get ("clusters", {}).items ():				
 				ctype, members, policy, ssl = args
 				self.add_cluster (ctype, name, members, ssl, policy)

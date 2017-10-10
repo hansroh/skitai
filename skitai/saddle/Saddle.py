@@ -230,10 +230,10 @@ class Saddle (part.Part):
 	def commit_events_to (self, broad_bus):
 		for fname, event in self.events:
 			broad_bus.add_event (fname, event)
-		
-	def remove_events (self):
+			
+	def remove_events (self, broad_bus):
 		for fname, event in self.events:
-			self.bus.remove_event (fname.__name__, event)
+			broad_bus.remove_event (fname.__name__, event)
 		
 	#----------------------------------------------
 	

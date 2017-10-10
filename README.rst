@@ -521,7 +521,7 @@ Keep alive timeout means seconds gap of each requests. For setting HTTP connecti
   skitai.set_keep_alive (2) # default = 30
   skitai.mount ('/', app)
   skitai.run ()
-
+  
 If you intend to use skitai as backend application server behind reverse proxy server like Nginx, it is recommended over 300.
 
 Network timeout means seconds gap of data packet recv/sending events,
@@ -535,6 +535,17 @@ Network timeout means seconds gap of data packet recv/sending events,
 Note that under massive traffic situation, meaning of keep alive timeout become as same as network timeout beacuse a clients requests are delayed by network/HW capability unintensionally.
 
 Anyway, these timeout values are higher, lower response fail rate and longger response time. But if response time is over 10 seconds, you might consider loadbalancing things. Skitai's default value 30 seconds is for lower failing rate under extreme situation.
+
+*New in version 0.26.15*
+
+You can set connection timeout for your backends. Basue of Skitai's ondemend polling feature, it is hard to know disconnected by server side, then Skitai will forcley reconnect if over backend_keep_alive after last interaction. Make sure your backends keep_alive setting value is matched with this value.
+
+.. code:: python
+  
+  skitai.set_backend_keep_alive (1200) # default is 10
+  skitai.mount ('/', app)
+  skitai.run ()
+
 
 
 Enabling HTTP/HTTPS Proxy
@@ -1268,12 +1279,12 @@ All supoorted request methods are:
 
 - Web/API related
 
-  - was.get ()
-  - was.delete ()  
+  - was.get (): also available shortcuts getjson, getxml
+  - was.delete (): also available shortcuts deletejson, deletexml
+  - was.post (): also available shortcuts postjson, postxml
+  - was.put (): also available shortcuts putjson, putxml
+  - was.patch (): also available shortcuts patchjson, patchxml
   - was.options ()
-  - was.post (): also available shortcuts postform, postxml, postjson, postnvp
-  - was.put (): also available shortcuts putform, putxml, putjson, putnvp
-  - was.patch (): also available shortcuts patchform, patchxml, patchjson, patchnvp  
 
 - RPCs
   
@@ -2316,6 +2327,8 @@ All available return types are:
 The object has 'close ()' method, will be called when all data consumed, or socket is disconnected with client by any reasons.
 
 - was.response (status = "200 OK", body = None, headers = None, exc_info = None)
+- was.response.api (data = None): return api response container
+- was.response.fault (msg, code, debug, more_info, exc_info): return api response container with setting error information
 - was.response.set_status (status) # "200 OK", "404 Not Found"
 - was.response.get_status ()
 - was.response.set_headers (headers) # [(key, value), ...]
@@ -2326,26 +2339,111 @@ The object has 'close ()' method, will be called when all data consumed, or sock
 - was.response.hint_promise (uri) # *New in version 0.16.4*, only works with HTTP/2.x and will be ignored HTTP/1.x
 
 
-Useful Response Shortcuts
-````````````````````````````
+File Stream 
+`````````````
+Response provides some methods for special objects.
 
-When In cases you want to retrun JSON, XMLRPC, gRPC or local file content, below methods will be useful.
+First of all, for send a file, 
 
 .. code:: python
 
-  @app.route ("/")
-  def getjson (was):  
-    return was.jstream ({'mydata': 'myvalue'})
-  
   @app.route ("/<filename>")
   def getfile (was, filename):  
-    return was.fstream ('/data/%s' % filename)    
-    
-- was.jstream (obj) # shortcut for was.response ("200 OK", was.tojson (obj), [("Content-Type", "application/json")])
-- was.xstream (obj, usedatetime = 0) # shortcut for was.response ("200 OK", was.toxml (obj), [("Content-Type", "text/xml")])
-- was.gstream (obj) # shortcut for was.response ("200 OK", was.togrpc (obj), [("Content-Type", "application/grpc")])
-- was.fstream (abspath, mimetype = 'application/octet-stream') # return file stream object
+    return was.response.file ('/data/%s' % filename)    
 
+
+JSON API Response
+````````````````````
+*New in version 0.26.15.9*
+
+In cases you want to retrun JSON API reponse,
+
+.. code:: python
+
+  return was.response.api () return empty dictionary
+  return was.response.api ({'data': [1, 2, 3]})
+  return was.response (
+    '200 OK',
+    was.response.api ({'data': [1, 2, 3]})
+  )
+  return was.response (
+    '201 Accept',
+    was.response.api ({'data': [1, 2, 3]})
+  )
+  
+For sending error response with error information,
+
+.. code:: python
+  
+  return was.response (
+    '400 Bad Request',
+    was.response.fault ('missing parameter', 10021) # msg and error code
+  )
+  
+  # client see
+  {"message": "parameter q required", "code": 10021}  
+
+Also you can use api object as container,
+
+.. code:: python
+
+  api = was.response.api ()
+  api.set ('user_id', 'hansroh')
+  api.set ('name', 'Hans Roh')
+  return api  
+  
+  # client see
+  {"user_id": "hansroh", "name": "Hans Roh"}
+  
+  api = was.response.api ()
+  api.error ('missing parameter', 10021)
+  return was.response ('400 Bad Request', api)
+  
+  # client see
+  {"message": "parameter q required", "code": 10021}  
+
+  api = was.response.api ()
+  api.error (
+    'missing parameter', 10021, 
+    'need parameter offset and limit', # detailed debug information
+    'http://127.0.0.1/moreinfo/10021', # more detail URL something    
+  )
+  return was.response ('400 Bad Request', api)
+  
+  # client see
+  {
+    "code": 10021,
+    "message": "parameter q required", 
+    "debug": "need parameter offset and limit",
+    "more_info": "http://127.0.0.1/moreinfo/10021"
+  }
+
+Make sure if you return just api object, HTTP status will be sent with 200 OK.
+
+You can traceback inforamtion,
+
+.. code:: python
+  
+  api = was.response.api ()
+  try:
+    do something
+  except:
+    return api.traceback () 
+
+  # client see,
+  {
+    "code": 20000, 
+    "traceback": [
+      "name 'aa' is not defined", 
+      "in file app.py at line 276, function search"      
+    ]
+  }
+
+But if your client send header with 'Accept: application/json' and app.debug is True, Skitai returns traceback information automatically.
+
+- api (data = None): contructor
+- api.error (msg, code = 20000, debug = None, more_info = None, exc_info = None)
+- api.traceback (msg = 'exception ovvured, see traceback', code = 20000, debug = None, more_info = None)
 
 Async Promise Response
 --------------------------
@@ -3754,7 +3852,11 @@ Change Log
   
   - 0.26.15
     
+    - fix broad event bus
+    - add getjson, deletejson, this request automatically add header 'Accept: application/json'
+    - change default request content-type from json to form data, if you post/put json data, you should change postjson/putjson
     - add skitai.trackers (args,...) that is equivalant to skitai.lukeys ([args])
+    - fix mounting module
     - app.storage had been remove officially, I cannot find any usage. but unoficially it will be remains by some day
     - add skitai.lukeys () and fix inconsistency of was.setlu & was.getlu between multi workers
     - was.storage had been remove

@@ -7,8 +7,11 @@ from aquests.lib.reraise import reraise
 from aquests.lib import producers, compressors
 from aquests.protocols.http import respcodes
 from .wastuff import selective_logger
+from .wastuff.api import API
+from .wastuff.api import catch
 import skitai
 import asyncore
+import json
 
 try: 
 	from urllib.parse import urljoin
@@ -28,54 +31,11 @@ DEFAULT_ERROR_MESSAGE = """<!DOCTYPE html>
 <body>
 <div id="titles"><h1>%(code)d %(message)s</h1></div>
 <div id="content">
-<div id="%(debug)s"><p>%(detail)s</p></div>
+<div id="%(mode)s"><p>%(traceback)s</p></div>
 <div id="software"><hr noshade size="1"><div>%(software)s</div></div>
 </div>
 </body>
 </html>"""
-
-def catch (format = 0, exc_info = None):
-	if exc_info is None:
-		exc_info = sys.exc_info()
-	t, v, tb = exc_info
-	tbinfo = []
-	assert tb # Must have a traceback
-	while tb:
-		tbinfo.append((
-			tb.tb_frame.f_code.co_filename,
-			tb.tb_frame.f_code.co_name,
-			str(tb.tb_lineno)
-			))
-		tb = tb.tb_next
-
-	del tb
-	file, function, line = tbinfo [-1]
-	
-	# format 0 - text
-	# format 1 - html
-	# format 2 - list
-	try:
-		v = str (v)
-	except:
-		v = repr (v)
-		
-	if format == 1:
-		if v.find ('\n') != -1:
-			v = v.replace ("\r", "").replace ("\n", "<br>")
-		buf = ["<h3>%s</h3><h4>%s</h4>" % (t.__name__.replace (">", "&gt;").replace ("<", "&lt;"), v)]
-		buf.append ("<b>at %s at line %s, %s</b>" % (file, line, function == "?" and "__main__" or "function " + function))
-		buf.append ("<ul type='square'>")
-		buf += ["<li>%s <span class='f'>%s</span> <span class='n'><b>%s</b></font></li>" % x for x in tbinfo]
-		buf.append ("</ul>")		
-		return "\n".join (buf)
-
-	buf = []
-	buf.append ("%s %s" % (t, v))
-	buf.append ("in file %s at line %s, %s" % (file, line, function == "?" and "__main__" or "function " + function))
-	buf += ["%s %s %s" % x for x in tbinfo]
-	if format == 0:
-		return "\n".join (buf)
-	return buf	
 
 
 class http_response:
@@ -191,16 +151,6 @@ class http_response:
 	def get_reply (self):
 		# for Saddle App
 		return self.reply_code, self.reply_message
-				
-	def send_error (self, status, why = "", disconnect = False):
-		# for Saddle App
-		if not self.is_responsable ():
-			raise AssertionError ("Response already sent!")
-		self ["Content-Type"] = "text/html"		
-		if type (why) is tuple: # render exc_info
-			why = catch (1, why)			
-		code, status = self.parse_ststus (status)	
-		self.error (code, status, why, force_close = disconnect, push_only = True)
 	
 	def instant (self, status = "", headers = None):
 		# instance messaging		
@@ -252,27 +202,51 @@ class http_response:
 				self.set (k, v)
 	reply = start
 	
-	def build_error_template (self, why = ""):
-		global DEFAULT_ERROR_MESSAGE
-		error = {
-			'code': self.reply_code,
-			'message': self.reply_message,
-			'detail': why,
-			'debug': why and 'debug' or '',
-			'time': http_date.build_http_date (time.time ()),
-			'url': urljoin ("%s://%s/" % (self.request.get_scheme (), self.request.get_header ("host")), self.request.uri),
-			'software': skitai.NAME,
-			}
-		content = None	
-		if self.current_app and hasattr (self.current_app, 'get_error_page'):
-			try:
-				content = self.current_app.get_error_page (error)
-			except:							
-				self.request.logger.trace ()				
-				if self.current_app.debug:
-					error ["detail"] += "<h2 style='padding-top: 40px;'>Exception Occured During Building Error Template</h2>" + catch (1)
+	def catch (self, exc_info = None):
+		if self.request.get_header ('accept').find ("application/json") != -1:
+			return catch (2, exc_info)
+		return catch (1, exc_info)
 		
-		return content or (DEFAULT_ERROR_MESSAGE % error)
+	def build_error_template (self, why = ''):
+		global DEFAULT_ERROR_MESSAGE
+		
+		exc_info = None
+		if type (why) is tuple: # sys.exc_info ()
+			exc_info, why  = why, ''
+		
+		error = {}	
+		if self.request.get_header ('accept', '').find ("application/json") != -1:
+			self.update ('content-type', 'application/json')
+			if exc_info:
+				error ["code"] = 10001
+				error ["message"] = 'exception occured, see traceback'
+				error ['traceback'] = exc_info and catch (2, exc_info) or []
+			else:	
+				error ["code"] = 10000
+				error ["message"] = why
+			return json.dumps (error)
+			
+		else:	
+			self.update ('content-type', 'text/html')
+			error ['detail'] = why
+			error ['time'] = http_date.build_http_date (time.time ()),
+			error ['url'] = urljoin ("%s://%s/" % (self.request.get_scheme (), self.request.get_header ("host")), self.request.uri),
+			error ['software'] = skitai.NAME			
+			error ['mode'] = exc_info and 'debug' or 'normal'				
+			error ['code'] = self.reply_code
+			error ['message'] = self.reply_message
+			error ["traceback"] = exc_info and catch (1, exc_info) or ""
+			
+			content = None	
+			if self.current_app and hasattr (self.current_app, 'get_error_page'):
+				try:
+					content = self.current_app.get_error_page (error)
+				except:							
+					self.request.logger.trace ()				
+					if self.current_app.debug:						
+						error ["traceback"] += "<h2 style='padding-top: 40px;'>Exception Occured During Building Error Template</h2>" + catch (1)
+						
+			return content or (DEFAULT_ERROR_MESSAGE % error)
 				
 	def error (self, code, status = "", why = "", force_close = False, push_only = False):
 		if not self.is_responsable (): return
@@ -280,13 +254,9 @@ class http_response:
 		self.reply_code = code
 		if status: self.reply_message = status
 		else:	self.reply_message = self.get_status_msg (code)
-			
-		if type (why) is tuple: # sys.exc_info ()
-			why = catch (1, why)
 		
 		body = self.build_error_template (why).encode ("utf8")	
-		self.update ('Content-Length', len(body))
-		self.update ('Content-Type', 'text/html')
+		self.update ('Content-Length', len(body))				
 		self.update ('Cache-Control', 'max-age=0')
 		self.push (body)
 		if not push_only:
@@ -545,11 +515,25 @@ class http_response:
 		
 	def get_status (self):
 		return "%d %s" % self.get_reply ()
-					
+	
+	def api (self, data = None, type = 'json'):
+		return API (data, type)
+	
+	def fault (self, msg, code = 20000,  debug = None, more_info = None, exc_info = None):
+		api = self.api ()
+		api.error (msg, code, debug, more_info, exc_info)
+		return api
+	eapi = fault
+	
+	def file (self, path, mimetype = 'application/octet-stream'):
+		self.set_header ('Content-Type',  mimetype)
+		self.set_header ('Content-Length', str (os.path.getsize (path)))	
+		return producers.file_producer (open (path, "rb"))					
+			
 	def __call__ (self, status = "200 OK", body = None, headers = None, exc_info = None):
 		self.start_response (status, headers)
-		if not body:
-			return self.build_error_template (exc_info and catch (1, exc_info) or "")
+		if body is None:
+			return self.build_error_template (exc_info)
 		return body
 	
 	def push_and_done (self, thing, *args, **kargs):

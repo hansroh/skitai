@@ -41,45 +41,45 @@ def test_makers ():
 def test_http1 ():	
 	# # HTTP/1.0 NO CHUNK
 	response = make_response (version = "1.0")
-	response ("200 OK", headers = [("Content-Type", "text/plain")])
+	response ("200 OK", "", headers = [("Content-Type", "text/plain")])
 	response.push_and_done (payload (UNCOMPRESS_MAX + 1))
 	assert response.get ("content-encoding") == "gzip"
 	assert response.get ("transfer-encoding") is None
 	
 	response = make_response (version = "1.0")
-	response ("200 OK", headers = [("Content-Type", "text/plain")])	
+	response ("200 OK", "", headers = [("Content-Type", "text/plain")])	
 	response.push_and_done (payload (ONETIME_COMPRESS_MAX + 1))
 	assert response.get ("content-encoding") is None
 	assert response.get ("transfer-encoding") is None
 	
 	response = make_response (version = "1.0")
-	response ("200 OK", headers = [("Content-Type", "appication/pdf")])
-	response.push_and_done (payload (UNCOMPRESS_MAX + 1))
+	response ("200 OK", "", headers = [("Content-Type", "appication/pdf")])
+	response.push_and_done (payload (UNCOMPRESS_MAX + 1))	
 	assert response.get ("content-encoding") is None
 	assert response.get ("transfer-encoding") is None
 
 def test_http1_1 ():	
 	# HTTP/1.1
 	response = make_response ()
-	response ("200 OK", headers = [("Content-Type", "text/plain")])
+	response ("200 OK", "", headers = [("Content-Type", "text/plain")])
 	response.push_and_done (payload (UNCOMPRESS_MAX - 1))	
 	assert response.get ("content-encoding") is None
 	assert response.get ("transfer-encoding") == "chunked"
 	
 	response = make_response ()
-	response ("200 OK", headers = [("Content-Type", "text/plain")])
+	response ("200 OK", "", headers = [("Content-Type", "text/plain")])
 	response.push_and_done (payload (UNCOMPRESS_MAX + 1))	
 	assert response.get ("content-encoding") == "gzip"
 	assert response.get ("transfer-encoding") == "chunked"
 	
 	response = make_response ()
-	response ("200 OK", headers = [("Content-Type", "appication/pdf")])
+	response ("200 OK", "", headers = [("Content-Type", "appication/pdf")])
 	response.push_and_done (payload (UNCOMPRESS_MAX + 1))
 	assert response.get ("content-encoding") is None
 	assert response.get ("transfer-encoding") == "chunked"
 	
 	response = make_response (version = "1.1")
-	response ("200 OK", headers = [("Content-Type", "text/plain")])	
+	response ("200 OK", "", headers = [("Content-Type", "text/plain")])	
 	response.push_and_done (payload (ONETIME_COMPRESS_MAX + 1))
 	assert response.get ("content-encoding") == "gzip"
 	assert response.get ("transfer-encoding") == "chunked"
@@ -87,19 +87,19 @@ def test_http1_1 ():
 def test_http2 ():	
 	# HTTP/2.0
 	response = make_response (version = "2.0")
-	response ("200 OK", headers = [("Content-Type", "application/plpdf")])	
+	response ("200 OK", "", headers = [("Content-Type", "application/pdf")])	
 	response.push_and_done (payload (ONETIME_COMPRESS_MAX + 1))
 	assert response.get ("content-encoding") is None
 	assert response.get ("transfer-encoding") is None
 	
 	response = make_response (version = "2.0")
-	response ("200 OK", headers = [("Content-Type", "text/plain")])	
+	response ("200 OK", "", headers = [("Content-Type", "text/plain")])	
 	response.push_and_done (payload (ONETIME_COMPRESS_MAX + 1))
 	assert response.get ("content-encoding") == "gzip"
 	assert response.get ("transfer-encoding") is None
 	
 	response = make_response (version = "2.0")
-	response ("200 OK", headers = [("Content-Type", "text/plain")])	
+	response ("200 OK", "", headers = [("Content-Type", "text/plain")])	
 	response.push_and_done (payload (UNCOMPRESS_MAX - 1))
 	assert response.get ("content-encoding") is None
 	assert response.get ("transfer-encoding") is None
@@ -128,26 +128,26 @@ def test_producers ():
 			
 	response = make_response ()
 	jpg = open (os.path.join (confutil.getroot (), "statics", "reindeer.jpg"), "rb")	
-	response ("200 OK", headers = [("Content-Type", "application/octet-stream")])	
+	response ("200 OK", "", headers = [("Content-Type", "application/octet-stream")])	
 	response.push_and_done (producers.file_producer (jpg))
 	assert response.get ("content-encoding") is None
 	assert response.get ("transfer-encoding") == "chunked"
 	assert jpg.closed
 	
 	response = make_response ()
-	response ("200 OK", headers = [("Content-Type", "text/html")])	
+	response ("200 OK", "", headers = [("Content-Type", "text/html")])	
 	response.push_and_done (producers.iter_producer (g ()))
 	assert response.get ("content-encoding") == "gzip"
 	assert response.get ("transfer-encoding") == "chunked"
 	
 	response = make_response ()
-	response ("200 OK", headers = [("Content-Type", "text/html")])	
+	response ("200 OK", "", headers = [("Content-Type", "text/html")])	
 	response.push_and_done (producers.list_producer (l ()))
 	assert response.get ("content-encoding") is None
 	assert response.get ("transfer-encoding") == "chunked"
 		
 	response = make_response ()
-	response ("200 OK", headers = [("Content-Type", "text/html")])	
+	response ("200 OK", "", headers = [("Content-Type", "text/html")])	
 	producer = s ()
 	response.push_and_done (producers.closing_stream_producer (producer))
 	assert response.get ("content-encoding") == "gzip"
@@ -155,7 +155,7 @@ def test_producers ():
 	assert producer.closed
 	
 	response = make_response ()
-	response ("200 OK", headers = [("Content-Type", "text/html")])	
+	response ("200 OK", "", headers = [("Content-Type", "text/html")])	
 	jpg = open (os.path.join (confutil.getroot (), "statics", "reindeer.jpg"), "rb")
 	response.push (producers.closing_stream_producer (s ()))
 	response.push (producers.list_producer (l ()))
@@ -169,7 +169,7 @@ def test_producers ():
 	assert jpg.closed
 	
 	response = make_response ()
-	response ("200 OK", headers = [("Content-Type", "text/html")])	
+	response ("200 OK", "", headers = [("Content-Type", "text/html")])	
 	jpg = open (os.path.join (confutil.getroot (), "statics", "reindeer.jpg"), "rb")
 	response.push (producers.closing_stream_producer (s ()))
 	response.push (producers.list_producer (l ()))
@@ -178,7 +178,7 @@ def test_producers ():
 	response.done ()
 	
 	response = make_response (version = "2.0")
-	response ("200 OK", headers = [("Content-Type", "text/html")])	
+	response ("200 OK", "", headers = [("Content-Type", "text/html")])	
 	jpg = open (os.path.join (confutil.getroot (), "statics", "reindeer.jpg"), "rb")
 	conn = MagicMock ()
 	conn.data_to_send.return_value = jpg.read ()

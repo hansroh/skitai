@@ -29,20 +29,14 @@ except ImportError:
 from skitai import lifetime
 from .wastuff.promise import Promise, _Method
 from .wastuff.triple_logger import Logger
+from .wastuff.api import DateEncoder
 from multiprocessing import RLock
 try:
 	from django.core.handlers.wsgi import WSGIRequest
 except ImportError:
 	WSGIRequest = None
 
-			
-class DateEncoder(json.JSONEncoder):
-	def default(self, obj):
-		if isinstance(obj, date):
-			return str(obj)			
-		return json.JSONEncoder.default(self, obj)
-
-
+		
 class WAS:
 	version = __version__	
 	objects = {}	
@@ -110,14 +104,15 @@ class WAS:
 		return new_was
 			
 	VALID_COMMANDS = [
-		"get", "delete", 
-		"post", "postform", "postjson", "postxml", "postnvp", 
-		"put", "poutform", "putjson", "putxml", "putnvp", 
-		"patch", "patchform", "patchjson", "patchxml", "patchnvp", 
-		"rpc", "grpc", "ws", 
-		"db", "postgresql", "sqlite3", "redis", "mongodb", "backend",
-		"options", "trace", "upload"
-	]		
+		"options", "trace", "upload",
+		"get", "getjson",
+		"delete", "deletejson",
+		"post", "postjson",
+		"put", "putjson",
+		"patch", "patchjson",
+		"rpc", "grpc", "ws", "wss", 
+		"db", "postgresql", "sqlite3", "redis", "mongodb", "backend",		
+	]
 	def __getattr__ (self, name):
 		# method magic		
 		if name in self.VALID_COMMANDS:
@@ -165,11 +160,14 @@ class WAS:
 	
 	def rebuild_header (self, header):
 		if not header:
-			nheader = {}			
+			nheader = {}
 		elif type (header) is list:
 			nheader = {}			
 			for k, v in header:
 				nheader [k] = v
+		else:
+			nheader = header
+					
 		nheader ["X-Gtxn-Id"] = self.request.get_gtxid ()
 		nheader ["X-Ltxn-Id"] = self.request.get_ltxid (1)
 		return nheader
@@ -277,9 +275,9 @@ class WAS:
 		return message.ParseFromString (obj)
 		
 	def tojson (self, obj):
-		return json.dumps (obj, cls=DateEncoder)
+		return json.dumps (obj, cls = DateEncoder)
 		
-	def toxml (self, obj):		
+	def toxml (self, obj):
 		return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")	
 	
 	def fromjson (self, obj):
@@ -294,28 +292,7 @@ class WAS:
 		return server_info.make (self, flt, fancy)
 	
 	def render_ei (self, exc_info, format = 0):
-		return http_response.catch (format, exc_info)		
-		
-	def fstream (self, path, mimetype = 'application/octet-stream'):	
-		self.response.set_header ('Content-Type',  mimetype)
-		self.response.set_header ('Content-Length', str (os.path.getsize (path)))	
-		return file_producer (open (path, "rb"))
-	
-	def jstream (self, obj, key = None):		
-		self.response.set_header ("Content-Type", "application/json")
-		if key:
-			# for single skeleton data is not dict
-			return self.tojson ({key: obj})
-		else:
-			return self.tojson (obj)		
-	
-	def xstream (self, obj, use_datetime = 0):			
-		self.response.set_header ("Content-Type", "text/xml")
-		return self.toxml (obj, use_datetime)
-	
-	def gstream (self, obj):
-		self.response.set_header ("Content-Type", "application/grpc")
-		return self.togrpc (obj)
+		return http_response.catch (format, exc_info)
 	
 	@property
 	def django (self):
@@ -357,4 +334,29 @@ class WAS:
 			mtime = self._luwatcher.get (name, self.init_time)
 			mtimes.append (mtime)
 		return max (mtimes)
+	
+	#-----------------------------------------
+	# will be deprecated
+	#-----------------------------------------
+	
+	def fstream (self, path, mimetype = 'application/octet-stream'):	
+		self.response.set_header ('Content-Type',  mimetype)
+		self.response.set_header ('Content-Length', str (os.path.getsize (path)))	
+		return file_producer (open (path, "rb"))
+			
+	def jstream (self, obj, key = None):
+		self.response.set_header ("Content-Type", "application/json")
+		if key:
+			# for single skeleton data is not dict
+			return self.tojson ({key: obj})
+		else:
+			return self.tojson (obj)		
+	
+	def xstream (self, obj, use_datetime = 0):			
+		self.response.set_header ("Content-Type", "text/xml")
+		return self.toxml (obj, use_datetime)
+	
+	def gstream (self, obj):
+		self.response.set_header ("Content-Type", "application/grpc")
+		return self.togrpc (obj)
 		
