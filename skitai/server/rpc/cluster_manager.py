@@ -287,11 +287,12 @@ class ClusterManager:
 			for _node in list(self._cluster.values ()):
 				survived = []
 				for asyncon in _node ["connection"]:
-					if hasattr (asyncon, "maintern"):
+					if not hasattr (asyncon, "maintern"):
 						continue
 																		
-					if not asyncon.maintern (self.object_timeout):					
-						# not deletable
+					if asyncon.maintern (self.object_timeout):					
+						asyncon.handler = None # break back ref.
+					else:						
 						survived.append (asyncon)
 														
 				if len (survived) == 0:
