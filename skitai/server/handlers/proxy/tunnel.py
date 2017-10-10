@@ -21,7 +21,7 @@ class AsynTunnel:
 		
 	
 class TunnelHandler:
-	keep_alive = 120
+	keep_alive = 600
 	def __init__ (self, asyncon, request, channel):		
 		self.asyncon = asyncon		
 		self.request = request
