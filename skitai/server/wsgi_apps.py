@@ -132,7 +132,7 @@ class Module:
 		if reloadable:
 			app = getattr (self.module, self.appname)
 			if hasattr (app, "remove_events"):
-				app.remove_events ()
+				app.remove_events (self.bus)
 			
 			PRESERVED = []
 			if hasattr (app, "PRESERVE_ON_RELOAD"):

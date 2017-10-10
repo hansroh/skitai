@@ -1279,12 +1279,12 @@ All supoorted request methods are:
 
 - Web/API related
 
-  - was.get ()
-  - was.delete ()  
+  - was.get (): also available shortcuts getjson, getxml
+  - was.delete (): also available shortcuts deletejson, deletexml
+  - was.post (): also available shortcuts postjson, postxml
+  - was.put (): also available shortcuts putjson, putxml
+  - was.patch (): also available shortcuts patchjson, patchxml
   - was.options ()
-  - was.post (): also available shortcuts postform, postxml, postjson, postnvp
-  - was.put (): also available shortcuts putform, putxml, putjson, putnvp
-  - was.patch (): also available shortcuts patchform, patchxml, patchjson, patchnvp  
 
 - RPCs
   
@@ -3852,6 +3852,10 @@ Change Log
   
   - 0.26.15
     
+    - increase https tunnel keep alive timeout to 600 sec.
+    - fix broad event bus
+    - add getjson, deletejson, this request automatically add header 'Accept: application/json'
+    - change default request content-type from json to form data, if you post/put json data, you should change postjson/putjson
     - add skitai.trackers (args,...) that is equivalant to skitai.lukeys ([args])
     - fix mounting module
     - app.storage had been remove officially, I cannot find any usage. but unoficially it will be remains by some day

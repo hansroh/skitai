@@ -166,7 +166,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 			method,
 			self.request.path,
 			http_version,
-			"\r\n".join (["%s: %s" % x for x in hc.items ()])			
+			"\r\n".join (["%s: %s" % x for x in hc.items ()])
 		)
 		
 		#print ("####### SKITAI => SERVER ##########################")
