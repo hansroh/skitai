@@ -19,6 +19,7 @@ class ProxyResponse (http_response.Response):
 		self.header = header [1:]
 		self._header_cache = {}
 		self.flushed_time = 0
+		self.mcl = self.get_mcl ()
 		self.version, self.code, self.msg = http_response.crack_response (self.response)
 		self.p, self.u = None, None
 		self.decompressor = None
