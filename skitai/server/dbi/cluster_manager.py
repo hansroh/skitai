@@ -3,7 +3,7 @@ from aquests.dbapi import asynpsycopg2, synsqlite3, asynredis, asynmongo
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 
 class ClusterManager (cluster_manager.ClusterManager):
-	backend_keep_alive = 120
+	backend_keep_alive = 1200
 	
 	def __init__ (self, name, cluster, dbtype = DB_PGSQL, access = [], logger = None):
 		self.dbtype = dbtype

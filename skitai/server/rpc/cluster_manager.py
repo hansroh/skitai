@@ -55,8 +55,8 @@ class ClusterManager:
 	object_timeout = 1200
 	maintern_interval = 60
 	# I cannot sure this is faster
-	backend = True
-	backend_keep_alive = 10
+	backend = False
+	backend_keep_alive = 1200
 	
 	def __init__ (self, name, cluster, ssl = 0, access = None, logger = None):
 		self.logger = logger
@@ -324,9 +324,8 @@ class ClusterManager:
 	
 	def get (self, specific = None, index = -1):
 		asyncon = None
-		self.lock.acquire ()
 		try:
-			try:
+			with self.lock:
 				self._numget += 1
 				if time.time () - self._last_maintern > self.maintern_interval:
 					self.maintern ()
@@ -382,15 +381,12 @@ class ClusterManager:
 					self._cluster [node]["connection"].append (asyncon)
 				
 				asyncon.set_active (True)
+			
+			if self._proto is None:
+				self._proto = asyncon.get_proto ()
 				
-			finally:
-				self.lock.release ()	
-		
 		except:
 			self.logger.trace ()
-		
-		if self._proto is None:
-			self._proto = asyncon.get_proto ()
 						
 		return asyncon
 	
