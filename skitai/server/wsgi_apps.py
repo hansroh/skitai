@@ -130,23 +130,25 @@ class Module:
 			reloadable = self.file_info != (stat.st_mtime, stat.st_size)		
 			
 		if reloadable:
-			app = getattr (self.module, self.appname)
-			if hasattr (app, "remove_events"):
-				app.remove_events (self.bus)
-			
-			PRESERVED = []
-			if hasattr (app, "PRESERVE_ON_RELOAD"):
-				PRESERVED = [(attr, getattr (app, attr)) for attr in app.PRESERVES_ON_RELOAD]
-			
-			self.module, self.abspath = importer.reimporter (self.module, self.directory, self.libpath)			
-			self.start_app (reloded = True)
-			newapp = getattr (self.module, self.appname)
-			for attr, value in PRESERVED:
-				setattr (newapp, attr, value)
-			# remount	
-			self.mounted (self.wasc ())
-					
-		self.last_reloaded = time.time ()
+			oldapp = getattr (self.module, self.appname)
+			try:
+				self.module, self.abspath = importer.reimporter (self.module, self.directory, self.libpath)			
+			except:
+				self.module.app = oldapp
+				raise
+			else:		
+				if hasattr (oldapp, "remove_events"):
+					oldapp.remove_events (self.bus)
+				PRESERVED = []
+				if hasattr (oldapp, "PRESERVE_ON_RELOAD"):
+					PRESERVED = [(attr, getattr (oldapp, attr)) for attr in oldapp.PRESERVES_ON_RELOAD]	
+				self.start_app (reloded = True)
+				newapp = getattr (self.module, self.appname)			
+				for attr, value in PRESERVED:
+					setattr (newapp, attr, value)
+				# remount	
+				self.mounted (self.wasc ())					
+				self.last_reloaded = time.time ()
 				
 	def set_route (self, route):
 		route = route
