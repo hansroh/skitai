@@ -556,8 +556,12 @@ Make sure you really need proxy.
 .. code:: python
   
   skitai.enable_proxy ()
-  skitai.mount ('/', app)
+    
+  # tunnel value will be applied to HTTPS proxy
+  skitai.set_proxy_keep_alive (channel = 60, tunnel = 600)
+  
   skitai.run ()
+
 
 Run as Daemon
 --------------
@@ -3852,6 +3856,7 @@ Change Log
   
   - 0.26.15
     
+    - add skitai.set_proxy_keep_alive (channel = 60, tunnel = 600) and change default proxy keep alive to same values
     - increase https tunnel keep alive timeout to 600 sec.
     - fix broad event bus
     - add getjson, deletejson, this request automatically add header 'Accept: application/json'

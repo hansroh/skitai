@@ -14,7 +14,7 @@ def index (was):
 if __name__ == "__main__":
 	import skitai
 	
+	skitai.set_proxy_keep_alive (55, 605)	
 	skitai.mount = ("/", app)
 	skitai.enable_proxy ()
 	skitai.run ()
-	

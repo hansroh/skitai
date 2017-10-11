@@ -6,7 +6,7 @@ from .proxy import POST_MAX_SIZE, UPLOAD_MAX_SIZE
 from .proxy.collector import Collector
 from .proxy.tunnel import TunnelHandler
 from .proxy.response import ProxyResponse
-
+from .proxy import PROXY_TUNNEL_KEEP_ALIVE, PROXY_KEEP_ALIVE
 
 class proxy_request_handler (http_request_handler.RequestHandler):
 	def __init__ (self, asyncon, request, callback, client_request, collector, connection = "keep-alive"):
@@ -18,7 +18,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		self.new_handler = None
 		
 	def add_reply_headers (self):
-		for line in self.response.get_header_lines ():			
+		for line in self.response.get_header_lines ():
 			try: 
 				k, v = line.split (": ", 1)
 			except ValueError:
@@ -35,7 +35,7 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 	def has_been_connected (self):
 		if self.request.method == "connect":
 			self.buffer =	b"HTTP/" + self.client_request.version.encode ("utf8") + self.ESTABLISHED
-			self.found_terminator ()		
+			self.found_terminator ()			
 		elif self.should_http2:
 			self.switch_to_http2 ()
 		
@@ -54,9 +54,9 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 					
 	def close_case (self):		
 		# unbind readable/writable methods
-		if self.asyncon:			
+		if self.asyncon:
 			self.asyncon.handler = self.new_handler
-		
+			
 		if self.callback:			
 			self.callback (self)
 	
@@ -96,9 +96,9 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 			self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
 			return self.asyncon.handle_close (715)
 			
-		if self.will_open_tunneling ():			
+		if self.will_open_tunneling ():
 			self.create_tunnel ()
-			self.close_case ()
+			self.close_case ()			
 			return
 		
 		self.client_request.response.start (self.response.code, self.response.msg)
@@ -214,10 +214,17 @@ class Handler (wsgi_handler.Handler):
 		if asyncon is None:		
 			if request.command == "connect":
 				asyncon_key = "tunnel://" + request.uri + "/"
+				keep_alive = PROXY_TUNNEL_KEEP_ALIVE
 			else:
 				asyncon_key = request.uri					
-			asyncon = self.clusters ["__socketpool__"].get (asyncon_key)
-		
+				keep_alive = PROXY_KEEP_ALIVE
+			asyncon = self.clusters ["__socketpool__"].get (asyncon_key)				
+			asyncon.set_keep_alive (keep_alive)
+			request.channel.set_socket_timeout (keep_alive)
+			if request.command == "connect":
+				# refix zombie_timeout becasue it will be not recalcuated
+				asyncon.set_timeout (keep_alive)
+				
 		try:				
 			req = http_request.HTTPRequest (request.uri, request.command, collector is not None, logger = self.wasc.logger.get ("server"))				
 			r = proxy_request_handler (asyncon, req, self.callback, request, collector)			

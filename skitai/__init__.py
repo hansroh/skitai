@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.15.15"
+__version__ = "0.26.15.18"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -158,7 +158,13 @@ def set_keep_alive (timeout):
 def set_backend_keep_alive (timeout):	
 	global dconf
 	dconf ["backend_keep_alive"] = timeout
-	
+
+def set_proxy_keep_alive (channel = 60, tunnel = 600):	
+	from .server.handlers import proxy
+
+	proxy.PROXY_KEEP_ALIVE = channel
+	proxy.PROXY_TUNNEL_KEEP_ALIVE = tunnel
+		
 def set_network_timeout (timeout):
 	global dconf	
 	dconf ["network_timeout"] = timeout

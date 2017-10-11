@@ -1,6 +1,4 @@
-from . import PROXY_TUNNEL_KEEP_ALIVE
 import time
-
 
 class AsynTunnel:
 	collector = None
@@ -21,15 +19,13 @@ class AsynTunnel:
 		
 	
 class TunnelHandler:
-	keep_alive = 600
+	
 	def __init__ (self, asyncon, request, channel):		
 		self.asyncon = asyncon		
 		self.request = request
 		self.channel = channel
 		
 		self.asyntunnel = AsynTunnel (asyncon, self)		
-		self.channel.set_socket_timeout (PROXY_TUNNEL_KEEP_ALIVE)		
-		self.asyncon.set_timeout (PROXY_TUNNEL_KEEP_ALIVE)
 		self.channel.die_with (self.asyntunnel, "tunnel")
 		
 		self.bytes = 0
