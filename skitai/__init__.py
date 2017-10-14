@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.15.18"
+__version__ = "0.26.15.19"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -99,7 +99,7 @@ def start_was (wasc):
 #------------------------------------------------
 # Configure
 #------------------------------------------------
-dconf = {'mount': {"default": []}, 'clusters': {}, 'cron': [], 'max_ages': {}, 'log_off': []}
+dconf = {'mount': {"default": []}, 'clusters': {}, 'cron': [], 'max_ages': {}, 'log_off': [], 'dns_protocol': 'tcp'}
 
 def pref (preset = False):
 	from .saddle.Saddle import Config
@@ -114,7 +114,7 @@ def get_proc_title ():
 		os.path.basename (a),
 		b.split(".")[0]
 	)
-	 		
+	
 def getswd ():
 	return os.path.dirname (os.path.join (os.getcwd (), sys.argv [0]))
 
@@ -142,6 +142,10 @@ def log_off (*path):
 	global dconf
 	for each in path:
 		dconf ['log_off'].append (each)	
+
+def set_dns_protocol (protocol = 'tcp'):		
+	global dconf
+	dconf ['dns_protocol'] = protocol
 	
 def set_max_age (path, max_age):
 	global dconf
@@ -248,6 +252,8 @@ def enable_proxy (unsecure_https = False):
 	global dconf
 	dconf ["proxy"] = True
 	dconf ["proxy_unsecure_https"] = unsecure_https
+	if os.name == "posix": 
+		dconf ['dns_protocol'] = 'udp'
 
 def enable_blacklist (path):
 	global dconf
@@ -403,6 +409,7 @@ def run (**conf):
 			if conf.get ("certfile"):
 				self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
 			
+			self.config_dns (dconf ['dns_protocol'])
 			if conf.get ("cachefs_diskmax", 0) and not conf.get ("cachefs_dir"):
 				conf ["cachefs_dir"] = os.path.join (self.get_varpath (), "cachefs")
 

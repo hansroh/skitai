@@ -96,11 +96,13 @@ class Loader:
 		# because http2 single connection feature is useless on accessing internal resources
 		# BUT we will use http2 when gRPC call, with just 1 stream per connection for speeding
 		http2.MAX_HTTP2_CONCURRENT_STREAMS = 1
-		request_handler.RequestHandler.FORCE_HTTP_11 = True
-		adns.init (self.wasc.logger.get ("server"))
+		request_handler.RequestHandler.FORCE_HTTP_11 = True		
 		self.app_cycle ('mounted')
 		start_was (self.wasc)
-		
+	
+	def config_dns (self, prefer_protocol = "tcp"):		
+		adns.init (self.wasc.logger.get ("server"), prefer_protocol = prefer_protocol)
+			
 	def config_cachefs (self, cache_dir = None, memmax = 0, diskmax = 0):
 		self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir, memmax, diskmax)
 		
