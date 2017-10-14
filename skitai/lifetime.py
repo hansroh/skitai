@@ -126,13 +126,14 @@ def lifetime_loop (timeout = 30.0):
 	global _maintern_interval
 				
 	map = asyncore.socket_map
-	while map and _shutdown_phase == 0:		
+	while map and _shutdown_phase == 0:
+		lifetime.poll_dns ()
 		lifetime.poll_fun_wrap (timeout, map)
 		now = time.time()
 		if (now - _last_maintern) > _maintern_interval:
 			maintern (now)
 			_last_maintern = time.time ()
-		
+				
 def graceful_shutdown_loop ():
 	global _shutdown_phase
 	timestamp = time.time()
@@ -153,6 +154,7 @@ def graceful_shutdown_loop ():
 					obj.handle_error()
 					
 		if veto and time_in_this_phase < _shutdown_timeout:
+			lifetime.poll_dns ()
 			lifetime.poll_fun_wrap (timeout, map)					
 		else:
 			_shutdown_phase += 1
