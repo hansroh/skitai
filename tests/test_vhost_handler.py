@@ -53,26 +53,26 @@ def test_wsgi_handler (wasc, app):
 	request = client.get ("http://www.skitai.com/?a=b")	
 	resp = assert_request (vh, request, 508)
 	
-	request = client.post ("http://www.skitai.com/json", {'a': 1})	
+	request = client.postjson ("http://www.skitai.com/json", {'a': 1})
 	resp = assert_request (vh, request, 200)
 	
 	confutil.enable_threads ()
 	assert wasc.numthreads == 1
 	assert wasc.threads
 	
-	request = client.post ("http://www.skitai.com/json", {'a': 1})	
+	request = client.postjson ("http://www.skitai.com/json", {'a': 1})	
 	resp = assert_request (vh, request, 200)
 	
-	request = client.post ("http://www.skitai.com/json", {'a': 1}, version = "2.0")	
+	request = client.postjson ("http://www.skitai.com/json", {'a': 1}, version = "2.0")	
 	resp = assert_request (vh, request, 200)
 	
 	confutil.disable_threads ()
 	assert wasc.numthreads == 0
 	assert wasc.threads is None
 	
-	request = client.post ("http://www.skitai.com/json", {'a': 1})	
+	request = client.postjson ("http://www.skitai.com/json", {'a': 1})	
 	resp = assert_request (vh, request, 200)
 	
-	request = client.post ("http://www.skitai.com/json", {'a': 1}, version = "2.0")	
+	request = client.postjson ("http://www.skitai.com/json", {'a': 1}, version = "2.0")	
 	resp = assert_request (vh, request, 200)
 	

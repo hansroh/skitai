@@ -3856,6 +3856,7 @@ Change Log
   
   - 0.26.15
     
+    - change DNS query default protocol from TCP to UDP (posix only)
     - add skitai.set_proxy_keep_alive (channel = 60, tunnel = 600) and change default proxy keep alive to same values
     - increase https tunnel keep alive timeout to 600 sec.
     - fix broad event bus

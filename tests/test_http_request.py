@@ -32,7 +32,7 @@ def test_request_generation ():
 	assert request.body in (b'{"b": "z", "a": 1}', b'{"a": 1, "b": "z"}')	
 	assert request.get_header ('content-type') == "application/json; charset=utf-8"
 	
-	request = client.post (url, payload)
+	request = client.postjson (url, payload)
 	assert request.body in (b'{"b": "z", "a": 1}', b'{"a": 1, "b": "z"}')
 	assert request.get_header ('content-type') == "application/json; charset=utf-8"
 	

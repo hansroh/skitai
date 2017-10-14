@@ -39,7 +39,7 @@ def assert_request (h, r, expect_code):
 	except ValueError:
 		rprint (result)
 		raise		
-	resp = response.Response (request, header.decode ("utf8"))
+	resp = response.Response (r, header.decode ("utf8"))
 	resp.collect_incoming_data (payload)
 	
 	assert resp.status_code == expect_code
@@ -198,6 +198,11 @@ class Client:
 	def post (self, uri, data, headers = [], auth = None, meta = {}, version = "1.1"):
 		return self.make_request ("POST", uri, data, headers, auth, meta, version)	
 	
+	def postjson (self, uri, data, headers = [], auth = None, meta = {}, version = "1.1"):
+		headers.append (('Accpet', 'application/json'))
+		headers.append (('Content-Type', 'application/json'))
+		return self.make_request ("POST", uri, data, headers, auth, meta, version)	
+		
 	def upload (self, uri, data, headers = [], auth = None, meta = {}, version = "1.1"):
 		return self.make_request ("UPLOAD", uri, data, headers, auth, meta, version)	
 	
