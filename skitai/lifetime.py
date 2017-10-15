@@ -77,6 +77,7 @@ maintern = None
 def init (kill_zombie_interval = 10.0, logger = None):
 	global maintern
 	
+	lifetime.EXHAUST_DNS = False
 	lifetime._logger = logger
 	maintern = lifetime.Maintern ()
 	maintern.sched (kill_zombie_interval, lifetime.maintern_zombie_channel)
