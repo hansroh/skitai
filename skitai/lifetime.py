@@ -8,7 +8,6 @@ import bisect
 import socket
 import time
 
-
 if os.name == "nt":
 	from errno import WSAENOTSOCK
 	
@@ -127,7 +126,6 @@ def lifetime_loop (timeout = 30.0):
 				
 	map = asyncore.socket_map
 	while map and _shutdown_phase == 0:
-		lifetime.poll_dns ()
 		lifetime.poll_fun_wrap (timeout, map)
 		now = time.time()
 		if (now - _last_maintern) > _maintern_interval:
@@ -154,7 +152,6 @@ def graceful_shutdown_loop ():
 					obj.handle_error()
 					
 		if veto and time_in_this_phase < _shutdown_timeout:
-			lifetime.poll_dns ()
 			lifetime.poll_fun_wrap (timeout, map)					
 		else:
 			_shutdown_phase += 1
