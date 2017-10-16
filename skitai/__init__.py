@@ -458,8 +458,8 @@ def run (**conf):
 			)
 			
 			lifetime.init (logger = self.wasc.logger.get ("server"))
-			lifetime.maintern.sched (6.0, asyndns.pool.maintern)
-			if os.name == "nt":				
+			lifetime.maintern.sched (3.0, asyndns.pool.maintern)
+			if os.name == "nt":
 				lifetime.maintern.sched (11.0, self.maintern_shutdown_request)								
 				self.flock = flock.Lock (os.path.join (self.get_varpath (), ".%s" % self.NAME))
 			
