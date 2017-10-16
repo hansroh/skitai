@@ -8,6 +8,7 @@ import threading
 import sys, os
 import h2
 from aquests.lib.attrdict import AttrDict
+from aquests.protocols.dns import asyndns
 from importlib import machinery
 
 WEBSOCKET_SIMPLE = 1
@@ -457,8 +458,9 @@ def run (**conf):
 			)
 			
 			lifetime.init (logger = self.wasc.logger.get ("server"))
-			if os.name == "nt":				
-				lifetime.maintern.sched (10.0, self.maintern_shutdown_request)				
+			lifetime.maintern.sched (3.0, asyndns.pool.maintern)
+			if os.name == "nt":
+				lifetime.maintern.sched (11.0, self.maintern_shutdown_request)								
 				self.flock = flock.Lock (os.path.join (self.get_varpath (), ".%s" % self.NAME))
 			
 	#----------------------------------------------------------------------------

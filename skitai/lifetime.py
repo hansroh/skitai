@@ -8,7 +8,6 @@ import bisect
 import socket
 import time
 
-
 if os.name == "nt":
 	from errno import WSAENOTSOCK
 	
@@ -78,6 +77,7 @@ maintern = None
 def init (kill_zombie_interval = 10.0, logger = None):
 	global maintern
 	
+	lifetime.EXHAUST_DNS = False
 	lifetime._logger = logger
 	maintern = lifetime.Maintern ()
 	maintern.sched (kill_zombie_interval, lifetime.maintern_zombie_channel)
@@ -126,13 +126,13 @@ def lifetime_loop (timeout = 30.0):
 	global _maintern_interval
 				
 	map = asyncore.socket_map
-	while map and _shutdown_phase == 0:		
+	while map and _shutdown_phase == 0:
 		lifetime.poll_fun_wrap (timeout, map)
 		now = time.time()
 		if (now - _last_maintern) > _maintern_interval:
 			maintern (now)
 			_last_maintern = time.time ()
-		
+				
 def graceful_shutdown_loop ():
 	global _shutdown_phase
 	timestamp = time.time()

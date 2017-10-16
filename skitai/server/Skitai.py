@@ -100,7 +100,7 @@ class Loader:
 		self.app_cycle ('mounted')
 		start_was (self.wasc)
 	
-	def config_dns (self, prefer_protocol = "tcp"):		
+	def config_dns (self, prefer_protocol = "tcp"):
 		adns.init (self.wasc.logger.get ("server"), prefer_protocol = prefer_protocol)
 			
 	def config_cachefs (self, cache_dir = None, memmax = 0, diskmax = 0):

@@ -319,16 +319,15 @@ class ClusterManager:
 				
 		except:
 			self.logger.trace ()
-				
-		self._last_maintern = time.time ()
-	
+		
 	def get (self, specific = None, index = -1):
 		asyncon = None
 		try:
 			with self.lock:
 				self._numget += 1
 				if time.time () - self._last_maintern > self.maintern_interval:
-					self.maintern ()
+					self._last_maintern = time.time ()
+					self.maintern ()					
 					
 				if specific:
 					nodes = [specific]
