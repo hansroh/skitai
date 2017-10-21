@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.15.24"
+__version__ = "0.26.15.25"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -195,7 +195,7 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
 		if isinstance (path, str):
 			path = [path]
 		path.reverse ()	
-		for each in path:
+		for each in path:			
 			sys.path.insert (0, each)
 			
 	if hasattr (target, "__file__"):

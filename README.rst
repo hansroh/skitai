@@ -213,9 +213,8 @@ Assume your Django app project is '/mydjango' and skitai app engine script is '/
 .. code:: python
 
   # first all, add django project root (which contains manage.py) to sys.path 
-  sys.path.insert (0, "mydjango")  
   # and mount static dir used bt Django
-  skitai.mount ("/static", "mydjango/static")  
+  skitai.mount ("/static", "mydjango/static", path = "./mydjango")
   # finally mount django wsgi.py
   skitai.mount ("/", "mydjango/mydjango/wsgi.py", "application")
   
