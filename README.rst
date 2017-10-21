@@ -208,16 +208,26 @@ mount (mount_point, mount_object, app_name = "app", pref = None)
 Mount Django App
 ```````````````````
 
-Assume your Django app project is '/mydjango' and skitai app engine script is '/app.py'.
+Basically same as other apps. 
+
+Let's assume your Django app project is '/mydjango' and skitai app engine script is '/app.py'.
    
 .. code:: python
 
-  # first all, add django project root (which contains manage.py) to sys.path 
-  # and mount static dir used bt Django
-  skitai.mount ("/static", "mydjango/static", path = "./mydjango")
-  # finally mount django wsgi.py
-  skitai.mount ("/", "mydjango/mydjango/wsgi.py", "application")
+  pref = skitai.pref ()
+  pref.use_reloader = True
+  pref.debug = True
   
+  # and mount static dir used bt Django
+  skitai.mount ("/static", "mydjango/static")
+    
+  # finally mount django wsgi.py and project root path to append sys.path by path param.
+  skitai.mount ("/", "mydjango/mydjango/wsgi.py", "application", pref = pref, path = "./mydjango")
+ 
+Note that if app is smae location with django manage.py, you need not path param.
+
+Also note that if you set pref.use_reloader = True, it is possible to replace Django development server (manage,py runserver), But it will work on posix only, because Skitai reloads Django app by restart worker process, Win32 version doesn't support.
+
 
 Logging and Console Displaying For Developing/Debugging
 ----------------------------------------------------------
@@ -3664,7 +3674,7 @@ Before it begin, you should mount Django app,
 .. code:: python
   
   # mount django app as backend app likely  
-  pref = skitai.pref (preset = True)
+  pref = skitai.pref ()
   pref.use_reloader = True
   pref.use_debug = True
   
@@ -3676,6 +3686,7 @@ Before it begin, you should mount Django app,
   skitai.run ()
   
 FYI, you can access Django admin by /django/admin with default django setting.
+
 
 Route Proxing Django Views
 ``````````````````````````````
