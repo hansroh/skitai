@@ -3664,9 +3664,14 @@ Before it begin, you should mount Django app,
 
 .. code:: python
   
-  # mount django app as backend app likely
+  # mount django app as backend app likely  
+  pref = skitai.pref (preset = True)
+  pref.use_reloader = True
+  pref.use_debug = True
+  
   sys.path.insert (0, 'mydjangoapp')
-  skitai.mount ("/django", 'mydjangoapp/mydjangoapp/wsgi.py', 'application')
+  skitai.mount ("/django", 'mydjangoapp/mydjangoapp/wsgi.py', 'application', pref)
+  
   # main app
   skitai.mount ('/', 'app.py', 'app')
   skitai.run ()
@@ -3856,6 +3861,7 @@ Change Log
   
   - 0.26.15
     
+    - support Django auto reload by restarting workers
     - change DNS query default protocol from TCP to UDP (posix only)
     - add skitai.set_proxy_keep_alive (channel = 60, tunnel = 600) and change default proxy keep alive to same values
     - increase https tunnel keep alive timeout to 600 sec.

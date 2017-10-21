@@ -4,7 +4,7 @@ import threading
 from types import FunctionType as function
 import copy
 from skitai import lifetime
-
+from skitai.saddle import config
 try:
 	from django.utils import autoreload
 except ImportError:
@@ -62,7 +62,7 @@ class Module:
 		app = self.app or getattr (self.module, self.appname)
 		self.django = str (app.__class__).find ("django.") != -1
 		
-		if self.pref:			
+		if self.pref:
 			for k, v in copy.copy (self.pref).items ():
 				if k == "config":
 					if not hasattr (app, 'config'):
@@ -73,6 +73,11 @@ class Module:
 				else:	
 					setattr (app, k, v)					
 		
+		if not hasattr (app, "config"):
+			app.config = config.Config (True)		
+		elif not hasattr (app.config, "max_post_body_size"):
+			config.set_default (app.config)
+			
 		if hasattr (app, "set_home"):
 			app.set_home (os.path.dirname (self.abspath))
 		if hasattr (app, "commit_events_to"):
