@@ -195,8 +195,8 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
 		if isinstance (path, str):
 			path = [path]
 		path.reverse ()	
-		for each in path:
-			sys.path.insert (0, each)
+		for each in path:			
+			sys.path.insert (0, abspath (each))			
 			
 	if hasattr (target, "__file__"):
 		target = (target, target.__name__)
