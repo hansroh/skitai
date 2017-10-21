@@ -181,7 +181,7 @@ def lukeys (keys):
 def trackers (*keys):
 	lukeys (keys)
 			
-def mount (point, target, appname = "app", pref = pref (True), host = "default"):
+def mount (point, target, appname = "app", pref = pref (True), host = "default", path = None):
 	global dconf
 	
 	def init_app (modpath, pref):
@@ -191,6 +191,13 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default")
 			mod = loader.load_module()
 			hasattr (mod, "bootstrap") and mod.bootstrap (pref)
 	
+	if path:
+		if isinstance (path, str):
+			path = [path]
+		path.reverse ()	
+		for each in path:
+			sys.path.insert (0, each)
+			
 	if hasattr (target, "__file__"):
 		target = (target, target.__name__)
 		
