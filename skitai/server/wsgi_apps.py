@@ -3,6 +3,8 @@ from aquests.lib  import pathtool, importer, evbus
 import threading
 from types import FunctionType as function
 import copy
+from skitai import lifetime
+
 try:
 	from django.utils import autoreload
 except ImportError:
@@ -124,7 +126,10 @@ class Module:
 		reloadable = False
 		if self.django:
 			if autoreload.code_changed ():
-				reloadable = True
+				lifetime.shutdown (3, 30.0)
+				self.last_reloaded = time.time ()
+				return
+				
 		else:	
 			stat = os.stat (self.abspath)		
 			reloadable = self.file_info != (stat.st_mtime, stat.st_size)		

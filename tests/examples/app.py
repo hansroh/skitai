@@ -1,13 +1,14 @@
 import os
 from skitai.saddle import Saddle
-from skitai.win32service import ServiceFramework
 import skitai
 
-class ServiceConfig (ServiceFramework):
-	_svc_name_ = "SAE_EXAMPLE"
-	_svc_display_name_ = "Skitai Example Service"
-	_svc_app_ = __file__
-	_svc_python_ = r"c:\python34\python.exe"
+if os.name == "nt":
+	from skitai.win32service import ServiceFramework
+	class ServiceConfig (ServiceFramework):
+		_svc_name_ = "SAE_EXAMPLE"
+		_svc_display_name_ = "Skitai Example Service"
+		_svc_app_ = __file__
+		_svc_python_ = r"c:\python34\python.exe"
 
 app = Saddle (__name__)
 app.debug = True
@@ -91,8 +92,10 @@ def post (was, username):
 
 if __name__ == "__main__":
 	import skitai		
-			
-	skitai.set_service (ServiceConfig)
+	
+	if os.name == "nt":		
+		skitai.set_service (ServiceConfig)
+		
 	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.python.org")
 	skitai.mount ("/", 'statics')
 	skitai.mount ("/", app)
