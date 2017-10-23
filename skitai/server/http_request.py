@@ -3,6 +3,7 @@ import time
 import re
 import json
 from aquests.lib.attrdict import CaseInsensitiveDict
+from aquests.protocols.http import http_util
 
 class http_request:
 	version = "1.1"
@@ -29,7 +30,7 @@ class http_request:
 		self._header_cache = {}
 		self._is_stream_ended = False
 		self._is_async_streaming = False
-		self._is_promise = False
+		self._is_promise = False		
 		self.args = {}
 		self.set_log_info ()
 		self.make_response ()
@@ -65,8 +66,24 @@ class http_request:
 		return self.get_body ()
 	
 	def json (self):		
-		return json.loads (self.body.decode ('utf8'))
-		
+		return json.loads (self.body.decode ('utf8'))		
+	
+	def form (self, ct = None):
+		if not ct:
+			ct = self.get_header ('content-type', '')			
+		if ct.startswith ("multipart/form-data") and type (self.body) is dict:
+			return self.body
+		elif ct.startswith ("application/x-www-form-urlencoded"):
+			return http_util.crack_query (self.body)
+	
+	def dict (self):
+		if not self.body:
+			return		
+		ct = self.get_header ('content-type', '')
+		if ct.startswith ("application/json"):
+			return self.json ()
+		return self.form (ct)		
+	
 	def is_promise (self):
 		return self._is_promise
 		

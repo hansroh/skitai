@@ -222,7 +222,13 @@ Let's assume your Django app project is '/mydjango' and skitai app engine script
   skitai.mount ("/static", "mydjango/static")
     
   # finally mount django wsgi.py and project root path to append sys.path by path param.
-  skitai.mount ("/", "mydjango/mydjango/wsgi.py", "application", pref = pref, path = "./mydjango")
+  skitai.mount (
+    "/", 
+    "mydjango/mydjango/wsgi.py", 
+    "application", 
+    pref, 
+    path = "./mydjango"
+  )
  
 Note that if app is smae location with django manage.py, you need not path param.
 
@@ -2240,13 +2246,15 @@ Reqeust object provides these methods and attributes:
 - was.request.uri
 - was.request.version # HTTP Version, 1.0, 1.1
 - was.request.scheme # http or https
-- was.request.body
 - was.request.headers # case insensitive dictioanry
-- was.request.args # dictionary contains url/form parameters
+- was.request.body # bytes object
+- was.request.args # dictionary merged with url, query string, form data and JSON
 - was.request.routed_function
-- was.request.routable # {'methods': ["POST", "OPTIONS"], 'content_types': ["text/xml"] }
+- was.request.routable # {'methods': ["POST", "OPTIONS"], 'content_types': ["text/xml"]}
 - was.request.split_uri () # (script, param, querystring, fragment)
-- was.request.json () # load request body as json
+- was.request.json () # decode request body from JSON
+- was.request.form () # decode request body to dict if content-type is form data
+- was.request.dict () # decode request body as dict if content-type is compatible with dict - form data or JSON
 - was.request.get_header ("content-type") # case insensitive
 - was.request.get_headers () # retrun header all list
 - was.request.get_body ()
@@ -3871,6 +3879,7 @@ Change Log
   
   - 0.26.15
     
+		- added request.form () and request.dict ()
     - support Django auto reload by restarting workers
     - change DNS query default protocol from TCP to UDP (posix only)
     - add skitai.set_proxy_keep_alive (channel = 60, tunnel = 600) and change default proxy keep alive to same values

@@ -2,6 +2,7 @@ from aquests.protocols.http import http_util
 from . import cookie
 from aquests.lib.reraise import reraise 
 import sys
+import json
 from aquests.lib.athreads import trigger
 from aquests.lib.attrdict import AttrDict
 from aquests.protocols.http import respcodes
@@ -49,7 +50,7 @@ class Executor:
 			if type (func) is list:
 				response = self.chained_exec (func, args, karg)
 					
-			else:				
+			else:
 				response = func (self.was, *args, **karg)
 				if type (response) is not list:
 					response = [response]											
@@ -74,30 +75,33 @@ class Executor:
 		
 	def generate_content (self, method, _args, karg):
 		karg = self.parse_kargs (karg)
-		self.was.request.set_args (karg)
 		response = self.chained_exec (method, _args, karg)
 		return response
 	
 	def parse_kargs (self, kargs):
-		allkarg = AttrDict ()
 		query = self.env.get ("QUERY_STRING")
-		data = None
-		_input = self.env ["wsgi.input"]
-		if _input:
-			ct = self.was.request.get_header ('content-type', '')
-			if ct.startswith ("multipart/form-data") and type (_input) is dict:
-				self.merge_args (allkarg, _input)
-			elif ct.startswith ("application/x-www-form-urlencoded"):
-				data = _input.read ()
-		
-		if kargs:
-			self.merge_args (allkarg, kargs)
 		if query: 
-			self.merge_args (allkarg, http_util.crack_query (query))
+			querydict = http_util.crack_query (query)
+			self.merge_args (kargs, querydict)
+		
+		allkarg = AttrDict ()
+		self.merge_args (allkarg, kargs)
+		
+		incl_data = False
+		data = self.was.request.dict ()
 		if data:
-			self.merge_args (allkarg, http_util.crack_query (data))
-			
-		return allkarg
+			if self.was.request.routable.get ('keywords'):
+				incl_data = True
+			else:	
+				wanted_args = self.was.request.routable.get ('args')
+				for k in data:
+					if k in wanted_args:
+						incl_data = True
+						break
+			self.merge_args (allkarg, data)
+		
+		self.was.request.set_args (allkarg)
+		return incl_data and allkarg or kargs
 		
 	def merge_args (self, s, n):
 		for k, v in list(n.items ()):
@@ -157,7 +161,7 @@ class Executor:
 
 		if thing:
 			request.routed = current_app.get_routed (thing)
-			request.routable = options			
+			request.routable = options
 
 		return current_app, thing, param, respcode
 		

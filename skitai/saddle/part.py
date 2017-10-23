@@ -175,7 +175,7 @@ class Part:
 		if thing.startswith ("/"):
 			return self.route [:-1] + self.mount_p [:-1] + thing
 	
-		for func, name, fuvars, favars, numvars, str_rule, options in self.route_map.values ():			 
+		for func, name, fuvars, favars, numvars, str_rule, options in self.route_map.values ():
 			if thing != name: continue								
 			assert len (args) <= len (fuvars), "Too many params, this has only %d params(s)" % len (fuvars)						
 			params = {}
@@ -256,20 +256,26 @@ class Part:
 			raise AssertionError ("Url rule should be starts with '/'")
 		
 		fspec = inspect.getargspec(func)
-		if fspec [3]:
+		options ["args"] = fspec.args
+		options ["varargs"] = fspec.varargs
+		options ["keywords"] = fspec.keywords
+		
+		if fspec.defaults:
 			defaults = {}
-			argnames = fspec [0][(len (fspec [0]) - len (fspec [3])):]
-			for i in range (len (fspec [3])):
-				defaults [argnames [i]] = fspec [3][i]
+			argnames = fspec.args[(len (fspec.args) - len (fspec.defaults)):]
+			for i in range (len (fspec.defaults)):
+				defaults [argnames [i]] = fspec.defaults[i]
 			options ["defaults"] = defaults
 		
 		s = rule.find ("/<")
 		if s == -1:	
-			self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, func.__code__.co_argcount - 1, rule, options)			
+			self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, func.__code__.co_argcount - 1, rule, options)						
 		else:
 			s_rule = rule
 			rulenames = []
-			for r, n in RX_RULE.findall (rule):
+			urlargs = RX_RULE.findall (rule)
+			options ["urlargs"] = len (urlargs)
+			for r, n in urlargs:
 				if n.startswith ("int:"):
 					rulenames.append ((n[4:], n[:3]))
 					rule = rule.replace (r, "/([0-9]+)")

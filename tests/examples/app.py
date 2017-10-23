@@ -86,8 +86,8 @@ def upload (was, **karg):
 	return was.response ("200 OK", str (karg), headers = [("Content-Type", "text/plain")])
 
 @app.route ("/post")
-def post (was, username):	
-		return 'USER: %s' % username
+def post (was, username, **karg):	
+	return 'USER: %s' % username
 
 
 if __name__ == "__main__":
