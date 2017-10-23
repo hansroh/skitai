@@ -27,8 +27,13 @@ class FailedRequest:
 		self.expt_str = None
 		
 		self.code, self.msg = 501, "timeout"
-			
-			
+
+	def raise_for_status (self):
+		if self.expt_class:
+			raise self.expt_class (self.expt_str)
+	reraise = raise_for_status
+
+	
 class Dispatcher:
 	def __init__ (self, cv, id, ident = None, filterfunc = None, callback = None):
 		self.__cv = cv
