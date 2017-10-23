@@ -68,7 +68,7 @@ def documentation2 (was):
 def hello (was, num = 1):
 	was.response ["Content-Type"] = "text/plain"
 	return "\n".join (["hello" for i in range (int(num))])
-
+	
 @app.route ("/redirect0")
 def redirect0 (was):	
 	return ""
@@ -86,9 +86,13 @@ def upload (was, **karg):
 	return was.response ("200 OK", str (karg), headers = [("Content-Type", "text/plain")])
 
 @app.route ("/post")
-def post (was, username, **karg):	
+def post (was, username):	
 	return 'USER: %s' % username
 
+@app.route ("/test")
+def test (was):
+	was.response ["Content-Type"] = "text/plain"
+	return str (was.request.args)
 
 if __name__ == "__main__":
 	import skitai		

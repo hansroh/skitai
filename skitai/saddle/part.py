@@ -256,7 +256,7 @@ class Part:
 			raise AssertionError ("Url rule should be starts with '/'")
 		
 		fspec = inspect.getargspec(func)
-		options ["args"] = fspec.args
+		options ["args"] = fspec.args [1:]
 		options ["varargs"] = fspec.varargs
 		options ["keywords"] = fspec.keywords
 		

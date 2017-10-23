@@ -78,30 +78,54 @@ class Executor:
 		response = self.chained_exec (method, _args, karg)
 		return response
 	
+	def is_call_args_group (self, data, forward = True):
+		if self.was.request.routable.get ('keywords'):
+			return True
+		wanted_args = self.was.request.routable.get ('args') [self.was.request.routable.get ('urlargs', 0):]
+		if forward:
+			if wanted_args:
+				return True				
+			for k in wanted_args:
+				if k in data:
+					return True
+		else:		
+			for i in range (-1, -1, -(len (wanted_args) + 1)):
+				if wanted_args [i] in data:
+					return True
+					
+		return False		
+				
 	def parse_kargs (self, kargs):
 		query = self.env.get ("QUERY_STRING")
-		if query: 
-			querydict = http_util.crack_query (query)
-			self.merge_args (kargs, querydict)
+		data = self.was.request.dict ()
 		
-		allkarg = AttrDict ()
+		allkarg = AttrDict ()		
 		self.merge_args (allkarg, kargs)
 		
-		incl_data = False
-		data = self.was.request.dict ()
-		if data:
-			if self.was.request.routable.get ('keywords'):
-				incl_data = True
-			else:	
-				wanted_args = self.was.request.routable.get ('args')
-				for k in data:
-					if k in wanted_args:
-						incl_data = True
-						break
-			self.merge_args (allkarg, data)
+		if not query and not data:
+			self.was.request.set_args (allkarg)
+			return kargs
 		
+		query_included = True
+		if query: 
+			querydict = http_util.crack_query (query)
+			self.merge_args (allkarg, querydict)
+			if self.is_call_args_group (querydict):				
+				if not data:		
+					self.was.request.set_args (allkarg)
+					return allkarg				
+				self.merge_args (kargs, querydict)
+			else:
+				query_included = False
+		
+		if data:
+			self.merge_args (allkarg, data)
+			if query_included and self.is_call_args_group (data, not query and True or False):
+				self.was.request.set_args (allkarg)
+				return allkarg
+			
 		self.was.request.set_args (allkarg)
-		return incl_data and allkarg or kargs
+		return kargs
 		
 	def merge_args (self, s, n):
 		for k, v in list(n.items ()):

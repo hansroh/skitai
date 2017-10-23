@@ -2603,8 +2603,38 @@ For using it, you just call was.response.hint_promise (uri) before return respon
 .. _`HTTP2 server push`: https://tools.ietf.org/html/rfc7540#section-8.2
 
 
+Getting Parameters
+---------------------
+
+Saddle's parameters are comceptually seperated 3 groups: URL, query string and form data.
+
+Below explaination may be a bit complicated but it is enough to remember 2 things:
+
+1. All parameter groups can be handled same way, there's no differences except origin of prameters
+2. Eventaully was.request.args contains all parameters of all origins include default arguments of your resource
+
+
 Getting URL Parameters
--------------------------
+`````````````````````````
+
+URL Parameters should be arguments of resource.
+
+  @app.route ("/episode/<int:id>")
+  def hello_world (was, id):
+    return num
+  # http://127.0.0.1:5000/hello?num=100	
+
+for fancy url building, available param types are:
+
+- int
+- float
+- path: /download/<int:major_ver>/<path>, should be positioned at last like /download/1/version/1.1/win32
+- If not provided, assume as string. and all space will be replaced to "_"
+
+Query String Parameters
+``````````````````````````````
+
+qiery string parameter can be both resource arguments but needn't be.
 
 .. code:: python
   
@@ -2612,44 +2642,83 @@ Getting URL Parameters
   def hello_world (was, num = 8):
     return num
   # http://127.0.0.1:5000/hello?num=100	
+
+It is same as these,
 	
-  @app.route ("/hello/<int:num>")
-  def hello_world (was, num = 8):
-    return str (num)
-    # http://127.0.0.1:5000/hello/100
-
-
-Also you can access as dictionary object 'was.request.args'.
-
 .. code:: python
 
-  num = was.request.args.get ("num", 0)
+  @app.route ("/hello")
+  def hello_world (was):
+    return was.request.args.get ("num")
+	
+	@app.route ("/hello")
+  def hello_world (was, **url):
+    return url.get ("num")
 
-
-for fancy url building, available param types are:
-
-- int
-- float
-- path: /download/<int:major_ver>/<path>, should be positioned at last like /download/1/version/1.1/win32
-- If not provided, assume as string. and all space char replaced to "_'
-
-
-Getting Form Parameters
-----------------------------
+Above 2 code blocks have a significant difference. First one can get only 'topic' parameter. If URL query string contains other parameters, Skitai will raise 508 Error. But 2nd one can be any parameters.
+		
+Getting Form/JSON Parameters
+```````````````````````````````
 
 Getting form is not different from the way for url parameters, but generally form parameters is too many to use with each function parameters, can take from single args \*\*form or take mixed with named args and \*\*form both.
+if request header has application/json 
 
 .. code:: python
 
   @app.route ("/hello")
-  def hello (was, **form):  	
+  def hello (was, **form):
   	return "Post %s %s" % (form.get ("userid", ""), form.get ("comment", ""))
   	
   @app.route ("/hello")
   def hello_world (was, userid, **form):
   	return "Post %s %s" % (userid, form.get ("comment", ""))
 
+If you want just handle POST body, you can use was.request.json () or was.request.form () that will return dictionary object.
+	
+Getting Composed Parameters
+```````````````````````````````
 
+You can receive all type of parameters by resource arguments. Let'assume yotu resource URL is http://127.0.0.1:5000/episode/100?topic=Python.
+
+.. code:: python
+	
+  @app.route ("/episode/<int:id>")
+  def hello (was, id, topic):
+  	pass
+
+if URL is http://127.0.0.1:5000/episode/100?topic=Python with Form/JSON data {"comment": "It is good idea"}
+
+.. code:: python
+	
+  @app.route ("/episode/<int:id>")
+  def hello (was, id, topic, comment):
+  	pass
+		
+Note that argument should be ordered by:
+
+- URL parameters
+- URL query string
+- Form/JSON body
+
+Also you can use keywords argument.
+
+.. code:: python
+		
+  @app.route ("/episode/<int:id>")
+  def hello (was, id, **karg):
+  	karg.get ('topic')
+
+Note that **karg is contains both query string and form/JSON data and no retriction for parameter names.
+
+was.requests.args is merged dictionary for all type of parameters. If parameter name is duplicated, its value will be set to form of value list. Then simpletst way for getting parameters, use was.requests.args.
+
+.. code:: python
+	
+  @app.route ("/episode/<int:id>")
+  def hello (was, id):
+  	was.request.args.get ('topic')
+		
+		
 Building URL
 ---------------
 
