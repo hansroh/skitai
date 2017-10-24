@@ -41,7 +41,7 @@ class Result (rcache.Result):
 class Results (rcache.Result):
 	def __init__ (self, results, ident = None):
 		self.results = results
-		self.status_code = self.status_code = [rs.status_code for rs in results]
+		self.status_code = [rs.status_code for rs in results]
 		rcache.Result.__init__ (self, [rs.status for rs in self.results], ident)
 		
 	def __iter__ (self):

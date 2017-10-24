@@ -20,11 +20,11 @@ class RequestFailed (Exception):
 	pass
 
 class FailedRequest:
-	def __init__ (self, expt_class, expt_msg):
+	def __init__ (self, expt_class, expt_str):
 		self.description = None
 		self.data = None
-		self.expt_class = None
-		self.expt_str = None
+		self.expt_class = expt_class
+		self.expt_str = expt_str
 		
 		self.code, self.msg = 501, "timeout"
 
