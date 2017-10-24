@@ -84,7 +84,7 @@ class Executor:
 		wanted_args = self.was.request.routable.get ('args') [self.was.request.routable.get ('urlargs', 0):]
 		if forward:
 			if wanted_args:
-				return True				
+				return True
 			for k in wanted_args:
 				if k in data:
 					return True
@@ -93,7 +93,7 @@ class Executor:
 				if wanted_args [i] in data:
 					return True
 					
-		return False		
+		return False
 				
 	def parse_kargs (self, kargs):
 		query = self.env.get ("QUERY_STRING")
@@ -120,7 +120,7 @@ class Executor:
 		
 		if data:
 			self.merge_args (allkarg, data)
-			if query_included and self.is_call_args_group (data, not query and True or False):
+			if query_included and self.is_call_args_group (data, False):
 				self.was.request.set_args (allkarg)
 				return allkarg
 			
