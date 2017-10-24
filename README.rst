@@ -2281,6 +2281,8 @@ Getting URL Parameters
 
 URL Parameters should be arguments of resource.
 
+.. code:: python
+
   @app.route ("/episode/<int:id>")
   def episode (was, id):
     return id
@@ -2295,9 +2297,11 @@ for fancy url building, available param types are:
 
 It is also possible via keywords args,
 
+.. code:: python
+
   @app.route ("/episode/<int:id>")
-  def episode (was, **karg):
-		retrun was.request.args.get ("id")
+  def episode (was, \*\*karg):
+    retrun was.request.args.get ("id")
   # http://127.0.0.1:5000/episode
 	
 Query String Parameters
@@ -2342,7 +2346,7 @@ if request header has application/json
   def hello_world (was, userid, **form):
   	return "Post %s %s" % (userid, form.get ("comment", ""))
 
-Note that for receiving request body via arguments, you specify keywords args like **karg or specify parameter names of body data.
+Note that for receiving request body via arguments, you specify keywords args like \*\*karg or specify parameter names of body data.
 
 If you want just handle POST body, you can use was.request.json () or was.request.form () that will return dictionary object.
 	
@@ -2378,10 +2382,10 @@ Also you can use keywords argument.
 .. code:: python
 		
   @app.route ("/episode/<int:id>")
-  def hello (was, id, **karg):
+  def hello (was, id, \*\*karg):
   	karg.get ('topic')
 
-Note that **karg is contains both query string and form/JSON data and no retriction for parameter names.
+Note that \*\*karg is contains both query string and form/JSON data and no retriction for parameter names.
 
 was.requests.args is merged dictionary for all type of parameters. If parameter name is duplicated, its value will be set to form of value list. Then simpletst way for getting parameters, use was.requests.args.
 
@@ -2398,8 +2402,8 @@ Make Your Own Principal
 I prefer these style:
 
 1. In template, access via was.request.args only
-2. Otherwise, use arguments for URL & query string parameter, and **args for Form/JSON parameters
-3. If paramteres are same and just request method is optional, use arguments or **args
+2. Otherwise, use arguments for URL & query string parameter, and \*\*args for Form/JSON parameters
+3. If paramteres are same and just request method is optional, use arguments or \*\*args
 
 
 Response
@@ -3964,9 +3968,14 @@ Change Log
   
   0.26 (May 2017)
   
+	- 0.26.16 (Oct 2017)
+    
+		- fix dbi reraise on error
+    - JSON as arguments
+		
   - 0.26.15
     
-		- added request.form () and request.dict ()
+    - added request.form () and request.dict ()
     - support Django auto reload by restarting workers
     - change DNS query default protocol from TCP to UDP (posix only)
     - add skitai.set_proxy_keep_alive (channel = 60, tunnel = 600) and change default proxy keep alive to same values

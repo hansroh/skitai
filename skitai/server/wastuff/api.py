@@ -1,6 +1,6 @@
 import json
-from datetime import date
 import sys
+from datetime import date
 
 def catch (format = 0, exc_info = None):
 	if exc_info is None:
@@ -45,6 +45,7 @@ def catch (format = 0, exc_info = None):
 		return "\n".join (buf)
 	return buf	
 
+	
 class DateEncoder(json.JSONEncoder):
 	def default(self, obj):
 		if isinstance(obj, date):

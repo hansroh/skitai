@@ -51,7 +51,7 @@ def test_wsgi_handler (wasc, app):
 	resp = assert_request (vh, request, 404)
 	
 	request = client.get ("http://www.skitai.com/?a=b")	
-	resp = assert_request (vh, request, 508)
+	resp = assert_request (vh, request, 200)
 	
 	request = client.postjson ("http://www.skitai.com/json", {'a': 1})
 	resp = assert_request (vh, request, 200)
@@ -75,4 +75,3 @@ def test_wsgi_handler (wasc, app):
 	
 	request = client.postjson ("http://www.skitai.com/json", {'a': 1}, version = "2.0")	
 	resp = assert_request (vh, request, 200)
-	

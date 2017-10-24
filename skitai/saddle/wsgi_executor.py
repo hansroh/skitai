@@ -83,15 +83,16 @@ class Executor:
 			return True
 		wanted_args = self.was.request.routable.get ('args') [self.was.request.routable.get ('urlargs', 0):]
 		if not wanted_args:
-			return False
+			return False			
 		if forward:
 			if wanted_args:
 				return True
 			for k in wanted_args:
 				if k in data:
 					return True
+		
 		else:		
-			for i in range (-1, -1, -(len (wanted_args) + 1)):
+			for i in range (-1, -(len (wanted_args) + 1), -1):
 				if wanted_args [i] in data:
 					return True
 					
