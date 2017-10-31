@@ -72,8 +72,16 @@ class Saddle (part.Part):
 	def skito_jinja (self, option = 0):
 		if option == 0:	
 			self.jinja_overlay ("${", "}", "<%", "%>", "<!---", "--->")
-		else:
+		elif option == 1:
 			self.jinja_overlay ("${", "}", "{%", "%}", "{#", "#}")
+		elif option == 2:
+			self.jinja_overlay ("{*", "*}", "{%", "%}", "{#", "#}")	
+		elif option == 3:
+			self.jinja_overlay ("{#", "#}", "{%", "%}", "<!---", "--->")		
+		elif option == 4:
+			self.jinja_overlay ("##", "##", "{%", "%}", "<!---", "--->")			
+		elif option == 5:
+			self.jinja_overlay ("{:", ":}", "{%", "%}", "<!---", "--->")				
 		
 	def jinja_overlay (
 		self, 

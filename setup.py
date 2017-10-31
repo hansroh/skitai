@@ -70,7 +70,7 @@ with codecs.open ('README.rst', 'r', encoding='utf-8') as f:
 setup(
 	name='skitai',
 	version=version,
-	description='Skitai App Engine For Microservices',
+	description='Skitai App Engine',
 	long_description=long_description,
 	url = 'https://gitlab.com/hansroh/skitai',
 	author='Hans Roh',

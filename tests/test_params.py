@@ -4,35 +4,30 @@ import skitai
 import os, pytest
 
 def test_params (wasc, app):
-	@app.route ("/do")
-	def index (was):
+	def z (was):	
 		k = list (was.request.args.keys ())
 		k.sort ()
 		return " ".join (k)
+		
+	@app.route ("/do")
+	def index (was):
+		return z (was)
 	
 	@app.route ("/do2")
 	def index2 (was, a):
-		k = list (was.request.args.keys ())
-		k.sort ()
-		return " ".join (k)
+		return z (was)
 	
 	@app.route ("/do3/<u>")
 	def index3 (was, **args):
-		k = list (was.request.args.keys ())
-		k.sort ()
-		return " ".join (k)
+		return z (was)
 	
 	@app.route ("/do4/<u>")
 	def index4 (was, u, a, b):
-		k = list (was.request.args.keys ())
-		k.sort ()
-		return " ".join (k)	
+		return z (was)
 	
 	@app.route ("/do5/<u>")
 	def index5 (was, u, a):
-		k = list (was.request.args.keys ())
-		k.sort ()
-		return " ".join (k)	
+		return z (was)
 		
 	# WSGI
 	vh = confutil.install_vhost_handler (wasc)

@@ -1,6 +1,6 @@
-========================================
-Skitai App Engine For Microservices
-========================================
+===================
+Skitai App Engine
+===================
 
 At a Glance
 =============
@@ -20,6 +20,15 @@ And simple to run:
 
 Your app will work for your thousands or miliions of customers.
 
+What For
+===========
+
+Skitai App engine provides one of most simplest way to:
+
+1. Serve WSGI apps like Flask, Django
+2. Export RESTful API for your apps or functions
+3. Build high performance app/web service with asynchronous backend upstreams & cache control
+
 Introduce
 ===========
 
@@ -31,20 +40,12 @@ Skitai orients light-weight, simplicity and strengthen networking operations wit
 - Handling massive requests to your backend servers including RESTful API, RPCs and database engines - PostgreSQL_, MongoDB and Redis - with asynchronous manner
 - HTTP/2.0 & HTML5 Websocket implemented
 
-And it is optimized for building and operating microservices. 
-
-1. Split your valuable service into small microservices
-2. Make each microservice into independet microapp, It would be better each microapp has own model and resources
-3. Mount your microapps on Skitai
-4. If extension is need, dettach micro app and mount another Skitai instance or another skitai machine
-
 Conceptually, Skitai has been seperated into two components:
 
 1. Skitai App Engine Server, for WSGI apps
 2. Skito-Saddle, the small WSGI container integrated with Skitai. But you can also mount any WSGI apps and frameworks like Flask (I cannot sure).
 
 Skitai is not a just developing server like some frameworks provides. It is supporsed to work fine under real service situation by alone. And it makes your app take off to the world, just by appending a few lines on your app.
-
 
 .. _hyper-h2: https://pypi.python.org/pypi/h2
 .. _Zope: http://www.zope.org/
@@ -3964,13 +3965,13 @@ Links
 
 
 Change Log
-==============
+===========
   
   0.26 (May 2017)
   
-	- 0.26.16 (Oct 2017)
+  - 0.26.16 (Oct 2017)
     
-		- fix dbi reraise on error
+    - fix dbi reraise on error
     - JSON as arguments
 		
   - 0.26.15
@@ -4044,15 +4045,12 @@ Change Log
     - change class method name from make_request () to backend ()
     - retry once if database is disconnected by keep-live timeout
     - drop wac.make_dbo () and wac.make_stub ()
-  
-  - 0.26.6.1
+    
+  - 0.26.6
     
     - add wac.make_dbo (), wac.make_stub () and wac.make_request ()
     - wac.ajob () has been removed
     - change repr name from wasc to wac
-    
-  - 0.26.6
-    
     - websocket design spec, WEBSOCKET_DEDICATE_THREADSAFE has been removed and WEBSOCKET_THREADSAFE is added
     - fix websocket, http2, https proxy tunnel timeout, related set_network_timeout () is recently added
     
