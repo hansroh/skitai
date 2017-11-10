@@ -329,7 +329,7 @@ class ClusterDistCall:
 		return asyncon
 	
 	def _setup (self, asyncon):
-		asyncon.set_timeout (self._timeout)				
+		asyncon.set_timeout (self._timeout)
 		if self._cv is None:
 			self._cv = asyncon._cv
 		
