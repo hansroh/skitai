@@ -447,7 +447,7 @@ def run (**conf):
 				return			
 			
 			self.config_threads (conf.get ('threads', 4))			
-			self.config_backends (conf.get ('backend_keep_alive', 10))
+			self.config_backends (conf.get ('backend_keep_alive', 1200))
 			for name, args in conf.get ("clusters", {}).items ():				
 				ctype, members, policy, ssl = args
 				self.add_cluster (ctype, name, members, ssl, policy)
