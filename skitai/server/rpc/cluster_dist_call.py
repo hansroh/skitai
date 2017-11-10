@@ -25,7 +25,7 @@ class Result (rcache.Result):
 	def __getattr__ (self, attr):
 		return getattr (self.__response, attr)
 	
-	def reraise (self):
+	def reraise (self):		
 		if self.status != 3:
 			self.__response.raise_for_status ()
 		
@@ -357,7 +357,7 @@ class ClusterDistCall:
 		self._wait (timeout)
 		if len (self._results) > 1:
 			raise ValueError("Multiple Results, Use getswait")
-		self._cached_result = self._results [0].get_result ()
+		self._cached_result = self._results [0].get_result ()		
 		if reraise:
 			self._cached_result.reraise ()
 		return self._cached_result
@@ -398,7 +398,10 @@ class ClusterDistCall:
 					self._cluster.report (asyncon, True) # well-functioning
 					rs.do_filter ()
 					
-	def _wait (self, timeout = 3):
+	def _wait (self, timeout = 3):		
+		for rs, asyncon in self._requests.items ():
+			asyncon.set_timeout (timeout)
+			
 		self._collect_result ()
 		while self._requests and not self._canceled:
 			remain = timeout - (time.time () - self._init_time)
@@ -408,7 +411,7 @@ class ClusterDistCall:
 			self._cv.release ()
 			self._collect_result ()
 		
-		# timeouts	
+		# timeouts
 		for rs, asyncon in list(self._requests.items ()):
 			asyncon.handle_abort () # abort imme
 			rs.set_status (1)

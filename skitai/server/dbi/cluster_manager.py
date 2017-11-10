@@ -4,6 +4,7 @@ from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 
 class ClusterManager (cluster_manager.ClusterManager):
 	backend_keep_alive = 1200
+	backend = True
 	
 	def __init__ (self, name, cluster, dbtype = DB_PGSQL, access = [], logger = None):
 		self.dbtype = dbtype

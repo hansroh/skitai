@@ -208,7 +208,7 @@ class Loader:
 	
 	def config_backends (self, backend_keep_alive = 10):
 		rcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive
-		dcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive
+		dcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive		
 						
 	def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0, access = None):
 		if clustertype and clustertype [0] == "*":

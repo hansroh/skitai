@@ -55,7 +55,7 @@ class ClusterManager:
 	object_timeout = 1200
 	maintern_interval = 60
 	# I cannot sure this is faster
-	backend = False
+	backend = True
 	backend_keep_alive = 1200
 	
 	def __init__ (self, name, cluster, ssl = 0, access = None, logger = None):
