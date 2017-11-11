@@ -3971,7 +3971,9 @@ Change Log
   
   - 0.26.16 (Oct 2017)
     
-    - fix dbi reraise on error
+		- fix getwait, getswait. get timeout mis-working
+    - fix backend_keep_alive default value from 10 to 1200
+		- fix dbi reraise on error
     - JSON as arguments
 		
   - 0.26.15

@@ -13,6 +13,8 @@ from aquests.protocols.ws import request_handler as ws_request_handler
 from aquests.protocols.ws import request as ws_request
 from . import rcache
 
+DEFAULT_TIMEOUT = 10
+
 class OperationError (Exception):
 	pass
 
@@ -346,11 +348,11 @@ class ClusterDistCall:
 			raise ValueError("call getwait, getswait first")
 		self._cached_result.cache (timeout)	
 			
-	def wait (self, timeout = 3, reraise = True):
+	def wait (self, timeout = DEFAULT_TIMEOUT, reraise = True):
 		self.getswait (timeout, reraise)
 		self._cached_result = None
 	
-	def getwait (self, timeout = 3, reraise = False):
+	def getwait (self, timeout = DEFAULT_TIMEOUT, reraise = False):
 		if self._cached_result is not None:
 			return self._cached_result
 			
@@ -362,7 +364,7 @@ class ClusterDistCall:
 			self._cached_result.reraise ()
 		return self._cached_result
 	
-	def getswait (self, timeout = 3, reraise = False):
+	def getswait (self, timeout = DEFAULT_TIMEOUT, reraise = False):
 		if self._cached_result is not None:
 			return self._cached_result
 			
@@ -398,9 +400,10 @@ class ClusterDistCall:
 					self._cluster.report (asyncon, True) # well-functioning
 					rs.do_filter ()
 					
-	def _wait (self, timeout = 3):		
-		for rs, asyncon in self._requests.items ():
-			asyncon.set_timeout (timeout)
+	def _wait (self, timeout = DEFAULT_TIMEOUT):		
+		if self._timeout != timeout:
+			for rs, asyncon in self._requests.items ():
+				asyncon.set_timeout (timeout)
 			
 		self._collect_result ()
 		while self._requests and not self._canceled:
@@ -460,7 +463,7 @@ class ClusterDistCallCreator:
 	def __getattr__ (self, name):	
 		return getattr (self.cluster, name)
 		
-	def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10):
+	def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = DEFAULT_TIMEOUT):
 		if is_main_thread () and not callback:
 			raise RuntimeError ('Should have callback in Main thread')
 		# reqtype: rpc, get, post, head, put, delete
