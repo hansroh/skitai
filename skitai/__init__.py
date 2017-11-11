@@ -170,10 +170,11 @@ def set_proxy_keep_alive (channel = 60, tunnel = 600):
 	proxy.PROXY_KEEP_ALIVE = channel
 	proxy.PROXY_TUNNEL_KEEP_ALIVE = tunnel
 		
-def set_network_timeout (timeout):
+def set_request_timeout (timeout):
 	global dconf	
 	dconf ["network_timeout"] = timeout
-
+set_network_timeout = set_request_timeout
+	
 def lukeys (keys):
 	global dconf	
 	dconf ["models-keys"] = keys

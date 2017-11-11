@@ -540,15 +540,15 @@ Keep alive timeout means seconds gap of each requests. For setting HTTP connecti
   
 If you intend to use skitai as backend application server behind reverse proxy server like Nginx, it is recommended over 300.
 
-Network timeout means seconds gap of data packet recv/sending events,
+Request timeout means seconds gap of data packet recv/sending events,
 
 .. code:: python
   
-  skitai.set_network_timeout (10) # default = 30
+  skitai.set_request_timeout (10) # default = 30
   skitai.mount ('/', app)
   skitai.run ()
 
-Note that under massive traffic situation, meaning of keep alive timeout become as same as network timeout beacuse a clients requests are delayed by network/HW capability unintensionally.
+Note that under massive traffic situation, meaning of keep alive timeout become as same as request timeout beacuse a clients requests are delayed by network/HW capability unintensionally.
 
 Anyway, these timeout values are higher, lower response fail rate and longger response time. But if response time is over 10 seconds, you might consider loadbalancing things. Skitai's default value 30 seconds is for lower failing rate under extreme situation.
 
@@ -3971,6 +3971,7 @@ Change Log
   
   - 0.26.16 (Oct 2017)
     
+		- change method name from skitai.set_network_timeout to set_erquest_timeout
 		- fix getwait, getswait. get timeout mis-working
     - fix backend_keep_alive default value from 10 to 1200
 		- fix dbi reraise on error
