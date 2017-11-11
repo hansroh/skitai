@@ -29,7 +29,7 @@ class Promise (simple_producer):
 	
 	def __getattr__ (self, name):
 		if name.split (".")[0] not in self.__was.VALID_COMMANDS:
-			raise AttributeError ('%s is not member' % name)
+			return getattr (self.was, name)			
 		self._numreq += 1
 		return _Method (self._call, name)
 		
@@ -38,13 +38,13 @@ class Promise (simple_producer):
 			karg ['meta'] = {}
 		karg ['meta'] = {'__reqid': args [0]}
 		karg ['callback'] = self
-		self.__was._call (method, args [1:], karg)
+		return self.__was._call (method, args [1:], karg)
 		
 	def __call__ (self, response):
 		if self._done:
 			return
 		self._numres += 1
-		response.reqid = response.meta ["__reqid"]
+		response.id = response.meta ["__reqid"]
 		try:
 			self.handler (self, response)
 		except:
@@ -61,10 +61,10 @@ class Promise (simple_producer):
 		self [k] = v
 		
 	def encode (self, d):
-		if type (d) is str:
-			return d.encode ('utf8')
-		return d
-	
+		if type (d) is bytes:
+			return d			
+		return str (d).encode ('utf8')		
+		
 	def send (self, data):
 		if self._done:
 			return		
@@ -95,7 +95,7 @@ class Promise (simple_producer):
 		return self.fulfilled () and self._done
 				
 	def settle (self, data = None):
-		if data:
+		if data:			
 			self.send (data)
 		self._done = True
 	
