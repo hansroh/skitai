@@ -122,8 +122,8 @@ Your myproject/app.py,
     skitai.mount ('/uploads/bigfiles', '/data/www/bifgiles')
     
     skitai.run (
-    	address = "127.0.0.1",    	
-    	port = 5000
+      address = "127.0.0.1",      
+      port = 5000
     )
 
 At command line,
@@ -162,8 +162,8 @@ Mount WSGI App
     
     skitai.mount ('/', app)
     skitai.run (
-    	address = "127.0.0.1",
-    	port = 5000
+      address = "127.0.0.1",
+      port = 5000
     )
 
 At now, run this code from console.
@@ -357,7 +357,7 @@ Here's three WSGI app samples:
   app.debug = True
   
   @app.route("/")
-  def index ():	 
+  def index ():   
     return "Hello World"
 
 
@@ -369,7 +369,7 @@ Here's three WSGI app samples:
   app.debug = True
     
   @app.route('/')
-  def index (was):	 
+  def index (was):   
     return "Hello World"
 
 
@@ -394,7 +394,7 @@ Let's assume initail version of app file is app_v1.py.
   app = Saddle (__name__)
     
   @app.route('/')
-  def index (was):	 
+  def index (was):   
     return "Hello World Ver.1"
 
 And in same directory 2nd version of app file is app_v2.py.
@@ -404,7 +404,7 @@ And in same directory 2nd version of app file is app_v2.py.
   app = Saddle (__name__)
       
   @app.route('/')
-  def index (was):	 
+  def index (was):   
     return "Hello World Ver.2"
   
 Now service.py is like this:
@@ -522,9 +522,9 @@ __init__.py
     with open (pref.config.urlfile, "r") as f:
       pref.config.urllist = [] 
       while 1:
-      	line = f.readline ().strip ()
-      	if not line: break
-      	pref.config.urllist.append (line.split ("\t", 4))
+        line = f.readline ().strip ()
+        if not line: break
+        pref.config.urllist.append (line.split ("\t", 4))
 
 
 Setting Timeout
@@ -1061,16 +1061,16 @@ For Nginx:
   server {
     listen 80;
     server_name www.oh-my-jeans.com;
-  	
-    location / {		
+    
+    location / {    
       proxy_pass http://backend;
       proxy_set_header Host $host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       add_header X-Backend "skitai app engine";
     }
-  	
+    
     location /assets/ {
-      alias /home/ubuntu/www/statics/assets/;		
+      alias /home/ubuntu/www/statics/assets/;    
     }
   }
 
@@ -1149,10 +1149,10 @@ If your app need bootstraping or capsulizing complicated initialize process from
     with open (pref.config.urlfile, "r") as f:
       urllist = [] 
       while 1:
-      	line = f.readline ().strip ()
-      	if not line: break
-      	urllist.append (line.split ("\t", 4))
-      pref.config.urllist = urllist	
+        line = f.readline ().strip ()
+        if not line: break
+        urllist.append (line.split ("\t", 4))
+      pref.config.urllist = urllist  
      
  
 Example
@@ -1412,7 +1412,7 @@ Add mydb members to config file.
     import skitai
     
     skitai.alias (
-    	'@mydb',
+      '@mydb',
        skitai.PGSQL, 
        [
          "s1.yourserver.com:5432/mydb/user/passwd", 
@@ -1435,7 +1435,7 @@ Basically same with load_balancing except Skitai requests to all members per eac
       stub = was.rpc.map ("@mysearch/rpc2")
       req = stub.search (keyword)
       results = req.getswait (2)
-			
+      
       all_results = []
       for result in results:      
          all_results.extend (result.data)
@@ -1467,7 +1467,7 @@ Every results returned by getwait(), getswait() can cache.
   s = was.rpc.lb ("@mysearch/rpc2").getinfo ()
   result = s.getwait (2)
   if result.status_code == 200:
-  	result.cache (60) # 60 seconds
+    result.cache (60) # 60 seconds
   
   s = was.rpc.map ("@mysearch/rpc2").getinfo ()
   results = s.getswait (2)
@@ -1510,12 +1510,12 @@ For expiring cached result by updating new data:
     refreshed = True
   
   s = was.rpc.lb (
-  	"@mysearch/rpc2", 
-  	use_cache = not refreshed and True or False
+    "@mysearch/rpc2", 
+    use_cache = not refreshed and True or False
   ).getinfo ()
   result = s.getwait (2)
   if result.status_code == 200:
-  	result.cache (60) # 60 seconds  
+    result.cache (60) # 60 seconds  
 
 
 More About Cache Control: Model Synchronized Cache
@@ -1761,7 +1761,7 @@ If your WSGI app enable handle websocket, it should give  initial parameters to 
           websocket design specs, 
           keep_alive_timeout = 60, 
           message_encoding = None
-        )		
+        )    
 
 *websocket design specs* can  be choosen one of 4.
 
@@ -1964,7 +1964,7 @@ It needn't return message, but you can send directly multiple messages through w
     elif was.wshasevent (): # ignore all events
       return
       
-    was.websocket.send ("You said," + message)	
+    was.websocket.send ("You said," + message)  
     was.websocket.send ("I said acknowledge")
 
 This way is very useful for Flask users, because Flask's return object is bytes, so Skitai try to decode with utf-8 and send message as text type. If Flask users want to send binary data, just send bytes type.
@@ -2166,7 +2166,7 @@ You can access all Saddle object from was.app.
 - was.app.config # use for custom configuration like was.app.config.my_setting = 1
 
 - was.app.securekey
-- was.app.session_timeout = None	
+- was.app.session_timeout = None  
 
 - was.app.authorization = "digest"
 - was.app.authenticate = False
@@ -2221,17 +2221,17 @@ Routing
 Basic routing is like this:
 
 .. code:: python
-	
+  
   @app.route ("/hello")
-  def hello_world (was):	
+  def hello_world (was):  
     return was.render ("hello.htm")
 
 For adding some restrictions:
 
 .. code:: python
-	
+  
   @app.route ("/hello", methods = ["GET"], content_types = ["text/xml"])
-  def hello_world (was):	
+  def hello_world (was):  
     return was.render ("hello.htm")
 
 If method is not GET, Saddle will response http error code 405 (Method Not Allowed), and content-type is not text/xml, 415 (Unsupported Content Type).
@@ -2304,7 +2304,7 @@ It is also possible via keywords args,
   def episode (was, \*\*karg):
     retrun was.request.args.get ("id")
   # http://127.0.0.1:5000/episode
-	
+  
 Query String Parameters
 ``````````````````````````````
 
@@ -2315,22 +2315,22 @@ qiery string parameter can be both resource arguments but needn't be.
   @app.route ("/hello")
   def hello_world (was, num = 8):
     return num
-  # http://127.0.0.1:5000/hello?num=100	
+  # http://127.0.0.1:5000/hello?num=100  
 
 It is same as these,
-	
+  
 .. code:: python
 
   @app.route ("/hello")
   def hello_world (was):
     return was.request.args.get ("num")
-	
-	@app.route ("/hello")
+  
+  @app.route ("/hello")
   def hello_world (was, **url):
     return url.get ("num")
 
 Above 2 code blocks have a significant difference. First one can get only 'topic' parameter. If URL query string contains other parameters, Skitai will raise 508 Error. But 2nd one can be any parameters.
-		
+    
 Getting Form/JSON Parameters
 ```````````````````````````````
 
@@ -2341,35 +2341,35 @@ if request header has application/json
 
   @app.route ("/hello")
   def hello (was, **form):
-  	return "Post %s %s" % (form.get ("userid", ""), form.get ("comment", ""))
-  	
+    return "Post %s %s" % (form.get ("userid", ""), form.get ("comment", ""))
+    
   @app.route ("/hello")
   def hello_world (was, userid, **form):
-  	return "Post %s %s" % (userid, form.get ("comment", ""))
+    return "Post %s %s" % (userid, form.get ("comment", ""))
 
 Note that for receiving request body via arguments, you specify keywords args like \*\*karg or specify parameter names of body data.
 
 If you want just handle POST body, you can use was.request.json () or was.request.form () that will return dictionary object.
-	
+  
 Getting Composed Parameters
 ```````````````````````````````
 
 You can receive all type of parameters by resource arguments. Let'assume yotu resource URL is http://127.0.0.1:5000/episode/100?topic=Python.
 
 .. code:: python
-	
+  
   @app.route ("/episode/<int:id>")
   def hello (was, id, topic):
-  	pass
+    pass
 
 if URL is http://127.0.0.1:5000/episode/100?topic=Python with Form/JSON data {"comment": "It is good idea"}
 
 .. code:: python
-	
+  
   @app.route ("/episode/<int:id>")
   def hello (was, id, topic, comment):
-  	pass
-		
+    pass
+    
 Note that argument should be ordered by:
 
 - URL parameters
@@ -2381,20 +2381,20 @@ And note if your request has both query string and form/JSON body, and want to r
 Also you can use keywords argument.
 
 .. code:: python
-		
+    
   @app.route ("/episode/<int:id>")
   def hello (was, id, \*\*karg):
-  	karg.get ('topic')
+    karg.get ('topic')
 
 Note that \*\*karg is contains both query string and form/JSON data and no retriction for parameter names.
 
 was.requests.args is merged dictionary for all type of parameters. If parameter name is duplicated, its value will be set to form of value list. Then simpletst way for getting parameters, use was.requests.args.
 
 .. code:: python
-	
+  
   @app.route ("/episode/<int:id>")
   def hello (was, id):
-  	was.request.args.get ('topic')
+    was.request.args.get ('topic')
 
 
 Make Your Own Principal
@@ -2413,9 +2413,9 @@ Response
 Basically, just return contents.
 
 .. code:: python
-	
+  
   @app.route ("/hello")
-  def hello_world (was):	
+  def hello_world (was):  
     return was.render ("hello.htm")
 
 If you need set additional headers or HTTP status,
@@ -2423,13 +2423,13 @@ If you need set additional headers or HTTP status,
 .. code:: python
   
   @app.route ("/hello")
-  def hello (was):	
+  def hello (was):  
     return was.response ("200 OK", was.render ("hello.htm"), [("Cache-Control", "max-age=60")])
 
-  def hello (was):	
+  def hello (was):  
     return was.response (body = was.render ("hello.htm"), headers = [("Cache-Control", "max-age=60")])
 
-  def hello (was):	       
+  def hello (was):         
     was.response.set_header ("Cache-Control", "max-age=60")
     return was.render ("hello.htm")
 
@@ -2439,7 +2439,7 @@ Sending specific HTTP status code,
 
 .. code:: python
   
-  def hello (was):	
+  def hello (was):  
     return was.response ("404 Not Found", was.render ("err404.htm"))
   
   def hello (was):
@@ -2452,11 +2452,11 @@ If app raise exception, traceback information will be displayed only app.debug =
   
   # File
   @app.route ("/raise_exception")
-  def raise_exception (was):	
+  def raise_exception (was):  
     try:
-    	raise ValueError ("Test Error")
-    except:    	
-    	return was.response ("500 Internal Server Error", exc_info = sys.exc_info ())
+      raise ValueError ("Test Error")
+    except:      
+      return was.response ("500 Internal Server Error", exc_info = sys.exc_info ())
     
 You can return various objects.
 
@@ -2464,11 +2464,11 @@ You can return various objects.
   
   # File
   @app.route ("/streaming")
-  def streaming (was):	
+  def streaming (was):  
     return was.response ("200 OK", open ("mypicnic.mp4", "rb"), headers = [("Content-Type", "video/mp4")])
   
   # Generator
-  def build_csv (was):	
+  def build_csv (was):  
     def generate():
       for row in iter_all_rows():
         yield ','.join(row) + '\n'
@@ -2621,12 +2621,12 @@ If you use was' requests services, and they're expected taking a long time to fe
   
   def promise_handler (promise, resp):
     if resp.status_code == 200:
-      promise [resp.reqid]  = promise.render (
-        '%s.html' % resp.reqid,
+      promise [resp.id]  = promise.render (
+        '%s.html' % resp.id,
         data = response.json ()
       )
     else:
-      promise [resp.reqid] = '<div>Error in %s</div>' % resp.reqid
+      promise [resp.id] = '<div>Error in %s</div>' % resp.id
      
     # check if all requests are done
     if promise.fulfilled ():    
@@ -2641,6 +2641,22 @@ If you use was' requests services, and they're expected taking a long time to fe
     promise.get ('D', "https://pypi.python.org/pypi/aquests")
     return promise
 
+Database query example,
+    
+.. code:: python
+  
+  def promise_handler (promise, resp):   
+    if promise.fulfilled ():
+      r = promise ["stats"]
+      r ['result'] = resp.data
+      promise.settle (promise.was.response.api (r))
+
+  @app.route ("/promise")
+  def promise (was):
+    promise = was.promise (promise_handler, stats = {'total': 100})
+    promise.backend ('query', "@postgre").execute ("select ...")
+    return promise
+    
 'skitai.html' Jinja2 template used in render() is,
 
 .. code:: html
@@ -2738,10 +2754,10 @@ For using it, you just call was.response.hint_promise (uri) before return respon
         '<img src="/images/A.png">'
         '<img src="/images/B.png">'
       )
-    )	
+    )  
 
 .. _`HTTP2 server push`: https://tools.ietf.org/html/rfc7540#section-8.2
-		
+    
 Building URL
 ---------------
 
@@ -2763,7 +2779,7 @@ If your app is mounted at "/math",
   @app.route ("/hello/<name>")
   def hello (was, name = "Hans Roh"):
     return "Hello, %s" % name
-	
+  
   was.ab ("hello", "Your Name") # returned '/math/hello/Your_Name'
 
 
@@ -3108,8 +3124,8 @@ was.cookie has almost dictionary methods.
 .. code:: python
 
   if "user_id" not in was.cookie:
-    was.cookie.set ("user_id", "hansroh")  	
-    # or  	
+    was.cookie.set ("user_id", "hansroh")    
+    # or    
     was.cookie ["user_id"] = "hansroh"
 
 
@@ -3159,7 +3175,7 @@ If you don't specify cookie path when set, cookie path will be automatically set
   was.cookie.set ('private_cookie', val)
         
   was.cookie.set ('public_cookie', val, path = '/')
-  	
+    
 - was.cookie.set (key, val, expires = None, path = None, domain = None, secure = False, http_only = False)
 - was.cookie.remove (key, path, domain)
 - was.cookie.clear (path, domain)
@@ -3225,9 +3241,9 @@ A part of msg.htm is like this:
 
   Messages To {{ name }},
   <ul>
-  	{% for message_id, category, created, valid, msg, extra in was.mbox.get () %}
-  		<li> {{ mtype }}: {{ msg }}</li>
-  	{% endfor %}
+    {% for message_id, category, created, valid, msg, extra in was.mbox.get () %}
+      <li> {{ mtype }}: {{ msg }}</li>
+    {% endfor %}
   </ul>
 
 Default value of valid argument is 0, which means if page called was.mbox.get() is finished successfully, it is automatically deleted from mbox.
@@ -3255,9 +3271,9 @@ news.htm like this:
 
   News for {{ was.g.username }},
   <ul>
-  	{% for mid, category, created, valid, msg, extra in was.mbox.get ("notice", "news") %}
-  		<li class="{{category}}"> {{ msg }}</li>
-  	{% endfor %}
+    {% for mid, category, created, valid, msg, extra in was.mbox.get ("notice", "news") %}
+      <li class="{{category}}"> {{ msg }}</li>
+    {% endfor %}
   </ul>
 
 - was.mbox.send (msg, category, valid_seconds, key=val, ...)
@@ -3296,7 +3312,7 @@ For example, your app need isolated session or mbox seperated default session fo
 .. code:: python
 
   @app.route("/")
-  def index (was):	 
+  def index (was):   
     was.session.mount ("ADM", SECUREKEY_STRING, path = '/admin')
     was.session.set ("admin_login", True)
 
@@ -3308,7 +3324,7 @@ SECUREKEY_STRING needn't same with app.securekey. And path, domain, secure, http
 .. code:: python
 
   @app.route("/")
-  def index (was):	 
+  def index (was):   
     was.session.mount ("ADM", SECUREKEY_STRING, path = '/')
     was.session.set ("admin_login", True)
 
@@ -3353,7 +3369,7 @@ File Upload
       file = form.get ("file")
       if file:
         file.save ("d:\\var\\upload", dup = "o") # overwrite
-			  
+        
 'file' object's attributes are:
 
 - file.path: temporary saved file full path
@@ -3422,7 +3438,7 @@ If view_account is called, Saddle execute these sequence:
     except:
       content = failed_request (was, sys.exc_info ())
       if content is None:
-      	raise
+        raise
       
     else:
       finish_request (was)
@@ -3444,8 +3460,8 @@ If you handle exception with failed_request (), return custom error content, or 
   def failed_request (was, exc_info):
     # releasing resources
     return was.response (
-    	"501 Server Error", 
-    	was.render ("err501.htm", msg = "We're sorry but something's going wrong")
+      "501 Server Error", 
+      was.render ("err501.htm", msg = "We're sorry but something's going wrong")
     )
 
 
@@ -3555,8 +3571,8 @@ For allowing CORS, you should do 2 things:
   
   @app.route ("/post", methods = ["POST", "OPTIONS"])
   def post (was):
-    args = was.request.json ()	
-    return was.jstream ({...})	
+    args = was.request.json ()  
+    return was.jstream ({...})  
     
 
 If you want function specific CORS,
@@ -3571,8 +3587,8 @@ If you want function specific CORS,
    access_control_max_age = 3600
   )
   def post (was):
-    args = was.request.json ()	
-    return was.jstream ({...})	
+    args = was.request.json ()  
+    return was.jstream ({...})  
 
 
 WWW-Authenticate
@@ -3596,7 +3612,7 @@ Authentication On Entire App
   app.realm = "Partner App Area of mysite.com"
   app.users = {"app": ("iamyourpartnerapp", 0, {'role': 'root'})}
   app.authenticate = True
-	
+  
   @app.route ("/hello/<name>")
   def hello (was, name = "Hans Roh"):
     return "Hello, %s" % name
@@ -3635,10 +3651,10 @@ If you use encrypted password, you should use digest authorization and password 
   from hashlib import md5
   
   encrypted_password = md5 (
-  	("%s:%s:%s" % (username, realm, password)).encode ("utf8")
+    ("%s:%s:%s" % (username, realm, password)).encode ("utf8")
   ).hexdigest ()
 
-		
+    
 If authorization is successful, app can access username and userinfo vi was.request.user.
 
   - was.request.user.name
@@ -3813,7 +3829,7 @@ You can use also Django models.
 
   @app,route ('/django/hello')
   def django_hello (was):
-    models.Photo.objects.create (user='Hans Roh', title = 'My Photo')	
+    models.Photo.objects.create (user='Hans Roh', title = 'My Photo')  
     result = models.Photo.filter (user='hansroh').order_by ('-create_at')
 
 You can use Django Query Set as SQL generator for Skitai's asynchronous query execution. But it has some limitations.
@@ -3827,8 +3843,8 @@ You can use Django Query Set as SQL generator for Skitai's asynchronous query ex
 
   @app,route ('/hello')
   def django_hello (was):    
-    query = models.Photo.objects.filter (topic=1).order_by ('title')	
-    return was.jstream (was.sqlite3 ("@entity").execute (query).getwait ().data, 'data')	
+    query = models.Photo.objects.filter (topic=1).order_by ('title')  
+    return was.jstream (was.sqlite3 ("@entity").execute (query).getwait ().data, 'data')  
 
 
 Redirect Django Model Signals To Saddle Event
@@ -3864,8 +3880,8 @@ This example show that if Django admin app is mounted to Skitai, whenever model 
     # creating cache object
     query = (sender or Photo).objects.all ().order_by ('created_at')
     was.backend (
-    	'@entity', 
-    	callback = lambda x, y = app: y.storage.set ('my-cache', x.data)
+      '@entity', 
+      callback = lambda x, y = app: y.storage.set ('my-cache', x.data)
     ).execute (query)
 
 For watching multiple models.
@@ -3926,8 +3942,8 @@ If Skitai run with -v option, app and exceptions are displayed at your console, 
     try:
       ...
     except:  
-    	was.log ("exception occured", "error")
-    	was.traceback ()
+      was.log ("exception occured", "error")
+      was.traceback ()
     was.log ("done index", "info")
 
 Note inspite of you do not handle exception, all app exceptions will be logged automatically by Saddle. And it includes app importing and reloading exceptions.
@@ -3971,12 +3987,13 @@ Change Log
   
   - 0.26.16 (Oct 2017)
     
-		- change method name from skitai.set_network_timeout to set_erquest_timeout
-		- fix getwait, getswait. get timeout mis-working
+    - fix promise and proxing was objects
+    - change method name from skitai.set_network_timeout to set_erquest_timeout
+    - fix getwait, getswait. get timeout mis-working
     - fix backend_keep_alive default value from 10 to 1200
-		- fix dbi reraise on error
+    - fix dbi reraise on error
     - JSON as arguments
-		
+    
   - 0.26.15
     
     - added request.form () and request.dict ()

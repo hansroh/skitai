@@ -72,6 +72,9 @@ class API:
 	
 	def get_content_type (self):
 		return 'application/json'
+	
+	def __str__ (self):	
+		return self.to_string ()
 		
 	def to_string (self):		
 		return json.dumps (self.data, cls = DateEncoder)
