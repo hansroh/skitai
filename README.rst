@@ -1531,7 +1531,7 @@ First of all, you should set all cache control keys to Skitai for sharing model 
 
 .. code:: python
 
-  skitai.trackers ('tables.users', 'table.photos')
+  skitai.addlu ('tables.users', 'table.photos')
 
 These Key names are might be related your database model names nor table names. Especially you bind Django model signal, these keys should be exaclty nodel class name. But in general cases, key names are fine if you easy to recognize.
   
@@ -3925,7 +3925,7 @@ In backgound, app catch Django's model signal, and automatically was.setlu (your
 
 .. code:: python
 
-  skitai.trackers ('myapp.models.User', 'myapp.models.Photo')
+  skitai.addlu ('myapp.models.User', 'myapp.models.Photo')
   skitai.run ()
   
 
@@ -3987,6 +3987,7 @@ Change Log
   
   - 0.26.16 (Oct 2017)
     
+		- add skitai.addlu (args, ...) that is equivalant to skitai.addlu (args, ...)
     - fix promise and proxing was objects
     - change method name from skitai.set_network_timeout to set_erquest_timeout
     - fix getwait, getswait. get timeout mis-working

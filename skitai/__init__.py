@@ -181,6 +181,11 @@ def lukeys (keys):
 
 def trackers (*keys):
 	lukeys (keys)
+
+def addlu (*key):
+	if "models-keys" not in dconf:
+		dconf ["models-keys"] = []
+	dconf ["models-keys"].extend (key)
 			
 def mount (point, target, appname = "app", pref = pref (True), host = "default", path = None):
 	global dconf
