@@ -2649,7 +2649,7 @@ Database query example,
     if promise.fulfilled ():
       r = promise ["stats"]
       r ['result'] = resp.data
-      promise.settle (promise.was.response.api (r))
+      promise.settle (promise.response.api (r))
 
   @app.route ("/promise")
   def promise (was):
