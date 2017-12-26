@@ -70,7 +70,7 @@ class Module:
 					else:	
 						for k, v in copy.copy (self.pref.config).items ():
 							app.config [k] = v
-				else:	
+				else:
 					setattr (app, k, v)					
 		
 		if not hasattr (app, "config"):
@@ -78,6 +78,11 @@ class Module:
 		elif not hasattr (app.config, "max_post_body_size"):
 			config.set_default (app.config)
 			
+		if hasattr (app, "client_max_body_size"):
+			val = app.client_max_body_size
+			app.config.max_post_body_size = val
+			app.config.max_multipart_body_size = val
+			app.config.max_upload_file_size = val		
 		if hasattr (app, "set_home"):
 			app.set_home (os.path.dirname (self.abspath))
 		if hasattr (app, "commit_events_to"):
