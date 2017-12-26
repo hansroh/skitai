@@ -4010,7 +4010,7 @@ Change Log
   0.26 (May 2017)
   
   - 0.26.16 (Oct 2017)
-    
+    - fix mbox, add app.client_max_body_size
     - add skitai.addlu (args, ...) that is equivalant to skitai.addlu (args, ...)
     - fix promise and proxing was objects
     - change method name from skitai.set_network_timeout to set_erquest_timeout
