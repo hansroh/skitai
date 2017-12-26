@@ -526,7 +526,7 @@ __init__.py
         if not line: break
         pref.config.urllist.append (line.split ("\t", 4))
 
-Setting POST body size limitation
+Setting POST Body Size Limitation
 ------------------------------------
 
 For setting 8 Gbytes limitation for POST body size,
@@ -536,7 +536,7 @@ For setting 8 Gbytes limitation for POST body size,
   import skitai
   
   pref = skitai.pref ()	
-  pref.client_max_body_size = 2 << 32
+  pref.max_client_body_size = 2 << 32
 	
 If you want to set more detaily,
 	
@@ -4010,7 +4010,7 @@ Change Log
   0.26 (May 2017)
   
   - 0.26.16 (Oct 2017)
-    - fix mbox, add app.client_max_body_size
+    - fix mbox, add app.max_client_body_size
     - add skitai.addlu (args, ...) that is equivalant to skitai.addlu (args, ...)
     - fix promise and proxing was objects
     - change method name from skitai.set_network_timeout to set_erquest_timeout

@@ -78,8 +78,8 @@ class Module:
 		elif not hasattr (app.config, "max_post_body_size"):
 			config.set_default (app.config)
 			
-		if hasattr (app, "client_max_body_size"):
-			val = app.client_max_body_size
+		if hasattr (app, "max_client_body_size"):
+			val = app.max_client_body_size
 			app.config.max_post_body_size = val
 			app.config.max_multipart_body_size = val
 			app.config.max_upload_file_size = val		
