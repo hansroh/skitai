@@ -82,6 +82,8 @@ class Saddle (part.Part):
 			self.jinja_overlay ("##", "##", "{%", "%}", "<!---", "--->")			
 		elif option == 5:
 			self.jinja_overlay ("{:", ":}", "{%", "%}", "<!---", "--->")				
+		elif option == 6:
+			self.jinja_overlay ("<%", "%>", "{%", "%}", "<!---", "--->")					
 		
 	def jinja_overlay (
 		self, 
@@ -144,7 +146,7 @@ class Saddle (part.Part):
 			if os.path.isdir (maybe_dir):
 				package_dirs.append (maybe_dir)
 		
-		for k, v in sys.modules.items ():
+		for k, v in list (sys.modules.items ()):
 			try:
 				modpath = v.__spec__.origin
 			except AttributeError:

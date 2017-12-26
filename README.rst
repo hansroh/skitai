@@ -526,6 +526,30 @@ __init__.py
         if not line: break
         pref.config.urllist.append (line.split ("\t", 4))
 
+Setting POST body size limitation
+------------------------------------
+
+For setting 8 Gbytes limitation for POST body size,
+
+.. code:: python
+  
+  import skitai
+  
+  pref = skitai.pref ()	
+  pref.client_max_body_size = 2 << 32
+	
+If you want to set more detaily,
+	
+.. code:: python
+  
+  import skitai
+  
+  pref = skitai.pref ()
+	
+  pref.config.max_post_body_size = 2 << 32
+  pref.config.max_multipart_body_size = 2 << 32
+  pref.config.max_upload_file_size = 2 << 32
+	
 
 Setting Timeout
 -----------------
@@ -3987,7 +4011,7 @@ Change Log
   
   - 0.26.16 (Oct 2017)
     
-		- add skitai.addlu (args, ...) that is equivalant to skitai.addlu (args, ...)
+    - add skitai.addlu (args, ...) that is equivalant to skitai.addlu (args, ...)
     - fix promise and proxing was objects
     - change method name from skitai.set_network_timeout to set_erquest_timeout
     - fix getwait, getswait. get timeout mis-working
