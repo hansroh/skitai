@@ -6,30 +6,28 @@ class NamedSession:
 		self.__cookie = cookie
 		self.__obj = None
 		self.__request = request
-		self.__securekey = securekey		
+		self.__securekey = securekey
 		self.__timeout = timeout
 	
 	def mount (self, name = None, securekey = None, path = None, domain = None, secure = False, http_only = False, session_timeout = None):		
 		if self.__obj:
 			self.__obj.commit ()
-								
+		
 		securekey, session_timeout = self.__get_config (securekey, session_timeout)
 		if not securekey:
-			raise AssertionError ("Secret key is not configuured")
+			raise AssertionError ("Secret key is not configured")
 		
 		if not name:
 			if not (path is None or path == "/"):
-				raise AssertionError ("No-Nameed session path should be None or '/'")
+				raise AssertionError ("No-Named session path should be None or '/'")
 			name = ""
 			path = "/"
 		else:
 			name = "_" + name.upper ()
 		
-		if self.__wclass == "session":
+		if self.__wclass == "session":			
 			obj = self.__get_session (name, securekey, session_timeout)
-		else:
-			if session_timeout:
-				raise AssertionError ("Cannot set timeout for mbox")
+		else:			
 			obj = self.__get_notices (name, securekey)
 			
 		obj.config (path, domain, secure, http_only)

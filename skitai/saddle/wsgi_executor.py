@@ -157,7 +157,7 @@ class Executor:
 		# keep commit order, session -> mbox -> cookie
 		if not self.was.in__dict__ ("cookie"):		
 			return			
-		if self.was.in__dict__ ("session"):		
+		if self.was.in__dict__ ("session"):
 			self.was.session and self.was.session.commit ()
 		if self.was.in__dict__ ("mbox"):
 			self.was.mbox and self.was.mbox.commit ()
