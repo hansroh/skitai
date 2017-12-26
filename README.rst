@@ -535,6 +535,15 @@ For setting 8 Gbytes limitation for POST body size,
   
   import skitai
   
+  pref = skitai.pref ()	
+  pref.client_max_body_size = 2 << 32
+	
+If you want to set more detaily,
+	
+.. code:: python
+  
+  import skitai
+  
   pref = skitai.pref ()
 	
   pref.config.max_post_body_size = 2 << 32
