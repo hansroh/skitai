@@ -3847,6 +3847,20 @@ Using Django Models
 
 You can use also Django models.
 
+First of all, you should mount Django app.
+
+.. code:: python
+
+  skitai.mount ("/", "myapp/wsgi.py", "application", pref = pref)
+
+Or you can just use Django models only,
+
+.. code:: python
+
+  skitai.use_django_models ("myapp/settings.py")
+	
+Now you can use your models,
+	
 .. code:: python
 
   from mydjangoapp.photos import models
@@ -4010,6 +4024,8 @@ Change Log
   0.26 (May 2017)
   
   - 0.26.16 (Oct 2017)
+
+    - add use_django_models (settings_path)
     - fix mbox, add app.max_client_body_size
     - add skitai.addlu (args, ...) that is equivalant to skitai.addlu (args, ...)
     - fix promise and proxing was objects

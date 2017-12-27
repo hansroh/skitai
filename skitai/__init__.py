@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.16.9"
+__version__ = "0.26.16.11"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -255,6 +255,18 @@ def enable_gateway (enable_auth = False, secure_key = None, realm = "Skitai API 
 	dconf ["gw_auth"] = enable_auth,
 	dconf ["gw_realm"] = realm,
 	dconf ["gw_secret_key"] = secure_key
+
+def use_django_models (settings_path):
+	import django
+	
+	ap = abspath (settings_path)
+	django_main, settings_file = os.path.split (ap)
+	django_root, django_main_dir = os.path.split (django_main)
+	
+	sys.path.insert (0, django_root)
+	settings = "{}.{}".format (django_main_dir, settings_file.split (".")[0])		
+	os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings)
+	django.setup()
 
 def enable_cachefs (memmax = 0, diskmax = 0, path = None):
 	global dconf	
