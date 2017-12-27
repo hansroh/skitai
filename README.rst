@@ -230,6 +230,9 @@ Let's assume your Django app project is '/mydjango' and skitai app engine script
     pref, 
     path = "./mydjango"
   )
+
+  # or for your convinience,	
+  skitai.mount_django ("/", "mydjango/mydjango/wsgi.py", pref)	
  
 Note that if app is smae location with django manage.py, you need not path param.
 
@@ -4025,7 +4028,7 @@ Change Log
   
   - 0.26.16 (Oct 2017)
 
-    - add use_django_models (settings_path)
+    - add use_django_models (settings_path), skitai.mount_django (point, wsgi_path, pref = pref (True), host = "default")
     - fix mbox, add app.max_client_body_size
     - add skitai.addlu (args, ...) that is equivalant to skitai.addlu (args, ...)
     - fix promise and proxing was objects
