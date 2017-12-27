@@ -179,7 +179,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 	
 	def _request (self, method, params):
 		if QuerySet and isinstance (params [0], QuerySet):			
-			params = (str (params [0].query),)
+			params = (str (params [0].query),) + params [1:]
 			
 		self._cached_request_args = (method, params) # backup for retry
 		if self._use_cache and rcache.the_rcache:
