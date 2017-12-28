@@ -1,6 +1,6 @@
-from skitai.sqlgen import SQLGen, Operation, SQLLoader
+from skitai.sqlmap import SQLMap, Operation, SQLMapLoader
+from skitai.sqlmap.q import Q
 import datetime
-from skitai.sqlgen.q import Q
 
 def test_Q ():	
 	assert str (Q ("name", "Hans Roh")) == "name = 'Hans Roh'"
@@ -15,8 +15,8 @@ def test_Q ():
 	
 def test_operation ():
 	f = Operation ()
-	sql = f.insert ("rc_file", {"_id": 1, "score": 1.3242, "name": "file-A", "moddate": datetime.date.today ()})
-	sql = f.update ("rc_file", {"score": 1.3242, "name": "file-A", "moddate": datetime.date.today ()})
+	sql = f.insert ("rc_file", _id = 1, score = 1.3242, name = "file-A", moddate = datetime.date.today ())
+	sql = f.update ("rc_file", score = 1.3242, name = "file-A", moddate = datetime.date.today ())
 	sql.filter (_id = 1, name__contains = "Hans Roh").order_by ("name", "-type").group_by ("name")
 	assert sql.query.find ("UPDATE rc_file SET") !=- 1
 	assert sql.query.find ("score=1.3242") !=- 1
@@ -25,7 +25,7 @@ def test_operation ():
 	assert sql.query.find ("ORDER BY name, type DESC") !=- 1
 	
 def test_sqlgen ():	
-	f = SQLGen ()
+	f = SQLMap ()
 	f._read_from_string ("""
 <sql name="test1">
 	select * from {tbl} WHERE {filters} 
@@ -49,7 +49,7 @@ def test_sqlgen ():
 	)
 
 def test_SQLLoader ():
-	map = SQLLoader ("sqlmaps")
+	map = SQLMapLoader ("sqlmaps")
 	map.ops
 	sql = map.test.test1.filter (name = 'Hans').group_by ("name").order_by ("name").feed (tbl = 'rc_file')	
 	assert sql.query == (

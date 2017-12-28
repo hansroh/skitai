@@ -14,7 +14,7 @@ import random
 import base64
 from . import cookie
 from .config import Config
-from skitai.sqlgen import SQLLoader
+from skitai.sqlmap import SQLMapLoader
 	
 from jinja2 import Environment, FileSystemLoader
 try:
@@ -143,7 +143,7 @@ class Saddle (part.Part):
 		
 		sqlmaps_dir = os.path.join(path, "sqlmaps")
 		if os.path.isdir (sqlmaps_dir):
-			self.sqlmaps = SQLLoader (sqlmaps_dir)		
+			self.sqlmaps = SQLMapLoader (sqlmaps_dir, self.use_reloader)
 		
 		package_dirs = []
 		for d in self.PACKAGE_DIRS:

@@ -1,10 +1,11 @@
 import os
 import re
 from . import utils
-from .import sql
+from . import sql
+from .sql import SQLInjector
 from .q import Q, generate_filters
 
-class SQLGen:
+class SQLMap:
 	def __init__ (self, map = None, auto_reload = False):
 		self._map = map
 		self._auto_reload = auto_reload
@@ -15,7 +16,7 @@ class SQLGen:
 	
 	def __getattr__ (self, name):		
 		self._reloaderble () and self._read_from_file ()
-		return sql.SQL (self._sqls.get (name))
+		return sql.SQLInjector (self._sqls.get (name))
 		
 	def _reloaderble (self):
 		return self._map and self._auto_reload and self._last_modifed != os.path.getmtime (self._map)
@@ -51,23 +52,20 @@ class SQLGen:
 
 
 class Operation:
-	def insert (self, tbl, fields = None):
-		assert isinstance (fields, dict)
-		return sql.SQL2 (utils.make_insert_statement (tbl, fields))
+	def insert (self, tbl, **fields):		
+		return sql.SQLMerger (utils.make_insert_statement (tbl, fields))
 	
-	def update (self, tbl, fields = None):
-		assert isinstance (fields, dict)
-		return sql.SQL2 (utils.make_update_statement (tbl, fields))		
+	def update (self, tbl, **fields):		
+		return sql.SQLMerger (utils.make_update_statement (tbl, fields))		
 	
-	def select (self, tbl, fields = ["*"]):
-		assert isinstance (fields, (list, tuple))
-		return sql.SQL2 (utils.make_select_statement (tbl, fields))		
+	def select (self, tbl, *fields):		
+		return sql.SQLMerger (utils.make_select_statement (tbl, fields))		
 	
 	def delete (self, tbl):
-		return sql.SQL2 (utils.make_delete_statement (tbl))
+		return sql.SQLMerger (utils.make_delete_statement (tbl))
 
-		
-class SQLLoader:
+
+class SQLMapLoader:
 	def __init__ (self, dir = None, auto_reload = False):
 		self._dir = dir
 		self._auto_reload = auto_reload
@@ -88,5 +86,4 @@ class SQLLoader:
 			ns = fn.split (".") [0]
 			if ns == "ops":
 				raise NameError ('ops cannot be used SQL map file name')
-			self._ns [ns] = SQLGen (os.path.join (self._dir, fn), self._auto_reload)
-	
+			self._ns [ns] = SQLMap (os.path.join (self._dir, fn), self._auto_reload)

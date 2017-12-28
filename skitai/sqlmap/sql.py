@@ -43,6 +43,11 @@ class SQL:
 		return self
 	
 	def as_sql (self):
+		raise NotImplementedError
+		
+
+class SQLInjector (SQL):
+	def as_sql (self):
 		return self._template.format (
 			filters = " AND ".join (self._filters),
 			limit = self._limit,
@@ -53,7 +58,7 @@ class SQL:
 		)
 	
 
-class SQL2 (SQL):	
+class SQLMerger (SQL):	
 	def as_sql (self):
 		sql = [self._template]
 		self._filters and sql.append ("WHERE " + " AND ".join (self._filters))

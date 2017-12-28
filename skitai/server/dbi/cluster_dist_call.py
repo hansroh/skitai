@@ -8,10 +8,6 @@ from aquests.dbapi import request
 import asyncore
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from aquests.lib.cbutil import tuple_cb
-try:
-	from django.db.models.query import QuerySet
-except ImportError:
-	QuerySet = None
 		
 class OperationTimeout (Exception):
 	pass
@@ -178,7 +174,8 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		return asyncon
 	
 	def _request (self, method, params):
-		if QuerySet and isinstance (params [0], QuerySet):			
+		# For Django QuerySet and SQLGen
+		if hasattr (params [0], "query"):
 			params = (str (params [0].query),) + params [1:]
 			
 		self._cached_request_args = (method, params) # backup for retry
