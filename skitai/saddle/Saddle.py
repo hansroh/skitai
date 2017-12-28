@@ -14,7 +14,7 @@ import random
 import base64
 from . import cookie
 from .config import Config
-from skitai.sqlmap import SQLMapLoader
+from sqlphile import SQLMapLoader
 	
 from jinja2 import Environment, FileSystemLoader
 try:

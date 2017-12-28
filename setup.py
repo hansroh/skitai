@@ -43,7 +43,6 @@ classifiers = [
 
 packages = [
 	'skitai',
-	'skitai.sqlmap',
 	'skitai.server',
 	'skitai.server.dbi',
 	'skitai.server.bin',
@@ -63,6 +62,7 @@ package_data = {}
 install_requires = [
 	"jinja2==2.9.4", 	
 	"aquests",
+	"sqlphile",
 ]
 
 with codecs.open ('README.rst', 'r', encoding='utf-8') as f:
