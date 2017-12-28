@@ -2,7 +2,7 @@ import os
 import re
 from . import utils
 from . import sql
-from .sql import SQLInjector
+from .sql import SQL, SQLInjector, SQLMerger
 from .q import Q
 
 class SQLMap:
