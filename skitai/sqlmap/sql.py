@@ -1,9 +1,10 @@
 from . import utils
-from .q import Q, generate_filters
+from .q import Q, batch
 
 class SQL:
-	def __init__ (self, template):	
+	def __init__ (self, template, engine = "postgresql"):	
 		self._template = template		
+		self._engine = engine
 		self._filters = []
 		self._limit = 0
 		self._offset = 0
@@ -15,10 +16,14 @@ class SQL:
 	def query (self):
 		return self.as_sql ()
 	
+	def exclude (self, *Qs, **filters):
+		for q in Qs + tuple (batch (**filters)):
+			self._filters.append ("NOT (" + str (q) + ")")		
+		return self
+		
 	def filter (self, *Qs, **filters):
-		for q in Qs:
-			self._filters.append (str (q))
-		self._filters.append (generate_filters (**filters))
+		for q in Qs + tuple (batch (**filters)):
+			self._filters.append (str (q))		
 		return self
 	
 	def order_by (self, *by):
@@ -37,6 +42,11 @@ class SQL:
 		self._offset = "OFFSET {}".format (val)
 		return self
 	
+	def data (self, **karg):
+		for k, v in karg.items ():
+			self._feed [k] = utils.toval (v, self._engine)
+		return self
+		
 	def feed (self, **karg):		
 		for k, v in karg.items ():
 			self._feed [k] = v

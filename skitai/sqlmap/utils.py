@@ -1,6 +1,6 @@
 import datetime
 
-def toval (s):
+def toval (s, engine = "postgresql"):
 	if isinstance (s, datetime.date):
 		return "timestamp '" + s.strftime ("%Y%m%d %H:%M:%S") + "'"
 	if isinstance (s, (float, int)):
@@ -9,31 +9,31 @@ def toval (s):
 		return "NULL"
 	return "'" + s.replace ("'", "''") + "'"
 
-def make_update_statement (tbl, dict):
+def make_update_statement (engine, tbl, dict):
 	sets = []
 	for k, v in dict.items ():
-		sets.append ("{}={}".format (k, toval (v)))		
+		sets.append ("{}={}".format (k, toval (v, engine)))		
 	return "UPDATE {} SET {}".format (
 		tbl,
 		",".join (sets)		
 	)
 	
-def make_insert_statement (tbl, dict):	
+def make_insert_statement (engine, tbl, dict):	
 	cols = []
 	values = []
 	for k, v in dict.items ():
 		cols.append (k)
-		values.append (toval (v))		
+		values.append (toval (v, engine))		
 	return "INSERT INTO {} ({}) VALUES ({})".format (
 		tbl,
 		",".join (cols),
 		",".join (values),
 	)
 
-def make_select_statement (tbl, fields):
+def make_select_statement (engine, tbl, fields):
 	return "SELECT {} FROM {}".format (",".join (fields), tbl)
 
-def make_delete_statement (tbl):
+def make_delete_statement (engine, tbl):
 	return "DELETE FROM {}".format (tbl)
 
 def make_orders (order_by, keyword = "ORDER"):

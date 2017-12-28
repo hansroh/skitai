@@ -1,3 +1,5 @@
+<sqlmap version="1.0>
+
 <sql name="test1">
 	select * from {tbl} WHERE {filters} 
 	{group_by}

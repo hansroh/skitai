@@ -3,20 +3,22 @@ import re
 from . import utils
 from . import sql
 from .sql import SQLInjector
-from .q import Q, generate_filters
+from .q import Q
 
 class SQLMap:
-	def __init__ (self, map = None, auto_reload = False):
+	def __init__ (self, map = None, auto_reload = False, engine = "postgresql"):
 		self._map = map
 		self._auto_reload = auto_reload
+		self._engine = engine
+		self._version = "1.0"
 		self._sqls = {}
-		self._last_modifed = 0		
+		self._last_modifed = 0
 		if self._map:
 			self._read_from_file ()
 	
 	def __getattr__ (self, name):		
 		self._reloaderble () and self._read_from_file ()
-		return sql.SQLInjector (self._sqls.get (name))
+		return sql.SQLInjector (self._sqls.get (name), self._engine)
 		
 	def _reloaderble (self):
 		return self._map and self._auto_reload and self._last_modifed != os.path.getmtime (self._map)
@@ -27,6 +29,7 @@ class SQLMap:
 			self._read_from_string (f.read ())
 	
 	RX_NAME	= re.compile ("\sname\s*=\s*['\"](.+?)['\"]")
+	RX_VERSION	= re.compile ("\sversion\s*=\s*['\"](.+?)['\"]")
 	def _read_from_string (self, data):
 		current_name = None
 		current_data = []
@@ -35,7 +38,12 @@ class SQLMap:
 			if not line:
 				continue
 			
-			if line.startswith ("</sql>"):
+			if line.startswith ("<sqlmap "):
+				m = self.RX_VERSION.search (line)
+				if m:					
+					self._version = m.group (1)
+				
+			elif line.startswith ("</sql>"):
 				if not current_name:
 					raise ValueError ("unexpected end tag </sql>")
 				self._sqls [current_name] = "\n".join (current_data)
@@ -52,24 +60,28 @@ class SQLMap:
 
 
 class Operation:
+	def __init__ (self, engine = 'postresql'):
+		self.engine = engine
+		
 	def insert (self, tbl, **fields):		
-		return sql.SQLMerger (utils.make_insert_statement (tbl, fields))
+		return sql.SQLMerger (utils.make_insert_statement (self.engine, tbl, fields), self.engine)
 	
 	def update (self, tbl, **fields):		
-		return sql.SQLMerger (utils.make_update_statement (tbl, fields))		
+		return sql.SQLMerger (utils.make_update_statement (self.engine, tbl, fields), self.engine)		
 	
 	def select (self, tbl, *fields):		
-		return sql.SQLMerger (utils.make_select_statement (tbl, fields))		
+		return sql.SQLMerger (utils.make_select_statement (self.engine, tbl, fields), self.engine)		
 	
 	def delete (self, tbl):
-		return sql.SQLMerger (utils.make_delete_statement (tbl))
+		return sql.SQLMerger (utils.make_delete_statement (self.engine, tbl), self.engine)
 
 
 class SQLMapLoader:
-	def __init__ (self, dir = None, auto_reload = False):
+	def __init__ (self, dir = None, auto_reload = False, engine = "postgresql"):
 		self._dir = dir
 		self._auto_reload = auto_reload
-		self.ops = Operation ()
+		self._engine = engine
+		self.ops = Operation (self._engine)
 		self._ns = {}
 		self._load_sqlmaps ()
 		
@@ -86,4 +98,4 @@ class SQLMapLoader:
 			ns = fn.split (".") [0]
 			if ns == "ops":
 				raise NameError ('ops cannot be used SQL map file name')
-			self._ns [ns] = SQLMap (os.path.join (self._dir, fn), self._auto_reload)
+			self._ns [ns] = SQLMap (os.path.join (self._dir, fn), self._auto_reload, self._engine)

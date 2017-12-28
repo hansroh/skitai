@@ -23,10 +23,15 @@ OPS = {
 }
 
 class Q:
-	def __init__ (self, k, v, _str = None):
-		self.k = k
-		self.v = v
-		self._str = _str
+	def __init__ (self, *args, **kargs):
+		self._str = None		
+		if kargs:
+			assert len (kargs) == 1
+			self.k, self.v = kargs.popitem ()
+		elif len (args) == 2:
+			self.k, self.v = args
+		else:	
+			self._str = args [0]
 	
 	def render (self):
 		if self._str:
@@ -63,21 +68,15 @@ class Q:
 		return self.render ()
 	
 	def __or__ (self, b):
-		return Q (None, None, _str = "(({}) OR ({}))".format (self, b))
+		return Q ("(({}) OR ({}))".format (self, b))
 	
 	def __and__ (self, b):
-		return Q (None, None, _str = "(({}) AND ({}))".format (self, b))	
+		return Q ("(({}) AND ({}))".format (self, b))	
 
 
-def generate_filters (**filters):
-	fts = []
+def batch (**filters):
+	Qs = []
 	for k, v in filters.items ():
-		fts.append (str (Q (k, v)))
-	return " AND ".join (fts)
-
-def generate_filters (**filters):
-	fts = []
-	for k, v in filters.items ():
-		fts.append (str (Q (k, v)))
-	return " AND ".join (fts)
+		Qs.append (Q (k, v))
+	return Qs
 	
