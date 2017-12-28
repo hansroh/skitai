@@ -14,7 +14,7 @@ import random
 import base64
 from . import cookie
 from .config import Config
-from sqlphile import SQLMapLoader
+from sqlphile import SQLPhile
 	
 from jinja2 import Environment, FileSystemLoader
 try:
@@ -143,7 +143,7 @@ class Saddle (part.Part):
 		
 		sqlmaps_dir = os.path.join(path, "sqlmaps")
 		if os.path.isdir (sqlmaps_dir):
-			self.sqlmaps = SQLMapLoader (sqlmaps_dir, self.use_reloader)
+			self.sqlmaps = SQLPhile (sqlmaps_dir, self.use_reloader, self.config.get ("dbengine", "postgresql"))
 		
 		package_dirs = []
 		for d in self.PACKAGE_DIRS:
