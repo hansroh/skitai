@@ -43,6 +43,7 @@ classifiers = [
 
 packages = [
 	'skitai',
+	'skitai.sqlgen',
 	'skitai.server',
 	'skitai.server.dbi',
 	'skitai.server.bin',
