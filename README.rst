@@ -3418,17 +3418,17 @@ Working with SQLPhile
 
 *New in Version 0.26.13*
 
-SQLPhile_ is SQL generator and can be accessed from app.sqlmaps.
+SQLPhile_ is SQL generator and can be accessed from was.sqlmap.
 
 If you want to use SQL templates, create sub directory 'sqlmaps' and place sqlmap files.
 
 .. code:: python
   
-  app.config.sqlmaps_engine = "postgresql"	
+  app.config.sqlmap_engine = "postgresql"	
   
   @app.route ("/")
   def index (was):
-    q = app.sqlmaps.ops.select ('rc_file', 'id', 'name')
+    q = was.sqlmap.ops.select ('rc_file', 'id', 'name')
     q.filter (id = 4)
     req = was.backend ("@db").execute (q)
     result = req.getwait ()
