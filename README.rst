@@ -231,8 +231,8 @@ Let's assume your Django app project is '/mydjango' and skitai app engine script
     path = "./mydjango"
   )
 
-  # or for your convinience,	
-  skitai.mount_django ("/", "mydjango/mydjango/wsgi.py", pref)	
+  # or for your convinience,  
+  skitai.mount_django ("/", "mydjango/mydjango/wsgi.py", pref)  
  
 Note that if app is smae location with django manage.py, you need not path param.
 
@@ -538,21 +538,21 @@ For setting 8 Gbytes limitation for POST body size,
   
   import skitai
   
-  pref = skitai.pref ()	
+  pref = skitai.pref ()  
   pref.max_client_body_size = 2 << 32
-	
+  
 If you want to set more detaily,
-	
+  
 .. code:: python
   
   import skitai
   
   pref = skitai.pref ()
-	
+  
   pref.config.max_post_body_size = 2 << 32
   pref.config.max_multipart_body_size = 2 << 32
   pref.config.max_upload_file_size = 2 << 32
-	
+  
 
 Setting Timeout
 -----------------
@@ -3413,6 +3413,31 @@ File Upload
     + o - overwrite
 
 
+Working with SQLPhile
+-------------------------
+
+*New in Version 0.26.13*
+
+SQLPhile_ is SQL generator and can be accessed from app.sqlmaps.
+
+If you want to use SQL templates, create sub directory 'sqlmaps' and place sqlmap files.
+
+.. code:: python
+  
+  app.config.sqlmaps_engine = "postgresql"	
+  
+  @app.route ("/")
+  def index (was):
+    q = app.sqlmaps.ops.select ('rc_file', 'id', 'name')
+    q.filter (id = 4)
+    req = was.backend ("@db").execute (q)
+    result = req.getwait ()
+
+Please, visit SQLPhile_ for more detail. 
+    
+.. _SQLPhile: https://pypi.python.org/pypi/sqlphile
+
+
 Registering Per Request Calling Functions
 -------------------------------------------
 
@@ -3861,9 +3886,9 @@ Or you can just use Django models only,
 .. code:: python
 
   skitai.use_django_models ("myapp/settings.py")
-	
+  
 Now you can use your models,
-	
+  
 .. code:: python
 
   from mydjangoapp.photos import models
@@ -4028,6 +4053,7 @@ Change Log
   
   - 0.26.16 (Oct 2017)
 
+    - add app.sqlmaps
     - add use_django_models (settings_path), skitai.mount_django (point, wsgi_path, pref = pref (True), host = "default")
     - fix mbox, add app.max_client_body_size
     - add skitai.addlu (args, ...) that is equivalant to skitai.addlu (args, ...)

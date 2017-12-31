@@ -141,9 +141,10 @@ class Saddle (part.Part):
 		else:
 			self.jinja_env = Environment (loader = loader)
 		
-		sqlmaps_dir = os.path.join(path, "sqlmaps")
-		if os.path.isdir (sqlmaps_dir):
-			self.sqlmaps = SQLPhile (sqlmaps_dir, self.use_reloader, self.config.get ("dbengine", "postgresql"))
+		sqlmaps_dir = os.path.join(path, self.config.get ("sqlmaps_dir", "sqlmaps"))
+		if not os.path.isdir (sqlmaps_dir):
+			sqlmaps_dir = None
+		self.sqlmaps = SQLPhile (sqlmaps_dir, self.use_reloader, self.config.get ("sqlmaps_engine", "postgresql"))
 		
 		package_dirs = []
 		for d in self.PACKAGE_DIRS:
