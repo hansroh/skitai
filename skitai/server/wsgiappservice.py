@@ -207,7 +207,11 @@ class WAS:
 	
 	def _amap (self, dbtype, *args, **karg):
 		return self._cddb (True, *args, **karg)
-			
+	
+	@property
+	def sqlmap (self):
+		return self.app.sqlmap
+		
 	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		return self.app.render (self, template_file, _do_not_use_this_variable_name_, **karg)
 		

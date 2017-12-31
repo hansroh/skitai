@@ -54,7 +54,7 @@ class Saddle (part.Part):
 		self.home = None
 		self.jinja_env = None
 		self.chameleon = None
-		self.sqlmaps = None
+		self.sqlmap = None
 		
 		self.bus = evbus.EventBus ()
 		self.events = []
@@ -141,10 +141,10 @@ class Saddle (part.Part):
 		else:
 			self.jinja_env = Environment (loader = loader)
 		
-		sqlmaps_dir = os.path.join(path, self.config.get ("sqlmaps_dir", "sqlmaps"))
-		if not os.path.isdir (sqlmaps_dir):
-			sqlmaps_dir = None
-		self.sqlmaps = SQLPhile (sqlmaps_dir, self.use_reloader, self.config.get ("sqlmaps_engine", "postgresql"))
+		sqlmap_dir = os.path.join(path, self.config.get ("sqlmap_dir", "sqlmaps"))
+		if not os.path.isdir (sqlmap_dir):
+			sqlmap_dir = None
+		self.sqlmap = SQLPhile (sqlmap_dir, self.use_reloader, self.config.get ("sqlmap_engine", "postgresql"))
 		
 		package_dirs = []
 		for d in self.PACKAGE_DIRS:
