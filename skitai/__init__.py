@@ -187,10 +187,6 @@ def addlu (*key):
 		dconf ["models-keys"] = []
 	dconf ["models-keys"].extend (key)
 
-def mount_django (point, wsgi_path, pref = pref (True), host = "default"):
-	path = os.path.dirname (os.path.dirname (wsgi_path))
-	mount (point, wsgi_path, "application", pref, host, path)
-	
 def mount (point, target, appname = "app", pref = pref (True), host = "default", path = None):
 	global dconf
 	
@@ -260,18 +256,37 @@ def enable_gateway (enable_auth = False, secure_key = None, realm = "Skitai API 
 	dconf ["gw_realm"] = realm,
 	dconf ["gw_secret_key"] = secure_key
 
-def use_django_models (settings_path):
-	import django
+def _get_django_settings (settings_path):
+	import importlib
 	
 	ap = abspath (settings_path)
 	django_main, settings_file = os.path.split (ap)
 	django_root, django_main_dir = os.path.split (django_main)
 	
 	sys.path.insert (0, django_root)
-	settings = "{}.{}".format (django_main_dir, settings_file.split (".")[0])		
-	os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings)
+	settings_mod = "{}.{}".format (django_main_dir, settings_file.split (".")[0])		
+	os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings_mod)
+	
+	return importlib.import_module(settings_mod).DATABASES
+	
+def use_django_models (settings_path, _alias = None):
+	import django
+	
+	dbsettings = _get_django_settings (settings_path)
 	django.setup()
-
+	
+	if _alias:
+		default = dbsettings ['default']
+		if default ['ENGINE'].endswith ('sqlite3'):			
+			alias (_alias, DB_SQLITE3, default ['NAME'])
+		else:
+			alias (_alias, skitai.DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)	
+	return dbsettings
+	
+def mount_django (point, wsgi_path, pref = pref (True), host = "default"):
+	path = os.path.dirname (os.path.dirname (wsgi_path))
+	mount (point, wsgi_path, "application", pref, host, path)
+	
 def enable_cachefs (memmax = 0, diskmax = 0, path = None):
 	global dconf	
 	dconf ["cachefs_memmax"] = memmax
