@@ -3606,7 +3606,9 @@ But both are not called by request, you CAN'T use request related objects like w
 
 
 Registering Global Template Function
----------------------------------------
+--------------------------------------
+
+*New in version 0.26.16*
 
 template_global decorator makes a function possible to use in your template,
 
@@ -3622,8 +3624,28 @@ At template,
 
   {{ test_global () }}
 
-Note that all template global function's first parameter should be *was*.
+Note that all template global function's first parameter should be *was*. But when calling, you SHOULDN't give *was*.
 
+
+Registering Jinja2 Filter
+--------------------------
+
+*New in version 0.26.16*
+
+template_filter decorator makes a function possible to use in your template,
+
+.. code:: python
+
+  @app.template_filter ("reverse")
+  def reverse_filter (s):  
+    return s [::-1]
+
+At template,
+    
+.. code:: html
+
+  {{ "Hello" | reverse }}
+		
     
 Login and Permission Helper
 ------------------------------
@@ -3669,6 +3691,30 @@ And use it for your resources if you need,
   def index (was):
     return "Hello"
 
+
+CrossSite Request Forgery Token (CSRF Token)
+`````````````````````````````````````````````
+
+At template, insert CSRF Token,
+
+.. code:: html
+	
+	<form>
+	{{ was.csrf_token_input }}
+	...
+	</form>
+
+then verify token like this,
+
+.. code:: python
+
+	@app.before_request
+	def before_request (was):
+		if was.request.method == "POST":
+			if "_csrf_token" not in was.request.args:
+				return was.response ("400 Bad Request")
+			if was.request.args ["_csrf_token"] != was.csrf_token:
+				return was.response ("400 Bad Request")
     
 CORS (Cross Origin Resource Sharing) and Preflight
 -----------------------------------------------------

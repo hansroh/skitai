@@ -82,8 +82,10 @@ class Executor:
 		if self.was.request.routable.get ('keywords'):
 			return True
 		wanted_args = self.was.request.routable.get ('args') [self.was.request.routable.get ('urlargs', 0):]
+		
 		if not wanted_args:
-			return False			
+			return False
+			
 		if forward:
 			if wanted_args:
 				return True

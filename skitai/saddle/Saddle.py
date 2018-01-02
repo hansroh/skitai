@@ -211,6 +211,7 @@ class Saddle (part.Part):
 	
 	def on (self, *events):
 		def decorator(f):			
+			self.save_function_spec_for_routing (f)
 			for e in events:				
 				self.bus.add_event (f, e)
 				
@@ -222,6 +223,7 @@ class Saddle (part.Part):
 		
 	def emit_after (self, event):
 		def outer (f):
+			self.save_function_spec_for_routing (f)
 			@wraps (f)
 			def wrapper(*args, **kwargs):
 				returned = f (*args, **kwargs)
@@ -237,9 +239,9 @@ class Saddle (part.Part):
 	
 	def on_broadcast (self, *events):
 		def decorator(f):
+			self.save_function_spec_for_routing (f)
 			for e in events:
-				self.add_event (e, f)
-				
+				self.add_event (e, f)				
 			@wraps(f)
 			def wrapper(*args, **kwargs):
 				return f (*args, **kwargs)

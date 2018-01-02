@@ -348,7 +348,15 @@ class WAS:
 	@property
 	def csrf_token_input (self):
 		return '<input type="hidden" name="_csrf_token" value="{}">'.format (self.csrf_token)
-
+	
+	def csrf_verify (self):
+		if not self.request.args.get ("_csrf_token"):
+			return -1
+		token = self.request.args ["_csrf_token"]
+		if self.csrf_token == token:
+			del self.session ["_csrf_token"]
+			return 1
+		return 0
 		
 	#-----------------------------------------
 	# will be deprecated

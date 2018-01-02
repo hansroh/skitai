@@ -30,6 +30,7 @@ class Part:
 		self._permission_map = {}
 		self._jinja2_filters = {}
 		self._template_globals = {}
+		self._function_specs = {}
 		
 		self._binds_server = [None] * 5
 		self._binds_request = [None] * 4
@@ -78,6 +79,13 @@ class Part:
 		stat = os.stat (self.abspath)
 		self.file_info = (stat.st_mtime, stat.st_size)
 	
+	def save_function_spec_for_routing (self, func):
+		# save original function spec for preventing distortion by decorating wrapper
+		# all wrapper has *args and **karg but we want to keep original function spec for auto parametering call
+		if func.__name__ not in self._function_specs:
+			# save origin spec
+			self._function_specs [func.__name__] = inspect.getargspec(func)
+			
 	#----------------------------------------------
 	# App Decorators
 	#----------------------------------------------
@@ -132,11 +140,12 @@ class Part:
 		return f
 		
 	#------------------------------------------------------
-	
+		
 	def login_required (self, f):
+		self.save_function_spec_for_routing (f)
 		@wraps(f)
-		def wrapper (was, *args, **kwargs):			
-			_funcs = self._decos.get ('login')
+		def wrapper (was, *args, **kwargs):
+			_funcs = self._decos.get ("login")
 			if _funcs:
 				response = _funcs (was)					
 				if response:
@@ -150,16 +159,17 @@ class Part:
 	
 	def permission_required (self, p):
 		def decorator(f):
+			self.save_function_spec_for_routing (f)
 			self._permission_map [f] = isinstance (p, str) and [p] or p
 			@wraps(f)
-			def wrapper (was, *args, **kargs):			
-				_func = self._decos.get ('permission')
-				if _func:
-					response = _func (was, self._permission_map [f])
+			def wrapper (was, *args, **kwargs):
+				_funcs = self._decos.get ("permission")
+				if _funcs:
+					response = _funcs (was, self._permission_map [f])					
 					if response:
 						return response
-				return f (was, *args, **kargs)
-			return wrapper		
+				return f (was, *args, **kwargs)
+			return wrapper
 		return decorator
 		
 	def permission (self, f):
@@ -170,6 +180,7 @@ class Part:
 	
 	def template_global (self, name):	
 		def decorator(f):
+			self.save_function_spec_for_routing (f)
 			@wraps(f)
 			def wrapper (*args, **kwargs):				
 				return f (the_was._get (), *args, **kwargs)
@@ -177,9 +188,9 @@ class Part:
 			return wrapper
 		return decorator
 	
-	def template_fillter (self, name):	
+	def template_filter (self, name):	
 		def decorator(f):
-			self._jinjs2_filters [name] = f
+			self._jinja2_filters [name] = f
 			@wraps(f)
 			def wrapper (*args, **kwargs):				
 				return f (*args, **kwargs)			
@@ -310,11 +321,11 @@ class Part:
 				kargs [an] = unquote_plus (arglist [i]).replace ("_", " ")
 		return f, kargs
 	
-	def add_route (self, rule, func, **options):					
+	def add_route (self, rule, func, **options):
 		if not rule or rule [0] != "/":
 			raise AssertionError ("Url rule should be starts with '/'")
 		
-		fspec = inspect.getargspec(func)
+		fspec = self._function_specs.get (func.__name__) or inspect.getargspec(func)
 		options ["args"] = fspec.args [1:]
 		options ["varargs"] = fspec.varargs
 		options ["keywords"] = fspec.keywords
@@ -352,7 +363,7 @@ class Part:
 			self.route_map [re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), func.__code__.co_argcount - 1, s_rule, options)
 			self.route_priority.append ((s, re_rule))
 			self.route_priority.sort (key = lambda x: x [0], reverse = True)			
-	
+		
 	def get_routed (self, method_pack):
 		if not method_pack: 
 			return
@@ -379,8 +390,9 @@ class Part:
 		
 		path_info = path_info [self.path_suffix_len:]
 		app, method, kargs, matchtype = self, None, {}, 0				
+		
 		# 1st, try find in self
-		try:			
+		try:
 			method, current_rule = self.route_search (path_info)
 			
 		except KeyError:
