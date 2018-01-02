@@ -238,7 +238,9 @@ def alias (name, ctype, members, role = "", source = "", ssl = False):
 	from .server.rpc.cluster_manager import AccessPolicy
 	global dconf	
 	if name [0] == "@":
-		name = name [1:]	
+		name = name [1:]
+	if dconf ["clusters"].get (name):
+		return
 	policy = AccessPolicy (role, source)
 	args = (ctype, members, policy, ssl)
 	dconf ["clusters"][name] = args
@@ -258,34 +260,47 @@ def enable_gateway (enable_auth = False, secure_key = None, realm = "Skitai API 
 
 def _get_django_settings (settings_path):
 	import importlib
+	import django
 	
 	ap = abspath (settings_path)
 	django_main, settings_file = os.path.split (ap)
 	django_root, django_main_dir = os.path.split (django_main)
+	settings_mod = "{}.{}".format (django_main_dir, settings_file.split (".")[0])
 	
-	sys.path.insert (0, django_root)
-	settings_mod = "{}.{}".format (django_main_dir, settings_file.split (".")[0])		
-	os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings_mod)
+	if not os.environ.get ("DJANGO_SETTINGS_MODULE"):		
+		sys.path.insert (0, django_root)	
+		os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings_mod)
+		django.setup()
 	
 	return importlib.import_module(settings_mod).DATABASES
 	
 def use_django_models (settings_path, _alias = None):
-	import django
-	
 	dbsettings = _get_django_settings (settings_path)
-	django.setup()
-	
 	if _alias:
 		default = dbsettings ['default']
 		if default ['ENGINE'].endswith ('sqlite3'):			
 			alias (_alias, DB_SQLITE3, default ['NAME'])
 		else:
-			alias (_alias, skitai.DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)	
+			if not default.get ("PORT"):
+				default ["PORT"] = 5432
+			if not default.get ("HOST"):
+				default ["HOST"] = "127.0.0.1"
+			if not default.get ("USER"):
+				default ["USER"] = ""
+			if not default.get ("PASSWORD"):
+				default ["PASSWORD"] = ""
+			alias (_alias, DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)
+			
 	return dbsettings
 	
-def mount_django (point, wsgi_path, pref = pref (True), host = "default"):
+def mount_django (point, wsgi_path, pref = pref (True), dbalias = None, host = "default"):
 	path = os.path.dirname (os.path.dirname (wsgi_path))
 	mount (point, wsgi_path, "application", pref, host, path)
+	if dbalias:
+		return use_django_models (
+			os.path.join (os.path.dirname (wsgi_path), 'settings.py'),
+			dbalias
+		)
 	
 def enable_cachefs (memmax = 0, diskmax = 0, path = None):
 	global dconf	
