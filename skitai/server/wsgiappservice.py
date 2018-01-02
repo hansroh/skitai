@@ -35,7 +35,7 @@ try:
 	from django.core.handlers.wsgi import WSGIRequest
 except ImportError:
 	WSGIRequest = None
-
+import random
 		
 class WAS:
 	version = __version__	
@@ -339,6 +339,17 @@ class WAS:
 			mtimes.append (mtime)
 		return max (mtimes)
 	
+	@property
+	def csrf_token (self):
+		if "_csrf_token" not in self.session:
+			self.session ["_csrf_token"] = hex (random.getrandbits (64))
+		return self.session ["_csrf_token"]
+
+	@property
+	def csrf_token_input (self):
+		return '<input type="hidden" name="_csrf_token" value="{}">'.format (self.csrf_token)
+
+		
 	#-----------------------------------------
 	# will be deprecated
 	#-----------------------------------------

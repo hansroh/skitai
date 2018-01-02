@@ -119,7 +119,7 @@ class SecuredDictValue (SecuredValue):
 		
 	def set_default_data (self):
 		self.data = {}
-			
+		
 	def __setitem__ (self, k, v):
 		self.set (k, v)
 	
@@ -129,17 +129,8 @@ class SecuredDictValue (SecuredValue):
 	def __getitem__ (self, k):
 		return self.data.get (k)
 	
-	def iterkeys (self):		
-		self.data is None and self.unserialize ()
-		return self.data.iterkeys ()
-	
-	def itervalues (self):		
-		self.data is None and self.unserialize ()
-		return self.data.itervalues ()	
-	
-	def iteritems (self):
-		self.data is None and self.unserialize ()
-		return self.data.iteritems ()	
+	def __iter__ (self):
+		return self.data.__iter ()
 		
 	def has_key (self, k):
 		self.data is None and self.unserialize ()

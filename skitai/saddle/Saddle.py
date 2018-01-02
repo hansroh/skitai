@@ -109,10 +109,12 @@ class Saddle (part.Part):
 			assert not karg, "Can't Use Dictionary and Keyword Args Both"
 			karg = _do_not_use_this_variable_name_
 
-		karg ["was"] = was		
+		karg ["was"] = was
+		karg.update (self._tempate_globals)
+		
 		template = self.get_template (template_file)
 		self.when_got_template (was, template, karg)
-			
+		
 		rendered = template.render (**karg)
 		self.when_template_rendered (was, template, karg, rendered)
 		return rendered

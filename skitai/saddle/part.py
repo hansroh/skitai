@@ -26,6 +26,7 @@ class Part:
 		
 		self.lock = threading.RLock ()
 		self.init_time = time.time ()
+		self._tempate_globals = {}
 		
 		self._binds_server = [None] * 5
 		self._binds_request = [None] * 4
@@ -208,7 +209,16 @@ class Part:
 		url = self.url_for (thing, *args, **kargs)
 		if url:
 			return url			
-					
+	
+	def template_global (self, name):
+		def decorator (f):
+			self._tempate_globals [name] = f
+			@wraps(f)
+			def wrapper (*args, **kwargs):
+				return f (*args, **kwargs)
+			return wrapper
+		return decorator
+	
 	#----------------------------------------------
 	# Routing
 	#----------------------------------------------						
