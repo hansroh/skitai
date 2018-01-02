@@ -2964,16 +2964,10 @@ If resource always broadcasts event without args, use `broadcast_after` decorato
 
 .. code:: python
   
-  @app.route ('/', methods = ["PATCH"])
-  @app.broadcast_after ('some-event')
+  @was.broadcast_after ('some-event')
   def users (was):
     args = was.request.json ()
-    was.sqlite3 ('@userdb').execute ('update ...').wait ()    
-    return was.response (
-      "200 OK", 
-      json.dumps ({}), 
-      [("Content-Type", "application/json")]
-    )
+    was.sqlite3 ('@userdb').execute ('update ...').wait ()   
 
 Access Environment Variables
 ------------------------------
@@ -3645,7 +3639,7 @@ At template,
 .. code:: html
 
   {{ "Hello" | reverse }}
-		
+    
     
 Login and Permission Helper
 ------------------------------
@@ -3698,23 +3692,23 @@ CrossSite Request Forgery Token (CSRF Token)
 At template, insert CSRF Token,
 
 .. code:: html
-	
-	<form>
-	{{ was.csrf_token_input }}
-	...
-	</form>
+  
+  <form>
+  {{ was.csrf_token_input }}
+  ...
+  </form>
 
 then verify token like this,
 
 .. code:: python
 
-	@app.before_request
-	def before_request (was):
-		if was.request.method == "POST":
-			if "_csrf_token" not in was.request.args:
-				return was.response ("400 Bad Request")
-			if was.request.args ["_csrf_token"] != was.csrf_token:
-				return was.response ("400 Bad Request")
+  @app.before_request
+  def before_request (was):
+    if was.request.method == "POST":
+      if "_csrf_token" not in was.request.args:
+        return was.response ("400 Bad Request")
+      if was.request.args ["_csrf_token"] != was.csrf_token:
+        return was.response ("400 Bad Request")
     
 CORS (Cross Origin Resource Sharing) and Preflight
 -----------------------------------------------------
