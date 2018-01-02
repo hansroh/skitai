@@ -28,6 +28,7 @@ class Part:
 		self.init_time = time.time ()		
 		self._decos = {}
 		self._permission_map = {}
+		self._jinja2_filters = {}
 		self._template_globals = {}
 		
 		self._binds_server = [None] * 5
@@ -173,6 +174,15 @@ class Part:
 			def wrapper (*args, **kwargs):				
 				return f (the_was._get (), *args, **kwargs)
 			self._template_globals [name] = wrapper
+			return wrapper
+		return decorator
+	
+	def template_fillter (self, name):	
+		def decorator(f):
+			self._jinjs2_filters [name] = f
+			@wraps(f)
+			def wrapper (*args, **kwargs):				
+				return f (*args, **kwargs)			
 			return wrapper
 		return decorator
 		

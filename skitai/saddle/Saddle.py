@@ -53,9 +53,9 @@ class Saddle (part.Part):
 		self.app_name = app_name
 		self.home = None
 		self.jinja_env = None
+		
 		self.chameleon = None
 		self.sqlmap = None
-		
 		self.bus = evbus.EventBus ()
 		self.events = []
 		# for bus, set by wsgi_executor
@@ -144,6 +144,9 @@ class Saddle (part.Part):
 		else:
 			self.jinja_env = Environment (loader = loader)
 		
+		for k, v in self._jinja2_filters.items ():
+			self.jinja_env.filters [k] = v
+			
 		sqlmap_dir = os.path.join(path, self.config.get ("sqlmap_dir", "sqlmaps"))
 		if not os.path.isdir (sqlmap_dir):
 			sqlmap_dir = None
