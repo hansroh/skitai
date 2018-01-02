@@ -154,7 +154,7 @@ class Part:
 			return f (was, *args, **kwargs)
 		return wrapper
 		
-	def login (self, f):
+	def login_handler (self, f):
 		self._decos ["login"] = f
 		return f
 	
@@ -173,7 +173,7 @@ class Part:
 			return wrapper
 		return decorator
 		
-	def permission (self, f):
+	def permission_check_handler (self, f):
 		self._decos ["permission"] = f
 		return f
 	
@@ -214,7 +214,7 @@ class Part:
 	def add_error_handler (self, errcode, f, **k):
 		self.handlers [errcode] = (f, k)		
 		
-	def errorhandler (self, errcode, **k):
+	def error_handler (self, errcode, **k):
 		def decorator(f):
 			self.add_error_handler (errcode, f, **k)
 			@wraps(f)
@@ -223,10 +223,13 @@ class Part:
 			return wrapper
 		return decorator
 	
-	def defaulterrorhandler (self, f):
+	def default_error_handler (self, f):
 		self.add_error_handler (0, f)
 		return f
-			
+	
+	defaulterrorhandler = default_error_handler
+	errorhandler = error_handler
+	
 	#----------------------------------------------
 	# Event Binding
 	#----------------------------------------------
@@ -327,7 +330,7 @@ class Part:
 			raise AssertionError ("Url rule should be starts with '/'")
 		
 		if func.__name__ in self._function_names:
-			raise NameError ("Function {} is already defined".format (func.__name__))
+			raise NameError ("Function <{}> is already defined".format (func.__name__))
 		self._function_names [func.__name__] = None		
 			
 		fspec = self._function_specs.get (func.__name__) or inspect.getargspec(func)

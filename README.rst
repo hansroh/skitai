@@ -2969,6 +2969,9 @@ If resource always broadcasts event without args, use `broadcast_after` decorato
     args = was.request.json ()
     was.sqlite3 ('@userdb').execute ('update ...').wait ()   
 
+Note that this decorator cannot be routed by app.route ().
+
+
 Access Environment Variables
 ------------------------------
 
@@ -3644,12 +3647,12 @@ At template,
 Login and Permission Helper
 ------------------------------
 
-You can define login & permissoin functions, 
+You can define login & permissoin check handler,
 
 .. code:: python
 
-  @app.login
-  def login (was):  
+  @app.login_handler
+  def login_handler (was):  
     if was.session.get ("demo_username"):
       return
     
@@ -3669,8 +3672,8 @@ You can define login & permissoin functions,
           
     return was.render ("login.html", user_form = forms.DemoUserForm ())
 
-  @app.permission
-  def check_permission (was, required):
+  @app.permission_check_handler
+  def permission_check_handler (was, required):
     if was.session.get ("demo_permission") in required:
       return was.response ("403 Permission Denied")
 
@@ -3686,8 +3689,8 @@ And use it for your resources if you need,
     return "Hello"
 
 
-CrossSite Request Forgery Token (CSRF Token)
-`````````````````````````````````````````````
+Cross Site Request Forgery Token (CSRF Token)
+```````````````````````````````````````````````
 
 At template, insert CSRF Token,
 
