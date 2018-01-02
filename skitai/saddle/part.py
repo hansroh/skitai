@@ -31,6 +31,7 @@ class Part:
 		self._jinja2_filters = {}
 		self._template_globals = {}
 		self._function_specs = {}
+		self._function_names = {}
 		
 		self._binds_server = [None] * 5
 		self._binds_request = [None] * 4
@@ -325,6 +326,10 @@ class Part:
 		if not rule or rule [0] != "/":
 			raise AssertionError ("Url rule should be starts with '/'")
 		
+		if func.__name__ in self._function_names:
+			raise NameError ("Function {} is already defined".format (func.__name__))
+		self._function_names [func.__name__] = None		
+			
 		fspec = self._function_specs.get (func.__name__) or inspect.getargspec(func)
 		options ["args"] = fspec.args [1:]
 		options ["varargs"] = fspec.varargs
