@@ -3424,7 +3424,7 @@ If you want to use SQL templates, create sub directory 'sqlmaps' and place sqlma
 
 .. code:: python
   
-  app.config.sqlmap_engine = "postgresql"	
+  app.config.sqlmap_engine = "postgresql"  
   
   @app.route ("/")
   def index (was):
@@ -3605,6 +3605,71 @@ If you have databases or API servers, and want to create cache object on app sta
 But both are not called by request, you CAN'T use request related objects like was.request, was.cookie etc. And SHOULD use callback because these are executed within Main thread.
 
 
+Registering Global Template Function
+---------------------------------------
+
+template_global decorator makes a function possible to use in your template,
+
+.. code:: python
+
+  @app.template_global ("test_global")
+  def test (was):  
+    return ", ".join.(was.request.args.keys ())
+
+At template,
+    
+.. code:: html
+
+  {{ test_global () }}
+
+Note that all template global function's first parameter should be *was*.
+
+    
+Login and Permission Helper
+------------------------------
+
+You can define login & permissoin functions, 
+
+.. code:: python
+
+  @app.login
+  def login (was):  
+    if was.session.get ("demo_username"):
+      return
+    
+    if was.request.args.get ("username"):
+      if was.request.args ["_csrf_token"] != was.csrf_token:
+        return was.response ("400 Bad Request")
+      
+      if was.request.args.get ("signin"):
+        user, level = authenticate (username = was.request.args ["username"], password = was.request.args ["password"])
+        if user:
+          was.session.set ("demo_username", user)
+          was.session.set ("demo_permission", level)
+          return
+          
+        else:
+          was.mbox.send ("Invalid User Name or Password", "error")    
+          
+    return was.render ("login.html", user_form = forms.DemoUserForm ())
+
+  @app.permission
+  def check_permission (was, required):
+    if was.session.get ("demo_permission") in required:
+      return was.response ("403 Permission Denied")
+
+      
+And use it for your resources if you need,
+
+.. code:: python
+
+  @app.route ("/")
+  @app.permission_required ("admin")
+  @app.login_required
+  def index (was):
+    return "Hello"
+
+    
 CORS (Cross Origin Resource Sharing) and Preflight
 -----------------------------------------------------
 

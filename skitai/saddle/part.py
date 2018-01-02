@@ -25,8 +25,10 @@ class Part:
 		self.storage = Storage ()
 		
 		self.lock = threading.RLock ()
-		self.init_time = time.time ()
-		self._tempate_globals = {}
+		self.init_time = time.time ()		
+		self._decos = {}
+		self._permission_map = {}
+		self._template_globals = {}
 		
 		self._binds_server = [None] * 5
 		self._binds_request = [None] * 4
@@ -127,7 +129,53 @@ class Part:
 	def message_flashed (self, f):
 		self._binds_when [2] = f
 		return f
+		
+	#------------------------------------------------------
 	
+	def login_required (self, f):
+		@wraps(f)
+		def wrapper (was, *args, **kwargs):			
+			_funcs = self._decos.get ('login')
+			if _funcs:
+				response = _funcs (was)					
+				if response:
+					return response
+			return f (was, *args, **kwargs)
+		return wrapper
+		
+	def login (self, f):
+		self._decos ["login"] = f
+		return f
+	
+	def permission_required (self, p):
+		def decorator(f):
+			self._permission_map [f] = isinstance (p, str) and [p] or p
+			@wraps(f)
+			def wrapper (was, *args, **kargs):			
+				_func = self._decos.get ('permission')
+				if _func:
+					response = _func (was, self._permission_map [f])
+					if response:
+						return response
+				return f (was, *args, **kargs)
+			return wrapper		
+		return decorator
+		
+	def permission (self, f):
+		self._decos ["permission"] = f
+		return f
+	
+	#-------------------------------------------------------
+	
+	def template_global (self, name):	
+		def decorator(f):
+			@wraps(f)
+			def wrapper (*args, **kwargs):				
+				return f (the_was._get (), *args, **kwargs)
+			self._template_globals [name] = wrapper
+			return wrapper
+		return decorator
+		
 	#------------------------------------------------------
 		
 	def get_error_page (self, error):
@@ -209,15 +257,6 @@ class Part:
 		url = self.url_for (thing, *args, **kargs)
 		if url:
 			return url			
-	
-	def template_global (self, name):
-		def decorator (f):
-			self._tempate_globals [name] = f
-			@wraps(f)
-			def wrapper (*args, **kwargs):
-				return f (*args, **kwargs)
-			return wrapper
-		return decorator
 	
 	#----------------------------------------------
 	# Routing

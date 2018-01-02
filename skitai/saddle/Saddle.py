@@ -85,6 +85,8 @@ class Saddle (part.Part):
 			self.jinja_overlay ("{:", ":}", "{%", "%}", "<!---", "--->")				
 		elif option == 6:
 			self.jinja_overlay ("<%", "%>", "{%", "%}", "<!---", "--->")					
+		elif option == 7:
+			self.jinja_overlay ("{%", "%}", "<%", "%>", "<!---", "--->")					
 		
 	def jinja_overlay (
 		self, 
@@ -110,8 +112,7 @@ class Saddle (part.Part):
 			karg = _do_not_use_this_variable_name_
 
 		karg ["was"] = was
-		karg.update (self._tempate_globals)
-		
+		karg.update (self._template_globals)
 		template = self.get_template (template_file)
 		self.when_got_template (was, template, karg)
 		
