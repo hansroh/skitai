@@ -8,6 +8,7 @@ class NamedSession:
 		self.__request = request
 		self.__securekey = securekey
 		self.__timeout = timeout
+		self.mount ()
 	
 	def mount (self, name = None, securekey = None, path = None, domain = None, secure = False, http_only = False, session_timeout = None):		
 		if self.__obj:
@@ -38,31 +39,22 @@ class NamedSession:
 			name = ""
 		return name in self.__dataset
 		
-	def maybe_mount (self):
-		self.__obj is None and self.mount ()
-		
 	def __getattr__ (self, attr):
-		self.maybe_mount ()					
 		return getattr (self.__obj, attr)
 	
 	def __contains__ (self, k):
-		self.maybe_mount ()
 		return k in self.__obj
 	
 	def __getitem__ (self, k):
-		self.maybe_mount ()
 		return self.__obj [k]
 	
 	def __setitem__ (self, k, v):
-		self.maybe_mount ()
 		self.__obj [k] = v
 	
 	def __iter__ (self):
-		self.maybe_mount ()
 		return self.__obj.__iter__ ()
 		
 	def __delitem__ (self, k):
-		self.maybe_mount ()
 		del self.__obj [k]
 		
 	def __get_config (self, securekey, session_timeout):	
