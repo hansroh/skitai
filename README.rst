@@ -3557,7 +3557,10 @@ then verify token like this,
 App Event Handling
 ---------------------
 
+Most of Saddle's event handlings are implemented with `event-bus`_ library.
+
 *New in version 0.26.16*
+*Availabe only on Python 3.5+*
 
 .. code:: python
 
@@ -3593,11 +3596,15 @@ There're some app events and if not mentioned about args, it requires *was*.
 - saddle.template_rendering: required args: was, template, template_param_dict
 - saddle.template_rendered: required args: was, content
 
+.. _`event-bus`: https://pypi.python.org/pypi/event-bus
 
-Creating and Handling Event
------------------------------
 
-For creating event and event handler,
+Creating and Handling Custom Event
+---------------------------------------
+
+*Availabe only on Python 3.5+*
+
+For creating custom event and event handler,
 
 .. code:: python
 
