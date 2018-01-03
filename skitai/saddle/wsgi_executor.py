@@ -201,12 +201,12 @@ class Executor:
 	def __call__ (self):
 		request = self.env ["skitai.was"].request
 		current_app, thing, param, respcode = self.find_method (request, self.env ["PATH_INFO"])
-		current_app.emit ("request:started")
 		
 		if respcode: 
 			# unacceptable
 			return b""
 		
+		current_app.emit ("request:started")
 		self.build_was ()
 		self.was.subapp = current_app
 		
