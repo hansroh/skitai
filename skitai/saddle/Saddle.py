@@ -113,11 +113,11 @@ class Saddle (part.Part):
 
 		karg ["was"] = was
 		karg.update (self._template_globals)
-		template = self.get_template (template_file)
-		self.when_got_template (was, template, karg)
 		
+		template = self.get_template (template_file)
+		self.emit ("template:rendering", template, karg)
 		rendered = template.render (**karg)
-		self.when_template_rendered (was, template, karg, rendered)
+		self.emit ("template:rendered", rendered)
 		return rendered
 					
 	def get_template (self, name):
@@ -248,6 +248,17 @@ class Saddle (part.Part):
 			return wrapper
 		return decorator
 	
+	def broadcast_after (self, event):
+		def decorator (f):
+			self.save_function_spec_for_routing (f)
+			@wraps (f)
+			def wrapper(*args, **kwargs):
+				returned = f (*args, **kwargs)
+				the_was._get ().apps.emit (event)
+				return returned
+			return wrapper
+		return decorator
+		
 	def add_event (self, event, f):
 		self.events.append ((f, event))
 	
@@ -525,7 +536,6 @@ class Saddle (part.Part):
 	
 		self.cleanup_on_demands (was) # del session, mbox, cookie, g
 		del was.response		
-		was.app = None
-			
+		was.app = None		
 		return result
 		

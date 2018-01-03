@@ -59,8 +59,10 @@ class Executor:
 			raise
 																										
 		except Exception as expt:			
+			exc_info = sys.exc_info ()
+			self.was.subapp.emit ("request:failed", exc_info)
 			if failed:				
-				response = failed (self.was, sys.exc_info ())
+				response = failed (self.was, exc_info)
 			if response is None:
 				raise
 			else:
@@ -68,8 +70,10 @@ class Executor:
 				self.was.traceback ()
 							
 		else:
+			self.was.subapp.emit ("request:success")
 			success and success (self.was)
-
+		
+		self.was.subapp.emit ("request:teardown")
 		teardown and teardown (self.was)
 		return response
 		
@@ -197,6 +201,7 @@ class Executor:
 	def __call__ (self):
 		request = self.env ["skitai.was"].request
 		current_app, thing, param, respcode = self.find_method (request, self.env ["PATH_INFO"])
+		current_app.emit ("request:started")
 		
 		if respcode: 
 			# unacceptable
@@ -220,5 +225,6 @@ class Executor:
 		# clean was		
 		del self.was.env
 		del self.was.subapp
+		current_app.emit ("request:finished")
 		return content
 		

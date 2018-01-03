@@ -2809,6 +2809,43 @@ If your app is mounted at "/math",
   
   was.ab ("hello", "Your Name") # returned '/math/hello/Your_Name'
 
+App Envents
+-------------
+
+.. code:: python
+
+  from skitai import saddle
+  
+  @app.on (saddle.app_starting)
+  def app_starting_handler (wasc):
+    print ("I got it!")
+  
+  @app.on (saddle.request_failed)
+  def request_failed_handler (was, exc_info):
+    print ("I got it!")
+  
+  @app.on (saddle.template_rendering)
+  def template_rendering_handler (was, template, params):
+    print ("I got it!")
+
+There're some app events and if not mentioned about args, it requires *was*.
+
+- saddle.app_starting: required args: wasc
+- saddle.app_started: required args: wasc
+- saddle.app_restarting: required args: wasc
+- saddle.app_restarted: required args: wasc
+- saddle.app_mounted
+- saddle.app_unmounting
+
+- saddle.request_failed: required args: was, exc_info
+- saddle.request_success
+- saddle.request_tearing_down
+- saddle.request_starting
+- saddle.request_finished
+
+- saddle.template_rendering: required args: was, template, template_param_dict
+- saddle.template_rendered: required args: was, content
+
 
 Creating and Handling Event
 -----------------------------
@@ -2964,7 +3001,7 @@ If resource always broadcasts event without args, use `broadcast_after` decorato
 
 .. code:: python
   
-  @was.broadcast_after ('some-event')
+  @app.broadcast_after ('some-event')
   def users (was):
     args = was.request.json ()
     was.sqlite3 ('@userdb').execute ('update ...').wait ()   
@@ -3690,7 +3727,7 @@ And use it for your resources if you need,
 
 
 Cross Site Request Forgery Token (CSRF Token)
-```````````````````````````````````````````````
+------------------------------------------------
 
 At template, insert CSRF Token,
 

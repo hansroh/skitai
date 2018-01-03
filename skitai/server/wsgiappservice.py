@@ -231,16 +231,6 @@ class WAS:
 	
 	def broadcast (self, event, *args, **kargs):
 		return self.apps.bus.emit (event, self, *args, **kargs)
-	
-	def broadcast_after (self, event):
-		def outer (f):
-			@wraps (f)
-			def wrapper(*args, **kwargs):
-				returned = f (*args, **kwargs)
-				self.apps.emit (event)
-				return returned
-			return wrapper
-		return outer
 		
 	def redirect (self, url, status = "302 Object Moved", body = None, headers = None):
 		redirect_headers = [

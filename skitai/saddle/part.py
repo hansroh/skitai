@@ -34,8 +34,7 @@ class Part:
 		self._function_names = {}
 		
 		self._binds_server = [None] * 5
-		self._binds_request = [None] * 4
-		self._binds_when = [None] * 5		
+		self._binds_request = [None] * 4		
 		self.handlers = {}
 				
 	def set_mount_point (self, mount):	
@@ -127,18 +126,6 @@ class Part:
 	def teardown_request (self, f):
 		self._binds_request [3] = f
 		return f
-	
-	def got_template (self, f):
-		self._binds_when [0] = f
-		return f
-	
-	def template_rendered (self, f):
-		self._binds_when [1] = f
-		return f
-	
-	def message_flashed (self, f):
-		self._binds_when [2] = f
-		return f
 		
 	#------------------------------------------------------
 		
@@ -229,18 +216,6 @@ class Part:
 	
 	defaulterrorhandler = default_error_handler
 	errorhandler = error_handler
-	
-	#----------------------------------------------
-	# Event Binding
-	#----------------------------------------------
-	def when_got_template (self, *args):
-		self._binds_when [0] and self._binds_when [0] (*args)
-	
-	def when_template_rendered (self, *args):
-		self._binds_when [1] and self._binds_when [1] (*args)
-		
-	def when_message_flashed (self, *args):
-		self._binds_when [2] and self._binds_when [2] (*args)
 	
 	#----------------------------------------------
 	# URL Building
@@ -459,15 +434,16 @@ class Part:
 		# initing app & packages		
 		self._binds_server [2] and self._binds_server [2] (self.wasc)
 	
-	def onmounted (self, was)	:
+	def onmounted (self, was):
 		self._binds_server [3] and self._binds_server [3] (was)
+		self.bus.emit ("app:mounted", was)
 	
 	def onumount (self, was):
 		self._binds_server [4] and self._binds_server [4] (was)
+		self.bus.emit ("app:umounting", was)
 			
-	def start (self, wasc, route):
-		self.wasc = wasc
-		
+	def _start (self, wasc, route):
+		self.wasc = wasc		
 		if not route: 
 			self.route = "/"
 		elif not route.endswith ("/"):			
@@ -475,8 +451,14 @@ class Part:
 		else:
 			self.route = route			
 		# initing app
-		self._binds_server [0] and self._binds_server [0] (self.wasc)
+		self._binds_server [0] and self._binds_server [0] (self.wasc)		
 	
-	def restart (self, wasc, route):
-		self.start (wasc, route)
-			
+	def start (self, wasc, route):		
+		self.bus.emit ("app:starting", wasc)
+		self._start (wasc, route)
+		self.bus.emit ("app:started", wasc)
+
+	def restart (self, wasc, route):		
+		self.bus.emit ("app:restarting", wasc)	
+		self._start (wasc, route)
+		self.bus.emit ("app:restarted", wasc)	

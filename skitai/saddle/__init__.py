@@ -6,13 +6,19 @@ from . import Saddle, part
 
 Saddle = Saddle.Saddle
 
-# deprecated in version 0.26.11
-#Saddlery = part.Part
+# Events
+app_starting = "app:starting"
+app_started = "app:started"
+app_restarting = "app:restarting"
+app_restarted = "app:restarted"
+app_mounted = "app:mounted"
+app_unmounting = "app:umounting"
 
-request_started = 0
-request_finished = 1
-request_exception_occured = 2
-request_tearing_down = 3
-template_rendered = 4
-message_flashed = 5
+request_failed = "request:failed"
+request_success = "request:success"
+request_tearing_down = "request:teardown"
+request_starting = "request:started"
+request_finished = "request:finished"
 
+template_rendering = "template:rendering"
+template_rendered = "template:rendered"

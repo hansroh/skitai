@@ -24,14 +24,15 @@ class MessageBox (SecuredListValue):
 		last_update, addr = validator [1:3]
 		self.__source_verified = (addr == self.request.get_remote_addr ())
 					
-	def send (self, msg, category = "info", valid = 0, **extra):
+	def push (self, msg, category = "info", valid = 0, **extra):
 		self.data is None and self.unserialize ()
 		if self.data and self.mid == -1:
 			self.mid = max ([n [0] for n in self.data])		
 		self.mid += 1
 		self.data.append ((self.mid, category, int (time.time ()), valid, msg, extra))
 		self.dirty = True
-		
+	send = push
+	
 	def remove (self, mid):
 		self.data is None and self.unserialize ()
 		index = 0
@@ -92,7 +93,7 @@ class MessageBox (SecuredListValue):
 			self.data = not_expired
 			self.dirty = True
 			
-		return messages
+		return messages	
 	
 	def recal_expires (self, expires):						
 		if self.data:
