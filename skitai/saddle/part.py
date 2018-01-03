@@ -136,7 +136,7 @@ class Part:
 			_funcs = self._decos.get ("login")
 			if _funcs:
 				response = _funcs (was)					
-				if response:
+				if response is not None:
 					return response
 			return f (was, *args, **kwargs)
 		return wrapper
@@ -154,7 +154,7 @@ class Part:
 				_funcs = self._decos.get ("permission")
 				if _funcs:
 					response = _funcs (was, self._permission_map [f])					
-					if response:
+					if response is not None:
 						return response
 				return f (was, *args, **kwargs)
 			return wrapper

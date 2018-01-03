@@ -3495,7 +3495,7 @@ You can define login & permissoin check handler,
       return
     
     if was.request.args.get ("username"):
-      if was.request.args ["_csrf_token"] != was.csrf_token:
+      if not was.csrf_verify ():
         return was.response ("400 Bad Request")
       
       if was.request.args.get ("signin"):
@@ -3526,7 +3526,9 @@ And use it for your resources if you need,
   def index (was):
     return "Hello"
 
+Note that in case of both of them, if every thing is OK, it SHOULD return None.
 
+		
 Cross Site Request Forgery Token (CSRF Token)
 ------------------------------------------------
 
@@ -3547,12 +3549,9 @@ then verify token like this,
 
   @app.before_request
   def before_request (was):
-    if was.request.method == "POST":
-      if "_csrf_token" not in was.request.args:
+    if was.request.args.get ("username"):
+      if not was.csrf_verify ():
         return was.response ("400 Bad Request")
-      if was.request.args ["_csrf_token"] != was.csrf_token:
-        return was.response ("400 Bad Request")
-
 
 
 App Event Handling

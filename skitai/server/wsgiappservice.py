@@ -341,12 +341,12 @@ class WAS:
 	
 	def csrf_verify (self):
 		if not self.request.args.get ("_csrf_token"):
-			return -1
+			return False
 		token = self.request.args ["_csrf_token"]
 		if self.csrf_token == token:
 			del self.session ["_csrf_token"]
-			return 1
-		return 0
+			return True
+		return False
 		
 	#-----------------------------------------
 	# will be deprecated
