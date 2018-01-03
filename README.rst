@@ -2956,11 +2956,11 @@ Custom Error Template
 
 .. code:: python
 
-  @app.defaulterrorhandler
+  @app.default_error_handler
   def not_found (was, error):
     return was.render ('default.htm', error = error)
 
-  @app.errorhandler (404)
+  @app.error_handler (404)
   def not_found (was, error):
     return was.render ('404.htm', error = error)
 
@@ -3557,10 +3557,9 @@ then verify token like this,
 App Event Handling
 ---------------------
 
-Most of Saddle's event handlings are implemented with `event-bus`_ library.
+Most of Saddle's event handlings are implemented with excellent `event-bus`_ library.
 
-*New in version 0.26.16*
-*Availabe only on Python 3.5+*
+*New in version 0.26.16*, *Availabe only on Python 3.5+*
 
 .. code:: python
 
@@ -3578,23 +3577,21 @@ Most of Saddle's event handlings are implemented with `event-bus`_ library.
   def template_rendering_handler (was, template, params):
     print ("I got it!")
 
-There're some app events and if not mentioned about args, it requires *was*.
+There're some app events.
 
-- saddle.app_starting: required args: wasc
-- saddle.app_started: required args: wasc
-- saddle.app_restarting: required args: wasc
-- saddle.app_restarted: required args: wasc
-- saddle.app_mounted
-- saddle.app_unmounting
-
-- saddle.request_failed: required args: was, exc_info
-- saddle.request_success
-- saddle.request_tearing_down
-- saddle.request_starting
-- saddle.request_finished
-
-- saddle.template_rendering: required args: was, template, template_param_dict
-- saddle.template_rendered: required args: was, content
+- saddle.app_starting: params - wasc
+- saddle.app_started: params - wasc
+- saddle.app_restarting: params - wasc
+- saddle.app_restarted: params - wasc
+- saddle.app_mounted: params - was
+- saddle.app_unmounting: params - was
+- saddle.request_failed: params -  was, exc_info
+- saddle.request_success: params - was
+- saddle.request_tearing_down: params - was
+- saddle.request_starting: params - was
+- saddle.request_finished: params - was
+- saddle.template_rendering: params - was, template, template_params_dict
+- saddle.template_rendered: params - was, content
 
 .. _`event-bus`: https://pypi.python.org/pypi/event-bus
 
@@ -4209,7 +4206,19 @@ Change Log
   
   0.26 (May 2017)
   
-  - 0.26.16 (Oct 2017)
+	- 0.26.17 (Oct 2017)
+	  
+		- add error_handler (prev errorhandler) decorator
+		- add default_error_handler (prev defaulterrorhandler) decorator
+		- add login_handler, login_required decorator
+		- add permission_handler, permission_required decorator
+		- add app events emitting
+		- add was.csrf_token_input, was.csrf_token and was.csrf_verify()		
+		- make session iterable	
+		- prevent changing function spec by decorator
+		- change params of use_django_models: (settings_path, alias), skitai.mount_django (point, wsgi_path, pref = pref (True), dbalias = None, host = "default")
+		
+	- 0.26.16 (Oct 2017)
 
     - add app.sqlmaps
     - add use_django_models (settings_path), skitai.mount_django (point, wsgi_path, pref = pref (True), host = "default")
