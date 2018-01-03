@@ -62,10 +62,7 @@ Installation
 
 **Requirements**
 
-Tested Python Versions
-
-  - 3.4
-  - 3.5
+Python 3.4+  
 
 On win32, required `pywin32 binary`_.
 
@@ -2809,204 +2806,6 @@ If your app is mounted at "/math",
   
   was.ab ("hello", "Your Name") # returned '/math/hello/Your_Name'
 
-App Envents
--------------
-
-.. code:: python
-
-  from skitai import saddle
-  
-  @app.on (saddle.app_starting)
-  def app_starting_handler (wasc):
-    print ("I got it!")
-  
-  @app.on (saddle.request_failed)
-  def request_failed_handler (was, exc_info):
-    print ("I got it!")
-  
-  @app.on (saddle.template_rendering)
-  def template_rendering_handler (was, template, params):
-    print ("I got it!")
-
-There're some app events and if not mentioned about args, it requires *was*.
-
-- saddle.app_starting: required args: wasc
-- saddle.app_started: required args: wasc
-- saddle.app_restarting: required args: wasc
-- saddle.app_restarted: required args: wasc
-- saddle.app_mounted
-- saddle.app_unmounting
-
-- saddle.request_failed: required args: was, exc_info
-- saddle.request_success
-- saddle.request_tearing_down
-- saddle.request_starting
-- saddle.request_finished
-
-- saddle.template_rendering: required args: was, template, template_param_dict
-- saddle.template_rendered: required args: was, content
-
-
-Creating and Handling Event
------------------------------
-
-For creating event and event handler,
-
-.. code:: python
-
-  @app.on ("user-updated")
-  def user_updated (was, user):
-    ...
-
-For emitting,
-
-.. code:: python
-    
-  @app.route ('/users', methods = ["POST"])
-  def users (was):
-    args = was.request.json ()
-    ...
-    
-    app.emit ("user-updated", args ['userid'])
-    
-    return ''
-
-If event hasn't args, you can use `emit_after` decorator,
-
-.. code:: python
-    
-  @app.route ('/users', methods = ["POST"])
-  @app.emit_after ("user-updated")
-  def users (was):
-    args = was.request.json ()
-    ...    
-    return ''
-
-Using this, you can build automatic excution chain,
-
-.. code:: python
-  
-  @app.on ("photo-updated")
-  def photo_updated (was):
-    ...        
-    
-  @app.on ("user-updated")
-  @app.emit_after ("photo-updated")
-  def user_updated (was):
-    ...        
-      
-  @app.route ('/users', methods = ["POST"])
-  @app.emit_after ("user-updated")
-  def users (was):
-    args = was.request.json ()
-    ...
-    return ''
-
-
-Cross App Communication & Accessing Resources
-----------------------------------------------
-
-Skitai prefer spliting apps to small microservices and mount them each. This feature make easy to move some of your mounted apps move to another machine. But this make difficult to communicate between apps. 
-
-Here's some helpful solutions.
-
-
-Accessing App Object Properties
-`````````````````````````````````
-
-*New in version 0.26.7.2*
-
-You can mount multiple app on Skitai, and maybe need to another app is mounted seperatly.
-
-.. code:: python
-
-  skitai.mount ("/", "main.py")
-  skitai.mount ("/query", "search.py")
-
-And you can access from filename of app from each apps,
-
-.. code:: python
-
-  search_app = was.apps ["search"]
-  save_path = search_app.config.save_path  
-
-
-URL Building for Resource Accessing
-````````````````````````````````````
-
-*New in version 0.26.7.2*
-  
-If you mount multiple apps like this,
-
-.. code:: python
-
-  skitai.mount ("/", "main.py")
-  skitai.mount ("/search", "search.py")
-
-For building url in `main.py` app from a query function of `search.py` app, you should specify app file name with dot.
-
-.. code:: python
-
-  was.ab ('search.query', "Your Name") # returned '/search/query?q=Your%20Name'
-  
-And this is exactly same as,
-
-  was.apps ["search"].build_url ("query", "Your Name")  
-
-But this is only functioning between apps are mounted within same host.
-
-
-Communication with Event
-``````````````````````````
-
-*New in version 0.26.10*
-*Availabe only on Python 3.5+*
-
-'was' can work as an event bus using app.on_broadcast () - was.broadcast () pair. Let's assume that an users.py app handle only user data, and another photo.py app handle only photos of users.
-
-.. code:: python
-
-  skitai.mount ('/users', 'users.py')
-  skitai.mount ('/photos', 'photos.py')
-
-If a user update own profile, sometimes photo information should be updated.
-
-At photos.py, you can prepare for listening to 'user:data-added' event and this event will be emited from 'was'.
-
-.. code:: python
-  
-  @app.on_broadcast ('user:data-added')
-  def refresh_user_cache (was, userid):
-    was.sqlite3 ('@photodb').execute ('update ...').wait ()
-
-and uses.py, you just emit 'user:data-added' event to 'was'.
-
-.. code:: python
-  
-  @app.route ('/users', methods = ["PATCH"])
-  def users (was):
-    args = was.request.json ()
-    was.sqlite3 ('@userdb').execute ('update ...').wait ()
-    
-    # broadcasting event to all mounted apps
-    was.broadcast ('user:data-added', args ['userid'])
-    
-    return was.response (
-      "200 OK", 
-      json.dumps ({}), 
-      [("Content-Type", "application/json")]
-    )
-
-If resource always broadcasts event without args, use `broadcast_after` decorator.
-
-.. code:: python
-  
-  @app.broadcast_after ('some-event')
-  def users (was):
-    args = was.request.json ()
-    was.sqlite3 ('@userdb').execute ('update ...').wait ()   
-
-Note that this decorator cannot be routed by app.route ().
 
 
 Access Environment Variables
@@ -3447,8 +3246,8 @@ File Upload
     + o - overwrite
 
 
-Working with SQLPhile
--------------------------
+Using SQL Map with SQLPhile
+-----------------------------
 
 *New in Version 0.26.13*
 
@@ -3684,6 +3483,8 @@ At template,
 Login and Permission Helper
 ------------------------------
 
+*New in version 0.26.16*
+
 You can define login & permissoin check handler,
 
 .. code:: python
@@ -3729,6 +3530,8 @@ And use it for your resources if you need,
 Cross Site Request Forgery Token (CSRF Token)
 ------------------------------------------------
 
+*New in version 0.26.16*
+
 At template, insert CSRF Token,
 
 .. code:: html
@@ -3749,7 +3552,211 @@ then verify token like this,
         return was.response ("400 Bad Request")
       if was.request.args ["_csrf_token"] != was.csrf_token:
         return was.response ("400 Bad Request")
+
+
+
+App Event Handling
+---------------------
+
+*New in version 0.26.16*
+
+.. code:: python
+
+  from skitai import saddle
+  
+  @app.on (saddle.app_starting)
+  def app_starting_handler (wasc):
+    print ("I got it!")
+  
+  @app.on (saddle.request_failed)
+  def request_failed_handler (was, exc_info):
+    print ("I got it!")
+  
+  @app.on (saddle.template_rendering)
+  def template_rendering_handler (was, template, params):
+    print ("I got it!")
+
+There're some app events and if not mentioned about args, it requires *was*.
+
+- saddle.app_starting: required args: wasc
+- saddle.app_started: required args: wasc
+- saddle.app_restarting: required args: wasc
+- saddle.app_restarted: required args: wasc
+- saddle.app_mounted
+- saddle.app_unmounting
+
+- saddle.request_failed: required args: was, exc_info
+- saddle.request_success
+- saddle.request_tearing_down
+- saddle.request_starting
+- saddle.request_finished
+
+- saddle.template_rendering: required args: was, template, template_param_dict
+- saddle.template_rendered: required args: was, content
+
+
+Creating and Handling Event
+-----------------------------
+
+For creating event and event handler,
+
+.. code:: python
+
+  @app.on ("user-updated")
+  def user_updated (was, user):
+    ...
+
+For emitting,
+
+.. code:: python
     
+  @app.route ('/users', methods = ["POST"])
+  def users (was):
+    args = was.request.json ()
+    ...
+    
+    app.emit ("user-updated", args ['userid'])
+    
+    return ''
+
+If event hasn't args, you can use `emit_after` decorator,
+
+.. code:: python
+    
+  @app.route ('/users', methods = ["POST"])
+  @app.emit_after ("user-updated")
+  def users (was):
+    args = was.request.json ()
+    ...    
+    return ''
+
+Using this, you can build automatic excution chain,
+
+.. code:: python
+  
+  @app.on ("photo-updated")
+  def photo_updated (was):
+    ...        
+    
+  @app.on ("user-updated")
+  @app.emit_after ("photo-updated")
+  def user_updated (was):
+    ...        
+      
+  @app.route ('/users', methods = ["POST"])
+  @app.emit_after ("user-updated")
+  def users (was):
+    args = was.request.json ()
+    ...
+    return ''
+
+
+Cross App Communication & Accessing Resources
+----------------------------------------------
+
+Skitai prefer spliting apps to small microservices and mount them each. This feature make easy to move some of your mounted apps move to another machine. But this make difficult to communicate between apps. 
+
+Here's some helpful solutions.
+
+
+Accessing App Object Properties
+`````````````````````````````````
+
+*New in version 0.26.7.2*
+
+You can mount multiple app on Skitai, and maybe need to another app is mounted seperatly.
+
+.. code:: python
+
+  skitai.mount ("/", "main.py")
+  skitai.mount ("/query", "search.py")
+
+And you can access from filename of app from each apps,
+
+.. code:: python
+
+  search_app = was.apps ["search"]
+  save_path = search_app.config.save_path  
+
+
+URL Building for Resource Accessing
+````````````````````````````````````
+
+*New in version 0.26.7.2*
+  
+If you mount multiple apps like this,
+
+.. code:: python
+
+  skitai.mount ("/", "main.py")
+  skitai.mount ("/search", "search.py")
+
+For building url in `main.py` app from a query function of `search.py` app, you should specify app file name with dot.
+
+.. code:: python
+
+  was.ab ('search.query', "Your Name") # returned '/search/query?q=Your%20Name'
+  
+And this is exactly same as,
+
+  was.apps ["search"].build_url ("query", "Your Name")  
+
+But this is only functioning between apps are mounted within same host.
+
+
+Communication with Event
+``````````````````````````
+
+*New in version 0.26.10*
+*Availabe only on Python 3.5+*
+
+'was' can work as an event bus using app.on_broadcast () - was.broadcast () pair. Let's assume that an users.py app handle only user data, and another photo.py app handle only photos of users.
+
+.. code:: python
+
+  skitai.mount ('/users', 'users.py')
+  skitai.mount ('/photos', 'photos.py')
+
+If a user update own profile, sometimes photo information should be updated.
+
+At photos.py, you can prepare for listening to 'user:data-added' event and this event will be emited from 'was'.
+
+.. code:: python
+  
+  @app.on_broadcast ('user:data-added')
+  def refresh_user_cache (was, userid):
+    was.sqlite3 ('@photodb').execute ('update ...').wait ()
+
+and uses.py, you just emit 'user:data-added' event to 'was'.
+
+.. code:: python
+  
+  @app.route ('/users', methods = ["PATCH"])
+  def users (was):
+    args = was.request.json ()
+    was.sqlite3 ('@userdb').execute ('update ...').wait ()
+    
+    # broadcasting event to all mounted apps
+    was.broadcast ('user:data-added', args ['userid'])
+    
+    return was.response (
+      "200 OK", 
+      json.dumps ({}), 
+      [("Content-Type", "application/json")]
+    )
+
+If resource always broadcasts event without args, use `broadcast_after` decorator.
+
+.. code:: python
+  
+  @app.broadcast_after ('some-event')
+  def users (was):
+    args = was.request.json ()
+    was.sqlite3 ('@userdb').execute ('update ...').wait ()   
+
+Note that this decorator cannot be routed by app.route ().
+
+
 CORS (Cross Origin Resource Sharing) and Preflight
 -----------------------------------------------------
 
