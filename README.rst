@@ -3528,7 +3528,7 @@ And use it for your resources if you need,
 
 Note that in case of both of them, if every thing is OK, it SHOULD return None.
 
-		
+    
 Cross Site Request Forgery Token (CSRF Token)
 ------------------------------------------------
 
@@ -3579,19 +3579,19 @@ Most of Saddle's event handlings are implemented with excellent `event-bus`_ lib
 
 There're some app events.
 
-- saddle.app_starting: params - wasc
-- saddle.app_started: params - wasc
-- saddle.app_restarting: params - wasc
-- saddle.app_restarted: params - wasc
-- saddle.app_mounted: params - was
-- saddle.app_unmounting: params - was
-- saddle.request_failed: params -  was, exc_info
-- saddle.request_success: params - was
-- saddle.request_tearing_down: params - was
-- saddle.request_starting: params - was
-- saddle.request_finished: params - was
-- saddle.template_rendering: params - was, template, template_params_dict
-- saddle.template_rendered: params - was, content
+- saddle.app_starting: required (wasc)
+- saddle.app_started: required (wasc)
+- saddle.app_restarting: required (wasc)
+- saddle.app_restarted: required (wasc)
+- saddle.app_mounted: required (was)
+- saddle.app_unmounting: required (was)
+- saddle.request_failed: required ( was, exc_info)
+- saddle.request_success: required (was)
+- saddle.request_tearing_down: required (was)
+- saddle.request_starting: required (was)
+- saddle.request_finished: required (was)
+- saddle.template_rendering: required (was, template, template_params_dict)
+- saddle.template_rendered: required (was, content)
 
 .. _`event-bus`: https://pypi.python.org/pypi/event-bus
 
@@ -3963,6 +3963,12 @@ Server Side:
   
   import route_guide_pb2
   
+  def get_feature (feature_db, point):
+    for feature in feature_db:
+      if feature.location == point:
+        return feature
+    return None
+    
   @app.route ("/GetFeature")
   def GetFeature (was, point):
     feature = get_feature(db, point)
@@ -3972,9 +3978,10 @@ Server Side:
     return feature
 
   if __name__ == "__main__":
-    skitai.run (
-      mount = [('/routeguide.RouteGuide', app)
-    )
+
+  skitai.mount = ('/routeguide.RouteGuide', app)
+  skitai.urn ()
+
 
 For more about gRPC and route_guide_pb2, go to `gRPC Basics - Python`_.
 
@@ -4206,19 +4213,19 @@ Change Log
   
   0.26 (May 2017)
   
-	- 0.26.17 (Oct 2017)
-	  
-		- add error_handler (prev errorhandler) decorator
-		- add default_error_handler (prev defaulterrorhandler) decorator
-		- add login_handler, login_required decorator
-		- add permission_handler, permission_required decorator
-		- add app events emitting
-		- add was.csrf_token_input, was.csrf_token and was.csrf_verify()		
-		- make session iterable	
-		- prevent changing function spec by decorator
-		- change params of use_django_models: (settings_path, alias), skitai.mount_django (point, wsgi_path, pref = pref (True), dbalias = None, host = "default")
-		
-	- 0.26.16 (Oct 2017)
+  - 0.26.17 (Oct 2017)
+    
+    - add error_handler (prev errorhandler) decorator
+    - add default_error_handler (prev defaulterrorhandler) decorator
+    - add login_handler, login_required decorator
+    - add permission_handler, permission_required decorator
+    - add app events emitting
+    - add was.csrf_token_input, was.csrf_token and was.csrf_verify()    
+    - make session iterable  
+    - prevent changing function spec by decorator
+    - change params of use_django_models: (settings_path, alias), skitai.mount_django (point, wsgi_path, pref = pref (True), dbalias = None, host = "default")
+    
+  - 0.26.16 (Oct 2017)
 
     - add app.sqlmaps
     - add use_django_models (settings_path), skitai.mount_django (point, wsgi_path, pref = pref (True), host = "default")
