@@ -162,10 +162,11 @@ class Handler:
 			try:
 				# shoud have constructor __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size)
 				collector_class = app.get_collector (request)
-			except AttributeError:
+			except AttributeError:				
 				collector_class = None
-			except NotImplementedError:				
-				return self.handle_error_before_collecting (request, 404)
+			except NotImplementedError:
+				# proto buf is not ready
+				return self.handle_error_before_collecting (request, 501)
 			
 			ct = request.get_header ("content-type", "")			
 			if ct.startswith ("multipart/form-data"):

@@ -251,6 +251,7 @@ class http2_request_handler:
 			
 	def handle_events (self, events):
 		for event in events:
+			#print (event)
 			if isinstance(event, RequestReceived):				
 				self.handle_request (event.stream_id, event.headers)				
 					
@@ -277,11 +278,12 @@ class http2_request_handler:
 			
 			elif isinstance(event, RemoteSettingsChanged):
 				try:
-					iws = event.changed_settings [SettingCodes.INITIAL_WINDOW_SIZE].new_value
+					mfs = event.changed_settings [SettingCodes.MAX_FRAME_SIZE].new_value					
 				except KeyError:
 					pass
-				else:		
-					self.increment_flow_control_window ((2 ** 31 - 1) - iws)
+				else:
+					self.frame_buf.max_frame_size	= mfs
+					self.increment_flow_control_window (mfs)
 					
 			elif isinstance(event, PriorityUpdated):
 				if event.exclusive:
