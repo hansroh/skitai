@@ -3972,10 +3972,10 @@ Server Side:
   @app.route ("/GetFeature")
   def GetFeature (was, point):
     feature = get_feature(db, point)
-  if feature is None:
-    return route_guide_pb2.Feature(name="", location=point)
-  else:
-    return feature
+    if feature is None:
+      return route_guide_pb2.Feature(name="", location=point)
+    else:
+      return feature
 
   if __name__ == "__main__":
 
