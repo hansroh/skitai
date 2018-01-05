@@ -211,6 +211,9 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
 	if type (target) is tuple: 
 		module, appfile = target
 		target = os.path.join (os.path.dirname (module.__file__), "export", "skitai", appfile)
+		if not os.path.isfile (target):
+			appfile = "__" + appfile
+			target = os.path.join (os.path.dirname (module.__file__), "export", "skitai", appfile)			
 			
 	if type (target) is not str:
 		# app instance

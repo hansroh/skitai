@@ -442,7 +442,7 @@ class Part:
 		self._binds_server [4] and self._binds_server [4] (was)
 		self.bus.emit ("app:umounting", was)
 			
-	def _start (self, wasc, route):
+	def _start (self, wasc, route, reload = False):
 		self.wasc = wasc		
 		if not route: 
 			self.route = "/"
@@ -451,7 +451,7 @@ class Part:
 		else:
 			self.route = route			
 		# initing app
-		self._binds_server [0] and self._binds_server [0] (self.wasc)		
+		self._binds_server [reload and 1 or 0] and self._binds_server [reload and 1 or 0] (self.wasc)		
 	
 	def start (self, wasc, route):		
 		self.bus.emit ("app:starting", wasc)
@@ -460,5 +460,5 @@ class Part:
 
 	def restart (self, wasc, route):		
 		self.bus.emit ("app:restarting", wasc)	
-		self._start (wasc, route)
+		self._start (wasc, route, True)
 		self.bus.emit ("app:restarted", wasc)	

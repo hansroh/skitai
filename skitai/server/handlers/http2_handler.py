@@ -254,7 +254,15 @@ class http2_request_handler:
 			#print (event)
 			if isinstance(event, RequestReceived):				
 				self.handle_request (event.stream_id, event.headers)				
-					
+			
+			elif isinstance(event, RemoteSettingsChanged):
+				try:
+					iws = event.changed_settings [SettingCodes.INITIAL_WINDOW_SIZE].new_value
+				except KeyError:
+					pass
+				else:						
+					self.increment_flow_control_window (iws)
+				
 			elif isinstance(event, StreamReset):
 				if event.remote_reset:
 					r = self.get_request (event.stream_id)
@@ -275,15 +283,6 @@ class http2_request_handler:
 						
 			elif isinstance(event, ConnectionTerminated):
 				self.close (True)
-			
-			elif isinstance(event, RemoteSettingsChanged):
-				try:
-					mfs = event.changed_settings [SettingCodes.MAX_FRAME_SIZE].new_value					
-				except KeyError:
-					pass
-				else:
-					self.frame_buf.max_frame_size	= mfs
-					self.increment_flow_control_window (mfs)
 					
 			elif isinstance(event, PriorityUpdated):
 				if event.exclusive:
@@ -309,7 +308,7 @@ class http2_request_handler:
 					else:
 						rfcw = self.conn.remote_flow_control_window (event.stream_id)
 						if rfcw < 131070:
-							self.increment_flow_control_window (1048576, event.stream_id)
+							self.increment_flow_control_window (1048576, event.stream_id)							
 				
 			elif isinstance(event, StreamEnded):
 				r = self.get_request (event.stream_id)
@@ -351,8 +350,11 @@ class http2_request_handler:
 		else:	
 			do_send = True
 			with self._plock:
-				try: self.conn.increment_flow_control_window (cl, stream_id)
-				except StreamClosedError: do_send = False
+				self.conn.increment_flow_control_window (cl)
+				try: 
+					self.conn.increment_flow_control_window (cl, stream_id)					
+				except StreamClosedError: 
+					do_send = False
 			if do_send: 
 				self.send_data ()
 		
