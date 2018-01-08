@@ -201,7 +201,7 @@ class http2_request_handler:
 				depends_on, weight = 0, 1	
 			else:
 				del self.priorities [stream_id]
-		
+
 		header_producer = h2header_producer (stream_id, headers, producer, self.conn, self._plock)
 		
 		if not producer:

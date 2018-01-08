@@ -3983,12 +3983,14 @@ Server Side:
   skitai.urn ()
 
 
+For an example, here's my tfserver_ for Tensor Flow Model Server.
+	
 For more about gRPC and route_guide_pb2, go to `gRPC Basics - Python`_.
 
 Note: I think I don't understand about gRPC's stream request and response. Does it means chatting style? Why does data stream has interval like GPS data be handled as stream type? If it is chat style stream, is it more efficient that use proto buffer on Websocket protocol? In this case, it is even possible collaborating between multiple gRPC clients.
 
 .. _`gRPC Basics - Python`: http://www.grpc.io/docs/tutorials/basic/python.html
-
+.. _tfserver: https://pypi.python.org/pypi/tfserver
 
 Route Proxing Django Views & Working with Django Models
 ---------------------------------------------------------

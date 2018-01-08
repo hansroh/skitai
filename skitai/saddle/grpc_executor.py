@@ -62,8 +62,8 @@ class Executor (wsgi_executor.Executor):
 			
 		else:
 			if result:
-				self.was.response ["grpc-encoding"] = "gzip"		
-				self.was.response ["content-type"] = "application/grpc"					
+				#self.was.response ["grpc-encoding"] = "gzip"
+				self.was.response ["content-type"] = "application/grpc"
 			self.commit ()
 			result = grpc_producer (result [0])
 			
