@@ -2,7 +2,7 @@ from .secured_cookie_value import SecuredListValue
 import time
 
 class MessageBox (SecuredListValue):
-	KEY = "MBOX"
+	KEY = "sdlmbox"
 	
 	def __init__ (self, name, cookie, request, secret_key):
 		SecuredListValue.__init__ (self, name, cookie, request, secret_key)

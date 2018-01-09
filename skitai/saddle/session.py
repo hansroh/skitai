@@ -3,7 +3,7 @@ import time
 
 class Session (SecuredDictValue):
 	default_session_timeout = 1200 # 20 min.	
-	KEY = "SESS"	
+	KEY = "sdlsess"
 	
 	def __init__ (self, name, cookie, request, secret_key, session_timeout = 0):
 		self.session_timeout = session_timeout and session_timeout or self.default_session_timeout

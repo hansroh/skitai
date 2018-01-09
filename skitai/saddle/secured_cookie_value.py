@@ -31,7 +31,7 @@ class SecuredValue:
 	hash_method = _default_hash
 	serialization_method = pickle
 	quote_base64 = True
-	KEY = "SECURED"	
+	KEY = "sdlsecure"	
 	
 	def __init__ (self, name, cookie, request, secret_key):
 		self.name = "_" + name.upper ()

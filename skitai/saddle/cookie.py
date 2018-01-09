@@ -14,8 +14,8 @@ import pickle
 from hmac import new as hmac
 from . import named_session
 
-NS_MBOX = "MBOX"
-NS_SESSION = "SESS"
+NS_MBOX = "sdlmbox"
+NS_SESSION = "sdlsess"
 
 def crack_cookie (r):
 	if not r: return {}
