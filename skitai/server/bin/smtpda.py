@@ -3,7 +3,7 @@
 
 import sys, os, getopt
 from skitai import lifetime
-from aquests.lib import pathtool, logger
+from aquests.lib import pathtool, logger, confparse
 from aquests.lib.athreads import select_trigger
 from aquests.protocols.smtp import async_smtp, composer
 import signal
@@ -181,10 +181,11 @@ Examples:
 if __name__ == "__main__":
 	argopt = getopt.getopt(
 		sys.argv[1:], 
-		"hv", 
+		"hvf:", 
 		[
-			"help", "verbose=", "log-path=", "var-path=", "pname=",
-			"max-retry=", "keep-days=", "server=", "user=", "password=", "ssl="
+			"help", "verbose", "log-path=", "var-path=", "pname=",
+			"max-retry=", "keep-days=", "server=", "user=", "password=", "ssl=",
+			"config=", "process-display-name=", "smtp-server="
 		]
 	)
 	_consol = "no"
@@ -192,14 +193,25 @@ if __name__ == "__main__":
 		"max-retry": 3,
 		"keep-days": 3,	
 		"ssl": 0,
-	}
+	}	
 	_logpath, _varpath = None, None
+	
+	fileopt = []
 	for k, v in argopt [0]:
+		if k == "-f" or k == "config":
+			cf = confparse.ConfParse (v)
+			if not cf.getopt ("smtpda", "var-path"):
+				cf.setopt ("smtpda", "var-path", "/tmp/skitai")				
+			fileopt = list ([("--" + k, v) for k, v in cf.getopt ("common").items () if v not in ("", "false", "no")])
+			fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("smtpda").items () if v not in ("", "false", "no")]))
+			break			
+	
+	for k, v in (fileopt + argopt [0]):
 		if k == "--help" or k == "-h":
 			usage ()
 			sys.exit ()		
 		elif k == "--verbose" or k == "-v":
-			_consol = v
+			_consol = "yes"
 		elif k == "--log-path":	
 			_logpath = v
 		elif k == "--var-path":	
@@ -208,7 +220,7 @@ if __name__ == "__main__":
 			_cf ['max-retry'] = int (v)
 		elif k == "--keep-days":	
 			_cf ['keep-days'] = int (v)	
-		elif k == "--server":	
+		elif k == "--server" or k == "--smtp-server":	
 			_cf ['smtpserver'] = v
 		elif k == "--user":	
 			_cf ['user'] = v
@@ -216,13 +228,13 @@ if __name__ == "__main__":
 			_cf ['password'] = v	
 		elif k == "--ssl":	
 			_cf ['ssl'] = 1		
-		elif k == "--pname":	
+		elif k == "--pname" or k == "--process-display-name":	
 			_cf ['pname'] = v
-				
+	
 	service = daemon.make_service (SMTPDeliverAgent, _cf, _logpath, _varpath, _consol)
 	try:
 		service.run ()		
 	finally:	
-		if _consol not in ("1", "yes"):
+		if _consol not in ("1", "yes", "true"):
 			sys.stderr.close ()	
 		sys.exit (lifetime._exit_code)

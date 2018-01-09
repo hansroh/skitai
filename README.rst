@@ -785,9 +785,11 @@ Above /hello can called, http://127.0.0.1:5000/flaskapp/hello
 Also app should can handle mount point. 
 In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Skito-Saddle can handle obiously. But I don't know other WSGI containers will work properly.
 
+Run Server Helpers
+--------------------
 
 SMTP Delivery Agent
----------------------
+````````````````````````
 
 *New in version 0.26*
 
@@ -817,9 +819,8 @@ With asynchronous email delivery service, can add default SMTP Server. If it is 
 
 All e-mails are saved into *varpath* and varpath is not specified default is /var/temp/skitai
 
-
 Batch Task Scheduler
---------------------
+````````````````````````
 
 *New in version 0.26*
 
@@ -837,6 +838,55 @@ Taks configuarion is very same with posix crontab.
 Note that these tasks run only with Skitai, If Skitai is stopped, tasks will also stopped.
 
 
+Run With Config File
+````````````````````````
+*New in version 0.26.17*
+
+Both of SMTP and Taks Scheduler can be run with config file, it may be particulary useful in case you run multiple skitai instances.
+
+.. code:: bash
+  
+  # ~/.skitai.conf
+  
+  [common]
+  log-path =
+  var-path =
+
+  [smtpda]
+  verbose = false
+  max-retry = 10
+  keep-days = 1
+  smtp-server = [your SMTP server]
+  user = [your SMTP user name if you need]
+  password = [your SMTP user password if you need]
+  ssl = true
+  process-display-name = skitai-smtpda
+
+  [cron]
+  verbose = false
+  process-display-name = skitai-cron
+
+  [:crontab]
+
+
+And run scripts mannually,
+  
+.. code:: bash
+
+  python3 -m skitai.server.bin.smtpda -f ~/hrroh/.skitai.conf
+  python3 -m skitai.server.bin.cron -f ~/hrroh/.skitai.conf
+  
+I you give cammnad line options, theses have more priority than config file.
+
+And for running automatically on system boot, you can add this line to /etc/rc.local like this,
+
+.. code:: bash
+
+  # /etc/rc.local
+	
+  su - ubuntu -c "python -m skitai.server.bin.smtpda -f ~/.skitai.conf &"
+
+  
 Asccessing File Resources On Startup
 -------------------------------------
 
@@ -3984,7 +4034,7 @@ Server Side:
 
 
 For an example, here's my tfserver_ for Tensor Flow Model Server.
-	
+  
 For more about gRPC and route_guide_pb2, go to `gRPC Basics - Python`_.
 
 Note: I think I don't understand about gRPC's stream request and response. Does it means chatting style? Why does data stream has interval like GPS data be handled as stream type? If it is chat style stream, is it more efficient that use proto buffer on Websocket protocol? In this case, it is even possible collaborating between multiple gRPC clients.
@@ -4217,7 +4267,8 @@ Change Log
   
   - 0.26.17 (Oct 2017)
     
-    - add error_handler (prev errorhandler) decorator
+    - can run SMTP Delivery Agent and Task Scheduler with config file
+		- add error_handler (prev errorhandler) decorator
     - add default_error_handler (prev defaulterrorhandler) decorator
     - add login_handler, login_required decorator
     - add permission_handler, permission_required decorator

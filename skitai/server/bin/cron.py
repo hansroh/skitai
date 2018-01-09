@@ -232,9 +232,9 @@ Examples:
 if __name__ == "__main__":
 	argopt = getopt.getopt(
 		sys.argv[1:], 
-		"hv", 
+		"hvf:", 
 		[
-			"help", "verbose=", "log-path=", "var-path=", "pname="
+			"help", "verbose", "log-path=", "var-path=", "pname=", "process-display-name=", "config="
 		]	
 	)
 	
@@ -242,28 +242,36 @@ if __name__ == "__main__":
 	_cf = {}
 	_logpath, _varpath = None, None
 	
+	fileopt = []
 	for k, v in argopt [0]:
+		if k == "-f" or k == "config":
+			cf = confparse.ConfParse (v)
+			fileopt = list ([("--" + k, v) for k, v in cf.getopt ("common").items () if v not in ("", "false", "no")])
+			fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("cron").items () if v not in ("", "false", "no")]))
+			break
+	
+	for k, v in (fileopt + argopt [0]):
 		if k == "--help" or k == "-h":	
 			usage ()
 			sys.exit ()		
 		elif k == "--verbose" or k == "-v":
-			_consol = v
+			_consol = "yes"
 		elif k == "--log-path":	
 			_logpath = v
 		elif k == "--var-path":	
 			_varpath = v
-		elif k == "--pname":	
+		elif k == "--pname" or k == "--process-display-name":	
 			_cf ["pname"] = v
 			
 	_cf ['jobs'] = []
-	for job in argopt [1]:
+	for job in (cf.getopt ("crontab") or []) + argopt [1]:
 		_cf ['jobs'].append (job)
 		
 	service = daemon.make_service (CronManager, _cf, _logpath, _varpath, _consol)	
 	try:
 		service.run ()
 	finally:	
-		if _consol not in ("1", "yes"):
+		if _consol not in ("1", "yes", "true"):
 			sys.stderr.close ()
 		sys.exit (daemon.EXIT_CODE)
 		

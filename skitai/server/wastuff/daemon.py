@@ -19,7 +19,7 @@ class Daemon:
 		self.handlers = {}	
 		set_process_name ("%s: %s" % (config.get ("pname") or skitai.get_proc_title (), self.NAME))
 		self.setup ()
-	
+		
 	def maintern_shutdown_request (self, now):
 		# for wind32 only, scheduled call by lifetime
 		global EXIT_CODE
@@ -47,6 +47,7 @@ class Daemon:
 			self.logger.add_logger (logger.screen_logger ())			
 		if self.logpath:
 			self.logger.add_logger (logger.rotate_logger (self.logpath, self.NAME, "weekly"))
+		self.logger ("active var dir {}".format (self.varpath), "info")
 		if create_flock and os.name == "nt":			
 			self.flock = flock.Lock (os.path.join (self.varpath, "%s" % self.NAME))
 			self.flock.unlockall ()
