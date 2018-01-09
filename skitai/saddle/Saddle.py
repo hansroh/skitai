@@ -16,6 +16,7 @@ import base64
 from . import cookie
 from .config import Config
 from sqlphile import SQLPhile
+from event_bus.exceptions import EventDoesntExist
 	
 from jinja2 import Environment, FileSystemLoader
 try:
@@ -58,7 +59,7 @@ class Saddle (part.Part):
 		self.chameleon = None
 		self.sqlmap = None
 		self.bus = evbus.EventBus ()
-		self.events = []
+		self.events = {}
 		# for bus, set by wsgi_executor
 		
 		self.reloadables = {}
@@ -218,7 +219,10 @@ class Saddle (part.Part):
 	def on (self, *events):
 		def decorator(f):			
 			self.save_function_spec_for_routing (f)
-			for e in events:				
+			for e in events:
+				if self._reloading:
+					try: self.bus.remove_event (f.__name__, e)
+					except EventDoesntExist: pass				
 				self.bus.add_event (f, e)
 				
 			@wraps(f)
@@ -246,8 +250,8 @@ class Saddle (part.Part):
 	def on_broadcast (self, *events):
 		def decorator(f):
 			self.save_function_spec_for_routing (f)
-			for e in events:
-				self.add_event (e, f)				
+			for e in events:				
+				self.add_event (e, f)
 			@wraps(f)
 			def wrapper(*args, **kwargs):
 				return f (*args, **kwargs)
@@ -266,15 +270,22 @@ class Saddle (part.Part):
 		return decorator
 		
 	def add_event (self, event, f):
-		self.events.append ((f, event))
+		try:
+			del self.events [(f.__name__, event)]
+		except KeyError:
+			pass
+		self.events [(f.__name__, event)] = f
 	
 	def commit_events_to (self, broad_bus):
-		for fname, event in self.events:
-			broad_bus.add_event (fname, event)
+		for (fname, event), f in self.events.items ():
+			broad_bus.add_event (f, event)
 			
 	def remove_events (self, broad_bus):
-		for fname, event in self.events:
-			broad_bus.remove_event (fname.__name__, event)
+		for (fname, event), f in self.events.items ():
+			try:	
+				broad_bus.remove_event (fname, event)
+			except EventDoesntExist: 
+				pass
 		
 	#----------------------------------------------
 	

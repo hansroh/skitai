@@ -1717,7 +1717,9 @@ Also was.setlu () emits 'model-changed' events. You can handle event if you need
   @app.on_broadcast ("model-changed:tables.users")
   def on_broadcast (was, *args, **kargs):
     # your code
-    
+
+Note: if @app.on_broadcast is located in decorate function at components directory, even app.use_reloader is True, it is not applied to app when component file is changed. In this case you should manually reload app by resaving app file.
+
 
 API Transaction ID
 `````````````````````
