@@ -16,7 +16,8 @@ class Part:
 		self.module = None
 		self.packagename = None
 		self.wasc = None				
-		
+		self._started = False
+		self._reloading = False
 		self.logger = None
 		self.mount_p = "/"
 		self.path_suffix_len = 0
@@ -222,7 +223,7 @@ class Part:
 	#----------------------------------------------		
 	def url_for (self, thing, *args, **kargs):
 		if thing.startswith ("/"):
-			return self.route [:-1] + self.mount_p [:-1] + thing
+			return self.basepath [:-1] + self.mount_p [:-1] + thing
 	
 		for func, name, fuvars, favars, numvars, str_rule, options in self.route_map.values ():
 			if thing != name: continue								
@@ -304,7 +305,7 @@ class Part:
 		if not rule or rule [0] != "/":
 			raise AssertionError ("Url rule should be starts with '/'")
 		
-		if func.__name__ in self._function_names:
+		if not self._started and not self._reloading and func.__name__ in self._function_names:
 			raise NameError ("Function <{}> is already defined".format (func.__name__))
 		self._function_names [func.__name__] = None		
 			
@@ -444,12 +445,12 @@ class Part:
 			
 	def _start (self, wasc, route, reload = False):
 		self.wasc = wasc		
-		if not route: 
-			self.route = "/"
+		if not route:
+			self.basepath = "/"
 		elif not route.endswith ("/"):			
-			self.route = route + "/"
+			self.basepath = route + "/"
 		else:
-			self.route = route			
+			self.basepath = route			
 		# initing app
 		self._binds_server [reload and 1 or 0] and self._binds_server [reload and 1 or 0] (self.wasc)		
 	
@@ -457,8 +458,11 @@ class Part:
 		self.bus.emit ("app:starting", wasc)
 		self._start (wasc, route)
 		self.bus.emit ("app:started", wasc)
-
+		self._started = True
+		
 	def restart (self, wasc, route):		
+		self._reloading = True
 		self.bus.emit ("app:restarting", wasc)	
 		self._start (wasc, route, True)
 		self.bus.emit ("app:restarted", wasc)	
+		self._reloading = False

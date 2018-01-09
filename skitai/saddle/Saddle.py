@@ -180,11 +180,14 @@ class Saddle (part.Part):
 		
 	def watch (self, module):
 		self.reloadables [module] = self.get_file_info (module)
-	
+		if hasattr (module, "views"):
+			module.views (self)
+					
 	def maybe_reload (self):
 		if time.time () - self.last_reloaded < 1.0:
 			return
-			
+		
+		self._reloading = True	
 		for module in list (self.reloadables.keys ()):			
 			try:
 				fi = self.get_file_info (module)
@@ -192,17 +195,19 @@ class Saddle (part.Part):
 				del self.reloadables [module]
 				continue
 				
-			if self.reloadables [module] != fi:				
-				importer.reloader (module)
-				self.reloadables [module] = fi
+			if self.reloadables [module] != fi:
+				newmodule, _ = importer.reimporter (module)				
+				del self.reloadables [module]	
+				self.watch (newmodule)				
 		
 		self.last_reloaded = time.time ()
+		self._reloading = False
 		
 	def get_file_info (self, module):		
 		stat = os.stat (module.__file__)
 		return stat.st_mtime, stat.st_size
 	
-	PACKAGE_DIRS = ["package", "appack", "contrib"]
+	PACKAGE_DIRS = ["components", "package", "appack"]
 	def add_package (self, *names):
 		for name in names:
 			self.PACKAGE_DIRS.append (name)
@@ -496,11 +501,11 @@ class Saddle (part.Part):
 		
 		# create just in time objects
 		if name == "cookie":
-			return cookie.Cookie (was.request, self.securekey, self.route [:-1], self.session_timeout)
+			return cookie.Cookie (was.request, self.securekey, self.basepath [:-1], self.session_timeout)
 			
 		elif name in ("session", "mbox"):
 			if not was.in__dict__ ("cookie"):
-				was.cookie = cookie.Cookie (was.request, self.securekey, self.route [:-1], self.session_timeout)			
+				was.cookie = cookie.Cookie (was.request, self.securekey, self.basepath [:-1], self.session_timeout)			
 			if name == "session":
 				return was.cookie.get_session ()
 			if name == "mbox":

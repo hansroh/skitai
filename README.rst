@@ -883,7 +883,7 @@ And for running automatically on system boot, you can add this line to /etc/rc.l
 .. code:: bash
 
   # /etc/rc.local
-	
+  
   su - ubuntu -c "python -m skitai.server.bin.smtpda -f ~/.skitai.conf &"
 
   
@@ -2224,8 +2224,8 @@ Before you begin, recommended Saddle App's directory structure is like this:
 
 - service.py: Skitai runner
 - app.py: File, Main app
-- package: Directory, Module package for helping app like config.py, model.py etc...
-- statics: Directory, Place static files like css, js, images. This directory should be mounted for using
+- static: Directory, Place static files like css, js, images. This directory should be mounted for using
+- components: Directory, Module components, utils or helpers for helping app like config.py, model.py etc...
 - templates: Directory, Jinaja and Chameleon template files
 - resources: Directory, Various files as app need like sqlite db file. In you app, you use these files, you can access file in resources by app.get_resource ("db", "sqlite3.db") like os.path.join manner.
 
@@ -3925,6 +3925,85 @@ If your server run with SSL, you can use app.authorization = "basic", otherwise 
 Building Larger Scale App
 ---------------------------
 
+Option I. Split Into Components
+```````````````````````````````````````
+
+*New in version 0.26.17*
+
+You can split yours views into components directory.
+
+Assume your application directory structure is like this,
+
+.. code:: bash
+
+  templates/*.html  
+  components/*.py # app library, all modules in this directory will be watched for reloading  
+  static/images # static files
+  static/js
+  static/css
+  
+  app.py # this is starter script  
+
+app.py
+  
+.. code:: python
+
+  from components import login
+  
+  app = Saddle (__name__)
+
+  app.debug = True
+  app.use_reloader = True
+
+  @app.default_error_handler
+  def default_error_handler (was, e):
+    return str (e)
+    
+components/login.py
+
+.. code:: python
+  
+  from . import util
+  
+  # shared utility functions used by views
+  
+  def titlize (s):
+    ...
+    return s
+  
+  # create views on app
+
+  def views (app):  
+    @app.login_handler
+    def login_handler (was):  
+      if was.session.get ("username"):
+        return
+      next_url = not was.request.uri.endswith ("signout") and was.request.uri or ""    
+      return was.redirect (was.ab ("signin", next_url))
+      
+    @app.route ("/signout")
+    def signout (was):
+      was.session.remove ("username")
+      was.mbox.push ("Signed out successfully", "success")  
+      return was.redirect (was.ab ('index'))
+      
+    @app.route ("/signin")
+    def signin (was, next_url = None, **form):
+      if was.request.args.get ("username"):
+        user = auth.authenticate (was.django, username = was.request.args ["username"], password = was.request.args ["password"])
+        if user:
+          was.session.set ("username", was.request.args ["username"])
+          return was.redirect (was.request.args ["next_url"])
+        else:
+          was.mbox.push ("Invalid User Name or Password", "error", icon = "new_releases")
+      return was.render ("sign/signin.html", next_url = next_url or was.ab ("index"))
+
+*def views (app)* is core. Every modules can have *views (app)* in *components*, so you can split and modulize views and utility functions. views(app) will be automatically executed on starting. If you set app.use_reloader, theses components will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
+
+
+Option II. Multiple Mount As Microservices
+`````````````````````````````````````````````
+
 *Saddlery deprecated in version 0.26.11*
 
 Skitai recommend your big service into seperated micro-apps.
@@ -3951,7 +4030,7 @@ And your pysical directory structure including app.py is,
   templates/layout/*.html # for shared layout templates
   templates/*.html
   
-  packages/*.py # app library, all modules in this directory will be watched for reloading
+  components/*.py # app library, all modules in this directory will be watched for reloading
   
   static/images # static files
   static/js
@@ -4268,7 +4347,7 @@ Change Log
   - 0.26.17 (Oct 2017)
     
     - can run SMTP Delivery Agent and Task Scheduler with config file
-		- add error_handler (prev errorhandler) decorator
+    - add error_handler (prev errorhandler) decorator
     - add default_error_handler (prev defaulterrorhandler) decorator
     - add login_handler, login_required decorator
     - add permission_handler, permission_required decorator
