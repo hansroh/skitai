@@ -335,6 +335,12 @@ But I strongly recommend use this setting especially if you running Sktiai on si
 Mount Multiple WSGI Apps And Static Directories
 ------------------------------------------------
 
+Skitai can mount multiple WSGI apps.
+
+
+Independent Apps and Various WSGI Containers
+`````````````````````````````````````````````````````
+
 Here's three WSGI app samples:
 
 .. code:: python
@@ -385,9 +391,13 @@ Then place this code at bottom of above WSGI app.
     skitai.mount ('/', 'static')
     skitai.run ()
 
+
+Service Versioning
+````````````````````
+		
 These feature can be used for managing versions. 
 
-Let's assume initail version of app file is app_v1.py.
+Let's assume initial version of app file is app_v1.py.
 
 .. code:: python  
 
@@ -454,7 +464,52 @@ and your service.py:
   skitai.mount ('/v2', 'app_v2/static'),
   skitai.mount ('/v2', 'app_v2/app')        
   skitai.run ()
-   
+ 
+
+Microservices
+```````````````````
+
+*Saddlery deprecated in version 0.26.11*
+
+Skitai recommend your big service into seperated micro-apps.
+
+app.py is starter script by importing skitai and mounting multiple apps.
+
+.. code:: python
+  
+  import skitai    
+  
+  pref = skitai.pref ()
+  pref.use_reloader = True
+  
+  skitai.mount ('/', 'static')
+  skitai.mount ('/', 'index.py', 'app', pref)
+  skitai.mount ('/admin', 'admin.py', 'app', pref)
+  skitai.mount ('/trade', 'trade.py', 'app', pref)  
+  skitai.run ()  
+
+And your pysical directory structure including app.py is,
+
+.. code:: bash
+
+  templates/layout/*.html # for shared layout templates
+  templates/*.html
+  
+  components/*.py # app library, all modules in this directory will be watched for reloading
+  
+  static/images # static files
+  static/js
+  static/css
+  
+  app.py # this is starter script
+  index.py
+  trade.py  
+  admin.py
+  
+This structure make highly focus on each microservices and make easy to move or apply scaling by serivce traffic increment.
+
+For communicating between apps using events, URL building and accessing another app, please refer previous chapters.
+ 
 
 Mounting With Virtual Host
 -------------------------------
@@ -2802,6 +2857,80 @@ collect_producer has these methods.
 - Promise.reject (content_to_send = None)
 
 
+App Decorating: Making Simpler & Modular App
+----------------------------------------------------
+
+*New in version 0.26.17*
+
+You can split yours views and help utilties into components directory.
+
+Assume your application directory structure is like this,
+
+.. code:: bash
+
+  templates/*.html  
+  components/*.py # app library, all modules in this directory will be watched for reloading  
+  static/images # static files
+  static/js
+  static/css
+  
+  app.py # this is starter script  
+
+app.py
+  
+.. code:: python
+
+  from components import auth
+  
+  app = Saddle (__name__)
+
+  app.debug = True
+  app.use_reloader = True
+
+  @app.default_error_handler
+  def default_error_handler (was, e):
+    return str (e)
+    
+components/auth.py
+
+.. code:: python
+  
+  # shared utility functions used by views
+  
+  def titlize (s):
+    ...
+    return s
+  
+  # decorate on app
+
+  def decorate (app):  
+    @app.login_handler
+    def login_handler (was):  
+      if was.session.get ("username"):
+        return
+      next_url = not was.request.uri.endswith ("signout") and was.request.uri or ""    
+      return was.redirect (was.ab ("signin", next_url))
+      
+    @app.route ("/signout")
+    def signout (was):
+      was.session.remove ("username")
+      was.mbox.push ("Signed out successfully", "success")  
+      return was.redirect (was.ab ('index'))
+      
+    @app.route ("/signin")
+    def signin (was, next_url = None, **form):
+      if was.request.args.get ("username"):
+        user = auth.authenticate (was.django, username = was.request.args ["username"], password = was.request.args ["password"])
+        if user:
+          was.session.set ("username", was.request.args ["username"])
+          return was.redirect (was.request.args ["next_url"])
+        else:
+          was.mbox.push ("Invalid User Name or Password", "error", icon = "new_releases")
+      return was.render ("sign/signin.html", next_url = next_url or was.ab ("index"))
+
+You just import module from components. but *def decorate (app)* is core in each module. Every modules can have *decorate (app)* in *components*, so you can split and modulize views and utility functions. decorate (app) will be automatically executed on starting. If you set app.use_reloader, theses components will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
+
+
 HTTP/2.0 Server Push
 -----------------------
 
@@ -3921,129 +4050,6 @@ If authorization is successful, app can access username and userinfo vi was.requ
 
 If your server run with SSL, you can use app.authorization = "basic", otherwise recommend using "digest" for your password safety.
 
-
-Building Larger Scale App
----------------------------
-
-Option I. Split Into Components
-```````````````````````````````````````
-
-*New in version 0.26.17*
-
-You can split yours views into components directory.
-
-Assume your application directory structure is like this,
-
-.. code:: bash
-
-  templates/*.html  
-  components/*.py # app library, all modules in this directory will be watched for reloading  
-  static/images # static files
-  static/js
-  static/css
-  
-  app.py # this is starter script  
-
-app.py
-  
-.. code:: python
-
-  from components import login
-  
-  app = Saddle (__name__)
-
-  app.debug = True
-  app.use_reloader = True
-
-  @app.default_error_handler
-  def default_error_handler (was, e):
-    return str (e)
-    
-components/login.py
-
-.. code:: python
-  
-  from . import util
-  
-  # shared utility functions used by views
-  
-  def titlize (s):
-    ...
-    return s
-  
-  # create views on app
-
-  def decorate (app):  
-    @app.login_handler
-    def login_handler (was):  
-      if was.session.get ("username"):
-        return
-      next_url = not was.request.uri.endswith ("signout") and was.request.uri or ""    
-      return was.redirect (was.ab ("signin", next_url))
-      
-    @app.route ("/signout")
-    def signout (was):
-      was.session.remove ("username")
-      was.mbox.push ("Signed out successfully", "success")  
-      return was.redirect (was.ab ('index'))
-      
-    @app.route ("/signin")
-    def signin (was, next_url = None, **form):
-      if was.request.args.get ("username"):
-        user = auth.authenticate (was.django, username = was.request.args ["username"], password = was.request.args ["password"])
-        if user:
-          was.session.set ("username", was.request.args ["username"])
-          return was.redirect (was.request.args ["next_url"])
-        else:
-          was.mbox.push ("Invalid User Name or Password", "error", icon = "new_releases")
-      return was.render ("sign/signin.html", next_url = next_url or was.ab ("index"))
-
-*def decorate (app)* is core. Every modules can have *decorate (app)* in *components*, so you can split and modulize views and utility functions. decorate (app) will be automatically executed on starting. If you set app.use_reloader, theses components will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
-
-
-Option II. Multiple Mount As Microservices
-`````````````````````````````````````````````
-
-*Saddlery deprecated in version 0.26.11*
-
-Skitai recommend your big service into seperated micro-apps.
-
-app.py is starter script by importing skitai and mounting multiple apps.
-
-.. code:: python
-  
-  import skitai    
-  
-  pref = skitai.pref ()
-  pref.use_reloader = True
-  
-  skitai.mount ('/', 'static')
-  skitai.mount ('/', 'index.py', 'app', pref)
-  skitai.mount ('/admin', 'admin.py', 'app', pref)
-  skitai.mount ('/trade', 'trade.py', 'app', pref)  
-  skitai.run ()  
-
-And your pysical directory structure including app.py is,
-
-.. code:: bash
-
-  templates/layout/*.html # for shared layout templates
-  templates/*.html
-  
-  components/*.py # app library, all modules in this directory will be watched for reloading
-  
-  static/images # static files
-  static/js
-  static/css
-  
-  app.py # this is starter script
-  index.py
-  trade.py  
-  admin.py
-  
-This structure make highly focus on each microservices and make easy to move or apply scaling by serivce traffic increment.
-
-For communicating between apps using events, URL building and accessing another app, please refer previous chapters.
 
 
 Implementing XMLRPC Service

@@ -453,6 +453,12 @@ class http_response:
 		forwared_for = self.request.get_header ('x-forwarded-for')
 		worker_id = server.worker_ident [8:]
 		worker = worker_id and ("W" + worker_id) or "M"
+		user = "-"
+		if self.request.user:
+			try:
+				user = '"{}"'.format (isinstance (self.request.user, str) and self.request.user or self.request.user.name)
+			except AttributeError:
+				pass
 			
 		server.log_request (
 			'%s %s %s %s %s %d %s %d %s %s %s %s %s %s %s %s %d %d %d'
@@ -470,7 +476,7 @@ class http_response:
 			
 			self.request.gtxid or "-",
 			self.request.ltxid or "-",
-			self.request.user and '"' + self.request.user.name + '"' or "-",
+			user,
 			self.request.token or "-",
 			
 			referer and '"' + referer + '"' or "-",
