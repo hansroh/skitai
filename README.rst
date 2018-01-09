@@ -3973,7 +3973,7 @@ components/login.py
   
   # create views on app
 
-  def views (app):  
+  def decorate (app):  
     @app.login_handler
     def login_handler (was):  
       if was.session.get ("username"):
@@ -3998,7 +3998,7 @@ components/login.py
           was.mbox.push ("Invalid User Name or Password", "error", icon = "new_releases")
       return was.render ("sign/signin.html", next_url = next_url or was.ab ("index"))
 
-*def views (app)* is core. Every modules can have *views (app)* in *components*, so you can split and modulize views and utility functions. views(app) will be automatically executed on starting. If you set app.use_reloader, theses components will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
+*def decorate (app)* is core. Every modules can have *decorate (app)* in *components*, so you can split and modulize views and utility functions. decorate (app) will be automatically executed on starting. If you set app.use_reloader, theses components will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
 
 
 Option II. Multiple Mount As Microservices

@@ -4,8 +4,9 @@ import os
 import sys
 from . import part, multipart_collector, cookie, session, grpc_collector, ws_executor
 from . import wsgi_executor, xmlrpc_executor, grpc_executor
-from aquests.lib import producers, importer, evbus
+from aquests.lib import producers, evbus
 from functools import wraps
+from importlib import reload
 from aquests.protocols.grpc import discover
 from aquests.protocols.http import http_util
 from skitai import was as the_was
@@ -180,8 +181,8 @@ class Saddle (part.Part):
 		
 	def watch (self, module):
 		self.reloadables [module] = self.get_file_info (module)
-		if hasattr (module, "views"):
-			module.views (self)
+		if hasattr (module, "decorate"):
+			module.decorate (self)
 					
 	def maybe_reload (self):
 		if time.time () - self.last_reloaded < 1.0:
@@ -196,8 +197,8 @@ class Saddle (part.Part):
 				continue
 				
 			if self.reloadables [module] != fi:
-				newmodule, _ = importer.reimporter (module)				
-				del self.reloadables [module]	
+				newmodule = reload (module)				
+				del self.reloadables [module]
 				self.watch (newmodule)				
 		
 		self.last_reloaded = time.time ()
