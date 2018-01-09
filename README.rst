@@ -4342,274 +4342,275 @@ Links
 Change Log
 ===========
   
-  0.26 (May 2017)
-  
-  - 0.26.17 (Oct 2017)
-    
-    - can run SMTP Delivery Agent and Task Scheduler with config file
-    - add error_handler (prev errorhandler) decorator
-    - add default_error_handler (prev defaulterrorhandler) decorator
-    - add login_handler, login_required decorator
-    - add permission_handler, permission_required decorator
-    - add app events emitting
-    - add was.csrf_token_input, was.csrf_token and was.csrf_verify()    
-    - make session iterable  
-    - prevent changing function spec by decorator
-    - change params of use_django_models: (settings_path, alias), skitai.mount_django (point, wsgi_path, pref = pref (True), dbalias = None, host = "default")
-    
-  - 0.26.16 (Oct 2017)
+0.26 (May 2017)
 
-    - add app.sqlmaps
-    - add use_django_models (settings_path), skitai.mount_django (point, wsgi_path, pref = pref (True), host = "default")
-    - fix mbox, add app.max_client_body_size
-    - add skitai.addlu (args, ...) that is equivalant to skitai.addlu (args, ...)
-    - fix promise and proxing was objects
-    - change method name from skitai.set_network_timeout to set_erquest_timeout
-    - fix getwait, getswait. get timeout mis-working
-    - fix backend_keep_alive default value from 10 to 1200
-    - fix dbi reraise on error
-    - JSON as arguments
-    
-  - 0.26.15
-    
-    - added request.form () and request.dict ()
-    - support Django auto reload by restarting workers
-    - change DNS query default protocol from TCP to UDP (posix only)
-    - add skitai.set_proxy_keep_alive (channel = 60, tunnel = 600) and change default proxy keep alive to same values
-    - increase https tunnel keep alive timeout to 600 sec.
-    - fix broad event bus
-    - add getjson, deletejson, this request automatically add header 'Accept: application/json'
-    - change default request content-type from json to form data, if you post/put json data, you should change postjson/putjson
-    - add skitai.trackers (args,...) that is equivalant to skitai.lukeys ([args])
-    - fix mounting module
-    - app.storage had been remove officially, I cannot find any usage. but unoficially it will be remains by some day
-    - add skitai.lukeys () and fix inconsistency of was.setlu & was.getlu between multi workers
-    - was.storage had been remove
-    - add skitai.set_worker_critical_point ()
-    - fix result object caching
-    - add app.model_signal (), was.setlu () and was.getlu ()
-    
-  - 0.26.14
-    
-    - add app.storage and was.storage
-    - removed wac._backend and wac._upstream, use @app.mounted and @app.umount
-    - replaced app.listen by app.on_broadcast
-    
-  - 0.26.13
-    
-    - add skitai.log_off (path,...)
-    - add reply content-type to request log, and change log format
-    - change posix process display name
-    
-  - 0.26.12
-    
-    - change event decorator: @app.listen -> @app.on_broadcast
-    - adaptation to h2 3.0.1
-    - fix http2 flow controling    
-    - fix errorhandler and add defaulterrorhandler
-    - fix WSGI response handler
-    - fix cross app URL building
-    - Django can be mounted
-    - fix smtpda & default var directory
-    - optimize HTTP/2 response data
-    - fix HTTP/2 logging when empty response body
-    - http_response.outgoing is replaced by deque
-    - change default mime-type from text/plain to application/octet-stream in response header
-    - HTTP response optimized
-    
-  - 0.26.10
-    
-    - start making pytest scripts
-    - add was-wide broadcast event bus: @app.listen (event), was.broadcast (event, args...) and @was.broadcast_after (event)
-    - add app-wide event bus: @app.on (event), was.emit (event, args...) and @was.emit_after (event)
-    - remove @app.listento (event) and was.emit (event, args...)
-    
-  - 0.26.9
-    
-    - add event bus: @app.listento (event) and was.emit (event, args...)
-    
-  - 0.26.8
-    
-    - fix websocket GROUPCHAT
-    - add was.apps
-    - was.ab works between apps are mounted seperatly
-   
-  - 0.26.7 
-    
-    - add custom error template on Saddle
-    - add win32 service tools
-    - change class method name from make_request () to backend ()
-    - retry once if database is disconnected by keep-live timeout
-    - drop wac.make_dbo () and wac.make_stub ()
-    
-  - 0.26.6
-    
-    - add wac.make_dbo (), wac.make_stub () and wac.make_request ()
-    - wac.ajob () has been removed
-    - change repr name from wasc to wac
-    - websocket design spec, WEBSOCKET_DEDICATE_THREADSAFE has been removed and WEBSOCKET_THREADSAFE is added
-    - fix websocket, http2, https proxy tunnel timeout, related set_network_timeout () is recently added
-    
-  - 0.26.4.1: add set_network_timeout (timoutout = 30) and change default keep alive timeout from 2 to 30
-  - 0.26.4: fix incomplete sending when resuested with connection: close header
-  - 0.26.3.7: enforce response to HTTP version 1.1 for 1.0 CONNECT with 1.0 request
-  - 0.26.3.5: revert multiworkers
-  - 0.26.3.2: fix multiworkers
-  - 0.26.3.1: update making for self-signing certification
-  - 0.26.3: add skitai.enable_forward
-  - 0.26.2.1: remove was.promise.render_all (), change method name from was.promise.push () to send ()
-  - 0.26.2: change name from was.aresponse to was.promise
-  - 0.26.1.1: add skitai.abspath (\*args)
-  - 0.26.1: fix proxy & proxypass, add was.request.scheme and update examples
-  - change development status to Beta
-  - fix Saddlery routing
-  - disable WWW-Authenticate on websocket protocol
-  - support CORS (Cross Origin Resource Sharing)
-  - support PATCH method
-  - runtime app preferences and add __init__.bootstrap (preference)
-  - fix route caching
-  - auto reload sub modules in package directory, if app.use_reloader = True
-  - new was.request.json ()
-  - integrated with skitaid package, single app file can contain all configure options
-  - level down developement status to alpha
-  - fix sqlite3 closing
-  
-  0.25 (Feb 2017)
-  
-  - 0.25.7: fix fancy url, non content-type header post/put request
-  - 0.25.6: add Chameleon_ template engine
-  - 0.25.5: app.jinja_overlay ()'s default args become jinja2 default
-  - 0.25.4.8: fix proxy retrying
-  - 0.25.4 license changed from BSD to MIT, fix websocket init at single thread
-  - 0.25.3 handler of promise args spec changed, class name is cahnged from AsyncResponse to Promise
-  - 0.25.2 fix promise exception handling, promise can send streaming chunk data
-  - 0.25.1 change app.jinja_overlay () default values and number of args, remove raw line statement
-  - project name chnaged: Skitai Library => Skitai App Engine
-  
-  0.24 (Jan 2017)
-  
-  - 0.24.9 bearer token handler spec changed
-  - 0.24.8 add async response, fix await_fifo bug
-  - 0.24.7 fix websocket shutdown
-  - 0.24.5 eliminate client arg from websocket config
-  - 0.24.5 eliminate event arg from websocket config
-  - fix proxy tunnel
-  - fix websocket cleanup
-  - change websocket initializing, not lower version compatible
-  - WEBSOCKET_MULTICAST deprecated, and new WEBSOCKET_GROUPCHAT does not create new thread any more
-  
-  0.23 (Jan 2017)
-  
-  - ready_producer_fifo only activated when proxy or reverse proxy is enabled, default deque will be used
-  - encoding argument was eliminated from REST call 
-  - changed RPC, DBO request spec
-  - added gRPC as server and client
-  - support static files with http2
-  - fix POST method on reverse proxying
-  
-  0.22 (Jan 2017)
-  
-  - 0.22.7 fix was.upload(), was.post*()
-  - 0.22.5 fix xml-rpc service
-  - 0.22.4 fix proxy
-  - 0.22.3
-    
-    - fix https REST, XML-RPC call
-    - fix DB pool
-  
-  - 0.22 
-    
-    - Skitai REST/RPC call now uses HTTP2 if possible
-    - Fix HTTP2 opening with POST method
-    - Add logging on disconnecting of Websocket, HTTP2, Proxy Tunnel channels
-    
-    - See News
-    
-  0.21 (Dec 2016)
-  
-  - 0.21.17 - fix JWT base64 padding problem
-  - 0.21.8 - connected with MongoDB asynchronously
-  - 0.21.3 - add JWT (JSON Web Token) handler, see `Skitai WSGI App Engine Daemon`_
-  - 0.21.2 - applied global/local-transaction-ID to app logging: was.log (msg, logtype), was.traceback ()
-  - 0.21 - change request log format, add global/local-transaction-ID to log file for backtrace
+- 0.26.17 (Oct 2017)
+	
+	- add components concept
+	- can run SMTP Delivery Agent and Task Scheduler with config file
+	- add error_handler (prev errorhandler) decorator
+	- add default_error_handler (prev defaulterrorhandler) decorator
+	- add login_handler, login_required decorator
+	- add permission_handler, permission_required decorator
+	- add app events emitting
+	- add was.csrf_token_input, was.csrf_token and was.csrf_verify()    
+	- make session iterable  
+	- prevent changing function spec by decorator
+	- change params of use_django_models: (settings_path, alias), skitai.mount_django (point, wsgi_path, pref = pref (True), dbalias = None, host = "default")
+	
+- 0.26.16 (Oct 2017)
 
-  0.20 (Dec 2016)
-  
-  - 0.20.15 - minor optimize asynconnect, I wish
-  - 0.20.14 - fix Redis connector's threading related error
-  - 0.20.4 - add Redis connector
-  - 0.20 - add API Gateway access handler
-  
-  0.19 (Dec 2016)
-  
-  - Reengineering was.request methods, fix disk caching  
-  
-  0.18 (Dec 2016)
-  
-  - 0.18.11 - default content-type of was.post(), was.put() has been changed from 'application/x-www-form-urlencoded' to 'application/json'. if you use this method currently, you SHOULD change method name to was.postform()
+	- add app.sqlmaps
+	- add use_django_models (settings_path), skitai.mount_django (point, wsgi_path, pref = pref (True), host = "default")
+	- fix mbox, add app.max_client_body_size
+	- add skitai.addlu (args, ...) that is equivalant to skitai.addlu (args, ...)
+	- fix promise and proxing was objects
+	- change method name from skitai.set_network_timeout to set_erquest_timeout
+	- fix getwait, getswait. get timeout mis-working
+	- fix backend_keep_alive default value from 10 to 1200
+	- fix dbi reraise on error
+	- JSON as arguments
+	
+- 0.26.15
+	
+	- added request.form () and request.dict ()
+	- support Django auto reload by restarting workers
+	- change DNS query default protocol from TCP to UDP (posix only)
+	- add skitai.set_proxy_keep_alive (channel = 60, tunnel = 600) and change default proxy keep alive to same values
+	- increase https tunnel keep alive timeout to 600 sec.
+	- fix broad event bus
+	- add getjson, deletejson, this request automatically add header 'Accept: application/json'
+	- change default request content-type from json to form data, if you post/put json data, you should change postjson/putjson
+	- add skitai.trackers (args,...) that is equivalant to skitai.lukeys ([args])
+	- fix mounting module
+	- app.storage had been remove officially, I cannot find any usage. but unoficially it will be remains by some day
+	- add skitai.lukeys () and fix inconsistency of was.setlu & was.getlu between multi workers
+	- was.storage had been remove
+	- add skitai.set_worker_critical_point ()
+	- fix result object caching
+	- add app.model_signal (), was.setlu () and was.getlu ()
+	
+- 0.26.14
+	
+	- add app.storage and was.storage
+	- removed wac._backend and wac._upstream, use @app.mounted and @app.umount
+	- replaced app.listen by app.on_broadcast
+	
+- 0.26.13
+	
+	- add skitai.log_off (path,...)
+	- add reply content-type to request log, and change log format
+	- change posix process display name
+	
+- 0.26.12
+	
+	- change event decorator: @app.listen -> @app.on_broadcast
+	- adaptation to h2 3.0.1
+	- fix http2 flow controling    
+	- fix errorhandler and add defaulterrorhandler
+	- fix WSGI response handler
+	- fix cross app URL building
+	- Django can be mounted
+	- fix smtpda & default var directory
+	- optimize HTTP/2 response data
+	- fix HTTP/2 logging when empty response body
+	- http_response.outgoing is replaced by deque
+	- change default mime-type from text/plain to application/octet-stream in response header
+	- HTTP response optimized
+	
+- 0.26.10
+	
+	- start making pytest scripts
+	- add was-wide broadcast event bus: @app.listen (event), was.broadcast (event, args...) and @was.broadcast_after (event)
+	- add app-wide event bus: @app.on (event), was.emit (event, args...) and @was.emit_after (event)
+	- remove @app.listento (event) and was.emit (event, args...)
+	
+- 0.26.9
+	
+	- add event bus: @app.listento (event) and was.emit (event, args...)
+	
+- 0.26.8
+	
+	- fix websocket GROUPCHAT
+	- add was.apps
+	- was.ab works between apps are mounted seperatly
+ 
+- 0.26.7 
+	
+	- add custom error template on Saddle
+	- add win32 service tools
+	- change class method name from make_request () to backend ()
+	- retry once if database is disconnected by keep-live timeout
+	- drop wac.make_dbo () and wac.make_stub ()
+	
+- 0.26.6
+	
+	- add wac.make_dbo (), wac.make_stub () and wac.make_request ()
+	- wac.ajob () has been removed
+	- change repr name from wasc to wac
+	- websocket design spec, WEBSOCKET_DEDICATE_THREADSAFE has been removed and WEBSOCKET_THREADSAFE is added
+	- fix websocket, http2, https proxy tunnel timeout, related set_network_timeout () is recently added
+	
+- 0.26.4.1: add set_network_timeout (timoutout = 30) and change default keep alive timeout from 2 to 30
+- 0.26.4: fix incomplete sending when resuested with connection: close header
+- 0.26.3.7: enforce response to HTTP version 1.1 for 1.0 CONNECT with 1.0 request
+- 0.26.3.5: revert multiworkers
+- 0.26.3.2: fix multiworkers
+- 0.26.3.1: update making for self-signing certification
+- 0.26.3: add skitai.enable_forward
+- 0.26.2.1: remove was.promise.render_all (), change method name from was.promise.push () to send ()
+- 0.26.2: change name from was.aresponse to was.promise
+- 0.26.1.1: add skitai.abspath (\*args)
+- 0.26.1: fix proxy & proxypass, add was.request.scheme and update examples
+- change development status to Beta
+- fix Saddlery routing
+- disable WWW-Authenticate on websocket protocol
+- support CORS (Cross Origin Resource Sharing)
+- support PATCH method
+- runtime app preferences and add __init__.bootstrap (preference)
+- fix route caching
+- auto reload sub modules in package directory, if app.use_reloader = True
+- new was.request.json ()
+- integrated with skitaid package, single app file can contain all configure options
+- level down developement status to alpha
+- fix sqlite3 closing
 
-  - 0.18.7 - response contents caching has been applied to all was.request services (except websocket requests).
-  
-  0.17 (Oct 2016)
-  
-  - `Skitai WSGI App Engine Daemon`_ is seperated
-  
-  0.16 (Sep 2016)
-  
-  - 0.16.20 fix SSL proxy and divide into package for proxy & websocket_handler
-  - 0.16.19 fix HTTP2 cookie
-  - 0.16.18 fix handle large request body
-  - 0.16.13 fix thread locking for h2.Connection
-  - 0.16.11 fix pushing promise and response on Firefox
-  - 0.16.8 fix pushing promise and response
-  - 0.16.6 add several configs to was.app.config for limiting post body size from client
-  - 0.16.5 add method: was.response.hint_promise (uri) for sending HTP/2 PUSH PROMISE frame
-  - 0.16.3 fix flow control window
-  - 0.16.2 fix HTTP/2 Uprading for "http" URIs (RFC 7540 Section 3.2)
-  - 0.16 HTTP/2.0 implemented with hyper-h2_
-  
-  0.15 (Mar 2016)
-  
-  - fixed fancy URL <path> routing
-  - add Websocket design spec: WEBSOCKET_DEDICATE_THREADSAFE
-  - fixed Websocket keep-alive timeout
-  - fixed fancy URL routing
-  - 'was.cookie.set()' method prototype has been changed.
-  - added Named Session & Messaging Box
-  - fix select error when closed socket, thanks to spam-proxy-bots
-  - add mimetypes for .css .js
-  - fix debug output
-  - fix asynconnect.maintern
-  - fix loosing end of compressed content
-  - fix app reloading, @shutdown
-  - fix XMLRPC response and POST length
-  - add was.mbox.search (), change spec was.mbox.get ()
-  - fix routing bugs & was.ab()
-  - add saddle.Saddlery class for app packaging
-  - @app.startup, @app.onreload, @app.shutdown arguments has been changed
-  
-  0.14 (Feb 2016)
-  
-  - fix proxy occupies CPU on POST method failing
-  - was.log(), was.traceback() added
-  - fix valid time in message box 
-  - changed @failed_request arguments and can return custom error page
-  - changed skitaid.py command line options, see 'skitaid.py --help'
-  - batch task scheduler added
-  - e-mail sending fixed
-  - was.session.getv () added
-  - was.response spec. changed
-  - SQLite3 DB connection added
-  
-  0.13 (Feb 2016)
-  
-  - was.mbox, was.g, was.redirect, was.render added  
-  - SQLite3 DB connection added
-  
-  0.12 (Jan 2016) - Re-engineering 'was' networking, PostgreSQL & proxy modules
-  
-  0.11 (Jan 2016) - Websocket implemeted
-  
-  0.10 (Dec 2015) - WSGI support
+0.25 (Feb 2017)
+
+- 0.25.7: fix fancy url, non content-type header post/put request
+- 0.25.6: add Chameleon_ template engine
+- 0.25.5: app.jinja_overlay ()'s default args become jinja2 default
+- 0.25.4.8: fix proxy retrying
+- 0.25.4 license changed from BSD to MIT, fix websocket init at single thread
+- 0.25.3 handler of promise args spec changed, class name is cahnged from AsyncResponse to Promise
+- 0.25.2 fix promise exception handling, promise can send streaming chunk data
+- 0.25.1 change app.jinja_overlay () default values and number of args, remove raw line statement
+- project name chnaged: Skitai Library => Skitai App Engine
+
+0.24 (Jan 2017)
+
+- 0.24.9 bearer token handler spec changed
+- 0.24.8 add async response, fix await_fifo bug
+- 0.24.7 fix websocket shutdown
+- 0.24.5 eliminate client arg from websocket config
+- 0.24.5 eliminate event arg from websocket config
+- fix proxy tunnel
+- fix websocket cleanup
+- change websocket initializing, not lower version compatible
+- WEBSOCKET_MULTICAST deprecated, and new WEBSOCKET_GROUPCHAT does not create new thread any more
+
+0.23 (Jan 2017)
+
+- ready_producer_fifo only activated when proxy or reverse proxy is enabled, default deque will be used
+- encoding argument was eliminated from REST call 
+- changed RPC, DBO request spec
+- added gRPC as server and client
+- support static files with http2
+- fix POST method on reverse proxying
+
+0.22 (Jan 2017)
+
+- 0.22.7 fix was.upload(), was.post*()
+- 0.22.5 fix xml-rpc service
+- 0.22.4 fix proxy
+- 0.22.3
+	
+	- fix https REST, XML-RPC call
+	- fix DB pool
+
+- 0.22 
+	
+	- Skitai REST/RPC call now uses HTTP2 if possible
+	- Fix HTTP2 opening with POST method
+	- Add logging on disconnecting of Websocket, HTTP2, Proxy Tunnel channels
+	
+	- See News
+	
+0.21 (Dec 2016)
+
+- 0.21.17 - fix JWT base64 padding problem
+- 0.21.8 - connected with MongoDB asynchronously
+- 0.21.3 - add JWT (JSON Web Token) handler, see `Skitai WSGI App Engine Daemon`_
+- 0.21.2 - applied global/local-transaction-ID to app logging: was.log (msg, logtype), was.traceback ()
+- 0.21 - change request log format, add global/local-transaction-ID to log file for backtrace
+
+0.20 (Dec 2016)
+
+- 0.20.15 - minor optimize asynconnect, I wish
+- 0.20.14 - fix Redis connector's threading related error
+- 0.20.4 - add Redis connector
+- 0.20 - add API Gateway access handler
+
+0.19 (Dec 2016)
+
+- Reengineering was.request methods, fix disk caching  
+
+0.18 (Dec 2016)
+
+- 0.18.11 - default content-type of was.post(), was.put() has been changed from 'application/x-www-form-urlencoded' to 'application/json'. if you use this method currently, you SHOULD change method name to was.postform()
+
+- 0.18.7 - response contents caching has been applied to all was.request services (except websocket requests).
+
+0.17 (Oct 2016)
+
+- `Skitai WSGI App Engine Daemon`_ is seperated
+
+0.16 (Sep 2016)
+
+- 0.16.20 fix SSL proxy and divide into package for proxy & websocket_handler
+- 0.16.19 fix HTTP2 cookie
+- 0.16.18 fix handle large request body
+- 0.16.13 fix thread locking for h2.Connection
+- 0.16.11 fix pushing promise and response on Firefox
+- 0.16.8 fix pushing promise and response
+- 0.16.6 add several configs to was.app.config for limiting post body size from client
+- 0.16.5 add method: was.response.hint_promise (uri) for sending HTP/2 PUSH PROMISE frame
+- 0.16.3 fix flow control window
+- 0.16.2 fix HTTP/2 Uprading for "http" URIs (RFC 7540 Section 3.2)
+- 0.16 HTTP/2.0 implemented with hyper-h2_
+
+0.15 (Mar 2016)
+
+- fixed fancy URL <path> routing
+- add Websocket design spec: WEBSOCKET_DEDICATE_THREADSAFE
+- fixed Websocket keep-alive timeout
+- fixed fancy URL routing
+- 'was.cookie.set()' method prototype has been changed.
+- added Named Session & Messaging Box
+- fix select error when closed socket, thanks to spam-proxy-bots
+- add mimetypes for .css .js
+- fix debug output
+- fix asynconnect.maintern
+- fix loosing end of compressed content
+- fix app reloading, @shutdown
+- fix XMLRPC response and POST length
+- add was.mbox.search (), change spec was.mbox.get ()
+- fix routing bugs & was.ab()
+- add saddle.Saddlery class for app packaging
+- @app.startup, @app.onreload, @app.shutdown arguments has been changed
+
+0.14 (Feb 2016)
+
+- fix proxy occupies CPU on POST method failing
+- was.log(), was.traceback() added
+- fix valid time in message box 
+- changed @failed_request arguments and can return custom error page
+- changed skitaid.py command line options, see 'skitaid.py --help'
+- batch task scheduler added
+- e-mail sending fixed
+- was.session.getv () added
+- was.response spec. changed
+- SQLite3 DB connection added
+
+0.13 (Feb 2016)
+
+- was.mbox, was.g, was.redirect, was.render added  
+- SQLite3 DB connection added
+
+0.12 (Jan 2016) - Re-engineering 'was' networking, PostgreSQL & proxy modules
+
+0.11 (Jan 2016) - Websocket implemeted
+
+0.10 (Dec 2015) - WSGI support
   
 .. _Chameleon: https://chameleon.readthedocs.io/en/latest/index.html
