@@ -41,6 +41,7 @@ class WAS:
 	
 	lock = RLock ()
 	init_time = time.time ()	
+	
 	#----------------------------------------------------
 	# application friendly methods
 	#----------------------------------------------------
@@ -155,6 +156,11 @@ class WAS:
 		else:	
 			return getattr (self, "_" + fn) (command, *args, **karg)
 	
+	# TXN -----------------------------------------------
+	
+	def txnid (self):
+		return "%s/%s" % (self.request.gtxid, self.request.ltxid)
+	
 	def rebuild_header (self, header):
 		if not header:
 			nheader = {}
@@ -168,6 +174,8 @@ class WAS:
 		nheader ["X-Gtxn-Id"] = self.request.get_gtxid ()
 		nheader ["X-Ltxn-Id"] = self.request.get_ltxid (1)
 		return nheader
+	
+	# Async Requests -----------------------------------------------
 		
 	def _rest (self, method, uri, data = None, auth = None, headers = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):
 		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, self.rebuild_header (headers), auth, meta, use_cache, False, filter, callback, timeout)
@@ -177,7 +185,7 @@ class WAS:
 		return self.clusters_for_distcall [clustername].Server (uri, data, method, self.rebuild_header (headers), auth, meta, use_cache, mapreduce, filter, callback, timeout)
 				
 	def _lb (self, *args, **karg):
-		return self._crest (False, *args, **karg)	
+		return self._crest (False, *args, **karg)
 		
 	def _map (self, *args, **karg):
 		return self._crest (True, *args, **karg)
@@ -205,30 +213,22 @@ class WAS:
 	def _amap (self, dbtype, *args, **karg):
 		return self._cddb (True, *args, **karg)
 	
-	@property
-	def sqlmap (self):
-		return self.app.sqlmap
+	# Response Helpers --------------------------------------------
 		
 	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		return self.app.render (self, template_file, _do_not_use_this_variable_name_, **karg)
-		
-	REDIRECT_TEMPLATE =  (
-		"<head><title>%s</title></head>"
-		"<body><h1>%s</h1>"
-		"This document may be found " 
-		'<a HREF="%s">here</a></body>'
-	)
-	def txnid (self):
-		return "%s/%s" % (self.request.gtxid, self.request.ltxid)
 	
 	def ab (self, thing, *args, **karg):
 		if thing.startswith ("/") or thing.find (".") == -1:
 			return self.app.build_url (thing, *args, **karg)
 		return self.apps.build_url (thing, *args, **karg)
 	
-	def broadcast (self, event, *args, **kargs):
-		return self.apps.bus.emit (event, self, *args, **kargs)
-		
+	REDIRECT_TEMPLATE =  (
+		"<head><title>%s</title></head>"
+		"<body><h1>%s</h1>"
+		"This document may be found " 
+		'<a HREF="%s">here</a></body>'
+	)		
 	def redirect (self, url, status = "302 Object Moved", body = None, headers = None):
 		redirect_headers = [
 			("Location", url), 
@@ -240,7 +240,57 @@ class WAS:
 		if not body:
 			body = self.REDIRECT_TEMPLATE % (status, status, url)			
 		return self.response (status, body, redirect_headers)
-			
+	
+	def promise (self, handler, **karg):
+		self.response.set_streaming ()
+		return Promise (self, handler, **karg)
+	
+	def email (self, subject, snd, rcpt):
+		if composer.Composer.SAVE_PATH is None:
+			composer.Composer.SAVE_PATH = os.path.join ("/tmp/skitai/smtpda", "mail", "spool")
+			pathtool.mkdir (composer.Composer.SAVE_PATH)			
+		return composer.Composer (subject, snd, rcpt)
+	
+	# Event -------------------------------------------------
+	
+	def broadcast (self, event, *args, **kargs):
+		return self.apps.bus.emit (event, self, *args, **kargs)
+	
+	def setlu (self, name, *args, **karg):
+		self._luwatcher.set (name, time.time (), karg.get ("x_ignore", False))
+		self.broadcast ("model-changed", *args, **karg)
+		self.broadcast ("model-changed:%s" % name, *args, **karg)			
+		
+	def getlu (self, *names):
+		mtimes = []
+		for name in names:
+			mtime = self._luwatcher.get (name, self.init_time)
+			mtimes.append (mtime)
+		return max (mtimes)
+		
+	# Websocket -----------------------------------------------
+	
+	def wsconfig (self, spec, timeout = 60, encoding = "text"):
+		self.env ["websocket.config"] = (spec, timeout, encoding)
+		return ""
+		
+	def wsinit (self):
+		return self.env.get ('websocket.event') == WS_EVT_INIT
+	
+	def wsopened (self):
+		return self.env.get ('websocket.event') == WS_EVT_OPEN
+	
+	def wsclosed (self):
+		return self.env.get ('websocket.event') == WS_EVT_CLOSE
+	
+	def wshasevent (self):
+		return self.env.get ('websocket.event')
+	
+	def wsclient (self):
+		return self.env.get ('websocket.client')	
+	
+	# Systen Functions -------------------------------------
+	
 	def log (self, msg, category = "info", at = "app"):
 		self.logger (at, msg, "%s:%s" % (category, self.txnid ()))
 		
@@ -249,15 +299,56 @@ class WAS:
 			id = self.txnid ()
 		self.logger.trace (at, id)
 	
-	def email (self, subject, snd, rcpt):
-		if composer.Composer.SAVE_PATH is None:
-			composer.Composer.SAVE_PATH = os.path.join ("/tmp/skitai/smtpda", "mail", "spool")
-			pathtool.mkdir (composer.Composer.SAVE_PATH)			
-		return composer.Composer (subject, snd, rcpt)
+	def status (self, flt = None, fancy = True):
+		return server_info.make (self, flt, fancy)
 	
-	def promise (self, handler, **karg):
-		self.response.set_streaming ()
-		return Promise (self, handler, **karg)
+	def restart (self, timeout = 0):
+		lifetime.shutdown (3, timeout)
+	
+	def shutdown (self, timeout = 0):
+		lifetime.shutdown (0, timeout)
+	
+	# Tokens  -----------------------------------------------
+	
+	def generate_token (self, bits = 64):
+		return hex (random.getrandbits (bits))
+		
+	@property
+	def csrf_token (self):
+		if "_csrf_token" not in self.session:
+			self.session ["_csrf_token"] = self.generate_token ()
+		return self.session ["_csrf_token"]
+
+	@property
+	def csrf_token_input (self):
+		return '<input type="hidden" name="_csrf_token" value="{}">'.format (self.csrf_token)
+	
+	def csrf_verify (self):
+		if not self.request.args.get ("_csrf_token"):
+			return False
+		token = self.request.args ["_csrf_token"]
+		if self.csrf_token == token:
+			del self.session ["_csrf_token"]
+			return True
+		return False
+	
+	# Proxy & Adaptor  -----------------------------------------------
+	
+	@property
+	def sqlmap (self):
+		return self.app.sqlmap
+	
+	@property
+	def django (self):
+		if hasattr (self.request, "django"):
+			return self.request.django
+		self.request.django = django_adaptor.request (self)
+		return self.request.django
+			
+	# Will Be Deprecated --------------------------------------------------	
+	
+	def render_ei (self, exc_info, format = 0):
+		return http_response.catch (format, exc_info)
 	
 	def togrpc (self, obj):
 		return obj.SerializeToString ()
@@ -278,82 +369,6 @@ class WAS:
 	
 	def fromxml (self, obj, use_datetime = 0):
 		return xmlrpclib.loads (obj)
-											
-	def status (self, flt = None, fancy = True):
-		return server_info.make (self, flt, fancy)
-	
-	def render_ei (self, exc_info, format = 0):
-		return http_response.catch (format, exc_info)
-	
-	def as_django (self):
-		if hasattr (self.request, "django"):
-			return self.request.django
-		self.request.django = django_adaptor.request (self) 
-		return self.request.django
-	
-	@property
-	def django (self):
-		return self.as_django ()
-		
-	def restart (self, timeout = 0):
-		lifetime.shutdown (3, timeout)
-	
-	def shutdown (self, timeout = 0):
-		lifetime.shutdown (0, timeout)
-	
-	def wsconfig (self, spec, timeout = 60, encoding = "text"):
-		self.env ["websocket.config"] = (spec, timeout, encoding)
-		return ""
-		
-	def wsinit (self):
-		return self.env.get ('websocket.event') == WS_EVT_INIT
-	
-	def wsopened (self):
-		return self.env.get ('websocket.event') == WS_EVT_OPEN
-	
-	def wsclosed (self):
-		return self.env.get ('websocket.event') == WS_EVT_CLOSE
-	
-	def wshasevent (self):
-		return self.env.get ('websocket.event')
-	
-	def wsclient (self):
-		return self.env.get ('websocket.client')	
-				
-	def setlu (self, name, *args, **karg):
-		self._luwatcher.set (name, time.time (), karg.get ("x_ignore", False))
-		self.broadcast ("model-changed", *args, **karg)
-		self.broadcast ("model-changed:%s" % name, *args, **karg)			
-		
-	def getlu (self, *names):
-		mtimes = []
-		for name in names:
-			mtime = self._luwatcher.get (name, self.init_time)
-			mtimes.append (mtime)
-		return max (mtimes)
-	
-	@property
-	def csrf_token (self):
-		if "_csrf_token" not in self.session:
-			self.session ["_csrf_token"] = hex (random.getrandbits (64))
-		return self.session ["_csrf_token"]
-
-	@property
-	def csrf_token_input (self):
-		return '<input type="hidden" name="_csrf_token" value="{}">'.format (self.csrf_token)
-	
-	def csrf_verify (self):
-		if not self.request.args.get ("_csrf_token"):
-			return False
-		token = self.request.args ["_csrf_token"]
-		if self.csrf_token == token:
-			del self.session ["_csrf_token"]
-			return True
-		return False
-		
-	#-----------------------------------------
-	# will be deprecated
-	#-----------------------------------------
 	
 	def fstream (self, path, mimetype = 'application/octet-stream'):	
 		self.response.set_header ('Content-Type',  mimetype)

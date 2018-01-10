@@ -46,7 +46,7 @@ class Response:
         self.was.response [k] = v
 
 
-class Request (WSGIRequest):
+class DjangoRequest (WSGIRequest):
     def authenticate (self, username, password):
         return auth.authenticate (self, username = username, password = password)
     
@@ -57,6 +57,9 @@ class Request (WSGIRequest):
     def logout (self):
         auth.logout (self)
         self._commit ()
+    
+    def update_session_auth_hash (self, user):
+        auth.update_session_auth_hash (self, user)
         
     def _commit (self):    
         response = Response (self.skito_was)
@@ -71,8 +74,8 @@ class Request (WSGIRequest):
 def request (was):
     if not WSGIRequest:
         raise SystemError ("Django not installed")
-    request = Request (was.env)
+    request = DjangoRequest (was.env)
     DjangoSession.process_request (request)    
-    request.user = SimpleLazyObject(lambda: get_user(request))
+    request.user = SimpleLazyObject (lambda: get_user (request))
     request.skito_was = was
     return request
