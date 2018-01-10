@@ -144,7 +144,10 @@ class Cookie (BasicMethods):
 			cl.append ("path=%s" % path)		
 		
 		if expires is not None:
-			cl.append ("expires=%s" % http_date.build_http_date (time.time () + expires))	
+			if isinstance (expires, str):
+				cl.append ("expires=%s" % expires)
+			else:	
+				cl.append ("expires=%s" % http_date.build_http_date (time.time () + expires))	
 			
 		if domain:
 			cl.append ("domain=%s" % domain)			

@@ -29,7 +29,7 @@ except ImportError:
 from skitai import lifetime
 from .wastuff.promise import Promise, _Method
 from .wastuff.triple_logger import Logger
-from .wastuff import django
+from .wastuff import django_adaptor
 from .wastuff.api import DateEncoder
 from multiprocessing import RLock
 import random
@@ -285,8 +285,15 @@ class WAS:
 	def render_ei (self, exc_info, format = 0):
 		return http_response.catch (format, exc_info)
 	
+	def as_django (self):
+		if hasattr (self.request, "django"):
+			return self.request.django
+		self.request.django = django_adaptor.request (self) 
+		return self.request.django
+	
+	@property
 	def django (self):
-		return django.request (self.env)
+		return self.as_django ()
 		
 	def restart (self, timeout = 0):
 		lifetime.shutdown (3, timeout)
