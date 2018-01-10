@@ -29,12 +29,9 @@ except ImportError:
 from skitai import lifetime
 from .wastuff.promise import Promise, _Method
 from .wastuff.triple_logger import Logger
+from .wastuff import django
 from .wastuff.api import DateEncoder
 from multiprocessing import RLock
-try:
-	from django.core.handlers.wsgi import WSGIRequest
-except ImportError:
-	WSGIRequest = None
 import random
 		
 class WAS:
@@ -288,9 +285,8 @@ class WAS:
 	def render_ei (self, exc_info, format = 0):
 		return http_response.catch (format, exc_info)
 	
-	@property
 	def django (self):
-		return WSGIRequest (self.env)
+		return django.request (self.env)
 		
 	def restart (self, timeout = 0):
 		lifetime.shutdown (3, timeout)

@@ -495,7 +495,7 @@ And your pysical directory structure including app.py is,
   templates/layout/*.html # for shared layout templates
   templates/*.html
   
-  components/*.py # app library, all modules in this directory will be watched for reloading
+  pasta/*.py # app library, all modules in this directory will be watched for reloading
   
   static/images # static files
   static/js
@@ -1718,7 +1718,7 @@ Also was.setlu () emits 'model-changed' events. You can handle event if you need
   def on_broadcast (was, *args, **kargs):
     # your code
 
-Note: if @app.on_broadcast is located in decorate function at components directory, even app.use_reloader is True, it is not applied to app when component file is changed. In this case you should manually reload app by resaving app file.
+Note: if @app.on_broadcast is located in decorate function at pasta directory, even app.use_reloader is True, it is not applied to app when component file is changed. In this case you should manually reload app by resaving app file.
 
 
 API Transaction ID
@@ -2282,7 +2282,7 @@ Before you begin, recommended Saddle App's directory structure is like this:
 - service.py: Skitai runner
 - app.py: File, Main app
 - static: Directory, Place static files like css, js, images. This directory should be mounted for using
-- components: Directory, Module components, utils or helpers for helping app like config.py, model.py etc...
+- pasta: Directory, Module components, utils or helpers for helping app like config.py, model.py etc...
 - templates: Directory, Jinaja and Chameleon template files
 - resources: Directory, Various files as app need like sqlite db file. In you app, you use these files, you can access file in resources by app.get_resource ("db", "sqlite3.db") like os.path.join manner.
 
@@ -2864,14 +2864,14 @@ App Decorating: Making Simpler & Modular App
 
 *New in version 0.26.17*
 
-You can split yours views and help utilties into components directory.
+You can split yours views and help utilties into pasta directory.
 
 Assume your application directory structure is like this,
 
 .. code:: bash
 
   templates/*.html  
-  components/*.py # app library, all modules in this directory will be watched for reloading  
+  pasta/*.py # app library, all modules in this directory will be watched for reloading  
   static/images # static files
   static/js
   static/css
@@ -2882,7 +2882,7 @@ app.py
   
 .. code:: python
 
-  from components import auth
+  from pasta import auth
   
   app = Saddle (__name__)
 
@@ -2893,7 +2893,7 @@ app.py
   def default_error_handler (was, e):
     return str (e)
     
-components/auth.py
+pasta/auth.py
 
 .. code:: python
   
@@ -2930,7 +2930,7 @@ components/auth.py
           was.mbox.push ("Invalid User Name or Password", "error", icon = "new_releases")
       return was.render ("sign/signin.html", next_url = next_url or was.ab ("index"))
 
-You just import module from components. but *def decorate (app)* is core in each module. Every modules can have *decorate (app)* in *components*, so you can split and modulize views and utility functions. decorate (app) will be automatically executed on starting. If you set app.use_reloader, theses components will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
+You just import module from pasta. but *def decorate (app)* is core in each module. Every modules can have *decorate (app)* in *pasta*, so you can split and modulize views and utility functions. decorate (app) will be automatically executed on starting. If you set app.use_reloader, theses pasta will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
 
 
 HTTP/2.0 Server Push
@@ -4354,7 +4354,7 @@ Change Log
 
 - 0.26.17 (Oct 2017)
 	
-	- add components concept
+	- add pasta concept
 	- can run SMTP Delivery Agent and Task Scheduler with config file
 	- add error_handler (prev errorhandler) decorator
 	- add default_error_handler (prev defaulterrorhandler) decorator

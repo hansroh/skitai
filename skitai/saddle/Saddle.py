@@ -33,8 +33,7 @@ class AuthorizedUser:
 	
 class Saddle (part.Part):
 	use_reloader = False
-	debug = False
-	
+	debug = False	
 	# Session
 	securekey = None
 	session_timeout = None
@@ -181,7 +180,10 @@ class Saddle (part.Part):
 	#------------------------------------------------------
 		
 	def watch (self, module):
-		self.reloadables [module] = self.get_file_info (module)
+		try:
+			self.reloadables [module] = self.get_file_info (module)
+		except FileNotFoundError:
+			return	
 		if hasattr (module, "decorate"):
 			module.decorate (self)
 					
@@ -209,7 +211,7 @@ class Saddle (part.Part):
 		stat = os.stat (module.__file__)
 		return stat.st_mtime, stat.st_size
 	
-	PACKAGE_DIRS = ["components", "package", "appack"]
+	PACKAGE_DIRS = ["pasta", "package", "appack"]
 	def add_package (self, *names):
 		for name in names:
 			self.PACKAGE_DIRS.append (name)
