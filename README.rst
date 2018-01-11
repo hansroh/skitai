@@ -394,7 +394,7 @@ Then place this code at bottom of above WSGI app.
 
 Service Versioning
 ````````````````````
-		
+    
 These feature can be used for managing versions. 
 
 Let's assume initial version of app file is app_v1.py.
@@ -495,7 +495,7 @@ And your pysical directory structure including app.py is,
   templates/layout/*.html # for shared layout templates
   templates/*.html
   
-  pasta/*.py # app library, all modules in this directory will be watched for reloading
+  decorative/*.py # app library, all modules in this directory will be watched for reloading
   
   static/images # static files
   static/js
@@ -579,7 +579,7 @@ __init__.py
       while 1:
         line = f.readline ().strip ()
         if not line: break
-        pref.config.urllist.append (line.split ("\t", 4))
+        pref.config.urllist.append (line.split ("  ", 4))
 
 Setting POST Body Size Limitation
 ------------------------------------
@@ -1280,7 +1280,7 @@ If your app need bootstraping or capsulizing complicated initialize process from
       while 1:
         line = f.readline ().strip ()
         if not line: break
-        urllist.append (line.split ("\t", 4))
+        urllist.append (line.split ("  ", 4))
       pref.config.urllist = urllist  
      
  
@@ -1718,7 +1718,7 @@ Also was.setlu () emits 'model-changed' events. You can handle event if you need
   def on_broadcast (was, *args, **kargs):
     # your code
 
-Note: if @app.on_broadcast is located in decorate function at pasta directory, even app.use_reloader is True, it is not applied to app when component file is changed. In this case you should manually reload app by resaving app file.
+Note: if @app.on_broadcast is located in decorate function at decorative directory, even app.use_reloader is True, it is not applied to app when component file is changed. In this case you should manually reload app by resaving app file.
 
 
 API Transaction ID
@@ -2282,7 +2282,7 @@ Before you begin, recommended Saddle App's directory structure is like this:
 - service.py: Skitai runner
 - app.py: File, Main app
 - static: Directory, Place static files like css, js, images. This directory should be mounted for using
-- pasta: Directory, Module components, utils or helpers for helping app like config.py, model.py etc...
+- decorative: Directory, Module components, utils or helpers for helping app like config.py, model.py etc...
 - templates: Directory, Jinaja and Chameleon template files
 - resources: Directory, Various files as app need like sqlite db file. In you app, you use these files, you can access file in resources by app.get_resource ("db", "sqlite3.db") like os.path.join manner.
 
@@ -2864,14 +2864,14 @@ App Decorating: Making Simpler & Modular App
 
 *New in version 0.26.17*
 
-You can split yours views and help utilties into pasta directory.
+You can split yours views and help utilties into decorative directory.
 
 Assume your application directory structure is like this,
 
 .. code:: bash
 
   templates/*.html  
-  pasta/*.py # app library, all modules in this directory will be watched for reloading  
+  decorative/*.py # app library, all modules in this directory will be watched for reloading  
   static/images # static files
   static/js
   static/css
@@ -2882,7 +2882,7 @@ app.py
   
 .. code:: python
 
-  from pasta import auth
+  from decorative import auth
   
   app = Saddle (__name__)
 
@@ -2893,7 +2893,7 @@ app.py
   def default_error_handler (was, e):
     return str (e)
     
-pasta/auth.py
+decorative/auth.py
 
 .. code:: python
   
@@ -2907,31 +2907,50 @@ pasta/auth.py
 
   def decorate (app):  
     @app.login_handler
-    def login_handler (was):  
-      if was.session.get ("username"):
-        return
-      next_url = not was.request.uri.endswith ("signout") and was.request.uri or ""    
-      return was.redirect (was.ab ("signin", next_url))
-      
-    @app.route ("/signout")
-    def signout (was):
-      was.session.remove ("username")
-      was.mbox.push ("Signed out successfully", "success")  
-      return was.redirect (was.ab ('index'))
-      
-    @app.route ("/signin")
-    def signin (was, next_url = None, **form):
-      if was.request.args.get ("username"):
-        user = auth.authenticate (was.django, username = was.request.args ["username"], password = was.request.args ["password"])
-        if user:
-          was.session.set ("username", was.request.args ["username"])
-          return was.redirect (was.request.args ["next_url"])
-        else:
-          was.mbox.push ("Invalid User Name or Password", "error", icon = "new_releases")
-      return was.render ("sign/signin.html", next_url = next_url or was.ab ("index"))
+    
+  def login_handler (was):  
+    if was.session.get ("username"):
+      return
+    next_url = not was.request.uri.endswith ("signout") and was.request.uri or ""    
+    return was.redirect (was.ab ("signin", next_url))
+    
+  @app.route ("/signout")
+  def signout (was):
+    was.session.remove ("username")
+    was.mbox.push ("Signed out successfully", "success")  
+    return was.redirect (was.ab ('index'))
+    
+  @app.route ("/signin")
+  def signin (was, next_url = None, **form):
+    if was.request.args.get ("username"):
+      user = auth.authenticate (was.django, username = was.request.args ["username"], password = was.request.args ["password"])
+      if user:
+        was.session.set ("username", was.request.args ["username"])
+        return was.redirect (was.request.args ["next_url"])
+      else:
+        was.mbox.push ("Invalid User Name or Password", "error", icon = "new_releases")
+    return was.render ("sign/signin.html", next_url = next_url or was.ab ("index"))
 
-You just import module from pasta. but *def decorate (app)* is core in each module. Every modules can have *decorate (app)* in *pasta*, so you can split and modulize views and utility functions. decorate (app) will be automatically executed on starting. If you set app.use_reloader, theses pasta will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
+You just import module from decorative. but *def decorate (app)* is core in each module. Every modules can have *decorate (app)* in *decorative*, so you can split and modulize views and utility functions. decorate (app) will be automatically executed on starting. If you set app.use_reloader, theses decorative will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
 
+I you need parameterson decorating,
+
+.. code:: python
+
+  def decorate (app, prefix):
+    @app.route (prefix + "/login")
+    def login (was):
+      ...
+      
+And on app, 
+      
+.. code:: python
+
+  from decorative import auth
+  
+  app = Saddle (__name__)
+  app.decorate_with (auth, '/regist')
+  
 
 HTTP/2.0 Server Push
 -----------------------
@@ -3692,8 +3711,8 @@ You can define login & permissoin check handler,
     return was.render ("login.html", user_form = forms.DemoUserForm ())
 
   @app.permission_check_handler
-  def permission_check_handler (was, required):
-    if was.session.get ("demo_permission") in required:
+  def permission_check_handler (was, perms):
+    if was.session.get ("demo_permission") in perms:
       return was.response ("403 Permission Denied")
 
       
@@ -3734,6 +3753,32 @@ then verify token like this,
       if not was.csrf_verify ():
         return was.response ("400 Bad Request")
 
+
+Making URL Token For Onetime Link
+--------------------------------------
+
+*New in version 0.26.17*
+
+For creatiing onetime link url, you can convert your data to secured token string. 
+
+.. code:: html
+  
+  @app.route ('/password-reset')
+  def password_reset (was)
+    if was.request.args ('username'):
+      token = was.tokenize ({"username": "hans", "expires": time.time () + 3600}) # 1 hour
+      pw_reset_url = was.ab ('reset_password', token)
+      # send email
+      return was.render ('done.html')
+     
+    if was.request.args ('token'):
+      req = was.untokenize (was.request.args ['token'])
+      if req ['expires'] > time.time ():
+        return was.response ('400 Bad Request')      
+      username = req ['username']
+      # processing password reset 
+      ...
+         
 
 App Event Handling
 ---------------------
@@ -4129,8 +4174,9 @@ Note: I think I don't understand about gRPC's stream request and response. Does 
 .. _`gRPC Basics - Python`: http://www.grpc.io/docs/tutorials/basic/python.html
 .. _tfserver: https://pypi.python.org/pypi/tfserver
 
-Route Proxing Django Views & Working with Django Models
----------------------------------------------------------
+
+Working with Django
+-----------------------
 
 *New in version 0.26.15*
 
@@ -4156,6 +4202,24 @@ Before it begin, you should mount Django app,
   
 FYI, you can access Django admin by /django/admin with default django setting.
 
+Using Django Login
+```````````````````
+
+Django user model and authentication system can be used in Skitai.
+ 
+*was.django* is an inherited instance of Django's WSGIRequest.
+
+Basically you can use Django request's user and session.
+
+- was.django.user
+- was.django.session
+
+Also  have some methods for login integration.
+
+- was.django.authenticate (username, password): return username or None if failed
+- was.django.login (username)
+- was.django.logout ()
+- was.django.update_session_auth_hash (user)
 
 Route Proxing Django Views
 ``````````````````````````````
@@ -4169,7 +4233,6 @@ If mydjangoapp has photos app, for proxing Django views,
   @app.route ('/hello')
   def django_hello (was):
     return photos_views.somefunc (was.django)
-    
 
 Using Django Models
 `````````````````````
@@ -4353,112 +4416,113 @@ Change Log
 0.26 (May 2017)
 
 - 0.26.17 (Oct 2017)
-	
-	- add pasta concept
-	- can run SMTP Delivery Agent and Task Scheduler with config file
-	- add error_handler (prev errorhandler) decorator
-	- add default_error_handler (prev defaulterrorhandler) decorator
-	- add login_handler, login_required decorator
-	- add permission_handler, permission_required decorator
-	- add app events emitting
-	- add was.csrf_token_input, was.csrf_token and was.csrf_verify()    
-	- make session iterable  
-	- prevent changing function spec by decorator
-	- change params of use_django_models: (settings_path, alias), skitai.mount_django (point, wsgi_path, pref = pref (True), dbalias = None, host = "default")
-	
+  
+  - add was.tokenize, was.untokeninze
+  - add decorative concept
+  - can run SMTP Delivery Agent and Task Scheduler with config file
+  - add error_handler (prev errorhandler) decorator
+  - add default_error_handler (prev defaulterrorhandler) decorator
+  - add login_handler, login_required decorator
+  - add permission_handler, permission_required decorator
+  - add app events emitting
+  - add was.csrf_token_input, was.csrf_token and was.csrf_verify()    
+  - make session iterable  
+  - prevent changing function spec by decorator
+  - change params of use_django_models: (settings_path, alias), skitai.mount_django (point, wsgi_path, pref = pref (True), dbalias = None, host = "default")
+  
 - 0.26.16 (Oct 2017)
 
-	- add app.sqlmaps
-	- add use_django_models (settings_path), skitai.mount_django (point, wsgi_path, pref = pref (True), host = "default")
-	- fix mbox, add app.max_client_body_size
-	- add skitai.addlu (args, ...) that is equivalant to skitai.addlu (args, ...)
-	- fix promise and proxing was objects
-	- change method name from skitai.set_network_timeout to set_erquest_timeout
-	- fix getwait, getswait. get timeout mis-working
-	- fix backend_keep_alive default value from 10 to 1200
-	- fix dbi reraise on error
-	- JSON as arguments
-	
+  - add app.sqlmaps
+  - add use_django_models (settings_path), skitai.mount_django (point, wsgi_path, pref = pref (True), host = "default")
+  - fix mbox, add app.max_client_body_size
+  - add skitai.addlu (args, ...) that is equivalant to skitai.addlu (args, ...)
+  - fix promise and proxing was objects
+  - change method name from skitai.set_network_timeout to set_erquest_timeout
+  - fix getwait, getswait. get timeout mis-working
+  - fix backend_keep_alive default value from 10 to 1200
+  - fix dbi reraise on error
+  - JSON as arguments
+  
 - 0.26.15
-	
-	- added request.form () and request.dict ()
-	- support Django auto reload by restarting workers
-	- change DNS query default protocol from TCP to UDP (posix only)
-	- add skitai.set_proxy_keep_alive (channel = 60, tunnel = 600) and change default proxy keep alive to same values
-	- increase https tunnel keep alive timeout to 600 sec.
-	- fix broad event bus
-	- add getjson, deletejson, this request automatically add header 'Accept: application/json'
-	- change default request content-type from json to form data, if you post/put json data, you should change postjson/putjson
-	- add skitai.trackers (args,...) that is equivalant to skitai.lukeys ([args])
-	- fix mounting module
-	- app.storage had been remove officially, I cannot find any usage. but unoficially it will be remains by some day
-	- add skitai.lukeys () and fix inconsistency of was.setlu & was.getlu between multi workers
-	- was.storage had been remove
-	- add skitai.set_worker_critical_point ()
-	- fix result object caching
-	- add app.model_signal (), was.setlu () and was.getlu ()
-	
+  
+  - added request.form () and request.dict ()
+  - support Django auto reload by restarting workers
+  - change DNS query default protocol from TCP to UDP (posix only)
+  - add skitai.set_proxy_keep_alive (channel = 60, tunnel = 600) and change default proxy keep alive to same values
+  - increase https tunnel keep alive timeout to 600 sec.
+  - fix broad event bus
+  - add getjson, deletejson, this request automatically add header 'Accept: application/json'
+  - change default request content-type from json to form data, if you post/put json data, you should change postjson/putjson
+  - add skitai.trackers (args,...) that is equivalant to skitai.lukeys ([args])
+  - fix mounting module
+  - app.storage had been remove officially, I cannot find any usage. but unoficially it will be remains by some day
+  - add skitai.lukeys () and fix inconsistency of was.setlu & was.getlu between multi workers
+  - was.storage had been remove
+  - add skitai.set_worker_critical_point ()
+  - fix result object caching
+  - add app.model_signal (), was.setlu () and was.getlu ()
+  
 - 0.26.14
-	
-	- add app.storage and was.storage
-	- removed wac._backend and wac._upstream, use @app.mounted and @app.umount
-	- replaced app.listen by app.on_broadcast
-	
+  
+  - add app.storage and was.storage
+  - removed wac._backend and wac._upstream, use @app.mounted and @app.umount
+  - replaced app.listen by app.on_broadcast
+  
 - 0.26.13
-	
-	- add skitai.log_off (path,...)
-	- add reply content-type to request log, and change log format
-	- change posix process display name
-	
+  
+  - add skitai.log_off (path,...)
+  - add reply content-type to request log, and change log format
+  - change posix process display name
+  
 - 0.26.12
-	
-	- change event decorator: @app.listen -> @app.on_broadcast
-	- adaptation to h2 3.0.1
-	- fix http2 flow controling    
-	- fix errorhandler and add defaulterrorhandler
-	- fix WSGI response handler
-	- fix cross app URL building
-	- Django can be mounted
-	- fix smtpda & default var directory
-	- optimize HTTP/2 response data
-	- fix HTTP/2 logging when empty response body
-	- http_response.outgoing is replaced by deque
-	- change default mime-type from text/plain to application/octet-stream in response header
-	- HTTP response optimized
-	
+  
+  - change event decorator: @app.listen -> @app.on_broadcast
+  - adaptation to h2 3.0.1
+  - fix http2 flow controling    
+  - fix errorhandler and add defaulterrorhandler
+  - fix WSGI response handler
+  - fix cross app URL building
+  - Django can be mounted
+  - fix smtpda & default var directory
+  - optimize HTTP/2 response data
+  - fix HTTP/2 logging when empty response body
+  - http_response.outgoing is replaced by deque
+  - change default mime-type from text/plain to application/octet-stream in response header
+  - HTTP response optimized
+  
 - 0.26.10
-	
-	- start making pytest scripts
-	- add was-wide broadcast event bus: @app.listen (event), was.broadcast (event, args...) and @was.broadcast_after (event)
-	- add app-wide event bus: @app.on (event), was.emit (event, args...) and @was.emit_after (event)
-	- remove @app.listento (event) and was.emit (event, args...)
-	
+  
+  - start making pytest scripts
+  - add was-wide broadcast event bus: @app.listen (event), was.broadcast (event, args...) and @was.broadcast_after (event)
+  - add app-wide event bus: @app.on (event), was.emit (event, args...) and @was.emit_after (event)
+  - remove @app.listento (event) and was.emit (event, args...)
+  
 - 0.26.9
-	
-	- add event bus: @app.listento (event) and was.emit (event, args...)
-	
+  
+  - add event bus: @app.listento (event) and was.emit (event, args...)
+  
 - 0.26.8
-	
-	- fix websocket GROUPCHAT
-	- add was.apps
-	- was.ab works between apps are mounted seperatly
+  
+  - fix websocket GROUPCHAT
+  - add was.apps
+  - was.ab works between apps are mounted seperatly
  
 - 0.26.7 
-	
-	- add custom error template on Saddle
-	- add win32 service tools
-	- change class method name from make_request () to backend ()
-	- retry once if database is disconnected by keep-live timeout
-	- drop wac.make_dbo () and wac.make_stub ()
-	
+  
+  - add custom error template on Saddle
+  - add win32 service tools
+  - change class method name from make_request () to backend ()
+  - retry once if database is disconnected by keep-live timeout
+  - drop wac.make_dbo () and wac.make_stub ()
+  
 - 0.26.6
-	
-	- add wac.make_dbo (), wac.make_stub () and wac.make_request ()
-	- wac.ajob () has been removed
-	- change repr name from wasc to wac
-	- websocket design spec, WEBSOCKET_DEDICATE_THREADSAFE has been removed and WEBSOCKET_THREADSAFE is added
-	- fix websocket, http2, https proxy tunnel timeout, related set_network_timeout () is recently added
-	
+  
+  - add wac.make_dbo (), wac.make_stub () and wac.make_request ()
+  - wac.ajob () has been removed
+  - change repr name from wasc to wac
+  - websocket design spec, WEBSOCKET_DEDICATE_THREADSAFE has been removed and WEBSOCKET_THREADSAFE is added
+  - fix websocket, http2, https proxy tunnel timeout, related set_network_timeout () is recently added
+  
 - 0.26.4.1: add set_network_timeout (timoutout = 30) and change default keep alive timeout from 2 to 30
 - 0.26.4: fix incomplete sending when resuested with connection: close header
 - 0.26.3.7: enforce response to HTTP version 1.1 for 1.0 CONNECT with 1.0 request
@@ -4522,18 +4586,18 @@ Change Log
 - 0.22.5 fix xml-rpc service
 - 0.22.4 fix proxy
 - 0.22.3
-	
-	- fix https REST, XML-RPC call
-	- fix DB pool
+  
+  - fix https REST, XML-RPC call
+  - fix DB pool
 
 - 0.22 
-	
-	- Skitai REST/RPC call now uses HTTP2 if possible
-	- Fix HTTP2 opening with POST method
-	- Add logging on disconnecting of Websocket, HTTP2, Proxy Tunnel channels
-	
-	- See News
-	
+  
+  - Skitai REST/RPC call now uses HTTP2 if possible
+  - Fix HTTP2 opening with POST method
+  - Add logging on disconnecting of Websocket, HTTP2, Proxy Tunnel channels
+  
+  - See News
+  
 0.21 (Dec 2016)
 
 - 0.21.17 - fix JWT base64 padding problem

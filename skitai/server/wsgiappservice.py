@@ -1,5 +1,5 @@
 from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT
-from aquests.lib import pathtool, logger
+from aquests.lib import pathtool, logger, jwt
 from aquests.lib.producers import simple_producer, file_producer
 from aquests.lib.athreads import trigger
 from aquests.protocols.smtp import composer
@@ -11,6 +11,10 @@ from . import server_info
 from . import http_response
 import os, sys
 import time
+import base64
+import pickle
+from hmac import new as hmac
+from hashlib import sha1
 from skitai.server.handlers import api_access_handler, vhost_handler
 try: 
 	from urllib.parse import urljoin
@@ -310,13 +314,32 @@ class WAS:
 	
 	# Tokens  -----------------------------------------------
 	
-	def generate_token (self, bits = 64):
-		return hex (random.getrandbits (bits))
+	def tokenize (self, obj):
+		b = base64.b64encode (pickle.dumps (obj, 1)).rstrip (b'=')
+		mac = hmac (self.app.securekey.encode ("utf8"), None, sha1)
+		mac.update (b)
+		return (base64.b64encode(mac.digest()).strip() + b"?" + b).rstrip (b'=').decode ("utf8")
+	
+	def untokenize (self, string):
+		def adjust_padding (s):
+			paddings = 4 - (len (s) % 4)
+			if paddings != 4:
+				s += b"=" * paddings
+			return s
+		
+		string = string.encode ("utf8")
+		base64_hash, data = string.split(b'?', 1)
+		client_hash = base64.b64decode(adjust_padding (base64_hash))
+		mac = hmac(self.app.securekey.encode ("utf8"), None, sha1)		
+		mac.update(data)
+		if client_hash != mac.digest():
+			return
+		return pickle.loads (base64.b64decode (adjust_padding (data)))
 		
 	@property
 	def csrf_token (self):
 		if "_csrf_token" not in self.session:
-			self.session ["_csrf_token"] = self.generate_token ()
+			self.session ["_csrf_token"] = hex (random.getrandbits (64))
 		return self.session ["_csrf_token"]
 
 	@property

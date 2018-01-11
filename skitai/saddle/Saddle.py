@@ -33,7 +33,7 @@ class AuthorizedUser:
 	
 class Saddle (part.Part):
 	use_reloader = False
-	debug = False	
+	debug = False		
 	# Session
 	securekey = None
 	session_timeout = None
@@ -61,12 +61,21 @@ class Saddle (part.Part):
 		self.events = {}
 		# for bus, set by wsgi_executor
 		
+		self.decorating_params = {}
 		self.reloadables = {}
 		self.last_reloaded = time.time ()
 		self.cached_paths = {}		
 		self.cached_rules = []
 		self.config = Config (preset = True)
-		
+		self._salt = None
+	
+	@property
+	def salt (self):
+		if self._salt:
+			return self._salt
+		self._salt = self.securekey.encode ("utf8")
+		return self._salt 
+		 	
 	def set_devel (self, debug = True, use_reloader = True):
 		self.debug = debug
 		self.use_reloader = use_reloader
@@ -178,14 +187,22 @@ class Saddle (part.Part):
 		return os.path.join (self.home, *args)
 		
 	#------------------------------------------------------
+	def decorate_with (self, module, *args, **karg):
+		self.decorating_params [module.__name__] = (args, karg)
 		
 	def watch (self, module):
 		try:
 			self.reloadables [module] = self.get_file_info (module)
 		except FileNotFoundError:
-			return	
+			return
+		
 		if hasattr (module, "decorate"):
-			module.decorate (self)
+			params = self.decorating_params.get (module.__name__)
+			if params:			
+				args, karg = params
+				module.decorate (self, *args, **karg)
+			else:
+				module.decorate (self)	
 					
 	def maybe_reload (self):
 		if time.time () - self.last_reloaded < 1.0:
@@ -211,7 +228,7 @@ class Saddle (part.Part):
 		stat = os.stat (module.__file__)
 		return stat.st_mtime, stat.st_size
 	
-	PACKAGE_DIRS = ["pasta", "package", "appack"]
+	PACKAGE_DIRS = ["decorative", "package", "appack"]
 	def add_package (self, *names):
 		for name in names:
 			self.PACKAGE_DIRS.append (name)
