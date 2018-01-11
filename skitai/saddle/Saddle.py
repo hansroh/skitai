@@ -17,7 +17,7 @@ from . import cookie
 from .config import Config
 from sqlphile import SQLPhile
 from event_bus.exceptions import EventDoesntExist
-	
+import skitai	
 from jinja2 import Environment, FileSystemLoader
 try:
 	from chameleon import PageTemplateLoader
@@ -168,18 +168,25 @@ class Saddle (part.Part):
 			if os.path.isdir (maybe_dir):
 				package_dirs.append (maybe_dir)
 		
+		contrib = os.path.join (os.path.dirname (skitai.__spec__.origin), 'contrib', 'decoratives')
 		for k, v in list (sys.modules.items ()):
 			try:
 				modpath = v.__spec__.origin
 			except AttributeError:
 				continue
 			
-			if modpath:
-				for package_dir in package_dirs:
-					if modpath.startswith (package_dir):
-						self.watch (v)
-						break
-								
+			if not modpath:
+				continue
+			
+			if modpath.startswith (contrib):
+				self.watch (v, False) # not reloaderble
+				continue
+									
+			for package_dir in package_dirs:
+				if modpath.startswith (package_dir):
+					self.watch (v)
+					break
+							
 	def get_resource (self, *args):
 		return self.joinpath ("resources", *args)
 	
@@ -190,12 +197,7 @@ class Saddle (part.Part):
 	def decorate_with (self, module, *args, **karg):
 		self.decorating_params [module.__name__] = (args, karg)
 		
-	def watch (self, module):
-		try:
-			self.reloadables [module] = self.get_file_info (module)
-		except FileNotFoundError:
-			return
-		
+	def watch (self, module, reloadable = True):
 		if hasattr (module, "decorate"):
 			params = self.decorating_params.get (module.__name__)
 			if params:			
@@ -203,13 +205,19 @@ class Saddle (part.Part):
 				module.decorate (self, *args, **karg)
 			else:
 				module.decorate (self)	
+		
+		if reloadable:
+			try:
+				self.reloadables [module] = self.get_file_info (module)
+			except FileNotFoundError:
+				return
 					
 	def maybe_reload (self):
 		if time.time () - self.last_reloaded < 1.0:
 			return
 		
 		self._reloading = True	
-		for module in list (self.reloadables.keys ()):			
+		for module in list (self.reloadables.keys ()):
 			try:
 				fi = self.get_file_info (module)
 			except FileNotFoundError:

@@ -53,7 +53,9 @@ packages = [
 	'skitai.server.handlers.websocket',
 	'skitai.server.handlers.proxy',
 	'skitai.saddle',
-	'skitai.saddle.patches'
+	'skitai.saddle.patches',
+	'skitai.contrib',
+	'skitai.contrib.decoratives',
 ]
 
 package_dir = {'skitai': 'skitai'}

@@ -3715,7 +3715,7 @@ You can define login & permissoin check handler,
     if was.session.get ("demo_permission") in perms:
       return was.response ("403 Permission Denied")
   
-  @app.staff_check_handler
+  @app.staff_member_check_handler
   def staff_check_handler (was):
     if was.session.get ("demo_permission") not in ('staff'):
       return was.response ("403 Staff Permission Required")
@@ -3733,8 +3733,20 @@ And use it for your resources if you need,
   @app.staff_member_required
   def index2 (was):
     return "Hello"
+
+Also you can test if user is valid,
+
+.. code:: python
+  
+  def is_superuser (was):
+    if was.user.username not in ('admin', 'root'):
+      reutrn was.response ("403 Permission Denied")
+  
+  @app.testpass_required (is_superuser)
+  def modify_profile (was):
+    ...
     
-Note that in case of both of them, if every thing is OK, it SHOULD return None.
+Note that in case all of them, if every thing is OK, it *SHOULD return None, not True*.
 
     
 Cross Site Request Forgery Token (CSRF Token)

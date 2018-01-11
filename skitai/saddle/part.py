@@ -146,15 +146,15 @@ class Part:
 			return f (was, *args, **kwargs)
 		return wrapper
 	
-	def staff_check_handler (self, f):
-		self._decos ["staff_check_handler"] = f
+	def staff_member_check_handler (self, f):
+		self._decos ["staff_member_check_handler"] = f
 		return f
 	
 	def staff_member_required (self, f):
 		self.save_function_spec_for_routing (f)
 		@wraps(f)
 		def wrapper (was, *args, **kwargs):
-			_funcs = self._decos.get ("staff_check_handler")
+			_funcs = self._decos.get ("staff_member_check_handler")
 			if _funcs:
 				response = _funcs (was)					
 				if response is not None:
@@ -177,6 +177,18 @@ class Part:
 					response = _funcs (was, self._permission_map [f])					
 					if response is not None:
 						return response
+				return f (was, *args, **kwargs)
+			return wrapper
+		return decorator
+	
+	def testpass_required (self, testfunc):
+		def decorator(f):
+			self.save_function_spec_for_routing (f)			
+			@wraps(f)
+			def wrapper (was, *args, **kwargs):
+				response = testfunc (was)
+				if response is not None:
+					return response
 				return f (was, *args, **kwargs)
 			return wrapper
 		return decorator
