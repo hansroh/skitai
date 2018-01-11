@@ -112,7 +112,7 @@ class WAS:
 		"post", "postjson",
 		"put", "putjson",
 		"patch", "patchjson",
-		"rpc", "grpc", "ws", "wss", 
+		"rpc", "jsonrpc", "grpc", "ws", "wss", 
 		"db", "postgresql", "sqlite3", "redis", "mongodb", "backend",		
 	]
 	def __getattr__ (self, name):
@@ -314,11 +314,20 @@ class WAS:
 	
 	# Tokens  -----------------------------------------------
 	
-	def serialize (self, obj):
-		b = base64.b64encode (pickle.dumps (obj, 1)).rstrip (b'=')
+	def serialize (self, obj, timeout = 1200, sctf_token = False):
+		wrapper = {				
+			'object': obj,
+			'timeout': time.time () + timeout
+		}
+		if sctf_token:
+			token = hex (random.getrandbits (64))
+			wrapper ['_sctf_token'] = token
+			self.session ['_sctf_token'] = token
+		
+		data = pickle.dumps (wrapper, 1)
 		mac = hmac (self.app.securekey.encode ("utf8"), None, sha1)
-		mac.update (b)
-		return (base64.b64encode(mac.digest()).strip() + b"?" + b).rstrip (b'=').decode ("utf8")
+		mac.update (data)
+		return (base64.b64encode (mac.digest()).strip().rstrip (b'=') + b"?" + base64.b64encode (data).strip ().rstrip (b'=')).decode ("utf8")
 	
 	def unserialize (self, string):
 		def adjust_padding (s):
@@ -330,11 +339,19 @@ class WAS:
 		string = string.encode ("utf8")
 		base64_hash, data = string.split(b'?', 1)
 		client_hash = base64.b64decode(adjust_padding (base64_hash))
-		mac = hmac(self.app.securekey.encode ("utf8"), None, sha1)		
-		mac.update(data)
+		data = base64.b64decode(adjust_padding (data))
+		mac = hmac (self.app.securekey.encode ("utf8"), None, sha1)		
+		mac.update (data)
 		if client_hash != mac.digest():
 			return
-		return pickle.loads (base64.b64decode (adjust_padding (data)))
+		wrapper = pickle.loads (data)		
+		sctf_token = wrapper.get ('_sctf_token')
+		if wrapper ['timeout']  < time.time () or (sctf_token and sctf_token != self.session ['_sctf_token']):		
+			if sctf_token and self.session.get ('_sctf_token'):
+				del self.session ['_sctf_token']
+			return
+		obj = wrapper ['object']
+		return obj
 		
 	@property
 	def csrf_token (self):

@@ -3,7 +3,7 @@ import time
 import os
 import sys
 from . import part, multipart_collector, cookie, session, grpc_collector, ws_executor
-from . import wsgi_executor, xmlrpc_executor, grpc_executor
+from . import wsgi_executor, xmlrpc_executor, grpc_executor, jsonrpc_executor
 from aquests.lib import producers, evbus
 from functools import wraps
 from importlib import reload
@@ -168,7 +168,7 @@ class Saddle (part.Part):
 			if os.path.isdir (maybe_dir):
 				package_dirs.append (maybe_dir)
 		
-		contrib = os.path.join (os.path.dirname (skitai.__spec__.origin), 'contrib', 'decoratives')
+		contrib = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'decoratives')
 		for k, v in list (sys.modules.items ()):
 			try:
 				modpath = v.__spec__.origin
@@ -573,6 +573,8 @@ class Saddle (part.Part):
 			result = xmlrpc_executor.Executor (env, self.get_method) ()
 		elif content_type.startswith ("application/grpc"):
 			result = grpc_executor.Executor (env, self.get_method) ()			
+		elif content_type.startswith ("application/json-rpc"):
+			result = jsonrpc_executor.Executor (env, self.get_method) ()	
 		elif env.get ("websocket.params"):
 			result = ws_executor.Executor (env, None) ()
 		else:	

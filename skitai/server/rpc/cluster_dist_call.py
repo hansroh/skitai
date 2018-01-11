@@ -297,6 +297,8 @@ class ClusterDistCall:
 					handler = http_request_handler.RequestHandler					
 					if _reqtype == "rpc":
 						request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._auth, self._logger, self._meta)
+					elif _reqtype == "jsonrpc":
+						request = http_request.JSONRPCRequest (self._uri, method, params, self._headers, self._auth, self._logger, self._meta)					
 					elif _reqtype == "grpc":
 						request = GRPCRequest (self._uri, method, params, self._headers, self._auth, self._logger, self._meta)						
 					elif _reqtype == "upload":

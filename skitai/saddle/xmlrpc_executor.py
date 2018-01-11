@@ -35,7 +35,7 @@ class Executor (wsgi_executor.Executor):
 			except:
 				results.append (xmlrpclib.Fault (1, self.was.app.debug and wsgi_executor.traceback () or "Error Occured"))
 			else:
-				results.append ((result [0],))
+				results.append ((result,))
 			del self.was.subapp
 		
 		if not is_multicall: 
