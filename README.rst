@@ -3714,18 +3714,26 @@ You can define login & permissoin check handler,
   def permission_check_handler (was, perms):
     if was.session.get ("demo_permission") in perms:
       return was.response ("403 Permission Denied")
+  
+  @app.staff_check_handler
+  def staff_check_handler (was):
+    if was.session.get ("demo_permission") not in ('staff'):
+      return was.response ("403 Staff Permission Required")
 
-      
 And use it for your resources if you need,
 
 .. code:: python
 
   @app.route ("/")
-  @app.permission_required ("admin")
+  @app.permission_required ("admin")  
   @app.login_required
   def index (was):
     return "Hello"
-
+  
+  @app.staff_member_required
+  def index2 (was):
+    return "Hello"
+    
 Note that in case of both of them, if every thing is OK, it SHOULD return None.
 
     

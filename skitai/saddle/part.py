@@ -129,21 +129,41 @@ class Part:
 		return f
 		
 	#------------------------------------------------------
-		
+			
+	def login_handler (self, f):
+		self._decos ["login_handler"] = f
+		return f
+	
 	def login_required (self, f):
 		self.save_function_spec_for_routing (f)
 		@wraps(f)
 		def wrapper (was, *args, **kwargs):
-			_funcs = self._decos.get ("login")
+			_funcs = self._decos.get ("login_handler")
 			if _funcs:
 				response = _funcs (was)					
 				if response is not None:
 					return response
 			return f (was, *args, **kwargs)
 		return wrapper
-		
-	def login_handler (self, f):
-		self._decos ["login"] = f
+	
+	def staff_check_handler (self, f):
+		self._decos ["staff_check_handler"] = f
+		return f
+	
+	def staff_member_required (self, f):
+		self.save_function_spec_for_routing (f)
+		@wraps(f)
+		def wrapper (was, *args, **kwargs):
+			_funcs = self._decos.get ("staff_check_handler")
+			if _funcs:
+				response = _funcs (was)					
+				if response is not None:
+					return response
+			return f (was, *args, **kwargs)
+		return wrapper
+	
+	def permission_check_handler (self, f):
+		self._decos ["permission_check_handler"] = f
 		return f
 	
 	def permission_required (self, p):
@@ -152,7 +172,7 @@ class Part:
 			self._permission_map [f] = isinstance (p, str) and [p] or p
 			@wraps(f)
 			def wrapper (was, *args, **kwargs):
-				_funcs = self._decos.get ("permission")
+				_funcs = self._decos.get ("permission_check_handler")
 				if _funcs:
 					response = _funcs (was, self._permission_map [f])					
 					if response is not None:
@@ -160,10 +180,6 @@ class Part:
 				return f (was, *args, **kwargs)
 			return wrapper
 		return decorator
-		
-	def permission_check_handler (self, f):
-		self._decos ["permission"] = f
-		return f
 	
 	#-------------------------------------------------------
 	
