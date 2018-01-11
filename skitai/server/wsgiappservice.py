@@ -314,13 +314,13 @@ class WAS:
 	
 	# Tokens  -----------------------------------------------
 	
-	def tokenize (self, obj):
+	def serialize (self, obj):
 		b = base64.b64encode (pickle.dumps (obj, 1)).rstrip (b'=')
 		mac = hmac (self.app.securekey.encode ("utf8"), None, sha1)
 		mac.update (b)
 		return (base64.b64encode(mac.digest()).strip() + b"?" + b).rstrip (b'=').decode ("utf8")
 	
-	def untokenize (self, string):
+	def unserialize (self, string):
 		def adjust_padding (s):
 			paddings = 4 - (len (s) % 4)
 			if paddings != 4:

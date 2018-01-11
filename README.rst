@@ -3761,18 +3761,18 @@ Making URL Token For Onetime Link
 
 For creatiing onetime link url, you can convert your data to secured token string. 
 
-.. code:: html
+.. code:: python
   
   @app.route ('/password-reset')
   def password_reset (was)
     if was.request.args ('username'):
-      token = was.tokenize ({"username": "hans", "expires": time.time () + 3600}) # 1 hour
+      token = was.serialize ({"username": "hans", "expires": time.time () + 3600}) # 1 hour
       pw_reset_url = was.ab ('reset_password', token)
       # send email
       return was.render ('done.html')
      
     if was.request.args ('token'):
-      req = was.untokenize (was.request.args ['token'])
+      req = was.unserialize (was.request.args ['token'])
       if req ['expires'] > time.time ():
         return was.response ('400 Bad Request')      
       username = req ['username']
@@ -4417,7 +4417,7 @@ Change Log
 
 - 0.26.17 (Oct 2017)
   
-  - add was.tokenize, was.untokeninze
+  - add was.serialize, was.unserialize
   - add decorative concept
   - can run SMTP Delivery Agent and Task Scheduler with config file
   - add error_handler (prev errorhandler) decorator
