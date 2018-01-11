@@ -181,7 +181,7 @@ class Saddle (part.Part):
 			if modpath.startswith (contrib):
 				self.watch (v, False) # not reloaderble
 				continue
-									
+
 			for package_dir in package_dirs:
 				if modpath.startswith (package_dir):
 					self.watch (v)
