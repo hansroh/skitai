@@ -4436,7 +4436,8 @@ Change Log
 0.26 (May 2017)
 
 - 0.26.17 (Oct 2017)
-  
+ 
+  - add jsonrpc executor  
   - add some methods to was.djnago: login (), logout (), authenticate () and update_session_auth_hash () 
   - add app.testpass_required decorator
   - add was.serialize, was.unserialize

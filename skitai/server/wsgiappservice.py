@@ -333,11 +333,11 @@ class WAS:
 		def adjust_padding (s):
 			paddings = 4 - (len (s) % 4)
 			if paddings != 4:
-				s += b"=" * paddings
+				s += ("=" * paddings)
 			return s
 		
-		string = string.encode ("utf8")
-		base64_hash, data = string.split(b'?', 1)
+		string = string.replace (" ", "+")
+		base64_hash, data = string.split('?', 1)		
 		client_hash = base64.b64decode(adjust_padding (base64_hash))
 		data = base64.b64decode(adjust_padding (data))
 		mac = hmac (self.app.securekey.encode ("utf8"), None, sha1)		

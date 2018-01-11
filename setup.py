@@ -54,12 +54,16 @@ packages = [
 	'skitai.server.handlers.proxy',
 	'skitai.saddle',
 	'skitai.saddle.patches',
-	'skitai.contrib',
-	'skitai.contrib.decoratives',
+	'skitai.saddle.contrib',
+	'skitai.saddle.contrib.decoratives',	
 ]
 
 package_dir = {'skitai': 'skitai'}
-package_data = {}
+package_data = {
+	"skitai": [
+		"saddle/contrib/templates/*"
+	]
+}
 
 install_requires = [
 	"jinja2==2.9.4", 	
