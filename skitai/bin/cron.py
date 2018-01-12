@@ -5,6 +5,7 @@ import subprocess
 import sys, os, getopt
 from aquests.lib import pathtool, logger, confparse
 from aquests.lib.pmaster import killtree, processutil
+from aquests.lib.pmaster import daemon as demonizer
 import signal
 import time
 import glob
@@ -230,14 +231,13 @@ Examples:
 
 
 if __name__ == "__main__":
-	argopt = getopt.getopt(
-		sys.argv[1:], 
-		"hvf:", 
-		[
-			"help", "verbose", "log-path=", "var-path=", "pname=", "process-display-name=", "config="
-		]	
-	)
 	
+	argopt = demonizer.handle_commandline (
+		"hvf:",
+		["help", "verbose", "log-path=", "var-path=", "pname=", "process-display-name=", "config="], 
+		 "/var/tmp/skitai/cron", 
+		 "skitai"
+	)	
 	_consol = "no"
 	_cf = {}
 	_logpath, _varpath = None, None
@@ -246,6 +246,7 @@ if __name__ == "__main__":
 	for k, v in argopt [0]:
 		if k == "-f" or k == "config":
 			cf = confparse.ConfParse (v)
+			cf.setopt ("cron", "process-display-name", "skitai")
 			fileopt = list ([("--" + k, v) for k, v in cf.getopt ("common").items () if v not in ("", "false", "no")])
 			fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("cron").items () if v not in ("", "false", "no")]))
 			break

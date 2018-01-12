@@ -5,6 +5,7 @@ import sys, os, getopt
 from skitai import lifetime
 from aquests.lib import pathtool, logger, confparse
 from aquests.lib.athreads import select_trigger
+from aquests.lib.pmaster import daemon as demonizer
 from aquests.protocols.smtp import async_smtp, composer
 import signal
 import time
@@ -181,15 +182,18 @@ Examples:
 
 
 if __name__ == "__main__":
-	argopt = getopt.getopt(
-		sys.argv[1:], 
-		"hvf:", 
+	
+	argopt = demonizer.handle_commandline (
+		"hvf:",
 		[
 			"help", "verbose", "log-path=", "var-path=", "pname=",
 			"max-retry=", "keep-days=", "server=", "user=", "password=", "ssl=",
 			"config=", "process-display-name=", "smtp-server="
-		]
+		], 
+		"/var/tmp/skitai/smtpda", 
+		"skitai"
 	)
+			
 	_consol = "no"
 	_cf = {
 		"max-retry": 3,
@@ -204,6 +208,7 @@ if __name__ == "__main__":
 			cf = confparse.ConfParse (v)
 			# forcing 
 			cf.setopt ("smtpda", "var-path", "/var/tmp/skitai")
+			cf.setopt ("smtpda", "process-display-name", "skitai")
 			fileopt = list ([("--" + k, v) for k, v in cf.getopt ("common").items () if v not in ("", "false", "no")])
 			fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("smtpda").items () if v not in ("", "false", "no")]))
 			break			

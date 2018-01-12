@@ -4,6 +4,9 @@ import os, signal, sys, tempfile
 from aquests.lib.pmaster.processutil import set_process_name
 from aquests.lib.pmaster import flock
 import skitai
+import time, sys, os
+from _ast import arg
+
 EXIT_CODE = None
 
 class Daemon:
@@ -100,3 +103,5 @@ def make_service (service_class, config, logpath, varpath, consol):
 		sys.stderr = open (os.path.join (varpath, "stderr-%s.log" % service_class.NAME), "a")
 		
 	return service_class (config, logpath, varpath, consol)
+
+

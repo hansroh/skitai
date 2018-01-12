@@ -229,8 +229,8 @@ class http_response:
 		else:	
 			self.update ('content-type', 'text/html')
 			error ['detail'] = why
-			error ['time'] = http_date.build_http_date (time.time ()),
-			error ['url'] = urljoin ("%s://%s/" % (self.request.get_scheme (), self.request.get_header ("host")), self.request.uri),
+			error ['time'] = http_date.build_http_date (time.time ())
+			error ['url'] = urljoin ("%s://%s/" % (self.request.get_scheme (), self.request.get_header ("host")), self.request.uri)
 			error ['software'] = skitai.NAME			
 			error ['mode'] = exc_info and 'debug' or 'normal'				
 			error ['code'] = self.reply_code

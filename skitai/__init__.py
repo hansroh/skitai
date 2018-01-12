@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.18b9"
+__version__ = "0.26.18b10"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -410,7 +410,7 @@ def run (**conf):
 								
 			cmd = "%s %s %s" % (
 				sys.executable, 
-				os.path.join (os.path.dirname (Skitai.__file__), "bin", name + ".py"), 
+				os.path.join (os.path.dirname (os.path.dirname (Skitai.__file__)), "bin", name + ".py"), 
 				" ".join (argsall)
 			)
 			

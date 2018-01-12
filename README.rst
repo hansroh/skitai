@@ -914,7 +914,6 @@ Both of SMTP and Taks Scheduler can be run with config file, it may be particula
   user = [your SMTP user name if you need]
   password = [your SMTP user password if you need]
   ssl = true
-  process-display-name = skitai-smtpda
 
   [cron]
   verbose = false
@@ -926,8 +925,23 @@ And run scripts mannually,
   
 .. code:: bash
 
-  python3 -m skitai.server.bin.smtpda -f ~/hrroh/.skitai.conf
-  python3 -m skitai.server.bin.cron -f ~/hrroh/.skitai.conf
+  python3 -m skitai.bin.smtpda -f ~/hrroh/.skitai.conf
+  python3 -m skitai.bin.cron -f ~/hrroh/.skitai.conf
+  
+.. code:: bash
+
+  Options:
+  
+    -f or --config=[config path]
+    -d or start: start as daemon
+    restart
+    stop
+    status
+  
+  Example:
+  
+    python3 -m skitai.bin.smtpda -f ~/hrroh/.skitai.conf status
+    python3 -m skitai.bin.smtpda -f ~/hrroh/.skitai.conf restart  
   
 I you give cammnad line options, theses have more priority than config file.
 
@@ -937,7 +951,7 @@ And for running automatically on system boot, you can add this line to /etc/rc.l
 
   # /etc/rc.local
   
-  su - ubuntu -c "python -m skitai.server.bin.smtpda -f ~/.skitai.conf &"
+  su - ubuntu -c "python -m skitai.server.bin.smtpda -f ~/.skitai.conf -d"
 
 In this case, smtpda will use spool directory at */tmp/skitai/smtpda*, so your each apps SHOULD NOT call *skitai.smtpda ()* if you want to share spool directory.
 
@@ -2933,7 +2947,7 @@ decorative/auth.py
 
 You just import module from decorative. but *def decorate (app)* is core in each module. Every modules can have *decorate (app)* in *decorative*, so you can split and modulize views and utility functions. decorate (app) will be automatically executed on starting. If you set app.use_reloader, theses decorative will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
 
-I you need parameterson decorating,
+If you need parameters on decorating,
 
 .. code:: python
 
@@ -2941,7 +2955,7 @@ I you need parameterson decorating,
     @app.route (prefix + "/login")
     def login (was):
       ...
-      
+
 And on app, 
       
 .. code:: python
@@ -2950,7 +2964,7 @@ And on app,
   
   app = Saddle (__name__)
   app.decorate_with (auth, '/regist')
-  
+
 
 HTTP/2.0 Server Push
 -----------------------
@@ -4451,10 +4465,10 @@ Change Log
 
 - 0.26.17 (Oct 2017)
  
+  - change was.token(),was.detoken(), was.rmtoken() 
   - add jsonrpc executor  
   - add some methods to was.djnago: login (), logout (), authenticate () and update_session_auth_hash () 
-  - add app.testpass_required decorator
-  - add was.serialize, was.unserialize
+  - add app.testpass_required decorator  
   - add decorative concept
   - can run SMTP Delivery Agent and Task Scheduler with config file
   - add error_handler (prev errorhandler) decorator
