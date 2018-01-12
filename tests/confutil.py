@@ -218,6 +218,12 @@ class Client:
 		hr.set_body (r.get_payload ())
 		return hr
 	
+	def jsonrpc (self, uri, method, data, headers = [], auth = None, meta = {}, version = "1.1"):
+		r = request.JSONRPCRequest (uri, method, data, self.override (headers), auth, None, meta, version)
+		hr = self.geneate (r)		
+		hr.set_body (r.get_payload ())
+		return hr
+	
 	def grpc (self, uri, method, data, headers = [], auth = None, meta = {}, version = "2.0"):		
 		r = grpc_request.GRPCRequest (uri, method, data, self.override (headers), auth, None, meta, version)
 		hr = self.geneate (r)	

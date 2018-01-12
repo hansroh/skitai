@@ -11,6 +11,7 @@ def test_request_attrs ():
 	url = "http://127.0.0.1/"
 	rs = [
 		request.XMLRPCRequest,
+		request.JSONRPCRequest,
 		request.HTTPRequest,
 		request.HTTPMultipartRequest,
 		request.XMLRPCRequest,

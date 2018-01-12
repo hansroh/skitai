@@ -17,8 +17,11 @@ try:
     from django.utils.functional import SimpleLazyObject
     from django.contrib.auth.middleware import get_user
     from django.contrib.sessions.middleware import SessionMiddleware
-except ImportError:
-    WSGIRequest = None
+
+except:
+    class WSGIRequest:
+        pass
+    
 else:
    DjangoSession = SessionMiddleware ()
    

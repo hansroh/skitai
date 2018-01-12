@@ -6,48 +6,52 @@ except ImportError:
 from aquests.protocols.http import respcodes
 
 class Executor (wsgi_executor.Executor):
+	
+	def get_traceback (self):	
+		msg = "HTTP Error: 500 Internal Server Error"
+		if self.was.app.debug:
+			msg += ", Traceback " + wsgi_executor.traceback ()
+		return msg
+	
+	def get_http_error_message (self, respcode):	
+		return "HTTP Error: {} {}".format (respcode, respcodes.get (respcode, "Undefined Error"))	
+
 	def __call__ (self):
-		request = self.env ["skitai.was"].request
-		
+		request = self.env ["skitai.was"].request		
 		data = self.env ["wsgi.input"].read ()
 		args, methodname = xmlrpclib.loads (data)
-
+		
+		is_multicall = False
 		if methodname != "system.multicall":
 			thunks = [(methodname, args)]
 		else:
+			is_multicall = True
 			thunks = []
 			for _methodname, _args in [(each ["methodName"], each ["params"]) for each in args [0]]:
 				thunks.append ((_methodname, _args))
 		
 		self.build_was ()
-		
 		results = []
-		is_multicall = (methodname == "system.multicall")
 		for _method, _args in thunks:
 			path_info = self.env ["PATH_INFO"] = "/" + _method.replace (".", "/")						
 			current_app, thing, param, respcode = self.find_method (request, path_info, is_multicall is False)			
-			if respcode:				
-				results.append (xmlrpclib.Fault (1, respcodes.get (respcode, "Undefined Error")))
+			if respcode:
+				results.append (xmlrpclib.Fault (1, self.get_http_error_message (respcode)))
+				continue
 				
 			self.was.subapp = current_app
 			try:
 				result = self.chained_exec (thing, _args, {})
-			except:
-				results.append (xmlrpclib.Fault (1, self.was.app.debug and wsgi_executor.traceback () or "Error Occured"))
+			except:				
+				results.append (xmlrpclib.Fault (1, self.get_traceback()))
 			else:
 				results.append ((result,))
 			del self.was.subapp
 		
-		if not is_multicall: 
-			if respcode:
-				self.was.response.set_status (respcode)
-			results = results [0]
-		else: 
-			results = (results,)
-		
-		self.commit ()
 		self.was.response ["Content-Type"] = "text/xml"
+		self.commit ()
+		del self.was.env
 		
-		del self.was.env	
+		results = is_multicall and (results,) or results [0] 			
 		return xmlrpclib.dumps (results, methodresponse = True, allow_none = True, encoding = "utf8").encode ("utf8")
 		

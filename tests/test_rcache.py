@@ -50,7 +50,7 @@ def test_rcache ():
 	for i in range (99):
 		r = rcache.Result (3, str (i))
 		r.cache (1)
-	assert 80 <= len (rc) < 90
+	assert 80 <= len (rc) < 101
 	
 	time.sleep (1.1)
 	for i in range (99):
