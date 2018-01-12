@@ -72,10 +72,12 @@ class	SMTPDeliverAgent (daemon.Daemon):
 		select_trigger.trigger ()
 		
 		self.path_spool = os.path.join (self.varpath, "smtpda",  "mail", "spool")
+		self.logger ("mail spooled in {}".format (self.path_spool), "info")
 		pathtool.mkdir (self.path_spool)
 		composer.Composer.SAVE_PATH = self.path_spool
 		
 		self.path_undeliver = os.path.join (self.varpath, "smtpda", "mail", "undeliver")
+		self.logger ("undelivered mail saved in {}".format (self.path_undeliver), "info")
 		pathtool.mkdir (self.path_undeliver)
 		
 		lifetime.init (logger = self.logger)		
@@ -200,8 +202,8 @@ if __name__ == "__main__":
 	for k, v in argopt [0]:
 		if k == "-f" or k == "config":
 			cf = confparse.ConfParse (v)
-			if not cf.getopt ("smtpda", "var-path"):
-				cf.setopt ("smtpda", "var-path", "/tmp/skitai")				
+			# forcing 
+			cf.setopt ("smtpda", "var-path", "/var/tmp/skitai")
 			fileopt = list ([("--" + k, v) for k, v in cf.getopt ("common").items () if v not in ("", "false", "no")])
 			fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("smtpda").items () if v not in ("", "false", "no")]))
 			break			

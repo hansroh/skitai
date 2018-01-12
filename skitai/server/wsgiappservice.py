@@ -251,7 +251,7 @@ class WAS:
 	
 	def email (self, subject, snd, rcpt):
 		if composer.Composer.SAVE_PATH is None:
-			composer.Composer.SAVE_PATH = os.path.join ("/tmp/skitai/smtpda", "mail", "spool")
+			composer.Composer.SAVE_PATH = os.path.join ("/var/tmp/skitai/smtpda", "mail", "spool")
 			pathtool.mkdir (composer.Composer.SAVE_PATH)			
 		return composer.Composer (subject, snd, rcpt)
 	
@@ -314,22 +314,7 @@ class WAS:
 	
 	# Tokens  -----------------------------------------------
 	
-	def serialize (self, obj, timeout = 1200, sctf_token = False):
-		wrapper = {				
-			'object': obj,
-			'timeout': time.time () + timeout
-		}
-		if sctf_token:
-			token = hex (random.getrandbits (64))
-			wrapper ['_sctf_token'] = token
-			self.session ['_sctf_token'] = token
-		
-		data = pickle.dumps (wrapper, 1)
-		mac = hmac (self.app.securekey.encode ("utf8"), None, sha1)
-		mac.update (data)
-		return (base64.b64encode (mac.digest()).strip().rstrip (b'=') + b"?" + base64.b64encode (data).strip ().rstrip (b'=')).decode ("utf8")
-	
-	def unserialize (self, string):
+	def _unserialize (self, string):
 		def adjust_padding (s):
 			paddings = 4 - (len (s) % 4)
 			if paddings != 4:
@@ -344,12 +329,53 @@ class WAS:
 		mac.update (data)
 		if client_hash != mac.digest():
 			return
-		wrapper = pickle.loads (data)		
-		sctf_token = wrapper.get ('_sctf_token')
-		if wrapper ['timeout']  < time.time () or (sctf_token and sctf_token != self.session ['_sctf_token']):		
-			if sctf_token and self.session.get ('_sctf_token'):
-				del self.session ['_sctf_token']
+		return pickle.loads (data)
+	
+	def token (self, obj, timeout = 1200, session_token = None):
+		wrapper = {				
+			'object': obj,
+			'timeout': time.time () + timeout
+		}
+		if session_token:
+			token = hex (random.getrandbits (64))
+			tokey = '_{}_token'.format (session_token)
+			wrapper ['_session_token'] = (tokey, token)
+			self.session [tokey] = token
+			
+		data = pickle.dumps (wrapper, 1)
+		mac = hmac (self.app.securekey.encode ("utf8"), None, sha1)
+		mac.update (data)
+		return (base64.b64encode (mac.digest()).strip().rstrip (b'=') + b"?" + base64.b64encode (data).strip ().rstrip (b'=')).decode ("utf8")
+	
+	def rmtoken (self, string):
+		wrapper = self._unserialize (string)
+		session_token = wrapper.get ('_session_token')
+		if not session_token:
 			return
+		tokey, token = session_token	
+		if not self.session.get (tokey):
+			return
+		del self.session [tokey]
+		
+	def detoken (self, string):
+		wrapper = self._unserialize (string)
+		
+		# validation
+		tokey = None
+		has_error = False
+		if wrapper ['timeout']  < time.time ():
+			has_error = True
+		if not has_error:
+			session_token = wrapper.get ('_session_token')
+			if session_token:
+				tokey, token = session_token	
+				if token != self.session.get (tokey):
+					has_error = True		
+		if has_error:
+			if tokey:
+				del self.session [tokey]
+			return
+		
 		obj = wrapper ['object']
 		return obj
 		

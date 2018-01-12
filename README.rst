@@ -905,7 +905,6 @@ Both of SMTP and Taks Scheduler can be run with config file, it may be particula
   
   [common]
   log-path =
-  var-path =
 
   [smtpda]
   verbose = false
@@ -922,7 +921,6 @@ Both of SMTP and Taks Scheduler can be run with config file, it may be particula
   process-display-name = skitai-cron
 
   [:crontab]
-
 
 And run scripts mannually,
   
@@ -941,9 +939,11 @@ And for running automatically on system boot, you can add this line to /etc/rc.l
   
   su - ubuntu -c "python -m skitai.server.bin.smtpda -f ~/.skitai.conf &"
 
-  
+In this case, smtpda will use spool directory at */tmp/skitai/smtpda*, so your each apps SHOULD NOT call *skitai.smtpda ()* if you want to share spool directory.
+
+
 Asccessing File Resources On Startup
--------------------------------------
+--------------------------------------
 
 Skitai's working directory is where the script call skitai.run (). Even you run skitai at root directory,
 
@@ -3786,20 +3786,34 @@ For creatiing onetime link url, you can convert your data to secured token strin
   @app.route ('/password-reset')
   def password_reset (was)
     if was.request.args ('username'):
-      token = was.serialize ({"username": "hans", "expires": time.time () + 3600}) # 1 hour
+      token = was.token ("hans", 3600) # valid within 1 hour 
       pw_reset_url = was.ab ('reset_password', token)
       # send email
       return was.render ('done.html')
      
     if was.request.args ('token'):
-      req = was.unserialize (was.request.args ['token'])
+      username = was.detoken (was.request.args ['token'])
       if req ['expires'] > time.time ():
         return was.response ('400 Bad Request')      
       username = req ['username']
-      # processing password reset 
+      # processing password reset
       ...
-         
 
+If you want to expire token explicit, add session token key 
+
+.. code:: python
+
+  # valid within 1 hour and create session token named '_reset_token'
+  token = was.token ("hans", 3600, 'rset')  
+  >> kO6EYlNE2QLNnospJ+jjOMJjzbw?fXEAKFgGAAAAb2JqZWN0...
+
+  username = was.detoken (token)
+  >> "hans"
+  
+  # if processing is done and for expiring token,
+  was.rmtoken (token)
+  
+        
 App Event Handling
 ---------------------
 

@@ -447,7 +447,7 @@ def run (**conf):
 			
 			self.wasc.logger ("server", "[info] active var dir %s" % self.get_varpath ())
 			if self.logpath:
-				self.wasc.logger ("server", "[info] active log dir %s" % self.logpath)
+				self.wasc.logger ("server", "[info] logging to %s" % self.logpath)
 			
 			self.conf.get ("models-keys") and self.set_model_keys (self.conf ["models-keys"])
 						

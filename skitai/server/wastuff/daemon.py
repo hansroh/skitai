@@ -47,7 +47,7 @@ class Daemon:
 			self.logger.add_logger (logger.screen_logger ())			
 		if self.logpath:
 			self.logger.add_logger (logger.rotate_logger (self.logpath, self.NAME, "weekly"))
-		self.logger ("active var dir {}".format (self.varpath), "info")
+			self.logger ("logging to {}".format (self.logpath), "info")		
 		if create_flock and os.name == "nt":			
 			self.flock = flock.Lock (os.path.join (self.varpath, "%s" % self.NAME))
 			self.flock.unlockall ()
