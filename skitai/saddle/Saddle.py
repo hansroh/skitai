@@ -75,7 +75,10 @@ class Saddle (part.Part):
 			return self._salt
 		self._salt = self.securekey.encode ("utf8")
 		return self._salt 
-		 	
+	
+	def set_default_session_timeout (self, timeout):
+		self.session_timeout = timeout
+			 	
 	def set_devel (self, debug = True, use_reloader = True):
 		self.debug = debug
 		self.use_reloader = use_reloader

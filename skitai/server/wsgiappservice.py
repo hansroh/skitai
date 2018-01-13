@@ -322,7 +322,10 @@ class WAS:
 			return s
 		
 		string = string.replace (" ", "+")
-		base64_hash, data = string.split('?', 1)		
+		try:
+			base64_hash, data = string.split('?', 1)
+		except ValueError:
+			return	
 		client_hash = base64.b64decode(adjust_padding (base64_hash))
 		data = base64.b64decode(adjust_padding (data))
 		mac = hmac (self.app.securekey.encode ("utf8"), None, sha1)		
@@ -359,7 +362,8 @@ class WAS:
 		
 	def detoken (self, string):
 		wrapper = self._unserialize (string)
-		
+		if not wrapper:
+			return 
 		# validation
 		tokey = None
 		has_error = False

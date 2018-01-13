@@ -41,27 +41,28 @@ class SecuredValue:
 		self.data = None
 		self.dirty = False
 		self.__config = None		
-		self.__source_verified = False		
+		self._source_verified = False		
 			
 	def __contains__ (self, k):
 		self.data is None and self.unserialize ()
 		return k in self.data
 	
+	def _recal_expires (self, expires):						
+		return expires
+	
 	def clear (self):
 		self.data is None and self.unserialize ()
+		self.set_default_data ()
 		self.dirty = True
 	
 	def validate (self):
 		pass
 	
 	def source_verified (self):
-		return self.__source_verified
+		return self._source_verified
 			
 	def set_default_data (self):
 		self.data = None
-		
-	def recal_expires (self, expires):						
-		return expires
 	
 	def rollback (self):
 		self.dirty = False
@@ -89,8 +90,9 @@ class SecuredValue:
 		self.validate ()	
 		
 	def commit (self, expires = None):
-		if not self.dirty or self.data is None: return
-		self.set_cookie (self.recal_expires (expires))
+		if not self.dirty or self.data is None: 
+			return
+		self.set_cookie (self._recal_expires (expires))
 		
 	def quote (self, value):
 		if self.serialization_method is not None:
@@ -127,9 +129,10 @@ class SecuredDictValue (SecuredValue):
 		return self.remove (k)
 	
 	def __getitem__ (self, k):
-		return self.data.get (k)
+		return self.get (k)
 	
 	def __iter__ (self):
+		self.data is None and self.unserialize ()
 		return self.data.__iter ()
 		
 	def has_key (self, k):

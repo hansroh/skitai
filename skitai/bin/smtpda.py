@@ -190,14 +190,14 @@ if __name__ == "__main__":
 			"max-retry=", "keep-days=", "server=", "user=", "password=", "ssl=",
 			"config=", "process-display-name=", "smtp-server="
 		], 
-		"/var/tmp/skitai/smtpda", 
+		"/var/tmp/skitai/smtpda",
 		"skitai"
 	)
 			
 	_consol = "no"
 	_cf = {
 		"max-retry": 3,
-		"keep-days": 3,	
+		"keep-days": 3,
 		"ssl": 0,
 	}	
 	_logpath, _varpath = None, None

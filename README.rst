@@ -3266,7 +3266,7 @@ was.session has almost dictionary methods.
 
 To enable session for app, random string formatted securekey should be set for encrypt/decrypt session values.
 
-*WARN*: `securekey` should be same on all skitai apps at least within a virtual hosing group, Otherwise it will be serious disaster.
+*WARNING*: `securekey` should be same on all skitai apps at least within a virtual hosing group, Otherwise it will be serious disaster.
 
 .. code:: python
 
@@ -3280,16 +3280,23 @@ To enable session for app, random string formatted securekey should be set for e
       # or
       was.session ["user_id"] = form.get ("hansroh")
 
+If you set, alter or remove session value, session expiry is automatically extended by app.session_timeout. But just getting value will not be extended. If you extend explicit without altering value, you can use touch() or set_expiry(). session.touch() will extend by app.session_timeout. session.set_expiry (timeout) will extend by timeout value.
+
+Once you set expiry, session auto extenstion will be disabled until expiry time become shoter than new expiry time is calculated by app.session_timeout.  
+
 - was.session.set (key, val)
 - was.session.get (key, default = None)
 - was.session.source_verified (): If current IP address matches with last IP accesss session
 - was.session.getv (key, default = None): If not source_verified (), return default
 - was.session.remove (key)
 - was.session.clear ()
-- was.session.kyes ()
+- was.session.keys ()
 - was.session.values ()
 - was.session.items ()
 - was.session.has_key ()
+- was.session.set_expiry (timeout)
+- was.session.touch ()
+- was.session.expire ()
 
 
 Messaging Box

@@ -8,6 +8,11 @@ class MessageBox (SecuredListValue):
 		SecuredListValue.__init__ (self, name, cookie, request, secret_key)
 		self.mid = -1
 	
+	def _recal_expires (self, expires):						
+		if self.data:
+			return "never"
+		return 0
+	
 	def serialize (self):
 		self.data.append ((-1, time.time (), self.request.get_remote_addr ())) # add random string
 		return SecuredListValue.serialize (self)
@@ -95,9 +100,3 @@ class MessageBox (SecuredListValue):
 			
 		return messages	
 	
-	def recal_expires (self, expires):						
-		if self.data:
-			return "never"
-		return 0
-	
-

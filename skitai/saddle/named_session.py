@@ -30,7 +30,6 @@ class NamedSession:
 			obj = self.__get_session (name, securekey, session_timeout)
 		else:			
 			obj = self.__get_notices (name, securekey)
-			
 		obj.config (path, domain, secure, http_only)
 		self.__obj = obj
 	
