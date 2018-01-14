@@ -17,6 +17,7 @@ try:
     from django.utils.functional import SimpleLazyObject
     from django.contrib.auth.middleware import get_user
     from django.contrib.sessions.middleware import SessionMiddleware
+    from django.contrib.auth.middleware import AuthenticationMiddleware
 
 except:
     class WSGIRequest:
@@ -24,6 +25,7 @@ except:
     
 else:
    DjangoSession = SessionMiddleware ()
+   DjangoAuthentication = AuthenticationMiddleware ()
    
 class Response:
     def __init__ (self, was):
@@ -52,7 +54,12 @@ class Response:
 class DjangoRequest (WSGIRequest):
     def __init__ (self, was):
         self.was = was
-        WSGIRequest.__init__ (self, was.env)
+        WSGIRequest.__init__ (self, was.env)        
+        
+        # making self.session
+        DjangoSession.process_request (self)
+        # making self.user
+        DjangoAuthentication.process_request (self)
         
     def authenticate (self, username, password):
         return auth.authenticate (self, username = username, password = password)
@@ -74,7 +81,5 @@ class DjangoRequest (WSGIRequest):
 def request (was):
     if not WSGIRequest:
         raise SystemError ("Django not installed")
-    request = DjangoRequest (was)
-    DjangoSession.process_request (request)
-    request.user = SimpleLazyObject (lambda: get_user (request))
+    request = DjangoRequest (was)    
     return request
