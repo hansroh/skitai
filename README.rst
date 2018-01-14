@@ -4472,6 +4472,7 @@ Change Log
 
 - 0.26.18 (Jan 2018)
   
+  - add skitai.saddle.contrib.django,auth for integrating Django authorization
   - change was.token(),was.detoken(), was.rmtoken() 
   - add jsonrpc executor  
   - add some methods to was.djnago: login (), logout (), authenticate () and update_session_auth_hash () 
