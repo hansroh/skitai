@@ -18,7 +18,7 @@ from .config import Config
 from sqlphile import SQLPhile
 from event_bus.exceptions import EventDoesntExist
 import skitai	
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, ChoiceLoader
 try:
 	from chameleon import PageTemplateLoader
 except:
@@ -29,8 +29,11 @@ class AuthorizedUser:
 		self.name = user
 		self.realm = realm
 		self.info = info
-
 	
+	def __str__ (self):
+		return self.name
+		
+		
 class Saddle (part.Part):
 	use_reloader = False
 	debug = False		
@@ -40,12 +43,13 @@ class Saddle (part.Part):
 	
 	#WWW-Authenticate	
 	access_control_allow_origin = None
-	access_control_max_age = 0
+	access_control_max_age = 0	
 	authenticate = False
 	authorization = "digest"	
 	realm = None
 	users = {}	
-	opaque = None	
+	opaque = None
+	templates_dirs = []
 	
 	PRESERVES_ON_RELOAD = ["reloadables"]
 	
@@ -69,6 +73,8 @@ class Saddle (part.Part):
 		self.config = Config (preset = True)
 		self._salt = None
 	
+	#------------------------------------------------------
+	
 	@property
 	def salt (self):
 		if self._salt:
@@ -82,6 +88,8 @@ class Saddle (part.Part):
 	def set_devel (self, debug = True, use_reloader = True):
 		self.debug = debug
 		self.use_reloader = use_reloader
+	
+	#------------------------------------------------------
 		
 	def skito_jinja (self, option = 0):
 		if option == 0:	
@@ -99,7 +107,7 @@ class Saddle (part.Part):
 		elif option == 6:
 			self.jinja_overlay ("<%", "%>", "{%", "%}", "<!---", "--->")					
 		elif option == 7:
-			self.jinja_overlay ("{%", "%}", "<%", "%>", "<!---", "--->")					
+			self.jinja_overlay ("{%", "%}", "<%", "%>", "<!---", "--->")
 		
 	def jinja_overlay (
 		self, 
@@ -140,8 +148,15 @@ class Saddle (part.Part):
 			return self.chameleon [name]
 		return self.jinja_env.get_template (name)		
 	
-	#------------------------------------------------------
+	def get_template_loader (self):
+		templates = [FileSystemLoader (os.path.join (self.home, "templates"))]
+		for tdir in self.templates_dirs:
+			templates.append (FileSystemLoader (tdir))
+		templates.append (FileSystemLoader(os.path.join (os.path.dirname (__file__), 'contrib', 'templates')))				
+		return ChoiceLoader (templates)
 	
+	#------------------------------------------------------
+		
 	def set_home (self, path):
 		self.home = path
 		if PageTemplateLoader is not None:
@@ -150,7 +165,8 @@ class Saddle (part.Part):
 				auto_reload = self.use_reloader,
 				restricted_namespace = False
 			)
-		loader = FileSystemLoader (os.path.join (path, "templates"))
+		
+		loader = self.get_template_loader ()
 		if self.jinja_env:
 			# activated skito_jinja
 			self.jinja_env.loader = loader
@@ -182,7 +198,8 @@ class Saddle (part.Part):
 				continue
 			
 			if modpath.startswith (contrib):
-				self.watch (v, True) # not reloaderble
+				# temporary allow reloading
+				self.watch (v, True)
 				continue
 
 			for package_dir in package_dirs:
@@ -193,10 +210,11 @@ class Saddle (part.Part):
 	def get_resource (self, *args):
 		return self.joinpath ("resources", *args)
 	
-	def joinpath (self, *args):		
+	def joinpath (self, *args):	
 		return os.path.join (self.home, *args)
 		
 	#------------------------------------------------------
+	
 	def decorate_with (self, module, *args, **karg):
 		self.decorating_params [module.__name__] = (args, karg)
 		

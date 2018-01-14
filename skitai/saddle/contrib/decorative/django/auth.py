@@ -65,6 +65,7 @@ def decorate (app):
     @app.login_handler
     def login_handler (was):
         if was.django.user.is_authenticated ():
+            was.request.user = was.django.user
             was.django.session.set_expiry (300) #extend timeout
             return
         
@@ -105,7 +106,7 @@ def decorate (app):
                 form ["password"]
             )
             if user is not None:
-                was.django.login (user)
+                was.django.login (user)                
                 return was.redirect (next_url or was.ab ('index'))
             else:
                 was.mbox.push ("Invalid user name or password", "error", icon = "new_releases")

@@ -1,6 +1,8 @@
 from jinja2 import environment
 from jinja2 import parser
 from jinja2 import nodes
+from jinja2 import PackageLoader, ChoiceLoader, FileSystemLoader
+import os
 	
 class Parser (parser.Parser):			
 	def subparse(self, end_tokens=None):
@@ -63,7 +65,7 @@ class Parser (parser.Parser):
 class Environment (environment.Environment):
 	def _parse(self, source, name, filename):
 		return Parser(self, source, name, environment.encode_filename(filename)).parse()
-	
+
 def overlay (
 	app_name, 
 	variable_start_string = "{{", 
@@ -76,13 +78,12 @@ def overlay (
 	line_comment_prefix = "%%",
 	**karg
 	):
-	from jinja2 import PackageLoader
 	
 	if len (variable_start_string) == 1 and len (variable_end_string) == 1:
 		env_class = Environment
 	else:	
 		env_class = environment.Environment
-		
+	
 	return env_class (
 		loader = PackageLoader (app_name),
 		variable_start_string=variable_start_string,
