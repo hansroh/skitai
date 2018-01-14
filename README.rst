@@ -4470,13 +4470,16 @@ Change Log
   
 0.26 (May 2017)
 
-- 0.26.17 (Oct 2017)
- 
+- 0.26.18 (Jan 2018)
+  
   - change was.token(),was.detoken(), was.rmtoken() 
   - add jsonrpc executor  
   - add some methods to was.djnago: login (), logout (), authenticate () and update_session_auth_hash () 
   - add app.testpass_required decorator  
   - add decorative concept
+
+- 0.26.17 (Dec 2017)
+  
   - can run SMTP Delivery Agent and Task Scheduler with config file
   - add error_handler (prev errorhandler) decorator
   - add default_error_handler (prev defaulterrorhandler) decorator

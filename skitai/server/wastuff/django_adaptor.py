@@ -50,35 +50,31 @@ class Response:
 
 
 class DjangoRequest (WSGIRequest):
+    def __init__ (self, was):
+        self.was = was
+        WSGIRequest.__init__ (self, was.env)
+        
     def authenticate (self, username, password):
         return auth.authenticate (self, username = username, password = password)
     
     def login (self, user):
         auth.login (self, user)
-        self._commit ()
         
     def logout (self):
         auth.logout (self)
-        self._commit ()
-    
+        
     def update_session_auth_hash (self, user):
         auth.update_session_auth_hash (self, user)
-        
-    def _commit (self):    
-        response = Response (self.skito_was)
+                
+    def commit (self):
+        response = Response (self.was)
         DjangoSession.process_response (self, response)
         
-        # delete back refs        
-        response.was = None
-        request.skito_was = None
-        self.skito_was.request.django = None
-
 
 def request (was):
     if not WSGIRequest:
         raise SystemError ("Django not installed")
-    request = DjangoRequest (was.env)
-    DjangoSession.process_request (request)    
+    request = DjangoRequest (was)
+    DjangoSession.process_request (request)
     request.user = SimpleLazyObject (lambda: get_user (request))
-    request.skito_was = was
     return request

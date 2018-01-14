@@ -43,9 +43,9 @@ classifiers = [
 
 packages = [
 	'skitai',
+	'skitai.bin',
 	'skitai.server',
 	'skitai.server.dbi',
-	'skitai.server.bin',
 	'skitai.server.wastuff',
 	'skitai.server.handlers',
 	'skitai.server.rpc',	
