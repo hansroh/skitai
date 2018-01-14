@@ -177,7 +177,7 @@ class Executor:
 		# keep commit order, session -> mbox -> cookie
 		if self.was.in__dict__ ("session"):		
 			self.was.session and self.was.session.rollback ()
-		if self.was.in__dict__ ("mbox"):		
+		if self.was.in__dict__ ("mbox"):
 			self.was.mbox and self.was.mbox.rollback ()
 		self.was.cookie.rollback ()
 	

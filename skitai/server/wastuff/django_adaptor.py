@@ -21,12 +21,14 @@ try:
 
 except:
     class WSGIRequest:
-        pass
+        def __init__ (self, env):
+            raise SystemError ("Django does not be installed or misconfigured")
     
 else:
    DjangoSession = SessionMiddleware ()
    DjangoAuthentication = AuthenticationMiddleware ()
-   
+
+
 class Response:
     def __init__ (self, was):
         self.was = was
@@ -54,7 +56,7 @@ class Response:
 class DjangoRequest (WSGIRequest):
     def __init__ (self, was):
         self.was = was
-        WSGIRequest.__init__ (self, was.env)        
+        WSGIRequest.__init__ (self, was.env)
         
         # making self.session
         DjangoSession.process_request (self)
@@ -76,6 +78,9 @@ class DjangoRequest (WSGIRequest):
     def commit (self):
         response = Response (self.was)
         DjangoSession.process_response (self, response)
+        
+        self.user = None
+        self.session = None
         
 
 def request (was):
