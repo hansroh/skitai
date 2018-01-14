@@ -171,7 +171,7 @@ class Saddle (part.Part):
 			if os.path.isdir (maybe_dir):
 				package_dirs.append (maybe_dir)
 		
-		contrib = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'decoratives')
+		contrib = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'decorative')
 		for k, v in list (sys.modules.items ()):
 			try:
 				modpath = v.__spec__.origin

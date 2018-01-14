@@ -55,8 +55,8 @@ packages = [
 	'skitai.saddle',
 	'skitai.saddle.patches',
 	'skitai.saddle.contrib',
-	'skitai.saddle.contrib.decoratives',	
-	'skitai.saddle.contrib.decoratives.django',
+	'skitai.saddle.contrib.decorative',	
+	'skitai.saddle.contrib.decorative.django',
 ]
 
 package_dir = {'skitai': 'skitai'}
