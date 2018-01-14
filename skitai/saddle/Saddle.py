@@ -182,7 +182,7 @@ class Saddle (part.Part):
 				continue
 			
 			if modpath.startswith (contrib):
-				self.watch (v, False) # not reloaderble
+				self.watch (v, True) # not reloaderble
 				continue
 
 			for package_dir in package_dirs:
