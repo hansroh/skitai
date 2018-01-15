@@ -34,7 +34,7 @@ class Part:
 		self._function_specs = {}
 		self._function_names = {}
 		
-		self._binds_server = [None] * 5
+		self._binds_server = [None] * 6
 		self._binds_request = [None] * 4		
 		self.handlers = {}
 				
@@ -88,29 +88,39 @@ class Part:
 			self._function_specs [func.__name__] = inspect.getargspec(func)
 			
 	#----------------------------------------------
-	# App Decorators
+	# App Life Cycling
 	#----------------------------------------------
-	def startup (self, f):
+	def before_mount (self, f):
 		self._binds_server [0] = f
 		return f
-	start_up = startup
-	
-	def reload (self, f):
-		self._binds_server [1] = f
-		return f
-	onreload = reload
-	
-	def shutdown (self, f):
-		self._binds_server [2] = f
-		return f
-	
+	start_up = before_mount
+	startup = before_mount
+	 
 	def mounted (self, f):
 		self._binds_server [3] = f
 		return f
 	
-	def umount (self, f):
+	def before_remount (self, f):
+		self._binds_server [5] = f
+		return f
+	
+	def remounted (self, f):
+		self._binds_server [1] = f
+		return f
+	onreload = remounted
+	reload = remounted
+	
+	def before_umount (self, f):
 		self._binds_server [4] = f
 		return f
+	umount = before_umount
+	
+	def umounted (self, f):
+		self._binds_server [2] = f
+		return f
+	shutdown = umounted
+	
+	#----------------------------------------------
 				
 	def before_request (self, f):
 		self._binds_request [0] = f
@@ -459,30 +469,38 @@ class Part:
 	#----------------------------------------------
 	# Starting App
 	#----------------------------------------------
+	PHASES = {
+		'before_mount': 0,
+		'mounted': 3,
+		'before_remount': 5,
+		'remounted': 1,
+		'before_umount': 4,
+		'umounted': 2,		
+	}
+	def life_cycle (self, phase, obj):
+		index = self.PHASES.get (phase)
+		func = self._binds_server [index]
+		if not func:
+			return	
+		try:
+			func (obj)
+		except:
+			self.logger and self.logger.trace ()						 
+
 	def cleanup (self):
 		# initing app & packages		
-		self._binds_server [2] and self._binds_server [2] (self.wasc)
-	
-	def onmounted (self, was):
-		self._binds_server [3] and self._binds_server [3] (was)
-		self.bus.emit ("app:mounted", was)
-	
-	def onumount (self, was):
-		self._binds_server [4] and self._binds_server [4] (was)
-		self.bus.emit ("app:umounting", was)
+		pass
 			
 	def _start (self, wasc, route, reload = False):
-		self.wasc = wasc		
+		self.wasc = wasc
 		if not route:
 			self.basepath = "/"
 		elif not route.endswith ("/"):			
 			self.basepath = route + "/"
 		else:
 			self.basepath = route			
-		# initing app
-		self._binds_server [reload and 1 or 0] and self._binds_server [reload and 1 or 0] (self.wasc)		
-	
-	def start (self, wasc, route):		
+		
+	def start (self, wasc, route):
 		self.bus.emit ("app:starting", wasc)
 		self._start (wasc, route)
 		self.bus.emit ("app:started", wasc)

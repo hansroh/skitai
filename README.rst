@@ -1061,8 +1061,8 @@ Using Skitai's reverse proxy feature, it can be used as API Gateway Server. All 
         return handler.continue_request (request)
       handler.continue_request (request, claim.get ("user"), claim.get ("roles"))
     
-  @app.startup
-  def startup (wac):
+  @app.before_mount
+  def before_mount (wac):
     wac.handler.set_auth_handler (Authorizer ())
     
   @app.route ("/")
@@ -2210,8 +2210,8 @@ Here's a websocket app example creating sub thread(s),
   
   app = Saddle (__name__)
   
-  @app.startup
-  def startup (wac):  
+  @app.before_mount
+  def before_mount (wac):  
     wac.register ('wspool', {})
     
   @app.route ("/websocket/run")
@@ -3576,16 +3576,17 @@ App Lifecycle Hook
 
 These app life cycle methods will be called by this order,
 
-- startup (wac): when app imported on skitai server started
+- before_mount (wac): when app imported on skitai server started
 - mounted (*was*): called first with was (instance of wac)
 - loop whenever app is reloaded,
-
-  - reload (wac): when app.use_reloader is True and app is reloaded
-    
-    - mounted (*was*): recalled whenver reloaded
-
-- umount (*was*): called last with was (instance of wac)
-- shutdown (wac): when skitai server enter shutdown process
+  
+  - oldapp.before_umount (*was*): when app.use_reloader is True and app is reloaded. it is for shutting down current app
+  - oldapp.umounted (wac): when app.use_reloader is True and app is reloaded. it is for shutting down current app
+  - newapp.before_remount (wac)
+  - newapp.remounted (*was*)
+  
+- before_umount (*was*): called last with was (instance of wac), add shutting down process
+- umounted (wac): when skitai server enter shutdown process
 
 Please note that first arg of startup, reload and shutdown is *wac* not *was*. *wac* is Python Class object of 'was', so mainly used for sharing Skitai server-wide object via was.object before instancelizing to *was*.
 

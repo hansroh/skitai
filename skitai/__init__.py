@@ -553,7 +553,7 @@ def run (**conf):
 			from aquests.lib.pmaster import Daemonizer
 			if not Daemonizer (working_dir, 'skitai').runAsDaemon ():
 				print ("already running")
-				sys.exit ()			
+				sys.exit ()
 			
 	def stop (working_dir):
 		if os.name == "nt":			

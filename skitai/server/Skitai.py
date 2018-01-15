@@ -80,13 +80,12 @@ class Loader:
 	def set_model_keys (self, keys):
 		self.wasc._luwatcher = ModelKeys (keys)
 			
-	def app_cycle (self, func):		
-		_was = self.wasc ()
+	def app_cycle (self, func):
 		for h in self.wasc.httpserver.handlers:
 			if isinstance (h, vhost_handler.Handler):
 				for vhost in h.sites.values ():
 					for apph in vhost.apps.modules.values ():
-						getattr (apph, func) (_was)
+						getattr (apph, func) ()
 							
 	def WAS_finalize (self):
 		global the_was
@@ -304,8 +303,6 @@ class Loader:
 		return None # worker process
 		
 	def close (self):
-		self.app_cycle ('umount')
-		
 		for attr, obj in list(self.wasc.objects.items ()):
 			if attr == "logger": 
 				continue
@@ -326,6 +323,8 @@ class Loader:
 			except:
 				self.wasc.logger.trace ("server")
 		
+		self.app_cycle ('umounted')
+		
 		if os.name == "nt" or self.wasc.httpserver.worker_ident == "master":
 			self.wasc.logger ("server", "[info] cleanup done, closing logger... bye")
 			try:
@@ -333,4 +332,4 @@ class Loader:
 				del self.wasc.logger
 			except:
 				pass
-
+			

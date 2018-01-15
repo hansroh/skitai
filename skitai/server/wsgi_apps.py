@@ -21,6 +21,8 @@ class Module:
 		self.django = False
 		self.set_route (route)
 		self.directory = directory
+		self.has_life_cycle = False
+				
 		if type (libpath) is str:
 			try:
 				libpath, self.appname = libpath.split (":", 1)		
@@ -39,20 +41,6 @@ class Module:
 			
 	def __repr__ (self):
 		return "<Module routing to %s at %x>" % (self.route, id(self))
-	
-	def mounted (self, was):	
-		app = self.app or getattr (self.module, self.appname)
-		try: f = getattr (app, "onmounted")
-		except AttributeError: pass
-		else:	
-			f (was)			
-	
-	def umount (self, was):
-		app = self.app or getattr (self.module, self.appname)
-		try: f = getattr (app, "onumount")
-		except AttributeError: pass
-		else:	
-			f (was)		
 				
 	def get_callable (self):
 		return self.app or getattr (self.module, self.appname)
@@ -61,7 +49,9 @@ class Module:
 		func = None
 		app = self.app or getattr (self.module, self.appname)
 		self.django = str (app.__class__).find ("django.") != -1
-		
+		self.has_life_cycle = hasattr (app, "life_cycle")
+		self.has_life_cycle and app.life_cycle (reloded and "before_remount" or "before_mount", self.wasc)
+			
 		if self.pref:
 			for k, v in copy.copy (self.pref).items ():
 				if k == "config":
@@ -104,11 +94,20 @@ class Module:
 			self.wasc.handler = self.handler
 			func (self.wasc, self.route)
 			self.wasc.handler = None
-		
+	
+	def mounted (self):	
+		app = self.app or getattr (self.module, self.appname)
+		self.has_life_cycle and app.life_cycle ("mounted", self.wasc ())
+	
+	def umounted (self):
+		app = self.app or getattr (self.module, self.appname)
+		self.has_life_cycle and app.life_cycle ("umounted", self.wasc)
+			
 	def cleanup (self):
 		app = self.app or getattr (self.module, self.appname)
+		self.has_life_cycle and app.life_cycle ("before_umount", self.wasc ())
 		try: app.cleanup ()
-		except AttributeError: pass
+		except AttributeError: pass		
 		
 	def set_devel_env (self):
 		self.debug = False
@@ -151,18 +150,21 @@ class Module:
 			except:
 				self.module.app = oldapp
 				raise
-			else:		
+			else:
+				self.has_life_cycle and oldapp.life_cycle ("before_umount", self.wasc ())
 				if hasattr (oldapp, "remove_events"):
 					oldapp.remove_events (self.bus)
 				PRESERVED = []
 				if hasattr (oldapp, "PRESERVE_ON_RELOAD"):
-					PRESERVED = [(attr, getattr (oldapp, attr)) for attr in oldapp.PRESERVES_ON_RELOAD]	
+					PRESERVED = [(attr, getattr (oldapp, attr)) for attr in oldapp.PRESERVES_ON_RELOAD]
+				self.has_life_cycle and oldapp.life_cycle ("umounted", self.wasc)		
+				
 				self.start_app (reloded = True)
-				newapp = getattr (self.module, self.appname)			
+				newapp = getattr (self.module, self.appname)
 				for attr, value in PRESERVED:
 					setattr (newapp, attr, value)
-				# remount	
-				self.mounted (self.wasc ())					
+				# remount
+				self.has_life_cycle and newapp.life_cycle ("remounted", self.wasc ())
 				self.last_reloaded = time.time ()
 				
 	def set_route (self, route):
