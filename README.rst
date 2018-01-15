@@ -3592,8 +3592,8 @@ Please note that first arg of startup, reload and shutdown is *wac* not *was*. *
 
 .. code:: python
 
-  @app.startup
-  def startup (wac):
+  @app.before_mount
+  def before_mount (wac):
     logger = wac.logger.get ("app")
     # OR
     logger = wac.logger.make_logger ("login", "daily")
@@ -3601,13 +3601,13 @@ Please note that first arg of startup, reload and shutdown is *wac* not *was*. *
     wac.register ("loginengine", SNSLoginEngine (logger))
     wac.register ("searcher", FulltextSearcher (wac.numthreads))    
   
-  @app.reload  
-  def reload (wac):
+  @app.before_remount  
+  def before_remount (wac):
     wac.loginengine.reset ()
   
-  @app.shutdown    
-  def shutdown (wac):
-    wac.searcher.close ()
+  @app.umounted
+  def before_umount (wac):
+    wac.umounted.close ()
         
     wac.unregister ("loginengine")
     wac.unregister ("searcher")
@@ -3653,7 +3653,11 @@ If you have databases or API servers, and want to create cache object on app sta
     # or use RPC
     was.rpc ('@myrpc/rpc2', callback = create_cache).get_states ()
   
-  @app.umount
+  @app.remounted
+  def remounted (was):
+    mounted (was) # same as mounted
+  
+  @app.before_umount
   def umount (was):
     was.delete ('@session/v1/sessions', callback = lambda x: None)    
     

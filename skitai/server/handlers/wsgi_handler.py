@@ -168,7 +168,7 @@ class Handler:
 				# proto buf is not ready
 				return self.handle_error_before_collecting (request, 501)
 			
-			ct = request.get_header ("content-type", "")			
+			ct = request.get_header ("content-type", "")
 			if ct.startswith ("multipart/form-data"):
 				max_size = app.config.max_multipart_body_size
 			else:
@@ -186,7 +186,6 @@ class Handler:
 				app.config.max_cache_size
 			)
 			collector = self.make_collector (collector_class, request, max_size, *args)
-			
 			if collector:
 				request.collector = collector
 				collector.start_collect ()

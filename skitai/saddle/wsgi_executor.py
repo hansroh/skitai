@@ -106,7 +106,7 @@ class Executor:
 				
 	def parse_kargs (self, kargs):
 		query = self.env.get ("QUERY_STRING")
-		data = self.was.request.dict ()
+		data = self.was.request.dict () or self.env.get ("wsgi.input")
 		
 		allkarg = AttrDict ()		
 		self.merge_args (allkarg, kargs)

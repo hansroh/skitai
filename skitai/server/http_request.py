@@ -19,6 +19,7 @@ class http_request:
 		self.logger = self.channel.server.server_logger
 		self.server_ident = self.channel.server.SERVER_IDENT
 		self.body = None
+		self.multipart = None
 		self.reply_code = 200
 		self.reply_message = ""		
 		self.loadbalance_retry = 0
@@ -68,11 +69,24 @@ class http_request:
 	def json (self):		
 		return json.loads (self.body.decode ('utf8'))		
 	
+	def set_multipart (self, dict):
+		self.multipart = dict
+	
+	def get_multipart (self):
+		return self.multipart
+			
+	def set_body (self, body):
+		self.body = body
+	
+	def get_body (self):
+		return self.body
+	get_payload = get_body
+	
 	def form (self, ct = None):
 		if not ct:
 			ct = self.get_header ('content-type', '')			
-		if ct.startswith ("multipart/form-data") and type (self.body) is dict:
-			return self.body
+		if self.multipart:
+			return self.multipart
 		elif ct.startswith ("application/x-www-form-urlencoded"):
 			return http_util.crack_query (self.body)
 	
@@ -82,7 +96,7 @@ class http_request:
 		ct = self.get_header ('content-type', '')
 		if ct.startswith ("application/json"):
 			return self.json ()
-		return self.form (ct)		
+		return self.form (ct)
 	
 	def is_promise (self):
 		return self._is_promise
@@ -154,13 +168,6 @@ class http_request:
 			if m.end() == len(line):
 				return head_reg.group (group)
 		return ''
-	
-	def set_body (self, body):
-		self.body = body
-	
-	def get_body (self):
-		return self.body
-	get_payload = get_body
 	
 	def set_header (self, name, value):
 		self.header.append ("%s: %s" % (name, value))		

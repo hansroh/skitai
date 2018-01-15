@@ -8,6 +8,7 @@ class NamedSession:
 		self.__request = request
 		self.__securekey = securekey
 		self.__timeout = timeout
+		# mount root default
 		self.mount ()
 	
 	def mount (self, name = None, securekey = None, path = None, domain = None, secure = False, http_only = False, session_timeout = None):		

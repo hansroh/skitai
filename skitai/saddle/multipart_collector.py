@@ -21,7 +21,7 @@ class File:
 	
 	
 class Part:
-	def __init__ (self, header, max_size):
+	def __init__ (self, header, max_size):		
 		if type (header) is not type ([]):
 			header = header.split ("\r\n")
 		self.header =	header
@@ -252,7 +252,7 @@ class MultipartCollector (collectors.FormCollector):
 					if part.is_file ():
 						d = FileWrapper (part)
 					else:
-						d = part.value
+						d = part.value.decode ('utf8')
 					if part.name in data:
 						if type (data [part.name]) is not type ([]):
 							data [part.name] = [data [part.name]]						
@@ -263,6 +263,8 @@ class MultipartCollector (collectors.FormCollector):
 		# cached string data if size < 5 MB
 		self.request.collector = None # break circ. ref
 		self.request.set_body (self.get_cache ())
+		self.request.set_multipart (data)
+		
 		self.handler.continue_request (self.request, data)
 		self.request.channel.set_terminator (b'\r\n\r\n')
 				
