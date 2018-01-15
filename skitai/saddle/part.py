@@ -102,13 +102,13 @@ class Part:
 	
 	def before_remount (self, f):
 		self._binds_server [5] = f
-		return f
+		return f	
+	onreload = before_remount
+	reload = before_remount
 	
 	def remounted (self, f):
 		self._binds_server [1] = f
 		return f
-	onreload = remounted
-	reload = remounted
 	
 	def before_umount (self, f):
 		self._binds_server [4] = f
