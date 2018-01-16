@@ -4477,6 +4477,17 @@ Change Log
 
 - 0.26.18 (Jan 2018)
   
+  - was.request.get_remote_addr considers X-Forwarded-For header value if exists
+  - add param keep param to was.csrf_verify() 
+  - add and chnaged app life cycle decorators:
+    
+    - before_mount (wac)
+    - mounted (was) 
+    - before_remount (wac)
+    - remounted (was)
+    - before_umount (was)
+    - umounted (wac)
+    
   - add skitai.saddle.contrib.django,auth for integrating Django authorization
   - change was.token(),was.detoken(), was.rmtoken() 
   - add jsonrpc executor  

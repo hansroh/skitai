@@ -382,6 +382,8 @@ class WAS:
 		
 		obj = wrapper ['object']
 		return obj
+	
+	# CSRF Token ------------------------------------------------------
 		
 	@property
 	def csrf_token (self):
@@ -393,12 +395,13 @@ class WAS:
 	def csrf_token_input (self):
 		return '<input type="hidden" name="_csrf_token" value="{}">'.format (self.csrf_token)
 	
-	def csrf_verify (self):
+	def csrf_verify (self, keep = False):
 		if not self.request.args.get ("_csrf_token"):
 			return False
 		token = self.request.args ["_csrf_token"]
 		if self.csrf_token == token:
-			del self.session ["_csrf_token"]
+			if not keep:
+				del self.session ["_csrf_token"]
 			return True
 		return False
 	

@@ -244,8 +244,12 @@ class http_request:
 	def get_user_agent (self):
 		return self.get_header ("user-agent")
 	
+	MAYBE_BACKENDS = ("127.0.0.", "192.168.")
 	def get_remote_addr (self):
-		return self.channel.addr [0]
+		remote_addr = self.channel.addr [0]
+		if remote_addr [:8] in self.MAYBE_BACKENDS:
+			return self.get_header ("X-Forwarded-For", "")
+		return remote_addr
 			
 	def collect_incoming_data (self, data):
 		if self.collector:
