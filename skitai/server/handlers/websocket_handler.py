@@ -88,7 +88,11 @@ class Handler (wsgi_handler.Handler):
 			request.routable = options	
 			
 			wsfunc = request.routed
-			fspec = inspect.getargspec (wsfunc)
+			if is_saddle:
+				fspec = app.get_function_spec_for_routing (wsfunc) or inspect.getargspec (wsfunc)
+			else:
+				fspec = inspect.getargspec (wsfunc)
+			
 			savedqs = env.get ('QUERY_STRING', '')
 			current_args = {}
 			defaults = 0

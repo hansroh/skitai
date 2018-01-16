@@ -2966,6 +2966,38 @@ And on app,
   app.decorate_with (auth, '/regist')
 
 
+Using Websocket
+-------------------
+
+*New in version 0.26.18*
+
+Websokect usage is already explained, but Saddle provide @app.websocket_config decorator for more elegant way to use it.
+
+.. code:: python
+
+  def onopen (was):
+    print ('websocket opened')
+
+  def onclose (was):
+    print ('websocket closed')
+    
+  @app.route ("/websocket")
+  @app.websocket_config (skitai.WS_THREADSAFE, 1200, onopen, onclose)
+  def websocket (was, message):
+    return 'you said: ' + message
+
+This decorator spec is,
+
+.. code:: python
+     
+  @app.config_websocket (
+    spec, # one of skitai.WS_SIMPLE, skitai.WS_THREADSAFE and skitai.WS_GROUPCHAT	 
+    timeout = 60, 
+    onopen = None, 
+    onclose = None 
+  )
+
+
 HTTP/2.0 Server Push
 -----------------------
 
@@ -4477,6 +4509,7 @@ Change Log
 
 - 0.26.18 (Jan 2018)
   
+  - add @app.websocket_config (spec, timeout, onopen_func, onclose_func, encoding)
   - was.request.get_remote_addr considers X-Forwarded-For header value if exists
   - add param keep param to was.csrf_verify() 
   - add and chnaged app life cycle decorators:

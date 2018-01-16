@@ -32,7 +32,8 @@ WS_EVT_NONE = None
 WS_MSG_JSON = "json"
 WS_MSG_XMLRPC = "xmlrpc"
 WS_MSG_GRPC = "grpc"
-WS_MSG_DEFAULT = None
+WS_MSG_TEXT = "text"
+WS_MSG_DEFAULT = "text"
 
 WS_OPCODE_TEXT = 0x1
 WS_OPCODE_BINARY = 0x2

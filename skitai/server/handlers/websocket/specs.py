@@ -264,9 +264,9 @@ class WebSocket1 (WebSocket):
 	def __init__ (self, handler, request, apph, env, param_names, message_encoding = None):
 		WebSocket.__init__ (self, handler, request, message_encoding)
 		self.client_id = request.channel.channel_number		
-		self.apph = apph		
+		self.apph = apph
 		self.env = env
-		self.param_names = param_names		
+		self.param_names = param_names
 		self.set_query_string ()
 		
 	def start_response (self, message, headers = None, exc_info = None):		

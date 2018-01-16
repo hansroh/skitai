@@ -86,7 +86,10 @@ class Part:
 		if func.__name__ not in self._function_specs:
 			# save origin spec
 			self._function_specs [func.__name__] = inspect.getargspec(func)
-			
+	
+	def get_function_spec_for_routing (self, func):
+			return self._function_specs.get (func.__name__)
+					
 	#----------------------------------------------
 	# App Life Cycling
 	#----------------------------------------------
@@ -120,7 +123,7 @@ class Part:
 		return f
 	shutdown = umounted
 	
-	#----------------------------------------------
+	# Request chains ----------------------------------------------
 				
 	def before_request (self, f):
 		self._binds_request [0] = f
@@ -138,7 +141,7 @@ class Part:
 		self._binds_request [3] = f
 		return f
 		
-	#------------------------------------------------------
+	# Auth ------------------------------------------------------
 			
 	def login_handler (self, f):
 		self._decos ["login_handler"] = f
@@ -203,7 +206,25 @@ class Part:
 			return wrapper
 		return decorator
 	
-	#-------------------------------------------------------
+	# Websocket ------------------------------------------------------
+	def websocket_config (self, spec, timeout = 60, onopen = None, onclose = None, encoding = "text"):
+		def decorator(f):
+			self.save_function_spec_for_routing (f)
+			@wraps(f)
+			def wrapper (was, *args, **kwargs):
+				if not was.wshasevent ():
+					return f (was, *args, **kwargs)
+				if was.wsinit ():
+					return was.wsconfig (spec, timeout, encoding)
+				elif onopen and was.wsopened ():
+					return onopen (was)
+				elif onclose and was.wsclosed ():
+					return onclose (was)
+				
+			return wrapper
+		return decorator
+	
+	# Templaing -------------------------------------------------------
 	
 	def template_global (self, name):	
 		def decorator(f):
@@ -224,7 +245,7 @@ class Part:
 			return wrapper
 		return decorator
 		
-	#------------------------------------------------------
+	# Error handling ------------------------------------------------------
 		
 	def get_error_page (self, error):
 		handler = self.handlers.get (error ['code'], self.handlers.get (0))
