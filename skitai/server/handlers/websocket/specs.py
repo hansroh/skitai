@@ -34,9 +34,9 @@ class WebSocket:
 	
 	def __init__ (self, handler, request, message_encoding = None):		
 		self.handler = handler
-		self.wasc = handler.wasc
-		self.request = request	
-		self.channel = request.channel
+		self.wasc = handler.wasc		
+		self.request = request
+		self.channel = request.channel		
 		self.channel.set_terminator (2)
 		self.rfile = BytesIO ()
 		self.masks = b""
@@ -244,8 +244,9 @@ class WebSocket:
 
 class Job (wsgi_handler.Job):	
 	def exec_app (self):
-		was = the_was._get ()		
+		was = the_was._get ()
 		was.request = self.request
+		
 		was.websocket = self.args [0]["websocket"]
 		self.args [0]["skitai.was"] = was
 		content = self.apph (*self.args)

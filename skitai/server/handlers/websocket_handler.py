@@ -108,7 +108,7 @@ class Handler (wsgi_handler.Handler):
 					env ['QUERY_STRING'] = savedqs + "&" + temporary_args
 				else:
 					env ['QUERY_STRING'] = temporary_args
-					
+			
 			apph (env, donot_response)
 			wsconfig = env.get ("websocket.config")			
 			if not wsconfig:
@@ -134,8 +134,8 @@ class Handler (wsgi_handler.Handler):
 			("Sec-WebSocket-Accept", self.calculate_response_key (securekey)),
 			("Upgrade", "Websocket"),
 			("Connection", "Upgrade"),
-      ("WebSocket-Protocol", protocol),
-      ("WebSocket-Location", "ws://" + host + path)
+		    ("WebSocket-Protocol", protocol),
+	    	("WebSocket-Location", "ws://" + host + path)
 		]
 		request.response ("101 Web Socket Protocol Handshake", headers = headers)
 		

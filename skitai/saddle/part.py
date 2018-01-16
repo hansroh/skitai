@@ -152,8 +152,8 @@ class Part:
 		@wraps(f)
 		def wrapper (was, *args, **kwargs):
 			_funcs = self._decos.get ("login_handler")
-			if _funcs:
-				response = _funcs (was)					
+			if _funcs:				
+				response = _funcs (was)
 				if response is not None:
 					return response
 			return f (was, *args, **kwargs)

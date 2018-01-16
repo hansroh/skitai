@@ -60,7 +60,7 @@ class DjangoRequest (WSGIRequest):
         # making self.session
         DjangoSession.process_request (self)
         # making self.user
-        DjangoAuthentication.process_request (self)
+        DjangoAuthentication.process_request (self)        
         
     def authenticate (self, username, password):
         return auth.authenticate (self, username = username, password = password)
@@ -77,9 +77,6 @@ class DjangoRequest (WSGIRequest):
     def commit (self):
         response = Response (self.was)
         DjangoSession.process_response (self, response)
-
-        self.user = None
-        self.session = None
 
 
 def request (was):

@@ -133,7 +133,7 @@ class http_request:
 			
 		self.token = None
 		self.claim = None
-		self.user = None		
+		self.user = None
 		self.host = self.get_header ("host")
 		self.user_agent = self.get_header ("user-agent")
 	
