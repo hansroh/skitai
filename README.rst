@@ -2990,7 +2990,7 @@ This decorator spec is,
 
 .. code:: python
      
-  @app.config_websocket (
+  @app.websocket_config (
     spec, # one of skitai.WS_SIMPLE, skitai.WS_THREADSAFE and skitai.WS_GROUPCHAT	 
     timeout = 60, 
     onopen = None, 
@@ -4230,6 +4230,19 @@ Client Side:
   stub.GetFeature (point)
   aquests.fetchall ()
   
+
+.. code:: python
+
+  from tfserver import cli 
+    
+  def predict_grpc (was):
+    stub = was.grpc ("http://127.0.0.1:5000/tensorflow.serving.PredictionService")	
+	  fftseq = getone ()
+	  stub = was.grpc ("@tfserver")
+	  request = cli.build_request ('model', 'predict', stuff = tensor_util.make_tensor_proto(fftseq.astype('float32'), shape=fftseq.shape))
+	  req = stub.Predict (request, 10.0)
+	  resp = req.getwait ()
+	  return cli.Response (resp.data).scores
   
 Server Side:
 

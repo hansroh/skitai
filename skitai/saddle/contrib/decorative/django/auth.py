@@ -66,7 +66,7 @@ def decorate (app):
     def login_handler (was):
         if was.django.user.is_authenticated ():
             was.request.user = was.django.user
-            was.django.session.set_expiry (300) #extend timeout
+            was.django.session.set_expiry (was.app.session_timeout) #extend timeout
             return
         
         if was.request.args.get ("_csrf_token"):

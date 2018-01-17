@@ -402,7 +402,7 @@ class WAS:
 		if self.csrf_token == token:
 			if not keep:
 				del self.session ["_csrf_token"]
-			return True
+			return True		
 		return False
 	
 	# Proxy & Adaptor  -----------------------------------------------
