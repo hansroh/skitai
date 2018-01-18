@@ -160,10 +160,13 @@ class Executor:
 		self.was = _was
 	
 	def commit (self):
+		if self.was.app is None:
+			# this is failed request
+			return
 		# keep commit order, session -> mbox -> cookie
 		if hasattr (self.was.request, "django"):
 			self.was.request.django.commit ()
-		if not self.was.in__dict__ ("cookie"):		
+		if not self.was.in__dict__ ("cookie"):
 			return		
 		if self.was.in__dict__ ("session"):
 			self.was.session and self.was.session.commit ()
@@ -172,6 +175,9 @@ class Executor:
 		self.was.cookie.commit ()
 	
 	def rollback (self):
+		if self.was.app is None:
+			# this is failed request
+			return		
 		if not self.was.in__dict__ ("cookie"):		
 			return			
 		# keep commit order, session -> mbox -> cookie

@@ -525,9 +525,11 @@ class http_response:
 		return api
 	eapi = fault
 	
-	def file (self, path, mimetype = 'application/octet-stream'):
+	def file (self, path, mimetype = 'application/octet-stream', filename = None):
 		self.set_header ('Content-Type',  mimetype)
 		self.set_header ('Content-Length', str (os.path.getsize (path)))	
+		if filename:
+			self.set_header ('Content-Disposition', 'attachment; filename="{}"'.format (filename))
 		return producers.file_producer (open (path, "rb"))					
 			
 	def __call__ (self, status = "200 OK", body = None, headers = None, exc_info = None):

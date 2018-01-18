@@ -283,9 +283,9 @@ class Part:
 	def url_for (self, thing, *args, **kargs):
 		if thing.startswith ("/"):
 			return self.basepath [:-1] + self.mount_p [:-1] + thing
-	
+		
 		for func, name, fuvars, favars, numvars, str_rule, options in self.route_map.values ():
-			if thing != name: continue								
+			if thing != name: continue			
 			assert len (args) <= len (fuvars), "Too many params, this has only %d params(s)" % len (fuvars)						
 			params = {}
 			for i in range (len (args)):
