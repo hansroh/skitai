@@ -2633,8 +2633,10 @@ All available return types are:
 The object has 'close ()' method, will be called when all data consumed, or socket is disconnected with client by any reasons.
 
 - was.response (status = "200 OK", body = None, headers = None, exc_info = None)
-- was.response.api (data = None): return api response container
-- was.response.fault (msg, code, debug, more_info, exc_info): return api response container with setting error information
+- was.response.api (__data = None, __type = 'json', **kargs): return api response container
+- was.response.fault (msg, code = 20000,  debug = None, more_info = None, exc_info = None): return api response container with setting error information
+- was.response.for_api (status = "200 OK",*args, **kargs)
+
 - was.response.set_status (status) # "200 OK", "404 Not Found"
 - was.response.get_status ()
 - was.response.set_headers (headers) # [(key, value), ...]
@@ -2665,29 +2667,26 @@ JSON API Response
 In cases you want to retrun JSON API reponse,
 
 .. code:: python
-
-  return was.response.api () return empty dictionary
-  return was.response.api ({'data': [1, 2, 3]})
-  return was.response (
-    '200 OK',
-    was.response.api ({'data': [1, 2, 3]})
-  )
-  return was.response (
-    '201 Accept',
-    was.response.api ({'data': [1, 2, 3]})
-  )
+  
+  # return JSON {data: [1,2,3]}
+  return was.response.for_api ('200 OK', data = [1, 2, 3])
+  # return empty JSON {}
+  return was.response.for_api (201 Accept')
+  
+  # and shortcut
+  return was.response.api (data =  [1, 2, 3])  
+  
+  # return empty JSON {}
+  return was.response.api ()
   
 For sending error response with error information,
 
 .. code:: python
   
-  return was.response (
-    '400 Bad Request',
-    was.response.fault ('missing parameter', 10021) # msg and error code
-  )
+  # msg and error code
+  return was.response.for_api ('400 Bad Request', 'missing parameter', 10021)
   
-  # client see
-  {"message": "parameter q required", "code": 10021}  
+  # client will get, {"message": "parameter q required", "code": 10021}
 
 Also you can use api object as container,
 
@@ -2698,15 +2697,13 @@ Also you can use api object as container,
   api.set ('name', 'Hans Roh')
   return api  
   
-  # client see
-  {"user_id": "hansroh", "name": "Hans Roh"}
+  # client will get  {"user_id": "hansroh", "name": "Hans Roh"}
   
   api = was.response.api ()
   api.error ('missing parameter', 10021)
   return was.response ('400 Bad Request', api)
   
-  # client see
-  {"message": "parameter q required", "code": 10021}  
+  # client will get {"message": "parameter q required", "code": 10021}  
 
   api = was.response.api ()
   api.error (
@@ -2716,7 +2713,7 @@ Also you can use api object as container,
   )
   return was.response ('400 Bad Request', api)
   
-  # client see
+  # client will get
   {
     "code": 10021,
     "message": "parameter q required", 
@@ -2747,7 +2744,7 @@ You can traceback inforamtion,
 
 But if your client send header with 'Accept: application/json' and app.debug is True, Skitai returns traceback information automatically.
 
-- api (data = None): contructor
+- api (data = None): constructor
 - api.error (msg, code = 20000, debug = None, more_info = None, exc_info = None)
 - api.traceback (msg = 'exception ovvured, see traceback', code = 20000, debug = None, more_info = None)
 
@@ -4522,6 +4519,7 @@ Change Log
 
 - 0.26.18 (Jan 2018)
   
+  - add was.response.for_api()
   - add @app.websocket_config (spec, timeout, onopen_func, onclose_func, encoding)
   - was.request.get_remote_addr considers X-Forwarded-For header value if exists
   - add param keep param to was.csrf_verify() 

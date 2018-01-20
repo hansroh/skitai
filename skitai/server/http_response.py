@@ -509,8 +509,7 @@ class http_response:
 			self.set (k, v)		
 			
 	def get_hedaers (self):	
-		return self.reply_headers
-	
+		return self.reply_headers	
 	set_status = set_reply
 		
 	def get_status (self):
@@ -518,18 +517,18 @@ class http_response:
 	
 	def api (self, __data = None, __type = 'json', **kargs):
 		return API (__data or kargs, __type)
-	
-	def api_with_status (self, status, __data = None, __type = 'json', **kargs):
-		return self (status, self.api (__data, __type, **kargs))
-	
-	def fault (self, msg, code = 20000,  debug = None, more_info = None, exc_info = None):
+
+	def _fault (self, msg, code = 20000,  debug = None, more_info = None, exc_info = None):
 		api = self.api ()
 		api.error (msg, code, debug, more_info, exc_info)
 		return api
-	eapi = fault
 	
-	def fault_with_status (self, status, msg, code = 20000,  debug = None, more_info = None, exc_info = None):
-		return self (status, self.fault (msg, code, debug, more_info, exc_info))
+	def for_api (self, status = "200 OK", *args, **kargs):
+		if status [0] in "12":
+			r = self.api (*args, **kargs)
+		else:
+			r = self._fault (*args, **kargs)
+		return self (status, r)
 	
 	def file (self, path, mimetype = 'application/octet-stream', filename = None):
 		self.set_header ('Content-Type',  mimetype)
@@ -547,4 +546,9 @@ class http_response:
 	def push_and_done (self, thing, *args, **kargs):
 		self.push (thing)
 		self.done (*args, **kargs)
+	
+	# will be derecating	
+	fault = _fault
+	eapi = _fault
+	
 	
