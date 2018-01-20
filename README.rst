@@ -2633,9 +2633,9 @@ All available return types are:
 The object has 'close ()' method, will be called when all data consumed, or socket is disconnected with client by any reasons.
 
 - was.response (status = "200 OK", body = None, headers = None, exc_info = None)
-- was.response.api (__data = None, __type = 'json', **kargs): return api response container
+- was.response.api (\_\_data = None, \_\_type = 'json', \*\*kargs): return api response container
 - was.response.fault (msg, code = 20000,  debug = None, more_info = None, exc_info = None): return api response container with setting error information
-- was.response.for_api (status = "200 OK",*args, **kargs)
+- was.response.for_api (status = "200 OK",\*args, \*\*kargs)
 
 - was.response.set_status (status) # "200 OK", "404 Not Found"
 - was.response.get_status ()
