@@ -273,7 +273,7 @@ class WAS:
 			mtimes.append (mtime)
 		return max (mtimes)
 		
-	# Websocket -----------------------------------------------
+	# Websocket For generic WSGI containers -----------------------------
 	
 	def wsconfig (self, spec, timeout = 60, encoding = "text"):
 		self.env ["websocket.config"] = (spec, timeout, encoding)

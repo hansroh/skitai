@@ -1781,12 +1781,7 @@ Utility Methods of 'was'
 This chapter's 'was' services are also avaliable for all WSGI middelwares.
 
 - was.status () # HTML formatted status information like phpinfo() in PHP.
-- was.tojson (object)
-- was.fromjson (string)
-- was.toxml (object, usedatetime = 0) # XMLRPC
-- was.fromxml (string) # XMLRPC
-- was.togrpc (object) # gRPC
-- was.fromgrpc (message, obj) # gRPC
+- was.gentemp () # return temp file name with full path
 - was.restart () # Restart Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
 - was.shutdown () # Shutdown Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
 
@@ -2633,9 +2628,9 @@ All available return types are:
 The object has 'close ()' method, will be called when all data consumed, or socket is disconnected with client by any reasons.
 
 - was.response (status = "200 OK", body = None, headers = None, exc_info = None)
-- was.response.api (\_\_data = None, \_\_type = 'json', \*\*kargs): return api response container
+- was.response.api (\_\_data = None, \*\*kargs): return api response container
 - was.response.fault (msg, code = 20000,  debug = None, more_info = None, exc_info = None): return api response container with setting error information
-- was.response.for_api (status = "200 OK",\*args, \*\*kargs)
+- was.response.for_api (status = "200 OK",\*args, \*\*kargs): shortcut for was.response (status, was.response.api (...)) if status code is 2xx and was.response (status, was.response.fault (...))
 
 - was.response.set_status (status) # "200 OK", "404 Not Found"
 - was.response.get_status ()
@@ -4519,6 +4514,7 @@ Change Log
 
 - 0.26.18 (Jan 2018)
   
+  - add was.gentemp ()
   - add was.response.for_api()
   - add @app.websocket_config (spec, timeout, onopen_func, onclose_func, encoding)
   - was.request.get_remote_addr considers X-Forwarded-For header value if exists

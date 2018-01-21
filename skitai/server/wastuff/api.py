@@ -54,8 +54,8 @@ class DateEncoder(json.JSONEncoder):
 		
 			
 class API:
-	def __init__ (self, data = None, type = 'json'):
-		self.type = type.upper ()
+	def __init__ (self, request, data = None):
+		self.request = request # for response typing 
 		self.data = data or {}
 		
 	def __setitem__ (self, k, v):
@@ -79,16 +79,16 @@ class API:
 	def to_string (self):		
 		return json.dumps (self.data, cls = DateEncoder)
 				
-	def traceback (self, msg = 'exception ovvured, see traceback', code = 20000, debug = None, more_info = None):
-		self.error (msg, code, debug, more_info)
+	def traceback (self, message = 'exception ovvured, see traceback', code = 20000, debug = None, more_info = None):
+		self.error (message, code, debug, more_info)
 		
-	def error (self, msg, code = 20000, debug = None, more_info = None, exc_info = None):
+	def error (self, message, code = 20000, debug = None, more_info = None, exc_info = None):
 		self.data = {}
 		self.data ['code'] = code
-		self.data ['message'] = msg
+		self.data ['message'] = message
 		if debug:
 			self.data ['debug'] = debug
 		if more_info:
 			self.data ['more_info'] = more_info
 		if exc_info:
-			self.data ["traceback"] = catch (2, exc_info)	
+			self.data ["traceback"] = catch (2, exc_info)

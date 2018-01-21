@@ -272,7 +272,11 @@ class http_response:
 	def hint_promise (self, *args, **kargs):
 		# ignore in version 1.x
 		pass
-		
+	
+	def push_and_done (self, thing, *args, **kargs):
+		self.push (thing)
+		self.done (*args, **kargs)
+			
 	def push (self, thing):		
 		if not self.is_responsable (): 
 			return
@@ -515,20 +519,7 @@ class http_response:
 	def get_status (self):
 		return "%d %s" % self.get_reply ()
 	
-	def api (self, __data = None, __type = 'json', **kargs):
-		return API (__data or kargs, __type)
-
-	def _fault (self, msg, code = 20000,  debug = None, more_info = None, exc_info = None):
-		api = self.api ()
-		api.error (msg, code, debug, more_info, exc_info)
-		return api
-	
-	def for_api (self, status = "200 OK", *args, **kargs):
-		if status [0] in "12":
-			r = self.api (*args, **kargs)
-		else:
-			r = self._fault (*args, **kargs)
-		return self (status, r)
+	# Returning ------------------------------------------------------------------
 	
 	def file (self, path, mimetype = 'application/octet-stream', filename = None):
 		self.set_header ('Content-Type',  mimetype)
@@ -536,19 +527,29 @@ class http_response:
 		if filename:
 			self.set_header ('Content-Disposition', 'attachment; filename="{}"'.format (filename))
 		return producers.file_producer (open (path, "rb"))					
-			
+	
+	def api (self, __data_dict__ = None, **kargs):
+		return API (self.request, __data_dict__ or kargs)
+
+	def fault (self, message, code = 20000,  debug = None, more_info = None, exc_info = None):
+		api = self.api ()
+		api.error (message, code, debug, more_info, exc_info)
+		return api
+	
+	def for_api (self, status = "200 OK", *args, **kargs):
+		if status [0] == "2":
+			r = self.api (*args, **kargs)
+		else:
+			r = self.fault (*args, **kargs)
+		return self (status, r)
+		
 	def __call__ (self, status = "200 OK", body = None, headers = None, exc_info = None):
 		self.start_response (status, headers)
 		if body is None:
 			return self.build_error_template (exc_info)
 		return body
 	
-	def push_and_done (self, thing, *args, **kargs):
-		self.push (thing)
-		self.done (*args, **kargs)
-	
-	# will be derecating	
-	fault = _fault
-	eapi = _fault
+	# will be derecating
+	eapi = fault
 	
 	
