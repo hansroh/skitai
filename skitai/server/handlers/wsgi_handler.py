@@ -329,7 +329,7 @@ class Job:
 			
 		except:			
 			was.traceback ()
-			trigger.wakeup (lambda p=response, d=self.apph.debug and sys.exc_info () or None: (p.error (508, "WSGI App Error", d), p.done ()) )			
+			trigger.wakeup (lambda p=response, d=self.apph.debug and sys.exc_info () or None: (p.error (508, "Application Error", d), p.done ()) )			
 				
 		else:
 			for part in will_be_push:				
