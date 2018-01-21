@@ -11,6 +11,7 @@ from . import server_info
 from . import http_response
 import os, sys
 import time
+import tempfile
 import base64
 import pickle
 from hmac import new as hmac
@@ -294,7 +295,9 @@ class WAS:
 		return self.env.get ('websocket.client')	
 	
 	# Systen Functions -------------------------------------
-	
+	def gentemp (self):
+		return next (tempfile._get_candidate_names())
+		
 	def log (self, msg, category = "info", at = "app"):
 		self.logger (at, msg, "%s:%s" % (category, self.txnid ()))
 		
