@@ -214,18 +214,16 @@ class http_response:
 		if type (why) is tuple: # sys.exc_info ()
 			exc_info, why  = why, ''
 		
-		error = {}	
-		if self.request.get_header ('accept', '').find ("application/json") != -1:
-			self.update ('content-type', 'application/json')
+		error = {}
+		if self.request.get_header ('accept', '').find ("application/json") != -1:			
+			message = why or self.get_status ()
+			code = 10000
+			debug = None
 			if exc_info:
-				error ["code"] = 10001
-				error ["message"] = 'exception occured, see traceback'
-				error ['traceback'] = exc_info and catch (2, exc_info) or []
-			else:	
-				error ["code"] = 10000
-				error ["message"] = why
-			return json.dumps (error)
-			
+				code = 10001
+				debug = 'see traceback' 
+			return self.fault (message, code, debug, exc_info = exc_info)
+		
 		else:	
 			self.update ('content-type', 'text/html')
 			error ['detail'] = why
@@ -255,7 +253,7 @@ class http_response:
 		if status: self.reply_message = status
 		else:	self.reply_message = self.get_status_msg (code)
 		
-		body = self.build_error_template (why).encode ("utf8")	
+		body = self.build_error_template (why).encode ("utf8")
 		self.update ('Content-Length', len(body))				
 		self.update ('Cache-Control', 'max-age=0')
 		self.push (body)
@@ -519,15 +517,7 @@ class http_response:
 	def get_status (self):
 		return "%d %s" % self.get_reply ()
 	
-	# Returning ------------------------------------------------------------------
-	
-	def file (self, path, mimetype = 'application/octet-stream', filename = None):
-		self.set_header ('Content-Type',  mimetype)
-		self.set_header ('Content-Length', str (os.path.getsize (path)))	
-		if filename:
-			self.set_header ('Content-Disposition', 'attachment; filename="{}"'.format (filename))
-		return producers.file_producer (open (path, "rb"))					
-	
+	# API methods ------------------------------------------------------------
 	def api (self, __data_dict__ = None, **kargs):
 		return API (self.request, __data_dict__ or kargs)
 
@@ -536,13 +526,27 @@ class http_response:
 		api.error (message, code, debug, more_info, exc_info)
 		return api
 	
+	def traceback (self, message = '', code = 10001, debug = 'see traceback', more_info = None):
+		api = self.api ()
+		api.traceback (message, code, debug, more_info)
+		return api
+	
 	def for_api (self, status = "200 OK", *args, **kargs):
 		if status [0] == "2":
 			r = self.api (*args, **kargs)
 		else:
 			r = self.fault (*args, **kargs)
 		return self (status, r)
-		
+	
+	# Returning ------------------------------------------------------------------
+
+	def file (self, path, mimetype = 'application/octet-stream', filename = None):
+		self.set_header ('Content-Type',  mimetype)
+		self.set_header ('Content-Length', str (os.path.getsize (path)))	
+		if filename:
+			self.set_header ('Content-Disposition', 'attachment; filename="{}"'.format (filename))
+		return producers.file_producer (open (path, "rb"))					
+			
 	def __call__ (self, status = "200 OK", body = None, headers = None, exc_info = None):
 		self.start_response (status, headers)
 		if body is None:

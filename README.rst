@@ -2628,8 +2628,9 @@ All available return types are:
 The object has 'close ()' method, will be called when all data consumed, or socket is disconnected with client by any reasons.
 
 - was.response (status = "200 OK", body = None, headers = None, exc_info = None)
-- was.response.api (\_\_data = None, \*\*kargs): return api response container
+- was.response.api (\_\_data_dict\_\_ = None, \*\*kargs): return api response container
 - was.response.fault (msg, code = 20000,  debug = None, more_info = None, exc_info = None): return api response container with setting error information
+- was.response.traceback (msg = "", code = 10001,  debug = 'see traceback', more_info = None): return api response container with setting traceback info
 - was.response.for_api (status = "200 OK",\*args, \*\*kargs): shortcut for was.response (status, was.response.api (...)) if status code is 2xx and was.response (status, was.response.fault (...))
 
 - was.response.set_status (status) # "200 OK", "404 Not Found"
@@ -2668,8 +2669,8 @@ In cases you want to retrun JSON API reponse,
   # return empty JSON {}
   return was.response.for_api (201 Accept')
   
-  # and shortcut
-  return was.response.api (data =  [1, 2, 3])  
+  # and shortcut if response HTTP status code is 200 OK,
+  return was.response.api (data =  [1, 2, 3])
   
   # return empty JSON {}
   return was.response.api ()
@@ -2678,70 +2679,41 @@ For sending error response with error information,
 
 .. code:: python
   
-  # msg and error code
-  return was.response.for_api ('400 Bad Request', 'missing parameter', 10021)
-  
   # client will get, {"message": "parameter q required", "code": 10021}
-
-Also you can use api object as container,
-
-.. code:: python
-
-  api = was.response.api ()
-  api.set ('user_id', 'hansroh')
-  api.set ('name', 'Hans Roh')
-  return api  
+  return was.response.for_api ('400 Bad Request', 'missing parameter', 10021)  
   
-  # client will get  {"user_id": "hansroh", "name": "Hans Roh"}
-  
-  api = was.response.api ()
-  api.error ('missing parameter', 10021)
-  return was.response ('400 Bad Request', api)
-  
-  # client will get {"message": "parameter q required", "code": 10021}  
-
-  api = was.response.api ()
-  api.error (
-    'missing parameter', 10021, 
+  # with additional information,
+  was.response.for_api (
+  	'400 Bad Request',
+  	'missing parameter', 10021, 
     'need parameter offset and limit', # detailed debug information
     'http://127.0.0.1/moreinfo/10021', # more detail URL something    
   )
-  return was.response ('400 Bad Request', api)
-  
-  # client will get
-  {
-    "code": 10021,
-    "message": "parameter q required", 
-    "debug": "need parameter offset and limit",
-    "more_info": "http://127.0.0.1/moreinfo/10021"
-  }
 
-Make sure if you return just api object, HTTP status will be sent with 200 OK.
-
-You can traceback inforamtion,
+You can send traceback information for debug purpose like in case app.debug = False,
 
 .. code:: python
   
-  api = was.response.api ()
   try:
     do something
   except:
-    return api.traceback () 
+    return was.response.traceback ('somethig is not valid') 
 
   # client see,
   {
-    "code": 20000, 
+    "code": 10001,
+    "message": "somethig is not valid",
+    "debug": "see traceback", 
     "traceback": [
       "name 'aa' is not defined", 
       "in file app.py at line 276, function search"      
     ]
   }
 
+Important note that this response will return with HTTP 200 OK status. If you want return 500 code, just let exception go.
+
 But if your client send header with 'Accept: application/json' and app.debug is True, Skitai returns traceback information automatically.
 
-- api (data = None): constructor
-- api.error (msg, code = 20000, debug = None, more_info = None, exc_info = None)
-- api.traceback (msg = 'exception ovvured, see traceback', code = 20000, debug = None, more_info = None)
 
 Async Promise Response
 --------------------------

@@ -73,14 +73,17 @@ class API:
 	def get_content_type (self):
 		return 'application/json'
 	
+	def encode (self, charset):
+		return self.to_string ().encode (charset)
+	
 	def __str__ (self):	
 		return self.to_string ()
 		
 	def to_string (self):		
 		return json.dumps (self.data, cls = DateEncoder)
 				
-	def traceback (self, message = 'exception ovvured, see traceback', code = 20000, debug = None, more_info = None):
-		self.error (message, code, debug, more_info)
+	def traceback (self, message = 'exception occured', code = 20000, debug = 'see traceback', more_info = None):
+		self.error (message, code, debug, more_info, sys.exc_info ())
 		
 	def error (self, message, code = 20000, debug = None, more_info = None, exc_info = None):
 		self.data = {}
