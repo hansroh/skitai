@@ -2,20 +2,22 @@
 Events
 
 def decorate (app):
-    @app.on ("User:login")
-    def user_added (was, form): pass
     
-    @app.on ("User:added")
+    @app.on ("user:authenticated")
+    def user_authenticated (was, form): pass
+    
+    @app.on ("user:added")
     def user_added (was, user, form): pass    
     
-    @app.on ("User:updated")
+    @app.on ("user:updated")
     def user_updated (was, user, form): pass
     
-     @app.on ("User:password:updated")
+     @app.on ("user:password:updated")
     def password_updated (was, user): pass
     
-    @app.on ("User:password:reset-requested")
+    @app.on ("user:password:reset-requested")
     def password_reset_requested (was, username, form): pass
+    
 # --------------------------------------------------------------------------'''
 
 import re
@@ -58,7 +60,7 @@ def update_password (was, username, password, template):
     user.set_password (password)
     user.save ()    
     was.django.update_session_auth_hash (user)    
-    was.app.emit ("User:password:updated", user)
+    was.app.emit ("user:password:updated", user)
 
 
 # App Decorator ---------------------------------------------------------
@@ -69,6 +71,7 @@ def decorate (app):
     def login_handler (was):
         if was.django.user.is_authenticated ():
             was.request.user = was.django.user
+            was.app.emit ("user:authenticated", was.request.user)
             was.django.session.set_expiry (was.app.session_timeout) #extend timeout
             return
         
@@ -103,14 +106,13 @@ def decorate (app):
         if was.django.user.is_authenticated ():    
             return was.redirect (next_url)
         
-        was.app.emit ("User:login", form)
         if form.get ("username"):
             user = was.django.authenticate (
                 form ["username"], 
                 form ["password"]
             )
             if user is not None:
-                was.django.login (user)                
+                was.django.login (user)
                 return was.redirect (next_url or was.ab ('index'))
             else:
                 was.mbox.push ("Invalid user name or password", "error", icon = "new_releases")
@@ -150,7 +152,7 @@ def decorate (app):
         user = User (username = form ["username"], email = form ["email"])
         user.set_password (form ["password"])
         user.save ()
-        was.app.emit ('User:added', user, form)
+        was.app.emit ('user:added', user, form)
         
         was.mbox.push ("Sign up success, thank you", "info")
         return signin (was, next_url, **form)
@@ -172,7 +174,7 @@ def decorate (app):
         user = User.objects.get (username = was.django.user.username)
         user.email = form ["email"]
         user.save ()
-        was.app.emit ('User:updated', user, form)
+        was.app.emit ('user:updated', user, form)
         
         was.mbox.push ("Account updated successfully", "info")
         return was.redirect (was.ab ("index"))
@@ -185,7 +187,7 @@ def decorate (app):
             except IndexError:    
                 was.mbox.push ("Email does not exists, check your email please", "error", icon = "new_releases")
                 return was.render ('regist/forgot-password.html')
-            was.app.emit ("User:password:reset-requested", user.username, form)
+            was.app.emit ("user:password:reset-requested", user.username, form)
             was.mbox.push ("Email has been sent. check your email, please", "info")
             return was.redirect (was.ab ('index'))
         return was.render ('regist/forgot-password.html')
