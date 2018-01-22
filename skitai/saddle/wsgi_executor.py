@@ -6,6 +6,7 @@ import json
 from aquests.lib.athreads import trigger
 from aquests.lib.attrdict import AttrDict
 from aquests.protocols.http import respcodes
+from skitai.saddle.exceptions import HTTPError
 
 def traceback ():	
 	t, v, tb = sys.exc_info ()
@@ -220,11 +221,12 @@ class Executor:
 		
 		try:
 			content = self.generate_content (thing, (), param)
-		except:				
+		except HTTPError as e:
+			content = request.response (e.status)
+		except:
 			self.rollback ()
 			if request.response.is_responsable ():
 				content = request.response ("500 Internal Server Error", exc_info = self.was.app.debug and sys.exc_info () or None)
-
 			del self.was.env
 			del self.was.subapp
 			raise

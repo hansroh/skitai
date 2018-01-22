@@ -2628,6 +2628,8 @@ All available return types are:
 The object has 'close ()' method, will be called when all data consumed, or socket is disconnected with client by any reasons.
 
 - was.response (status = "200 OK", body = None, headers = None, exc_info = None)
+- was.response.throw (status = "200 OK"): abort handling request, generated contents and return http error immediatly
+
 - was.response.api (\_\_data_dict\_\_ = None, \*\*kargs): return api response container
 - was.response.fault (msg, code = 20000,  debug = None, more_info = None, exc_info = None): return api response container with setting error information
 - was.response.traceback (msg = "", code = 10001,  debug = 'see traceback', more_info = None): return api response container with setting traceback info
@@ -4486,8 +4488,8 @@ Change Log
 
 - 0.26.18 (Jan 2018)
   
-  - add was.gentemp ()
-  - add was.response.for_api()
+  - add was.gentemp () for generating temp file name
+  - add was.response.throw (), was.response.for_api() and was.response.traceback()
   - add @app.websocket_config (spec, timeout, onopen_func, onclose_func, encoding)
   - was.request.get_remote_addr considers X-Forwarded-For header value if exists
   - add param keep param to was.csrf_verify() 

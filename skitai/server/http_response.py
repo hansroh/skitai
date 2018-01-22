@@ -12,6 +12,7 @@ from .wastuff.api import catch
 import skitai
 import asyncore
 import json
+from ..saddle.exceptions import HTTPError
 
 try: 
 	from urllib.parse import urljoin
@@ -546,7 +547,10 @@ class http_response:
 		if filename:
 			self.set_header ('Content-Disposition', 'attachment; filename="{}"'.format (filename))
 		return producers.file_producer (open (path, "rb"))					
-			
+	
+	def throw (self, status):
+		raise HTTPError (status)
+				
 	def __call__ (self, status = "200 OK", body = None, headers = None, exc_info = None):
 		self.start_response (status, headers)
 		if body is None:

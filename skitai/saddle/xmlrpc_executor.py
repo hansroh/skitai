@@ -42,7 +42,7 @@ class Executor (wsgi_executor.Executor):
 			self.was.subapp = current_app
 			try:
 				result = self.chained_exec (thing, _args, {})
-			except:				
+			except:
 				results.append (xmlrpclib.Fault (1, self.get_traceback()))
 			else:
 				results.append ((result,))

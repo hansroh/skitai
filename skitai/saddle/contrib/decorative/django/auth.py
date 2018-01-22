@@ -2,6 +2,9 @@
 Events
 
 def decorate (app):
+    @app.on ("User:login")
+    def user_added (was, form): pass
+    
     @app.on ("User:added")
     def user_added (was, user, form): pass    
     
@@ -99,7 +102,8 @@ def decorate (app):
     def signin (was, next_url = None, **form):
         if was.django.user.is_authenticated ():    
             return was.redirect (next_url)
-    
+        
+        was.app.emit ("User:login", form)
         if form.get ("username"):
             user = was.django.authenticate (
                 form ["username"], 
