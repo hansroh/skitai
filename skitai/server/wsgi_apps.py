@@ -50,7 +50,6 @@ class Module:
 		app = self.app or getattr (self.module, self.appname)
 		self.django = str (app.__class__).find ("django.") != -1
 		self.has_life_cycle = hasattr (app, "life_cycle")
-		self.has_life_cycle and app.life_cycle (reloded and "before_remount" or "before_mount", self.wasc)
 			
 		if self.pref:
 			for k, v in copy.copy (self.pref).items ():
@@ -78,6 +77,7 @@ class Module:
 		if hasattr (app, "commit_events_to"):
 			app.commit_events_to (self.bus)
 		
+		self.has_life_cycle and app.life_cycle (reloded and "before_remount" or "before_mount", self.wasc)
 		self.set_devel_env ()
 		self.update_file_info ()
 			

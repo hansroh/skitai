@@ -94,7 +94,7 @@ class Part:
 	# App Life Cycling
 	#----------------------------------------------
 	def before_mount (self, f):
-		self._binds_server [0] = f
+		self._binds_server [0] = f		
 		return f
 	start_up = before_mount
 	startup = before_mount
@@ -506,7 +506,10 @@ class Part:
 		try:
 			func (obj)
 		except:
-			self.logger and self.logger.trace ()						 
+			if self.logger:
+				self.logger.trace ()
+			else:
+				raise							 
 
 	def cleanup (self):
 		# initing app & packages		
