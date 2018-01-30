@@ -4488,6 +4488,7 @@ Change Log
 
 - 0.26.18 (Jan 2018)
   
+  - fix HTTP/2 remote flow control window
   - fix app.before_mount decorator exxcute point
   - add was.gentemp () for generating temp file name
   - add was.response.throw (), was.response.for_api() and was.response.traceback()
