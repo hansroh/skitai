@@ -307,11 +307,7 @@ class http2_request_handler:
 					except ValueError:						
 						# from vchannel.handle_read () -> collector.collect_inconing_data ()
 						self.go_away (ErrorCodes.CANCEL)
-					else:
-						rfcw = self.conn.remote_flow_control_window (event.stream_id)
-						if rfcw < 131070:
-							self.increment_flow_control_window (1048576, event.stream_id)							
-				
+					
 			elif isinstance(event, StreamEnded):
 				r = self.get_request (event.stream_id)
 				if r:
@@ -352,7 +348,7 @@ class http2_request_handler:
 		else:	
 			do_send = True
 			with self._plock:
-				self.conn.increment_flow_control_window (cl)
+				self.conn.increment_flow_control_window (cl)				
 				try: 
 					self.conn.increment_flow_control_window (cl, stream_id)					
 				except StreamClosedError: 
