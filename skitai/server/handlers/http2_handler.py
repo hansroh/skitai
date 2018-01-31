@@ -256,14 +256,6 @@ class http2_request_handler:
 			#print (event)
 			if isinstance(event, RequestReceived):				
 				self.handle_request (event.stream_id, event.headers)				
-			
-			elif isinstance(event, RemoteSettingsChanged):
-				try:
-					iws = event.changed_settings [SettingCodes.INITIAL_WINDOW_SIZE].new_value
-				except KeyError:
-					pass
-				else:						
-					self.increment_flow_control_window (iws)
 				
 			elif isinstance(event, StreamReset):
 				if event.remote_reset:
@@ -339,22 +331,6 @@ class http2_request_handler:
 			self.send_data ()
 		self.remove_request (stream_id)
 		#self.request.logger ("stream reset (stream_id:%d, error:%d)" % (stream_id, errcode), "info")
-	
-	def increment_flow_control_window (self, cl, stream_id = 0):
-		if stream_id == 0:
-			with self._plock:
-				self.conn.increment_flow_control_window (cl)
-			self.send_data ()
-		else:	
-			do_send = True
-			with self._plock:
-				self.conn.increment_flow_control_window (cl)				
-				try: 
-					self.conn.increment_flow_control_window (cl, stream_id)					
-				except StreamClosedError: 
-					do_send = False
-			if do_send: 
-				self.send_data ()
 		
 	def handle_request (self, stream_id, headers, is_promise = False):
 		#print ("++REQUEST: %d" % stream_id, headers)
@@ -444,10 +420,6 @@ class http2_request_handler:
 					if stream_id == 1 and self.request.version == "1.1":
 						self.data_length = cl
 						self.set_terminator (cl)
-					else:
-						# give permission for sending data to a client						
-						self.increment_flow_control_window (cl, stream_id)
-							
 
 class h2_request_handler (http2_request_handler):
 	http11_terminator = None
