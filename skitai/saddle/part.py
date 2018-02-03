@@ -218,19 +218,19 @@ class Part:
 				proceed = True
 				now = time.time ()
 				with self._file_info_lock:
-					if interval and now - self._file_infos [path][1] < interval:
-						proceed = False													
-					else:
-						try:
-							mtime = os.path.getmtime (path)
-						except FileNotFoundError:
+					oldmtime, last_check = self._file_infos [path]
+				
+				if interval and now - last_check < interval:
+					proceed = False
+				else:
+					try:
+						mtime = os.path.getmtime (path)
+					except FileNotFoundError:
+						with self._file_info_lock:
 							self._file_infos [path] = [0, now]
-							proceed = False	
+						proceed = False
 							
 				if proceed:
-					with self._file_info_lock:
-						oldmtime = self._file_infos [path][0]
-											
 					if mtime > oldmtime:
 						response = modified (was, path)
 						with self._file_info_lock:
@@ -239,7 +239,8 @@ class Part:
 							return response					
 							
 					elif interval:
-						self._file_infos [path][1] = now
+						with self._file_info_lock:
+							self._file_infos [path][1] = now
 						
 				return f (was, *args, **kwargs)
 			return wrapper
