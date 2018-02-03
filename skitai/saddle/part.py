@@ -33,6 +33,8 @@ class Part:
 		self._template_globals = {}
 		self._function_specs = {}
 		self._function_names = {}
+		self._file_infos = {}
+		self._file_info_lock = threading.RLock ()
 		
 		self._binds_server = [None] * 6
 		self._binds_request = [None] * 4		
@@ -202,6 +204,41 @@ class Part:
 				response = testfunc (was)
 				if response is not None:
 					return response
+				return f (was, *args, **kwargs)
+			return wrapper
+		return decorator
+	
+	def if_file_modified (self, path, modified, or_not = None):
+		def decorator(f):
+			self.save_function_spec_for_routing (f)
+			self._file_infos [path] = 0
+					
+			@wraps(f)
+			def wrapper (was, *args, **kwargs):			
+				exists = True
+				with self._file_info_lock:
+					try:
+						mtime = os.path.getmtime (path)
+					except FileNotFoundError:
+						self._file_infos [path] = 0
+						exists = False	
+							
+				if exists:						
+					func = None
+					with self._file_info_lock:
+						oldmtime = self._file_infos [path]						
+					if mtime > oldmtime:
+						func = modified
+						with self._file_info_lock:
+							self._file_infos [path] = mtime
+					elif or_not:
+						func = or_not
+						
+					if func:	
+						response = func (was, path)
+						if response is not None:
+							return response							
+						
 				return f (was, *args, **kwargs)
 			return wrapper
 		return decorator

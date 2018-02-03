@@ -3568,15 +3568,19 @@ If you handle exception with failed_request (), return custom error content, or 
       was.render ("err501.htm", msg = "We're sorry but something's going wrong")
     )
 
-Autonatic Excuting Function Before and After Calling Resources 
+Automatic or Conditional Excuting Function Before and After Calling Resources 
 --------------------------------------------------------------
 
 *New in version 0.26.18*
 
+
+Automatic Executing
+````````````````````````
+
 You can make automation for preworks and postworks.
 
 .. code:: python
-
+  
   def pre1 (was):
     ...
   
@@ -3585,7 +3589,7 @@ You can make automation for preworks and postworks.
   
   def post1 (was):
     ...
- 
+  
   @app.preworks (pre1, pre2)
   @app.postworks (post1)
   def index (was):
@@ -3594,6 +3598,20 @@ You can make automation for preworks and postworks.
 @app.prework can return None or responsable contents for aborting all next preworks and main request.
 @app.postwork's return will be ignored
 
+Conditional Executing
+````````````````````````
+
+@app.if_... are conditional executing decorators. 
+
+.. code:: python
+
+  def reload_config (was, path):
+    ...
+  
+  @app.if_file_modified ('/opt/myapp/config', reload_config)
+  def index (was):
+    return was.render ('index.html')
+  
 
 App Lifecycle Hook
 ----------------------
