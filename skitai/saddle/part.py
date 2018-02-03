@@ -208,36 +208,38 @@ class Part:
 			return wrapper
 		return decorator
 	
-	def if_file_modified (self, path, modified, or_not = None):
+	def if_file_modified (self, path, modified, interval = 1):
 		def decorator(f):
 			self.save_function_spec_for_routing (f)
-			self._file_infos [path] = 0
+			self._file_infos [path] = [0, 0]
 					
 			@wraps(f)
 			def wrapper (was, *args, **kwargs):			
-				exists = True
+				proceed = True
+				now = time.time ()
 				with self._file_info_lock:
-					try:
-						mtime = os.path.getmtime (path)
-					except FileNotFoundError:
-						self._file_infos [path] = 0
-						exists = False	
+					if interval and now - self._file_infos [path][1] < interval:
+						proceed = False													
+					else:
+						try:
+							mtime = os.path.getmtime (path)
+						except FileNotFoundError:
+							self._file_infos [path] = [0, now]
+							proceed = False	
 							
-				if exists:						
-					func = None
+				if proceed:
 					with self._file_info_lock:
-						oldmtime = self._file_infos [path]						
+						oldmtime = self._file_infos [path][0]
+											
 					if mtime > oldmtime:
-						func = modified
+						response = modified (was, path)
 						with self._file_info_lock:
-							self._file_infos [path] = mtime
-					elif or_not:
-						func = or_not
-						
-					if func:	
-						response = func (was, path)
+							self._file_infos [path] = [mtime, now]
 						if response is not None:
-							return response							
+							return response					
+							
+					elif interval:
+						self._file_infos [path][1] = now
 						
 				return f (was, *args, **kwargs)
 			return wrapper

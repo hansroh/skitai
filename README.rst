@@ -3573,7 +3573,6 @@ Automatic or Conditional Excuting Function Before and After Calling Resources
 
 *New in version 0.26.18*
 
-
 Automatic Executing
 ````````````````````````
 
