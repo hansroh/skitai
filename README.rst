@@ -3568,6 +3568,32 @@ If you handle exception with failed_request (), return custom error content, or 
       was.render ("err501.htm", msg = "We're sorry but something's going wrong")
     )
 
+Autonatic Excuting Function Before and After Calling Resources 
+--------------------------------------------------------------
+
+*New in version 0.26.18*
+
+You can make automation for preworks and postworks.
+
+.. code:: python
+
+  def pre1 (was):
+    ...
+  
+  def pre2 (was):
+    ...
+  
+  def post1 (was):
+    ...
+ 
+  @app.preworks (pre1, pre2)
+  @app.postworks (post1)
+  def index (was):
+    return was.render ('index.html')
+
+@app.prework can return None or responsable contents for aborting all next preworks and main request.
+@app.postwork's return will be ignored
+
 
 App Lifecycle Hook
 ----------------------
@@ -4488,6 +4514,7 @@ Change Log
 
 - 0.26.18 (Jan 2018)
   
+  - add @app.preworks and @app.postworks
   - fix HTTP/2 remote flow control window
   - fix app.before_mount decorator exxcute point
   - add was.gentemp () for generating temp file name

@@ -206,6 +206,30 @@ class Part:
 			return wrapper
 		return decorator
 	
+	def preworks (self, *funcs):
+		def decorator(f):
+			self.save_function_spec_for_routing (f)
+			@wraps(f)
+			def wrapper (was, *args, **kwargs):
+				for func in funcs:
+					response = func (was)
+					if response is not None:
+						return response
+				return f (was, *args, **kwargs)
+			return wrapper
+		return decorator
+	
+	def postworks (self, *funcs):
+		def decorator(f):
+			self.save_function_spec_for_routing (f)			
+			@wraps(f)
+			def wrapper (was, *args, **kwargs):
+				for func in funcs:
+					func (was)					
+				return f (was, *args, **kwargs)
+			return wrapper
+		return decorator
+	
 	# Websocket ------------------------------------------------------
 	def websocket_config (self, spec, timeout = 60, onopen = None, onclose = None, encoding = "text"):
 		def decorator(f):
