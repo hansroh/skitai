@@ -3594,8 +3594,8 @@ You can make automation for preworks and postworks.
 @app.prework can return None or responsable contents for aborting all next preworks and main request.
 @app.postwork's return will be ignored
 
-Conditional Preworks 
-----------------------
+Define Conditional Prework 
+-------------------------------
 
 *New in version 0.26.18*
 
@@ -3614,7 +3614,7 @@ Conditional Preworks
 
 
 Inter Process Update Notification and Consequences Automation
---------------------------------------------------------------------
+----------------------------------------------------------------
 
 *New in version 0.26.18*
 
@@ -3638,11 +3638,11 @@ Then one process update object and update time by setlu ().
     was.setlu ("weather-news")
     return ... 
 
-Then all processes can know this update and automate consequences like refreshing cache.
+This update time stamp will be recorded in shared memory, then all skitai worker processes can catch this update by comparing previous last update time and automate consequences like refreshing cache.
 
 .. code:: python
   
-  def reload_cache (was, path):
+  def reload_cache (was, key):
     ...
   
   @app.if_updated ('weather-news', reload_cache)
