@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.18b25"
+__version__ = "0.26.18b28"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -176,18 +176,14 @@ def set_request_timeout (timeout):
 	global dconf	
 	dconf ["network_timeout"] = timeout
 set_network_timeout = set_request_timeout
-	
-def lukeys (keys):
-	global dconf	
-	dconf ["models-keys"] = keys
 
-def trackers (*keys):
-	lukeys (keys)
-
-def addlu (*key):
+def deflu (*key):
 	if "models-keys" not in dconf:
 		dconf ["models-keys"] = []
+	if isinstance (key [0], (list, tuple)):
+		key = list (key [0])
 	dconf ["models-keys"].extend (key)
+addlu = trackers = lukeys = deflu
 
 def mount (point, target, appname = "app", pref = pref (True), host = "default", path = None):
 	global dconf

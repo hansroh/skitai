@@ -1662,7 +1662,7 @@ For expiring cached result by updating new data:
 
 
 More About Cache Control: Model Synchronized Cache
-`````````````````````````````````````````````````````
+```````````````````````````````````````````````````
 
 *New in version 0.26.15*
 
@@ -1674,7 +1674,7 @@ First of all, you should set all cache control keys to Skitai for sharing model 
 
 .. code:: python
 
-  skitai.addlu ('tables.users', 'table.photos')
+  skitai.deflu ('tables.users', 'table.photos')
 
 These Key names are might be related your database model names nor table names. Especially you bind Django model signal, these keys should be exaclty nodel class name. But in general cases, key names are fine if you easy to recognize.
   
@@ -3568,13 +3568,10 @@ If you handle exception with failed_request (), return custom error content, or 
       was.render ("err501.htm", msg = "We're sorry but something's going wrong")
     )
 
-Automatic or Conditional Excuting Function Before and After Calling Resources 
---------------------------------------------------------------
+Define Preworks and Postworks 
+--------------------------------
 
 *New in version 0.26.18*
-
-Automatic Executing
-````````````````````````
 
 You can make automation for preworks and postworks.
 
@@ -3597,20 +3594,61 @@ You can make automation for preworks and postworks.
 @app.prework can return None or responsable contents for aborting all next preworks and main request.
 @app.postwork's return will be ignored
 
-Conditional Executing
-````````````````````````
+Conditional Preworks 
+----------------------
 
-@app.if_... are conditional executing decorators. 
+*New in version 0.26.18*
+
+@app.if~s are conditional executing decorators. 
 
 .. code:: python
 
   def reload_config (was, path):
     ...
   
-  @app.if_file_modified ('/opt/myapp/config', reload_config)
+  @app.if_file_modified ('/opt/myapp/config', reload_config, interval = 1)
   def index (was):
     return was.render ('index.html')
+
+@app.if_updated need more explaination.
+
+
+Inter Process Update Notification and Consequences Automation
+--------------------------------------------------------------------
+
+*New in version 0.26.18*
+
+@app.if_updated is related with skitai.deflu(), was.setlu() and was.getlu() and these are already explained was cache contorl part. And Saddle app can use more conviniently.
+
+These're used for mostly inter-process notification protocol.
+
+Before skitai.run (), you should define updatable objects as string keys:
+
+.. code:: python
+
+  skitai.deflu ("weather-news", ...)
+
+Then one process update object and update time by setlu ().
+
+.. code:: python
+
+  @app.route ("/")
+  def add_weather (was):
+    was.backend.execute ("insert into weathers ...")
+    was.setlu ("weather-news")
+    return ... 
+
+Then all processes can know this update and automate consequences like refreshing cache.
+
+.. code:: python
   
+  def reload_cache (was, path):
+    ...
+  
+  @app.if_updated ('weather-news', reload_cache)
+  def index (was):
+    return was.render ('index.html')
+    
 
 App Lifecycle Hook
 ----------------------
@@ -3801,6 +3839,8 @@ And use it for your resources if you need,
   def index2 (was):
     return "Hello"
 
+If every thing is OK, it *SHOULD return None, not True*.
+
 Also you can test if user is valid,
 
 .. code:: python
@@ -3813,8 +3853,11 @@ Also you can test if user is valid,
   def modify_profile (was):
     ...
     
-Note that in case all of them, if every thing is OK, it *SHOULD return None, not True*.
+The binded testpass_required function can return,
 
+- True or None: continue request
+- False: response 403 Permission Denied immediately
+- Responsable object: response object immediately
     
 Cross Site Request Forgery Token (CSRF Token)
 ------------------------------------------------
@@ -4469,7 +4512,7 @@ In backgound, app catch Django's model signal, and automatically was.setlu (your
 
 .. code:: python
 
-  skitai.addlu ('myapp.models.User', 'myapp.models.Photo')
+  skitai.deflu ('myapp.models.User', 'myapp.models.Photo')
   skitai.run ()
   
 
@@ -4531,6 +4574,8 @@ Change Log
 
 - 0.26.18 (Jan 2018)
   
+  - change skitai.addlu to skitai.deflu (args, ...)
+  - add @app.if_file_modified
   - add @app.preworks and @app.postworks
   - fix HTTP/2 remote flow control window
   - fix app.before_mount decorator exxcute point
@@ -4573,7 +4618,7 @@ Change Log
   - add app.sqlmaps
   - add use_django_models (settings_path), skitai.mount_django (point, wsgi_path, pref = pref (True), host = "default")
   - fix mbox, add app.max_client_body_size
-  - add skitai.addlu (args, ...) that is equivalant to skitai.addlu (args, ...)
+  - add skitai.addlu (args, ...)
   - fix promise and proxing was objects
   - change method name from skitai.set_network_timeout to set_erquest_timeout
   - fix getwait, getswait. get timeout mis-working

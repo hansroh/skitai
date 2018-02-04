@@ -33,8 +33,8 @@ class Part:
 		self._template_globals = {}
 		self._function_specs = {}
 		self._function_names = {}
-		self._file_infos = {}
-		self._file_info_lock = threading.RLock ()
+		self._conditions = {}
+		self._cond_check_lock = threading.RLock ()
 		
 		self._binds_server = [None] * 6
 		self._binds_request = [None] * 4		
@@ -202,50 +202,15 @@ class Part:
 			@wraps(f)
 			def wrapper (was, *args, **kwargs):
 				response = testfunc (was)
-				if response is not None:
+				if response is False:
+					return was.response ("403 Permission Denied")
+				elif response is not True and response is not None:
 					return response
 				return f (was, *args, **kwargs)
 			return wrapper
 		return decorator
 	
-	def if_file_modified (self, path, modified, interval = 1):
-		def decorator(f):
-			self.save_function_spec_for_routing (f)
-			self._file_infos [path] = [0, 0]
-					
-			@wraps(f)
-			def wrapper (was, *args, **kwargs):			
-				proceed = True
-				now = time.time ()
-				with self._file_info_lock:
-					oldmtime, last_check = self._file_infos [path]
-				
-				if interval and now - last_check < interval:
-					proceed = False
-				else:
-					try:
-						mtime = os.path.getmtime (path)
-					except FileNotFoundError:
-						with self._file_info_lock:
-							self._file_infos [path] = [0, now]
-						proceed = False
-							
-				if proceed:
-					if mtime > oldmtime:
-						response = modified (was, path)
-						with self._file_info_lock:
-							self._file_infos [path] = [mtime, now]
-						if response is not None:
-							return response					
-							
-					elif interval:
-						with self._file_info_lock:
-							self._file_infos [path][1] = now
-						
-				return f (was, *args, **kwargs)
-			return wrapper
-		return decorator
-	
+	# Automation ------------------------------------------------------	
 	def preworks (self, *funcs):
 		def decorator(f):
 			self.save_function_spec_for_routing (f)
@@ -266,6 +231,58 @@ class Part:
 			def wrapper (was, *args, **kwargs):
 				for func in funcs:
 					func (was)					
+				return f (was, *args, **kwargs)
+			return wrapper
+		return decorator
+	
+	# Conditional Automation ------------------------------------------------------	
+	def _check_condition (self, was, key, func, interval, mtime_func):
+		now = time.time ()
+		with self._cond_check_lock:
+			oldmtime, last_check = self._conditions [key]
+		
+		if not interval or now - last_check > interval:
+			mtime = mtime_func (key)					
+			if mtime > oldmtime:
+				response = func (was, key)
+				with self._cond_check_lock:
+					self._conditions [key] = [mtime, now]
+				if response is not None:
+					return response
+					
+			elif interval:
+				with self._cond_check_lock:
+					self._conditions [key][1] = now						
+		
+	def if_updated (self, key, func, interval = 1):
+		def decorator(f):
+			self.save_function_spec_for_routing (f)
+			self._conditions [key] = [0, 0]
+			@wraps(f)
+			def wrapper (was, *args, **kwargs):
+				response = self._check_condition (was, key, func, interval, was.getlu)
+				if response is not None:
+					return response
+				return f (was, *args, **kwargs)
+			return wrapper
+		return decorator
+		
+	def if_file_modified (self, path, func, interval = 1):
+		def decorator(f):
+			self.save_function_spec_for_routing (f)
+			self._conditions [path] = [0, 0]
+			@wraps(f)
+			def wrapper (was, *args, **kwargs):
+				def _getmtime (path): 
+					try:
+						mtime = os.path.getmtime (path)
+					except FileNotFoundError:
+						return 0
+					return mtime
+					
+				response = self._check_condition (was, path, func, interval, _getmtime)
+				if response is not None:
+					return response
 				return f (was, *args, **kwargs)
 			return wrapper
 		return decorator
