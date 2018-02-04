@@ -151,13 +151,11 @@ class Module:
 				self.module.app = oldapp
 				raise
 			else:
-				self.has_life_cycle and oldapp.life_cycle ("before_umount", self.wasc ())
 				if hasattr (oldapp, "remove_events"):
 					oldapp.remove_events (self.bus)
 				PRESERVED = []
 				if hasattr (oldapp, "PRESERVE_ON_RELOAD"):
 					PRESERVED = [(attr, getattr (oldapp, attr)) for attr in oldapp.PRESERVES_ON_RELOAD]
-				self.has_life_cycle and oldapp.life_cycle ("umounted", self.wasc)		
 				
 				self.start_app (reloded = True)
 				newapp = getattr (self.module, self.appname)

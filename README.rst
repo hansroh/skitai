@@ -2340,21 +2340,6 @@ If use_reloader is True, Skito-Saddle will detect file changes and reload app au
   app.use_reloader = True # auto realod on file changed
 
 
-App Package
-------------
-
-If app.use_reloader is True, all module of package - sub package directory of app.py - will be reloaded automatically if file is modified.
-
-Saddle will watch default package directory: 'package' and 'contrib'
-
-If you use other packages and need to reload,
-
-.. code:: python
-  
-  app = Saddle (__name__)
-  app.add_package ('mylib', 'corplib')
-
-
 Routing
 --------
 
@@ -3658,9 +3643,7 @@ These app life cycle methods will be called by this order,
 - before_mount (wac): when app imported on skitai server started
 - mounted (*was*): called first with was (instance of wac)
 - loop whenever app is reloaded,
-  
-  - oldapp.before_umount (*was*): when app.use_reloader is True and app is reloaded. it is for shutting down current app
-  - oldapp.umounted (wac): when app.use_reloader is True and app is reloaded. it is for shutting down current app
+    
   - newapp.before_remount (wac)
   - newapp.remounted (*was*)
   
@@ -4568,6 +4551,20 @@ Change Log
 
 - 0.26.18 (Jan 2018)
   
+  - remove app reloading progress:
+   
+    - before:
+     
+      - before_remount (wac)
+      - remounted (was)
+      - before_umount (was)
+      - umounted (wac)
+      
+    - now:
+    
+      - before_remount (wac)
+      - remounted (was)
+    
   - change app.model_signal () to app.redirect_signal (), add @app.on_signal ()
   - change skitai.addlu to skitai.deflu (args, ...)
   - add @app.if_file_modified
@@ -4579,7 +4576,7 @@ Change Log
   - add @app.websocket_config (spec, timeout, onopen_func, onclose_func, encoding)
   - was.request.get_remote_addr considers X-Forwarded-For header value if exists
   - add param keep param to was.csrf_verify() 
-  - add and chnaged app life cycle decorators:
+  - add and changed app life cycle decorators:
     
     - before_mount (wac)
     - mounted (was) 
