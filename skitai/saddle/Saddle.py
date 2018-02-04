@@ -305,7 +305,7 @@ class Saddle (part.Part):
 				return f (*args, **kwargs)
 			return wrapper
 		return decorator
-	# this is for model
+	# this is for model signal
 	on_signal = on_broadcast
 		 
 	def broadcast_after (self, event):
