@@ -1,44 +1,34 @@
-from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT
+import os, sys
+import time
+import tempfile
+from hmac import new as hmac
+from hashlib import sha1
+import json
+import xmlrpc.client as xmlrpclib
+import base64
+import pickle
+from multiprocessing import RLock
+import random
+
 from aquests.lib import pathtool, logger, jwt
 from aquests.lib.producers import simple_producer, file_producer
 from aquests.lib.athreads import trigger
 from aquests.protocols.smtp import composer
 from aquests.protocols.http import http_date
+
+from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT
+from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
+from skitai import lifetime
+from skitai.server.handlers import api_access_handler, vhost_handler
 from .rpc import cluster_manager, cluster_dist_call
 from .dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
-from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from . import server_info
 from . import http_response
-import os, sys
-import time
-import tempfile
-import base64
-import pickle
-from hmac import new as hmac
-from hashlib import sha1
-from skitai.server.handlers import api_access_handler, vhost_handler
-try: 
-	from urllib.parse import urljoin
-except ImportError:
-	from urlparse import urljoin	
-import json
-from datetime import date
-try:
-	import xmlrpc.client as xmlrpclib
-except ImportError:
-	import xmlrpclib	
-try: 
-	import _thread
-except ImportError:
-	import thread as _thread	
-from skitai import lifetime
 from .wastuff.promise import Promise, _Method
 from .wastuff.triple_logger import Logger
 from .wastuff import django_adaptor
 from .wastuff.api import DateEncoder
-from multiprocessing import RLock
-import random
-		
+
 class WAS:
 	version = __version__	
 	objects = {}	
@@ -47,9 +37,7 @@ class WAS:
 	lock = RLock ()
 	init_time = time.time ()	
 	
-	#----------------------------------------------------
-	# application friendly methods
-	#----------------------------------------------------
+	# application friendly methods -----------------------------------------
 	
 	@classmethod
 	def register (cls, name, obj):
@@ -180,7 +168,7 @@ class WAS:
 		nheader ["X-Ltxn-Id"] = self.request.get_ltxid (1)
 		return nheader
 	
-	# Async Requests -----------------------------------------------
+	# async requests -----------------------------------------------
 		
 	def _rest (self, method, uri, data = None, auth = None, headers = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):
 		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, self.rebuild_header (headers), auth, meta, use_cache, False, filter, callback, timeout)
@@ -218,7 +206,7 @@ class WAS:
 	def _amap (self, dbtype, *args, **karg):
 		return self._cddb (True, *args, **karg)
 	
-	# Response Helpers --------------------------------------------
+	# response helpers --------------------------------------------
 		
 	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
 		return self.app.render (self, template_file, _do_not_use_this_variable_name_, **karg)
@@ -256,7 +244,7 @@ class WAS:
 			pathtool.mkdir (composer.Composer.SAVE_PATH)			
 		return composer.Composer (subject, snd, rcpt)
 	
-	# Event -------------------------------------------------
+	# event -------------------------------------------------
 	
 	def broadcast (self, event, *args, **kargs):
 		return self.apps.bus.emit (event, self, *args, **kargs)
@@ -293,7 +281,8 @@ class WAS:
 	def wsclient (self):
 		return self.env.get ('websocket.client')	
 	
-	# Systen Functions -------------------------------------
+	# system functions ----------------------------------------------
+	
 	def gentemp (self):
 		return next (tempfile._get_candidate_names())
 		
@@ -314,7 +303,7 @@ class WAS:
 	def shutdown (self, timeout = 0):
 		lifetime.shutdown (0, timeout)
 	
-	# Tokens  -----------------------------------------------
+	# tokens  -------------------------------------------------------
 	
 	def _unserialize (self, string):
 		def adjust_padding (s):
@@ -385,7 +374,7 @@ class WAS:
 		obj = wrapper ['object']
 		return obj
 	
-	# CSRF Token ------------------------------------------------------
+	# CSRF token ------------------------------------------------------
 		
 	@property
 	def csrf_token (self):
@@ -407,7 +396,7 @@ class WAS:
 			return True		
 		return False
 	
-	# Proxy & Adaptor  -----------------------------------------------
+	# proxy & adaptor  -----------------------------------------------
 	
 	@property
 	def sqlmap (self):
@@ -420,7 +409,7 @@ class WAS:
 		self.request.django = django_adaptor.request (self)
 		return self.request.django
 			
-	# Will Be Deprecated --------------------------------------------------	
+	# will be deprecated --------------------------------------------------	
 	
 	def render_ei (self, exc_info, format = 0):
 		return http_response.catch (format, exc_info)
