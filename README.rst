@@ -3648,7 +3648,7 @@ This update time stamp will be recorded in shared memory, then all skitai worker
   @app.if_updated ('weather-news', reload_cache)
   def index (was):
     return was.render ('index.html')
-    
+     
 
 App Lifecycle Hook
 ----------------------
@@ -4447,9 +4447,9 @@ This example show that if Django admin app is mounted to Skitai, whenever model 
   
   app = Saddle (__name__)  
   # activate wathcing model, and make accessible from was
-  app.model_signal (modeler = "django")
+  app.redirect_signal (framework = "django")
   
-  @app.on_broadcast ("model-changed:myapp.models.Photo")
+  @app.on_signal ("myapp.models.Photo")
   @app.mounted
   def model_changed (was, sender = None, *karg):
     from myapp.models import Photo
@@ -4475,13 +4475,7 @@ For watching multiple models.
 
 .. code:: python
 
-  @app.on_broadcast ("model-changed:myapp.models.Photo", "model-changed:myapp.models.User")
-
-If you would like listening all mounted Django model signals,
-  
-.. code:: python
-
-  @app.on_broadcast ("model-changed")
+  @app.on_signal ("myapp.models.Photo", "myapp.models.User")
 
 
 Integrating With Skitai's Result Object Caching
@@ -4491,7 +4485,7 @@ Integrating With Skitai's Result Object Caching
 
 .. code:: python
 
-  app.model_signal (modeler = "django")
+  app.redirect_signal (framework = "django")
   
 In backgound, app catch Django's model signal, and automatically was.setlu (your model class name like 'myapp.models.User'). Then you can just use was.getlu (your model class name).
 
@@ -4574,6 +4568,7 @@ Change Log
 
 - 0.26.18 (Jan 2018)
   
+  - change app.model_signal () to app.redirect_signal (), add @app.on_signal ()
   - change skitai.addlu to skitai.deflu (args, ...)
   - add @app.if_file_modified
   - add @app.preworks and @app.postworks

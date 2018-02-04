@@ -562,11 +562,11 @@ class Part:
 		karg ["x_ignore"]	= True
 		the_was._get ().setlu (model_name, sender, **karg)
 	
-	def model_signal (self, modeler = "django"):	
-		from django.db.models.signals import post_save, post_delete
-		
+	def redirect_signal (self, framework = "django"):	
+		from django.db.models.signals import post_save, post_delete		
 		post_save.connect (self._model_changed)
 		post_delete.connect (self._model_changed)
+	model_signal = redirect_signal
 			
 	#----------------------------------------------
 	# Starting App

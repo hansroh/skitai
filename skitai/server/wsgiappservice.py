@@ -263,8 +263,7 @@ class WAS:
 	
 	def setlu (self, name, *args, **karg):
 		self._luwatcher.set (name, time.time (), karg.get ("x_ignore", False))
-		self.broadcast ("model-changed", *args, **karg)
-		self.broadcast ("model-changed:%s" % name, *args, **karg)			
+		self.broadcast (name, *args, **karg)			
 		
 	def getlu (self, *names):
 		mtimes = []

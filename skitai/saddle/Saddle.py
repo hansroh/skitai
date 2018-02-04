@@ -305,7 +305,9 @@ class Saddle (part.Part):
 				return f (*args, **kwargs)
 			return wrapper
 		return decorator
-	
+	# this is for model
+	on_signal = on_broadcast
+		 
 	def broadcast_after (self, event):
 		def decorator (f):
 			self.save_function_spec_for_routing (f)
