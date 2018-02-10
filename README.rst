@@ -4551,6 +4551,7 @@ Change Log
 
 - 0.26.18 (Jan 2018)
   
+  - change default export script to __export__.py
   - remove app reloading progress:
    
     - before:
