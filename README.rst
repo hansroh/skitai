@@ -1298,13 +1298,16 @@ If your app need bootstraping or capsulizing complicated initialize process from
       pref.config.urllist = urllist  
      
  
-Example
+Examples
 ----------
 
-`Wissen RESTful API`_ is an WSGI implementation for Wissen_ with Skitai App Engine.
+Here're some implementations I made.
 
-.. _`Wissen RESTful API`: https://gitlab.com/hansroh/wissen/blob/master/wissen/export/skitai/
-    
+- `DeLune API Server`_ 
+- `Tensorflow API Server`_
+
+.. _`DeLune API Server`: https://pypi.python.org/pypi/delune
+.. _`Tensorflow API Server`: https://pypi.python.org/pypi/tfserver
 
 
 Skitai 'was' Services
