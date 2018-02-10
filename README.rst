@@ -4555,10 +4555,10 @@ Change Log
    
     - before:
      
+      - before_umount (was)
+      - umounted (wac)      
       - before_remount (wac)
       - remounted (was)
-      - before_umount (was)
-      - umounted (wac)
       
     - now:
     

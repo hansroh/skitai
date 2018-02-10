@@ -93,6 +93,8 @@ class WAS:
 		if disable_aquests:
 			new_was.VALID_COMMANDS = []
 		return new_was
+	
+	# mehiods remap ------------------------------------------------
 			
 	VALID_COMMANDS = [
 		"options", "trace", "upload",
@@ -206,6 +208,29 @@ class WAS:
 	def _amap (self, dbtype, *args, **karg):
 		return self._cddb (True, *args, **karg)
 	
+	# system functions ----------------------------------------------
+		
+	def log (self, msg, category = "info", at = "app"):
+		self.logger (at, msg, "%s:%s" % (category, self.txnid ()))
+		
+	def traceback (self, id = "", at = "app"):
+		if not id:
+			id = self.txnid ()
+		self.logger.trace (at, id)
+	
+	def gentemp (self):
+		return next (tempfile._get_candidate_names())
+	
+	# -- only allpy to current worker process
+	def status (self, flt = None, fancy = True):		
+		return server_info.make (self, flt, fancy)
+	
+	def restart (self, timeout = 0):
+		lifetime.shutdown (3, timeout)
+	
+	def shutdown (self, timeout = 0):
+		lifetime.shutdown (0, timeout)
+	
 	# response helpers --------------------------------------------
 		
 	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
@@ -259,49 +284,6 @@ class WAS:
 			mtime = self._luwatcher.get (name, self.init_time)
 			mtimes.append (mtime)
 		return max (mtimes)
-		
-	# Websocket For generic WSGI containers -----------------------------
-	
-	def wsconfig (self, spec, timeout = 60, encoding = "text"):
-		self.env ["websocket.config"] = (spec, timeout, encoding)
-		return ""
-		
-	def wsinit (self):
-		return self.env.get ('websocket.event') == WS_EVT_INIT
-	
-	def wsopened (self):
-		return self.env.get ('websocket.event') == WS_EVT_OPEN
-	
-	def wsclosed (self):
-		return self.env.get ('websocket.event') == WS_EVT_CLOSE
-	
-	def wshasevent (self):
-		return self.env.get ('websocket.event')
-	
-	def wsclient (self):
-		return self.env.get ('websocket.client')	
-	
-	# system functions ----------------------------------------------
-	
-	def gentemp (self):
-		return next (tempfile._get_candidate_names())
-		
-	def log (self, msg, category = "info", at = "app"):
-		self.logger (at, msg, "%s:%s" % (category, self.txnid ()))
-		
-	def traceback (self, id = "", at = "app"):
-		if not id:
-			id = self.txnid ()
-		self.logger.trace (at, id)
-	
-	def status (self, flt = None, fancy = True):
-		return server_info.make (self, flt, fancy)
-	
-	def restart (self, timeout = 0):
-		lifetime.shutdown (3, timeout)
-	
-	def shutdown (self, timeout = 0):
-		lifetime.shutdown (0, timeout)
 	
 	# tokens  -------------------------------------------------------
 	
@@ -375,25 +357,26 @@ class WAS:
 		return obj
 	
 	# CSRF token ------------------------------------------------------
-		
+	
+	CSRF_NAME = "_csrf_token"
 	@property
 	def csrf_token (self):
-		if "_csrf_token" not in self.session:
-			self.session ["_csrf_token"] = hex (random.getrandbits (64))
-		return self.session ["_csrf_token"]
+		if self.CSRF_NAME not in self.session:
+			self.session [self.CSRF_NAME] = hex (random.getrandbits (64))
+		return self.session [self.CSRF_NAME]
 
 	@property
 	def csrf_token_input (self):
-		return '<input type="hidden" name="_csrf_token" value="{}">'.format (self.csrf_token)
+		return '<input type="hidden" name="{}" value="{}">'.format (self.CSRF_NAME, self.csrf_token)
 	
 	def csrf_verify (self, keep = False):
-		if not self.request.args.get ("_csrf_token"):
+		if not self.request.args.get (self.CSRF_NAME):
 			return False
-		token = self.request.args ["_csrf_token"]
+		token = self.request.args [self.CSRF_NAME]
 		if self.csrf_token == token:
 			if not keep:
-				del self.session ["_csrf_token"]
-			return True		
+				del self.session [self.CSRF_NAME]
+			return True
 		return False
 	
 	# proxy & adaptor  -----------------------------------------------
@@ -408,11 +391,29 @@ class WAS:
 			return self.request.django
 		self.request.django = django_adaptor.request (self)
 		return self.request.django
+	
+	# websocket methods for generic WSGI containers -----------------------------
+	
+	def wsconfig (self, spec, timeout = 60, encoding = "text"):
+		self.env ["websocket.config"] = (spec, timeout, encoding)
+		return ""
+		
+	def wsinit (self):
+		return self.env.get ('websocket.event') == WS_EVT_INIT
+	
+	def wsopened (self):
+		return self.env.get ('websocket.event') == WS_EVT_OPEN
+	
+	def wsclosed (self):
+		return self.env.get ('websocket.event') == WS_EVT_CLOSE
+	
+	def wshasevent (self):
+		return self.env.get ('websocket.event')
+	
+	def wsclient (self):
+		return self.env.get ('websocket.client')	
 			
 	# will be deprecated --------------------------------------------------	
-	
-	def render_ei (self, exc_info, format = 0):
-		return http_response.catch (format, exc_info)
 	
 	def togrpc (self, obj):
 		return obj.SerializeToString ()
@@ -454,4 +455,7 @@ class WAS:
 	def gstream (self, obj):
 		self.response.set_header ("Content-Type", "application/grpc")
 		return self.togrpc (obj)
+	
+	def render_ei (self, exc_info, format = 0):
+		return http_response.catch (format, exc_info)
 		
