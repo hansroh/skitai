@@ -175,6 +175,10 @@ class Saddle (part.Part):
 		
 		for k, v in self._jinja2_filters.items ():
 			self.jinja_env.filters [k] = v
+		
+		for params in self.route_map.values ():
+			if params [1] in self._need_authenticate:					
+				params [-1]["authenticate"] = True
 			
 		sqlmap_dir = os.path.join(path, self.config.get ("sqlmap_dir", "sqlmaps"))
 		if not os.path.isdir (sqlmap_dir):
@@ -510,7 +514,7 @@ class Saddle (part.Part):
 						self.cached_rules.append ([match, method, options])
 						# sort by length of rule desc
 						self.cached_rules.sort (key = lambda x: len (x [0][-1][-2]), reverse = True)
-		
+				
 		resp_code = 0
 		if options:
 			allowed_types = options.get ("content_types", [])
@@ -542,7 +546,7 @@ class Saddle (part.Part):
 				if not self.is_allowed_origin (request, options.get ("access_control_allow_origin", self.access_control_allow_origin)):
 					resp_code =  403
 				elif not self.is_authorized (request, options.get ("authenticate", self.authenticate)):
-					resp_code =  401				
+					resp_code =  401
 		
 		if resp_code in (401, 200):
 			authenticate = options.get ("authenticate", self.authenticate)

@@ -34,6 +34,7 @@ class Part:
 		self._function_specs = {}
 		self._function_names = {}
 		self._conditions = {}
+		self._need_authenticate = {}
 		self._cond_check_lock = threading.RLock ()
 		
 		self._binds_server = [None] * 6
@@ -144,7 +145,12 @@ class Part:
 		return f
 		
 	# Auth ------------------------------------------------------
-			
+	
+	def auth_required (self, f):	
+		self.save_function_spec_for_routing (f)
+		self._need_authenticate [f.__name__] = None
+		return f
+	
 	def login_handler (self, f):
 		self._decos ["login_handler"] = f
 		return f
@@ -536,14 +542,14 @@ class Part:
 				matchtype = -1
 			else:	
 				matchtype = 1
-				options = current_rule [-1]
-		
+				options = current_rule [-1]				
+				
 		if method is None:
 			return None, None, None, None, None, 0
 		
 		if matchtype == -1: # 301 move
 			return app, method, None, None, None, -1
-			
+				
 		return app, [self._binds_request [0], method] + self._binds_request [1:4], kargs, options, match, matchtype
 	
 	#----------------------------------------------

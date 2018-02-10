@@ -4197,7 +4197,16 @@ Otherwise you can make some routes requirigng authorization like this:
   def hello (was, name = "Hans Roh"):
     return "Hello, %s" % name
 
+Or you can use @app.auth_required decorator.
+		
+.. code:: python
+  
+  @app.route ("/hello/<name>")
+  @app.auth_required
+  def hello (was, name = "Hans Roh"):
+    return "Hello, %s" % name
 
+		
 User Collection
 `````````````````
 
