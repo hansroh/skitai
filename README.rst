@@ -1257,7 +1257,7 @@ If your module need export APIs or web pages, you can include app in your module
 
 Let's assume your package name is 'unsub'.
 
-Your app should be located at unsub/export/skitai/app.py
+Your app should be located at unsub/export/skitai/__export__.py
 
 Then users uses your module can mount on skitai by like this,
 
@@ -1271,7 +1271,7 @@ Then users uses your module can mount on skitai by like this,
   skitai.mount ("/v1", unsub, "app", pref)
   skitai.run ()
   
-If your app filename is not app.py but app_v1.py for version management,
+If you want to specify filename like app_v1.py for version management,
 
 .. code:: python
   

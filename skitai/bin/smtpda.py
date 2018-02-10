@@ -186,7 +186,7 @@ if __name__ == "__main__":
 	argopt = demonizer.handle_commandline (
 		"hvf:",
 		[
-			"help", "verbose", "log-path=", "var-path=", "pname=",
+			"help", "verbose=", "log-path=", "var-path=", "pname=",
 			"max-retry=", "keep-days=", "server=", "user=", "password=", "ssl=",
 			"config=", "process-display-name=", "smtp-server="
 		], 

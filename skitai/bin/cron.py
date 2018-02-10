@@ -234,7 +234,7 @@ if __name__ == "__main__":
 	
 	argopt = demonizer.handle_commandline (
 		"hvf:",
-		["help", "verbose", "log-path=", "var-path=", "pname=", "process-display-name=", "config="], 
+		["help", "verbose=", "log-path=", "var-path=", "pname=", "process-display-name=", "config="], 
 		 "/var/tmp/skitai/cron", 
 		 "skitai"
 	)	
@@ -243,9 +243,9 @@ if __name__ == "__main__":
 	_logpath, _varpath = None, None
 	
 	fileopt = []
+	cf = None
 	for k, v in argopt [0]:
-		if k == "-f" or k == "config":
-			cf = confparse.ConfParse (v)
+		if k == "-f" or k == "config":			
 			cf.setopt ("cron", "process-display-name", "skitai")
 			fileopt = list ([("--" + k, v) for k, v in cf.getopt ("common").items () if v not in ("", "false", "no")])
 			fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("cron").items () if v not in ("", "false", "no")]))
@@ -265,7 +265,7 @@ if __name__ == "__main__":
 			_cf ["pname"] = v
 			
 	_cf ['jobs'] = []
-	for job in (cf.getopt ("crontab") or []) + argopt [1]:
+	for job in (cf and cf.getopt ("crontab") or [] + argopt [1]):
 		_cf ['jobs'].append (job)
 		
 	service = daemon.make_service (CronManager, _cf, _logpath, _varpath, _consol)	
