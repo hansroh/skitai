@@ -1304,10 +1304,12 @@ Examples
 Here're some implementations I made.
 
 - `DeLune API Server`_ 
+- `Haiku API Server`_
 - `Tensorflow API Server`_
 
 .. _`DeLune API Server`: https://pypi.python.org/pypi/delune
 .. _`Tensorflow API Server`: https://pypi.python.org/pypi/tfserver
+.. _`Haiku API Server`: https://pypi.python.org/pypi/haiku-lst
 
 
 Skitai 'was' Services
