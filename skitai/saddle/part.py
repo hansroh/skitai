@@ -34,7 +34,7 @@ class Part:
 		self._function_specs = {}
 		self._function_names = {}
 		self._conditions = {}
-		self._need_authenticate = {}
+		self._need_authenticate = {True: [], False: []}		
 		self._cond_check_lock = threading.RLock ()
 		
 		self._binds_server = [None] * 6
@@ -147,10 +147,13 @@ class Part:
 	# Auth ------------------------------------------------------
 	
 	def auth_required (self, f):	
-		self.save_function_spec_for_routing (f)
-		self._need_authenticate [f.__name__] = None
+		self._need_authenticate [True].append (f.__name__)
 		return f
 	
+	def auth_not_required (self, f):
+		self._need_authenticate [False].append (f.__name__)
+		return f
+		
 	def login_handler (self, f):
 		self._decos ["login_handler"] = f
 		return f

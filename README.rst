@@ -4565,7 +4565,7 @@ Change Log
 
 - 0.26.18 (Jan 2018)
   
-  - add @app.auth_required decorator
+  - add @app.auth_required and  @app.auth_not_required decorator
   - change default export script to __export__.py
   - remove app reloading progress:
    

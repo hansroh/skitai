@@ -177,8 +177,10 @@ class Saddle (part.Part):
 			self.jinja_env.filters [k] = v
 		
 		for params in self.route_map.values ():
-			if params [1] in self._need_authenticate:					
-				params [-1]["authenticate"] = True
+			for b in (True, False):
+				if params [1] in self._need_authenticate [b]:					
+					params [-1]["authenticate"] = b
+					break
 			
 		sqlmap_dir = os.path.join(path, self.config.get ("sqlmap_dir", "sqlmaps"))
 		if not os.path.isdir (sqlmap_dir):
