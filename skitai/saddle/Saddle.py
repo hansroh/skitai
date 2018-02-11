@@ -179,10 +179,12 @@ class Saddle (part.Part):
 		
 		# reconfigure authenticate --------------------------------------------
 		for params in self.route_map.values ():
-			if params [1] in self._need_authenticate:					
-				params [-1]["authenticate"] = True
-		
-		# sqlmaps --------------------------------------------	
+			for b in (True, False):
+				if params [1] in self._need_authenticate [b]:					
+					params [-1]["authenticate"] = b
+					break
+			
+		# sqlmaps --------------------------------------------
 		sqlmap_dir = os.path.join(path, self.config.get ("sqlmap_dir", "sqlmaps"))
 		if not os.path.isdir (sqlmap_dir):
 			sqlmap_dir = None

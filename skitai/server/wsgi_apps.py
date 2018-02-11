@@ -147,7 +147,7 @@ class Module:
 			
 		if reloadable:
 			oldapp = getattr (self.module, self.appname)
-			oldapp.life_cycle ("before_remount", self.wasc ())
+			oldapp.life_cycle ("before_reload", self.wasc ())
 			
 			try:
 				self.module, self.abspath = importer.reimporter (self.module, self.directory, self.libpath)			
@@ -165,8 +165,8 @@ class Module:
 				newapp = getattr (self.module, self.appname)
 				for attr, value in PRESERVED:
 					setattr (newapp, attr, value)
-				# remount
-				self.has_life_cycle and newapp.life_cycle ("remounted", self.wasc ())
+				# reloaded
+				self.has_life_cycle and newapp.life_cycle ("reloaded", self.wasc ())
 				self.last_reloaded = time.time ()
 				
 	def set_route (self, route):
