@@ -106,13 +106,13 @@ class Part:
 		self._binds_server [3] = f
 		return f
 	
-	def before_remount (self, f):
+	def before_reload (self, f):
 		self._binds_server [5] = f
 		return f	
-	onreload = before_remount
-	reload = before_remount
+	onreload = before_reload
+	reload = before_reload
 	
-	def remounted (self, f):
+	def reloaded (self, f):
 		self._binds_server [1] = f
 		return f
 	
@@ -581,8 +581,8 @@ class Part:
 	PHASES = {
 		'before_mount': 0,
 		'mounted': 3,
-		'before_remount': 5,
-		'remounted': 1,
+		'before_reload': 5,
+		'reloaded': 1,
 		'before_umount': 4,
 		'umounted': 2,		
 	}
