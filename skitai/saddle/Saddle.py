@@ -224,14 +224,14 @@ class Saddle (part.Part):
 	def decorate_with (self, module, *args, **karg):
 		self.decorating_params [module.__name__] = (args, karg)
 		
-	def watch (self, module, reloadable = True):
+	def watch (self, module, reloadable = True):				
 		if hasattr (module, "decorate"):
 			params = self.decorating_params.get (module.__name__)
 			if params:			
 				args, karg = params
 				module.decorate (self, *args, **karg)
 			else:
-				module.decorate (self)	
+				module.decorate (self)
 		
 		if reloadable:
 			try:
