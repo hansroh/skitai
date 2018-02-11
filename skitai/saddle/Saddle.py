@@ -157,7 +157,7 @@ class Saddle (part.Part):
 	
 	#------------------------------------------------------
 		
-	def set_home (self, path):
+	def set_home (self, path, module):
 		self.home = path
 		if PageTemplateLoader is not None:
 			self.chameleon = PageTemplateLoader (
@@ -166,6 +166,7 @@ class Saddle (part.Part):
 				restricted_namespace = False
 			)
 		
+		# configure jinja --------------------------------------------
 		loader = self.get_template_loader ()
 		if self.jinja_env:
 			# activated skito_jinja
@@ -176,41 +177,40 @@ class Saddle (part.Part):
 		for k, v in self._jinja2_filters.items ():
 			self.jinja_env.filters [k] = v
 		
+		# reconfigure authenticate --------------------------------------------
 		for params in self.route_map.values ():
 			if params [1] in self._need_authenticate:					
 				params [-1]["authenticate"] = True
-			
+		
+		# sqlmaps --------------------------------------------	
 		sqlmap_dir = os.path.join(path, self.config.get ("sqlmap_dir", "sqlmaps"))
 		if not os.path.isdir (sqlmap_dir):
 			sqlmap_dir = None
 		self.sqlmap = SQLPhile (sqlmap_dir, self.use_reloader, self.config.get ("sqlmap_engine", "postgresql"))
 		
+		# load decorative --------------------------------------------
+		contrib = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'decorative')
 		package_dirs = []
 		for d in self.PACKAGE_DIRS:
 			maybe_dir = os.path.join (path, d)
 			if os.path.isdir (maybe_dir):
 				package_dirs.append (maybe_dir)
 		
-		contrib = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'decorative')
-		for k, v in list (sys.modules.items ()):
+		for attr in dir (module):
+			v = getattr (module, attr)
 			try:
 				modpath = v.__spec__.origin
 			except AttributeError:
-				continue
-			
+				continue			
 			if not modpath:
 				continue
-			
 			if modpath.startswith (contrib):
-				# temporary allow reloading
-				self.watch (v, True)
-				continue
-
+				self.watch (v, self.debug and self.use_reloader)
 			for package_dir in package_dirs:
 				if modpath.startswith (package_dir):
 					self.watch (v)
 					break
-							
+		
 	def get_resource (self, *args):
 		return self.joinpath ("resources", *args)
 	

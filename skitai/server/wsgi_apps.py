@@ -76,7 +76,7 @@ class Module:
 			app.config.max_multipart_body_size = val
 			app.config.max_upload_file_size = val		
 		if hasattr (app, "set_home"):
-			app.set_home (os.path.dirname (self.abspath))
+			app.set_home (os.path.dirname (self.abspath), self.module)			
 		if hasattr (app, "commit_events_to"):
 			app.commit_events_to (self.bus)
 				
