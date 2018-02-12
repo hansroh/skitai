@@ -73,6 +73,7 @@ class Saddle (part.Part):
 		self.cached_rules = []
 		self.config = Config (preset = True)
 		self._salt = None
+		self._package_dirs = []
 	
 	#------------------------------------------------------
 	
@@ -196,11 +197,11 @@ class Saddle (part.Part):
 		for d in self.PACKAGE_DIRS:
 			maybe_dir = os.path.join (path, d)
 			if os.path.isdir (maybe_dir):
-				package_dirs.append (maybe_dir)				
-		self.find_watchables (module, package_dirs)
+				self._package_dirs.append (maybe_dir)				
+		self.find_watchables (module)
 		
 	CONTRIB_DIR = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'decorative')
-	def find_watchables (self, module, package_dirs):
+	def find_watchables (self, module):
 		for attr in dir (module):
 			v = getattr (module, attr)
 			try:
@@ -214,12 +215,10 @@ class Saddle (part.Part):
 			if self.contrib_devel:
 				if modpath.startswith (self.CONTRIB_DIR):
 					self.watch (v)
-					self.find_watchables (v, package_dirs)
 					continue								
-			for package_dir in package_dirs:
+			for package_dir in self._package_dirs:
 				if modpath.startswith (package_dir):
-					self.watch (v)
-					self.find_watchables (v, package_dirs)
+					self.watch (v)					
 					break
 			
 	def get_resource (self, *args):
@@ -246,6 +245,9 @@ class Saddle (part.Part):
 			self.reloadables [module] = self.get_file_info (module)
 		except FileNotFoundError:
 			return
+		
+		# find recursively
+		self.find_watchables (module)
 				
 	def maybe_reload (self):
 		if time.time () - self.last_reloaded < 1.0:
