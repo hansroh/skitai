@@ -36,7 +36,8 @@ class AuthorizedUser:
 		
 class Saddle (part.Part):
 	use_reloader = False
-	debug = False		
+	debug = False
+	contrib_devel = False # make reloadable
 	# Session
 	securekey = None
 	session_timeout = None
@@ -190,14 +191,16 @@ class Saddle (part.Part):
 			sqlmap_dir = None
 		self.sqlmap = SQLPhile (sqlmap_dir, self.use_reloader, self.config.get ("sqlmap_engine", "postgresql"))
 		
-		# load decorative --------------------------------------------
-		contrib = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'decorative')
+		# vaild packages --------------------------------------------
 		package_dirs = []
 		for d in self.PACKAGE_DIRS:
 			maybe_dir = os.path.join (path, d)
 			if os.path.isdir (maybe_dir):
-				package_dirs.append (maybe_dir)
+				package_dirs.append (maybe_dir)				
+		self.find_watchables (module, package_dirs)
 		
+	CONTRIB_DIR = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'decorative')
+	def find_watchables (self, module, package_dirs):
 		for attr in dir (module):
 			v = getattr (module, attr)
 			try:
@@ -205,14 +208,20 @@ class Saddle (part.Part):
 			except AttributeError:
 				continue			
 			if not modpath:
+				continue			
+			if v in self.reloadables:
 				continue
-			if modpath.startswith (contrib):
-				self.watch (v, self.debug and self.use_reloader)
+			if self.contrib_devel:
+				if modpath.startswith (self.CONTRIB_DIR):
+					self.watch (v)
+					self.find_watchables (v, package_dirs)
+					continue								
 			for package_dir in package_dirs:
 				if modpath.startswith (package_dir):
 					self.watch (v)
+					self.find_watchables (v, package_dirs)
 					break
-		
+			
 	def get_resource (self, *args):
 		return self.joinpath ("resources", *args)
 	
@@ -224,7 +233,7 @@ class Saddle (part.Part):
 	def decorate_with (self, module, *args, **karg):
 		self.decorating_params [module.__name__] = (args, karg)
 		
-	def watch (self, module, reloadable = True):				
+	def watch (self, module):
 		if hasattr (module, "decorate"):
 			params = self.decorating_params.get (module.__name__)
 			if params:			
@@ -232,13 +241,12 @@ class Saddle (part.Part):
 				module.decorate (self, *args, **karg)
 			else:
 				module.decorate (self)
-		
-		if reloadable:
-			try:
-				self.reloadables [module] = self.get_file_info (module)
-			except FileNotFoundError:
-				return
-					
+				
+		try:
+			self.reloadables [module] = self.get_file_info (module)
+		except FileNotFoundError:
+			return
+				
 	def maybe_reload (self):
 		if time.time () - self.last_reloaded < 1.0:
 			return
