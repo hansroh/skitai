@@ -61,7 +61,7 @@ class Saddle (part.Part):
 		self.jinja_env = None
 		
 		self.chameleon = None
-		self.sqlmap = None
+		self.sqlphile = None
 		self.bus = evbus.EventBus ()
 		self.events = {}
 		# for bus, set by wsgi_executor
@@ -186,11 +186,11 @@ class Saddle (part.Part):
 					params [-1]["authenticate"] = b
 					break
 			
-		# sqlmaps --------------------------------------------
+		# sqlphile --------------------------------------------
 		sqlmap_dir = os.path.join(path, self.config.get ("sqlmap_dir", "sqlmaps"))
 		if not os.path.isdir (sqlmap_dir):
 			sqlmap_dir = None
-		self.sqlmap = SQLPhile (sqlmap_dir, self.use_reloader, self.config.get ("sqlmap_engine", "postgresql"))
+		self.sqlphile = SQLPhile (sqlmap_dir, self.use_reloader, self.config.get ("sql_engine", skitai.DB_PGSQL))
 		
 		# vaild packages --------------------------------------------
 		package_dirs = []

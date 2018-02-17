@@ -3456,22 +3456,23 @@ File Upload
 
 
 Using SQL Map with SQLPhile
------------------------------
+---------------------------------
 
 *New in Version 0.26.13*
 
-SQLPhile_ is SQL generator and can be accessed from was.sqlmap.
+SQLPhile_ is SQL generator and can be accessed from was.sql.
+
+was.sql is a instance of sqlphile.SQLPhile.
 
 If you want to use SQL templates, create sub directory 'sqlmaps' and place sqlmap files.
 
 .. code:: python
   
-  app.config.sqlmap_engine = skitai.DB_PGSQL  
+  app.config.sql_engine = skitai.DB_PGSQL
   
   @app.route ("/")
   def index (was):
-    q = was.sqlmap.select ('rc_file').get ('id, name')
-    q.filter (id = 4)
+    q = was.sql.select (tbl_'user').get ('id, name').filter (id = 4)
     req = was.backend ("@db").execute (q)
     result = req.getwait ()
 
@@ -4565,6 +4566,7 @@ Change Log
 
 - 0.26.18 (Jan 2018)
   
+  - rename was.sqlmap to was.sql
   - add @app.auth_required and  @app.auth_not_required decorator
   - change default export script to __export__.py
   - remove app reloading progress:

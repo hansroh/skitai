@@ -382,8 +382,8 @@ class WAS:
 	# proxy & adaptor  -----------------------------------------------
 	
 	@property
-	def sqlmap (self):
-		return self.app.sqlmap
+	def sql (self):
+		return self.app.sqlphile
 	
 	@property
 	def django (self):
