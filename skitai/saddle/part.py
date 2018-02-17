@@ -34,7 +34,7 @@ class Part:
 		self._function_specs = {}
 		self._function_names = {}
 		self._conditions = {}
-		self._need_authenticate = {}
+		self._need_authenticate = {True: [], False: []}		
 		self._cond_check_lock = threading.RLock ()
 		
 		self._binds_server = [None] * 6
@@ -106,13 +106,13 @@ class Part:
 		self._binds_server [3] = f
 		return f
 	
-	def before_remount (self, f):
+	def before_reload (self, f):
 		self._binds_server [5] = f
 		return f	
-	onreload = before_remount
-	reload = before_remount
+	onreload = before_reload
+	reload = before_reload
 	
-	def remounted (self, f):
+	def reloaded (self, f):
 		self._binds_server [1] = f
 		return f
 	
@@ -147,10 +147,13 @@ class Part:
 	# Auth ------------------------------------------------------
 	
 	def auth_required (self, f):	
-		self.save_function_spec_for_routing (f)
-		self._need_authenticate [f.__name__] = None
+		self._need_authenticate [True].append (f.__name__)
 		return f
 	
+	def auth_not_required (self, f):
+		self._need_authenticate [False].append (f.__name__)
+		return f
+		
 	def login_handler (self, f):
 		self._decos ["login_handler"] = f
 		return f
@@ -581,8 +584,8 @@ class Part:
 	PHASES = {
 		'before_mount': 0,
 		'mounted': 3,
-		'before_remount': 5,
-		'remounted': 1,
+		'before_reload': 5,
+		'reloaded': 1,
 		'before_umount': 4,
 		'umounted': 2,		
 	}

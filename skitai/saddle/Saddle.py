@@ -36,7 +36,8 @@ class AuthorizedUser:
 		
 class Saddle (part.Part):
 	use_reloader = False
-	debug = False		
+	debug = False
+	contrib_devel = False # make reloadable
 	# Session
 	securekey = None
 	session_timeout = None
@@ -72,6 +73,7 @@ class Saddle (part.Part):
 		self.cached_rules = []
 		self.config = Config (preset = True)
 		self._salt = None
+		self._package_dirs = []
 	
 	#------------------------------------------------------
 	
@@ -157,7 +159,7 @@ class Saddle (part.Part):
 	
 	#------------------------------------------------------
 		
-	def set_home (self, path):
+	def set_home (self, path, module):
 		self.home = path
 		if PageTemplateLoader is not None:
 			self.chameleon = PageTemplateLoader (
@@ -166,6 +168,7 @@ class Saddle (part.Part):
 				restricted_namespace = False
 			)
 		
+		# configure jinja --------------------------------------------
 		loader = self.get_template_loader ()
 		if self.jinja_env:
 			# activated skito_jinja
@@ -176,41 +179,48 @@ class Saddle (part.Part):
 		for k, v in self._jinja2_filters.items ():
 			self.jinja_env.filters [k] = v
 		
+		# reconfigure authenticate --------------------------------------------
 		for params in self.route_map.values ():
-			if params [1] in self._need_authenticate:					
-				params [-1]["authenticate"] = True
+			for b in (True, False):
+				if params [1] in self._need_authenticate [b]:					
+					params [-1]["authenticate"] = b
+					break
 			
+		# sqlmaps --------------------------------------------
 		sqlmap_dir = os.path.join(path, self.config.get ("sqlmap_dir", "sqlmaps"))
 		if not os.path.isdir (sqlmap_dir):
 			sqlmap_dir = None
 		self.sqlmap = SQLPhile (sqlmap_dir, self.use_reloader, self.config.get ("sqlmap_engine", "postgresql"))
 		
+		# vaild packages --------------------------------------------
 		package_dirs = []
 		for d in self.PACKAGE_DIRS:
 			maybe_dir = os.path.join (path, d)
 			if os.path.isdir (maybe_dir):
-				package_dirs.append (maybe_dir)
+				self._package_dirs.append (maybe_dir)				
+		self.find_watchables (module)
 		
-		contrib = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'decorative')
-		for k, v in list (sys.modules.items ()):
+	CONTRIB_DIR = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'decorative')
+	def find_watchables (self, module):
+		for attr in dir (module):
+			v = getattr (module, attr)
 			try:
 				modpath = v.__spec__.origin
 			except AttributeError:
-				continue
-			
+				continue			
 			if not modpath:
+				continue			
+			if v in self.reloadables:
 				continue
-			
-			if modpath.startswith (contrib):
-				# temporary allow reloading
-				self.watch (v, True)
-				continue
-
-			for package_dir in package_dirs:
-				if modpath.startswith (package_dir):
+			if self.contrib_devel:
+				if modpath.startswith (self.CONTRIB_DIR):
 					self.watch (v)
+					continue								
+			for package_dir in self._package_dirs:
+				if modpath.startswith (package_dir):
+					self.watch (v)					
 					break
-							
+			
 	def get_resource (self, *args):
 		return self.joinpath ("resources", *args)
 	
@@ -222,21 +232,23 @@ class Saddle (part.Part):
 	def decorate_with (self, module, *args, **karg):
 		self.decorating_params [module.__name__] = (args, karg)
 		
-	def watch (self, module, reloadable = True):
+	def watch (self, module):
 		if hasattr (module, "decorate"):
 			params = self.decorating_params.get (module.__name__)
 			if params:			
 				args, karg = params
 				module.decorate (self, *args, **karg)
 			else:
-				module.decorate (self)	
+				module.decorate (self)
+				
+		try:
+			self.reloadables [module] = self.get_file_info (module)
+		except FileNotFoundError:
+			return
 		
-		if reloadable:
-			try:
-				self.reloadables [module] = self.get_file_info (module)
-			except FileNotFoundError:
-				return
-					
+		# find recursively
+		self.find_watchables (module)
+				
 	def maybe_reload (self):
 		if time.time () - self.last_reloaded < 1.0:
 			return

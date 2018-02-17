@@ -1304,10 +1304,12 @@ Examples
 Here're some implementations I made.
 
 - `DeLune API Server`_ 
+- `Haiku API Server`_
 - `Tensorflow API Server`_
 
 .. _`DeLune API Server`: https://pypi.python.org/pypi/delune
 .. _`Tensorflow API Server`: https://pypi.python.org/pypi/tfserver
+.. _`Haiku API Server`: https://pypi.python.org/pypi/haiku-lst
 
 
 Skitai 'was' Services
@@ -3647,8 +3649,8 @@ These app life cycle methods will be called by this order,
 - mounted (*was*): called first with was (instance of wac)
 - loop whenever app is reloaded,
     
-  - newapp.before_remount (wac)
-  - newapp.remounted (*was*)
+  - oldapp.before_reload (*was*)
+  - newapp.reloaded (*was*)
   
 - before_umount (*was*): called last with was (instance of wac), add shutting down process
 - umounted (wac): when skitai server enter shutdown process
@@ -3666,7 +3668,7 @@ Please note that first arg of startup, reload and shutdown is *wac* not *was*. *
     wac.register ("loginengine", SNSLoginEngine (logger))
     wac.register ("searcher", FulltextSearcher (wac.numthreads))    
   
-  @app.before_remount  
+  @app.before_reload
   def before_remount (wac):
     wac.loginengine.reset ()
   
@@ -3718,8 +3720,8 @@ If you have databases or API servers, and want to create cache object on app sta
     # or use RPC
     was.rpc ('@myrpc/rpc2', callback = create_cache).get_states ()
   
-  @app.remounted
-  def remounted (was):
+  @app.reloaded
+  def reloaded (was):
     mounted (was) # same as mounted
   
   @app.before_umount
@@ -4563,6 +4565,7 @@ Change Log
 
 - 0.26.18 (Jan 2018)
   
+  - add @app.auth_required and  @app.auth_not_required decorator
   - change default export script to __export__.py
   - remove app reloading progress:
    
@@ -4570,13 +4573,13 @@ Change Log
      
       - before_umount (was)
       - umounted (wac)      
-      - before_remount (wac)
-      - remounted (was)
+      - before_remount (wac): deprecated
+      - remounted (was): deprecated
       
     - now:
     
-      - before_remount (wac)
-      - remounted (was)
+      - before_reload (was)
+      - reloaded (was)
     
   - change app.model_signal () to app.redirect_signal (), add @app.on_signal ()
   - change skitai.addlu to skitai.deflu (args, ...)

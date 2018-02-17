@@ -38,7 +38,10 @@ class Module:
 			self.app = libpath
 			self.app.use_reloader = False
 			self.start_app ()
-			
+		
+		app = self.app or getattr (self.module, self.appname)
+		self.has_life_cycle and app.life_cycle ("before_mount", self.wasc)
+		
 	def __repr__ (self):
 		return "<Module routing to %s at %x>" % (self.route, id(self))
 				
@@ -73,11 +76,10 @@ class Module:
 			app.config.max_multipart_body_size = val
 			app.config.max_upload_file_size = val		
 		if hasattr (app, "set_home"):
-			app.set_home (os.path.dirname (self.abspath))
+			app.set_home (os.path.dirname (self.abspath), self.module)			
 		if hasattr (app, "commit_events_to"):
 			app.commit_events_to (self.bus)
-		
-		self.has_life_cycle and app.life_cycle (reloded and "before_remount" or "before_mount", self.wasc)
+				
 		self.set_devel_env ()
 		self.update_file_info ()
 			
@@ -95,7 +97,7 @@ class Module:
 			func (self.wasc, self.route)
 			self.wasc.handler = None
 	
-	def mounted (self):	
+	def mounted (self):
 		app = self.app or getattr (self.module, self.appname)
 		self.has_life_cycle and app.life_cycle ("mounted", self.wasc ())
 	
@@ -145,6 +147,8 @@ class Module:
 			
 		if reloadable:
 			oldapp = getattr (self.module, self.appname)
+			oldapp.life_cycle ("before_reload", self.wasc ())
+			
 			try:
 				self.module, self.abspath = importer.reimporter (self.module, self.directory, self.libpath)			
 			except:
@@ -161,8 +165,8 @@ class Module:
 				newapp = getattr (self.module, self.appname)
 				for attr, value in PRESERVED:
 					setattr (newapp, attr, value)
-				# remount
-				self.has_life_cycle and newapp.life_cycle ("remounted", self.wasc ())
+				# reloaded
+				self.has_life_cycle and newapp.life_cycle ("reloaded", self.wasc ())
 				self.last_reloaded = time.time ()
 				
 	def set_route (self, route):
