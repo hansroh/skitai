@@ -3464,11 +3464,11 @@ If you want to use SQL templates, create sub directory 'sqlmaps' and place sqlma
 
 .. code:: python
   
-  app.config.sqlmap_engine = "postgresql"  
+  app.config.sqlmap_engine = skitai.DB_PGSQL  
   
   @app.route ("/")
   def index (was):
-    q = was.sqlmap.ops.select ('rc_file', 'id', 'name')
+    q = was.sqlmap.select ('rc_file').get ('id, name')
     q.filter (id = 4)
     req = was.backend ("@db").execute (q)
     result = req.getwait ()
