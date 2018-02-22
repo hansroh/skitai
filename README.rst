@@ -2587,7 +2587,19 @@ If app raise exception, traceback information will be displayed only app.debug =
       raise ValueError ("Test Error")
     except:      
       return was.response ("500 Internal Server Error", exc_info = sys.exc_info ())
+
+If you use custom error handler, you can set detail explaination to error ["detail"]. 
+
+.. code:: python
     
+  @app.default_error_handler
+  def default_error_handler (was, error):
+    return was.render ("errors/default.html", error = error)
+  
+  def error (was):
+    return was.response.with_explain ('503 Serivce Unavaliable', "Please Visit On Thurse Day")
+        
+        
 You can return various objects.
 
 .. code:: python
