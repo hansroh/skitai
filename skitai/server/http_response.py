@@ -27,13 +27,15 @@ DEFAULT_ERROR_MESSAGE = """<!DOCTYPE html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>%(code)d %(message)s</title>
-<style type="text/css"><!-- *{font-family:sans-serif, verdana;}body{margin:0;padding:0;font-size:14px;color:#1e1e1e;font-family:verdana,sans-serif;text-align:center;} #titles{padding:16px;}#titles h1{color: #000000;} #content{padding:16px 16px 30px 16px;} #debug h2 {font-size: 18px; font-weight: 600;} #debug h3{font-size: 16px; color: #d90000;} #debug p,b,h4,li {font-size:14px;}#debug h4{color: #999999;} #debug li{margin-bottom: 6px;} #debug .f {color:#8AB088; font-weight: bold;} #debug .n {color:#003366;font-weight:bold;} #debug{background-color: #E9F5F9; ; margin-bottom: 32px; padding:8px 16px 8px 16px; border-radius: 6px;} #debug li,i{font-weight:normal;}#footer {font-size:12px;padding-left:10px;}#software {border-top: solid 1px #cccccc;} #software div {padding-top: 10px; font-size: 12px;} --></style>
+<style type="text/css"><!-- *{font-family:sans-serif, verdana;}body{margin:0;padding:0;font-size:14px;color:#1e1e1e;font-family:verdana,sans-serif;text-align:center;} #titles{padding:16px;}#titles h1{color: #000000;} #content{padding:16px 16px 30px 16px;} #debug h2 {font-size: 18px; font-weight: 600;} #debug h3{font-size: 16px; color: #d90000;} #debug p,b,h4,li {font-size:14px;}#debug h4{color: #999999;} #debug li{margin-bottom: 6px;} #debug .f {color:#8AB088; font-weight: bold;} #debug .n {color:#003366;font-weight:bold;} #debug{text-align: left; background-color: #FFF; margin-bottom: 32px; padding:8px 16px 8px 16px; border-radius: 3px;} #debug li,i{font-weight:normal;}#footer {font-size:12px;padding-left:10px;}#software {border-top: solid 1px #cccccc;} #software div {padding-top: 10px; font-size: 12px;} --></style>
 </head>
 <body>
 <div id="titles"><h1>%(code)d %(message)s</h1></div>
 <div id="content">
 <div id="detail">%(detail)s</div>
-<div id="%(mode)s"><p>%(traceback)s</p></div>
+<div id="traceback">
+	<div id="%(mode)s"><p>%(traceback)s</p></div>
+</div>
 <div id="software"><div>%(software)s</div></div>
 </div>
 </body>
