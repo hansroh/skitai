@@ -3,23 +3,59 @@ import os
 from skitai.server.handlers import collectors
 from aquests.lib import pathtool
 import shutil
+import io
 
 class File:
-	def __init__ (self, max_size):
+	in_memory = 1024 * 1024 #1mb
+	def __init__ (self, max_size, content_length = 0):
+		self.content_length = content_length
 		self.max_size = max_size
-		self.descriptor = tempfile.NamedTemporaryFile(delete=False)
+		self.descriptor = io.BytesIO ()
 		self.size = 0
+		self._physical = False		
+		self._buffer = None
 		
 	def write (self, data):
-		self.descriptor.write (data)
 		self.size += len (data)
 		if self.max_size and self.size > self.max_size:
-			raise ValueError("file size is over %d MB" % (self.size/1024./1024,))
+			raise ValueError("file size is over %d MB" % (self.size/1024./1024,))		
+		self.descriptor.write (data)	
+		
+		if not self._physical and self.size > self.in_memory:
+			self._physical = True 
+			val =  self.descriptor.getvalue ()
+			self.descriptor = tempfile.NamedTemporaryFile (delete=False)
+			self.descriptor.write (val)
 	
+	def move (self, to):
+		if self._physical:
+			shutil.move (self.get_name (), to)
+		else:
+			with open (to, "wb") as dest:
+				dest.write (self._buffer)				
+	
+	def remove (self):
+		src = self.get_name ()
+		if src:
+			os.remove (src)
+		else:	
+			self._buffer = None
+	
+	def read (self):
+		if not self._physical:
+			return self._buffer	
+		with open (self.get_name (), "rb") as f:
+			return f.read ()
+						
 	def close (self):
+		if not self._physical:
+			self._buffer = self.descriptor.getvalue ()
 		self.descriptor.close ()
 	
+	def get_name (self):
+		return self._physical and self.descriptor.name or None
 	
+		
 class Part:
 	def __init__ (self, header, max_size):		
 		if type (header) is not type ([]):
@@ -43,22 +79,22 @@ class Part:
 				if "filename" in attr and attr ["filename"]:
 					self.filename = attr ["filename"].replace ('"', "")
 					if self.filename:	
-						self.value = File (self.max_size)
-	
+						cl = int (self.get_header ("Content-Length", 0))
+						if cl and cl > self.max_size:
+							raise ValueError("file size is over %d MB" % (cl/1024./1024,))		
+						self.value = File (self.max_size, cl)
+						
 	def get_remote_filename (self):
 		return self.filename
 		
 	def get_local_filename (self):
-		return self.value.descriptor.name
+		return self.value.get_name ()
 	
 	def get_file_size (self):
 		return self.value.size
 	
 	def get_content_type (self):
 		return self.content_type
-				
-	def mv (self, to):
-		os.rename (self.get_local_filename (), to)
 		
 	def get_header_with_attr (self, header, default = None):
 		d = {}
@@ -129,12 +165,15 @@ class Part:
 
 class FileWrapper:
 	def __init__ (self, part):
-		self.name = self.name_securing (part.get_remote_filename ())
+		self.part = part
+		self.name = self._name_securing (part.get_remote_filename ())
 		self.path = part.get_local_filename ()
 		self.size = part.get_file_size ()
 		self.mimetype = part.get_content_type ()
-		# depricate
-		self.file = self.path
+		self._file = part.value
+		
+		# depricating
+		self.file = self.path		
 	
 	def __repr__ (self):
 		return "<File %s (%d bytes, %s) saved as %s>" % (
@@ -157,24 +196,24 @@ class FileWrapper:
 					target = os.path.join (into, "%s.%d%s" % (name, num, ext and "." + ext or ""))
 					if not os.path.isfile (target):
 						break
-					num += 1				
-		shutil.move (self.path, target)
+					num += 1		
+		self.move (target)
 	
+	def move (self, to):
+		self._file.move (to)
+		
 	def remove (self):
-		os.remove (self.path)
+		self._file.remove ()
 	
 	def read (self, mode = "rb"):
-		with open (self.path, mode) as f:
-			data = f.read ()
-		return data
+		return self._file.read () 
 		
-	def name_securing (self, name):
+	def _name_securing (self, name):
 		while name:
 			if name [0] == "/":
 				name = name [1:]
 			else:	
 				break
-		
 		return name.replace ("../", "").replace ("/", "")
 						
 				
@@ -229,8 +268,12 @@ class MultipartCollector (collectors.FormCollector):
 			self.current_part.collect_incoming_data (data)			
 		else:	
 			self.buffer += data
-			if self.buffer == b"--" and self.trackable_tail == self.top_boundary:
-				self.stop_collect ()
+			if self.buffer == b"--":
+				if self.trackable_tail == self.top_boundary:
+					self.stop_collect ()
+				elif not self.parts.value and self.trackable_tail == self.top_boundary [2:]:
+					# no content
+					self.stop_collect ()
 		
 		self.trackable_tail = None
 	
