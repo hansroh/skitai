@@ -525,14 +525,12 @@ class http_response:
 	def api (self, __data_dict__ = None, **kargs):
 		return API (self.request, __data_dict__ or kargs)
 
-	def fault (self, message, code = 20000,  debug = None, more_info = None, exc_info = None):
+	def fault (self, message = "", code = 20000,  debug = None, more_info = None, exc_info = None, traceback = False):
 		api = self.api ()
-		api.error (message, code, debug, more_info, exc_info)
-		return api
-	
-	def traceback (self, message = '', code = 10001, debug = 'see traceback', more_info = None):
-		api = self.api ()
-		api.traceback (message, code, debug, more_info)
+		if traceback:
+			api.traceback (message, code, debug or "see traceback", more_info)
+		else:	
+			api.error (message, code, debug, more_info, exc_info)
 		return api
 	
 	def for_api (self, status = "200 OK", *args, **kargs):

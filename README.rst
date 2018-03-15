@@ -2701,7 +2701,12 @@ You can send traceback information for debug purpose like in case app.debug = Fa
   try:
     do something
   except:
-    return was.response.traceback ('somethig is not valid') 
+    return was.response.for_api (
+      '500 Internal Server Error',
+      'somethig is not valid', 
+      10022, 
+      traceback = True
+    ) 
 
   # client see,
   {
@@ -3457,8 +3462,9 @@ File Upload
 - file.name: original file name posted
 - file.size
 - file.mimetype
-- file.remove ()
 - file.save (into, name = None, mkdir = False, dup = "u")
+- file.remove ()
+- file.read ()
 
   * if name is None, used file.name
   * dup: 
@@ -4578,6 +4584,7 @@ Change Log
 
 - 0.26.18 (Jan 2018)
   
+  - remove was.response.traceback(), use was.response.for_ap (traceback = True)
   - rename was.sqlmap to was.sql
   - add @app.auth_required and  @app.auth_not_required decorator
   - change default export script to __export__.py
