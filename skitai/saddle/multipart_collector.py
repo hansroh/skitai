@@ -22,10 +22,11 @@ class File:
 		self.descriptor.write (data)	
 		
 		if not self._physical and self.size > self.in_memory:
-			self._physical = True 
 			val =  self.descriptor.getvalue ()
+			self.descriptor.close ()
 			self.descriptor = tempfile.NamedTemporaryFile (delete=False)
 			self.descriptor.write (val)
+			self._physical = True
 	
 	def move (self, to):
 		if self._physical:
@@ -41,10 +42,15 @@ class File:
 		else:	
 			self._buffer = None
 	
+	def as_file (self):
+		if self._physical:
+			return open (self.get_name (), "rb")
+		return io.BytesIO (self._buffer)
+			
 	def read (self):
 		if not self._physical:
-			return self._buffer	
-		with open (self.get_name (), "rb") as f:
+			return self._buffer
+		with self.as_file () as f:
 			return f.read ()
 						
 	def close (self):
