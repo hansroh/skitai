@@ -38,7 +38,9 @@ class Executor (wsgi_executor.Executor):
 			return b""
 			
 		self.build_was ()
-		self.was.subapp = current_app			
+		self.was.subapp = current_app
+		self.was.response ["grpc-status"] = "0"
+		self.was.response ["grpc-message"] = "ok"
 		self.was.response ["grpc-accept-encoding"] = 'identity,gzip'
 		
 		descriptor = []
