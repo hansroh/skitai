@@ -225,7 +225,7 @@ class FileWrapper:
 				
 class MultipartCollector (collectors.FormCollector):
 	def __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size):
-		# 100M, 20M, 5M
+		# 100M, 20M, 5M		
 		self.handler = handler
 		self.request = request
 		

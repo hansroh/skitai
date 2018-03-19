@@ -194,16 +194,15 @@ class http2_request_handler:
 					
 	def handle_response (self, stream_id, headers, producer, do_optimize, force_close = False):
 		r = self.get_request (stream_id)
-		with self._clock:			
+		with self._clock:
 			try:
 				depends_on, weight = self.priorities [stream_id]
 			except KeyError:
 				depends_on, weight = 0, 1	
 			else:
 				del self.priorities [stream_id]
-
-		header_producer = h2header_producer (stream_id, headers, producer, self.conn, self._plock)
 		
+		header_producer = h2header_producer (stream_id, headers, producer, self.conn, self._plock)		
 		if not producer:
 			header_producer = r.response.log_or_not (r.uri, header_producer, r.response.log)			
 			self.channel.push_with_producer (header_producer)
@@ -346,7 +345,7 @@ class http2_request_handler:
 			headers = [(k.decode ("utf8"), v.decode ("utf8")) for k, v in headers]
 			
 		for k, v in headers:
-			#print ('HEADER:', k, v)								
+			#print ('HEADER:', k, v)
 			if k[0] == ":":
 				if k == ":method": command = v.upper ()
 				elif k == ":path": uri = v

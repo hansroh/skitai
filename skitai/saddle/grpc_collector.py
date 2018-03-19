@@ -31,8 +31,8 @@ class grpc_collector (FormCollector):
 		if not self.buffer:
 			return self.close ()
 			
-		buf, self.buffer = self.buffer, b""				
-		if self._compressed is None:			
+		buf, self.buffer = self.buffer, b""
+		if self._compressed is None:
 			self._compressed = struct.unpack ("!B", buf)[0]
 			self.request.channel.set_terminator (4)
 		

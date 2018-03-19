@@ -39,8 +39,7 @@ class Executor (wsgi_executor.Executor):
 			
 		self.build_was ()
 		self.was.subapp = current_app			
-		self.was.response ["grpc-status"] = "0"
-		self.was.response ["grpc-message"] = "ok"
+		self.was.response ["grpc-accept-encoding"] = 'identity,gzip'
 		
 		descriptor = []
 		for m in data:
@@ -48,8 +47,8 @@ class Executor (wsgi_executor.Executor):
 			f.ParseFromString (m)
 			descriptor.append (f)
 		if not self.input_type [1]: # not stream
-			descriptor = descriptor [0]			
-	
+			descriptor = descriptor [0]
+
 		result = b""
 		try:
 			result = self.chained_exec (self.service, (descriptor,), {})
@@ -62,14 +61,15 @@ class Executor (wsgi_executor.Executor):
 			
 		else:
 			if result:
-				#self.was.response ["grpc-encoding"] = "gzip"
 				self.was.response ["content-type"] = "application/grpc"
 			self.commit ()
-			result = grpc_producer (result [0])
+			result = grpc_producer (result [0], False)
+			for k,v in result.get_headers ():
+				self.was.response [k] = v
 			
 		del self.was.subapp
 		del self.was.env
 		
-		return result	
+		return result
 				
 		
