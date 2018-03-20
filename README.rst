@@ -4584,6 +4584,7 @@ Change Log
 
 - 0.26.18 (Jan 2018)
   
+  - fix HTTP2 flow control window
   - remove was.response.traceback(), use was.response.for_ap (traceback = True)
   - rename was.sqlmap to was.sql
   - add @app.auth_required and  @app.auth_not_required decorator
