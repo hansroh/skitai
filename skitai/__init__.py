@@ -266,7 +266,7 @@ def _get_django_settings (settings_path):
 	settings_mod = "{}.{}".format (django_main_dir, settings_file.split (".")[0])
 	
 	if not os.environ.get ("DJANGO_SETTINGS_MODULE"):		
-		sys.path.insert (0, django_root)	
+		sys.path.insert (0, django_root)		
 		os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings_mod)
 		django.setup()
 	

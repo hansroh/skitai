@@ -119,7 +119,7 @@ class Handler:
 		while path and path [0] == '/':
 			path = path[1:]
 		
-		if self.filesystem.isdir (path):		
+		if self.filesystem.isdir (path):
 			if path and path[-1] != '/':
 				request.response['Location'] = '/%s/' % path
 				request.response.error (301)

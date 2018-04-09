@@ -179,7 +179,7 @@ class SecuredDictValue (SecuredValue):
 		mac = hmac(self.secret_key, None, self.hash_method)
 		for key, value in sorted (self.items(), key = lambda x: x[0]):
 			result.append (quote_plus (key).encode ("utf8") + b"=" + self.quote(value))
-			mac.update(b'|' + result[-1])			
+			mac.update(b'|' + result[-1])
 		return (base64.b64encode(mac.digest()).strip() + b"?" + b'&'.join(result)).decode ("utf8")
 	
 	def unserialize_from_string(self, string):
