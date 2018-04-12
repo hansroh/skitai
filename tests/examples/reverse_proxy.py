@@ -17,4 +17,4 @@ if __name__ == "__main__":
 	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.python.org")
 	skitai.mount ("/", app)
 	skitai.mount ("/lb", "@pypi")
-	skitai.run ()
+	skitai.run (port = 30371)

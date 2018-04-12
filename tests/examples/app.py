@@ -54,7 +54,7 @@ def handle_response (promise, rs):
 			e = content.find ('<a name="downloads">', s)
 			if e != -1:						
 				content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></h4>" + content [s:e]		
-		promise [rs.reqid]	= content		
+		promise [rs.id]	= content		
 	if promise.fulfilled ():
 		promise.settle (promise.render ("documentation2.html"))
 		
@@ -111,8 +111,7 @@ if __name__ == "__main__":
 	skitai.enable_proxy ()
 
 	skitai.run (
-		address = "0.0.0.0",
-		port = 5000,
+		port = 30371,
 		workers = 2,
 		threads = 4				
 	)

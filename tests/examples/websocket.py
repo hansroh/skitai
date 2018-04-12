@@ -49,5 +49,5 @@ if __name__ == "__main__":
 	import skitai
 	
 	skitai.mount ("/websocket", app)
-	skitai.run ()
+	skitai.run (port = 30371)
 	

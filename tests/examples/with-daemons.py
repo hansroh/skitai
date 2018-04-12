@@ -20,6 +20,7 @@ if __name__ == "__main__":
 	)
 	skitai.enable_smtpda ()
 	skitai.run (
-		workers = 2
+		workers = 2,
+		port = 30371
 	)
 	

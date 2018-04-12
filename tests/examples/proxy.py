@@ -17,4 +17,4 @@ if __name__ == "__main__":
 	skitai.set_proxy_keep_alive (55, 605)	
 	skitai.mount = ("/", app)
 	skitai.enable_proxy ()
-	skitai.run ()
+	skitai.run (port = 30371)

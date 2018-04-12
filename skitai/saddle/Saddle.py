@@ -159,7 +159,7 @@ class Saddle (part.Part):
 	
 	#------------------------------------------------------
 		
-	def set_home (self, path, module):
+	def set_home (self, path, module = None):
 		self.home = path
 		if PageTemplateLoader is not None:
 			self.chameleon = PageTemplateLoader (
@@ -198,7 +198,8 @@ class Saddle (part.Part):
 			maybe_dir = os.path.join (path, d)
 			if os.path.isdir (maybe_dir):
 				self._package_dirs.append (maybe_dir)				
-		self.find_watchables (module)
+		if module:
+			self.find_watchables (module)
 		
 	CONTRIB_DIR = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'decorative')
 	def find_watchables (self, module):

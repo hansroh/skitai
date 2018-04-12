@@ -51,5 +51,8 @@ if __name__ == "__main__":
 	skitai.mount ('/', app)
 	skitai.mount ('/lb', '@pypi')
 	skitai.enable_gateway (True, "8fa06210-e109-11e6-934f-001b216d6e71", "Skitai API Gateway")
-	skitai.run ()
+	skitai.run (
+		address = "0.0.0.0",
+		port = 30371	
+	)
 	

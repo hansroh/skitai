@@ -17,4 +17,6 @@ if __name__ == "__main__":
 	
 	skitai.mount ("/", 'statics')
 	skitai.mount ("/", app)			
-	skitai.run ()
+	skitai.run (		
+		port = 30371	
+	)

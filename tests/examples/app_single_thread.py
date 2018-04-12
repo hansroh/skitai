@@ -15,5 +15,5 @@ if __name__ == "__main__":
 	skitai.run (
 		threads = 0,
 		address = "0.0.0.0",
-		port = 5000
+		port = 30371
 	)

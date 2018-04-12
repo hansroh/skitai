@@ -74,7 +74,7 @@ class Promise (simple_producer):
 				
 	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):	
 		if not _do_not_use_this_variable_name_ and not karg:
-			return self.render (template_file, self._parts)
+			return self.was.render (template_file, self._parts)
 		return self.was.render (template_file, _do_not_use_this_variable_name_, **karg)
 	
 	#-----------------------------------------------------

@@ -11,13 +11,15 @@ from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
 from aquests.protocols.http2.producers import h2header_producer, h2frame_producer
 from aquests.protocols.http2.fifo import http2_producer_fifo, http2_producer_ts_fifo
+from aquests.protocols.http2.request_handler import FlowControlWindow
 import threading
 from io import BytesIO
 
-class http2_request_handler:
+class http2_request_handler (FlowControlWindow):
 	collector = None
 	producer = None
 	http11_terminator = 24
+	
 	def __init__ (self, handler, request):
 		self.handler = handler
 		self.wasc = handler.wasc
@@ -191,7 +193,7 @@ class http2_request_handler:
 		with self._plock:
 			self.conn.push_stream (stream_id, promise_stream_id, request_headers	+ addtional_request_headers)
 		self.send_data ()
-					
+	
 	def handle_response (self, stream_id, headers, producer, do_optimize, force_close = False):
 		r = self.get_request (stream_id)
 		with self._clock:
@@ -249,6 +251,19 @@ class http2_request_handler:
 			try: r =	self.requests [stream_id]
 			except KeyError: pass
 		return r
+	
+	def adjust_flow_control_window (self, stream_id):
+		if self.conn.inbound_flow_control_window < self.MIN_IBFCW:			
+			with self._clock:
+				self.conn.increment_flow_control_window (1048576)
+				
+		rfcw = self.conn.remote_flow_control_window (stream_id)
+		if rfcw < self.MIN_RFCW:
+			try:
+				with self._clock:
+					self.conn.increment_flow_control_window (1048576, stream_id)
+			except StreamClosedError:
+				pass
 			
 	def handle_events (self, events):
 		for event in events:
@@ -298,6 +313,8 @@ class http2_request_handler:
 					except ValueError:						
 						# from vchannel.handle_read () -> collector.collect_inconing_data ()
 						self.go_away (ErrorCodes.CANCEL)
+					else:
+						self.adjust_flow_control_window (event.stream_id)
 					
 			elif isinstance(event, StreamEnded):
 				r = self.get_request (event.stream_id)

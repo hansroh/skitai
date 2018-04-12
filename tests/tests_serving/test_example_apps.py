@@ -17,19 +17,19 @@ def start_skitai (runner, script):
 	time.sleep (3)
 	
 def assert_request (expect, url, *args, **karg):
-	resp = requests.get ("http://127.0.0.1:5000" + url, *args, **karg)	
+	resp = requests.get ("http://127.0.0.1:30371" + url, *args, **karg)	
 	assert resp.status_code == expect
 
 def assert_post_request (expect, url, data, *args, **karg):
-	resp = requests.post ("http://127.0.0.1:5000" + url, data, *args, **karg)	
+	resp = requests.post ("http://127.0.0.1:30371" + url, data, *args, **karg)	
 	assert resp.status_code == expect
 
 def assert_requests (expect, url, *args, **karg):
-	resp = requests.get ("https://127.0.0.1:5000" + url, verify=False, *args, **karg)	
+	resp = requests.get ("https://127.0.0.1:30371" + url, verify=False, *args, **karg)	
 	assert resp.status_code == expect
 
 def assert_post_requests (expect, url, data, *args, **karg):
-	resp = requests.post ("https://127.0.0.1:5000" + url, data, verify=False, *args, **karg)	
+	resp = requests.post ("https://127.0.0.1:30371" + url, data, verify=False, *args, **karg)	
 	assert resp.status_code == expect
 
 def test_auth (runner):
@@ -51,8 +51,8 @@ def test_app (runner):
 		jpg = open (os.path.join (confutil.getroot (), "statics", "reindeer.jpg"), "rb")	
 		assert_post_request (200, "/upload", {"username": "pytest"}, files = {"file1": jpg})
 		
-		with xmlrpc.client.ServerProxy("http://127.0.0.1:5000/rpc2/") as proxy:
-			assert proxy.add_number (1, 3) == 4
+		with xmlrpc.client.ServerProxy("http://127.0.0.1:30371/rpc2/") as proxy:
+			assert proxy.add_number (1, 3) == [4]
 
 	finally:		
 		runner.kill ()

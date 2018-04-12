@@ -717,5 +717,8 @@ db = read_route_guide_database ()
 if __name__ == "__main__":
 	import skitai
 	skitai.mount = ("/routeguide.RouteGuide", app)
-	skitai.run ()
+	skitai.run (
+		address = "0.0.0.0",
+		port = 30371	
+	)
 	

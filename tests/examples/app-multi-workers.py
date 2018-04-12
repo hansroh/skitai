@@ -82,6 +82,6 @@ if __name__ == "__main__":
 	skitai.run (
 		workers = 3,
 		address = "0.0.0.0",
-		port = 5000				
+		port = 30371				
 	)
 	

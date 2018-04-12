@@ -25,7 +25,7 @@ def getroot ():
 	return os.path.join (os.path.dirname (__file__), "examples")	
 	
 def rprint (*args):
-	print ('++++++++++', *args)
+	print ('!!!!!!', *args)
 
 def assert_request (h, r, expect_code):
 	assert h.match (r)	
