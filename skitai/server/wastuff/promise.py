@@ -107,6 +107,9 @@ class Promise (simple_producer):
 					
 	def ready (self):
 		return self._data or self._done
+	
+	def exhausted (self):
+		return self._done
 		
 	def more (self):		
 		if self._done and not self._data:
