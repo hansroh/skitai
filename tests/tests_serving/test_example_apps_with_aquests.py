@@ -77,7 +77,7 @@ def test_app_h2 (runner):
 		aquests.fetchall ()
 		
 	finally:
-		runner.kill ()	
+		runner.kill ()
 	
 	assert ERRS < 4
 
