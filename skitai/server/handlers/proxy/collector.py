@@ -51,6 +51,9 @@ class Collector (collectors.FormCollector):
 	def ready (self):
 		return len (self.data) or self.got_all_data
 	
+	def exhausted (self):
+		return not self.data
+	
 	def more (self):		
 		if not self.data:
 			return b""		

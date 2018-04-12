@@ -1,4 +1,4 @@
-import pytest, os
+import pytest, os, time
 import confutil
 from skitai.saddle import Saddle
 from aquests.lib import logger
@@ -12,7 +12,10 @@ else:
 
 @pytest.fixture (scope = "module")
 def runner ():
-	p = Puppet (communicate = False)
+	class Puppet2 (Puppet):
+		def kill (self):
+			os.system ('pkill -ef "skitai\\(examples/"')
+	p = Puppet2 (communicate = False)
 	return p
 	
 @pytest.fixture (scope = "module")

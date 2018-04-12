@@ -112,7 +112,7 @@ if __name__ == "__main__":
 
 	skitai.run (
 		port = 30371,
-		workers = 2,
+		workers = 1,
 		threads = 4				
 	)
 	
