@@ -49,13 +49,13 @@ class Collector (collectors.FormCollector):
 		return b"".join (self.cache)
 	
 	def exhausted (self):
-		return self.got_all_data
+		return self.got_all_data and not self.data
 		
 	def ready (self):
 		return len (self.data) or self.got_all_data
 	
-	def more (self):		
-		if not self.data:
+	def more (self):
+		if self.exhausted ():
 			return b""		
 		data = b"".join (self.data)
 		self.data = []

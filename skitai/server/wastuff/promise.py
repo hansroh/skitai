@@ -109,10 +109,10 @@ class Promise (simple_producer):
 		return self._data or self._done
 	
 	def exhausted (self):
-		return self._done
+		return self._done and not self._data
 		
 	def more (self):		
-		if self._done and not self._data:
+		if self.exhausted ():
 			return b''
 		d, self._data = b''.join (self._data), []
 		return d

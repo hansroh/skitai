@@ -25,14 +25,11 @@ def assert_status (resp):
 		rprint (resp.status_code)
 		ERRS += 1		
 
-def makeset (https = 0, include_stream = True):
+def makeset (https = 0, http2 = False):
 	server = (https and "https" or "http") + "://127.0.0.1:30371"
 	jpg = open (os.path.join (confutil.getroot (), "statics", "reindeer.jpg"), "rb")
 	
-	targets = ("/", "/hello", "/redirect1", "/redirect2")
-	if include_stream:
-		targets += ("/documentation", "/documentation2")
-	
+	targets = ("/", "/hello", "/redirect1", "/redirect2", "/documentation", "/documentation2")	
 	for url in targets:	
 		aquests.get (server + url)
 	aquests.get (server +"/members/", auth = ('admin', '1111'))
@@ -40,7 +37,7 @@ def makeset (https = 0, include_stream = True):
 	aquests.upload (server +"/upload", {"username": "pytest", "file1": jpg})	
 	stub = aquests.rpc (server +"/rpc2/")
 	stub.add_number (5, 7)
-	if GRPC:
+	if http2 and GRPC:
 		stub = aquests.grpc (server +"/routeguide.RouteGuide/")
 		point = route_guide_pb2.Point (latitude=409146138, longitude=-746188906)		
 		stub.GetFeature (point)	
@@ -49,7 +46,8 @@ def make_stream_set (https = 0):
 	server = (https and "https" or "http") + "://127.0.0.1:30371"
 	aquests.get (server + "/documentation")
 	aquests.get (server + "/documentation2")
-		
+
+@pytest.mark.skip		
 @pytest.mark.run (order = -1)
 def test_app (runner):
 	global ERRS
@@ -57,14 +55,14 @@ def test_app (runner):
 	start_skitai (runner, "app.py")
 	try:
 		aquests.configure (2, callback = assert_status, force_http1 = True)
-		[ makeset (include_stream = True) for i in range (2) ]
+		[ makeset (http2 = False) for i in range (2) ]
 		aquests.fetchall ()	
 		
 	finally:
 		runner.kill ()	
 	
-	assert ERRS < 4	
-
+	assert ERRS < 4
+	
 @pytest.mark.run (order = -1)
 def test_app_h2 (runner):
 	global ERRS
@@ -73,7 +71,7 @@ def test_app_h2 (runner):
 	start_skitai (runner, "app.py")
 	try:
 		aquests.configure (1, callback = assert_status)
-		[ makeset (include_stream = False) for i in range (2) ]
+		[ makeset (http2 = True) for i in range (2) ]
 		aquests.fetchall ()
 		
 	finally:
@@ -81,6 +79,7 @@ def test_app_h2 (runner):
 	
 	assert ERRS < 4
 
+@pytest.mark.skip
 @pytest.mark.run (order = -1)
 def test_app_h2_streaming (runner):
 	global ERRS
@@ -95,23 +94,7 @@ def test_app_h2_streaming (runner):
 	finally:
 		runner.kill ()
 	assert ERRS < 4
-
-@pytest.mark.run (order = -1)
-def test_https (runner):	
-	global ERRS
-		
-	ERRS = 0
-	start_skitai (runner, "https.py")
-	try:
-		aquests.configure (2, callback = assert_status)
-		[ makeset (1) for i in range (2) ]
-		aquests.fetchall ()	
-	
-	finally:
-		runner.kill ()	
-	
-	assert ERRS < 4
-
+@pytest.mark.skip
 @pytest.mark.run (order = -1)
 def test_websocket (runner):
 	global ERRS	
@@ -128,7 +111,7 @@ def test_websocket (runner):
 		runner.kill ()	
 	
 	assert ERRS == 0
-
+@pytest.mark.skip
 @pytest.mark.run (order = -1)
 def test_dns_error (runner):
 	global ERRS	
@@ -144,4 +127,21 @@ def test_dns_error (runner):
 	
 	# 100 of 7034 error
 	assert ERRS == 0
+
+@pytest.mark.skip
+@pytest.mark.run (order = -1)
+def test_https (runner):	
+	global ERRS
 		
+	ERRS = 0
+	start_skitai (runner, "https.py")
+	try:
+		aquests.configure (2, callback = assert_status)
+		[ makeset (1) for i in range (2) ]
+		aquests.fetchall ()	
+	
+	finally:
+		runner.kill ()	
+	
+	assert ERRS < 4
+	
