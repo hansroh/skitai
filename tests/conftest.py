@@ -15,6 +15,7 @@ def runner ():
 	class Puppet2 (Puppet):
 		def kill (self):
 			os.system ('pkill -ef "skitai\\(examples/"')
+			time.sleep (5)
 	p = Puppet2 (communicate = False)
 	return p
 	

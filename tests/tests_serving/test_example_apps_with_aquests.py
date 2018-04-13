@@ -93,7 +93,6 @@ def test_app_h2_streaming (runner):
 		runner.kill ()
 	assert ERRS < 4
 
-@pytest.mark.skip
 @pytest.mark.run (order = -1)
 def test_https (runner):	
 	global ERRS
