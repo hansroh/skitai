@@ -104,6 +104,9 @@ class Promise (simple_producer):
 		self.settle (data)
 	
 	#-------------------------------------------------
+	
+	def exhausted (self):
+		return self._done and not self._data
 					
 	def ready (self):
 		return self._data or self._done
