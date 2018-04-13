@@ -540,10 +540,7 @@ class list_producer:
 		self.long = int
 		self.longify = longify
 		self.done = 0
-	
-	def exhausted (self):
-		return self.done
-	
+
 	def ready (self):
 		if len(self.file_list):
 			return 1

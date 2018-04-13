@@ -46,8 +46,7 @@ def make_stream_set (https = 0):
 	server = (https and "https" or "http") + "://127.0.0.1:30371"
 	aquests.get (server + "/documentation")
 	aquests.get (server + "/documentation2")
-
-@pytest.mark.skip		
+		
 @pytest.mark.run (order = -1)
 def test_app (runner):
 	global ERRS
@@ -61,8 +60,8 @@ def test_app (runner):
 	finally:
 		runner.kill ()	
 	
-	assert ERRS < 4
-	
+	assert ERRS < 4	
+
 @pytest.mark.run (order = -1)
 def test_app_h2 (runner):
 	global ERRS
@@ -79,7 +78,6 @@ def test_app_h2 (runner):
 	
 	assert ERRS < 4
 
-@pytest.mark.skip
 @pytest.mark.run (order = -1)
 def test_app_h2_streaming (runner):
 	global ERRS
@@ -94,7 +92,23 @@ def test_app_h2_streaming (runner):
 	finally:
 		runner.kill ()
 	assert ERRS < 4
-@pytest.mark.skip
+
+@pytest.mark.run (order = -1)
+def test_https (runner):	
+	global ERRS
+		
+	ERRS = 0
+	start_skitai (runner, "https.py")
+	try:
+		aquests.configure (2, callback = assert_status)
+		[ makeset (1) for i in range (2) ]
+		aquests.fetchall ()	
+	
+	finally:
+		runner.kill ()	
+	
+	assert ERRS < 4
+
 @pytest.mark.run (order = -1)
 def test_websocket (runner):
 	global ERRS	
@@ -111,7 +125,7 @@ def test_websocket (runner):
 		runner.kill ()	
 	
 	assert ERRS == 0
-@pytest.mark.skip
+
 @pytest.mark.run (order = -1)
 def test_dns_error (runner):
 	global ERRS	
@@ -127,21 +141,4 @@ def test_dns_error (runner):
 	
 	# 100 of 7034 error
 	assert ERRS == 0
-
-@pytest.mark.skip
-@pytest.mark.run (order = -1)
-def test_https (runner):	
-	global ERRS
 		
-	ERRS = 0
-	start_skitai (runner, "https.py")
-	try:
-		aquests.configure (2, callback = assert_status)
-		[ makeset (1) for i in range (2) ]
-		aquests.fetchall ()	
-	
-	finally:
-		runner.kill ()	
-	
-	assert ERRS < 4
-	

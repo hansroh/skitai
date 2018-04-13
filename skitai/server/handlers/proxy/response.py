@@ -88,7 +88,7 @@ class ProxyResponse (http_response.Response):
 		return len (self.u) or self.got_all_data
 	
 	def exhausted (self):
-		return self.got_all_data
+		return len (self.u) == 0 and self.got_all_data
 		
 	def more (self):
 		self.flushed_time = time.time ()

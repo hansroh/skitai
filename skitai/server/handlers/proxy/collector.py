@@ -47,9 +47,6 @@ class Collector (collectors.FormCollector):
 	
 	def get_cache (self):
 		return b"".join (self.cache)
-	
-	def exhausted (self):
-		return self.got_all_data and not self.data
 		
 	def ready (self):
 		return len (self.data) or self.got_all_data
