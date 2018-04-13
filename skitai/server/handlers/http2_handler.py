@@ -3,7 +3,7 @@ import skitai
 from aquests.lib import producers
 from h2.connection import H2Connection, GoAwayFrame, DataFrame, H2Configuration
 from h2.exceptions import ProtocolError, NoSuchStreamError, StreamClosedError
-from h2.events import DataReceived, RequestReceived, StreamEnded, PriorityUpdated, ConnectionTerminated, StreamReset, WindowUpdated, RemoteSettingsChanged
+from h2.events import TrailersReceived, DataReceived, RequestReceived, StreamEnded, PriorityUpdated, ConnectionTerminated, StreamReset, WindowUpdated, RemoteSettingsChanged
 from h2.settings import SettingCodes
 from h2.errors import ErrorCodes
 from aquests.lib import producers
@@ -194,7 +194,7 @@ class http2_request_handler (FlowControlWindow):
 			self.conn.push_stream (stream_id, promise_stream_id, request_headers	+ addtional_request_headers)
 		self.send_data ()
 	
-	def handle_response (self, stream_id, headers, producer, do_optimize, force_close = False):
+	def handle_response (self, stream_id, headers, trailers, producer, do_optimize, force_close = False):
 		r = self.get_request (stream_id)
 		with self._clock:
 			try:
@@ -204,7 +204,7 @@ class http2_request_handler (FlowControlWindow):
 			else:
 				del self.priorities [stream_id]
 		
-		header_producer = h2header_producer (stream_id, headers, producer, self.conn, self._plock)		
+		header_producer = h2header_producer (stream_id, headers, producer or trailers, self.conn, self._plock)		
 		if not producer:
 			header_producer = r.response.log_or_not (r.uri, header_producer, r.response.log)			
 			self.channel.push_with_producer (header_producer)
@@ -215,9 +215,9 @@ class http2_request_handler (FlowControlWindow):
 			
 			if do_optimize:
 				outgoing_producer = producers.globbing_producer (outgoing_producer)
-				
+			
 			outgoing_producer = h2frame_producer (
-				stream_id, depends_on, weight, outgoing_producer, self.conn, self._plock
+				stream_id, depends_on, weight, outgoing_producer, self.conn, self._plock, trailers
 			)
 			# is it proper?
 			#outgoing_producer = producers.ready_globbing_producer (outgoing_producer)
@@ -270,7 +270,10 @@ class http2_request_handler (FlowControlWindow):
 			#print (event)
 			if isinstance(event, RequestReceived):				
 				self.handle_request (event.stream_id, event.headers)				
-				
+			
+			elif isinstance(event, TrailersReceived):
+				self.handle_trailers (event.stream_id, event.headers)
+					
 			elif isinstance(event, StreamReset):
 				if event.remote_reset:
 					r = self.get_request (event.stream_id)
@@ -347,6 +350,13 @@ class http2_request_handler (FlowControlWindow):
 			self.send_data ()
 		self.remove_request (stream_id)
 		#self.request.logger ("stream reset (stream_id:%d, error:%d)" % (stream_id, errcode), "info")
+	
+	def handle_trailers	 (self, stream_id, headers):
+		r = self.get_request (stream_id)
+		for k, v in headers:
+			r.header.append (
+				"{}: {}".format (k.decode ("utf8"), v.decode ("utf8"))
+			)
 		
 	def handle_request (self, stream_id, headers, is_promise = False):
 		#print ("++REQUEST: %d" % stream_id, headers)
