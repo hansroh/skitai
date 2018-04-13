@@ -15,7 +15,7 @@ import random
 import base64
 from . import cookie
 from .config import Config
-from sqlphile import SQLPhile
+from sqlphile import Template
 from event_bus.exceptions import EventDoesntExist
 import skitai	
 from jinja2 import Environment, FileSystemLoader, ChoiceLoader
@@ -190,7 +190,7 @@ class Saddle (part.Part):
 		sqlmap_dir = os.path.join(path, self.config.get ("sqlmap_dir", "sqlmaps"))
 		if not os.path.isdir (sqlmap_dir):
 			sqlmap_dir = None
-		self.sqlphile = SQLPhile (sqlmap_dir, self.use_reloader, self.config.get ("sql_engine", skitai.DB_PGSQL))
+		self.sqlphile = Template (self.config.get ("sql_engine", skitai.DB_PGSQL [1:]), sqlmap_dir, self.use_reloader)
 		
 		# vaild packages --------------------------------------------
 		package_dirs = []
