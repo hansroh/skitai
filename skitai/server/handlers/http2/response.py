@@ -6,14 +6,7 @@ import time
 class response (http_response.http_response):	
 	def __init__ (self, request):
 		http_response.http_response.__init__ (self, request)
-		self.trailers = []
 	
-	def set_trailer (self, name, value):
-		self.trailers.append ((name, value))
-	
-	def get_trailers (self):
-		return self.trailers
-		
 	def set_streaming (self):
 		self._is_async_streaming = True
 		
@@ -116,7 +109,6 @@ class response (http_response.http_response):
 			self.request.http2.handle_response (
 				self.request.stream_id, 
 				self.build_reply_header (),
-				self.get_trailers (),
 				outgoing_producer,
 				do_optimize,				
 				force_close = force_close

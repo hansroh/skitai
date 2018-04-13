@@ -39,9 +39,9 @@ class Executor (wsgi_executor.Executor):
 			
 		self.build_was ()
 		self.was.subapp = current_app
+		self.was.response ["grpc-status"] = "0"
+		self.was.response ["grpc-message"] = "ok"
 		self.was.response ["grpc-accept-encoding"] = 'identity,gzip'
-		self.was.response.set_trailer ("grpc-status", "0")
-		self.was.response.set_trailer ("grpc-message", "ok")
 		
 		descriptor = []
 		for m in data:
@@ -56,9 +56,9 @@ class Executor (wsgi_executor.Executor):
 			result = self.chained_exec (self.service, (descriptor,), {})
 			
 		except:
-			self.was.traceback ()			
-			self.was.response.set_trailer ("grpc-status", "2")
-			self.was.response.set_trailer ("grpc-message", "internal error")		
+			self.was.traceback ()
+			self.was.response ["grpc-status"] = "2"
+			self.was.response ["grpc-message"] = "internal error"
 			self.rollback ()
 			
 		else:
