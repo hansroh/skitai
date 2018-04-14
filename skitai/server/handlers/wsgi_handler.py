@@ -9,7 +9,7 @@ from skitai.server.http_response import catch
 from aquests.lib.athreads import trigger
 from . import collectors
 from skitai import version_info, was as the_was
-from skitai.saddle import Saddle
+from skitai import saddle
 from collections import Iterator
 from ..wastuff.api import API
 import threading
@@ -148,8 +148,8 @@ class Handler:
 		app = self.apps.get_app (has_route).get_callable()
 		# for rendering error template
 		request.response.current_app = app
-								
-		if request.command != "options" and isinstance (app, Saddle):
+		
+		if request.command != "options" and isinstance (app, saddle.Saddle):
 			# pass through options, because options want authentification info.
 			if not app.is_authorized (request, app.authenticate):					
 				self.handle_error_before_collecting (request, 401)

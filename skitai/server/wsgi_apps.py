@@ -9,6 +9,7 @@ try:
 	from django.utils import autoreload
 except ImportError:
 	pass	
+import inspect
 
 class Module:
 	def __init__ (self, wasc, handler, bus, route, directory, libpath, pref = None):

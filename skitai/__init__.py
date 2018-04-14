@@ -11,6 +11,7 @@ from aquests.lib.attrdict import AttrDict
 from aquests.protocols.dns import asyndns
 from importlib import machinery
 from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
+import inspect
 
 PROTO_HTTP = "http"
 PROTO_HTTPS = "https"
@@ -205,13 +206,14 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
 	if hasattr (target, "__file__"):
 		target = (target, '__export__.py')
 	
-	if type (target) is tuple: 
+	if type (target) is tuple:
 		module, appfile = target
 		target = os.path.join (os.path.dirname (module.__file__), "export", "skitai", appfile)
 			
 	if type (target) is not str:
 		# app instance
 		target = os.path.join (os.getcwd (), sys.argv [0])
+		
 	else:
 		if target [0] != "@":		
 			target = os.path.join (getswd (), target)

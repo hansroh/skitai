@@ -85,7 +85,6 @@ class Handler:
 			route, module, path = routepair
 			vhost.add_module (route, path, module, config)		
 			return reverse_proxing
-			
 		route, target = [x.strip () for x in routepair.split ("=", 1)]
 		
 		if target.startswith ("@"):

@@ -1,61 +1,47 @@
-
+from aquests.protocols.http import request, response
 from ..wastuff import triple_logger
 from ..http_server import http_server
 from ..handlers import pingpong_handler
+from ..handlers.http2.response import response as http2_response
+from ..http_response import http_response
+from mock import MagicMock
 from ..handlers import vhost_handler
-from ..handlers import proxy_handler
-from aquests.protocols.http import response
+import skitai
 
-def clear_handler (wasc):
-    # reset handler
-    wasc.httpserver.handlers = []
- 
-def handle_request (handler, request):
+def get_default_handler ():
+    for h in skitai.was.httpserver.handlers:
+        if isinstance (h, vhost_handler.Handler):
+            return h
+
+def process_request (request, handler = None):
+    # clinet request -> server request
+    handler = handler or get_default_handler ()
     assert handler.match (request)    
     handler.handle_request (request)
     if request.command in ('post', 'put', 'patch'):
         request.collector.collect_incoming_data (request.payload)
-        request.collector.found_terminator ()            
+        request.collector.found_terminator ()        
+    return request    
+     
+def get_response (request, handler = None):
+    # clinet request -> server response        
+    request = process_request (request, handler)
+    return request.response
+
+def get_client_response (request, handler = None):
+    # clinet request -> process -> server response -> client response
+    # this will be used by client.Client    
+    request = process_request (request, handler)
     result = request.channel.socket.getvalue ()
     try:
         header, payload = result.split (b"\r\n\r\n", 1)
     except ValueError:
-        raise ValueError (str (result))    
+        raise ValueError (str (result))
     resp = response.Response (request, header.decode ("utf8"))
     resp.collect_incoming_data (payload)    
     return resp
-   
-def install_vhost_handler (wasc, apigateway = 0, apigateway_authenticate = 0):
-    clear_handler (wasc)            
-    static_max_ages = {"/img": 3600}    
-    enable_apigateway = apigateway
-    apigateway_authenticate = apigateway_authenticate 
-    apigateway_realm = "Pytest"
-    apigateway_secret_key = "secret-pytest"    
-    
-    vh = wasc.add_handler (
-        1, 
-        vhost_handler.Handler, 
-        wasc.clusters, 
-        wasc.cachefs, 
-        static_max_ages,
-        enable_apigateway,
-        apigateway_authenticate,
-        apigateway_realm,
-        apigateway_secret_key
-    )    
-    return vh
 
-def install_proxy_handler (wasc):
-    clear_handler (wasc)
-    h = wasc.add_handler (
-        1, 
-        proxy_handler.Handler, 
-        wasc.clusters, 
-        wasc.cachefs, 
-        False
-    )    
-    return h
+#------------------------------------------------------------------
 
 def Server (log = None):
     log = log or triple_logger.Logger ("screen", None) 

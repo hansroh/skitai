@@ -1,12 +1,14 @@
-from aquests.protocols.http import http_util, request, response
+from aquests.protocols.http import request, response
 from aquests.protocols.grpc import request as grpc_request
-from aquests.protocols.ws import request as ws_request, response as ws_response
+from aquests.protocols.ws import request as ws_request
 from aquests.dbapi import request as dbo_request
 import skitai
 from skitai.server.http_request import http_request
 from base64 import b64encode
 import os
 from . import channel
+from .server import get_client_response
+
 
 DEFAULT_HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -14,10 +16,11 @@ DEFAULT_HEADERS = {
     "Accept-Language": "en-US,en;q=0.8,en-US;q=0.6,en;q=0.4",
     "Referer": "https://pypi.python.org/pypi/skitai",
     "Upgrade-Insecure-Requests": 1,
-    "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36"
+    "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36",
+    "Host": "skitai.com"
 }
 
-class Client:
+class Client:    
     def override (self, headers):
         copied = DEFAULT_HEADERS.copy ()
         for k, v in headers:
@@ -36,7 +39,11 @@ class Client:
             if not d: break
             _payload.append (d)    
         return b"".join (_payload)
-                    
+    
+    def handle_request (self, request, handler = None):
+        # clinet request -> process -> server response -> client response
+        return get_client_response (request, handler)
+           
     def make_request (self, method, uri, data, headers, auth, meta, version = "1.1"):        
         headers = self.override (headers)
         if method == "UPLOAD":
@@ -49,9 +56,12 @@ class Client:
             payload = r.get_payload ()
             if method == "UPLOAD":
                 payload = self.serialize (payload)
-            hr.set_body (payload)
+            hr.set_body (payload)        
         return hr
     
+    def handle_rpc (self, request):
+        return request
+     
     def get (self, uri, headers = [], auth = None, meta = {}, version = "1.1"):
         return self.make_request ("GET", uri, None, headers, auth, meta, version)
     
@@ -79,19 +89,19 @@ class Client:
         r = request.XMLRPCRequest (uri, method, data, self.override (headers), auth, None, meta, version)
         hr = self.geneate (r)        
         hr.set_body (r.get_payload ())
-        return hr
+        return self.handle_rpc (hr)
     
     def jsonrpc (self, uri, method, data, headers = [], auth = None, meta = {}, version = "1.1"):
         r = request.JSONRPCRequest (uri, method, data, self.override (headers), auth, None, meta, version)
         hr = self.geneate (r)        
         hr.set_body (r.get_payload ())
-        return hr
+        return self.handle_rpc (hr)
     
     def grpc (self, uri, method, data, headers = [], auth = None, meta = {}, version = "2.0"):        
         r = grpc_request.GRPCRequest (uri, method, data, self.override (headers), auth, None, meta, version)
         hr = self.geneate (r)    
         hr.set_body (self.serialize (r.get_payload ()))
-        return hr
+        return self.handle_rpc (hr)
         
     def make_dbo (self, dbtype, server, dbname = None, auth = None, method = None, params = None, callback = None, meta = {}):
         return dbo_request.Request (dbtype, server, dbname, auth, method, params, callback, meta)

@@ -23,6 +23,7 @@ try:
 	from chameleon import PageTemplateLoader
 except:
 	PageTemplateLoader = None		
+	    
 
 class AuthorizedUser:
 	def __init__ (self, user, realm, info = None):
@@ -41,7 +42,7 @@ class Saddle (part.Part):
 	# Session
 	securekey = None
 	session_timeout = None
-	
+
 	#WWW-Authenticate	
 	access_control_allow_origin = None
 	access_control_max_age = 0	

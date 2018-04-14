@@ -73,7 +73,7 @@ class WAS:
 	
 	def __str__ (self):
 		return "was: Skitai WSGI Appliation Service"
-			
+					
 	def __detect_cluster (self, clustername):
 		try: 
 			clustername, uri = clustername.split ("/", 1)
