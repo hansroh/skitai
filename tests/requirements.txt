@@ -1,3 +1,5 @@
 pytest
 pytest-ordering
+codecov
+pytest-cov
 mock
