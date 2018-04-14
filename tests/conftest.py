@@ -38,7 +38,7 @@ def log ():
 
 @pytest.fixture
 def wasc ():
-	offline.start_was ()
+	offline.activate ()
 	return offline.wasc
 	
 @pytest.fixture

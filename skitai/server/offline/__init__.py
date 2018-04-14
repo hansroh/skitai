@@ -23,8 +23,8 @@ def enable_threads (numthreads = 1):
     the_was.numthreads = numthreads
 
 wasc = None
-def start_was ():
-    global wasc    
+def activate ():
+    global wasc
     if wasc is not None:
         return
     wasc = wsgiappservice.WAS
