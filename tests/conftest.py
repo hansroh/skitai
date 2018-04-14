@@ -1,10 +1,10 @@
 import pytest, os, time
 import confutil
 from skitai.saddle import Saddle
+from skitai import saddle
 from aquests.lib import logger
-from aquests.lib.pmaster import Puppet
 from skitai.server import offline
-from skitai.server.offline import server, client as cli, channel as cha
+from skitai.server.offline import server, channel as cha
 
 try:
 	import pytest_ordering
@@ -14,21 +14,12 @@ else:
 	del pytest_ordering	
 
 @pytest.fixture (scope = "module")
-def runner ():
-	class Puppet2 (Puppet):
-		def kill (self):
-			os.system ('pkill -ef "skitai\\(examples/"')
-			time.sleep (5)
-	p = Puppet2 (communicate = False)
-	return p
-	
-@pytest.fixture (scope = "module")
 def app ():
 	return Saddle (__name__)
 
 @pytest.fixture
 def client ():
-	return cli.Client ()
+	return confutil.client
 	
 @pytest.fixture
 def log ():

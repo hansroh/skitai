@@ -1,32 +1,32 @@
 import confutil
 from confutil import rprint
-from mock import MagicMock
 import pytest
 from skitai.server.http_response import http_response, UNCOMPRESS_MAX, ONETIME_COMPRESS_MAX
-from skitai.server.handlers.http2.response import response as http2_response
 from mock import MagicMock
 from aquests.lib import producers
 import os
 from aquests.protocols.http2.producers import h2frame_producer, h2header_producer
 import threading
 from h2.connection import H2Connection
-
-
-def payload (length = 1024):
-	return b"A" * length
+from skitai.server.offline import server
+from skitai.server.handlers.http2.response import response as http2_response
+from skitai.server.http_response import http_response
 
 def make_response (client, compression = "defalte, gzip", version = "1.1"):
 	request = client.get (
-		"http://www.skitai.com/", 
-		headers = [("Accept-Encoding", compression)],
-		version = version
-	)
-	if version == "2.0":
+        "http://www.skitai.com/", 
+        headers = [("Accept-Encoding", compression)],
+        version = version
+    )
+	
+	if request.version == "2.0":
 		request.http2 = MagicMock ()
 		request.stream_id = 1
 		return http2_response (request)
-		
 	return http_response (request)
+
+def payload (length = 1024):
+	return b"A" * length
 	
 def test_http_response (client):
 	request = client.get ("http://www.skitai.com/")

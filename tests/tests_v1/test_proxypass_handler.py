@@ -3,9 +3,9 @@ import confutil
 from skitai.server.handlers import vhost_handler
 import skitai
 import os
-from skitai.server.offline import server
+from skitai.server import offline
 	
-def test_proxypass_handler (wasc, app):
-	vh = server.install_vhost_handler (wasc)
+def test_proxypass_handler ():
+	vh = offline.install_vhost_handler ()
 	
 

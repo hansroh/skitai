@@ -5,11 +5,11 @@ from examples.package import route_guide_pb2
 from skitai.saddle import multipart_collector
 from mock import MagicMock
 import pytest
-from skitai.server.offline import server
+from skitai.server import offline
 
 @pytest.fixture
 def handler (wasc):
-	return server.install_vhost_handler (wasc)
+	return offline.install_vhost_handler ()
 
 @pytest.fixture
 def post (client):

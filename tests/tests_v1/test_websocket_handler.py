@@ -1,7 +1,6 @@
 from confutil import rprint, assert_request
 import confutil
 from skitai.server import offline
-from skitai.server.offline import server
 from skitai.server.handlers import vhost_handler
 import skitai
 import os
@@ -28,7 +27,7 @@ def test_websocket_handler (wasc, app, client):
 			return "Client %s has leaved" % was.wsclient ()
 		return "Client %s Said: %s" % (was.wsclient (), message)
 	
-	vh = server.install_vhost_handler (wasc)
+	vh = offline.install_vhost_handler ()
 	root = confutil.getroot ()
 	pref = skitai.pref ()
 	vh.add_route ("default", ("/ws", app, root), pref)

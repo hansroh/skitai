@@ -1,5 +1,6 @@
 import confutil
 from confutil import rprint
+from skitai.saddle import launch
 import pytest
 import sys, os
 import threading
@@ -12,11 +13,6 @@ try:
 	import grpc
 except ImportError:
 	GRPC = 0	
-
-	
-def start_skitai (runner, script):
-	runner.start ([sys.executable, os.path.join (confutil.getroot (), script)])
-	time.sleep (3)
 
 ERRS = 0
 def assert_status (resp):
@@ -47,98 +43,47 @@ def make_stream_set (https = 0):
 	aquests.get (server + "/documentation")
 	aquests.get (server + "/documentation2")
 		
-@pytest.mark.run (order = -1)
-def test_app (runner):
+def test_app ():
 	global ERRS
 	ERRS = 0	
-	start_skitai (runner, "app.py")
-	try:
+	with launch ("./examples/app.py", "http://127.0.0.1:30371") as engine:	
 		aquests.configure (2, callback = assert_status, force_http1 = True)
 		[ makeset (http2 = False) for i in range (2) ]
-		aquests.fetchall ()	
+		aquests.fetchall ()
+		assert ERRS < 4
 		
-	finally:
-		runner.kill ()	
-	
-	assert ERRS < 4	
-
-@pytest.mark.run (order = -1)
-def test_app_h2 (runner):
-	global ERRS
-	
-	ERRS = 0	
-	start_skitai (runner, "app.py")
-	try:
+		ERRS = 0
 		aquests.configure (1, callback = assert_status)
 		[ makeset (http2 = True) for i in range (2) ]
-		aquests.fetchall ()
+		aquests.fetchall ()		
+		assert ERRS < 4
 		
-	finally:
-		runner.kill ()
-	
-	assert ERRS < 4
-
-@pytest.mark.run (order = -1)
-def test_app_h2_streaming (runner):
-	global ERRS
-		
-	ERRS = 0	
-	start_skitai (runner, "app.py")
-	try:
+		ERRS = 0	
 		aquests.configure (1, callback = assert_status)
 		[ make_stream_set () for i in range (4) ]
-		aquests.fetchall ()
-		
-	finally:
-		runner.kill ()
-	assert ERRS < 4
+		aquests.fetchall ()		
+		assert ERRS < 4
 
-@pytest.mark.run (order = -1)
-def test_https (runner):	
+def test_https ():	
 	global ERRS
 		
 	ERRS = 0
-	start_skitai (runner, "https.py")
-	try:
+	with launch ("./examples/https.py", "https://127.0.0.1:30371") as engine:
 		aquests.configure (2, callback = assert_status)
 		[ makeset (1) for i in range (2) ]
-		aquests.fetchall ()	
-	
-	finally:
-		runner.kill ()	
-	
-	assert ERRS < 4
+		aquests.fetchall ()
+		assert ERRS < 4
 
-@pytest.mark.run (order = -1)
-def test_websocket (runner):
+def test_websocket ():
 	global ERRS	
-	ERRS = 0
-	start_skitai (runner, "websocket.py")	
 	
-	try:			
+	ERRS = 0
+	with launch ("./examples/websocket.py", "http://127.0.0.1:30371") as engine:				
 		aquests.configure (1, callback = assert_status)	
 		websocket = "ws://127.0.0.1:30371"
 		aquests.ws (websocket + "/websocket/echo", "I'm a Websocket")			
 		aquests.fetchall ()	
-		
-	finally:
-		runner.kill ()	
-	
-	assert ERRS == 0
+		assert ERRS == 0
 
-@pytest.mark.run (order = -1)
-def test_dns_error (runner):
-	global ERRS	
-	ERRS = 0
-	
-	try:			
-		aquests.configure (1, callback = assert_status, force_http1 = 1)	
-		[ aquests.get ("http://sdfiusdoiksdflsdkfjslfjlsf.com", meta = {"expect": 704}) for i in range (3) ]
-		aquests.fetchall ()	
-		
-	finally:
-		runner.kill ()	
-	
-	# 100 of 7034 error
-	assert ERRS == 0
+
 		

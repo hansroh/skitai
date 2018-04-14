@@ -2,14 +2,13 @@ from confutil import rprint, assert_request
 import confutil
 import skitai
 import os, pytest
-from skitai.server.offline import server
 from skitai.server import offline
 
 @pytest.mark.run (order = 1)
 def test_default_handler (wasc, client):
-	vh = server.install_vhost_handler (wasc)
-	vh.add_route ("default", "/ = ./examples/statics", None)
-		
+	vh = offline.install_vhost_handler ()
+	offline.mount ("/", "./examples/statics")
+				
 	request = client.get ("http://www.skitai.com/1001.htm")
 	assert_request (vh, request, 404)
 	
@@ -36,11 +35,8 @@ def test_wsgi_handler (wasc, app, client):
 		return "Hello"
 	
 	# WSGI
-	vh = server.install_vhost_handler (wasc)
-	root = confutil.getroot ()
-	pref = skitai.pref ()
-	vh.add_route ("default", ("/", app, root), pref)
-	
+	vh = offline.install_vhost_handler ()
+	offline.mount ("/", (app, confutil.getroot ()), skitai.pref ())
 	request = client.get ("http://www.skitai.com/")	
 	resp = assert_request (vh, request, 200)	
 	assert resp.text == "Hello"
@@ -49,7 +45,7 @@ def test_wsgi_handler (wasc, app, client):
 	resp = assert_request (vh, request, 200)	
 	assert resp.text == "Hello"
 	
-	request = client.get ("http://www.skitai.com/a")	
+	request = client.get ("http://www.skitai.com/a")
 	resp = assert_request (vh, request, 404)
 	
 	request = client.get ("http://www.skitai.com/?a=b")	
