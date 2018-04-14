@@ -85,7 +85,8 @@ install_requires = [
 	"jinja2==2.9.4",
 	"aquests",
 	"sqlphile",
-	"jsonrpclib-pelix"
+	"jsonrpclib-pelix",
+	"mock"
 ]
 
 with codecs.open ('README.rst', 'r', encoding='utf-8') as f:
