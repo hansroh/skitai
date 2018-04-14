@@ -46,7 +46,7 @@ def make_stream_set (https = 0):
 def test_app ():
 	global ERRS
 	ERRS = 0	
-	with launch ("./examples/app.py", "http://127.0.0.1:30371") as engine:	
+	with launch ("./examples/app.py", ":30371") as engine:	
 		aquests.configure (2, callback = assert_status, force_http1 = True)
 		[ makeset (http2 = False) for i in range (2) ]
 		aquests.fetchall ()
@@ -78,7 +78,7 @@ def test_websocket ():
 	global ERRS	
 	
 	ERRS = 0
-	with launch ("./examples/websocket.py", "http://127.0.0.1:30371") as engine:				
+	with launch ("./examples/websocket.py", ":30371") as engine:				
 		aquests.configure (1, callback = assert_status)	
 		websocket = "ws://127.0.0.1:30371"
 		aquests.ws (websocket + "/websocket/echo", "I'm a Websocket")			

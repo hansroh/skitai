@@ -76,6 +76,25 @@ class Saddle (part.Part):
 		self._salt = None
 		self._package_dirs = []
 	
+	#--------------------------------------------------------
+	
+	def mount (self, point, approot = "."):
+	    from ..server import offline
+	    from ..server.offline import client    
+	    
+	    class Client (client.Client):        
+	        def make_request (self, *args, **karg):
+	            request = client.Client.make_request (self, *args, **karg)
+	            return self.handle_request (request)    
+	        
+	        def handle_rpc (self, request):
+	            return self.handle_request (request)
+	            
+	    offline.activate ()
+	    offline.install_vhost_handler ()
+	    offline.mount (point, (self, approot))
+	    return Client ()
+	   
 	#------------------------------------------------------
 	
 	@property

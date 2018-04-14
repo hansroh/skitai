@@ -30,61 +30,12 @@ template_rendering = "template:rendering"
 template_rendered = "template:rendered"
 
 # pytest framework ---------------------------------------------
-
-def mounted (point, app, approot):
-    from ..server import offline
-    from ..server.offline import client    
-    
-    class Client (client.Client):        
-        def make_request (self, *args, **karg):
-            request = client.Client.make_request (self, *args, **karg)
-            return self.handle_request (request)    
-        
-        def handle_rpc (self, request):
-            return self.handle_request (request)
-            
-    offline.activate ()
-    offline.install_vhost_handler ()
-    offline.mount (point, (app, approot))
-    return Client ()
-
-
-class Requests:
-    def __init__ (self, endpoint):
-        self.endpoint = endpoint
-        self.s = requests.Session ()
-    
-    def resolve (self, url):
-        if url.startswith ("http://") or url.startswith ("https://"):
-            return url
-        else:
-            return self.endpoint + url 
-        
-    def get (self, url, *args, **karg):
-        return self.s.get (self.resolve (url), *args, **karg)
-        
-    def post (self, url, *args, **karg):
-        return self.s.post (self.resolve (url), *args, **karg)
-    
-    def put (self, url, *args, **karg):
-        return self.s.put (self.resolve (url), *args, **karg)
-    
-    def patch (self, url, *args, **karg):
-        return self.s.patch (self.resolve (url), *args, **karg)
-    
-    def delete (self, url, *args, **karg):
-        return self.s.delete (self.resolve (url), *args, **karg)
-    
-    def head (self, url, *args, **karg):
-        return self.s.head (self.resolve (url), *args, **karg)
-                
-    def options (self, url, *args, **karg):
-        return self.s.options (self.resolve (url), *args, **karg)
-        
         
 class launch:
-    def __init__ (self, script, endpoint = 5000, silent = False):
+    def __init__ (self, script, endpoint = ":5000", silent = False):
         self.script = script
+        if endpoint.startswith (":"):
+            endpoint = "http://127.0.0.1" + endpoint
         while endpoint:
             if endpoint [-1] == "/":
                 endpoint = endpoint [:-1]
@@ -121,5 +72,37 @@ class launch:
         else:    
             self.p.kill ()
             time.sleep (3)
-            
+
+
+class Requests:
+    def __init__ (self, endpoint):
+        self.endpoint = endpoint
+        self.s = requests.Session ()
+    
+    def resolve (self, url):
+        if url.startswith ("http://") or url.startswith ("https://"):
+            return url
+        else:
+            return self.endpoint + url 
         
+    def get (self, url, *args, **karg):
+        return self.s.get (self.resolve (url), *args, **karg)
+        
+    def post (self, url, *args, **karg):
+        return self.s.post (self.resolve (url), *args, **karg)
+    
+    def put (self, url, *args, **karg):
+        return self.s.put (self.resolve (url), *args, **karg)
+    
+    def patch (self, url, *args, **karg):
+        return self.s.patch (self.resolve (url), *args, **karg)
+    
+    def delete (self, url, *args, **karg):
+        return self.s.delete (self.resolve (url), *args, **karg)
+    
+    def head (self, url, *args, **karg):
+        return self.s.head (self.resolve (url), *args, **karg)
+                
+    def options (self, url, *args, **karg):
+        return self.s.options (self.resolve (url), *args, **karg)
+          
