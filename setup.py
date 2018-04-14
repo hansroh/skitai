@@ -63,6 +63,7 @@ packages = [
 	'skitai.server.wastuff',
 	'skitai.server.handlers',
 	'skitai.server.rpc',	
+	'skitai.server.offline',
 	'skitai.server.handlers.http2',
 	'skitai.server.handlers.websocket',
 	'skitai.server.handlers.proxy',
