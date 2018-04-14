@@ -1,10 +1,12 @@
-from confutil import client, rprint, assert_request
+from confutil import rprint, assert_request
 import confutil
+from skitai.server import offline
+from skitai.server.offline import server
 from skitai.server.handlers import vhost_handler
 import skitai
 import os
 	
-def test_websocket_handler (wasc, app):
+def test_websocket_handler (wasc, app, client):
 	@app.route ("/echo")
 	def echo (was, message):
 		if was.wsinit ():
@@ -26,14 +28,14 @@ def test_websocket_handler (wasc, app):
 			return "Client %s has leaved" % was.wsclient ()
 		return "Client %s Said: %s" % (was.wsclient (), message)
 	
-	vh = confutil.install_vhost_handler (wasc)
+	vh = server.install_vhost_handler (wasc)
 	root = confutil.getroot ()
 	pref = skitai.pref ()
 	vh.add_route ("default", ("/ws", app, root), pref)
 	app.access_control_allow_origin = ["http://www.skitai.com:80"]
 	
 	# WEBSOCKET	
-	confutil.enable_threads ()	
+	offline.enable_threads ()	
 	request = client.ws ("http://www.skitai.com/ws/echo", "Hello")
 	resp = assert_request (vh, request, 101)
 	request = client.ws ("http://www.skitai.com/ws/chat", "Hello")
@@ -41,7 +43,7 @@ def test_websocket_handler (wasc, app):
 	request = client.ws ("http://www.skitai.com/ws/chat?roomid=1", "Hello")
 	resp = assert_request (vh, request, 101)
 	
-	confutil.disable_threads ()
+	offline.disable_threads ()
 	request = client.ws ("http://www.skitai.com/ws/echo", "Hello")
 	resp = assert_request (vh, request, 101)
 	request = client.ws ("http://www.skitai.com/ws/chat?roomid=1", "Hello")

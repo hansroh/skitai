@@ -1,9 +1,10 @@
-from confutil import client, rprint, assert_request
+from confutil import rprint, assert_request
 import confutil
 import skitai
 import os, pytest
+from skitai.server.offline import server
 
-def test_params (wasc, app):
+def test_params (wasc, app, client):
 	def z (was):	
 		k = list (was.request.args.keys ())
 		k.sort ()
@@ -30,7 +31,7 @@ def test_params (wasc, app):
 		return z (was)
 		
 	# WSGI
-	vh = confutil.install_vhost_handler (wasc)
+	vh = server.install_vhost_handler (wasc)
 	root = confutil.getroot ()
 	pref = skitai.pref ()
 	vh.add_route ("default", ("/", app, root), pref)

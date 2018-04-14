@@ -1,26 +1,26 @@
 import confutil
-from confutil import rprint, client
 from skitai.server.handlers import collectors
 from skitai.saddle import grpc_collector
 from examples.package import route_guide_pb2
 from skitai.saddle import multipart_collector
 from mock import MagicMock
 import pytest
+from skitai.server.offline import server
 
 @pytest.fixture
 def handler (wasc):
-	return confutil.install_vhost_handler (wasc)
+	return server.install_vhost_handler (wasc)
 
 @pytest.fixture
-def post ():
+def post (client):
 	return client.post ("http://www.skitai.com/", {"a": "b"})	
 
 @pytest.fixture
-def multipart ():
+def multipart (client):
 	return client.upload ("http://www.skitai.com/", {"a": "b", "file": open ('./examples/statics/reindeer.jpg', "rb")})	
 
 @pytest.fixture
-def grpc ():
+def grpc (client):
 	point = route_guide_pb2.Point (latitude=409146138, longitude=-746188906)
 	return client.grpc ("http://www.skitai.com/routeguide.RouteGuide", "GetFeature", (point,))
 				

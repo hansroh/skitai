@@ -1,5 +1,5 @@
 import confutil
-from confutil import rprint, client
+from confutil import rprint
 
 import pytest
 import sys, os

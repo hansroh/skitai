@@ -3,6 +3,9 @@ import confutil
 from skitai.saddle import Saddle
 from aquests.lib import logger
 from aquests.lib.pmaster import Puppet
+from skitai.server import offline
+from skitai.server.offline import server, client as cli, channel as cha
+
 try:
 	import pytest_ordering
 except ImportError:
@@ -22,33 +25,37 @@ def runner ():
 @pytest.fixture (scope = "module")
 def app ():
 	return Saddle (__name__)
+
+@pytest.fixture
+def client ():
+	return cli.Client ()
 	
 @pytest.fixture
 def log ():
-	logger = confutil.logger ()
+	logger = offline.logger ()
 	yield logger
 	logger.close ()
 
 @pytest.fixture
 def wasc ():
-	return confutil.wasc	
+	offline.start_was ()
+	return offline.wasc
 	
 @pytest.fixture
 def conn ():
-	sock = confutil.conn	
+	sock = cha.Conn ()	
 	return sock
 
 @pytest.fixture
-def server ():
-	s = confutil.server ()
-	yield s
-	s.close ()
-
-@pytest.fixture
 def channel ():
-	c = confutil.channel ()
+	c = cha.Channel ()
 	yield c
 	c.close ()
 
-
+@pytest.fixture
+def server ():
+	s = server.Server ()
+	yield s
+	s.close ()
+	
 		

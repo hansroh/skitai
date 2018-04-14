@@ -1,8 +1,8 @@
 from aquests.protocols.http import http_util
-from confutil import client, rprint
+from confutil import rprint
 from examples.package import route_guide_pb2
 
-def test_request_generation ():	
+def test_request_generation (client):	
 	url = "http://www.skitai.com/index"
 	
 	# GET
@@ -73,7 +73,7 @@ def test_request_generation ():
 	request = client.ws (url, "Hello")
 	assert len (request.body) == 11	
 
-def test_request ():	
+def test_request (client):	
 	url = "http://www.skitai.com/index"
 	request = client.get (url)	
 	assert request.get_header ("content-type") is None
@@ -89,7 +89,7 @@ def test_request ():
 	assert request.get_attr ("Accept-Language", "x", "") == ""
 	assert request.get_content_length () is None
 
-def test_header_funcs ():	
+def test_header_funcs (client):	
 	url = "http://www.skitai.com/index"
 	request = client.post (url, {"a": "b"}, headers = [("Content-Type", "application/json; charset=utf8")])	
 	assert request.get_content_type () == "application/json"
@@ -100,7 +100,7 @@ def test_header_funcs ():
 	assert request.get_user_agent () == "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36"
 	assert request.get_body () == request.body == b'{"a": "b"}'
 
-def test_uri_funcs ():	
+def test_uri_funcs (client):	
 	url = "http://www.skitai.com/index"
 	request = client.get (url)	
 	assert request.split_uri () == ('/index', None, None, None)

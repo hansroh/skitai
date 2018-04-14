@@ -1,11 +1,13 @@
-from confutil import client, rprint, assert_request
+from confutil import rprint, assert_request
 import confutil
 import skitai
 import os, pytest
+from skitai.server.offline import server
+from skitai.server import offline
 
 @pytest.mark.run (order = 1)
-def test_default_handler (wasc):
-	vh = confutil.install_vhost_handler (wasc)
+def test_default_handler (wasc, client):
+	vh = server.install_vhost_handler (wasc)
 	vh.add_route ("default", "/ = ./examples/statics", None)
 		
 	request = client.get ("http://www.skitai.com/1001.htm")
@@ -24,7 +26,7 @@ def test_default_handler (wasc):
 	assert resp.get_header ('cache-control')
 	
 @pytest.mark.run (order = 2)	
-def test_wsgi_handler (wasc, app):
+def test_wsgi_handler (wasc, app, client):
 	@app.route ("/")
 	def index (was):
 		return "Hello"
@@ -34,7 +36,7 @@ def test_wsgi_handler (wasc, app):
 		return "Hello"
 	
 	# WSGI
-	vh = confutil.install_vhost_handler (wasc)
+	vh = server.install_vhost_handler (wasc)
 	root = confutil.getroot ()
 	pref = skitai.pref ()
 	vh.add_route ("default", ("/", app, root), pref)
@@ -56,7 +58,7 @@ def test_wsgi_handler (wasc, app):
 	request = client.postjson ("http://www.skitai.com/json", {'a': 1})
 	resp = assert_request (vh, request, 200)
 	
-	confutil.enable_threads ()
+	offline.enable_threads ()
 	assert wasc.numthreads == 1
 	assert wasc.threads
 	
@@ -66,7 +68,7 @@ def test_wsgi_handler (wasc, app):
 	request = client.postjson ("http://www.skitai.com/json", {'a': 1}, version = "2.0")	
 	resp = assert_request (vh, request, 200)
 	
-	confutil.disable_threads ()
+	offline.disable_threads ()
 	assert wasc.numthreads == 0
 	assert wasc.threads is None
 	

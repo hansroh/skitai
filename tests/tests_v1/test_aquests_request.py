@@ -1,4 +1,3 @@
-from confutil import client
 from aquests.protocols.http import request
 from aquests.protocols.grpc import request as grpc_request
 from aquests.protocols.ws import request as ws_request

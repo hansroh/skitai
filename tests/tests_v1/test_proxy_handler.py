@@ -1,9 +1,9 @@
-from confutil import client, rprint, assert_request
+from confutil import rprint, assert_request
 import confutil
-from skitai.server.handlers import vhost_handler
 import skitai
 import os
+from skitai.server.offline import server
 	
 def test_proxy_handler (wasc, app):
-	ph = confutil.install_proxy_handler (wasc)
+	ph = server.install_proxy_handler (wasc)
 	

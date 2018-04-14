@@ -1,4 +1,4 @@
-from confutil import client, rprint, assert_request
+from confutil import rprint, assert_request
 import confutil
 import jinja2
 import os
