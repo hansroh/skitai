@@ -1187,7 +1187,7 @@ Blank seperated items of log line are,
 Testing Your App
 ----------------------------
 
-*New in version 0.26.18.4*
+*New in version 0.27*
 
 Skitai provide launch () for automating app test.
 
@@ -4593,7 +4593,7 @@ Note inspite of you do not handle exception, all app exceptions will be logged a
 Offline Testing Your App
 ------------------------------------
 
-*New in version 0.26.18.4*
+*New in version 0.27*
 
 You can test your app with unittest framework.
 
@@ -4601,19 +4601,21 @@ Assuming your test script is approot/tests,
 
 .. code:: python
   
-  mounted = app.mount ("/", approot = "../")
+  with app.make_client ("/", approot = "../") as cli:
+    ...
 
-Your app has been mounted to "/" and you can request resources from *mounted*.  
+Your app will be mounted to "/" and you can request resources using *cli*.  
 
 .. code:: python
-
-  resp = mounted.get ("/")
-  prnit (resp.text)
   
-  resp = mounted.post ("/", {"a": "b"})
-  prnit (resp.text)
+  with app.make_client ("/", approot = "../") as cli:
+    resp = cli.get ("/")
+    print (resp.text)
+  
+    resp = cli.post ("/", {"a": "b"})
+    print (resp.text)
 
-*Note*: Unfortunately, it cannot test *was asynchronous request service* yet. If your app uses these feature, skitai.launch () will be more useful for online testing.    
+*Note*: Unfortunately, cli cannot test *was asynchronous request service* yet. If your app uses these feature, skitai.launch () will be more useful for online testing.    
 
 
 Project Purpose
@@ -4652,7 +4654,7 @@ Change Log
 
 - 0.27 (Apr 2018)
 
-  - add skitai.launch and saddle.mount for unitest  
+  - add skitai.launch and saddle.make_client for unittest  
   
 - 0.26.18 (Jan 2018)
     
