@@ -18,6 +18,7 @@ class launch:
         self.__p = Puppet (communicate = False)        
         self.__requests = Requests (endpoint)
         self.__api = siesta.API (endpoint)
+        self.__closed = True
         self.__start ()
     
     def __enter__ (self):
@@ -25,7 +26,10 @@ class launch:
         
     def __exit__ (self, type, value, tb):
         self._close ()
-
+    
+    def __del__ (self):
+        self._close ()
+         
     def __getattr__ (self, attr):
         if attr in ("get", "post", "put", "patch", "delete", "head", "options"):
             return getattr (self.__requests, attr)
@@ -39,6 +43,7 @@ class launch:
         else:
             self.__p.start ([sys.executable, self.__script, "-v"])
             time.sleep (3)
+        self.__closed = False    
                     
     def __wait_until (self, status, timeout = 10):
         for i in range (timeout):
@@ -50,13 +55,15 @@ class launch:
             time.sleep (1) 
     
     def _close (self):
+        if self.__closed:
+            return
         if self.__silent:
             self.__p.start ([sys.executable, self.__script, "stop"])
             self.__wait_until ("stopped")
-        else:    
+        else:
             self.__p.kill ()
             time.sleep (3)
-                    
+        self.__closed = True            
 
 class Requests:
     def __init__ (self, endpoint):

@@ -1224,6 +1224,27 @@ Let's assume our app launch script is "./examples/app.py", and that is using por
       
 Then you can run pytest.
  
+If you run multipel tests files, you can make laucher to fixture.
+ 
+Edit conftest.py at same location with your test script,
+ 
+.. code:: python
+ 
+  import pytest
+  import skitai
+   
+  @pytest.fixture
+  def engine ():
+    return skitai.launch ("./examples/app.py", port = 5000)
+  
+Then in your tests,
+
+.. code:: python
+
+  def test_app (engine):
+    resp = engine.get ("/)
+    print (resp.text)
+
 
 Skitai with Nginx / Squid
 ---------------------------
