@@ -15,6 +15,7 @@ class launch:
             endpoint += ":{}".format (port)
         self.__endpoint = endpoint
         self.__silent = silent
+        self.__servicing = False
         self.__p = Puppet (communicate = False)        
         self.__requests = Requests (endpoint)
         self.__api = siesta.API (endpoint)
@@ -34,23 +35,33 @@ class launch:
         
     def __start (self):
         if self.__silent:
-            self.__p.start ([sys.executable, self.__script, "-d"])
-            self.__wait_until ("running")
+            if self.__is_running ():
+                self.__servicing = True
+            else:    
+                self.__p.start ([sys.executable, self.__script, "-d"])
+                self.__wait_until ("running")
         else:
             self.__p.start ([sys.executable, self.__script, "-v"])
             time.sleep (3)
-                    
+    
+    def __is_running (self):
+        command = "{} {} status".format (sys.executable, self.__script)
+        res = subprocess.run (command, shell = True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)    
+        out, err = res.stdout.decode ("utf8"), res.stderr.decode ("utf8")
+        return out.find ("running") != -1
+                             
     def __wait_until (self, status, timeout = 10):
         for i in range (timeout):
             command = "{} {} status".format (sys.executable, self.__script)
             res = subprocess.run (command, shell = True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)    
             out, err = res.stdout.decode ("utf8"), res.stderr.decode ("utf8")
             if out.find (status) != -1:
-                break
+                return True
             time.sleep (1) 
+        return False    
     
     def _close (self):
-        if self.__silent:
+        if self.__silent and not self.__servicing:
             self.__p.start ([sys.executable, self.__script, "stop"])
             self.__wait_until ("stopped")
         else:    
