@@ -1,6 +1,5 @@
 import confutil
 from confutil import rprint
-from skitai.saddle import launch
 import pytest
 import sys, os
 import threading
@@ -43,10 +42,10 @@ def make_stream_set (https = 0):
 	aquests.get (server + "/documentation")
 	aquests.get (server + "/documentation2")
 		
-def test_app ():
+def test_app (launch):
 	global ERRS
 	ERRS = 0	
-	with launch ("./examples/app.py", ":30371") as engine:	
+	with launch ("./examples/app.py") as engine:	
 		aquests.configure (2, callback = assert_status, force_http1 = True)
 		[ makeset (http2 = False) for i in range (2) ]
 		aquests.fetchall ()
@@ -64,21 +63,21 @@ def test_app ():
 		aquests.fetchall ()		
 		assert ERRS < 4
 
-def test_https ():	
+def test_https (launch):	
 	global ERRS
 		
 	ERRS = 0
-	with launch ("./examples/https.py", "https://127.0.0.1:30371") as engine:
+	with launch ("./examples/https.py", ssl = True) as engine:
 		aquests.configure (2, callback = assert_status)
 		[ makeset (1) for i in range (2) ]
 		aquests.fetchall ()
 		assert ERRS < 4
 
-def test_websocket ():
+def test_websocket (launch):
 	global ERRS	
 	
 	ERRS = 0
-	with launch ("./examples/websocket.py", ":30371") as engine:				
+	with launch ("./examples/websocket.py") as engine:				
 		aquests.configure (1, callback = assert_status)	
 		websocket = "ws://127.0.0.1:30371"
 		aquests.ws (websocket + "/websocket/echo", "I'm a Websocket")			

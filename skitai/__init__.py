@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.26.18.3"
+__version__ = "0.27b1"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -11,7 +11,7 @@ from aquests.lib.attrdict import AttrDict
 from aquests.protocols.dns import asyndns
 from importlib import machinery
 from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
-import inspect
+from .launcher import launch
 
 PROTO_HTTP = "http"
 PROTO_HTTPS = "https"

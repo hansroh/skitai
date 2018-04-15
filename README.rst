@@ -1184,6 +1184,47 @@ Blank seperated items of log line are,
 - duration ms for transfering response data
 
 
+Testing Your App
+----------------------------
+
+*New in version 0.26.18.4*
+
+Skitai provide launch () for automating app test.
+
+.. code:: python
+
+  skitai.launch (script, port = 5000, ssl = False, silent = True)
+
+Let's assume our app launch script is "./examples/app.py", and that is using port 5000.
+
+.. code:: python
+
+  import skitai
+  
+  def test_app ():
+    with skitai.launch ("./examples/app.py", port = 5000) as engine:
+      # html page
+      resp = engine.get ("/)
+      print (resp.text)
+    
+      # api for GET /v1/user/434
+      resp = engine.user ("434").get ()
+      print (resp.data)
+      
+      # api for POST /v1/user
+      resp = engine.user.post ({"name": "Hans Roh"})
+      print (resp.data)
+      
+      # api for uploading file to /v1/user/profile/photo
+      # upload method is a sugar syntax for posting multipart form data 
+      resp = engine.user.profile.photo.upload ({"file": open ("myphoto.jpg", "rb")})
+      print (resp.data)
+      
+      # also available put, delete, patch
+      
+Then you can run pytest.
+ 
+
 Skitai with Nginx / Squid
 ---------------------------
 
@@ -4549,6 +4590,32 @@ Note inspite of you do not handle exception, all app exceptions will be logged a
 - was.traceback (id = "") # id is used as fast searching log line for debug, if not given, id will be *Global transaction ID/Local transaction ID*
 
 
+Offline Testing Your App
+------------------------------------
+
+*New in version 0.26.18.4*
+
+You can test your app with unittest framework.
+
+Assuming your test script is approot/tests,
+
+.. code:: python
+  
+  mounted = app.mount ("/", approot = "../")
+
+Your app has been mounted to "/" and you can request resources from *mounted*.  
+
+.. code:: python
+
+  resp = mounted.get ("/")
+  prnit (resp.text)
+  
+  resp = mounted.post ("/", {"a": "b"})
+  prnit (resp.text)
+
+*Note*: Unfortunately, it cannot test *was asynchronous request service* yet. If your app uses these feature, skitai.launch () will be more useful for online testing.    
+
+
 Project Purpose
 ===================
 
@@ -4582,8 +4649,13 @@ Change Log
   
 0.26 (May 2017)
 
-- 0.26.18 (Jan 2018)
+
+- 0.27 (Apr 2018)
+
+  - add skitai.launch and saddle.mount for unitest  
   
+- 0.26.18 (Jan 2018)
+    
   - fix HTTP2 trailers
   - fix HTTP2 flow control window
   - remove was.response.traceback(), use was.response.for_ap (traceback = True)

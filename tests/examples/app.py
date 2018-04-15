@@ -94,6 +94,11 @@ def test (was):
 	was.response ["Content-Type"] = "text/plain"
 	return str (was.request.args)
 
+@app.route ("/json")
+def json (was):
+	return was.response.api (data = "JSON")
+
+
 if __name__ == "__main__":
 	import skitai		
 	

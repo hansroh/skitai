@@ -1,6 +1,5 @@
 import confutil
 from confutil import rprint
-from skitai.saddle import launch
 import pytest
 import sys, os
 import requests
@@ -26,8 +25,8 @@ def assert_post_requests (expect, url, data, *args, **karg):
 	resp = requests.post ("https://127.0.0.1:30371" + url, data, verify=False, *args, **karg)	
 	assert resp.status_code == expect
 					
-def test_app ():
-	with launch ("./examples/app.py", ":30371") as engine:
+def test_app (launch):
+	with launch ("./examples/app.py") as engine:
 		assert_request (401, "/members/")
 		assert_request (200, "/members/", auth = HTTPDigestAuth ("admin", "1111"))
 		
@@ -42,8 +41,8 @@ def test_app ():
 		with xmlrpc.client.ServerProxy("http://127.0.0.1:30371/rpc2/") as proxy:
 			assert proxy.add_number (1, 3) == [4]
 	
-def test_app_single_thread ():
-	with launch ("./examples/app_single_thread.py", ":30371") as engine:	
+def test_app_single_thread (launch):
+	with launch ("./examples/app_single_thread.py") as engine:	
 		for url in ("/", "/documentation2", "/hello", "/redirect1", "/redirect2"):
 			assert_request (200, url)
 		assert_request (508, "/documentation")
@@ -51,8 +50,8 @@ def test_app_single_thread ():
 		jpg = open (os.path.join (confutil.getroot (), "statics", "reindeer.jpg"), "rb")	
 		assert_post_request (200, "/upload", {"username": "pytest"}, files = {"file1": jpg})
 	
-def test_https ():
-	with launch ("./examples/https.py", "https://127.0.0.1:30371") as engine:
+def test_https (launch):
+	with launch ("./examples/https.py", ssl = True) as engine:
 		for url in ("/", "/documentation", "/documentation2", "/hello", "/redirect1", "/redirect2"):
 			assert_requests (200, url)			
 		assert_post_requests (200, "/post", {"username": "pytest"})
