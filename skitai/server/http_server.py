@@ -323,7 +323,14 @@ class http_server (asyncore.dispatcher):
 			self.create_socket (socket.AF_INET, socket.SOCK_STREAM)		
 
 		self.set_reuse_addr ()
-		self.bind ((ip, port))
+		try:
+			self.bind ((ip, port))
+		except OSError as why:			
+			if why.errno == 98:
+				server_logger ("address already in use, cannot start server", "fatal")
+			else:
+				server_logger.trace ()	
+			sys.exit (0)
 		
 		self.worker_ident = "master"
 		self.server_logger = server_logger

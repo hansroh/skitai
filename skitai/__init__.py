@@ -483,15 +483,13 @@ def run (**conf):
 				self.config_forward_server (
 					conf.get ('fws_address', '0.0.0.0'), conf.get ('fws_port', 80), conf.get ('fws_to', 443)
 				)
-			
-			# before fork
-			self.master_jobs ()
 				
 			self.config_webserver (
 				conf.get ('port', 5000), conf.get ('address', '0.0.0.0'),
 				NAME, conf.get ("certfile") is not None,
 				conf.get ('keep_alive', 30), 
-				conf.get ('network_timeout', 30)
+				conf.get ('network_timeout', 30),
+				thunks = [self.master_jobs]
 			)
 			
 			if os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
