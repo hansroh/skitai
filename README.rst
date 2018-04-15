@@ -951,7 +951,7 @@ And for running automatically on system boot, you can add this line to /etc/rc.l
 
   # /etc/rc.local
   
-  su - ubuntu -c "python -m skitai.server.bin.smtpda -f ~/.skitai.conf -d"
+  su - ubuntu -c "python -m skitai.bin.smtpda -f ~/.skitai.conf -d"
 
 In this case, smtpda will use spool directory at */tmp/skitai/smtpda*, so your each apps SHOULD NOT call *skitai.smtpda ()* if you want to share spool directory.
 

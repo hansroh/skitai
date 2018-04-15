@@ -201,17 +201,23 @@ if __name__ == "__main__":
 		"ssl": 0,
 	}	
 	_logpath, _varpath = None, None
+	_default_conf = os.path.join (os.environ ["HOME"], ".skitai.conf")
 	
 	fileopt = []
+	cf = None
 	for k, v in argopt [0]:
 		if k == "-f" or k == "config":
 			cf = confparse.ConfParse (v)
-			# forcing 
-			cf.setopt ("smtpda", "var-path", "/var/tmp/skitai")
-			cf.setopt ("smtpda", "process-display-name", "skitai")
-			fileopt = list ([("--" + k, v) for k, v in cf.getopt ("common").items () if v not in ("", "false", "no")])
-			fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("smtpda").items () if v not in ("", "false", "no")]))
-			break			
+			break
+	
+	if cf is None and os.path.isfile (_default_conf):
+		cf = confparse.ConfParse (_default_conf)
+	if cf:
+		# forcing 
+		cf.setopt ("smtpda", "var-path", "/var/tmp/skitai")
+		cf.setopt ("smtpda", "process-display-name", "skitai")
+		fileopt = list ([("--" + k, v) for k, v in cf.getopt ("common").items () if v not in ("", "false", "no")])
+		fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("smtpda").items () if v not in ("", "false", "no")]))					
 	
 	for k, v in (fileopt + argopt [0]):
 		if k == "--help" or k == "-h":
