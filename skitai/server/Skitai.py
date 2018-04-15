@@ -137,7 +137,7 @@ class Loader:
 		forward_server.install_handler (forward_handler.Handler (self.wasc, forward_to))
 		self.wasc.register ("forwardserver", forward_server)
 		
-	def config_webserver (self, port, ip = "", name = "", ssl = False, keep_alive = 10, network_timeout = 10):
+	def config_webserver (self, port, ip = "", name = "", ssl = False, keep_alive = 10, network_timeout = 10, thunks = None):
 		# maybe be configured	at first.
 		if ssl and not HTTPS:
 			raise SystemError("Can't start SSL Web Server")
@@ -157,10 +157,13 @@ class Loader:
 		if self.ssl:
 			httpserver = server_class (ip or "", port, self.ctx, self.wasc.logger.get ("server"), self.wasc.logger.get ("request"))	
 		else:
-			httpserver = server_class (ip or "", port, self.wasc.logger.get ("server"), self.wasc.logger.get ("request"))	
-		
+			httpserver = server_class (ip or "", port, self.wasc.logger.get ("server"), self.wasc.logger.get ("request"))			
 		self.wasc.register ("httpserver", httpserver)
 		
+		# starting jobs before forking
+		for thunk in thunks:
+			thunk ()
+			
 		#fork here 
 		_exit_code = self.wasc.httpserver.fork_and_serve (self.num_worker, hasattr (self.wasc, "forwardserver") and self.wasc.forwardserver or None)
 		if _exit_code is not None:
