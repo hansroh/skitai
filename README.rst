@@ -4590,34 +4590,6 @@ Note inspite of you do not handle exception, all app exceptions will be logged a
 - was.traceback (id = "") # id is used as fast searching log line for debug, if not given, id will be *Global transaction ID/Local transaction ID*
 
 
-Offline Testing Your App
-------------------------------------
-
-*New in version 0.27*
-
-You can test your app with unittest framework.
-
-Assuming your test script is approot/tests,
-
-.. code:: python
-  
-  with app.make_client ("/", approot = "../") as cli:
-    ...
-
-Your app will be mounted to "/" and you can request resources using *cli*.  
-
-.. code:: python
-  
-  with app.make_client ("/", approot = "../") as cli:
-    resp = cli.get ("/")
-    print (resp.text)
-  
-    resp = cli.post ("/", {"a": "b"})
-    print (resp.text)
-
-*Note*: Unfortunately, cli cannot test *was asynchronous request service* yet. If your app uses these feature, skitai.launch () will be more useful for online testing.    
-
-
 Project Purpose
 ===================
 
