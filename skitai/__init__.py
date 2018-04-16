@@ -212,7 +212,7 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
 			
 	if type (target) is not str:
 		# app instance
-		target = os.path.join (os.getcwd (), sys.argv [0])
+		target = os.path.normpath(os.path.join (os.getcwd (), sys.argv [0]))
 		
 	else:
 		if target [0] != "@":		

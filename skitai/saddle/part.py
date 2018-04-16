@@ -375,12 +375,21 @@ class Part:
 			return self.basepath [:-1] + self.mount_p [:-1] + thing
 		
 		for func, name, fuvars, favars, numvars, str_rule, options in self.route_map.values ():
-			if thing != name: continue			
-			assert len (args) <= len (fuvars), "Too many params, this has only %d params(s)" % len (fuvars)						
+			if thing != name: continue
+			
 			params = {}
+			try:
+				defaults = kargs.pop ("__defaults__")
+			except KeyError:
+				pass
+			else:
+				for k, v in defaults.items ():
+					if k in fuvars:
+						params [k] = v
+			
+			assert len (args) <= len (fuvars), "Too many params, this has only %d params(s)" % len (fuvars)					
 			for i in range (len (args)):
-				assert fuvars [i] not in kargs, "Collision detected on keyword param '%s'" % fuvars [i]
-				params [fuvars [i]] = args [i]				
+				params [fuvars [i]] = args [i]
 			
 			for k, v in kargs.items ():
 				params [k] = v
@@ -389,9 +398,11 @@ class Part:
 			if favars: #fancy [(name, type),...]. /fancy/<int:cid>/<cname>
 				for n, t in favars:
 					if n not in params:
-						if n not in options ["defaults"]:
+						try:
+							params [n] = options ["defaults"][n]
+						except KeyError:
 							raise AssertionError ("Argument '%s' missing" % n)
-						continue
+						
 					value = quote_plus (str (params [n]))
 					if t == "string":
 						value = value.replace ("+", "_")
@@ -404,12 +415,10 @@ class Part:
 				url = url + "?" + "&".join (["%s=%s" % (k, quote_plus (str(v))) for k, v in params.items ()])
 				
 			return self.url_for (url)
+		raise NameError ("{} not found".format (str (thing)))
 	
-	def build_url (self, thing, *args, **kargs):
-		url = self.url_for (thing, *args, **kargs)
-		if url:
-			return url			
-	
+	build_url = url_for
+		
 	#----------------------------------------------
 	# Routing
 	#----------------------------------------------						

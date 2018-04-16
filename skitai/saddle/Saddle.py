@@ -223,7 +223,8 @@ class Saddle (part.Part):
         for d in self.PACKAGE_DIRS:
             maybe_dir = os.path.join (path, d)
             if os.path.isdir (maybe_dir):
-                self._package_dirs.append (maybe_dir)                
+                self._package_dirs.append (maybe_dir)
+    
         if module:
             self.find_watchables (module)
         
@@ -242,9 +243,9 @@ class Saddle (part.Part):
             if self.contrib_devel:
                 if modpath.startswith (self.CONTRIB_DIR):
                     self.watch (v)
-                    continue                                
+                    continue
             for package_dir in self._package_dirs:
-                if modpath.startswith (package_dir):
+                if modpath.startswith (package_dir):                    
                     self.watch (v)                    
                     break
             
