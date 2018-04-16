@@ -181,7 +181,7 @@ Examples:
 	""")
 
 
-if __name__ == "__main__":
+def main ():
 	
 	argopt = demonizer.handle_commandline (
 		"hvf:",
@@ -251,3 +251,8 @@ if __name__ == "__main__":
 		if _consol not in ("1", "yes", "true"):
 			sys.stderr.close ()	
 		sys.exit (lifetime._exit_code)
+
+
+if __name__ == "__main__":
+	main ()
+	

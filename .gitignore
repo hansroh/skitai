@@ -1,3 +1,4 @@
+.eggs/
 .coverage
 *.pyc
 *.o

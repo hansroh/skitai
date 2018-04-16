@@ -92,7 +92,7 @@ install_requires = [
 with codecs.open ('README.rst', 'r', encoding='utf-8') as f:
 	long_description = f.read()
     
-setup(
+setup (
 	name='skitai',
 	version=version,
 	description='Skitai App Engine',
@@ -103,9 +103,15 @@ setup(
 	packages=packages,
 	package_dir=package_dir,
 	package_data = package_data,
+	entry_points = {
+        'console_scripts': [
+			'skitai-smtpda=skitai.bin.smtpda:main',
+			'skitai-cron=skitai.bin.cron:main'
+		],
+    },
 	license='MIT',
 	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/skitai",
 	install_requires = install_requires,
-	classifiers=classifiers
+	classifiers=classifiers	
 )

@@ -230,8 +230,7 @@ Examples:
 	""")
 
 
-if __name__ == "__main__":
-	
+def main ():
 	argopt = demonizer.handle_commandline (
 		"hvf:",
 		["help", "verbose=", "log-path=", "var-path=", "pname=", "process-display-name=", "config="], 
@@ -281,4 +280,8 @@ if __name__ == "__main__":
 		if _consol not in ("1", "yes", "true"):
 			sys.stderr.close ()
 		sys.exit (daemon.EXIT_CODE)
+
+if __name__ == "__main__":
+	main ()
+	
 		
