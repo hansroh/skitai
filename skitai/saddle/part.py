@@ -389,7 +389,9 @@ class Part:
 			if favars: #fancy [(name, type),...]. /fancy/<int:cid>/<cname>
 				for n, t in favars:
 					if n not in params:
-						raise AssertionError ("Argument '%s' missing" % n)
+						if n not in options ["defaults"]:
+							raise AssertionError ("Argument '%s' missing" % n)
+						continue
 					value = quote_plus (str (params [n]))
 					if t == "string":
 						value = value.replace ("+", "_")
