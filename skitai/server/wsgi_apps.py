@@ -35,6 +35,7 @@ class Module:
 			self.start_app ()
 			
 		else:
+			# libpath is app object, might be added by unittest
 			self.appname, self.module, self.abspath = "app", None, os.path.join (directory, 'dummy')
 			self.app = libpath
 			self.app.use_reloader = False

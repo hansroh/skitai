@@ -75,16 +75,20 @@ class Handler:
 		if rule not in self.sites:				
 			self.sites [rule] = VHost (self.wasc, *self.vhost_args)
 		return self.sites [rule]
-		
+	
+	def add_app (self, rule, route, app, root, config = None):
+		# app object mount, maily used by unittest
+		vhost = self.get_vhost (rule)
+		vhost.add_module (route, root, app, config)
+		return False
+			
 	def add_route (self, rule, routepair, config = None):
 		reverse_proxing = False
 		vhost = self.get_vhost (rule)
 		
 		if type (routepair) is tuple:
-			# direct app mount
 			route, module, path = routepair
-			vhost.add_module (route, path, module, config)		
-			return reverse_proxing
+			return self.add_app (rule, route, module, path, config)			
 		route, target = [x.strip () for x in routepair.split ("=", 1)]
 		
 		if target.startswith ("@"):
