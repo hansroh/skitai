@@ -45,9 +45,13 @@ class FormCollector:
 		self.request.collector = None  # break circ. ref
 		self.request.channel.set_terminator (b'\r\n\r\n')
 		
-		self.request.set_body (self.buffer.getvalue ())
-		self.buffer.seek (0)
-		self.handler.continue_request (self.request, self.buffer)
+		body = self.buffer.getvalue ()
+		if body:
+			self.request.set_body (body)
+			self.buffer.seek (0)
+			self.handler.continue_request (self.request, self.buffer)
+		else:
+			self.handler.continue_request (self.request, None)	
 	
 	def close (self):
 		self.buffer.close ()
