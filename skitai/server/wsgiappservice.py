@@ -241,10 +241,10 @@ class WAS:
 	
 	def partial (self, thing, **karg):
 		# override with current args
-		karg ["__defaults__"] = self.request.args
+		karg ["__defaults__"] = self.request.args		
 		return self.ab (thing, **karg)
 	
-	def rpath (self, thing):
+	def basepath (self, thing):
 		# resource path info without parameters
 		return self.ab (thing, __resource_path_only__ = True)
 	

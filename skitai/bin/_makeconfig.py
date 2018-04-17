@@ -1,7 +1,6 @@
 import os
 
-DEFAULT = """
-[common]
+DEFAULT = """[common]
 log-path =
 
 [smtpda]

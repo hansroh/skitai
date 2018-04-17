@@ -387,13 +387,13 @@ class Part:
 			
 			params = {}
 			try:
-				defaults = kargs.pop ("__defaults__")
+				currents = kargs.pop ("__defaults__")
 			except KeyError:
-				pass
+				currents = {}
 			else:
-				for k, v in defaults.items ():
+				for k, v in currents.items ():
 					if k in fuvars:
-						params [k] = v
+						params [k] = v						
 			
 			assert len (args) <= len (fuvars), "Too many params, this has only %d params(s)" % len (fuvars)					
 			for i in range (len (args)):
@@ -407,9 +407,12 @@ class Part:
 				for n, t in favars:
 					if n not in params:
 						try:
-							params [n] = options ["defaults"][n]
+							params [n] = currents [n]
 						except KeyError:
-							raise AssertionError ("Argument '%s' missing" % n)
+							try:
+								params [n] = options ["defaults"][n]
+							except KeyError:
+								raise AssertionError ("Argument '%s' missing" % n)
 						
 					value = quote_plus (str (params [n]))
 					if t == "string":

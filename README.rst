@@ -3087,6 +3087,8 @@ If your app is mounted at "/math",
   
   was.ab ("hello", "Your Name") # returned '/math/hello/Your_Name'
 
+Basically, was.ab is same as Python function call.
+
 
 Building URL by Updating Parameters Partially
 ````````````````````````````````````````````````
@@ -3111,39 +3113,45 @@ But you can update only changed parameters partially,
 
   was.partial ("add", pageno = 3)
   
-parameter a's value will be kept with current requested parameters. Note that was.partial can be recieved keyword arguments only except first resource name.
+Parameter a's value will be kept with current requested parameters. Note that was.partial can be recieved keyword arguments only except first resource name.
+
+was.partial is used changing partial parameters (or none) based over current parameters.
 
 
-Building URL without Parameters
+Building Base URL without Parameters
 ````````````````````````````````````
 
 **New in version 0.27**
 
-Sometimes you need to know just resource's path info - especially client-side javascript URL building, then use *was.rpath*.
+Sometimes you need to know just resource's base path info - especially client-side javascript URL building, then use *was.basepath*.
 
 .. code:: python
 
   @app.route ("/navigate")
-  def navigate (was, limit = 20, pageno = 1):  
+  def navigate (was, limit, pageno = 1):  
     return ...
   
 .. code:: python
 
-  was.rpath ("navigate")
+  was.basepath ("navigate")
   >> return "/navigate"
 
 For example, in your VueJS template,
   
 .. code:: html
 
-  <a :href="'{{ was.rpath ('navigate') }}?limit=' + limit_option + '&pageno=' + (current_page + 1)">Next Page</a>
+  <a :href="'{{ was.basepath ('navigate') }}?limit=' + limit_option + '&pageno=' + (current_page + 1)">Next Page</a>
 
+Note that base path means for fancy Url, 
 
+.. code:: python
 
+  @app.route ("/user/<id>")
+  >> base path is "/user/"
   
-parameter a's value will be kept with current requested parameters. Note that was.partial can be recieved keyword arguments only except first resource name.
-
-
+  @app.route ("/user/<id>/pat")
+  >> base path is "/user/"
+  
 
 Access Environment Variables
 ------------------------------
@@ -3250,7 +3258,7 @@ Chameleon Template Engine
 
 *New in version 0.26.6*
 
-*Note added in version 0.26.12*: I don't know it is my fault, but Chameleon is unstable with multithreading environment (or heavy under load) on win32 and even crash Skitai. I recommend do not use it with these environment. And Chameleon will not be installed when pip install. If you need this one, install manually.
+*Note added in version 0.26.12*: I don't know it is my fault, but Chameleon is unstable with multi-threading environment (or heavy under load) on win32 and even crash Skitai. I recommend do not use it with these environment. And Chameleon is excluded from requirements. If you need this one, install manually.
 
 For using Chameleon_ template engine, you just make template file extention with '.pt' or '.ptal' (Page Template or Page Template Attribute Language).
 
@@ -4704,7 +4712,7 @@ Change Log
 - 0.27 (Apr 2018)
   
   - fix empty payload posting
-  - add was.partial and was.rpath
+  - add was.partial and was.basepath
   - raise NameError when non-exists funtion name to was.ap
   - fix default arg is missing on was.ab
   - add skitai.launch and saddle.make_client for unittest
