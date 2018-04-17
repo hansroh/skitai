@@ -11,6 +11,7 @@ import signal
 import time
 import glob
 from skitai.server.wastuff import daemon
+from ._makeconfig import _default_conf
 
 def hTERM (signum, frame):			
 	lifetime.shutdown (0, 30.0)
@@ -59,7 +60,10 @@ class	SMTPDeliverAgent (daemon.Daemon):
 		if val: self.MAX_RETRY = val
 		val = self.config.get ("keep_days", 30)
 		if val: self.UNDELIVERS_KEEP_MAX = val * 3600 * 24
-
+		
+		if not self.config.get ("smtpserver"):
+			self.logger ("no default SMTP server provided", "warn")
+			
 		self.default_smtp = (
 			self.config.get ("smtpserver"),
 			self.config.get ("user"),
@@ -201,7 +205,6 @@ def main ():
 		"ssl": 0,
 	}	
 	_logpath, _varpath = None, None
-	_default_conf = os.path.join (os.environ ["HOME"], ".skitai.conf")
 	
 	fileopt = []
 	cf = None
@@ -246,7 +249,7 @@ def main ():
 	
 	service = daemon.make_service (SMTPDeliverAgent, _cf, _logpath, _varpath, _consol)
 	try:
-		service.run ()		
+		service.run ()
 	finally:	
 		if _consol not in ("1", "yes", "true"):
 			sys.stderr.close ()	

@@ -12,7 +12,7 @@ import glob
 import threading
 from datetime import datetime
 from skitai.server.wastuff import daemon
-
+from ._makeconfig import _default_conf
 
 def hTERM (signum, frame):			
 	daemon.EXIT_CODE = 0
@@ -240,8 +240,6 @@ def main ():
 	_consol = "no"
 	_cf = {}
 	_logpath, _varpath = None, None
-	_default_conf = os.path.join (os.environ ["HOME"], ".skitai.conf")
-	
 	fileopt = []
 	cf = None
 	for k, v in argopt [0]:

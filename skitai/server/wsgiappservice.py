@@ -231,21 +231,27 @@ class WAS:
 	def shutdown (self, timeout = 0):
 		lifetime.shutdown (0, timeout)
 	
-	# response helpers --------------------------------------------
-		
-	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
-		return self.app.render (self, template_file, _do_not_use_this_variable_name_, **karg)
-	
-	def ab (self, thing, *args, **karg):
+	# URL builders -------------------------------------------------
+	def url_for (self, thing, *args, **karg):
 		# override with resource default args
 		if thing.startswith ("/") or thing.find (".") == -1:
 			return self.app.build_url (thing, *args, **karg)
-		return self.apps.build_url (thing, *args, **karg)
+		return self.apps.build_url (thing, *args, **karg)	
+	ab = url_for
 	
 	def partial (self, thing, **karg):
 		# override with current args
 		karg ["__defaults__"] = self.request.args
 		return self.ab (thing, **karg)
+	
+	def rpath (self, thing):
+		# resource path info without parameters
+		return self.ab (thing, __resource_path_only__ = True)
+	
+	# response helpers --------------------------------------------
+		
+	def render (self, template_file, _do_not_use_this_variable_name_ = {}, **karg):
+		return self.app.render (self, template_file, _do_not_use_this_variable_name_, **karg)
 	
 	REDIRECT_TEMPLATE =  (
 		"<head><title>%s</title></head>"

@@ -374,8 +374,16 @@ class Part:
 		if thing.startswith ("/"):
 			return self.basepath [:-1] + self.mount_p [:-1] + thing
 		
+		script_name_only = "__resource_path_only__" in kargs					
 		for func, name, fuvars, favars, numvars, str_rule, options in self.route_map.values ():
 			if thing != name: continue
+			if script_name_only:
+				url = str_rule
+				if favars:
+					s = url.find ("<")
+					if s != -1:
+						url = url [:s]
+				return self.url_for (url)
 			
 			params = {}
 			try:

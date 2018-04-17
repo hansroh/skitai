@@ -3091,28 +3091,58 @@ If your app is mounted at "/math",
 Building URL by Updating Parameters Partially
 ````````````````````````````````````````````````
 
+**New in version 0.27**
+
 .. code:: python
 
-  @app.route ("/add")
-  def add (was, num1, num2 = 0):  
-    return int (num1) + int (num2)
+  @app.route ("/navigate")
+  def navigate (was, limit = 20, pageno = 1):  
+    return ...
   
-If this resource was requested by /add?a=100&b=200, and if you want to make new resource url with keep a's value (=100), you can make URL like this,
+If this resource was requested by /naviagte?limit=100&pageno=2, and if you want to make new resource url with keep a's value (=100), you can make URL like this,
 
 .. code:: python
 
-  was.ab ("add", was.request.args.a, 60)
+  was.ab ("navigate", was.request.args.limit, 3)
   
 But you can update only changed parameters partially,
 
 .. code:: python
 
-  was.partial ("add", num2 = 300)
+  was.partial ("add", pageno = 3)
   
 parameter a's value will be kept with current requested parameters. Note that was.partial can be recieved keyword arguments only except first resource name.
 
 
+Building URL without Parameters
+````````````````````````````````````
+
 **New in version 0.27**
+
+Sometimes you need to know just resource's path info - especially client-side javascript URL building, then use *was.rpath*.
+
+.. code:: python
+
+  @app.route ("/navigate")
+  def navigate (was, limit = 20, pageno = 1):  
+    return ...
+  
+.. code:: python
+
+  was.rpath ("navigate")
+  >> return "/navigate"
+
+For example, in your VueJS template,
+  
+.. code:: html
+
+  <a :href="'{{ was.rpath ('navigate') }}?limit=' + limit_option + '&pageno=' + (current_page + 1)">Next Page</a>
+
+
+
+  
+parameter a's value will be kept with current requested parameters. Note that was.partial can be recieved keyword arguments only except first resource name.
+
 
 
 Access Environment Variables
@@ -4673,7 +4703,8 @@ Change Log
 
 - 0.27 (Apr 2018)
   
-  - add was.partial
+  - fix empty payload posting
+  - add was.partial and was.rpath
   - raise NameError when non-exists funtion name to was.ap
   - fix default arg is missing on was.ab
   - add skitai.launch and saddle.make_client for unittest

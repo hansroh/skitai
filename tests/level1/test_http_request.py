@@ -12,9 +12,15 @@ def test_request_generation (client):
 	assert request.uri == "/index"
 	assert request.version == "1.1"
 	
-	# POSTS	
-	payload = {"a": 1, "b": "z"}
+	# POSTS
+	# empty body
+	request = client.post (
+		url, '', 
+		headers = [("Content-Type", "application/x-www-form-urlencoded")]
+	)
+	assert request.body is None
 	
+	payload = {"a": 1, "b": "z"}
 	request = client.post (
 		url, payload, 
 		headers = [("Content-Type", "application/x-www-form-urlencoded")]
