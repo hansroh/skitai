@@ -241,13 +241,22 @@ Logging and Console Displaying For Developing/Debugging
 
 If you do not specify log file path, all logs will be displayed in console, bu specifed all logs will be written into file.
 
+First of all, you should create log directory,
+
+.. code:: bash
+
+  sudo mkdir /var/log/skitai
+  sudo chown ubuntu:ubuntu
+
+Your request log file willl be placed to: */var/log/skitai/ubuntu/<script path hash>/request.log*.
+  
 .. code:: python
   
   skitai.mount ('/', app)
+  skitai.enalbe_file_logging ()
   skitai.run (
     address = "0.0.0.0",
-    port = 5000,    
-    logpath = '/var/logs/skitai'
+    port = 5000
   )
 
 If you also want to view logs through console for spot developing, you run app.py with-v option.
@@ -903,9 +912,6 @@ Both of SMTP and Taks Scheduler can be run with config file, it may be particula
   
   # ~/.skitai.conf
   
-  [common]
-  log-path =
-
   [smtpda]
   verbose = false
   max-retry = 10
@@ -914,34 +920,29 @@ Both of SMTP and Taks Scheduler can be run with config file, it may be particula
   user = [your SMTP user name if you need]
   password = [your SMTP user password if you need]
   ssl = true
-
-  [cron]
-  verbose = false
-  process-display-name = skitai-cron
-
+  
   [:crontab]
 
 And run scripts mannually,
   
 .. code:: bash
 
-  python3 -m skitai.bin.smtpda -f ~/hrroh/.skitai.conf
-  python3 -m skitai.bin.cron -f ~/hrroh/.skitai.conf
+  skitai-smtpda -v
+  skitai-cron -v
   
 .. code:: bash
 
   Options:
   
-    -f or --config=[config path]
-    -d or start: start as daemon
+    start: start as daemon
     restart
     stop
     status
   
   Example:
   
-    python3 -m skitai.bin.smtpda -f ~/hrroh/.skitai.conf status
-    python3 -m skitai.bin.smtpda -f ~/hrroh/.skitai.conf restart  
+    skitai-smtpda status
+    skitai-smtpda restart  
   
 I you give cammnad line options, theses have more priority than config file.
 
@@ -951,7 +952,7 @@ And for running automatically on system boot, you can add this line to /etc/rc.l
 
   # /etc/rc.local
   
-  su - ubuntu -c "python -m skitai.bin.smtpda -f ~/.skitai.conf -d"
+  su - ubuntu -c "/usr/local/bin/skitai-smtpda start"
 
 In this case, smtpda will use spool directory at */tmp/skitai/smtpda*, so your each apps SHOULD NOT call *skitai.smtpda ()* if you want to share spool directory.
 

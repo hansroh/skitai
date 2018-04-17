@@ -11,7 +11,6 @@ import signal
 import time
 import glob
 from skitai.server.wastuff import daemon
-from ._makeconfig import _default_conf
 
 def hTERM (signum, frame):			
 	lifetime.shutdown (0, 30.0)
@@ -172,11 +171,9 @@ class	SMTPDeliverAgent (daemon.Daemon):
 def usage ():
 		print("""
 Usage:
-	smtpda.py [options...]
+	smtpda.py [options...] [start|restart|stop|status]
 
 Options:	
-	--var-path=
-	--log-path=
 	--verbose or -v
 	--help or -h
 
@@ -186,6 +183,7 @@ Examples:
 
 
 def main ():
+	from ._makeconfig import _default_conf, _default_log_dir
 	
 	argopt = demonizer.handle_commandline (
 		"hvf:",
@@ -217,7 +215,7 @@ def main ():
 		cf = confparse.ConfParse (_default_conf)
 	if cf:
 		# forcing 
-		cf.setopt ("smtpda", "var-path", "/var/tmp/skitai")
+		cf.setopt ("smtpda", "log-path", _default_log_dir)		
 		cf.setopt ("smtpda", "process-display-name", "skitai")
 		fileopt = list ([("--" + k, v) for k, v in cf.getopt ("common").items () if v not in ("", "false", "no")])
 		fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("smtpda").items () if v not in ("", "false", "no")]))					

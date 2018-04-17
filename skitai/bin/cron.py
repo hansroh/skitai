@@ -12,7 +12,6 @@ import glob
 import threading
 from datetime import datetime
 from skitai.server.wastuff import daemon
-from ._makeconfig import _default_conf
 
 def hTERM (signum, frame):			
 	daemon.EXIT_CODE = 0
@@ -217,11 +216,9 @@ class	CronManager (daemon.Daemon):
 def usage ():
 		print("""
 Usage:
-	cron.py [options...] [jobs...]
+	cron.py [options...] [start|restart|stop|status] [jobs...]
 
 Options:
-	--var-path=
-	--log-path=
 	--verbose or -v
 	--help or -h
 
@@ -231,6 +228,8 @@ Examples:
 
 
 def main ():
+	from ._makeconfig import _default_conf, _default_log_dir
+	
 	argopt = demonizer.handle_commandline (
 		"hvf:",
 		["help", "verbose=", "log-path=", "var-path=", "pname=", "process-display-name=", "config="], 
@@ -248,8 +247,10 @@ def main ():
 			break
 	
 	if cf is None and os.path.isfile (_default_conf):
-		cf = confparse.ConfParse (_default_conf)			
+		cf = confparse.ConfParse (_default_conf)
 	if cf:
+		cf.setsect ("cron", {})
+		cf.setopt ("cron", "log-path", _default_log_dir)
 		cf.setopt ("cron", "process-display-name", "skitai")
 		fileopt = list ([("--" + k, v) for k, v in cf.getopt ("common").items () if v not in ("", "false", "no")])
 		fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("cron").items () if v not in ("", "false", "no")]))
@@ -260,7 +261,7 @@ def main ():
 			sys.exit ()		
 		elif k == "--verbose" or k == "-v":
 			_consol = "yes"
-		elif k == "--log-path":	
+		elif k == "--log-path":
 			_logpath = v
 		elif k == "--var-path":	
 			_varpath = v

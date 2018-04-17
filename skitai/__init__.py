@@ -10,6 +10,7 @@ import h2
 from aquests.lib.attrdict import AttrDict
 from aquests.protocols.dns import asyndns
 from importlib import machinery
+from .server.wastuff import process, daemon	as wasdaemon
 from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from .launcher import launch
 
@@ -315,6 +316,11 @@ def enable_proxy (unsecure_https = False):
 	if os.name == "posix": 
 		dconf ['dns_protocol'] = 'udp'
 
+def enable_file_logging (path = None):
+	global dconf
+	if not path:
+		dconf ['logpath'] = wasdaemon.get_default_logpath ()
+	
 def enable_blacklist (path):
 	global dconf
 	dconf ["blacklist_dir"] = path
@@ -339,8 +345,7 @@ def enable_smtpda (server = None, user = None, password = None, ssl = None, max_
 def run (**conf):
 	import os, sys, time
 	from . import lifetime
-	from .server import Skitai	
-	from .server.wastuff import process, daemon	as wasdaemon
+	from .server import Skitai
 	from aquests.lib.pmaster import flock
 	import getopt
 		
@@ -385,7 +390,7 @@ def run (**conf):
 			karg ['pname'] = get_proc_title ()
 			karg ['var-path'] = self.get_varpath ()
 			if self.conf.get ("logpath"):
-				karg ['log-path'] = self.conf.get ("logpath")		
+				karg ['log-path'] = self.conf.get ("logpath")
 			if self.conf.get ("verbose", "no") in ("yes", 1, "1"):
 				karg ['verbose'] = "yes"
 			
@@ -441,9 +446,9 @@ def run (**conf):
 			if cron:
 				self.create_process ('cron', cron, {})
 			
-			self.wasc.logger ("server", "[info] active var dir %s" % self.get_varpath ())
+			self.wasc.logger ("server", "[info] tmp path: %s" % self.get_varpath ())
 			if self.logpath:
-				self.wasc.logger ("server", "[info] logging to %s" % self.logpath)
+				self.wasc.logger ("server", "[info] log path: %s" % self.logpath)
 			
 			self.conf.get ("models-keys") and self.set_model_keys (self.conf ["models-keys"])
 						

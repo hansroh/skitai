@@ -6,6 +6,8 @@ from aquests.lib.pmaster import flock
 import skitai
 import time, sys, os
 from _ast import arg
+import getpass
+from hashlib import md5
 
 EXIT_CODE = None
 
@@ -47,13 +49,14 @@ class Daemon:
 	def make_logger (self, create_flock = True):		
 		self.logger = logger.multi_logger ()
 		if self.consol:
-			self.logger.add_logger (logger.screen_logger ())			
+			self.logger.add_logger (logger.screen_logger ())
 		if self.logpath:
 			self.logger.add_logger (logger.rotate_logger (self.logpath, self.NAME, "weekly"))
-			self.logger ("logging to {}".format (self.logpath), "info")		
+			self.logger ("log path: {}".format (self.logpath), "info")		
 		if create_flock and os.name == "nt":			
 			self.flock = flock.Lock (os.path.join (self.varpath, "%s" % self.NAME))
 			self.flock.unlockall ()
+		self.logger ("tmp path: {}".format (self.varpath), "info")
 			
 	def bind_signal (self, term, kill, hup):
 		self.handlers ["terminate"] = term
@@ -73,16 +76,19 @@ class Daemon:
 			
 	def setup (self):
 		raise NotImplementedError
-			
-					
-def get_default_varpath ():
-	from hashlib import md5
+
+
+def get_base_tmp ():
 	fullpath = os.path.join (os.getcwd (), sys.argv [0])
-	dpath, script = os.path.split (fullpath)
-	if script.endswith (".py"):
-		script = script [:-3]
-	_var = 'skitai-%s-%s' % (script, md5 (dpath.encode ('utf8')).hexdigest ()[:8])
-	return os.name == "posix" and '/var/tmp/%s' % _var or os.path.join (tempfile.gettempdir(), _var)
+	return '%s/%s' % (getpass.getuser(), md5 (fullpath.encode ('utf8')).hexdigest () [:16])
+	 	
+def get_default_varpath ():	
+	tmp = get_base_tmp ()	
+	return os.name == "posix" and '/var/tmp/skitai/%s' % tmp or os.path.join (tempfile.gettempdir(), tmp)
+
+def get_default_logpath ():	
+	tmp = get_base_tmp ()	
+	return os.name == "posix" and '/var/log/skitai/%s' % tmp or os.path.join (tempfile.gettempdir(), tmp)
 
 def make_service (service_class, config, logpath, varpath, consol):
 	if logpath:
