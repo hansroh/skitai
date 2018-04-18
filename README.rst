@@ -475,51 +475,6 @@ and your service.py:
   skitai.run ()
  
 
-Microservices
-```````````````````
-
-*Saddlery deprecated in version 0.26.11*
-
-Skitai recommend your big service into seperated micro-apps.
-
-app.py is starter script by importing skitai and mounting multiple apps.
-
-.. code:: python
-  
-  import skitai    
-  
-  pref = skitai.pref ()
-  pref.use_reloader = True
-  
-  skitai.mount ('/', 'static')
-  skitai.mount ('/', 'index.py', 'app', pref)
-  skitai.mount ('/admin', 'admin.py', 'app', pref)
-  skitai.mount ('/trade', 'trade.py', 'app', pref)  
-  skitai.run ()  
-
-And your pysical directory structure including app.py is,
-
-.. code:: bash
-
-  templates/layout/*.html # for shared layout templates
-  templates/*.html
-  
-  decorative/*.py # app library, all modules in this directory will be watched for reloading
-  
-  static/images # static files
-  static/js
-  static/css
-  
-  app.py # this is starter script
-  index.py
-  trade.py  
-  admin.py
-  
-This structure make highly focus on each microservices and make easy to move or apply scaling by serivce traffic increment.
-
-For communicating between apps using events, URL building and accessing another app, please refer previous chapters.
- 
-
 Mounting With Virtual Host
 -------------------------------
 
@@ -531,64 +486,6 @@ Mounting With Virtual Host
     skitai.mount ('/', 'site1.py', host = 'www.site1.com')
     skitai.mount ('/', 'site2.py', host = 'www.site2.com')
     skitai.run ()
-
-
-Runtime App Preference
--------------------------
-
-**New in version 0.26**
-
-Usally, your app preference setting is like this:
-
-.. code:: python
-
-  app = Saddle(__name__)
-  
-  app.use_reloader = True
-  app.debug = True
-  app.config ["prefA"] = 1
-  app.config ["prefB"] = 2
-  
-Skitai provide runtime preference setting.
-
-.. code:: python
-  
-  import skitai
-  
-  pref = skitai.pref ()
-  pref.use_reloader = 1
-  pref.debug = 1
-  
-  pref.config ["prefA"] = 1
-  pref.config.prefB = 2
-  
-  skitai.mount ("/v1", "app_v1/app.py", "app", pref)
-  skitai.run ()
-  
-Above pref's all properties will be overriden on your app.
-
-Runtime preference can be used with skitai initializing or complicated initializing process for your app.
-
-You can create __init__.py at same directory with app. And bootstrap () function is needed.
-
-__init__.py
-
-.. code:: python
-  
-  import skitai
-  from . import cronjob
-  
-  def bootstrap (pref):
-    if pref.config.get ('enable_cron')
-      skitai.cron ('*/10 * * * *', "%s >> /var/log/sitai/cron.log" % cronjob.__file__)
-      skitai.mount ('/cron-log', '/var/log/sitai')
-            
-    with open (pref.config.urlfile, "r") as f:
-      pref.config.urllist = [] 
-      while 1:
-        line = f.readline ().strip ()
-        if not line: break
-        pref.config.urllist.append (line.split ("  ", 4))
 
 Setting POST Body Size Limitation
 ------------------------------------
@@ -2364,6 +2261,164 @@ Before you begin, recommended Saddle App's directory structure is like this:
 - resources: Directory, Various files as app need like sqlite db file. In you app, you use these files, you can access file in resources by app.get_resource ("db", "sqlite3.db") like os.path.join manner.
 
 
+App Resource Structure
+-------------------------------------
+
+If your app is simple, it can be made into single app.py and templates and static directory.
+
+.. code:: python
+  
+  from skitai.saddle import Saddle
+  
+  app = Saddle(__name__)
+  
+  app.use_reloader = True
+  app.debug = True
+  
+  @app.route ("/")
+  def index (was):
+    ...
+    return was.response ("200 OK", ...)
+  
+  if __name__ == "__main__":
+    import skitai    
+  
+    pref = skitai.pref ()
+    pref.use_reloader = True
+      
+    skitai.mount ('/', './static')
+    skitai.mount ('/', app, 'app', pref)
+    skitai.run ()  
+
+And run,
+
+.. code:: bash
+
+  python3 app.py -v
+
+But Your app is more bigger, it will be hard to make with single app file. Then, you can make decorative directory to seperate your app into several categories.
+
+.. code:: bash
+  
+  app.py
+  decoratives/
+  templates/
+  resources/
+  static/
+
+All sub modules app need, can be placed into decorative/. decorative/\*.py will be watched for reloading if use_reloader = True.
+
+You can structuring any ways you like and I like this style:
+
+.. code:: bash
+
+  decorative/views.py
+  decorative/apis.py
+  decorative/helpers.py
+
+All modules to decorate app in decorative, should have def decorate (app).
+
+For example, views.py is like this,
+
+.. code:: python
+  
+  from . import helpers
+  
+  def decorate (app):  
+    @app.route ("/")
+    def index (was):
+      ...
+      return was.render ("index.html")
+
+Now you just import app decorable moduels at your app.py,
+
+.. code:: python
+
+  from skitai.saddle import Saddle
+  from decorative import views, apis
+  
+  app = Saddle(__name__)
+
+That's it.
+
+If app scale is more bigger scale, decorative can be expanded to sub modules. 
+
+.. code:: bash
+
+  decorative/views/index.py, regist.py, search.py, ...
+  decorative/apis/codemap.py, 
+  decorative/helpers/utils.py, ...
+
+And import these from app.py,
+
+.. code:: python
+
+  from decorative.views import index, regist, ...
+  from decorative.apis import codemap, ...
+
+Some more other informations will be mentioned at *App Decorating* section again.
+
+
+Runtime App Preference
+-------------------------
+
+**New in version 0.26**
+
+Usally, your app preference setting is like this:
+
+.. code:: python
+  
+  from skitai.saddle import Saddle
+  
+  app = Saddle(__name__)
+  
+  app.use_reloader = True
+  app.debug = True
+  app.config ["prefA"] = 1
+  app.config ["prefB"] = 2
+  
+Skitai provide runtime preference setting.
+
+.. code:: python
+  
+  import skitai
+  
+  pref = skitai.pref ()
+  pref.use_reloader = 1
+  pref.debug = 1
+  
+  pref.config ["prefA"] = 1
+  pref.config.prefB = 2
+  
+  skitai.mount ("/v1", "app_v1/app.py", "app", pref)
+  skitai.run ()
+  
+Above pref's all properties will be overriden on your app.
+
+Runtime preference can be used with skitai initializing or complicated initializing process for your app.
+
+You can create __init__.py at same directory with app.py. And bootstrap () function is needed.
+
+__init__.py
+
+.. code:: python
+  
+  import skitai
+  from . import cronjob
+  
+  def bootstrap (pref):
+    if pref.config.get ('enable_cron')
+      skitai.cron ('*/10 * * * *', "%s >> /var/log/sitai/cron.log" % cronjob.__file__)
+      skitai.mount ('/cron-log', '/var/log/sitai')
+            
+    with open (pref.config.urlfile, "r") as f:
+      pref.config.urllist = [] 
+      while 1:
+        line = f.readline ().strip ()
+        if not line: break
+        pref.config.urllist.append (line.split ("  ", 4))
+
+
 Access Saddle App
 ------------------
 
@@ -2914,7 +2969,7 @@ App Decorating: Making Simpler & Modular App
 
 *New in version 0.26.17*
 
-You can split yours views and help utilties into decorative directory.
+I already mentioned *App Structure* section, you can split yours views and help utilties into decorative directory.
 
 Assume your application directory structure is like this,
 
@@ -2953,33 +3008,30 @@ decorative/auth.py
     ...
     return s
   
-  # decorate on app
-
-  def decorate (app):  
-    @app.login_handler
-    
-  def login_handler (was):  
-    if was.session.get ("username"):
-      return
-    next_url = not was.request.uri.endswith ("signout") and was.request.uri or ""    
-    return was.redirect (was.ab ("signin", next_url))
-    
-  @app.route ("/signout")
-  def signout (was):
-    was.session.remove ("username")
-    was.mbox.push ("Signed out successfully", "success")  
-    return was.redirect (was.ab ('index'))
-    
-  @app.route ("/signin")
-  def signin (was, next_url = None, **form):
-    if was.request.args.get ("username"):
-      user = auth.authenticate (was.django, username = was.request.args ["username"], password = was.request.args ["password"])
-      if user:
-        was.session.set ("username", was.request.args ["username"])
-        return was.redirect (was.request.args ["next_url"])
-      else:
-        was.mbox.push ("Invalid User Name or Password", "error", icon = "new_releases")
-    return was.render ("sign/signin.html", next_url = next_url or was.ab ("index"))
+  def decorate (app):
+    @app.login_handler      
+    def login_handler (was):  
+      if was.session.get ("username"):
+        return
+      next_url = not was.request.uri.endswith ("signout") and was.request.uri or ""    
+      return was.redirect (was.ab ("signin", next_url))
+      
+    @app.route ("/signout")
+    def signout (was):
+      was.session.remove ("username")
+      was.mbox.push ("Signed out successfully", "success")  
+      return was.redirect (was.ab ('index'))
+      
+    @app.route ("/signin")
+    def signin (was, next_url = None, **form):
+      if was.request.args.get ("username"):
+        user = auth.authenticate (was.django, username = was.request.args ["username"], password = was.request.args ["password"])
+        if user:
+          was.session.set ("username", was.request.args ["username"])
+          return was.redirect (was.request.args ["next_url"])
+        else:
+          was.mbox.push ("Invalid User Name or Password", "error", icon = "new_releases")
+      return was.render ("sign/signin.html", next_url = next_url or was.ab ("index"))
 
 You just import module from decorative. but *def decorate (app)* is core in each module. Every modules can have *decorate (app)* in *decorative*, so you can split and modulize views and utility functions. decorate (app) will be automatically executed on starting. If you set app.use_reloader, theses decorative will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
 
@@ -3000,6 +3052,30 @@ And on app,
   
   app = Saddle (__name__)
   app.decorate_with (auth, '/regist')
+
+If you build useful decoratives, please contribute them to `skitai.saddle.decorative`_.
+
+.. _`skitai.saddle.decorative`: https://gitlab.com/hansroh/skitai/tree/master/skitai/saddle/contrib/decorative
+
+
+Disabling Resources
+`````````````````````````````
+
+If you want to disable some resources in your decoratives, you just remove from decorative () into any function:
+
+.. code:: python
+
+  def decorate (app):
+    @app.login_handler
+    def login_handler (was):
+       ...
+       
+  def disabled ():
+    @app.route ("/something")
+    def unneed_fornow (was):
+      ...
+      
+If you want to disable a module, You just do not import your app.py.
 
 
 Using Websocket
