@@ -16,6 +16,9 @@ except ImportError:
 with open('skitai/__init__.py', 'r') as fd:
 	version = re.search(r'^__version__\s*=\s*"(.*?)"',fd.read(), re.M).group(1)
 
+if 'develop' in sys.argv[1:]:
+	os.system ("rm -rf /usr/local/lib/python3.5/dist-packages/aquests-*")
+	
 if sys.argv[-1] == 'publish':
 	buildopt = ['sdist', 'upload']	
 	if os.name == "nt":
