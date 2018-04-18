@@ -211,7 +211,6 @@ def main ():
 			cf = confparse.ConfParse (_default_conf)			
 			cf.setopt ("smtpda", "log-path", _default_log_dir)		
 			cf.setopt ("smtpda", "process-display-name", "skitai")
-			fileopt = list ([("--" + k, v) for k, v in cf.getopt ("common").items () if v not in ("", "false", "no")])
 			fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("smtpda").items () if v not in ("", "false", "no")]))					
 	
 	argopt = demonizer.handle_commandline (argopt, _varpath or _default_var_dir, "skitai")	

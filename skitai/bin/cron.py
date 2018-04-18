@@ -257,7 +257,6 @@ def main ():
 				cf.setsect ("cron", {})
 			cf.setopt ("cron", "log-path", _default_log_dir)
 			cf.setopt ("cron", "process-display-name", "skitai")
-			fileopt = list ([("--" + k, v) for k, v in cf.getopt ("common").items () if v not in ("", "false", "no")])
 			fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("cron").items () if v not in ("", "false", "no")]))
 	
 	argopt = demonizer.handle_commandline (argopt, _varpath or _default_var_dir, "skitai")			
