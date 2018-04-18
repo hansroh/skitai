@@ -543,29 +543,31 @@ def run (**conf):
 		def update (working_dir):
 			set_service_config (['update'])
 				
-	def start (working_dir):
+	def start (working_dir, lockpath):
 		if os.name == "nt":
 			set_service_config (['start'])
 		else:	
 			from aquests.lib.pmaster import Daemonizer
-			if not Daemonizer (working_dir, 'skitai').runAsDaemon ():
+			if not Daemonizer (working_dir, 'skitai', lockpath = lockpath).runAsDaemon ():
 				print ("already running")
 				sys.exit ()
 			
-	def stop (working_dir):
+	def stop (lockpath):
 		if os.name == "nt":			
 			set_service_config (['stop'])
 		else:	
 			from aquests.lib.pmaster import daemon
-			daemon.kill (working_dir, 'skitai', True)
+			daemon.kill (lockpath, 'skitai', True)
 	
-	def status (working_dir):
+	def status (lockpath, verbose = True):
 		from aquests.lib.pmaster import daemon
-		pid = daemon.status (working_dir, 'skitai')
-		if pid:
-			print ("running [%d]" % pid)
-		else:
-			print ("stopped")
+		pid = daemon.status (lockpath, 'skitai')
+		if verbose:
+			if pid:
+				print ("running [%d]" % pid)
+			else:
+				print ("stopped")
+		return pid	
 	
 	#----------------------------------------------------------------------------
 	
@@ -581,11 +583,8 @@ def run (**conf):
 	argopt = getopt.getopt(sys.argv[1:], "vfdsr", [])	
 	conf ["varpath"] = wasdaemon.get_default_varpath ()
 	pathtool.mkdir (conf ["varpath"])
-	working_dir = conf ["varpath"]
-	# safe for old version
-	if os.path.isfile (os.path.join (getswd (), ".pid")):
-		working_dir = getswd ()
-
+	working_dir = getswd ()
+	
 	try: cmd = argopt [1][0]
 	except: cmd = None
 	karg = {}
@@ -594,30 +593,31 @@ def run (**conf):
 		elif k == "-r": cmd = "retart"
 		elif k == "-s": cmd = "stop"
 		else: karg [k] = v
-			
+	
 	if cmd in ("start", "restart") and '-v' in karg:
 		raise SystemError ('Daemonizer cannot be run with -v, It is meaningless')
-				
+	
+	lockpath = conf ["varpath"] 		
 	if cmd == "stop":
-		return stop (working_dir)
+		return stop (lockpath)
 	elif cmd == "status":
-		return status (working_dir)
+		return status (lockpath)
 	elif cmd == "start":
-		start (working_dir)		
+		start (working_dir, lockpath)		
 	elif cmd == "install":	
-		install (working_dir)		
+		install (working_dir)
 	elif cmd == "update":	
 		update ()
 	elif cmd == "remove":	
 		remove (working_dir)	
 	elif cmd == "restart":
-		stop (working_dir)		
+		stop (lockpath)		
 		time.sleep (2)
-		start (working_dir)	
+		start (working_dir, lockpath)
 	elif cmd:
 		print ('unknown command: %s' % cmd)
 		return
-				
+	
 	if cmd and os.name == "nt":
 		return
 				
@@ -637,10 +637,12 @@ def run (**conf):
 			'-v' in karg
 		).run ()
 	
-	else:		
-		os.chdir (getswd ())
+	else:
+		os.chdir (working_dir)
 		if verbose:
 			conf ['verbose'] = 'yes'
+		else:
+			sys.stderr = open (os.path.join (conf.get ('varpath'), "stderr.sys"), "a")	
 		server = SkitaiServer (conf)
 		# timeout for fast keyboard interrupt on win32	
 		try:
