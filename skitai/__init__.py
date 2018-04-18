@@ -411,7 +411,7 @@ def run (**conf):
 								
 			cmd = "%s %s %s" % (
 				sys.executable, 
-				os.path.join (os.path.dirname (os.path.dirname (Skitai.__file__)), "bin", name + ".py"), 
+				os.path.join ("/usr/local/bin", name + ".py"), 
 				" ".join (argsall)
 			)
 			
