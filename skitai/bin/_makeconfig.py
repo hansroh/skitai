@@ -20,3 +20,4 @@ if not os.path.exists (_default_conf):
         f.write (DEFAULT)
 
 _default_log_dir = daemon.get_default_logpath ()
+_default_var_dir = daemon.get_default_varpath ()

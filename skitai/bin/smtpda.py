@@ -183,43 +183,38 @@ Examples:
 
 
 def main ():
-	from ._makeconfig import _default_conf, _default_log_dir
+	from ._makeconfig import _default_conf, _default_log_dir, _default_var_dir
 	
-	argopt = demonizer.handle_commandline (
-		"hvf:",
+	argopt = getopt.getopt (
+		sys.argv[1:], 
+		"dhv",
 		[
 			"help", "verbose=", "log-path=", "var-path=", "pname=",
 			"max-retry=", "keep-days=", "server=", "user=", "password=", "ssl=",
-			"config=", "process-display-name=", "smtp-server="
-		], 
-		"/var/tmp/skitai/smtpda",
-		"skitai"
+			"process-display-name=", "smtp-server="
+		]
 	)
-			
-	_consol = "no"
-	_cf = {
-		"max-retry": 3,
-		"keep-days": 3,
-		"ssl": 0,
-	}	
-	_logpath, _varpath = None, None
 	
+	_consol = "no"
+	_cf = {"max-retry": 3, "keep-days": 3, "ssl": 0}
+	_logpath, _varpath = None, None
 	fileopt = []
 	cf = None
 	for k, v in argopt [0]:
-		if k == "-f" or k == "config":
-			cf = confparse.ConfParse (v)
+		if k == "--var-path":
+			_varpath = v			
 			break
+		
+	if not _varpath:
+		_varpath = _default_var_dir
+		if os.path.isfile (_default_conf):
+			cf = confparse.ConfParse (_default_conf)			
+			cf.setopt ("smtpda", "log-path", _default_log_dir)		
+			cf.setopt ("smtpda", "process-display-name", "skitai")
+			fileopt = list ([("--" + k, v) for k, v in cf.getopt ("common").items () if v not in ("", "false", "no")])
+			fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("smtpda").items () if v not in ("", "false", "no")]))					
 	
-	if cf is None and os.path.isfile (_default_conf):
-		cf = confparse.ConfParse (_default_conf)
-	if cf:
-		# forcing 
-		cf.setopt ("smtpda", "log-path", _default_log_dir)		
-		cf.setopt ("smtpda", "process-display-name", "skitai")
-		fileopt = list ([("--" + k, v) for k, v in cf.getopt ("common").items () if v not in ("", "false", "no")])
-		fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("smtpda").items () if v not in ("", "false", "no")]))					
-	
+	argopt = demonizer.handle_commandline (argopt, _varpath or _default_var_dir, "skitai")	
 	for k, v in (fileopt + argopt [0]):
 		if k == "--help" or k == "-h":
 			usage ()

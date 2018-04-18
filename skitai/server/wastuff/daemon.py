@@ -52,11 +52,11 @@ class Daemon:
 			self.logger.add_logger (logger.screen_logger ())
 		if self.logpath:
 			self.logger.add_logger (logger.rotate_logger (self.logpath, self.NAME, "weekly"))
-			self.logger ("log path: {}".format (self.logpath), "info")		
+			self.logger ("{} log path: {}".format (self.NAME, self.logpath), "info")		
 		if create_flock and os.name == "nt":			
 			self.flock = flock.Lock (os.path.join (self.varpath, "%s" % self.NAME))
 			self.flock.unlockall ()
-		self.logger ("tmp path: {}".format (self.varpath), "info")
+		self.logger ("{} tmp path: {}".format (self.NAME, self.varpath), "info")
 			
 	def bind_signal (self, term, kill, hup):
 		self.handlers ["terminate"] = term
@@ -78,16 +78,16 @@ class Daemon:
 		raise NotImplementedError
 
 
-def get_base_tmp ():
-	fullpath = os.path.join (os.getcwd (), sys.argv [0])
+def get_base_tmp (fullpath):
+	fullpath = os.path.abspath (fullpath or os.path.join (os.getcwd (), sys.argv [0]))
 	return '%s/%s' % (getpass.getuser(), md5 (fullpath.encode ('utf8')).hexdigest () [:16])
 	 	
-def get_default_varpath ():	
-	tmp = get_base_tmp ()	
+def get_default_varpath (fullpath = None):	
+	tmp = get_base_tmp (fullpath)
 	return os.name == "posix" and '/var/tmp/skitai/%s' % tmp or os.path.join (tempfile.gettempdir(), tmp)
 
-def get_default_logpath ():	
-	tmp = get_base_tmp ()	
+def get_default_logpath (fullpath = None):	
+	tmp = get_base_tmp (fullpath)	
 	return os.name == "posix" and '/var/log/skitai/%s' % tmp or os.path.join (tempfile.gettempdir(), tmp)
 
 def make_service (service_class, config, logpath, varpath, consol):

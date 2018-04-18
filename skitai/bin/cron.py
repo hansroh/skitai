@@ -228,33 +228,39 @@ Examples:
 
 
 def main ():
-	from ._makeconfig import _default_conf, _default_log_dir
+	from ._makeconfig import _default_conf, _default_log_dir, _default_var_dir
 	
-	argopt = demonizer.handle_commandline (
-		"hvf:",
-		["help", "verbose=", "log-path=", "var-path=", "pname=", "process-display-name=", "config="], 
-		 "/var/tmp/skitai/cron", 
-		 "skitai"
-	)	
+	argopt = getopt.getopt (
+		sys.argv[1:], 
+		"dhv",
+		[
+			"help", "verbose=", "log-path=", "var-path=", 
+			"pname=", "process-display-name="
+		]
+	)
+	
 	_consol = "no"
 	_cf = {}
 	_logpath, _varpath = None, None
 	fileopt = []
 	cf = None
-	for k, v in argopt [0]:
-		if k == "-f" or k == "--config":
-			cf = confparse.ConfParse (v)			
+	for k, v in argopt [0]:		
+		if k == "--var-path":
+			_varpath = v			
 			break
 	
-	if cf is None and os.path.isfile (_default_conf):
-		cf = confparse.ConfParse (_default_conf)
-	if cf:
-		cf.setsect ("cron", {})
-		cf.setopt ("cron", "log-path", _default_log_dir)
-		cf.setopt ("cron", "process-display-name", "skitai")
-		fileopt = list ([("--" + k, v) for k, v in cf.getopt ("common").items () if v not in ("", "false", "no")])
-		fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("cron").items () if v not in ("", "false", "no")]))
+	if not _varpath:		
+		_varpath = _default_var_dir
+		if os.path.isfile (_default_conf):
+			cf = confparse.ConfParse (_default_conf)
+			if not	cf.has_key ("cron"):		
+				cf.setsect ("cron", {})
+			cf.setopt ("cron", "log-path", _default_log_dir)
+			cf.setopt ("cron", "process-display-name", "skitai")
+			fileopt = list ([("--" + k, v) for k, v in cf.getopt ("common").items () if v not in ("", "false", "no")])
+			fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("cron").items () if v not in ("", "false", "no")]))
 	
+	argopt = demonizer.handle_commandline (argopt, _varpath or _default_var_dir, "skitai")			
 	for k, v in (fileopt + argopt [0]):
 		if k == "--help" or k == "-h":	
 			usage ()
@@ -263,8 +269,6 @@ def main ():
 			_consol = "yes"
 		elif k == "--log-path":
 			_logpath = v
-		elif k == "--var-path":	
-			_varpath = v
 		elif k == "--pname" or k == "--process-display-name":	
 			_cf ["pname"] = v
 			
@@ -282,5 +286,6 @@ def main ():
 
 if __name__ == "__main__":
 	main ()
-	
+
+
 		

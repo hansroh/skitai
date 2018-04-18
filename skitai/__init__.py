@@ -319,7 +319,7 @@ def enable_proxy (unsecure_https = False):
 def enable_file_logging (path = None):
 	global dconf
 	if not path:
-		dconf ['logpath'] = wasdaemon.get_default_logpath ()
+		dconf ['logpath'] = wasdaemon.get_default_logpath (__file__)
 	
 def enable_blacklist (path):
 	global dconf
@@ -347,8 +347,9 @@ def run (**conf):
 	from . import lifetime
 	from .server import Skitai
 	from aquests.lib.pmaster import flock
+	from aquests.lib import pathtool
 	import getopt
-		
+
 	class SkitaiServer (Skitai.Loader):
 		NAME = 'instance'
 		
@@ -356,7 +357,7 @@ def run (**conf):
 			self.conf = conf
 			self.children = []
 			self.flock = None
-			Skitai.Loader.__init__ (self, 'config', conf.get ('logpath'), self.get_varpath ())
+			Skitai.Loader.__init__ (self, 'config', conf.get ('logpath'), conf.get ('varpath'))
 			
 		def close (self):
 			if self.wasc.httpserver.worker_ident == "master":
@@ -388,7 +389,7 @@ def run (**conf):
 		def create_process (self, name, args, karg):
 			argsall = []
 			karg ['pname'] = get_proc_title ()
-			karg ['var-path'] = self.get_varpath ()
+			karg ['var-path'] = self.varpath
 			if self.conf.get ("logpath"):
 				karg ['log-path'] = self.conf.get ("logpath")
 			if self.conf.get ("verbose", "no") in ("yes", 1, "1"):
@@ -411,7 +412,7 @@ def run (**conf):
 								
 			cmd = "%s %s %s" % (
 				sys.executable, 
-				os.path.join ("/usr/local/bin", name + ".py"), 
+				os.path.join ("/usr/local/bin", "skitai-{}".format (name)), 
 				" ".join (argsall)
 			)
 			
@@ -419,12 +420,9 @@ def run (**conf):
 				process.Process (
 					cmd, 
 					name,
-					self.get_varpath ()
+					self.varpath
 				)
 			)
-		
-		def get_varpath (self):
-			return self.conf.get ('varpath') or wasdaemon.get_default_varpath ()
 			
 		def config_logger (self, path):
 			media = []
@@ -446,9 +444,9 @@ def run (**conf):
 			if cron:
 				self.create_process ('cron', cron, {})
 			
-			self.wasc.logger ("server", "[info] tmp path: %s" % self.get_varpath ())
+			self.wasc.logger ("server", "[info] engine tmp path: %s" % self.varpath)
 			if self.logpath:
-				self.wasc.logger ("server", "[info] log path: %s" % self.logpath)
+				self.wasc.logger ("server", "[info] engine log path: %s" % self.logpath)
 			
 			self.conf.get ("models-keys") and self.set_model_keys (self.conf ["models-keys"])
 						
@@ -476,7 +474,7 @@ def run (**conf):
 			
 			self.config_dns (dconf ['dns_protocol'])
 			if conf.get ("cachefs_diskmax", 0) and not conf.get ("cachefs_dir"):
-				conf ["cachefs_dir"] = os.path.join (self.get_varpath (), "cachefs")
+				conf ["cachefs_dir"] = os.path.join (self.varpath, "cachefs")
 
 			self.config_cachefs (
 				conf.get ("cachefs_dir", None), 
@@ -523,7 +521,7 @@ def run (**conf):
 			lifetime.maintern.sched (3.0, asyndns.pool.maintern)
 			if os.name == "nt":
 				lifetime.maintern.sched (11.0, self.maintern_shutdown_request)								
-				self.flock = flock.Lock (os.path.join (self.get_varpath (), ".%s" % self.NAME))
+				self.flock = flock.Lock (os.path.join (self.varpath, ".%s" % self.NAME))
 			
 	#----------------------------------------------------------------------------
 	if os.name == "nt":
@@ -580,8 +578,14 @@ def run (**conf):
 	if not conf.get ('mount'):
 		raise systemError ('No mount point')
 	
-	argopt = getopt.getopt(sys.argv[1:], "vfdsr", [])
-	working_dir = getswd ()
+	argopt = getopt.getopt(sys.argv[1:], "vfdsr", [])	
+	conf ["varpath"] = wasdaemon.get_default_varpath ()
+	pathtool.mkdir (conf ["varpath"])
+	working_dir = conf ["varpath"]
+	# safe for old version
+	if os.path.isfile (os.path.join (getswd (), ".pid")):
+		working_dir = getswd ()
+
 	try: cmd = argopt [1][0]
 	except: cmd = None
 	karg = {}
@@ -603,7 +607,7 @@ def run (**conf):
 	elif cmd == "install":	
 		install (working_dir)		
 	elif cmd == "update":	
-		update (working_dir)
+		update ()
 	elif cmd == "remove":	
 		remove (working_dir)	
 	elif cmd == "restart":
@@ -618,10 +622,12 @@ def run (**conf):
 		return
 				
 	verbose = 0
-	if '-v' in karg or conf.get ('logpath') is None:
+	if '-v' in karg:
 		verbose = 1
 	
 	if "-f" in karg:
+		if os.name != "nt":
+			 raise SystemError ('-v option is needed only on win32')
 		# failsafe run
 		from . import failsafer
 		failsafer.Service (
