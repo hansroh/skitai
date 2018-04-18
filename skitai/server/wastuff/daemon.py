@@ -106,7 +106,7 @@ def make_service (service_class, config, logpath, varpath, consol):
 	if consol not in ("1", "yes"): # service mode
 		from aquests.lib import devnull		
 		sys.stdout = devnull.devnull ()		
-		sys.stderr = open (os.path.join (varpath, "stderr-%s.log" % service_class.NAME), "a")
+		sys.stderr = open (os.path.join (varpath, "stderr.%s" % service_class.NAME), "a")
 		
 	return service_class (config, logpath, varpath, consol)
 
