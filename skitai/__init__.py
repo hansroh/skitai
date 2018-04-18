@@ -637,8 +637,8 @@ def run (**conf):
 			'-v' in karg
 		).run ()
 	
-	else:
-		os.chdir (working_dir)
+	else:		
+		os.chdir (getswd ())
 		if verbose:
 			conf ['verbose'] = 'yes'
 		server = SkitaiServer (conf)
