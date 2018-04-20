@@ -1306,10 +1306,12 @@ It will be easy to understand think like that:
 Simply just remember, if you use WSGI container like Flask, Bottle, ... - NOT Saddle - and want to use Skitai asynchronous services, you should import 'was'. Usage is exactly same. But for my convinient, I wrote example codes Saddle version mostly.
 
 
-Async Requests Service To Backend Servers
--------------------------------------------
+Async Communication Between Backends To Backends
+------------------------------------------------------
 
 Most importance service of 'was' is making requests to HTTP, REST, RPC and several database engines. And this is mostly useful for fast Server Side Rendering with outside resources.
+
+Recently Javascript provides good asynchronous communicating tools like AJAX or axios.js for **frontends - backends**. Like this, 'was' provides **backends - backends** communicating tool.
 
 The modules is related theses features from aquests_ and you could read aquests_ usage first.
 

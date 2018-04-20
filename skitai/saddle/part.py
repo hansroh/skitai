@@ -283,12 +283,7 @@ class Part:
 			@wraps(f)
 			def wrapper (was, *args, **kwargs):
 				def _getmtime (path): 
-					try:
-						mtime = os.path.getmtime (path)
-					except FileNotFoundError:
-						return 0
-					return mtime
-					
+					return os.path.getmtime (path)
 				response = self._check_condition (was, path, func, interval, _getmtime)
 				if response is not None:
 					return response
