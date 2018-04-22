@@ -53,6 +53,8 @@ class Module:
 	def start_app (self, reloded = False):
 		func = None
 		app = self.app or getattr (self.module, self.appname)
+		if hasattr (app, "set_logger"):
+			app.set_logger (self.wasc.logger.get ("app"))		
 		self.django = str (app.__class__).find ("django.") != -1
 		self.has_life_cycle = hasattr (app, "life_cycle")
 		if hasattr (app, "_aliases"):
@@ -173,6 +175,7 @@ class Module:
 				# reloaded
 				self.has_life_cycle and newapp.life_cycle ("reloaded", self.wasc ())
 				self.last_reloaded = time.time ()
+				self.wasc.logger ("app", "reloading app, %s" % self.abspath, "info")
 				
 	def set_route (self, route):
 		route = route

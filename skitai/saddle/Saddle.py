@@ -1,30 +1,18 @@
-import threading 
 import time
-import os
-import sys
+import os, sys
 from . import part, multipart_collector, cookie, session, grpc_collector, ws_executor
 from . import wsgi_executor, xmlrpc_executor, grpc_executor, jsonrpc_executor
-from aquests.lib import producers, evbus
-from functools import wraps
 from importlib import reload
 from aquests.protocols.grpc import discover
 from aquests.protocols.http import http_util
 from skitai import was as the_was
 from hashlib import md5
-import random
 import base64
-from . import cookie
 from .config import Config
 from sqlphile import Template
-from event_bus.exceptions import EventDoesntExist
 import skitai    
 from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from jinja2 import Environment, FileSystemLoader, ChoiceLoader
-try:
-    from chameleon import PageTemplateLoader
-except:
-    PageTemplateLoader = None        
-        
 
 class AuthorizedUser:
     def __init__ (self, user, realm, info = None):
@@ -37,35 +25,16 @@ class AuthorizedUser:
         
         
 class Saddle (part.Part):
-    use_reloader = False
-    debug = False
-    contrib_devel = False # make reloadable
-    # Session
-    securekey = None
-    session_timeout = None
-
-    #WWW-Authenticate    
-    access_control_allow_origin = None
-    access_control_max_age = 0    
-    authenticate = False
-    authorization = "digest"    
-    realm = None
-    users = {}    
-    opaque = None
     templates_dirs = []
-    
     PRESERVES_ON_RELOAD = ["reloadables"]
     
     def __init__ (self, app_name):
         part.Part.__init__ (self)
         self.app_name = app_name
         self.home = None
-        self.jinja_env = None
-        
+        self.jinja_env = None        
         self.chameleon = None
         self.sqlphile = None
-        self.bus = evbus.EventBus ()
-        self.events = {}
         # for bus, set by wsgi_executor
         
         self.decorating_params = {}
@@ -74,7 +43,6 @@ class Saddle (part.Part):
         self.cached_paths = {}        
         self.cached_rules = []
         self.config = Config (preset = True)
-        self._salt = None
         self._package_dirs = []
         self._aliases = []
         
@@ -108,25 +76,8 @@ class Saddle (part.Part):
         offline.install_vhost_handler ()        
         offline.mount (point, (self, approot))
         return Client ()
-       
-    #------------------------------------------------------
     
-    @property
-    def salt (self):
-        if self._salt:
-            return self._salt
-        self._salt = self.securekey.encode ("utf8")
-        return self._salt 
-    
-    def set_default_session_timeout (self, timeout):
-        self.session_timeout = timeout
-                 
-    def set_devel (self, debug = True, use_reloader = True):
-        self.debug = debug
-        self.use_reloader = use_reloader
-    
-    #------------------------------------------------------
-        
+    # template engine -----------------------------------------------        
     def skito_jinja (self, option = 0):
         if option == 0:    
             self.jinja_overlay ("${", "}", "<%", "%>", "<!---", "--->")
@@ -191,16 +142,12 @@ class Saddle (part.Part):
         templates.append (FileSystemLoader(os.path.join (os.path.dirname (__file__), 'contrib', 'templates')))                
         return ChoiceLoader (templates)
     
-    #------------------------------------------------------
-        
+    # directory management ----------------------------------------------------------    
+    PACKAGE_DIRS = ["decorative", "package", "appack"]
+    CONTRIB_DIR = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'decorative')
+                
     def set_home (self, path, module = None):
         self.home = path
-        if PageTemplateLoader is not None:
-            self.chameleon = PageTemplateLoader (
-                os.path.join(path, "templates"),
-                auto_reload = self.use_reloader,
-                restricted_namespace = False
-            )
         
         # configure jinja --------------------------------------------
         loader = self.get_template_loader ()
@@ -213,10 +160,20 @@ class Saddle (part.Part):
         for k, v in self._jinja2_filters.items ():
             self.jinja_env.filters [k] = v
         
-        # reconfigure authenticate --------------------------------------------
+        # chameleon -------------------------------------
+        try: from chameleon import PageTemplateLoader
+        except: pass        
+        else:        
+            self.chameleon = PageTemplateLoader (
+                os.path.join(path, "templates"),
+                auto_reload = self.use_reloader,
+                restricted_namespace = False
+            )
+        
+        # reconfigure authenticate ------------------------------------------
         for params in self.route_map.values ():
             for b in (True, False):
-                if params [1] in self._need_authenticate [b]:                    
+                if params [1] in self._need_authenticate [b]:
                     params [-1]["authenticate"] = b
                     break
             
@@ -235,8 +192,12 @@ class Saddle (part.Part):
     
         if module:
             self.find_watchables (module)
-        
-    CONTRIB_DIR = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'decorative')
+    
+    # decorative management ----------------------------------------------    
+    def add_package (self, *names):
+        for name in names:
+            self.PACKAGE_DIRS.append (name)
+    
     def find_watchables (self, module):
         for attr in dir (module):
             v = getattr (module, attr)
@@ -256,15 +217,7 @@ class Saddle (part.Part):
                 if modpath.startswith (package_dir):                    
                     self.watch (v)                    
                     break
-            
-    def get_resource (self, *args):
-        return self.joinpath ("resources", *args)
-    
-    def joinpath (self, *args):    
-        return os.path.join (self.home, *args)
         
-    #------------------------------------------------------
-    
     def decorate_with (self, module, *args, **karg):
         self.decorating_params [module.__name__] = (args, karg)
         
@@ -298,6 +251,7 @@ class Saddle (part.Part):
                 continue
                 
             if self.reloadables [module] != fi:
+                self.log ("reloading decorative, %s" % module.__file__, "info")                
                 newmodule = reload (module)                
                 del self.reloadables [module]
                 self.watch (newmodule)                
@@ -305,92 +259,7 @@ class Saddle (part.Part):
         self.last_reloaded = time.time ()
         self._reloading = False
         
-    def get_file_info (self, module):        
-        stat = os.stat (module.__file__)
-        return stat.st_mtime, stat.st_size
-    
-    PACKAGE_DIRS = ["decorative", "package", "appack"]
-    def add_package (self, *names):
-        for name in names:
-            self.PACKAGE_DIRS.append (name)
-    
-    #----------------------------------------------
-    
-    def on (self, *events):
-        def decorator(f):            
-            self.save_function_spec_for_routing (f)
-            for e in events:
-                if self._reloading:
-                    try: self.bus.remove_event (f.__name__, e)
-                    except EventDoesntExist: pass                
-                self.bus.add_event (f, e)
-                
-            @wraps(f)
-            def wrapper(*args, **kwargs):
-                return f (*args, **kwargs)
-            return wrapper
-        return decorator
-        
-    def emit_after (self, event):
-        def outer (f):
-            self.save_function_spec_for_routing (f)
-            @wraps (f)
-            def wrapper(*args, **kwargs):
-                returned = f (*args, **kwargs)
-                self.emit (event)
-                return returned
-            return wrapper
-        return outer
-            
-    def emit (self, event, *args, **kargs):
-        self.bus.emit (event, the_was._get (), *args, **kargs)
-    
-    #-----------------------------------------------
-    
-    def on_broadcast (self, *events):
-        def decorator(f):
-            self.save_function_spec_for_routing (f)
-            for e in events:                
-                self.add_event (e, f)
-            @wraps(f)
-            def wrapper(*args, **kwargs):
-                return f (*args, **kwargs)
-            return wrapper
-        return decorator
-    # this is for model signal
-    on_signal = on_broadcast
-         
-    def broadcast_after (self, event):
-        def decorator (f):
-            self.save_function_spec_for_routing (f)
-            @wraps (f)
-            def wrapper(*args, **kwargs):
-                returned = f (*args, **kwargs)
-                the_was._get ().apps.emit (event)
-                return returned
-            return wrapper
-        return decorator
-        
-    def add_event (self, event, f):
-        try:
-            del self.events [(f.__name__, event)]
-        except KeyError:
-            pass
-        self.events [(f.__name__, event)] = f
-    
-    def commit_events_to (self, broad_bus):
-        for (fname, event), f in self.events.items ():
-            broad_bus.add_event (f, event)
-            
-    def remove_events (self, broad_bus):
-        for (fname, event), f in self.events.items ():
-            try:    
-                broad_bus.remove_event (fname, event)
-            except EventDoesntExist: 
-                pass
-        
-    #----------------------------------------------
-    
+    # high level API----------------------------------------------    
     def get_www_authenticate (self):
         if self.authorization == "basic":
             return 'Basic realm="%s"' % self.realm

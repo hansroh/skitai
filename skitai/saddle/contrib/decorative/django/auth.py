@@ -22,11 +22,11 @@ def decorate (app):
 
 import re
 from django.contrib.auth.password_validation import validate_password
-from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 
 # Validators --------------------------------------------
+User = None
 
 RX_EMAIL = re.compile ('(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$')
 def is_vaild_email (string):
@@ -66,6 +66,10 @@ def update_password (was, username, password, template):
 # App Decorator ---------------------------------------------------------
         
 def decorate (app):    
+    from django.contrib.auth import models
+    global User
+    User = models.User
+    
     # Handlers ---------------------------------------------------------        
     @app.login_handler
     def login_handler (was):
