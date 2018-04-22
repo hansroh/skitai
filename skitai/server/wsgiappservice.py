@@ -60,6 +60,14 @@ class WAS:
 						
 	@classmethod
 	def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0, access = []):
+		if clustertype and clustertype [0] == "*":
+			clustertype = clustertype [1:]
+		ssl = 0
+		if ssl in (1, True, "1", "yes") or clustertype in ("https", "wss", "grpcs", "rpcs"):
+			ssl = 1
+		if type (clusterlist)	is str:
+			clusterlist = [clusterlist]	
+
 		if clustertype and "*" + clustertype in (DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB):
 			cluster = dcluster_manager.ClusterManager (clustername, clusterlist, "*" + clustertype, access, cls.logger.get ("server"))
 			cls.clusters_for_distcall [clustername] = dcluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"))
@@ -81,8 +89,12 @@ class WAS:
 			clustername, uri = clustername, ""
 		if clustername [0] == "@":
 			clustername = clustername [1:]
-		return clustername, "/" + uri
-	
+		
+		try: 
+			return self.clusters_for_distcall ["{}:{}".format (clustername, self.app.app_name)], "/" + uri			
+		except KeyError:
+			return self.clusters_for_distcall [clustername], "/" + uri
+		
 	def in__dict__ (self, name):
 		return name in self.__dict__
 	
@@ -176,8 +188,8 @@ class WAS:
 		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, self.rebuild_header (headers), auth, meta, use_cache, False, filter, callback, timeout)
 	
 	def _crest (self, mapreduce = False, method = None, uri = None, data = None, auth = None, headers = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):
-		clustername, uri = self.__detect_cluster (uri)
-		return self.clusters_for_distcall [clustername].Server (uri, data, method, self.rebuild_header (headers), auth, meta, use_cache, mapreduce, filter, callback, timeout)
+		cluster, uri = self.__detect_cluster (uri)
+		return cluster.Server (uri, data, method, self.rebuild_header (headers), auth, meta, use_cache, mapreduce, filter, callback, timeout)
 				
 	def _lb (self, *args, **karg):
 		return self._crest (False, *args, **karg)
@@ -190,8 +202,8 @@ class WAS:
 	
 	def _cddb (self, mapreduce = False, clustername = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):
 		if mapreduce and callback: raise RuntimeError ("Cannot use callback with Map-Reduce")
-		clustername = self.__detect_cluster (clustername) [0]
-		return self.clusters_for_distcall [clustername].Server (None, None, None, None, meta, use_cache, mapreduce, filter, callback, timeout)	
+		cluster = self.__detect_cluster (clustername) [0]
+		return cluster.Server (None, None, None, None, meta, use_cache, mapreduce, filter, callback, timeout)	
 	
 	def _dlb (self, *args, **karg):
 		return self._cddb (False, *args, **karg)

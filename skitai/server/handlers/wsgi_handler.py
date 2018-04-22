@@ -48,7 +48,7 @@ class Handler:
 		self.ENV ["skitai.thread"] = 0
 		if hasattr (self.wasc, "threads") and self.wasc.threads:
 			self.ENV ["skitai.thread"] = len (self.wasc.threads)
-		self.ENV ["wsgi.multithread"] = hasattr (self.wasc, "threads") and self.wasc.threads	
+		self.ENV ["wsgi.multithread"] = hasattr (self.wasc, "threads") and self.wasc.threads		
 		self.ENV ["wsgi.url_scheme"] = hasattr (self.wasc.httpserver, "ctx") and "https" or "http"		
 		self.ENV ["wsgi.multiprocess"] = self.wasc.workers > 1 and os.name != "nt"
 		self.ENV ['SERVER_PORT'] = str (self.wasc.httpserver.port)
@@ -222,10 +222,10 @@ class Handler:
 			return request.response.error (500, why = apph.debug and csys.exc_info () or None)
 		
 		if env ["wsgi.multithread"]:
-			self.wasc.queue.put (Job (request, apph, args, self.apps, self.wasc.logger))
+			self.wasc.queue.put (Job (request, apph, args, self.apps, self.wasc.logger))	
 		else:
 			Job (request, apph, args, self.apps, self.wasc.logger) ()
-
+			
 
 class Job:
 	# Multi-Threaded Jobs
@@ -250,7 +250,7 @@ class Job:
 		response = request.response
 		
 		try:			
-			content = self.apph (*self.args)
+			content = self.apph (*self.args)			
 			if not response.is_responsable ():
 				# already called response.done () or diconnected channel
 				return
@@ -274,7 +274,7 @@ class Job:
 			else:
 				content_length = None
 			
-			for part in content:
+			for part in content:				
 				# like Django response
 				try: part = part.content
 				except AttributeError: pass
@@ -336,7 +336,7 @@ class Job:
 				if len (will_be_push) == 1 and type (part) is bytes and len (response) == 0:
 					response.update ("Content-Length", len (part))
 				response.push (part)
-			trigger.wakeup (lambda p=response: (p.done(),))
+			trigger.wakeup (lambda p = response: (p.done (),))
 											
 	def __call__(self):		
 		try:

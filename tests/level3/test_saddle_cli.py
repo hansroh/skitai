@@ -1,5 +1,8 @@
 from skitai.saddle import Saddle
 import confutil
+import skitai
+import asyncore
+
 
 def test_cli (app):
     @app.route ("/")
@@ -10,14 +13,22 @@ def test_cli (app):
     def echo (was, m):
         return m
     
+    @app.route ("/req")
+    def req (was):
+        req = was.get ("@pypi/")        
+        res = req.getwait ()
+        print ('>>>>>>>>>>>>>>>>>>>>>>>>>>>', res.status_code)
+        return res.text 
+    
     @app.route ("/json")
     def json (was, m):
         return was.response.api (data = m)
     
-    with app.make_client ("/", confutil.getroot ()) as cli:        
+    app.alias ("@pypi", skitai.PROTO_HTTP, "aw3.skitai.com")    
+    with app.make_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
         assert resp.text == "Hello, World"
-        
+
         resp = cli.get ("/echo?m=GET")
         assert resp.text == "GET"
         
@@ -26,4 +37,7 @@ def test_cli (app):
         
         resp = cli.postjson ("/json", {"m": "POST"})
         assert resp.text == '{"data": "POST"}'
+        
+        
+        
         

@@ -18,6 +18,7 @@ from .config import Config
 from sqlphile import Template
 from event_bus.exceptions import EventDoesntExist
 import skitai    
+from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from jinja2 import Environment, FileSystemLoader, ChoiceLoader
 try:
     from chameleon import PageTemplateLoader
@@ -75,10 +76,17 @@ class Saddle (part.Part):
         self.config = Config (preset = True)
         self._salt = None
         self._package_dirs = []
-    
+        self._aliases = []
+        
     #--------------------------------------------------------
     
-    def make_client (self, point = "/", approot = "."):
+    def alias (self, *args, **karg):
+        name, args = skitai.alias (*args, **karg)                
+        skitai.dconf ["clusters"].pop (name)
+        ctype, members, policy, ssl = args
+        self._aliases.append ((ctype, "{}:{}".format (name, self.app_name), members, ssl, policy))
+        
+    def make_client (self, point = "/", approot = ".", numthreads = 1):
         from ..server import offline
         from ..server.offline import client    
         
@@ -89,7 +97,7 @@ class Saddle (part.Part):
             
             def handle_rpc (self, request):
                 return self.handle_request (request)
-            
+                
             def __enter__ (self):
                 return self
                 
@@ -97,7 +105,7 @@ class Saddle (part.Part):
                 pass
                      
         offline.activate ()
-        offline.install_vhost_handler ()
+        offline.install_vhost_handler ()        
         offline.mount (point, (self, approot))
         return Client ()
        

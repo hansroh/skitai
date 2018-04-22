@@ -119,18 +119,18 @@ def loop (timeout = 30.0):
 		_shutdown_timeout = 1
 		graceful_shutdown_loop()
 	else:
-		graceful_shutdown_loop()	
+		graceful_shutdown_loop()
 
-def lifetime_loop (timeout = 30.0):
+def lifetime_loop (timeout = 30.0, map = None):
 	global _last_maintern
 	global _maintern_interval
 				
-	map = asyncore.socket_map
+	map = map or asyncore.socket_map
 	while map and _shutdown_phase == 0:
 		lifetime.poll_fun_wrap (timeout, map)
 		now = time.time()
 		if (now - _last_maintern) > _maintern_interval:
-			maintern (now)
+			maintern and maintern (now)
 			_last_maintern = time.time ()
 				
 def graceful_shutdown_loop ():

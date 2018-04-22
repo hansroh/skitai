@@ -14,6 +14,8 @@ from .server.wastuff import process, daemon	as wasdaemon
 from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from .launcher import launch
 
+DJANGO = "django"
+
 PROTO_HTTP = "http"
 PROTO_HTTPS = "https"
 PROTO_WS = "ws"
@@ -235,17 +237,6 @@ def cron (sched, cmd):
 	global dconf
 	dconf ["cron"].append ('%s %s' % (sched, cmd))
 
-def alias (name, ctype, members, role = "", source = "", ssl = False):
-	from .server.rpc.cluster_manager import AccessPolicy
-	global dconf	
-	if name [0] == "@":
-		name = name [1:]
-	if dconf ["clusters"].get (name):
-		return
-	policy = AccessPolicy (role, source)
-	args = (ctype, members, policy, ssl)
-	dconf ["clusters"][name] = args
-
 def enable_forward (forward_to = 443, port = 80, ip = ""):
 	global dconf
 	dconf ['fws_address'] = ip
@@ -274,35 +265,52 @@ def _get_django_settings (settings_path):
 		django.setup()
 	
 	return importlib.import_module(settings_mod).DATABASES
-	
-def use_django_models (settings_path, _alias = None):
+
+def alias_django (name, settings_path):
 	dbsettings = _get_django_settings (settings_path)
-	if _alias:
-		default = dbsettings ['default']
-		if default ['ENGINE'].endswith ('sqlite3'):			
-			alias (_alias, DB_SQLITE3, default ['NAME'])
-		else:
-			if not default.get ("PORT"):
-				default ["PORT"] = 5432
-			if not default.get ("HOST"):
-				default ["HOST"] = "127.0.0.1"
-			if not default.get ("USER"):
-				default ["USER"] = ""
-			if not default.get ("PASSWORD"):
-				default ["PASSWORD"] = ""
-			alias (_alias, DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)
-			
-	return dbsettings
+	default = dbsettings ['default']
+	if default ['ENGINE'].endswith ('sqlite3'):			
+		return alias (name, DB_SQLITE3, default ['NAME'])
+	if not default.get ("PORT"):
+		default ["PORT"] = 5432
+	if not default.get ("HOST"):
+		default ["HOST"] = "127.0.0.1"
+	if not default.get ("USER"):
+		default ["USER"] = ""
+	if not default.get ("PASSWORD"):
+		default ["PASSWORD"] = ""
+	return alias (name, DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)
+
+def use_django_models (settings_path, name = None):
+	if name:
+		return alias_django (name, settings_path)
+	return _get_django_settings (settings_path)	
+	
+def alias (name, ctype, members, role = "", source = "", ssl = False, django = None):
+	from .server.rpc.cluster_manager import AccessPolicy
+	global dconf
+	
+	if name [0] == "@":
+		name = name [1:]
+	if dconf ["clusters"].get (name):
+		return
+	if ctype == DJANGO:
+		return alias_django (name, members)
+	
+	policy = AccessPolicy (role, source)
+	args = (ctype, members, policy, ssl)
+	dconf ["clusters"][name] = args
+	return name, args
 	
 def mount_django (point, wsgi_path, pref = pref (True), dbalias = None, host = "default"):
 	path = os.path.dirname (os.path.dirname (wsgi_path))
 	mount (point, wsgi_path, "application", pref, host, path)
-	if dbalias:
-		return use_django_models (
-			os.path.join (os.path.dirname (wsgi_path), 'settings.py'),
-			dbalias
-		)
 	
+	settings = os.path.join (os.path.dirname (wsgi_path), 'settings.py')
+	if dbalias:
+		return alias_django (dbalias, settings)
+	return use_django_models (settings)
+
 def enable_cachefs (memmax = 0, diskmax = 0, path = None):
 	global dconf	
 	dconf ["cachefs_memmax"] = memmax

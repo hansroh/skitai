@@ -4,9 +4,10 @@ from ..http_server import http_server
 from ..handlers import pingpong_handler
 from ..handlers.http2.response import response as http2_response
 from ..http_response import http_response
-from mock import MagicMock
 from ..handlers import vhost_handler
 import skitai
+from skitai import lifetime
+import asyncore
 
 def get_default_handler ():
     for h in skitai.was.httpserver.handlers:
@@ -16,7 +17,7 @@ def get_default_handler ():
 def process_request (request, handler = None):
     # clinet request -> server request
     handler = handler or get_default_handler ()
-    assert handler.match (request)    
+    assert handler.match (request)
     handler.handle_request (request)
     if request.command in ('post', 'put', 'patch'):
         request.collector.collect_incoming_data (request.payload)
@@ -24,7 +25,7 @@ def process_request (request, handler = None):
     return request    
      
 def get_response (request, handler = None):
-    # clinet request -> server response        
+    # clinet request -> server response
     request = process_request (request, handler)
     return request.response
 
@@ -32,17 +33,20 @@ def get_client_response (request, handler = None):
     # clinet request -> process -> server response -> client response
     # this will be used by client.Client    
     request = process_request (request, handler)
-    result = request.channel.socket.getvalue ()
+    while 1:
+        result = request.channel.socket.getvalue ()
+        if result:
+            break
+        
     try:
         header, payload = result.split (b"\r\n\r\n", 1)
     except ValueError:
         raise ValueError (str (result))
     resp = response.Response (request, header.decode ("utf8"))
-    resp.collect_incoming_data (payload)    
+    resp.collect_incoming_data (payload)
     return resp
 
 #------------------------------------------------------------------
-
 def Server (log = None):
     log = log or triple_logger.Logger ("screen", None) 
     s = http_server ('0.0.0.0', 3000, log.get ("server"), log.get ("request"))    

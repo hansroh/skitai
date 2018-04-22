@@ -20,6 +20,7 @@ def Conn ():
     sock.fileno.return_value = 1    
     return sock
 
+
 def Channel ():
     c = http_channel (server.Server (), Conn (), ('127.0.0.100', 65535))
     c.connected = True

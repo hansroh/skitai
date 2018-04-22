@@ -8,7 +8,7 @@ from aquests.dbapi import request
 import asyncore
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from aquests.lib.cbutil import tuple_cb
-		
+
 class OperationTimeout (Exception):
 	pass
 

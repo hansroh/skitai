@@ -1306,7 +1306,7 @@ It will be easy to understand think like that:
 Simply just remember, if you use WSGI container like Flask, Bottle, ... - NOT Saddle - and want to use Skitai asynchronous services, you should import 'was'. Usage is exactly same. But for my convinient, I wrote example codes Saddle version mostly.
 
 
-Async Communication Between Backends To Backends
+Async Communication For Backends To Backends
 ------------------------------------------------------
 
 Most importance service of 'was' is making requests to HTTP, REST, RPC and several database engines. And this is mostly useful for fast Server Side Rendering with outside resources.
@@ -4617,17 +4617,17 @@ Using Django Models
 
 You can use also Django models.
 
-First of all, you should mount Django app.
+First of all, you should specify django setting with alias for django database engine.
+
+.. code:: python
+
+  skitai.alias ("@django", skitai.DJANGO, "myapp/settings.py")
+  
+ Then you can mount Django app.
 
 .. code:: python
 
   skitai.mount ("/", "myapp/wsgi.py", "application", pref = pref)
-
-Or you can just use Django models only,
-
-.. code:: python
-
-  skitai.use_django_models ("myapp/settings.py")
   
 Now you can use your models,
   

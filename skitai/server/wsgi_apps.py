@@ -55,7 +55,10 @@ class Module:
 		app = self.app or getattr (self.module, self.appname)
 		self.django = str (app.__class__).find ("django.") != -1
 		self.has_life_cycle = hasattr (app, "life_cycle")
-			
+		if hasattr (app, "_aliases"):
+			while app._aliases:
+				self.wasc.add_cluster (*app._aliases.pop (0))
+				
 		if self.pref:
 			for k, v in copy.copy (self.pref).items ():
 				if k == "config":
