@@ -33,14 +33,14 @@ def dnserror (was):
 
 @app.route ("/documentation")
 def documentation (was):
-	req = was.get ("https://pypi.python.org/pypi/skitai")
+	req = was.get ("https://pypi.org/project/skitai/")
 	pypi_content = "<h4><p>It seems some problem at <a href='https://pypi.python.org/pypi/skitai'>PyPi</a>.</p></h4><p>Please visit <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></p>"	
 	rs = req.getwait (10)
 	if rs.data:
 		content = rs.data.decode ("utf8")
-		s = content.find ('<div class="section">')
+		s = content.find ('<div class="project-description">')
 		if s != -1:		
-			e = content.find ('<a name="downloads">', s)
+			e = content.find ('<div id="history"', s)
 			if e != -1:						
 				pypi_content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></h4>" + content [s:e]	
 	return was.render ("documentation.html", content = pypi_content)
@@ -49,9 +49,9 @@ def handle_response (promise, rs):
 	pypi_content = "<h3>Error</h3>"
 	if rs.data:
 		content = rs.data.decode ("utf8")
-		s = content.find ('<div class="section">')
+		s = content.find ('<div class="project-description">')
 		if s != -1:
-			e = content.find ('<a name="downloads">', s)
+			e = content.find ('<div id="history"', s)
 			if e != -1:						
 				content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></h4>" + content [s:e]		
 		promise [rs.id]	= content		
@@ -61,7 +61,7 @@ def handle_response (promise, rs):
 @app.route ("/documentation2")
 def documentation2 (was):
 	promise = was.promise (handle_response)
-	promise.get ('skitai', "https://pypi.python.org/pypi/skitai")
+	promise.get ('skitai', "https://pypi.org/project/skitai/")
 	return promise
 	
 @app.route ("/hello")
