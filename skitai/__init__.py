@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.27b8"
+__version__ = "0.27b9"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -345,7 +345,7 @@ def enable_proxy (unsecure_https = False):
 def enable_file_logging (path = None):
 	global dconf
 	if not path:
-		dconf ['logpath'] = wasdaemon.get_default_logpath (__file__)
+		dconf ['logpath'] = wasdaemon.get_default_logpath ()
 	
 def enable_blacklist (path):
 	global dconf
@@ -684,6 +684,5 @@ def run (**conf):
 			else: 
 				# worker process				
 				# for avoiding multiprocessing.manager process's join error
-				# use os._exit
 				os._exit (lifetime._exit_code)
 			
