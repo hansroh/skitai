@@ -224,13 +224,9 @@ Let's assume your Django app project is '/mydjango' and skitai app engine script
     "/", 
     "mydjango/mydjango/wsgi.py", 
     "application", 
-    pref, 
-    path = "./mydjango"
+    pref
   )
-
-  # or for your convinience,  
-  skitai.mount_django ("/", "mydjango/mydjango/wsgi.py", pref)  
- 
+  
 Note that if app is smae location with django manage.py, you need not path param.
 
 Also note that if you set pref.use_reloader = True, it is possible to replace Django development server (manage,py runserver), But it will work on posix only, because Skitai reloads Django app by restart worker process, Win32 version doesn't support.
@@ -653,6 +649,7 @@ alias_types can be one of these:
     - DB_SQLITE3
     - DB_REDIS
     - DB_MONGODB
+    - DJANGO: mount django database engine of settings.py if database engine is PostgreSQL or SQLite3
 
 - server: single or server list, server form is [ username : password @ server_address : server_port / database_name weight ]. if your username or password contains "@" characters, you should replace to '%40'
 - role (optional): it is valid only when cluster_type is http or https for controlling API access
@@ -1478,8 +1475,8 @@ Then let's request XMLRPC result to one of mysearch members.
     
     skitai.alias (
       '@mysearch',
-       skitai.PROTO_HTTP, 
-       ["s1.myserver.com:443", "s2.myserver.com:443"]
+       skitai.PROTO_HTTPS, 
+       ["s1.myserver.com", "s2.myserver.com"]
     )
     skitia.mount ("/", app)
     skitai.run ()
@@ -1498,8 +1495,8 @@ It just small change from was.rpc () to was.rpc.lb ()
     
     skitai.alias (
       '@mysearch',
-       skitai.PROTO_HTTP, 
-       ["s1.myserver.com:443", "s2.myserver.com:443"]
+       skitai.PROTO_HTTPS, 
+       ["s1.myserver.com", "s2.myserver.com:443"]
     )
     skitia.mount ("/", app)
     skitia.mount ("/search", '@mysearch')
@@ -4571,13 +4568,18 @@ Before it begin, you should mount Django app,
   pref.use_reloader = True
   pref.use_debug = True
   
-  sys.path.insert (0, 'mydjangoapp')
   skitai.mount ("/django", 'mydjangoapp/mydjangoapp/wsgi.py', 'application', pref)
   
   # main app
   skitai.mount ('/', 'app.py', 'app')
   skitai.run ()
-  
+
+When Django app is mounted, these will be processed.
+
+1. add django project root path will be added to sys.path
+2. app is mounted
+3. database alias (@mydjangoapp) will be created as base name of django project root
+ 
 FYI, you can access Django admin by /django/admin with default django setting.
 
 Using Django Login
@@ -4615,19 +4617,13 @@ If mydjangoapp has photos app, for proxing Django views,
 Using Django Models
 `````````````````````
 
-You can use also Django models.
+You can use also Django models without mount app.
 
 First of all, you should specify django setting with alias for django database engine.
 
 .. code:: python
 
   skitai.alias ("@django", skitai.DJANGO, "myapp/settings.py")
-  
- Then you can mount Django app.
-
-.. code:: python
-
-  skitai.mount ("/", "myapp/wsgi.py", "application", pref = pref)
   
 Now you can use your models,
   
@@ -4637,7 +4633,7 @@ Now you can use your models,
 
   @app,route ('/django/hello')
   def django_hello (was):
-    models.Photo.objects.create (user='Hans Roh', title = 'My Photo')  
+    models.Photo.objects.create (user='Hans Roh', title = 'My Photo') 
     result = models.Photo.filter (user='hansroh').order_by ('-create_at')
 
 You can use Django Query Set as SQL generator for Skitai's asynchronous query execution. But it has some limitations.
@@ -4790,6 +4786,8 @@ Change Log
 
 - 0.27 (Apr 2018)
   
+  - skitai.use_django_models has been deprecated, use skitai.alias
+  - functions are integrated skitai.mount_django into skitai.mount, skitai.alias_django into skitai.alias
   - fix empty payload posting
   - add was.partial and was.basepath
   - raise NameError when non-exists funtion name to was.ap

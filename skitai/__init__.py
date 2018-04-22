@@ -1,12 +1,13 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.27b7"
+__version__ = "0.27b8"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
 import threading
 import sys, os
 import h2
+from aquests.lib import versioning
 from aquests.lib.attrdict import AttrDict
 from aquests.protocols.dns import asyndns
 from importlib import machinery
@@ -189,6 +190,17 @@ def deflu (*key):
 	dconf ["models-keys"].extend (key)
 addlu = trackers = lukeys = deflu
 
+def __is_django (wsgi_path, appname):
+	if not isinstance (wsgi_path, str):
+		return
+	if appname != "application":
+		return
+	settings = os.path.join (os.path.dirname (wsgi_path), 'settings.py')
+	if os.path.exists (settings):
+		root = os.path.dirname (os.path.dirname (wsgi_path))
+		alias_django ("@" + os.path.basename (root), settings)
+		return root
+	
 def mount (point, target, appname = "app", pref = pref (True), host = "default", path = None):
 	global dconf
 	
@@ -199,6 +211,11 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
 			mod = loader.load_module()
 			hasattr (mod, "bootstrap") and mod.bootstrap (pref)
 	
+	target = joinpath (target) 
+	maybe_django = __is_django (target, appname)
+	if maybe_django:
+		path = maybe_django
+		
 	if path:
 		if isinstance (path, str):
 			path = [path]
@@ -232,6 +249,7 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
 		else:
 			app = target
 		dconf ['mount'][host].append ((point, app, pref))
+mount_django = mount
 	
 def cron (sched, cmd):
 	global dconf
@@ -271,21 +289,24 @@ def alias_django (name, settings_path):
 	default = dbsettings ['default']
 	if default ['ENGINE'].endswith ('sqlite3'):			
 		return alias (name, DB_SQLITE3, default ['NAME'])
-	if not default.get ("PORT"):
-		default ["PORT"] = 5432
-	if not default.get ("HOST"):
-		default ["HOST"] = "127.0.0.1"
-	if not default.get ("USER"):
-		default ["USER"] = ""
-	if not default.get ("PASSWORD"):
-		default ["PASSWORD"] = ""
-	return alias (name, DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)
+	
+	if default ['ENGINE'].find ("postgresql") != -1:	
+		if not default.get ("PORT"):
+			default ["PORT"] = 5432
+		if not default.get ("HOST"):
+			default ["HOST"] = "127.0.0.1"
+		if not default.get ("USER"):
+			default ["USER"] = ""
+		if not default.get ("PASSWORD"):
+			default ["PASSWORD"] = ""
+		return alias (name, DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)
 
+@versioning.deprecated
 def use_django_models (settings_path, name = None):
 	if name:
-		return alias_django (name, settings_path)
+		alias = alias_django (name, settings_path)		
 	return _get_django_settings (settings_path)	
-	
+
 def alias (name, ctype, members, role = "", source = "", ssl = False, django = None):
 	from .server.rpc.cluster_manager import AccessPolicy
 	global dconf
@@ -294,22 +315,17 @@ def alias (name, ctype, members, role = "", source = "", ssl = False, django = N
 		name = name [1:]
 	if dconf ["clusters"].get (name):
 		return
+	
 	if ctype == DJANGO:
-		return alias_django (name, members)
+		alias = alias_django (name, members)
+		if alias is None:
+			raise SystemError ("Database engine is not compatible")
+		return alias
 	
 	policy = AccessPolicy (role, source)
 	args = (ctype, members, policy, ssl)
 	dconf ["clusters"][name] = args
 	return name, args
-	
-def mount_django (point, wsgi_path, pref = pref (True), dbalias = None, host = "default"):
-	path = os.path.dirname (os.path.dirname (wsgi_path))
-	mount (point, wsgi_path, "application", pref, host, path)
-	
-	settings = os.path.join (os.path.dirname (wsgi_path), 'settings.py')
-	if dbalias:
-		return alias_django (dbalias, settings)
-	return use_django_models (settings)
 
 def enable_cachefs (memmax = 0, diskmax = 0, path = None):
 	global dconf	
