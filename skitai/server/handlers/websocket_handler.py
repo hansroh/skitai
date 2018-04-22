@@ -16,7 +16,7 @@ from .websocket import servers
 import time
 import skitai
 import inspect
-from skitai.saddle import part
+from skitai.saddle import appbase
 
 class Handler (wsgi_handler.Handler):
 	def match (self, request):
@@ -53,7 +53,7 @@ class Handler (wsgi_handler.Handler):
 		
 		apph = self.apps.get_app (path)		
 		app = apph.get_callable()
-		is_saddle = isinstance (app, part.Part)
+		is_saddle = isinstance (app, appbase.AppBase)
 		
 		if is_saddle:
 			# safari does not support Authorization

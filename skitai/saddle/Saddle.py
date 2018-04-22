@@ -1,6 +1,6 @@
 import time
 import os, sys
-from . import part, multipart_collector, cookie, session, grpc_collector, ws_executor
+from . import appbase, multipart_collector, cookie, session, grpc_collector, ws_executor
 from . import wsgi_executor, xmlrpc_executor, grpc_executor, jsonrpc_executor
 from importlib import reload
 from aquests.protocols.grpc import discover
@@ -24,22 +24,18 @@ class AuthorizedUser:
         return self.name
         
         
-class Saddle (part.Part):
+class Saddle (appbase.AppBase):
     templates_dirs = []
     PRESERVES_ON_RELOAD = ["reloadables"]
     
     def __init__ (self, app_name):
-        part.Part.__init__ (self)
+        appbase.AppBase.__init__ (self)
         self.app_name = app_name
         self.home = None
         self.jinja_env = None        
         self.chameleon = None
         self.sqlphile = None
         # for bus, set by wsgi_executor
-        
-        self.decorating_params = {}
-        self.reloadables = {}
-        self.last_reloaded = time.time ()
         self.cached_paths = {}        
         self.cached_rules = []
         self.config = Config (preset = True)
@@ -143,9 +139,6 @@ class Saddle (part.Part):
         return ChoiceLoader (templates)
     
     # directory management ----------------------------------------------------------    
-    PACKAGE_DIRS = ["decorative", "package", "appack"]
-    CONTRIB_DIR = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'decorative')
-                
     def set_home (self, path, module = None):
         self.home = path
         
@@ -192,72 +185,6 @@ class Saddle (part.Part):
     
         if module:
             self.find_watchables (module)
-    
-    # decorative management ----------------------------------------------    
-    def add_package (self, *names):
-        for name in names:
-            self.PACKAGE_DIRS.append (name)
-    
-    def find_watchables (self, module):
-        for attr in dir (module):
-            v = getattr (module, attr)
-            try:
-                modpath = v.__spec__.origin
-            except AttributeError:
-                continue            
-            if not modpath:
-                continue            
-            if v in self.reloadables:
-                continue
-            if self.contrib_devel:
-                if modpath.startswith (self.CONTRIB_DIR):
-                    self.watch (v)
-                    continue
-            for package_dir in self._package_dirs:
-                if modpath.startswith (package_dir):                    
-                    self.watch (v)                    
-                    break
-        
-    def decorate_with (self, module, *args, **karg):
-        self.decorating_params [module.__name__] = (args, karg)
-        
-    def watch (self, module):
-        if hasattr (module, "decorate"):
-            params = self.decorating_params.get (module.__name__)
-            if params:            
-                args, karg = params
-                module.decorate (self, *args, **karg)
-            else:
-                module.decorate (self)
-                
-        try:
-            self.reloadables [module] = self.get_file_info (module)
-        except FileNotFoundError:
-            return
-        
-        # find recursively
-        self.find_watchables (module)
-                
-    def maybe_reload (self):
-        if time.time () - self.last_reloaded < 1.0:
-            return
-        
-        self._reloading = True    
-        for module in list (self.reloadables.keys ()):
-            try:
-                fi = self.get_file_info (module)
-            except FileNotFoundError:
-                del self.reloadables [module]
-                continue
-                
-            if self.reloadables [module] != fi:
-                self.log ("reloading decorative, %s" % module.__file__, "info")                
-                newmodule = reload (module)                
-                del self.reloadables [module]
-                self.watch (newmodule)                
-        
-        self.last_reloaded = time.time ()
-        self._reloading = False
         
     # high level API----------------------------------------------    
     def get_www_authenticate (self):
@@ -477,7 +404,6 @@ class Saddle (part.Part):
         return current_app, method, kargs, options, resp_code
     
     #------------------------------------------------------
-    
     def create_on_demand (self, was, name):
         class G: 
             pass

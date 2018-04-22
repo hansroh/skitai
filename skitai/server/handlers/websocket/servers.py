@@ -3,7 +3,6 @@ from . import specs
 try: from urllib.parse import quote_plus
 except ImportError: from urllib import quote_plus	
 import skitai
-from skitai.saddle import part
 
 class WebSocketServers:
 	def __init__ (self, wasc):

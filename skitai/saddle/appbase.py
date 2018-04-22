@@ -15,7 +15,7 @@ import skitai
             
 RX_RULE = re.compile ("(/<(.+?)>)")
     
-class Part:	
+class AppBase:	
     use_reloader = False
     debug = False
     contrib_devel = False # make reloadable
@@ -44,6 +44,10 @@ class Part:
         self.route_map = {}
         self.route_priority = []
         self.storage = Storage ()
+        
+        self.decorating_params = {}
+        self.reloadables = {}
+        self.last_reloaded = time.time ()
         
         self.bus = evbus.EventBus ()
         self.events = {}        
@@ -116,6 +120,76 @@ class Part:
         self.debug = debug
         self.use_reloader = use_reloader
     
+    # decorative management ----------------------------------------------
+    
+    PACKAGE_DIRS = ["decorative", "package", "appack"]
+    CONTRIB_DIR = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'decorative')
+            
+    def add_package (self, *names):
+        for name in names:
+            self.PACKAGE_DIRS.append (name)
+    
+    def find_watchables (self, module):
+        for attr in dir (module):
+            v = getattr (module, attr)
+            try:
+                modpath = v.__spec__.origin
+            except AttributeError:
+                continue            
+            if not modpath:
+                continue            
+            if v in self.reloadables:
+                continue
+            if self.contrib_devel:
+                if modpath.startswith (self.CONTRIB_DIR):
+                    self.watch (v)
+                    continue
+            for package_dir in self._package_dirs:
+                if modpath.startswith (package_dir):                    
+                    self.watch (v)                    
+                    break
+        
+    def decorate_with (self, module, *args, **karg):
+        self.decorating_params [module.__name__] = (args, karg)
+        
+    def watch (self, module):
+        if hasattr (module, "decorate"):
+            params = self.decorating_params.get (module.__name__)
+            if params:            
+                args, karg = params
+                module.decorate (self, *args, **karg)
+            else:
+                module.decorate (self)
+                
+        try:
+            self.reloadables [module] = self.get_file_info (module)
+        except FileNotFoundError:
+            return
+        
+        # find recursively
+        self.find_watchables (module)
+                
+    def maybe_reload (self):
+        if time.time () - self.last_reloaded < 1.0:
+            return
+        
+        self._reloading = True    
+        for module in list (self.reloadables.keys ()):
+            try:
+                fi = self.get_file_info (module)
+            except FileNotFoundError:
+                del self.reloadables [module]
+                continue
+                
+            if self.reloadables [module] != fi:
+                self.log ("reloading decorative, %s" % module.__file__, "info")                
+                newmodule = reload (module)                
+                del self.reloadables [module]
+                self.watch (newmodule)                
+        
+        self.last_reloaded = time.time ()
+        self._reloading = False
+        
     # function param saver ------------------------------------------
     def save_function_spec_for_routing (self, func):
         # save original function spec for preventing distortion by decorating wrapper

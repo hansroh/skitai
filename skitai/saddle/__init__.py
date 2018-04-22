@@ -2,7 +2,6 @@
 2015. 12. 10
 Hans Roh
 """
-from . import part
 from .Saddle import Saddle
 
 # Events

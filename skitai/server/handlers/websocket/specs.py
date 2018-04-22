@@ -4,7 +4,6 @@ import threading
 import json
 import skitai
 from .. import wsgi_handler
-from skitai.saddle import part
 from skitai.server.http_response import catch
 from aquests.lib.athreads import trigger
 from aquests.lib import strutil
@@ -20,7 +19,6 @@ try: from cStringIO import StringIO as BytesIO
 except ImportError: from io import BytesIO
 import copy
 from collections import Iterable
-from skitai.saddle import part
 from aquests.lib.reraise import reraise 
 has_werkzeug = True
 try:
