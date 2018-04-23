@@ -5,6 +5,7 @@ import os
 from aquests.lib import importer, versioning
 from types import FunctionType as function
 import inspect
+from importlib import reload
 from skitai import was as the_was
 import time, threading
 from .storage import Storage

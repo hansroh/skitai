@@ -2,7 +2,6 @@ import time
 import os, sys
 from . import appbase, multipart_collector, cookie, session, grpc_collector, ws_executor
 from . import wsgi_executor, xmlrpc_executor, grpc_executor, jsonrpc_executor
-from importlib import reload
 from aquests.protocols.grpc import discover
 from aquests.protocols.http import http_util
 from skitai import was as the_was
