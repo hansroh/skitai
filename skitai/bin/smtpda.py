@@ -215,8 +215,8 @@ def main ():
 			cf.setopt ("smtpda", "process-display-name", "skitai")
 			fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("smtpda").items () if v not in ("", "false", "no")]))					
 		else:
-			print ("error: no configuration is fed, please check ~/.skitai.conf or skitai.enable_smtpda()")
-			exit ()
+			print ("error: \n  no configuration is given \n  check ~/.skitai.conf.example or run by skitai.enable_smtpda()")
+			exit (1)
 					
 	argopt = demonizer.handle_commandline (argopt, _varpath or _default_var_dir, "skitai")	
 	for k, v in (fileopt + argopt [0]):

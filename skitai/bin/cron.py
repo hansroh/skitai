@@ -257,8 +257,11 @@ def main ():
 				cf.setsect ("cron", {})
 			cf.setopt ("cron", "log-path", _default_log_dir)
 			cf.setopt ("cron", "process-display-name", "skitai")
-			fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("cron").items () if v not in ("", "false", "no")]))
-	
+			fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("cron").items () if v not in ("", "false", "no")]))			 
+		else:
+			print ("error: \n  no configuration is given \n  check ~/.skitai.conf.example or run by skitai.cron()")
+			exit (1)
+				
 	argopt = demonizer.handle_commandline (argopt, _varpath or _default_var_dir, "skitai")			
 	for k, v in (fileopt + argopt [0]):
 		if k == "--help" or k == "-h":	
@@ -271,6 +274,7 @@ def main ():
 		elif k == "--pname" or k == "--process-display-name":	
 			_cf ["pname"] = v
 			
+	_cf ["conffile"] = _default_conf
 	_cf ['jobs'] = []
 	for job in (cf and cf.getopt ("crontab") or [] + argopt [1]):
 		_cf ['jobs'].append (job)
