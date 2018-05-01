@@ -60,7 +60,9 @@ class	SMTPDeliverAgent (daemon.Daemon):
 		val = self.config.get ("keep_days", 30)
 		if val: self.UNDELIVERS_KEEP_MAX = val * 3600 * 24
 		
-		if not self.config.get ("smtpserver"):
+		if self.config.get ("smtpserver"):
+			self.logger ("using default SMTP: {}".format (self.config.get ("smtpserver")), "info")
+		else:	
 			self.logger ("no default SMTP server provided", "warn")
 			
 		self.default_smtp = (
@@ -208,11 +210,14 @@ def main ():
 	if not _varpath:
 		_varpath = _default_var_dir
 		if os.path.isfile (_default_conf):
-			cf = confparse.ConfParse (_default_conf)			
+			cf = confparse.ConfParse (_default_conf)
 			cf.setopt ("smtpda", "log-path", _default_log_dir)		
 			cf.setopt ("smtpda", "process-display-name", "skitai")
 			fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("smtpda").items () if v not in ("", "false", "no")]))					
-	
+		else:
+			print ("error: no configuration is fed, please check ~/.skitai.conf or skitai.enable_smtpda()")
+			exit ()
+					
 	argopt = demonizer.handle_commandline (argopt, _varpath or _default_var_dir, "skitai")	
 	for k, v in (fileopt + argopt [0]):
 		if k == "--help" or k == "-h":

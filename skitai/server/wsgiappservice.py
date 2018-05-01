@@ -289,8 +289,8 @@ class WAS:
 	
 	def email (self, subject, snd, rcpt):
 		if composer.Composer.SAVE_PATH is None:
-			composer.Composer.SAVE_PATH = os.path.join ("/var/tmp/skitai/smtpda", "mail", "spool")
-			pathtool.mkdir (composer.Composer.SAVE_PATH)			
+			composer.Composer.SAVE_PATH = os.path.join ("/var/tmp/skitai/default", "smtpda", "mail", "spool")
+			pathtool.mkdir (composer.Composer.SAVE_PATH)
 		return composer.Composer (subject, snd, rcpt)
 	
 	# event -------------------------------------------------

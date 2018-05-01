@@ -73,7 +73,7 @@ package_data = {
 
 install_requires = [
 	"jinja2==2.9.4",
-	"aquests==0.7.16.9",
+	"aquests",
 	"sqlphile",
 	"jsonrpclib-pelix",
 	"mock"

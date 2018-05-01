@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.27b9"
+__version__ = "0.27b13"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -14,6 +14,7 @@ from importlib import machinery
 from .server.wastuff import process, daemon	as wasdaemon
 from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from .launcher import launch
+from aquests.protocols.smtp import composer
 
 DJANGO = "django"
 
@@ -367,7 +368,7 @@ def enable_smtpda (server = None, user = None, password = None, ssl = None, max_
 	if max_retry: smtpda ["max-retry"] = max_retry
 	if keep_days: smtpda ["keep-days"] = keep_days
 	dconf ["smtpda"] = smtpda
-
+	
 def run (**conf):
 	import os, sys, time
 	from . import lifetime
@@ -464,8 +465,10 @@ def run (**conf):
 		
 		def master_jobs (self):
 			smtpda = self.conf.get ('smtpda')
-			if smtpda is not None:				
-				self.create_process ('smtpda', [], smtpda)			
+			if smtpda is not None:
+				self.create_process ('smtpda', [], smtpda)				
+				composer.Composer.SAVE_PATH = os.path.join (self.varpath, "smtpda", "mail", "spool")
+				
 			cron = self.conf.get ('cron')
 			if cron:
 				self.create_process ('cron', cron, {})
