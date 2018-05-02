@@ -29,6 +29,9 @@ from .wastuff.triple_logger import Logger
 from .wastuff import django_adaptor
 from .wastuff.api import DateEncoder
 
+TEMP_DIR = "/var/tmp/skitai-gentemp"
+pathtool.mkdir (TEMP_DIR)
+
 class WAS:
 	version = __version__	
 	objects = {}	
@@ -231,7 +234,7 @@ class WAS:
 		self.logger.trace (at, id)
 	
 	def gentemp (self):
-		return os.path.join ("/var/tmp", next (tempfile._get_candidate_names()))
+		return os.path.join (TEMP_DIR, next (tempfile._get_candidate_names()))
 	
 	# -- only allpy to current worker process
 	def status (self, flt = None, fancy = True):		
