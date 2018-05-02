@@ -231,7 +231,7 @@ class WAS:
 		self.logger.trace (at, id)
 	
 	def gentemp (self):
-		return next (tempfile._get_candidate_names())
+		return os.path.join ("/var/tmp", next (tempfile._get_candidate_names()))
 	
 	# -- only allpy to current worker process
 	def status (self, flt = None, fancy = True):		

@@ -800,7 +800,7 @@ Run With Config File
 ````````````````````````
 *New in version 0.26.17*
 
-Both of SMTP and Taks Scheduler can be run with config file, it may be particulary useful in case you run multiple skitai instances.
+Both of SMTP and Taks Scheduler can be run with config file, it may be particulary useful in case you run multiple skitai instances. 
 
 .. code:: bash
   
@@ -816,7 +816,8 @@ Both of SMTP and Taks Scheduler can be run with config file, it may be particula
   ssl = true
   
   [:crontab]
-
+  0 * * * * echo "Hello World"
+  
 And run scripts mannually,
   
 .. code:: bash

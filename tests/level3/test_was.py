@@ -25,4 +25,7 @@ def test_was (wasc, app, client):
     was.request.args = {"u": "hans", "a": "roh"} 
     assert was.partial ("index5", a = "vans") == "/do5/hans?a=vans"
     
+    assert was.gentemp ().startswith ("/var/tmp")
+    
+    
     
