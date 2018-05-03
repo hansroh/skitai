@@ -191,21 +191,11 @@ class http_request:
 			return hc[header] is not None and hc[header] or default
 	
 	def get_header_params (self, header, default = None):
-		d = {}
 		v = self.get_header (header, default)
 		if v is None:
-			return default, d
+			return default, {}
+		return http_util.parse_params (v)
 			
-		v2 = v.split (";")
-		for each in v2 [1:]:
-			each = each.strip ()
-			if not each: continue
-			try:
-				a, b = each.split ("=", 1)
-			except ValueError:
-				a, b = each, None
-			d [a.lower ()] = b
-		return v2 [0], d		
 	get_header_with_attr = get_header_params
 	
 	def get_header_noparam (self, header, default = None):
