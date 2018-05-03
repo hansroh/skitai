@@ -2,8 +2,10 @@ import tempfile
 import os
 from skitai.server.handlers import collectors
 from aquests.lib import pathtool
+from aquests.protocols.http import http_util
 import shutil
 import io
+import re
 
 class File:
 	in_memory = 1024 * 1024 #1mb
@@ -103,21 +105,10 @@ class Part:
 		return self.content_type
 		
 	def get_header_with_attr (self, header, default = None):
-		d = {}
 		v = self.get_header (header)
 		if v is None:
-			return default, d
-			
-		v2 = v.split (";")
-		for each in v2:
-			each = each.strip ()
-			if not each: continue
-			try:
-				a, b = each.split ("=", 1)
-			except ValueError:
-				a, b = each, None
-			d [a.lower ()] = b
-		return v2 [0], d	
+			return default, {}	
+		return http_util.parse_params (v)	
 			
 	def get_header (self, header, default = None):
 		header = header.lower()	
@@ -213,15 +204,18 @@ class FileWrapper:
 	
 	def read (self, mode = "rb"):
 		return self._file.read () 
-		
+	
+	rx_prohibit = re.compile ("[\s\\\"':;|><&?]+")	
 	def _name_securing (self, name):
+		name = os.path.basename (name)
 		while name:
-			if name [0] == "/":
+			if name [0] == ".":
 				name = name [1:]
-			else:	
-				break
-		return name.replace ("../", "").replace ("/", "-")
-						
+			else:
+				break				 
+		if not name:
+			return 'noname'		
+		return self.rx_prohibit.sub ("_", name)				
 				
 class MultipartCollector (collectors.FormCollector):
 	def __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size):
