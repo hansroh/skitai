@@ -220,7 +220,7 @@ class FileWrapper:
 				name = name [1:]
 			else:	
 				break
-		return name.replace ("../", "").replace ("/", "")
+		return name.replace ("../", "").replace ("/", "-")
 						
 				
 class MultipartCollector (collectors.FormCollector):

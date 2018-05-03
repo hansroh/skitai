@@ -29,7 +29,7 @@ from .wastuff.triple_logger import Logger
 from .wastuff import django_adaptor
 from .wastuff.api import DateEncoder
 
-TEMP_DIR = "/var/tmp/skitai-gentemp"
+TEMP_DIR = "/var/tmp/skitai-gentemp"		
 pathtool.mkdir (TEMP_DIR)
 
 class WAS:
