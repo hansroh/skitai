@@ -40,7 +40,8 @@ class File:
 	def remove (self):
 		src = self.get_name ()
 		if src:
-			os.remove (src)
+			try: os.remove (src)
+			except FileNotFoundError: pass
 		else:	
 			self._buffer = None
 	
