@@ -4130,7 +4130,7 @@ For creatiing onetime link url, you can convert your data to secured token strin
   @app.route ('/password-reset')
   def password_reset (was)
     if was.request.args ('username'):
-      token = was.token ("hans", 3600) # valid within 1 hour 
+      token = was.mktoken ("hans", 3600) # valid within 1 hour 
       pw_reset_url = was.ab ('reset_password', token)
       # send email
       return was.render ('done.html')
@@ -4148,7 +4148,7 @@ If you want to expire token explicit, add session token key
 .. code:: python
 
   # valid within 1 hour and create session token named '_reset_token'
-  token = was.token ("hans", 3600, 'rset')  
+  token = was.mktoken ("hans", 3600, 'rset')  
   >> kO6EYlNE2QLNnospJ+jjOMJjzbw?fXEAKFgGAAAAb2JqZWN0...
 
   username = was.detoken (token)
@@ -4453,8 +4453,7 @@ Or you can use @app.auth_required decorator.
   @app.auth_required
   def hello (was, name = "Hans Roh"):
     return "Hello, %s" % name
-
-		
+	
 User Collection
 `````````````````
 
@@ -4484,6 +4483,40 @@ If authorization is successful, app can access username and userinfo vi was.requ
 
 If your server run with SSL, you can use app.authorization = "basic", otherwise recommend using "digest" for your password safety.
 
+
+(JWT) Bearer Authorization
+--------------------------------------
+
+To making JWT token,
+
+.. code:: python
+
+  was.mkjwt ({"username": "hansroh", ...})
+  >> eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXV...
+
+
+Then client should add 'Authorization' to API request like,
+
+.. code:: python
+
+  Authorization: Bearer eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXV...
+
+And use bearer_required and bearer_handler decorators.
+
+.. code:: python
+  
+  @app.bearer_handler
+  def bearer_handler (was):
+    # was.request.bearer_token
+    claims = was.dejwt (was.request.bearer_token)
+    if claims ["expires"] < time.time ():
+      return was.response.Fault ("403 Forbidden", "your token had been expired")
+    
+  @app.route ("/api/v1/predict")
+  @app.bearer_required    
+  def predict (was):
+  # now you can use was.request.user if your JWT token has "username" key
+    was.request.user
 
 
 Implementing XMLRPC Service
@@ -4797,6 +4830,10 @@ Change Log
 
 - 0.27 (Apr 2018)
   
+  - add @app.bearer_handler and @app.bearer_required
+  - add was.mkjwt and was.dejwt
+  - add was.timestamp amd was.uniqid
+  - renamed was.token -> was.mktoken
   - renamed api -> API, for_api -> Fault
   - skitai.use_django_models has been deprecated, use skitai.alias
   - functions are integrated skitai.mount_django into skitai.mount, skitai.alias_django into skitai.alias
