@@ -522,9 +522,18 @@ class http_response:
 		return "%d %s" % self.get_reply ()
 	
 	# API methods ------------------------------------------------------------
-	def api (self, __data_dict__ = None, **kargs):
+	def API (self, __data_dict__ = None, **kargs):
 		return API (self.request, __data_dict__ or kargs)
-
+	api = API
+	
+	def Fault (self, status = "200 OK", *args, **kargs):
+		if status [0] == "2":
+			r = self.api (*args, **kargs)
+		else:
+			r = self.fault (*args, **kargs)
+		return self (status, r)
+	for_api = Fault
+	
 	def fault (self, message = "", code = 20000,  debug = None, more_info = None, exc_info = None, traceback = False):
 		api = self.api ()
 		if traceback:
@@ -532,14 +541,7 @@ class http_response:
 		else:	
 			api.error (message, code, debug, more_info, exc_info)
 		return api
-	
-	def for_api (self, status = "200 OK", *args, **kargs):
-		if status [0] == "2":
-			r = self.api (*args, **kargs)
-		else:
-			r = self.fault (*args, **kargs)
-		return self (status, r)
-	
+	 
 	# Returning ------------------------------------------------------------------
 
 	def file (self, path, mimetype = 'application/octet-stream', filename = None):

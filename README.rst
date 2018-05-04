@@ -1317,8 +1317,8 @@ I think it just fine explains some differences with aquests.
 
 First of all, usage is somewhat different because aquests is used within threadings on skitai. Skitai takes some threading advantages and compromise with them for avoiding callback heaven.
 
-Usage
-``````
+API Calling
+`````````````````````````````
 
 At aquests,
 
@@ -1339,6 +1339,7 @@ At Skitai,
   
 .. code:: python
   
+  @app.route (...)
   def request (was):
     req1 = was.get (url)
     req2 = was.post (url, {"user": "Hans Roh", "comment": "Hello"})    
@@ -1347,6 +1348,9 @@ At Skitai,
     return [respones1.data, respones2.data]
 
 The significant differnce is calling getwait (timeout) for getting response data.
+
+Database Querying
+`````````````````````````````
 
 PostgreSQL query at aquests,
 
@@ -1367,7 +1371,8 @@ PostgreSQL query at aquests,
 At Skitai,
 
 .. code:: python
-    
+  
+  @app.route (...)  
   def query (was):
     dbo = was.postgresql ("127.0.0.1:5432", "mydb")
     s = dbo.excute ("SELECT city, t_high, t_low FROM weather;")
@@ -1386,6 +1391,25 @@ If you needn't returned data and just wait for completing query,
     req.wait (2) 
 
 If failed, exception will be raised.
+
+
+gRCP Calling
+```````````````````
+
+For another gRPC example, calling to tfserver_ for predicting something with tensorflow model. 
+  
+.. code:: python
+
+  from tfserver import cli 
+  
+  @app.route (...)  
+  def predict_grpc (was):
+    stub = was.grpc ("http://127.0.0.1:5000/tensorflow.serving.PredictionService")	
+    fftseq = getone ()
+    request = cli.build_request ('model', 'predict', stuff = fftseq)
+    req = stub.Predict (request, 10.0)
+    resp = req.getwait ()
+    return cli.Response (resp.data).y  
 
 Here're addtional methods and properties above response obkect compared with aquests' response one.
 
@@ -2750,10 +2774,10 @@ The object has 'close ()' method, will be called when all data consumed, or sock
 - was.response (status = "200 OK", body = None, headers = None, exc_info = None)
 - was.response.throw (status = "200 OK"): abort handling request, generated contents and return http error immediatly
 
-- was.response.api (\_\_data_dict\_\_ = None, \*\*kargs): return api response container
+- was.response.API (\_\_data_dict\_\_ = None, \*\*kargs): return api response container
+- was.response.Fault (status = "200 OK",\*args, \*\*kargs): shortcut for was.response (status, was.response.api (...)) if status code is 2xx and was.response (status, was.response.fault (...))
 - was.response.fault (msg, code = 20000,  debug = None, more_info = None, exc_info = None): return api response container with setting error information
 - was.response.traceback (msg = "", code = 10001,  debug = 'see traceback', more_info = None): return api response container with setting traceback info
-- was.response.for_api (status = "200 OK",\*args, \*\*kargs): shortcut for was.response (status, was.response.api (...)) if status code is 2xx and was.response (status, was.response.fault (...))
 
 - was.response.set_status (status) # "200 OK", "404 Not Found"
 - was.response.get_status ()
@@ -2787,25 +2811,25 @@ In cases you want to retrun JSON API reponse,
 .. code:: python
   
   # return JSON {data: [1,2,3]}
-  return was.response.for_api ('200 OK', data = [1, 2, 3])
+  return was.response.Fault ('200 OK', data = [1, 2, 3])
   # return empty JSON {}
-  return was.response.for_api (201 Accept')
+  return was.response.Fault (201 Accept')
   
   # and shortcut if response HTTP status code is 200 OK,
-  return was.response.api (data =  [1, 2, 3])
+  return was.response.API (data =  [1, 2, 3])
   
   # return empty JSON {}
-  return was.response.api ()
+  return was.response.API ()
   
 For sending error response with error information,
 
 .. code:: python
   
   # client will get, {"message": "parameter q required", "code": 10021}
-  return was.response.for_api ('400 Bad Request', 'missing parameter', 10021)  
+  return was.response.Fault ('400 Bad Request', 'missing parameter', 10021)  
   
   # with additional information,
-  was.response.for_api (
+  was.response.Fault (
   	'400 Bad Request',
   	'missing parameter', 10021, 
     'need parameter offset and limit', # detailed debug information
@@ -2819,7 +2843,7 @@ You can send traceback information for debug purpose like in case app.debug = Fa
   try:
     do something
   except:
-    return was.response.for_api (
+    return was.response.Fault (
       '500 Internal Server Error',
       'somethig is not valid', 
       10022, 
@@ -2885,7 +2909,7 @@ Database query example,
     if promise.fulfilled ():
       r = promise ["stats"]
       r ['result'] = resp.data
-      promise.settle (promise.response.api (r))
+      promise.settle (promise.response.API (r))
 
   @app.route ("/promise")
   def promise (was):
@@ -4501,20 +4525,6 @@ Client Side:
   stub.GetFeature (point)
   aquests.fetchall ()
   
-
-.. code:: python
-
-  from tfserver import cli 
-    
-  def predict_grpc (was):
-    stub = was.grpc ("http://127.0.0.1:5000/tensorflow.serving.PredictionService")	
-	  fftseq = getone ()
-	  stub = was.grpc ("@tfserver")
-	  request = cli.build_request ('model', 'predict', stuff = tensor_util.make_tensor_proto(fftseq.astype('float32'), shape=fftseq.shape))
-	  req = stub.Predict (request, 10.0)
-	  resp = req.getwait ()
-	  return cli.Response (resp.data).scores
-  
 Server Side:
 
 .. code:: python
@@ -4787,6 +4797,7 @@ Change Log
 
 - 0.27 (Apr 2018)
   
+  - renamed api -> API, for_api -> Fault
   - skitai.use_django_models has been deprecated, use skitai.alias
   - functions are integrated skitai.mount_django into skitai.mount, skitai.alias_django into skitai.alias
   - fix empty payload posting
