@@ -312,8 +312,14 @@ class WAS:
 			mtimes.append (mtime)
 		return max (mtimes)
 	
-	# tokens  -------------------------------------------------------
+	# JWT token --------------------------------------------------
+	def mkjwt (self, claim, alg = "HS256"):
+		return jwt.gen_token (self.app.salt, claim, alg)
 	
+	def dejwt (self, token): 
+		return jwt.get_claim (self.app.salt, token)
+		
+	# simple/session token  ----------------------------------------
 	def _unserialize (self, string):
 		def adjust_padding (s):
 			paddings = 4 - (len (s) % 4)
@@ -328,53 +334,48 @@ class WAS:
 			return	
 		client_hash = base64.b64decode(adjust_padding (base64_hash))
 		data = base64.b64decode(adjust_padding (data))
-		mac = hmac (self.app.securekey.encode ("utf8"), None, sha1)		
+		mac = hmac (self.app.salt, None, sha1)		
 		mac.update (data)
 		if client_hash != mac.digest():
 			return
 		return pickle.loads (data)
 	
-	def token (self, obj, timeout = 1200, session_token = None):
-		wrapper = {				
+	def mktoken (self, obj, timeout = 1200, session_key = None):
+		wrapper = {
 			'object': obj,
 			'timeout': time.time () + timeout
 		}
-		if session_token:
+		if session_key:
 			token = hex (random.getrandbits (64))
-			tokey = '_{}_token'.format (session_token)
+			tokey = '_{}_token'.format (session_key)
 			wrapper ['_session_token'] = (tokey, token)
 			self.session [tokey] = token
 			
 		data = pickle.dumps (wrapper, 1)
-		mac = hmac (self.app.securekey.encode ("utf8"), None, sha1)
+		mac = hmac (self.app.salt, None, sha1)
 		mac.update (data)
 		return (base64.b64encode (mac.digest()).strip().rstrip (b'=') + b"?" + base64.b64encode (data).strip ().rstrip (b'=')).decode ("utf8")
+	token = mktoken
 	
-	def rmtoken (self, string):
-		wrapper = self._unserialize (string)
-		session_token = wrapper.get ('_session_token')
-		if not session_token:
-			return
-		tokey, token = session_token	
-		if not self.session.get (tokey):
-			return
-		del self.session [tokey]
-		
 	def detoken (self, string):
 		wrapper = self._unserialize (string)
 		if not wrapper:
 			return 
-		# validation
+		
+		# validation with session
 		tokey = None
 		has_error = False
 		if wrapper ['timeout']  < time.time ():
 			has_error = True
+
 		if not has_error:
 			session_token = wrapper.get ('_session_token')
 			if session_token:
+				# verify with session				
 				tokey, token = session_token	
 				if token != self.session.get (tokey):
-					has_error = True		
+					has_error = True
+					
 		if has_error:
 			if tokey:
 				del self.session [tokey]
@@ -383,8 +384,17 @@ class WAS:
 		obj = wrapper ['object']
 		return obj
 	
-	# CSRF token ------------------------------------------------------
-	
+	def rmtoken (self, string):
+		wrapper = self._unserialize (string)
+		session_token = wrapper.get ('_session_token')
+		if not session_token:
+			return
+		tokey, token = session_token
+		if not self.session.get (tokey):
+			return
+		del self.session [tokey]
+		
+	# CSRF token ------------------------------------------------------	
 	CSRF_NAME = "_csrf_token"
 	@property
 	def csrf_token (self):
