@@ -35,7 +35,8 @@ class File:
 			shutil.move (self.get_name (), to)
 		else:
 			with open (to, "wb") as dest:
-				dest.write (self._buffer)				
+				dest.write (self._buffer)
+		return to
 	
 	def remove (self):
 		src = self.get_name ()
@@ -197,8 +198,15 @@ class FileWrapper:
 					num += 1		
 		self.move (target)
 	
+	def flush (self):
+		if self.path is not None:
+			return
+		with tempfile.NamedTemporaryFile (delete=False) as f:
+			f.write (self._file.read ())
+			self.path = f.name
+		 
 	def move (self, to):
-		self._file.move (to)
+		self.path = self._file.move (to)
 		
 	def remove (self):
 		self._file.remove ()
