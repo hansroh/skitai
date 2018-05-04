@@ -32,6 +32,21 @@ from .wastuff.api import DateEncoder
 TEMP_DIR = "/var/tmp/skitai-gentemp"		
 pathtool.mkdir (TEMP_DIR)
 
+class JWTUser:
+	def __init__ (self, claims):
+		self.__claims = claims
+	
+	@property
+	def name (self):
+		return self.__claims ["username"]
+    	
+	def __getattr__ (self, attr):
+		return self.__claims.get (attr)
+            
+	def __str__ (self):
+		return self.name
+
+
 class WAS:
 	version = __version__	
 	objects = {}	
@@ -79,6 +94,14 @@ class WAS:
 			cls.clusters_for_distcall [clustername] = cluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"), cls.cachefs)
 		cls.clusters [clustername] = cluster
 	
+	@property
+	def timestamp (self):
+		return int (time.time () * 1000) 
+	
+	@property
+	def uniqid (self):
+		return "{}.{}".format (int (time.time () * 1000), self.gentemp () [-4:])
+		
 	def __dir__ (self):
 		return self.objects.keys ()
 	
@@ -259,9 +282,10 @@ class WAS:
 		karg ["__defaults__"] = self.request.args		
 		return self.ab (thing, **karg)
 	
-	def basepath (self, thing):
+	def baseurl (self, thing):
 		# resource path info without parameters
 		return self.ab (thing, __resource_path_only__ = True)
+	basepath = baseurl
 	
 	# response helpers --------------------------------------------
 		
@@ -316,8 +340,11 @@ class WAS:
 	def mkjwt (self, claim, alg = "HS256"):
 		return jwt.gen_token (self.app.salt, claim, alg)
 	
-	def dejwt (self, token): 
-		return jwt.get_claim (self.app.salt, token)
+	def dejwt (self, token):
+		claims = jwt.get_claim (self.app.salt, token)
+		if "username" in claims:
+			self.request.user = JWTUser (claims)
+		return claims
 		
 	# simple/session token  ----------------------------------------
 	def _unserialize (self, string):
