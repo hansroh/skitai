@@ -282,7 +282,28 @@ class AppBase:
         return f
         
     # Auth ------------------------------------------------------    
-    def auth_required (self, f):    
+    def bearer_handler (self, f): 
+        self._decos ["bearer_handler"] = f
+        return f
+        
+    def bearer_required (self, f):
+        self.save_function_spec_for_routing (f)                
+        @wraps(f)
+        def wrapper (was, *args, **kwargs):
+            val = was.request.get_header ("authorization")
+            if not val or val [:7].lower () != "bearer ":
+                was.response ["WWW-Authenticate"] = 'Bearer realm="API"'
+                was.response.throw ("403 Authorization Required")
+            was.request.bearer_token = val [7:]    
+            handler = self._decos.get ("bearer_handler")
+            if handler:
+                response = handler (was)
+                if response:
+                    return response
+            return f (was, *args, **kwargs)
+        return wrapper
+    
+    def auth_required (self, f):
         self._need_authenticate [True].append (f.__name__)
         return f
     
