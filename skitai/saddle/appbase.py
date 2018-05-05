@@ -65,7 +65,7 @@ class AppBase:
         self._need_authenticate = None
         self._cond_check_lock = threading.RLock ()
         
-        self._binds_server = [None] * 6
+        self._binds_server = [None] * 7
         self._binds_request = [None] * 4        
         self.handlers = {}
     
@@ -223,6 +223,10 @@ class AppBase:
         self._binds_server [3] = f
         return f
     
+    def mounted_or_reloaded (self, f):
+        self._binds_server [6] = f
+        return f
+    
     def before_reload (self, f):
         self._binds_server [5] = f
         return f    
@@ -249,7 +253,8 @@ class AppBase:
         'before_reload': 5,
         'reloaded': 1,
         'before_umount': 4,
-        'umounted': 2,        
+        'umounted': 2,
+        'mounted_or_reloaded': 6        
     }
     def life_cycle (self, phase, obj):
         index = self.PHASES.get (phase)

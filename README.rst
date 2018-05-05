@@ -3893,10 +3893,12 @@ These app life cycle methods will be called by this order,
 
 - before_mount (wac): when app imported on skitai server started
 - mounted (*was*): called first with was (instance of wac)
+- mounted_or_reloaded (*was*): called with was (instance of wac)
 - loop whenever app is reloaded,
     
   - oldapp.before_reload (*was*)
   - newapp.reloaded (*was*)
+  - mounted_or_reloaded (*was*): called with was (instance of wac)
   
 - before_umount (*was*): called last with was (instance of wac), add shutting down process
 - umounted (wac): when skitai server enter shutdown process
@@ -4854,6 +4856,7 @@ Change Log
 
 - 0.27 (Apr 2018)
   
+  - add @app.mounted_or_reloaded decorator
   - fix auth_required decorator
   - rename @app.preworks -> @app.run_before and @app.postworks ->  @app.run_after
   - add @app.bearer_handler

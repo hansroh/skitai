@@ -107,7 +107,8 @@ class Module:
 	def mounted (self):
 		app = self.app or getattr (self.module, self.appname)
 		self.has_life_cycle and app.life_cycle ("mounted", self.wasc ())
-	
+		self.has_life_cycle and app.life_cycle ("mounted_or_reloaded", self.wasc ())
+		
 	def umounted (self):
 		app = self.app or getattr (self.module, self.appname)
 		self.has_life_cycle and app.life_cycle ("umounted", self.wasc)
@@ -174,6 +175,7 @@ class Module:
 					setattr (newapp, attr, value)
 				# reloaded
 				self.has_life_cycle and newapp.life_cycle ("reloaded", self.wasc ())
+				self.has_life_cycle and newapp.life_cycle ("mounted_or_reloaded", self.wasc ())
 				self.last_reloaded = time.time ()
 				self.wasc.logger ("app", "reloading app, %s" % self.abspath, "info")
 				
