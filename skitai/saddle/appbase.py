@@ -37,25 +37,26 @@ class AppBase:
         self.module = None
         self.packagename = None
         self.wasc = None                
-        self._started = False
-        self._reloading = False
         self.logger = None
         self.mount_p = "/"
         self.path_suffix_len = 0
         self.route_map = {}
-        self.route_priority = []
         self.storage = Storage ()
         
         self.decorating_params = {}
         self.reloadables = {}
         self.last_reloaded = time.time ()
-        
         self.cached_paths = {}
         self.fancy_rules = {}
+        
         self.bus = evbus.EventBus ()
         self.events = {}        
         self.lock = threading.RLock ()
         self.init_time = time.time ()        
+        self.handlers = {}
+        
+        self._started = False
+        self._reloading = False        
         self._decos = {}
         self._salt = None
         self._permission_map = {}
@@ -66,11 +67,10 @@ class AppBase:
         self._conditions = {}
         self._need_authenticate = None
         self._cond_check_lock = threading.RLock ()
-        
+        self._route_priority = []        
         self._binds_server = [None] * 7
         self._binds_request = [None] * 4        
-        self.handlers = {}
-    
+        
     def get_resource (self, *args):
         return self.joinpath ("resources", *args)
     
@@ -657,8 +657,8 @@ class AppBase:
             if prefix not in self.fancy_rules:
                 self.fancy_rules [prefix] = {}
             self.fancy_rules [prefix][re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), func.__code__.co_argcount - 1, s_rule, options)
-            self.route_priority.append ((prefix, re_rule))
-            self.route_priority.sort (key = lambda x: len (x [0]), reverse = True)
+            self._route_priority.append ((prefix, re_rule))
+            self._route_priority.sort (key = lambda x: len (x [0]), reverse = True)
             
     def get_routed (self, method_pack):
         if not method_pack: 
@@ -704,7 +704,7 @@ class AppBase:
                 kargs [an] = unquote_plus (arglist [i]).replace ("_", " ")
         return f, kargs
 
-    def get_package_method (self, path_info, command, content_type, authorization, use_reloader = False):        
+    def find_method (self, path_info, command, content_type, authorization, use_reloader = False):        
         if not (path_info.startswith (self.mount_p) or (path_info + "/").startswith (self.mount_p)):
             return None, None, None, None, None, 0
         
@@ -715,7 +715,7 @@ class AppBase:
         try:
             method, current_rule = self.find_route (path_info)            
         except KeyError:
-            for prefix, rule in self.route_priority:
+            for prefix, rule in self._route_priority:
                 if not path_info.startswith (prefix):
                     continue
                 current_rule = self.fancy_rules [prefix][rule]

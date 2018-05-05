@@ -330,12 +330,8 @@ class Saddle (appbase.AppBase):
                     pass
                                     
         if not method:
-            self.use_reloader and self.lock.acquire ()
-            try:    
-                current_app, method, kargs, options = self.get_package_method (path_info, command, content_type, authorization, self.use_reloader)
-            finally:    
-                self.use_reloader and self.lock.release ()
-            
+            with self.lock:                
+                current_app, method, kargs, options = self.find_method (path_info, command, content_type, authorization, self.use_reloader)
             if method is None:
                 return current_app, None, None, options, 404
             if options is None:
