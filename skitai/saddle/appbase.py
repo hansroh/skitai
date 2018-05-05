@@ -50,6 +50,7 @@ class AppBase:
         self.reloadables = {}
         self.last_reloaded = time.time ()
         
+        self.cached_paths = {}
         self.bus = evbus.EventBus ()
         self.events = {}        
         self.lock = threading.RLock ()
@@ -457,7 +458,6 @@ class AppBase:
                     return onopen (was)
                 elif onclose and was.wsclosed ():
                     return onclose (was)
-                
             return wrapper
         return decorator
     
@@ -588,30 +588,6 @@ class AppBase:
     
     def set_route_map (self, route_map):
         self.route_map = route_map
-                                    
-    def try_rule (self, path_info, rule, rulepack):
-        f, n, l, a, c, s, options = rulepack
-        
-        arglist = rule.findall (path_info)
-        if not arglist: 
-            return None, None
-        
-        arglist = arglist [0]
-        if type (arglist) is not tuple:
-            arglist = (arglist,)
-            
-        kargs = {}
-        for i in range(len(arglist)):
-            an, at = a [i]
-            if at == "int":
-                kargs [an] = int (arglist [i])
-            elif at == "float":
-                kargs [an] = float (arglist [i])
-            elif at == "path":
-                kargs [an] = unquote_plus (arglist [i])
-            else:        
-                kargs [an] = unquote_plus (arglist [i]).replace ("_", " ")
-        return f, kargs
     
     def add_route (self, rule, func, **options):
         if not rule or rule [0] != "/":
@@ -640,7 +616,13 @@ class AppBase:
             
         s = rule.find ("/<")
         if s == -1:
-            self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, func.__code__.co_argcount - 1, rule, options)                        
+            self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, func.__code__.co_argcount - 1, rule, options)
+            # caching static urls
+            self.cached_paths [rule] = ([self._binds_request [0], func] + self._binds_request [1:4], options)
+            if rule and rule [-1] == "/":
+                # for 30x redirection
+                self.cached_paths [rule [:-1]] = (rule, options)
+                                    
         else:
             s_rule = rule
             rulenames = []
@@ -665,7 +647,6 @@ class AppBase:
             self.route_priority.append ((s, re_rule))
             self.route_priority.sort (key = lambda x: x [0], reverse = True)            
         
-        
     def get_routed (self, method_pack):
         if not method_pack: 
             return
@@ -685,6 +666,30 @@ class AppBase:
         if trydir in self.route_map:
             return self.url_for (trydir), self.route_map [trydir]
         raise KeyError
+    
+    def try_rule (self, path_info, rule, rulepack):
+        f, n, l, a, c, s, options = rulepack
+        
+        arglist = rule.findall (path_info)
+        if not arglist: 
+            return None, None
+        
+        arglist = arglist [0]
+        if type (arglist) is not tuple:
+            arglist = (arglist,)
+            
+        kargs = {}
+        for i in range(len(arglist)):
+            an, at = a [i]
+            if at == "int":
+                kargs [an] = int (arglist [i])
+            elif at == "float":
+                kargs [an] = float (arglist [i])
+            elif at == "path":
+                kargs [an] = unquote_plus (arglist [i])
+            else:        
+                kargs [an] = unquote_plus (arglist [i]).replace ("_", " ")
+        return f, kargs
                     
     def get_package_method (self, path_info, command, content_type, authorization, use_reloader = False):        
         if not (path_info.startswith (self.mount_p) or (path_info + "/").startswith (self.mount_p)):

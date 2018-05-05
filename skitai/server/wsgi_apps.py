@@ -123,6 +123,12 @@ class Module:
 		self.debug = False
 		self.use_reloader = False
 		app = self.app or getattr (self.module, self.appname)
+		
+		if os.environ.get ("SKITAI_ENV") == "PRODUCTION":
+			app.debug = False
+			app.use_reloader = False
+			return
+		
 		try: self.debug = app.debug
 		except AttributeError: pass
 		try: self.use_reloader = app.use_reloader

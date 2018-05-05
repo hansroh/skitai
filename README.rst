@@ -2487,8 +2487,19 @@ If use_reloader is True, Skito-Saddle will detect file changes and reload app au
   app.use_reloader = True # auto realod on file changed
 
 
+Kill Switch
+````````````````
+
+You you want to disable debug and use_reloader on production enveironment at once, 
+
+.. code:: bash
+
+  export SKITAI_ENV=PRODUCTION
+  python3 app.py -d
+
+
 Routing
---------
+----------
 
 Basic routing is like this:
 

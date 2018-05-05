@@ -35,7 +35,6 @@ class Saddle (appbase.AppBase):
         self.chameleon = None
         self.sqlphile = None
         # for bus, set by wsgi_executor
-        self.cached_paths = {}        
         self.cached_rules = []
         self.config = Config (preset = True)
         self._package_dirs = []
@@ -178,7 +177,7 @@ class Saddle (appbase.AppBase):
         if module:
             self.find_watchables (module)
         
-    # high level API----------------------------------------------    
+    # high level API with skitai----------------------------------------------    
     def get_www_authenticate (self, error = None):
         if self.authorization == "bearer":
             return 'Bearer realm="{}"{}'.format (self.realm, error and ', error="%s"' % error or '')        
@@ -314,8 +313,27 @@ class Saddle (appbase.AppBase):
             except KeyError:
                 raise NotImplementedError            
             return grpc_collector.grpc_collector            
-                    
-    def get_method (self, path_info, request):        
+    
+    # method search -------------------------------------------
+    def _scan_cache (self, path_info):
+        try:
+            method, options = self.cached_paths [path_info]
+            return method, options, {}
+        except KeyError:
+            with self.lock:
+                for rulepack, _method, _options in self.cached_rules:
+                    _found, _kargs = self.try_rule (path_info, rulepack [0], rulepack [1])
+                    if _found:
+                        return _method, _options, _kargs
+        return None, {}, {}
+    
+    def _add_to_cache (self, *obj):
+        with self.lock:
+            self.cached_rules.append (obj)
+            # sort by length of rule desc
+            self.cached_rules.sort (key = lambda x: len (x [0][-1][-2]), reverse = True)
+                            
+    def get_method (self, path_info, request):
         command = request.command.upper ()
         content_type = request.get_header_noparam ('content-type')
         authorization = request.get_header ('authorization')        
@@ -324,47 +342,23 @@ class Saddle (appbase.AppBase):
         with self.lock:
             if self.use_reloader:
                 self.maybe_reload ()
-                
-            try:
-                method, options = self.cached_paths [path_info]
-                kargs = {}
-            except KeyError:
-                ind = 0                
-                for rulepack, _method, _options in self.cached_rules:
-                    _found, _kargs = self.try_rule (path_info, rulepack [0], rulepack [1])
-                    if _found:
-                        method = _method
-                        kargs = _kargs
-                        options = _options
-                        break
-                    ind += 1
+            else:    
+                method, options, kargs = self._scan_cache (path_info)
                                     
         if not method:
-            if self.use_reloader:
-                self.lock.acquire ()
+            self.use_reloader and self.lock.acquire ()
             try:    
                 current_app, method, kargs, options, match, matchtype = self.get_package_method (path_info, command, content_type, authorization, self.use_reloader)
             finally:    
-                if self.use_reloader: 
-                    self.lock.release ()
+                self.use_reloader and self.lock.release ()
             
             if matchtype == -1:
                 return current_app, method, None, options, 301
-            
             if not method:
                 return current_app, None, None, options, 404
-                
-            if not self.use_reloader:
-                if matchtype == 1:
-                    with self.lock:
-                        self.cached_paths [match] = (method, options)
-                                
-                elif matchtype == 2:
-                    with self.lock:
-                        self.cached_rules.append ([match, method, options])
-                        # sort by length of rule desc
-                        self.cached_rules.sort (key = lambda x: len (x [0][-1][-2]), reverse = True)
-                
+            if not self.use_reloader and matchtype == 2:
+                self._add_to_cache (match, method, options)                
+            
         resp_code = 0
         if options:
             allowed_types = options.get ("content_types", [])
@@ -388,8 +382,7 @@ class Saddle (appbase.AppBase):
                 
                 requeste_headers = request.get_header ("Access-Control-Request-Headers", "")        
                 if requeste_headers:
-                    response.set_header ("Access-Control-Allow-Headers", requeste_headers)
-                    
+                    response.set_header ("Access-Control-Allow-Headers", requeste_headers)                    
                 resp_code = 200
             
             else:
@@ -407,7 +400,11 @@ class Saddle (appbase.AppBase):
         if access_control_allow_origin and access_control_allow_origin != 'same':
             request.response.set_header ("Access-Control-Allow-Origin", ", ".join (access_control_allow_origin))
         
-        return current_app, method, kargs, options, resp_code
+        return (
+            current_app, 
+            isinstance (method, str) and self.url_for (method) or method, 
+            kargs, options, resp_code
+        )
     
     #------------------------------------------------------
     def create_on_demand (self, was, name):
