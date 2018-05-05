@@ -3822,13 +3822,13 @@ You can make automation for preworks and postworks.
   def post1 (was):
     ...
   
-  @app.before_execute (pre1, pre2)
-  @app.after_execute (post1)
+  @app.run_before (pre1, pre2)
+  @app.run_after (post1)
   def index (was):
     return was.render ('index.html')
 
-@app.before_execute can return None or responsable contents for aborting all next before_execute and main request.
-@app.after_execute return will be ignored
+@app.run_before can return None or responsable contents for aborting all next run_before and main request.
+@app.run_after return will be ignored
 
 Define Conditional Prework 
 -------------------------------
@@ -4855,7 +4855,7 @@ Change Log
 - 0.27 (Apr 2018)
   
   - fix auth_required decorator
-  - rename @app.preworks -> @app.before_execute and @app.postworks ->  @app.after_execute
+  - rename @app.preworks -> @app.run_before and @app.postworks ->  @app.run_after
   - add @app.bearer_handler
   - add was.mkjwt and was.dejwt
   - add was.timestamp amd was.uniqid
