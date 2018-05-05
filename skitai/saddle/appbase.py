@@ -366,7 +366,7 @@ class AppBase:
         return decorator
     
     # Automation ------------------------------------------------------    
-    def preworks (self, *funcs):
+    def before_execute (self, *funcs):
         def decorator(f):
             self.save_function_spec_for_routing (f)
             @wraps(f)
@@ -379,7 +379,7 @@ class AppBase:
             return wrapper
         return decorator
     
-    def postworks (self, *funcs):
+    def after_execute (self, *funcs):
         def decorator(f):
             self.save_function_spec_for_routing (f)            
             @wraps(f)

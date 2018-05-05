@@ -3804,7 +3804,7 @@ If you handle exception with failed_request (), return custom error content, or 
       was.render ("err501.htm", msg = "We're sorry but something's going wrong")
     )
 
-Define Preworks and Postworks 
+Define Autoruns 
 --------------------------------
 
 *New in version 0.26.18*
@@ -3822,13 +3822,13 @@ You can make automation for preworks and postworks.
   def post1 (was):
     ...
   
-  @app.preworks (pre1, pre2)
-  @app.postworks (post1)
+  @app.before_execute (pre1, pre2)
+  @app.after_execute (post1)
   def index (was):
     return was.render ('index.html')
 
-@app.prework can return None or responsable contents for aborting all next preworks and main request.
-@app.postwork's return will be ignored
+@app.before_execute can return None or responsable contents for aborting all next before_execute and main request.
+@app.after_execute return will be ignored
 
 Define Conditional Prework 
 -------------------------------
@@ -4854,6 +4854,8 @@ Change Log
 
 - 0.27 (Apr 2018)
   
+  - fix auth_required decorator
+  - rename @app.preworks -> @app.before_execute and @app.postworks ->  @app.after_execute
   - add @app.bearer_handler
   - add was.mkjwt and was.dejwt
   - add was.timestamp amd was.uniqid
