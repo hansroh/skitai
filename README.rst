@@ -4412,26 +4412,7 @@ WWW-Authenticate
 
 Saddle provide simple authenticate for administration or perform access control from other system's call.
 
-Authentication On Entire App
-```````````````````````````````
-
-.. code:: python
-
-  app = Saddle (__name__)
-  
-  app.authorization = "digest"
-  app.realm = "Partner App Area of mysite.com"
-  app.users = {"app": ("iamyourpartnerapp", 0, {'role': 'root'})}
-  app.authenticate = True
-  
-  @app.route ("/hello/<name>")
-  def hello (was, name = "Hans Roh"):
-    return "Hello, %s" % name
-
-If app.authenticate is True, all routes of app require authorization (default is False).
-
-
-Authentication On Specific Methods Only
+Authentication On Specific Methods
 `````````````````````````````````````````
 
 Otherwise you can make some routes requirigng authorization like this:
@@ -4453,15 +4434,34 @@ Or you can use @app.auth_required decorator.
   @app.auth_required
   def hello (was, name = "Hans Roh"):
     return "Hello, %s" % name
-	
-User Collection
-`````````````````
 
-The return of app.users.get (username) can be:
+Password Provider
+````````````````````
+
+You can provide password and user information getter by 2 ways.
+
+First, users object 
+
+.. code:: python
+  
+  # users object shoukd have get(username) method
+  app.users = {"hansroh": ("1234", False)}
+
+Second, use decorator 
+
+.. code:: python
+  
+  @app.auth_handler
+  def auth_handler (was, username):
+    ...
+    return ("1234", False)
+
+The return object can be:
 
   - (str password, boolean encrypted, obj userinfo)
   - (str password, boolean encrypted)
   - str password
+  - None if authorization failed
 
 If you use encrypted password, you should use digest authorization and password should encrypt by this way:
 
@@ -4479,9 +4479,28 @@ If authorization is successful, app can access username and userinfo vi was.requ
   - was.request.user.name
   - was.request.user.realm
   - was.request.user.info
-  
 
 If your server run with SSL, you can use app.authorization = "basic", otherwise recommend using "digest" for your password safety.
+
+Authentication On Entire App
+```````````````````````````````
+
+For your convinient, you can set authorization requirements to app level.
+
+.. code:: python
+
+  app = Saddle (__name__)
+  
+  app.authorization = "digest"
+  app.realm = "Partner App Area of mysite.com"
+  app.users = {"app": ("iamyourpartnerapp", 0, {'role': 'root'})}
+  app.authenticate = True
+  
+  @app.route ("/hello/<name>")
+  def hello (was, name = "Hans Roh"):
+    return "Hello, %s" % name
+
+If app.authenticate is True, all routes of app require authorization (default is False).
 
 
 (JWT) Bearer Authorization
@@ -4501,21 +4520,26 @@ Then client should add 'Authorization' to API request like,
 
   Authorization: Bearer eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXV...
 
-And use bearer_required and bearer_handler decorators.
+And use bearer_handler decorators.
 
 .. code:: python
   
+  app.realm = "API"
+  app.authorization = "bearer"
+  
   @app.bearer_handler
-  def bearer_handler (was):
-    # was.request.bearer_token
-    claims = was.dejwt (was.request.bearer_token)
+  def bearer_handler (was, token):
+    # was.request.user will be created, if your JWT token has "username" key
+    claims = was.dejwt (token)
+    
+    # validting
     if claims ["expires"] < time.time ():
-      return was.response.Fault ("403 Forbidden", "your token had been expired")
+      return "token expired"      
     
   @app.route ("/api/v1/predict")
-  @app.bearer_required    
+  @app.auth_required
   def predict (was):
-  # now you can use was.request.user if your JWT token has "username" key
+  # now you can use was.request.user
     was.request.user
 
 
@@ -4830,7 +4854,7 @@ Change Log
 
 - 0.27 (Apr 2018)
   
-  - add @app.bearer_handler and @app.bearer_required
+  - add @app.bearer_handler
   - add was.mkjwt and was.dejwt
   - add was.timestamp amd was.uniqid
   - renamed was.token -> was.mktoken

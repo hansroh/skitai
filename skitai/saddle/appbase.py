@@ -28,8 +28,8 @@ class AppBase:
     access_control_allow_origin = None
     access_control_max_age = 0    
     authenticate = False
-    authorization = "digest"    
-    realm = None
+    authorization = None    
+    realm = "App"
     users = {}    
     opaque = None
     
@@ -281,27 +281,14 @@ class AppBase:
         self._binds_request [3] = f
         return f
         
-    # Auth ------------------------------------------------------    
+    # Bearer Auth ------------------------------------------------------    
     def bearer_handler (self, f): 
         self._decos ["bearer_handler"] = f
         return f
-        
-    def bearer_required (self, f):
-        self.save_function_spec_for_routing (f)                
-        @wraps(f)
-        def wrapper (was, *args, **kwargs):
-            val = was.request.get_header ("authorization")
-            if not val or val [:7].lower () != "bearer ":
-                was.response ["WWW-Authenticate"] = 'Bearer realm="API"'
-                was.response.throw ("403 Authorization Required")
-            was.request.bearer_token = val [7:]    
-            handler = self._decos.get ("bearer_handler")
-            if handler:
-                response = handler (was)
-                if response:
-                    return response
-            return f (was, *args, **kwargs)
-        return wrapper
+    
+    def auth_handler (self, f):
+        self._decos ["auth_handler"] = f
+        return f
     
     def auth_required (self, f):
         self._need_authenticate [True].append (f.__name__)
@@ -310,7 +297,8 @@ class AppBase:
     def auth_not_required (self, f):
         self._need_authenticate [False].append (f.__name__)
         return f
-        
+    
+    # Session Login ---------------------------------------------------    
     def login_handler (self, f):
         self._decos ["login_handler"] = f
         return f
@@ -327,6 +315,7 @@ class AppBase:
             return f (was, *args, **kwargs)
         return wrapper
     
+    # Identifying Member Permission -------------------------- 
     def staff_member_check_handler (self, f):
         self._decos ["staff_member_check_handler"] = f
         return f
@@ -395,9 +384,10 @@ class AppBase:
             self.save_function_spec_for_routing (f)            
             @wraps(f)
             def wrapper (was, *args, **kwargs):
+                response = f (was, *args, **kwargs)
                 for func in funcs:
-                    func (was)                    
-                return f (was, *args, **kwargs)
+                    func (was)
+                return response
             return wrapper
         return decorator
     
@@ -755,7 +745,14 @@ class AppBase:
         elif not route.endswith ("/"):            
             self.basepath = route + "/"
         else:
-            self.basepath = route            
+            self.basepath = route
+        
+        # reconfigure authenticate ------------------------------------------
+        for params in self.route_map.values ():
+            for b in (True, False):                
+                if params [1] in self._need_authenticate [b]:
+                    params [-1]["authenticate"] = b
+                    break                
         
     def start (self, wasc, route):
         self.bus.emit ("app:starting", wasc)

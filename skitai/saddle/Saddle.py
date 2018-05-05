@@ -161,13 +161,6 @@ class Saddle (appbase.AppBase):
                 auto_reload = self.use_reloader,
                 restricted_namespace = False
             )
-        
-        # reconfigure authenticate ------------------------------------------
-        for params in self.route_map.values ():
-            for b in (True, False):
-                if params [1] in self._need_authenticate [b]:
-                    params [-1]["authenticate"] = b
-                    break
             
         # sqlphile --------------------------------------------
         sqlmap_dir = os.path.join(path, self.config.get ("sqlmap_dir", "sqlmaps"))
@@ -186,8 +179,10 @@ class Saddle (appbase.AppBase):
             self.find_watchables (module)
         
     # high level API----------------------------------------------    
-    def get_www_authenticate (self):
-        if self.authorization == "basic":
+    def get_www_authenticate (self, error = None):
+        if self.authorization == "bearer":
+            return 'Bearer realm="{}"{}'.format (self.realm, error and ', error="%s"' % error or '')        
+        elif self.authorization == "basic":
             return 'Basic realm="%s"' % self.realm
         else:    
             if self.opaque is None:
@@ -196,21 +191,21 @@ class Saddle (appbase.AppBase):
                 self.realm, http_util.md5uniqid (), self.opaque
             )
             
-    def get_password (self, user):
-        info = self.users.get (user)
+    def get_user (self, username):
+        # return string password, bool encrypted, object userinfo 
+        handler = self._decos.get ("auth_handler")
+        if handler:
+            info = handler (the_was._get (), username)
+        else:        
+            info = self.users.get (username)
         if not info:
-            return None, 0 # passwrod, encrypted
-        return type (info) is str and (info, 0) or info [:2]
-    
-    def get_info (self, user):
-        info = self.users.get (user)
-        if not info: return None
-        return (type (info) is not str and len (info) == 3) and info [-1] or None
+            return None, 0, None # passwrod, encrypted
+        return type (info) is str and (info, 0, None) or info
                 
     def authorize (self, auth, method, uri):
-        if self.realm is None or not self.users:
+        if self.authorization is None:
             return
-                
+        
         if auth is None:
             return self.get_www_authenticate ()
         
@@ -219,16 +214,28 @@ class Saddle (appbase.AppBase):
         if amethod.lower () != self.authorization:
             return self.get_www_authenticate ()
         
-        if self.authorization == "basic":
+        if self.authorization == "bearer":
+            was = the_was._get ()
+            error = self._decos ["bearer_handler"] (was, authinfo)
+            if error:
+                return self.get_www_authenticate (error)
+            try:
+                return was.request.user
+            except AttributeError:
+                return "authorized-anon"
+            
+        elif self.authorization == "basic":
             basic = base64.decodestring (authinfo.encode ("utf8")).decode ("utf8")
             current_user, current_password = basic.split (":", 1)
-            password, encrypted = self.get_password (current_user)
+            password, encrypted, userinfo = self.get_user (current_user)
+            if not password:
+                return self.get_www_authenticate ()
             if encrypted:
                 raise AssertionError ("Basic authorization can't handle encrypted password")
             if password ==  current_password:
-                return AuthorizedUser (current_user, self.realm, self.get_info (current_user))
+                return AuthorizedUser (current_user, self.realm, userinfo)
                 
-        else:
+        elif self.authorization == "digest":
             method = method.upper ()
             infod = {}
             for info in authinfo.split (","):
@@ -241,7 +248,7 @@ class Saddle (appbase.AppBase):
             if not current_user:
                 return self.get_www_authenticate ()
             
-            password, encrypted = self.get_password (current_user)
+            password, encrypted, userinfo = self.get_user (current_user)
             if not password:
                 return self.get_www_authenticate ()
                 
@@ -264,11 +271,11 @@ class Saddle (appbase.AppBase):
                 ).hexdigest ()
 
                 if Hash == infod ["response"]:
-                    return AuthorizedUser (current_user, self.realm, self.get_info (current_user))
+                    return AuthorizedUser (current_user, self.realm, userinfo)
                     
             except KeyError:
                 pass
-        
+            
         return self.get_www_authenticate ()
     
     def is_allowed_origin (self, request, allowed_origins):
