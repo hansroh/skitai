@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.27b25"
+__version__ = "0.27b27"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -16,12 +16,11 @@ from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONG
 from .launcher import launch
 from aquests.protocols.smtp import composer
 
-DJANGO = "django"
-
 PROTO_HTTP = "http"
 PROTO_HTTPS = "https"
 PROTO_WS = "ws"
 PROTO_WSS = "wss"
+DJANGO = "django"
 
 WEBSOCKET_SIMPLE = 1
 WEBSOCKET_GROUPCHAT = 5

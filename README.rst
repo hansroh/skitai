@@ -3070,12 +3070,12 @@ decorative/auth.py
 
 You just import module from decorative. but *def decorate (app)* is core in each module. Every modules can have *decorate (app)* in *decorative*, so you can split and modulize views and utility functions. decorate (app) will be automatically executed on starting. If you set app.use_reloader, theses decorative will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
 
-If you need parameters on decorating,
+If you need additional options on decorating,
 
 .. code:: python
 
-  def decorate (app, prefix):
-    @app.route (prefix + "/login")
+  def decorate (app):
+    @app.route ("/login")
     def login (was):
       ...
 
@@ -3086,8 +3086,31 @@ And on app,
   from decorative import auth
   
   app = Saddle (__name__)
-  app.decorate_with (auth, '/regist')
+  app.decorate_with (auth, mount = '/regist')
 
+Finally, route of login is "/regist/login".
+  
+Sometimes function names are duplicated if like you import contributed decoratives.
+
+.. code:: python
+
+  from decorative import auth
+  
+  app = Saddle (__name__)
+  app.decorate_with (auth, mount = '/regist', ns = "regist")
+  
+Now, you can import iport without name collision. But be careful when use was.ab () etc.
+
+.. code:: python
+
+  {{ was.ab ("regist.login") }}
+
+If you want to decorate only debug environment, 
+
+.. code:: python
+  
+  app.decorate_with (status, debug_only = True)
+  
 If you build useful decoratives, please contribute them to `skitai.saddle.decorative`_.
 
 .. _`skitai.saddle.decorative`: https://gitlab.com/hansroh/skitai/tree/master/skitai/saddle/contrib/decorative
@@ -4311,15 +4334,15 @@ If you mount multiple apps like this,
   skitai.mount ("/", "main.py")
   skitai.mount ("/search", "search.py")
 
-For building url in `main.py` app from a query function of `search.py` app, you should specify app file name with dot.
+For building url in `main.py` app from a query function of `search.py` app, you should specify app file name with colon.
 
 .. code:: python
 
-  was.ab ('search.query', "Your Name") # returned '/search/query?q=Your%20Name'
+  was.ab ('search:query', "Your Name") # returned '/search/query?q=Your%20Name'
   
 And this is exactly same as,
 
-  was.apps ["search"].build_url ("query", "Your Name")  
+  was.apps ["search"].build_url ("query", "Your Name")
 
 But this is only functioning between apps are mounted within same host.
 

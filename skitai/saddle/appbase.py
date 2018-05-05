@@ -152,18 +152,19 @@ class AppBase:
                     self.watch (v)                    
                     break
         
-    def decorate_with (self, module, *args, **karg):
-        self.decorating_params [module.__name__] = (args, karg)
+    def decorate_with (self, module, **kargs):
+        self.decorating_params [module] = (kargs)
         
     def watch (self, module):
         if hasattr (module, "decorate"):
-            params = self.decorating_params.get (module.__name__)
-            if params:            
-                args, karg = params
-                module.decorate (self, *args, **karg)
-            else:
-                module.decorate (self)
-                
+            params = self.decorating_params.get (module)
+            if params:
+                if params.get ("debug_only") and not self.debug:
+                    return                
+                for k, v in params.items ():
+                    setattr (module, "___{}___".format (k), v)
+            module.decorate (self)
+            
         try:
             self.reloadables [module] = self.get_file_info (module)
         except FileNotFoundError:
@@ -601,10 +602,21 @@ class AppBase:
         if not rule or rule [0] != "/":
             raise AssertionError ("Url rule should be starts with '/'")
         
-        if not self._started and not self._reloading and func.__name__ in self._function_names:
-            raise NameError ("Function <{}> is already defined".format (func.__name__))
+        module = sys.modules [func.__module__]
+        func_id = (hasattr (module, "___ns___") and (module.___ns___ + ".") or "") + func.__name__
+        if not self._started and not self._reloading and func_id in self._function_names:
+            raise NameError ("function <{}> is already defined. use another name or decorate_with(ns = 'myns')".format (func_id))
         
-        fspec = self._function_specs.get (func.__name__) or inspect.getargspec(func)
+        if hasattr (module, "___mount___"):
+            mount_prefix = module.___mount___
+            while mount_prefix:
+                if mount_prefix [-1] == "/":
+                    mount_prefix = mount_prefix [:-1]
+                else:
+                    break    
+            rule = mount_prefix + rule
+        
+        fspec = self._function_specs.get (func.__name__) or inspect.getargspec(func)        
         options ["args"] = fspec.args [1:]
         options ["varargs"] = fspec.varargs
         options ["keywords"] = fspec.keywords
@@ -620,10 +632,10 @@ class AppBase:
             if func.__name__ == self._need_authenticate [0]:
                 options ["authenticate"] = self._need_authenticate [1]
             self._need_authenticate = None    
-            
+         
         s = rule.find ("/<")
         if s == -1:
-            self._function_names [func.__name__] = (rule,)    
+            self._function_names [func_id] = (rule,)   
             self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, func.__code__.co_argcount - 1, rule, options)
             # caching static urls
             self.cached_paths [rule] = ([self._binds_request [0], func] + self._binds_request [1:4], options)
@@ -652,7 +664,7 @@ class AppBase:
                     rule = rule.replace (r, "/([^/]+)")
             rule = "^" + rule + "$"            
             re_rule = re.compile (rule)
-            self._function_names [func.__name__] = (prefix, re_rule)
+            self._function_names [func_id] = (prefix, re_rule)
             
             if prefix not in self.fancy_rules:
                 self.fancy_rules [prefix] = {}
