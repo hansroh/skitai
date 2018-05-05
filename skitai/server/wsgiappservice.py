@@ -272,7 +272,7 @@ class WAS:
 	# URL builders -------------------------------------------------
 	def url_for (self, thing, *args, **karg):
 		# override with resource default args
-		if thing.startswith ("/") or thing.find (".") == -1:
+		if thing.startswith ("/") or thing.find (":") == -1:
 			return self.app.build_url (thing, *args, **karg)
 		return self.apps.build_url (thing, *args, **karg)	
 	ab = url_for

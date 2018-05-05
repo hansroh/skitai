@@ -218,8 +218,8 @@ class ModuleManager:
 	def __getitem__ (self, name):
 		return self.modnames [name].get_callable ()
 		
-	def build_url (self, thing, *args, **kargs):		
-		a, b = thing.split (".", 1)
+	def build_url (self, thing, *args, **kargs):
+		a, b = thing.split (":", 1)
 		return self.modnames [a].get_callable ().build_url (b, *args, **kargs)
 		
 	def add_module (self, route, directory, modname, pref):
