@@ -51,6 +51,7 @@ class AppBase:
         self.last_reloaded = time.time ()
         
         self.cached_paths = {}
+        self.fancy_rules = {}
         self.bus = evbus.EventBus ()
         self.events = {}        
         self.lock = threading.RLock ()
@@ -517,60 +518,67 @@ class AppBase:
         if thing.startswith ("/"):
             return self.basepath [:-1] + self.mount_p [:-1] + thing
         
-        script_name_only = "__resource_path_only__" in kargs                    
-        for func, name, fuvars, favars, numvars, str_rule, options in self.route_map.values ():
-            if thing != name: continue
-            if script_name_only:
-                url = str_rule
-                if favars:
-                    s = url.find ("<")
-                    if s != -1:
-                        url = url [:s]
-                return self.url_for (url)
-            
-            params = {}
-            try:
-                currents = kargs.pop ("__defaults__")
-            except KeyError:
-                currents = {}
-            else:
-                for k, v in currents.items ():
-                    if k in fuvars:
-                        params [k] = v                        
-            
-            assert len (args) <= len (fuvars), "Too many params, this has only %d params(s)" % len (fuvars)                    
-            for i in range (len (args)):
-                params [fuvars [i]] = args [i]
-            
-            for k, v in kargs.items ():
-                params [k] = v
-            
+        script_name_only = "__resource_path_only__" in kargs
+        try:
+            fpath = self._function_names [thing]
+            if len (fpath) == 2:
+                rulepack = self.fancy_rules [fpath [0]][fpath [1]]
+            else:    
+                rulepack = self.route_map [fpath [0]]
+        except KeyError:
+            raise NameError ("{} not found".format (str (thing)))    
+        
+        func, name, fuvars, favars, numvars, str_rule, options = rulepack
+        
+        if script_name_only:
             url = str_rule
-            if favars: #fancy [(name, type),...]. /fancy/<int:cid>/<cname>
-                for n, t in favars:
-                    if n not in params:
-                        try:
-                            params [n] = currents [n]
-                        except KeyError:
-                            try:
-                                params [n] = options ["defaults"][n]
-                            except KeyError:
-                                raise AssertionError ("Argument '%s' missing" % n)
-                        
-                    value = quote_plus (str (params [n]))
-                    if t == "string":
-                        value = value.replace ("+", "_")
-                    elif t == "path":
-                        value = value.replace ("%2F", "/")
-                    url = url.replace ("<%s%s>" % (t != "string" and t + ":" or "", n), value)
-                    del params [n]
-            
-            if params:
-                url = url + "?" + "&".join (["%s=%s" % (k, quote_plus (str(v))) for k, v in params.items ()])
-                
+            if favars:
+                s = url.find ("<")
+                if s != -1:
+                    url = url [:s]
             return self.url_for (url)
-        raise NameError ("{} not found".format (str (thing)))
-    
+        
+        params = {}
+        try:
+            currents = kargs.pop ("__defaults__")
+        except KeyError:
+            currents = {}
+        else:
+            for k, v in currents.items ():
+                if k in fuvars:
+                    params [k] = v                        
+        
+        assert len (args) <= len (fuvars), "Too many params, this has only %d params(s)" % len (fuvars)                    
+        for i in range (len (args)):
+            params [fuvars [i]] = args [i]
+        
+        for k, v in kargs.items ():
+            params [k] = v
+        
+        url = str_rule
+        if favars: #fancy [(name, type),...]. /fancy/<int:cid>/<cname>
+            for n, t in favars:
+                if n not in params:
+                    try:
+                        params [n] = currents [n]
+                    except KeyError:
+                        try:
+                            params [n] = options ["defaults"][n]
+                        except KeyError:
+                            raise AssertionError ("Argument '%s' missing" % n)
+                    
+                value = quote_plus (str (params [n]))
+                if t == "string":
+                    value = value.replace ("+", "_")
+                elif t == "path":
+                    value = value.replace ("%2F", "/")
+                url = url.replace ("<%s%s>" % (t != "string" and t + ":" or "", n), value)
+                del params [n]
+        
+        if params:
+            url = url + "?" + "&".join (["%s=%s" % (k, quote_plus (str(v))) for k, v in params.items ()])
+            
+        return self.url_for (url)
     build_url = url_for
         
     # Routing ------------------------------------------------------                            
@@ -595,8 +603,7 @@ class AppBase:
         
         if not self._started and not self._reloading and func.__name__ in self._function_names:
             raise NameError ("Function <{}> is already defined".format (func.__name__))
-        self._function_names [func.__name__] = None        
-            
+        
         fspec = self._function_specs.get (func.__name__) or inspect.getargspec(func)
         options ["args"] = fspec.args [1:]
         options ["varargs"] = fspec.varargs
@@ -616,6 +623,7 @@ class AppBase:
             
         s = rule.find ("/<")
         if s == -1:
+            self._function_names [func.__name__] = (rule,)    
             self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, func.__code__.co_argcount - 1, rule, options)
             # caching static urls
             self.cached_paths [rule] = ([self._binds_request [0], func] + self._binds_request [1:4], options)
@@ -624,6 +632,7 @@ class AppBase:
                 self.cached_paths [rule [:-1]] = (rule, options)
                                     
         else:
+            prefix = rule [:s]
             s_rule = rule
             rulenames = []
             urlargs = RX_RULE.findall (rule)
@@ -642,11 +651,15 @@ class AppBase:
                     rulenames.append ((n, "string"))
                     rule = rule.replace (r, "/([^/]+)")
             rule = "^" + rule + "$"            
-            re_rule = re.compile (rule)                
-            self.route_map [re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), func.__code__.co_argcount - 1, s_rule, options)
-            self.route_priority.append ((s, re_rule))
-            self.route_priority.sort (key = lambda x: x [0], reverse = True)            
-        
+            re_rule = re.compile (rule)
+            self._function_names [func.__name__] = (prefix, re_rule)
+            
+            if prefix not in self.fancy_rules:
+                self.fancy_rules [prefix] = {}
+            self.fancy_rules [prefix][re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), func.__code__.co_argcount - 1, s_rule, options)
+            self.route_priority.append ((prefix, re_rule))
+            self.route_priority.sort (key = lambda x: len (x [0]), reverse = True)
+            
     def get_routed (self, method_pack):
         if not method_pack: 
             return
@@ -657,7 +670,7 @@ class AppBase:
                 return routed
             temp = routed
                     
-    def route_search (self, path_info):
+    def find_route (self, path_info):
         if not path_info:
             return self.url_for ("/"), self.route_map ["/"]
         if path_info in self.route_map:
@@ -667,7 +680,7 @@ class AppBase:
             return self.url_for (trydir), self.route_map [trydir]
         raise KeyError
     
-    def try_rule (self, path_info, rule, rulepack):
+    def verify_rule (self, path_info, rule, rulepack):
         f, n, l, a, c, s, options = rulepack
         
         arglist = rule.findall (path_info)
@@ -690,44 +703,34 @@ class AppBase:
             else:        
                 kargs [an] = unquote_plus (arglist [i]).replace ("_", " ")
         return f, kargs
-                    
+
     def get_package_method (self, path_info, command, content_type, authorization, use_reloader = False):        
         if not (path_info.startswith (self.mount_p) or (path_info + "/").startswith (self.mount_p)):
             return None, None, None, None, None, 0
         
         path_info = path_info [self.path_suffix_len:]
-        app, method, kargs, matchtype = self, None, {}, 0                
+        app, method, kargs = self, None, {}                
         
         # 1st, try find in self
         try:
-            method, current_rule = self.route_search (path_info)
-            
+            method, current_rule = self.find_route (path_info)            
         except KeyError:
-            for priority, rule in self.route_priority:
-                current_rule = self.route_map [rule]
-                method, kargs = self.try_rule (path_info, rule, current_rule)
+            for prefix, rule in self.route_priority:
+                if not path_info.startswith (prefix):
+                    continue
+                current_rule = self.fancy_rules [prefix][rule]
+                method, kargs = self.verify_rule (path_info, rule, current_rule)
                 if method: 
-                    match = (rule, current_rule)
-                    matchtype = 2
                     options = current_rule [-1]
                     break
-        
-        else:            
-            match = path_info
-            if type (method) is not function:
-                # object move
-                matchtype = -1
-            else:    
-                matchtype = 1
-                options = current_rule [-1]                
+        else:
+            options = current_rule [-1]
                 
         if method is None:
-            return None, None, None, None, None, 0
-        
-        if matchtype == -1: # 301 move
-            return app, method, None, None, None, -1
-                
-        return app, [self._binds_request [0], method] + self._binds_request [1:4], kargs, options, match, matchtype
+            return None, None, None, None        
+        if isinstance (method, str):
+            return None, method, None, None
+        return app, [self._binds_request [0], method] + self._binds_request [1:4], kargs, options
     
     # model signal ---------------------------------------------
     def _model_changed (self, sender, **karg):

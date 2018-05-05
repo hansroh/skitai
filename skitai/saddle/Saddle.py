@@ -34,8 +34,7 @@ class Saddle (appbase.AppBase):
         self.jinja_env = None        
         self.chameleon = None
         self.sqlphile = None
-        # for bus, set by wsgi_executor
-        self.cached_rules = []
+        # for bus, set by wsgi_executor        
         self.config = Config (preset = True)
         self._package_dirs = []
         self._aliases = []
@@ -315,49 +314,32 @@ class Saddle (appbase.AppBase):
             return grpc_collector.grpc_collector            
     
     # method search -------------------------------------------
-    def _scan_cache (self, path_info):
-        try:
-            method, options = self.cached_paths [path_info]
-            return method, options, {}
-        except KeyError:
-            with self.lock:
-                for rulepack, _method, _options in self.cached_rules:
-                    _found, _kargs = self.try_rule (path_info, rulepack [0], rulepack [1])
-                    if _found:
-                        return _method, _options, _kargs
-        return None, {}, {}
-    
-    def _add_to_cache (self, *obj):
-        with self.lock:
-            self.cached_rules.append (obj)
-            # sort by length of rule desc
-            self.cached_rules.sort (key = lambda x: len (x [0][-1][-2]), reverse = True)
-                            
     def get_method (self, path_info, request):
         command = request.command.upper ()
         content_type = request.get_header_noparam ('content-type')
         authorization = request.get_header ('authorization')        
-        current_app, method = self, None
+        current_app, method, kargs = self, None, {}
         
         with self.lock:
             if self.use_reloader:
                 self.maybe_reload ()
             else:    
-                method, options, kargs = self._scan_cache (path_info)
+                try:
+                    method, options = self.cached_paths [path_info]                    
+                except KeyError:
+                    pass
                                     
         if not method:
             self.use_reloader and self.lock.acquire ()
             try:    
-                current_app, method, kargs, options, match, matchtype = self.get_package_method (path_info, command, content_type, authorization, self.use_reloader)
+                current_app, method, kargs, options = self.get_package_method (path_info, command, content_type, authorization, self.use_reloader)
             finally:    
                 self.use_reloader and self.lock.release ()
             
-            if matchtype == -1:
-                return current_app, method, None, options, 301
-            if not method:
+            if method is None:
                 return current_app, None, None, options, 404
-            if not self.use_reloader and matchtype == 2:
-                self._add_to_cache (match, method, options)                
+            if options is None:
+                return current_app, self.url_for (method), None, options, 301
             
         resp_code = 0
         if options:
@@ -400,11 +382,7 @@ class Saddle (appbase.AppBase):
         if access_control_allow_origin and access_control_allow_origin != 'same':
             request.response.set_header ("Access-Control-Allow-Origin", ", ".join (access_control_allow_origin))
         
-        return (
-            current_app, 
-            isinstance (method, str) and self.url_for (method) or method, 
-            kargs, options, resp_code
-        )
+        return current_app, method, kargs, options, resp_code
     
     #------------------------------------------------------
     def create_on_demand (self, was, name):
