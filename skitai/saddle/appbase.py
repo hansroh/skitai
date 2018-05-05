@@ -62,7 +62,7 @@ class AppBase:
         self._function_specs = {}
         self._function_names = {}
         self._conditions = {}
-        self._need_authenticate = {True: [], False: []}        
+        self._need_authenticate = None
         self._cond_check_lock = threading.RLock ()
         
         self._binds_server = [None] * 6
@@ -291,11 +291,11 @@ class AppBase:
         return f
     
     def auth_required (self, f):
-        self._need_authenticate [True].append (f.__name__)
+        self._need_authenticate = (f.__name__, True)
         return f
     
     def auth_not_required (self, f):
-        self._need_authenticate [False].append (f.__name__)
+        self._need_authenticate = (f.__name__, False)
         return f
     
     # Session Login ---------------------------------------------------    
@@ -628,8 +628,13 @@ class AppBase:
                 defaults [argnames [i]] = fspec.defaults[i]
             options ["defaults"] = defaults
         
+        if self._need_authenticate:
+            if func.__name__ == self._need_authenticate [0]:
+                options ["authenticate"] = self._need_authenticate [1]
+            self._need_authenticate = None    
+            
         s = rule.find ("/<")
-        if s == -1:    
+        if s == -1:
             self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, func.__code__.co_argcount - 1, rule, options)                        
         else:
             s_rule = rule
@@ -654,6 +659,7 @@ class AppBase:
             self.route_map [re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), func.__code__.co_argcount - 1, s_rule, options)
             self.route_priority.append ((s, re_rule))
             self.route_priority.sort (key = lambda x: x [0], reverse = True)            
+        
         
     def get_routed (self, method_pack):
         if not method_pack: 
@@ -746,13 +752,6 @@ class AppBase:
             self.basepath = route + "/"
         else:
             self.basepath = route
-        
-        # reconfigure authenticate ------------------------------------------
-        for params in self.route_map.values ():
-            for b in (True, False):                
-                if params [1] in self._need_authenticate [b]:
-                    params [-1]["authenticate"] = b
-                    break                
         
     def start (self, wasc, route):
         self.bus.emit ("app:starting", wasc)
