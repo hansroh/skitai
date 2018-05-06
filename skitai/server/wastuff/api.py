@@ -76,7 +76,10 @@ class API:
 		return self.content_type
 		
 	def set_content_type (self):
-		return self.request.get_header ("accept", 'application/json')
+		content_type = self.request.get_header ("accept", 'application/json')
+		if not content_type.startswith ("text/xml"):			
+			content_type = 'application/json'
+		return content_type	
 		
 	def encode (self, charset):
 		return self.to_string ().encode (charset)
