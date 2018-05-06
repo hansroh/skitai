@@ -139,6 +139,12 @@ class Saddle (appbase.AppBase):
     def set_home (self, path, module = None):
         self.home = path
         
+        if self.authenticate is True:
+            try:
+                self.authenticate = self.authorization
+            except AttributeError:     
+                self.authenticate = "digest"
+        
         # configure jinja --------------------------------------------
         loader = self.get_template_loader ()
         if self.jinja_env:
@@ -177,10 +183,10 @@ class Saddle (appbase.AppBase):
             self.find_watchables (module)
         
     # high level API with skitai----------------------------------------------    
-    def get_www_authenticate (self, error = None):
-        if self.authorization == "bearer":
+    def get_www_authenticate (self, authenticate, error = None):
+        if authenticate == "bearer":
             return 'Bearer realm="{}"{}'.format (self.realm, error and ', error="%s"' % error or '')        
-        elif self.authorization == "basic":
+        elif authenticate == "basic":
             return 'Basic realm="%s"' % self.realm
         else:    
             if self.opaque is None:
@@ -200,59 +206,56 @@ class Saddle (appbase.AppBase):
             return None, 0, None # passwrod, encrypted
         return type (info) is str and (info, 0, None) or info
                 
-    def authorize (self, auth, method, uri):
-        if self.authorization is None:
-            return
-        
+    def authorize (self, auth, method, uri, authenticate):
         if auth is None:
-            return self.get_www_authenticate ()
+            return self.get_www_authenticate (authenticate)
         
         # check validate: https://evertpot.com/223/
         amethod, authinfo = auth.split (" ", 1)
-        if amethod.lower () != self.authorization:
-            return self.get_www_authenticate ()
+        if amethod.lower () != authenticate:
+            return self.get_www_authenticate (authenticate)
         
-        if self.authorization == "bearer":
+        if authenticate == "bearer":
             was = the_was._get ()
             error = self._decos ["bearer_handler"] (was, authinfo)
             if error:
-                return self.get_www_authenticate (error)
+                return self.get_www_authenticate (authenticate, error)
             try:
                 return was.request.user
             except AttributeError:
                 return "authorized-anon"
             
-        elif self.authorization == "basic":
+        elif authenticate == "basic":
             basic = base64.decodestring (authinfo.encode ("utf8")).decode ("utf8")
             current_user, current_password = basic.split (":", 1)
             password, encrypted, userinfo = self.get_user (current_user)
             if not password:
-                return self.get_www_authenticate ()
+                return self.get_www_authenticate (authenticate)
             if encrypted:
                 raise AssertionError ("Basic authorization can't handle encrypted password")
             if password ==  current_password:
                 return AuthorizedUser (current_user, self.realm, userinfo)
                 
-        elif self.authorization == "digest":
+        elif authenticate == "digest":
             method = method.upper ()
             infod = {}
             for info in authinfo.split (","):
                 k, v = info.strip ().split ("=", 1)
-                if not v: return self.get_www_authenticate ()
+                if not v: return self.get_www_authenticate (authenticate)
                 if v[0] == '"': v = v [1:-1]
                 infod [k]     = v
             
             current_user = infod.get ("username")
             if not current_user:
-                return self.get_www_authenticate ()
+                return self.get_www_authenticate (authenticate)
             
             password, encrypted, userinfo = self.get_user (current_user)
             if not password:
-                return self.get_www_authenticate ()
+                return self.get_www_authenticate (authenticate)
                 
             try:
                 if uri != infod ["uri"]:                    
-                    return self.get_www_authenticate ()
+                    return self.get_www_authenticate (authenticate)
                 if encrypted:    
                     A1 = password
                 else:
@@ -274,7 +277,7 @@ class Saddle (appbase.AppBase):
             except KeyError:
                 pass
             
-        return self.get_www_authenticate ()
+        return self.get_www_authenticate (authenticate)
     
     def is_allowed_origin (self, request, allowed_origins):
         origin = request.get_header ('Origin')
@@ -291,8 +294,7 @@ class Saddle (appbase.AppBase):
     def is_authorized (self, request, authenticate):
         if not authenticate:
             return True
-        
-        www_authenticate = self.authorize (request.get_header ("Authorization"), request.command, request.uri)
+        www_authenticate = self.authorize (request.get_header ("Authorization"), request.command, request.uri, authenticate)
         if type (www_authenticate) is str:
             request.response.set_header ('WWW-Authenticate', www_authenticate)
             return False
@@ -317,7 +319,6 @@ class Saddle (appbase.AppBase):
     def get_method (self, path_info, request):
         command = request.command.upper ()
         content_type = request.get_header_noparam ('content-type')
-        authorization = request.get_header ('authorization')        
         current_app, method, kargs = self, None, {}
         
         with self.lock:
@@ -331,13 +332,11 @@ class Saddle (appbase.AppBase):
                                     
         if not method:
             with self.lock:                
-                current_app, method, kargs, options = self.find_method (path_info, command, content_type, authorization, self.use_reloader)
-            if method is None:
-                return current_app, None, None, options, 404
-            if options is None:
-                return current_app, self.url_for (method), None, options, 301
-            
-        resp_code = 0
+                current_app, method, kargs, options, status_code = self.find_method (path_info)
+            if status_code:
+                return current_app, method, kargs, options, status_code
+
+        status_code = 0
         if options:
             allowed_types = options.get ("content_types", [])
             if allowed_types and content_type not in allowed_types:
@@ -361,15 +360,15 @@ class Saddle (appbase.AppBase):
                 requeste_headers = request.get_header ("Access-Control-Request-Headers", "")        
                 if requeste_headers:
                     response.set_header ("Access-Control-Allow-Headers", requeste_headers)                    
-                resp_code = 200
+                status_code = 200
             
             else:
                 if not self.is_allowed_origin (request, options.get ("access_control_allow_origin", self.access_control_allow_origin)):
-                    resp_code =  403
+                    status_code =  403
                 elif not self.is_authorized (request, options.get ("authenticate", self.authenticate)):
-                    resp_code =  401
+                    status_code =  401
         
-        if resp_code in (401, 200):
+        if status_code in (401, 200):
             authenticate = options.get ("authenticate", self.authenticate)
             if authenticate:
                 request.response.set_header ("Access-Control-Allow-Credentials", "true")
@@ -378,7 +377,7 @@ class Saddle (appbase.AppBase):
         if access_control_allow_origin and access_control_allow_origin != 'same':
             request.response.set_header ("Access-Control-Allow-Origin", ", ".join (access_control_allow_origin))
         
-        return current_app, method, kargs, options, resp_code
+        return current_app, method, kargs, options, status_code
     
     #------------------------------------------------------
     def create_on_demand (self, was, name):

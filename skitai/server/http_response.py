@@ -240,9 +240,9 @@ class http_response:
 			error ["traceback"] = exc_info and catch (1, exc_info) or ""
 			
 			content = None	
-			if self.current_app and hasattr (self.current_app, 'get_error_page'):
+			if self.current_app and hasattr (self.current_app, 'render_error'):
 				try:
-					content = self.current_app.get_error_page (error)
+					content = self.current_app.render_error (error)
 				except:							
 					self.request.logger.trace ()				
 					if self.current_app.debug:						

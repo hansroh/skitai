@@ -1,6 +1,7 @@
 import json
 import sys
 from datetime import date
+from xmlrpc import client
 
 def catch (format = 0, exc_info = None):
 	if exc_info is None:
@@ -57,6 +58,7 @@ class API:
 	def __init__ (self, request, data = None):
 		self.request = request # for response typing 
 		self.data = data or {}
+		self.content_type = self.set_content_type ()
 		
 	def __setitem__ (self, k, v):
 		self.set (k, v)
@@ -71,17 +73,22 @@ class API:
 		return self.data.get (k, )
 	
 	def get_content_type (self):
-		return 'application/json'
-	
+		return self.content_type
+		
+	def set_content_type (self):
+		return self.request.get_header ("accept", 'application/json')
+		
 	def encode (self, charset):
 		return self.to_string ().encode (charset)
 	
-	def __str__ (self):	
+	def __str__ (self):
 		return self.to_string ()
 		
-	def to_string (self):		
+	def to_string (self):
+		if self.content_type.startswith ("text/xml"):
+			return client.dumps ((self.data,))
 		return json.dumps (self.data, cls = DateEncoder)
-				
+			
 	def traceback (self, message = 'exception occured', code = 20000, debug = 'see traceback', more_info = None):
 		self.error (message, code, debug, more_info, sys.exc_info ())
 		
@@ -95,3 +102,4 @@ class API:
 			self.data ['more_info'] = more_info
 		if exc_info:
 			self.data ["traceback"] = catch (2, exc_info)
+

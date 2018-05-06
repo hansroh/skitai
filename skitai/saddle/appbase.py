@@ -13,6 +13,7 @@ from aquests.lib import evbus
 from event_bus.exceptions import EventDoesntExist
 import time
 import skitai    
+from django.contrib.auth import authenticate
             
 RX_RULE = re.compile ("(/<(.+?)>)")
     
@@ -27,8 +28,7 @@ class AppBase:
     #WWW-Authenticate    
     access_control_allow_origin = None
     access_control_max_age = 0    
-    authenticate = False
-    authorization = None    
+    authenticate = None        
     realm = "App"
     users = {}    
     opaque = None
@@ -292,19 +292,24 @@ class AppBase:
     # Bearer Auth ------------------------------------------------------    
     def bearer_handler (self, f): 
         self._decos ["bearer_handler"] = f
-        return f
+        return f    
     
-    def auth_handler (self, f):
+    def authorization_handler (self, f):
         self._decos ["auth_handler"] = f
         return f
     
-    def auth_required (self, f):
-        self._need_authenticate = (f.__name__, True)
-        return f
-    
-    def auth_not_required (self, f):
-        self._need_authenticate = (f.__name__, False)
-        return f
+    AUTH_TYPES = ("bearer", "basic", "digest", None)
+    def authorization_required (self, authenticate):
+        authenticate = authenticate.lower ()
+        assert authenticate in self.AUTH_TYPES
+        def decorator (f):            
+            self.save_function_spec_for_routing (f)    
+            self._need_authenticate = (f.__name__, authenticate)
+            @wraps(f)
+            def wrapper (*args, **kwargs):
+                return f (*args, **kwargs)
+            return wrapper
+        return decorator
     
     # Session Login ---------------------------------------------------    
     def login_handler (self, f):
@@ -484,7 +489,7 @@ class AppBase:
         return decorator
         
     # Error handling ------------------------------------------------------        
-    def get_error_page (self, error):
+    def render_error (self, error):
         handler = self.handlers.get (error ['code'], self.handlers.get (0))
         if not handler:
             return
@@ -496,7 +501,7 @@ class AppBase:
         return content
         
     def add_error_handler (self, errcode, f, **k):
-        self.handlers [errcode] = (f, k)        
+        self.handlers [errcode] = (f, k)
         
     def error_handler (self, errcode, **k):
         def decorator(f):
@@ -628,10 +633,20 @@ class AppBase:
                 defaults [argnames [i]] = fspec.defaults[i]
             options ["defaults"] = defaults
         
+        if hasattr (module, "___authenticate___"):
+            options ["authenticate"] = module.___authenticate___
+                                
         if self._need_authenticate:
             if func.__name__ == self._need_authenticate [0]:
                 options ["authenticate"] = self._need_authenticate [1]
-            self._need_authenticate = None    
+            self._need_authenticate = None
+            
+        if options.get ("authenticate") is True:
+            options ["authenticate"] = self.authenticate or "digest"
+        elif options.get ("authenticate") is False:
+            options ["authenticate"] = None    
+         
+        assert options.get ("authenticate") in self.AUTH_TYPES
          
         s = rule.find ("/<")
         if s == -1:
@@ -672,10 +687,10 @@ class AppBase:
             self._route_priority.append ((prefix, re_rule))
             self._route_priority.sort (key = lambda x: len (x [0]), reverse = True)
             
-    def get_routed (self, method_pack):
-        if not method_pack: 
+    def get_routed (self, method_chain):
+        if not method_chain: 
             return
-        temp = method_pack
+        temp = method_chain
         while 1:
             routed = temp [1]
             if type (routed) is not list:
@@ -716,14 +731,13 @@ class AppBase:
                 kargs [an] = unquote_plus (arglist [i]).replace ("_", " ")
         return f, kargs
 
-    def find_method (self, path_info, command, content_type, authorization, use_reloader = False):        
+    def find_method (self, path_info):        
         if not (path_info.startswith (self.mount_p) or (path_info + "/").startswith (self.mount_p)):
-            return None, None, None, None, None, 0
+            return self, None, None, None, 404
         
         path_info = path_info [self.path_suffix_len:]
-        app, method, kargs = self, None, {}                
+        method, kargs = None, {}                
         
-        # 1st, try find in self
         try:
             method, current_rule = self.find_route (path_info)            
         except KeyError:
@@ -737,12 +751,18 @@ class AppBase:
                     break
         else:
             options = current_rule [-1]
-                
-        if method is None:
-            return None, None, None, None        
+            
+        if method is None:            
+            return self, method, None, None, 404
         if isinstance (method, str):
-            return None, method, None, None
-        return app, [self._binds_request [0], method] + self._binds_request [1:4], kargs, options
+            return self, self.url_for (method), None, None, 301
+        return (
+            self, 
+            [self._binds_request [0], method] + self._binds_request [1:4], 
+            kargs, 
+            options, 
+            None
+        ) 
     
     # model signal ---------------------------------------------
     def _model_changed (self, sender, **karg):

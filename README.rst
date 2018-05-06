@@ -3106,8 +3106,14 @@ If you want to decorate only debug environment,
 
 .. code:: python
   
-  app.decorate_with (status, debug_only = True)
+  app.decorate_with (auth, debug_only = True)
+
+If you want to authentify to all decoratives, 
+
+.. code:: python
   
+  app.decorate_with (auth, authenticate = "bearer")
+    
 If you build useful decoratives, please contribute them to `skitai.saddle.decorative`_.
 
 .. _`skitai.saddle.decorative`: https://gitlab.com/hansroh/skitai/tree/master/skitai/saddle/contrib/decorative
@@ -4451,22 +4457,22 @@ Authentication On Specific Methods
 Otherwise you can make some routes requirigng authorization like this:
 
 .. code:: python
-
-  # False is default, you can omit this line
-  app.authenticate = False
- 
-  @app.route ("/hello/<name>", authenticate = True)
+  
+  @app.route ("/hello/<name>", authenticate = "digest")
   def hello (was, name = "Hans Roh"):
     return "Hello, %s" % name
 
-Or you can use @app.auth_required decorator.
+Or you can use @app.authorization_required decorator.
 		
 .. code:: python
   
   @app.route ("/hello/<name>")
-  @app.auth_required
+  @app.authorization_required ("digest")
   def hello (was, name = "Hans Roh"):
     return "Hello, %s" % name
+
+Available authorization methods are basic, digest and bearer. 
+ 
 
 Password Provider
 ````````````````````
@@ -4484,7 +4490,7 @@ Second, use decorator
 
 .. code:: python
   
-  @app.auth_handler
+  @app.authorization_handler
   def auth_handler (was, username):
     ...
     return ("1234", False)
@@ -4524,16 +4530,15 @@ For your convinient, you can set authorization requirements to app level.
 
   app = Saddle (__name__)
   
-  app.authorization = "digest"
+  app.authenticate = "digest"
   app.realm = "Partner App Area of mysite.com"
   app.users = {"app": ("iamyourpartnerapp", 0, {'role': 'root'})}
-  app.authenticate = True
   
   @app.route ("/hello/<name>")
   def hello (was, name = "Hans Roh"):
     return "Hello, %s" % name
 
-If app.authenticate is True, all routes of app require authorization (default is False).
+If app.authenticate is set, all routes of app require authorization (default is False).
 
 
 (JWT) Bearer Authorization
@@ -4570,7 +4575,7 @@ And use bearer_handler decorators.
       return "token expired"      
     
   @app.route ("/api/v1/predict")
-  @app.auth_required
+  @app.authorization_required ("bearer")
   def predict (was):
   # now you can use was.request.user
     was.request.user
@@ -4888,7 +4893,7 @@ Change Log
 - 0.27 (Apr 2018)
   
   - add @app.mounted_or_reloaded decorator
-  - fix auth_required decorator
+  - removed @app.auth_required, added @app.authorization_required (auth_type)
   - rename @app.preworks -> @app.run_before and @app.postworks ->  @app.run_after
   - add @app.bearer_handler
   - add was.mkjwt and was.dejwt
