@@ -340,8 +340,13 @@ class WAS:
 	def mkjwt (self, claim, alg = "HS256"):
 		return jwt.gen_token (self.app.salt, claim, alg)
 	
-	def dejwt (self, token):
-		claims = jwt.get_claim (self.app.salt, token)
+	def dejwt (self, token):		
+		try: 
+			claims = jwt.get_claim (self.app.salt, token)
+		except (TypeError, ValueError): 
+			return	
+		if claims is None:
+			return
 		if "username" in claims:
 			self.request.user = JWTUser (claims)
 		return claims

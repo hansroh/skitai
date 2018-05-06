@@ -1142,18 +1142,25 @@ Then in your tests,
     print (resp.text)
 
 
-Skitai with Nginx / Squid
+Skitai with Nginx
 ---------------------------
 
-Here's some helpful sample works for virtual hosting using Nginx / Squid.
-
-For Nginx:
+Here's some helpful sample works with Nginx.
 
 .. code:: python
     
-  proxy_http_version 1.1;
-  proxy_set_header Connection "";
+  # use http 1.1 for backends
+  proxy_http_version 1.1;  
+  proxy_set_header Host $host;
+  proxy_set_header X-NginX-Proxy true;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
   
+  # enabling websocket
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection "Upgrade";
+  proxy_read_timeout 86400;
+  
+  # upstreams with connection keep alive    
   upstream backend {
     server 127.0.0.1:5000;
     keepalive 100;
@@ -1161,31 +1168,21 @@ For Nginx:
   
   server {
     listen 80;
-    server_name www.oh-my-jeans.com;
-    
+    server_name www.oh-my-jeans.com;    
+	  keepalive_timeout 30s;
+	
     location / {    
       proxy_pass http://backend;
-      proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       add_header X-Backend "skitai app engine";
+      client_max_body_size 2g;
     }
     
     location /assets/ {
-      alias /home/ubuntu/www/statics/assets/;    
+      alias /home/ubuntu/www/statics/assets/;
+      expires 86400;    
     }
   }
 
-Example Squid config file (squid.conf) is like this:
-
-.. code:: python
-    
-    http_port 80 accel defaultsite=www.oh-my-jeans.com
-    
-    cache_peer 127.0.0.1 parent 5000 0 no-query originserver name=jeans    
-    acl jeans-domain dstdomain www.oh-my-jeans.com
-    http_access allow jeans-domain
-    cache_peer_access jeans allow jeans-domain
-    cache_peer_access jeans deny all 
 
 Self-Descriptive App
 ---------------------
