@@ -139,7 +139,8 @@ class Saddle (appbase.AppBase):
     def set_home (self, path, module = None):
         self.home = path
         
-        if self.authenticate is True:
+        # for backward competable
+        if self.authenticate is True:            
             try:
                 self.authenticate = self.authorization
             except AttributeError:     

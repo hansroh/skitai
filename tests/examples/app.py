@@ -15,11 +15,9 @@ app.debug = True
 app.use_reloader = True
 app.jinja_overlay ()
 
-app.authorization = "digest"
 app.realm = "Secured Area"
 app.users = {"admin": ("1111", 0, {'role': 'root'})}
-app.authenticate = False
-
+app.authenticate = None
 
 @app.route ("/")
 def index (was):	

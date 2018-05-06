@@ -635,17 +635,15 @@ class AppBase:
         
         if hasattr (module, "___authenticate___"):
             options ["authenticate"] = module.___authenticate___
-                                
         if self._need_authenticate:
             if func.__name__ == self._need_authenticate [0]:
                 options ["authenticate"] = self._need_authenticate [1]
-            self._need_authenticate = None
-            
-        if options.get ("authenticate") is True:
+            self._need_authenticate = None        
+        # for backward competable    
+        if options.get ("authenticate") in (True, 1):
             options ["authenticate"] = self.authenticate or "digest"
-        elif options.get ("authenticate") is False:
-            options ["authenticate"] = None    
-         
+        elif options.get ("authenticate") in (False, 0):
+            options ["authenticate"] = None
         assert options.get ("authenticate") in self.AUTH_TYPES
          
         s = rule.find ("/<")

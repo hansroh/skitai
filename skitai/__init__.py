@@ -211,7 +211,7 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
 			mod = loader.load_module()
 			hasattr (mod, "bootstrap") and mod.bootstrap (pref)
 	
-	if isinstance (target, str):
+	if isinstance (target, str) and target [0] != "@":
 		target = joinpath (target)
 
 	maybe_django = __is_django (target, appname)		
