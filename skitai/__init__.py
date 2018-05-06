@@ -438,7 +438,7 @@ def run (**conf):
 								
 			cmd = "%s %s %s" % (
 				sys.executable, 
-				os.path.join ("/usr/local/bin", "skitai-{}".format (name)), 
+				"{}skitai-{}".format (os.name == "posix" and "/usr/local/bin" or "", name), 
 				" ".join (argsall)
 			)
 			

@@ -29,7 +29,10 @@ from .wastuff.triple_logger import Logger
 from .wastuff import django_adaptor
 from .wastuff.api import DateEncoder
 
-TEMP_DIR = "/var/tmp/skitai-gentemp"		
+if os.name == "nt":
+	TEMP_DIR =  os.path.join (tempfile.gettempdir(), "skitai-gentemp")
+else:
+	TEMP_DIR = "/var/tmp/skitai-gentemp"		
 pathtool.mkdir (TEMP_DIR)
 
 class JWTUser:
