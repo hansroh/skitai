@@ -408,8 +408,8 @@ class AppBase:
         with self._cond_check_lock:
             oldmtime, last_check = self._conditions [key]
         
-        if not interval or now - last_check > interval:
-            mtime = mtime_func (key)                    
+        if not interval or not oldmtime or now - last_check > interval:
+            mtime = mtime_func (key)
             if mtime > oldmtime:
                 response = func (was, key)
                 with self._cond_check_lock:
@@ -437,7 +437,7 @@ class AppBase:
     def if_file_modified (self, path, func, interval = 1):
         def decorator(f):
             self.save_function_spec_for_routing (f)
-            self._conditions [path] = [0, 0]
+            self._conditions [path] = [0, 0]            
             @wraps(f)
             def wrapper (was, *args, **kwargs):
                 def _getmtime (path): 

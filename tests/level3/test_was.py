@@ -13,12 +13,17 @@ from aquests.lib import pathtool
 from sqlphile.sqlmap import SQLMap
 
 def test_was (wasc, app, client): 
-    @app.route ("/do5/<u>")
+    @app.route ("/do6/<u>")
+    def index6 (was, u = "hansroh"):
+        return z (was)
+    
+    @app.route ("/index5/<u>")
     def index5 (was, u, a, b = 3):
         return z (was)
     
-    @app.route ("/do6/<u>")
-    def index6 (was, u = "hansroh"):
+    @app.route ("/index7/<u>")
+    @app.authorization_required ("digest")
+    def index7 (was, u, a, b = 3):
         return z (was)
         
     # WSGI
@@ -29,23 +34,24 @@ def test_was (wasc, app, client):
     was = wasc ()
     was.app = app
     
-    assert was.urlfor ("index5", "hans", "roh") == "/do5/hans?a=roh"
-    assert was.urlfor ("index5", "hans", "roh") == "/do5/hans?a=roh"
-    assert was.baseurl ("index5") == "/do5/"
-    
-    assert was.urlfor ("index5", "hans", "roh", b = 3) in ("/do5/hans?b=3&a=roh", "/do5/hans?a=roh&b=3")
-    assert was.urlfor ("index5", "hans", a = "roh", b = 3) in ("/do5/hans?b=3&a=roh", "/do5/hans?a=roh&b=3")
-    with pytest.raises(AssertionError):
-        assert was.ab ("index5", b = 3)
-    
+    for each in ("index5", "index7"):
+        assert was.urlfor (each, "hans", "roh") == "/{}/hans?a=roh".format (each)
+        assert was.urlfor (each, "hans", "roh") == "/{}/hans?a=roh".format (each)
+        assert was.baseurl (each) == "/{}/".format (each)
+        
+        assert was.urlfor (each, "hans", "roh", b = 3) in ("/{}/hans?b=3&a=roh".format (each), "/{}/hans?a=roh&b=3".format (each))
+        assert was.urlfor (each, "hans", a = "roh", b = 3) in ("/{}/hans?b=3&a=roh".format (each), "/{}/hans?a=roh&b=3".format (each))
+        with pytest.raises(AssertionError):
+            assert was.ab (each, b = 3)
+        
+        was.request = client.get ("http://www.skitai.com/{}/hans?a=roh".format (each))
+        was.request.args = {"u": "hans", "a": "roh"} 
+        assert was.partial (each, a = "vans") == "/{}/hans?a=vans".format (each)
+        assert was.partial (each, b = 3) in ("/{}/hans?b=3&a=roh".format (each), "/{}/hans?a=roh&b=3".format (each))
+        
     assert was.urlfor ("index6") == "/do6/hansroh"
     assert was.urlfor ("index6", "jenny") == "/do6/jenny"
     assert was.urlfor ("index6", u = "jenny") == "/do6/jenny"
-    
-    was.request = client.get ("http://www.skitai.com/do5/hans?a=roh")
-    was.request.args = {"u": "hans", "a": "roh"} 
-    assert was.partial ("index5", a = "vans") == "/do5/hans?a=vans"
-    assert was.partial ("index5", b = 3) in ("/do5/hans?b=3&a=roh", "/do5/hans?a=roh&b=3")
     
     assert was.gentemp ().startswith ("/var/tmp")
     
