@@ -256,7 +256,7 @@ class AppBase:
         'reloaded': 1,
         'before_umount': 4,
         'umounted': 2,
-        'mounted_or_reloaded': 6        
+        'mounted_or_reloaded': 6
     }
     def life_cycle (self, phase, obj):
         index = self.PHASES.get (phase)
@@ -301,15 +301,12 @@ class AppBase:
     
     AUTH_TYPES = ("bearer", "basic", "digest", None)
     def authorization_required (self, authenticate):
-        authenticate = authenticate.lower ()
-        assert authenticate in self.AUTH_TYPES
-        def decorator (f):            
-            self.save_function_spec_for_routing (f)    
-            self._need_authenticate = (f.__name__, authenticate)
-            @wraps(f)
-            def wrapper (*args, **kwargs):
-                return f (*args, **kwargs)
-            return wrapper
+        def decorator (f):
+            self.save_function_spec_for_routing (f)
+            authenticate_ = authenticate.lower ()
+            assert authenticate_ in self.AUTH_TYPES            
+            self._need_authenticate = (f.__name__, authenticate_)
+            return f
         return decorator
     
     # Session Login ---------------------------------------------------    
@@ -555,7 +552,7 @@ class AppBase:
                 if k in fuvars:
                     params [k] = v                        
         
-        assert len (args) <= len (fuvars), "Too many params, this has only %d params(s)" % len (fuvars)                    
+        assert len (args) <= len (fuvars), "Too many params, this has only %d params(s) for %s" % (len (fuvars), name)                    
         for i in range (len (args)):
             params [fuvars [i]] = args [i]
         
@@ -622,7 +619,7 @@ class AppBase:
                     break    
             rule = mount_prefix + rule
         
-        fspec = self._function_specs.get (func.__name__) or inspect.getargspec(func)        
+        fspec = self._function_specs.get (func.__name__) or inspect.getargspec(func)                
         options ["args"] = fspec.args [1:]
         options ["varargs"] = fspec.varargs
         options ["keywords"] = fspec.keywords
