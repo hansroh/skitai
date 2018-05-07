@@ -29,7 +29,7 @@ class Promise (simple_producer):
 	
 	def __getattr__ (self, name):
 		if name.split (".")[0] not in self.__was.VALID_COMMANDS:
-			return getattr (self.was, name)			
+			return getattr (self.was, name)
 		self._numreq += 1
 		return _Method (self._call, name)
 		

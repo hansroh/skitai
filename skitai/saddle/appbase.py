@@ -13,7 +13,6 @@ from aquests.lib import evbus
 from event_bus.exceptions import EventDoesntExist
 import time
 import skitai    
-from django.contrib.auth import authenticate
             
 RX_RULE = re.compile ("(/<(.+?)>)")
     
@@ -263,7 +262,9 @@ class AppBase:
         index = self.PHASES.get (phase)
         func = self._binds_server [index]
         if not func:
-            return    
+            return        
+        
+        obj.app = self
         try:
             func (obj)
         except:
