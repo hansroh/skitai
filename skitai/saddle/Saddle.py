@@ -182,7 +182,11 @@ class Saddle (appbase.AppBase):
     
         if module:
             self.find_watchables (module)
-        
+    
+    def setup_sqlphile (self, engine, template_dir = "sqlmaps"):
+        self.config.sql_engine = engine
+        self.config.sqlmap_dir = template_dir
+            
     # high level API with skitai----------------------------------------------    
     def get_www_authenticate (self, authenticate, error = None):
         if authenticate == "bearer":

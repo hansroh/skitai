@@ -3750,7 +3750,9 @@ If you want to use SQL templates, create sub directory 'sqlmaps' and place sqlma
 
 .. code:: python
   
-  app.config.sql_engine = skitai.DB_PGSQL
+  # default engine is skitai.DB_PGSQL and also available skitai.DB_SQLITE3
+  # no need call for skitai.DB_PGSQL
+  app.setup_sqlphile (skitai.DB_SQLITE3)
   
   @app.route ("/")
   def index (was):
@@ -4892,6 +4894,7 @@ Change Log
 
 - 0.27 (Apr 2018)
   
+  - add app.setup_sqlphile ()
   - add @app.mounted_or_reloaded decorator
   - removed @app.auth_required, added @app.authorization_required (auth_type)
   - rename @app.preworks -> @app.run_before and @app.postworks ->  @app.run_after

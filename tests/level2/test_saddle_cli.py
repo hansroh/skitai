@@ -3,7 +3,6 @@ import confutil
 import skitai
 import asyncore
 
-
 def test_cli (app):
     @app.route ("/")
     def index (was):
@@ -12,13 +11,6 @@ def test_cli (app):
     @app.route ("/echo")
     def echo (was, m):
         return m
-    
-    @app.route ("/req")
-    def req (was):
-        req = was.get ("@pypi/")        
-        res = req.getwait ()
-        print ('>>>>>>>>>>>>>>>>>>>>>>>>>>>', res.status_code)
-        return res.text 
     
     @app.route ("/json")
     def json (was, m):
@@ -37,7 +29,4 @@ def test_cli (app):
         
         resp = cli.postjson ("/json", {"m": "POST"})
         assert resp.text == '{"data": "POST"}'
-        
-        
-        
         

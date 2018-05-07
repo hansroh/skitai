@@ -1,5 +1,6 @@
 import pytest, os, time
 import confutil
+import skitai
 from skitai.saddle import Saddle
 from skitai import saddle
 from aquests.lib import logger
@@ -31,7 +32,7 @@ def log ():
 def wasc ():
 	offline.activate ()
 	return offline.wasc
-	
+
 @pytest.fixture
 def conn ():
 	sock = cha.Conn ()	

@@ -9,6 +9,7 @@ import base64
 import pickle
 from multiprocessing import RLock
 import random
+import threading
 
 from aquests.lib import pathtool, logger, jwt
 from aquests.lib.producers import simple_producer, file_producer
@@ -86,7 +87,7 @@ class WAS:
 		ssl = 0
 		if ssl in (1, True, "1", "yes") or clustertype in ("https", "wss", "grpcs", "rpcs"):
 			ssl = 1
-		if type (clusterlist)	is str:
+		if type (clusterlist) is str:
 			clusterlist = [clusterlist]	
 
 		if clustertype and "*" + clustertype in (DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB):
@@ -103,13 +104,13 @@ class WAS:
 	
 	@property
 	def uniqid (self):
-		return "{}.{}".format (int (time.time () * 1000), self.gentemp () [-4:])
+		return "{}{}".format (self.timestamp, self.gentemp () [-7:])
 		
 	def __dir__ (self):
 		return self.objects.keys ()
 	
 	def __str__ (self):
-		return "was: Skitai WSGI Appliation Service"
+		return "skitai was for {}".format (threading.currentThread ())
 					
 	def __detect_cluster (self, clustername):
 		try: 
@@ -150,7 +151,7 @@ class WAS:
 	def __getattr__ (self, name):
 		# method magic		
 		if name in self.VALID_COMMANDS:
-			return _Method(self._call, name)
+			return _Method (self._call, name)
 		
 		if self.in__dict__ ("app"): # saddle app			
 			attr = self.app.create_on_demand (self, name)
@@ -197,7 +198,7 @@ class WAS:
 	def txnid (self):
 		return "%s/%s" % (self.request.gtxid, self.request.ltxid)
 	
-	def rebuild_header (self, header):
+	def rebuild_header (self, header = None):
 		if not header:
 			nheader = {}
 		elif type (header) is list:
@@ -259,6 +260,10 @@ class WAS:
 			id = self.txnid ()
 		self.logger.trace (at, id)
 	
+	@property
+	def tempfile (self):
+		return self.gentemp () 
+	
 	def gentemp (self):
 		return os.path.join (TEMP_DIR, next (tempfile._get_candidate_names()))
 	
@@ -273,12 +278,12 @@ class WAS:
 		lifetime.shutdown (0, timeout)
 	
 	# URL builders -------------------------------------------------
-	def url_for (self, thing, *args, **karg):
+	def urlfor (self, thing, *args, **karg):
 		# override with resource default args
 		if thing.startswith ("/") or thing.find (":") == -1:
 			return self.app.build_url (thing, *args, **karg)
 		return self.apps.build_url (thing, *args, **karg)	
-	ab = url_for
+	ab = urlfor
 	
 	def partial (self, thing, **karg):
 		# override with current args
@@ -296,11 +301,11 @@ class WAS:
 		return self.app.render (self, template_file, _do_not_use_this_variable_name_, **karg)
 	
 	REDIRECT_TEMPLATE =  (
-		"<head><title>%s</title></head>"
+		"<html><head><title>%s</title></head>"
 		"<body><h1>%s</h1>"
 		"This document may be found " 
-		'<a HREF="%s">here</a></body>'
-	)		
+		'<a HREF="%s">here</a></body></html>'
+	)
 	def redirect (self, url, status = "302 Object Moved", body = None, headers = None):
 		redirect_headers = [
 			("Location", url), 

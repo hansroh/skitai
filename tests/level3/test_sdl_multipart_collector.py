@@ -7,8 +7,7 @@ header = (
     'Content-Length: {}'
 )
 
-def test_name_secure ():    
-    
+def test_name_securing ():
     part = mc.Part (header.format ("/../home/.very|:;&good", 100), 101)    
     fw = mc.FileWrapper (part)
     assert fw.name == "very_good"

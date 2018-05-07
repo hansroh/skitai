@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.27b27"
+__version__ = "0.27b28"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -127,7 +127,7 @@ def getswd ():
 	return os.path.dirname (os.path.join (os.getcwd (), sys.argv [0]))
 
 def is_devel ():
-	return not os.environ.get ('SKITAI_PRODUCTION')
+	return os.environ.get ('SKITAI_ENV') != "PRODUCTION"
 
 def joinpath (*pathes):
 	return os.path.normpath (os.path.join (getswd (), *pathes))
@@ -198,6 +198,7 @@ def __is_django (wsgi_path, appname):
 	settings = os.path.join (os.path.dirname (wsgi_path), 'settings.py')
 	if os.path.exists (settings):
 		root = os.path.dirname (os.path.dirname (wsgi_path))
+		sys.path.insert (0, root)
 		alias_django ("@" + os.path.basename (root), settings)
 		return root
 	
@@ -210,14 +211,8 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
 			loader = machinery.SourceFileLoader('temp', modinit)
 			mod = loader.load_module()
 			hasattr (mod, "bootstrap") and mod.bootstrap (pref)
-	
-	if isinstance (target, str) and target [0] != "@":
-		target = joinpath (target)
 
 	maybe_django = __is_django (target, appname)		
-	if maybe_django:
-		path = maybe_django
-		
 	if path:
 		if isinstance (path, str):
 			path = [path]
@@ -233,24 +228,23 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
 		target = os.path.join (os.path.dirname (module.__file__), "export", "skitai", appfile)
 			
 	if type (target) is not str:
-		# app instance
-		target = os.path.normpath (os.path.join (os.getcwd (), sys.argv [0]))
-		
+		# app instance, find app location
+		target = os.path.normpath (os.path.join (os.getcwd (), sys.argv [0]))		
 	else:
-		if target [0] != "@":
-			target = os.path.join (getswd (), target)
-	
+		if target [0] == "@":
+			appname = None
+		else:
+			target = joinpath (target)
+			
 	if host not in dconf ['mount']:
 		dconf ['mount'][host] = []
-	if os.path.isdir (target):
-		dconf ['mount'][host].append ((point, target, None))		
-	else:	
+
+	if os.path.isdir (target) or not appname:
+		dconf ['mount'][host].append ((point, target, None))
+	else:		
 		init_app (target, pref)
-		if appname:
-			app = (target, appname)
-		else:
-			app = target
-		dconf ['mount'][host].append ((point, app, pref))
+		dconf ['mount'][host].append ((point,  (target, appname), pref))
+		
 mount_django = mount
 	
 def cron (sched, cmd):

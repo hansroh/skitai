@@ -72,7 +72,7 @@ class Cookie (BasicMethods):
 		if securekey:
 			self.securekey = securekey.encode ("utf8")
 		else:
-			self.securekey = securekey				
+			self.securekey = securekey							
 		self.default_path = default_path
 		self.session_timeout = session_timeout
 		self.dirty = False		
