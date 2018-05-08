@@ -13,10 +13,11 @@ from aquests.lib import evbus
 from event_bus.exceptions import EventDoesntExist
 import time
 import skitai    
+from types import FunctionType
             
 RX_RULE = re.compile ("(/<(.+?)>)")
     
-class AppBase:	
+class AppBase:    
     use_reloader = False
     debug = False
     contrib_devel = False # make reloadable
@@ -53,6 +54,7 @@ class AppBase:
         self.lock = threading.RLock ()
         self.init_time = time.time ()        
         self.handlers = {}
+        self.decopt = {}
         
         self._started = False
         self._reloading = False        
@@ -156,12 +158,11 @@ class AppBase:
         
     def watch (self, module):
         if hasattr (module, "decorate"):
-            params = self.decorating_params.get (module)
+            params = self.decorating_params.get (module, {})
             if params:
                 if params.get ("debug_only") and not self.debug:
-                    return                
-                for k, v in params.items ():
-                    setattr (module, "___{}___".format (k), v)
+                    return                   
+            self.decopt = params             
             module.decorate (self)
             
         try:
@@ -186,23 +187,28 @@ class AppBase:
                 
             if self.reloadables [module] != fi:
                 self.log ("reloading decorative, %s" % module.__file__, "info")                
-                newmodule = reload (module)                
-                del self.reloadables [module]
-                self.watch (newmodule)                
+                with self.lock:
+                    newmodule = reload (module)
+                    del self.reloadables [module]
+                    self.watch (newmodule)                
         
         self.last_reloaded = time.time ()
         self._reloading = False
+    
+    def get_func_id (self,  func):
+        return ("ns" in self.decopt and self.decopt ["ns"] + "." or "") + func.__name__     
         
     # function param saver ------------------------------------------
     def save_function_spec_for_routing (self, func):
         # save original function spec for preventing distortion by decorating wrapper
         # all wrapper has *args and **karg but we want to keep original function spec for auto parametering call
-        if func.__name__ not in self._function_specs:
+        func_id = self.get_func_id (func)
+        if func_id not in self._function_specs:
             # save origin spec
-            self._function_specs [func.__name__] = inspect.getargspec(func)
+            self._function_specs [func_id] = inspect.getargspec(func)
     
     def get_function_spec_for_routing (self, func):
-            return self._function_specs.get (func.__name__)
+            return self._function_specs.get (self.get_func_id (func))
     
     # logger ----------------------------------------------------------
     def set_logger (self, logger):
@@ -518,7 +524,9 @@ class AppBase:
     errorhandler = error_handler
     
     # URL Building ------------------------------------------------
-    def url_for (self, thing, *args, **kargs):
+    def urlfor (self, thing, *args, **kargs):
+        if isinstance (thing, FunctionType):
+            thing = self._function_names [id (thing)]
         if thing.startswith ("/"):
             return self.basepath [:-1] + self.mount_p [:-1] + thing
         
@@ -540,7 +548,7 @@ class AppBase:
                 s = url.find ("<")
                 if s != -1:
                     url = url [:s]
-            return self.url_for (url)
+            return self.urlfor (url)
         
         params = {}
         try:
@@ -552,10 +560,13 @@ class AppBase:
                 if k in fuvars:
                     params [k] = v                        
         
-        assert len (args) <= len (fuvars), "Too many params, this has only %d params(s) for %s" % (len (fuvars), name)                    
         for i in range (len (args)):
-            params [fuvars [i]] = args [i]
-        
+            try:
+                name = fuvars [i]
+            except IndexError:
+                name = favars [i][0]
+            params [name] = args [i]
+         
         for k, v in kargs.items ():
             params [k] = v
         
@@ -582,8 +593,8 @@ class AppBase:
         if params:
             url = url + "?" + "&".join (["%s=%s" % (k, quote_plus (str(v))) for k, v in params.items ()])
             
-        return self.url_for (url)
-    build_url = url_for
+        return self.urlfor (url)
+    build_url = urlfor
         
     # Routing ------------------------------------------------------                            
     def route (self, rule, **k):
@@ -592,6 +603,7 @@ class AppBase:
             @wraps(f)
             def wrapper (*args, **kwargs):
                 return f (*args, **kwargs)
+            self._function_names [id (wrapper)] = self.get_func_id (f)
             return wrapper
         return decorator
             
@@ -605,13 +617,23 @@ class AppBase:
         if not rule or rule [0] != "/":
             raise AssertionError ("Url rule should be starts with '/'")
         
-        module = sys.modules [func.__module__]
-        func_id = (hasattr (module, "___ns___") and (module.___ns___ + ".") or "") + func.__name__
+        func_id = self.get_func_id (func)
+        
         if not self._started and not self._reloading and func_id in self._function_names:
             raise NameError ("function <{}> is already defined. use another name or decorate_with(ns = 'myns')".format (func_id))
         
-        if hasattr (module, "___mount___"):
-            mount_prefix = module.___mount___
+        if func_id in self._function_names:
+            # reloading, remove old func
+            deletable = None
+            for k, v in self._function_names.items ():
+                if v == func_id:
+                    deletable = k
+                    break                    
+            if deletable:
+                del self._function_names [deletable]
+            
+        if self.decopt.get ("mount"):
+            mount_prefix = self.decopt ["mount"]
             while mount_prefix:
                 if mount_prefix [-1] == "/":
                     mount_prefix = mount_prefix [:-1]
@@ -619,7 +641,12 @@ class AppBase:
                     break    
             rule = mount_prefix + rule
         
-        fspec = self._function_specs.get (func.__name__) or inspect.getargspec(func)                
+        try:
+            fspec = self._function_specs [func_id]
+        except KeyError:
+            fspec =  inspect.getargspec(func)            
+            self._function_names [id (func)] = func_id
+                        
         options ["args"] = fspec.args [1:]
         options ["varargs"] = fspec.varargs
         options ["keywords"] = fspec.keywords
@@ -631,8 +658,8 @@ class AppBase:
                 defaults [argnames [i]] = fspec.defaults[i]
             options ["defaults"] = defaults
         
-        if hasattr (module, "___authenticate___"):
-            options ["authenticate"] = module.___authenticate___
+        if self.decopt.get ("authenticate"):
+            options ["authenticate"] = self.decopt ["authenticate"]
         if self._need_authenticate:
             if func.__name__ == self._need_authenticate [0]:
                 options ["authenticate"] = self._need_authenticate [1]
@@ -695,12 +722,12 @@ class AppBase:
                     
     def find_route (self, path_info):
         if not path_info:
-            return self.url_for ("/"), self.route_map ["/"]
+            return self.urlfor ("/"), self.route_map ["/"]
         if path_info in self.route_map:
             return self.route_map [path_info][0], self.route_map [path_info]
         trydir = path_info + "/"
         if trydir in self.route_map:
-            return self.url_for (trydir), self.route_map [trydir]
+            return self.urlfor (trydir), self.route_map [trydir]
         raise KeyError
     
     def verify_rule (self, path_info, rule, rulepack):
@@ -751,7 +778,7 @@ class AppBase:
         if method is None:            
             return self, method, None, None, 404
         if isinstance (method, str):
-            return self, self.url_for (method), None, None, 301
+            return self, self.urlfor (method), None, None, 301
         return (
             self, 
             [self._binds_request [0], method] + self._binds_request [1:4], 

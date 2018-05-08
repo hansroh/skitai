@@ -280,9 +280,9 @@ class WAS:
 	# URL builders -------------------------------------------------
 	def urlfor (self, thing, *args, **karg):
 		# override with resource default args
-		if thing.startswith ("/") or thing.find (":") == -1:
-			return self.app.build_url (thing, *args, **karg)
-		return self.apps.build_url (thing, *args, **karg)	
+		if not isinstance (thing, str) or thing.startswith ("/") or thing.find (":") == -1:
+			return self.app.urlfor (thing, *args, **karg)		
+		return self.apps.urlfor (thing, *args, **karg)	
 	ab = urlfor
 	
 	def partial (self, thing, **karg):

@@ -67,6 +67,7 @@ def update_password (was, username, password, template):
         
 def decorate (app):    
     from django.contrib.auth import models
+    
     global User
     User = models.User
     
@@ -84,7 +85,7 @@ def decorate (app):
                 return was.response ("400 Bad Request")
         
         next_url = not was.request.uri.endswith ("signout") and was.request.uri or ""
-        return was.redirect (was.ab ("signin", next_url))
+        return was.redirect (was.ab (signin, next_url))
     
     @app.staff_member_check_handler
     def staff_member_check_handler (was):
@@ -102,8 +103,8 @@ def decorate (app):
     @app.route ("/regist/signout")
     def signout (was):
         was.django.logout ()
-        was.mbox.push ("Signed out successfully", "success")    
-        return was.redirect (was.ab ('index'))
+        was.mbox.push ("Signed out successfully", "success")
+        return was.redirect (was.ab (app.decopt.get ("redirect", 'index')))
         
     @app.route ("/regist/signin")
     def signin (was, next_url = None, **form):
@@ -117,16 +118,16 @@ def decorate (app):
             )
             if user is not None:
                 was.django.login (user)
-                return was.redirect (next_url or was.ab ('index'))
+                return was.redirect (next_url or was.ab (app.decopt.get ("redirect", 'index')))
             else:
                 was.mbox.push ("Invalid user name or password", "error", icon = "new_releases")
-        return was.render ("regist/signin.html", next_url = next_url or was.ab ("index"))
+        return was.render ("regist/signin.html", next_url = next_url or was.ab (app.decopt.get ("redirect", 'index')))
 
     @app.route ("/regist/signup")
     def signup (was, next_url = None, **form):
         def show_form (msg = None):
             push_error_messages (was, msg)
-            return was.render ("regist/signup.html", next_url = next_url or was.ab ("index"), form = form)
+            return was.render ("regist/signup.html", next_url = next_url or was.ab (app.decopt.get ("redirect", 'index')), form = form)
         
         if was.django.user.is_authenticated ():    
             return was.redirect (next_url)
@@ -151,7 +152,7 @@ def decorate (app):
         if "email" in form and not is_vaild_email (form ["email"]):
             return show_form ("Invalid email address")
         if User.objects.filter (email__iexact = form ["email"]).count():        
-            return show_form ("Email already exists, If you want recover your account <a href='{}'>click here</a>".format (was.ab ('forgot_password')))         
+            return show_form ("Email already exists, If you want recover your account <a href='{}'>click here</a>".format (was.ab (forgot_password)))         
         
         user = User (username = form ["username"], email = form ["email"])
         user.set_password (form ["password"])
@@ -181,7 +182,7 @@ def decorate (app):
         was.app.emit ('user:updated', user, form)
         
         was.mbox.push ("Account updated successfully", "info")
-        return was.redirect (was.ab ("index"))
+        return was.redirect (was.ab (app.decopt.get ("redirect", 'index')))
     
     @app.route ("/regist/forgot-password")
     def forgot_password (was, **form):    
@@ -193,7 +194,7 @@ def decorate (app):
                 return was.render ('regist/forgot-password.html')
             was.app.emit ("user:password:reset-requested", user.username, form)
             was.mbox.push ("Email has been sent. check your email, please", "info")
-            return was.redirect (was.ab ('index'))
+            return was.redirect (was.ab (app.decopt.get ("redirect", 'index')))
         return was.render ('regist/forgot-password.html')
 
     @app.route ("/regist/reset-password")
@@ -216,7 +217,7 @@ def decorate (app):
         
         was.rmtoken (t)
         was.mbox.push ("Your password has been reset and changed", "info")
-        return signin (was, was.ab ('index'), **{"username": username, "password":  form ["password"]})
+        return signin (was.ab (app.decopt.get ("redirect", 'index')), **{"username": username, "password":  form ["password"]})
         
     @app.route ("/regist/change-password")
     @app.login_required
@@ -230,5 +231,5 @@ def decorate (app):
             return nextform
     
         was.mbox.push ("Your password has been changed", "info")
-        return was.redirect (was.ab ('index'))
+        return was.redirect (was.ab (app.decopt.get ("redirect", 'index')))
     
