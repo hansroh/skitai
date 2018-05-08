@@ -7,7 +7,7 @@ from types import FunctionType as function
 import inspect
 from importlib import reload
 from skitai import was as the_was
-import time, threading
+import time, threading, multiprocessing
 from .storage import Storage
 from aquests.lib import evbus
 from event_bus.exceptions import EventDoesntExist
@@ -52,10 +52,11 @@ class AppBase:
         self.bus = evbus.EventBus ()
         self.events = {}        
         self.lock = threading.RLock ()
+        self.plock = multiprocessing.RLock ()
         self.init_time = time.time ()        
         self.handlers = {}
-        self.decopt = {}
         
+        self._decorate_option = {}
         self._started = False
         self._reloading = False        
         self._decos = {}
@@ -162,7 +163,10 @@ class AppBase:
             if params:
                 if params.get ("debug_only") and not self.debug:
                     return                   
-            self.decopt = params             
+            # for app decoratives
+            setattr (module, "__option__", params)
+            # for app initialzing and reloading
+            self._decorate_option = params
             module.decorate (self)
             
         try:
@@ -196,7 +200,7 @@ class AppBase:
         self._reloading = False
     
     def get_func_id (self,  func):
-        return ("ns" in self.decopt and self.decopt ["ns"] + "." or "") + func.__name__     
+        return ("ns" in self._decorate_option and self._decorate_option ["ns"] + "." or "") + func.__name__     
         
     # function param saver ------------------------------------------
     def save_function_spec_for_routing (self, func):
@@ -632,8 +636,8 @@ class AppBase:
             if deletable:
                 del self._function_names [deletable]
             
-        if self.decopt.get ("mount"):
-            mount_prefix = self.decopt ["mount"]
+        if self._decorate_option.get ("mount"):
+            mount_prefix = self._decorate_option ["mount"]
             while mount_prefix:
                 if mount_prefix [-1] == "/":
                     mount_prefix = mount_prefix [:-1]
@@ -658,8 +662,8 @@ class AppBase:
                 defaults [argnames [i]] = fspec.defaults[i]
             options ["defaults"] = defaults
         
-        if self.decopt.get ("authenticate"):
-            options ["authenticate"] = self.decopt ["authenticate"]
+        if self._decorate_option.get ("authenticate"):
+            options ["authenticate"] = self._decorate_option ["authenticate"]
         if self._need_authenticate:
             if func.__name__ == self._need_authenticate [0]:
                 options ["authenticate"] = self._need_authenticate [1]

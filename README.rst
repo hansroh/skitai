@@ -3098,10 +3098,12 @@ Sometimes function names are duplicated if like you import contributed decorativ
   
 Now, you can import iport without name collision. But be careful when use was.ab () etc.
 
+Note that options should be keyword arguments.
+
 .. code:: python
 
   {{ was.ab ("regist.login") }}
-
+      
 If you want to decorate only debug environment, 
 
 .. code:: python
@@ -3113,8 +3115,63 @@ If you want to authentify to all decoratives,
 .. code:: python
   
   app.decorate_with (auth, authenticate = "bearer")
+
+Currently *reserved arguments* are:
+
+- ns
+- authenticate
+- debug_only
+- mount
+
+Your custom options can be accessed by __option__ in your module.
+
+First, decorate with redirect option.
+
+.. code:: python
+  
+    app.decorate_with (auth, redirect = "index")    
+    # automatically set to auth.__option__ = {"redirect": "index"}
+
+then you can access in auth.py, 
+
+.. code:: python
+
+    @app.route ("/regist/signout")
+    def signout (was):
+        was.mbox.push ("Signed out successfully", "success")
+        return was.redirect (was.ab (__option__.get ("redirect", 'index')))
     
 If you build useful decoratives, please contribute them to `skitai.saddle.decorative`_.
+
+More About Namespace
+````````````````````````````````````
+
+You'd better to use function object for was.ab in def decorate ().
+
+For example, below module is decorate with app.decorate_with (auth, ns = "regist").  
+
+.. code:: python
+  
+  # auth.py
+
+  def decorate (app):
+    @app.route ("/func1")
+    def func1 (was):
+      ...
+    
+    @app.route ("/func1")
+    def func2 (was):
+      was.ab ("func1")
+
+In this was.ab ("func1") in func2 might be dangerous, because func2 doesn't know this module's namespace.
+
+Then you can rewrite as,
+
+.. code:: python
+  
+    @app.route ("/func1")
+    def func2 (was):
+      was.ab (func1) # use function object directly
 
 .. _`skitai.saddle.decorative`: https://gitlab.com/hansroh/skitai/tree/master/skitai/saddle/contrib/decorative
 
@@ -3219,12 +3276,15 @@ If your app is mounted at "/math",
   was.ab ("add", 10, 40) # returned '/math/add?num1=10&num2=40'
   was.ab ("add", 10, num2=60) # returned '/math/add?num1=10&num2=60'
   
+  #You can use function directly as well,  
+  was.ab (add, 10, 40) # returned '/math/add?num1=10&num2=40'
+  
   @app.route ("/hello/<name>")
   def hello (was, name = "Hans Roh"):
     return "Hello, %s" % name
   
   was.ab ("hello", "Your Name") # returned '/math/hello/Your_Name'
-
+  
 Basically, was.ab is same as Python function call.
 
 

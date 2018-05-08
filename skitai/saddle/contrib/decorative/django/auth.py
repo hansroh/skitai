@@ -96,15 +96,15 @@ def decorate (app):
     def permission_check_handler (was, perms):
         if isinstance (perms, str):
             perms = (prems,)
-        if not was.django.user.has_perms (perms):            
-            return was.response ("403 Permission Denied")    
+        if not was.django.user.has_perms (perms):   
+            return was.response ("403 Permission Denied")
     
     # Views ---------------------------------------------------------        
     @app.route ("/regist/signout")
     def signout (was):
         was.django.logout ()
         was.mbox.push ("Signed out successfully", "success")
-        return was.redirect (was.ab (app.decopt.get ("redirect", 'index')))
+        return was.redirect (was.ab (__option__.get ("redirect", 'index')))
         
     @app.route ("/regist/signin")
     def signin (was, next_url = None, **form):
@@ -118,16 +118,16 @@ def decorate (app):
             )
             if user is not None:
                 was.django.login (user)
-                return was.redirect (next_url or was.ab (app.decopt.get ("redirect", 'index')))
+                return was.redirect (next_url or was.ab (__option__.get ("redirect", 'index')))
             else:
                 was.mbox.push ("Invalid user name or password", "error", icon = "new_releases")
-        return was.render ("regist/signin.html", next_url = next_url or was.ab (app.decopt.get ("redirect", 'index')))
+        return was.render ("regist/signin.html", next_url = next_url or was.ab (__option__.get ("redirect", 'index')))
 
     @app.route ("/regist/signup")
     def signup (was, next_url = None, **form):
         def show_form (msg = None):
             push_error_messages (was, msg)
-            return was.render ("regist/signup.html", next_url = next_url or was.ab (app.decopt.get ("redirect", 'index')), form = form)
+            return was.render ("regist/signup.html", next_url = next_url or was.ab (__option__.get ("redirect", 'index')), form = form)
         
         if was.django.user.is_authenticated ():    
             return was.redirect (next_url)
@@ -182,7 +182,7 @@ def decorate (app):
         was.app.emit ('user:updated', user, form)
         
         was.mbox.push ("Account updated successfully", "info")
-        return was.redirect (was.ab (app.decopt.get ("redirect", 'index')))
+        return was.redirect (was.ab (__option__.get ("redirect", 'index')))
     
     @app.route ("/regist/forgot-password")
     def forgot_password (was, **form):    
@@ -194,7 +194,7 @@ def decorate (app):
                 return was.render ('regist/forgot-password.html')
             was.app.emit ("user:password:reset-requested", user.username, form)
             was.mbox.push ("Email has been sent. check your email, please", "info")
-            return was.redirect (was.ab (app.decopt.get ("redirect", 'index')))
+            return was.redirect (was.ab (__option__.get ("redirect", 'index')))
         return was.render ('regist/forgot-password.html')
 
     @app.route ("/regist/reset-password")
@@ -217,7 +217,7 @@ def decorate (app):
         
         was.rmtoken (t)
         was.mbox.push ("Your password has been reset and changed", "info")
-        return signin (was.ab (app.decopt.get ("redirect", 'index')), **{"username": username, "password":  form ["password"]})
+        return signin (was.ab (__option__.get ("redirect", 'index')), **{"username": username, "password":  form ["password"]})
         
     @app.route ("/regist/change-password")
     @app.login_required
@@ -231,5 +231,5 @@ def decorate (app):
             return nextform
     
         was.mbox.push ("Your password has been changed", "info")
-        return was.redirect (was.ab (app.decopt.get ("redirect", 'index')))
+        return was.redirect (was.ab (__option__.get ("redirect", 'index')))
     
