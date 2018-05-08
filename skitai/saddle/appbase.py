@@ -164,7 +164,7 @@ class AppBase:
                 if params.get ("debug_only") and not self.debug:
                     return                   
             # for app decoratives
-            setattr (module, "__option__", params)
+            setattr (module, "__options__", params)
             # for app initialzing and reloading
             self._decorate_option = params
             module.decorate (self)

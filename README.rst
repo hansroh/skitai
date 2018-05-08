@@ -3123,14 +3123,14 @@ Currently *reserved arguments* are:
 - debug_only
 - mount
 
-Your custom options can be accessed by __option__ in your module.
+Your custom options can be accessed by __options__ in your module.
 
 First, decorate with redirect option.
 
 .. code:: python
   
     app.decorate_with (auth, redirect = "index")    
-    # automatically set to auth.__option__ = {"redirect": "index"}
+    # automatically set to auth.__options__ = {"redirect": "index"}
 
 then you can access in auth.py, 
 
@@ -3139,7 +3139,7 @@ then you can access in auth.py,
     @app.route ("/regist/signout")
     def signout (was):
         was.mbox.push ("Signed out successfully", "success")
-        return was.redirect (was.ab (__option__.get ("redirect", 'index')))
+        return was.redirect (was.ab (__options__.get ("redirect", 'index')))
     
 If you build useful decoratives, please contribute them to `skitai.saddle.decorative`_.
 
