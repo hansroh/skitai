@@ -1559,21 +1559,32 @@ Basically same with load_balancing except Skitai requests to all members per eac
 
 .. code:: python
 
-    @app.route ("/search")
-    def search (was, keyword = "Mozart"):
-      stub = was.rpc.map ("@mysearch/rpc2")
-      req = stub.search (keyword)
-      results = req.getswait (2)
-      
-      all_results = []
-      for result in results:      
-         all_results.extend (result.data)
-      return all_results
+  @app.route ("/search")
+  def search (was, keyword = "Mozart"):
+    stub = was.rpc.map ("@mysearch/rpc2")
+    req = stub.search (keyword)
+    results = req.getswait (2)
+    
+    all_results = []
+    for result in results:      
+       all_results.extend (result.data)
+    return all_results
 
 There are 2 changes:
 
 1. from was.rpc.lb () to was.rpc.map ()
 2. from s.getwait () to s.getswait () for multiple results, and results is iterable.
+
+
+More About Fetching Result
+``````````````````````````````````````
+
+- ClusterDistCall.wait (timeout = 10, reraise = True)
+- ClusterDistCall.getwait (timeout = 10, reraise = False, cache = None, cache_if = (200,))
+- ClusterDistCall.getswait (timeout = 10, reraise = False, cache = None, cache_if = (200,))
+- ClusterDistCall.wait_or_throw (status, timeout = 10)
+- ClusterDistCall.getwait_or_throw (status, timeout = 10, cache = None, cache_if = (200,))
+- ClusterDistCall.getswait_or_throw (status, timeout = 10, cache = None, cache_if = (200,))
 
 
 Using Aliased Database
@@ -1584,10 +1595,10 @@ If you have alias your database server, you needn't specify db type like 'dbo = 
 It makes easy to handle both Sqlite3 and PostgreSQL. If you intend to use Sqlite3 at developing, but use PostgreSQL at production, you just change alias on Skitai startup time.
 
 
-Throwing HTTP Error Onn Request Failed
+Throwing HTTP Error On Request Failed
 `````````````````````````````````````````
 
-*Available on Skito-Saddle*
+*Available only on Skito-Saddle*
 
 For throwing HTTP error if request is failed immediately,
 
@@ -1673,7 +1684,15 @@ For expiring cached result by updating new data:
   ).getinfo ()
   result = s.getwait (2, cache = 60)
   
-*Note* that In this case, it is cached only *if status_code is 200*. If you want cache for another status_code, please use old way.
+*Note* that In this case, it is cached only *if status_code is 200*. If you want cache for another status_code, 
+
+.. code:: python
+  
+  s = was.rpc.lb (
+    "@mysearch/rpc2", 
+    use_cache = not refreshed and True or False
+  ).getinfo ()
+  result = s.getwait (2, cache = 60, cache_if = (200, 201))
 
 
 More About Cache Control: Model Synchronized Cache
@@ -1750,26 +1769,27 @@ Also was.setlu () emits 'model-changed' events. You can handle event if you need
 Note: if @app.on_broadcast is located in decorate function at decorative directory, even app.use_reloader is True, it is not applied to app when component file is changed. In this case you should manually reload app by resaving app file.
 
 
-Working At Your Template
-`````````````````````````````````
+Working With Jinja2 Template
+```````````````````````````````
 
 *New in version 0.27*
 
-Fetching async request will be more efficient at your template rather than your controller. At controller, you just start your request and fetch response at your template.
+Async request's benefit will be maximied at your view template rather than your controller. At controller, you just fire your requests and get responses at your template.
 
 .. code:: python
 
   @app.route ("/")
   @app.login_required	
   def intro (was):
-    was.g.test = was.get ("https://example.com/blur/blur")
+    was.g.aa = was.get ("https://example.com/blur/blur")
+    was.g.bb = was.get ("https://example.com/blur/blur/more-blur")
     return was.render ('template.html')
 	
 Your template,
 
 .. code:: html
 
-  {% set response = was.g.test.getwait () %}  
+  {% set response = was.g.aa.getwait () %}  
   {% if response.status == 3 %}
     {{ was.response.throw ("500 Internal Server Error") }}
   {% endif %}
@@ -1786,7 +1806,7 @@ Shorter version is for getwait and throw HTTP error,
 
 .. code:: html
   
-  {% set response = was.g.test.getwait_or_throw ("500 Internal Server Error") %}
+  {% set response = was.g.aa.getwait_or_throw ("500 Internal Server Error") %}
 
 
 API Transaction ID
