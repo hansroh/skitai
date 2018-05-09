@@ -1584,6 +1584,20 @@ If you have alias your database server, you needn't specify db type like 'dbo = 
 It makes easy to handle both Sqlite3 and PostgreSQL. If you intend to use Sqlite3 at developing, but use PostgreSQL at production, you just change alias on Skitai startup time.
 
 
+Throwing HTTP Error Onn Request Failed
+`````````````````````````````````````````
+
+*Available on Skito-Saddle*
+
+For throwing HTTP error if request is failed immediately,
+
+.. code:: python
+
+  result = req.getwait_or_throw ("500 Internal Server Error", 10) # 2nd param is timeout
+
+This code abort to handle request and return HTTP 500 error immediatley.
+
+
 Caching Result
 ````````````````
 
@@ -1626,7 +1640,6 @@ You can control number of caches by your system memory before running app.
   skitai.mount ('/', app)
   skitai.run ()
 
-
 *New in version 0.14.9*
 
 For expiring cached result by updating new data:
@@ -1645,6 +1658,22 @@ For expiring cached result by updating new data:
   result = s.getwait (2)
   if result.status_code == 200:
     result.cache (60) # 60 seconds  
+
+*New in version 0.27*
+
+You can cache with getwait,
+
+For expiring cached result by updating new data:
+
+.. code:: python
+  
+  s = was.rpc.lb (
+    "@mysearch/rpc2", 
+    use_cache = not refreshed and True or False
+  ).getinfo ()
+  result = s.getwait (2, cache = 60)
+  
+*Note* that In this case, it is cached only *if status_code is 200*. If you want cache for another status_code, please use old way.
 
 
 More About Cache Control: Model Synchronized Cache
@@ -1719,6 +1748,45 @@ Also was.setlu () emits 'model-changed' events. You can handle event if you need
     # your code
 
 Note: if @app.on_broadcast is located in decorate function at decorative directory, even app.use_reloader is True, it is not applied to app when component file is changed. In this case you should manually reload app by resaving app file.
+
+
+Working At Your Template
+`````````````````````````````````
+
+*New in version 0.27*
+
+Fetching async request will be more efficient at your template rather than your controller. At controller, you just start your request and fetch response at your template.
+
+.. code:: python
+
+  @app.route ("/")
+  @app.login_required	
+  def intro (was):
+    was.g.test = was.get ("https://example.com/blur/blur")
+    return was.render ('template.html')
+	
+Your template,
+
+.. code:: html
+
+  {% set response = was.g.test.getwait () %}  
+  {% if response.status == 3 %}
+    {{ was.response.throw ("500 Internal Server Error") }}
+  {% endif %}
+  
+  {% if response.status_code == 200 %}
+    {% for each in response.data %}
+      ...
+    {% endfor %}
+  {% endif %}
+
+*Available only with Skito-Saddle*
+
+Shorter version is for getwait and throw HTTP error,
+
+.. code:: html
+  
+  {% set response = was.g.test.getwait_or_throw ("500 Internal Server Error") %}
 
 
 API Transaction ID
@@ -3146,7 +3214,7 @@ If you build useful decoratives, please contribute them to `skitai.saddle.decora
 More About Namespace
 ````````````````````````````````````
 
-You'd better to use function object for was.ab in def decorate ().
+If you develop reusable decorative module, pay attention to namespace and URL building. 
 
 For example, below module is decorate with app.decorate_with (auth, ns = "regist").  
 
@@ -3156,22 +3224,27 @@ For example, below module is decorate with app.decorate_with (auth, ns = "regist
 
   def decorate (app):
     @app.route ("/func1")
-    def func1 (was):
+    def func1 (was, a):
       ...
     
-    @app.route ("/func1")
+    @app.route ("/func2")
     def func2 (was):
-      was.ab ("func1")
+      was.ab ("func1", "hello")
 
-In this was.ab ("func1") in func2 might be dangerous, because func2 doesn't know this module's namespace.
+This was.ab ("func1") in func2 might be dangerous, because this decorative module may have namespace. Then you consider ns like this.
 
-Then you can rewrite as,
+.. code:: python
+
+  was.ab ("{}func1".format (__options__.get ("ns") and __options__ ["ns"] + "." or ""), , "hello")
+
+But it is not pretty, so you can pretty style,
 
 .. code:: python
   
-    @app.route ("/func1")
-    def func2 (was):
-      was.ab (func1) # use function object directly
+  @app.route ("/func2")
+  def func2 (was):
+    was.ab (func1, "hello")
+
 
 .. _`skitai.saddle.decorative`: https://gitlab.com/hansroh/skitai/tree/master/skitai/saddle/contrib/decorative
 

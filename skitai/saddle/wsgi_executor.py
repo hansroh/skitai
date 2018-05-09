@@ -222,7 +222,7 @@ class Executor:
 		try:
 			content = self.generate_content (thing, (), param)
 		except HTTPError as e:
-			content = request.response (e.status)
+			content = request.response.with_explain (e.status, e.explain)
 		except:
 			self.rollback ()
 			if request.response.is_responsable ():

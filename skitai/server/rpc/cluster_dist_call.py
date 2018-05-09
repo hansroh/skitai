@@ -16,6 +16,8 @@ from aquests.protocols.dns import asyndns
 from . import rcache
 from skitai import lifetime
 import asyncore
+from ...saddle.exceptions import HTTPError
+import sys
 
 DEFAULT_TIMEOUT = 10
 WAIT_POLL = False
@@ -350,38 +352,6 @@ class ClusterDistCall:
 	def _cancel (self):
 		self._canceled = 1
 	
-	def cache (self, timeout = 300):
-		if self._cached_result is None:
-			raise ValueError("call getwait, getswait first")
-		self._cached_result.cache (timeout)	
-			
-	def wait (self, timeout = DEFAULT_TIMEOUT, reraise = True):
-		self.getswait (timeout, reraise)
-		self._cached_result = None
-	
-	def getwait (self, timeout = DEFAULT_TIMEOUT, reraise = False):
-		if self._cached_result is not None:
-			return self._cached_result
-			
-		self._wait (timeout)
-		if len (self._results) > 1:
-			raise ValueError("Multiple Results, Use getswait")
-		self._cached_result = self._results [0].get_result ()		
-		if reraise:
-			self._cached_result.reraise ()
-		return self._cached_result
-	
-	def getswait (self, timeout = DEFAULT_TIMEOUT, reraise = False):
-		if self._cached_result is not None:
-			return self._cached_result
-			
-		self._wait (timeout)
-		rss = [rs.get_result () for rs in self._results]
-		if reraise:
-			[rs.reraise () for rs in rss]
-		self._cached_result = Results (rss, ident = self._get_ident ())
-		return self._cached_result
-	
 	def _collect_result (self):
 		for rs, asyncon in list(self._requests.items ()):
 			status = rs.get_status ()			
@@ -406,7 +376,22 @@ class ClusterDistCall:
 				else:	
 					self._cluster.report (asyncon, True) # well-functioning
 					rs.do_filter ()
-					
+	
+	#---------------------------------------------------------
+	def cache (self, timeout = 300, validation = None):
+		if self._cached_result is None:
+			raise ValueError("call getwait, getswait first")		
+		
+		if validation:
+			if isinstance (self._cached_result, Results):
+				status_code = set (self._cached_result.status_code)
+				if len (status_code) != 1 or status_code.pop () not in validation:
+					return
+			elif self._cached_result.status_code not in validation:
+				return
+			
+		self._cached_result.cache (timeout)
+	
 	def _wait (self, timeout = DEFAULT_TIMEOUT):		
 		if self._timeout != timeout:
 			for rs, asyncon in self._requests.items ():
@@ -428,7 +413,49 @@ class ClusterDistCall:
 			self._cluster.report (asyncon, False) # maybe dead
 			self._results.append (rs)
 			del self._requests [rs]
-
+	
+	def wait (self, timeout = DEFAULT_TIMEOUT, reraise = True):
+		self.getswait (timeout, reraise)
+		self._cached_result = None
+	
+	def getwait (self, timeout = DEFAULT_TIMEOUT, reraise = False, cache = None, cache_if = (200,)):
+		if self._cached_result is not None:
+			return self._cached_result
+		self._wait (timeout)
+		if len (self._results) > 1:
+			raise ValueError("Multiple results, use getswait")
+		self._cached_result = self._results [0].get_result ()
+		cache and self.cache (cache, cache_if)
+		reraise and self._cached_result.reraise ()
+		return self._cached_result
+	
+	def getswait (self, timeout = DEFAULT_TIMEOUT, reraise = False, cache = None, cache_if = (200,)):
+		if self._cached_result is not None:
+			return self._cached_result
+		self._wait (timeout)
+		rss = [rs.get_result () for rs in self._results]
+		if reraise:
+			[rs.reraise () for rs in rss]
+		self._cached_result = Results (rss, ident = self._get_ident ())
+		cache and self.cache (cache, cache_if)
+		return self._cached_result
+	
+	def _or_throw (self, func, status, timeout, cache):	
+		try:
+			response = func (timeout, reraise =True, cache = cache)
+		except:
+			raise HTTPError (status, sys.exc_info ())
+		return response
+	
+	def wait_or_throw (self, status, timeout = DEFAULT_TIMEOUT):
+		return self._or_throw (self.wait, status, timeout, cache)
+	
+	def getwait_or_throw (self, status, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
+		return self._or_throw (self.getwait, status, timeout, cache)
+	
+	def getswait_or_throw (self, status, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
+		return self._or_throw (self.getswait, status, timeout, cache)
+			
 #-----------------------------------------------------------
 # Cluster Base Call
 #-----------------------------------------------------------

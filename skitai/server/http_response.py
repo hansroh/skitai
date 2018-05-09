@@ -216,6 +216,8 @@ class http_response:
 		
 		exc_info = None
 		if type (why) is tuple: # sys.exc_info ()
+			if self.current_app and not self.current_app.debug:
+				why = None
 			exc_info, why  = why, ''
 		
 		error = {}
@@ -551,8 +553,8 @@ class http_response:
 			self.set_header ('Content-Disposition', 'attachment; filename="{}"'.format (filename))
 		return producers.file_producer (open (path, "rb"))					
 	
-	def throw (self, status):
-		raise HTTPError (status)
+	def throw (self, status, why = ""):
+		raise HTTPError (status, why)
 	
 	def with_explain (self, status = "200 OK", why = "", headers = None):
 		self.start_response (status, headers)
