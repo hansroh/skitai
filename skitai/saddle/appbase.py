@@ -196,7 +196,8 @@ class AppBase:
                     del self.reloadables [module]
                     self.watch (newmodule)                
         
-        self.last_reloaded = time.time ()
+        self.load_jinja_filters ()
+        self.last_reloaded = time.time ()        
         self._reloading = False
     
     def get_func_id (self,  func):

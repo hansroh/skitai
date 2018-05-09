@@ -456,9 +456,9 @@ class ClusterDistCall:
 	def getswait_or_throw (self, status, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
 		return self._or_throw (self.getswait, status, timeout, cache)
 			
-#-----------------------------------------------------------
-# Cluster Base Call
-#-----------------------------------------------------------
+
+# Cluster Base Call ---------------------------------------
+
 class _Method:
 	def __init__(self, send, name):
 		self.__send = send

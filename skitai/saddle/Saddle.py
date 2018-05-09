@@ -154,9 +154,6 @@ class Saddle (appbase.AppBase):
         else:
             self.jinja_env = Environment (loader = loader)
         
-        for k, v in self._jinja2_filters.items ():
-            self.jinja_env.filters [k] = v
-        
         # chameleon -------------------------------------
         try: from chameleon import PageTemplateLoader
         except: pass        
@@ -182,7 +179,14 @@ class Saddle (appbase.AppBase):
     
         if module:
             self.find_watchables (module)
-    
+        
+        self.load_jinja_filters ()
+        
+    def load_jinja_filters (self):    
+        for k, v in self._jinja2_filters.items ():
+            self.jinja_env.filters [k] = v
+        self._jinja2_filters = {}
+        
     def setup_sqlphile (self, engine, template_dir = "sqlmaps"):
         self.config.sql_engine = engine
         self.config.sqlmap_dir = template_dir
