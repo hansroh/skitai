@@ -8,7 +8,7 @@ from skitai import was as the_was
 from hashlib import md5
 import base64
 from .config import Config
-from sqlphile import Template
+from sqlphile import Template, SQLPhile
 import skitai    
 from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from jinja2 import Environment, FileSystemLoader, ChoiceLoader
@@ -38,6 +38,7 @@ class Saddle (appbase.AppBase):
         self.config = Config (preset = True)
         self._package_dirs = []
         self._aliases = []
+        self._sqlmap_dir = None
         
     #--------------------------------------------------------
     
@@ -164,11 +165,11 @@ class Saddle (appbase.AppBase):
                 restricted_namespace = False
             )
             
-        # sqlphile --------------------------------------------
-        sqlmap_dir = os.path.join(path, self.config.get ("sqlmap_dir", "sqlmaps"))
-        if not os.path.isdir (sqlmap_dir):
-            sqlmap_dir = None
-        self.sqlphile = Template (self.config.get ("sql_engine", skitai.DB_PGSQL [1:]), sqlmap_dir, self.use_reloader)
+        # unbinded sqlphile --------------------------------------------
+        self._sqlmap_dir = os.path.join(path, self.config.get ("sqlmap_dir", "sqlmaps"))
+        if not os.path.isdir (self._sqlmap_dir):
+            self._sqlmap_dir = None
+        self.sqlphile = Template (self.config.get ("sql_engine", skitai.DB_PGSQL [1:]), self._sqlmap_dir, self.use_reloader)
         
         # vaild packages --------------------------------------------
         package_dirs = []
@@ -181,7 +182,7 @@ class Saddle (appbase.AppBase):
             self.find_watchables (module)
         
         self.load_jinja_filters ()
-        
+            
     def load_jinja_filters (self):    
         for k, v in self._jinja2_filters.items ():
             self.jinja_env.filters [k] = v

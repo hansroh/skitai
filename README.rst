@@ -1389,7 +1389,6 @@ If you needn't returned data and just wait for completing query,
 
 If failed, exception will be raised.
 
-
 gRCP Calling
 ```````````````````
 
@@ -2697,7 +2696,7 @@ It is same as these,
   def hello_world (was, **url):
     return url.get ("num")
 
-Above 2 code blocks have a significant difference. First one can get only 'topic' parameter. If URL query string contains other parameters, Skitai will raise 508 Error. But 2nd one can be any parameters.
+Above 2 code blocks have a significant difference. First one can get only 'num' parameter. If URL query string contains other parameters, Skitai will raise 508 Error. But 2nd one can be any parameters.
     
 Getting Form/JSON Parameters
 ```````````````````````````````
@@ -2756,7 +2755,9 @@ Also you can use keywords argument.
 
 Note that \*\*karg is contains both query string and form/JSON data and no retriction for parameter names.
 
-was.requests.args is merged dictionary for all type of parameters. If parameter name is duplicated, its value will be set to form of value list. Then simpletst way for getting parameters, use was.requests.args.
+was.requests.args is merged dictionary for all type of parameters. If parameter name is duplicated, its value will be set to form of value list (But If parameters exist both URL and form data, form data always has priority. It means URL parameter will be ignored). 
+Then simpletst way for getting parameters, use was.request.args.
+    
 
 .. code:: python
   
@@ -3913,6 +3914,23 @@ If you want to use SQL templates, create sub directory 'sqlmaps' and place sqlma
     req = was.backend ("@db").execute (q)
     result = req.getwait ()
 
+*New in version 0.27*
+
+From version 0.27 SQLPhile_ is integrated with PostgreSQL and SQLite3.
+
+.. code:: python
+    
+    app = Saddle (__name__)
+    app.setup_sqlphile (skitai.DB_PGSQL)
+    
+    @app.route ("/")
+    def query (was):
+      dbo = was.backend ("@mypostgres")    
+      req = dbo.select ("cities").get ("id, name").filter (name__like = "virginia").execute ()
+      response = req.getwait (2)    
+      dbo.insert ("cities").data (name = "New York").execute ().wait_or_throw ("500 Server Error")
+     
+      
 Please, visit SQLPhile_ for more detail. 
     
 .. _SQLPhile: https://pypi.python.org/pypi/sqlphile

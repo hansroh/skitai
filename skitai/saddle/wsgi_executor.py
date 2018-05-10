@@ -129,7 +129,7 @@ class Executor:
 				query_included = False
 		
 		if data:
-			self.merge_args (allkarg, data)
+			self.merge_args (allkarg, data, overwrite = True)
 			if query_included and self.is_call_args_group (data, False):
 				self.was.request.set_args (allkarg)
 				return allkarg
@@ -137,9 +137,12 @@ class Executor:
 		self.was.request.set_args (allkarg)
 		return kargs
 		
-	def merge_args (self, s, n):
+	def merge_args (self, s, n, overwrite = False):
 		for k, v in list(n.items ()):
 			if k in s:
+				if overwrite:
+					s [k] = v
+					continue
 				if type (s [k]) is not list:
 					s [k] = [s [k]]
 				s [k].append (v)

@@ -10,7 +10,6 @@ import pickle
 from multiprocessing import RLock
 import random
 import threading
-
 from aquests.lib import pathtool, logger, jwt
 from aquests.lib.producers import simple_producer, file_producer
 from aquests.lib.athreads import trigger
@@ -187,9 +186,9 @@ class WAS:
 			raise AttributeError ("Cannot use Map-Reduce with Single Thread")
 		
 		if command == "db":
-			return getattr (self, "_d" + fn) (*args, **karg)
+			return getattr (self, "_d" + fn) (*args, **karg)			
 		elif command in ("postgresql", "sqlite3", "redis", "mongodb", "backend"):
-			return getattr (self, "_a" + fn) ("*" + command, *args, **karg)		
+			return getattr (self, "_a" + fn) ("*" + command, *args, **karg)					
 		else:	
 			return getattr (self, "_" + fn) (command, *args, **karg)
 	
@@ -226,14 +225,27 @@ class WAS:
 		
 	def _map (self, *args, **karg):
 		return self._crest (True, *args, **karg)
-		
-	def _ddb (self, server, dbname = "", auth = None, dbtype = DB_PGSQL, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):		
-		return self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, auth, dbtype, meta, use_cache, False, filter, callback, timeout)
+	
+	def _bind_sqlphile (self, dbo):
+		try:
+			app_sqlphile = self.sql
+		except AttributeError:
+			return dbo	
+		return app_sqlphile.new (dbo)
+			
+	def _ddb (self, server, dbname = "", auth = None, dbtype = DB_PGSQL, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):
+		dbo = self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, auth, dbtype, meta, use_cache, False, filter, callback, timeout)
+		if dbtype in (DB_PGSQL, DB_SQLITE3):
+			return self._bind_sqlphile (dbo)
+		return dbo
 	
 	def _cddb (self, mapreduce = False, clustername = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):
 		if mapreduce and callback: raise RuntimeError ("Cannot use callback with Map-Reduce")
 		cluster = self.__detect_cluster (clustername) [0]
-		return cluster.Server (None, None, None, None, meta, use_cache, mapreduce, filter, callback, timeout)	
+		dbo = cluster.Server (None, None, None, None, meta, use_cache, mapreduce, filter, callback, timeout)
+		if cluster.cluster.dbtype in (DB_PGSQL, DB_SQLITE3):
+			return self._bind_sqlphile (dbo)
+		return dbo	
 	
 	def _dlb (self, *args, **karg):
 		return self._cddb (False, *args, **karg)
@@ -457,7 +469,6 @@ class WAS:
 		return False
 	
 	# proxy & adaptor  -----------------------------------------------
-	
 	@property
 	def sql (self):
 		return self.app.sqlphile
