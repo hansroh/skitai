@@ -203,7 +203,7 @@ class AppBase:
         return ("ns" in self._decorate_option and self._decorate_option ["ns"] + "." or "") + func.__name__     
         
     # function param saver ------------------------------------------
-    def save_function_spec_for_routing (self, func):
+    def save_function_spec (self, func):
         # save original function spec for preventing distortion by decorating wrapper
         # all wrapper has *args and **karg but we want to keep original function spec for auto parametering call
         func_id = self.get_func_id (func)
@@ -211,8 +211,9 @@ class AppBase:
             # save origin spec
             self._function_specs [func_id] = inspect.getargspec(func)
     
-    def get_function_spec_for_routing (self, func):
-            return self._function_specs.get (self.get_func_id (func))
+    def get_function_spec (self, func):
+        # called by websocet_handler 
+        return self._function_specs.get (self.get_func_id (func))
     
     # logger ----------------------------------------------------------
     def set_logger (self, logger):
@@ -312,7 +313,7 @@ class AppBase:
     AUTH_TYPES = ("bearer", "basic", "digest", None)
     def authorization_required (self, authenticate):
         def decorator (f):
-            self.save_function_spec_for_routing (f)
+            self.save_function_spec (f)
             authenticate_ = authenticate.lower ()
             assert authenticate_ in self.AUTH_TYPES            
             self._need_authenticate = (f.__name__, authenticate_)
@@ -325,7 +326,7 @@ class AppBase:
         return f
     
     def login_required (self, f):
-        self.save_function_spec_for_routing (f)
+        self.save_function_spec (f)
         @wraps(f)
         def wrapper (was, *args, **kwargs):
             _funcs = self._decos.get ("login_handler")
@@ -342,7 +343,7 @@ class AppBase:
         return f
     
     def staff_member_required (self, f):
-        self.save_function_spec_for_routing (f)
+        self.save_function_spec (f)
         @wraps(f)
         def wrapper (was, *args, **kwargs):
             _funcs = self._decos.get ("staff_member_check_handler")
@@ -359,7 +360,7 @@ class AppBase:
     
     def permission_required (self, p):
         def decorator(f):
-            self.save_function_spec_for_routing (f)
+            self.save_function_spec (f)
             self._permission_map [f] = isinstance (p, str) and [p] or p
             @wraps(f)
             def wrapper (was, *args, **kwargs):
@@ -374,7 +375,7 @@ class AppBase:
     
     def testpass_required (self, testfunc):
         def decorator(f):
-            self.save_function_spec_for_routing (f)            
+            self.save_function_spec (f)            
             @wraps(f)
             def wrapper (was, *args, **kwargs):
                 response = testfunc (was)
@@ -389,7 +390,7 @@ class AppBase:
     # Automation ------------------------------------------------------    
     def run_before (self, *funcs):
         def decorator(f):
-            self.save_function_spec_for_routing (f)
+            self.save_function_spec (f)
             @wraps(f)
             def wrapper (was, *args, **kwargs):
                 for func in funcs:
@@ -402,7 +403,7 @@ class AppBase:
     
     def run_after (self, *funcs):
         def decorator(f):
-            self.save_function_spec_for_routing (f)            
+            self.save_function_spec (f)            
             @wraps(f)
             def wrapper (was, *args, **kwargs):
                 response = f (was, *args, **kwargs)
@@ -433,7 +434,7 @@ class AppBase:
         
     def if_updated (self, key, func, interval = 1):
         def decorator(f):
-            self.save_function_spec_for_routing (f)
+            self.save_function_spec (f)
             self._conditions [key] = [0, 0]
             @wraps(f)
             def wrapper (was, *args, **kwargs):
@@ -446,7 +447,7 @@ class AppBase:
         
     def if_file_modified (self, path, func, interval = 1):
         def decorator(f):
-            self.save_function_spec_for_routing (f)
+            self.save_function_spec (f)
             self._conditions [path] = [0, 0]            
             @wraps(f)
             def wrapper (was, *args, **kwargs):
@@ -462,7 +463,7 @@ class AppBase:
     # Websocket ------------------------------------------------------
     def websocket_config (self, spec, timeout = 60, onopen = None, onclose = None, encoding = "text"):
         def decorator(f):
-            self.save_function_spec_for_routing (f)
+            self.save_function_spec (f)
             @wraps(f)
             def wrapper (was, *args, **kwargs):
                 if not was.wshasevent ():
@@ -479,7 +480,7 @@ class AppBase:
     # Templaing -------------------------------------------------------    
     def template_global (self, name):    
         def decorator(f):
-            self.save_function_spec_for_routing (f)
+            self.save_function_spec (f)
             @wraps(f)
             def wrapper (*args, **kwargs):                
                 return f (the_was._get (), *args, **kwargs)
@@ -733,7 +734,7 @@ class AppBase:
         else:
             methods = options ["methods"]
         for method in methods:
-            resource [method] = proto
+            resource [method] = proto            
                 
     def get_routed (self, method_chain):
         if not method_chain: 
@@ -875,7 +876,7 @@ class AppBase:
     
     def on (self, *events):
         def decorator(f):            
-            self.save_function_spec_for_routing (f)
+            self.save_function_spec (f)
             for e in events:
                 if self._reloading:
                     try: self.bus.remove_event (f.__name__, e)
@@ -890,7 +891,7 @@ class AppBase:
         
     def emit_after (self, event):
         def outer (f):
-            self.save_function_spec_for_routing (f)
+            self.save_function_spec (f)
             @wraps (f)
             def wrapper(*args, **kwargs):
                 returned = f (*args, **kwargs)
@@ -906,7 +907,7 @@ class AppBase:
     
     def on_broadcast (self, *events):
         def decorator(f):
-            self.save_function_spec_for_routing (f)
+            self.save_function_spec (f)
             for e in events:                
                 self.add_event (e, f)
             @wraps(f)
@@ -919,7 +920,7 @@ class AppBase:
          
     def broadcast_after (self, event):
         def decorator (f):
-            self.save_function_spec_for_routing (f)
+            self.save_function_spec (f)
             @wraps (f)
             def wrapper(*args, **kwargs):
                 returned = f (*args, **kwargs)

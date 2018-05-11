@@ -89,7 +89,7 @@ class Handler (wsgi_handler.Handler):
 			
 			wsfunc = request.routed
 			if is_saddle:
-				fspec = app.get_function_spec_for_routing (wsfunc) or inspect.getargspec (wsfunc)
+				fspec = app.get_function_spec (wsfunc) or inspect.getargspec (wsfunc)
 			else:
 				fspec = inspect.getargspec (wsfunc)
 			
@@ -178,7 +178,7 @@ class Handler (wsgi_handler.Handler):
 			self.channel_config (request, ws, keep_alive)
 			server.add_client (ws)
 		
-		request.channel.die_with (ws, "websocket spec. %d" % design_spec)		
+		request.channel.die_with (ws, "websocket spec.%d" % design_spec)		
 		
 	def channel_config (self, request, ws, keep_alive):
 		request.response.done (upgrade_to =  (ws, 2))
