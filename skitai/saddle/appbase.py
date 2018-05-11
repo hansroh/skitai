@@ -2,6 +2,7 @@ import re, sys
 from functools import wraps
 from urllib.parse import unquote_plus, quote_plus, urljoin
 import os
+import copy
 from aquests.lib import importer, versioning
 from types import FunctionType as function
 import inspect
@@ -41,13 +42,11 @@ class AppBase:
         self.mount_p = "/"
         self.path_suffix_len = 0
         self.route_map = {}
+        self.route_map_fancy = {}
         self.storage = Storage ()
-        
         self.decorating_params = {}
         self.reloadables = {}
-        self.last_reloaded = time.time ()
-        self.cached_paths = {}
-        self.fancy_rules = {}
+        self.last_reloaded = time.time ()        
         
         self.bus = evbus.EventBus ()
         self.events = {}        
@@ -539,13 +538,18 @@ class AppBase:
         try:
             fpath = self._function_names [thing]
             if len (fpath) == 2:
-                rulepack = self.fancy_rules [fpath [0]][fpath [1]]
+                proto = self.route_map_fancy [fpath [0]][fpath [1]]['__proto__']
             else:    
-                rulepack = self.route_map [fpath [0]]
+                proto = self.route_map [fpath [0]]['__proto__']
         except KeyError:
             raise NameError ("{} not found".format (str (thing)))    
         
-        func, name, fuvars, favars, numvars, str_rule, options = rulepack
+        func, name, fuvars, favars, numvars, str_rule, options = proto
+        if "argspec" in options:
+            fuvars, favars, numvars = options ["argspec"]
+            if len (args):
+                n, t = favars[0]
+                str_rule += "/<{}{}>".format (t != "string" and (t + ":") or "", favars[0][0])
         
         if script_name_only:
             url = str_rule
@@ -555,7 +559,7 @@ class AppBase:
                     url = url [:s]
             return self.urlfor (url)
         
-        params = {}
+        params = {}        
         try:
             currents = kargs.pop ("__defaults__")
         except KeyError:
@@ -563,7 +567,7 @@ class AppBase:
         else:
             for k, v in currents.items ():
                 if k in fuvars:
-                    params [k] = v                        
+                    params [k] = v
         
         for i in range (len (args)):
             try:
@@ -624,16 +628,16 @@ class AppBase:
         
         func_id = self.get_func_id (func)
         
-        if not self._started and not self._reloading and func_id in self._function_names:
-            raise NameError ("function <{}> is already defined. use another name or decorate_with(ns = 'myns')".format (func_id))
+        if not self._started and not self._reloading and func_id in self._function_names and "argspec" not in options:
+            self.log ("def {} is already defined. use another name or decorate_with(ns = 'myns')".format (func_id), "warn")
         
-        if func_id in self._function_names:
+        if func_id in self._function_names and "argspec" not in options:
             # reloading, remove old func
             deletable = None
             for k, v in self._function_names.items ():
                 if v == func_id:
                     deletable = k
-                    break                    
+                    break
             if deletable:
                 del self._function_names [deletable]
             
@@ -678,14 +682,12 @@ class AppBase:
          
         s = rule.find ("/<")
         if s == -1:
-            self._function_names [func_id] = (rule,)   
-            self.route_map [rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, func.__code__.co_argcount - 1, rule, options)
-            # caching static urls
-            self.cached_paths [rule] = ([self._binds_request [0], func] + self._binds_request [1:4], options)
-            if rule and rule [-1] == "/":
-                # for 30x redirection
-                self.cached_paths [rule [:-1]] = (rule, options)
-                                    
+            self._function_names [func_id] = (rule,)
+            if rule not in self.route_map:
+                self.route_map [rule] = {}
+            resource = self.route_map [rule]
+            proto = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], None, func.__code__.co_argcount - 1, rule, options)
+
         else:
             prefix = rule [:s]
             s_rule = rule
@@ -708,13 +710,31 @@ class AppBase:
             rule = "^" + rule + "$"            
             re_rule = re.compile (rule)
             self._function_names [func_id] = (prefix, re_rule)
+            if prefix not in self.route_map_fancy:
+                self.route_map_fancy [prefix] = {}
+            if prefix not in self.route_map_fancy [prefix]:    
+                self.route_map_fancy [prefix][re_rule] = {}
+            resource = self.route_map_fancy [prefix][re_rule]
+            proto = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), func.__code__.co_argcount - 1, s_rule, options)
             
-            if prefix not in self.fancy_rules:
-                self.fancy_rules [prefix] = {}
-            self.fancy_rules [prefix][re_rule] = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), func.__code__.co_argcount - 1, s_rule, options)
+            if len (rulenames) == 1 and s_rule [-1] == ">" and rulenames [0][0] in options.get ("defaults", {}):
+                if "POST" in options.get ("methods", []):
+                    options_ = copy.copy (options)
+                    options_ ["methods"] = ["POST"]
+                    options_ ["argspec"] = proto [2:5]
+                    self.add_route (s_rule [:s], func, **options_)
+                    
             self._route_priority.append ((prefix, re_rule))
             self._route_priority.sort (key = lambda x: len (x [0]), reverse = True)
-            
+        
+        resource ["__proto__"] = proto            
+        if options.get ("methods") is None:
+            methods = ["__default__"]
+        else:
+            methods = options ["methods"]
+        for method in methods:
+            resource [method] = proto
+                
     def get_routed (self, method_chain):
         if not method_chain: 
             return
@@ -725,29 +745,39 @@ class AppBase:
                 return routed
             temp = routed
                     
-    def find_route (self, path_info):
+    def find_route (self, path_info, command):
         if not path_info:
-            return self.urlfor ("/"), self.route_map ["/"]
+            return self.urlfor ("/"), None
         if path_info in self.route_map:
-            return self.route_map [path_info][0], self.route_map [path_info]
+            command = command in self.route_map [path_info] and command or "__default__"
+            try: 
+                proto = self.route_map [path_info][command]
+            except KeyError:
+                raise AssertionError            
+            return proto [0], proto [-1]
+        
         trydir = path_info + "/"
         if trydir in self.route_map:
-            return self.urlfor (trydir), self.route_map [trydir]
+            return self.urlfor (trydir), None
         raise KeyError
     
-    def verify_rule (self, path_info, rule, rulepack):
-        f, n, l, a, c, s, options = rulepack
-        
+    def verify_rule (self, path_info, rule, protos, command):
         arglist = rule.findall (path_info)
-        if not arglist: 
-            return None, None
+        if not arglist:
+            return None, None, None
+        
+        command = command in protos and command or "__default__"
+        try:
+            f, n, l, a, c, s, options = protos [command]
+        except KeyError:
+            raise AssertionError
         
         arglist = arglist [0]
         if type (arglist) is not tuple:
             arglist = (arglist,)
             
         kargs = {}
-        for i in range(len(arglist)):
+        for i in range (len(arglist)):
             an, at = a [i]
             if at == "int":
                 kargs [an] = int (arglist [i])
@@ -757,33 +787,35 @@ class AppBase:
                 kargs [an] = unquote_plus (arglist [i])
             else:        
                 kargs [an] = unquote_plus (arglist [i]).replace ("_", " ")
-        return f, kargs
+                
+        return f, options, kargs
 
-    def find_method (self, path_info):        
+    def find_method (self, path_info, command):
         if not (path_info.startswith (self.mount_p) or (path_info + "/").startswith (self.mount_p)):
             return self, None, None, None, 404
         
         path_info = path_info [self.path_suffix_len:]
-        method, kargs = None, {}                
+        method, kargs = None, {}
         
         try:
-            method, current_rule = self.find_route (path_info)            
-        except KeyError:
-            for prefix, rule in self._route_priority:
-                if not path_info.startswith (prefix):
-                    continue
-                current_rule = self.fancy_rules [prefix][rule]
-                method, kargs = self.verify_rule (path_info, rule, current_rule)
-                if method: 
-                    options = current_rule [-1]
-                    break
-        else:
-            options = current_rule [-1]
-            
-        if method is None:            
-            return self, method, None, None, 404
+            try:
+                method, options = self.find_route (path_info, command)        
+            except KeyError:
+                for prefix, rule in self._route_priority:
+                    if not path_info.startswith (prefix):
+                        continue                    
+                    protos = self.route_map_fancy [prefix][rule]
+                    method, options, kargs = self.verify_rule (path_info, rule, protos, command)
+                    if method:
+                        break
+        except AssertionError:
+            return self, None, None, None, 405 # method not allowed     
+                
+        if method is None:
+            return self, None, None, None, 404
         if isinstance (method, str):
-            return self, self.urlfor (method), None, None, 301
+            return self, method, None, None, 301
+          
         return (
             self, 
             [self._binds_request [0], method] + self._binds_request [1:4], 

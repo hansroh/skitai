@@ -331,30 +331,21 @@ class Saddle (appbase.AppBase):
         content_type = request.get_header_noparam ('content-type')
         current_app, method, kargs = self, None, {}
         
-        with self.lock:
-            if self.use_reloader:
+        if self.use_reloader:
+            with self.lock:
                 self.maybe_reload ()
-            else:    
-                try:
-                    method, options = self.cached_paths [path_info]                    
-                except KeyError:
-                    pass
-                                    
-        if not method:
-            with self.lock:                
-                current_app, method, kargs, options, status_code = self.find_method (path_info)
-            if status_code:
-                return current_app, method, kargs, options, status_code
+                current_app, method, kargs, options, status_code = self.find_method (path_info, command)
+        else:
+            current_app, method, kargs, options, status_code = self.find_method (path_info, command)
+                    
+        if status_code:
+            return current_app, method, kargs, options, status_code
 
         status_code = 0
         if options:
             allowed_types = options.get ("content_types", [])
             if allowed_types and content_type not in allowed_types:
                 return current_app, None, None, options, 415 # unsupported media type
-            
-            allowed_methods = options.get ("methods", [])            
-            if allowed_methods and command not in allowed_methods:                
-                return current_app, None, None, options, 405 # method not allowed
             
             if command == "OPTIONS":                
                 request_method = request.get_header ("Access-Control-Request-Method")
