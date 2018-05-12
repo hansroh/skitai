@@ -155,19 +155,26 @@ class AppBase:
         
     def decorate_with (self, module, **kargs):
         self.decorating_params [module] = (kargs)
-        
+    
+    def  dettach_all (self):
+        for module in self.reloadables:
+            if hasattr (module, "dettach"):
+                module.dettach (self)
+    
     def watch (self, module):
         if hasattr (module, "decorate"):
             params = self.decorating_params.get (module, {})
-            if params:
-                if params.get ("debug_only") and not self.debug:
-                    return                   
+            if params.get ("debug_only") and not self.debug:
+                return                   
             # for app decoratives
             setattr (module, "__options__", params)
             # for app initialzing and reloading
             self._decorate_option = params
-            module.decorate (self)
-            
+            try:
+                module.decorate (self)
+            finally:    
+                self._decorate_option = {}
+                
         try:
             self.reloadables [module] = self.get_file_info (module)
         except FileNotFoundError:
@@ -175,7 +182,7 @@ class AppBase:
         
         # find recursively
         self.find_watchables (module)
-                
+    
     def maybe_reload (self):
         if time.time () - self.last_reloaded < 1.0:
             return
@@ -189,7 +196,9 @@ class AppBase:
                 continue
                 
             if self.reloadables [module] != fi:
-                self.log ("reloading decorative, %s" % module.__file__, "info")                
+                self.log ("reloading decorative, %s" % module.__file__, "info")
+                if hasattr (module, "dettach"):
+                    module.dettach (self)
                 with self.lock:
                     newmodule = reload (module)
                     del self.reloadables [module]
@@ -211,9 +220,10 @@ class AppBase:
             # save origin spec
             self._function_specs [func_id] = inspect.getargspec(func)
     
-    def get_function_spec (self, func):
+    def get_function_spec (self, func):        
         # called by websocet_handler 
-        return self._function_specs.get (self.get_func_id (func))
+        func_id = self.get_func_id (func)
+        return self._function_specs.get (func_id)
     
     # logger ----------------------------------------------------------
     def set_logger (self, logger):
@@ -270,6 +280,8 @@ class AppBase:
         'mounted_or_reloaded': 6
     }
     def life_cycle (self, phase, obj):
+        if phase in ("umounted", "before_reload"):
+            self.dettach_all ()
         index = self.PHASES.get (phase)
         func = self._binds_server [index]
         if not func:
@@ -844,10 +856,9 @@ class AppBase:
             post_save.connect (self._model_changed)
             post_delete.connect (self._model_changed)
     model_signal = redirect_signal
-            
+    
     # app startup and shutdown --------------------------------------------    
-    def cleanup (self):
-        # initing app & packages        
+    def cleanup (self):                
         pass
             
     def _start (self, wasc, route, reload = False):

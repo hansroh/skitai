@@ -89,7 +89,7 @@ class Handler (wsgi_handler.Handler):
 			
 			wsfunc = request.routed
 			if is_saddle:
-				fspec = app.get_function_spec (wsfunc) or inspect.getargspec (wsfunc)
+				fspec = app.get_function_spec (wsfunc) or inspect.getargspec (wsfunc)				
 			else:
 				fspec = inspect.getargspec (wsfunc)
 			
@@ -100,8 +100,7 @@ class Handler (wsgi_handler.Handler):
 				current_args = http_util.crack_query (env ['QUERY_STRING'])
 			if fspec.defaults:
 				defaults = len (fspec.defaults)
-			varnames = fspec.args [1:]
-				
+			varnames = fspec.args [1:]				
 			temporary_args = "&".join ([arg + "=" for arg in varnames [:len (varnames) - defaults] if current_args.get (arg) is None])			
 			if temporary_args:
 				if savedqs:

@@ -3125,6 +3125,9 @@ App Decorating: Making Simpler & Modular App
 
 *New in version 0.26.17*
 
+Decorating App
+```````````````````````
+
 I already mentioned *App Structure* section, you can split yours views and help utilties into decorative directory.
 
 Assume your application directory structure is like this,
@@ -3190,6 +3193,31 @@ decorative/auth.py
       return was.render ("sign/signin.html", next_url = next_url or was.ab ("index"))
 
 You just import module from decorative. but *def decorate (app)* is core in each module. Every modules can have *decorate (app)* in *decorative*, so you can split and modulize views and utility functions. decorate (app) will be automatically executed on starting. If you set app.use_reloader, theses decorative will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
+
+Releasing Module Resources
+```````````````````````````````
+
+*New in version 0.27*
+
+Also 'dettach' is avaliable for cleaning up module resource. 
+
+.. code:: python
+  
+  resource = ...
+  
+  def dettach (app):
+    resource.close ()
+    app.someghing = None
+
+This will be automatically called when:
+
+- before module itself is reloading
+- before app is reloading
+- app unmounted from Skitai 
+
+
+Decorating App With Options
+```````````````````````````````
 
 If you need additional options on decorating,
 

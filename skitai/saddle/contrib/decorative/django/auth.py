@@ -10,7 +10,7 @@ def decorate (app):
     def user_added (was, user, form): pass    
     
     @app.on ("user:update-requested")
-    def update_requested (was, user, form):
+    def update_requested (was, user, form): pass
     
     @app.on ("user:updated")
     def user_updated (was, user, form): pass
@@ -65,10 +65,9 @@ def update_password (was, username, password, template):
     was.django.update_session_auth_hash (user)    
     was.app.emit ("user:password:updated", user)
 
-
 # App Decorator ---------------------------------------------------------
-        
-def decorate (app):    
+           
+def decorate (app):
     from django.contrib.auth import models
     
     global User
