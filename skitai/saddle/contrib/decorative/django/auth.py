@@ -9,6 +9,9 @@ def decorate (app):
     @app.on ("user:added")
     def user_added (was, user, form): pass    
     
+    @app.on ("user:update-requested")
+    def update_requested (was, user, form):
+    
     @app.on ("user:updated")
     def user_updated (was, user, form): pass
     
@@ -70,6 +73,7 @@ def decorate (app):
     
     global User
     User = models.User
+    app.contrib_devel = True
     
     # Handlers ---------------------------------------------------------        
     @app.login_handler
@@ -100,13 +104,13 @@ def decorate (app):
             return was.response ("403 Permission Denied")
     
     # Views ---------------------------------------------------------        
-    @app.route ("/regist/signout")
+    @app.route ("/signout")
     def signout (was):
         was.django.logout ()
         was.mbox.push ("Signed out successfully", "success")
         return was.redirect (was.ab (__options__.get ("redirect", 'index')))
         
-    @app.route ("/regist/signin")
+    @app.route ("/signin")
     def signin (was, next_url = None, **form):
         if was.django.user.is_authenticated ():    
             return was.redirect (next_url)
@@ -121,13 +125,13 @@ def decorate (app):
                 return was.redirect (next_url or was.ab (__options__.get ("redirect", 'index')))
             else:
                 was.mbox.push ("Invalid user name or password", "error", icon = "new_releases")
-        return was.render ("regist/signin.html", next_url = next_url or was.ab (__options__.get ("redirect", 'index')))
+        return was.render ("contrib/django/auth/signin.html", next_url = next_url or was.ab (__options__.get ("redirect", 'index')))
 
-    @app.route ("/regist/signup")
+    @app.route ("/signup")
     def signup (was, next_url = None, **form):
         def show_form (msg = None):
             push_error_messages (was, msg)
-            return was.render ("regist/signup.html", next_url = next_url or was.ab (__options__.get ("redirect", 'index')), form = form)
+            return was.render ("contrib/django/auth/signup.html", next_url = next_url or was.ab (__options__.get ("redirect", 'index')), form = form)
         
         if was.django.user.is_authenticated ():    
             return was.redirect (next_url)
@@ -162,21 +166,24 @@ def decorate (app):
         was.mbox.push ("Sign up success, thank you", "info")
         return signin (was, next_url, **form)
     
-    @app.route ("/regist/account")
+    @app.route ("/account")
     @app.login_required
     def account (was, **form):
+        user = was.django.user
         if "email" not in form:
-            return was.render ("regist/account.html", form = form)
+            form ["email"] = user.email
+            was.app.emit ('user:update-requested', user, form)
+            return was.render ("contrib/django/auth/account.html", form = form)
         
         # email  -------------------------------------------------
         if "email" in form and not is_vaild_email (form ["email"]):
             was.mbox.push ("Invalid email", "error", icon = "new_releases")
-            return was.render ("regist/account.html", form = form)
-        if User.objects.filter (~Q (username__iexact = was.django.user.username), email__iexact = form ["email"]).count():        
+            return was.render ("contrib/django/auth/account.html", form = form)
+        if User.objects.filter (~Q (username__iexact = user.username), email__iexact = form ["email"]).count():        
             was.mbox.push ("Email already exists with another username", "error", icon = "new_releases")
-            return was.render ("regist/account.html", form = form)
+            return was.render ("contrib/django/auth/account.html", form = form)
 
-        user = User.objects.get (username = was.django.user.username)
+        #user = User.objects.get (username = was.django.user.username)
         user.email = form ["email"]
         user.save ()
         was.app.emit ('user:updated', user, form)
@@ -184,20 +191,20 @@ def decorate (app):
         was.mbox.push ("Account updated successfully", "info")
         return was.redirect (was.ab (__options__.get ("redirect", 'index')))
     
-    @app.route ("/regist/forgot-password")
+    @app.route ("/forgot-password")
     def forgot_password (was, **form):    
         if form.get ("email"):
             try:
                 user = User.objects.filter (email = form ["email"]).order_by ("-id")[0]
             except IndexError:    
                 was.mbox.push ("Email does not exists, check your email please", "error", icon = "new_releases")
-                return was.render ('regist/forgot-password.html')
+                return was.render ('contrib/django/auth/forgot-password.html')
             was.app.emit ("user:password:reset-requested", user.username, form)
             was.mbox.push ("Email has been sent. check your email, please", "info")
             return was.redirect (was.ab (__options__.get ("redirect", 'index')))
-        return was.render ('regist/forgot-password.html')
+        return was.render ('contrib/django/auth/forgot-password.html')
 
-    @app.route ("/regist/reset-password")
+    @app.route ("/reset-password")
     def reset_password (was, t, **form):
         if not t:
             # need token
@@ -206,12 +213,12 @@ def decorate (app):
         username = was.detoken (t)
         if not username:
             was.mbox.push ("Your token invalid or had been expired, request agian please", "error", icon = "new_releases")
-            return was.render ('regist/forgot-password.html', username = username)
+            return was.render ('contrib/django/auth/forgot-password.html', username = username)
         
         if not form.get ("password"):
-            return was.render ('regist/reset-password.html', username = username)
+            return was.render ('contrib/django/auth/reset-password.html', username = username)
         
-        nextform = update_password (was, username, form ["password"], 'regist/reset-password.html')
+        nextform = update_password (was, username, form ["password"], 'contrib/django/auth/reset-password.html')
         if nextform:
             return nextform
         
@@ -219,14 +226,14 @@ def decorate (app):
         was.mbox.push ("Your password has been reset and changed", "info")
         return signin (was.ab (__options__.get ("redirect", 'index')), **{"username": username, "password":  form ["password"]})
         
-    @app.route ("/regist/change-password")
+    @app.route ("/change-password")
     @app.login_required
     def change_password (was, **form):    
         if not form.get ("password"):
-            return was.render ('regist/change-password.html')
+            return was.render ('contrib/django/auth/change-password.html')
         
         username = was.django.user.username
-        nextform = update_password (was, username, form ["password"], 'regist/change-password.html')
+        nextform = update_password (was, username, form ["password"], 'contrib/django/auth/change-password.html')
         if nextform:
             return nextform
     
