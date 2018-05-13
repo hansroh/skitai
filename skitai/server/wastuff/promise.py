@@ -3,15 +3,17 @@ from aquests.lib.athreads import trigger
 from skitai.server.http_response import catch
 
 class _Method:
-	def __init__(self, send, name):
+	def __init__(self, send, name, caller = None):
 		self.__send = send
 		self.__name = name
+		self.__caller = caller
 		
 	def __getattr__(self, name):
 		return _Method(self.__send, "%s.%s" % (self.__name, name))
 		
-	def __call__(self, *args, **karg):		
-		return self.__send(self.__name, args, karg)
+	def __call__(self, *args, **karg):
+		karg ["caller"] = self.__caller		
+		return self.__send (self.__name, args, karg)
 
 
 class Promise (simple_producer):

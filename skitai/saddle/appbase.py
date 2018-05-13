@@ -39,19 +39,19 @@ class AppBase:
         self.packagename = None
         self.wasc = None                
         self.logger = None
+        self.storage = Storage ()
+        self.lock = threading.RLock ()
+        self.plock = multiprocessing.RLock ()
+        self.bus = evbus.EventBus ()
+        
         self.mount_p = "/"
         self.path_suffix_len = 0
         self.route_map = {}
         self.route_map_fancy = {}
-        self.storage = Storage ()
         self.decorating_params = {}
         self.reloadables = {}
         self.last_reloaded = time.time ()        
-        
-        self.bus = evbus.EventBus ()
         self.events = {}        
-        self.lock = threading.RLock ()
-        self.plock = multiprocessing.RLock ()
         self.init_time = time.time ()        
         self.handlers = {}
         
@@ -178,6 +178,7 @@ class AppBase:
         try:
             self.reloadables [module] = self.get_file_info (module)
         except FileNotFoundError:
+            del self.reloadables [module]
             return
         
         # find recursively

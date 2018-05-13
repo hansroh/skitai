@@ -15,7 +15,7 @@ from aquests.lib.producers import simple_producer, file_producer
 from aquests.lib.athreads import trigger
 from aquests.protocols.smtp import composer
 from aquests.protocols.http import http_date
-
+import inspect
 from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from skitai import lifetime
@@ -150,7 +150,7 @@ class WAS:
 	def __getattr__ (self, name):
 		# method magic		
 		if name in self.VALID_COMMANDS:
-			return _Method (self._call, name)
+			return _Method (self._call, name, inspect.stack() [1])
 		
 		if self.in__dict__ ("app"): # saddle app			
 			attr = self.app.create_on_demand (self, name)
@@ -213,12 +213,12 @@ class WAS:
 	
 	# async requests -----------------------------------------------
 		
-	def _rest (self, method, uri, data = None, auth = None, headers = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):
-		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, self.rebuild_header (headers), auth, meta, use_cache, False, filter, callback, timeout)
+	def _rest (self, method, uri, data = None, auth = None, headers = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10, caller = None):
+		return self.clusters_for_distcall ["__socketpool__"].Server (uri, data, method, self.rebuild_header (headers), auth, meta, use_cache, False, filter, callback, timeout, caller)
 	
-	def _crest (self, mapreduce = False, method = None, uri = None, data = None, auth = None, headers = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):
+	def _crest (self, mapreduce = False, method = None, uri = None, data = None, auth = None, headers = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10, caller = None):
 		cluster, uri = self.__detect_cluster (uri)
-		return cluster.Server (uri, data, method, self.rebuild_header (headers), auth, meta, use_cache, mapreduce, filter, callback, timeout)
+		return cluster.Server (uri, data, method, self.rebuild_header (headers), auth, meta, use_cache, mapreduce, filter, callback, timeout, caller)
 				
 	def _lb (self, *args, **karg):
 		return self._crest (False, *args, **karg)
@@ -233,16 +233,16 @@ class WAS:
 			return dbo	
 		return app_sqlphile.new (dbo)
 			
-	def _ddb (self, server, dbname = "", auth = None, dbtype = DB_PGSQL, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):
-		dbo = self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, auth, dbtype, meta, use_cache, False, filter, callback, timeout)
+	def _ddb (self, server, dbname = "", auth = None, dbtype = DB_PGSQL, meta = None, use_cache = True, filter = None, callback = None, timeout = 10, caller = None):
+		dbo = self.clusters_for_distcall ["__dbpool__"].Server (server, dbname, auth, dbtype, meta, use_cache, False, filter, callback, timeout, caller)
 		if dbtype in (DB_PGSQL, DB_SQLITE3):
 			return self._bind_sqlphile (dbo)
 		return dbo
 	
-	def _cddb (self, mapreduce = False, clustername = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):
+	def _cddb (self, mapreduce = False, clustername = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10, caller = None):
 		if mapreduce and callback: raise RuntimeError ("Cannot use callback with Map-Reduce")
 		cluster = self.__detect_cluster (clustername) [0]
-		dbo = cluster.Server (None, None, None, None, meta, use_cache, mapreduce, filter, callback, timeout)
+		dbo = cluster.Server (None, None, None, None, meta, use_cache, mapreduce, filter, callback, timeout, caller)
 		if cluster.cluster.dbtype in (DB_PGSQL, DB_SQLITE3):
 			return self._bind_sqlphile (dbo)
 		return dbo	
@@ -253,8 +253,8 @@ class WAS:
 	def _dmap (self, *args, **karg):
 		return self._cddb (True, *args, **karg)
 	
-	def _adb (self, dbtype, server, dbname = "", auth = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10):
-		return self._ddb (server, dbname, auth, dbtype, meta, use_cache, filter, callback, timeout)
+	def _adb (self, dbtype, server, dbname = "", auth = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10, caller = None):
+		return self._ddb (server, dbname, auth, dbtype, meta, use_cache, filter, callback, timeout, caller)
 	
 	def _alb (self, dbtype, *args, **karg):
 		return self._cddb (False, *args, **karg)

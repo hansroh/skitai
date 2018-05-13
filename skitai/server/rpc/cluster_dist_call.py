@@ -27,7 +27,7 @@ class OperationError (Exception):
 
 class Result (rcache.Result):
 	def __init__ (self, id, status, response, ident = None):
-		rcache.Result.__init__ (self, status, ident)		
+		rcache.Result.__init__ (self, status, ident)
 		self.node = id
 		self.__response = response
 		
@@ -37,7 +37,7 @@ class Result (rcache.Result):
 	def reraise (self):		
 		if self.status != 3:
 			self.__response.raise_for_status ()
-		
+			
 	def cache (self, timeout = 300):
 		if self.status != 3:
 			return
@@ -76,7 +76,7 @@ class Dispatcher:
 		self.ident = ident
 		self.filterfunc = filterfunc
 		self.cachefs = cachefs
-		self.callback = callback
+		self.callback = callback		
 		self.creation_time = time.time ()
 		self.status = 0		
 		self.result = None
@@ -164,6 +164,7 @@ class ClusterDistCall:
 		filter = None,
 		callback = None,
 		timeout = 10,
+		caller = None,
 		cachefs = None,
 		logger = None
 		):
@@ -181,6 +182,7 @@ class ClusterDistCall:
 		self._filter = filter
 		self._callback = callback
 		self._timeout = timeout
+		self._caller = caller
 		self._cachefs = cachefs
 		self._logger = logger
 	
@@ -414,6 +416,9 @@ class ClusterDistCall:
 			self._results.append (rs)
 			del self._requests [rs]
 	
+	def _fail_log (self):
+		self._logger ("backend failed, {} at {} LINE {}: {}".format (self._caller [3], self._caller [1], self._caller [2], self._caller [4][0].strip ()), "fail")
+		
 	def wait (self, timeout = DEFAULT_TIMEOUT, reraise = True):
 		self.getswait (timeout, reraise)
 		self._cached_result = None
@@ -426,7 +431,8 @@ class ClusterDistCall:
 			raise ValueError("Multiple results, use getswait")
 		self._cached_result = self._results [0].get_result ()
 		cache and self.cache (cache, cache_if)
-		reraise and self._cached_result.reraise ()
+		if self._cached_result != 3:
+			reraise and self._cached_result.reraise () or self._fail_log ()
 		return self._cached_result
 	
 	def getswait (self, timeout = DEFAULT_TIMEOUT, reraise = False, cache = None, cache_if = (200,)):
@@ -434,8 +440,7 @@ class ClusterDistCall:
 			return self._cached_result
 		self._wait (timeout)
 		rss = [rs.get_result () for rs in self._results]
-		if reraise:
-			[rs.reraise () for rs in rss]
+		[reraise and rs.reraise () or self._fail_log () for rs in rss if rs.status != 3]			
 		self._cached_result = Results (rss, ident = self._get_ident ())
 		cache and self.cache (cache, cache_if)
 		return self._cached_result
@@ -497,7 +502,7 @@ class ClusterDistCallCreator:
 	def __getattr__ (self, name):	
 		return getattr (self.cluster, name)
 		
-	def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = DEFAULT_TIMEOUT):
+	def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = DEFAULT_TIMEOUT, caller = None):
 		if is_main_thread () and not callback:
 			raise RuntimeError ('Should have callback in Main thread')
 		# reqtype: rpc, get, post, head, put, delete
@@ -508,8 +513,8 @@ class ClusterDistCallCreator:
 			headers = h
 		
 		if reqtype.endswith ("rpc"):
-			return Proxy (ClusterDistCall, self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, timeout, self.cachesfs, self.logger)
+			return Proxy (ClusterDistCall, self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.cachesfs, self.logger)
 		else:	
-			return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, timeout, self.cachesfs, self.logger)
+			return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.cachesfs, self.logger)
 		
 	

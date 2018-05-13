@@ -36,7 +36,7 @@ class Dispatcher:
 		self.id = id
 		self.ident = ident
 		self.filterfunc = filterfunc
-		self.callback = callback
+		self.callback = callback		
 		self.creation_time = time.time ()
 		self.status = 0
 		self.result = None
@@ -107,6 +107,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		filter,
 		callback,
 		timeout,
+		caller,
 		logger
 		):
 		
@@ -127,6 +128,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		self._filter = filter
 		self._callback = callback
 		self._timeout = timeout
+		self._caller = caller
 		self._mapreduce = mapreduce		
 		self._cluster = cluster
 		self._cached_request_args = None
@@ -211,9 +213,9 @@ class ClusterDistCallCreator:
 	def __getattr__ (self, name):	
 		return getattr (self.cluster, name)
 		
-	def Server (self, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10):
+	def Server (self, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
 		if cluster_dist_call.is_main_thread () and not callback:
 			raise RuntimeError ('Should have callback in Main thread')
-		return cluster_dist_call.Proxy (ClusterDistCall, self.cluster, server, dbname, auth, dbtype, meta, use_cache, mapreduce, filter, callback, timeout, self.logger)
+		return cluster_dist_call.Proxy (ClusterDistCall, self.cluster, server, dbname, auth, dbtype, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.logger)
 		
 		
