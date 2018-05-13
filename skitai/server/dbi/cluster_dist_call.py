@@ -107,7 +107,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		filter,
 		callback,
 		timeout,
-		caller,
+		origin,
 		logger
 		):
 		
@@ -128,7 +128,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		self._filter = filter
 		self._callback = callback
 		self._timeout = timeout
-		self._caller = caller
+		self._origin = origin
 		self._mapreduce = mapreduce		
 		self._cluster = cluster
 		self._cached_request_args = None

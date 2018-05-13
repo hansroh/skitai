@@ -18,6 +18,7 @@ from skitai import lifetime
 import asyncore
 from ...saddle.exceptions import HTTPError
 import sys
+import inspect
 
 DEFAULT_TIMEOUT = 10
 WAIT_POLL = False
@@ -164,7 +165,7 @@ class ClusterDistCall:
 		filter = None,
 		callback = None,
 		timeout = 10,
-		caller = None,
+		origin = None,
 		cachefs = None,
 		logger = None
 		):
@@ -182,7 +183,7 @@ class ClusterDistCall:
 		self._filter = filter
 		self._callback = callback
 		self._timeout = timeout
-		self._caller = caller
+		self._origin = origin
 		self._cachefs = cachefs
 		self._logger = logger
 	
@@ -415,10 +416,10 @@ class ClusterDistCall:
 			self._cluster.report (asyncon, False) # maybe dead
 			self._results.append (rs)
 			del self._requests [rs]
-	
+		
 	def _fail_log (self):
-		if self._caller:
-			self._logger ("backend failed, {} at {} LINE {}: {}".format (self._caller [3], self._caller [1], self._caller [2], self._caller [4][0].strip ()), "fail")
+		if self._origin:
+			self._logger ("backend failed, {} at {} LINE {}: {}".format (self._origin [3], self._origin [1], self._origin [2], self._origin [4][0].strip ()), "fail")			
 		
 	def wait (self, timeout = DEFAULT_TIMEOUT, reraise = True):
 		self.getswait (timeout, reraise)
@@ -433,7 +434,8 @@ class ClusterDistCall:
 		self._cached_result = self._results [0].get_result ()
 		cache and self.cache (cache, cache_if)
 		if self._cached_result != 3:
-			reraise and self._cached_result.reraise () or self._fail_log ()
+			self._fail_log (1)
+			reraise and self._cached_result.reraise ()
 		return self._cached_result
 	
 	def getswait (self, timeout = DEFAULT_TIMEOUT, reraise = False, cache = None, cache_if = (200,)):
@@ -441,12 +443,16 @@ class ClusterDistCall:
 			return self._cached_result
 		self._wait (timeout)
 		rss = [rs.get_result () for rs in self._results]
-		[reraise and rs.reraise () or self._fail_log () for rs in rss if rs.status != 3]			
+		for rs in rss:
+			if rs.status == 3:
+				continue		
+			self._fail_log ()
+			reraise and rs.reraise ()							
 		self._cached_result = Results (rss, ident = self._get_ident ())
 		cache and self.cache (cache, cache_if)
 		return self._cached_result
 	
-	def _or_throw (self, func, status, timeout, cache):	
+	def _or_throw (self, func, status, timeout, cache):
 		try:
 			response = func (timeout, reraise =True, cache = cache)
 		except:
