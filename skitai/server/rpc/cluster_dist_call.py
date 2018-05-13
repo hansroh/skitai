@@ -417,7 +417,8 @@ class ClusterDistCall:
 			del self._requests [rs]
 	
 	def _fail_log (self):
-		self._logger ("backend failed, {} at {} LINE {}: {}".format (self._caller [3], self._caller [1], self._caller [2], self._caller [4][0].strip ()), "fail")
+		if self._caller:
+			self._logger ("backend failed, {} at {} LINE {}: {}".format (self._caller [3], self._caller [1], self._caller [2], self._caller [4][0].strip ()), "fail")
 		
 	def wait (self, timeout = DEFAULT_TIMEOUT, reraise = True):
 		self.getswait (timeout, reraise)
