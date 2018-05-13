@@ -434,7 +434,7 @@ class ClusterDistCall:
 		self._cached_result = self._results [0].get_result ()
 		cache and self.cache (cache, cache_if)
 		if self._cached_result != 3:
-			self._fail_log (1)
+			self._fail_log ()
 			reraise and self._cached_result.reraise ()
 		return self._cached_result
 	
