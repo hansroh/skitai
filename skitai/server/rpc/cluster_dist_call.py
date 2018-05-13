@@ -417,9 +417,9 @@ class ClusterDistCall:
 			self._results.append (rs)
 			del self._requests [rs]
 		
-	def _fail_log (self):
+	def _fail_log (self, status):
 		if self._origin:
-			self._logger ("backend failed, {} at {} LINE {}: {}".format (self._origin [3], self._origin [1], self._origin [2], self._origin [4][0].strip ()), "fail")			
+			self._logger ("backend status is {}, {} at {} LINE {}: {}".format (status, self._origin [3], self._origin [1], self._origin [2], self._origin [4][0].strip ()), "fail")			
 		
 	def wait (self, timeout = DEFAULT_TIMEOUT, reraise = True):
 		self.getswait (timeout, reraise)
@@ -433,8 +433,8 @@ class ClusterDistCall:
 			raise ValueError("Multiple results, use getswait")
 		self._cached_result = self._results [0].get_result ()
 		cache and self.cache (cache, cache_if)
-		if self._cached_result != 3:
-			self._fail_log ()
+		if self._cached_result.status != 3:
+			self._fail_log (self._cached_result.status)
 			reraise and self._cached_result.reraise ()
 		return self._cached_result
 	
@@ -446,7 +446,7 @@ class ClusterDistCall:
 		for rs in rss:
 			if rs.status == 3:
 				continue		
-			self._fail_log ()
+			self._fail_log (rs.status)
 			reraise and rs.reraise ()							
 		self._cached_result = Results (rss, ident = self._get_ident ())
 		cache and self.cache (cache, cache_if)
