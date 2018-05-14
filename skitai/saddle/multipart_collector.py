@@ -69,7 +69,7 @@ class File:
 class Part:
 	def __init__ (self, header, max_size):		
 		if type (header) is not type ([]):
-			header = header.split ("\r\n")
+			header = header.split ("\r\n")			
 		self.header =	header
 		self.max_size = max_size		
 		self.value = b""
