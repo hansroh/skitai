@@ -77,7 +77,7 @@ class AppBase:
         return self.joinpath ("resources", *args)
     
     def joinpath (self, *args):    
-        return os.path.join (self.home, *args)
+        return os.path.normpath (os.path.join (self.home, *args))
                     
     def set_mount_point (self, mount):    
         if not mount:
@@ -161,6 +161,7 @@ class AppBase:
         for module in self.reloadables:
             if hasattr (module, "dettach"):
                 module.dettach (self)
+                self.log ("decorative, %s dettached" % module.__file__, "debug")
     
     def watch (self, module):
         if hasattr (module, "decorate"):
@@ -198,7 +199,7 @@ class AppBase:
                 continue
                 
             if self.reloadables [module] != fi:
-                self.log ("reloading decorative, %s" % module.__file__, "info")
+                self.log ("reloading decorative, %s" % module.__file__, "debug")
                 self._current_function_specs = {}
                 if hasattr (module, "dettach"):
                     module.dettach (self)
