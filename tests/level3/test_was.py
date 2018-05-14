@@ -49,9 +49,12 @@ def test_was (wasc, app, client):
         assert was.partial (each, a = "vans") == "/{}/hans?a=vans".format (each)
         assert was.partial (each, b = 3) in ("/{}/hans?b=3&a=roh".format (each), "/{}/hans?a=roh&b=3".format (each))
         
-    assert was.urlfor ("index6") == "/do6/hansroh"
+    assert was.urlfor ("index6") == "/do6"
     assert was.urlfor ("index6", "jenny") == "/do6/jenny"
     assert was.urlfor ("index6", u = "jenny") == "/do6/jenny"
+    assert was.urlfor ("index6") == "/do6"
+    was.request.args = {"u": "hans"}
+    assert was.partial ("index6") == "/do6/hans"
     
     assert was.gentemp ().startswith ("/var/tmp")
     

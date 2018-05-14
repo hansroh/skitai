@@ -2678,33 +2678,39 @@ You can set default value to id,
 
   @app.route ("/episode/<int:id>", methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"])
   def episode (was, id = None):
-    if was.request.method == "POST":
+    if was.request.method == "POST" and id is None:
       ...
       return was.response.API (id = new_id)
     return ...
 
-It makes this URL working, because POST method usaully means create new resource. 
+It makes this URL working, 
 
 .. code:: bash
 
-  POST http://127.0.0.1:5000/episode
+  http://127.0.0.1:5000/episode
 
-Note that this URL working only for POST method, And you can add another function for GET etc.
+And was.ab will behaive like as below,
+
+.. code:: bash
+
+  was.ab ("episode")
+  >> /episode
+  
+ was.ab ("episode", 100)
+  >> /episode/100
+
+*Note* that this does not works for root resource,
 
 .. code:: python
-  
-  @app.route ("/episode", methods = ["GET", "PUT", "DELETE", "OPTIONS"])
+
+  @app.route ("/<int:id>", methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"])
   def episode (was, id = None):
-    ...
-      
-  @app.route ("/episode/<int:id>", methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-  def episode (was, id = None):
-    if was.request.method == "POST":
+    if was.request.method == "POST" and id is None:
       ...
       return was.response.API (id = new_id)
     return ...
 
-It is a little unorthodox but by my personal experience, it is convinient to handle in same function.
+By above code, http://127.0.0.1:5000/ will not work. You should define "/" route. 
 
 
 Query String Parameters

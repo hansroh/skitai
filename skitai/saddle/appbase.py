@@ -64,6 +64,7 @@ class AppBase:
         self._jinja2_filters = {}
         self._template_globals = {}
         self._function_specs = {}
+        self._current_function_specs = {}
         self._function_names = {}
         self._conditions = {}
         self._need_authenticate = None
@@ -165,7 +166,7 @@ class AppBase:
         if hasattr (module, "decorate"):
             params = self.decorating_params.get (module, {})
             if params.get ("debug_only") and not self.debug:
-                return                   
+                return
             # for app decoratives
             setattr (module, "__options__", params)
             # for app initialzing and reloading
@@ -188,7 +189,7 @@ class AppBase:
         if time.time () - self.last_reloaded < 1.0:
             return
         
-        self._reloading = True    
+        self._reloading = True
         for module in list (self.reloadables.keys ()):
             try:
                 fi = self.get_file_info (module)
@@ -198,13 +199,14 @@ class AppBase:
                 
             if self.reloadables [module] != fi:
                 self.log ("reloading decorative, %s" % module.__file__, "info")
+                self._current_function_specs = {}
                 if hasattr (module, "dettach"):
                     module.dettach (self)
                 with self.lock:
                     newmodule = reload (module)
                     del self.reloadables [module]
-                    self.watch (newmodule)                
-        
+                    self.watch (newmodule)
+                    
         self.load_jinja_filters ()
         self.last_reloaded = time.time ()        
         self._reloading = False
@@ -217,9 +219,10 @@ class AppBase:
         # save original function spec for preventing distortion by decorating wrapper
         # all wrapper has *args and **karg but we want to keep original function spec for auto parametering call
         func_id = self.get_func_id (func)
-        if func_id not in self._function_specs:
+        if func_id not in self._function_specs or func_id not in self._current_function_specs:
             # save origin spec
             self._function_specs [func_id] = inspect.getargspec(func)
+            self._current_function_specs [func_id] = None
     
     def get_function_spec (self, func):        
         # called by websocet_handler 
@@ -559,11 +562,6 @@ class AppBase:
             raise NameError ("{} not found".format (str (thing)))    
         
         func, name, fuvars, favars, numvars, str_rule, options = proto
-        if "argspec" in options:
-            fuvars, favars, numvars = options ["argspec"]
-            if len (args):
-                n, t = favars[0]
-                str_rule += "/<{}{}>".format (t != "string" and (t + ":") or "", favars[0][0])
         
         if script_name_only:
             url = str_rule
@@ -573,7 +571,7 @@ class AppBase:
                     url = url [:s]
             return self.urlfor (url)
         
-        params = {}        
+        params = {}
         try:
             currents = kargs.pop ("__defaults__")
         except KeyError:
@@ -583,14 +581,25 @@ class AppBase:
                 if k in fuvars:
                     params [k] = v
         
+        if "argspec" in options:
+            fuvars, favars, numvars = options ["argspec"]
+            if len (args) or favars [0][0] in kargs or favars [0][0] in params:
+                n, t = favars[0]
+                str_rule += "/<{}{}>".format (t != "string" and (t + ":") or "", favars[0][0])
+        
+        function_args = options.get ("args", [])
+        has_kargs = options.get ("keywords")
+        
         for i in range (len (args)):
             try:
-                name = fuvars [i]
+                name = function_args [i]
             except IndexError:
-                name = favars [i][0]
+                raise ValueError ("too many parameters")
             params [name] = args [i]
-         
+        
         for k, v in kargs.items ():
+            if not has_kargs and k not in function_args:
+                raise ValueError ("parameter {} is not allowed".format (k))
             params [k] = v
         
         url = str_rule
@@ -669,9 +678,10 @@ class AppBase:
         except KeyError:
             fspec =  inspect.getargspec(func)            
             self._function_names [id (func)] = func_id
-                        
+        
+        if fspec.varargs is not None:
+            raise ValueError ("var args is not allowed")                
         options ["args"] = fspec.args [1:]
-        options ["varargs"] = fspec.varargs
         options ["keywords"] = fspec.keywords
         
         if fspec.defaults:
@@ -731,13 +741,11 @@ class AppBase:
             resource = self.route_map_fancy [prefix][re_rule]
             proto = (func, func.__name__, func.__code__.co_varnames [1:func.__code__.co_argcount], tuple (rulenames), func.__code__.co_argcount - 1, s_rule, options)
             
-            if len (rulenames) == 1 and s_rule [-1] == ">" and rulenames [0][0] in options.get ("defaults", {}):
-                if "POST" in options.get ("methods", []):
-                    options_ = copy.copy (options)
-                    options_ ["methods"] = ["POST"]
-                    options_ ["argspec"] = proto [2:5]
-                    self.add_route (s_rule [:s], func, **options_)
-                    
+            if s > 0 and len (rulenames) == 1 and s_rule [-1] == ">" and rulenames [0][0] in options.get ("defaults", {}):            
+                options_ = copy.copy (options)            
+                options_ ["argspec"] = proto [2:5]
+                self.add_route (s_rule [:s], func, **options_)
+                
             self._route_priority.append ((prefix, re_rule))
             self._route_priority.sort (key = lambda x: len (x [0]), reverse = True)
         
