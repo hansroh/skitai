@@ -222,11 +222,11 @@ class http_response:
 		
 		error = {}
 		if self.request.get_header ('accept', '').find ("application/json") != -1:			
-			message = why or self.get_status ()
-			code = 10000
+			message = why or self.get_status ().lower () [4:]
+			code = int (self.reply_code) * 100
 			debug = None
 			if exc_info:
-				code = 10001
+				code = int (self.reply_code) * 100 + 90
 				debug = 'see traceback' 
 			return self.fault (message, code, debug, exc_info = exc_info)
 		

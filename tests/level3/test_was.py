@@ -51,8 +51,7 @@ def test_was (wasc, app, client):
         
     assert was.urlfor ("index6") == "/do6"
     assert was.urlfor ("index6", "jenny") == "/do6/jenny"
-    assert was.urlfor ("index6", u = "jenny") == "/do6/jenny"
-    assert was.urlfor ("index6") == "/do6"
+    assert was.urlfor ("index6", u = "jenny") == "/do6/jenny"    
     was.request.args = {"u": "hans"}
     assert was.partial ("index6") == "/do6/hans"
     
