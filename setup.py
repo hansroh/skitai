@@ -38,11 +38,8 @@ classifiers = [
 	'Environment :: No Input/Output (Daemon)',
 	'Topic :: Internet',
 	'Topic :: Software Development :: Libraries :: Python Modules',
-	'Intended Audience :: Developers',
-	'Programming Language :: Python',	
+	'Intended Audience :: Developers',	
 	'Programming Language :: Python :: 3',
-	'Programming Language :: Python :: 3.4',
-	'Programming Language :: Python :: 3.5',
 ]
 
 packages = [
