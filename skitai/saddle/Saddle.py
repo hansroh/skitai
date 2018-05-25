@@ -347,7 +347,8 @@ class Saddle (appbase.AppBase):
             if allowed_types and content_type not in allowed_types:
                 return current_app, None, None, options, 415 # unsupported media type
             
-            if command == "OPTIONS":                
+            if command == "OPTIONS":								
+                allowed_methods = options.get ("methods", [])
                 request_method = request.get_header ("Access-Control-Request-Method")
                 if request_method and request_method not in allowed_methods:
                     return current_app, None, None, options, 405 # method not allowed
