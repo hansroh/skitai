@@ -5128,10 +5128,16 @@ Links
 
 Change Log
 ===========
+ 
+- 0.27.2 (May 2018)
+
+  - add was.request.get_real_ip () and was.request.is_private_ip ()
+  - fix CORS preflight
   
-0.26 (May 2017)
-
-
+- 0.27.1 (May 2018)
+  
+  - sqlphile bug fixed and change requirements  
+  
 - 0.27 (Apr 2018)
   
   - add app.setup_sqlphile ()
@@ -5150,6 +5156,8 @@ Change Log
   - raise NameError when non-exists funtion name to was.ap
   - fix default arg is missing on was.ab
   - add skitai.launch and saddle.make_client for unittest
+
+0.26 (May 2017)
   
 - 0.26.18 (Jan 2018)
     
