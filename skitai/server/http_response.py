@@ -458,7 +458,7 @@ class http_response:
 	def log (self, bytes):
 		server = self.request.channel.server		
 		referer = self.request.get_header ('referer')
-		forwared_for = self.request.get_header ('x-forwarded-for')
+		real_ip = self.request.get_real_ip ()
 		worker_id = server.worker_ident [8:]
 		worker = worker_id and ("W" + worker_id) or "M"
 			
@@ -483,7 +483,7 @@ class http_response:
 			
 			referer and '"' + referer + '"' or "-",
 			self.request.user_agent and '"' + self.request.user_agent + '"' or "-",
-			forwared_for or '-',
+			real_ip != self.request.channel.addr[0] and real_ip or '-',
 			
 			worker,
 			len (asyncore.socket_map),
