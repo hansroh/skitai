@@ -375,10 +375,12 @@ class AppBase:
         self._decos ["permission_check_handler"] = f
         return f
     
-    def permission_required (self, p):
+    def permission_required (self, *p):
         def decorator(f):
             self.save_function_spec (f)
-            self._permission_map [f] = isinstance (p, str) and [p] or p
+            if len (p) == 1 and isinstance (p [0], (list, tuple)):
+                p = p [0]
+            self._permission_map [f] = p
             @wraps(f)
             def wrapper (was, *args, **kwargs):
                 _funcs = self._decos.get ("permission_check_handler")
