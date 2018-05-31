@@ -5,12 +5,11 @@ import sys, os, getopt
 from skitai import lifetime
 from aquests.lib import pathtool, logger, confparse
 from aquests.lib.athreads import select_trigger
-from aquests.lib.pmaster import daemon as demonizer
+from aquests.lib.pmaster import daemon as demonizer, service, daemon_class
 from aquests.protocols.smtp import async_smtp, composer
 import signal
 import time
 import glob
-from skitai.server.wastuff import daemon
 
 def hTERM (signum, frame):			
 	lifetime.shutdown (0, 30.0)
@@ -21,7 +20,7 @@ def hKILL (signum, frame):
 def hHUP (signum, frame):			
 	lifetime.shutdown (3, 30.0)
 
-class	SMTPDeliverAgent (daemon.Daemon):
+class	SMTPDeliverAgent (daemon_class.DaemonClass):
 	CONCURRENTS = 2
 	MAX_RETRY = 10
 	UNDELIVERS_KEEP_MAX = 2592000
@@ -30,7 +29,7 @@ class	SMTPDeliverAgent (daemon.Daemon):
 	def __init__ (self, config, logpath, varpath, consol):
 		self.que = {}
 		self.actives = {}
-		daemon.Daemon.__init__ (self, config, logpath, varpath, consol)
+		daemon_class.DaemonClass.__init__ (self, config, logpath, varpath, consol)
 	
 	def clean_shutdown_control (self, phase, time_in_this_phase):
 		if phase == 1:
@@ -40,17 +39,14 @@ class	SMTPDeliverAgent (daemon.Daemon):
 		self.logger ("service %s stopped" % self.NAME)
 						
 	def run (self):
-		self.logger ("service %s started" % self.NAME)
+		self.logger ("service %s started" % self.NAME)	
 		try:
-			try:
-				lifetime.loop (3.0)
-			except KeyboardInterrupt:
-				pass	
-			except:
-				self.logger.trace ()
-		finally:
-			self.close ()		
-	
+			lifetime.loop (3.0)
+		except KeyboardInterrupt:
+			pass	
+		except:
+			self.logger.trace ()
+		
 	def setup (self):
 		self.make_logger ()
 		self.bind_signal (hTERM, hKILL, hHUP)
@@ -77,12 +73,12 @@ class	SMTPDeliverAgent (daemon.Daemon):
 			select_trigger.trigger.address = ('127.9.9.9', 19998)
 		select_trigger.trigger ()
 		
-		self.path_spool = os.path.join (self.varpath, "smtpda",  "mail", "spool")
+		self.path_spool = os.path.join (self.varpath, "mail", "spool")
 		self.logger ("mail spooled in {}".format (self.path_spool), "info")
 		pathtool.mkdir (self.path_spool)
 		composer.Composer.SAVE_PATH = self.path_spool
 		
-		self.path_undeliver = os.path.join (self.varpath, "smtpda", "mail", "undeliver")
+		self.path_undeliver = os.path.join (self.varpath, "mail", "undeliver")
 		self.logger ("undelivered mail saved in {}".format (self.path_undeliver), "info")
 		pathtool.mkdir (self.path_undeliver)
 		
@@ -199,36 +195,30 @@ def main ():
 	
 	_consol = "no"
 	_cf = {"max-retry": 3, "keep-days": 3, "ssl": 0}
-	_logpath, _varpath = None, None
 	fileopt = []
 	cf = None
-	for k, v in argopt [0]:
-		if k == "--var-path":
-			_varpath = v			
-			break
-		
-	if not _varpath:
-		_varpath = _default_var_dir
-		if os.path.isfile (_default_conf):
-			cf = confparse.ConfParse (_default_conf)
-			cf.setopt ("smtpda", "log-path", _default_log_dir)		
-			cf.setopt ("smtpda", "process-display-name", "skitai")
-			fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("smtpda").items () if v not in ("", "false", "no")]))					
-		else:
-			print ("error: \n  no configuration is given \n  check ~/.skitai.conf.example or run by skitai.enable_smtpda()")
-			exit (1)
-					
-	argopt = demonizer.handle_commandline (argopt, _varpath or _default_var_dir, "skitai")	
+	_logpath = os.path.join (_default_log_dir, SMTPDeliverAgent.NAME)
+	_varpath = os.path.join (_default_var_dir, SMTPDeliverAgent.NAME)
+	if os.path.isfile (_default_conf):
+		cf = confparse.ConfParse (_default_conf)
+		cf.setopt ("smtpda", "log-path", _default_log_dir)		
+		cf.setopt ("smtpda", "process-display-name", "skitai")
+		fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("smtpda").items () if v not in ("", "false", "no")]))					
+	else:
+		print ("error: \n  no configuration is given \n  check ~/.skitai.conf.example or run by skitai.enable_smtpda()")
+		exit (1)
+	
+	try: cmd = argopt [1][0]
+	except: cmd = None
+	
 	for k, v in (fileopt + argopt [0]):
 		if k == "--help" or k == "-h":
 			usage ()
 			sys.exit ()		
 		elif k == "--verbose" or k == "-v":
 			_consol = "yes"
-		elif k == "--log-path":	
-			_logpath = v
-		elif k == "--var-path":	
-			_varpath = v
+		elif k == "-d":
+			cmd = "start"	
 		elif k == "--max-retry":	
 			_cf ['max-retry'] = int (v)
 		elif k == "--keep-days":	
@@ -241,15 +231,18 @@ def main ():
 			_cf ['password'] = v	
 		elif k == "--ssl":	
 			_cf ['ssl'] = 1		
-		elif k == "--pname" or k == "--process-display-name":	
-			_cf ['pname'] = v
 	
-	service = daemon.make_service (SMTPDeliverAgent, _cf, _logpath, _varpath, _consol)
+	if cmd in ("start", "restart") and '-v' in  argopt [0]:
+		raise SystemError ('Daemonizer cannot be run with -v, It is meaningless')	
+	servicer = service.Service ("skitai/{}".format (SMTPDeliverAgent.NAME), _varpath, _varpath)
+	if cmd and not servicer.execute (cmd):
+		return
+		
+	s = daemon_class.make_service (SMTPDeliverAgent, _cf, _logpath, _varpath, _consol)
 	try:
-		service.run ()
-	finally:	
-		if _consol not in ("1", "yes", "true"):
-			sys.stderr.close ()	
+		s.run ()
+	finally:
+		s.close ()
 		sys.exit (lifetime._exit_code)
 
 

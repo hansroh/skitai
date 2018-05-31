@@ -8,13 +8,14 @@ import threading
 import sys, os
 import h2
 from aquests.lib import versioning
+from aquests.lib.pmaster import service
 from aquests.lib.attrdict import AttrDict
 from aquests.protocols.dns import asyndns
 from importlib import machinery
-from .server.wastuff import process, daemon	as wasdaemon
 from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from .launcher import launch
 from aquests.protocols.smtp import composer
+import tempfile
 
 PROTO_HTTP = "http"
 PROTO_HTTPS = "https"
@@ -107,7 +108,7 @@ def start_was (wasc):
 #------------------------------------------------
 # Configure
 #------------------------------------------------
-dconf = {'mount': {"default": []}, 'clusters': {}, 'cron': [], 'max_ages': {}, 'log_off': [], 'dns_protocol': 'tcp'}
+dconf = {'mount': {"default": []}, 'clusters': {}, 'max_ages': {}, 'log_off': [], 'dns_protocol': 'tcp'}
 
 def pref (preset = False):
 	from .saddle.Saddle import Config
@@ -116,12 +117,19 @@ def pref (preset = False):
 	d.config = Config (preset)
 	return d
 
-def get_proc_title ():
-	a, b = os.path.split (os.path.join (os.getcwd (), sys.argv [0]))
-	return "skitai(%s/%s)" % (
-		os.path.basename (a),
-		b.split(".")[0]
-	)
+PROCESS_NAME = None
+def get_proc_title ():	
+	global PROCESS_NAME
+	
+	if PROCESS_NAME is None:
+		a, b = os.path.split (os.path.join (os.getcwd (), sys.argv [0]))
+		script = b.split(".")[0]
+				
+		PROCESS_NAME =  "skitai/%s%s" % (
+			os.path.basename (a),
+			script != "app" and "-" + script or ''
+		)
+	return PROCESS_NAME	
 	
 def getswd ():
 	return os.path.dirname (os.path.join (os.getcwd (), sys.argv [0]))
@@ -246,10 +254,6 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
 		dconf ['mount'][host].append ((point,  (target, appname), pref))
 		
 mount_django = mount
-	
-def cron (sched, cmd):
-	global dconf
-	dconf ["cron"].append ('%s %s' % (sched, cmd))
 
 def enable_forward (forward_to = 443, port = 80, ip = ""):
 	global dconf
@@ -338,8 +342,7 @@ def enable_proxy (unsecure_https = False):
 
 def enable_file_logging (path = None):
 	global dconf
-	if not path:
-		dconf ['logpath'] = wasdaemon.get_default_logpath ()
+	dconf ['logpath'] = path
 	
 def enable_blacklist (path):
 	global dconf
@@ -350,17 +353,14 @@ def enable_ssl (certfile, keyfile, passphrase):
 	dconf ["certfile"] = certfile
 	dconf ["keyfile"] = keyfile
 	dconf ["passphrase"] = passphrase
-	
-def enable_smtpda (server = None, user = None, password = None, ssl = None, max_retry = None, keep_days = None):
-	global dconf
-	smtpda = {}
-	if server: smtpda ["server"] = server
-	if user: smtpda ["user"] = user
-	if password: smtpda ["password"] = password
-	if ssl: smtpda ["ssl"] = ssl
-	if max_retry: smtpda ["max-retry"] = max_retry
-	if keep_days: smtpda ["keep-days"] = keep_days
-	dconf ["smtpda"] = smtpda
+
+def get_varpath (name):
+	name = name.split ("/", 1)[-1].replace (":", "-").replace (" ", "-")
+	return os.name == "posix" and '/var/tmp/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
+
+def get_logpath (name):	
+	name = name.split ("/", 1)[-1].replace (":", "-").replace (" ", "-")	
+	return os.name == "posix" and '/var/log/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
 	
 def run (**conf):
 	import os, sys, time
@@ -406,44 +406,6 @@ def run (**conf):
 			
 			Skitai.Loader.close (self)
 			
-		def create_process (self, name, args, karg):
-			argsall = []
-			karg ['pname'] = get_proc_title ()
-			karg ['var-path'] = self.varpath
-			if self.conf.get ("logpath"):
-				karg ['log-path'] = self.conf.get ("logpath")
-			if self.conf.get ("verbose", "no") in ("yes", 1, "1"):
-				karg ['verbose'] = "yes"
-			
-			if karg:
-				for k, v in karg.items ():
-					if len (k) == 1:
-						h = "-"
-					else:
-						h = "--"
-					if v is None:
-						argsall.append ('%s%s' % (h, k))
-					else:
-						argsall.append ('%s%s "%s"' % (h, k, str (v).replace ('"', '\\"')))
-			
-			if args:
-				for each in args:
-					argsall.append ('"%s"' % each.replace ('"', '\\"'))
-								
-			cmd = "%s %s %s" % (
-				sys.executable, 
-				"{}skitai-{}".format (os.name == "posix" and "/usr/local/bin/" or "", name), 
-				" ".join (argsall)
-			)
-			
-			self.children.append (
-				process.Process (
-					cmd, 
-					name,
-					self.varpath
-				)
-			)
-			
 		def config_logger (self, path):
 			media = []
 			if path is not None:
@@ -457,15 +419,6 @@ def run (**conf):
 			Skitai.Loader.config_logger (self, path, media, self.conf ["log_off"])
 		
 		def master_jobs (self):
-			smtpda = self.conf.get ('smtpda')
-			if smtpda is not None:
-				self.create_process ('smtpda', [], smtpda)				
-				composer.Composer.SAVE_PATH = os.path.join (self.varpath, "smtpda", "mail", "spool")
-				
-			cron = self.conf.get ('cron')
-			if cron:
-				self.create_process ('cron', cron, {})
-			
 			self.wasc.logger ("server", "[info] engine tmp path: %s" % self.varpath)
 			if self.logpath:
 				self.wasc.logger ("server", "[info] engine log path: %s" % self.logpath)
@@ -544,69 +497,27 @@ def run (**conf):
 			if os.name == "nt":
 				lifetime.maintern.sched (11.0, self.maintern_shutdown_request)								
 				self.flock = flock.Lock (os.path.join (self.varpath, ".%s" % self.NAME))
-			
-	#----------------------------------------------------------------------------
-	if os.name == "nt":
-		import win32serviceutil
-		
-		def set_service_config (argv = []):
-			global Win32Service			
-			#sys.stdout = sys.stderr = open (r"D:\apps\skitai\examples\err.log", "a")
-			argv.insert (0, "")			
-			script = os.path.join (os.getcwd (), sys.argv [0])
-			win32serviceutil.HandleCommandLine(Win32Service, "%s.%s" % (script [:-3], Win32Service.__name__), argv)
-				
-		def install (working_dir):
-			set_service_config (['--startup', 'auto', 'install'])
-	
-		def remove (working_dir):
-			set_service_config (['remove'])
-		
-		def update (working_dir):
-			set_service_config (['update'])
-				
-	def start (working_dir, lockpath):
-		if os.name == "nt":
-			set_service_config (['start'])
-		else:	
-			from aquests.lib.pmaster import Daemonizer
-			if not Daemonizer (working_dir, 'skitai', lockpath = lockpath).runAsDaemon ():
-				print ("already running")
-				sys.exit ()
-			
-	def stop (lockpath):
-		if os.name == "nt":			
-			set_service_config (['stop'])
-		else:	
-			from aquests.lib.pmaster import daemon
-			daemon.kill (lockpath, 'skitai', True)
-	
-	def status (lockpath, verbose = True):
-		from aquests.lib.pmaster import daemon
-		pid = daemon.status (lockpath, 'skitai')
-		if verbose:
-			if pid:
-				print ("running [%d]" % pid)
-			else:
-				print ("stopped")
-		return pid	
 	
 	#----------------------------------------------------------------------------
 	
-	global dconf
+	global dconf, PROCESS_NAME, Win32Service
 	
 	for k, v in dconf.items ():
 		if k not in conf:
 			conf [k] = v
+	
+	if conf.get ("name"):
+		PROCESS_NAME = 'skitai/{}'.format (conf ["name"])
 				
 	if not conf.get ('mount'):
 		raise systemError ('No mount point')
 	
 	argopt = getopt.getopt(sys.argv[1:], "vfdsr", [])	
-	conf ["varpath"] = wasdaemon.get_default_varpath ()
+	conf ["varpath"] = get_varpath (get_proc_title ())
+	if "logpath" in conf and not conf ["logpath"]:
+		conf ["logpath"] = get_logpath (get_proc_title ())
+		 
 	pathtool.mkdir (conf ["varpath"])
-	working_dir = getswd ()
-	
 	try: cmd = argopt [1][0]
 	except: cmd = None
 	karg = {}
@@ -619,66 +530,32 @@ def run (**conf):
 	if cmd in ("start", "restart") and '-v' in karg:
 		raise SystemError ('Daemonizer cannot be run with -v, It is meaningless')
 	
-	lockpath = conf ["varpath"] 		
-	if cmd == "stop":
-		return stop (lockpath)
-	elif cmd == "status":
-		return status (lockpath)
-	elif cmd == "start":
-		start (working_dir, lockpath)		
-	elif cmd == "install":	
-		install (working_dir)
-	elif cmd == "update":	
-		update ()
-	elif cmd == "remove":	
-		remove (working_dir)	
-	elif cmd == "restart":
-		stop (lockpath)		
-		time.sleep (2)
-		start (working_dir, lockpath)
-	elif cmd:
-		print ('unknown command: %s' % cmd)
-		return
+	working_dir = getswd ()
+	lockpath = conf ["varpath"]
+	servicer = service.Service (get_proc_title(), working_dir, lockpath, Win32Service)
 	
-	if cmd and os.name == "nt":
+	if cmd and not servicer.execute (cmd):
 		return
 				
-	verbose = 0
 	if '-v' in karg:
-		verbose = 1
-	
-	if "-f" in karg:
-		if os.name != "nt":
-			 raise SystemError ('-v option is needed only on win32')
-		# failsafe run
-		from . import failsafer
-		failsafer.Service (
-			"%s %s %s" % (sys.executable, os.path.join (os.getcwd (), sys.argv [0]), verbose and '-v' or ''),
-			conf.get ('logpath'),
-			conf.get ('varpath'),
-			'-v' in karg
-		).run ()
-	
+		conf ['verbose'] = 'yes'
 	else:
-		os.chdir (working_dir)
-		if verbose:
-			conf ['verbose'] = 'yes'
-		else:
-			sys.stderr = open (os.path.join (conf.get ('varpath'), "stderr.engine"), "a")	
-		server = SkitaiServer (conf)
-		# timeout for fast keyboard interrupt on win32	
+		sys.stderr = open (os.path.join (conf.get ('varpath'), "stderr.engine"), "a")	
+	
+	server = SkitaiServer (conf)
+	# timeout for fast keyboard interrupt on win32	
+	try:
 		try:
-			try:
-				server.run (conf.get ('verbose') and 2.0 or 30.0)
-			except KeyboardInterrupt:
-				pass	
+			server.run (conf.get ('verbose') and 2.0 or 30.0)
+		except KeyboardInterrupt:
+			pass	
+	
+	finally:	
+		_exit_code = server.get_exit_code ()
+		if _exit_code is not None: # master process				
+			sys.exit (_exit_code)
+		else: 
+			# worker process				
+			# for avoiding multiprocessing.manager process's join error
+			os._exit (lifetime._exit_code)
 		
-		finally:	
-			_exit_code = server.get_exit_code ()
-			if _exit_code is not None: # master process				
-				sys.exit (_exit_code)
-			else: 
-				# worker process				
-				# for avoiding multiprocessing.manager process's join error
-				os._exit (lifetime._exit_code)
-			
