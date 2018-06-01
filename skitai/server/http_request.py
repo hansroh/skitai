@@ -234,13 +234,24 @@ class http_request:
 	def get_user_agent (self):
 		return self.get_header ("user-agent")
 	
-	MAYBE_BACKENDS = ("127.0.0.", "192.168.")
+	def is_private_ip (self):
+		ip = self.channel.addr [0]
+		if ip [:8] in ("127.0.0.", "192.168."):
+			return True
+		if ip [:3] == "10.":
+			return True		
+		if ip [:4] == "172."and 16 <= int (ip [4:].split (".", 1)[0]) < 32:
+				return True
+	
+	def get_real_ip (self):
+		ips = self.get_header ("X-Forwarded-For")
+		if not ips:						
+			return self.channel.addr [0]
+		return ips.split (",", 1)[0].strip ()
+		
 	def get_remote_addr (self):
-		remote_addr = self.channel.addr [0]
-		if remote_addr [:8] in self.MAYBE_BACKENDS:
-			return self.get_header ("X-Forwarded-For", "")
-		return remote_addr
-			
+		return self.channel.addr [0]
+
 	def collect_incoming_data (self, data):
 		if self.collector:
 			self.rbytes += len (data)
