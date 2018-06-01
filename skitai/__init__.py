@@ -528,7 +528,7 @@ def run (**conf):
 		else: karg [k] = v
 	
 	if cmd in ("start", "restart") and '-v' in karg:
-		raise SystemError ('Daemonizer cannot be run with -v, It is meaningless')
+		karg.pop (karg.index ("-v"))
 	
 	working_dir = getswd ()
 	lockpath = conf ["varpath"]
@@ -536,8 +536,9 @@ def run (**conf):
 	
 	if cmd and not servicer.execute (cmd):
 		return
-				
 	if '-v' in karg:
+		if servicer.status (False):
+			raise SystemError ("daemon is running")
 		conf ['verbose'] = 'yes'
 	else:
 		sys.stderr = open (os.path.join (conf.get ('varpath'), "stderr.engine"), "a")	

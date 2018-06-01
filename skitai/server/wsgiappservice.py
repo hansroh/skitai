@@ -336,7 +336,7 @@ class WAS:
 	
 	def email (self, subject, snd, rcpt):
 		if composer.Composer.SAVE_PATH is None:
-			composer.Composer.SAVE_PATH = os.path.join ("/var/tmp/skitai", "smtpda", "mail", "spool")
+			composer.Composer.SAVE_PATH = os.path.join ("/var/tmp/skitai", "smtpda", "spool")
 			pathtool.mkdir (composer.Composer.SAVE_PATH)
 		return composer.Composer (subject, snd, rcpt)
 	

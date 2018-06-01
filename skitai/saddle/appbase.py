@@ -376,10 +376,10 @@ class AppBase:
         return f
     
     def permission_required (self, *p):
+        if len (p) == 1 and isinstance (p [0], (list, tuple)):
+            p = p [0]
         def decorator(f):
             self.save_function_spec (f)
-            if len (p) == 1 and isinstance (p [0], (list, tuple)):
-                p = p [0]
             self._permission_map [f] = p
             @wraps(f)
             def wrapper (was, *args, **kwargs):
