@@ -25,9 +25,6 @@ password =
 def hTERM (signum, frame):			
 	lifetime.shutdown (0, 30.0)
 
-def hKILL (signum, frame):			
-	lifetime.shutdown (0, 1.0)
-
 def hHUP (signum, frame):			
 	lifetime.shutdown (3, 30.0)
 
@@ -51,7 +48,7 @@ class	SMTPDeliverAgent (daemon_class.DaemonClass):
 		lifetime.loop (3.0)
 		
 	def setup (self):
-		self.bind_signal (hTERM, hKILL, hHUP)
+		self.bind_signal (hTERM, hHUP)
 		
 		val = self.config.get ("max_retry", 10)
 		if val: self.MAX_RETRY = val

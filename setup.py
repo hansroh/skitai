@@ -71,7 +71,7 @@ package_data = {
 
 install_requires = [
 	"sqlphile",
-	"aquests==0.7.18.4",	
+	"aquests",	
 	"jinja2==2.10",
 	"jsonrpclib-pelix==0.3.1",
 	"mock==2.0.0"	

@@ -222,13 +222,11 @@ class http_response:
 		
 		error = {}
 		if self.request.get_header ('accept', '').find ("application/json") != -1:			
-			message = why or self.get_status ().lower () [4:]
-			code = int (self.reply_code) * 100
+			message = why or self.reply_message.lower ()
 			debug = None
 			if exc_info:
-				code = int (self.reply_code) * 100 + 90
 				debug = 'see traceback' 
-			return self.fault (message, code, debug, exc_info = exc_info)
+			return self.fault (message, 0, debug, exc_info = exc_info)
 		
 		else:	
 			self.update ('content-type', 'text/html')
@@ -532,12 +530,15 @@ class http_response:
 		if status [0] == "2":
 			r = self.api (*args, **kargs)
 		else:
+			self.set_status (status)
 			r = self.fault (*args, **kargs)
 		return self (status, r)
 	for_api = Fault
 	
-	def fault (self, message = "", code = 20000,  debug = None, more_info = None, exc_info = None, traceback = False):
+	def fault (self, message = "", code = 0,  debug = None, more_info = None, exc_info = None, traceback = False):
 		api = self.api ()
+		if not code:
+			code = int (self.reply_code) * 100 + (traceback and 90 or 0)
 		if traceback:
 			api.traceback (message, code, debug or "see traceback", more_info)
 		else:	

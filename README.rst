@@ -280,6 +280,27 @@ Your skitai process will be shown as:
   ubuntu    9816  9815  0 16:04 ?        00:00:03 skitai/myapp: worker #0
 
 
+Getting Command Line Options and Arguments
+----------------------------------------------------
+
+Skitai use short options: -d and -v, then you SHOULD NOT use these options.
+
+.. code:: python
+
+  opts, args = skitai.get_clopt ("hf:", ["ssl", "debug", "origin="])
+  for k, v in opts:
+    if k == "-h":
+      ...
+    elif k == "-h" or k == "--help":
+      usage ()
+    elif k == "--debug":
+       ...
+
+Also Skitai use satrt, restart, status, stop in args.  then these arguments are removed automatically.
+
+For detail about get_clopt's parameters, see getopt module.
+
+
 Run with Threads Pool
 ------------------------
 
