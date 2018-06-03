@@ -16,6 +16,7 @@ from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONG
 from .launcher import launch
 from aquests.protocols.smtp import composer
 import tempfile
+import getopt
 
 PROTO_HTTP = "http"
 PROTO_HTTPS = "https"
@@ -362,17 +363,19 @@ def get_logpath (name):
 	name = name.split ("/", 1)[-1].replace (":", "-").replace (" ", "-")	
 	return os.name == "posix" and '/var/log/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
 
-def get_clopt (sopt = "", lopt = []):
-	import getopt
+OPTLIST = None
+def get_clopt (sopt = "", lopt = []):		
+	global OPTLIST
 	
-	if "v" in sopt or "d" in sopt:
-		raise SystemError ("-d and -v is used by skitai, please change")
-	sopt += "dv"
+	if "d" in sopt:
+		raise SystemError ("-d is used by skitai, please change")
+	sopt += "d"
+	OPTLIST = (sopt, lopt)	
 	argopt = getopt.getopt (sys.argv [1:], sopt, lopt)
 	
 	opts_ = []	
 	for k, v in argopt [0]:
-		if k in ("-v", "-d"):
+		if k == "-d":
 			continue
 		opts_.append ((k, v))
 		
@@ -382,6 +385,28 @@ def get_clopt (sopt = "", lopt = []):
 			continue
 		aopt_.append (arg)
 	return opts_, aopt_	
+
+def get_command ():
+	global OPTLIST
+	
+	if OPTLIST is None:
+		argopt = getopt.getopt (sys.argv [1:], "d")
+	else:
+		argopt = getopt.getopt (sys.argv [1:], *OPTLIST)
+	
+	cmd = None
+	for cmd_ in ("start", "stop", "status", "restart"):
+		if cmd_ in argopt [1]:
+			cmd = cmd_
+			break
+	
+	karg = {}
+	for k, v in argopt [0]:
+		if k == "-d": 
+			cmd = "start"
+			break		
+	
+	return cmd
 			
 def run (**conf):
 	import os, sys, time
@@ -513,39 +538,18 @@ def run (**conf):
 	if "logpath" in conf and not conf ["logpath"]:
 		conf ["logpath"] = get_logpath (get_proc_title ())
 	
-	argopt = ([], [])
-	for arg in sys.argv[1:]:
-		if arg [0] == "-":
-			if arg [1:] in ("vd", "dv"):
-				raise SystemError ("conflict arguments")
-			argopt [0].append ((arg, None))
-		else:
-			argopt [1].append (arg)			
-	
-	cmd = None
-	for cmd_ in ("start", "stop", "status", "restart"):
-		if cmd_ in argopt [1]:
-			cmd = cmd_
-			break
-	
-	karg = {}
-	for k, v in argopt [0]:
-		if k == "-d": cmd = "start"		
-		else: karg [k] = v
-	if cmd in ("start", "restart") and '-v' in karg:
-		raise SystemError ("conflict arguments")
-	
+	cmd = get_command ()
 	working_dir = getswd ()
 	lockpath = conf ["varpath"]
 	servicer = service.Service (get_proc_title(), working_dir, lockpath, Win32Service)
 	
 	if cmd and not servicer.execute (cmd):
 		return
-	if '-v' in karg:
+	if not cmd:
 		if servicer.status (False):
 			raise SystemError ("daemon is running")
 		conf ['verbose'] = 'yes'
-	else:
+	elif cmd in ("start", "restart"):
 		sys.stderr = open (os.path.join (conf.get ('varpath'), "stderr.engine"), "a")	
 	
 	server = SkitaiServer (conf)
