@@ -255,11 +255,11 @@ Your request log file willl be placed to: */var/log/skitai/ubuntu/<script path h
     port = 5000
   )
 
-If you also want to view logs through console for spot developing, you run app.py with-v option.
+If you also want to view logs through console for spot developing, you run app.py without option.
 
 .. code:: bash
 
-  python3 app.py -v
+  python3 app.py
 
 
 Run with Process Name
@@ -283,7 +283,7 @@ Your skitai process will be shown as:
 Getting Command Line Options and Arguments
 ----------------------------------------------------
 
-Skitai use short options: -d and -v, then you SHOULD NOT use these options.
+Skitai use short options -d, then you SHOULD NOT use these options.
 
 .. code:: python
 
@@ -836,7 +836,7 @@ And run scripts mannually,
   
 .. code:: bash
 
-  skitai smtpda -v
+  skitai smtpda
     
 .. code:: bash
 
@@ -2410,7 +2410,7 @@ And run,
 
 .. code:: bash
 
-  python3 app.py -v
+  python3 app.py
 
 But Your app is more bigger, it will be hard to make with single app file. Then, you can make decorative directory to seperate your app into several categories.
 
@@ -5082,8 +5082,6 @@ In backgound, app catch Django's model signal, and automatically was.setlu (your
 Logging and Traceback
 ------------------------
 
-If Skitai run with -v option, app and exceptions are displayed at your console, else logged at files.
-
 .. code:: python
   
   @app.route ("/")
@@ -5134,7 +5132,8 @@ Change Log
 ===========
 
 - 0.27.3 (May 2018)
-
+  
+  - remove -v option from skitai and smtpda
   - add script: skitai
   - remove scripts: skitai-smtpda and skitai-cron
   - remove skitai.enable_smtpda (), skitai.cron ()
