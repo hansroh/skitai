@@ -48,6 +48,7 @@ classifiers = [
 packages = [
 	'skitai',
 	'skitai.bin',
+	'skitai.bin.commands',
 	'skitai.server',
 	'skitai.server.dbi',
 	'skitai.server.wastuff',
@@ -72,11 +73,11 @@ package_data = {
 }
 
 install_requires = [
+	"sqlphile",
+	"aquests==0.7.18.4",	
 	"jinja2==2.10",
-	"aquests==0.7.18",
-	"sqlphile==0.4.7",
 	"jsonrpclib-pelix==0.3.1",
-	"mock==2.0.0"
+	"mock==2.0.0"	
 ]
 
 with codecs.open ('README.rst', 'r', encoding='utf-8') as f:
@@ -95,8 +96,7 @@ setup (
 	package_data = package_data,
 	entry_points = {
         'console_scripts': [
-			'skitai-smtpda=skitai.bin.smtpda:main',
-			'skitai-cron=skitai.bin.cron:main'
+			'skitai=skitai.bin.skitai:main',
 		],
     },
 	license='MIT',

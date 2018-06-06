@@ -262,6 +262,24 @@ If you also want to view logs through console for spot developing, you run app.p
   python3 app.py -v
 
 
+Run with Process Name
+-------------------------
+
+If you give 'name', process name will be changed.
+
+.. code:: python
+
+  skitai.mount ('/', app)
+  skitai.run (name = "myapp")
+
+Your skitai process will be shown as:
+
+.. code:: bash
+
+  ubuntu    9815     1  0 16:04 ?        00:00:00 skitai/myapp: master
+  ubuntu    9816  9815  0 16:04 ?        00:00:03 skitai/myapp: worker #0
+
+
 Run with Threads Pool
 ------------------------
 
@@ -766,34 +784,11 @@ You can send e-Mail in your app like this:
 
 With asynchronous email delivery service, can add default SMTP Server. If it is configured, you can skip e.set_smtp(). But be careful for keeping your smtp password.
 
-.. code:: python
+.. code:: bash
   
-  skitai.enable_smtpda (
-    '127.0.0.1:25', 'user', 'password', 
-    ssl = False, max_retry = 10, keep_days = 3
-  )
-  skitai.mount ('/', app)
-  skitai.run ()
+  skitai smtpda -d
 
 All e-mails are saved into *varpath* and varpath is not specified default is /var/temp/skitai
-
-Batch Task Scheduler
-````````````````````````
-
-*New in version 0.26*
-
-Sometimes app need batch tasks for minimum response time to clients. At this situateion, you can use taks scheduling tool of OS - cron, taks scheduler - or can use Skitai's batch task scheduling service for consistent app management.
-
-.. code:: python
-  
-  skitai.cron ("*/2 */2 * * *", "/home/apps/monitor.py  > /home/apps/monitor.log 2>&1")
-  skitai.cron ("9 2/12 * * *", "/home/apps/remove_pended_files.py > /dev/null 2>&1")
-  skitai.mount ('/', app)  
-  skitai.run ()
-
-Taks configuarion is very same with posix crontab.
-
-Note that these tasks run only with Skitai, If Skitai is stopped, tasks will also stopped.
 
 
 Run With Config File
@@ -815,16 +810,13 @@ Both of SMTP and Taks Scheduler can be run with config file, it may be particula
   password = [your SMTP user password if you need]
   ssl = true
   
-  [:crontab]
-  0 * * * * echo "Hello World"
   
 And run scripts mannually,
   
 .. code:: bash
 
-  skitai-smtpda -v
-  skitai-cron -v
-  
+  skitai smtpda -v
+    
 .. code:: bash
 
   Options:
@@ -836,8 +828,8 @@ And run scripts mannually,
   
   Example:
   
-    skitai-smtpda status
-    skitai-smtpda restart  
+    skitai smtpda status
+    skitai smtpda restart  
   
 I you give cammnad line options, theses have more priority than config file.
 
@@ -847,7 +839,7 @@ And for running automatically on system boot, you can add this line to /etc/rc.l
 
   # /etc/rc.local
   
-  su - ubuntu -c "/usr/local/bin/skitai-smtpda start"
+  su - ubuntu -c "/usr/local/bin/skitai smtpda start"
 
 In this case, smtpda will use spool directory at */tmp/skitai/smtpda*, so your each apps SHOULD NOT call *skitai.smtpda ()* if you want to share spool directory.
 
@@ -867,8 +859,7 @@ So your file resources exist within skitai run script, you can access them by re
 
 .. code:: python
   
-  monitor = skital.abspath ('package', 'monitor.py')
-  skitai.cron ("*/2 */2 * * *", "%s > /home/apps/monitor.log 2>&1" % monitor)
+  monitor = skital.abspath ('package', 'monitor.py')  
 
 Also, you need absolute path on script,
 
@@ -1240,10 +1231,6 @@ If your app need bootstraping or capsulizing complicated initialize process from
   import skitai
   
   def bootstrap (pref):    
-    if pref.config.get ('enable_cron'):
-      from . import cronjob
-      skitai.cron ('*/10 * * * *', cronjob.__file__)
-            
     with open (pref.config.urlfile, "r") as f:
       urllist = [] 
       while 1:
@@ -2515,10 +2502,6 @@ __init__.py
   from . import cronjob
   
   def bootstrap (pref):
-    if pref.config.get ('enable_cron')
-      skitai.cron ('*/10 * * * *', "%s >> /var/log/sitai/cron.log" % cronjob.__file__)
-      skitai.mount ('/cron-log', '/var/log/sitai')
-            
     with open (pref.config.urlfile, "r") as f:
       pref.config.urllist = [] 
       while 1:
@@ -5128,10 +5111,22 @@ Links
 
 Change Log
 ===========
+
+- 0.27.3 (May 2018)
+
+  - add script: skitai
+  - remove scripts: skitai-smtpda and skitai-cron
+  - remove skitai.enable_smtpda (), skitai.cron ()
   
-0.26 (May 2017)
+- 0.27.2 (May 2018)
 
-
+  - add was.request.get_real_ip () and was.request.is_private_ip ()
+  - fix CORS preflight
+  
+- 0.27.1 (May 2018)
+  
+  - sqlphile bug fixed and change requirements  
+  
 - 0.27 (Apr 2018)
   
   - add app.setup_sqlphile ()
@@ -5150,6 +5145,8 @@ Change Log
   - raise NameError when non-exists funtion name to was.ap
   - fix default arg is missing on was.ab
   - add skitai.launch and saddle.make_client for unittest
+
+0.26 (May 2017)
   
 - 0.26.18 (Jan 2018)
     
