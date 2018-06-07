@@ -2062,6 +2062,10 @@ At Skito-Saddle, handling events is more simpler,
       return  
     return
         
+And from version 0.26.18, much more simpler and elegant style is available.
+
+See *More About Websocket* Section.
+ 
 
 Handling Message
 ``````````````````
@@ -3363,8 +3367,8 @@ If you want to disable some resources in your decoratives, you just remove from 
 If you want to disable a module, You just do not import your app.py.
 
 
-Using Websocket
--------------------
+More About Websocket
+--------------------------------------
 
 *New in version 0.26.18*
 
@@ -5130,7 +5134,7 @@ Links
 
 Change Log
 ===========
-
+  
 - 0.27.3 (May 2018)
   
   - remove -v option from skitai and smtpda
