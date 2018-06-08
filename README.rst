@@ -283,11 +283,12 @@ Your skitai process will be shown as:
 Getting Command Line Options and Arguments
 ----------------------------------------------------
 
-Skitai use short options -d, then you SHOULD NOT use these options.
+Skitai use short options -d, and long options starts with "--skitai-", then you SHOULD NOT use these options.
+Also Skitai use satrt, restart, status, stop in args.  then these arguments are removed automatically.
 
 .. code:: python
 
-  opts, args = skitai.get_clopt ("hf:", ["ssl", "debug", "origin="])
+  opts, args = skitai.argopt ("hf:", ["ssl", "debug", "origin="])
   for k, v in opts:
     if k == "-h":
       ...
@@ -295,8 +296,6 @@ Skitai use short options -d, then you SHOULD NOT use these options.
       usage ()
     elif k == "--debug":
        ...
-
-Also Skitai use satrt, restart, status, stop in args.  then these arguments are removed automatically.
 
 For detail about get_clopt's parameters, see getopt module.
 

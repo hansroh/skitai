@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.27.5a2"
+__version__ = "0.27.5a3"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -364,18 +364,23 @@ def get_logpath (name):
 	return os.name == "posix" and '/var/log/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
 
 OPTLIST = None
-def get_clopt (sopt = "", lopt = []):		
+SKITAI_LONGOPTS = ["skitai-profile"]
+
+def argopt (sopt = "", lopt = []):		
 	global OPTLIST
 	
 	if "d" in sopt:
 		raise SystemError ("-d is used by skitai, please change")
 	sopt += "d"
+	lopt += SKITAI_LONGOPTS
 	OPTLIST = (sopt, lopt)	
 	argopt = getopt.getopt (sys.argv [1:], sopt, lopt)
 	
 	opts_ = []	
 	for k, v in argopt [0]:
 		if k == "-d":
+			continue
+		elif k.startswith ("--skitai-"):
 			continue
 		opts_.append ((k, v))
 		
