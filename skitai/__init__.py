@@ -364,7 +364,7 @@ def get_logpath (name):
 	return os.name == "posix" and '/var/log/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
 
 OPTLIST = None
-SKITAI_LONGOPTS = ["skitai-profile"]
+SKITAI_LONGOPTS = ["skitai-profile", "skitai-track-memory"]
 
 def argopt (sopt = "", lopt = []):		
 	global OPTLIST

@@ -290,6 +290,8 @@ class Loader:
 			
 		try:
 			try:
+				if "--skitai-track-memory" in sys.argv:
+					lifetime.enable_memory_track ()
 				if "--skitai-profile" in sys.argv:
 					import cProfile
 					cProfile.runctx ("lifetime.loop (timeout)", globals (), locals (), "profile.out")
