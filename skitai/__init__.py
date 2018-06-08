@@ -395,18 +395,18 @@ def get_command ():
 	global OPTLIST
 	
 	if OPTLIST is None:
-		argopt = getopt.getopt (sys.argv [1:], "d")
+		argopt_ = argopt ("", [])		
 	else:
-		argopt = getopt.getopt (sys.argv [1:], *OPTLIST)
+		argopt_ = getopt.getopt (sys.argv [1:], *OPTLIST)
 	
 	cmd = None
 	for cmd_ in ("start", "stop", "status", "restart"):
-		if cmd_ in argopt [1]:
+		if cmd_ in argopt_ [1]:
 			cmd = cmd_
 			break
 	
 	karg = {}
-	for k, v in argopt [0]:
+	for k, v in argopt_ [0]:
 		if k == "-d": 
 			cmd = "start"
 			break		
