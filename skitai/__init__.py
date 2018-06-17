@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.27.5a3"
+__version__ = "0.27.5a4"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
@@ -395,8 +395,8 @@ def get_command ():
 	global OPTLIST
 	
 	if OPTLIST is None:
-		argopt_ = argopt ("", [])		
-	else:
+		argopt_ = "-d" in sys.argv [1:] and [("-d", None)] or [], sys.argv [1:]
+	else:			
 		argopt_ = getopt.getopt (sys.argv [1:], *OPTLIST)
 	
 	cmd = None
@@ -547,7 +547,7 @@ def run (**conf):
 	working_dir = getswd ()
 	lockpath = conf ["varpath"]
 	servicer = service.Service (get_proc_title(), working_dir, lockpath, Win32Service)
-	
+
 	if cmd and not servicer.execute (cmd):
 		return
 	if not cmd:
