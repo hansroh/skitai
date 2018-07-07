@@ -45,7 +45,7 @@ class launch:
                 self.__p.start ([sys.executable, self.__script, "-d"])
                 self.__wait_until ("running")
         else:
-            self.__p.start ([sys.executable, self.__script, "-v"])
+            self.__p.start ([sys.executable, self.__script])
             time.sleep (3)
         self.__closed = False    
     
@@ -74,6 +74,7 @@ class launch:
             self.__p.kill ()
             time.sleep (3)
         self.__closed = True            
+
 
 class Requests:
     def __init__ (self, endpoint):

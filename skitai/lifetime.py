@@ -83,6 +83,11 @@ def init (kill_zombie_interval = 10.0, logger = None):
 	maintern.sched (kill_zombie_interval, lifetime.maintern_zombie_channel)
 	maintern.sched (300.0, lifetime.maintern_gc)
 
+def enable_memory_track (interval = 10.0):
+	global maintern
+		
+	maintern.sched (interval, lifetime.summary_track)	
+	
 def shutdown (exit_code, shutdown_timeout = 30.0):
 	global _shutdown_phase
 	global _shutdown_timeout

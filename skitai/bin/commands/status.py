@@ -29,6 +29,5 @@ def main ():
             inst = tc.primary (each)
             status = "stopped"    
         print ("- {} {}".format (inst, status))
-    
     print ("\nif you want to remove app from list,")
-    print ("  rm -rf /vat/tmp/skitai/<app>")
+    print ("  rm -rf /var/tmp/skitai/<app>")

@@ -1,8 +1,8 @@
 '''# --------------------------------------------------------------------------
-Events
+Events Handler Specification
 
-def decorate (app):
-    
+def decorate (app):    
+
     @app.on ("user:authenticated")
     def user_authenticated (was, form): pass
     
@@ -20,6 +20,9 @@ def decorate (app):
     
     @app.on ("user:password:reset-requested")
     def password_reset_requested (was, username, form): pass
+    
+    @app.on ("user:pended")
+    def  user_pended (was, user): pass   
     
 # --------------------------------------------------------------------------'''
 
@@ -114,18 +117,32 @@ def decorate (app):
         if was.django.user.is_authenticated ():    
             return was.redirect (next_url)
         
-        if form.get ("username"):
-            user = was.django.authenticate (
-                form ["username"], 
-                form ["password"]
-            )
-            if user is not None:
-                was.django.login (user)
-                return was.redirect (next_url or was.ab (__options__.get ("redirect", 'index')))
-            else:
-                was.mbox.push ("Invalid user name or password", "error", icon = "new_releases")
-        return was.render ("contrib/django/auth/signin.html", next_url = next_url or was.ab (__options__.get ("redirect", 'index')))
-
+        if not (form.get ("username") and form.get ("password")):
+            return was.render ("contrib/django/auth/signin.html", next_url = next_url or was.ab (__options__.get ("redirect", 'index')), form = form)
+        
+        user = was.django.authenticate (
+            form ["username"], 
+            form ["password"]
+        )
+        
+        if user is not None:
+            was.django.login (user)
+            return was.redirect (next_url or was.ab (__options__.get ("redirect", 'index')))
+        
+        users = User.objects.filter (username = form.get ("username"))
+        if not users:
+            was.mbox.push ("User not exist. check your name of sign up please", "error", icon = "new_releases")
+            return signin (was, next_url)
+        
+        user = users [0]
+        if user.is_active is False:
+            was.app.emit ('user:pended', user)
+            was.mbox.push ("Your account is not activated, check your email please", "error", icon = "new_releases")
+            return signin (was, next_url, username = form ["username"])
+        else:
+            was.mbox.push ("Invalid password", "error", icon = "new_releases")
+            return signin (was, next_url, username = form ["username"])
+       
     @app.route ("/signup")
     def signup (was, next_url = None, **form):
         def show_form (msg = None):
@@ -154,16 +171,22 @@ def decorate (app):
         # email  -------------------------------------------------
         if "email" in form and not is_vaild_email (form ["email"]):
             return show_form ("Invalid email address")
-        if User.objects.filter (email__iexact = form ["email"]).count():        
-            return show_form ("Email already exists, If you want recover your account <a href='{}'>click here</a>".format (was.ab (forgot_password)))         
+        if form ["email"] != "hrroh@sns.co.kr"  and User.objects.filter (email__iexact = form ["email"]).count():
+            return show_form ("Your email already exists, If you want recover your account <a href='{}'>click here</a>".format (was.ab (forgot_password)))         
         
         user = User (username = form ["username"], email = form ["email"])
         user.set_password (form ["password"])
+        user.is_active = __options__.get ("auto_activate", True)
         user.save ()
         was.app.emit ('user:added', user, form)
         
-        was.mbox.push ("Sign up success, thank you", "info")
-        return signin (was, next_url, **form)
+        if __options__.get ("auto_activate", True):
+            was.mbox.push ("Sign up success, thank you", "info")
+            return signin (was, next_url, **form)
+        else:
+            was.app.emit ('user:pended', user)
+            was.mbox.push ("Sign up success, check your email please", "info")
+            return signin (was, next_url, username = form ["username"])            
     
     @app.route ("/account")
     @app.login_required
@@ -202,7 +225,25 @@ def decorate (app):
             was.mbox.push ("Email has been sent. check your email, please", "info")
             return was.redirect (was.ab (__options__.get ("redirect", 'index')))
         return was.render ('contrib/django/auth/forgot-password.html')
-
+    
+    @app.route ("/activate-account")
+    def activate_account (was, t):
+        if not t:
+            # need token
+            return was.response ("400 Bad Request")
+        username = was.detoken (t)
+        if not username:
+            was.mbox.push ("Your token already activated or invalid", "error", icon = "new_releases")
+            return signin (was, was.ab (__options__.get ("redirect", 'index')), username = username)
+        
+        user = User.objects.get (username = username)
+        user.is_active = True
+        user.save ()
+                
+        was.mbox.push ("Your account has ben activated, please sing in", "info")
+        was.rmtoken (t)
+        return signin (was, was.ab (__options__.get ("redirect", 'index')), username = username)    
+        
     @app.route ("/reset-password")
     def reset_password (was, t, **form):
         if not t:

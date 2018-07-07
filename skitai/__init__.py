@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.27.3"
+__version__ = "0.27.5a4"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -17,6 +17,7 @@ from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONG
 from .launcher import launch
 from aquests.protocols.smtp import composer
 import tempfile
+import getopt
 
 PROTO_HTTP = "http"
 PROTO_HTTPS = "https"
@@ -362,7 +363,57 @@ def get_varpath (name):
 def get_logpath (name):	
 	name = name.split ("/", 1)[-1].replace (":", "-").replace (" ", "-")	
 	return os.name == "posix" and '/var/log/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
+
+OPTLIST = None
+SKITAI_LONGOPTS = ["skitai-profile", "skitai-memtrack"]
+
+def argopt (sopt = "", lopt = []):		
+	global OPTLIST
 	
+	if "d" in sopt:
+		raise SystemError ("-d is used by skitai, please change")
+	sopt += "d"
+	lopt += SKITAI_LONGOPTS
+	OPTLIST = (sopt, lopt)	
+	argopt = getopt.getopt (sys.argv [1:], sopt, lopt)
+	
+	opts_ = []	
+	for k, v in argopt [0]:
+		if k == "-d":
+			continue
+		elif k.startswith ("--skitai-"):
+			continue
+		opts_.append ((k, v))
+		
+	aopt_ = [] 
+	for arg in argopt [1]:
+		if arg in ("start", "stop", "status", "restart"):		
+			continue
+		aopt_.append (arg)
+	return opts_, aopt_	
+
+def get_command ():
+	global OPTLIST
+	
+	if OPTLIST is None:
+		argopt_ = "-d" in sys.argv [1:] and [("-d", None)] or [], sys.argv [1:]
+	else:			
+		argopt_ = getopt.getopt (sys.argv [1:], *OPTLIST)
+	
+	cmd = None
+	for cmd_ in ("start", "stop", "status", "restart"):
+		if cmd_ in argopt_ [1]:
+			cmd = cmd_
+			break
+	
+	karg = {}
+	for k, v in argopt_ [0]:
+		if k == "-d": 
+			cmd = "start"
+			break		
+	
+	return cmd
+			
 def run (**conf):
 	import os, sys, time
 	from . import lifetime
@@ -375,36 +426,13 @@ def run (**conf):
 		NAME = 'instance'
 		
 		def __init__ (self, conf):
-			self.conf = conf
-			self.children = []
+			self.conf = conf			
 			self.flock = None
 			Skitai.Loader.__init__ (self, 'config', conf.get ('logpath'), conf.get ('varpath'))
 			
 		def close (self):
 			if self.wasc.httpserver.worker_ident == "master":
-				if self.children:
-					for child in self.children:					
-						self.wasc.logger ("server", "[info] killing %s..." % child.name)						
-						child.kill (0)
-					
-					for i in range (10):
-						time.sleep (1)
-						veto = False
-						for child in self.children:
-							veto = (child.poll () is None)
-							if veto:
-								if i % 3 == 0:
-									self.wasc.logger ("server", "[info] %s is still alive" % child.name)
-								break
-						if not veto:
-							break
-					
-					if veto:
-						for child in self.children:
-							if child.poll () is None:
-								self.wasc.logger ("server", "[info] force to kill %s..." % child.name)
-								child.kill (1)
-			
+				pass
 			Skitai.Loader.close (self)
 			
 		def config_logger (self, path):
@@ -508,40 +536,26 @@ def run (**conf):
 			conf [k] = v
 	
 	if conf.get ("name"):
-		PROCESS_NAME = 'skitai/{}'.format (conf ["name"])
-				
+		PROCESS_NAME = 'skitai/{}'.format (conf ["name"])				
 	if not conf.get ('mount'):
 		raise systemError ('No mount point')
-	
-	argopt = getopt.getopt(sys.argv[1:], "vfdsr", [])	
 	conf ["varpath"] = get_varpath (get_proc_title ())
+	pathtool.mkdir (conf ["varpath"])
 	if "logpath" in conf and not conf ["logpath"]:
 		conf ["logpath"] = get_logpath (get_proc_title ())
-		 
-	pathtool.mkdir (conf ["varpath"])
-	try: cmd = argopt [1][0]
-	except: cmd = None
-	karg = {}
-	for k, v in argopt [0]:
-		if k == "-d": cmd = "start"
-		elif k == "-r": cmd = "retart"
-		elif k == "-s": cmd = "stop"
-		else: karg [k] = v
 	
-	if cmd in ("start", "restart") and '-v' in karg:
-		karg.pop (karg.index ("-v"))
-	
+	cmd = get_command ()
 	working_dir = getswd ()
 	lockpath = conf ["varpath"]
 	servicer = service.Service (get_proc_title(), working_dir, lockpath, Win32Service)
-	
+
 	if cmd and not servicer.execute (cmd):
 		return
-	if '-v' in karg:
+	if not cmd:
 		if servicer.status (False):
 			raise SystemError ("daemon is running")
 		conf ['verbose'] = 'yes'
-	else:
+	elif cmd in ("start", "restart"):
 		sys.stderr = open (os.path.join (conf.get ('varpath'), "stderr.engine"), "a")	
 	
 	server = SkitaiServer (conf)

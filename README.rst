@@ -255,11 +255,11 @@ Your request log file willl be placed to: */var/log/skitai/ubuntu/<script path h
     port = 5000
   )
 
-If you also want to view logs through console for spot developing, you run app.py with-v option.
+If you also want to view logs through console for spot developing, you run app.py without option.
 
 .. code:: bash
 
-  python3 app.py -v
+  python3 app.py
 
 
 Run with Process Name
@@ -278,6 +278,26 @@ Your skitai process will be shown as:
 
   ubuntu    9815     1  0 16:04 ?        00:00:00 skitai/myapp: master
   ubuntu    9816  9815  0 16:04 ?        00:00:03 skitai/myapp: worker #0
+
+
+Getting Command Line Options and Arguments
+----------------------------------------------------
+
+Skitai use short options -d, and long options starts with "--skitai-", then you SHOULD NOT use these options.
+Also Skitai use satrt, restart, status, stop in args.  then these arguments are removed automatically.
+
+.. code:: python
+
+  opts, args = skitai.argopt ("hf:", ["ssl", "debug", "origin="])
+  for k, v in opts:
+    if k == "-h":
+      ...
+    elif k == "-h" or k == "--help":
+      usage ()
+    elif k == "--debug":
+       ...
+
+For detail about get_clopt's parameters, see getopt module.
 
 
 Run with Threads Pool
@@ -815,7 +835,7 @@ And run scripts mannually,
   
 .. code:: bash
 
-  skitai smtpda -v
+  skitai smtpda
     
 .. code:: bash
 
@@ -2041,6 +2061,10 @@ At Skito-Saddle, handling events is more simpler,
       return  
     return
         
+And from version 0.26.18, much more simpler and elegant style is available.
+
+See *More About Websocket* Section.
+ 
 
 Handling Message
 ``````````````````
@@ -2389,7 +2413,7 @@ And run,
 
 .. code:: bash
 
-  python3 app.py -v
+  python3 app.py
 
 But Your app is more bigger, it will be hard to make with single app file. Then, you can make decorative directory to seperate your app into several categories.
 
@@ -3342,8 +3366,8 @@ If you want to disable some resources in your decoratives, you just remove from 
 If you want to disable a module, You just do not import your app.py.
 
 
-Using Websocket
--------------------
+More About Websocket
+--------------------------------------
 
 *New in version 0.26.18*
 
@@ -5061,8 +5085,6 @@ In backgound, app catch Django's model signal, and automatically was.setlu (your
 Logging and Traceback
 ------------------------
 
-If Skitai run with -v option, app and exceptions are displayed at your console, else logged at files.
-
 .. code:: python
   
   @app.route ("/")
@@ -5111,9 +5133,10 @@ Links
 
 Change Log
 ===========
-
+  
 - 0.27.3 (May 2018)
-
+  
+  - remove -v option from skitai and smtpda
   - add script: skitai
   - remove scripts: skitai-smtpda and skitai-cron
   - remove skitai.enable_smtpda (), skitai.cron ()

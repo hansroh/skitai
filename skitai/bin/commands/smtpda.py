@@ -25,9 +25,6 @@ password =
 def hTERM (signum, frame):			
 	lifetime.shutdown (0, 30.0)
 
-def hKILL (signum, frame):			
-	lifetime.shutdown (0, 1.0)
-
 def hHUP (signum, frame):			
 	lifetime.shutdown (3, 30.0)
 
@@ -51,7 +48,7 @@ class	SMTPDeliverAgent (daemon_class.DaemonClass):
 		lifetime.loop (3.0)
 		
 	def setup (self):
-		self.bind_signal (hTERM, hKILL, hHUP)
+		self.bind_signal (hTERM, hHUP)
 		
 		val = self.config.get ("max_retry", 10)
 		if val: self.MAX_RETRY = val
@@ -175,8 +172,7 @@ usage:
 
 options:	
       --help
-  -d: daemonize, shortcut for <start> command
-  -v, --verbose
+  -d: daemonize, shortcut for <start> command  
       --help
       --max-retry=<int> 
       --keep-days=<int>
@@ -204,22 +200,20 @@ def main ():
 	
 	argopt = getopt.getopt (
 		sys.argv[1:], 
-		"dvs:u:p:",
+		"ds:u:p:",
 		[
-			"help", "verbose=",
+			"help",
 			"max-retry=", "keep-days=", "server=", "user=", "password=", "ssl",
 			"smtp-server="
 		]
 	)
 	_cf = {"max-retry": 5, "keep-days": 1, "ssl": 0}
-	_consol = False	
+	_consol = True	
 	try: cmd = argopt [1][0]
 	except: cmd = None
 	for k, v in (_fileopt + argopt [0]):
 		if k == "--help":
 			usage ()			
-		elif k == "--verbose" or k == "-v":
-			_consol = True
 		elif k == "-d":
 			cmd = "start"	
 		elif k == "--max-retry":	
@@ -234,15 +228,14 @@ def main ():
 			_cf ['password'] = v	
 		elif k == "--ssl":
 			_cf ['ssl'] = 1
-	if cmd in ("start", "restart") and _consol:
+	if cmd:
 		_consol = False
-	
 	_logpath = os.path.join ("/var/log/skitai", SMTPDeliverAgent.NAME)
 	_varpath = os.path.join ("/var/tmp/skitai", SMTPDeliverAgent.NAME)			
 	servicer = service.Service ("skitai/{}".format (SMTPDeliverAgent.NAME), _varpath)
 	if cmd and not servicer.execute (cmd):
 		return
-	if _consol and servicer.status (False):
+	if not cmd and servicer.status (False):
 		raise SystemError ("daemon is running")
 	
 	s = daemon_class.make_service (SMTPDeliverAgent, _logpath, _varpath, _consol, _cf)
