@@ -3397,6 +3397,24 @@ This decorator spec is,
     onclose = None 
   )
 
+In some cases, you need additional parameter for opening/closing websocket.
+
+.. code:: python
+
+  @app.route ("/websocket")
+  @app.websocket_config (skitai.WS_THREADSAFE, 1200, onopen)
+  def websocket (was, message, option):
+    return 'you said: ' + message
+
+Then, your onopen function must have additional parameters except *message*.
+
+.. code:: python
+
+  def onopen (was, option):
+    print ('websocket opened with', option)
+    
+Now, your websocket endpoint is "ws://127.0.0.1:5000/websocket?option=value"
+
 
 HTTP/2.0 Server Push
 -----------------------
@@ -5133,7 +5151,11 @@ Links
 
 Change Log
 ===========
-  
+
+- 0.27.5 (May 2018)
+
+  - can add websocket opening/closing paramters
+    
 - 0.27.3 (May 2018)
   
   - remove -v option from skitai and smtpda
