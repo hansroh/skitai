@@ -227,7 +227,7 @@ class AppBase:
     
     def get_function_spec (self, func):        
         # called by websocet_handler 
-        func_id = self.get_func_id (func)
+        func_id = self.get_func_id (func)        
         return self._function_specs.get (func_id)
     
     # logger ----------------------------------------------------------
@@ -455,7 +455,7 @@ class AppBase:
         def decorator(f):
             self.save_function_spec (f)
             self._conditions [key] = [0, 0]
-            @wraps(f)
+            @wrasps(f)
             def wrapper (was, *args, **kwargs):
                 response = self._check_condition (was, key, func, interval, was.getlu)
                 if response is not None:
@@ -490,9 +490,11 @@ class AppBase:
                 if was.wsinit ():
                     return was.wsconfig (spec, timeout, encoding)
                 elif onopen and was.wsopened ():
-                    return onopen (was)
+                    kwargs.pop (self.get_function_spec (f).args [1])
+                    return onopen (was, *args, **kwargs)
                 elif onclose and was.wsclosed ():
-                    return onclose (was)
+                    kwargs.pop (self.get_function_spec (f).args [1])
+                    return onclose (was, *args, **kwargs)
             return wrapper
         return decorator
     
