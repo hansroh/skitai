@@ -490,11 +490,9 @@ class AppBase:
                 if was.wsinit ():
                     return was.wsconfig (spec, timeout, encoding)
                 elif onopen and was.wsopened ():
-                    kwargs.pop (self.get_function_spec (f).args [1])
-                    return onopen (was, *args, **kwargs)
-                elif onclose and was.wsclosed ():
-                    kwargs.pop (self.get_function_spec (f).args [1])
-                    return onclose (was, *args, **kwargs)
+                    return onopen (was)
+                elif onclose and was.wsclosed ():                    
+                    return onclose (was)
             return wrapper
         return decorator
     
