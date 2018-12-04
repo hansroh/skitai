@@ -55,7 +55,7 @@ class AppBase:
         self.init_time = time.time ()        
         self.handlers = {}
         
-        self._decorate_option = {}
+        self._mount_option = {}
         self._started = False
         self._reloading = False        
         self._decos = {}
@@ -125,11 +125,11 @@ class AppBase:
         self.debug = debug
         self.use_reloader = use_reloader
     
-    # decorative management ----------------------------------------------
+    # tasks management ----------------------------------------------
     
-    PACKAGE_DIRS = ["decorative", "package", "appack"]
-    CONTRIB_DIR = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'decorative')
-            
+    PACKAGE_DIRS = ["tasks", "decorative", "package", "appack"]
+    CONTRIB_DIR = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'tasks')
+                
     def add_package (self, *names):
         for name in names:
             self.PACKAGE_DIRS.append (name)
@@ -154,28 +154,40 @@ class AppBase:
                     self.watch (v)                    
                     break
         
-    def decorate_with (self, module, **kargs):
+    def mount_with (self, module, **kargs):
         self.decorating_params [module] = (kargs)
+    decorate_with = mount_with
     
-    def  dettach_all (self):
+    def  umount_all (self):
         for module in self.reloadables:
-            if hasattr (module, "dettach"):
-                module.dettach (self)
-                self.log ("decorative, %s dettached" % module.__file__, "debug")
+            umount_func = None
+            if hasattr (module, "umount"):
+                umount_func = module.umount
+            elif hasattr (module, "dettach"): # for old ver
+                umount_func = module.dettach 
+            umount_func (self)
+            self.log ("%s umounted" % module.__file__, "debug")
+    dettach_all = umount_all
     
     def watch (self, module):
-        if hasattr (module, "decorate"):
+        mount_func = None
+        if hasattr (module, "mount"):
+            mount_func = module.mount
+        elif hasattr (module, "decorate"): # for old ver
+            mount_func = module.decorate
+            
+        if mount_func:
             params = self.decorating_params.get (module, {})
             if params.get ("debug_only") and not self.debug:
                 return
             # for app decoratives
             setattr (module, "__options__", params)
             # for app initialzing and reloading
-            self._decorate_option = params
+            self._mount_option = params
             try:
-                module.decorate (self)
+                mount_func (self)
             finally:    
-                self._decorate_option = {}
+                self._mount_option = {}
                 
         try:
             self.reloadables [module] = self.get_file_info (module)
@@ -213,7 +225,7 @@ class AppBase:
         self._reloading = False
     
     def get_func_id (self,  func):
-        return ("ns" in self._decorate_option and self._decorate_option ["ns"] + "." or "") + func.__name__     
+        return ("ns" in self._mount_option and self._mount_option ["ns"] + "." or "") + func.__name__     
         
     # function param saver ------------------------------------------
     def save_function_spec (self, func):
@@ -666,9 +678,12 @@ class AppBase:
                     break
             if deletable:
                 del self._function_names [deletable]
-            
-        if self._decorate_option.get ("mount"):
-            mount_prefix = self._decorate_option ["mount"]
+        
+        mount_prefix = self._mount_option.get ("point")
+        if not mount_prefix:
+            # old version
+            mount_prefix = self._mount_option.get ("mount")            
+        if mount_prefix:            
             while mount_prefix:
                 if mount_prefix [-1] == "/":
                     mount_prefix = mount_prefix [:-1]
@@ -694,8 +709,8 @@ class AppBase:
                 defaults [argnames [i]] = fspec.defaults[i]
             options ["defaults"] = defaults
         
-        if self._decorate_option.get ("authenticate"):
-            options ["authenticate"] = self._decorate_option ["authenticate"]
+        if self._mount_option.get ("authenticate"):
+            options ["authenticate"] = self._mount_option ["authenticate"]
         if self._need_authenticate:
             if func.__name__ == self._need_authenticate [0]:
                 options ["authenticate"] = self._need_authenticate [1]

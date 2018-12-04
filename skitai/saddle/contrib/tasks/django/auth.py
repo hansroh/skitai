@@ -70,7 +70,7 @@ def update_password (was, username, password, template):
 
 # App Decorator ---------------------------------------------------------
            
-def decorate (app):
+def mount (app):
     from django.contrib.auth import models
     
     global User

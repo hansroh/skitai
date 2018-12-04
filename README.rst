@@ -1772,7 +1772,7 @@ Also was.setlu () emits 'model-changed' events. You can handle event if you need
   def on_broadcast (was, *args, **kargs):
     # your code
 
-Note: if @app.on_broadcast is located in decorate function at decorative directory, even app.use_reloader is True, it is not applied to app when component file is changed. In this case you should manually reload app by resaving app file.
+Note: if @app.on_broadcast is located in mount function at tasks directory, even app.use_reloader is True, it is not applied to app when component file is changed. In this case you should manually reload app by resaving app file.
 
 
 Working With Jinja2 Template
@@ -2375,7 +2375,7 @@ Before you begin, recommended Saddle App's directory structure is like this:
 - service.py: Skitai runner
 - app.py: File, Main app
 - static: Directory, Place static files like css, js, images. This directory should be mounted for using
-- decorative: Directory, Module components, utils or helpers for helping app like config.py, model.py etc...
+- tasks: Directory, Module components, utils or helpers for helping app like config.py, model.py etc...
 - templates: Directory, Jinaja and Chameleon template files
 - resources: Directory, Various files as app need like sqlite db file. In you app, you use these files, you can access file in resources by app.get_resource ("db", "sqlite3.db") like os.path.join manner.
 
@@ -2415,27 +2415,27 @@ And run,
 
   python3 app.py
 
-But Your app is more bigger, it will be hard to make with single app file. Then, you can make decorative directory to seperate your app into several categories.
+But Your app is more bigger, it will be hard to make with single app file. Then, you can make tasks directory to seperate your app into several categories.
 
 .. code:: bash
   
   app.py
-  decoratives/
+  tasks/
   templates/
   resources/
   static/
 
-All sub modules app need, can be placed into decorative/. decorative/\*.py will be watched for reloading if use_reloader = True.
+All sub modules app need, can be placed into tasks/. tasks/\*.py will be watched for reloading if use_reloader = True.
 
 You can structuring any ways you like and I like this style:
 
 .. code:: bash
 
-  decorative/views.py
-  decorative/apis.py
-  decorative/helpers.py
+  tasks/views.py
+  tasks/apis.py
+  tasks/helpers.py
 
-All modules to decorate app in decorative, should have def decorate (app).
+All modules to mount to app in tasks, should have def mount (app).
 
 For example, views.py is like this,
 
@@ -2443,7 +2443,7 @@ For example, views.py is like this,
   
   from . import helpers
   
-  def decorate (app):  
+  def mount (app):  
     @app.route ("/")
     def index (was):
       ...
@@ -2454,26 +2454,26 @@ Now you just import app decorable moduels at your app.py,
 .. code:: python
 
   from skitai.saddle import Saddle
-  from decorative import views, apis
+  from tasks import views, apis
   
   app = Saddle(__name__)
 
 That's it.
 
-If app scale is more bigger scale, decorative can be expanded to sub modules. 
+If app scale is more bigger scale, tasks can be expanded to sub modules. 
 
 .. code:: bash
 
-  decorative/views/index.py, regist.py, search.py, ...
-  decorative/apis/codemap.py, 
-  decorative/helpers/utils.py, ...
+  tasks/views/index.py, regist.py, search.py, ...
+  tasks/apis/codemap.py, 
+  tasks/helpers/utils.py, ...
 
 And import these from app.py,
 
 .. code:: python
 
-  from decorative.views import index, regist, ...
-  from decorative.apis import codemap, ...
+  from tasks.views import index, regist, ...
+  from tasks.apis import codemap, ...
 
 Some more other informations will be mentioned at *App Decorating* section again.
 
@@ -3141,14 +3141,14 @@ App Decorating: Making Simpler & Modular App
 Decorating App
 ```````````````````````
 
-I already mentioned *App Structure* section, you can split yours views and help utilties into decorative directory.
+I already mentioned *App Structure* section, you can split yours views and help utilties into tasks directory.
 
 Assume your application directory structure is like this,
 
 .. code:: bash
 
   templates/*.html  
-  decorative/*.py # app library, all modules in this directory will be watched for reloading  
+  tasks/*.py # app library, all modules in this directory will be watched for reloading  
   static/images # static files
   static/js
   static/css
@@ -3159,7 +3159,7 @@ app.py
   
 .. code:: python
 
-  from decorative import auth
+  from tasks import auth
   
   app = Saddle (__name__)
 
@@ -3170,7 +3170,7 @@ app.py
   def default_error_handler (was, e):
     return str (e)
     
-decorative/auth.py
+tasks/auth.py
 
 .. code:: python
   
@@ -3180,7 +3180,7 @@ decorative/auth.py
     ...
     return s
   
-  def decorate (app):
+  def mount (app):
     @app.login_handler      
     def login_handler (was):  
       if was.session.get ("username"):
@@ -3205,20 +3205,20 @@ decorative/auth.py
           was.mbox.push ("Invalid User Name or Password", "error", icon = "new_releases")
       return was.render ("sign/signin.html", next_url = next_url or was.ab ("index"))
 
-You just import module from decorative. but *def decorate (app)* is core in each module. Every modules can have *decorate (app)* in *decorative*, so you can split and modulize views and utility functions. decorate (app) will be automatically executed on starting. If you set app.use_reloader, theses decorative will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
+You just import module from tasks. but *def mount (app)* is core in each module. Every modules can have *mount (app)* in *tasks*, so you can split and modulize views and utility functions. mount (app) will be automatically executed on starting. If you set app.use_reloader, theses tasks will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
 
 Releasing Module Resources
 ```````````````````````````````
 
 *New in version 0.27*
 
-Also 'dettach' is avaliable for cleaning up module resource. 
+Also 'umount' is avaliable for cleaning up module resource. 
 
 .. code:: python
   
   resource = ...
   
-  def dettach (app):
+  def umount (app):
     resource.close ()
     app.someghing = None
 
@@ -3236,7 +3236,7 @@ If you need additional options on decorating,
 
 .. code:: python
 
-  def decorate (app):
+  def mount (app):
     @app.route ("/login")
     def login (was):
       ...
@@ -3245,21 +3245,21 @@ And on app,
       
 .. code:: python
 
-  from decorative import auth
+  from tasks import auth
   
   app = Saddle (__name__)
-  app.decorate_with (auth, mount = '/regist')
+  app.mount_with (auth, point = '/regist')
 
 Finally, route of login is "/regist/login".
   
-Sometimes function names are duplicated if like you import contributed decoratives.
+Sometimes function names are duplicated if like you import contributed tasks.
 
 .. code:: python
 
-  from decorative import auth
+  from tasks import auth
   
   app = Saddle (__name__)
-  app.decorate_with (auth, mount = '/regist', ns = "regist")
+  app.mount_with (auth, point = '/regist', ns = "regist")
   
 Now, you can import iport without name collision. But be careful when use was.ab () etc.
 
@@ -3269,17 +3269,17 @@ Note that options should be keyword arguments.
 
   {{ was.ab ("regist.login") }}
       
-If you want to decorate only debug environment, 
+If you want to mount only debug environment, 
 
 .. code:: python
   
-  app.decorate_with (auth, debug_only = True)
+  app.mount_with (auth, debug_only = True)
 
-If you want to authentify to all decoratives, 
+If you want to authentify to all tasks, 
 
 .. code:: python
   
-  app.decorate_with (auth, authenticate = "bearer")
+  app.mount_with (auth, authenticate = "bearer")
 
 Currently *reserved arguments* are:
 
@@ -3290,11 +3290,11 @@ Currently *reserved arguments* are:
 
 Your custom options can be accessed by __options__ in your module.
 
-First, decorate with redirect option.
+First, mount with redirect option.
 
 .. code:: python
   
-    app.decorate_with (auth, redirect = "index")    
+    app.mount_with (auth, redirect = "index")    
     # automatically set to auth.__options__ = {"redirect": "index"}
 
 then you can access in auth.py, 
@@ -3306,20 +3306,20 @@ then you can access in auth.py,
         was.mbox.push ("Signed out successfully", "success")
         return was.redirect (was.ab (__options__.get ("redirect", 'index')))
     
-If you build useful decoratives, please contribute them to `skitai.saddle.decorative`_.
+If you build useful tasks, please contribute them to `skitai.saddle.tasks`_.
 
 More About Namespace
 ````````````````````````````````````
 
-If you develop reusable decorative module, pay attention to namespace and URL building. 
+If you develop reusable task modules, pay attention to namespace and URL building. 
 
-For example, below module is decorate with app.decorate_with (auth, ns = "regist").  
+For example, below module is mount with app.mount_with (auth, ns = "regist").  
 
 .. code:: python
   
   # auth.py
 
-  def decorate (app):
+  def mount (app):
     @app.route ("/func1")
     def func1 (was, a):
       ...
@@ -3328,7 +3328,7 @@ For example, below module is decorate with app.decorate_with (auth, ns = "regist
     def func2 (was):
       was.ab ("func1", "hello")
 
-This was.ab ("func1") in func2 might be dangerous, because this decorative module may have namespace. Then you consider ns like this.
+This was.ab ("func1") in func2 might be dangerous, because this task modules may have namespace. Then you consider ns like this.
 
 .. code:: python
 
@@ -3343,17 +3343,17 @@ But it is not pretty, so you can pretty style,
     was.ab (func1, "hello")
 
 
-.. _`skitai.saddle.decorative`: https://gitlab.com/hansroh/skitai/tree/master/skitai/saddle/contrib/decorative
+.. _`skitai.saddle.tasks`: https://gitlab.com/hansroh/skitai/tree/master/skitai/saddle/contrib/tasks
 
 
 Disabling Resources
 `````````````````````````````
 
-If you want to disable some resources in your decoratives, you just remove from decorative () into any function:
+If you want to disable some resources in your tasks, you just remove from decorative () into any function:
 
 .. code:: python
 
-  def decorate (app):
+  def mount (app):
     @app.login_handler
     def login_handler (was):
        ...
@@ -5152,9 +5152,15 @@ Links
 Change Log
 ===========
 
-- 0.27.5 (May 2018)
 
-  - can add websocket opening/closing paramters
+- 0.27.6a (Dec 2018)
+
+  - rename directory decorative to tasks
+  - change from skital.saddle.contrib.decorative to skital.saddle.contrib.tasks  
+
+- 0.27.5 (Dec 2018)
+
+  - fix bugs
     
 - 0.27.3 (May 2018)
   

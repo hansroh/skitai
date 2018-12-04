@@ -58,8 +58,9 @@ packages = [
 	'skitai.saddle',
 	'skitai.saddle.patches',
 	'skitai.saddle.contrib',
-	'skitai.saddle.contrib.decorative',	
-	'skitai.saddle.contrib.decorative.django',
+	'skitai.saddle.contrib.tasks',	
+	'skitai.saddle.contrib.tasks.django',
+	'skitai.saddle.contrib.decorative',
 ]
 
 package_dir = {'skitai': 'skitai'}
@@ -75,7 +76,7 @@ install_requires = [
 	"jinja2==2.10",
 	"jsonrpclib-pelix==0.3.1",
 	"mock==2.0.0",
-  "setproctitle"
+    "setproctitle"
 ]
 
 with codecs.open ('README.rst', 'r', encoding='utf-8') as f:
