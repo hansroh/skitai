@@ -125,10 +125,10 @@ class AppBase:
         self.debug = debug
         self.use_reloader = use_reloader
     
-    # tasks management ----------------------------------------------
+    # services management ----------------------------------------------
     
-    PACKAGE_DIRS = ["tasks", "decorative", "package", "appack"]
-    CONTRIB_DIR = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'tasks')
+    PACKAGE_DIRS = ["services", "decorative"]
+    CONTRIB_DIR = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'services')
                 
     def add_package (self, *names):
         for name in names:

@@ -1772,7 +1772,7 @@ Also was.setlu () emits 'model-changed' events. You can handle event if you need
   def on_broadcast (was, *args, **kargs):
     # your code
 
-Note: if @app.on_broadcast is located in mount function at tasks directory, even app.use_reloader is True, it is not applied to app when component file is changed. In this case you should manually reload app by resaving app file.
+Note: if @app.on_broadcast is located in mount function at services directory, even app.use_reloader is True, it is not applied to app when component file is changed. In this case you should manually reload app by resaving app file.
 
 
 Working With Jinja2 Template
@@ -2375,7 +2375,7 @@ Before you begin, recommended Saddle App's directory structure is like this:
 - service.py: Skitai runner
 - app.py: File, Main app
 - static: Directory, Place static files like css, js, images. This directory should be mounted for using
-- tasks: Directory, Module components, utils or helpers for helping app like config.py, model.py etc...
+- services: Directory, Module components, utils or helpers for helping app like config.py, model.py etc...
 - templates: Directory, Jinaja and Chameleon template files
 - resources: Directory, Various files as app need like sqlite db file. In you app, you use these files, you can access file in resources by app.get_resource ("db", "sqlite3.db") like os.path.join manner.
 
@@ -2415,27 +2415,27 @@ And run,
 
   python3 app.py
 
-But Your app is more bigger, it will be hard to make with single app file. Then, you can make tasks directory to seperate your app into several categories.
+But Your app is more bigger, it will be hard to make with single app file. Then, you can make services directory to seperate your app into several categories.
 
 .. code:: bash
   
   app.py
-  tasks/
+  services/
   templates/
   resources/
   static/
 
-All sub modules app need, can be placed into tasks/. tasks/\*.py will be watched for reloading if use_reloader = True.
+All sub modules app need, can be placed into services/. services/\*.py will be watched for reloading if use_reloader = True.
 
 You can structuring any ways you like and I like this style:
 
 .. code:: bash
 
-  tasks/views.py
-  tasks/apis.py
-  tasks/helpers.py
+  services/views.py
+  services/apis.py
+  services/helpers.py
 
-All modules to mount to app in tasks, should have def mount (app).
+All modules to mount to app in services, should have def mount (app).
 
 For example, views.py is like this,
 
@@ -2454,26 +2454,26 @@ Now you just import app decorable moduels at your app.py,
 .. code:: python
 
   from skitai.saddle import Saddle
-  from tasks import views, apis
+  from services import views, apis
   
   app = Saddle(__name__)
 
 That's it.
 
-If app scale is more bigger scale, tasks can be expanded to sub modules. 
+If app scale is more bigger scale, services can be expanded to sub modules. 
 
 .. code:: bash
 
-  tasks/views/index.py, regist.py, search.py, ...
-  tasks/apis/codemap.py, 
-  tasks/helpers/utils.py, ...
+  services/views/index.py, regist.py, search.py, ...
+  services/apis/codemap.py, 
+  services/helpers/utils.py, ...
 
 And import these from app.py,
 
 .. code:: python
 
-  from tasks.views import index, regist, ...
-  from tasks.apis import codemap, ...
+  from services.views import index, regist, ...
+  from services.apis import codemap, ...
 
 Some more other informations will be mentioned at *App Decorating* section again.
 
@@ -3141,14 +3141,14 @@ App Decorating: Making Simpler & Modular App
 Decorating App
 ```````````````````````
 
-I already mentioned *App Structure* section, you can split yours views and help utilties into tasks directory.
+I already mentioned *App Structure* section, you can split yours views and help utilties into services directory.
 
 Assume your application directory structure is like this,
 
 .. code:: bash
 
   templates/*.html  
-  tasks/*.py # app library, all modules in this directory will be watched for reloading  
+  services/*.py # app library, all modules in this directory will be watched for reloading  
   static/images # static files
   static/js
   static/css
@@ -3159,7 +3159,7 @@ app.py
   
 .. code:: python
 
-  from tasks import auth
+  from services import auth
   
   app = Saddle (__name__)
 
@@ -3170,7 +3170,7 @@ app.py
   def default_error_handler (was, e):
     return str (e)
     
-tasks/auth.py
+services/auth.py
 
 .. code:: python
   
@@ -3205,7 +3205,7 @@ tasks/auth.py
           was.mbox.push ("Invalid User Name or Password", "error", icon = "new_releases")
       return was.render ("sign/signin.html", next_url = next_url or was.ab ("index"))
 
-You just import module from tasks. but *def mount (app)* is core in each module. Every modules can have *mount (app)* in *tasks*, so you can split and modulize views and utility functions. mount (app) will be automatically executed on starting. If you set app.use_reloader, theses tasks will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
+You just import module from services. but *def mount (app)* is core in each module. Every modules can have *mount (app)* in *services*, so you can split and modulize views and utility functions. mount (app) will be automatically executed on starting. If you set app.use_reloader, theses services will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
 
 Releasing Module Resources
 ```````````````````````````````
@@ -3245,18 +3245,18 @@ And on app,
       
 .. code:: python
 
-  from tasks import auth
+  from services import auth
   
   app = Saddle (__name__)
   app.mount_with (auth, point = '/regist')
 
 Finally, route of login is "/regist/login".
   
-Sometimes function names are duplicated if like you import contributed tasks.
+Sometimes function names are duplicated if like you import contributed services.
 
 .. code:: python
 
-  from tasks import auth
+  from services import auth
   
   app = Saddle (__name__)
   app.mount_with (auth, point = '/regist', ns = "regist")
@@ -3275,7 +3275,7 @@ If you want to mount only debug environment,
   
   app.mount_with (auth, debug_only = True)
 
-If you want to authentify to all tasks, 
+If you want to authentify to all services, 
 
 .. code:: python
   
@@ -3306,7 +3306,7 @@ then you can access in auth.py,
         was.mbox.push ("Signed out successfully", "success")
         return was.redirect (was.ab (__options__.get ("redirect", 'index')))
     
-If you build useful tasks, please contribute them to `skitai.saddle.tasks`_.
+If you build useful services, please contribute them to `skitai.saddle.services`_.
 
 More About Namespace
 ````````````````````````````````````
@@ -3343,13 +3343,13 @@ But it is not pretty, so you can pretty style,
     was.ab (func1, "hello")
 
 
-.. _`skitai.saddle.tasks`: https://gitlab.com/hansroh/skitai/tree/master/skitai/saddle/contrib/tasks
+.. _`skitai.saddle.services`: https://gitlab.com/hansroh/skitai/tree/master/skitai/saddle/contrib/services
 
 
 Disabling Resources
 `````````````````````````````
 
-If you want to disable some resources in your tasks, you just remove from decorative () into any function:
+If you want to disable some resources in your services, you just remove from decorative () into any function:
 
 .. code:: python
 
@@ -5155,8 +5155,8 @@ Change Log
 
 - 0.27.6a (Dec 2018)
 
-  - rename directory decorative to tasks
-  - change from skital.saddle.contrib.decorative to skital.saddle.contrib.tasks  
+  - rename directory decorative to services
+  - change from skital.saddle.contrib.decorative to skital.saddle.contrib.services
 
 - 0.27.5 (Dec 2018)
 

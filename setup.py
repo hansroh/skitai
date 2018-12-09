@@ -58,8 +58,8 @@ packages = [
 	'skitai.saddle',
 	'skitai.saddle.patches',
 	'skitai.saddle.contrib',
-	'skitai.saddle.contrib.tasks',	
-	'skitai.saddle.contrib.tasks.django',
+	'skitai.saddle.contrib.services',	
+	'skitai.saddle.contrib.services.django',
 	'skitai.saddle.contrib.decorative',
 ]
 

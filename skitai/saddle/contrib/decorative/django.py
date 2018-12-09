@@ -3,4 +3,4 @@
 # USE skitai.saddle.contrib.tasks
 #-----------------------------------------------------------
 
-from ..tasks.django import auth
+from ..services.django import auth
