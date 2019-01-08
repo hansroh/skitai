@@ -56,6 +56,7 @@ class AppBase:
         self.init_time = time.time ()        
         self.handlers = {}
         
+        self._package_dirs = []
         self._cleaned = False     
         self._mount_option = {}
         self._started = False
@@ -135,7 +136,7 @@ class AppBase:
         for name in names:
             self.PACKAGE_DIRS.append (name)
     
-    def __mount (self, module, reloadable = True):
+    def __mount (self, module):
         mount_func = None
         if hasattr (module, "mount"):
             mount_func = module.mount
@@ -158,16 +159,15 @@ class AppBase:
                 self.log ("{} mounted".format (module.__name__), "debug")
             finally:    
                 self._mount_option = {}
+                
+        try:
+            self.reloadables [module] = self.get_file_info (module)
+        except FileNotFoundError:
+            del self.reloadables [module]
+            return        
+        # find recursively
+        self.find_mountables (module)
         
-        if reloadable:
-            try:
-                self.reloadables [module] = self.get_file_info (module)
-            except FileNotFoundError:
-                del self.reloadables [module]
-                return        
-            # find recursively
-            self.find_mountables (module)
-            
     def find_mountables (self, module):
         for attr in dir (module):
             v = getattr (module, attr)
@@ -188,11 +188,15 @@ class AppBase:
                     self.__mount (v)
                     break
     
+    def add_package_dir (self, path):
+        if path not in self._package_dirs:
+            self._package_dirs.append (path)
+            
     def mount_externals (self):
-        for module in self.mount_params:
+        for module in self.mount_params:            
             if module in self.reloadables:
                 continue
-            self.__mount (module, False)
+            self.__mount (module)
         
     def mount (self, maybe_point = None, *modules, **kargs):
         if maybe_point:
@@ -200,9 +204,9 @@ class AppBase:
                 kargs ["point"] = maybe_point
             else:
                 modules = (maybe_point,) + modules
-                
         for module in modules:
-            assert hasattr (module, "mount") or hasattr (module, "decorate")
+            assert hasattr (module, "mount") or hasattr (module, "decorate")            
+            self.add_package_dir (os.path.dirname (module.__spec__.origin))
             self.mount_params [module] = (kargs)
     mount_with = decorate_with = mount    
     
@@ -686,9 +690,8 @@ class AppBase:
             raise AssertionError ("Url rule should be starts with '/'")
         
         func_id = self.get_func_id (func)
-        
         if not self._started and not self._reloading and func_id in self._function_names and "argspec" not in options:
-            self.log ("def {} is already defined. use another name or decorate_with(ns = 'myns')".format (func_id), "warn")
+            self.log ("def {} is already defined. use another name or mount (ns = 'myns')".format (func_id), "warn")
         
         if func_id in self._function_names and "argspec" not in options:
             # reloading, remove old func

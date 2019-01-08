@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.27.6a3"
+__version__ = "0.27.6a4"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -115,7 +115,15 @@ dconf = {'mount': {"default": []}, 'clusters': {}, 'max_ages': {}, 'log_off': []
 def pref (preset = False):
 	from .saddle.Saddle import Config
 	
-	d = AttrDict ()
+	class Pref (AttrDict):
+		def __init__ (self):
+			super (Pref, self).__init__ (self)
+			self.__dict__ ["mountables"] = [] 
+			
+		def mount (self, *args, **kargs):
+			self.__dict__ ["mountables"].append ((args, kargs))
+	
+	d = Pref ()
 	d.config = Config (preset)
 	return d
 

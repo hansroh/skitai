@@ -76,12 +76,15 @@ class Module:
 			app.config = config.Config (True)		
 		elif not hasattr (app.config, "max_post_body_size"):
 			config.set_default (app.config)
-			
+		
+		if hasattr (app, "mountables"):
+			for _args, _karg in app.mountables:
+				app.mount (*_args, **_karg)			
 		if hasattr (app, "max_client_body_size"):
 			val = app.max_client_body_size
 			app.config.max_post_body_size = val
 			app.config.max_multipart_body_size = val
-			app.config.max_upload_file_size = val		
+			app.config.max_upload_file_size = val
 		if hasattr (app, "set_home"):
 			app.set_home (os.path.dirname (self.abspath), self.module)			
 		if hasattr (app, "commit_events_to"):

@@ -36,7 +36,6 @@ class Saddle (appbase.AppBase):
         self.sqlphile = None
         # for bus, set by wsgi_executor        
         self.config = Config (preset = True)
-        self._package_dirs = []
         self._aliases = []
         self._sqlmap_dir = None
         
@@ -172,16 +171,14 @@ class Saddle (appbase.AppBase):
         self.sqlphile = Template (self.config.get ("sql_engine", skitai.DB_PGSQL [1:]), self._sqlmap_dir, self.use_reloader)
         
         # vaild packages --------------------------------------------
-        package_dirs = []
         for d in self.PACKAGE_DIRS:
             maybe_dir = os.path.join (path, d)
             if os.path.isdir (maybe_dir):
-                self._package_dirs.append (maybe_dir)
-    
+                self.add_package_dir (maybe_dir)
+                
         if module:
             self.find_mountables (module)
         self.mount_externals () # these're not auto reloadad
-        
         self.load_jinja_filters ()
             
     def load_jinja_filters (self):    
