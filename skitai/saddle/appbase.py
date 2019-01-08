@@ -21,6 +21,7 @@ RX_RULE = re.compile ("(/<(.+?)>)")
 class AppBase:    
     use_reloader = False
     debug = False
+    auto_mount = True
     contrib_devel = False # make reloadable
     # Session
     securekey = None
@@ -48,13 +49,14 @@ class AppBase:
         self.path_suffix_len = 0
         self.route_map = {}
         self.route_map_fancy = {}
-        self.decorating_params = {}
+        self.mount_params = {}
         self.reloadables = {}
         self.last_reloaded = time.time ()        
         self.events = {}        
         self.init_time = time.time ()        
         self.handlers = {}
         
+        self._cleaned = False     
         self._mount_option = {}
         self._started = False
         self._reloading = False        
@@ -126,7 +128,6 @@ class AppBase:
         self.use_reloader = use_reloader
     
     # services management ----------------------------------------------
-    
     PACKAGE_DIRS = ["services", "decorative"]
     CONTRIB_DIR = os.path.join (os.path.dirname (skitai.__spec__.origin), 'saddle', 'contrib', 'services')
                 
@@ -134,69 +135,90 @@ class AppBase:
         for name in names:
             self.PACKAGE_DIRS.append (name)
     
-    def find_watchables (self, module):
+    def __mount (self, module, reloadable = True):
+        mount_func = None
+        if hasattr (module, "mount"):
+            mount_func = module.mount
+        elif hasattr (module, "decorate"): # for old ver
+            mount_func = module.decorate
+                        
+        if mount_func:
+            if not self.auto_mount and module not in self.mount_params:            
+                return        
+            params = self.mount_params.get (module, {})
+            if params.get ("debug_only") and not self.debug:
+                return
+            # for app
+            setattr (module, "__options__", params)
+            setattr (module, "__mount__", params)
+            # for app initialzing and reloading
+            self._mount_option = params
+            try:
+                mount_func (self)
+                self.log ("{} mounted".format (module.__name__), "debug")
+            finally:    
+                self._mount_option = {}
+        
+        if reloadable:
+            try:
+                self.reloadables [module] = self.get_file_info (module)
+            except FileNotFoundError:
+                del self.reloadables [module]
+                return        
+            # find recursively
+            self.find_mountables (module)
+            
+    def find_mountables (self, module):
         for attr in dir (module):
             v = getattr (module, attr)
             try:
                 modpath = v.__spec__.origin
             except AttributeError:
-                continue            
+                continue
             if not modpath:
                 continue            
             if v in self.reloadables:
                 continue
             if self.contrib_devel:
                 if modpath.startswith (self.CONTRIB_DIR):
-                    self.watch (v)
+                    self.__mount (v)
                     continue
             for package_dir in self._package_dirs:
-                if modpath.startswith (package_dir):                    
-                    self.watch (v)                    
+                if modpath.startswith (package_dir):
+                    self.__mount (v)
                     break
-        
-    def mount_with (self, module, **kargs):
-        self.decorating_params [module] = (kargs)
-    decorate_with = mount_with
     
-    def  umount_all (self):
-        for module in self.reloadables:
+    def mount_externals (self):
+        for module in self.mount_params:
+            if module in self.reloadables:
+                continue
+            self.__mount (module, False)
+        
+    def mount (self, maybe_point = None, *modules, **kargs):
+        if maybe_point:
+            if isinstance (maybe_point, str):                
+                kargs ["point"] = maybe_point
+            else:
+                modules = (maybe_point,) + modules
+                
+        for module in modules:
+            assert hasattr (module, "mount") or hasattr (module, "decorate")
+            self.mount_params [module] = (kargs)
+    mount_with = decorate_with = mount    
+    
+    def umount (self, *modules):
+        for module in modules:
             umount_func = None
             if hasattr (module, "umount"):
                 umount_func = module.umount
             elif hasattr (module, "dettach"): # for old ver
                 umount_func = module.dettach 
-            umount_func (self)
-            self.log ("%s umounted" % module.__file__, "debug")
+            umount_func and umount_func (self)
+            self.log ("%s umounted" % module.__name__, "debug")
+         
+    def  umount_all (self):
+        self.umount (*tuple (self.reloadables.keys ()))
     dettach_all = umount_all
-    
-    def watch (self, module):
-        mount_func = None
-        if hasattr (module, "mount"):
-            mount_func = module.mount
-        elif hasattr (module, "decorate"): # for old ver
-            mount_func = module.decorate
-            
-        if mount_func:
-            params = self.decorating_params.get (module, {})
-            if params.get ("debug_only") and not self.debug:
-                return
-            # for app decoratives
-            setattr (module, "__options__", params)
-            # for app initialzing and reloading
-            self._mount_option = params
-            try:
-                mount_func (self)
-            finally:    
-                self._mount_option = {}
-                
-        try:
-            self.reloadables [module] = self.get_file_info (module)
-        except FileNotFoundError:
-            del self.reloadables [module]
-            return
-        
-        # find recursively
-        self.find_watchables (module)
     
     def maybe_reload (self):
         if time.time () - self.last_reloaded < 1.0:
@@ -211,14 +233,14 @@ class AppBase:
                 continue
                 
             if self.reloadables [module] != fi:
-                self.log ("reloading decorative, %s" % module.__file__, "debug")
+                self.log ("reloading service, %s" % module.__name__, "debug")
                 self._current_function_specs = {}
                 if hasattr (module, "dettach"):
                     module.dettach (self)
                 with self.lock:
                     newmodule = reload (module)
                     del self.reloadables [module]
-                    self.watch (newmodule)
+                    self.__mount (newmodule)
                     
         self.load_jinja_filters ()
         self.last_reloaded = time.time ()        
@@ -280,7 +302,6 @@ class AppBase:
     def before_umount (self, f):
         self._binds_server [4] = f
         return f
-    umount = before_umount
     
     def umounted (self, f):
         self._binds_server [2] = f
@@ -680,9 +701,9 @@ class AppBase:
                 del self._function_names [deletable]
         
         mount_prefix = self._mount_option.get ("point")
-        if not mount_prefix:
-            # old version
-            mount_prefix = self._mount_option.get ("mount")            
+        if not mount_prefix:            
+            mount_prefix = self._mount_option.get ("mount")    
+                        
         if mount_prefix:            
             while mount_prefix:
                 if mount_prefix [-1] == "/":
@@ -885,7 +906,7 @@ class AppBase:
     model_signal = redirect_signal
     
     # app startup and shutdown --------------------------------------------    
-    def cleanup (self):                
+    def cleanup (self):   
         pass
             
     def _start (self, wasc, route, reload = False):

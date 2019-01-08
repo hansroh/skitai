@@ -179,7 +179,8 @@ class Saddle (appbase.AppBase):
                 self._package_dirs.append (maybe_dir)
     
         if module:
-            self.find_watchables (module)
+            self.find_mountables (module)
+        self.mount_externals () # these're not auto reloadad
         
         self.load_jinja_filters ()
             

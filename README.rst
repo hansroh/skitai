@@ -3207,6 +3207,7 @@ services/auth.py
 
 You just import module from services. but *def mount (app)* is core in each module. Every modules can have *mount (app)* in *services*, so you can split and modulize views and utility functions. mount (app) will be automatically executed on starting. If you set app.use_reloader, theses services will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
 
+
 Releasing Module Resources
 ```````````````````````````````
 
@@ -3248,7 +3249,7 @@ And on app,
   from services import auth
   
   app = Saddle (__name__)
-  app.mount_with (auth, point = '/regist')
+  app.mount (auth, point = '/regist')
 
 Finally, route of login is "/regist/login".
   
@@ -3259,7 +3260,7 @@ Sometimes function names are duplicated if like you import contributed services.
   from services import auth
   
   app = Saddle (__name__)
-  app.mount_with (auth, point = '/regist', ns = "regist")
+  app.mount (auth, point = '/regist', ns = "regist")
   
 Now, you can import iport without name collision. But be careful when use was.ab () etc.
 
@@ -3273,13 +3274,13 @@ If you want to mount only debug environment,
 
 .. code:: python
   
-  app.mount_with (auth, debug_only = True)
+  app.mount (auth, debug_only = True)
 
 If you want to authentify to all services, 
 
 .. code:: python
   
-  app.mount_with (auth, authenticate = "bearer")
+  app.mount (auth, authenticate = "bearer")
 
 Currently *reserved arguments* are:
 
@@ -3288,14 +3289,14 @@ Currently *reserved arguments* are:
 - debug_only
 - mount
 
-Your custom options can be accessed by __options__ in your module.
+Your custom options can be accessed by __mount__ in your module.
 
 First, mount with redirect option.
 
 .. code:: python
   
-    app.mount_with (auth, redirect = "index")    
-    # automatically set to auth.__options__ = {"redirect": "index"}
+    app.mount (auth, redirect = "index")    
+    # automatically set to auth.__mount__ = {"redirect": "index"}
 
 then you can access in auth.py, 
 
@@ -3304,7 +3305,7 @@ then you can access in auth.py,
     @app.route ("/regist/signout")
     def signout (was):
         was.mbox.push ("Signed out successfully", "success")
-        return was.redirect (was.ab (__options__.get ("redirect", 'index')))
+        return was.redirect (was.ab (__mount__.get ("redirect", 'index')))
     
 If you build useful services, please contribute them to `skitai.saddle.services`_.
 
@@ -3313,7 +3314,7 @@ More About Namespace
 
 If you develop reusable task modules, pay attention to namespace and URL building. 
 
-For example, below module is mount with app.mount_with (auth, ns = "regist").  
+For example, below module is mount with app.mount (auth, ns = "regist").  
 
 .. code:: python
   
@@ -3332,7 +3333,7 @@ This was.ab ("func1") in func2 might be dangerous, because this task modules may
 
 .. code:: python
 
-  was.ab ("{}func1".format (__options__.get ("ns") and __options__ ["ns"] + "." or ""), , "hello")
+  was.ab ("{}func1".format (__mount__.get ("ns") and __mount__ ["ns"] + "." or ""), , "hello")
 
 But it is not pretty, so you can pretty style,
 
@@ -3342,6 +3343,27 @@ But it is not pretty, so you can pretty style,
   def func2 (was):
     was.ab (func1, "hello")
 
+
+Manual Mounting
+```````````````````````````
+
+Saddle automaticall mount your services which have mount () funtion, but you can disable this, and mount explicit.
+
+*New in version 0.27*
+
+If you mount manually, set app.auto_mount = False and call mount () for each modules you want.
+
+.. code:: python
+
+  from services import auth, index  
+  app = Saddle (__name__)  
+  
+  app.auto_mount = False
+  app.mount (auth, index, point = "/v2")
+  app.mount (pets, point = "/v2")
+  
+  skitai.mount ("/", app)
+  
 
 .. _`skitai.saddle.services`: https://gitlab.com/hansroh/skitai/tree/master/skitai/saddle/contrib/services
 

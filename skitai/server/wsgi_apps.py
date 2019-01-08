@@ -236,11 +236,11 @@ class ModuleManager:
 			module = Module (self.wasc, self.handler, self.bus, route, directory, modname, pref)			
 		except: 
 			self.wasc.logger.trace ("app")
-			self.wasc.logger ("app", "[error] application load failed: %s" % modname)			
+			self.wasc.logger ("app", "[error] app load failed: %s" % modname)			
 		else: 			
-			self.wasc.logger ("app", "[info] application %s imported." % route)
+			self.wasc.logger ("app", "[info] app %s mounted" % route)
 			if route in self.modules:
-				self.wasc.logger ("app", "[info] application route collision detected: %s at %s <-> %s" % (route, module.abspath, self.modules [route].abspath), "warn")
+				self.wasc.logger ("app", "[info] app route collision detected: %s at %s <-> %s" % (route, module.abspath, self.modules [route].abspath), "warn")
 			self.modules [route] = module
 			if type (modname) is str:
 				# possibley direct app object

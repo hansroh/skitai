@@ -310,21 +310,19 @@ class Loader:
 				continue
 			
 			if attr == "clusters":
-				self.wasc.logger ("server", "[info] clenaup %s" % attr)
-				for name, cluster in obj.items ():
-					self.wasc.logger ("server", "[info] ...clenaup %s" % name)
+				self.wasc.logger ("server", "[info] cleanup %s" % attr)
+				for name, cluster in obj.items ():					
 					cluster.cleanup ()
 				continue	
 					
-			try:
-				self.wasc.logger ("server", "[info] clenaup %s" % attr)
-				obj.cleanup ()
-				del obj
-			except AttributeError:
-				pass
-			except:
-				self.wasc.logger.trace ("server")
-		
+			if hasattr (obj, "cleanup"):
+				try:
+					self.wasc.logger ("server", "[info] cleanup %s" % attr)
+					obj.cleanup ()
+					del obj
+				except:
+					self.wasc.logger.trace ("server")
+			
 		self.app_cycle ('umounted')
 		
 		if os.name == "nt" or self.wasc.httpserver.worker_ident == "master":
