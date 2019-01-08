@@ -156,7 +156,7 @@ class AppBase:
             self._mount_option = params
             try:
                 mount_func (self)
-                self.log ("{} mounted".format (module.__name__), "debug")
+                self.log ("{} mounted".format (module.__name__), "info")
             finally:    
                 self._mount_option = {}
                 
@@ -218,7 +218,7 @@ class AppBase:
             elif hasattr (module, "dettach"): # for old ver
                 umount_func = module.dettach 
             umount_func and umount_func (self)
-            self.log ("%s umounted" % module.__name__, "debug")
+            self.log ("%s umounted" % module.__name__, "info")
          
     def  umount_all (self):
         self.umount (*tuple (self.reloadables.keys ()))
@@ -237,7 +237,7 @@ class AppBase:
                 continue
                 
             if self.reloadables [module] != fi:
-                self.log ("reloading service, %s" % module.__name__, "debug")
+                self.log ("reloading service, %s" % module.__name__, "info")
                 self._current_function_specs = {}
                 if hasattr (module, "dettach"):
                     module.dettach (self)
