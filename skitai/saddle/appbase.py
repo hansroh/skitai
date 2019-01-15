@@ -690,18 +690,21 @@ class AppBase:
             raise AssertionError ("Url rule should be starts with '/'")
         
         func_id = self.get_func_id (func)
-        if not self._started and not self._reloading and func_id in self._function_names and "argspec" not in options:
-            self.log ("def {} is already defined. use another name or mount (ns = 'myns')".format (func_id), "warn")
+        is_alter_routing = id (func) in self._function_names
         
-        if func_id in self._function_names and "argspec" not in options:
-            # reloading, remove old func
-            deletable = None
-            for k, v in self._function_names.items ():
-                if v == func_id:
-                    deletable = k
-                    break
-            if deletable:
-                del self._function_names [deletable]
+        if not is_alter_routing:
+            if not self._started and not self._reloading and func_id in self._function_names and "argspec" not in options:
+                self.log ("def {} is already defined. use another name or mount (ns = 'myns')".format (func_id), "warn")
+            
+            if func_id in self._function_names and "argspec" not in options:
+                # reloading, remove old func
+                deletable = None
+                for k, v in self._function_names.items ():
+                    if v == func_id:
+                        deletable = k
+                        break
+                if deletable:
+                    del self._function_names [deletable]
         
         mount_prefix = self._mount_option.get ("point")
         if not mount_prefix:            
@@ -720,9 +723,10 @@ class AppBase:
         except KeyError:
             fspec =  inspect.getargspec(func)            
             self._function_names [id (func)] = func_id
-        
-        if fspec.varargs is not None:
-            raise ValueError ("var args is not allowed")                
+            
+        if not is_alter_routing and fspec.varargs is not None:
+            raise ValueError ("var args is not allowed")
+                            
         options ["args"] = fspec.args [1:]
         options ["keywords"] = fspec.keywords
         
