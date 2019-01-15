@@ -3,8 +3,8 @@ import time
 import os
 import sys
 from aquests.protocols.http import http_date, http_util
-from aquests.lib.reraise import reraise 
-from aquests.lib import producers, compressors
+from rs4.reraise import reraise 
+from rs4 import producers, compressors
 from aquests.protocols.http import respcodes
 from .wastuff import selective_logger
 from .wastuff.api import API

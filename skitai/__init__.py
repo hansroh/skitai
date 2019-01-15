@@ -8,9 +8,9 @@ NAME = "Skitai/%s.%s" % version_info [:2]
 import threading
 import sys, os
 import h2
-from aquests.lib import versioning
-from aquests.lib.pmaster import service
-from aquests.lib.attrdict import AttrDict
+from rs4 import versioning
+from rs4.psutil import service
+from rs4.attrdict import AttrDict
 from aquests.protocols.dns import asyndns
 from importlib import machinery
 from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
@@ -426,8 +426,8 @@ def run (**conf):
 	import os, sys, time
 	from . import lifetime
 	from .server import Skitai
-	from aquests.lib.pmaster import flock
-	from aquests.lib import pathtool
+	from rs4.psutil import flock
+	from rs4 import pathtool
 	import getopt
 
 	class SkitaiServer (Skitai.Loader):

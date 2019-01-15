@@ -1,8 +1,8 @@
 def shutdown (root):
 	import md5
 	import os
-	from aquests.lib  import confparse	
-	from aquests.lib  import timeoutsocket
+	from rs4  import confparse	
+	from rs4  import timeoutsocket
 	import urllib.request, urllib.parse, urllib.error
 	
 	cf = confparse.ConfParse (os.path.join (root, "etc/server.conf"))	

@@ -1,10 +1,10 @@
 from aquests.protocols.http import http_util
 from . import cookie
-from aquests.lib.reraise import reraise 
+from rs4.reraise import reraise 
 import sys
 import json
-from aquests.lib.athreads import trigger
-from aquests.lib.attrdict import AttrDict
+from aquests.athreads import trigger
+from rs4.attrdict import AttrDict
 from aquests.protocols.http import respcodes
 from skitai.saddle.exceptions import HTTPError
 

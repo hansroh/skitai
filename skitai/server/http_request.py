@@ -2,7 +2,7 @@ from . import http_response, counter
 import time
 import re
 import json
-from aquests.lib.attrdict import CaseInsensitiveDict
+from rs4.attrdict import CaseInsensitiveDict
 from aquests.protocols.http import http_util
 
 class http_request:

@@ -1,6 +1,6 @@
 import pstats
 import os
-from aquests.lib.termcolor import tc
+from rs4.termcolor import tc
 
 def main ():
     if not os.path.isfile ('profile.out'):

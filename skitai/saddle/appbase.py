@@ -3,14 +3,14 @@ from functools import wraps
 from urllib.parse import unquote_plus, quote_plus, urljoin
 import os
 import copy
-from aquests.lib import importer, versioning
+from rs4 import importer, versioning
 from types import FunctionType as function
 import inspect
 from importlib import reload
 from skitai import was as the_was
 import time, threading, multiprocessing
 from .storage import Storage
-from aquests.lib import evbus
+from rs4 import evbus
 from event_bus.exceptions import EventDoesntExist
 import time
 import skitai    

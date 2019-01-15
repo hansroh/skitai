@@ -1,5 +1,5 @@
-from aquests.lib.producers import simple_producer
-from aquests.lib.athreads import trigger
+from rs4.producers import simple_producer
+from aquests.athreads import trigger
 from skitai.server.http_response import catch
 
 class _Method:

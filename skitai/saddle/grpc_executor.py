@@ -10,7 +10,7 @@ import threading
 import copy
 from aquests.protocols.grpc.producers import grpc_producer
 from aquests.protocols.grpc.discover import find_input
-from aquests.lib.athreads import trigger
+from aquests.athreads import trigger
 from skitai.server.handlers import collectors	
 from skitai import version_info, was as the_was
 

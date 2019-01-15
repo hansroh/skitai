@@ -12,11 +12,11 @@ from warnings import warn
 from . import https_server
 from skitai import start_was
 from collections import deque
-from aquests.lib.athreads.fifo import await_fifo
+from aquests.athreads.fifo import await_fifo
 from aquests.client import asynconnect
 from aquests.client import socketpool
-from aquests.lib.athreads import threadlib, trigger
-from aquests.lib import logger, confparse, pathtool
+from aquests.athreads import threadlib, trigger
+from rs4 import logger, confparse, pathtool
 from aquests.dbapi import dbpool
 from aquests.protocols.http import request_handler
 from aquests.protocols import http2

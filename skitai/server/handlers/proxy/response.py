@@ -1,6 +1,6 @@
 from aquests.protocols.http import response as http_response, buffers
-from aquests.lib import compressors
-from aquests.lib.athreads import trigger
+from rs4 import compressors
+from aquests.athreads import trigger
 import time
 
 class ProxyResponse (http_response.Response):

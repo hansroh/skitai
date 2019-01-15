@@ -1,4 +1,4 @@
-﻿from aquests.lib import attrdict
+﻿from rs4 import attrdict
 
 def set_default (cf):
 	cf.max_post_body_size = 5 * 1024 * 1024

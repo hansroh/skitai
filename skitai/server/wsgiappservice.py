@@ -10,9 +10,9 @@ import pickle
 from multiprocessing import RLock
 import random
 import threading
-from aquests.lib import pathtool, logger, jwt
-from aquests.lib.producers import simple_producer, file_producer
-from aquests.lib.athreads import trigger
+from rs4 import pathtool, logger, jwt
+from rs4.producers import simple_producer, file_producer
+from aquests.athreads import trigger
 from aquests.protocols.smtp import composer
 from aquests.protocols.http import http_date
 import inspect

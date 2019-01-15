@@ -4,9 +4,9 @@ try:
 except ImportError:
 	from urllib import unquote	
 import sys
-from aquests.lib import producers
+from rs4 import producers
 from skitai.server.http_response import catch
-from aquests.lib.athreads import trigger
+from aquests.athreads import trigger
 from . import collectors
 from skitai import version_info, was as the_was
 from skitai import saddle

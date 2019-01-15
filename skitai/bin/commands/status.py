@@ -1,6 +1,6 @@
 import time, os
-from aquests.lib.pmaster import processutil
-from aquests.lib.termcolor import tc
+from rs4.psutil import processutil
+from rs4.termcolor import tc
 
 def due (sec):
     if sec < 60:

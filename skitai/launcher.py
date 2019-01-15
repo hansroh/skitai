@@ -1,7 +1,7 @@
 # pytest framework ---------------------------------------------
 import requests
-from aquests.lib import siesta
-from aquests.lib.pmaster import Puppet, processutil
+from rs4 import siesta
+from rs4.psutil import Puppet, processutil
 import subprocess
 import time
 import sys

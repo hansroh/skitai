@@ -1,7 +1,7 @@
 import time
-from aquests.lib.athreads import socket_map
-from aquests.lib.athreads import trigger
-from aquests.lib.cbutil import tuple_cb
+from aquests.athreads import socket_map
+from aquests.athreads import trigger
+from rs4.cbutil import tuple_cb
 from aquests.client.asynconnect import AsynSSLConnect, AsynConnect
 from aquests.dbapi.dbconnect import DBConnect
 import threading

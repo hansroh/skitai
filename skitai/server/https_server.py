@@ -110,7 +110,7 @@ def init_context (certfile, keyfile, pass_phrase):
 		
 if __name__ == "__main__":
 	import module_loader
-	from aquests.lib.athreads import threadlib
+	from aquests.athreads import threadlib
 	import file_handler, xmlrpc_handler, soap_handler, cgi_handler, graph_handler, proxy_handler, logger
 	
 	pools = threadlib.request_queue()	

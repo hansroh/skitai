@@ -1,12 +1,12 @@
 from . import wsgi_handler
 import skitai
-from aquests.lib import producers
+from rs4 import producers
 from h2.connection import H2Connection, GoAwayFrame, DataFrame, H2Configuration
 from h2.exceptions import ProtocolError, NoSuchStreamError, StreamClosedError
 from h2.events import TrailersReceived, DataReceived, RequestReceived, StreamEnded, PriorityUpdated, ConnectionTerminated, StreamReset, WindowUpdated, RemoteSettingsChanged
 from h2.settings import SettingCodes
 from h2.errors import ErrorCodes
-from aquests.lib import producers
+from rs4 import producers
 from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
 from aquests.protocols.http2.producers import h2header_producer, h2frame_producer

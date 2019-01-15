@@ -4,7 +4,7 @@
 
 import threading
 import multiprocessing
-from aquests.lib.athreads import threadlib, trigger
+from aquests.athreads import threadlib, trigger
 import skitai
 from skitai import was as the_was
 from ..wastuff import triple_logger

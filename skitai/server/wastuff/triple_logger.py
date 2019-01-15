@@ -1,5 +1,5 @@
 import multiprocessing
-from aquests.lib import pathtool, logger
+from rs4 import pathtool, logger
 
 class Logger:
 	def __init__ (self, media, path):

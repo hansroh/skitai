@@ -1,5 +1,5 @@
 import time
-from aquests.lib import jwt
+from rs4 import jwt
 
 class AuthorizedUser:
 	def __init__ (self, user, roles, realm):

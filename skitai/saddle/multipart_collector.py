@@ -1,7 +1,7 @@
 import tempfile
 import os
 from skitai.server.handlers import collectors
-from aquests.lib import pathtool
+from rs4 import pathtool
 from aquests.protocols.http import http_util
 import shutil
 import io

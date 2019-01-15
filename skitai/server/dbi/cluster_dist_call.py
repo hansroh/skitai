@@ -1,13 +1,13 @@
 import time
-from aquests.lib.athreads import socket_map
-from aquests.lib.athreads import trigger
+from aquests.athreads import socket_map
+from aquests.athreads import trigger
 import threading
 from skitai.server.rpc import cluster_dist_call, rcache
-from aquests.lib.attrdict import AttrDict
+from rs4.attrdict import AttrDict
 from aquests.dbapi import request
 import asyncore
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
-from aquests.lib.cbutil import tuple_cb
+from rs4.cbutil import tuple_cb
 
 class OperationTimeout (Exception):
 	pass

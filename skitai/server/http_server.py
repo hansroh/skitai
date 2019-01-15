@@ -5,15 +5,15 @@ import asyncore, asynchat
 import re, socket, time, threading, os
 from . import http_request, counter
 from aquests.protocols.http import http_util, http_date
-from aquests.lib.athreads import threadlib
+from aquests.athreads import threadlib
 from skitai import lifetime
-from aquests.lib import producers, compressors
+from rs4 import producers, compressors
 from collections import deque
 import signal
 import ssl
 import skitai
 from hashlib import md5
-from aquests.lib.pmaster.processutil import set_process_name
+from rs4.psutil.processutil import set_process_name
 if os.name == "posix":
 	import psutil
 	CPUs = psutil.cpu_count()

@@ -1,7 +1,7 @@
 from skitai.server import counter
-from aquests.lib import compressors
+from rs4 import compressors
 from hashlib import md5
-from aquests.lib import pathtool
+from rs4 import pathtool
 import os
 import time
 import threading

@@ -5,8 +5,8 @@ import json
 import skitai
 from .. import wsgi_handler
 from skitai.server.http_response import catch
-from aquests.lib.athreads import trigger
-from aquests.lib import strutil
+from aquests.athreads import trigger
+from rs4 import strutil
 from aquests.protocols.grpc import discover
 from aquests.protocols.ws import *
 from aquests.protocols.http import http_util
@@ -19,7 +19,7 @@ try: from cStringIO import StringIO as BytesIO
 except ImportError: from io import BytesIO
 import copy
 from collections import Iterable
-from aquests.lib.reraise import reraise 
+from rs4.reraise import reraise 
 has_werkzeug = True
 try:
 	from werkzeug.wsgi import ClosingIterator 

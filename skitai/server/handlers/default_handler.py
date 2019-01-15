@@ -4,7 +4,7 @@ import time
 from mimetypes import types_map
 import os
 from . import filesys
-from aquests.lib import producers
+from rs4 import producers
 from aquests.protocols.http import http_date
 from aquests.protocols.http.http_util import *
 from hashlib import md5

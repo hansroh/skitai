@@ -2,8 +2,8 @@ import pickle as pickle
 from aquests.protocols.http import http_date
 import time
 import random
-from aquests.lib import pathtool
-from aquests.lib import udict
+from rs4 import pathtool
+from rs4 import udict
 import os, sys
 try:
 	from urllib.parse import quote_plus, unquote_plus
