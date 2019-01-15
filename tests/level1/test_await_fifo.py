@@ -1,4 +1,4 @@
-from aquests.lib.athreads import fifo
+from aquests.athreads import fifo
 from aquests.protocols.http2 import fifo as fifo2
 
 from confutil import rprint

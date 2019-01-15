@@ -3,7 +3,7 @@ from confutil import rprint
 import pytest
 from skitai.server.http_response import http_response, UNCOMPRESS_MAX, ONETIME_COMPRESS_MAX
 from mock import MagicMock
-from aquests.lib import producers
+from rs4 import producers
 import os
 from aquests.protocols.http2.producers import h2frame_producer, h2header_producer
 import threading

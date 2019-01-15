@@ -9,7 +9,7 @@ from skitai.saddle.cookie import Cookie
 from skitai.saddle.named_session import NamedSession
 from aquests.protocols.smtp import composer
 import shutil
-from aquests.lib import pathtool
+from rs4 import pathtool
 from sqlphile.sqlmap import SQLMap
 
 def test_was (wasc, app, client): 

@@ -1,6 +1,6 @@
 from __future__ import print_function
 from skitai import requests
-from aquests.lib import logger
+from rs4 import logger
 import time
 
 

@@ -1,6 +1,6 @@
 import pytest
 from skitai.server.wastuff import triple_logger
-from aquests.lib import  pathtool, logger as rlog
+from rs4 import  pathtool, logger as rlog
 import shutil, os, glob, time
 	
 def test_tirple_logger ():
