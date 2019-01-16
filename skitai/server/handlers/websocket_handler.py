@@ -89,9 +89,9 @@ class Handler (wsgi_handler.Handler):
 			
 			wsfunc = request.routed
 			if is_saddle:
-				fspec = app.get_function_spec (wsfunc) or inspect.getargspec (wsfunc)				
+				fspec = app.get_function_spec (wsfunc) or inspect.getfullargspec (wsfunc)				
 			else:
-				fspec = inspect.getargspec (wsfunc)
+				fspec = inspect.getfullargspec (wsfunc)
 			
 			savedqs = env.get ('QUERY_STRING', '')
 			current_args = {}

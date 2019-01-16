@@ -9,7 +9,7 @@ def test_saddle (wasc, app):
 	app.skito_jinja ()
 	app.set_home (confutil.getroot ())	
 	assert app.get_resource () == os.path.join (confutil.getroot (), 'resources')
-	app.watch (confutil)
+	app._mount (confutil)
 	assert confutil in app.reloadables
 
 def test_with_resource (wasc, app):

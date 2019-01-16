@@ -32,12 +32,14 @@ def test_skitai (app):
     assert skitai.dconf ['mount']["default"][0][1] == ('/usr/local/bin/path/app.py', 'app')
     
     if tfserver:
+        pref = skitai.pref ()
+        pref.config.tf_models = None
         skitai.dconf ['mount']["default"] = []
-        skitai.mount ("/k2", tfserver)
+        skitai.mount ("/k2", tfserver, pref = pref)
         assert skitai.dconf ['mount']["default"][0][1][0].endswith ('tfserver/export/skitai/__export__.py')
         
         skitai.dconf ['mount']["default"] = []
-        skitai.mount ("/k2", (tfserver, "dapp"), "dapp")
+        skitai.mount ("/k2", (tfserver, "dapp"), "dapp", pref = pref)
         assert skitai.dconf ['mount']["default"][0][1][0].endswith ('tfserver/export/skitai/dapp')
         assert skitai.dconf ['mount']["default"][0][1][1] == "dapp"
         

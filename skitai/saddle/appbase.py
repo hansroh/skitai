@@ -136,7 +136,7 @@ class AppBase:
         for name in names:
             self.PACKAGE_DIRS.append (name)
     
-    def __mount (self, module):
+    def _mount (self, module):
         mount_func = None
         if hasattr (module, "mount"):
             mount_func = module.mount
@@ -151,7 +151,7 @@ class AppBase:
                 return
             # for app
             setattr (module, "__options__", params)
-            setattr (module, "__mount__", params)
+            setattr (module, "_mount__", params)
             # for app initialzing and reloading
             self._mount_option = params
             try:
@@ -181,11 +181,11 @@ class AppBase:
                 continue
             if self.contrib_devel:
                 if modpath.startswith (self.CONTRIB_DIR):
-                    self.__mount (v)
+                    self._mount (v)
                     continue
             for package_dir in self._package_dirs:
                 if modpath.startswith (package_dir):
-                    self.__mount (v)
+                    self._mount (v)
                     break
     
     def add_package_dir (self, path):
@@ -196,7 +196,7 @@ class AppBase:
         for module in self.mount_params:            
             if module in self.reloadables:
                 continue
-            self.__mount (module)
+            self._mount (module)
         
     def mount (self, maybe_point = None, *modules, **kargs):
         if maybe_point:
@@ -244,7 +244,7 @@ class AppBase:
                 with self.lock:
                     newmodule = reload (module)
                     del self.reloadables [module]
-                    self.__mount (newmodule)
+                    self._mount (newmodule)
                     
         self.load_jinja_filters ()
         self.last_reloaded = time.time ()        
@@ -260,7 +260,7 @@ class AppBase:
         func_id = self.get_func_id (func)
         if func_id not in self._function_specs or func_id not in self._current_function_specs:
             # save origin spec
-            self._function_specs [func_id] = inspect.getargspec(func)
+            self._function_specs [func_id] = inspect.getfullargspec(func)
             self._current_function_specs [func_id] = None
     
     def get_function_spec (self, func):        
@@ -721,14 +721,14 @@ class AppBase:
         try:
             fspec = self._function_specs [func_id]
         except KeyError:
-            fspec =  inspect.getargspec(func)            
+            fspec =  inspect.getfullargspec(func)            
             self._function_names [id (func)] = func_id
             
         if not is_alter_routing and fspec.varargs is not None:
             raise ValueError ("var args is not allowed")
                             
         options ["args"] = fspec.args [1:]
-        options ["keywords"] = fspec.keywords
+        options ["keywords"] = fspec.varkw
         
         if fspec.defaults:
             defaults = {}

@@ -72,11 +72,10 @@ package_data = {
 
 install_requires = [
 	"sqlphile",
-	"aquests",	
+	"aquests",
 	"jinja2==2.10",
 	"jsonrpclib-pelix==0.3.1",
-	"mock==2.0.0",
-    "setproctitle"
+	"mock==2.0.0"
 ]
 
 with codecs.open ('README.rst', 'r', encoding='utf-8') as f:
