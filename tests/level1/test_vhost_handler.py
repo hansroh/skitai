@@ -2,7 +2,7 @@ from confutil import rprint, assert_request
 import confutil
 import skitai
 import os, pytest
-from skitai.server import offline
+from skitai import offline
 
 @pytest.mark.run (order = 1)
 def test_default_handler (wasc, client):

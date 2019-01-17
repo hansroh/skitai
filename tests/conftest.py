@@ -1,11 +1,11 @@
 import pytest, os, time
 import confutil
 import skitai
-from skitai.saddle import Saddle
-from skitai import saddle
+from atila import Atila
+import atila
 from rs4 import logger
-from skitai.server import offline
-from skitai.server.offline import server, channel as cha
+from skitai import offline
+from skitai.offline import server, channel as cha
 
 try:
 	import pytest_ordering
@@ -16,7 +16,7 @@ else:
 
 @pytest.fixture (scope = "module")
 def app ():
-	return Saddle (__name__)
+	return Atila (__name__)
 
 @pytest.fixture
 def client ():

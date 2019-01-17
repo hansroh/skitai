@@ -3,10 +3,10 @@ import confutil
 import pytest
 import skitai
 import os, pytest
-from skitai.server import offline
-from skitai.server.wastuff.promise import _Method
-from skitai.saddle.cookie import Cookie
-from skitai.saddle.named_session import NamedSession
+from skitai import offline
+from skitai.wastuff.promise import _Method
+from atila.cookie import Cookie
+from atila.named_session import NamedSession
 from aquests.protocols.smtp import composer
 import shutil
 from rs4 import pathtool

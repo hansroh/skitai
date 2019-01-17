@@ -2,7 +2,7 @@ from confutil import rprint, assert_request
 import confutil
 import skitai
 import os, pytest
-from skitai.server import offline
+from skitai import offline
 
 def test_params (wasc, app, client):
 	def z (was):	

@@ -1,5 +1,5 @@
 import os
-from skitai.saddle import Saddle
+from atila import Atila
 import skitai
 
 if os.name == "nt":
@@ -10,7 +10,7 @@ if os.name == "nt":
 		_svc_app_ = __file__
 		_svc_python_ = r"c:\python34\python.exe"
 
-app = Saddle (__name__)
+app = Atila (__name__)
 app.debug = True
 app.use_reloader = True
 app.jinja_overlay ()

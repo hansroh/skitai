@@ -1,4 +1,4 @@
-from skitai.server.rpc import rcache
+from skitai.rpc import rcache
 from confutil import rprint
 import time
 import random

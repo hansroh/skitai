@@ -1,6 +1,6 @@
 import confutil
-from skitai.server.handlers import vhost_handler
-from skitai.server import offline
+from skitai.handlers import vhost_handler
+from skitai import offline
 import skitai
 import os
 	

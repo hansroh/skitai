@@ -3,7 +3,7 @@ import time
 import random
 import pytest
 from mock import MagicMock
-from skitai.server.wastuff.modelkeys import ModelKeys
+from skitai.wastuff.modelkeys import ModelKeys
 
 def test_models_in_storage (wasc):
 	was = wasc ()

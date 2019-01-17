@@ -4,7 +4,7 @@ import os
 import signal
 import time
 from rs4 import confparse, logger, pathtool
-from skitai.server.wastuff import process, daemon
+from skitai.wastuff import process, daemon
 import time
 			
 class Service (daemon.Daemon):

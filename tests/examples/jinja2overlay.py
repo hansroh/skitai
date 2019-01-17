@@ -1,8 +1,8 @@
 import os
-from skitai.saddle import Saddle
+from atila import Atila
 import skitai
 
-app = Saddle (__name__)
+app = Atila (__name__)
 
 app.debug = True
 app.use_reloader = True

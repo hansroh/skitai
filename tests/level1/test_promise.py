@@ -1,4 +1,4 @@
-from skitai.server.wastuff import promise
+from skitai.wastuff import promise
 from confutil import rprint
 import time
 import random

@@ -1,11 +1,11 @@
 import confutil
-from skitai.server.handlers import collectors
-from skitai.saddle import grpc_collector
+from skitai.handlers import collectors
+from atila import grpc_collector
 from examples.package import route_guide_pb2
-from skitai.saddle import multipart_collector
+from atila import multipart_collector
 from mock import MagicMock
 import pytest
-from skitai.server import offline
+from skitai import offline
 
 @pytest.fixture
 def handler (wasc):
@@ -33,9 +33,9 @@ def test_h2dummy_collector (handler, post):
 def test_multipart_collector (handler, multipart):
 	c = collectors.MultipartCollector (handler, multipart, 1024, 2048, 512)
 	
-def test_saddle_multipart_collector (handler, multipart):
+def test_alita_multipart_collector (handler, multipart):
 	c = multipart_collector.MultipartCollector (handler, multipart, 1024, 2048, 512)
 
-def test_saddle_grpc_collector (handler, grpc):
+def test_alita_grpc_collector (handler, grpc):
 	c = grpc_collector.grpc_collector (handler, grpc)
 	

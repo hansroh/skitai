@@ -1,4 +1,4 @@
-from skitai.saddle import multipart_collector as mc
+from atila import multipart_collector as mc
 import pytest
 
 header = (

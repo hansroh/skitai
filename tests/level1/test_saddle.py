@@ -3,7 +3,7 @@ import confutil
 import jinja2
 import os
 
-def test_saddle (wasc, app):			
+def test_atila (wasc, app):			
 	was = wasc ()
 	was.app = app
 	app.skito_jinja ()

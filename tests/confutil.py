@@ -1,6 +1,6 @@
 import os
-from skitai.server.offline import server
-from skitai.server.offline import server, client as cli 
+from skitai.offline import server
+from skitai.offline import server, client as cli 
 
 client = cli.Client ()
 

@@ -1,5 +1,5 @@
-from skitai.server.handlers import http2_handler
-from skitai.server.handlers.http2 import vchannel, request, response
+from skitai.handlers import http2_handler
+from skitai.handlers.http2 import vchannel, request, response
 import pytest
 from mock import Mock
 

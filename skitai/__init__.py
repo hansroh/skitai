@@ -64,7 +64,7 @@ class _WASPool:
 	def __getattr__ (self, attr):
 		_was = self._get ()
 		if not _was.in__dict__ ("app") and hasattr (_was, 'request'):
-			# it will be called WSGI middlewares except Saddle,
+			# it will be called WSGI middlewares except Atila,
 			# So request object not need
 			del _was.request			
 		return  getattr (_was, attr)
@@ -113,7 +113,7 @@ def start_was (wasc):
 dconf = {'mount': {"default": []}, 'clusters': {}, 'max_ages': {}, 'log_off': [], 'dns_protocol': 'tcp'}
 
 def pref (preset = False):
-	from .saddle.Saddle import Config
+	from atila.Atila import Config
 	
 	class Pref (AttrDict):
 		def __init__ (self):
@@ -157,8 +157,8 @@ def set_service (service_class):
 	Win32Service = service_class
 
 def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20):
-	from .server.http_server import http_server
-	from .server.https_server import https_server	
+	from .http_server import http_server
+	from .https_server import https_server	
 	
 	http_server.critical_point_cpu_overload = https_server.critical_point_cpu_overload = cpu_percent
 	http_server.critical_point_continuous = https_server.critical_point_continuous = continuous
@@ -190,7 +190,7 @@ def set_backend_keep_alive (timeout):
 	dconf ["backend_keep_alive"] = timeout
 
 def set_proxy_keep_alive (channel = 60, tunnel = 600):	
-	from .server.handlers import proxy
+	from .handlers import proxy
 
 	proxy.PROXY_KEEP_ALIVE = channel
 	proxy.PROXY_TUNNEL_KEEP_ALIVE = tunnel
@@ -318,7 +318,7 @@ def use_django_models (settings_path, name = None):
 	return _get_django_settings (settings_path)	
 
 def alias (name, ctype, members, role = "", source = "", ssl = False, django = None):
-	from .server.rpc.cluster_manager import AccessPolicy
+	from .rpc.cluster_manager import AccessPolicy
 	global dconf
 	
 	if name [0] == "@":
@@ -425,7 +425,7 @@ def get_command ():
 def run (**conf):
 	import os, sys, time
 	from . import lifetime
-	from .server import Skitai
+	from . import Skitai
 	from rs4.psutil import flock
 	from rs4 import pathtool
 	import getopt

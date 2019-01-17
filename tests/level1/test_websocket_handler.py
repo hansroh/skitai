@@ -1,7 +1,7 @@
 from confutil import rprint, assert_request
 import confutil
-from skitai.server import offline
-from skitai.server.handlers import vhost_handler
+from skitai import offline
+from skitai.handlers import vhost_handler
 import skitai
 import os
 	
