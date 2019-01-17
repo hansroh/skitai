@@ -18,19 +18,9 @@ from .launcher import launch
 from aquests.protocols.smtp import composer
 import tempfile
 import getopt
-try:
-	import atila
-except ImportError:
-	HAS_ATILA = False
-	class HTTPError (Exception):
-	    def __init__ (self, status = "200 OK", explain = ""):
-	        self.status = status
-	        self.explain = explain
-	        
-else:
-	HAS_ATILA = True
-	from atila.exceptions import HTTPError
-	
+
+HAS_ATILA = None
+
 PROTO_HTTP = "http"
 PROTO_HTTPS = "https"
 PROTO_WS = "ws"
@@ -60,7 +50,6 @@ WS_OPCODE_BINARY = 0x2
 WS_OPCODE_CLOSE = 0x8
 WS_OPCODE_PING = 0x9
 WS_OPCODE_PONG = 0xa
-
 
 class _WASPool:
 	def __init__ (self):
@@ -117,8 +106,21 @@ class _WASPool:
 was = _WASPool ()
 def start_was (wasc):
 	global was
+	
+	detect_atila ()
 	was._start (wasc)
-		
+
+def detect_atila ():
+	# for avoid recursive importing
+	try:
+		import atila
+	except ImportError:
+		pass
+	else:
+		global HAS_ATILA
+		HAS_ATILA = atila.Atila
+			
+
 #------------------------------------------------
 # Configure
 #------------------------------------------------
@@ -433,7 +435,7 @@ def get_command ():
 			break		
 	
 	return cmd
-			
+					
 def run (**conf):
 	import os, sys, time
 	from . import lifetime
@@ -441,7 +443,7 @@ def run (**conf):
 	from rs4.psutil import flock
 	from rs4 import pathtool
 	import getopt
-
+			
 	class SkitaiServer (Skitai.Loader):
 		NAME = 'instance'
 		

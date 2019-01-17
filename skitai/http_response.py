@@ -12,6 +12,7 @@ from .wastuff.api import catch
 import skitai
 import asyncore
 import json
+from skitai import exceptions
 
 try: 
 	from urllib.parse import urljoin
@@ -554,7 +555,7 @@ class http_response:
 		return producers.file_producer (open (path, "rb"))					
 	
 	def throw (self, status, why = ""):
-		raise skitai.HTTPError (status, why)
+		raise exceptions.HTTPError (status, why)
 	
 	def with_explain (self, status = "200 OK", why = "", headers = None):
 		self.start_response (status, headers)

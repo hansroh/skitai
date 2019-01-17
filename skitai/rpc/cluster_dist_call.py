@@ -18,6 +18,7 @@ from skitai import lifetime
 import asyncore
 import sys
 import inspect
+from skitai import exceptions
 
 DEFAULT_TIMEOUT = 10
 WAIT_POLL = False
@@ -457,7 +458,7 @@ class ClusterDistCall:
 		try:
 			response = func (timeout, reraise =True, cache = cache)
 		except:
-			raise skitai.HTTPError (status, sys.exc_info ())
+			raise exceptions.HTTPError (status, sys.exc_info ())
 		return response
 	
 	def wait_or_throw (self, status, timeout = DEFAULT_TIMEOUT):

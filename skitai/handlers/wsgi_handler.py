@@ -17,8 +17,7 @@ try:
 except ImportError:
 	from io import BytesIO
 import skitai
-if skitai.HAS_ATILA:
-	import atila
+
 	
 header2env = {
 	'content-length'	: 'CONTENT_LENGTH',
@@ -151,7 +150,7 @@ class Handler:
 		# for rendering error template
 		request.response.current_app = app
 		
-		if request.command != "options" and skitai.HAS_ATILA and isinstance (app, atila.Atila):
+		if request.command != "options" and skitai.HAS_ATILA and isinstance (app, skitai.HAS_ATILA):
 			# pass through options, because options want authentification info.
 			if not app.is_authorized (request, app.authenticate):					
 				self.handle_error_before_collecting (request, 401)
