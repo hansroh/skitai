@@ -9,7 +9,6 @@ from skitai.http_response import catch
 from aquests.athreads import trigger
 from . import collectors
 from skitai import version_info, was as the_was
-import atila
 from collections import Iterator
 from ..wastuff.api import API
 import threading
@@ -17,7 +16,10 @@ try:
 	from cStringIO import StringIO as BytesIO
 except ImportError:
 	from io import BytesIO
-
+import skitai
+if skitai.HAS_ATILA:
+	import atila
+	
 header2env = {
 	'content-length'	: 'CONTENT_LENGTH',
 	'content-type'	  : 'CONTENT_TYPE',
@@ -149,7 +151,7 @@ class Handler:
 		# for rendering error template
 		request.response.current_app = app
 		
-		if request.command != "options" and isinstance (app, atila.Atila):
+		if request.command != "options" and skitai.HAS_ATILA and isinstance (app, atila.Atila):
 			# pass through options, because options want authentification info.
 			if not app.is_authorized (request, app.authenticate):					
 				self.handle_error_before_collecting (request, 401)

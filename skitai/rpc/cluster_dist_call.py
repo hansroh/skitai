@@ -16,7 +16,6 @@ from aquests.protocols.dns import asyndns
 from . import rcache
 from skitai import lifetime
 import asyncore
-from atila.exceptions import HTTPError
 import sys
 import inspect
 
@@ -458,7 +457,7 @@ class ClusterDistCall:
 		try:
 			response = func (timeout, reraise =True, cache = cache)
 		except:
-			raise HTTPError (status, sys.exc_info ())
+			raise skitai.HTTPError (status, sys.exc_info ())
 		return response
 	
 	def wait_or_throw (self, status, timeout = DEFAULT_TIMEOUT):

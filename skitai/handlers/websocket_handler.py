@@ -16,7 +16,9 @@ from .websocket import servers
 import time
 import skitai
 import inspect
-from atila import appbase
+if skitai.HAS_ATILA:
+	import atila
+
 
 class Handler (wsgi_handler.Handler):
 	def match (self, request):
@@ -53,7 +55,7 @@ class Handler (wsgi_handler.Handler):
 		
 		apph = self.apps.get_app (path)		
 		app = apph.get_callable()
-		is_atila = isinstance (app, appbase.AppBase)
+		is_atila = skitai.HAS_ATILA and isinstance (app, atila.Atila)
 		
 		if is_atila:
 			# safari does not support Authorization

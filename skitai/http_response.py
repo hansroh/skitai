@@ -12,7 +12,6 @@ from .wastuff.api import catch
 import skitai
 import asyncore
 import json
-from atila.exceptions import HTTPError
 
 try: 
 	from urllib.parse import urljoin
@@ -555,7 +554,7 @@ class http_response:
 		return producers.file_producer (open (path, "rb"))					
 	
 	def throw (self, status, why = ""):
-		raise HTTPError (status, why)
+		raise skitai.HTTPError (status, why)
 	
 	def with_explain (self, status = "200 OK", why = "", headers = None):
 		self.start_response (status, headers)

@@ -18,7 +18,19 @@ from .launcher import launch
 from aquests.protocols.smtp import composer
 import tempfile
 import getopt
-
+try:
+	import atila
+except ImportError:
+	HAS_ATILA = False
+	class HTTPError (Exception):
+	    def __init__ (self, status = "200 OK", explain = ""):
+	        self.status = status
+	        self.explain = explain
+	        
+else:
+	HAS_ATILA = True
+	from atila.exceptions import HTTPError
+	
 PROTO_HTTP = "http"
 PROTO_HTTPS = "https"
 PROTO_WS = "ws"
@@ -113,7 +125,7 @@ def start_was (wasc):
 dconf = {'mount': {"default": []}, 'clusters': {}, 'max_ages': {}, 'log_off': [], 'dns_protocol': 'tcp'}
 
 def pref (preset = False):
-	from atila.Atila import Config
+	from .wsgi_apps import Config
 	
 	class Pref (AttrDict):
 		def __init__ (self):

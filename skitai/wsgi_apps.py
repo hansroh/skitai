@@ -4,12 +4,25 @@ import threading
 from types import FunctionType as function
 import copy
 from skitai import lifetime
-from atila import config
 try:
 	from django.utils import autoreload
 except ImportError:
 	pass	
 import inspect
+from rs4 import attrdict
+
+def set_default (cf):
+	cf.max_post_body_size = 5 * 1024 * 1024
+	cf.max_cache_size = 5 * 1024 * 1024
+	cf.max_multipart_body_size = 20 * 1024 * 1024
+	cf.max_upload_file_size = 20000000
+	
+def Config (preset = False):
+	cf = attrdict.AttrDict ()
+	if preset:
+		set_default (cf)		
+	return cf
+
 
 class Module:
 	def __init__ (self, wasc, handler, bus, route, directory, libpath, pref = None):
@@ -73,9 +86,10 @@ class Module:
 					setattr (app, k, v)					
 		
 		if not hasattr (app, "config"):
-			app.config = config.Config (True)		
+			app.config = Config (True)
+								
 		elif not hasattr (app.config, "max_post_body_size"):
-			config.set_default (app.config)
+			set_default (app.config)
 		
 		if hasattr (app, "mountables"):
 			for _args, _karg in app.mountables:
