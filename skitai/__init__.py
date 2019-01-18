@@ -8,7 +8,7 @@ NAME = "Skitai/%s.%s" % version_info [:2]
 import threading
 import sys, os
 import h2
-from rs4 import versioning
+from rs4 import deco
 from rs4.psutil import service
 from rs4.attrdict import AttrDict
 from aquests.protocols.dns import asyndns
@@ -325,7 +325,7 @@ def alias_django (name, settings_path):
 			default ["PASSWORD"] = ""
 		return alias (name, DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)
 
-@versioning.deprecated
+@deco.deprecated
 def use_django_models (settings_path, name = None):
 	if name:
 		alias = alias_django (name, settings_path)		

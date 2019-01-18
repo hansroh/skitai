@@ -3,7 +3,6 @@ from . import http_date
 import time
 import random
 from rs4 import pathtool
-from rs4 import udict
 import os, sys
 import md5
 import urllib.request, urllib.parse, urllib.error
