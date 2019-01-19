@@ -5,14 +5,14 @@ Skitai App Engine
 At a Glance
 =============
 
-Skitai is a Python WSGI HTTP/HHTS Server for UNIX.
+Skitai is a Python WSGI HTTP/HHTS Server for UNIX. 
   
 And simple to run:
 
 .. code:: bash
 
   pip3 install skitai
-  python3 app.py -d
+  python3 app.py -d # daemonize
 
 Your app will work for your thousands or miliions of customers.
 
@@ -38,8 +38,26 @@ Skitai orients light-weight, simplicity and strengthen networking operations wit
 
 Skitai is not a just developing server like some frameworks provides. It is supporsed to work fine under real service situation by alone. And it makes your app take off to the world, just by appending a few lines on your app.
 
+For attaining maximum concurrency, it uses:
+
+  - asyncore with event loop for IO concurrency like HTTP/Websocket and database engine connections
+  - forking for multiple process workers
+  - multi-threading for blocking jobs if you want
+
+Async supported protocols:
+
+  - HTTP/HTTPS, RESTful API and XML/JSON-RPC
+  - HTTP2 and GRPC
+  - Websocket
+
+Async supported database engine or NoSQL:
+
+  - PostGreSQL
+  - MongDB
+  - Redis
+  - SQLite3 (sync only, not async )
+
 .. _hyper-h2: https://pypi.python.org/pypi/h2
-.. _Zope: http://www.zope.org/
 .. _Flask: http://flask.pocoo.org/
 .. _PostgreSQL: http://www.postgresql.org/
 .. __: http://www.nightmare.com/medusa/medusa.html
