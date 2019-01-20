@@ -18,6 +18,7 @@ from .launcher import launch
 from aquests.protocols.smtp import composer
 import tempfile
 import getopt
+from . import lifetime
 
 HAS_ATILA = None
 
@@ -222,7 +223,7 @@ def deflu (*key):
 	dconf ["models-keys"].extend (key)
 addlu = trackers = lukeys = deflu
 
-def __is_django (wsgi_path, appname):
+def maybe_django (wsgi_path, appname):
 	if not isinstance (wsgi_path, str):
 		return
 	if appname != "application":
@@ -230,8 +231,7 @@ def __is_django (wsgi_path, appname):
 	settings = os.path.join (os.path.dirname (wsgi_path), 'settings.py')
 	if os.path.exists (settings):
 		root = os.path.dirname (os.path.dirname (wsgi_path))
-		sys.path.insert (0, root)
-		alias_django ("@" + os.path.basename (root), settings)
+		sys.path.insert (0, root)		
 		return root
 	
 def mount (point, target, appname = "app", pref = pref (True), host = "default", path = None):
@@ -244,7 +244,7 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
 			mod = loader.load_module()
 			hasattr (mod, "bootstrap") and mod.bootstrap (pref)
 
-	maybe_django = __is_django (target, appname)		
+	maybe_django (target, appname)
 	if path:
 		if isinstance (path, str):
 			path = [path]
@@ -304,11 +304,10 @@ def _get_django_settings (settings_path):
 	if not os.environ.get ("DJANGO_SETTINGS_MODULE"):		
 		sys.path.insert (0, django_root)		
 		os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings_mod)
-		django.setup()
-	
+		
 	return importlib.import_module(settings_mod).DATABASES
 
-def alias_django (name, settings_path):
+def _alias_django (name, settings_path):
 	dbsettings = _get_django_settings (settings_path)
 	default = dbsettings ['default']
 	if default ['ENGINE'].endswith ('sqlite3'):			
@@ -325,13 +324,7 @@ def alias_django (name, settings_path):
 			default ["PASSWORD"] = ""
 		return alias (name, DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)
 
-@deco.deprecated
-def use_django_models (settings_path, name = None):
-	if name:
-		alias = alias_django (name, settings_path)		
-	return _get_django_settings (settings_path)	
-
-def alias (name, ctype, members, role = "", source = "", ssl = False, django = None):
+def alias (name, ctype, members, role = "", source = "", ssl = False):
 	from .rpc.cluster_manager import AccessPolicy
 	global dconf
 	
@@ -341,7 +334,7 @@ def alias (name, ctype, members, role = "", source = "", ssl = False, django = N
 		return
 	
 	if ctype == DJANGO:
-		alias = alias_django (name, members)
+		alias = _alias_django (name, members)
 		if alias is None:
 			raise SystemError ("Database engine is not compatible")
 		return alias
@@ -350,7 +343,7 @@ def alias (name, ctype, members, role = "", source = "", ssl = False, django = N
 	args = (ctype, members, policy, ssl)
 	dconf ["clusters"][name] = args
 	return name, args
-
+	
 def enable_cachefs (memmax = 0, diskmax = 0, path = None):
 	global dconf	
 	dconf ["cachefs_memmax"] = memmax
@@ -435,10 +428,12 @@ def get_command ():
 			break		
 	
 	return cmd
+
+def sched (interval, func): 
+	lifetime.maintern.sched (interval, func)
 					
 def run (**conf):
-	import os, sys, time
-	from . import lifetime
+	import os, sys, time	
 	from . import Skitai
 	from rs4.psutil import flock
 	from rs4 import pathtool
@@ -584,7 +579,7 @@ def run (**conf):
 	# timeout for fast keyboard interrupt on win32	
 	try:
 		try:
-			server.run (conf.get ('verbose') and 2.0 or 30.0)
+			server.run (conf.get ('verbose') and 1.0 or 30.0)
 		except KeyboardInterrupt:
 			pass	
 	
