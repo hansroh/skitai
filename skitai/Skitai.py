@@ -291,9 +291,11 @@ class Loader:
 		try:
 			try:
 				if "--skitai-memtrack" in sys.argv:
+					self.wasc.logger ("server", "memory tracking enabled", "debug")
 					lifetime.enable_memory_track ()
 				if "--skitai-profile" in sys.argv:
 					import cProfile
+					self.wasc.logger ("server", "profiling enabled", "debug")
 					cProfile.runctx ("lifetime.loop (timeout)", globals (), locals (), "profile.out")
 				else:
 					lifetime.loop (timeout)
