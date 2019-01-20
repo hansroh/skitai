@@ -24,10 +24,11 @@ from .rpc import cluster_manager, cluster_dist_call
 from .dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
 from . import server_info
 from . import http_response
-from .wastuff.promise import Promise, _Method
+from .wastuff.promise import Promise
 from .wastuff.triple_logger import Logger
 from .wastuff import django_adaptor
 from .wastuff.api import DateEncoder
+from rs4.attrdict import AttrDict
 
 if os.name == "nt":
 	TEMP_DIR =  os.path.join (tempfile.gettempdir(), "skitai-gentemp")
@@ -50,6 +51,32 @@ class JWTUser:
 		return self.name
 
 
+METHODS = [
+	"options", "trace", "upload",
+	"get", "getjson",
+	"delete", "deletejson",
+	"post", "postjson",
+	"put", "putjson",
+	"patch", "patchjson",
+	"rpc", "jsonrpc", "grpc", "ws", "wss", 
+	"db", "postgresql", "sqlite3", "redis", "mongodb", "backend",		
+]
+
+class Command:
+	def __init__ (self, name, callback):
+		self.name = name
+		self.callback = callback
+	
+	def __call__ (self, *args, **kargs):
+		return self.callback (self.name, args, kargs)
+	
+	def lb (self, *args, **kargs):
+		return self.callback (self.name + ".lb", args, kargs)
+	
+	def map (self, *args, **kargs):
+		return self.callback (self.name + ".map", args, kargs)
+
+
 class WAS:
 	version = __version__	
 	objects = {}	
@@ -58,8 +85,11 @@ class WAS:
 	lock = RLock ()
 	init_time = time.time ()	
 	
-	# application friendly methods -----------------------------------------
+	def __init__ (self):
+		for method in METHODS:
+			setattr (self, method, Command (method, self._call))
 	
+	# application friendly methods -----------------------------------------
 	@classmethod
 	def register (cls, name, obj):
 		if hasattr (cls, name):
@@ -121,7 +151,7 @@ class WAS:
 		
 		try: 
 			return self.clusters_for_distcall ["{}:{}".format (clustername, self.app.app_name)], "/" + uri			
-		except KeyError:
+		except (KeyError, AttributeError):
 			return self.clusters_for_distcall [clustername], "/" + uri
 		
 	def in__dict__ (self, name):
@@ -132,27 +162,13 @@ class WAS:
 		for k, v in self.__dict__.items ():
 			setattr (new_was, k, v)	
 		if disable_aquests:
-			new_was.VALID_COMMANDS = []
+			for method in METHODS:
+				delattr (new_was, method)
 		return new_was
 	
 	# mehiods remap ------------------------------------------------
-			
-	VALID_COMMANDS = [
-		"options", "trace", "upload",
-		"get", "getjson",
-		"delete", "deletejson",
-		"post", "postjson",
-		"put", "putjson",
-		"patch", "patchjson",
-		"rpc", "jsonrpc", "grpc", "ws", "wss", 
-		"db", "postgresql", "sqlite3", "redis", "mongodb", "backend",		
-	]
 	def __getattr__ (self, name):
-		# method magic		
-		if name in self.VALID_COMMANDS:
-			return _Method (self._call, name, inspect.stack() [1])
-		
-		if self.in__dict__ ("app"): # atila app			
+		if self.in__dict__ ("app"): # atila app
 			attr = self.app.create_on_demand (self, name)
 			if attr:
 				setattr (self, name, attr)
@@ -162,12 +178,11 @@ class WAS:
 			return self.objects [name]
 		except KeyError:	
 			raise AttributeError ("'was' hasn't attribute '%s'" % name)	
-	
+		
 	def _call (self, method, args, karg):
 		# was.db, 		was.get, 			was.post,			was.put, ...
 		# was.db.lb, 	was.get.lb,		was.post.lb,	was.put.lb, ...
 		# was.db.map,	was.get.map,	was.post.map,	was.put.map, ...
-
 		uri = None
 		if args:		uri = args [0]
 		elif karg:	uri = karg.get ("uri", "")
@@ -180,11 +195,11 @@ class WAS:
 			if uri [0] == "@": 
 				fn = "lb"
 			else:
-				fn = (command in ("db", "postgresql", "sqlite3", "redis", "mongodb", "backend") and "db" or "rest")
+				fn = (command in {"db", "postgresql", "sqlite3", "redis", "mongodb", "backend"} and "db" or "rest")
 
 		if fn == "map" and not hasattr (self, "threads"):
 			raise AttributeError ("Cannot use Map-Reduce with Single Thread")
-		
+				
 		if command == "db":
 			return getattr (self, "_d" + fn) (*args, **karg)			
 		elif command in ("postgresql", "sqlite3", "redis", "mongodb", "backend"):

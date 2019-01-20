@@ -428,7 +428,7 @@ class ClusterDistCall:
 		self._cached_result = None
 	
 	def getwait (self, timeout = DEFAULT_TIMEOUT, reraise = False, cache = None, cache_if = (200,)):
-		if self._cached_result is not None:
+		if self._cached_result is not None:			
 			return self._cached_result
 		self._wait (timeout)
 		if len (self._results) > 1:
@@ -492,7 +492,7 @@ class Proxy:
 		self.__kargs = kargs		
 	
 	def __getattr__ (self, name):	  
-		return _Method(self.__request, name)
+		return _Method (self.__request, name)
 	
 	def __request (self, method, params):		
 		cdc = self.__class (*self.__args, **self.__kargs)

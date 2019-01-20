@@ -143,9 +143,9 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		self._retry = 0	
 		self._numnodes = 0
 		self._sent_result = None
-			
+		
 		if self._cluster:
-			nodes = self._cluster.get_nodes ()
+			nodes = self._cluster.get_nodes ()						
 			self._numnodes = len (nodes)
 			if self._mapreduce:
 				self._nodes = nodes
@@ -183,7 +183,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		self._cached_request_args = (method, params) # backup for retry
 		if self._use_cache and rcache.the_rcache:
 			self._cached_result = rcache.the_rcache.get (self._get_ident (), self._use_cache)
-			if self._cached_result is not None:
+			if self._cached_result is not None:				
 				return
 		
 		while self._avails ():
@@ -203,6 +203,22 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 			asyncon.execute (req)			
 		trigger.wakeup ()
 		return self
+
+
+class Proxy:
+	def __init__ (self, __class, *args, **kargs):
+		self.__class = __class
+		self.__args = args
+		self.__kargs = kargs		
+	
+	def __getattr__ (self, name):	  
+		self._method = name
+		return self.__proceed
+	
+	def __proceed (self, *params):		
+		cdc = self.__class (*self.__args, **self.__kargs)
+		cdc._request (self._method, params)
+		return cdc
 	
 	
 class ClusterDistCallCreator:
@@ -216,6 +232,4 @@ class ClusterDistCallCreator:
 	def Server (self, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
 		if cluster_dist_call.is_main_thread () and not callback:
 			raise RuntimeError ('Should have callback in Main thread')
-		return cluster_dist_call.Proxy (ClusterDistCall, self.cluster, server, dbname, auth, dbtype, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.logger)
-		
-		
+		return Proxy (ClusterDistCall, self.cluster, server, dbname, auth, dbtype, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.logger)

@@ -9,12 +9,40 @@ Skitai is a Python WSGI HTTP/HHTS Server for UNIX.
   
 And simple to run:
 
+Install, 
+
 .. code:: bash
 
   pip3 install skitai
-  python3 app.py -d # daemonize
+
+Create and mount your app,
+  
+.. code:: python
+  
+  # myservice.py
+
+  def app (env, start_response):
+    start_response ("200 OK", [("Content-Type", "text/plain")])
+    return 'Hello World'
+
+  if __name__ == "__main__":    
+    import skitai
+    
+    skitai.mount ('/', app)
+    skitai.run (address = "127.0.0.1", port = 5000)
+
+And run.
+
+.. code:: bash
+        
+  python3 myservice.py
+
 
 Your app will work for your thousands or miliions of customers.
+
+
+.. contents:: Table of Contents
+
 
 What For
 ===========
@@ -63,9 +91,6 @@ Async supported database engine or NoSQL:
 .. __: http://www.nightmare.com/medusa/medusa.html
 
 
-.. contents:: Table of Contents
-
-
 Installation
 =========================
 
@@ -110,7 +135,6 @@ Here's a very simple WSGI app,
 
 Basic Usage
 ------------
-
 
 Mount Static Directories
 ````````````````````````````
@@ -2405,7 +2429,7 @@ Change Log
 ===========
 
 - 0.28
-
+    
   - seperate skitai.saddle into atila 
 
 - 0.27.6a (Dec 2018)

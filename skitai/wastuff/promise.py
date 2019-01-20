@@ -9,7 +9,7 @@ class _Method:
 		self.__caller = caller
 		
 	def __getattr__(self, name):
-		return _Method(self.__send, "%s.%s" % (self.__name, name))
+		return _Method (self.__send, "%s.%s" % (self.__name, name))
 		
 	def __call__(self, *args, **karg):
 		karg ["caller"] = self.__caller		
