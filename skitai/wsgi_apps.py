@@ -4,12 +4,9 @@ import threading
 from types import FunctionType as function
 import copy
 from skitai import lifetime
-try:
-	from django.utils import autoreload
-except ImportError:
-	pass	
 import inspect
 from rs4 import attrdict
+from importlib import reload
 
 def set_default (cf):
 	cf.max_post_body_size = 5 * 1024 * 1024
@@ -44,7 +41,7 @@ class Module:
 				libpath, self.appname = libpath, "app"
 			self.libpath = libpath
 			self.script_name = "%s.py" % libpath
-			self.module, self.abspath = importer.importer (directory, libpath)
+			self.module, self.abspath = importer.importer (directory, libpath)	
 			self.start_app ()
 			
 		else:
@@ -135,7 +132,16 @@ class Module:
 		self.has_life_cycle and app.life_cycle ("before_umount", self.wasc ())
 		try: app.cleanup ()
 		except AttributeError: pass		
+	
+	def check_django_reloader (self, now):
+		from django.utils import autoreload
 		
+		changed = autoreload.code_changed ()		
+		if changed:
+			self.wasc.logger ("app", "reloading app, %s" % self.abspath, "debug")
+			self.last_reloaded = time.time ()			
+			lifetime.shutdown (3, 0)	
+			
 	def set_devel_env (self):
 		self.debug = False
 		self.use_reloader = False
@@ -150,7 +156,10 @@ class Module:
 		except AttributeError: pass
 		try: self.use_reloader = app.use_reloader
 		except AttributeError: pass
-
+		else:
+			if self.use_reloader and self.django:
+				lifetime.maintern.sched (1.0, self.check_django_reloader)				
+				
 	def update_file_info (self):
 		if self.module is None:
 			# app directly mounted
@@ -161,24 +170,18 @@ class Module:
 	def maybe_reload (self):
 		if not self.use_reloader:
 			return
+				
+		if self.django:
+			# see check_django_reloader
+			return
 			
 		if time.time () - self.last_reloaded < 1.0:
 			return
-		
-		reloadable = False
-		if self.django:
-			if autoreload.code_changed ():
-				lifetime.shutdown (3, 30.0)
-				self.last_reloaded = time.time ()
-				return
-				
-		else:	
-			stat = os.stat (self.abspath)		
-			reloadable = self.file_info != (stat.st_mtime, stat.st_size)		
 			
-		if reloadable:
+		stat = os.stat (self.abspath)
+		if self.file_info != (stat.st_mtime, stat.st_size):
 			oldapp = getattr (self.module, self.appname)
-			oldapp.life_cycle ("before_reload", self.wasc ())
+			self.has_life_cycle and oldapp.life_cycle ("before_reload", self.wasc ())
 			
 			try:
 				self.module, self.abspath = importer.reimporter (self.module, self.directory, self.libpath)			
@@ -200,7 +203,7 @@ class Module:
 				self.has_life_cycle and newapp.life_cycle ("reloaded", self.wasc ())
 				self.has_life_cycle and newapp.life_cycle ("mounted_or_reloaded", self.wasc ())
 				self.last_reloaded = time.time ()
-				self.wasc.logger ("app", "reloading app, %s" % self.abspath, "info")
+				self.wasc.logger ("app", "reloading app, %s" % self.abspath, "debug")
 				
 	def set_route (self, route):
 		route = route
