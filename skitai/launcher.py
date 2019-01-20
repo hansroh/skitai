@@ -6,7 +6,8 @@ import subprocess
 import time
 import sys
 import os
-
+import xmlrpc.client 
+ 
 class launch:
     def __init__ (self, script, port = 5000, ssl = False, silent = True):
         self.__script = script
@@ -32,7 +33,7 @@ class launch:
         self._close ()
          
     def __getattr__ (self, attr):
-        if attr in ("get", "post", "put", "patch", "delete", "head", "options"):
+        if attr in ("get", "post", "put", "patch", "delete", "head", "options", "xmlrpc", "jsonrpc", "grpc"):
             return getattr (self.__requests, attr)
         else:
             return getattr (self.__api, attr)
@@ -107,4 +108,11 @@ class Requests:
                 
     def options (self, url, *args, **karg):
         return self.s.options (self.resolve (url), *args, **karg)
-          
+    
+    def xmlrpc (self, url):
+        return xmlrpc.client.ServerProxy (self.resolve (url))
+    
+    def jsonrpc (self, url):
+        import jsonrpclib
+        return jsonrpclib.ServerProxy (self.resolve (url))
+    

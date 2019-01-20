@@ -30,7 +30,7 @@ class Promise (simple_producer):
 		self._rejected = 0
 	
 	def __getattr__ (self, name):
-		if name.split (".")[0] not in self.__was.VALID_COMMANDS:
+		if name.split (".")[0] not in self.__was.METHODS:
 			return getattr (self.was, name)
 		self._numreq += 1
 		return _Method (self._call, name)

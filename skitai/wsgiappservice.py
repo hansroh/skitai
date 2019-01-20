@@ -51,17 +51,6 @@ class JWTUser:
 		return self.name
 
 
-METHODS = [
-	"options", "trace", "upload",
-	"get", "getjson",
-	"delete", "deletejson",
-	"post", "postjson",
-	"put", "putjson",
-	"patch", "patchjson",
-	"rpc", "jsonrpc", "grpc", "ws", "wss", 
-	"db", "postgresql", "sqlite3", "redis", "mongodb", "backend",		
-]
-
 class Command:
 	def __init__ (self, name, callback):
 		self.name = name
@@ -85,8 +74,19 @@ class WAS:
 	lock = RLock ()
 	init_time = time.time ()	
 	
+	METHODS = [
+		"options", "trace", "upload",
+		"get", "getjson",
+		"delete", "deletejson",
+		"post", "postjson",
+		"put", "putjson",
+		"patch", "patchjson",
+		"rpc", "jsonrpc", "grpc", "ws", "wss", 
+		"db", "postgresql", "sqlite3", "redis", "mongodb", "backend",		
+	]
+		
 	def __init__ (self):
-		for method in METHODS:
+		for method in self.METHODS:
 			setattr (self, method, Command (method, self._call))
 	
 	# application friendly methods -----------------------------------------
@@ -162,7 +162,7 @@ class WAS:
 		for k, v in self.__dict__.items ():
 			setattr (new_was, k, v)	
 		if disable_aquests:
-			for method in METHODS:
+			for method in self.METHODS:
 				delattr (new_was, method)
 		return new_was
 	

@@ -4,7 +4,6 @@ import pytest
 import skitai
 import os, pytest
 from skitai import offline
-from skitai.wastuff.promise import _Method
 from atila.cookie import Cookie
 from atila.named_session import NamedSession
 from aquests.protocols.smtp import composer
@@ -70,12 +69,8 @@ def test_was (wasc, app, client):
     assert len (was.uniqid) == 20
     
     assert type (was._clone ()) is type (was)
-    assert not was._clone (True).VALID_COMMANDS
-    
-    for each in was.VALID_COMMANDS:
-        assert isinstance (eval ("was." + each), _Method)
-        assert isinstance (eval ("was." + each + ".lb"), _Method)
-        assert isinstance (eval ("was." + each + ".map"), _Method)
+    for m in was.METHODS:
+        assert not hasattr (was._clone (True), m)            
     
     with pytest.raises(AssertionError):
         was.session
