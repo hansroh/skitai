@@ -525,7 +525,7 @@ class http_response:
 	def API (self, __data_dict__ = None, **kargs):
 		return API (self.request, __data_dict__ or kargs)
 	api = API
-	
+		
 	def Fault (self, status = "200 OK", *args, **kargs):
 		if status [0] == "2":
 			r = self.api (*args, **kargs)
@@ -534,6 +534,12 @@ class http_response:
 			r = self.fault (*args, **kargs)
 		return self (status, r)
 	for_api = Fault
+	
+	def adaptive_error (self, status, message, code, more_info):
+		ac = self.request.get_header ('accept', '')
+		if ac.find ("text/html") != -1:
+			return self.with_explain (status, "{} (code: {}): {}".format (message, code, more_info))
+		return self.Fault (sttus, status, message, code, None, more_info)
 	
 	def fault (self, message = "", code = 0,  debug = None, more_info = None, exc_info = None, traceback = False):
 		api = self.api ()
