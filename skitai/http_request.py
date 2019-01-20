@@ -33,16 +33,32 @@ class http_request:
 		self._is_async_streaming = False
 		self._is_promise = False		
 		self.args = {}
+		self.URL = {}
+		self.JSON = None
+		self.FORM = None		
 		self.set_log_info ()
 		self.make_response ()
 	
-	def set_args (self, args):
-		self.args = args
+	def _override_defaults (self, dict):
 		if "defaults" in self.routable:
 			for k, v in self.routable ["defaults"].items ():
-				if k not in self.args:
-					self.args [k] = v
-					
+				if k not in dict:
+					dict [k] = v
+		return dict
+		
+	def set_args (self, args):
+		self.args = self._override_defaults (args)
+	
+	def set_urlparam (self, dict):
+		self.URL = dict
+	
+	@property
+	def DEFAULT (self):
+		try:
+			return self.routable ["defaults"]
+		except KeyError:
+			pass
+						
 	@property
 	def method (self):
 		return self.command.upper ()
@@ -66,8 +82,41 @@ class http_request:
 	def payload (self):
 		return self.get_body ()
 	
-	def json (self):		
-		return json.loads (self.body.decode ('utf8'))		
+	def json (self, ct = None):
+		if self.JSON is not None:
+			return self.JSON
+		if not ct:
+			ct = self.get_header ('content-type', '')
+		if ct.startswith ("application/json"):
+			self.JSON = json.loads (self.body.decode ('utf8'))
+		return self.JSON
+	
+	def form (self, ct = None):
+		if self.FORM is not None:
+			return self.FORM
+		if not ct:
+			ct = self.get_header ('content-type', '')			
+		if self.multipart:
+			self.FORM = self.multipart
+		elif ct.startswith ("application/x-www-form-urlencoded"):
+			self.FORM = http_util.crack_query (self.body)
+		return self.FORM
+	
+	def dict (self):
+		if not self.body:
+			return		
+		ct = self.get_header ('content-type', '')
+		if ct.startswith ("application/json"):
+			return self.json ()
+		return self.form (ct)
+	
+	@property
+	def DATA (self):
+		return self.dict ()
+	
+	@property
+	def ARGS (self):
+		return self.args
 	
 	def set_multipart (self, dict):
 		self.multipart = dict
@@ -81,22 +130,6 @@ class http_request:
 	def get_body (self):
 		return self.body
 	get_payload = get_body
-	
-	def form (self, ct = None):
-		if not ct:
-			ct = self.get_header ('content-type', '')			
-		if self.multipart:
-			return self.multipart
-		elif ct.startswith ("application/x-www-form-urlencoded"):
-			return http_util.crack_query (self.body)
-	
-	def dict (self):
-		if not self.body:
-			return		
-		ct = self.get_header ('content-type', '')
-		if ct.startswith ("application/json"):
-			return self.json ()
-		return self.form (ct)
 	
 	def is_promise (self):
 		return self._is_promise
