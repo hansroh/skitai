@@ -2430,7 +2430,8 @@ Change Log
 
 - 0.28
     
-  - seperate skitai.saddle into atila 
+  - seperate skitai.saddle into atila
+  - improve 'was' magic method search speed
 
 - 0.27.6a (Dec 2018)
 
