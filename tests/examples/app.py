@@ -3,7 +3,7 @@ from atila import Atila
 import skitai
 
 if os.name == "nt":
-	from skitai.win32service import ServiceFramework
+	from rs4.psutil.win32service import ServiceFramework
 	class ServiceConfig (ServiceFramework):
 		_svc_name_ = "SAE_EXAMPLE"
 		_svc_display_name_ = "Skitai Example Service"
