@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28a7"
+__version__ = "0.28a8"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -8,11 +8,10 @@ NAME = "Skitai/%s.%s" % version_info [:2]
 import threading
 import sys, os
 import h2
-from rs4 import deco
+from rs4 import deco, importer
 from rs4.psutil import service
 from rs4.attrdict import AttrDict
 from aquests.protocols.dns import asyndns
-from importlib import machinery
 from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from .launcher import launch
 from aquests.protocols.smtp import composer
@@ -240,8 +239,7 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
 	def init_app (modpath, pref):
 		modinit = os.path.join (os.path.dirname (modpath), "__init__.py")
 		if os.path.isfile (modinit):
-			loader = machinery.SourceFileLoader('temp', modinit)
-			mod = loader.load_module()
+			mod = importer.from_file ("temp", modinit)
 			hasattr (mod, "bootstrap") and mod.bootstrap (pref)
 
 	maybe_django (target, appname)

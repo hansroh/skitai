@@ -8,18 +8,19 @@ import sys
 import os
 import xmlrpc.client 
  
-class launch:
-    def __init__ (self, script, port = 5000, ssl = False, silent = True):
+class Launcher:
+    def __init__ (self, script, port = 5000, ssl = False, silent = True, dry = False):
         self.__script = script
         endpoint = "http{}://127.0.0.1".format (ssl and "s" or "")
         if port:
             endpoint += ":{}".format (port)
         self.__endpoint = endpoint
         self.__silent = silent
+        self.__dry = dry
         self.__servicing = False
         self.__p = Puppet (communicate = False)        
+        self.__api = siesta.API (endpoint, reraise_http_error = False)
         self.__requests = Requests (endpoint)
-        self.__api = siesta.API (endpoint)
         self.__closed = True
         self.__start ()
     
@@ -39,6 +40,9 @@ class launch:
             return getattr (self.__api, attr)
         
     def __start (self):
+        if self.__dry:
+            return
+        
         if self.__silent:
             if self.__is_running ():
                 self.__servicing = True
@@ -48,7 +52,7 @@ class launch:
         else:
             self.__p.start ([sys.executable, self.__script])
             time.sleep (3)
-        self.__closed = False    
+        self.__closed = False
     
     def __is_running (self):
         command = "{} {} status".format (sys.executable, self.__script)
@@ -74,13 +78,15 @@ class launch:
         else:
             self.__p.kill ()
             time.sleep (3)
-        self.__closed = True            
-
+        self.__closed = True
+    _stop = _close
+        
+launch = Launcher
 
 class Requests:
     def __init__ (self, endpoint):
         self.endpoint = endpoint
-        self.s = requests.Session ()
+        self.s = requests.Session ()        
     
     def resolve (self, url):
         if url.startswith ("http://") or url.startswith ("https://"):
