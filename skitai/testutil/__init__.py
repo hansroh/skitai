@@ -10,7 +10,7 @@ from skitai import was as the_was
 from ..wastuff import triple_logger
 from .. import wsgiappservice, cachefs
 from ..handlers.websocket import servers as websocekts
-from . import server 
+from . import server
 from ..handlers import vhost_handler
 from ..handlers import proxy_handler
 import inspect
@@ -95,15 +95,6 @@ def install_proxy_handler ():
     return h
 
 #----------------------------------------------------------
-        
-def lifetime_loop ():
-    global POLL
-    while POLL:
-        map = dict ([(k, v) for k, v in list (asyncore.socket_map.items ()) if isinstance (v, (DBConnect, AsynConnect, asyndns.UDPClient, asyndns.TCPClient))])
-        while map:
-            print (map)
-            lifetime.poll_fun_wrap (1.0, map)                
-
 
 wasc = None
 def activate ():
@@ -111,19 +102,24 @@ def activate ():
     if wasc is not None:
         return
     
-    wasc = wsgiappservice.WAS
+    from .was import WAS
+    
+    wasc = WAS
     wasc.register ("logger", logger ())
     wasc.register ("httpserver", server.Server (wasc.logger))
     wasc.register ("debug", False)
     wasc.register ("plock", multiprocessing.RLock ())
     
     wasc.register ("clusters",  {})
-    wasc.register ("clusters_for_distcall",  {})
+    wasc.register ("clusters_for_distcall",  {"__socketpool__": None, "__dbpool__": None})
     wasc.register ("workers", 1)
     wasc.register ("cachefs", cachefs.CacheFileSystem (None, 0, 0))    
     
     websocekts.start_websocket (wasc)
-    wasc.register ("websockets", websocekts.websocket_servers)    
-
+    wasc.register ("websockets", websocekts.websocket_servers)   
+                
     skitai.start_was (wasc)
+    
+    lifetime.init (10.0, wasc.logger.get ("server"))    
+    
     

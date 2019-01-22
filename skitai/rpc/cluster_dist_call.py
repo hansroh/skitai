@@ -214,7 +214,7 @@ class ClusterDistCall:
 	
 	def _get_ident (self):
 		cluster_name = self._cluster.get_name ()
-		if cluster_name == "socketpool":
+		if cluster_name == "__socketpool__":
 			_id = "%s/%s" % (self._uri, self._reqtype)
 		else:
 			_id = "%s/%s/%s" % (cluster_name, self._uri, self._reqtype)		

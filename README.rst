@@ -674,7 +674,7 @@ Run as Win32 Service
 .. code:: python
 
   from atila import Atila
-  from skitai.win32service import ServiceFramework
+  from rs4.psutil.win32service import ServiceFramework
   
   class ServiceConfig (ServiceFramework):
     _svc_name_ = "SAE_EXAMPLE"
@@ -2428,19 +2428,16 @@ Links
 Change Log
 ===========
 
-- 0.28
-    
-  - seperate skitai.saddle into atila
+- 0.28 (Feb 2019)
+  
+  - skitai.win32service has been moved to rs4.psutil.win32service
   - improve 'was' magic method search speed
+  - seperate skitai.saddle into atila
 
-- 0.27.6a (Dec 2018)
+- 0.27.6 (Jan 2019)
 
   - rename directory decorative to services
   - change from skital.saddle.contrib.decorative to skital.saddle.contrib.services
-
-- 0.27.5 (Dec 2018)
-
-  - fix bugs
     
 - 0.27.3 (May 2018)
   

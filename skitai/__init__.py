@@ -214,6 +214,10 @@ def set_request_timeout (timeout):
 	dconf ["network_timeout"] = timeout
 set_network_timeout = set_request_timeout
 
+def set_was_class (class_):
+	global dconf	
+	dconf ["wasc"] = class_
+	
 def deflu (*key):
 	if "models-keys" not in dconf:
 		dconf ["models-keys"] = []
@@ -443,7 +447,7 @@ def run (**conf):
 		def __init__ (self, conf):
 			self.conf = conf			
 			self.flock = None
-			Skitai.Loader.__init__ (self, 'config', conf.get ('logpath'), conf.get ('varpath'))
+			Skitai.Loader.__init__ (self, 'config', conf.get ('logpath'), conf.get ('varpath'), conf.get ("wasc"))
 			
 		def close (self):
 			if self.wasc.httpserver.worker_ident == "master":

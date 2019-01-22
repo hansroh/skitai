@@ -38,14 +38,14 @@ from .dbi import cluster_manager as dcluster_manager
 from .rpc import cluster_manager as rcluster_manager
 
 class Loader:
-	def __init__ (self, config = None, logpath = None, varpath = None, debug = 0):		
+	def __init__ (self, config = None, logpath = None, varpath = None, wasc = None, debug = 0):		
 		self.config = config
 		self.instance_name = os.path.split (config)[-1][:-5]
 		self.logpath = logpath
 		self.varpath = varpath
 		self.debug = debug
 		self.num_worker = 1
-		self.wasc = wsgiappservice.WAS
+		self.wasc = wasc or wsgiappservice.WAS
 		self.ssl = False
 		self.ctx = None
 		self._exit_code = None

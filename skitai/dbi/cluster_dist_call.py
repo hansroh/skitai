@@ -154,7 +154,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		
 	def _get_ident (self):
 		cluster_name = self._cluster.get_name ()
-		if cluster_name == "dbpool":
+		if cluster_name == "__dbpool__":
 			_id = "%s/%s/%s" % (self.server, self.dbname, self.auth)
 		else:
 			_id = cluster_name
