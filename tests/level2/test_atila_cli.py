@@ -36,8 +36,16 @@ def test_cli (app, dbpath):
         res = req.getwait ()
         return was.response.api (data = res.data)
     
+    @app.route ("/db2")
+    def db2 (was):
+        stub = was.backend ("@sqlite")
+        req = stub.select ("stocks").filter (symbol = 'RHAT').execute ()
+        res = req.getwait ()
+        return was.response.api (data = res.data)
+    
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")    
     app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)
+    app.alias ("@postgres", skitai.DB_POSTGRESQL, "postgres:4000Wkwkdaus@192.168.0.80/coin_core")
     with app.make_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
         assert resp.text == "Hello, World"
@@ -50,6 +58,9 @@ def test_cli (app, dbpath):
         
         resp = cli.postjson ("/json", {"m": "POST"})
         assert resp.text == '{"data": "POST"}'
+    
+        resp = cli.get ("/db2")
+        assert resp.data ["data"][0][2] == 'RHAT'
         
         resp = cli.get ("/db")
         assert resp.data ["data"][0][2] == 'RHAT'
@@ -59,4 +70,5 @@ def test_cli (app, dbpath):
         
         resp = cli.get ("/pypi")
         assert "skitai" in resp.text
+        
         

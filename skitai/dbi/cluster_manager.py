@@ -18,7 +18,7 @@ class ClusterManager (cluster_manager.ClusterManager):
         if self.dbtype == DB_SQLITE3:
             asyncon = synsqlite3.SynConnect (member, None, self.lock, self.logger)
             nodeid = member
-            self._cache.append ((member, "", "", ""))
+            self._cache.append (((member, 0), "", ("", "")))
         
         else:
             if member.find ("@") != -1:
@@ -55,7 +55,7 @@ class ClusterManager (cluster_manager.ClusterManager):
             asyncon = conn_class (server, (db, auth), self.lock, self.logger)    
             self.backend and asyncon.set_backend (self.backend_keep_alive)            
             nodeid = server
-            self._cache.append ((host, port, db, auth))
+            self._cache.append ((server, db, auth))
                 
         return nodeid, asyncon # nodeid, asyncon
     
@@ -66,15 +66,15 @@ class ClusterManager (cluster_manager.ClusterManager):
         import pymongo
     
         endpoints = []        
-        for host, port, db, auth in self._cache:            
+        for (host, port), db, (user, password) in self._cache:            
             if self.dbtype == DB_SQLITE3:
                 conn = sqlite3.connect (host)
             elif self.dbtype == DB_PGSQL:
-                conn = psycopg2.connect (host = host, database = db, port = port, user = auth [0], password = auth [1])
+                conn = psycopg2.connect (host = host, database = db, port = port, user = user, password = password)
             elif self.dbtype == DB_REDIS:
                 conn = redis.Redis (host = host, port = port, db = db)
             elif self.dbtype == DB_MONGODB:
-                conn = pymongo.MongoClient (host = host, port = port, username = auth [0], password = auth [1])
+                conn = pymongo.MongoClient (host = host, port = port, username = user, password = password)
             endpoints.append (conn)
         return endpoints
           

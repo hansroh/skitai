@@ -70,10 +70,11 @@ class DBCall (ProtoCall):
         self.result = None
         self.args, self.kargs = args, kargs
     
-    def _request (self, method, param):    
+    def _request (self, method, param):
         self.handle_request (method, param, *self.args, **self.kargs)
         
     def  handle_request (self, method, param, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
+        assert dbtype is None, "please, alias {}".format (server)
         conns = self.cluster.get_endpoints ()
         conn = random.choice (conns)
         try:

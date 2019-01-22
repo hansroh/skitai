@@ -206,17 +206,25 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 
 
 class Proxy:
-	def __init__ (self, __class, *args, **kargs):
+	def __init__ (self, __class, cluster, *args, **kargs):
 		self.__class = __class
+		self.__cluster = cluster
 		self.__args = args
 		self.__kargs = kargs		
+	
+	@property
+	def dbtype (self):
+		try:
+			return self.__cluster.dbtype
+		except AttributError:
+			return self.__args [3]
 	
 	def __getattr__ (self, name):	  
 		self._method = name
 		return self.__proceed
 	
 	def __proceed (self, *params):		
-		cdc = self.__class (*self.__args, **self.__kargs)
+		cdc = self.__class (self.__cluster, *self.__args, **self.__kargs)
 		cdc._request (self._method, params)
 		return cdc
 	
