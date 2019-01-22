@@ -10,6 +10,7 @@ from . import channel
 from .server import get_client_response
 import json
 from rs4 import siesta
+from urllib.parse import urlparse
 
 DEFAULT_HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -21,24 +22,30 @@ DEFAULT_HEADERS = {
     "Host": "skitai.com"
 }
 
+class Method (siesta.Resource):
+    ACCPET = "*/*"    
+    def __call__(self, *args):
+        script = urlparse (self._api.base_url) [2]
+        method = self._url [len (script):]
+        return self._callback (self._api.base_url, method.replace ("/", "."), args)
+
+class RPC (siesta.API):
+    RESOURCE_CLASS = Method
+    def __call__(self):
+        raise AttributeError
 
 class Client:
-    def __getattr__ (self, attr):
-        api = siesta.API ("", callback = self.make_request)
-        return getattr (api, attr)
-            
     def override (self, headers):
         copied = DEFAULT_HEADERS.copy ()
         for k, v in headers:
             copied [k] = v
         return copied    
-        
-    def geneate (self, r):
-        m, u, v = r.get_method (), r.path, r.http_version        
-        headers = ["%s: %s" % each for each in r.get_headers ()]
-        return http_request (channel.Channel (), "%s %s HTTP/%s" % (m, u, v), m.lower (), u, v, headers)
     
-    def serialize (self, payload):    
+    def handle_request (self, request, handler = None):
+        # clinet request -> process -> server response -> client response
+        return get_client_response (request, handler)
+    
+    def __serialize (self, payload):    
         _payload = []
         while 1:
             d = payload.more ()
@@ -46,10 +53,11 @@ class Client:
             _payload.append (d)    
         return b"".join (_payload)
     
-    def handle_request (self, request, handler = None):
-        # clinet request -> process -> server response -> client response
-        return get_client_response (request, handler)
-           
+    def __generate (self, r):
+        m, u, v = r.get_method (), r.path, r.http_version        
+        headers = ["%s: %s" % each for each in r.get_headers ()]
+        return http_request (channel.Channel (), "%s %s HTTP/%s" % (m, u, v), m.lower (), u, v, headers)
+               
     def make_request (self, method, uri, data, headers, auth = None, meta = {}, version = "1.1"):
         method = method.upper ()
         if isinstance (headers, dict):
@@ -60,16 +68,13 @@ class Client:
         else:    
             r = request.HTTPRequest (uri, method, data, headers, auth, None, meta, version)
         
-        hr = self.geneate (r)        
+        hr = self.__generate (r)    
         if data:
             payload = r.get_payload ()
             if method == "UPLOAD":
-                payload = self.serialize (payload)
+                payload = self.__serialize (payload)
             hr.set_body (payload)        
         return hr
-    
-    def handle_rpc (self, request):
-        return request
          
     def get (self, uri, headers = [], auth = None, meta = {}, version = "1.1"):
         return self.make_request ("GET", uri, None, headers, auth, meta, version)
@@ -78,6 +83,11 @@ class Client:
         return self.make_request ("DELETE", uri, None, headers, auth, meta, version)
         
     def post (self, uri, data, headers = [], auth = None, meta = {}, version = "1.1"):
+        return self.make_request ("POST", uri, data, headers, auth, meta, version)    
+    
+    def postjson (self, uri, data, headers = [], auth = None, meta = {}, version = "1.1"):
+        headers.append (('Accpet', 'application/json'))
+        headers.append (('Content-Type', 'application/json'))
         return self.make_request ("POST", uri, data, headers, auth, meta, version)    
     
     def patch (self, uri, data, headers = [], auth = None, meta = {}, version = "1.1"):
@@ -89,39 +99,57 @@ class Client:
     def upload (self, uri, data, headers = [], auth = None, meta = {}, version = "1.1"):
         return self.make_request ("UPLOAD", uri, data, headers, auth, meta, version)    
     
-    def xmlrpc (self, uri, method, data, headers = [], auth = None, meta = {}, version = "1.1"):
+    # api ----------------------------------------------------
+    def api (self, endpoint = ""):
+        return siesta.API (endpoint, callback = self.make_request)        
+    
+    # rpc ----------------------------------------------------
+    def rpc (self, endpoint = ""):
+        return RPC (endpoint, callback = self.__continue_xmlrpc)        
+    xmlrpc = rpc
+    
+    def __continue_xmlrpc (self, uri, method, data, headers = [], auth = None, meta = {}, version = "1.1"):
         r = request.XMLRPCRequest (uri, method, data, self.override (headers), auth, None, meta, version)
-        hr = self.geneate (r)        
+        hr = self.__generate (r)
         hr.set_body (r.get_payload ())
-        return self.handle_rpc (hr)
+        hr._xmlrpc_serialized = True
+        return hr
+     
+    def jsonrpc (self, endpoint = ""):
+        return RPC (endpoint, callback = self.__continue_jsonrpc)
     
-    def jsonrpc (self, uri, method, data, headers = [], auth = None, meta = {}, version = "1.1"):
+    def __continue_jsonrpc (self, uri, method, data, headers = [], auth = None, meta = {}, version = "1.1"):
         r = request.JSONRPCRequest (uri, method, data, self.override (headers), auth, None, meta, version)
-        hr = self.geneate (r)        
+        hr = self.__generate (r)        
         hr.set_body (r.get_payload ())
-        return self.handle_rpc (hr)
+        return hr
     
-    def grpc (self, uri, method, data, headers = [], auth = None, meta = {}, version = "2.0"):        
+    def grpc (self, endpoint = ""):
+        return RPC (endpoint, callback = self.__continue_grpc)
+    
+    def __continue_grpc (self, uri, method, data, headers = [], auth = None, meta = {}, version = "2.0"):
         r = grpc_request.GRPCRequest (uri, method, data, self.override (headers), auth, None, meta, version)
-        hr = self.geneate (r)    
-        hr.set_body (self.serialize (r.get_payload ()))
-        return self.handle_rpc (hr)
+        hr = self.__generate (r)    
+        hr.set_body (self.__serialize (r.get_payload ()))
+        return hr
         
-    def make_dbo (self, dbtype, server, dbname = None, auth = None, method = None, params = None, callback = None, meta = {}):
+    # db ----------------------------------------------------    
+    def __make_dbo (self, dbtype, server, dbname = None, auth = None, method = None, params = None, callback = None, meta = {}):
         return dbo_request.Request (dbtype, server, dbname, auth, method, params, callback, meta)
     
     def postgresql (self, server, dbname, *args, **kargs):
-        return self.make_dbo ('postgresql', server, dbname, *args, **kargs)
+        return self.__make_dbo ('postgresql', server, dbname, *args, **kargs)
     
     def mongdb (self, serverr, dbname, *args, **kargs):
-        return self.make_dbo ('mongodb', serverr, dbname, *args, **kargs)
+        return self.__make_dbo ('mongodb', serverr, dbname, *args, **kargs)
     
     def sqlite3 (self, server, *args, **kargs):
-        return self.make_dbo ('sqlite3', server, *args, **kargs)
+        return self.__make_dbo ('sqlite3', server, *args, **kargs)
     
     def redis (self, server, *args, **kargs):
-        return self.make_dbo ('redis', server, *args, **kargs)
-            
+        return self.__make_dbo ('redis', server, *args, **kargs)
+    
+    # websokcet --------------------------------------------        
     def ws (self, uri, message, headers = [], auth = None, meta = {}, version = "1.1"):
         r = ws_request.Request (uri, message, self.override (headers), auth, None, meta, version)
         r.headers ['Origin'] = "http://%s:%d" % r.address
@@ -130,6 +158,6 @@ class Client:
         r.headers ['Upgrade'] = 'websocket'
         r.headers ['Cache-Control'] = 'no-cache'        
         r.method = "get"
-        hr = self.geneate (r)
+        hr = self.__generate (r)
         hr.set_body (r.get_payload ().more ())
         return hr

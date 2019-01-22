@@ -39,7 +39,7 @@ def test_app (launch):
 		assert_post_request (200, "/upload", {"username": "pytest"}, files = {"file1": jpg})
 		
 		with xmlrpc.client.ServerProxy("http://127.0.0.1:30371/rpc2/") as proxy:
-			assert proxy.add_number (1, 3) == [4]
+			assert proxy.add_number (1, 3) == 4
 	
 def test_app_single_thread (launch):
 	with launch ("./examples/app_single_thread.py") as engine:	

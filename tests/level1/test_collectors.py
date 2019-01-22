@@ -22,7 +22,7 @@ def multipart (client):
 @pytest.fixture
 def grpc (client):
 	point = route_guide_pb2.Point (latitude=409146138, longitude=-746188906)
-	return client.grpc ("http://www.skitai.com/routeguide.RouteGuide", "GetFeature", (point,))
+	return client.grpc ("http://www.skitai.com/routeguide.RouteGuide").GetFeature (point)	
 				
 def test_form_collector (handler, post):
 	c = collectors.FormCollector (handler, post)

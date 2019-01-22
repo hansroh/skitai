@@ -46,7 +46,7 @@ def test_cli (app, dbpath):
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")    
     app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)
     app.alias ("@postgres", skitai.DB_POSTGRESQL, "postgres:4000Wkwkdaus@192.168.0.80/coin_core")
-    with app.make_client ("/", confutil.getroot ()) as cli:
+    with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
         assert resp.text == "Hello, World"
 

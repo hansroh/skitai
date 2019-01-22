@@ -32,6 +32,7 @@ class http_request:
 		self._is_stream_ended = False
 		self._is_async_streaming = False
 		self._is_promise = False		
+		self._xmlrpc_serialized = False # used by testuitl.client
 		self.args = {}
 		self.URL = {}
 		self.JSON = None
@@ -310,4 +311,4 @@ class http_request:
 	
 	def xmlrpc_serialized (self):
 		# for compat with client request
-		return False
+		return self._xmlrpc_serialized

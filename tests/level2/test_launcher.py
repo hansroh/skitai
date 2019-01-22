@@ -5,7 +5,7 @@ def test_launch (launch):
         resp = engine.get ("/")
         assert resp.text.find ("Copyright (c) 2015-present, Hans Roh") > 0
         
-        resp = engine.json.get ()
+        resp = engine.api ().json.get ()
         assert resp.data ["data"] == "JSON"
 
 def test_launch2 (launch):
@@ -13,6 +13,6 @@ def test_launch2 (launch):
     resp = engine.get ("/")
     assert resp.text.find ("Copyright (c) 2015-present, Hans Roh") > 0
     
-    resp = engine.json.get ()
+    resp = engine.api ().json.get ()
     assert resp.data ["data"] == "JSON"
 

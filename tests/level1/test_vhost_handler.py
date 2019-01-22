@@ -34,6 +34,10 @@ def test_wsgi_handler (wasc, app, client):
 	def json (was):
 		return "Hello"
 	
+	@app.route ("/rpc2/add")
+	def add (was, a, b):
+		return a + b
+	
 	# WSGI
 	vh = testutil.install_vhost_handler ()
 	testutil.mount ("/", (app, confutil.getroot ()), skitai.pref ())
@@ -51,7 +55,13 @@ def test_wsgi_handler (wasc, app, client):
 	request = client.get ("http://www.skitai.com/?a=b")	
 	resp = assert_request (vh, request, 200)
 	
-	request = client.postjson ("http://www.skitai.com/json", {'a': 1})
+	request = client.api ().json.post ({'a': 1})
+	resp = assert_request (vh, request, 200)
+	
+	answer = client.rpc ("http://www.skitai.com/rpc2/").add (100, 50)
+	resp = assert_request (vh, request, 200)
+	
+	answer = client.jsonrpc ("http://www.skitai.com/rpc2/").add (100, 50)
 	resp = assert_request (vh, request, 200)
 	
 	testutil.enable_threads ()
