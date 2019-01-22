@@ -50,7 +50,7 @@ packages = [
 	'skitai.wastuff',
 	'skitai.handlers',
 	'skitai.rpc',	
-	'skitai.offline',
+	'skitai.testutil',
 	'skitai.handlers.http2',
 	'skitai.handlers.websocket',
 	'skitai.handlers.proxy'

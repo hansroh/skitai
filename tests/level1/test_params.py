@@ -2,7 +2,7 @@ from confutil import rprint, assert_request
 import confutil
 import skitai
 import os, pytest
-from skitai import offline
+from skitai import testutil
 
 def test_params (wasc, app, client):
 	def z (was):	
@@ -31,7 +31,7 @@ def test_params (wasc, app, client):
 		return z (was)
 		
 	# WSGI
-	vh = offline.install_vhost_handler ()
+	vh = testutil.install_vhost_handler ()
 	root = confutil.getroot ()
 	pref = skitai.pref ()
 	vh.add_route ("default", ("/", app, root), pref)

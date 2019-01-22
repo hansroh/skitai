@@ -4,8 +4,8 @@ import skitai
 from atila import Atila
 import atila
 from rs4 import logger
-from skitai import offline
-from skitai.offline import server, channel as cha
+from skitai import testutil
+from skitai.testutil import server, channel as cha
 import sqlite3
 
 try:
@@ -25,14 +25,14 @@ def client ():
 	
 @pytest.fixture
 def log ():
-	logger = offline.logger ()
+	logger = testutil.logger ()
 	yield logger
 	logger.close ()
 
 @pytest.fixture
 def wasc ():
-	offline.activate ()
-	return offline.wasc
+	testutil.activate ()
+	return testutil.wasc
 
 @pytest.fixture
 def conn ():
