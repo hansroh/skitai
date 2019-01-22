@@ -2,12 +2,12 @@ from confutil import rprint, assert_request
 import confutil
 import skitai
 import os, pytest
-from skitai import offline
+from skitai import testutil
 
 @pytest.mark.run (order = 1)
 def test_default_handler (wasc, client):
-	vh = offline.install_vhost_handler ()
-	offline.mount ("/", "./examples/statics")
+	vh = testutil.install_vhost_handler ()
+	testutil.mount ("/", "./examples/statics")
 				
 	request = client.get ("http://www.skitai.com/1001.htm")
 	assert_request (vh, request, 404)
@@ -35,8 +35,8 @@ def test_wsgi_handler (wasc, app, client):
 		return "Hello"
 	
 	# WSGI
-	vh = offline.install_vhost_handler ()
-	offline.mount ("/", (app, confutil.getroot ()), skitai.pref ())
+	vh = testutil.install_vhost_handler ()
+	testutil.mount ("/", (app, confutil.getroot ()), skitai.pref ())
 	request = client.get ("http://www.skitai.com/")	
 	resp = assert_request (vh, request, 200)	
 	assert resp.text == "Hello"
@@ -54,7 +54,7 @@ def test_wsgi_handler (wasc, app, client):
 	request = client.postjson ("http://www.skitai.com/json", {'a': 1})
 	resp = assert_request (vh, request, 200)
 	
-	offline.enable_threads ()
+	testutil.enable_threads ()
 	assert wasc.numthreads == 1
 	assert wasc.threads
 	
@@ -64,7 +64,7 @@ def test_wsgi_handler (wasc, app, client):
 	request = client.postjson ("http://www.skitai.com/json", {'a': 1}, version = "2.0")	
 	resp = assert_request (vh, request, 200)
 	
-	offline.disable_threads ()
+	testutil.disable_threads ()
 	assert wasc.numthreads == 0
 	assert wasc.threads is None
 	
