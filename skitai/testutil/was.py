@@ -74,8 +74,13 @@ class DBCall (ProtoCall):
         self.handle_request (method, param, *self.args, **self.kargs)
         
     def  handle_request (self, method, param, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
+        from ..dbi import cluster_manager
+        
         assert dbtype is None, "please, alias {}".format (server)
-        conns = self.cluster.get_endpoints ()
+        if self.cluster:
+            conns = self.cluster.get_endpoints ()
+        else:            
+            conns = cluster_manager.make_endpoints (dbtype, [server, dbname, auth])            
         conn = random.choice (conns)
         try:
             if self.cluster.dbtype in (DB_SQLITE3, DB_PGSQL):        
@@ -88,6 +93,8 @@ class DBCall (ProtoCall):
             self.result = Result (1)
         else:
             self.result = Result (3, resp)                    
+        for conn in conns:
+            conn.close ()
         callback and callback (self.result)
         
         

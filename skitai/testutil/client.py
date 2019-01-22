@@ -8,7 +8,8 @@ from base64 import b64encode
 import os
 from . import channel
 from .server import get_client_response
-
+import json
+from rs4 import siesta
 
 DEFAULT_HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -20,7 +21,12 @@ DEFAULT_HEADERS = {
     "Host": "skitai.com"
 }
 
-class Client:    
+
+class Client:
+    def __getattr__ (self, attr):
+        api = siesta.API ("", callback = self.make_request)
+        return getattr (api, attr)
+            
     def override (self, headers):
         copied = DEFAULT_HEADERS.copy ()
         for k, v in headers:
@@ -44,7 +50,10 @@ class Client:
         # clinet request -> process -> server response -> client response
         return get_client_response (request, handler)
            
-    def make_request (self, method, uri, data, headers, auth, meta, version = "1.1"):        
+    def make_request (self, method, uri, data, headers, auth = None, meta = {}, version = "1.1"):
+        method = method.upper ()
+        if isinstance (headers, dict):
+            headers = [(k, v) for k, v in headers.items ()]
         headers = self.override (headers)
         if method == "UPLOAD":
             r = request.HTTPMultipartRequest (uri, "POST", data, headers, auth, None, meta, version)        
@@ -61,7 +70,7 @@ class Client:
     
     def handle_rpc (self, request):
         return request
-     
+         
     def get (self, uri, headers = [], auth = None, meta = {}, version = "1.1"):
         return self.make_request ("GET", uri, None, headers, auth, meta, version)
     
@@ -71,19 +80,14 @@ class Client:
     def post (self, uri, data, headers = [], auth = None, meta = {}, version = "1.1"):
         return self.make_request ("POST", uri, data, headers, auth, meta, version)    
     
-    def postjson (self, uri, data, headers = [], auth = None, meta = {}, version = "1.1"):
-        headers.append (('Accpet', 'application/json'))
-        headers.append (('Content-Type', 'application/json'))
-        return self.make_request ("POST", uri, data, headers, auth, meta, version)    
-        
-    def upload (self, uri, data, headers = [], auth = None, meta = {}, version = "1.1"):
-        return self.make_request ("UPLOAD", uri, data, headers, auth, meta, version)    
-    
     def patch (self, uri, data, headers = [], auth = None, meta = {}, version = "1.1"):
         return self.make_request ("PATCH", uri, data, headers, auth, meta, version)    
     
     def put (self, uri, data, headers = [], auth = None, meta = {}, version = "1.1"):
         return self.make_request ("PUT", uri, data, headers, auth, meta, version)    
+        
+    def upload (self, uri, data, headers = [], auth = None, meta = {}, version = "1.1"):
+        return self.make_request ("UPLOAD", uri, data, headers, auth, meta, version)    
     
     def xmlrpc (self, uri, method, data, headers = [], auth = None, meta = {}, version = "1.1"):
         r = request.XMLRPCRequest (uri, method, data, self.override (headers), auth, None, meta, version)
