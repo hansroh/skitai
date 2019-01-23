@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28a11"
+__version__ = "0.28b1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -13,7 +13,6 @@ from rs4.psutil import service
 from rs4.attrdict import AttrDict
 from aquests.protocols.dns import asyndns
 from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
-from .launcher import launch
 from aquests.protocols.smtp import composer
 import tempfile
 import getopt

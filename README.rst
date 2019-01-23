@@ -5,7 +5,7 @@ Skitai App Engine
 At a Glance
 =============
 
-Skitai is a Python WSGI HTTP/HHTS Server for UNIX. 
+Skitai is a Python WSGI HTTP/HHTS Server for UNIX (Developing is possible on win32). 
   
 And simple to run:
 
@@ -52,6 +52,7 @@ Skitai App engine provides one of most simplest way to:
 1. Serve WSGI apps like Flask, Django
 2. Export RESTful API for your apps or functions
 3. Build high performance app/web service with asynchronous backend upstreams & cache control
+
 
 Introduce
 ===========

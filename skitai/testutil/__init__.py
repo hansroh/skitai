@@ -25,7 +25,8 @@ from aquests.client.asynconnect import AsynConnect
 from aquests.dbapi.dbconnect import DBConnect
 from aquests.protocols.dns import asyndns
 import asyncore
-
+from .launcher  import launch
+ 
 def logger ():
     return triple_logger.Logger ("screen", None)    
 
