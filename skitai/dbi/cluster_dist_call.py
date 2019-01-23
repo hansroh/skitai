@@ -143,6 +143,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		self._retry = 0	
 		self._numnodes = 0
 		self._sent_result = None
+		self._request = None
 		
 		if self._cluster:
 			nodes = self._cluster.get_nodes ()						
@@ -175,7 +176,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		self._setup (asyncon)
 		return asyncon
 	
-	def _request (self, method, params):
+	def _build_request (self, method, params):
 		# For Django QuerySet and SQLGen
 		if hasattr (params [0], "query"):
 			params = (str (params [0].query),) + params [1:]
@@ -199,8 +200,10 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 				method, params, 				
 				rs.handle_result,
 				self._meta
-			)			
-			asyncon.execute (req)			
+			)
+			asyncon.execute (req)
+			
+		self._request = req# sample for unitest
 		trigger.wakeup ()
 		return self
 
@@ -225,7 +228,7 @@ class Proxy:
 	
 	def __proceed (self, *params):		
 		cdc = self.__class (self.__cluster, *self.__args, **self.__kargs)
-		cdc._request (self._method, params)
+		cdc._build_request (self._method, params)
 		return cdc
 	
 	
@@ -238,6 +241,4 @@ class ClusterDistCallCreator:
 		return getattr (self.cluster, name)
 		
 	def Server (self, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
-		if cluster_dist_call.is_main_thread () and not callback:
-			raise RuntimeError ('Should have callback in Main thread')
 		return Proxy (ClusterDistCall, self.cluster, server, dbname, auth, dbtype, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.logger)

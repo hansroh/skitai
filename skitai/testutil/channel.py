@@ -1,4 +1,4 @@
-from mock import MagicMock
+from unittest.mock import MagicMock
 import socket
 from skitai.http_server import http_channel
 from . import server

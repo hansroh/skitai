@@ -1470,12 +1470,36 @@ All supoorted request methods are:
 
 - Web/API related
 
-  - was.get (): also available shortcuts getjson, getxml
-  - was.delete (): also available shortcuts deletejson, deletexml
-  - was.post (): also available shortcuts postjson, postxml
-  - was.put (): also available shortcuts putjson, putxml
-  - was.patch (): also available shortcuts patchjson, patchxml
+  - was.get ()
+  - was.delete ()
+  - was.post ()
+  - was.put ()
+  - was.patch ()
+  - was.upload ()
   - was.options ()
+
+Above request type is configured to json. This mean request content type and response accept type is all 'application/json'.
+
+If you want to change default value,
+
+1. set app.config.default_request_type = (request content type, accept content type)
+
+.. code:: python
+
+  app.config.default_request_type = ("text/xml", "*/*")
+  
+2. use headers paramter for each request:
+
+.. code:: python
+
+  req = was.get ("@delune/documents/11", headers = [("Accept", "text/xml")])
+
+  data = {"Title": "...", "Content": "..."}
+  headers = [
+    ("Content-Type", "application/x-www-form-urlencoded"), 
+    ("Accept", "text/xml")
+  ]
+  req = was.post ("@delune/documents", data, headers = headers)  
 
 - RPCs
   
@@ -2430,6 +2454,7 @@ Change Log
 
 - 0.28 (Feb 2019)
   
+  - removed sugar methods: was.getjson, getxml, postjson, ..., instead use headers parameter or app.config.default_request_type 
   - skitai.win32service has been moved to rs4.psutil.win32service
   - improve 'was' magic method search speed
   - seperate skitai.saddle into atila

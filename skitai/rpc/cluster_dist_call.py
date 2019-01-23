@@ -196,6 +196,7 @@ class ClusterDistCall:
 		self._cached_request_args = None		
 		self._numnodes = 0
 		self._cached_result = None
+		self._request = None
 			
 		if self._cluster:
 			nodes = self._cluster.get_nodes ()
@@ -206,7 +207,7 @@ class ClusterDistCall:
 				self._nodes = [None]
 			
 		if not self._reqtype.lower ().endswith ("rpc"):
-			self._request ("", self._params)
+			self._build_request ("", self._params)
 	
 	def __del__ (self):
 		self._cv = None
@@ -228,19 +229,6 @@ class ClusterDistCall:
 		if self._headers is None:
 			self._headers = {}
 		self._headers [n] = v
-	
-	_TYPEMAP = [		
-		("xml", "text/xml", "text/xml"),
-		("json", "application/json", "application/json"),
-	]
-	def _map_content_type (self, _reqtype, has_params = False):
-		for alias, ct, ac in self._TYPEMAP:
-			if _reqtype.endswith (alias):
-				self._add_header ("Accept", ac)
-				if has_params:
-					self._add_header ("Content-Type", ct)
-				return _reqtype [:-len (alias)]
-		return _reqtype
 	
 	def _handle_request (self, request, rs, asyncon, handler):
 		if self._cachefs:
@@ -276,7 +264,7 @@ class ClusterDistCall:
 		
 		return 1
 						
-	def _request (self, method, params):
+	def _build_request (self, method, params):
 		self._cached_request_args = (method, params) # backup for retry
 		if self._use_cache and rcache.the_rcache:
 			self._cached_result = rcache.the_rcache.get (self._get_ident (), self._use_cache)
@@ -305,7 +293,7 @@ class ClusterDistCall:
 						self._add_header ("Cache-Control", "no-cache")
 					
 					handler = http_request_handler.RequestHandler					
-					if _reqtype == "rpc":
+					if _reqtype in ("rpc", "xmlrpc"):
 						request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._auth, self._logger, self._meta)
 					elif _reqtype == "jsonrpc":
 						request = http_request.JSONRPCRequest (self._uri, method, params, self._headers, self._auth, self._logger, self._meta)					
@@ -314,7 +302,6 @@ class ClusterDistCall:
 					elif _reqtype == "upload":
 						request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._auth, self._logger, self._meta)
 					else:
-						_reqtype = self._map_content_type (_reqtype, params)						
 						request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._auth, self._logger, self._meta)				
 				
 				requests += self._handle_request (request, rs, asyncon, handler)
@@ -327,6 +314,7 @@ class ClusterDistCall:
 				continue
 			
 		if requests:
+			self._request = request # sample for unitest
 			trigger.wakeup ()
 		
 		if _reqtype [-3:] == "rpc":
@@ -496,11 +484,8 @@ class Proxy:
 	
 	def __request (self, method, params):		
 		cdc = self.__class (*self.__args, **self.__kargs)
-		cdc._request (method, params)
+		cdc._build_request (method, params)
 		return cdc
-
-def is_main_thread ():	
-	return isinstance (threading.currentThread (), threading._MainThread)
 			
 class ClusterDistCallCreator:
 	def __init__ (self, cluster, logger, cachesfs):
@@ -512,9 +497,6 @@ class ClusterDistCallCreator:
 		return getattr (self.cluster, name)
 		
 	def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = DEFAULT_TIMEOUT, caller = None):
-		if is_main_thread () and not callback:
-			raise RuntimeError ('Should have callback in Main thread')
-		# reqtype: rpc, get, post, head, put, delete
 		if type (headers) is list:
 			h = {}
 			for n, v in headers:

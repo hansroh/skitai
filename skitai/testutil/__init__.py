@@ -96,15 +96,7 @@ def install_proxy_handler ():
 
 #----------------------------------------------------------
 
-wasc = None
-def activate ():
-    global wasc
-    if wasc is not None:
-        return
-    
-    from .was import WAS
-    
-    wasc = WAS
+def setup_was (wasc):
     wasc.register ("logger", logger ())
     wasc.register ("httpserver", server.Server (wasc.logger))
     wasc.register ("debug", False)
@@ -117,7 +109,17 @@ def activate ():
     
     websocekts.start_websocket (wasc)
     wasc.register ("websockets", websocekts.websocket_servers)   
-                
+    return wasc
+
+wasc = None
+def activate ():
+    global wasc
+    
+    if wasc is not None:
+        return    
+    from .was import WAS
+    
+    wasc = setup_was (WAS)
     skitai.start_was (wasc)
     
     lifetime.init (10.0, wasc.logger.get ("server"))    
