@@ -3,7 +3,6 @@ from confutil import rprint
 import time
 import random
 import pytest
-from mock import MagicMock
 
 def test_rcache ():
 	rcache.start_rcache (100)

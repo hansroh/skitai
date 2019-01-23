@@ -82,11 +82,11 @@ def test_was (wasc, app, client):
     assert isinstance (was.mbox, NamedSession)
         
     assert was.txnid ().endswith ("/1000")
-    assert was.rebuild_header () ["X-Ltxn-Id"] == "1001"
-    x = was.rebuild_header ({"a": "b"})
+    assert was.rebuild_header ({}, "get") ["X-Ltxn-Id"] == "1001"
+    x = was.rebuild_header ({"a": "b"}, "get")
     assert "a" in x
     assert x ["X-Ltxn-Id"] == "1002"
-    x = was.rebuild_header ([("a", "b")])
+    x = was.rebuild_header ([("a", "b")], "get")
     assert "a" in x
     assert x ["X-Ltxn-Id"] == "1003"    
     assert was.tempfile.find ("skitai-gentemp") > 0

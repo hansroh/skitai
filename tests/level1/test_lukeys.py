@@ -2,7 +2,7 @@ from confutil import rprint
 import time
 import random
 import pytest
-from mock import MagicMock
+from unittest.mock import MagicMock
 from skitai.wastuff.modelkeys import ModelKeys
 
 def test_models_in_storage (wasc):

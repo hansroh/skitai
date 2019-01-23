@@ -5,6 +5,7 @@ import asyncore
 import os
 
 def test_cli (app, dbpath):
+    @app.route ("/hello")
     @app.route ("/")
     def index (was):
         return "Hello, World"
@@ -20,6 +21,12 @@ def test_cli (app, dbpath):
     @app.route ("/pypi")
     def pypi (was):
         req = was.get ("@pypi/project/skitai/")
+        res = req.getwait ()
+        return was.response.api (data = res.text)
+    
+    @app.route ("/pypi3")
+    def pypi3 (was):
+        req = was.getjson ("https://pypi.org/project/skitai/")
         res = req.getwait ()
         return was.response.api (data = res.text)
     
@@ -49,7 +56,10 @@ def test_cli (app, dbpath):
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
         assert resp.text == "Hello, World"
-
+        
+        resp = cli.get ("/hello")
+        assert resp.text == "Hello, World"
+        
         resp = cli.get ("/echo?m=GET")
         assert resp.text == "GET"
         
@@ -64,6 +74,9 @@ def test_cli (app, dbpath):
         
         resp = cli.get ("/db")
         assert resp.data ["data"][0][2] == 'RHAT'
+        
+        resp = cli.get ("/pypi3")
+        assert resp.status_code == 508
         
         resp = cli.get ("/pypi2")
         assert "skitai" in resp.text

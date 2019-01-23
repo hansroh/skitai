@@ -25,13 +25,13 @@ def index (was):
 
 @app.route ("/dnserror")
 def dnserror (was):
-	req = was.get ("https://pypi.python.orgx/pypi/skitai")
+	req = was.get ("https://pypi.python.orgx/pypi/skitai", headers = (["Accept", "text/html"]))
 	rs = req.getwait (10)
 	return "%d %d %s" % (rs.status, rs.status_code, rs.reason)
 
 @app.route ("/documentation")
 def documentation (was):
-	req = was.get ("https://pypi.org/project/skitai/")
+	req = was.get ("https://pypi.org/project/skitai/", headers = [("Accept", "text/html")])
 	pypi_content = "<h4><p>It seems some problem at <a href='https://pypi.python.org/pypi/skitai'>PyPi</a>.</p></h4><p>Please visit <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></p>"	
 	rs = req.getwait (10)
 	if rs.data:
@@ -59,7 +59,7 @@ def handle_response (promise, rs):
 @app.route ("/documentation2")
 def documentation2 (was):
 	promise = was.promise (handle_response)
-	promise.get ('skitai', "https://pypi.org/project/skitai/")
+	promise.get ('skitai', "https://pypi.org/project/skitai/", headers = [("Accept", "text/html")])
 	return promise
 	
 @app.route ("/hello")
