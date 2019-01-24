@@ -18,6 +18,10 @@ import tempfile
 import getopt
 from . import lifetime
 
+def test_client (*args, **kargs):
+	from .testutil.launcher import Launcher
+	return Launcher (*args, **kargs)
+	
 HAS_ATILA = None
 
 PROTO_HTTP = "http"
@@ -397,7 +401,7 @@ def argopt (sopt = "", lopt = []):
 	for k, v in argopt [0]:
 		if k == "-d":
 			continue
-		elif k.startswith ("--skitai-"):
+		elif k.startswith ("---"):
 			continue
 		opts_.append ((k, v))
 		
@@ -508,9 +512,14 @@ def run (**conf):
 				self.config_forward_server (
 					conf.get ('fws_address', '0.0.0.0'), conf.get ('fws_port', 80), conf.get ('fws_to', 443)
 				)
-				
+			
+			if "---port" in sys.argv:
+				port = int (sys.argv [sys.argv.index ("---port") + 1])
+			else:
+				port = conf.get ('port', 5000)
+								 	
 			self.config_webserver (
-				conf.get ('port', 5000), conf.get ('address', '0.0.0.0'),
+				port, conf.get ('address', '0.0.0.0'),
 				NAME, conf.get ("certfile") is not None,
 				conf.get ('keep_alive', 30), 
 				conf.get ('network_timeout', 30),
@@ -552,6 +561,9 @@ def run (**conf):
 	for k, v in dconf.items ():
 		if k not in conf:
 			conf [k] = v
+	
+	if "---production" in sys.argv:
+		os.environ ["SKITAI_ENV"] == "PRODUCTION"
 	
 	if conf.get ("name"):
 		PROCESS_NAME = 'skitai/{}'.format (conf ["name"])				

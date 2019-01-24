@@ -1,7 +1,7 @@
 import pytest
 from functools import partial
-from skitai.testutil.launcher import Launcher
+import skitai
 
 @pytest.fixture
 def launch ():
-    return partial (Launcher, port = 30371, silent = False)
+    return partial (skitai.test_client, port = 30371, silent = False)

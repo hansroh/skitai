@@ -9,11 +9,12 @@ import os
 import xmlrpc.client 
     
 class Launcher (webtest.Target):
-    def __init__ (self, script, port = 5000, ssl = False, silent = True, dry = False):
+    def __init__ (self, script, port, ssl = False, silent = True, dry = False):
         self.__script = script
+        self.__port = port
+        
         endpoint = "http{}://127.0.0.1".format (ssl and "s" or "")
-        if port:
-            endpoint += ":{}".format (port)
+        endpoint += ":{}".format (port)
         webtest.Target.__init__ (self, endpoint)
         self.__silent = silent
         self.__dry = dry
@@ -21,7 +22,7 @@ class Launcher (webtest.Target):
         self.__p = Puppet (communicate = False)        
         self.__closed = True
         self.__start ()
-        
+            
     def __start (self):
         if self.__dry:
             return
@@ -30,7 +31,7 @@ class Launcher (webtest.Target):
             if self.__is_running ():
                 self.__servicing = True
             else:    
-                self.__p.start ([sys.executable, self.__script, "-d"])
+                self.__p.start ([sys.executable, self.__script, "-d", "---port", str (self.__port)])
                 self.__wait_until ("running")
         else:
             self.__p.start ([sys.executable, self.__script])
@@ -62,7 +63,7 @@ class Launcher (webtest.Target):
             self.__p.kill ()
             time.sleep (3)
         self.__closed = True
-    _stop = _close
+    stop = _close
         
 launch = Launcher
     
