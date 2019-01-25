@@ -4,8 +4,8 @@ import pytest
 def check_success (resp):
     pass
      
-def test_was_async_requests (wasc_with_clusters, app, client):
-    was = wasc_with_clusters ()    
+def test_was_async_requests (async_wasc, app, client, dbpath):
+    was = async_wasc ()    
     was.app = app
     app.initialize_sqlphile (".")
     

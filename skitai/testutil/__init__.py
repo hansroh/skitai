@@ -25,6 +25,7 @@ from aquests.client.asynconnect import AsynConnect
 from aquests.dbapi.dbconnect import DBConnect
 import asyncore
 from .launcher  import launch
+from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS
  
 def logger ():
     return triple_logger.Logger ("screen", None)    
@@ -96,8 +97,19 @@ def install_proxy_handler ():
 
 #----------------------------------------------------------
 
+SAMPLE_DBPATH = '/tmp/example.sqlite'
+
 def setup_was (wasc):
-    wasc.register ("logger", logger ())
+    def add_cluster (wasc, name, args):
+        ctype, members, policy, ssl = args
+        wasc.add_cluster (ctype, name, members, ssl, policy)
+    
+    # was and testutil was share objects
+    try:
+        wasc.register ("logger", logger ())
+    except AttributeError: # class has been already setup
+        return wasc
+        
     wasc.register ("httpserver", server.Server (wasc.logger))
     wasc.register ("debug", False)
     wasc.register ("plock", multiprocessing.RLock ())
@@ -108,7 +120,15 @@ def setup_was (wasc):
     wasc.register ("cachefs", cachefs.CacheFileSystem (None, 0, 0))    
     
     websocekts.start_websocket (wasc)
-    wasc.register ("websockets", websocekts.websocket_servers)   
+    wasc.register ("websockets", websocekts.websocket_servers)
+    
+    add_cluster (wasc, *skitai.alias ("@example", PROTO_HTTP, "www.example.com"))
+    add_cluster (wasc, *skitai.alias ("@examples", PROTO_HTTPS, "www.example.com"))
+    add_cluster (wasc, *skitai.alias ("@sqlite3", DB_SQLITE3, SAMPLE_DBPATH))
+    add_cluster (wasc, *skitai.alias ("@postgresql", DB_PGSQL, "user:pass@127.0.0.1/mydb"))
+    add_cluster (wasc, *skitai.alias ("@mongodb", DB_MONGODB, "127.0.0.1:27017/mydb"))
+    add_cluster (wasc, *skitai.alias ("@redis", DB_REDIS, "127.0.0.1:6379"))
+       
     return wasc
 
 wasc = None

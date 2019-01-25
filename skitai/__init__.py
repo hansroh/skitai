@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28b2"
+__version__ = "0.28b3"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -336,7 +336,7 @@ def alias (name, ctype, members, role = "", source = "", ssl = False):
 	if name [0] == "@":
 		name = name [1:]
 	if dconf ["clusters"].get (name):
-		return
+		return name, dconf ["clusters"][name]
 	
 	if ctype == DJANGO:
 		alias = _alias_django (name, members)

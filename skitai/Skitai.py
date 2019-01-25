@@ -22,7 +22,7 @@ from aquests.protocols.http import request_handler
 from aquests.protocols import http2
 from aquests.client import adns
 if os.name == "nt":	
-	from . import schedule			
+	from rs4.psutil import schedule # cron like scheduler			
 from .handlers import proxy_handler, ipbl_handler, vhost_handler, forward_handler
 from .rpc import cluster_dist_call, rcache
 import socket

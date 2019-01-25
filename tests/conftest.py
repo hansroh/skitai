@@ -5,7 +5,8 @@ from atila import Atila
 from rs4 import logger
 from skitai import testutil
 from skitai.testutil import server, channel as cha
-
+from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS
+    
 try:
     import pytest_ordering
 except ImportError:
@@ -28,11 +29,6 @@ def log ():
     logger.close ()
 
 @pytest.fixture
-def wasc ():
-    testutil.activate ()
-    return testutil.wasc
-
-@pytest.fixture
 def conn ():
     sock = cha.Conn ()    
     return sock
@@ -49,8 +45,21 @@ def server ():
     yield s
     s.close ()
 
+@pytest.fixture (scope = "session")
+def wasc ():
+    testutil.activate ()
+    return testutil.wasc
 
-DBPATH = os.path.join (os.path.dirname (__file__), 'example.sqlite')
+@pytest.fixture (scope = "session")
+def async_wasc ():
+    from skitai.wsgiappservice import WAS
+    wasc = testutil.setup_was (WAS) # nned real WAS from this testing   
+   
+    assert "example" in wasc.clusters
+    assert "postgresql" in wasc.clusters
+    return wasc
+
+DBPATH = testutil.SAMPLE_DBPATH
     
 @pytest.fixture (scope = "session")
 def dbpath ():    
@@ -67,26 +76,4 @@ def dbpath ():
     yield DBPATH
     conn.close ()
     os.unlink (DBPATH)
-    
-@pytest.fixture (scope = "session")
-def wasc_with_clusters ():
-    from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS
-    from skitai.wsgiappservice import WAS
 
-    def add_cluster (wasc, name, args):
-	    ctype, members, policy, ssl = args
-	    wasc.add_cluster (ctype, name, members, ssl, policy)
-    
-    wasc = testutil.setup_was (WAS) # nned real WAS from this testing    
-    add_cluster (wasc, *skitai.alias ("@example", PROTO_HTTP, "www.example.com"))
-    add_cluster (wasc, *skitai.alias ("@examples", PROTO_HTTPS, "www.example.com"))
-    add_cluster (wasc, *skitai.alias ("@sqlite3", DB_SQLITE3, "/tmp/temp.sqlite3"))
-    add_cluster (wasc, *skitai.alias ("@postgresql", DB_PGSQL, "user:pass@127.0.0.1/mydb"))
-    add_cluster (wasc, *skitai.alias ("@mongodb", DB_MONGODB, "127.0.0.1:27017/mydb"))
-    add_cluster (wasc, *skitai.alias ("@redis", DB_REDIS, "127.0.0.1:6379"))
-    assert "example" in wasc.clusters
-    assert "postgresql" in wasc.clusters
-    return wasc
-   
-    
-            
