@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28b1"
+__version__ = "0.28b2"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -11,7 +11,7 @@ import h2
 from rs4 import deco, importer
 from rs4.psutil import service
 from rs4.attrdict import AttrDict
-from aquests.protocols.dns import asyndns
+from aquests.protocols import dns
 from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from aquests.protocols.smtp import composer
 import tempfile
@@ -549,7 +549,7 @@ def run (**conf):
 			)
 			
 			lifetime.init (logger = self.wasc.logger.get ("server"))
-			lifetime.maintern.sched (3.0, asyndns.pool.maintern)
+			lifetime.maintern.sched (3.0, dns.pool.maintern)
 			if os.name == "nt":
 				lifetime.maintern.sched (11.0, self.maintern_shutdown_request)								
 				self.flock = flock.Lock (os.path.join (self.varpath, ".%s" % self.NAME))

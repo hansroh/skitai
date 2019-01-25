@@ -12,7 +12,6 @@ from aquests.protocols.grpc.request import GRPCRequest
 from aquests.protocols.http import response as http_response
 from aquests.protocols.ws import request_handler as ws_request_handler
 from aquests.protocols.ws import request as ws_request
-from aquests.protocols.dns import asyndns
 from . import rcache
 from skitai import lifetime
 import asyncore
