@@ -29,5 +29,5 @@ before_script:
 
 test:
   script:
-  - cd tests && pytest
+  - ./test-all.sh
 
