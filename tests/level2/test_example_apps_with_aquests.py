@@ -57,6 +57,12 @@ def test_app (launch):
 		aquests.fetchall ()		
 		assert ERRS < 4
 		
+		ERRS = 0
+		aquests.configure (1, callback = assert_status, http2_constreams = 2)
+		[ makeset (http2 = True) for i in range (2) ]
+		aquests.fetchall ()		
+		assert ERRS < 4
+		
 		ERRS = 0	
 		aquests.configure (1, callback = assert_status)
 		[ make_stream_set () for i in range (4) ]

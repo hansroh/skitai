@@ -14,7 +14,7 @@ from rs4 import pathtool, logger, jwt
 from rs4.producers import simple_producer, file_producer
 from aquests.athreads import trigger
 from aquests.protocols.smtp import composer
-from aquests.protocols.http import http_date
+from aquests.protocols.http import http_date, util
 import inspect
 from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT, NAME
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
@@ -212,38 +212,15 @@ class WAS:
         return "%s/%s" % (self.request.gtxid, self.request.ltxid)
     
     def rebuild_header (self, header, method, data = None, internal = True):
-        if not header:
-            nheader = {}
-        elif type (header) is list:
-            nheader = {}            
-            for k, v in header:
-                nheader [k] = v        
-        else:
-            nheader = header
-            
+        nheader = util.normheader (header)
         if method in {"get", "delete", "post", "put", "patch", "upload"}:
-            no_accept_header = True
-            no_content_type_header = True
-            
-            for k, v in nheader.items ():
-                if k.lower () == "accept":
-                    no_accept_header = False
-                elif k.lower () == "content-type":
-                    if not data:
-                        continue
-                    no_content_type_header = True                
-            
             try:
                 default_request_type = self.app.config.get ("default_request_type")
             except AttributeError:
                 default_request_type = None
             if not default_request_type:    
-                default_request_type = self.DEFAULT_REQUEST_TYPE
-            
-            if data and no_content_type_header:
-                nheader ["Content-Type"] = default_request_type [0]
-            if no_accept_header:
-                nheader ["Accept"] = default_request_type [1]
+                default_request_type = self.DEFAULT_REQUEST_TYPE            
+            util.set_content_types (nheader, data, default_request_type)
             
         if internal:            
             nheader ["X-Gtxn-Id"] = self.request.get_gtxid ()

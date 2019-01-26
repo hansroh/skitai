@@ -83,7 +83,7 @@ setup (
         'console_scripts': [
 			'skitai=skitai.bin.skitai:main',
 		],
-  },
+    },
 	license='MIT',
 	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/skitai",
