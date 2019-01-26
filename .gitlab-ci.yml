@@ -23,8 +23,8 @@ before_script:
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
+  - python setup.py build install
   - pip install -Ur tests/requirements.txt
-  - pip install -Ur requirements.txt
 
 test:
   script:
