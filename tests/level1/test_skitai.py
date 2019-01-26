@@ -19,7 +19,7 @@ def test_skitai (app):
     if os.name != "posix":
         return
     
-    assert skitai.joinpath ('a', 'b') == "/usr/local/bin/a/b"    
+    assert skitai.joinpath ('a', 'b').endswith ("/bin/a/b")    
     skitai.mount ("/k", app)
     assert skitai.dconf ['mount']["default"][0][1] == ('/usr/local/bin/pytest', 'app')
     
