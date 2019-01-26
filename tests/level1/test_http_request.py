@@ -52,14 +52,14 @@ def test_request_generation (client):
 	assert request.get_header ('content-length') == "445"
 	
 	# XMLRPC
-	request = client.xmlrpc (url, "calucator.add", ("A", 1))
+	request = client.xmlrpc (url).calucator.add ("A", 1)	
 	rprint (request.get_header ('content-length'))
 	assert request.body.startswith (b"<?xml") and len (request.body) == 203
 	assert request.get_header ('content-type') == "text/xml; charset=utf-8"
 	assert request.get_header ('content-length') == "203"
 	
 	# JSONRPC
-	request = client.jsonrpc (url, "calucator.add", ("A", 1))
+	request = client.jsonrpc (url).calucator.add ("A", 1)
 	assert request.body.startswith (b"{\"") and len (request.body) == 111
 	assert request.get_header ('content-type') == "application/json-rpc; charset=utf-8"
 	assert request.get_header ('content-length') == "111"
@@ -67,7 +67,7 @@ def test_request_generation (client):
 	# GRPC
 	url = "http://www.skitai.com/routeguide.RouteGuide"
 	point = route_guide_pb2.Point (latitude=409146138, longitude=-746188906)
-	request = client.grpc (url, "GetFeature", (point,))
+	request = client.grpc (url).GetFeature (point)
 	rprint (request.get_header ('content-length'))
 	assert request.get_header ('content-type') == "application/grpc+proto"
 	assert request.body.startswith (b'\x00\x00\x00\x00\x11') and len (request.body) == 22

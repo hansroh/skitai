@@ -1,53 +1,79 @@
 import pytest, os, time
 import confutil
 import skitai
-from skitai.saddle import Saddle
-from skitai import saddle
+from atila import Atila
 from rs4 import logger
-from skitai.server import offline
-from skitai.server.offline import server, channel as cha
-
+from skitai import testutil
+from skitai.testutil import server, channel as cha
+from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS
+    
 try:
-	import pytest_ordering
+    import pytest_ordering
 except ImportError:
-	raise
+    raise
 else:
-	del pytest_ordering	
+    del pytest_ordering    
 
 @pytest.fixture (scope = "module")
 def app ():
-	return Saddle (__name__)
+    return Atila (__name__)
 
 @pytest.fixture
 def client ():
-	return confutil.client
-	
+    return confutil.client
+    
 @pytest.fixture
 def log ():
-	logger = offline.logger ()
-	yield logger
-	logger.close ()
-
-@pytest.fixture
-def wasc ():
-	offline.activate ()
-	return offline.wasc
+    logger = testutil.logger ()
+    yield logger
+    logger.close ()
 
 @pytest.fixture
 def conn ():
-	sock = cha.Conn ()	
-	return sock
+    sock = cha.Conn ()    
+    return sock
 
 @pytest.fixture
 def channel ():
-	c = cha.Channel ()
-	yield c
-	c.close ()
+    c = cha.Channel ()
+    yield c
+    c.close ()
 
 @pytest.fixture
 def server ():
-	s = server.Server ()
-	yield s
-	s.close ()
+    s = server.Server ()
+    yield s
+    s.close ()
+
+@pytest.fixture (scope = "session")
+def wasc ():
+    testutil.activate ()
+    return testutil.wasc
+
+@pytest.fixture (scope = "session")
+def async_wasc ():
+    from skitai.wsgiappservice import WAS
+    wasc = testutil.setup_was (WAS) # nned real WAS from this testing   
+   
+    assert "example" in wasc.clusters
+    assert "postgresql" in wasc.clusters
+    return wasc
+
+DBPATH = testutil.SAMPLE_DBPATH
+    
+@pytest.fixture (scope = "session")
+def dbpath ():    
+    import sqlite3
 	
-		
+    conn = sqlite3.connect (DBPATH)
+    c = conn.cursor()
+    # Create table
+    c.execute('''CREATE TABLE IF NOT EXISTS stocks (date text, trans text, symbol text, qty real, price real)''')
+    c.execute("INSERT INTO stocks VALUES ('2006-01-05','BUY','RHAT',100,35.14)")    
+    conn.commit()
+    c.fetchall()
+    c.close ()
+    yield DBPATH
+    conn.close ()
+    os.unlink (DBPATH)
+

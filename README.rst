@@ -5,20 +5,44 @@ Skitai App Engine
 At a Glance
 =============
 
-Here's a simple equation:
-
-.. code:: bash
-
-  Skitai = Nginx + uWSGI + Flask + Aquests
+Skitai is a Python WSGI HTTP/HHTS Server for UNIX (Developing is possible on win32). 
   
 And simple to run:
+
+Install, 
 
 .. code:: bash
 
   pip3 install skitai
-  python3 app.py -d
+
+Create and mount your app,
+  
+.. code:: python
+  
+  # myservice.py
+
+  def app (env, start_response):
+    start_response ("200 OK", [("Content-Type", "text/plain")])
+    return 'Hello World'
+
+  if __name__ == "__main__":    
+    import skitai
+    
+    skitai.mount ('/', app)
+    skitai.run (address = "127.0.0.1", port = 5000)
+
+And run.
+
+.. code:: bash
+        
+  python3 myservice.py
+
 
 Your app will work for your thousands or miliions of customers.
+
+
+.. contents:: Table of Contents
+
 
 What For
 ===========
@@ -28,6 +52,7 @@ Skitai App engine provides one of most simplest way to:
 1. Serve WSGI apps like Flask, Django
 2. Export RESTful API for your apps or functions
 3. Build high performance app/web service with asynchronous backend upstreams & cache control
+
 
 Introduce
 ===========
@@ -40,21 +65,31 @@ Skitai orients light-weight, simplicity and strengthen networking operations wit
 - Handling massive requests to your backend servers including RESTful API, RPCs and database engines - PostgreSQL_, MongoDB and Redis - with asynchronous manner
 - HTTP/2.0 & HTML5 Websocket implemented
 
-Conceptually, Skitai has been seperated into two components:
-
-1. Skitai App Engine Server, for WSGI apps
-2. Skito-Saddle, the small WSGI container integrated with Skitai. But you can also mount any WSGI apps and frameworks like Flask (I cannot sure).
-
 Skitai is not a just developing server like some frameworks provides. It is supporsed to work fine under real service situation by alone. And it makes your app take off to the world, just by appending a few lines on your app.
 
+For attaining maximum concurrency, it uses:
+
+  - asyncore with event loop for IO concurrency like HTTP/Websocket and database engine connections
+  - forking for multiple process workers
+  - multi-threading for blocking jobs if you want
+
+Async supported protocols:
+
+  - HTTP/HTTPS, RESTful API and XML/JSON-RPC
+  - HTTP2 and GRPC
+  - Websocket
+
+Async supported database engine or NoSQL:
+
+  - PostGreSQL
+  - MongDB
+  - Redis
+  - SQLite3 (sync only, not async )
+
 .. _hyper-h2: https://pypi.python.org/pypi/h2
-.. _Zope: http://www.zope.org/
 .. _Flask: http://flask.pocoo.org/
 .. _PostgreSQL: http://www.postgresql.org/
 .. __: http://www.nightmare.com/medusa/medusa.html
-
-
-.. contents:: Table of Contents
 
 
 Installation
@@ -62,7 +97,7 @@ Installation
 
 **Requirements**
 
-Python 3.4+  
+Python 3.5+  
 
 On win32, required `pywin32 binary`_.
 
@@ -101,7 +136,6 @@ Here's a very simple WSGI app,
 
 Basic Usage
 ------------
-
 
 Mount Static Directories
 ````````````````````````````
@@ -326,7 +360,9 @@ If you want to run Skitai with entirely single thread,
     threads = 0
   )
 
-This features is limited by your WSGI container. If you use Skito-Saddle container, you can run with single threading mode by using Skito-Saddle's async streaming response method. But you don't and if you have plan to use Skitai 'was' requests services, you can't single threading mode and you SHOULD run with multi-threading mode.
+This features is limited by your WSGI container. If you use Atila_ container, you can run with single threading mode by using Atila_'s async streaming response method. But you don't and if you have plan to use Skitai 'was' requests services, you can't single threading mode and you SHOULD run with multi-threading mode.
+
+.. _Atila: https://pypi.python.org/pypi/atila
 
 Run with Multiple Workers
 ---------------------------
@@ -410,9 +446,9 @@ Here's three WSGI app samples:
     return "Hello World"
 
 
-  # OR Skito-Saddle App  
-  from skitai.saddle import Saddle  
-  app = Saddle (__name__)
+  # OR Atila App  
+  from atila import Atila  
+  app = Atila (__name__)
   
   app.use_reloader = True
   app.debug = True
@@ -444,7 +480,7 @@ Let's assume initial version of app file is app_v1.py.
 
 .. code:: python  
 
-  app = Saddle (__name__)
+  app = Atila (__name__)
     
   @app.route('/')
   def index (was):   
@@ -454,7 +490,7 @@ And in same directory 2nd version of app file is app_v2.py.
 
 .. code:: python  
 
-  app = Saddle (__name__)
+  app = Atila (__name__)
       
   @app.route('/')
   def index (was):   
@@ -638,8 +674,8 @@ Run as Win32 Service
 
 .. code:: python
 
-  from skitai.saddle import Saddle
-  from skitai.win32service import ServiceFramework
+  from atila import Atila
+  from rs4.psutil.win32service import ServiceFramework
   
   class ServiceConfig (ServiceFramework):
     _svc_name_ = "SAE_EXAMPLE"
@@ -647,7 +683,7 @@ Run as Win32 Service
     _svc_app_ = __file__
     _svc_python_ = r"c:\python34\python.exe"
   
-  app = Saddle (__name__)
+  app = Atila (__name__)
   
   if __name__ == "__main__":
     skitai.mount ('/', app)
@@ -779,7 +815,7 @@ If app is mounted to '/flaskapp',
 Above /hello can called, http://127.0.0.1:5000/flaskapp/hello
 
 Also app should can handle mount point. 
-In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Skito-Saddle can handle obiously. But I don't know other WSGI containers will work properly.
+In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Atila can handle obiously. But I don't know other WSGI containers will work properly.
 
 Run Server Helpers
 --------------------
@@ -1290,7 +1326,7 @@ WSGI container like Flask, need to import 'was':
     was.get ("http://...")
     ...    
 
-But Saddle WSGI container integrated with Skitai, use just like Python 'self'.
+But Atila WSGI container integrated with Skitai, use just like Python 'self'.
 
 It will be easy to understand think like that:
 
@@ -1305,7 +1341,7 @@ It will be easy to understand think like that:
     was.get ("http://...")
     ...
 
-Simply just remember, if you use WSGI container like Flask, Bottle, ... - NOT Saddle - and want to use Skitai asynchronous services, you should import 'was'. Usage is exactly same. But for my convinient, I wrote example codes Saddle version mostly.
+Simply just remember, if you use WSGI container like Flask, Bottle, ... - NOT Atila - and want to use Skitai asynchronous services, you should import 'was'. Usage is exactly same. But for my convinient, I wrote example codes Atila version mostly.
 
 
 Async Communication For Backends To Backends
@@ -1425,6 +1461,7 @@ Here're addtional methods and properties above response obkect compared with aqu
   - 3: Normal Terminated
 
 .. _aquests: https://pypi.python.org/pypi/aquests
+.. _tfserver: https://pypi.python.org/pypi/tfserver
 
 
 Methods List
@@ -1434,12 +1471,36 @@ All supoorted request methods are:
 
 - Web/API related
 
-  - was.get (): also available shortcuts getjson, getxml
-  - was.delete (): also available shortcuts deletejson, deletexml
-  - was.post (): also available shortcuts postjson, postxml
-  - was.put (): also available shortcuts putjson, putxml
-  - was.patch (): also available shortcuts patchjson, patchxml
+  - was.get ()
+  - was.delete ()
+  - was.post ()
+  - was.put ()
+  - was.patch ()
+  - was.upload ()
   - was.options ()
+
+Above request type is configured to json. This mean request content type and response accept type is all 'application/json'.
+
+If you want to change default value,
+
+1. set app.config.default_request_type = (request content type, accept content type)
+
+.. code:: python
+
+  app.config.default_request_type = ("text/xml", "*/*")
+  
+2. use headers paramter for each request:
+
+.. code:: python
+
+  req = was.get ("@delune/documents/11", headers = [("Accept", "text/xml")])
+
+  data = {"Title": "...", "Content": "..."}
+  headers = [
+    ("Content-Type", "application/x-www-form-urlencoded"), 
+    ("Accept", "text/xml")
+  ]
+  req = was.post ("@delune/documents", data, headers = headers)  
 
 - RPCs
   
@@ -1476,9 +1537,9 @@ If you run Skitai with single threaded mode, you can't use req.wait(), req.getwa
     promise.get (None, "https://pypi.python.org/pypi/skitai")    
     return promise
 
-Unfortunately this feature is available on Skito-Saddle WSGI container only (It means Flask or other WSGI container users can only use Skitai with multi-threading mode). 
+Unfortunately this feature is available on Atila WSGI container only (It means Flask or other WSGI container users can only use Skitai with multi-threading mode). 
 
-For more detail usage will be explained 'Skito-Saddle Async Streaming Response' chapter and you could skip now.
+For more detail usage will be explained 'Atila Async Streaming Response' chapter and you could skip now.
 
 
 Load-Balancing
@@ -1604,7 +1665,7 @@ It makes easy to handle both Sqlite3 and PostgreSQL. If you intend to use Sqlite
 Throwing HTTP Error On Request Failed
 `````````````````````````````````````````
 
-*Available only on Skito-Saddle*
+*Available only on Atila*
 
 For throwing HTTP error if request is failed immediately,
 
@@ -1724,7 +1785,7 @@ Then you can use setlu () and getlu (),
 
 .. code:: python
 
-  app = Saddle (__name__)
+  app = Atila (__name__)
   
   @app.route ("/update")
   def update (was):
@@ -1755,11 +1816,11 @@ was.getlu () returns most recent update time stamp of given models.
 
 *Available on Python 3.5+*
 
-Also was.setlu () emits 'model-changed' events. You can handle event if you need. But this event system only available on Skito-Saddle middle-ware.
+Also was.setlu () emits 'model-changed' events. You can handle event if you need. But this event system only available on Atila middle-ware.
 
 .. code:: python
   
-  app = Saddle (__name__)
+  app = Atila (__name__)
   
   @app.route ("/update")
   def update (was):
@@ -1806,7 +1867,7 @@ Your template,
     {% endfor %}
   {% endif %}
 
-*Available only with Skito-Saddle*
+*Available only with Atila*
 
 Shorter version is for getwait and throw HTTP error,
 
@@ -1840,7 +1901,7 @@ This IDs is logged to Skitai request log file like this.
 
 Focus 3rd line above log message. Then you can trace a series of API calls from each Skitai instance's log files for finding some kind of problems.
 
-In next chapters' features of 'was' are only available for *Skito-Saddle WSGI container*. So if you have no plan to use Saddle, just skip.
+In next chapters' features of 'was' are only available for *Atila WSGI container*. So if you have no plan to use Atila, just skip.
 
 
 Websocket Related Methods of 'was'
@@ -2006,7 +2067,7 @@ WS_GROUPCHAT (New in version 0.24)
 
 *message_encoding*
 
-Websocket messages will be automatically converted to theses objects. Note that option is only available with Skito-Saddle WSGI container.
+Websocket messages will be automatically converted to theses objects. Note that option is only available with Atila WSGI container.
 
   - WS_MSG_JSON
   - WS_MSG_XMLRPC
@@ -2048,7 +2109,7 @@ At Flask, use like this.
     elif event:
       return '' # should return null string
       
-At Skito-Saddle, handling events is more simpler,
+At Atila, handling events is more simpler,
 
 .. code:: python
   
@@ -2087,10 +2148,10 @@ Let's see full example, client can connect by ws://localhost:5000/websocket/echo
 
 .. code:: python
 
-  from skitai.saddle import Saddle
+  from atila import Atila
   import skitai
   
-  app = Saddle (__name__)
+  app = Atila (__name__)
   app.debug = True
   app.use_reloader = True
 
@@ -2212,7 +2273,7 @@ This way is very useful for Flask users, because Flask's return object is bytes,
 Use Message Encoding
 `````````````````````
 
-For your convinient, message automatically load and dump object like JSON. But this feature is only available with Skito-Saddle.
+For your convinient, message automatically load and dump object like JSON. But this feature is only available with Atila.
 
 .. code:: python
 
@@ -2287,7 +2348,7 @@ Here's a websocket app example creating sub thread(s),
       else:
         self.websocket.send ('I cannot understand your command')
   
-  app = Saddle (__name__)
+  app = Atila (__name__)
   
   @app.before_mount
   def before_mount (wac):  
@@ -2361,2788 +2422,6 @@ At Flask, should setup for variable names you want to use,
     return ""
 
 
-Request Handling with Skito-Saddle
-====================================
-
-*Saddle* is WSGI container integrated with Skitai App Engine.
-
-Flask and other WSGI container have their own way to handle request. So If you choose them, see their documentation.
-
-And note below objects and methods *ARE NOT WORKING* in any other WSGI containers except Saddle.
-
-Before you begin, recommended Saddle App's directory structure is like this:
-
-- service.py: Skitai runner
-- app.py: File, Main app
-- static: Directory, Place static files like css, js, images. This directory should be mounted for using
-- services: Directory, Module components, utils or helpers for helping app like config.py, model.py etc...
-- templates: Directory, Jinaja and Chameleon template files
-- resources: Directory, Various files as app need like sqlite db file. In you app, you use these files, you can access file in resources by app.get_resource ("db", "sqlite3.db") like os.path.join manner.
-
-
-App Resource Structure
--------------------------------------
-
-If your app is simple, it can be made into single app.py and templates and static directory.
-
-.. code:: python
-  
-  from skitai.saddle import Saddle
-  
-  app = Saddle(__name__)
-  
-  app.use_reloader = True
-  app.debug = True
-  
-  @app.route ("/")
-  def index (was):
-    ...
-    return was.response ("200 OK", ...)
-  
-  if __name__ == "__main__":
-    import skitai    
-  
-    pref = skitai.pref ()
-    pref.use_reloader = True
-      
-    skitai.mount ('/', './static')
-    skitai.mount ('/', app, 'app', pref)
-    skitai.run ()  
-
-And run,
-
-.. code:: bash
-
-  python3 app.py
-
-But Your app is more bigger, it will be hard to make with single app file. Then, you can make services directory to seperate your app into several categories.
-
-.. code:: bash
-  
-  app.py
-  services/
-  templates/
-  resources/
-  static/
-
-All sub modules app need, can be placed into services/. services/\*.py will be watched for reloading if use_reloader = True.
-
-You can structuring any ways you like and I like this style:
-
-.. code:: bash
-
-  services/views.py
-  services/apis.py
-  services/helpers.py
-
-All modules to mount to app in services, should have def mount (app).
-
-For example, views.py is like this,
-
-.. code:: python
-  
-  from . import helpers
-  
-  def mount (app):  
-    @app.route ("/")
-    def index (was):
-      ...
-      return was.render ("index.html")
-
-Now you just import app decorable moduels at your app.py,
-
-.. code:: python
-
-  from skitai.saddle import Saddle
-  from services import views, apis
-  
-  app = Saddle(__name__)
-
-That's it.
-
-If app scale is more bigger scale, services can be expanded to sub modules. 
-
-.. code:: bash
-
-  services/views/index.py, regist.py, search.py, ...
-  services/apis/codemap.py, 
-  services/helpers/utils.py, ...
-
-And import these from app.py,
-
-.. code:: python
-
-  from services.views import index, regist, ...
-  from services.apis import codemap, ...
-
-Some more other informations will be mentioned at *App Decorating* section again.
-
-
-Runtime App Preference
--------------------------
-
-**New in version 0.26**
-
-Usally, your app preference setting is like this:
-
-.. code:: python
-  
-  from skitai.saddle import Saddle
-  
-  app = Saddle(__name__)
-  
-  app.use_reloader = True
-  app.debug = True
-  app.config ["prefA"] = 1
-  app.config ["prefB"] = 2
-  
-Skitai provide runtime preference setting.
-
-.. code:: python
-  
-  import skitai
-  
-  pref = skitai.pref ()
-  pref.use_reloader = 1
-  pref.debug = 1
-  
-  pref.config ["prefA"] = 1
-  pref.config.prefB = 2
-  
-  skitai.mount ("/v1", "app_v1/app.py", "app", pref)
-  skitai.run ()
-  
-Above pref's all properties will be overriden on your app.
-
-Runtime preference can be used with skitai initializing or complicated initializing process for your app.
-
-You can create __init__.py at same directory with app.py. And bootstrap () function is needed.
-
-__init__.py
-
-.. code:: python
-  
-  import skitai
-  from . import cronjob
-  
-  def bootstrap (pref):
-    with open (pref.config.urlfile, "r") as f:
-      pref.config.urllist = [] 
-      while 1:
-        line = f.readline ().strip ()
-        if not line: break
-        pref.config.urllist.append (line.split ("  ", 4))
-
-
-Access Saddle App
-------------------
-
-You can access all Saddle object from was.app.
-
-- was.app.debug
-- was.app.use_reloader
-- was.app.config # use for custom configuration like was.app.config.my_setting = 1
-
-- was.app.securekey
-- was.app.session_timeout = None  
-
-- was.app.authorization = "digest"
-- was.app.authenticate = False
-- was.app.realm = None
-- was.app.users = {}
-- was.app.jinja_env
-
-- was.app.build_url () is equal to was.ab ()
-
-Currently was.app.config has these properties and you can reconfig by setting new value:
-
-- was.app.config.max_post_body_size = 5 * 1024 * 1024
-- was.app.config.max_cache_size = 5 * 1024 * 1024
-- was.app.config.max_multipart_body_size = 20 * 1024 * 1024
-- was.app.config.max_upload_file_size = 20000000
-
-
-Debugging and Reloading App
------------------------------
-
-If debug is True, all errors even server errors is shown on both web browser and console window, otherhwise shown only on console.
-
-If use_reloader is True, Skito-Saddle will detect file changes and reload app automatically, otherwise app will never be reloaded.
-
-.. code:: python
-
-  from skitai.saddle import Saddle
-  
-  app = Saddle (__name__)
-  app.debug = True # output exception information
-  app.use_reloader = True # auto realod on file changed
-
-
-Kill Switch
-````````````````
-
-You you want to disable debug and use_reloader on production enveironment at once, 
-
-.. code:: bash
-
-  export SKITAI_ENV=PRODUCTION
-  python3 app.py -d
-
-
-Routing
-----------
-
-Basic routing is like this:
-
-.. code:: python
-  
-  @app.route ("/hello")
-  def hello_world (was):  
-    return was.render ("hello.htm")
-
-For adding some restrictions:
-
-.. code:: python
-  
-  @app.route ("/hello", methods = ["GET"], content_types = ["text/xml"])
-  def hello_world (was):  
-    return was.render ("hello.htm")
-
-If method is not GET, Saddle will response http error code 405 (Method Not Allowed), and content-type is not text/xml, 415 (Unsupported Content Type).
-
-  
-Request
----------
-
-Reqeust object provides these methods and attributes:
-
-- was.request.method # upper case GET, POST, ...
-- was.request.command # lower case get, post, ...
-- was.request.uri
-- was.request.version # HTTP Version, 1.0, 1.1
-- was.request.scheme # http or https
-- was.request.headers # case insensitive dictioanry
-- was.request.body # bytes object
-- was.request.args # dictionary merged with url, query string, form data and JSON
-- was.request.routed_function
-- was.request.routable # {'methods': ["POST", "OPTIONS"], 'content_types': ["text/xml"]}
-- was.request.split_uri () # (script, param, querystring, fragment)
-- was.request.json () # decode request body from JSON
-- was.request.form () # decode request body to dict if content-type is form data
-- was.request.dict () # decode request body as dict if content-type is compatible with dict - form data or JSON
-- was.request.get_header ("content-type") # case insensitive
-- was.request.get_headers () # retrun header all list
-- was.request.get_body ()
-- was.request.get_scheme () # http or https
-- was.request.get_remote_addr ()
-- was.request.get_user_agent ()
-- was.request.get_content_type ()
-- was.request.get_main_type ()
-- was.request.get_sub_type ()
-
-Getting Parameters
----------------------
-
-Saddle's parameters are comceptually seperated 3 groups: URL, query string and form data.
-
-Below explaination may be a bit complicated but it is enough to remember 2 things:
-
-1. All parameter groups can be handled same way, there's no differences except origin of prameters
-2. Eventaully was.request.args contains all parameters of all origins include default arguments of your resource
-
-
-Getting URL Parameters
-`````````````````````````
-
-URL Parameters should be arguments of resource.
-
-.. code:: python
-
-  @app.route ("/episode/<int:id>")
-  def episode (was, id):
-    return id
-  # http://127.0.0.1:5000/episode
-
-for fancy url building, available param types are:
-
-- int
-- float
-- path: /download/<int:major_ver>/<path>, should be positioned at last like /download/1/version/1.1/win32
-- If not provided, assume as string. and all space will be replaced to "_"
-
-It is also possible via keywords args,
-
-.. code:: python
-
-  @app.route ("/episode/<int:id>")
-  def episode (was, \*\*karg):
-    retrun was.request.args.get ("id")
-  # http://127.0.0.1:5000/episode/100
-
-You can set default value to id, 
-
-.. code:: python
-
-  @app.route ("/episode/<int:id>", methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-  def episode (was, id = None):
-    if was.request.method == "POST" and id is None:
-      ...
-      return was.response.API (id = new_id)
-    return ...
-
-It makes this URL working, 
-
-.. code:: bash
-
-  http://127.0.0.1:5000/episode
-
-And was.ab will behaive like as below,
-
-.. code:: bash
-
-  was.ab ("episode")
-  >> /episode
-  
- was.ab ("episode", 100)
-  >> /episode/100
-
-*Note* that this does not works for root resource,
-
-.. code:: python
-
-  @app.route ("/<int:id>", methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-  def episode (was, id = None):
-    if was.request.method == "POST" and id is None:
-      ...
-      return was.response.API (id = new_id)
-    return ...
-
-By above code, http://127.0.0.1:5000/ will not work. You should define "/" route. 
-
-
-Query String Parameters
-``````````````````````````````
-
-qiery string parameter can be both resource arguments but needn't be.
-
-.. code:: python
-  
-  @app.route ("/hello")
-  def hello_world (was, num = 8):
-    return num
-  # http://127.0.0.1:5000/hello?num=100  
-
-It is same as these,
-  
-.. code:: python
-
-  @app.route ("/hello")
-  def hello_world (was):
-    return was.request.args.get ("num")
-  
-  @app.route ("/hello")
-  def hello_world (was, **url):
-    return url.get ("num")
-
-Above 2 code blocks have a significant difference. First one can get only 'num' parameter. If URL query string contains other parameters, Skitai will raise 508 Error. But 2nd one can be any parameters.
-    
-Getting Form/JSON Parameters
-```````````````````````````````
-
-Getting form is not different from the way for url parameters, but generally form parameters is too many to use with each function parameters, can take from single args \*\*form or take mixed with named args and \*\*form both.
-if request header has application/json 
-
-.. code:: python
-
-  @app.route ("/hello")
-  def hello (was, **form):
-    return "Post %s %s" % (form.get ("userid", ""), form.get ("comment", ""))
-    
-  @app.route ("/hello")
-  def hello_world (was, userid, **form):
-    return "Post %s %s" % (userid, form.get ("comment", ""))
-
-Note that for receiving request body via arguments, you specify keywords args like \*\*karg or specify parameter names of body data.
-
-If you want just handle POST body, you can use was.request.json () or was.request.form () that will return dictionary object.
-  
-Getting Composed Parameters
-```````````````````````````````
-
-You can receive all type of parameters by resource arguments. Let'assume yotu resource URL is http://127.0.0.1:5000/episode/100?topic=Python.
-
-.. code:: python
-  
-  @app.route ("/episode/<int:id>")
-  def hello (was, id, topic):
-    pass
-
-if URL is http://127.0.0.1:5000/episode/100?topic=Python with Form/JSON data {"comment": "It is good idea"}
-
-.. code:: python
-  
-  @app.route ("/episode/<int:id>")
-  def hello (was, id, topic, comment):
-    pass
-    
-Note that argument should be ordered by:
-
-- URL parameters
-- URL query string
-- Form/JSON body
-
-And note if your request has both query string and form/JSON body, and want to receive form paramters via arguments, you should receive query string parameters first. It is not allowed to skip query string.
-
-Also you can use keywords argument.
-
-.. code:: python
-    
-  @app.route ("/episode/<int:id>")
-  def hello (was, id, \*\*karg):
-    karg.get ('topic')
-
-Note that \*\*karg is contains both query string and form/JSON data and no retriction for parameter names.
-
-was.requests.args is merged dictionary for all type of parameters. If parameter name is duplicated, its value will be set to form of value list (But If parameters exist both URL and form data, form data always has priority. It means URL parameter will be ignored). 
-Then simpletst way for getting parameters, use was.request.args.
-    
-
-.. code:: python
-  
-  @app.route ("/episode/<int:id>")
-  def hello (was, id):
-    was.request.args.get ('topic')
-
-
-Make Your Own Principal
-``````````````````````````
-
-I prefer these style:
-
-1. In template, access via was.request.args only
-2. Otherwise, use arguments for URL & query string parameter, and \*\*args for Form/JSON parameters
-3. If paramteres are same and just request method is optional, use arguments or \*\*args
-
-
-Response
--------------
-
-Basically, just return contents.
-
-.. code:: python
-  
-  @app.route ("/hello")
-  def hello_world (was):  
-    return was.render ("hello.htm")
-
-If you need set additional headers or HTTP status,
-    
-.. code:: python
-  
-  @app.route ("/hello")
-  def hello (was):  
-    return was.response ("200 OK", was.render ("hello.htm"), [("Cache-Control", "max-age=60")])
-
-  def hello (was):  
-    return was.response (body = was.render ("hello.htm"), headers = [("Cache-Control", "max-age=60")])
-
-  def hello (was):         
-    was.response.set_header ("Cache-Control", "max-age=60")
-    return was.render ("hello.htm")
-
-Above 3 examples will make exacltly same result.
-
-Sending specific HTTP status code,
-
-.. code:: python
-  
-  def hello (was):  
-    return was.response ("404 Not Found", was.render ("err404.htm"))
-  
-  def hello (was):
-    # if body is not given, automaticcally generated with default error template.
-    return was.response ("404 Not Found")
-
-If app raise exception, traceback information will be displayed only app.debug = True. But you intentionally send it inspite of app.debug = False:
-
-.. code:: python
-  
-  # File
-  @app.route ("/raise_exception")
-  def raise_exception (was):  
-    try:
-      raise ValueError ("Test Error")
-    except:      
-      return was.response ("500 Internal Server Error", exc_info = sys.exc_info ())
-
-If you use custom error handler, you can set detail explaination to error ["detail"]. 
-
-.. code:: python
-    
-  @app.default_error_handler
-  def default_error_handler (was, error):
-    return was.render ("errors/default.html", error = error)
-  
-  def error (was):
-    return was.response.with_explain ('503 Serivce Unavaliable', "Please Visit On Thurse Day")
-        
-        
-You can return various objects.
-
-.. code:: python
-  
-  # File
-  @app.route ("/streaming")
-  def streaming (was):  
-    return was.response ("200 OK", open ("mypicnic.mp4", "rb"), headers = [("Content-Type", "video/mp4")])
-  
-  # Generator
-  def build_csv (was):  
-    def generate():
-      for row in iter_all_rows():
-        yield ','.join(row) + '\n'
-    return was.response ("200 OK", generate (), headers = [("Content-Type", "text/csv")])   
-
-
-All available return types are:
-
-- String, Bytes, Unicode
-- File-like object has 'read (buffer_size)' method, optional 'close ()'
-- Iterator/Generator object has 'next() or _next()' method, optional 'close ()' and shoud raise StopIteration if no more data exists.
-- Something object has 'more()' method, optional 'close ()'
-- Classes of skitai.lib.producers
-- List/Tuple contains above objects
-- XMLRPC dumpable object for if you want to response to XMLRPC
-
-The object has 'close ()' method, will be called when all data consumed, or socket is disconnected with client by any reasons.
-
-- was.response (status = "200 OK", body = None, headers = None, exc_info = None)
-- was.response.throw (status = "200 OK"): abort handling request, generated contents and return http error immediatly
-
-- was.response.API (\_\_data_dict\_\_ = None, \*\*kargs): return api response container
-- was.response.Fault (status = "200 OK",\*args, \*\*kargs): shortcut for was.response (status, was.response.api (...)) if status code is 2xx and was.response (status, was.response.fault (...))
-- was.response.fault (msg, code = 20000,  debug = None, more_info = None, exc_info = None): return api response container with setting error information
-- was.response.traceback (msg = "", code = 10001,  debug = 'see traceback', more_info = None): return api response container with setting traceback info
-
-- was.response.set_status (status) # "200 OK", "404 Not Found"
-- was.response.get_status ()
-- was.response.set_headers (headers) # [(key, value), ...]
-- was.response.get_headers ()
-- was.response.set_header (k, v)
-- was.response.get_header (k)
-- was.response.del_header (k)
-- was.response.hint_promise (uri) # *New in version 0.16.4*, only works with HTTP/2.x and will be ignored HTTP/1.x
-
-
-File Stream 
-`````````````
-Response provides some methods for special objects.
-
-First of all, for send a file, 
-
-.. code:: python
-
-  @app.route ("/<filename>")
-  def getfile (was, filename):  
-    return was.response.file ('/data/%s' % filename)    
-
-
-JSON API Response
-````````````````````
-*New in version 0.26.15.9*
-
-In cases you want to retrun JSON API reponse,
-
-.. code:: python
-  
-  # return JSON {data: [1,2,3]}
-  return was.response.Fault ('200 OK', data = [1, 2, 3])
-  # return empty JSON {}
-  return was.response.Fault (201 Accept')
-  
-  # and shortcut if response HTTP status code is 200 OK,
-  return was.response.API (data =  [1, 2, 3])
-  
-  # return empty JSON {}
-  return was.response.API ()
-  
-For sending error response with error information,
-
-.. code:: python
-  
-  # client will get, {"message": "parameter q required", "code": 10021}
-  return was.response.Fault ('400 Bad Request', 'missing parameter', 10021)  
-  
-  # with additional information,
-  was.response.Fault (
-  	'400 Bad Request',
-  	'missing parameter', 10021, 
-    'need parameter offset and limit', # detailed debug information
-    'http://127.0.0.1/moreinfo/10021', # more detail URL something    
-  )
-
-You can send traceback information for debug purpose like in case app.debug = False,
-
-.. code:: python
-  
-  try:
-    do something
-  except:
-    return was.response.Fault (
-      '500 Internal Server Error',
-      'somethig is not valid', 
-      10022, 
-      traceback = True
-    ) 
-
-  # client see,
-  {
-    "code": 10001,
-    "message": "somethig is not valid",
-    "debug": "see traceback", 
-    "traceback": [
-      "name 'aa' is not defined", 
-      "in file app.py at line 276, function search"      
-    ]
-  }
-
-Important note that this response will return with HTTP 200 OK status. If you want return 500 code, just let exception go.
-
-But if your client send header with 'Accept: application/json' and app.debug is True, Skitai returns traceback information automatically.
-
-
-Async Promise Response
---------------------------
-
-*New in version 0.24.8*
-
-If you use was' requests services, and they're expected taking a long time to fetch, you can use async response.
-
-- Async promise response has advantage at multi threads environment returning current thread to thread pool early for handling the other requests
-- Async promise response should be used at single thread evironment. If you run Skitai with threads = 0, you can't use wait(), getwait() or getswiat() for receiving response for HTTP/DBO requests.
-- Unlike general promises, Skitai promise handle multiple funtions with only single handler.
-
-.. code:: python
-  
-  def promise_handler (promise, resp):
-    if resp.status_code == 200:
-      promise [resp.id]  = promise.render (
-        '%s.html' % resp.id,
-        data = response.json ()
-      )
-    else:
-      promise [resp.id] = '<div>Error in %s</div>' % resp.id
-     
-    # check if all requests are done
-    if promise.fulfilled ():    
-      promise.settle (promise.render ("final.html"))
-      # or just join response data
-      # promise.settle (promise ['skitai'] + "<hr>" + promise ['aquests'])
-
-  @app.route ("/promise")
-  def promise (was):
-    promise = was.promise (promise_handler, A = "123", B = "456")
-    promise.get ('C', "https://pypi.python.org/pypi/skitai")
-    promise.get ('D', "https://pypi.python.org/pypi/aquests")
-    return promise
-
-Database query example,
-    
-.. code:: python
-  
-  def promise_handler (promise, resp):   
-    if promise.fulfilled ():
-      r = promise ["stats"]
-      r ['result'] = resp.data
-      promise.settle (promise.response.API (r))
-
-  @app.route ("/promise")
-  def promise (was):
-    promise = was.promise (promise_handler, stats = {'total': 100})
-    promise.backend ('query', "@postgre").execute ("select ...")
-    return promise
-    
-'skitai.html' Jinja2 template used in render() is,
-
-.. code:: html
-
-  <div>{{ r.url }} </div>
-  <div>{{ r.text }}</div>
-
-'example.html' Jinja2 template used in render() is,
-
-.. code:: html
-  
-  <h1>{{ A }} of {{ B }}</h1>
-  <div>{{ C }}</div>
-  <hr>
-  <div>{{ D }}</div>
-
-And you can use almost was.* objects at render() and render() like was.request, was.app, was.ab or was.g etc. But remember that response header had been already sent so you cannot use aquests features and connot set new header values like cookie or mbox (but reading is still possible).
-  
-Above proxy can make requests as same as was object except first argument is identical request name (reqid). Compare below things.
-
-  * was.get ("https://pypi.python.org/pypi/skitai")
-  * Promise.get ('skitai', "https://pypi.python.org/pypi/skitai")
-
-This identifier can handle responses at executing callback. reqid SHOULD follow Python variable naming rules because might be used as template variable.
-
-You MUST call Promise.settle (content_to_send) finally, and if you have chunk content to send, you can call Promise.send(chunk_content_to_send) for sending middle part of contents before calling settle ().
-
-*New in version 0.25.2*
-
-You can set meta data dictionary per requests if you need.
-
-.. code:: python
-
-  def promise_handler (promise, response):
-    due = time.time () - response.meta ['created']
-    promise.send (response.content)
-    promise.send ('Fetch in %2.3f seconds' % due)
-    promise.settle () # Should call
-    
-  @app.route ("/promise")
-  def promise (was):
-    promise = was.promise (promise_handler)
-    promise.get ('req-0', "http://my-server.com", meta = {'created': time.time ()})    
-    return was.response ("200 OK", promise, [('Content-Type', 'text/plain')])
-
-But it is important that meta arg should be as keyword arg, and DON'T use 'reqid' as meta data key. 'reqid' is used internally.
-
-    
-Creating async response proxy:
-
-- was.promise (promise_handler, prolog = None, epilog = None): return Promise, prolog and epilog is like html header and footer
-
-response_handler should receive 2 args: response for your external resource request and Promise.
-
-Note: It's impossible requesting map-reduce requests at async response mode.
-
-collect_producer has these methods.
-
-- Promise (handler, keyword args, ...)
-- Promise.get (reqid, url, ...), post (reqid, url, data, ...) and etc
-- Promise.set (name, data): save data for generating full contents
-- Promise.pending (): True if numer of requests is not same as responses
-- Promise.fulfilled (): True if numer of requests is same as responses
-- Promise.settled (): True if settle () is called
-- Promise.rejected (): ignore all response after called
-- Promise.render (template_file, single dictionary object or keyword args, ...): render each response, if no args render with promise's data set before
-- Promise.send (content_to_send): push chunk data to channel
-- Promise.settle (content_to_send = None)
-- Promise.reject (content_to_send = None)
-
-
-App Decorating: Making Simpler & Modular App
-----------------------------------------------------
-
-*New in version 0.26.17*
-
-Decorating App
-```````````````````````
-
-I already mentioned *App Structure* section, you can split yours views and help utilties into services directory.
-
-Assume your application directory structure is like this,
-
-.. code:: bash
-
-  templates/*.html  
-  services/*.py # app library, all modules in this directory will be watched for reloading  
-  static/images # static files
-  static/js
-  static/css
-  
-  app.py # this is starter script  
-
-app.py
-  
-.. code:: python
-
-  from services import auth
-  
-  app = Saddle (__name__)
-
-  app.debug = True
-  app.use_reloader = True
-
-  @app.default_error_handler
-  def default_error_handler (was, e):
-    return str (e)
-    
-services/auth.py
-
-.. code:: python
-  
-  # shared utility functions used by views
-  
-  def titlize (s):
-    ...
-    return s
-  
-  def mount (app):
-    @app.login_handler      
-    def login_handler (was):  
-      if was.session.get ("username"):
-        return
-      next_url = not was.request.uri.endswith ("signout") and was.request.uri or ""    
-      return was.redirect (was.ab ("signin", next_url))
-      
-    @app.route ("/signout")
-    def signout (was):
-      was.session.remove ("username")
-      was.mbox.push ("Signed out successfully", "success")  
-      return was.redirect (was.ab ('index'))
-      
-    @app.route ("/signin")
-    def signin (was, next_url = None, **form):
-      if was.request.args.get ("username"):
-        user = auth.authenticate (was.django, username = was.request.args ["username"], password = was.request.args ["password"])
-        if user:
-          was.session.set ("username", was.request.args ["username"])
-          return was.redirect (was.request.args ["next_url"])
-        else:
-          was.mbox.push ("Invalid User Name or Password", "error", icon = "new_releases")
-      return was.render ("sign/signin.html", next_url = next_url or was.ab ("index"))
-
-You just import module from services. but *def mount (app)* is core in each module. Every modules can have *mount (app)* in *services*, so you can split and modulize views and utility functions. mount (app) will be automatically executed on starting. If you set app.use_reloader, theses services will be automatically reloaded and re-executed on file changing. Also you can make global app sharable functions into seperate module like util.py without views.
-
-
-Releasing Module Resources
-```````````````````````````````
-
-*New in version 0.27*
-
-Also 'umount' is avaliable for cleaning up module resource. 
-
-.. code:: python
-  
-  resource = ...
-  
-  def umount (app):
-    resource.close ()
-    app.someghing = None
-
-This will be automatically called when:
-
-- before module itself is reloading
-- before app is reloading
-- app unmounted from Skitai 
-
-
-Decorating App With Options
-```````````````````````````````
-
-If you need additional options on decorating,
-
-.. code:: python
-
-  def mount (app):
-    @app.route ("/login")
-    def login (was):
-      ...
-
-And on app, 
-      
-.. code:: python
-
-  from services import auth
-  
-  app = Saddle (__name__)
-  app.mount (auth, point = '/regist')
-
-Finally, route of login is "/regist/login".
-  
-Sometimes function names are duplicated if like you import contributed services.
-
-.. code:: python
-
-  from services import auth
-  
-  app = Saddle (__name__)
-  app.mount (auth, point = '/regist', ns = "regist")
-  
-Now, you can import iport without name collision. But be careful when use was.ab () etc.
-
-Note that options should be keyword arguments.
-
-.. code:: python
-
-  {{ was.ab ("regist.login") }}
-      
-If you want to mount only debug environment, 
-
-.. code:: python
-  
-  app.mount (auth, debug_only = True)
-
-If you want to authentify to all services, 
-
-.. code:: python
-  
-  app.mount (auth, authenticate = "bearer")
-
-Currently *reserved arguments* are:
-
-- ns
-- authenticate
-- debug_only
-- mount
-
-Your custom options can be accessed by __mount__ in your module.
-
-First, mount with redirect option.
-
-.. code:: python
-  
-    app.mount (auth, redirect = "index")    
-    # automatically set to auth.__mount__ = {"redirect": "index"}
-
-then you can access in auth.py, 
-
-.. code:: python
-
-    @app.route ("/regist/signout")
-    def signout (was):
-        was.mbox.push ("Signed out successfully", "success")
-        return was.redirect (was.ab (__mount__.get ("redirect", 'index')))
-    
-If you build useful services, please contribute them to `skitai.saddle.services`_.
-
-More About Namespace
-````````````````````````````````````
-
-If you develop reusable task modules, pay attention to namespace and URL building. 
-
-For example, below module is mount with app.mount (auth, ns = "regist").  
-
-.. code:: python
-  
-  # auth.py
-
-  def mount (app):
-    @app.route ("/func1")
-    def func1 (was, a):
-      ...
-    
-    @app.route ("/func2")
-    def func2 (was):
-      was.ab ("func1", "hello")
-
-This was.ab ("func1") in func2 might be dangerous, because this task modules may have namespace. Then you consider ns like this.
-
-.. code:: python
-
-  was.ab ("{}func1".format (__mount__.get ("ns") and __mount__ ["ns"] + "." or ""), , "hello")
-
-But it is not pretty, so you can pretty style,
-
-.. code:: python
-  
-  @app.route ("/func2")
-  def func2 (was):
-    was.ab (func1, "hello")
-
-
-Manual Mounting
-```````````````````````````
-
-Saddle automaticall mount your services which have mount () funtion, but you can disable this, and mount explicit.
-
-*New in version 0.27*
-
-If you mount manually, set app.auto_mount = False and call mount () for each modules you want.
-
-.. code:: python
-
-  from services import auth, index  
-  app = Saddle (__name__)  
-  
-  app.auto_mount = False
-  app.mount (auth, index, point = "/v2")
-  app.mount (pets, point = "/v2")
-  
-  skitai.mount ("/", app)
-  
-
-.. _`skitai.saddle.services`: https://gitlab.com/hansroh/skitai/tree/master/skitai/saddle/contrib/services
-
-
-Disabling Resources
-`````````````````````````````
-
-If you want to disable some resources in your services, you just remove from decorative () into any function:
-
-.. code:: python
-
-  def mount (app):
-    @app.login_handler
-    def login_handler (was):
-       ...
-       
-  def disabled ():
-    @app.route ("/something")
-    def unneed_fornow (was):
-      ...
-      
-If you want to disable a module, You just do not import your app.py.
-
-
-More About Websocket
---------------------------------------
-
-*New in version 0.26.18*
-
-Websokect usage is already explained, but Saddle provide @app.websocket_config decorator for more elegant way to use it.
-
-.. code:: python
-
-  def onopen (was):
-    print ('websocket opened')
-
-  def onclose (was):
-    print ('websocket closed')
-    
-  @app.route ("/websocket")
-  @app.websocket_config (skitai.WS_THREADSAFE, 1200, onopen, onclose)
-  def websocket (was, message):
-    return 'you said: ' + message
-
-This decorator spec is,
-
-.. code:: python
-     
-  @app.websocket_config (
-    spec, # one of skitai.WS_SIMPLE, skitai.WS_THREADSAFE and skitai.WS_GROUPCHAT	 
-    timeout = 60, 
-    onopen = None, 
-    onclose = None 
-  )
-
-In some cases, you need additional parameter for opening/closing websocket.
-
-.. code:: python
-
-  @app.route ("/websocket")
-  @app.websocket_config (skitai.WS_THREADSAFE, 1200, onopen)
-  def websocket (was, message, option):
-    return 'you said: ' + message
-
-Then, your onopen function must have additional parameters except *message*.
-
-.. code:: python
-
-  def onopen (was, option):
-    print ('websocket opened with', option)
-    
-Now, your websocket endpoint is "ws://127.0.0.1:5000/websocket?option=value"
-
-
-HTTP/2.0 Server Push
------------------------
-
-*New in version 0.16*
-
-Skiai supports HTPT2 both 'h2' protocl over encrypted TLS and 'h2c' for clear text (But now Sep 2016, there is no browser supporting h2c protocol).
-
-Basically you have nothing to do for HTTP2. Client's browser will handle it except `HTTP2 server push`_.
-
-For using it, you just call was.response.hint_promise (uri) before return response data. It will work only client browser support HTTP2, otherwise will be ignored.
-
-.. code:: python
-
-  @app.route ("/promise")
-  def promise (was):
-  
-    was.response.hint_promise ('/images/A.png')
-    was.response.hint_promise ('/images/B.png')
-    
-    return was.response (
-      "200 OK", 
-      (
-        'Promise Sent<br><br>'
-        '<img src="/images/A.png">'
-        '<img src="/images/B.png">'
-      )
-    )  
-
-.. _`HTTP2 server push`: https://tools.ietf.org/html/rfc7540#section-8.2
-    
-Building URL
----------------
-
-If your app is mounted at "/math",
-
-.. code:: python
-
-  @app.route ("/add")
-  def add (was, num1, num2):  
-    return int (num1) + int (num2)
-    
-  was.app.build_url ("add", 10, 40) # returned '/math/add?num1=10&num2=40'
-  
-  # BUT it's too long to use practically,
-  # was.ab is acronym for was.app.build_url
-  was.ab ("add", 10, 40) # returned '/math/add?num1=10&num2=40'
-  was.ab ("add", 10, num2=60) # returned '/math/add?num1=10&num2=60'
-  
-  #You can use function directly as well,  
-  was.ab (add, 10, 40) # returned '/math/add?num1=10&num2=40'
-  
-  @app.route ("/hello/<name>")
-  def hello (was, name = "Hans Roh"):
-    return "Hello, %s" % name
-  
-  was.ab ("hello", "Your Name") # returned '/math/hello/Your_Name'
-  
-Basically, was.ab is same as Python function call.
-
-
-Building URL by Updating Parameters Partially
-````````````````````````````````````````````````
-
-**New in version 0.27**
-
-.. code:: python
-
-  @app.route ("/navigate")
-  def navigate (was, limit = 20, pageno = 1):  
-    return ...
-  
-If this resource was requested by /naviagte?limit=100&pageno=2, and if you want to make new resource url with keep a's value (=100), you can make URL like this,
-
-.. code:: python
-
-  was.ab ("navigate", was.request.args.limit, 3)
-  
-But you can update only changed parameters partially,
-
-.. code:: python
-
-  was.partial ("add", pageno = 3)
-  
-Parameter a's value will be kept with current requested parameters. Note that was.partial can be recieved keyword arguments only except first resource name.
-
-was.partial is used changing partial parameters (or none) based over current parameters.
-
-
-Building Base URL without Parameters
-````````````````````````````````````
-
-**New in version 0.27**
-
-Sometimes you need to know just resource's base path info - especially client-side javascript URL building, then use *was.basepath*.
-
-.. code:: python
-
-  @app.route ("/navigate")
-  def navigate (was, limit, pageno = 1):  
-    return ...
-  
-.. code:: python
-
-  was.basepath ("navigate")
-  >> return "/navigate"
-
-For example, in your VueJS template,
-  
-.. code:: html
-
-  <a :href="'{{ was.basepath ('navigate') }}?limit=' + limit_option + '&pageno=' + (current_page + 1)">Next Page</a>
-
-Note that base path means for fancy Url, 
-
-.. code:: python
-
-  @app.route ("/user/<id>")
-  >> base path is "/user/"
-  
-  @app.route ("/user/<id>/pat")
-  >> base path is "/user/"
-  
-
-Access Environment Variables
-------------------------------
-
-was.env is just Python dictionary object.
-
-.. code:: python
-
-  if "HTTP_USER_AGENT" in was.env:
-    ...
-  was.env.get ("CONTENT_TYPE")
-
-
-Jinja2 Template Engine
-------------------------
-
-Although You can use any template engine, Skitai provides was.render() which uses Jinja2_ template engine. For providing arguments to Jinja2, use dictionary or keyword arguments.
-
-.. code:: python
-  
-  return was.render ("index.html", choice = 2, product = "Apples")
-  
-  #is same with:
-  
-  return was.render ("index.html", {"choice": 2, "product": "Apples"})
-  
-  #BUT CAN'T:
-  
-  return was.render ("index.html", {"choice": 2}, product = "Apples")
-
-
-Directory structure sould be:
-
-- /project_home/app.py
-- /project_home/templates/index.html
-
-
-At template, you can use all 'was' objects anywhere defautly. Especially, Url/Form parameters also can be accessed via 'was.request.args'.
-
-.. code:: html
-  
-  {{ was.cookie.username }} choices item {{ was.request.args.get ("choice", "N/A") }}.
-  
-  <a href="{{ was.ab ('checkout', choice) }}">Proceed</a>
-
-Also 'was.g' is can be useful in case threr're lots of render parameters.
-
-.. code:: python
-
-  was.g.product = "Apple"
-  was.g.howmany = 10
-  
-  return was.render ("index.html")
-
-And at jinja2 template, 
-  
-.. code:: html
-  
-  {% set g = was.g }} {# make shortcut #}
-  Checkout for {{ g.howmany }} {{ g.product }}{{g.howmany > 1 and "s" or ""}}
-  
-
-If you want modify Jinja2 envrionment, can through was.app.jinja_env object.
-
-.. code:: python
-  
-  def generate_form_token ():
-    ...
-    
-  was.app.jinja_env.globals['form_token'] = generate_form_token
-
-
-*New in version 0.15.16*
-
-Added new app.jinja_overlay () for easy calling app.jinja_env.overlay ().
-
-Recently JS HTML renderers like Vue.js, React.js have confilicts with default jinja mustache variable. In this case you mightbe need change it.
-
-.. code:: python
-
-  app = Saddle (__name__)
-  app.debug = True
-  app.use_reloader = True
-  app.jinja_overlay (
-    variable_start_string = "{{", 
-    variable_end_string = "}}", 
-    block_start_string = "{%", 
-    block_end_string = "%}",
-    comment_start_string = "{#",
-    comment_end_string = "#}",
-    line_statement_prefix = "%",
-    line_comment_prefix = "%%"
-  )
-
-if you set same start and end string, please note for escaping charcter, use double escape. for example '#', use '##' for escaping.
-
-*Warning*: Current Jinja2 2.8 dose not support double escaping (##) but it will be applied to runtime patch by Saddle. So if you use app.jinja_overlay, you have compatible problems with official Jinja2.
-
-.. _Jinja2: http://jinja.pocoo.org/
-
-
-Chameleon Template Engine
-----------------------------
-
-*New in version 0.26.6*
-
-*Note added in version 0.26.12*: I don't know it is my fault, but Chameleon is unstable with multi-threading environment (or heavy under load) on win32 and even crash Skitai. I recommend do not use it with these environment. And Chameleon is excluded from requirements. If you need this one, install manually.
-
-For using Chameleon_ template engine, you just make template file extention with '.pt' or '.ptal' (Page Template or Page Template Attribute Language).
-
-I personally prefer Chameleon with `Vue.js`_ for HTML rendering.
-
-.. code:: python
-    
-  return was.render (
-    "index.ptal", 
-    dashboard = [
-      {'population': 235642, 'school': 34, 'state': 'NY', 'nation': 'USA'}, 
-      {'population': 534556, 'school': 54, 'state': 'BC', 'nation': 'Canada'}, 
-       ]
-     )
-
-Here's example part of index.ptal.
-
-.. code:: html
-  
-  ${ was.request.args ['query'] }
-  
-  <tr tal:repeat="each dashboard">
-    <td>
-      <a tal:define="entity_name '%s, %s' % (each ['state'], each ['nation'])" 
-         tal:attributes="href was.ab ('entities', was.request.args ['level'], each ['state'])" 
-         tal:content="entity_name">
-      </a>
-    </td>
-    <td tal:content="each ['population']" />
-    <td>${ each ['schools'] }</td>    
-  </tr>
-
-.. _`Vue.js`: https://vuejs.org/
-
-
-Custom Error Template
------------------------
-
-*New in version 0.26.7*
-
-.. code:: python
-
-  @app.default_error_handler
-  def not_found (was, error):
-    return was.render ('default.htm', error = error)
-
-  @app.error_handler (404)
-  def not_found (was, error):
-    return was.render ('404.htm', error = error)
-
-Template file 404.html is like this:
-
-.. code:: html
-
-  <h1>{{ error.code }} {{ error.message }}</h1>  
-  <p>{{ error.detail }}</p>
-  <hr>
-  <div>URL: {{ error.url }}</div>
-  <div>Time: {{ error.time }}</div>  
-
-Note that custom error templates can not be used before routing to the app.
-
-Access Cookie
-----------------
-
-was.cookie has almost dictionary methods.
-
-.. code:: python
-
-  if "user_id" not in was.cookie:
-    was.cookie.set ("user_id", "hansroh")    
-    # or    
-    was.cookie ["user_id"] = "hansroh"
-
-
-*Changed in version 0.15.30*
-
-'was.cookie.set()' method prototype has been changed.
-
-.. code:: python
-
-  was.cookie.set (
-    key, val, 
-    expires = None, 
-    path = None, domain = None, 
-    secure = False, http_only = False
-  ) 
-
-'expires' args is seconds to expire. 
-
- - if None, this cookie valid until browser closed
- - if 0 or 'now', expired immediately
- - if 'never', expire date will be set to a hundred years from now
-
-If 'secure' and 'http_only' options are set to True, 'Secure' and 'HttpOnly' parameters will be added to Set-Cookie header.
-
-If 'path' is None, every app's cookie path will be automaticaaly set to their mount point.
-
-For example, your admin app is mounted on "/admin" in configuration file like this:
-
-.. code:: python
-
-  app = ... ()
-  
-  if __name__ == "__main__": 
-  
-    import skitai
-    
-    skitai.run (
-      address = "127.0.0.1",
-      port = 5000,
-      mount = {'/admin': app}
-    )
-
-If you don't specify cookie path when set, cookie path will be automatically set to '/admin'. So you want to access from another apps, cookie should be set with upper path = '/'.
-
-.. code:: python
-  
-  was.cookie.set ('private_cookie', val)
-        
-  was.cookie.set ('public_cookie', val, path = '/')
-    
-- was.cookie.set (key, val, expires = None, path = None, domain = None, secure = False, http_only = False)
-- was.cookie.remove (key, path, domain)
-- was.cookie.clear (path, domain)
-- was.cookie.keys ()
-- was.cookie.values ()
-- was.cookie.items ()
-- was.cookie.has_key ()
-
-
-Access Session
-----------------
-
-was.session has almost dictionary methods.
-
-To enable session for app, random string formatted securekey should be set for encrypt/decrypt session values.
-
-*WARNING*: `securekey` should be same on all skitai apps at least within a virtual hosing group, Otherwise it will be serious disaster.
-
-.. code:: python
-
-  app.securekey = "ds8fdsflksdjf9879dsf;?<>Asda"
-  app.session_timeout = 1200 # sec
-  
-  @app.route ("/session")
-  def hello_world (was, **form):  
-    if "login" not in was.session:
-      was.session.set ("user_id", form.get ("hansroh"))
-      # or
-      was.session ["user_id"] = form.get ("hansroh")
-
-If you set, alter or remove session value, session expiry is automatically extended by app.session_timeout. But just getting value will not be extended. If you extend explicit without altering value, you can use touch() or set_expiry(). session.touch() will extend by app.session_timeout. session.set_expiry (timeout) will extend by timeout value.
-
-Once you set expiry, session auto extenstion will be disabled until expiry time become shoter than new expiry time is calculated by app.session_timeout.  
-
-- was.session.set (key, val)
-- was.session.get (key, default = None)
-- was.session.source_verified (): If current IP address matches with last IP accesss session
-- was.session.getv (key, default = None): If not source_verified (), return default
-- was.session.remove (key)
-- was.session.clear ()
-- was.session.keys ()
-- was.session.values ()
-- was.session.items ()
-- was.session.has_key ()
-- was.session.set_expiry (timeout)
-- was.session.touch ()
-- was.session.expire ()
-
-
-Messaging Box
-----------------
-
-Like Flask's flash feature, Skitai also provide messaging tool.
-
-.. code:: python  
-
-  @app.route ("/msg")
-  def msg (was):
-    was.mbox.send ("This is Flash Message", "flash")
-    was.mbox.send ("This is Alert Message Kept by 60 seconds on every request", "alram", valid = 60)
-    return was.redirect (was.ab ("showmsg", "Hans Roh"), status = "302 Object Moved")
-  
-  @app.route ("/showmsg")
-  def showmsg (was, name):
-    return was.render ("msg.htm", name=name)
-    
-A part of msg.htm is like this:
-
-.. code:: html
-
-  Messages To {{ name }},
-  <ul>
-    {% for message_id, category, created, valid, msg, extra in was.mbox.get () %}
-      <li> {{ mtype }}: {{ msg }}</li>
-    {% endfor %}
-  </ul>
-
-Default value of valid argument is 0, which means if page called was.mbox.get() is finished successfully, it is automatically deleted from mbox.
-
-But like flash message, if messages are delayed by next request, these messages are save into secured cookie value, so delayed/long term valid messages size is limited by cookie specificatio. Then shorter and fewer messsages would be better as possible.
-
-'was.mbox' can be used for general page creation like handling notice, alram or error messages consistently. In this case, these messages (valid=0) is consumed by current request, there's no particular size limitation.
-
-Also note valid argument is 0, it will be shown at next request just one time, but inspite of next request is after hundred years, it will be shown if browser has cookie values.
-
-.. code:: python  
-  
-  @app.before_request
-  def before_request (was):
-    if has_new_item ():
-      was.mbox.send ("New Item Arrived", "notice")
-  
-  @app.route ("/main")  
-  def main (was):
-    return was.render ("news.htm")
-
-news.htm like this:
-
-.. code:: html
-
-  News for {{ was.g.username }},
-  <ul>
-    {% for mid, category, created, valid, msg, extra in was.mbox.get ("notice", "news") %}
-      <li class="{{category}}"> {{ msg }}</li>
-    {% endfor %}
-  </ul>
-
-- was.mbox.send (msg, category, valid_seconds, key=val, ...)
-- was.mbox.get () return [(message_id, category, created_time, valid_seconds, msg, extra_dict)]
-- was.mbox.get (category) filtered by category
-- was.mbox.get (key, val) filtered by extra_dict
-- was.mbox.source_verified (): If current IP address matches with last IP accesss mbox
-- was.mbox.getv (...) return get () if source_verified ()
-- was.mbox.search (key, val): find in extra_dict. if val is not given or given None, compare with category name. return [message_id, ...]
-- was.mbox.remove (message_id)
-
-
-Named Session & Messaging Box
-------------------------------
-
-*New in version 0.15.30*
-
-You can create multiple named session and mbox objects by mount() methods.
-
-.. code:: python
-
-  was.session.mount (
-    name = None, securekey = None, 
-    path = None, domain = None, secure = False, http_only = False, 
-    session_timeout = None
-   )
-  
-  was.mbox.mount (
-    name = None, securekey = None, 
-    path = None, domain = None, secure = False, http_only = False
-  )
-
-
-For example, your app need isolated session or mbox seperated default session for any reasons, can create session named 'ADM' and if this session or mbox is valid at only /admin URL.
-
-.. code:: python
-
-  @app.route("/")
-  def index (was):   
-    was.session.mount ("ADM", SECUREKEY_STRING, path = '/admin')
-    was.session.set ("admin_login", True)
-
-    was.mbox.mount ("ADM", SECUREKEY_STRING, path = '/admin')
-    was.mbox.send ("10 data has been deleted", 'warning')
-
-SECUREKEY_STRING needn't same with app.securekey. And path, domain, secure, http_only args is for session cookie, you can mount any named sessions or mboxes with upper cookie path and upper cookie domain. In other words, to share session or mbox with another apps, path should be closer to root (/).
-
-.. code:: python
-
-  @app.route("/")
-  def index (was):   
-    was.session.mount ("ADM", SECUREKEY_STRING, path = '/')
-    was.session.set ("admin_login", True)
-
-Above 'ADM' sesion can be accessed by all mounted apps because path is '/'.
-    
-Also note was.session.mount (None, SECUREKEY_STRING) is exactly same as mounting default session, but in this case SECUREKEY_STRING should be same as app.securekey.
-
-mount() is create named session or mbox if not exists, exists() is just check wheather exists named session already.
-
-.. code:: python
-
-  if not was.session.exists (None):
-    return "Your session maybe expired or signed out, please sign in again"
-      
-  if not was.session.exists ("ADM"):
-    return "Your admin session maybe expired or signed out, please sign in again"
-
-
-
-File Upload
----------------
-
-.. code:: python
-  
-  FORM = """
-    <form enctype="multipart/form-data" method="post">
-    <input type="hidden" name="submit-hidden" value="Genious">   
-    <p></p>What is your name? <input type="text" name="submit-name" value="Hans Roh"></p>
-    <p></p>What files are you sending? <br />
-    <input type="file" name="file">
-    </p>
-    <input type="submit" value="Send"> 
-    <input type="reset">
-  </form>
-  """
-  
-  @app.route ("/upload")
-  def upload (was, *form):
-    if was.request.command == "get":
-      return FORM
-    else:
-      file = form.get ("file")
-      if file:
-        file.save ("d:\\var\\upload", dup = "o") # overwrite
-        
-'file' object's attributes are:
-
-- file.path: temporary saved file full path
-- file.name: original file name posted
-- file.size
-- file.mimetype
-- file.save (into, name = None, mkdir = False, dup = "u")
-- file.remove ()
-- file.read ()
-
-  * if name is None, used file.name
-  * dup: 
-    
-    + u - make unique (default)
-    + o - overwrite
-
-
-Using SQL Map with SQLPhile
----------------------------------
-
-*New in Version 0.26.13*
-
-SQLPhile_ is SQL generator and can be accessed from was.sql.
-
-was.sql is a instance of sqlphile.SQLPhile.
-
-If you want to use SQL templates, create sub directory 'sqlmaps' and place sqlmap files.
-
-.. code:: python
-  
-  # default engine is skitai.DB_PGSQL and also available skitai.DB_SQLITE3
-  # no need call for skitai.DB_PGSQL
-  app.setup_sqlphile (skitai.DB_SQLITE3)
-  
-  @app.route ("/")
-  def index (was):
-    q = was.sql.select (tbl_'user').get ('id, name').filter (id = 4)
-    req = was.backend ("@db").execute (q)
-    result = req.getwait ()
-
-*New in version 0.27*
-
-From version 0.27 SQLPhile_ is integrated with PostgreSQL and SQLite3.
-
-.. code:: python
-    
-    app = Saddle (__name__)
-    app.setup_sqlphile (skitai.DB_PGSQL)
-    
-    @app.route ("/")
-    def query (was):
-      dbo = was.backend ("@mypostgres")    
-      req = dbo.select ("cities").get ("id, name").filter (name__like = "virginia").execute ()
-      response = req.getwait (2)    
-      dbo.insert ("cities").data (name = "New York").execute ().wait_or_throw ("500 Server Error")
-     
-      
-Please, visit SQLPhile_ for more detail. 
-    
-.. _SQLPhile: https://pypi.python.org/pypi/sqlphile
-
-
-Registering Per Request Calling Functions
--------------------------------------------
-
-Method decorators called automatically when each method is requested in a app.
-
-.. code:: python
-
-  @app.before_request
-  def before_request (was):
-    if not login ():
-      return "Not Authorized"
-  
-  @app.finish_request
-  def finish_request (was):
-    was.g.user_id    
-    was.g.user_status
-    ...
-  
-  @app.failed_request
-  def failed_request (was, exc_info):
-    was.g.user_id    
-    was.g.user_status
-    ...
-  
-  @app.teardown_request
-  def teardown_request (was):
-    was.g.resouce.close ()
-    ...
-  
-  @app.route ("/view-account")
-  def view_account (was, userid):
-    was.g.user_id = "jerry"
-    was.g.user_status = "active"
-    was.g.resouce = open ()
-    return ...
-
-For this situation, 'was' provide was.g that is empty class instance. was.g is valid only in current request. After end of current request.
-
-If view_account is called, Saddle execute these sequence:
-
-.. code:: python
-  
-  try:
-    try: 
-      content = before_request (was)
-      if content:
-        return content
-      content = view_account (was, *args, **karg)
-      
-    except:
-      content = failed_request (was, sys.exc_info ())
-      if content is None:
-        raise
-      
-    else:
-      finish_request (was)
-
-  finally:
-    teardown_request (was)
-  
-  return content
-    
-Be attention, failed_request's 2nd arguments is sys.exc_info (). Also finish_request and teardown_request (NOT failed_request) should return None (or return nothing). 
-
-If you handle exception with failed_request (), return custom error content, or exception will be reraised and Saddle will handle exception.
-
-*New in version 0.14.13*
-
-.. code:: python
-
-  @app.failed_request
-  def failed_request (was, exc_info):
-    # releasing resources
-    return was.response (
-      "501 Server Error", 
-      was.render ("err501.htm", msg = "We're sorry but something's going wrong")
-    )
-
-Define Autoruns 
---------------------------------
-
-*New in version 0.26.18*
-
-You can make automation for preworks and postworks.
-
-.. code:: python
-  
-  def pre1 (was):
-    ...
-  
-  def pre2 (was):
-    ...
-  
-  def post1 (was):
-    ...
-  
-  @app.run_before (pre1, pre2)
-  @app.run_after (post1)
-  def index (was):
-    return was.render ('index.html')
-
-@app.run_before can return None or responsable contents for aborting all next run_before and main request.
-@app.run_after return will be ignored
-
-Define Conditional Prework 
--------------------------------
-
-*New in version 0.26.18*
-
-@app.if~s are conditional executing decorators. 
-
-.. code:: python
-
-  def reload_config (was, path):
-    ...
-  
-  @app.if_file_modified ('/opt/myapp/config', reload_config, interval = 1)
-  def index (was):
-    return was.render ('index.html')
-
-@app.if_updated need more explaination.
-
-
-Inter Process Update Notification and Consequences Automation
-----------------------------------------------------------------
-
-*New in version 0.26.18*
-
-@app.if_updated is related with skitai.deflu(), was.setlu() and was.getlu() and these are already explained was cache contorl part. And Saddle app can use more conviniently.
-
-These're used for mostly inter-process notification protocol.
-
-Before skitai.run (), you should define updatable objects as string keys:
-
-.. code:: python
-
-  skitai.deflu ("weather-news", ...)
-
-Then one process update object and update time by setlu ().
-
-.. code:: python
-
-  @app.route ("/")
-  def add_weather (was):
-    was.backend.execute ("insert into weathers ...")
-    was.setlu ("weather-news")
-    return ... 
-
-This update time stamp will be recorded in shared memory, then all skitai worker processes can catch this update by comparing previous last update time and automate consequences like refreshing cache.
-
-.. code:: python
-  
-  def reload_cache (was, key):
-    ...
-  
-  @app.if_updated ('weather-news', reload_cache)
-  def index (was):
-    return was.render ('index.html')
-     
-
-App Lifecycle Hook
-----------------------
-
-These app life cycle methods will be called by this order,
-
-- before_mount (wac): when app imported on skitai server started
-- mounted (*was*): called first with was (instance of wac)
-- mounted_or_reloaded (*was*): called with was (instance of wac)
-- loop whenever app is reloaded,
-    
-  - oldapp.before_reload (*was*)
-  - newapp.reloaded (*was*)
-  - mounted_or_reloaded (*was*): called with was (instance of wac)
-  
-- before_umount (*was*): called last with was (instance of wac), add shutting down process
-- umounted (wac): when skitai server enter shutdown process
-
-Please note that first arg of startup, reload and shutdown is *wac* not *was*. *wac* is Python Class object of 'was', so mainly used for sharing Skitai server-wide object via was.object before instancelizing to *was*.
-
-.. code:: python
-
-  @app.before_mount
-  def before_mount (wac):
-    logger = wac.logger.get ("app")
-    # OR
-    logger = wac.logger.make_logger ("login", "daily")
-    config = wac.config
-    wac.register ("loginengine", SNSLoginEngine (logger))
-    wac.register ("searcher", FulltextSearcher (wac.numthreads))    
-  
-  @app.before_reload
-  def before_remount (wac):
-    wac.loginengine.reset ()
-  
-  @app.umounted
-  def before_umount (wac):
-    wac.umounted.close ()
-        
-    wac.unregister ("loginengine")
-    wac.unregister ("searcher")
-
-You can access numthreads, logger, config from wac.
-
-As a result, myobject can be accessed by all your current app functions even all other apps mounted on Skitai.
-
-.. code:: python
-  
-  # app mounted to 'abc.com/register'
-  @app.route ("/")
-  def index (was):
-    was.loginengine.check_user_to ("facebook")
-    was.searcher.query ("ipad")
-  
-  # app mounted to 'def.com/'
-  @app.route ("/")
-  def index (was):
-    was.searcher.query ("news")
-
-*Note:* The way to mount with host, see *'Mounting With Virtual Host'* chapter below.
-
-It maybe used like plugin system. If a app which should be mounted loads pulgin-like objects, theses can be used by Skitai server wide apps via was.object1, was.object2,...
-
-*New in version 0.26*
-
-If you have databases or API servers, and want to create cache object on app starting, you can use @app.mounted decorator.
-
-.. code:: python
-  
-  def create_cache (res):
-    d = {}
-    for row in res.data:
-      d [row.code] = row.name
-    app.storage.set ('STATENAMES', d)
-  
-  @app.mounted
-  def mounted (was):
-    was.backend ('@mydb', callback = create_cache).execute ("select code, name from states;")    
-    # or use REST API
-    was.get ('@myapi/v1/states', callback = create_cache)
-    # or use RPC
-    was.rpc ('@myrpc/rpc2', callback = create_cache).get_states ()
-  
-  @app.reloaded
-  def reloaded (was):
-    mounted (was) # same as mounted
-  
-  @app.before_umount
-  def umount (was):
-    was.delete ('@session/v1/sessions', callback = lambda x: None)    
-    
-But both are not called by request, you CAN'T use request related objects like was.request, was.cookie etc. And SHOULD use callback because these are executed within Main thread.
-
-
-Registering Global Template Function
---------------------------------------
-
-*New in version 0.26.16*
-
-template_global decorator makes a function possible to use in your template,
-
-.. code:: python
-
-  @app.template_global ("test_global")
-  def test (was):  
-    return ", ".join.(was.request.args.keys ())
-
-At template,
-    
-.. code:: html
-
-  {{ test_global () }}
-
-Note that all template global function's first parameter should be *was*. But when calling, you SHOULDN't give *was*.
-
-
-Registering Jinja2 Filter
---------------------------
-
-*New in version 0.26.16*
-
-template_filter decorator makes a function possible to use in your template,
-
-.. code:: python
-
-  @app.template_filter ("reverse")
-  def reverse_filter (s):  
-    return s [::-1]
-
-At template,
-    
-.. code:: html
-
-  {{ "Hello" | reverse }}
-    
-    
-Login and Permission Helper
-------------------------------
-
-*New in version 0.26.16*
-
-You can define login & permissoin check handler,
-
-.. code:: python
-
-  @app.login_handler
-  def login_handler (was):  
-    if was.session.get ("demo_username"):
-      return
-    
-    if was.request.args.get ("username"):
-      if not was.csrf_verify ():
-        return was.response ("400 Bad Request")
-      
-      if was.request.args.get ("signin"):
-        user, level = authenticate (username = was.request.args ["username"], password = was.request.args ["password"])
-        if user:
-          was.session.set ("demo_username", user)
-          was.session.set ("demo_permission", level)
-          return
-          
-        else:
-          was.mbox.send ("Invalid User Name or Password", "error")    
-          
-    return was.render ("login.html", user_form = forms.DemoUserForm ())
-
-  @app.permission_check_handler
-  def permission_check_handler (was, perms):
-    if was.session.get ("demo_permission") in perms:
-      return was.response ("403 Permission Denied")
-  
-  @app.staff_member_check_handler
-  def staff_check_handler (was):
-    if was.session.get ("demo_permission") not in ('staff'):
-      return was.response ("403 Staff Permission Required")
-
-And use it for your resources if you need,
-
-.. code:: python
-
-  @app.route ("/")
-  @app.permission_required ("admin")  
-  @app.login_required
-  def index (was):
-    return "Hello"
-  
-  @app.staff_member_required
-  def index2 (was):
-    return "Hello"
-
-If every thing is OK, it *SHOULD return None, not True*.
-
-Also you can test if user is valid,
-
-.. code:: python
-  
-  def is_superuser (was):
-    if was.user.username not in ('admin', 'root'):
-      reutrn was.response ("403 Permission Denied")
-  
-  @app.testpass_required (is_superuser)
-  def modify_profile (was):
-    ...
-    
-The binded testpass_required function can return,
-
-- True or None: continue request
-- False: response 403 Permission Denied immediately
-- Responsable object: response object immediately
-    
-Cross Site Request Forgery Token (CSRF Token)
-------------------------------------------------
-
-*New in version 0.26.16*
-
-At template, insert CSRF Token,
-
-.. code:: html
-  
-  <form>
-  {{ was.csrf_token_input }}
-  ...
-  </form>
-
-then verify token like this,
-
-.. code:: python
-
-  @app.before_request
-  def before_request (was):
-    if was.request.args.get ("username"):
-      if not was.csrf_verify ():
-        return was.response ("400 Bad Request")
-
-
-Making URL Token For Onetime Link
---------------------------------------
-
-*New in version 0.26.17*
-
-For creatiing onetime link url, you can convert your data to secured token string. 
-
-.. code:: python
-  
-  @app.route ('/password-reset')
-  def password_reset (was)
-    if was.request.args ('username'):
-      token = was.mktoken ("hans", 3600) # valid within 1 hour 
-      pw_reset_url = was.ab ('reset_password', token)
-      # send email
-      return was.render ('done.html')
-     
-    if was.request.args ('token'):
-      username = was.detoken (was.request.args ['token'])
-      if req ['expires'] > time.time ():
-        return was.response ('400 Bad Request')      
-      username = req ['username']
-      # processing password reset
-      ...
-
-If you want to expire token explicit, add session token key 
-
-.. code:: python
-
-  # valid within 1 hour and create session token named '_reset_token'
-  token = was.mktoken ("hans", 3600, 'rset')  
-  >> kO6EYlNE2QLNnospJ+jjOMJjzbw?fXEAKFgGAAAAb2JqZWN0...
-
-  username = was.detoken (token)
-  >> "hans"
-  
-  # if processing is done and for expiring token,
-  was.rmtoken (token)
-  
-        
-App Event Handling
----------------------
-
-Most of Saddle's event handlings are implemented with excellent `event-bus`_ library.
-
-*New in version 0.26.16*, *Availabe only on Python 3.5+*
-
-.. code:: python
-
-  from skitai import saddle
-  
-  @app.on (saddle.app_starting)
-  def app_starting_handler (wasc):
-    print ("I got it!")
-  
-  @app.on (saddle.request_failed)
-  def request_failed_handler (was, exc_info):
-    print ("I got it!")
-  
-  @app.on (saddle.template_rendering)
-  def template_rendering_handler (was, template, params):
-    print ("I got it!")
-
-There're some app events.
-
-- saddle.app_starting: required (wasc)
-- saddle.app_started: required (wasc)
-- saddle.app_restarting: required (wasc)
-- saddle.app_restarted: required (wasc)
-- saddle.app_mounted: required (was)
-- saddle.app_unmounting: required (was)
-- saddle.request_failed: required ( was, exc_info)
-- saddle.request_success: required (was)
-- saddle.request_tearing_down: required (was)
-- saddle.request_starting: required (was)
-- saddle.request_finished: required (was)
-- saddle.template_rendering: required (was, template, template_params_dict)
-- saddle.template_rendered: required (was, content)
-
-.. _`event-bus`: https://pypi.python.org/pypi/event-bus
-
-
-Creating and Handling Custom Event
----------------------------------------
-
-*Availabe only on Python 3.5+*
-
-For creating custom event and event handler,
-
-.. code:: python
-
-  @app.on ("user-updated")
-  def user_updated (was, user):
-    ...
-
-For emitting,
-
-.. code:: python
-    
-  @app.route ('/users', methods = ["POST"])
-  def users (was):
-    args = was.request.json ()
-    ...
-    
-    app.emit ("user-updated", args ['userid'])
-    
-    return ''
-
-If event hasn't args, you can use `emit_after` decorator,
-
-.. code:: python
-    
-  @app.route ('/users', methods = ["POST"])
-  @app.emit_after ("user-updated")
-  def users (was):
-    args = was.request.json ()
-    ...    
-    return ''
-
-Using this, you can build automatic excution chain,
-
-.. code:: python
-  
-  @app.on ("photo-updated")
-  def photo_updated (was):
-    ...        
-    
-  @app.on ("user-updated")
-  @app.emit_after ("photo-updated")
-  def user_updated (was):
-    ...        
-      
-  @app.route ('/users', methods = ["POST"])
-  @app.emit_after ("user-updated")
-  def users (was):
-    args = was.request.json ()
-    ...
-    return ''
-
-
-Cross App Communication & Accessing Resources
-----------------------------------------------
-
-Skitai prefer spliting apps to small microservices and mount them each. This feature make easy to move some of your mounted apps move to another machine. But this make difficult to communicate between apps. 
-
-Here's some helpful solutions.
-
-
-Accessing App Object Properties
-`````````````````````````````````
-
-*New in version 0.26.7.2*
-
-You can mount multiple app on Skitai, and maybe need to another app is mounted seperatly.
-
-.. code:: python
-
-  skitai.mount ("/", "main.py")
-  skitai.mount ("/query", "search.py")
-
-And you can access from filename of app from each apps,
-
-.. code:: python
-
-  search_app = was.apps ["search"]
-  save_path = search_app.config.save_path  
-
-
-URL Building for Resource Accessing
-````````````````````````````````````
-
-*New in version 0.26.7.2*
-  
-If you mount multiple apps like this,
-
-.. code:: python
-
-  skitai.mount ("/", "main.py")
-  skitai.mount ("/search", "search.py")
-
-For building url in `main.py` app from a query function of `search.py` app, you should specify app file name with colon.
-
-.. code:: python
-
-  was.ab ('search:query', "Your Name") # returned '/search/query?q=Your%20Name'
-  
-And this is exactly same as,
-
-  was.apps ["search"].build_url ("query", "Your Name")
-
-But this is only functioning between apps are mounted within same host.
-
-
-Communication with Event
-``````````````````````````
-
-*New in version 0.26.10*
-*Availabe only on Python 3.5+*
-
-'was' can work as an event bus using app.on_broadcast () - was.broadcast () pair. Let's assume that an users.py app handle only user data, and another photo.py app handle only photos of users.
-
-.. code:: python
-
-  skitai.mount ('/users', 'users.py')
-  skitai.mount ('/photos', 'photos.py')
-
-If a user update own profile, sometimes photo information should be updated.
-
-At photos.py, you can prepare for listening to 'user:data-added' event and this event will be emited from 'was'.
-
-.. code:: python
-  
-  @app.on_broadcast ('user:data-added')
-  def refresh_user_cache (was, userid):
-    was.sqlite3 ('@photodb').execute ('update ...').wait ()
-
-and uses.py, you just emit 'user:data-added' event to 'was'.
-
-.. code:: python
-  
-  @app.route ('/users', methods = ["PATCH"])
-  def users (was):
-    args = was.request.json ()
-    was.sqlite3 ('@userdb').execute ('update ...').wait ()
-    
-    # broadcasting event to all mounted apps
-    was.broadcast ('user:data-added', args ['userid'])
-    
-    return was.response (
-      "200 OK", 
-      json.dumps ({}), 
-      [("Content-Type", "application/json")]
-    )
-
-If resource always broadcasts event without args, use `broadcast_after` decorator.
-
-.. code:: python
-  
-  @app.broadcast_after ('some-event')
-  def users (was):
-    args = was.request.json ()
-    was.sqlite3 ('@userdb').execute ('update ...').wait ()   
-
-Note that this decorator cannot be routed by app.route ().
-
-
-CORS (Cross Origin Resource Sharing) and Preflight
------------------------------------------------------
-
-For allowing CORS, you should do 2 things:
-
-- set app.access_control_allow_origin
-- allow OPTIONS methods for routing
-
-.. code:: python
-  
-  app = Saddle (__name__)
-  app.access_control_allow_origin = ["*"]
-  # OR specific origins
-  app.access_control_allow_origin = ["http://www.skitai.com:5001"]
-  app.access_control_max_age = 3600
-  
-  @app.route ("/post", methods = ["POST", "OPTIONS"])
-  def post (was):
-    args = was.request.json ()  
-    return was.jstream ({...})  
-    
-
-If you want function specific CORS,
-
-.. code:: python
-  
-  app = Saddle (__name__)
-  
-  @app.route (
-   "/post", methods = ["POST", "OPTIONS"], 
-   access_control_allow_origin = ["http://www.skitai.com:5001"],
-   access_control_max_age = 3600
-  )
-  def post (was):
-    args = was.request.json ()  
-    return was.jstream ({...})  
-
-
-WWW-Authenticate
--------------------
-
-*Changed in version 0.15.21*
-
-  - removed app.user and app.password
-  - add app.users object has get(username) methods like dictionary  
-
-Saddle provide simple authenticate for administration or perform access control from other system's call.
-
-Authentication On Specific Methods
-`````````````````````````````````````````
-
-Otherwise you can make some routes requirigng authorization like this:
-
-.. code:: python
-  
-  @app.route ("/hello/<name>", authenticate = "digest")
-  def hello (was, name = "Hans Roh"):
-    return "Hello, %s" % name
-
-Or you can use @app.authorization_required decorator.
-		
-.. code:: python
-  
-  @app.route ("/hello/<name>")
-  @app.authorization_required ("digest")
-  def hello (was, name = "Hans Roh"):
-    return "Hello, %s" % name
-
-Available authorization methods are basic, digest and bearer. 
- 
-
-Password Provider
-````````````````````
-
-You can provide password and user information getter by 2 ways.
-
-First, users object 
-
-.. code:: python
-  
-  # users object shoukd have get(username) method
-  app.users = {"hansroh": ("1234", False)}
-
-Second, use decorator 
-
-.. code:: python
-  
-  @app.authorization_handler
-  def auth_handler (was, username):
-    ...
-    return ("1234", False)
-
-The return object can be:
-
-  - (str password, boolean encrypted, obj userinfo)
-  - (str password, boolean encrypted)
-  - str password
-  - None if authorization failed
-
-If you use encrypted password, you should use digest authorization and password should encrypt by this way:
-
-.. code:: python
-  
-  from hashlib import md5
-  
-  encrypted_password = md5 (
-    ("%s:%s:%s" % (username, realm, password)).encode ("utf8")
-  ).hexdigest ()
-
-    
-If authorization is successful, app can access username and userinfo vi was.request.user.
-
-  - was.request.user.name
-  - was.request.user.realm
-  - was.request.user.info
-
-If your server run with SSL, you can use app.authorization = "basic", otherwise recommend using "digest" for your password safety.
-
-Authentication On Entire App
-```````````````````````````````
-
-For your convinient, you can set authorization requirements to app level.
-
-.. code:: python
-
-  app = Saddle (__name__)
-  
-  app.authenticate = "digest"
-  app.realm = "Partner App Area of mysite.com"
-  app.users = {"app": ("iamyourpartnerapp", 0, {'role': 'root'})}
-  
-  @app.route ("/hello/<name>")
-  def hello (was, name = "Hans Roh"):
-    return "Hello, %s" % name
-
-If app.authenticate is set, all routes of app require authorization (default is False).
-
-
-(JWT) Bearer Authorization
---------------------------------------
-
-To making JWT token,
-
-.. code:: python
-
-  was.mkjwt ({"username": "hansroh", ...})
-  >> eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXV...
-
-
-Then client should add 'Authorization' to API request like,
-
-.. code:: python
-
-  Authorization: Bearer eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXV...
-
-And use bearer_handler decorators.
-
-.. code:: python
-  
-  app.realm = "API"
-  app.authorization = "bearer"
-  
-  @app.bearer_handler
-  def bearer_handler (was, token):
-    # was.request.user will be created, if your JWT token has "username" key
-    claims = was.dejwt (token)
-    
-    # validting
-    if claims ["expires"] < time.time ():
-      return "token expired"      
-    
-  @app.route ("/api/v1/predict")
-  @app.authorization_required ("bearer")
-  def predict (was):
-  # now you can use was.request.user
-    was.request.user
-
-
-Implementing XMLRPC Service
------------------------------
-
-Client Side:
-
-.. code:: python
-
-  import aquests
-      
-  stub = aquests.rpc ("http://127.0.0.1:5000/rpc")
-  stub.add (10000, 5000)  
-  fetchall ()
-  
-Server Side:
-
-.. code:: python
-
-  @app.route ("/add")
-  def index (was, num1, num2):  
-    return num1 + num2
-
-Is there nothing to diffrence? Yes. Saddle app methods are also used for XMLRPC service if return values are XMLRPC dumpable.
-
-
-Implementing gRPC Service
------------------------------
-
-Client Side:
-
-.. code:: python
-  
-  import aquests
-  import route_guide_pb2
-  
-  stub = aquests.grpc ("http://127.0.0.1:5000/routeguide.RouteGuide")
-  point = route_guide_pb2.Point (latitude=409146138, longitude=-746188906)
-  stub.GetFeature (point)
-  aquests.fetchall ()
-  
-Server Side:
-
-.. code:: python
-  
-  import route_guide_pb2
-  
-  def get_feature (feature_db, point):
-    for feature in feature_db:
-      if feature.location == point:
-        return feature
-    return None
-    
-  @app.route ("/GetFeature")
-  def GetFeature (was, point):
-    feature = get_feature(db, point)
-    if feature is None:
-      return route_guide_pb2.Feature(name="", location=point)
-    else:
-      return feature
-
-  if __name__ == "__main__":
-
-  skitai.mount = ('/routeguide.RouteGuide', app)
-  skitai.urn ()
-
-
-For an example, here's my tfserver_ for Tensor Flow Model Server.
-  
-For more about gRPC and route_guide_pb2, go to `gRPC Basics - Python`_.
-
-Note: I think I don't understand about gRPC's stream request and response. Does it means chatting style? Why does data stream has interval like GPS data be handled as stream type? If it is chat style stream, is it more efficient that use proto buffer on Websocket protocol? In this case, it is even possible collaborating between multiple gRPC clients.
-
-.. _`gRPC Basics - Python`: http://www.grpc.io/docs/tutorials/basic/python.html
-.. _tfserver: https://pypi.python.org/pypi/tfserver
-
-
-Working with Django
------------------------
-
-*New in version 0.26.15*
-
-I barely use Django, but recently I have opportunity using Django and it is very fantastic and especially impressive to Django Admin System.
-
-Here are some examples collaborating with Djnago and Saddle.
-
-Before it begin, you should mount Django app,
-
-.. code:: python
-  
-  # mount django app as backend app likely  
-  pref = skitai.pref ()
-  pref.use_reloader = True
-  pref.use_debug = True
-  
-  skitai.mount ("/django", 'mydjangoapp/mydjangoapp/wsgi.py', 'application', pref)
-  
-  # main app
-  skitai.mount ('/', 'app.py', 'app')
-  skitai.run ()
-
-When Django app is mounted, these will be processed.
-
-1. add django project root path will be added to sys.path
-2. app is mounted
-3. database alias (@mydjangoapp) will be created as base name of django project root
- 
-FYI, you can access Django admin by /django/admin with default django setting.
-
-Using Django Login
-```````````````````
-
-Django user model and authentication system can be used in Skitai.
- 
-*was.django* is an inherited instance of Django's WSGIRequest.
-
-Basically you can use Django request's user and session.
-
-- was.django.user
-- was.django.session
-
-Also  have some methods for login integration.
-
-- was.django.authenticate (username, password): return username or None if failed
-- was.django.login (username)
-- was.django.logout ()
-- was.django.update_session_auth_hash (user)
-
-Route Proxing Django Views
-``````````````````````````````
-
-If mydjangoapp has photos app, for proxing Django views, 
-
-.. code:: python
-
-  from mydjangoapp.photos import views as photos_views
-  
-  @app.route ('/hello')
-  def django_hello (was):
-    return photos_views.somefunc (was.django)
-
-Using Django Models
-`````````````````````
-
-You can use also Django models without mount app.
-
-First of all, you should specify django setting with alias for django database engine.
-
-.. code:: python
-
-  skitai.alias ("@django", skitai.DJANGO, "myapp/settings.py")
-  
-Now you can use your models,
-  
-.. code:: python
-
-  from mydjangoapp.photos import models
-
-  @app,route ('/django/hello')
-  def django_hello (was):
-    models.Photo.objects.create (user='Hans Roh', title = 'My Photo') 
-    result = models.Photo.filter (user='hansroh').order_by ('-create_at')
-
-You can use Django Query Set as SQL generator for Skitai's asynchronous query execution. But it has some limitations.
-
-- just vaild only select query and prefetch_related () will be ignored
-- effetive only to PostgreSQL and SQLite3 (but SQLite3 dose not support asynchronous execution, so it is practically meaningless)
-
-.. code:: python
-
-  from mydjangoapp.photos import models
-
-  @app,route ('/hello')
-  def django_hello (was):    
-    query = models.Photo.objects.filter (topic=1).order_by ('title')  
-    return was.jstream (was.sqlite3 ("@entity").execute (query).getwait ().data, 'data')  
-
-
-Redirect Django Model Signals To Saddle Event
-`````````````````````````````````````````````````
-
-*Available on Python 3.5+*
-
-Using with saddle's event, you can monitor the change of Django model and can do your jobs like updating cache.
-
-This example show that if Django admin app is mounted to Skitai, whenever model is changed in Django admin, Saddle will receive signal and update cache data.
-
-.. code:: python
-  
-  app = Saddle (__name__)  
-  # activate wathcing model, and make accessible from was
-  app.redirect_signal (framework = "django")
-  
-  @app.on_signal ("myapp.models.Photo")
-  @app.mounted
-  def model_changed (was, sender = None, *karg):
-    from myapp.models import Photo
-    
-    # when app.mounted, sender is None
-    if sender:
-      # starts with 'x_', added by Saddle
-      karg ['x_operation'] # one of C, U, D
-      karg ['x_model_class'] # string name of model class like myapp.models.Photo
-      
-      # else Django's model signal args
-      karg ['instance']
-      karg ['update_fields']
-    
-    # creating cache object
-    query = (sender or Photo).objects.all ().order_by ('created_at')
-    was.backend (
-      '@entity', 
-      callback = lambda x, y = app: y.storage.set ('my-cache', x.data)
-    ).execute (query)
-
-For watching multiple models.
-
-.. code:: python
-
-  @app.on_signal ("myapp.models.Photo", "myapp.models.User")
-
-
-Integrating With Skitai's Result Object Caching
-`````````````````````````````````````````````````
-
-*New in version 0.26.15*
-
-.. code:: python
-
-  app.redirect_signal (framework = "django")
-  
-In backgound, app catch Django's model signal, and automatically was.setlu (your model class name like 'myapp.models.User'). Then you can just use was.getlu (your model class name).
-
-.. code:: python
-
-  @app.route ("/query")
-  def query (was):
-    req = was.backend (
-      "@entity", 
-      use_cache = was.getlu ("myapp.models.User")
-    ).execute (...) 
-    
-    result = req.getwait ()
-    result.cache (86400)
-    return result.data
-
-*Remember*, before using Django views and models, you should mount Django apps on Skitai first, and you should set all model keys using in apps.
-
-.. code:: python
-
-  skitai.deflu ('myapp.models.User', 'myapp.models.Photo')
-  skitai.run ()
-  
-
-Logging and Traceback
-------------------------
-
-.. code:: python
-  
-  @app.route ("/")
-  def sum ():  
-    was.log ("called index", "info")    
-    try:
-      ...
-    except:  
-      was.log ("exception occured", "error")
-      was.traceback ()
-    was.log ("done index", "info")
-
-Note inspite of you do not handle exception, all app exceptions will be logged automatically by Saddle. And it includes app importing and reloading exceptions.
-
-- was.log (msg, category = "info")
-- was.traceback (id = "") # id is used as fast searching log line for debug, if not given, id will be *Global transaction ID/Local transaction ID*
-
-
 Project Purpose
 ===================
 
@@ -5174,15 +2453,17 @@ Links
 Change Log
 ===========
 
+- 0.28 (Feb 2019)
+  
+  - removed sugar methods: was.getjson, getxml, postjson, ..., instead use headers parameter or app.config.default_request_type 
+  - skitai.win32service has been moved to rs4.psutil.win32service
+  - improve 'was' magic method search speed
+  - seperate skitai.saddle into atila
 
-- 0.27.6a (Dec 2018)
+- 0.27.6 (Jan 2019)
 
   - rename directory decorative to services
   - change from skital.saddle.contrib.decorative to skital.saddle.contrib.services
-
-- 0.27.5 (Dec 2018)
-
-  - fix bugs
     
 - 0.27.3 (May 2018)
   

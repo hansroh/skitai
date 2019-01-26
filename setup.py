@@ -45,37 +45,24 @@ classifiers = [
 packages = [
 	'skitai',
 	'skitai.bin',
-	'skitai.bin.commands',
-	'skitai.server',
-	'skitai.server.dbi',
-	'skitai.server.wastuff',
-	'skitai.server.handlers',
-	'skitai.server.rpc',	
-	'skitai.server.offline',
-	'skitai.server.handlers.http2',
-	'skitai.server.handlers.websocket',
-	'skitai.server.handlers.proxy',
-	'skitai.saddle',
-	'skitai.saddle.patches',
-	'skitai.saddle.contrib',
-	'skitai.saddle.contrib.services',	
-	'skitai.saddle.contrib.services.django',
-	'skitai.saddle.contrib.decorative',
+	'skitai.bin.commands',	
+	'skitai.dbi',
+	'skitai.wastuff',
+	'skitai.handlers',
+	'skitai.rpc',	
+	'skitai.testutil',
+	'skitai.handlers.http2',
+	'skitai.handlers.websocket',
+	'skitai.handlers.proxy'
 ]
 
 package_dir = {'skitai': 'skitai'}
-package_data = {
-	"skitai": [
-		"saddle/contrib/templates/*"
-	]
-}
+package_data = {}
 
 install_requires = [
 	"sqlphile",
-	"aquests",
-	"jinja2==2.10",
-	"jsonrpclib-pelix==0.3.1",
-	"mock==2.0.0"
+	"aquests",	
+	"jsonrpclib-pelix==0.3.1"
 ]
 
 with codecs.open ('README.rst', 'r', encoding='utf-8') as f:

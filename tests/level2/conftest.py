@@ -4,4 +4,4 @@ import skitai
 
 @pytest.fixture
 def launch ():
-    return partial (skitai.launch, port = 30371, silent = False)
+    return partial (skitai.test_client, port = 30371, silent = False)

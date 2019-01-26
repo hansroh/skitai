@@ -1,9 +1,9 @@
-from skitai.server.wastuff import promise
+from skitai.wastuff import promise
 from confutil import rprint
 import time
 import random
 import pytest
-from mock import MagicMock
+from unittest.mock import MagicMock
 
 def handler (promise, resp):
 	assert promise.fulfilled ()

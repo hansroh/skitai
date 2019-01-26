@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.27.6"
+__version__ = "0.28b4"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -8,16 +8,21 @@ NAME = "Skitai/%s.%s" % version_info [:2]
 import threading
 import sys, os
 import h2
-from rs4 import versioning
+from rs4 import deco, importer
 from rs4.psutil import service
 from rs4.attrdict import AttrDict
-from aquests.protocols.dns import asyndns
-from importlib import machinery
+from aquests.protocols import dns
 from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
-from .launcher import launch
 from aquests.protocols.smtp import composer
 import tempfile
 import getopt
+from . import lifetime
+
+def test_client (*args, **kargs):
+	from .testutil.launcher import Launcher
+	return Launcher (*args, **kargs)
+	
+HAS_ATILA = None
 
 PROTO_HTTP = "http"
 PROTO_HTTPS = "https"
@@ -49,7 +54,6 @@ WS_OPCODE_CLOSE = 0x8
 WS_OPCODE_PING = 0x9
 WS_OPCODE_PONG = 0xa
 
-
 class _WASPool:
 	def __init__ (self):
 		self.__wasc = None
@@ -64,7 +68,7 @@ class _WASPool:
 	def __getattr__ (self, attr):
 		_was = self._get ()
 		if not _was.in__dict__ ("app") and hasattr (_was, 'request'):
-			# it will be called WSGI middlewares except Saddle,
+			# it will be called WSGI middlewares except Atila,
 			# So request object not need
 			del _was.request			
 		return  getattr (_was, attr)
@@ -105,15 +109,28 @@ class _WASPool:
 was = _WASPool ()
 def start_was (wasc):
 	global was
+	
+	detect_atila ()
 	was._start (wasc)
-		
+
+def detect_atila ():
+	# for avoid recursive importing
+	try:
+		import atila
+	except ImportError:
+		pass
+	else:
+		global HAS_ATILA
+		HAS_ATILA = atila.Atila
+			
+
 #------------------------------------------------
 # Configure
 #------------------------------------------------
 dconf = {'mount': {"default": []}, 'clusters': {}, 'max_ages': {}, 'log_off': [], 'dns_protocol': 'tcp'}
 
 def pref (preset = False):
-	from .saddle.Saddle import Config
+	from .wsgi_apps import Config
 	
 	class Pref (AttrDict):
 		def __init__ (self):
@@ -157,8 +174,8 @@ def set_service (service_class):
 	Win32Service = service_class
 
 def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20):
-	from .server.http_server import http_server
-	from .server.https_server import https_server	
+	from .http_server import http_server
+	from .https_server import https_server	
 	
 	http_server.critical_point_cpu_overload = https_server.critical_point_cpu_overload = cpu_percent
 	http_server.critical_point_continuous = https_server.critical_point_continuous = continuous
@@ -190,7 +207,7 @@ def set_backend_keep_alive (timeout):
 	dconf ["backend_keep_alive"] = timeout
 
 def set_proxy_keep_alive (channel = 60, tunnel = 600):	
-	from .server.handlers import proxy
+	from .handlers import proxy
 
 	proxy.PROXY_KEEP_ALIVE = channel
 	proxy.PROXY_TUNNEL_KEEP_ALIVE = tunnel
@@ -200,6 +217,10 @@ def set_request_timeout (timeout):
 	dconf ["network_timeout"] = timeout
 set_network_timeout = set_request_timeout
 
+def set_was_class (class_):
+	global dconf	
+	dconf ["wasc"] = class_
+	
 def deflu (*key):
 	if "models-keys" not in dconf:
 		dconf ["models-keys"] = []
@@ -208,7 +229,7 @@ def deflu (*key):
 	dconf ["models-keys"].extend (key)
 addlu = trackers = lukeys = deflu
 
-def __is_django (wsgi_path, appname):
+def maybe_django (wsgi_path, appname):
 	if not isinstance (wsgi_path, str):
 		return
 	if appname != "application":
@@ -216,8 +237,7 @@ def __is_django (wsgi_path, appname):
 	settings = os.path.join (os.path.dirname (wsgi_path), 'settings.py')
 	if os.path.exists (settings):
 		root = os.path.dirname (os.path.dirname (wsgi_path))
-		sys.path.insert (0, root)
-		alias_django ("@" + os.path.basename (root), settings)
+		sys.path.insert (0, root)		
 		return root
 	
 def mount (point, target, appname = "app", pref = pref (True), host = "default", path = None):
@@ -226,11 +246,10 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
 	def init_app (modpath, pref):
 		modinit = os.path.join (os.path.dirname (modpath), "__init__.py")
 		if os.path.isfile (modinit):
-			loader = machinery.SourceFileLoader('temp', modinit)
-			mod = loader.load_module()
+			mod = importer.from_file ("temp", modinit)
 			hasattr (mod, "bootstrap") and mod.bootstrap (pref)
 
-	maybe_django = __is_django (target, appname)		
+	maybe_django (target, appname)
 	if path:
 		if isinstance (path, str):
 			path = [path]
@@ -290,11 +309,10 @@ def _get_django_settings (settings_path):
 	if not os.environ.get ("DJANGO_SETTINGS_MODULE"):		
 		sys.path.insert (0, django_root)		
 		os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings_mod)
-		django.setup()
-	
+		
 	return importlib.import_module(settings_mod).DATABASES
 
-def alias_django (name, settings_path):
+def _alias_django (name, settings_path):
 	dbsettings = _get_django_settings (settings_path)
 	default = dbsettings ['default']
 	if default ['ENGINE'].endswith ('sqlite3'):			
@@ -311,23 +329,17 @@ def alias_django (name, settings_path):
 			default ["PASSWORD"] = ""
 		return alias (name, DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)
 
-@versioning.deprecated
-def use_django_models (settings_path, name = None):
-	if name:
-		alias = alias_django (name, settings_path)		
-	return _get_django_settings (settings_path)	
-
-def alias (name, ctype, members, role = "", source = "", ssl = False, django = None):
-	from .server.rpc.cluster_manager import AccessPolicy
+def alias (name, ctype, members, role = "", source = "", ssl = False):
+	from .rpc.cluster_manager import AccessPolicy
 	global dconf
 	
 	if name [0] == "@":
 		name = name [1:]
 	if dconf ["clusters"].get (name):
-		return
+		return name, dconf ["clusters"][name]
 	
 	if ctype == DJANGO:
-		alias = alias_django (name, members)
+		alias = _alias_django (name, members)
 		if alias is None:
 			raise SystemError ("Database engine is not compatible")
 		return alias
@@ -336,7 +348,7 @@ def alias (name, ctype, members, role = "", source = "", ssl = False, django = N
 	args = (ctype, members, policy, ssl)
 	dconf ["clusters"][name] = args
 	return name, args
-
+	
 def enable_cachefs (memmax = 0, diskmax = 0, path = None):
 	global dconf	
 	dconf ["cachefs_memmax"] = memmax
@@ -389,7 +401,7 @@ def argopt (sopt = "", lopt = []):
 	for k, v in argopt [0]:
 		if k == "-d":
 			continue
-		elif k.startswith ("--skitai-"):
+		elif k.startswith ("---"):
 			continue
 		opts_.append ((k, v))
 		
@@ -421,22 +433,24 @@ def get_command ():
 			break		
 	
 	return cmd
-			
+
+def sched (interval, func): 
+	lifetime.maintern.sched (interval, func)
+					
 def run (**conf):
-	import os, sys, time
-	from . import lifetime
-	from .server import Skitai
+	import os, sys, time	
+	from . import Skitai
 	from rs4.psutil import flock
 	from rs4 import pathtool
 	import getopt
-
+			
 	class SkitaiServer (Skitai.Loader):
 		NAME = 'instance'
 		
 		def __init__ (self, conf):
 			self.conf = conf			
 			self.flock = None
-			Skitai.Loader.__init__ (self, 'config', conf.get ('logpath'), conf.get ('varpath'))
+			Skitai.Loader.__init__ (self, 'config', conf.get ('logpath'), conf.get ('varpath'), conf.get ("wasc"))
 			
 		def close (self):
 			if self.wasc.httpserver.worker_ident == "master":
@@ -498,9 +512,14 @@ def run (**conf):
 				self.config_forward_server (
 					conf.get ('fws_address', '0.0.0.0'), conf.get ('fws_port', 80), conf.get ('fws_to', 443)
 				)
-				
+			
+			if "---port" in sys.argv:
+				port = int (sys.argv [sys.argv.index ("---port") + 1])
+			else:
+				port = conf.get ('port', 5000)
+								 	
 			self.config_webserver (
-				conf.get ('port', 5000), conf.get ('address', '0.0.0.0'),
+				port, conf.get ('address', '0.0.0.0'),
 				NAME, conf.get ("certfile") is not None,
 				conf.get ('keep_alive', 30), 
 				conf.get ('network_timeout', 30),
@@ -530,7 +549,7 @@ def run (**conf):
 			)
 			
 			lifetime.init (logger = self.wasc.logger.get ("server"))
-			lifetime.maintern.sched (3.0, asyndns.pool.maintern)
+			lifetime.maintern.sched (3.0, dns.pool.maintern)
 			if os.name == "nt":
 				lifetime.maintern.sched (11.0, self.maintern_shutdown_request)								
 				self.flock = flock.Lock (os.path.join (self.varpath, ".%s" % self.NAME))
@@ -542,6 +561,9 @@ def run (**conf):
 	for k, v in dconf.items ():
 		if k not in conf:
 			conf [k] = v
+	
+	if "---production" in sys.argv:
+		os.environ ["SKITAI_ENV"] == "PRODUCTION"
 	
 	if conf.get ("name"):
 		PROCESS_NAME = 'skitai/{}'.format (conf ["name"])				
@@ -570,7 +592,7 @@ def run (**conf):
 	# timeout for fast keyboard interrupt on win32	
 	try:
 		try:
-			server.run (conf.get ('verbose') and 2.0 or 30.0)
+			server.run (conf.get ('verbose') and 1.0 or 30.0)
 		except KeyboardInterrupt:
 			pass	
 	

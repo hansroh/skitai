@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request
-from skitai.saddle import jinjapatch
+from atila import jinjapatch
 import skitai
 
 app = Flask(__name__)

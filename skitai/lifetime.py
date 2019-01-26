@@ -73,13 +73,12 @@ def maintern_zombie_channel (now):
 				except:
 					channel.handle_error ()
 
-maintern = None
+maintern = lifetime.Maintern ()
 def init (kill_zombie_interval = 10.0, logger = None):
 	global maintern
 	
 	lifetime.EXHAUST_DNS = False
 	lifetime._logger = logger
-	maintern = lifetime.Maintern ()
 	maintern.sched (kill_zombie_interval, lifetime.maintern_zombie_channel)
 	maintern.sched (300.0, lifetime.maintern_gc)
 
@@ -111,7 +110,7 @@ def loop (timeout = 30.0):
 	global _exit_code
 	global maintern
 	
-	if maintern is None:
+	if not maintern.q:
 		init ()
 		
 	_shutdown_phase = 0

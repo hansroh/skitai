@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
-from skitai.saddle import Saddle
+from atila import Atila
 import shutil, os
 
-app = Saddle (__name__)
+app =Alita (__name__)
 app.debug = True
 app.use_reloader = True
 

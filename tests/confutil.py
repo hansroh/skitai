@@ -1,6 +1,7 @@
 import os
-from skitai.server.offline import server
-from skitai.server.offline import server, client as cli 
+from skitai.testutil import server
+from skitai.testutil import server, client as cli 
+from examples.package import route_guide_pb2
 
 client = cli.Client ()
 

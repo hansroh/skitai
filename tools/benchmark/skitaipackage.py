@@ -1,4 +1,4 @@
-from skitai.saddle import Saddlery
+from atila import Saddlery
 
 package = Saddlery ()
 

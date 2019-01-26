@@ -1,16 +1,16 @@
 import confutil
 from confutil import rprint
 import pytest
-from skitai.server.http_response import http_response, UNCOMPRESS_MAX, ONETIME_COMPRESS_MAX
-from mock import MagicMock
+from skitai.http_response import http_response, UNCOMPRESS_MAX, ONETIME_COMPRESS_MAX
 from rs4 import producers
 import os
 from aquests.protocols.http2.producers import h2frame_producer, h2header_producer
 import threading
 from h2.connection import H2Connection
-from skitai.server.offline import server
-from skitai.server.handlers.http2.response import response as http2_response
-from skitai.server.http_response import http_response
+from skitai.testutil import server
+from skitai.handlers.http2.response import response as http2_response
+from skitai.http_response import http_response
+from unittest.mock import MagicMock
 
 def make_response (client, compression = "defalte, gzip", version = "1.1"):
 	request = client.get (

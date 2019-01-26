@@ -1,5 +1,5 @@
 import pytest
-from skitai.server.wastuff import triple_logger
+from skitai.wastuff import triple_logger
 from rs4 import  pathtool, logger as rlog
 import shutil, os, glob, time
 	

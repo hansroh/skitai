@@ -6,7 +6,7 @@ def main ():
     if not os.path.isfile ('profile.out'):
         print (tc.error ("error:"))
         print (" - profile.out file not found")
-        print (" - for creating this file, run your app with --skitai-profile")
+        print (" - for creating this file, run your app with ---profile")
         print ()
         return
         
