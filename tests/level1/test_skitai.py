@@ -21,7 +21,8 @@ def test_skitai (app):
     
     assert skitai.joinpath ('a', 'b').endswith ("/bin/a/b")    
     skitai.mount ("/k", app)
-    assert skitai.dconf ['mount']["default"][0][1] == ('/usr/local/bin/pytest', 'app')
+    assert skitai.dconf ['mount']["default"][0][1][0].endswith ('/bin/pytest')
+    assert skitai.dconf ['mount']["default"][0][1][1] == 'app'
     
     skitai.dconf ['mount']["default"] = []
     skitai.mount ("/k2", '/path/app.py', 'app')
@@ -29,7 +30,8 @@ def test_skitai (app):
     
     skitai.dconf ['mount']["default"] = []
     skitai.mount ("/k2", 'path/app.py', 'app')
-    assert skitai.dconf ['mount']["default"][0][1] == ('/usr/local/bin/path/app.py', 'app')
+    assert skitai.dconf ['mount']["default"][0][1][0].endswith ('/bin/path/app.py')
+    assert skitai.dconf ['mount']["default"][0][1][1] == 'app'
     
     if tfserver:
         pref = skitai.pref ()
@@ -45,7 +47,7 @@ def test_skitai (app):
         
     skitai.dconf ['mount']["default"] = []
     skitai.mount ("/k2", "X11")
-    assert skitai.dconf ['mount']["default"][0][1][0].endswith ('/usr/local/bin/X11')
+    assert skitai.dconf ['mount']["default"][0][1][0].endswith ('/bin/X11')
     
     skitai.dconf ['mount']["default"] = []
     skitai.mount ("/k2", "@X11")
