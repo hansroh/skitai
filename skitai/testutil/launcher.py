@@ -34,7 +34,7 @@ class Launcher (webtest.Target):
                 self.__p.start ([sys.executable, self.__script, "-d", "---port", str (self.__port)])
                 self.__wait_until ("running")
         else:
-            self.__p.start ([sys.executable, self.__script])
+            self.__p.start ([sys.executable, self.__script, "---port", str (self.__port)])
             time.sleep (3)
         self.__closed = False
         
