@@ -1127,66 +1127,78 @@ Blank seperated items of log line are,
 - duration ms for transfering response data
 
 
-Testing Your App
-----------------------------
+Testing Mounted App
+``````````````````````````````````````
 
 *New in version 0.27*
 
-Skitai provide launch () for automating app test.
-
-.. code:: python
-
-  skitai.launch (script, port = 5000, ssl = False, silent = True)
-
-Let's assume our app launch script is "./examples/app.py", and that is using port 5000.
+For mounted app testing fully network environment,
 
 .. code:: python
 
   import skitai
   
-  def test_app ():
-    with skitai.launch ("./examples/app.py", port = 5000) as engine:
-      # html page
-      resp = engine.get ("/)
-      print (resp.text)
-    
-      # api for GET /v1/user/434
-      resp = engine.v1.user ("434").get ()
-      print (resp.data)
+  def test_myapp ():
+    with skitai.test_client ("./app.py", 6000) as cli:
+      resp = cli.get ("/")
+      assert "something" in resp.text    
       
-      # api for POST /v1/user
-      resp = engine.v1.user.post ({"name": "Hans Roh"})
-      print (resp.data)
-      
-      # api for uploading file to /v1/user/profile/photo
-      # upload method is a sugar syntax for posting multipart form data 
-      resp = engine.v1.user.profile.photo.upload ({"file": open ("myphoto.jpg", "rb")})
-      print (resp.data)
-      
-      # also available put, delete, patch
-      
-Then you can run pytest.
- 
-If you run multipel tests files, you can make laucher to fixture.
- 
-Edit conftest.py at same location with your test script,
- 
+      # api call
+      stub = cli.api ()
+      resp = stub.apis.pets (45).get ()
+      assert resp.data ["id"] == 45
+
+Now run pytest.    
+
+This test client will start Skitai server on port 6000 with app. app.py shoud have skitai.run ().
+
+Note: Port that skitai.run (port = 5000) will be ignored, app.py will be launched with port 6000 that specified by skitai.test_client for avoiding exist app service. 
+
+
+If your have so many tests, define cli at your conftest.py
+
 .. code:: python
- 
+
   import pytest
   import skitai
-   
-  @pytest.fixture
-  def engine ():
-    return skitai.launch ("./examples/app.py", port = 5000)
   
-Then in your tests,
+  @pytest.fixture (scope = "session")
+  def cli ():
+    c = skitai.test_client ("./app.py", 6000)
+    yield c
+    c.stop ()
+
+And edit your test script:
 
 .. code:: python
 
-  def test_app (engine):
-    resp = engine.get ("/)
-    print (resp.text)
+  import skitai
+  
+  def test_myapp (cli):    
+    resp = cli.get ("/")
+    assert "something" in resp.text    
+    
+    # api call
+    stub = cli.api ()
+    resp = stub.apis.pets (45).get ()
+    assert resp.data ["id"] == 45
+
+
+If you run test server at another console window for watching server error messages, give dry = True parameter.
+
+.. code:: python
+
+  @pytest.fixture (scope = "session")
+  def cli ():
+    c = skitai.test_client ("./app.py", 5000, dry = True)
+    yield c
+    c.stop ()
+
+This test client will not start Skitai server but access to port 5000 so you start server manually at another console,
+
+.. code:: bash
+
+  python3 app.py
 
 
 Skitai with Nginx
@@ -1681,6 +1693,12 @@ If you use sqlalchemy_ for database ORM, you cannot use ORM itself but use for g
   
   # models.py
   
+  from sqlalchemy.ext.declarative import declarative_base
+  from sqlalchemy import MetaData, Table
+  from sqlalchemy import Column, Integer, String
+  
+  Base = declarative_base ()
+  
   class Stocks (Base):
     __tablename__ = 'stocks'
     id = Column(Integer, primary_key=True)
@@ -1690,6 +1708,22 @@ If you use sqlalchemy_ for database ORM, you cannot use ORM itself but use for g
     qty = Column(Integer)
     price = Column(Integer)
   stocks = Stocks.__table__
+
+Or,
+
+.. code:: python
+  
+  # models.py  
+  
+  metadata = MetaData()
+  stocks = Table ('stocks', metadata,
+     Column('id', Integer, primary_key=True),
+     Column('date', String(255)),
+     Column('trans', String(255)),
+     Column('symbol', String(255)),
+     Column('qty', Integer),
+     Column('price', Integer)
+  )
 
 For generating query statements,
 
@@ -1704,7 +1738,7 @@ For generating query statements,
     res.data
     ...
     
-Other simple query like,
+Other simple query examples,
 
 .. code:: python    
     
@@ -2476,78 +2510,6 @@ At Flask, should setup for variable names you want to use,
       ("message", "room_id")
     )
     return ""
-
-
-Testing Mounted App
-==============================
-
-For mounted app testing fully network environment,
-
-.. code:: python
-
-  import skitai
-  
-  def test_myapp ():
-    with skitai.test_client ("./app.py", 6000) as cli:
-      resp = cli.get ("/")
-      assert "something" in resp.text    
-      
-      # api call
-      stub = cli.api ()
-      resp = stub.apis.pets (45).get ()
-      assert resp.data ["id"] == 45
-
-Now run pytest.    
-
-This test client will start Skitai server on port 6000 with app. app.py shoud have skitai.run ().
-
-Note: Port that skitai.run (port = 5000) will be ignored, app.py will be launched with port 6000 that specified by skitai.test_client for avoiding exist app service. 
-
-
-If your have so many tests, define cli at your conftest.py
-
-.. code:: python
-
-  import pytest
-  import skitai
-  
-  @pytest.fixture (scope = "session")
-  def cli ():
-    c = skitai.test_client ("./app.py", 6000)
-    yield c
-    c.stop ()
-
-And edit your test script:
-
-.. code:: python
-
-  import skitai
-  
-  def test_myapp (cli):    
-    resp = cli.get ("/")
-    assert "something" in resp.text    
-    
-    # api call
-    stub = cli.api ()
-    resp = stub.apis.pets (45).get ()
-    assert resp.data ["id"] == 45
-
-
-If you run test server at another console window for watching server error messages, give dry = True parameter.
-
-.. code:: python
-
-  @pytest.fixture (scope = "session")
-  def cli ():
-    c = skitai.test_client ("./app.py", 5000, dry = True)
-    yield c
-    c.stop ()
-
-This test client will not start Skitai server but access to port 5000 so you start server manually at another console,
-
-.. code:: bash
-
-  python3 app.py
 
 
 Project Purpose
