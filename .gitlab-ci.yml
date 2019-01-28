@@ -21,4 +21,6 @@ before_script:
 test:
   script:
   - ./test-all.sh
+  only:
+  - master
 
