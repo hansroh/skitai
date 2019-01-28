@@ -70,10 +70,10 @@ def test_cli (app, dbpath):
         assert resp.text == '{"data": "POST"}'
     
         resp = cli.get ("/db2")
-        assert resp.data ["data"][0][2] == 'RHAT'
+        assert resp.data ["data"][0][3] == 'RHAT'
         
         resp = cli.get ("/db")
-        assert resp.data ["data"][0][2] == 'RHAT'
+        assert resp.data ["data"][0][3] == 'RHAT'
         
         resp = cli.get ("/pypi3")
         assert resp.status_code == 508

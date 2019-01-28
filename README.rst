@@ -1295,6 +1295,16 @@ If your app need bootstraping or capsulizing complicated initialize process from
         urllist.append (line.split ("  ", 4))
       pref.config.urllist = urllist  
      
+ *Important Note:* You should add zip_safe = False flag in your setup.py because Skitai could access your __export__ script and its sub modules. 
+ 
+.. code:: python
+
+  setup (
+    name = "mymodule",
+    ...
+    zip_safe = False
+  )  
+ 
  
 Examples
 ----------
@@ -1660,6 +1670,52 @@ Using Aliased Database
 If you have alias your database server, you needn't specify db type like 'dbo = was.postgresql ("@mydb")'. Just use 'dbo = was.backend ("@mydb")'.
 
 It makes easy to handle both Sqlite3 and PostgreSQL. If you intend to use Sqlite3 at developing, but use PostgreSQL at production, you just change alias on Skitai startup time.
+
+
+Using SQLAlchemy Query Generator
+````````````````````````````````````````````````
+
+If you use sqlalchemy_ for database ORM, you cannot use ORM itself but use for gfenerating SQL query statement.
+
+.. code:: python
+  
+  # models.py
+  
+  class Stocks (Base):
+    __tablename__ = 'stocks'
+    id = Column(Integer, primary_key=True)
+    date = Column(String(255))
+    trans = Column(String(255))
+    symbol = Column(String(255))
+    qty = Column(Integer)
+    price = Column(Integer)
+  stocks = Stocks.__table__
+
+For generating query statements,
+
+.. code:: python
+  
+  from models import stocks
+  
+  @app.route ("/q/<int:id>)
+  def q (was, id):
+    statement = stocks.select().where(stocks.c.id == id)
+    res = was.backend ("@mydb").execute (statement).getwait ()
+    res.data
+    ...
+    
+Other simple query like,
+
+.. code:: python    
+    
+  statement = stocks.insert().values (id = 2, date = '2019-1-30', trans = "SELL", symbol = "APL", qty = 200, price = 1600.0)
+  statement = stocks.delete().where(stocks.c.id == 2)
+  statement = stocks.update().values(symbol='BIX').where(stocks.c.id == 2)
+  
+For more information about query generating, visit `SQLAlchemy Core`_.    
+
+.. _sqlalchemy: https://www.sqlalchemy.org/
+.. _`SQLAlchemy Core`: https://docs.sqlalchemy.org/en/latest/core/index.html
 
 
 Throwing HTTP Error On Request Failed
@@ -2422,6 +2478,78 @@ At Flask, should setup for variable names you want to use,
     return ""
 
 
+Testing Mounted App
+==============================
+
+For mounted app testing fully network environment,
+
+.. code:: python
+
+  import skitai
+  
+  def test_myapp ():
+    with skitai.test_client ("./app.py", 6000) as cli:
+      resp = cli.get ("/")
+      assert "something" in resp.text    
+      
+      # api call
+      stub = cli.api ()
+      resp = stub.apis.pets (45).get ()
+      assert resp.data ["id"] == 45
+
+Now run pytest.    
+
+This test client will start Skitai server on port 6000 with app. app.py shoud have skitai.run ().
+
+Note: Port that skitai.run (port = 5000) will be ignored, app.py will be launched with port 6000 that specified by skitai.test_client for avoiding exist app service. 
+
+
+If your have so many tests, define cli at your conftest.py
+
+.. code:: python
+
+  import pytest
+  import skitai
+  
+  @pytest.fixture (scope = "session")
+  def cli ():
+    c = skitai.test_client ("./app.py", 6000)
+    yield c
+    c.stop ()
+
+And edit your test script:
+
+.. code:: python
+
+  import skitai
+  
+  def test_myapp (cli):    
+    resp = cli.get ("/")
+    assert "something" in resp.text    
+    
+    # api call
+    stub = cli.api ()
+    resp = stub.apis.pets (45).get ()
+    assert resp.data ["id"] == 45
+
+
+If you run test server at another console window for watching server error messages, give dry = True parameter.
+
+.. code:: python
+
+  @pytest.fixture (scope = "session")
+  def cli ():
+    c = skitai.test_client ("./app.py", 5000, dry = True)
+    yield c
+    c.stop ()
+
+This test client will not start Skitai server but access to port 5000 so you start server manually at another console,
+
+.. code:: bash
+
+  python3 app.py
+
+
 Project Purpose
 ===================
 
@@ -2455,6 +2583,7 @@ Change Log
 
 - 0.28 (Feb 2019)
   
+  - support SQLAlchemy query statement object 
   - removed sugar methods: was.getjson, getxml, postjson, ..., instead use headers parameter or app.config.default_request_type 
   - skitai.win32service has been moved to rs4.psutil.win32service
   - improve 'was' magic method search speed

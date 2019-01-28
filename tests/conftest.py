@@ -68,8 +68,8 @@ def dbpath ():
     conn = sqlite3.connect (DBPATH)
     c = conn.cursor()
     # Create table
-    c.execute('''CREATE TABLE IF NOT EXISTS stocks (date text, trans text, symbol text, qty real, price real)''')
-    c.execute("INSERT INTO stocks VALUES ('2006-01-05','BUY','RHAT',100,35.14)")    
+    c.execute('''CREATE TABLE IF NOT EXISTS stocks (id real, date text, trans text, symbol text, qty real, price real)''')
+    c.execute("INSERT INTO stocks VALUES (1, '2006-01-05','BUY','RHAT',100,35.14)")    
     conn.commit()
     c.fetchall()
     c.close ()
