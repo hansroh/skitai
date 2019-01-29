@@ -524,8 +524,8 @@ def run (**conf):
 			self.config_webserver (
 				port, conf.get ('address', '0.0.0.0'),
 				NAME, conf.get ("certfile") is not None,
-				conf.get ('keep_alive', 30), 
-				conf.get ('network_timeout', 30),
+				conf.get ('keep_alive', 2), 
+				conf.get ('network_timeout', 10),
 				thunks = [self.master_jobs]
 			)
 			
