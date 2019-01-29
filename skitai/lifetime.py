@@ -75,16 +75,18 @@ def maintern_zombie_channel (now):
 
 maintern = lifetime.Maintern ()
 def init (kill_zombie_interval = 10.0, logger = None):
-	global maintern
-	
+	global maintern	
 	lifetime.EXHAUST_DNS = False
 	lifetime._logger = logger
-	maintern.sched (kill_zombie_interval, lifetime.maintern_zombie_channel)
-	maintern.sched (300.0, lifetime.maintern_gc)
+	maintern.sched (kill_zombie_interval, lifetime.maintern_zombie_channel)	
+
+def manual_gc (interval = 60.0):
+	global maintern
+	maintern.sched (interval, lifetime.maintern_gc)
+	gc.disable ()
 
 def enable_memory_track (interval = 10.0):
-	global maintern
-		
+	global maintern		
 	maintern.sched (interval, lifetime.summary_track)	
 	
 def shutdown (exit_code, shutdown_timeout = 30.0):

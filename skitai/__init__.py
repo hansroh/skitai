@@ -173,6 +173,9 @@ def set_service (service_class):
 	global Win32Service	
 	Win32Service = service_class
 
+def manual_gc (interval = 60.0):
+	lifetime.manual_gc (interval)	
+	
 def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20):
 	from .http_server import http_server
 	from .https_server import https_server	
