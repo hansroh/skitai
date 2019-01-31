@@ -2545,6 +2545,7 @@ Change Log
 
 - 0.28 (Feb 2019)
   
+  - remove gc.collect () schedule
   - support SQLAlchemy query statement object 
   - removed sugar methods: was.getjson, getxml, postjson, ..., instead use headers parameter or app.config.default_request_type 
   - skitai.win32service has been moved to rs4.psutil.win32service
