@@ -184,11 +184,14 @@ class Module:
 			self.has_life_cycle and oldapp.life_cycle ("before_reload", self.wasc ())
 			
 			try:
-				self.module, self.abspath = importer.reimporter (self.module, self.directory, self.libpath)			
+				reloaded = importer.reimporter (self.module, self.directory, self.libpath)			
 			except:
 				self.module.app = oldapp
 				raise
 			else:
+				if not reloaded:				
+					return
+				self.module, self.abspath = reloaded
 				if hasattr (oldapp, "remove_events"):
 					oldapp.remove_events (self.bus)
 				PRESERVED = []

@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.0.4"
+__version__ = "0.28.1a2"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -17,6 +17,7 @@ from aquests.protocols.smtp import composer
 import tempfile
 import getopt
 from . import lifetime
+from . import mounted
 
 def test_client (*args, **kargs):
 	from .testutil.launcher import Launcher
