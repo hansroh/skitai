@@ -387,8 +387,14 @@ class WAS:
     # JWT token --------------------------------------------------
     def mkjwt (self, claim, alg = "HS256"):
         return jwt.gen_token (self.app.salt, claim, alg)
-    
-    def dejwt (self, token):        
+        
+    def dejwt (self, token = None):
+        if not token:
+            token_ = self.request.get_header ("authorization")
+            if not token_ or token_ [:8].lower () != "bearer: ":
+                return
+            token = token_ [8:]
+            
         try: 
             claims = jwt.get_claim (self.app.salt, token)
         except (TypeError, ValueError): 
