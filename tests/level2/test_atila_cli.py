@@ -10,6 +10,20 @@ def test_cli (app, dbpath):
     def index (was):
         return "Hello, World"
     
+    @app.route ("/petse/<int:id>")
+    def pets_error (was):
+        return "Pets"
+    
+    @app.route ("/pets", methods = ["POST"])
+    @app.route ("/pets/<int:id>")
+    def pets (was, id = None):
+        return "Pets{}".format (id)
+    
+    @app.route ("/pets2", methods = ["POST"])
+    @app.route ("/pets2/<int:id>")
+    def pets2 (was, id = None):
+        return "Pets{}".format (id)
+    
     @app.route ("/echo")
     def echo (was, m):
         return m
@@ -59,6 +73,31 @@ def test_cli (app, dbpath):
         
         resp = cli.get ("/hello")
         assert resp.text == "Hello, World"
+        
+        resp = cli.get ("/petse/1")
+        assert resp.status_code == 508
+        
+        resp = cli.get ("/pets/1")
+        assert resp.status_code == 200
+        assert resp.text == "Pets1"
+        
+        resp = cli.post ("/pets", {"a": 1})
+        assert resp.status_code == 200
+        assert resp.text == "PetsNone"
+        
+        resp = cli.get ("/pets")
+        assert resp.status_code == 405        
+        
+        resp = cli.get ("/pets2/1")
+        assert resp.status_code == 200
+        assert resp.text == "Pets1"
+        
+        resp = cli.post ("/pets2", {"a": 1})
+        assert resp.status_code == 200
+        assert resp.text == "PetsNone"
+        
+        resp = cli.get ("/pets2")
+        assert resp.status_code == 405
         
         resp = cli.get ("/echo?m=GET")
         assert resp.text == "GET"
