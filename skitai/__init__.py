@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.1a2"
+__version__ = "0.28.1a3"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -567,7 +567,7 @@ def run (**conf):
 			conf [k] = v
 	
 	if "---production" in sys.argv:
-		os.environ ["SKITAI_ENV"] == "PRODUCTION"
+		os.environ ["SKITAI_ENV"] = "PRODUCTION"
 	
 	if conf.get ("name"):
 		PROCESS_NAME = 'skitai/{}'.format (conf ["name"])				
