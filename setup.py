@@ -60,10 +60,9 @@ packages = [
 package_dir = {'skitai': 'skitai'}
 package_data = {}
 
-install_requires = [
-	"sqlphile",
+install_requires = [	
 	"aquests",	
-	"jsonrpclib-pelix==0.3.1"
+	"jsonrpclib-pelix"
 ]
 
 with codecs.open ('README.rst', 'r', encoding='utf-8') as f:
