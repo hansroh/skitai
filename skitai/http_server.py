@@ -348,14 +348,12 @@ class http_server (asyncore.dispatcher):
 		self.__last_maintern = time.time ()
 				
 		host, port = self.socket.getsockname()
-		if not ip:
-			ip = socket.gethostname()		
-		try:
-			ip = socket.gethostbyname (ip)
-			self.server_name = socket.gethostbyaddr (ip)[0]
+		hostname = socket.gethostname()
+		try:			
+			self.server_name = socket.gethostbyaddr (hostname)[0]
 		except socket.error:			
-			self.server_name = ip
-		self.hash_id = md5 (self.server_name.encode ('utf8')).hexdigest() [:4]
+			self.server_name = hostname
+		self.hash_id = md5 (self.server_name.encode ('utf8')).hexdigest() [:4]		
 		self.server_port = port
 		
 	def serve (self, shutdown_phase = 2):

@@ -104,7 +104,8 @@ def test_was (wasc, app, client):
     assert isinstance (was.email ("test", "a@anv.com", "b@anv.com"), composer.Composer)
     
     # tokens ------------------------------------------    
-    assert was.dejwt (was.mkjwt ({"a": 1})) == {"a": 1}
+    assert was.dejwt (was.mkjwt ({"a": 1, "exp": 3000000000})) == {"a": 1, "exp": 3000000000}
+    assert was.dejwt (was.mkjwt ({"a": 1, "exp": 1})) == {'err': 'token expired'}
     
     t = was.mktoken ({"a": 1})
     assert was.detoken (t) == {"a": 1}

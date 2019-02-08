@@ -386,27 +386,34 @@ class WAS:
     
     # JWT token --------------------------------------------------
     def mkjwt (self, claim, alg = "HS256"):
+        assert "exp" in claim, "exp claim required"            
         return jwt.gen_token (self.app.salt, claim, alg)
         
     def dejwt (self, token = None):
         if not token:
             token_ = self.request.get_header ("authorization")
-            if not token_ or token_ [:8].lower () != "bearer: ":
+            if not token_ or token_ [:7].lower () != "bearer ":
                 return
-            token = token_ [8:]
+            token = token_ [7:]
             
         try: 
             claims = jwt.get_claim (self.app.salt, token)
         except (TypeError, ValueError): 
-            return    
+            return {"err": "invalid token"}
         if claims is None:
-            return
+            return {"err": "invalid signature"}
+        now = time.time ()
+        if claims ["exp"] < now:
+            return {"err": "token expired"}
+        if "nbf" in claims and claims ["nbf"] > now:
+            return {"err": "token not activated yet"}
         if "username" in claims:
             self.request.user = JWTUser (claims)
+        self.request.JWT = claims    
         return claims
         
     # simple/session token  ----------------------------------------
-    def _unserialize (self, string):
+    def _unserialize_token (self, string):
         def adjust_padding (s):
             paddings = 4 - (len (s) % 4)
             if paddings != 4:
@@ -426,7 +433,7 @@ class WAS:
             return
         return pickle.loads (data)
     
-    def mktoken (self, obj, timeout = 1200, session_key = None):
+    def mkott (self, obj, timeout = 1200, session_key = None):
         wrapper = {
             'object': obj,
             'timeout': time.time () + timeout
@@ -441,10 +448,9 @@ class WAS:
         mac = hmac (self.app.salt, None, sha1)
         mac.update (data)
         return (base64.b64encode (mac.digest()).strip().rstrip (b'=') + b"?" + base64.b64encode (data).strip ().rstrip (b'=')).decode ("utf8")
-    token = mktoken
     
-    def detoken (self, string):
-        wrapper = self._unserialize (string)
+    def deott (self, string):
+        wrapper = self._unserialize_token (string)
         if not wrapper:
             return 
         
@@ -470,8 +476,9 @@ class WAS:
         obj = wrapper ['object']
         return obj
     
-    def rmtoken (self, string):
-        wrapper = self._unserialize (string)
+    def rvott (self, string):
+        # revoke token
+        wrapper = self._unserialize_token (string)
         session_token = wrapper.get ('_session_token')
         if not session_token:
             return
@@ -479,6 +486,10 @@ class WAS:
         if not self.session.get (tokey):
             return
         del self.session [tokey]
+    
+    mktoken = token = mkott
+    rmtoken = rvott
+    detoken = deott
         
     # CSRF token ------------------------------------------------------    
     CSRF_NAME = "_csrf_token"

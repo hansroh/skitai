@@ -36,7 +36,8 @@ class http_request:
 		self.args = {}
 		self.URL = {}
 		self.JSON = None
-		self.FORM = None		
+		self.FORM = None
+		self.JWT = None
 		self.set_log_info ()
 		self.make_response ()
 	

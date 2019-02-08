@@ -1,3 +1,6 @@
+# was.py
+# synchronouse WAS rquest service for app tesing
+
 from .. import wsgiappservice
 from ..rpc import cluster_dist_call
 from ..dbi import cluster_dist_call as dcluster_dist_call 

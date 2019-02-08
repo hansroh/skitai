@@ -2545,6 +2545,7 @@ Change Log
 
 - 0.28 (Feb 2019)
   
+  - fix GTXID
   - fix app reloader
   - remove gc.collect () schedule
   - support SQLAlchemy query statement object 

@@ -3,6 +3,7 @@ import confutil
 import skitai
 import asyncore
 import os
+from rs4 import jwt as jwt_
 
 def test_cli (app, dbpath):
     @app.route ("/hello")
@@ -22,6 +23,10 @@ def test_cli (app, dbpath):
     @app.route ("/pets2", methods = ["POST"])
     @app.route ("/pets2/<int:id>")
     def pets2 (was, id = None):
+        return "Pets{}".format (id)
+    
+    @app.route ("/pets3/<int:id>")
+    def pets3 (was, id = None):
         return "Pets{}".format (id)
     
     @app.route ("/echo")
@@ -56,6 +61,11 @@ def test_cli (app, dbpath):
         req = stub.execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
         res = req.getwait ()
         return was.response.api (data = res.data)
+    
+    @app.route ('/jwt')
+    @app.authorization_required ("bearer")
+    def jwt (was):
+        return was.response.api (was.request.JWT)
     
     @app.route ("/db2")
     def db2 (was):
@@ -99,6 +109,12 @@ def test_cli (app, dbpath):
         resp = cli.get ("/pets2")
         assert resp.status_code == 405
         
+        resp = cli.get ("/pets3")
+        assert resp.text == "PetsNone"
+        
+        resp = cli.get ("/pets3/1")
+        assert resp.text == "Pets1"
+        
         resp = cli.get ("/echo?m=GET")
         assert resp.text == "GET"
         
@@ -122,5 +138,14 @@ def test_cli (app, dbpath):
         
         resp = cli.get ("/pypi")
         assert "skitai" in resp.text
+        
+        app.securekey = "securekey"        
+        resp = cli.get ("/jwt", headers = {"Authorization": "Bearer {}".format (jwt_.gen_token (app.salt, {"exp": 3000000000, "username": "hansroh"}))})
+        assert resp.data == {'exp': 3000000000, 'username': 'hansroh'}
+        
+        resp = cli.get ("/jwt", headers = {"Authorization": "Bearer {}".format (jwt_.gen_token (app.salt, {"exp": 1, "username": "hansroh"}))})
+        assert resp.code == 401
+        assert resp.get_header ("WWW-Authenticate") == 'Bearer realm="App", error="token expired"'
+        app.securekey = None
         
         
