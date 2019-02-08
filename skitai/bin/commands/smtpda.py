@@ -13,8 +13,8 @@ import glob
 
 DEFAULT = """[smtpda]
 # SMTP Delivery Agent
-max-retry = 5
-keep-days = 1
+max-retry = 3
+keep-days = 3
 smtp-server =
 ssl = no
 user =
@@ -30,8 +30,8 @@ def hHUP (signum, frame):
 
 class	SMTPDeliverAgent (daemon_class.DaemonClass):
 	CONCURRENTS = 2
-	MAX_RETRY = 10
-	UNDELIVERS_KEEP_MAX = 2592000
+	MAX_RETRY = 3
+	UNDELIVERS_KEEP_MAX = 3600
 	NAME = "smtpda"
 
 	def __init__ (self, logpath, varpath, consol, config):
@@ -52,7 +52,7 @@ class	SMTPDeliverAgent (daemon_class.DaemonClass):
 		
 		val = self.config.get ("max_retry", 10)
 		if val: self.MAX_RETRY = val
-		val = self.config.get ("keep_days", 30)
+		val = self.config.get ("keep_days", 3)
 		if val: self.UNDELIVERS_KEEP_MAX = val * 3600 * 24
 		
 		if self.config.get ("smtpserver"):
@@ -103,7 +103,7 @@ class	SMTPDeliverAgent (daemon_class.DaemonClass):
 				request = async_smtp.SMTP_SSL
 			else:	
 				request = async_smtp.SMTP
-			request (cmps, self.logger, self.when_done)					
+			request (cmps, self.logger, self.when_done)
 			break
 	
 	def when_done (self, cmps, code, reps):
