@@ -41,7 +41,7 @@ class Module:
 				libpath, self.appname = libpath, "app"
 			self.libpath = libpath
 			self.script_name = "%s.py" % libpath
-			self.module, self.abspath = importer.importer (directory, libpath)	
+			self.module, self.abspath = importer.importer (directory, libpath)
 			self.start_app ()
 			
 		else:

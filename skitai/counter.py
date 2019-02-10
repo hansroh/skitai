@@ -1,4 +1,5 @@
 import multiprocessing
+import os
 
 class counter:
 	def __init__ (self, initial_value=0):
@@ -38,11 +39,19 @@ class counter:
 	def __str__ (self):
 		return str(int(self.value))
 
-
+class Value:
+	def __init__ (self, type, initial_value):
+		self.value = initial_value
+	
 class mpcounter:
 	def __init__ (self, initial_value=0):
-		self.value = multiprocessing.Value ("i", initial_value)
-		self.lock = multiprocessing.Lock ()
+		if os.environ.get ("SKITAI_ENV") == "PYTEST":
+			import threading
+			self.value = Value ("i", initial_value)
+			self.lock = threading.Lock ()			
+		else:
+			self.value = multiprocessing.Value ("i", initial_value)
+			self.lock = multiprocessing.Lock ()
 		
 	def inc(self, delta=1):
 		return self.increment(delta)

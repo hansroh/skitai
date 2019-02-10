@@ -10,23 +10,23 @@ def test_params (wasc, app, client):
 		k.sort ()
 		return " ".join (k)
 		
-	@app.route ("/do")
+	@app.route ("/do", methods = ["GET", "POST"])
 	def index (was):
 		return z (was)
 	
-	@app.route ("/do2")
+	@app.route ("/do2", methods = ["GET", "POST"])
 	def index2 (was, a):
 		return z (was)
 	
-	@app.route ("/do3/<u>")
+	@app.route ("/do3/<u>", methods = ["GET", "POST"])
 	def index3 (was, **args):
 		return z (was)
 	
-	@app.route ("/do4/<u>")
+	@app.route ("/do4/<u>", methods = ["GET", "POST"])
 	def index4 (was, u, a, b):
 		return z (was)
 	
-	@app.route ("/do5/<u>")
+	@app.route ("/do5/<u>", methods = ["GET", "POST"])
 	def index5 (was, u, a):
 		return z (was)
 		

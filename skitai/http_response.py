@@ -523,15 +523,15 @@ class http_response:
 	
 	# API methods ------------------------------------------------------------
 	def API (self, __data_dict__ = None, **kargs):
+		if isinstance (__data_dict__, str):
+			self.set_status (__data_dict__)
+			__data_dict__ = None
 		return API (self.request, __data_dict__ or kargs)
 	api = API
 		
 	def Fault (self, status = "200 OK", *args, **kargs):
-		if status [0] == "2":
-			r = self.api (*args, **kargs)
-		else:
-			self.set_status (status)
-			r = self.fault (*args, **kargs)
+		self.set_status (status)
+		r = self.fault (*args, **kargs)
 		return self (status, r)
 	for_api = Fault
 	

@@ -58,7 +58,7 @@ class Client:
         headers = ["%s: %s" % each for each in r.get_headers ()]
         return http_request (channel.Channel (), "%s %s HTTP/%s" % (m, u, v), m.lower (), u, v, headers)
                
-    def make_request (self, method, uri, data, headers, auth = None, meta = {}, version = "1.1"):
+    def make_request (self, method, uri, data, headers, auth = None, meta = {}, version = "1.1"):        
         method = method.upper ()
         if isinstance (headers, dict):
             headers = [(k, v) for k, v in headers.items ()]

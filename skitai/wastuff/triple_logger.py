@@ -1,6 +1,10 @@
-import multiprocessing
+import os
 from rs4 import pathtool, logger
-
+if os.environ.get ("SKITAI_ENV") == "PYTEST":
+    from threading import Lock
+else:    
+    from multiprocessing import Lock
+    
 class Logger:
 	def __init__ (self, media, path):
 		self.media = type (media) is list and media  or [media]		
@@ -8,7 +12,7 @@ class Logger:
 		if self.path: 
 			pathtool.mkdir (path)			
 		self.logger_factory = {}
-		self.lock = multiprocessing.Lock ()
+		self.lock = Lock ()
 		
 		self.make_logger ("server", "monthly")
 		self.make_logger ("app", "daily")

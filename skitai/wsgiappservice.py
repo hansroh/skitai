@@ -7,7 +7,6 @@ import json
 import xmlrpc.client as xmlrpclib
 import base64
 import pickle
-from multiprocessing import RLock
 import random
 import threading
 from rs4 import pathtool, logger, jwt
@@ -29,6 +28,10 @@ from .wastuff.triple_logger import Logger
 from .wastuff import django_adaptor
 from .wastuff.api import DateEncoder
 from rs4.attrdict import AttrDict
+if os.environ.get ("SKITAI_ENV") == "PYTEST":
+    from threading import RLock
+else:    
+    from multiprocessing import RLock
 
 if os.name == "nt":
     TEMP_DIR =  os.path.join (tempfile.gettempdir(), "skitai-gentemp")

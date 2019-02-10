@@ -15,13 +15,11 @@ def test_cli (app, dbpath):
     def pets_error (was):
         return "Pets"
     
-    @app.route ("/pets", methods = ["POST"])
-    @app.route ("/pets/<int:id>")
+    @app.route ("/pets/<int:id>", methods = ["GET", "POST"])
     def pets (was, id = None):
         return "Pets{}".format (id)
     
-    @app.route ("/pets2", methods = ["POST"])
-    @app.route ("/pets2/<int:id>")
+    @app.route ("/pets2/<int:id>", methods = ["POST"])
     def pets2 (was, id = None):
         return "Pets{}".format (id)
     
@@ -96,11 +94,13 @@ def test_cli (app, dbpath):
         assert resp.text == "PetsNone"
         
         resp = cli.get ("/pets")
-        assert resp.status_code == 405        
+        assert resp.status_code == 200        
         
         resp = cli.get ("/pets2/1")
-        assert resp.status_code == 200
-        assert resp.text == "Pets1"
+        assert resp.status_code == 405
+        
+        resp = cli.post ("/pets2/1", {"id": 1})
+        assert resp.status_code == 200        
         
         resp = cli.post ("/pets2", {"a": 1})
         assert resp.status_code == 200
@@ -113,6 +113,7 @@ def test_cli (app, dbpath):
         assert resp.text == "PetsNone"
         
         resp = cli.get ("/pets3/1")
+        print (resp)
         assert resp.text == "Pets1"
         
         resp = cli.get ("/echo?m=GET")

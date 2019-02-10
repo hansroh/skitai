@@ -26,7 +26,11 @@ from aquests.dbapi.dbconnect import DBConnect
 import asyncore
 from .launcher  import launch
 from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS
- 
+if os.environ.get ("SKITAI_ENV") == "PYTEST":
+    from threading import RLock
+else:    
+    from multiprocessing import RLock
+     
 def logger ():
     return triple_logger.Logger ("screen", None)    
 
@@ -112,7 +116,7 @@ def setup_was (wasc):
         
     wasc.register ("httpserver", server.Server (wasc.logger))
     wasc.register ("debug", False)
-    wasc.register ("plock", multiprocessing.RLock ())
+    wasc.register ("plock", RLock ())
     
     wasc.register ("clusters",  {})
     wasc.register ("clusters_for_distcall",  {"__socketpool__": None, "__dbpool__": None})

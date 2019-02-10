@@ -8,7 +8,8 @@ from skitai import DB_SQLITE3, DB_PGSQL, DB_REDIS, DB_MONGODB
 from rs4 import webtest
 import random
 from urllib.parse import urlparse, urlunparse       
-
+from ..wastuff import modelkeys
+ 
 class Result:
     def __init__ (self, status, response = None):
         self.status = status
@@ -99,13 +100,24 @@ class DBCall (ProtoCall):
         for conn in conns:
             conn.close ()
         callback and callback (self.result)
-        
+
+class ModelKeys (modelkeys.ModelKeys):
+    def __init__ (self):
+        self._arr = [0] * 1024        
+        self._d = {}
+            
+    def set (self, k, v, ignore_nokey = False):
+        if k not in self._d:
+            self._d [k] = len (self._d)
+        self._arr [self._d [k]] = v
         
 class WAS (wsgiappservice.WAS):
+    numthreads = 1 
+    _luwatcher = ModelKeys ()
+    
     def _create_rest_call (self, cluster, *args, **kargs):
         return ProtoCall (cluster, *args, **kargs)
     
     def _create_dbo (self, cluster, *args, **kargs):
         return dcluster_dist_call.Proxy (DBCall, cluster, *args, **kargs)
-    
     
