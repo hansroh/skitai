@@ -19,7 +19,7 @@ def process_request (request, handler = None):
     handler = handler or get_default_handler ()
     assert handler.match (request)
     handler.handle_request (request)
-    if request.command in ('post', 'put', 'patch'):
+    if request.collector and request.command in ('post', 'put', 'patch'):
         request.collector.collect_incoming_data (request.payload)
         request.collector.found_terminator ()        
     return request    
