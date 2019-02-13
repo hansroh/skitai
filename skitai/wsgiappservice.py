@@ -77,7 +77,7 @@ class WAS:
     _luwatcher = None
     _stwatcher = None
     
-    lock = RLock ()
+    lock = plock = RLock ()
     init_time = time.time ()    
     
     METHODS = [
@@ -91,6 +91,11 @@ class WAS:
     def __init__ (self):
         for method in self.METHODS:
             setattr (self, method, Command (method, self._call))            
+    
+    _process_locks = [RLock () for i in range (8)]
+    @classmethod    
+    def get_lock (cls, name = "__main__"):
+        return cls._process_locks [hash (name) % 8]
     
     # application friendly methods -----------------------------------------
     @classmethod
@@ -156,7 +161,7 @@ class WAS:
             return self.clusters_for_distcall ["{}:{}".format (clustername, self.app.app_name)], "/" + uri            
         except (KeyError, AttributeError):
             return self.clusters_for_distcall [clustername], "/" + uri
-        
+            
     def in__dict__ (self, name):
         return name in self.__dict__
     

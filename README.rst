@@ -2068,7 +2068,8 @@ Utility Methods of 'was'
 
 This chapter's 'was' services are also avaliable for all WSGI middelwares.
 
-- was.status () # HTML formatted status information like phpinfo() in PHP.
+- was.status () # HTML formatted status information
+- was.get_lock (name = "__main__") # getting process lock
 - was.gentemp () # return temp file name with full path
 - was.restart () # Restart Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
 - was.shutdown () # Shutdown Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
