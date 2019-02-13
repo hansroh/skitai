@@ -36,10 +36,6 @@ from .wastuff import selective_logger
 from .wastuff.semaps import Semaps
 from .dbi import cluster_manager as dcluster_manager
 from .rpc import cluster_manager as rcluster_manager
-if os.environ.get ("SKITAI_ENV") == "PYTEST":
-    from threading import RLock
-else:    
-    from multiprocessing import RLock
 
 class Loader:
 	def __init__ (self, config = None, logpath = None, varpath = None, wasc = None, debug = 0):		
@@ -71,8 +67,7 @@ class Loader:
 	def WAS_initialize (self):
 		self.wasc.log_base_path = self.logpath
 		self.wasc.var_base_path = self.varpath				
-		self.wasc.register ("debug", self.debug)
-		self.wasc.register ("plock", RLock ())
+		self.wasc.register ("debug", self.debug)		
 		self.wasc.register ("clusters",  {})
 		self.wasc.register ("clusters_for_distcall",  {})
 		self.wasc.register ("workers", 1)
