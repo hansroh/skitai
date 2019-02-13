@@ -74,16 +74,25 @@ def maintern_zombie_channel (now):
 					channel.handle_error ()
 
 maintern = lifetime.Maintern ()
-def init (kill_zombie_interval = 10.0, logger = None):
+def init (kill_zombie_interval = 60.0, logger = None):
 	global maintern	
 	lifetime.EXHAUST_DNS = False
 	lifetime._logger = logger
 	maintern.sched (kill_zombie_interval, lifetime.maintern_zombie_channel)
-	maintern.sched (60.0, lifetime.maintern_gc)	
+	maintern.sched (60.0, maintern_gc)
+	if "---gc" in sys.argv:
+		gc.set_debug (gc.DEBUG_SAVEALL)	
 
+def maintern_gc (now):
+	gc.collect ()
+	if "---gc" in sys.argv:
+		print ("# Garbages collected ===========================")
+		for item in gc.garbage:
+			print ("  -", item)	
+	
 def manual_gc (interval = 60.0):
 	global maintern
-	maintern.sched (60.0, lifetime.maintern_gc)
+	maintern.sched (interval, maintern_gc)
 	gc.disable ()
 
 def enable_memory_track (interval = 10.0):
