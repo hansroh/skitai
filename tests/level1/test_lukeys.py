@@ -3,11 +3,11 @@ import time
 import random
 import pytest
 from unittest.mock import MagicMock
-from skitai.wastuff.modelkeys import ModelKeys
+from skitai.wastuff.semaps import Semaps
 
 def test_models_in_storage (wasc):
 	was = wasc ()
-	was._luwatcher = ModelKeys (["a", "b"])	
+	was._luwatcher = Semaps (["a", "b"])	
 	was.apps = MagicMock ()
 	was.setlu ('a')
 	assert time.time () - was.getlu ('a') < 1

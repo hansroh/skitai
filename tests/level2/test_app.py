@@ -2,6 +2,7 @@ from confutil import rprint, assert_request
 import confutil
 import jinja2
 import os
+import time
 
 def test_atila (wasc, app):			
 	was = wasc ()
@@ -21,17 +22,17 @@ def test_with_resource (wasc, app):
 def test_events (wasc, app):
 	@app.on ("pytest:event")
 	def a (was):
-		app.storage.set ("a", 256)
+		app.store.set ("a", 256)
 	
 	@app.route ("/")
 	def b	(was):
 		was.app.emit ("pytest:event")
-		return app.storage.get ("a")
+		return app.store.get ("a")
 		
 	was = wasc ()
 	was.app = app
 	assert b (was) == 256
-	
+
 def test_broadcast (wasc, app):			
 	was = wasc ()
 	was.app = app

@@ -4,6 +4,7 @@ import skitai
 import asyncore
 import os
 from rs4 import jwt as jwt_
+import time
 
 def test_cli (app, dbpath):
     @app.route ("/hello")
@@ -72,6 +73,16 @@ def test_cli (app, dbpath):
         res = req.getwait ()
         return was.response.api (data = res.data)
     
+    @app.maintain
+    def increase (was, now, count):
+        if "total-user" in app.store:
+            app.store.set ("total-user", app.store.get ("total-user") + 100)        
+        
+    @app.route ("/getval")
+    def getval (was):
+        ret = str (app.store.get ("total-user"))
+        return ret
+        
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")    
     app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)
     app.alias ("@postgres", skitai.DB_POSTGRESQL, "postgres:4000Wkwkdaus@192.168.0.80/coin_core")
@@ -122,7 +133,7 @@ def test_cli (app, dbpath):
         resp = cli.post ("/json", {"m": "POST"})
         assert resp.text == '{"data": "POST"}'
         
-        resp = cli.postjson ("/json", {"m": "POST"})
+        resp = cli.post ("/json", {"m": "POST"})
         assert resp.text == '{"data": "POST"}'
     
         resp = cli.get ("/db2")
@@ -148,5 +159,18 @@ def test_cli (app, dbpath):
         assert resp.code == 401
         assert resp.get_header ("WWW-Authenticate") == 'Bearer realm="App", error="token expired"'
         app.securekey = None
+        
+        app.config.maintain_interval = 1
+        app.store.set ("total-user", 100)
+        resp = cli.get ("/getval")        
+        assert resp.text == '100'
+        
+        for i in range (3):
+            resp = cli.get ("/getval")
+            time.sleep (1)
+        print ("-------->",resp.text)
+        print ("-------->", app.store.get ("total-user"))
+        assert int (resp.text) >= 200
+        
         
         

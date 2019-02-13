@@ -8,7 +8,7 @@ from skitai import DB_SQLITE3, DB_PGSQL, DB_REDIS, DB_MONGODB
 from rs4 import webtest
 import random
 from urllib.parse import urlparse, urlunparse       
-from ..wastuff import modelkeys
+from ..wastuff import semaps
  
 class Result:
     def __init__ (self, status, response = None):
@@ -101,7 +101,7 @@ class DBCall (ProtoCall):
             conn.close ()
         callback and callback (self.result)
 
-class ModelKeys (modelkeys.ModelKeys):
+class Semaps (semaps.Semaps):
     def __init__ (self):
         self._arr = [0] * 1024        
         self._d = {}
@@ -113,7 +113,8 @@ class ModelKeys (modelkeys.ModelKeys):
         
 class WAS (wsgiappservice.WAS):
     numthreads = 1 
-    _luwatcher = ModelKeys ()
+    _luwatcher = Semaps ()
+    _stwatcher = Semaps ()
     
     def _create_rest_call (self, cluster, *args, **kargs):
         return ProtoCall (cluster, *args, **kargs)

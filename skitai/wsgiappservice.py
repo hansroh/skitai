@@ -75,6 +75,7 @@ class WAS:
     version = __version__    
     objects = {}    
     _luwatcher = None
+    _stwatcher = None
     
     lock = RLock ()
     init_time = time.time ()    
@@ -384,6 +385,18 @@ class WAS:
         mtimes = []
         for name in names:
             mtime = self._luwatcher.get (name, self.init_time)
+            mtimes.append (mtime)
+        return max (mtimes)
+    
+    def setgs (self, name, v, *args, **kargs):
+        assert isinstance (v, int) 
+        self._stwatcher.set (name, time.time ())
+        self.broadcast (name, v, *args, **karg)            
+        
+    def getgs (self, *names):
+        mtimes = []
+        for name in names:
+            mtime = self._stwatcher.get (name, self.init_time)
             mtimes.append (mtime)
         return max (mtimes)
     

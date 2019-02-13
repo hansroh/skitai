@@ -1,26 +1,29 @@
 import multiprocessing
 
-class ModelKeys:
-	def __init__ (self, keys):
+class Semaps:	
+	def __init__ (self, keys, type = "d"):
 		self._keys  = keys
-		self._arr = multiprocessing.Array ('d', [0.0] * len (keys), lock = multiprocessing.RLock ())		
+		if type == "d":
+			initial_val = 0.0
+		else:
+			initial_val = 0	 
+		self._arr = multiprocessing.Array (type, [initial_val] * len (keys), lock = multiprocessing.RLock ())		
 		self._d = {}
 		for i in range (len (keys)):
 			self._d [keys [i]] = i
 	
 	def __len__ (self):
-		return len (self.__d)
+		return len (self._d)
 		
 	def __contains__ (self, k):
-		with self.__lock:
-			return k in self.__d
+		return k in self._d
 			
 	def __setitem__ (self, k, v):
 		self.set (k, v)
 	
 	def __getitem__ (self, k):
 		return self._d [k]
-		
+			
 	def set (self, k, v, ignore_nokey = False):
 		try:
 			self._arr [self._d [k]] = v
@@ -35,6 +38,9 @@ class ModelKeys:
 			return d
 		return v or d
 	
+	def has_key (self, k):
+		return self._d.has_key (k)
+
 	def keys (self):
 		return self._keys [:]
 	
@@ -50,5 +56,3 @@ class ModelKeys:
 			t.append ((self._keys [i], self._arr [i]))
 		return t
 	
-	def has_key (self, k):
-		return self.__d.has_key (k)

@@ -6,7 +6,7 @@ import shutil, os, glob, time
 def test_tirple_logger ():
 	rlog.rotate_logger.PRESERVE_MAX = 3
 	
-	logpath = './unitests/logs'	
+	logpath = './unitests/logs'
 	logger = triple_logger.Logger ("screen", None)
 	assert len (logger.logger_factory) == 3
 	logger = triple_logger.Logger (["file", "screen"], logpath)

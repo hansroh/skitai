@@ -1994,6 +1994,63 @@ Focus 3rd line above log message. Then you can trace a series of API calls from 
 In next chapters' features of 'was' are only available for *Atila WSGI container*. So if you have no plan to use Atila, just skip.
 
 
+Inter-Processes State Sharing
+-------------------------------------------
+
+Skitai can run with multiple processes (a.k workers), It is possible matters synchronizing state between workers.
+
+Like was.setlu () or getlu (), was provide setgs (), getgs ().
+
+Most important thing is global state keys SHUOLD be defined before running skitai. And argument should be integer value.
+
+.. code:: python
+
+  skitai.defgs ("cluster.num-nodes", "region.somethig", ...)  
+  ...
+  
+  skitai.run ()
+  
+Then you cna use these,
+
+.. code:: python
+  
+  @app.route ("/nodes", method = ["POST", "DELETE"])
+  def nodes (was, **nodinfos):
+  	...
+  	was.setgs ("cluster.num-nodes", was.getgs ("cluster.num-nodes") + 1, **nodeinfos)  	
+
+As a result,
+
+- cluster.num-nodes state value has been increased
+- "cluster.num-nodes" and  \*\*nodeinfos are broadcated to mounted all *Atila* apps.
+
+A app has interest for this,
+
+.. code:: python
+
+  @app.on_broadcast ("cluster.num-nodes")
+  def num_nodes_changed (num_nodes, **nodeinfos):
+    ...
+
+But this broadcasting is just within current workers. 
+
+All workers has interested in this event, You may add watching routine at app.maintain.
+
+.. code:: python
+  
+  app.config.maintain_interval = 60
+  app.store ["num_nodes"] = 0
+  
+  @app.maintain
+  def maintain_num_nodes (was, now):
+  	...
+  	num_nodes = was.getgs ("cluster.num-nodes")
+  	if app.store ["num_nodes"] != num_nodes:
+  	  app.store ["num_nodes"] = num_nodes
+  	  app.broadcast ("cluster:num_nodes")
+
+
+
 Websocket Related Methods of 'was'
 ------------------------------------
 

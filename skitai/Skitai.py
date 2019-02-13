@@ -33,7 +33,7 @@ from .dbi import cluster_dist_call as dcluster_dist_call
 import types
 from .handlers.websocket import servers as websocekts
 from .wastuff import selective_logger
-from .wastuff.modelkeys import ModelKeys
+from .wastuff.semaps import Semaps
 from .dbi import cluster_manager as dcluster_manager
 from .rpc import cluster_manager as rcluster_manager
 if os.environ.get ("SKITAI_ENV") == "PYTEST":
@@ -82,8 +82,11 @@ class Loader:
 		self.switch_to_await_fifo ()
 	
 	def set_model_keys (self, keys):
-		self.wasc._luwatcher = ModelKeys (keys)
-			
+		self.wasc._luwatcher = Semaps (keys, "d")
+	
+	def set_state_keys (self, keys):
+		self.wasc._stwatcher = Semaps (keys, "i")
+				
 	def app_cycle (self, func):
 		for h in self.wasc.httpserver.handlers:
 			if isinstance (h, vhost_handler.Handler):

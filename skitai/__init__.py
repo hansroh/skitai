@@ -233,6 +233,13 @@ def deflu (*key):
 	dconf ["models-keys"].extend (key)
 addlu = trackers = lukeys = deflu
 
+def defgs (*key):
+	if "states-keys" not in dconf:
+		dconf ["states-keys"] = []
+	if isinstance (key [0], (list, tuple)):
+		key = list (key [0])
+	dconf ["states-keys"].extend (key)
+	
 def maybe_django (wsgi_path, appname):
 	if not isinstance (wsgi_path, str):
 		return
@@ -479,6 +486,7 @@ def run (**conf):
 				self.wasc.logger ("server", "[info] engine log path: %s" % self.logpath)
 			
 			self.conf.get ("models-keys") and self.set_model_keys (self.conf ["models-keys"])
+			self.conf.get ("states-keys") and self.set_state_keys (self.conf ["states-keys"])
 						
 		def maintern_shutdown_request (self, now):
 			req = self.flock.lockread ("signal")
