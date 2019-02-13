@@ -2602,6 +2602,7 @@ Change Log
 
 - 0.28 (Feb 2019)
   
+  - reinstate gc.collect () schedule
   - fix GTXID
   - fix app reloader
   - remove gc.collect () schedule

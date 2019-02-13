@@ -6,7 +6,7 @@ variables:
 
 cache:
   paths:
-    - .cache/pip
+#- .cache/pip
     - venv/
 
 before_script:
