@@ -423,6 +423,15 @@ def argopt (sopt = "", lopt = []):
 		aopt_.append (arg)
 	return opts_, aopt_	
 
+def getsysopt (name, default):
+	try: 
+		return sys.argv [sys.argv.index ("---{}".format (name)) + 1]
+	except ValueError:
+		return default
+
+def hassysopt (name):
+	return "---{}".format (name) in sys.argv
+		
 def get_command ():
 	global OPTLIST
 	

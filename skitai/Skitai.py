@@ -33,9 +33,12 @@ from .dbi import cluster_dist_call as dcluster_dist_call
 import types
 from .handlers.websocket import servers as websocekts
 from .wastuff import selective_logger
-from .wastuff.semaps import Semaps
 from .dbi import cluster_manager as dcluster_manager
 from .rpc import cluster_manager as rcluster_manager
+if os.environ.get ("SKITAI_ENV") == "PYTEST":
+    from .testutil.was import Semaps
+else:    
+    from .wastuff.semaps import Semaps
 
 class Loader:
 	def __init__ (self, config = None, logpath = None, varpath = None, wasc = None, debug = 0):		
@@ -76,7 +79,7 @@ class Loader:
 		self.wasc.register ("websockets", websocekts.websocket_servers)
 		self.switch_to_await_fifo ()
 	
-	def set_model_keys (self, keys):
+	def set_model_keys (self, keys):		
 		self.wasc._luwatcher = Semaps (keys, "d")
 	
 	def set_state_keys (self, keys):

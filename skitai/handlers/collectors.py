@@ -45,7 +45,7 @@ class FormCollector:
 		self.request.collector = None  # break circ. ref
 		self.request.channel.set_terminator (b'\r\n\r\n')
 		
-		body = self.buffer.getvalue ()
+		body = self.buffer.getvalue ()		
 		if body:
 			self.request.set_body (body)
 			self.buffer.seek (0)

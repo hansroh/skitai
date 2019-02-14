@@ -162,14 +162,8 @@ def test_cli (app, dbpath):
         
         app.config.maintain_interval = 1
         app.store.set ("total-user", 100)
-        resp = cli.get ("/getval")        
-        assert resp.text == '100'
-        
-        for i in range (3):
-            resp = cli.get ("/getval")
-            time.sleep (1)
-        print ("-------->",resp.text)
-        print ("-------->", app.store.get ("total-user"))
+        time.sleep (2)
+        resp = cli.get ("/getval")
         assert int (resp.text) >= 200
         
         

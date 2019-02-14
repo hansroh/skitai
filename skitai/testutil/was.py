@@ -102,7 +102,7 @@ class DBCall (ProtoCall):
         callback and callback (self.result)
 
 class Semaps (semaps.Semaps):
-    def __init__ (self):
+    def __init__ (self, keys = [], tpye= "d"):
         self._arr = [0] * 1024        
         self._d = {}
             

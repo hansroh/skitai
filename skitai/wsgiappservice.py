@@ -29,9 +29,9 @@ from .wastuff import django_adaptor
 from .wastuff.api import DateEncoder
 from rs4.attrdict import AttrDict
 if os.environ.get ("SKITAI_ENV") == "PYTEST":
-    from threading import RLock
+    from threading import RLock    
 else:    
-    from multiprocessing import RLock
+    from multiprocessing import RLock    
 
 if os.name == "nt":
     TEMP_DIR =  os.path.join (tempfile.gettempdir(), "skitai-gentemp")

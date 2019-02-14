@@ -106,7 +106,7 @@ class http_request:
 	
 	def dict (self):
 		if not self.body:
-			return		
+			return {}
 		ct = self.get_header ('content-type', '')
 		if ct.startswith ("application/json"):
 			return self.json ()

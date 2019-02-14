@@ -9,10 +9,16 @@ import os
 import xmlrpc.client 
     
 class Launcher (webtest.Target):
-    def __init__ (self, script, port, ssl = False, silent = True, dry = False):
+    def __init__ (self, script, port, ssl = False, silent = True, dry = False, **kargs):
         self.__script = script
         self.__port = port
         
+        self.__start_opts = ["---port", str (port)]
+        for k, v in kargs:
+            self.__start_opts.append ("---{}".format (k))
+            if v:
+                self.__start_opts.append (str (v))
+            
         endpoint = "http{}://127.0.0.1".format (ssl and "s" or "")
         endpoint += ":{}".format (port)
         webtest.Target.__init__ (self, endpoint)
@@ -31,10 +37,10 @@ class Launcher (webtest.Target):
             if self.__is_running ():
                 self.__servicing = True
             else:    
-                self.__p.start ([sys.executable, self.__script, "-d", "---port", str (self.__port)])
+                self.__p.start ([sys.executable, self.__script, "-d"] + self.__start_opts)
                 self.__wait_until ("running")
         else:
-            self.__p.start ([sys.executable, self.__script, "---port", str (self.__port)])
+            self.__p.start ([sys.executable, self.__script]  + self.__start_opts)
             time.sleep (3)
         self.__closed = False
         
