@@ -1,3 +1,6 @@
 cd tests
-pytest --cov=../skitai
+pytest level1
+pytest level2
+pytest level3
+pytest level4
 
