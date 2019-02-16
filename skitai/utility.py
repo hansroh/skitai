@@ -7,6 +7,9 @@ except ImportError:
 import json
 from hashlib import md5
 import random
+from rs4 import producers
+from .wastuff.api import API
+from collections import Iterator
 
 ####################################################################################
 # Utitlities
@@ -120,4 +123,81 @@ def md5uniqid (length = 13):
     for i in range (0, length):
         _id += random.choice(ALNUM)
     return md5 (_id.encode ("utf8")).hexdigest ()[length:]
+
+
+def make_pushables (response, content):
+    if not response.is_responsable ():
+        # already called response.done () or diconnected channel
+        return
+        
+    if content is None: # Possibly no return mistake
+        raise AssertionError ("Content or part should not be None")
+    
+    if not content: # explicit empty not content
+        trigger.wakeup (lambda p=response: (p.done(),))
+        return
+            
+    if response ["content-type"] is None: 
+        response ["Content-Type"] = "text/html"
+    
+    if type (content) not in (list, tuple):
+        content = (content,) # make iterable
+
+    will_be_push = []
+    if len (response) == 0:
+        content_length = 0
+    else:
+        content_length = None
+    
+    for part in content:                
+        # like Django response
+        try: part = part.content
+        except AttributeError: pass
+            
+        type_of_part = type (part)
+        
+        if isinstance (part, API):
+            response.update ("Content-Type", part.get_content_type ())
+            part = part.to_string ().encode ("utf8")
+            will_be_push.append (part)
+            
+        elif type_of_part in (bytes, str):
+            if len (part) == 0:
+                continue
+            if type_of_part is not bytes:
+                try: 
+                    part = part.encode ("utf8")
+                except AttributeError:
+                    raise AssertionError ("%s is not supportable content type" % str (type (part)).replace ("<", "&lt;").replace (">", "&gt;"))                                
+                type_of_part = bytes
+                
+            if type_of_part is bytes:
+                if content_length is not None:
+                    content_length += len (part)
+                will_be_push.append (part)
+        
+        else:    
+            if hasattr (part, "read"):
+                part = producers.closing_stream_producer (part)                
+            elif type (part) is list:
+                part = producers.list_producer (part)
+            elif isinstance(part, Iterator): # flask etc.
+                part = producers.iter_producer (part)
+            
+            if hasattr (part, "more"):
+                # producer
+                content_length = None
+                # automatic close    when channel suddenly closed
+                hasattr (part, "close") and response.die_with (part)
+                # streaming obj
+                hasattr (part, "ready") and response.set_streaming ()
+                will_be_push.append (part)
+            
+            else:
+                raise AssertionError ("Unsupoorted response object")
+    
+    if content_length is not None:
+        response ["Content-Length"] = content_length
+    
+    return will_be_push    
     

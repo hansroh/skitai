@@ -9,15 +9,14 @@ from skitai.http_response import catch
 from aquests.athreads import trigger
 from . import collectors
 from skitai import version_info, was as the_was
-from collections import Iterator
-from ..wastuff.api import API
 import threading
 try:
 	from cStringIO import StringIO as BytesIO
 except ImportError:
 	from io import BytesIO
 import skitai
-
+from ..utility import make_pushables
+from ..wastuff import futures
 	
 header2env = {
 	'content-length'	: 'CONTENT_LENGTH',
@@ -25,10 +24,7 @@ header2env = {
 	'connection'		: 'CONNECTION_TYPE'
 	}
 
-PY_MAJOR_VERSION = sys.version_info.major
 SKITAI_VERSION = ".".join (map (lambda x: str (x), version_info [:3]))
-if PY_MAJOR_VERSION == 3:	
-	unicode = str
 	
 class Handler:
 	GATEWAY_INTERFACE = 'CGI/1.1'	
@@ -226,8 +222,8 @@ class Handler:
 			self.wasc.queue.put (Job (request, apph, args, self.apps, self.wasc.logger))	
 		else:
 			Job (request, apph, args, self.apps, self.wasc.logger) ()
-			
 
+				
 class Job:
 	# Multi-Threaded Jobs
 	def __init__(self, request, apph, args, apps, logger):
@@ -251,88 +247,18 @@ class Job:
 		response = request.response
 		
 		try:			
-			content = self.apph (*self.args)			
-			if not response.is_responsable ():
-				# already called response.done () or diconnected channel
+			content = self.apph (*self.args)
+			if isinstance (content, futures.Futures):
 				return
-				
-			if content is None: # Possibly no return mistake
-				raise AssertionError ("Content or part should not be None")
-			
-			if not content: # explicit empty not content
-				trigger.wakeup (lambda p=response: (p.done(),))
-				return
-					
-			if response ["content-type"] is None: 
-				response ["Content-Type"] = "text/html"
-			
-			if type (content) not in (list, tuple):
-				content = (content,) # make iterable
-
-			will_be_push = []
-			if len (response) == 0:
-				content_length = 0
-			else:
-				content_length = None
-			
-			for part in content:				
-				# like Django response
-				try: part = part.content
-				except AttributeError: pass
-					
-				type_of_part = type (part)
-				
-				if isinstance (part, API):
-					response.update ("Content-Type", part.get_content_type ())
-					part = part.to_string ().encode ("utf8")
-					will_be_push.append (part)
-					
-				elif type_of_part in (bytes, str, unicode):
-					if len (part) == 0:
-						continue
-					if type_of_part is not bytes: # unicode
-						try: 
-							part = part.encode ("utf8")
-						except AttributeError:
-							raise AssertionError ("%s is not supportable content type" % str (type (part)).replace ("<", "&lt;").replace (">", "&gt;"))								
-						type_of_part = bytes
-						
-					if type_of_part is bytes:
-						if content_length is not None:
-							content_length += len (part)
-						will_be_push.append (part)
-				
-				else:	
-					if hasattr (part, "read"):
-						part = producers.closing_stream_producer (part)				
-					elif type (part) is list:
-						part = producers.list_producer (part)
-					elif isinstance(part, Iterator): # flask etc.
-						part = producers.iter_producer (part)
-					
-					if hasattr (part, "more"):
-						# producer
-						content_length = None
-						# automatic close	when channel suddenly closed
-						hasattr (part, "close") and response.die_with (part)
-						# streaming obj
-						hasattr (part, "ready") and response.set_streaming ()
-						will_be_push.append (part)
-					
-					else:
-						raise AssertionError ("Unsupoorted response object")
-			
-			if content_length is not None:
-				response ["Content-Length"] = content_length
-				
+			will_be_push = make_pushables (response, content)			
 		except MemoryError:
 			raise
-			
 		except:			
 			was.traceback ()
-			trigger.wakeup (lambda p=response, d=self.apph.debug and sys.exc_info () or None: (p.error (508, "Application Error", d), p.done ()) )			
-				
+			trigger.wakeup (lambda p=response, d=self.apph.debug and sys.exc_info () or None: (p.error (508, "Application Error", d), p.done ()) )
 		else:
+			if will_be_push is None:
+				return
 			for part in will_be_push:				
 				if len (will_be_push) == 1 and type (part) is bytes and len (response) == 0:
 					response.update ("Content-Length", len (part))
