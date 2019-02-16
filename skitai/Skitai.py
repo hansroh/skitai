@@ -32,11 +32,11 @@ from . import wsgiappservice, cachefs, http_response
 from .dbi import cluster_dist_call as dcluster_dist_call
 import types
 from .handlers.websocket import servers as websocekts
-from .wastuff import selective_logger
+from .wastuff import selective_logger, triple_logger
 from .dbi import cluster_manager as dcluster_manager
 from .rpc import cluster_manager as rcluster_manager
 if os.environ.get ("SKITAI_ENV") == "PYTEST":
-    from .testutil.was import Semaps
+    from .wastuff.semaps import TestSemaps as Semaps
 else:    
     from .wastuff.semaps import Semaps
 
@@ -48,7 +48,7 @@ class Loader:
 		self.varpath = varpath
 		self.debug = debug
 		self.num_worker = 1
-		self.wasc = wasc or wsgiappservice.WAS
+		self.wasc = wasc or wsgiappservice.AsyncWAS
 		self.ssl = False
 		self.ctx = None
 		self._exit_code = None
@@ -197,7 +197,7 @@ class Loader:
 				media = ["screen"]
 		
 		http_response.http_response.log_or_not = selective_logger.SelectiveLogger (log_off)		
-		self.wasc.register ("logger", wsgiappservice.Logger (media, path))
+		self.wasc.register ("logger", triple_logger.Logger (media, path))
 		
 		if os.name != "nt" and path:
 			def hUSR1 (signum, frame):	

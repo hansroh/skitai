@@ -30,9 +30,9 @@ class FailedRequest:
 	reraise = raise_for_status
 
 	
-class Dispatcher:
+class Dispatcher (cluster_dist_call.Dispatcher):
 	def __init__ (self, cv, id, ident = None, filterfunc = None, callback = None):
-		self.__cv = cv
+		self._cv = cv
 		self.id = id
 		self.ident = ident
 		self.filterfunc = filterfunc
@@ -40,55 +40,38 @@ class Dispatcher:
 		self.creation_time = time.time ()
 		self.status = 0
 		self.result = None
-			
-	def get_id (self):
-		return self.id
-	
-	def get_status (self):
-		# 0: Not Connected
-		# 1: Operation Timeout
-		# 2: Exception Occured
-		# 3: Normal
-		self.__cv.acquire ()		
-		status = self.status
-		self.__cv.release ()
-		return status
-		
-	def set_status (self, code):
-		self.__cv.acquire ()
-		self.status = code
-		self.__cv.notify ()
-		self.__cv.release ()
-		return code
 		
 	def get_result (self):
-		if self.result is None:
-			if self.get_status () == -1:
-				self.result = cluster_dist_call.Result (self.id, -1, FailedRequest (RequestFailed, "Request Failed"), self.ident)
-			else:
-				self.result = cluster_dist_call.Result (self.id, 1, FailedRequest (OperationTimeout, "Operation Timeout"), self.ident)
-		return self.result
-	
-	def do_filter (self):
-		if self.filterfunc:
-			self.filterfunc (self.result)
-						
+		with self._cv:
+			if self.result:
+				return self.result
+		
+		status = self.get_status ()	
+		if status == -1:
+			result = cluster_dist_call.Result (self.id, -1, FailedRequest (RequestFailed, "Request Failed"), self.ident)
+		else:
+			result = cluster_dist_call.Result (self.id, 1, FailedRequest (OperationTimeout, "Operation Timeout"), self.ident)
+		
+		with self._cv:
+			if not self.result:
+				self.result = result
+			return self.result
+					
 	def handle_result (self, request):
 		if self.get_status () == 1:
 			# timeout, ignore
 			return
 				
 		if request.expt_class:
-			status = 2			
+			status = 2
 		else:
 			status = 3
-		
-		self.result = cluster_dist_call.Result (self.id, status, request, self.ident)
 		self.set_status (status)
-
-		if self.callback:
-			tuple_cb (self.result, self.callback)
-			
+		with self._cv:
+			self.result = cluster_dist_call.Result (self.id, status, request, self.ident)
+			if self.callback:
+				tuple_cb (self, self.callback)
+				
 				        	     
 #-----------------------------------------------------------
 # Cluster Base Call
@@ -184,12 +167,18 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		self._cached_request_args = (method, params) # backup for retry
 		if self._use_cache and rcache.the_rcache:
 			self._cached_result = rcache.the_rcache.get (self._get_ident (), self._use_cache)
-			if self._cached_result is not None:				
+			if self._cached_result is not None:		
+				self._maybe_callback ()
 				return
 		
 		while self._avails ():
 			asyncon = self._get_connection (None)			
-			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._filter, callback = self._callback)
+			rs = Dispatcher (
+				self._cv, asyncon.address, 
+				ident = not self._mapreduce and self._get_ident () or None, 
+				filterfunc = self._filter, 
+				callback = self._collect
+			)
 			self._requests [rs] = asyncon	
 			
 			req = request.Request (

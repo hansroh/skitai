@@ -526,12 +526,14 @@ class http_response:
 		if isinstance (__data_dict__, str):
 			self.set_status (__data_dict__)
 			__data_dict__ = None
-		return API (self.request, __data_dict__ or kargs)
+		api = API (self.request, __data_dict__ or kargs)
+		self.update ("Content-Type", api.get_content_type ())
+		return api
 	api = API
 		
 	def Fault (self, status = "200 OK", *args, **kargs):
 		self.set_status (status)
-		r = self.fault (*args, **kargs)
+		r = self.fault (*args, **kargs)		
 		return self (status, r)
 	for_api = Fault
 	
@@ -549,6 +551,7 @@ class http_response:
 			api.traceback (message, code, debug or "see traceback", more_info)
 		else:	
 			api.error (message, code, debug, more_info, exc_info)
+		self.update ("Content-Type", api.get_content_type ())			
 		return api
 	 
 	# Returning ------------------------------------------------------------------

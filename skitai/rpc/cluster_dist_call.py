@@ -90,10 +90,8 @@ class Dispatcher:
 		# 1: Operation Timeout
 		# 2: Exception Occured
 		# 3: Normal
-		self._cv.acquire ()		
-		status = self.status
-		self._cv.release ()
-		return status
+		with self._cv:
+			return self.status
 		
 	def set_status (self, code):
 		self._cv.acquire ()
@@ -103,12 +101,20 @@ class Dispatcher:
 		return code
 		
 	def get_result (self):
-		if self.result is None: # timeout
-			if self.get_status () == -1:
-				self.result = Result (self.id, -1, http_response.FailedResponse (731, "Request Failed"), self.ident)
-			else:	
-				self.result = Result (self.id, 1, http_response.FailedResponse (730, "Timeout"), self.ident)
-		return self.result
+		with self._cv:
+			if self.result:
+				return self.result
+			
+		status = self.get_status ()	
+		if status == -1:
+			self.result = Result (self.id, -1, http_response.FailedResponse (731, "Request Failed"), self.ident)
+		else:	
+			self.result = Result (self.id, 1, http_response.FailedResponse (730, "Timeout"), self.ident)
+		
+		with self._cv:
+			if not self.result:
+				self.result = result
+			return self.result
 	
 	def do_filter (self):
 		if self.filterfunc:
@@ -131,7 +137,7 @@ class Dispatcher:
 		else:
 			status = 3
 		
-		self.result = Result (self.id, status, response, self.ident)
+		result = Result (self.id, status, response, self.ident)
 		self.set_status (status)
 		
 		cakey = response.request.get_cache_key ()
@@ -145,10 +151,11 @@ class Dispatcher:
 		handler.asyncon = None
 		handler.callback = None
 		handler.response = None
+		with self._cv:
+			self.result = result
+			if self.callback:
+				tuple_cb (self, self.callback)
 		
-		if self.callback:
-			tuple_cb (self.result, self.callback)
-
 
 class ClusterDistCall:
 	def __init__ (self,
@@ -262,12 +269,13 @@ class ClusterDistCall:
 			r.handle_request ()
 		
 		return 1
-						
+		 						
 	def _build_request (self, method, params):
 		self._cached_request_args = (method, params) # backup for retry
 		if self._use_cache and rcache.the_rcache:
 			self._cached_result = rcache.the_rcache.get (self._get_ident (), self._use_cache)
 			if self._cached_result is not None:
+				self._callback and tuple_cb (self._cached_result, self._callback)
 				return
 		
 		requests = 0
@@ -279,8 +287,13 @@ class ClusterDistCall:
 			self._auth = self._auth or asyncon.get_auth ()
 			
 			_reqtype = self._reqtype.lower ()
-			rs = Dispatcher (self._cv, asyncon.address, ident = not self._mapreduce and self._get_ident () or None, filterfunc = self._filter, cachefs = self._cachefs, callback = self._callback)
-			self._requests[rs] = asyncon	
+			rs = Dispatcher (
+				self._cv, asyncon.address, 
+				ident = not self._mapreduce and self._get_ident () or None, 
+				filterfunc = self._filter, cachefs = self._cachefs, 
+				callback = self._collect
+			)
+			self._requests [rs] = asyncon	
 			
 			try:
 				if _reqtype in ("ws", "wss"):
@@ -333,39 +346,9 @@ class ClusterDistCall:
 		asyncon.set_timeout (self._timeout)
 		if self._cv is None:
 			self._cv = asyncon._cv
-		
-		if self._callback and hasattr (self, 'wait'):
-			self.wait = None
-			self.getwait = None
-			self.getswait = None
 				
 	def _cancel (self):
 		self._canceled = 1
-	
-	def _collect_result (self):
-		for rs, asyncon in list(self._requests.items ()):
-			status = rs.get_status ()			
-			if status == -1:
-				del self._requests [rs]
-				self._results.append (rs)
-				self._cluster.report (asyncon, True) # not asyncons' Fault				
-			
-			elif not self._mapreduce and status == 2 and self._retry < (self._numnodes - 1):
-				self._logger ("Cluster Response Error, Switch To Another...", "fail")
-				self._cluster.report (asyncon, False) # exception occured
-				del self._requests [rs]
-				self._retry += 1
-				self._nodes = [None]
-				self._request (*self._cached_request_args)
-				
-			elif status >= 2:
-				del self._requests [rs]
-				self._results.append (rs)
-				if status == 2:
-					self._cluster.report (asyncon, False) # exception occured
-				else:	
-					self._cluster.report (asyncon, True) # well-functioning
-					rs.do_filter ()
 	
 	#---------------------------------------------------------
 	def cache (self, timeout = 300, validation = None):
@@ -387,14 +370,14 @@ class ClusterDistCall:
 			for rs, asyncon in self._requests.items ():
 				asyncon.set_timeout (timeout)
 			
-		self._collect_result ()
+		self._collect_results ()
 		while self._requests and not self._canceled:
 			remain = timeout - (time.time () - self._init_time)
 			if remain <= 0: break						
 			self._cv.acquire ()
 			self._cv.wait (remain)
 			self._cv.release ()
-			self._collect_result ()
+			self._collect_results ()
 		
 		# timeouts
 		for rs, asyncon in list(self._requests.items ()):
@@ -414,12 +397,12 @@ class ClusterDistCall:
 		self.getswait (timeout, reraise)
 		self._cached_result = None
 	
-	def getwait (self, timeout = DEFAULT_TIMEOUT, reraise = False, cache = None, cache_if = (200,)):
-		if self._cached_result is not None:			
+	def getwait (self, timeout = DEFAULT_TIMEOUT, reraise = False, cache = None, cache_if = (200,), wait = True):
+		if self._cached_result is not None:
 			return self._cached_result
-		self._wait (timeout)
+		wait and self._wait (timeout)		
 		if len (self._results) > 1:
-			raise ValueError("Multiple results, use getswait")
+			raise ValueError("Multiple results, use getswait")		
 		self._cached_result = self._results [0].get_result ()
 		cache and self.cache (cache, cache_if)
 		if self._cached_result.status != 3:
@@ -427,20 +410,63 @@ class ClusterDistCall:
 			reraise and self._cached_result.reraise ()
 		return self._cached_result
 	
-	def getswait (self, timeout = DEFAULT_TIMEOUT, reraise = False, cache = None, cache_if = (200,)):
+	def getswait (self, timeout = DEFAULT_TIMEOUT, reraise = False, cache = None, cache_if = (200,), wait = True):
 		if self._cached_result is not None:
 			return self._cached_result
-		self._wait (timeout)
+		wait and self._wait (timeout)
+		
 		rss = [rs.get_result () for rs in self._results]
 		for rs in rss:
 			if rs.status == 3:
 				continue		
 			self._fail_log (rs.status)
-			reraise and rs.reraise ()							
+			reraise and rs.reraise ()			
 		self._cached_result = Results (rss, ident = self._get_ident ())
-		cache and self.cache (cache, cache_if)
+		cache and self.cache (cache, cache_if)		
 		return self._cached_result
 	
+	def _collect_results (self):
+		for rs in self._requests:
+			self._collect (rs)
+		
+	def _collect (self, rs):
+		asyncon = self._requests [rs]
+		status = rs.get_status ()			
+		if status == -1:
+			del self._requests [rs]
+			self._results.append (rs)
+			self._cluster.report (asyncon, True) # not asyncons' Fault				
+		
+		elif not self._mapreduce and status == 2 and self._retry < (self._numnodes - 1):
+			self._logger ("Cluster Response Error, Switch To Another...", "fail")
+			self._cluster.report (asyncon, False) # exception occured
+			del self._requests [rs]
+			self._retry += 1
+			self._nodes = [None]
+			self._request (*self._cached_request_args)
+			
+		elif status >= 2:
+			del self._requests [rs]
+			self._results.append (rs)
+			if status == 2:
+				self._cluster.report (asyncon, False) # exception occured
+			else:	
+				self._cluster.report (asyncon, True) # well-functioning
+				rs.do_filter ()
+		
+		not self._requests and self._maybe_callback ()
+	
+	def _maybe_callback (self):
+		if self._callback:			
+			result = self._mapreduce and self.getswait (wait = False) or self.getwait (wait = False)
+			tuple_cb (result, self._callback)		
+		
+	def set_callback (self, callback, reqid = None):
+		self._callback = callback
+		if idx:
+			self._meta ["__reqid"] = reqid		
+		not self._requests and self._maybe_callback ()
+					
 	def _or_throw (self, func, status, timeout, cache):
 		try:
 			response = func (timeout, reraise =True, cache = cache)

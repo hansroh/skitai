@@ -70,7 +70,7 @@ def test_was (wasc, app, client):
     
     assert type (was._clone ()) is type (was)
     for m in was.METHODS:
-        assert not hasattr (was._clone (True), m)            
+        assert not hasattr (was._clone (), m)            
     
     with pytest.raises(AssertionError):
         was.session

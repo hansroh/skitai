@@ -136,9 +136,9 @@ def activate ():
     
     if wasc is not None:
         return    
-    from .was import WAS
+    from ..wsgiappservice import TestWAS
     
-    wasc = setup_was (WAS)
+    wasc = setup_was (TestWAS)
     skitai.start_was (wasc)
     
     lifetime.init (10.0, wasc.logger.get ("server"))    

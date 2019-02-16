@@ -1,14 +1,10 @@
-# was.py
-# synchronouse WAS rquest service for app tesing
-
-from .. import wsgiappservice
+from . import async_service
 from ..rpc import cluster_dist_call
 from ..dbi import cluster_dist_call as dcluster_dist_call 
 from skitai import DB_SQLITE3, DB_PGSQL, DB_REDIS, DB_MONGODB
 from rs4 import webtest
 import random
 from urllib.parse import urlparse, urlunparse       
-from ..wastuff import semaps
  
 class Result:
     def __init__ (self, status, response = None):
@@ -101,21 +97,8 @@ class DBCall (ProtoCall):
             conn.close ()
         callback and callback (self.result)
 
-class Semaps (semaps.Semaps):
-    def __init__ (self, keys = [], tpye= "d"):
-        self._arr = [0] * 1024        
-        self._d = {}
-            
-    def set (self, k, v, ignore_nokey = False):
-        if k not in self._d:
-            self._d [k] = len (self._d)
-        self._arr [self._d [k]] = v
-        
-class WAS (wsgiappservice.WAS):
-    numthreads = 1 
-    _luwatcher = Semaps ()
-    _stwatcher = Semaps ()
-    
+
+class SyncService (async_service.AsyncService):
     def _create_rest_call (self, cluster, *args, **kargs):
         return ProtoCall (cluster, *args, **kargs)
     

@@ -55,4 +55,15 @@ class Semaps:
 		for i in range (len (self._keys)):
 			t.append ((self._keys [i], self._arr [i]))
 		return t
-	
+
+
+class TestSemaps (Semaps):
+    def __init__ (self, keys = [], tpye= "d"):
+        self._arr = [0] * 1024        
+        self._d = {}
+            
+    def set (self, k, v, ignore_nokey = False):
+        if k not in self._d:
+            self._d [k] = len (self._d)
+        self._arr [self._d [k]] = v
+        	
