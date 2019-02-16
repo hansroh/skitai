@@ -18,7 +18,7 @@ class _Method:
 
 class Promise (simple_producer):
 	def __init__ (self, was, handler, **karg):
-		self.__was = was
+		self._was = was
 		self.was = was._clone ()
 		self.handler = handler
 		
@@ -30,7 +30,7 @@ class Promise (simple_producer):
 		self._rejected = 0
 	
 	def __getattr__ (self, name):
-		if name.split (".")[0] not in self.__was.METHODS:
+		if name.split (".")[0] not in self._was.METHODS:
 			return getattr (self.was, name)
 		self._numreq += 1
 		return _Method (self._call, name)
@@ -40,7 +40,7 @@ class Promise (simple_producer):
 			karg ['meta'] = {}
 		karg ['meta'] = {'__reqid': args [0]}
 		karg ['callback'] = self
-		return self.__was._call (method, args [1:], karg)
+		return self._was._call (method, args [1:], karg)
 		
 	def __call__ (self, response):
 		if self._done:
@@ -98,7 +98,7 @@ class Promise (simple_producer):
 				
 	def settle (self, data = None):
 		if data:			
-			self.send (data)
+			self.send (data)			
 		self._done = True
 	
 	def reject (self, data):

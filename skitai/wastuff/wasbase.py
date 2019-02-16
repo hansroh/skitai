@@ -17,6 +17,7 @@ from skitai import lifetime
 from . import server_info
 from .. import http_response
 from .promise import Promise
+from .futures import Futures
 from .triple_logger import Logger
 from . import django_adaptor
 if os.environ.get ("SKITAI_ENV") == "PYTEST":
@@ -206,6 +207,9 @@ class WASBase:
         self.response.set_streaming ()
         return Promise (self, handler, **karg)
     
+    def futures (self, reqs, **args):
+        return Futures (self._clone (), reqs, **args)
+        
     def email (self, subject, snd, rcpt):
         if composer.Composer.SAVE_PATH is None:
             composer.Composer.SAVE_PATH = os.path.join ("/var/tmp/skitai", "smtpda", "spool")

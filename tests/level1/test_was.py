@@ -68,10 +68,6 @@ def test_was (wasc, app, client):
     assert len (str (was.timestamp)) == 13
     assert len (was.uniqid) == 20
     
-    assert type (was._clone ()) is type (was)
-    for m in was.METHODS:
-        assert not hasattr (was._clone (), m)            
-    
     with pytest.raises(AssertionError):
         was.session
     

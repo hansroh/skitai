@@ -400,7 +400,8 @@ class ClusterDistCall:
 	def getwait (self, timeout = DEFAULT_TIMEOUT, reraise = False, cache = None, cache_if = (200,), wait = True):
 		if self._cached_result is not None:
 			return self._cached_result
-		wait and self._wait (timeout)		
+		wait and self._wait (timeout)
+		
 		if len (self._results) > 1:
 			raise ValueError("Multiple results, use getswait")		
 		self._cached_result = self._results [0].get_result ()
@@ -435,8 +436,7 @@ class ClusterDistCall:
 		if status == -1:
 			del self._requests [rs]
 			self._results.append (rs)
-			self._cluster.report (asyncon, True) # not asyncons' Fault				
-		
+			self._cluster.report (asyncon, True) # not asyncons' Fault
 		elif not self._mapreduce and status == 2 and self._retry < (self._numnodes - 1):
 			self._logger ("Cluster Response Error, Switch To Another...", "fail")
 			self._cluster.report (asyncon, False) # exception occured
@@ -444,7 +444,6 @@ class ClusterDistCall:
 			self._retry += 1
 			self._nodes = [None]
 			self._request (*self._cached_request_args)
-			
 		elif status >= 2:
 			del self._requests [rs]
 			self._results.append (rs)
@@ -453,19 +452,18 @@ class ClusterDistCall:
 			else:	
 				self._cluster.report (asyncon, True) # well-functioning
 				rs.do_filter ()
-		
-		not self._requests and self._maybe_callback ()
+		self._callback and not self._requests and self._do_callback (self._callback)
 	
-	def _maybe_callback (self):
-		if self._callback:			
-			result = self._mapreduce and self.getswait (wait = False) or self.getwait (wait = False)
-			tuple_cb (result, self._callback)		
+	def _do_callback (self, callback):
+		result = self._mapreduce and self.getswait (wait = False) or self.getwait (wait = False)
+		tuple_cb (result, callback)		
 		
 	def set_callback (self, callback, reqid = None):
-		self._callback = callback
-		if idx:
+		if reqid:
 			self._meta ["__reqid"] = reqid		
-		not self._requests and self._maybe_callback ()
+		if not self._requests:
+			return self._do_callback (callback)			
+		self._callback = callback
 					
 	def _or_throw (self, func, status, timeout, cache):
 		try:
