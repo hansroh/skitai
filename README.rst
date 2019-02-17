@@ -2603,6 +2603,7 @@ Change Log
 
 - 0.28 (Feb 2019)
   
+  - was.promise has been deprecated, use was.futures: see Atila documentation
   - reinstate gc.collect () schedule
   - fix GTXID
   - fix app reloader

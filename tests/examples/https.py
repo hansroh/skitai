@@ -2,7 +2,7 @@
 if __name__ == "__main__":
 	import skitai
 	
-	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.python.org")
+	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
 	skitai.mount ("/", 'statics')
 	skitai.mount ("/", "app.py")
 	skitai.mount ("/websocket", 'websocket.py')

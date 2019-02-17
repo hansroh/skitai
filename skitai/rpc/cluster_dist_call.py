@@ -18,6 +18,7 @@ import asyncore
 import sys
 import inspect
 from skitai import exceptions
+from skitai import REQFAIL, UNSENT, TIMEOUT, NETERR, NORMAL
 
 DEFAULT_TIMEOUT = 10
 WAIT_POLL = False
@@ -35,11 +36,11 @@ class Result (rcache.Result):
 		return getattr (self.__response, attr)
 	
 	def reraise (self):		
-		if self.status != 3:
+		if self.status != NORMAL:
 			self.__response.raise_for_status ()
 			
 	def cache (self, timeout = 300):
-		if self.status != 3:
+		if self.status != NORMAL:
 			return
 		rcache.Result.cache (self, timeout)
 	
@@ -67,8 +68,8 @@ class Results (rcache.Result):
 		rcache.Result.__cached_time = time.time ()
 		
 		rcache.the_rcache.cache (self)
-		
-			
+
+
 class Dispatcher:
 	def __init__ (self, cv, id, ident = None, filterfunc = None, cachefs = None, callback = None):
 		self._cv = cv
@@ -78,7 +79,7 @@ class Dispatcher:
 		self.cachefs = cachefs
 		self.callback = callback		
 		self.creation_time = time.time ()
-		self.status = 0		
+		self.status = UNSENT	
 		self.result = None
 		self.handler = None
 			
@@ -94,48 +95,41 @@ class Dispatcher:
 			return self.status
 		
 	def set_status (self, code):
-		self._cv.acquire ()
-		self.status = code
-		self._cv.notify ()
-		self._cv.release ()
+		with self._cv:
+			self.status = code		
 		return code
 		
 	def get_result (self):
-		with self._cv:
-			if self.result:
-				return self.result
-			
-		status = self.get_status ()	
-		if status == -1:
-			self.result = Result (self.id, -1, http_response.FailedResponse (731, "Request Failed"), self.ident)
-		else:	
-			self.result = Result (self.id, 1, http_response.FailedResponse (730, "Timeout"), self.ident)
-		
-		with self._cv:
-			if not self.result:
-				self.result = result
-			return self.result
-	
+		if not self.result:		 	
+			if self.get_status () == REQFAIL:
+				self.result = Result (self.id, REQFAIL, http_response.FailedResponse (731, "Request Failed"), self.ident)
+			else:	
+				self.result = Result (self.id, TIMEOUT, http_response.FailedResponse (730, "Timeout"), self.ident)
+		return self.result
+
 	def do_filter (self):
 		if self.filterfunc:
 			self.filterfunc (self.result)
-			
+		
 	def handle_cache (self, response):
-		status = 3
+		status = NORMAL
 		self.result = Result (self.id, status, response, self.ident)				
 		self.set_status (status)
 							
 	def handle_result (self, handler):
-		if self.get_status () == 1:
+		if self.get_status () == TIMEOUT:
 			# timeout, ignore
 			return
 	
-		response = handler.response		
+		response = handler.response
 		# DON'T do_filter here, it blocks select loop		
 		if response.code >= 700:
-			status = 2
+			if response.code == 702:
+				status = TIMEOUT
+			else:
+				status = NETERR
 		else:
-			status = 3
+			status = NORMAL
 		
 		result = Result (self.id, status, response, self.ident)
 		self.set_status (status)
@@ -151,10 +145,8 @@ class Dispatcher:
 		handler.asyncon = None
 		handler.callback = None
 		handler.response = None
-		with self._cv:
-			self.result = result
-			if self.callback:
-				tuple_cb (self, self.callback)
+		self.result = result
+		tuple_cb (self, self.callback)
 		
 
 class ClusterDistCall:
@@ -183,7 +175,7 @@ class ClusterDistCall:
 		self._reqtype = reqtype
 			
 		self._auth = auth		
-		self._meta = meta
+		self._meta = meta or {}
 		self._use_cache = use_cache
 		self._mapreduce = mapreduce
 		self._filter = filter
@@ -369,20 +361,17 @@ class ClusterDistCall:
 		if self._timeout != timeout:
 			for rs, asyncon in self._requests.items ():
 				asyncon.set_timeout (timeout)
-			
-		self._collect_results ()
+		
 		while self._requests and not self._canceled:
 			remain = timeout - (time.time () - self._init_time)
 			if remain <= 0: break						
 			self._cv.acquire ()
 			self._cv.wait (remain)
 			self._cv.release ()
-			self._collect_results ()
-		
 		# timeouts
 		for rs, asyncon in list(self._requests.items ()):
 			asyncon.handle_abort () # abort imme
-			rs.set_status (1)
+			rs.set_status (TIMEOUT)
 			self._cluster.report (asyncon, False) # maybe dead
 			self._results.append (rs)
 			del self._requests [rs]
@@ -406,7 +395,7 @@ class ClusterDistCall:
 			raise ValueError("Multiple results, use getswait")		
 		self._cached_result = self._results [0].get_result ()
 		cache and self.cache (cache, cache_if)
-		if self._cached_result.status != 3:
+		if self._cached_result.status != NORMAL:
 			self._fail_log (self._cached_result.status)
 			reraise and self._cached_result.reraise ()
 		return self._cached_result
@@ -418,7 +407,7 @@ class ClusterDistCall:
 		
 		rss = [rs.get_result () for rs in self._results]
 		for rs in rss:
-			if rs.status == 3:
+			if rs.status == NORMAL:
 				continue		
 			self._fail_log (rs.status)
 			reraise and rs.reraise ()			
@@ -426,41 +415,44 @@ class ClusterDistCall:
 		cache and self.cache (cache, cache_if)		
 		return self._cached_result
 	
-	def _collect_results (self):
-		for rs in self._requests:
-			self._collect (rs)
-		
 	def _collect (self, rs):
 		asyncon = self._requests [rs]
 		status = rs.get_status ()			
-		if status == -1:
+		if status == REQFAIL:
 			del self._requests [rs]
 			self._results.append (rs)
 			self._cluster.report (asyncon, True) # not asyncons' Fault
-		elif not self._mapreduce and status == 2 and self._retry < (self._numnodes - 1):
+		elif not self._mapreduce and status == NETERR and self._retry < (self._numnodes - 1):
 			self._logger ("Cluster Response Error, Switch To Another...", "fail")
 			self._cluster.report (asyncon, False) # exception occured
 			del self._requests [rs]
 			self._retry += 1
 			self._nodes = [None]
 			self._request (*self._cached_request_args)
-		elif status >= 2:
+		elif status >= NETERR:
 			del self._requests [rs]
 			self._results.append (rs)
-			if status == 2:
+			if status == NETERR:
 				self._cluster.report (asyncon, False) # exception occured
 			else:	
 				self._cluster.report (asyncon, True) # well-functioning
 				rs.do_filter ()
-		self._callback and not self._requests and self._do_callback (self._callback)
+		
+		if not self._requests:
+			if self._callback:
+				self._do_callback (self._callback)
+			else:
+				self._cv.acquire ()
+				self._cv.notifyAll ()
+				self._cv.release ()					
 	
 	def _do_callback (self, callback):
 		result = self._mapreduce and self.getswait (wait = False) or self.getwait (wait = False)
 		tuple_cb (result, callback)		
 		
 	def set_callback (self, callback, reqid = None):
-		if reqid:
-			self._meta ["__reqid"] = reqid		
+		if reqid is not None:
+			self._meta ["__reqid"] = reqid
 		if not self._requests:
 			return self._do_callback (callback)			
 		self._callback = callback

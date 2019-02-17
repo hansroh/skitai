@@ -26,24 +26,25 @@ def documentation (was):
 				pypi_content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></h4>" + content [s:e]	
 	return was.render ("documentation.html", content = pypi_content)
 
-def handle_response (promise, rs):
-	pypi_content = "<h3>Error</h3>"
-	if rs.data:
-		content = rs.data.decode ("utf8")
-		s = content.find ('<div class="section">')
-		if s != -1:
-			e = content.find ('<a name="downloads">', s)
-			if e != -1:						
-				content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></h4>" + content [s:e]		
-		promise [rs.reqid]	= content	
-	if promise.fulfilled ():
-		promise.settle (promise.render ("documentation2.html"))
-		
 @app.route ("/documentation2")
 def documentation2 (was):
-	promise = was.promise (handle_response)
-	promise.get ('skitai', "https://pypi.python.org/pypi/skitai")
-	return promise
+	def response (was, rss):
+		rs = rss [0]
+		pypi_content = "<h3>Error</h3>"
+		if rs.data:
+			content = rs.data.decode ("utf8")
+			s = content.find ('<div class="project-description">')
+			if s != -1:
+				e = content.find ('<div id="history"', s)
+				if e != -1:						
+					content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.org/project/skitai/'> https://pypi.org/project/skitai/</a></h4>" + content [s:e]
+		print (content)			
+		print (type (content))
+		assert "Internet :: WWW/HTTP :: WSGI" in content
+		return was.render ("documentation2.html", skitai = content)
+			
+	reqs = [was.get ("@pypi/project/skitai/", headers = [("Accept", "text/html")])]
+	return was.futures (reqs).then (response)
 	
 @app.route ("/hello")
 def hello (was, num = 1):
@@ -69,7 +70,7 @@ def post (was, username):
 if __name__ == "__main__":
 	import skitai	
 	
-	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.python.org")
+	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
 	skitai.mount ("/", 'statics')
 	skitai.mount ("/", app)
 	skitai.mount ("/websocket", 'websocket.py')

@@ -9,7 +9,7 @@ if __name__ == "__main__":
 	skitai.mount ("/routeguide.RouteGuide", 'grpc_route_guide.py')
 	skitai.mount ("/members", 'auth.py')
 	skitai.mount ("/lb", "@pypi")
-	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.python.org")
+	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
 	skitai.enable_proxy ()
 	
 	skitai.run (

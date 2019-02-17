@@ -42,26 +42,36 @@ def documentation (was):
 			if e != -1:						
 				pypi_content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></h4>" + content [s:e]	
 	return was.render ("documentation.html", content = pypi_content)
-
-def handle_response (promise, rs):
-	pypi_content = "<h3>Error</h3>"
-	if rs.data:
-		content = rs.data.decode ("utf8")
-		s = content.find ('<div class="project-description">')
-		if s != -1:
-			e = content.find ('<div id="history"', s)
-			if e != -1:						
-				content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></h4>" + content [s:e]		
-		promise [rs.id]	= content		
-	if promise.fulfilled ():
-		promise.settle (promise.render ("documentation2.html"))
-		
+	
 @app.route ("/documentation2")
 def documentation2 (was):
-	promise = was.promise (handle_response)
-	promise.get ('skitai', "https://pypi.org/project/skitai/", headers = [("Accept", "text/html")])
-	return promise
-	
+	def response (was, rss):
+		rs = rss [0]
+		pypi_content = "<h3>Error</h3>"
+		if rs.data:
+			content = rs.data.decode ("utf8")
+			s = content.find ('<div class="project-description">')
+			if s != -1:
+				e = content.find ('<div id="history"', s)
+				if e != -1:						
+					content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.org/project/skitai/'> https://pypi.org/project/skitai/</a></h4>" + content [s:e]
+		assert "Internet :: WWW/HTTP :: WSGI" in content
+		return was.render ("documentation2.html", skitai = content)
+			
+	reqs = [was.get ("@pypi/project/skitai/", headers = [("Accept", "text/html")])]
+	return was.futures (reqs).then (response)
+
+@app.route ("/documentation3")
+def documentation3 (was):
+    def response (was, rss):
+        return was.response.API (status_code = [rs.status_code for rs in rss]) 
+    
+    reqs = [
+        was.get ("@pypi/project/skitai/", headers = [("Accept", "text/html")]),
+        was.get ("@pypi/project/rs4/", headers = [("Accept", "text/html")])        
+    ]
+    return was.futures (reqs).then (response)
+   	
 @app.route ("/hello")
 def hello (was, num = 1):
 	was.response ["Content-Type"] = "text/plain"
@@ -103,7 +113,7 @@ if __name__ == "__main__":
 	if os.name == "nt":		
 		skitai.set_service (ServiceConfig)
 		
-	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.python.org")
+	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
 	skitai.mount ("/", 'statics')
 	skitai.mount ("/", app)
 	skitai.mount ("/websocket", 'websocket.py')
@@ -114,7 +124,7 @@ if __name__ == "__main__":
 	skitai.enable_proxy ()
 
 	skitai.run (
-		port = 30371,
+		port = 30371,		
 		workers = 1,
 		threads = 4				
 	)

@@ -9,7 +9,7 @@ import base64
 import pickle
 import random
 import threading
-from rs4 import pathtool, logger, jwt
+from rs4 import pathtool, logger, jwt, deco
 from aquests.protocols.smtp import composer
 from aquests.protocols.http import http_date, util
 from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT, NAME
@@ -202,10 +202,6 @@ class WASBase:
         if not body:
             body = self.REDIRECT_TEMPLATE % (status, status, url)            
         return self.response (status, body, redirect_headers)
-    
-    def promise (self, handler, **karg):
-        self.response.set_streaming ()
-        return Promise (self, handler, **karg)
     
     def futures (self, reqs, **args):
         return Futures (self._clone (), reqs, **args)
@@ -406,31 +402,44 @@ class WASBase:
         return self.env.get ('websocket.client')    
 
     # will be deprecated ----------------------------------------------
+    @deco.deprecated
+    def promise (self, handler, **karg):
+        self.response.set_streaming ()
+        return Promise (self, handler, **karg)
+    
+    @deco.deprecated    
     def togrpc (self, obj):
         return obj.SerializeToString ()
     
+    @deco.deprecated
     def fromgrpc (self, message, obj):
         return message.ParseFromString (obj)
-        
+    
+    @deco.deprecated    
     def tojson (self, obj):
         return json.dumps (obj, cls = DateEncoder)
-        
+    
+    @deco.deprecated    
     def toxml (self, obj):
         return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")    
     
+    @deco.deprecated
     def fromjson (self, obj):
         if type (obj) is bytes:
             obj = obj.decode ('utf8')
         return json.loads (obj)
     
+    @deco.deprecated
     def fromxml (self, obj, use_datetime = 0):
         return xmlrpclib.loads (obj)
     
+    @deco.deprecated
     def fstream (self, path, mimetype = 'application/octet-stream'):    
         self.response.set_header ('Content-Type',  mimetype)
         self.response.set_header ('Content-Length', str (os.path.getsize (path)))    
         return file_producer (open (path, "rb"))
-            
+    
+    @deco.deprecated        
     def jstream (self, obj, key = None):
         self.response.set_header ("Content-Type", "application/json")
         if key:
@@ -439,14 +448,17 @@ class WASBase:
         else:
             return self.tojson (obj)        
     
+    @deco.deprecated
     def xstream (self, obj, use_datetime = 0):            
         self.response.set_header ("Content-Type", "text/xml")
         return self.toxml (obj, use_datetime)
     
+    @deco.deprecated
     def gstream (self, obj):
         self.response.set_header ("Content-Type", "application/grpc")
         return self.togrpc (obj)
     
+    @deco.deprecated
     def render_ei (self, exc_info, format = 0):
         return http_response.catch (format, exc_info)
 

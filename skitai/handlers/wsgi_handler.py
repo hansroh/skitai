@@ -16,7 +16,6 @@ except ImportError:
 	from io import BytesIO
 import skitai
 from ..utility import make_pushables
-from ..wastuff import futures
 	
 header2env = {
 	'content-length'	: 'CONTENT_LENGTH',
@@ -248,8 +247,6 @@ class Job:
 		
 		try:			
 			content = self.apph (*self.args)
-			if isinstance (content, futures.Futures):
-				return
 			will_be_push = make_pushables (response, content)			
 		except MemoryError:
 			raise

@@ -7,6 +7,7 @@ from rs4.attrdict import AttrDict
 from aquests.dbapi import request
 import asyncore
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
+from skitai import REQFAIL, UNSENT, TIMEOUT, NETERR, NORMAL	
 from rs4.cbutil import tuple_cb
 
 class OperationTimeout (Exception):
@@ -23,7 +24,8 @@ class FailedRequest:
 		self.expt_str = expt_str
 		
 		self.code, self.msg = 501, "timeout"
-
+		self.status_code, self.reason = self.code, self.msg  
+	
 	def raise_for_status (self):
 		if self.expt_class:
 			raise self.expt_class (self.expt_str)
@@ -38,34 +40,30 @@ class Dispatcher (cluster_dist_call.Dispatcher):
 		self.filterfunc = filterfunc
 		self.callback = callback		
 		self.creation_time = time.time ()
-		self.status = 0
+		self.status = UNSENT
 		self.result = None
 		
 	def get_result (self):
-		with self._cv:
-			if self.result:
-				return self.result
-		
-		status = self.get_status ()	
-		if status == -1:
-			result = cluster_dist_call.Result (self.id, -1, FailedRequest (RequestFailed, "Request Failed"), self.ident)
-		else:
-			result = cluster_dist_call.Result (self.id, 1, FailedRequest (OperationTimeout, "Operation Timeout"), self.ident)
-		
-		with self._cv:
-			if not self.result:
-				self.result = result
-			return self.result
+		if not self.result:
+			if self.get_status () == REQFAIL:
+				self.result = cluster_dist_call.Result (self.id, REQFAIL, FailedRequest (RequestFailed, "Request Failed"), self.ident)
+			else:
+				self.result = cluster_dist_call.Result (self.id, TIMEOUT, FailedRequest (OperationTimeout, "Operation Timeout"), self.ident)
+		return self.result
 					
 	def handle_result (self, request):
-		if self.get_status () == 1:
+		if self.get_status () == TIMEOUT:
 			# timeout, ignore
 			return
 				
 		if request.expt_class:
-			status = 2
+			if request.expt_str == "Operation Timeout":
+				status = TIMEOUT
+			else:
+				status = NETERR
 		else:
-			status = 3
+			status = NORMAL
+			
 		self.set_status (status)
 		with self._cv:
 			self.result = cluster_dist_call.Result (self.id, status, request, self.ident)
@@ -106,7 +104,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 			elif self.auth in (DB_MONGODB,):
 				self.dbtype = self.auth
 				self.auth = None
-		self._meta = meta				
+		self._meta = meta or {}				
 		self._use_cache = use_cache		
 		self._filter = filter
 		self._callback = callback

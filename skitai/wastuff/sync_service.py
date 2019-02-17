@@ -3,6 +3,7 @@ from ..rpc import cluster_dist_call
 from ..dbi import cluster_dist_call as dcluster_dist_call 
 from skitai import DB_SQLITE3, DB_PGSQL, DB_REDIS, DB_MONGODB
 from rs4 import webtest
+from rs4.cbutil import tuple_cb
 import random
 from urllib.parse import urlparse, urlunparse       
  
@@ -27,7 +28,7 @@ class Result:
 class ProtoCall (cluster_dist_call.ClusterDistCall):
     def __init__ (self, cluster, *args, **kargs):
         self.cluster = cluster
-        self.result = None   
+        self.result = None        
         self.handle_request (*args, **kargs)       
             
     def  handle_request (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
@@ -42,13 +43,19 @@ class ProtoCall (cluster_dist_call.ClusterDistCall):
         with webtest.Target (endpoint) as cli:
             req_func = getattr (cli, reqtype)
             try:
-                resp = req_func (uri, headers = headers, auth = auth)                
+                resp = req_func (uri, headers = headers, auth = auth)                                
             except:
                 self.result = Result (1)
             else:
                 self.result = Result (3, resp)        
+        self.result.meta = meta or {}
         callback and callback (self.result)
     
+    def set_callback (self, callback, reqid = None):
+        if reqid is not None:
+            self.result.meta ["__reqid"] = reqid                        
+        tuple_cb (self.result, callback)
+        
     def wait (self):
         pass
     
@@ -68,8 +75,8 @@ class DBCall (ProtoCall):
     def __init__ (self, cluster, *args, **kargs):
         self.cluster = cluster
         self.result = None
-        self.args, self.kargs = args, kargs
-    
+        self.args, self.kargs = args, kargs        
+        
     def _build_request (self, method, param):
         self.handle_request (method, param, *self.args, **self.kargs)
         
@@ -90,9 +97,13 @@ class DBCall (ProtoCall):
             else:
                 resp = getattr (conn, method) (*param)
         except:
-            self.result = Result (1)
+            self.result = Result (1)            
+            self.result.status_code, self.result.reason = 500, "Exception Occured"            
         else:
-            self.result = Result (3, resp)                    
+            self.result = Result (3, resp)
+            self.result.status_code, self.result.reason = 200, "OK"
+            
+        self.result.meta = meta or {}    
         for conn in conns:
             conn.close ()
         callback and callback (self.result)

@@ -41,6 +41,7 @@ def make_stream_set (https = 0):
 	server = (https and "https" or "http") + "://127.0.0.1:30371"
 	aquests.get (server + "/documentation")
 	aquests.get (server + "/documentation2")
+	aquests.get (server + "/documentation3")
 		
 def test_app (launch):
 	global ERRS

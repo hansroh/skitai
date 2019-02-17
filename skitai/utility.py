@@ -125,7 +125,9 @@ def md5uniqid (length = 13):
     return md5 (_id.encode ("utf8")).hexdigest ()[length:]
 
 
-def make_pushables (response, content):
+def make_pushables (response, content, ignore_futrue = True):
+    from .wastuff import futures
+    
     if not response.is_responsable ():
         # already called response.done () or diconnected channel
         return
@@ -142,7 +144,10 @@ def make_pushables (response, content):
     
     if type (content) not in (list, tuple):
         content = (content,) # make iterable
-
+        
+    if ignore_futrue and isinstance (content [0], futures.Futures):
+        return
+                
     will_be_push = []
     if len (response) == 0:
         content_length = 0
