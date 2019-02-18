@@ -1,3 +1,4 @@
+from atila import Atila
 
 if __name__ == "__main__":
 	import skitai

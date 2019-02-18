@@ -3,7 +3,6 @@ import threading
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from ..rpc import cluster_manager, cluster_dist_call
 from ..dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
-import copy
 
 def is_main_thread ():    
     return isinstance (threading.currentThread (), threading._MainThread)
@@ -35,17 +34,6 @@ class AsyncService:
         if enable_requests:
             for method in self.METHODS:
                 setattr (self, method, Command (method, self._call))
-    
-    def _clone (self):
-        #new_was = self.__class__ (False)
-        new_was = copy.copy (self)
-        if hasattr (self, "request"):
-            new_was.request = self.request            
-        if hasattr (self, "response"):    
-            new_was.response = self.response
-            new_was.app = self.app
-            new_was.env = self.env
-        return new_was
     
     @classmethod
     def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0, access = []):

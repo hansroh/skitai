@@ -3,6 +3,8 @@ from .response import response
 import time
 
 class request (http_request.http_request):
+	response_class = response
+	
 	def __init__ (self, http2, scheme, stream_id, is_promise, *args):
 		http_request.http_request.__init__ (self, *args)
 		self.http2 = http2
@@ -12,8 +14,8 @@ class request (http_request.http_request):
 		self.weight = 0
 		self._scheme = scheme
 	
-	def make_response (self):				
-		self.response = response (self)
+	def make_response (self):
+		self.response = self.response_class (self)
 			
 	def get_scheme (self):	
 		return self._scheme

@@ -6,6 +6,7 @@ from rs4.attrdict import CaseInsensitiveDict
 from aquests.protocols.http import http_util
 
 class http_request:
+	response_class = http_response.http_response
 	version = "1.1"
 	collector = None
 	producer = None
@@ -137,7 +138,7 @@ class http_request:
 		return self._is_promise
 		
 	def make_response (self):
-		self.response = http_response.http_response (self)
+		self.response = self.response_class (self)
 	
 	def set_streaming (self):
 			self._is_async_streaming = True

@@ -3,7 +3,7 @@ from rs4 import producers
 import time
 
 
-class response (http_response.http_response):	
+class response (http_response.http_response):
 	def __init__ (self, request):
 		http_response.http_response.__init__ (self, request)
 		self.trailers = []
@@ -123,5 +123,5 @@ class response (http_response.http_response):
 			)
 			
 		except:
-			logger.trace ()			
+			logger.trace ()
 		

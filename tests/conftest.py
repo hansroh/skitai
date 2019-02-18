@@ -14,19 +14,21 @@ except ImportError:
 else:
     del pytest_ordering    
 
-@pytest.fixture (scope = "module")
-def app ():
-    return Atila (__name__)
-
-@pytest.fixture
-def client ():
-    return confutil.client
-    
 @pytest.fixture
 def log ():
     logger = testutil.logger ()
     yield logger
     logger.close ()
+
+@pytest.fixture (scope = "module")
+def app ():
+    app_ = Atila (__name__)
+    app_.logger = logger.screen_logger ()
+    return app_
+
+@pytest.fixture
+def client ():
+    return confutil.client
 
 @pytest.fixture
 def conn ():

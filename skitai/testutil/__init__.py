@@ -26,6 +26,7 @@ from aquests.dbapi.dbconnect import DBConnect
 import asyncore
 from .launcher  import launch
 from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS
+from ..wastuff import semaps
      
 def logger ():
     return triple_logger.Logger ("screen", None)    
@@ -132,13 +133,19 @@ def setup_was (wasc):
 
 wasc = None
 def activate ():
-    global wasc
+    from ..wsgiappservice import SyncWAS
+    from atila import was as atila_was
     
+    class WAS (atila_was.WAS, SyncWAS):
+        numthreads = 1 
+        _luwatcher = semaps.TestSemaps ()
+        _stwatcher = semaps.TestSemaps ()
+    
+    global wasc    
     if wasc is not None:
-        return    
-    from ..wsgiappservice import TestWAS
+        return
     
-    wasc = setup_was (TestWAS)
+    wasc = setup_was (WAS)
     skitai.start_was (wasc)
     
     lifetime.init (10.0, wasc.logger.get ("server"))    

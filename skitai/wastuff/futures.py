@@ -36,15 +36,15 @@ class Futures:
                 content = self.fulfilled (self._was, self.ress, **self.args)
             else:
                 content = self.fulfilled (self._was, self.ress)    
-            will_be_push = make_pushables (response, content, ignore_futrue = False)                            
+            will_be_push = make_pushables (response, content)                            
         except MemoryError:
             raise
         except:            
             self._was.traceback ()
             response.error (508, "Application Error", self._was.app.debug and sys.exc_info () or None)            
         else:
-            if will_be_push is None:
-                return                        
+            if will_be_push is None: # not responsible or futures
+                return
             for part in will_be_push:
                 if len (will_be_push) == 1 and type (part) is bytes and len (response) == 0:
                     response.update ("Content-Length", len (part))

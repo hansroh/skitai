@@ -63,12 +63,10 @@ class Dispatcher (cluster_dist_call.Dispatcher):
 				status = NETERR
 		else:
 			status = NORMAL
-			
-		self.set_status (status)
-		with self._cv:
-			self.result = cluster_dist_call.Result (self.id, status, request, self.ident)
-			if self.callback:
-				tuple_cb (self, self.callback)
+		
+		result = cluster_dist_call.Result (self.id, status, request, self.ident)	
+		self.set_status (status, result)
+		tuple_cb (self, self.callback)
 				
 				        	     
 #-----------------------------------------------------------

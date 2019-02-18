@@ -87,20 +87,18 @@ class Dispatcher:
 		return self.id
 	
 	def get_status (self):
-		# 0: Not Connected
-		# 1: Operation Timeout
-		# 2: Exception Occured
-		# 3: Normal
 		with self._cv:
 			return self.status
 		
-	def set_status (self, code):
+	def set_status (self, code, result = None):
 		with self._cv:
-			self.status = code		
+			self.status = code
+			if result:		
+				self.result = result
 		return code
 		
 	def get_result (self):
-		if not self.result:		 	
+		if not self.result:
 			if self.get_status () == REQFAIL:
 				self.result = Result (self.id, REQFAIL, http_response.FailedResponse (731, "Request Failed"), self.ident)
 			else:	
@@ -112,9 +110,7 @@ class Dispatcher:
 			self.filterfunc (self.result)
 		
 	def handle_cache (self, response):
-		status = NORMAL
-		self.result = Result (self.id, status, response, self.ident)				
-		self.set_status (status)
+		self.set_status (NORMAL, Result (self.id, status, response, self.ident))		
 							
 	def handle_result (self, handler):
 		if self.get_status () == TIMEOUT:
@@ -132,7 +128,6 @@ class Dispatcher:
 			status = NORMAL
 		
 		result = Result (self.id, status, response, self.ident)
-		self.set_status (status)
 		
 		cakey = response.request.get_cache_key ()
 		if self.cachefs and cakey and response.max_age:
@@ -145,7 +140,7 @@ class Dispatcher:
 		handler.asyncon = None
 		handler.callback = None
 		handler.response = None
-		self.result = result
+		self.set_status (status, result)
 		tuple_cb (self, self.callback)
 		
 

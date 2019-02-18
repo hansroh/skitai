@@ -254,7 +254,7 @@ class Job:
 			was.traceback ()
 			trigger.wakeup (lambda p=response, d=self.apph.debug and sys.exc_info () or None: (p.error (508, "Application Error", d), p.done ()) )
 		else:
-			if will_be_push is None:
+			if will_be_push is None: # not responsible or futures
 				return
 			for part in will_be_push:				
 				if len (will_be_push) == 1 and type (part) is bytes and len (response) == 0:
