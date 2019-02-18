@@ -10,3 +10,9 @@ def index (was):
 def pets (was, id):
   return was.response.API ({"id": id, "kind": "dog", "name": "Monk"})
 
+def mount (app):
+    @app.route ("/apis/owners/<int:id>")
+    def owners (was, id):
+        return was.response.API ({"id": id, "name": "Monk"})
+    
+    

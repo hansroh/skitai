@@ -131,10 +131,10 @@ def test_cli (app, dbpath):
         assert resp.text == "GET"
         
         resp = cli.post ("/json", {"m": "POST"})
-        assert resp.text == '{"data": "POST"}'
+        assert '"data": "POST"' in resp.text
         
         resp = cli.post ("/json", {"m": "POST"})
-        assert resp.text == '{"data": "POST"}'
+        assert '"data": "POST"' in resp.text
     
         resp = cli.get ("/db2")
         assert resp.data ["data"][0][3] == 'RHAT'
