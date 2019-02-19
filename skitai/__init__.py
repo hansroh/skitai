@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.4.3"
+__version__ = "0.28.4.4"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -227,9 +227,19 @@ def set_request_timeout (timeout):
 	dconf ["network_timeout"] = timeout
 set_network_timeout = set_request_timeout
 
-def set_was_class (class_):
+def set_was_class (was_class, response_class = None):
 	global dconf	
-	dconf ["wasc"] = class_
+	dconf ["wasc"] = was_class
+	
+	if response_class:
+		from skitai.http_request import http_request
+		from .handlers.http2.request import request as http2_request
+		from .handlers.http2.response import response as http2_response
+		
+		class http2_response (response_class, http2_response):
+			pass
+		http_request.response_class = response_class
+		http2_request.response_class = http2_response
 	
 def deflu (*key):
 	if "models-keys" not in dconf:
@@ -582,7 +592,6 @@ def run (**conf):
 				self.flock = flock.Lock (os.path.join (self.varpath, ".%s" % self.NAME))
 	
 	#----------------------------------------------------------------------------
-	
 	global dconf, PROCESS_NAME, Win32Service
 	
 	for k, v in dconf.items ():
@@ -631,4 +640,3 @@ def run (**conf):
 			# worker process				
 			# for avoiding multiprocessing.manager process's join error
 			os._exit (lifetime._exit_code)
-		

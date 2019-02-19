@@ -1,3 +1,5 @@
+# testing purpose WAS sync service
+
 from . import async_service
 from ..rpc import cluster_dist_call
 from ..dbi import cluster_dist_call as dcluster_dist_call 
@@ -75,28 +77,48 @@ class DBCall (ProtoCall):
     def __init__ (self, cluster, *args, **kargs):
         self.cluster = cluster
         self.result = None
-        self.args, self.kargs = args, kargs        
+        self.args, self.kargs = args, kargs
+        try:
+            from sqlalchemy.dialects import postgresql
+        except ImportError:
+            self.dialect = None
+        else:
+            self.dialect = postgresql.dialect ()
+        
+    def _compile (self, params):
+        statement = params [0]
+        if isinstance(statement, str):
+            return params
+        elif self.dialect:
+            return (str (statement.compile (dialect = self.dialect, compile_kwargs = {"literal_binds": True})),)            
+        else:
+            raise ValueError ("SQL statement error")                
+        return ""  
         
     def _build_request (self, method, param):
         self.handle_request (method, param, *self.args, **self.kargs)
         
     def  handle_request (self, method, param, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
         from ..dbi import cluster_manager
+        from ..dbi import endpoints
         
         assert dbtype is None, "please, alias {}".format (server)
         if self.cluster:
             conns = self.cluster.get_endpoints ()
         else:            
-            conns = cluster_manager.make_endpoints (dbtype, [server, dbname, auth])            
+            conns = endpoints.make_endpoints (dbtype, [server, dbname, auth])
         conn = random.choice (conns)
         try:
             if self.cluster.dbtype in (DB_SQLITE3, DB_PGSQL):        
+                stmt = self._compile (param)
                 cur = conn.cursor ()
-                getattr (cur, method) (*param)
+                getattr (cur, method) (*stmt)
                 resp = cur.fetchall ()
+                cur.close ()
             else:
                 resp = getattr (conn, method) (*param)
         except:
+            raise
             self.result = Result (1)            
             self.result.status_code, self.result.reason = 500, "Exception Occured"            
         else:
@@ -104,8 +126,7 @@ class DBCall (ProtoCall):
             self.result.status_code, self.result.reason = 200, "OK"
             
         self.result.meta = meta or {}    
-        for conn in conns:
-            conn.close ()
+        endpoints.restore (conns)        
         callback and callback (self.result)
 
 
