@@ -252,7 +252,7 @@ class Job:
 			raise
 		except:			
 			was.traceback ()			
-			trigger.wakeup (lambda p = response, d=self.apph.debug and sys.exc_info () or None: (p.error (424, "Application Error", d), p.done ()) )
+			trigger.wakeup (lambda p = response, d=self.apph.debug and sys.exc_info () or None: (p.error (500, "Internal Server Error", d), p.done ()) )
 		else:
 			if will_be_push is None: # not responsible or futures
 				return
