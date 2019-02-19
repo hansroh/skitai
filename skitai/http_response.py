@@ -283,7 +283,7 @@ class http_response:
 		self.push (body)
 		if not push_only:
 			self.done (force_close)
-	
+				
 	# Send Response -------------------------------------------------------		
 	def die_with (self, thing):
 		if self.request.channel:
@@ -307,7 +307,7 @@ class http_response:
 	
 	def __call__ (self, status = "200 OK", body = None, headers = None, exc_info = None):
 		self.start_response (status, headers)
-		if body is None:
+		if body is None:			
 			return self.build_error_template (exc_info)
 		return body
 		    					

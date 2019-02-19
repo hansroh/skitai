@@ -251,8 +251,8 @@ class Job:
 		except MemoryError:
 			raise
 		except:			
-			was.traceback ()
-			trigger.wakeup (lambda p=response, d=self.apph.debug and sys.exc_info () or None: (p.error (508, "Application Error", d), p.done ()) )
+			was.traceback ()			
+			trigger.wakeup (lambda p = response, d=self.apph.debug and sys.exc_info () or None: (p.error (424, "Application Error", d), p.done ()) )
 		else:
 			if will_be_push is None: # not responsible or futures
 				return
