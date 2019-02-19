@@ -182,7 +182,7 @@ class ClusterDistCall:
 	
 		self._requests = {}
 		self._results = []
-		self._canceled = 0
+		self._canceled = False
 		self._init_time = time.time ()
 		self._cv = None
 		self._retry = 0		
@@ -335,7 +335,8 @@ class ClusterDistCall:
 			self._cv = asyncon._cv
 				
 	def _cancel (self):
-		self._canceled = 1
+		with self._cv:
+			self._canceled = True
 	
 	#---------------------------------------------------------
 	def cache (self, timeout = 300, validation = None):
@@ -354,23 +355,22 @@ class ClusterDistCall:
 	
 	def _wait (self, timeout = DEFAULT_TIMEOUT):		
 		if self._timeout != timeout:
-			for rs, asyncon in self._requests.items ():
-				asyncon.set_timeout (timeout)
+			self.reset_timeout (timeout)
 		
-		while self._requests and not self._canceled:
-			remain = timeout - (time.time () - self._init_time)
-			if remain <= 0: break						
-			self._cv.acquire ()
-			self._cv.wait (remain)
-			self._cv.release ()
-		# timeouts
-		for rs, asyncon in list(self._requests.items ()):
-			asyncon.handle_abort () # abort imme
+		remain = timeout - (time.time () - self._init_time)		
+		if remain > 0:
+			with self._cv:
+				if self._requests and not self._canceled:
+					self._cv.wait (remain)
+					
+		with self._cv:
+			requests = list (self._requests.items ())
+			
+		for rs, asyncon in requests:
 			rs.set_status (TIMEOUT)
-			self._cluster.report (asyncon, False) # maybe dead
-			self._results.append (rs)
-			del self._requests [rs]
-		
+			asyncon.handle_abort () # abort imme			
+			self._collect (rs)
+			
 	def _fail_log (self, status):
 		if self._origin:
 			self._logger ("backend status is {}, {} at {} LINE {}: {}".format (
@@ -411,21 +411,23 @@ class ClusterDistCall:
 		return self._cached_result
 	
 	def _collect (self, rs):
-		asyncon = self._requests [rs]
-		status = rs.get_status ()			
+		with self._cv:
+			asyncon = self._requests.pop (rs)
+				
+		status = rs.get_status ()
 		if status == REQFAIL:
-			del self._requests [rs]
 			self._results.append (rs)
 			self._cluster.report (asyncon, True) # not asyncons' Fault
+		elif status == TIMEOUT:
+			self._results.append (rs)
+			self._cluster.report (asyncon, False) # not asyncons' Fault	
 		elif not self._mapreduce and status == NETERR and self._retry < (self._numnodes - 1):
 			self._logger ("Cluster Response Error, Switch To Another...", "fail")
 			self._cluster.report (asyncon, False) # exception occured
-			del self._requests [rs]
 			self._retry += 1
 			self._nodes = [None]
 			self._request (*self._cached_request_args)
 		elif status >= NETERR:
-			del self._requests [rs]
 			self._results.append (rs)
 			if status == NETERR:
 				self._cluster.report (asyncon, False) # exception occured
@@ -433,24 +435,38 @@ class ClusterDistCall:
 				self._cluster.report (asyncon, True) # well-functioning
 				rs.do_filter ()
 		
-		if not self._requests:
-			if self._callback:
-				self._do_callback (self._callback)
+		with self._cv:
+			requests = self._requests
+			callback = self._callback
+			
+		if not requests:
+			if callback:
+				self._do_callback (callback)
 			else:
-				self._cv.acquire ()
-				self._cv.notifyAll ()
-				self._cv.release ()					
+				with self._cv:
+					self._cv.notifyAll ()									
 	
 	def _do_callback (self, callback):
 		result = self._mapreduce and self.getswait (wait = False) or self.getwait (wait = False)
 		tuple_cb (result, callback)		
-		
-	def set_callback (self, callback, reqid = None):
+	
+	def reset_timeout (self, timeout):
+		with self._cv:
+			asyncons = list (self._requests.values ())
+		for asyncon in asyncons:
+			asyncon.set_timeout (timeout)		
+			
+	def set_callback (self, callback, reqid = None, timeout = 10):
 		if reqid is not None:
 			self._meta ["__reqid"] = reqid
-		if not self._requests:
-			return self._do_callback (callback)			
-		self._callback = callback
+		with self._cv:	
+			requests = self._requests	
+			if requests:
+				self._callback = callback						
+		if not requests:
+			return self._do_callback (callback)							
+		if self._timeout != timeout:
+			self.reset_timeout(timeout)
 					
 	def _or_throw (self, func, status, timeout, cache):
 		try:

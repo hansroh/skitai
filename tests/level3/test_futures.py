@@ -13,7 +13,7 @@ def test_futures (app, dbpath):
             was.get ("@pypi/project/rs4/"),
             was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
         ]
-        return was.futures (reqs, a = 100).then (respond)
+        return was.futures (reqs).then (respond, a = 100)
     
     @app.route ("/2")
     def index2 (was):
@@ -22,14 +22,14 @@ def test_futures (app, dbpath):
         
         def checkdb (was, rss, a):
             reqs = [was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))]
-            return was.futures (reqs, b = a + 100, status_code = [rs.status_code for rs in rss]).then (repond)
+            return was.futures (reqs).then (repond, b = a + 100, status_code = [rs.status_code for rs in rss])
         
         def begin ():
             reqs = [
                 was.get ("@pypi/project/skitai/"),
                 was.get ("@pypi/project/rs4/")            
             ]
-            return was.futures (reqs, a = 100).then (checkdb)
+            return was.futures (reqs).then (checkdb, a = 100)
         begin ()
         
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")    

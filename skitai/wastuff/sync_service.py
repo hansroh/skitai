@@ -51,7 +51,7 @@ class ProtoCall (cluster_dist_call.ClusterDistCall):
         self.result.meta = meta or {}
         callback and callback (self.result)
     
-    def set_callback (self, callback, reqid = None):
+    def set_callback (self, callback, reqid = None, timeout = 10):
         if reqid is not None:
             self.result.meta ["__reqid"] = reqid                        
         tuple_cb (self.result, callback)
