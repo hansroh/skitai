@@ -55,17 +55,17 @@ def test_params (wasc, app, client):
 	#----------------------------------------
 	
 	request = client.get ("http://www.skitai.com/do2")	
-	resp = assert_request (vh, request, 508)	
+	resp = assert_request (vh, request, 424)	
 	
 	request = client.get ("http://www.skitai.com/do2?a=1")	
 	resp = assert_request (vh, request, 200)	
 	assert resp.text == "a"
 	
 	request = client.get ("http://www.skitai.com/do2?a=1&b=1")	
-	resp = assert_request (vh, request, 508)
+	resp = assert_request (vh, request, 424)
 	
 	request = client.post ("http://www.skitai.com/do2", {'a': 1, 'b': 1})
-	resp = assert_request (vh, request, 508)
+	resp = assert_request (vh, request, 424)
 	
 	request = client.post ("http://www.skitai.com/do2?a=1", {'b': 1})
 	resp = assert_request (vh, request, 200)
@@ -94,7 +94,7 @@ def test_params (wasc, app, client):
 	assert resp.text == "a b u"
 	
 	request = client.post ("http://www.skitai.com/do5/1?b=1", {'a': 1})
-	resp = assert_request (vh, request, 508)
+	resp = assert_request (vh, request, 424)
 	
 	request = client.post ("http://www.skitai.com/do5/1?a=1", {'b': 1})
 	resp = assert_request (vh, request, 200)

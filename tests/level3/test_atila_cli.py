@@ -94,7 +94,7 @@ def test_cli (app, dbpath):
         assert resp.text == "Hello, World"
         
         resp = cli.get ("/petse/1")
-        assert resp.status_code == 508
+        assert resp.status_code == 424
         
         resp = cli.get ("/pets/1")
         assert resp.status_code == 200
@@ -143,7 +143,7 @@ def test_cli (app, dbpath):
         assert resp.data ["data"][0][3] == 'RHAT'
         
         resp = cli.get ("/pypi3")
-        assert resp.status_code == 508
+        assert resp.status_code == 424
         
         resp = cli.get ("/pypi2")
         assert "skitai" in resp.text
