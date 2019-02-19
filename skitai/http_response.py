@@ -123,7 +123,36 @@ class http_response:
 			self.set (key, value)
 		else:
 			self.set (key, val + ", " + value)
-
+	
+	set_header = set
+	get_header = get
+	del_header = delete	
+	
+	def set_cache (self, max_age = 0):
+		if self.request.version == "1.0":			
+			self.set_header ('Expires', http_date.build_http_date (time.time() + max_age))				
+		else:
+			self.set_header ('Cache-Control', "max-age=%d" % max_age)
+					
+	def set_headers (self, headers):
+		for k, v in headers:
+			self.set (k, v)
+	
+	def append_headers (self, headers):
+		for k, v in headers:
+			self.set (k, v)		
+			
+	def get_hedaers (self):	
+		return self.reply_headers
+	
+	def set_reply (self, status):
+		# for atila.Atila App
+		self.reply_code, self.reply_message = self.parse_ststus (status)	
+	set_status = set_reply
+		
+	def get_status (self):
+		return "%d %s" % self.get_reply ()
+	
 	def build_reply_header (self, with_header = 1):
 		h = [self.response (self.reply_code, self.reply_message)]
 		if with_header:
@@ -144,13 +173,6 @@ class http_response:
 		except:
 			raise AssertionError ("Can't understand given status code")		
 		return code, status	
-
-	#--------------------------------------------		
-	# for WSGI & atila.Atila Apps
-	#--------------------------------------------		
-	def set_reply (self, status):
-		# for atila.Atila App
-		self.reply_code, self.reply_message = self.parse_ststus (status)
 	
 	def get_reply (self):
 		# for atila.Atila App
@@ -166,9 +188,9 @@ class http_response:
 			for header in headers:
 				reply.append ("%s: %s" % header)
 		self.request.channel.push (("\r\n".join (reply) + "\r\n\r\n").encode ("utf8"))
-		
-	def start_response (self, status, headers = None, exc_info = None):		
-		# for WSGI App
+	
+	# for WSGI App -------------------------------------------------------	
+	def start_response (self, status, headers = None, exc_info = None):
 		if not self.is_responsable ():
 			if exc_info:
 				try:
@@ -189,9 +211,7 @@ class http_response:
 			
 		return self.push #by WSGI Spec.
 	
-	#----------------------------------------	
-	# Internal Rsponse Methods.
-	#----------------------------------------	
+	# Internal Response Methods ------------------------------------------		
 	def abort (self, code, status = "", why = ""):
 		self.request.channel.reject ()
 		self.error (code, status, why, force_close = True)
@@ -264,9 +284,7 @@ class http_response:
 		if not push_only:
 			self.done (force_close)
 	
-	#--------------------------------------------
-	# Send Response
-	#--------------------------------------------	
+	# Send Response -------------------------------------------------------		
 	def die_with (self, thing):
 		if self.request.channel:
 			self.request.channel.attend_to (thing)
@@ -286,7 +304,13 @@ class http_response:
 			self.outgoing.push (producers.simple_producer (thing))
 		else:			
 			self.outgoing.push (thing)
-			    					
+	
+	def __call__ (self, status = "200 OK", body = None, headers = None, exc_info = None):
+		self.start_response (status, headers)
+		if body is None:
+			return self.build_error_template (exc_info)
+		return body
+		    					
 	def done (self, force_close = False, upgrade_to = None, with_header = 1):
 		self.content_type = self.get ('content-type')
 				
@@ -491,38 +515,4 @@ class http_response:
 		)
 		# clearing resources, back refs
 		self.request.response_finished ()
-	
-	#---------------------------------------------
-	# Used within atila.Atila app
-	#---------------------------------------------
-	
-	set_header = set
-	get_header = get
-	del_header = delete
-	
-	def set_cache (self, max_age = 0):
-		if self.request.version == "1.0":			
-			self.set_header ('Expires', http_date.build_http_date (time.time() + max_age))				
-		else:
-			self.set_header ('Cache-Control', "max-age=%d" % max_age)
-					
-	def set_headers (self, headers):
-		for k, v in headers:
-			self.set (k, v)
-	
-	def append_headers (self, headers):
-		for k, v in headers:
-			self.set (k, v)		
-			
-	def get_hedaers (self):	
-		return self.reply_headers	
-	set_status = set_reply
-		
-	def get_status (self):
-		return "%d %s" % self.get_reply ()
-	
-	def __call__ (self, status = "200 OK", body = None, headers = None, exc_info = None):
-		self.start_response (status, headers)
-		if body is None:
-			return self.build_error_template (exc_info)
-		return body
+

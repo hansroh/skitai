@@ -2,20 +2,21 @@ from ..utility import make_pushables
 import sys
 
 class Futures:
-    def __init__ (self, was, reqs, **args):
+    def __init__ (self, was, reqs, timeout = 10):
         assert isinstance (reqs, (list, tuple))
-        
         self._was = was
+        self.timeout = timeout
         self.reqs = reqs
-        self.args = args
+        self.args = {}
         self.fulfilled = None
         self.responded = 0        
         self.ress = [None] * len (self.reqs)
         
-    def then (self, func):        
+    def then (self, func, **kargs):
+        self.args = kargs     
         self.fulfilled = func
-        for reqid, req in enumerate (self.reqs):
-            req.set_callback (self._collect, reqid)
+        for reqid, req in enumerate (self.reqs):            
+            req.set_callback (self._collect, reqid, self.timeout)
         return self
              
     def _collect (self, res):
