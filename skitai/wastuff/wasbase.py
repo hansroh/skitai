@@ -25,6 +25,10 @@ if os.environ.get ("SKITAI_ENV") == "PYTEST":
 else:    
     from multiprocessing import RLock
 
+import xmlrpc.client as xmlrpclib
+from rs4.producers import file_producer
+from .api import DateEncoder
+
 if os.name == "nt":
     TEMP_DIR =  os.path.join (tempfile.gettempdir(), "skitai-gentemp")
 else:
@@ -123,6 +127,9 @@ class WASBase:
             id = self.txnid ()
         self.logger.trace (at, id)
     
+    def render_ei (self, exc_info, format = 0):
+        return http_response.catch (format, exc_info)
+    
     @property
     def tempfile (self):
         return self.gentemp () 
@@ -196,4 +203,45 @@ class WASBase:
     def wsclient (self):
         return self.env.get ('websocket.client')    
     
+    # will be deprecated --------------------------------------------------
+    def togrpc (self, obj):
+        return obj.SerializeToString ()
+    
+    def fromgrpc (self, message, obj):
+        return message.ParseFromString (obj)
+        
+    def tojson (self, obj):
+        return json.dumps (obj, cls = DateEncoder)
+        
+    def toxml (self, obj):
+        return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")    
+    
+    def fromjson (self, obj):
+        if type (obj) is bytes:
+            obj = obj.decode ('utf8')
+        return json.loads (obj)
+    
+    def fromxml (self, obj, use_datetime = 0):
+        return xmlrpclib.loads (obj)
+    
+    def fstream (self, path, mimetype = 'application/octet-stream'):    
+        self.response.set_header ('Content-Type',  mimetype)
+        self.response.set_header ('Content-Length', str (os.path.getsize (path)))    
+        return file_producer (open (path, "rb"))
+            
+    def jstream (self, obj, key = None):
+        self.response.set_header ("Content-Type", "application/json")
+        if key:
+            # for single skeleton data is not dict
+            return self.tojson ({key: obj})
+        else:
+            return self.tojson (obj)        
+    
+    def xstream (self, obj, use_datetime = 0):            
+        self.response.set_header ("Content-Type", "text/xml")
+        return self.toxml (obj, use_datetime)
+    
+    def gstream (self, obj):
+        self.response.set_header ("Content-Type", "application/grpc")
+        return self.togrpc (obj)
     
