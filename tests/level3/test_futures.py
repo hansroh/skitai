@@ -6,8 +6,8 @@ def test_futures (app, dbpath):
     @app.route ("/")
     def index (was):
         def respond (was, rss, a):
-            return was.response.API (status_code = [rs.status_code for rs in rss], a = a) 
-        
+            return was.response.API (status_code = [rs.status_code for rs in rss], a = a)
+                        
         reqs = [
             was.get ("@pypi/project/skitai/"),
             was.get ("@pypi/project/rs4/"),
@@ -31,6 +31,28 @@ def test_futures (app, dbpath):
             ]
             return was.futures (reqs).then (checkdb, a = 100)
         begin ()
+    
+    @app.route ("/3")
+    def index3 (was):
+        def respond (was, rss):
+            datas = str (rss [0].data_or_throw ()) + str (rss [1].one_or_throw ()) 
+            return datas
+                            
+        reqs = [            
+            was.get ("@pypi/project/rs4/"),
+            was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
+        ]
+        return was.futures (reqs).then (respond)
+    
+    @app.route ("/4")
+    def index4 (was):
+        def respond (was, rss):
+            rss [0].one_or_throw ()
+                            
+        reqs = [
+            was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('---',))
+        ]
+        return was.futures (reqs).then (respond)
         
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")    
     app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)    
@@ -44,5 +66,10 @@ def test_futures (app, dbpath):
         assert resp.data ['status_code_db'] == [200]
         assert resp.data ['b'] == 200
         
-        pprint.pprint (resp.data)
+        resp = cli.get ("/3")
+        assert "hansroh" in resp.text
+        assert "RHAT" in resp.text        
+        
+        resp = cli.get ("/4")
+        assert resp.status_code == 404
         

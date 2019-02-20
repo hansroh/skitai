@@ -81,8 +81,8 @@ Async supported protocols:
 
 Async supported database engine or NoSQL:
 
-  - PostGreSQL
-  - MongDB
+  - PostgreSQL
+  - MongoDB
   - Redis
   - SQLite3 (sync only, not async )
 
@@ -1546,7 +1546,7 @@ If you want to change default value,
 Usage At Single Threaded Environment
 `````````````````````````````````````
 
-If you run Skitai with single threaded mode, you can't use req.wait(), req.getwait() or req.getswait(). Instead you should use callback for this, and Skitai provide async response.
+If you run Skitai with single threaded mode, you can't use req.wait(), req.dispatch(). Instead you should use callback for this, and Skitai provide async response.
 
 .. code:: python
   
@@ -1578,7 +1578,7 @@ Then let's request XMLRPC result to one of mysearch members.
   @app.route ("/search")
   def search (was, keyword = "Mozart"):
     s = was.rpc.lb ("@mysearch/rpc2").search (keyword)
-    results = s.getwait (5)
+    results = s.dispatch (5)
     return result.data
   
   if __name__ == "__main__":
@@ -1624,7 +1624,7 @@ Add mydb members to config file.
   def query (was, keyword):
     dbo = was.postgresql.lb ("@mydb")    
     req = dbo.execute ("SELECT * FROM CITIES;")
-    result = req.getwait (2)
+    result = req.dispatch (2)
   
    if __name__ == "__main__":
     import skitai
@@ -1652,7 +1652,7 @@ Basically same with load_balancing except Skitai requests to all members per eac
   def search (was, keyword = "Mozart"):
     stub = was.rpc.map ("@mysearch/rpc2")
     req = stub.search (keyword)
-    results = req.getswait (2)
+    results = req.dispatch (2)
     
     all_results = []
     for result in results:      
@@ -1662,19 +1662,17 @@ Basically same with load_balancing except Skitai requests to all members per eac
 There are 2 changes:
 
 1. from was.rpc.lb () to was.rpc.map ()
-2. from s.getwait () to s.getswait () for multiple results, and results is iterable.
+2. results is iterable
 
 
 More About Fetching Result
 ``````````````````````````````````````
 
 - ClusterDistCall.wait (timeout = 10, reraise = True)
-- ClusterDistCall.getwait (timeout = 10, reraise = False, cache = None, cache_if = (200,))
-- ClusterDistCall.getswait (timeout = 10, reraise = False, cache = None, cache_if = (200,))
-- ClusterDistCall.wait_or_throw (status, timeout = 10)
-- ClusterDistCall.getwait_or_throw (status, timeout = 10, cache = None, cache_if = (200,))
-- ClusterDistCall.getswait_or_throw (status, timeout = 10, cache = None, cache_if = (200,))
-
+- ClusterDistCall.dispatch (timeout = 10, reraise = False, cache = None, cache_if = (200,))
+- ClusterDistCall.wait_or_throw (timeout = 10)
+- ClusterDistCall.dispatch_or_throw (timeout = 10, cache = None, cache_if = (200,))
+- ClusterDistCall.data_or_throw (timeout = 10, cache = None, cache_if = (200,))
 
 Using Aliased Database
 ``````````````````````````
@@ -1734,7 +1732,7 @@ For generating query statements,
   @app.route ("/q/<int:id>)
   def q (was, id):
     statement = stocks.select().where(stocks.c.id == id)
-    res = was.backend ("@mydb").execute (statement).getwait ()
+    res = was.backend ("@mydb").execute (statement).dispatch ()
     res.data
     ...
     
@@ -1761,7 +1759,7 @@ For throwing HTTP error if request is failed immediately,
 
 .. code:: python
 
-  result = req.getwait_or_throw ("500 Internal Server Error", 10) # 2nd param is timeout
+  result = req.dispatch_or_throw ("500 Internal Server Error", 10) # 2nd param is timeout
 
 This code abort to handle request and return HTTP 500 error immediatley.
 
@@ -1771,17 +1769,17 @@ Caching Result
 
 By default, all HTTP requests keep server's cache policy given by HTTP response header (Cache-Control, Expire etc). But you can control cache as your own terms including even database query results.
 
-Every results returned by getwait(), getswait() can cache.
+Every results returned by dispatch() can cache.
 
 .. code:: python
 
   s = was.rpc.lb ("@mysearch/rpc2").getinfo ()
-  result = s.getwait (2)
+  result = s.dispatch (2)
   if result.status_code == 200:
     result.cache (60) # 60 seconds
   
   s = was.rpc.map ("@mysearch/rpc2").getinfo ()
-  results = s.getswait (2)
+  results = s.dispatch (2)
   # assume @mysearch has 3 members
   if results.status_code == [200, 200, 200]:
     result.cache (60)
@@ -1790,12 +1788,12 @@ Although code == 200 alredy implies status == 3, anyway if status is not 3, cach
 
 *New in version 0.15.28*
 
-If you getwait with reraise argument, code can be simple.
+If you dispatch with reraise argument, code can be simple.
 
 .. code:: python
 
   s = was.rpc.lb ("@mysearch/rpc2").getinfo ()
-  content = s.getswait (2, reraise = True).data
+  content = s.dispatch (2, reraise = True).data
   s.cache (60)
 
 Please note cache () method is both available request and result objects.
@@ -1823,13 +1821,13 @@ For expiring cached result by updating new data:
     "@mysearch/rpc2", 
     use_cache = not refreshed and True or False
   ).getinfo ()
-  result = s.getwait (2)
+  result = s.dispatch (2)
   if result.status_code == 200:
     result.cache (60) # 60 seconds  
 
 *New in version 0.27*
 
-You can cache with getwait,
+You can cache with dispatch,
 
 For expiring cached result by updating new data:
 
@@ -1839,7 +1837,7 @@ For expiring cached result by updating new data:
     "@mysearch/rpc2", 
     use_cache = not refreshed and True or False
   ).getinfo ()
-  result = s.getwait (2, cache = 60)
+  result = s.dispatch (2, cache = 60)
   
 *Note* that In this case, it is cached only *if status_code is 200*. If you want cache for another status_code, 
 
@@ -1849,7 +1847,7 @@ For expiring cached result by updating new data:
     "@mysearch/rpc2", 
     use_cache = not refreshed and True or False
   ).getinfo ()
-  result = s.getwait (2, cache = 60, cache_if = (200, 201))
+  result = s.dispatch (2, cache = 60, cache_if = (200, 201))
 
 
 More About Cache Control: Model Synchronized Cache
@@ -1946,7 +1944,7 @@ Your template,
 
 .. code:: html
 
-  {% set response = was.g.aa.getwait () %}  
+  {% set response = was.g.aa.dispatch () %}  
   {% if response.status == 3 %}
     {{ was.response.throw ("500 Internal Server Error") }}
   {% endif %}
@@ -1959,11 +1957,11 @@ Your template,
 
 *Available only with Atila*
 
-Shorter version is for getwait and throw HTTP error,
+Shorter version is for dispatch and throw HTTP error,
 
 .. code:: html
   
-  {% set response = was.g.aa.getwait_or_throw ("500 Internal Server Error") %}
+  {% set response = was.g.aa.dispatch_or_throw ("500 Internal Server Error") %}
 
 
 API Transaction ID
@@ -2602,7 +2600,9 @@ Change Log
 ===========
 
 - 0.28 (Feb 2019)
-  
+	
+  - getwait () and getswait () are integrated into dispatch ()
+  - add data_or_throw () and one_or_throw ()  	
   - was.promise has been deprecated, use was.futures: see Atila documentation
   - reinstate gc.collect () schedule
   - fix GTXID

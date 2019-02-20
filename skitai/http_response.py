@@ -12,7 +12,6 @@ import skitai
 import asyncore
 import json
 from skitai import exceptions
-from skitai.wastuff import futures
 
 try: 
 	from urllib.parse import urljoin
@@ -231,7 +230,7 @@ class http_response:
 			return catch (2, exc_info)
 		return catch (1, exc_info)
 		
-	def build_error_template (self, why = ''):
+	def build_error_template (self, why = '', was = None):
 		global DEFAULT_ERROR_MESSAGE
 		
 		exc_info = None
@@ -262,7 +261,7 @@ class http_response:
 			content = None	
 			if self.current_app and hasattr (self.current_app, 'render_error'):
 				try:
-					content = self.current_app.render_error (error)
+					content = self.current_app.render_error (error, was)
 				except:							
 					self.request.logger.trace ()				
 					if self.current_app.debug:						

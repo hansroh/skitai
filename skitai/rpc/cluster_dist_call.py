@@ -46,7 +46,21 @@ class Result (rcache.Result):
 	
 	def close (self):
 		self.__response = None	
-
+	
+	def data_or_throw (self, one = False):
+		if self.status == 3 and self.status_code == 200:
+			try:
+				if one:
+					return self.data [0]
+				return self.data
+			except IndexError:
+				raise exceptions.HTTPError ("404 Not Found")
+		else:
+			self.reraise ()
+			
+	def one_or_throw (self):
+		return self.data_or_throw (True)
+			
 
 class Results (rcache.Result):
 	def __init__ (self, results, ident = None):
@@ -68,7 +82,10 @@ class Results (rcache.Result):
 		rcache.Result.__cached_time = time.time ()
 		
 		rcache.the_rcache.cache (self)
-
+	
+	def one_or_throw (self):
+		raise ValueError ("Results have always multiple results")
+		
 
 class Dispatcher:
 	def __init__ (self, cv, id, ident = None, filterfunc = None, cachefs = None, callback = None):
@@ -376,39 +393,6 @@ class ClusterDistCall:
 			self._logger ("backend status is {}, {} at {} LINE {}: {}".format (
 				status, self._origin [3], self._origin [1], self._origin [2], self._origin [4][0].strip ()
 			), "debug")			
-		
-	def wait (self, timeout = DEFAULT_TIMEOUT, reraise = True):
-		self.getswait (timeout, reraise)
-		self._cached_result = None
-	
-	def getwait (self, timeout = DEFAULT_TIMEOUT, reraise = False, cache = None, cache_if = (200,), wait = True):
-		if self._cached_result is not None:
-			return self._cached_result
-		wait and self._wait (timeout)
-		
-		if len (self._results) > 1:
-			raise ValueError("Multiple results, use getswait")		
-		self._cached_result = self._results [0].get_result ()
-		cache and self.cache (cache, cache_if)
-		if self._cached_result.status != NORMAL:
-			self._fail_log (self._cached_result.status)
-			reraise and self._cached_result.reraise ()
-		return self._cached_result
-	
-	def getswait (self, timeout = DEFAULT_TIMEOUT, reraise = False, cache = None, cache_if = (200,), wait = True):
-		if self._cached_result is not None:
-			return self._cached_result
-		wait and self._wait (timeout)
-		
-		rss = [rs.get_result () for rs in self._results]
-		for rs in rss:
-			if rs.status == NORMAL:
-				continue		
-			self._fail_log (rs.status)
-			reraise and rs.reraise ()			
-		self._cached_result = Results (rss, ident = self._get_ident ())
-		cache and self.cache (cache, cache_if)		
-		return self._cached_result
 	
 	def _collect (self, rs):
 		with self._cv:
@@ -468,25 +452,48 @@ class ClusterDistCall:
 		if self._timeout != timeout:
 			self.reset_timeout(timeout)
 					
-	def _or_throw (self, func, status, timeout, cache):
-		try:
-			response = func (timeout, reraise =True, cache = cache)
-		except:
-			raise exceptions.HTTPError (status, sys.exc_info ())
-		return response
+	def _or_throw (self, func, timeout, cache):
+		return func (timeout, reraise = True, cache = cache)		
 	
-	def wait_or_throw (self, status, timeout = DEFAULT_TIMEOUT):
-		return self._or_throw (self.wait, status, timeout, cache)
-	
-	def getwait_or_throw (self, status, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
-		return self._or_throw (self.getwait, status, timeout, cache)
-	
-	def getswait_or_throw (self, status, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
-		return self._or_throw (self.getswait, status, timeout, cache)
+	def wait (self, timeout = DEFAULT_TIMEOUT, reraise = True):
+		self.getswait (timeout, reraise)
+		self._cached_result = None
+		
+	def dispatch (self, timeout = DEFAULT_TIMEOUT, reraise = False, cache = None, cache_if = (200,), wait = True):
+		if self._cached_result is not None:
+			return self._cached_result
+		wait and self._wait (timeout)
+		
+		rss = [rs.get_result () for rs in self._results]
+		for rs in rss:
+			if rs.status == NORMAL:
+				continue		
+			self._fail_log (rs.status)
+			reraise and rs.reraise ()
 			
+		if self._mapreduce:
+			self._cached_result = Results (rss, ident = self._get_ident ())
+		else:	
+			self._cached_result = rss [0]
+		cache and self.cache (cache, cache_if)
+		return self._cached_result	
+	getwait = dispatch # lower ver compat.
+	getswait = dispatch # lower ver compat.
+	
+	def wait_or_throw (self, timeout = DEFAULT_TIMEOUT):
+		return self._or_throw (self.wait, timeout, cache)
+	
+	def dispatch_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
+		return self._or_throw (self.getwait, timeout, cache)
+	getwait_or_throw = dispatch_or_throw # lower ver compat.
+	getswait_or_throw = dispatch_or_throw # lower ver compat.
+	
+	def data_or_throw (self, timeout = DEFAULT_TIMEOUT):
+		res = self.getwait (timeout)
+		return res.data_or_throw ()
 
-# Cluster Base Call ---------------------------------------
 
+# cluster base call ---------------------------------------
 class _Method:
 	def __init__(self, send, name):
 		self.__send = send

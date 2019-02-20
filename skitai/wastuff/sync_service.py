@@ -8,6 +8,7 @@ from rs4 import webtest
 from rs4.cbutil import tuple_cb
 import random
 from urllib.parse import urlparse, urlunparse       
+from skitai import exceptions
  
 class Result:
     def __init__ (self, status, response = None):
@@ -27,6 +28,15 @@ class Result:
             return self.__response.text
         return self.__response    
     
+    def data_or_throw (self):
+        return self.data
+    
+    def one_or_throw (self):
+        try: 
+            return self.data [0]
+        except IndexError:
+            raise exceptions.HTTPError ("404 Not Found")
+
 class ProtoCall (cluster_dist_call.ClusterDistCall):
     def __init__ (self, cluster, *args, **kargs):
         self.cluster = cluster
@@ -34,7 +44,8 @@ class ProtoCall (cluster_dist_call.ClusterDistCall):
         self.handle_request (*args, **kargs)       
             
     def  handle_request (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
-        if self.cluster:        
+        self._mapreduce = mapreduce
+        if self.cluster:
             endpoints = self.cluster.get_endpoints ()
             endpoint = random.choice (endpoints)
         else:
@@ -61,16 +72,20 @@ class ProtoCall (cluster_dist_call.ClusterDistCall):
     def wait (self):
         pass
     
-    def _or_throw (self, func, status, timeout, cache):
+    def _or_throw (self, func, timeout, cache):
         if self.result.status != 3:        
-            raise exceptions.HTTPError (status, sys.exc_info ())
+            raise exceptions.HTTPError ("502 Bad Gateway", sys.exc_info ())
         return self.result
             
-    def getwait (self):
+    def dispatch (self):
+        if self._mapreduce:
+            self.result = cluster_dist_call.Results ([self.result])
         return self.result
-    
-    def getswait (self):
-        return cluster_dist_call.Results ([self.result])
+    getwait = dispatch
+    getswait = dispatch
+        
+    def data_or_throw (self, timeout = 10):
+        return self.result.data_or_throw ()
         
 
 class DBCall (ProtoCall):
@@ -102,6 +117,8 @@ class DBCall (ProtoCall):
         from ..dbi import cluster_manager
         from ..dbi import endpoints
         
+        self._mapreduce = mapreduce
+        
         assert dbtype is None, "please, alias {}".format (server)
         if self.cluster:
             conns = self.cluster.get_endpoints ()
@@ -128,7 +145,9 @@ class DBCall (ProtoCall):
         self.result.meta = meta or {}    
         endpoints.restore (conns)        
         callback and callback (self.result)
-
+    
+    def one_or_throw (self, timeout = 10):
+        return self.result.one_or_throw ()    
 
 class SyncService (async_service.AsyncService):
     def _create_rest_call (self, cluster, *args, **kargs):
