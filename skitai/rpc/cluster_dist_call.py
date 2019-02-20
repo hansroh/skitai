@@ -38,6 +38,8 @@ class Result (rcache.Result):
 	def reraise (self):		
 		if self.status != NORMAL:
 			self.__response.raise_for_status ()
+		if self.status_code >= 300:
+			raise exceptions.HTTPError ("502 Bad Gateway", "upstream server respond as {} {}".format (self.status_code, self.reason))	
 			
 	def cache (self, timeout = 300):
 		if self.status != NORMAL:
@@ -48,16 +50,14 @@ class Result (rcache.Result):
 		self.__response = None	
 	
 	def data_or_throw (self, one = False):
-		if self.status == 3 and self.status_code == 200:
-			try:
-				if one:
-					return self.data [0]
-				return self.data
-			except IndexError:
-				raise exceptions.HTTPError ("404 Not Found")
-		else:
-			self.reraise ()
-			
+		self.reraise ()	
+		try:
+			if one:
+				return self.data [0]
+			return self.data
+		except IndexError:
+			raise exceptions.HTTPError ("404 Not Found")					
+	
 	def one_or_throw (self):
 		return self.data_or_throw (True)
 			
