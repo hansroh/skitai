@@ -360,7 +360,7 @@ class ClusterDistCall:
 	#---------------------------------------------------------
 	def cache (self, timeout = 300, validation = None):
 		if self._cached_result is None:
-			raise ValueError("call getwait, getswait first")		
+			raise ValueError("call dispatch first")		
 		
 		if validation:
 			if isinstance (self._cached_result, Results):
@@ -433,7 +433,7 @@ class ClusterDistCall:
 					self._cv.notifyAll ()									
 	
 	def _do_callback (self, callback):
-		result = self._mapreduce and self.getswait (wait = False) or self.getwait (wait = False)
+		result = self.dispatch (wait = False)
 		tuple_cb (result, callback)		
 	
 	def reset_timeout (self, timeout):
@@ -455,14 +455,11 @@ class ClusterDistCall:
 			self.reset_timeout(timeout)
 	
 	# synchronous methods ----------------------------------------------				
-	def _or_throw (self, func, timeout, cache):
-		return func (timeout, reraise = True, cache = cache)		
-	
 	def wait (self, timeout = DEFAULT_TIMEOUT, reraise = True):
-		self.getswait (timeout, reraise)
+		self.dispatch (timeout, reraise = True)
 		self._cached_result = None
 		
-	def dispatch (self, timeout = DEFAULT_TIMEOUT, reraise = False, cache = None, cache_if = (200,), wait = True):
+	def dispatch (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,), wait = True, reraise = False):
 		if self._cached_result is not None:
 			return self._cached_result
 		wait and self._wait (timeout)
@@ -484,19 +481,19 @@ class ClusterDistCall:
 	getswait = dispatch # lower ver compat.
 	
 	def wait_or_throw (self, timeout = DEFAULT_TIMEOUT):
-		return self._or_throw (self.wait, timeout, cache)
+		return self.wait (timeout, reraise = True)
 	
 	def dispatch_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
-		return self._or_throw (self.dispatch, timeout, cache)
+		return self.dispatch (self.dispatch, timeout, cache, cache_if, reraise = True)
 	getwait_or_throw = dispatch_or_throw # lower ver compat.
 	getswait_or_throw = dispatch_or_throw # lower ver compat.
 	
 	def data_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
-		res = self.dispatch (timeout, True, cache, cache_if)
+		res = self.dispatch (timeout, cache, cache_if, reraise = True)
 		return res.data_or_throw ()
 		
 	def one_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
-		res = self.dispatch (timeout, True, cache, cache_if)
+		res = self.dispatch (timeout, cache, cache_if, reraise = True)
 		return res.one_or_throw ()
 	
 	
