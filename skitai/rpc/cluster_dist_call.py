@@ -73,15 +73,26 @@ class Results (rcache.Result):
 	def __iter__ (self):
 		return self.results.__iter__ ()
 	
+	@property
+	def data (self):
+		return [r.data for r in self.results]
+	
+	@property
+	def text (self):
+		return [r.text for r in self.results]
+	
+	def reraise (self):		
+		[r.reraise () for r in self.results]
+	
 	def cache (self, timeout = 60):
 		if [_f for _f in [rs.status != NORMAL or rs.status_code != 200 for rs in self.results] if _f]:
 			return				
 		rcache.Result.cache (self, timeout)
 		return self
-	
-	def one_or_throw (self):
-		raise ValueError ("Results have always multiple results")
 		
+	def data_or_throw (self):
+		return [r.data_or_throw () for r in self.results]
+								
 
 class Dispatcher:
 	def __init__ (self, cv, id, ident = None, filterfunc = None, cachefs = None, callback = None):

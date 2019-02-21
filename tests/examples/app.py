@@ -77,6 +77,15 @@ def db (was):
     req = was.backend ("@sqlite3").execute ("select * from people")
     return was.API (req.data_or_throw (2, 40))
       	
+@app.route ("/dbmap")
+def dbmap (was):
+	req = was.backend.map ("@sqlite3m").execute ("select * from people")
+	results = req.dispatch ()
+	data = req.data_or_throw (cache = 60)
+	print (">>>>>>>>>", data)
+	assert data == results.data				
+	return was.API (data = data)
+         	
 @app.route ("/hello")
 def hello (was, num = 1):
 	was.response ["Content-Type"] = "text/plain"
@@ -120,6 +129,7 @@ if __name__ == "__main__":
 		
 	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
 	skitai.alias ("@sqlite3", skitai.DB_SQLITE3, "resources/sqlite3.db")
+	skitai.alias ("@sqlite3m", skitai.DB_SQLITE3, ["resources/sqlite3.db", "resources/sqlite3-2.db"])
 	
 	skitai.mount ("/", 'statics')
 	skitai.mount ("/", app)
