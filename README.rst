@@ -1405,11 +1405,11 @@ At Skitai,
   def request (was):
     req1 = was.get (url)
     req2 = was.post (url, {"user": "Hans Roh", "comment": "Hello"})    
-    respones1 = req1.getwait (timeout = 3)
-    response2 = req2.getwait (timeout = 3)    
+    respones1 = req1.dispatch (timeout = 3)
+    response2 = req2.dispatch (timeout = 3)    
     return [respones1.data, respones2.data]
 
-The significant differnce is calling getwait (timeout) for getting response data.
+The significant differnce is calling dispatch (timeout) for getting response data.
 
 Database Querying
 `````````````````````````````
@@ -1439,7 +1439,7 @@ At Skitai,
     dbo = was.postgresql ("127.0.0.1:5432", "mydb")
     s = dbo.excute ("SELECT city, t_high, t_low FROM weather;")
     
-    response = s.getwait (2)
+    response = s.dispatch (2)
     for row in response.data:
       row.city, row.t_high, row.t_low
 
@@ -1469,7 +1469,7 @@ For another gRPC example, calling to tfserver_ for predicting something with ten
     fftseq = getone ()
     request = cli.build_request ('model', 'predict', stuff = fftseq)
     req = stub.Predict (request, 10.0)
-    resp = req.getwait ()
+    resp = req.dispatch ()
     return cli.Response (resp.data).y  
 
 Here're addtional methods and properties above response obkect compared with aquests' response one.
@@ -1665,15 +1665,6 @@ There are 2 changes:
 2. results is iterable
 
 
-More About Fetching Result
-``````````````````````````````````````
-
-- ClusterDistCall.wait (timeout = 10, reraise = True)
-- ClusterDistCall.dispatch (timeout = 10, reraise = False, cache = None, cache_if = (200,))
-- ClusterDistCall.wait_or_throw (timeout = 10)
-- ClusterDistCall.dispatch_or_throw (timeout = 10, cache = None, cache_if = (200,))
-- ClusterDistCall.data_or_throw (timeout = 10, cache = None, cache_if = (200,))
-
 Using Aliased Database
 ``````````````````````````
 
@@ -1753,15 +1744,24 @@ For more information about query generating, visit `SQLAlchemy Core`_.
 Throwing HTTP Error On Request Failed
 `````````````````````````````````````````
 
-*Available only on Atila*
+@app.route ("/search")
+  def search (was, keyword = "Mozart"):
+    req = was.get ("@mysearch/something")
+    result = req.dispatch_or_throw ()
+    return result.data
 
-For throwing HTTP error if request is failed immediately,
+dispatch_or_throw () returns result only if req.status_code == 2xx and req.status == 3, otherwise raise HTTP 5xx error.
 
-.. code:: python
+If you want to access to data directly, 
 
-  result = req.dispatch_or_throw ("500 Internal Server Error", 10) # 2nd param is timeout
+@app.route ("/search")
+  def search (was, keyword = "Mozart"):
+    req = was.get ("@mysearch/something")
+    return req.data_or_throw ()
+    
+data_or_throw () returns result.data if all status is normal.
 
-This code abort to handle request and return HTTP 500 error immediatley.
+If your result.data is list type (mostly database query result or JSON array), one_or_throw () is very similar with  data_or_throw () but result count is not 1, it raise HTTP 404 error.  
 
 
 Caching Result
@@ -1934,7 +1934,7 @@ Async request's benefit will be maximied at your view template rather than your 
 .. code:: python
 
   @app.route ("/")
-  @app.login_required	
+  @app.login_required
   def intro (was):
     was.g.aa = was.get ("https://example.com/blur/blur")
     was.g.bb = was.get ("https://example.com/blur/blur/more-blur")

@@ -451,7 +451,8 @@ class ClusterDistCall:
 			return self._do_callback (callback)							
 		if self._timeout != timeout:
 			self.reset_timeout(timeout)
-					
+	
+	# synchronous methods ----------------------------------------------				
 	def _or_throw (self, func, timeout, cache):
 		return func (timeout, reraise = True, cache = cache)		
 	
@@ -484,15 +485,19 @@ class ClusterDistCall:
 		return self._or_throw (self.wait, timeout, cache)
 	
 	def dispatch_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
-		return self._or_throw (self.getwait, timeout, cache)
+		return self._or_throw (self.dispatch, timeout, cache)
 	getwait_or_throw = dispatch_or_throw # lower ver compat.
 	getswait_or_throw = dispatch_or_throw # lower ver compat.
 	
 	def data_or_throw (self, timeout = DEFAULT_TIMEOUT):
-		res = self.getwait (timeout)
+		res = self.dispatch (timeout)
 		return res.data_or_throw ()
-
-
+		
+	def one_or_throw (self, timeout = DEFAULT_TIMEOUT):
+		res = self.getwait (timeout)
+		return res.one_or_throw ()
+	
+	
 # cluster base call ---------------------------------------
 class _Method:
 	def __init__(self, send, name):

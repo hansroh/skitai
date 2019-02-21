@@ -53,6 +53,14 @@ def test_futures (app, dbpath):
             was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('---',))
         ]
         return was.futures (reqs).then (respond)
+    
+    @app.route ("/5")
+    def index5 (was):
+        reqs = [            
+            was.get ("@pypi/project/rs4/"),
+            was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
+        ]
+        return str ([rs.data_or_throw () for rs in was.Tasks (reqs).results])
         
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")    
     app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)    
@@ -72,4 +80,11 @@ def test_futures (app, dbpath):
         
         resp = cli.get ("/4")
         assert resp.status_code == 404
+        
+        resp = cli.get ("/5")
+        assert "hansroh" in resp.text
+        assert "RHAT" in resp.text        
+        
+        
+        
         

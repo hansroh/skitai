@@ -192,10 +192,6 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		trigger.wakeup ()
 		return self
 	
-	def one_or_throw (self, timeout = cluster_dist_call.DEFAULT_TIMEOUT):
-		res = self.getwait (timeout)
-		return res.one_or_throw ()
-	
 
 class Proxy:
 	def __init__ (self, __class, cluster, *args, **kargs):

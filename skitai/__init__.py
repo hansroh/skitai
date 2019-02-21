@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.5.1"
+__version__ = "0.28.5.3"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -227,19 +227,9 @@ def set_request_timeout (timeout):
 	dconf ["network_timeout"] = timeout
 set_network_timeout = set_request_timeout
 
-def set_was_class (was_class, response_class = None):
+def set_was_class (was_class):
 	global dconf	
 	dconf ["wasc"] = was_class
-	
-	if response_class:
-		from skitai.http_request import http_request
-		from .handlers.http2.request import request as http2_request
-		from .handlers.http2.response import response as http2_response
-		
-		class http2_response (response_class, http2_response):
-			pass
-		http_request.response_class = response_class
-		http2_request.response_class = http2_response
 	
 def deflu (*key):
 	if "models-keys" not in dconf:

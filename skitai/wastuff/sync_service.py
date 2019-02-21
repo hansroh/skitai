@@ -77,7 +77,7 @@ class ProtoCall (cluster_dist_call.ClusterDistCall):
             raise exceptions.HTTPError ("502 Bad Gateway", sys.exc_info ())
         return self.result
             
-    def dispatch (self):
+    def dispatch (self, *args, **kargs):
         if self._mapreduce:
             self.result = cluster_dist_call.Results ([self.result])
         return self.result
