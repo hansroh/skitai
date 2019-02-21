@@ -164,7 +164,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		if self._use_cache and rcache.the_rcache:
 			self._cached_result = rcache.the_rcache.get (self._get_ident (), self._use_cache)
 			if self._cached_result is not None:		
-				self._maybe_callback ()
+				self._callback and tuple_cb (self._cached_result, self._callback)
 				return
 		
 		while self._avails ():

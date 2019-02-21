@@ -1924,46 +1924,6 @@ Also was.setlu () emits 'model-changed' events. You can handle event if you need
 Note: if @app.on_broadcast is located in mount function at services directory, even app.use_reloader is True, it is not applied to app when component file is changed. In this case you should manually reload app by resaving app file.
 
 
-Working With Jinja2 Template
-```````````````````````````````
-
-*New in version 0.27*
-
-Async request's benefit will be maximied at your view template rather than your controller. At controller, you just fire your requests and get responses at your template.
-
-.. code:: python
-
-  @app.route ("/")
-  @app.login_required
-  def intro (was):
-    was.g.aa = was.get ("https://example.com/blur/blur")
-    was.g.bb = was.get ("https://example.com/blur/blur/more-blur")
-    return was.render ('template.html')
-	
-Your template,
-
-.. code:: html
-
-  {% set response = was.g.aa.dispatch () %}  
-  {% if response.status == 3 %}
-    {{ was.response.throw ("500 Internal Server Error") }}
-  {% endif %}
-  
-  {% if response.status_code == 200 %}
-    {% for each in response.data %}
-      ...
-    {% endfor %}
-  {% endif %}
-
-*Available only with Atila*
-
-Shorter version is for dispatch and throw HTTP error,
-
-.. code:: html
-  
-  {% set response = was.g.aa.dispatch_or_throw ("500 Internal Server Error") %}
-
-
 API Transaction ID
 `````````````````````
 

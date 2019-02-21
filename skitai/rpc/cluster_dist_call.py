@@ -39,12 +39,14 @@ class Result (rcache.Result):
 		if self.status != NORMAL:
 			self.__response.raise_for_status ()
 		if self.status_code >= 300:
-			raise exceptions.HTTPError ("502 Bad Gateway", "upstream server respond as {} {}".format (self.status_code, self.reason))	
+			raise exceptions.HTTPError ("502 Bad Gateway", "upstream server respond as {} {}".format (self.status_code, self.reason))
+		return self	
 			
 	def cache (self, timeout = 300):
 		if self.status != NORMAL:
 			return
 		rcache.Result.cache (self, timeout)
+		return self
 	
 	def close (self):
 		self.__response = None	
@@ -489,12 +491,12 @@ class ClusterDistCall:
 	getwait_or_throw = dispatch_or_throw # lower ver compat.
 	getswait_or_throw = dispatch_or_throw # lower ver compat.
 	
-	def data_or_throw (self, timeout = DEFAULT_TIMEOUT):
-		res = self.dispatch (timeout)
+	def data_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
+		res = self.dispatch (timeout, True, cache, cache_if)
 		return res.data_or_throw ()
 		
-	def one_or_throw (self, timeout = DEFAULT_TIMEOUT):
-		res = self.getwait (timeout)
+	def one_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
+		res = self.dispatch (timeout, True, cache, cache_if)
 		return res.one_or_throw ()
 	
 	

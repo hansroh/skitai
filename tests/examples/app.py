@@ -26,14 +26,14 @@ def index (was):
 @app.route ("/dnserror")
 def dnserror (was):
 	req = was.get ("https://pypi.python.orgx/pypi/skitai", headers = (["Accept", "text/html"]))
-	rs = req.getwait (10)
+	rs = req.dispatch (10)
 	return "%d %d %s" % (rs.status, rs.status_code, rs.reason)
 
 @app.route ("/documentation")
 def documentation (was):
 	req = was.get ("https://pypi.org/project/skitai/", headers = [("Accept", "text/html")])
 	pypi_content = "<h4><p>It seems some problem at <a href='https://pypi.python.org/pypi/skitai'>PyPi</a>.</p></h4><p>Please visit <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></p>"	
-	rs = req.getwait (10)
+	rs = req.dispatch (10, cache = 60)
 	if rs.data:
 		content = rs.data.decode ("utf8")
 		s = content.find ('<div class="project-description">')
@@ -71,7 +71,12 @@ def documentation3 (was):
         was.get ("@pypi/project/rs4/", headers = [("Accept", "text/html")])        
     ]
     return was.futures (reqs).then (response)
-   	
+
+@app.route ("/db")
+def db (was):
+    req = was.backend ("@sqlite3").execute ("select * from people")
+    return was.API (req.data_or_throw (2, 40))
+      	
 @app.route ("/hello")
 def hello (was, num = 1):
 	was.response ["Content-Type"] = "text/plain"
@@ -114,6 +119,8 @@ if __name__ == "__main__":
 		skitai.set_service (ServiceConfig)
 		
 	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
+	skitai.alias ("@sqlite3", skitai.DB_SQLITE3, "resources/sqlite3.db")
+	
 	skitai.mount ("/", 'statics')
 	skitai.mount ("/", app)
 	skitai.mount ("/websocket", 'websocket.py')

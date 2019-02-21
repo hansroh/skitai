@@ -31,8 +31,9 @@ def test_app (launch):
 		assert_request (200, "/members/", auth = HTTPDigestAuth ("admin", "1111"))
 		
 		for url in (
-				"/", "/documentation", "/documentation2", "/documentation3", "/hello", "/redirect1", "/redirect2"				
+				"/", "/documentation", "/documentation2", "/documentation3", "/hello", "/redirect1", "/redirect2", "/db"				
 			):
+			assert_request (200, url)			
 			assert_request (200, url)			
 		assert_post_request (200, "/post", {"username": "pytest"})
 		jpg = open (os.path.join (confutil.getroot (), "statics", "reindeer.jpg"), "rb")	
