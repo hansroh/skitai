@@ -42,8 +42,8 @@ class Result (rcache.Result):
 			raise exceptions.HTTPError ("502 Bad Gateway", "upstream server respond as {} {}".format (self.status_code, self.reason))
 		return self	
 			
-	def cache (self, timeout = 300):
-		if self.status != NORMAL:
+	def cache (self, timeout = 60):
+		if self.status != NORMAL or self.status_code != 200:
 			return
 		rcache.Result.cache (self, timeout)
 		return self
@@ -62,7 +62,7 @@ class Result (rcache.Result):
 	
 	def one_or_throw (self):
 		return self.data_or_throw (True)
-			
+
 
 class Results (rcache.Result):
 	def __init__ (self, results, ident = None):
@@ -73,17 +73,11 @@ class Results (rcache.Result):
 	def __iter__ (self):
 		return self.results.__iter__ ()
 	
-	def cache (self, timeout = 300):
-		if self.is_cached:
-			return
-		if rcache.the_rcache is None or not self.ident: 
-			return
-		if [_f for _f in [rs.status != 3 for rs in self.results] if _f]:
+	def cache (self, timeout = 60):
+		if [_f for _f in [rs.status != NORMAL or rs.status_code != 200 for rs in self.results] if _f]:
 			return				
-		rcache.Result.__timeout = timeout
-		rcache.Result.__cached_time = time.time ()
-		
-		rcache.the_rcache.cache (self)
+		rcache.Result.cache (self, timeout)
+		return self
 	
 	def one_or_throw (self):
 		raise ValueError ("Results have always multiple results")
@@ -358,10 +352,9 @@ class ClusterDistCall:
 			self._canceled = True
 	
 	#---------------------------------------------------------
-	def cache (self, timeout = 300, validation = None):
+	def cache (self, timeout = 60, validation = None):
 		if self._cached_result is None:
-			raise ValueError("call dispatch first")		
-		
+			raise ValueError("call dispatch first")
 		if validation:
 			if isinstance (self._cached_result, Results):
 				status_code = set (self._cached_result.status_code)
@@ -369,14 +362,14 @@ class ClusterDistCall:
 					return
 			elif self._cached_result.status_code not in validation:
 				return
-			
 		self._cached_result.cache (timeout)
+		return self
 	
 	def _wait (self, timeout = DEFAULT_TIMEOUT):		
 		if self._timeout != timeout:
 			self.reset_timeout (timeout)
 		
-		remain = timeout - (time.time () - self._init_time)		
+		remain = timeout - (time.time () - self._init_time)
 		if remain > 0:
 			with self._cv:
 				if self._requests and not self._canceled:
@@ -456,7 +449,7 @@ class ClusterDistCall:
 	
 	# synchronous methods ----------------------------------------------				
 	def wait (self, timeout = DEFAULT_TIMEOUT, reraise = True):
-		self.dispatch (timeout, reraise = True)
+		self.dispatch (timeout, reraise = reraise)
 		self._cached_result = None
 		
 	def dispatch (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,), wait = True, reraise = False):
@@ -477,16 +470,12 @@ class ClusterDistCall:
 			self._cached_result = rss [0]
 		cache and self.cache (cache, cache_if)
 		return self._cached_result	
-	getwait = dispatch # lower ver compat.
-	getswait = dispatch # lower ver compat.
 	
 	def wait_or_throw (self, timeout = DEFAULT_TIMEOUT):
-		return self.wait (timeout, reraise = True)
+		return self.wait (timeout, True)
 	
 	def dispatch_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
 		return self.dispatch (self.dispatch, timeout, cache, cache_if, reraise = True)
-	getwait_or_throw = dispatch_or_throw # lower ver compat.
-	getswait_or_throw = dispatch_or_throw # lower ver compat.
 	
 	def data_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
 		res = self.dispatch (timeout, cache, cache_if, reraise = True)
@@ -495,6 +484,9 @@ class ClusterDistCall:
 	def one_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
 		res = self.dispatch (timeout, cache, cache_if, reraise = True)
 		return res.one_or_throw ()
+	
+	getwait = getswait = dispatch # lower ver compat.
+	getwait_or_throw = getswait_or_throw = dispatch_or_throw # lower ver compat.	
 	
 	
 # cluster base call ---------------------------------------

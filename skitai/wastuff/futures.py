@@ -6,7 +6,7 @@ class Futures:
     def __init__ (self, was, reqs, timeout = 10):
         assert isinstance (reqs, (list, tuple))
         self._was = was
-        self.timeout = timeout
+        self.timeout = timeout        
         self.reqs = reqs
         self.args = {}
         self.fulfilled = None
