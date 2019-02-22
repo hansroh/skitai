@@ -16,6 +16,7 @@ from aquests.protocols.http import http_date, util
 from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT, NAME
 from skitai import lifetime
 from . import server_info
+from . import futures
 from .. import http_response
 from .promise import Promise
 from .triple_logger import Logger
@@ -118,6 +119,9 @@ class WASBase:
         return nheader
     
     # system functions ----------------------------------------------
+    
+    def Tasks (self, reqs, timeout = 10):
+        return futures.Futures (None, reqs, timeout)
         
     def log (self, msg, category = "info", at = "app"):
         self.logger (at, msg, "%s:%s" % (category, self.txnid ()))
