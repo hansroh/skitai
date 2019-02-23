@@ -79,17 +79,3 @@ def test_https (launch):
 		[ makeset (1) for i in range (2) ]
 		aquests.fetchall ()
 		assert ERRS < 4
-
-def test_websocket (launch):
-	global ERRS	
-	
-	ERRS = 0
-	with launch ("./examples/websocket.py") as engine:				
-		aquests.configure (1, callback = assert_status)	
-		websocket = "ws://127.0.0.1:30371"
-		aquests.ws (websocket + "/websocket/echo", "I'm a Websocket")			
-		aquests.fetchall ()	
-		assert ERRS == 0
-
-
-		
