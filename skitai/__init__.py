@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.5.8"
+__version__ = "0.28.5.9"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -22,7 +22,27 @@ from . import mounted
 def test_client (*args, **kargs):
 	from .testutil.launcher import Launcher
 	return Launcher (*args, **kargs)
-	
+
+def websocket (varname, timeout = 60, onopen = None, onclose = None):
+    from functools import wraps
+    from skitai import was as the_was
+    
+    def decorator(f):
+        @wraps(f)
+        def wrapper (*args, **kwargs):            
+            was = the_was._get ()            
+            if not was.wshasevent ():
+                return f (*args, **kwargs)
+            if was.wsinit ():
+                return was.wsconfig (1, timeout, [varname,])
+            elif was.wsopened ():
+            	return onopen and onopen () or ''
+            elif was.wsclosed ():                    
+                return onclose and onclose () or ''
+        return wrapper
+    return decorator
+
+    	
 HAS_ATILA = None
 
 PROTO_HTTP = "http"

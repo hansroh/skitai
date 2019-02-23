@@ -188,7 +188,11 @@ class WASBase:
             mtimes.append (mtime)
         return max (mtimes)
     
+    def push (self, uri):
+        self.request.response.hint_promise (uri)
+        
     def wsconfig (self, spec, timeout = 60, encoding = "text"):
+        # other than atila, encoding became varname
         self.env ["websocket.config"] = (spec, timeout, encoding)
         return ""
         
@@ -205,7 +209,7 @@ class WASBase:
         return self.env.get ('websocket.event')
     
     def wsclient (self):
-        return self.env.get ('websocket.client')    
+        return self.env.get ('websocket.client')
     
     # will be deprecated --------------------------------------------------
     def togrpc (self, obj):

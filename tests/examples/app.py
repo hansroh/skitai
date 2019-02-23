@@ -82,7 +82,6 @@ def dbmap (was):
 	req = was.backend.map ("@sqlite3m").execute ("select * from people")
 	results = req.dispatch ()
 	data = req.data_or_throw (cache = 60)
-	print (">>>>>>>>>", data)
 	assert data == results.data				
 	return was.API (data = data)
          	
@@ -118,6 +117,12 @@ def test (was):
 
 @app.route ("/json")
 def json (was):
+	return was.response.api (data = "JSON")
+
+@app.route ("/promise")
+def promise (was):
+	was.push (was.ab (hello))
+	was.push (was.ab (test))
 	return was.response.api (data = "JSON")
 
 

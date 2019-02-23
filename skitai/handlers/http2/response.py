@@ -2,7 +2,6 @@ from skitai import http_response
 from rs4 import producers
 import time
 
-
 class response (http_response.http_response):
 	def __init__ (self, request):
 		http_response.http_response.__init__ (self, request)
@@ -24,6 +23,9 @@ class response (http_response.http_response):
 		return h
 	
 	def hint_promise (self, uri):
+		if not self.request.http2.pushable ():		
+			return
+			
 		headers = [
 			(':path', uri),
 			(':authority', self.request.get_header ('host')),	    
@@ -32,15 +34,14 @@ class response (http_response.http_response):
 	  	]
 	   
 		additional_headers = [
-	   	(k, v) for k, v in [
-		   	('accept-encoding', self.request.get_header ('accept-encoding')),
-		   	('accept-language', self.request.get_header ('accept-language')),
-		    ('cookie', self.request.get_header ('cookie')),
-		    ('user-agent', self.request.get_header ('user-agent')),
-		    ('referer', "%s://%s%s" % (self.request.scheme, self.request.get_header ('host'), self.request.uri)),	    
+	   		(k, v) for k, v in [
+			   	('accept-encoding', self.request.get_header ('accept-encoding')),
+			   	('accept-language', self.request.get_header ('accept-language')),
+			    ('cookie', self.request.get_header ('cookie')),
+			    ('user-agent', self.request.get_header ('user-agent')),
+			    ('referer', "%s://%s%s" % (self.request.scheme, self.request.get_header ('host'), self.request.uri)),	    
 		   ] if v
 	   ]
-	    
 		self.request.http2.push_promise (self.request.stream_id, headers, additional_headers)
 		
 	def done (self, force_close = False, upgrade_to = None):

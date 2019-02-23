@@ -241,7 +241,9 @@ class Job:
 	def exec_app (self):
 		was = the_was._get ()
 		was.apps = self.apps
-		self.args [0]["skitai.was"] = was
+		was.env = self.args [0]
+		
+		was.env ["skitai.was"] = was
 		request = was.request = self.request
 		response = request.response
 		
@@ -273,7 +275,7 @@ class Job:
 			self.logger.trace ("server",  self.request.uri)
 	
 	def deallocate (self):
-		env = self.args [0]		
+		env = self.args [0]
 		_input = env ["wsgi.input"]
 		if _input:
 			try: _input.close ()
@@ -285,5 +287,6 @@ class Job:
 		was = env.get ("skitai.was")
 		if was is not None:
 			was.apps = None
+			was.env = None
 			if was.in__dict__ ("request"):			
 				del was.request

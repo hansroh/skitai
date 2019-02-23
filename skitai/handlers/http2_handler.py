@@ -32,7 +32,7 @@ class http2_request_handler (FlowControlWindow):
 		else:	
 			self.channel.producer_fifo = http2_producer_fifo ()
 		
-		self.conn = H2Connection(H2Configuration(client_side=False))
+		self.conn = H2Connection (H2Configuration (client_side = False))
 		self.frame_buf = self.conn.incoming_buffer
 		self.frame_buf.max_frame_size = self.conn.max_inbound_frame_size
 		
@@ -45,7 +45,6 @@ class http2_request_handler (FlowControlWindow):
 		self.priorities = {}
 		self.promises = {}
 		
-		self._send_stream_id = 0
 		self._closed = False
 		self._got_preamble = False		
 		
@@ -179,22 +178,21 @@ class http2_request_handler (FlowControlWindow):
 		if events:
 			self.handle_events (events)
 	
-	def get_new_stream_id (self):
+	def pushable (self):
+		return self.conn.remote_settings [SettingCodes.ENABLE_PUSH]
+			
+	def push_promise (self, stream_id, request_headers, addtional_request_headers):		
+		promise_stream_id = self.conn.get_next_available_stream_id ()		
 		with self._clock:
-			self._send_stream_id += 2
-			stream_id = self._send_stream_id
-		return stream_id
-		
-	def push_promise (self, stream_id, request_headers, addtional_request_headers):
-		promise_stream_id = self.get_new_stream_id ()
-		with self._clock:
-			self.promises [promise_stream_id] = request_headers	+ addtional_request_headers	
-		
-		with self._plock:
+			self.promises [promise_stream_id] = request_headers	+ addtional_request_headers		
+		with self._plock:			
 			self.conn.push_stream (stream_id, promise_stream_id, request_headers	+ addtional_request_headers)
-		self.send_data ()
 	
 	def handle_response (self, stream_id, headers, trailers, producer, do_optimize, force_close = False):
+		with self._clock:
+			if self.promises:
+				self.send_data ()
+			
 		r = self.get_request (stream_id)
 		with self._clock:
 			try:
@@ -235,7 +233,7 @@ class http2_request_handler (FlowControlWindow):
 			while self.promises:
 				current_promises.append (self.promises.popitem ())				
 		for promise_stream_id, promise_headers in current_promises:
-			self.handle_request (promise_stream_id, promise_headers, is_promise = True)
+			self.handle_request (promise_stream_id, promise_headers)			
 
 	def remove_request (self, stream_id):
 		r = self.get_request (stream_id)
@@ -270,7 +268,7 @@ class http2_request_handler (FlowControlWindow):
 			#print (event)
 			if isinstance(event, RequestReceived):				
 				self.handle_request (event.stream_id, event.headers)				
-			
+				
 			elif isinstance(event, TrailersReceived):
 				self.handle_trailers (event.stream_id, event.headers)
 					
@@ -358,7 +356,7 @@ class http2_request_handler (FlowControlWindow):
 				"{}: {}".format (k.decode ("utf8"), v.decode ("utf8"))
 			)
 		
-	def handle_request (self, stream_id, headers, is_promise = False):
+	def handle_request (self, stream_id, headers):		
 		#print ("++REQUEST: %d" % stream_id, headers)
 		command = "GET"
 		uri = "/"
@@ -407,11 +405,10 @@ class http2_request_handler (FlowControlWindow):
 				vchannel = fake_channel (stream_id, self.channel)
 
 		r = http2_request (
-			self,  scheme, stream_id, is_promise, 
+			self,  scheme, stream_id, 
 			vchannel, first_line, command.lower (), uri, "2.0", h
-		)		
-		vchannel.current_request = r
-		
+		)
+		vchannel.current_request = r		
 		with self._clock:
 			self.channel.request_counter.inc()
 			self.channel.server.total_requests.inc()

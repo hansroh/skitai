@@ -64,6 +64,7 @@ class Handler (wsgi_handler.Handler):
 		env = self.build_environ (request, apph)
 		was = the_was._get ()
 		was.request = request
+		was.env = env
 		env ["skitai.was"] = was
 		env ["websocket.event"] = skitai.WS_EVT_INIT
 
@@ -99,7 +100,7 @@ class Handler (wsgi_handler.Handler):
 				current_args = http_util.crack_query (env ['QUERY_STRING'])
 			if fspec.defaults:
 				defaults = len (fspec.defaults)
-			varnames = fspec.args [1:]			
+			varnames = fspec.args [1:]
 			temporary_args = "&".join ([arg + "=" for arg in varnames [:len (varnames) - defaults] if current_args.get (arg) is None])			
 			if temporary_args:
 				if savedqs:

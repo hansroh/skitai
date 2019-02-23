@@ -244,6 +244,7 @@ class Job (wsgi_handler.Job):
 	def exec_app (self):
 		was = the_was._get ()
 		was.request = self.request
+		was.env = self.args [0]
 		
 		was.websocket = self.args [0]["websocket"]
 		self.args [0]["skitai.was"] = was
@@ -252,8 +253,11 @@ class Job (wsgi_handler.Job):
 			if type (content) is not tuple:
 				content = (content,)
 			was.websocket.send (*content)
+		
 		if hasattr (was, 'request'):
 			was.request = None
+		if hasattr (was, 'env'):
+			was.env = None	
 		del was.websocket
 		
 #---------------------------------------------------------

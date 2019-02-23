@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request
-from atila import jinjapatch
 import skitai
+from skitai import was
 
 app = Flask(__name__)
 app.debug = True
@@ -13,8 +13,19 @@ def echo ():
 	if event == skitai.WS_EVT_INIT:
 		request.environ ["websocket.config"] = (skitai.WS_SIMPLE, 60, ("message",))
 		return ""
+	elif event == skitai.WS_EVT_OPEN:
+		return 'Welcome Client 0'
 	elif event:
 		return ''
+	request.environ ["websocket"].send ('1st: ' + request.args.get ("message", ""))
+	return "2nd: " + request.args.get ("message", "")
+
+def onopen ():
+	return  'Welcome Client 0'
+
+@app.route ("/echo2")
+@skitai.websocket ("message", onopen = onopen)
+def echo2 ():
 	request.environ ["websocket"].send ('1st: ' + request.args.get ("message", ""))
 	return "2nd: " + request.args.get ("message", "")
 
@@ -46,6 +57,6 @@ def websocket ():
 if __name__ == "__main__":
 	import skitai
 	
-	skitai.mount = ("/websocket", app)	
+	skitai.mount ("/websocket", app)	
 	skitai.run (port = 30371)
 	

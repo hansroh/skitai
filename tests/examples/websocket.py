@@ -29,6 +29,15 @@ def echo (was, message):
 	was.websocket.send ("You said," + message)
 	was.websocket.send ("acknowledge")	
 
+def onopen (was):
+	return  'Welcome Client 0'
+
+@app.route ("/echo2")
+@app.websocket (skitai.WS_SIMPLE, 60, onopen = onopen)
+def echo2 (was, message):
+	was.websocket.send ('1st: ' + message)
+	return "2nd: " + message
+
 @app.route ("/chat")
 def chat (was, message, room_id):
 	if was.wsinit ():

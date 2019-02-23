@@ -13,7 +13,7 @@ def Conn ():
             self.__buffer.append (data)
             return len (data)
         
-        def getvalue (self):    
+        def getvalue (self):  
             return b"".join (self.__buffer)
         
     sock = Socket (name="socket", spec=socket.socket)

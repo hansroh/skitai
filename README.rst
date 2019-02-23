@@ -2008,19 +2008,6 @@ All workers has interested in this event, You may add watching routine at app.ma
   	  app.broadcast ("cluster:num_nodes")
 
 
-
-Websocket Related Methods of 'was'
-------------------------------------
-
-For more detail, see Websocket section.
-
-- was.wsinit () # wheather handshaking is in progress
-- was.wsconfig (spec, timeout, message_type)
-- was.wsopened ()
-- was.wsclosed ()
-- was.wsclient () # get websocket client ID
-
-
 Utility Methods of 'was'
 ---------------------------
 
@@ -2033,6 +2020,40 @@ This chapter's 'was' services are also avaliable for all WSGI middelwares.
 - was.shutdown () # Shutdown Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
 
 
+HTTP/2.0 Server Push
+-----------------------
+
+*New in version 0.16*
+
+Skiai supports HTPT2 both 'h2' protocl over encrypted TLS and 'h2c' for clear text (But now Sep 2016, there is no browser supporting h2c protocol).
+
+Basically you have nothing to do for HTTP2. Client's browser will handle it except `HTTP2 server push`_.
+
+For using it, you just call was.push (uri) before return response data. It will work only client browser support HTTP2 server push, otherwise will be ignored.
+
+.. code:: python
+  
+  from skitai import was
+  
+  @app.route ("/promise")
+  def promise ():
+  
+    was.push ('/images/A.png')
+    was.push (was.ab ('item'))
+    
+    return was.response (
+      "200 OK", 
+      (
+        'Promise Sent<br><br>'
+        '<img src="/images/A.png">'
+        '<img src="/images/B.png">'
+      )
+    )
+
+.. _`HTTP2 server push`: https://tools.ietf.org/html/rfc7540#section-8.2
+    
+    
+
 HTML5 Websocket
 ====================
 
@@ -2043,6 +2064,38 @@ The HTML5 WebSockets specification defines an API that enables web pages to use 
 Skitai can be HTML5 websocket server and any WSGI containers can use it.
 
 But I'm not sure my implemetation is right way, so it is experimental and could be changable.
+
+
+Using Websocket 
+-----------------------------
+
+Use skitai.websocket decorator.
+
+First param is the name of variable for recieving message. Anf you can configure timeout and open/close websocket handlers.
+
+For example with Flask app,
+
+.. code:: python
+  
+  def onopen ():
+    request.g. ...
+  
+  def onclose ():
+    request.g. ...   
+    
+  @app.route ("/websocket/echo")
+  @skitai.websocket ("message", timeout = 60, onopen = onopen, onclose = onclose)  
+  def echo ():
+    return "ECHO:" + request.args.get ("message")
+
+
+WWW-Authenticate
+-----------------
+
+Some browsers do not support WWW-Authenticate on websocket like Safari, then Skitai currently disables WWW-Authenticate for websocket, so you should be careful for requiring secured messages.
+
+Client Side
+-----------------------------
 
 First of all, see conceptual client side java script for websocket using Vuejs.
 
@@ -2137,209 +2190,6 @@ First of all, see conceptual client side java script for websocket using Vuejs.
   </script>
 
 
-If your WSGI app enable handle websocket, it should give  initial parameters to Skitai like this,
-
-.. code:: python
-  
-  def websocket (was, message):
-    if was.wshasevent ():
-      if was.wsinit ():
-        return was.wsconfig (
-          websocket design specs, 
-          keep_alive_timeout = 60, 
-          message_encoding = None
-        )    
-
-*websocket design specs* can  be choosen one of 4.
-
-WS_SIMPLE
-
-  - Thread pool manages n websocket connection
-  - It's simple request and response way like AJAX  
-  - Low cost on threads resources, but reposne cost is relatvley high than the others
-
-WS_THREADSAFE (New in version 0.26)
-
-  - Mostly same as WS_SIMPLE
-  - Message sending is thread safe
-  - Most case you needn't this option, but you create uourself one or more threads using websocket.send () method you need this for your convinience
- 
-WS_GROUPCHAT (New in version 0.24)
-  
-  - Thread pool manages n websockets connection
-  - Chat room model
-
-*keep alive timeout* is seconds.
-
-*message_encoding*
-
-Websocket messages will be automatically converted to theses objects. Note that option is only available with Atila WSGI container.
-
-  - WS_MSG_JSON
-  - WS_MSG_XMLRPC
-
-
-WWW-Authenticate
------------------
-
-Some browsers do not support WWW-Authenticate on websocket like Safari, then Skitai currently disables WWW-Authenticate for websocket, so you should be careful for requiring secured messages.
-
-General Usages
----------------
-
-Handling websocket has 2 parts - event handling and message handling.
-
-Websocket Events
-``````````````````
-
-Currently websocket has 3 envets.
-
-- skitai.WS_EVT_INIT: in handsahking progress
-- skitai.WS_EVT_OPEN: just after websocket configured
-- skitai.WS_EVT_CLOSE: client websocket channel disconnected
-
-When event occured, message is null string, so WS_EVT_CLOSE is not need handle, but WS_EVT_OPEN would be handled - normally just return None value.
-
-At Flask, use like this.
-
-.. code:: python
-  
-  event = request.environ.get ('websocket.event')
-  if event:
-    if event == skitai.WS_EVT_INIT:
-      return request.environ ['websocket.config'] = (...)
-    elif event == skitai.WS_EVT_OPEN:
-      return ''
-    elif event == skitai.WS_EVT_CLOSE:
-      return ''
-    elif event:
-      return '' # should return null string
-      
-At Atila, handling events is more simpler,
-
-.. code:: python
-  
-  if was.wshasevent ():
-    if was.wsinit ():
-      return was.wsconfig (spec, timeout, message_type)    
-    elif was.wsopened ():
-      return
-    elif was.wsclosed ():
-      return  
-    return
-        
-And from version 0.26.18, much more simpler and elegant style is available.
-
-See *More About Websocket* Section.
- 
-
-Handling Message
-``````````````````
-
-Message is received by first arg (at below exapmle, message arg), and you response for this by returning value.
-
-.. code:: python
-
-  @app.route ("/websocket/echo")
-  def echo (was, message):
-    return "ECHO:" + message
-    
-
-Full Example
-``````````````
-
-Websocket method MUST have both of event and message handling parts.
-
-Let's see full example, client can connect by ws://localhost:5000/websocket/echo.
-
-.. code:: python
-
-  from atila import Atila
-  import skitai
-  
-  app = Atila (__name__)
-  app.debug = True
-  app.use_reloader = True
-
-  @app.route ("/websocket/echo")
-  def echo (was, message):
-    #-- event handling
-    if was.wshasevent ():
-      if was.wsinit ():
-        return was.wsconfig (skitai.WS_SIMPLE, 60)
-      elif was.wsopened ():
-        return "Welcome Client %s" % was.wsclient ()
-      return      
-    #-- message handling  
-    
-    return "ECHO:" + message
-
-For getting another args, just add args behind message arg.
-
-.. code:: python
-  
-  num_sent = {}  
-  
-  @app.route ("/websocket/echo")
-  def echo (was, message, clinent_name):
-    global num_sent    
-    client_id = was.wsclient ()
-    
-    if was.wshasevent ():
-      if was.wsinit ():
-        num_sent [client_id] = 0      
-        return was.wsconfig (skitai.WS_SIMPLE, 60)
-      elif was.wsopened ():
-        return
-      elif was.wsclosed ():      
-        del num_sent [client_id]
-        return
-      return
-        
-    num_sent [client_id] += 1
-    return "%s said:" % (clinent_name, message)
-
-Now client can connect by ws://localhost:5000/websocket/chat?client_name=stevemartine.
-    
-Once websocket configured by was.wsconfig (), whenever message is arrived from this websocket connection, called this *echo* method. And you can use all was services as same as other WSGI methods.
-
-was.wsclient () is equivalent to was.env.get ('websocket.client') and has numeric unique client id.
-
-
-For Flask Users
-``````````````````
-
-At Flask, Skitai can't know which variable name receive websocket message, then should specify.
-
-.. code:: python
-
-  from flask import Flask, request 
-  import skitai
-  
-  app = Flask (__name__)
-  app.debug = True
-  app.use_reloader = True
-
-  @app.route ("/websocket/echo")
-  def echo ():
-    event = request.environ.get ('websocket.event')
-    client_id = request.environ.get ('websocket.client')
-    
-    if event == skitai.WS_EVT_INIT:
-      request.environ ["websocket.config"] = (skitai.WS_SIMPLE, 60, ("message",))
-      return ""
-    elif event == skitai.WS_EVT_OPEN:
-      return "Welcome %d" % client_id
-    elif event:
-      return ""  
-    return "ECHO:" + request.args.get ("message")
-
-In this case, variable name is ("message",), It means take websocket's message as "message" arg.
-
-If returned object is python str type, websocket will send messages as text tpye, if bytes type, as binary. But Flask's return object is assumed as text type. 
-
-Also note, at flask, you should not return None, so you should return null string, if you do not want to send any message.
-
 
 Send Messages Through Websocket Directly
 ``````````````````````````````````````````
@@ -2349,183 +2199,11 @@ It needn't return message, but you can send directly multiple messages through w
 .. code:: python
 
   @app.route ("/websocket/echo")
-  def echo (was, message):
-    if was.wsinit ():
-      return was.wsconfig (skitai.WS_SIMPLE, 60)
-    elif was.wshasevent (): # ignore all events
-      return
-      
-    was.websocket.send ("You said," + message)  
-    was.websocket.send ("I said acknowledge")
-
-This way is very useful for Flask users, because Flask's return object is bytes, so Skitai try to decode with utf-8 and send message as text type. If Flask users want to send binary data, just send bytes type.
-
-.. code:: python
-
-  @app.route ("/websocket/echo")
+  @was.websocket ("message", 60)  
   def echo ():
-    event = request.environ.get ('websocket.event')
-    if event == skitai.WS_EVT_INIT:
-      request.environ ["websocket.config"] = (skitai.WS_SIMPLE, 60, ("message",))
-      retrurn ''
-    elif event:
-      return ''   
-      
-    request.environ ["websocket"].send (
-      ("You said, %s" % message).encode ('iso8859-1')
-    )
-
-
-Use Message Encoding
-`````````````````````
-
-For your convinient, message automatically load and dump object like JSON. But this feature is only available with Atila.
-
-.. code:: python
-
-  @app.route ("/websocket/json")
-  def json (was, message):
-    if was.wsinit ():
-      return was.wsconfig (skitai.WS_SIMPLE, 60, skitai.WS_MSG_JSON)
-    elif was.wshasevent ():
-      return
-            
-    return dbsearch (message ['query'], message ['offset'])
-
-JSON message is automatically loaded to Python object, and returning object also will dump to JSON.
-
-Currently you can use WS_MSG_JSON and WS_MSG_XMLRPC. And I guess streaming and multi-chatable gRPC over websocket also possible, I am testing it.
-
-
-Simple Data Request & Response
--------------------------------
-
-Here's a echo app for showing simple request-respone.
-
-Client can connect by ws://localhost:5000/websocket/chat.
-
-.. code:: python
-
-  @app.route ("/websocket/echo")
-  def echo (was, message):
-    if was.wsinit ():
-      return was.wsconfig (skitai.WS_SIMPLE, 60)
-    elif was.wshasevent ():
-      return
-            
-    return "ECHO:" + message
-
-First args (message) are essential. Although you need other args, you must position after this essential arg.
-
-
-Thread Safe Websocket
------------------------
-
-Here's a websocket app example creating sub thread(s),
-
-.. code:: python
-  
-  class myProgram:
-    def __init__ (self, websocket):
-      self.websocket = websocket
-      self.__active = 0
-      self.__lock = trheading.Lock ()
-    
-    def run (self):
-      while 1:
-        with self.lock:
-          active = self.__active
-        if not active: break           
-        self.websocket.send ('Keep running...')
-        time.sleep (1)
-      self.websocket.send ('Terminated')
-          
-    def handle_command (self, cmd):
-      if cmd == "start":        
-        with self.lock:
-          self.__active = 1
-        threading.Thread (self.run).start ()
-                
-      elif cmd == "stop":
-        with self.lock:
-          self.__active = 0
-        self.websocket.send ('Try to stop...')
-      
-      else:
-        self.websocket.send ('I cannot understand your command')
-  
-  app = Atila (__name__)
-  
-  @app.before_mount
-  def before_mount (wac):  
-    wac.register ('wspool', {})
-    
-  @app.route ("/websocket/run")
-  def run (was, message):
-    if was.wshasevent ():
-      if was.wsinit ():    
-        was.wsconfig (skitai.WS_THREADSAFE, 7200)        
-      elif was.wsopened ():
-        was.wspool [id (was.websocket)] = myProgram (was.websocket)        
-      elif was.wsclosed ():
-        ukey = id (was.websocket)
-        if ukey in was.wspool:
-          was.wspool [ukey].kill ()
-          del was.wspool [ukey]          
-      return
-    
-    runner = was.hounds [id (was.websocket)]
-    runner.handle_command (m)
-
-
-Group Chat Websocket
----------------------
-
-This is just extension of Simple Data Request & Response. Here's simple multi-users chatting app.
-
-This feature will NOT work on multi-processes run mode.
-
-Many clients can connect by ws://localhost:5000/websocket/chat?roomid=1. and can chat between all clients.
-
-.. code:: python
-
-  @app.route ("/chat")
-  def chat (was, message, room_id):   
-    client_id = was.wsclient ()
-    if was.wshasevent ():
-      if was.wsinit ():
-        return was.wsconfig (skitai.WS_GROUPCHAT, 60)    
-      elif was.wsopened ():
-        return "Client %s has entered" % client_id
-      elif was.wsclosed ():
-        return "Client %s has leaved" % client_id
-      return
-      
-    return "Client %s Said: %s" % (client_id, message)
-
-In this case, first 2 args (message, room_id) are essential.
-
-For sending message to specific client_id,
-
-.. code:: python
-  
-  clients = list (was.websocket.clients.keys ())
-  was.websocket.send ('Hi', clients [0])
-  # OR
-  return 'Hi', clients [0]
-
-
-At Flask, should setup for variable names you want to use,
-
-.. code:: python
-  
-  if request.environ.get ("websocket.event") == skitai.WS_EVT_INIT:
-    request.environ ["websocket.config"] = (
-      skitai.WS_GROUPCHAT, 
-      60, 
-      ("message", "room_id")
-    )
-    return ""
+    message = request.args.get ("message")
+    request.environ ["websocket"].send ("You said," + message)  
+    request.environ ["websocket"].send ("I said acknowledge")
 
 
 Project Purpose
@@ -2561,6 +2239,7 @@ Change Log
 
 - 0.28 (Feb 2019)
 	
+	- fix HTTP2 server push and add was.push ()
   - getwait () and getswait () are integrated into dispatch ()
   - add data_or_throw () and one_or_throw ()  	
   - was.promise has been deprecated, use was.futures: see Atila documentation
