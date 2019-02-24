@@ -75,8 +75,8 @@ class WebSocketServer (specs.WebSocket1):
 				return self.close ()
 		elif msg == 1: # enter
 			msg = ""
-			
-		self.env ["QUERY_STRING"] = querystring + quote_plus (msg)			
+
+		self.env ["QUERY_STRING"] = querystring + quote_plus (msg)
 		params [message_param] = self.message_decode (msg)
 		self.env ["websocket.params"] = params		
 		self.env ["websocket.client"] = client_id

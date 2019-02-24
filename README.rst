@@ -1402,6 +1402,45 @@ For example with Flask app,
     return "ECHO:" + request.args.get ("message")
 
 
+Proxying With Atila
+---------------------------------
+
+It follows WSGI specification as possible as can:
+
+.. code:: python
+
+  def start_response (environ, start_response):
+    ...
+
+Basically, Skitai calls this method on message arriving repeatly. So it is quite ineeficient. If your WSGI framework give a websocket handler object, it will have better performance but it is hard to expect.
+
+Another option is that Sktai provide full usage spec with routing, but I think it is not pretty.
+ 
+
+So you can use Atila for websocket service (as websocket proxy) beside your main app. and mount both app on Skitai.
+
+With Atila app, you can use websocket more efficiently, and various options. 
+
+.. code:: python
+
+  def onopen (was):
+    print ('websocket opened')
+
+  def onclose (was):
+    print ('websocket closed')
+    
+  @app.route ("/websocket")
+  @app.websocket (skitai.WS_SIMPLE, 1200, onopen, onclose)
+  def websocket (was, message):
+    return 'you said: ' + message
+
+This code is not very differrent with skitai.websocket () decorator, but internally Skitai and Atila calls websocket handler somewhat efficiently.
+
+For more about this see `Atila Websocket`_.
+
+.. _`Atila Websocket`: https://pypi.org/project/atila/#more-about-websocket
+
+
 WWW-Authenticate
 -----------------
 

@@ -85,8 +85,7 @@ class Handler (wsgi_handler.Handler):
 				return request.response.error (resp_code)
 				
 			request.routed = current_app.get_routed (method)
-			request.routable = options	
-			
+			request.routable = options
 			wsfunc = request.routed
 			if is_atila:
 				fspec = app.get_function_spec (wsfunc) or inspect.getfullargspec (wsfunc)				

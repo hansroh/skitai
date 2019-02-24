@@ -311,7 +311,7 @@ class WebSocket1 (WebSocket):
 		self.env ["websocket.client"] = self.client_id
 		
 		args = (self.request, self.apph, (self.env, self.start_response), None, self.wasc.logger)
-		if self.env ["wsgi.multithread"]:			
+		if self.env ["wsgi.multithread"]:
 			self.wasc.queue.put (Job (*args))
 		else:			
 			Job (*args) ()
