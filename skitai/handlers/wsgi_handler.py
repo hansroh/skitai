@@ -263,7 +263,7 @@ class Job:
 					response.update ("Content-Length", len (part))
 				response.push (part)
 			trigger.wakeup (lambda p = response: (p.done (),))
-											
+
 	def __call__(self):		
 		try:
 			try:
@@ -273,7 +273,7 @@ class Job:
 		except:
 			# no response, alredy done. just log
 			self.logger.trace ("server",  self.request.uri)
-	
+
 	def deallocate (self):
 		env = self.args [0]
 		_input = env ["wsgi.input"]

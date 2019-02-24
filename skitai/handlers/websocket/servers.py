@@ -62,9 +62,6 @@ class WebSocketServer (specs.WebSocket1):
 	def add_client (self, ws):
 		self.clients [ws.client_id] = ws
 		ws.handle_message (1, skitai.WS_EVT_OPEN)
-	
-	def make_params (self, msg, event):
-		specs.WebSocket1.make_params (self, msg, event)
 		
 	def handle_message (self, client_id, msg, querystring, params, message_param):		
 		if msg == -1: # exit
@@ -80,11 +77,7 @@ class WebSocketServer (specs.WebSocket1):
 		params [message_param] = self.message_decode (msg)
 		self.env ["websocket.params"] = params		
 		self.env ["websocket.client"] = client_id
-		args = (self.request, self.apph, (self.env, self.start_response), None, self.wasc.logger)
-		if self.env ["wsgi.multithread"]:
-			self.wasc.queue.put (specs.Job (*args))
-		else:
-			specs.Job (*args) ()
+		self.execute ()
 		
 	def close (self):
 		websocket_servers.remove (self.gid)

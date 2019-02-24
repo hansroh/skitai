@@ -1442,7 +1442,7 @@ For more about this see `Atila Websocket`_.
 
 
 WWW-Authenticate
------------------
+-----------------------------------
 
 Some browsers do not support WWW-Authenticate on websocket like Safari, then Skitai currently disables WWW-Authenticate for websocket, so you should be careful for requiring secured messages.
 
@@ -1543,7 +1543,7 @@ First of all, see conceptual client side java script for websocket using Vuejs.
 
 
 Send Messages Through Websocket Directly
-``````````````````````````````````````````
+-----------------------------------------------------------------------------
 
 It needn't return message, but you can send directly multiple messages through was.websocket,
 

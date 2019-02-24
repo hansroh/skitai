@@ -137,11 +137,11 @@ class Handler (wsgi_handler.Handler):
 		]
 		request.response ("101 Web Socket Protocol Handshake", headers = headers)
 		
+		env ["wsgi.noenv"] = False
+		design_spec &= 31
 		if design_spec & 128 == 128:
-			design_spec &= 127
-			if env ["wsgi.multithread"]:			
-				env ["wsgi.multithread"] = 0
-			
+			env ["wsgi.noenv"] = 0		
+				
 		if design_spec in (skitai.WS_SIMPLE, skitai.WS_THREADSAFE):
 			varnames = varnames [:1]
 			# Like AJAX, simple request of client, simple response data

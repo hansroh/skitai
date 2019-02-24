@@ -20,6 +20,8 @@ except ImportError: from io import BytesIO
 import copy
 from collections import Iterable
 from rs4.reraise import reraise 
+from ...http_response import catch
+
 has_werkzeug = True
 try:
 	from werkzeug.wsgi import ClosingIterator 
@@ -254,12 +256,10 @@ class Job (wsgi_handler.Job):
 				content = (content,)
 			was.websocket.send (*content)
 		
-		if hasattr (was, 'request'):
-			was.request = None
-		if hasattr (was, 'env'):
-			was.env = None	
-		del was.websocket
-		
+		was.request = None
+		was.env = None
+		was.websocket = None
+
 #---------------------------------------------------------
 	
 class WebSocket1 (WebSocket):
@@ -308,12 +308,29 @@ class WebSocket1 (WebSocket):
 		querystring, params = self.make_params (msg, event)
 		self.env ["QUERY_STRING"] = querystring
 		self.env ["websocket.params"] = params
-		self.env ["websocket.client"] = self.client_id
-		
+		self.env ["websocket.client"] = self.client_id		
+		self.execute ()
+	
+	def execute (self):
+		if self.env.get ("wsgi.noenv"): # WS_FAST
+			current_app, wsfunc = self.env.get ("websocket.handler")
+			was = self.env ["skitai.was"]
+			was.request = self.request
+			was.env = self.env
+			was.websocket = self.env ["websocket"]
+			try:
+				content = wsfunc (self.env ["skitai.was"], **self.env.get ("websocket.params", {}))
+			except:
+				content = self.apph.get_callable ().debug and "[ERROR] " + catch (0) or "[ERROR]"
+			was.env = None
+			was.websocket = None
+			del was.request			
+			return self.send (content)
+			
 		args = (self.request, self.apph, (self.env, self.start_response), None, self.wasc.logger)
 		if self.env ["wsgi.multithread"]:
 			self.wasc.queue.put (Job (*args))
-		else:			
+		else:
 			Job (*args) ()
 
 					
