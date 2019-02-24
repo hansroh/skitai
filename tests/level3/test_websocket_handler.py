@@ -35,17 +35,18 @@ def test_websocket_handler (wasc, app, client):
 	
 	# WEBSOCKET	
 	testutil.enable_threads ()	
-	request = client.ws ("http://www.skitai.com/ws/echo", "Hello")
-	resp = assert_request (vh, request, 101)
-	request = client.ws ("http://www.skitai.com/ws/chat", "Hello")
-	resp = assert_request (vh, request, 500)
-	request = client.ws ("http://www.skitai.com/ws/chat?roomid=1", "Hello")
-	resp = assert_request (vh, request, 101)
+	resp = client.ws ("http://www.skitai.com/ws/echo", "Hello")
+	assert resp.status_code == 101
+	
+	resp = client.ws ("http://www.skitai.com/ws/chat", "Hello")
+	assert resp.status_code == 500
+	resp = client.ws ("http://www.skitai.com/ws/chat?roomid=1", "Hello")
+	assert resp.status_code == 101
 	
 	testutil.disable_threads ()
-	request = client.ws ("http://www.skitai.com/ws/echo", "Hello")
-	resp = assert_request (vh, request, 101)
-	request = client.ws ("http://www.skitai.com/ws/chat?roomid=1", "Hello")
-	resp = assert_request (vh, request, 101)
+	resp = client.ws ("http://www.skitai.com/ws/echo", "Hello")
+	assert resp.status_code == 101
+	resp = client.ws ("http://www.skitai.com/ws/chat?roomid=1", "Hello")
+	assert resp.status_code == 101
 	
 	

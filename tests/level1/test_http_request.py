@@ -74,11 +74,7 @@ def test_request_generation (client):
 	assert request.get_header ('content-length') is None
 	assert request.version == "2.0"
 	
-	# WEBSOCKET
-	url = "ws://www.skitai.com/websocket"
-	request = client.ws (url, "Hello")
-	assert len (request.body) == 11	
-
+	
 def test_request (client):	
 	url = "http://www.skitai.com/index"
 	request = client.get (url)	
