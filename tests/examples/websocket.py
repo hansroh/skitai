@@ -7,6 +7,7 @@ app.access_control_allow_origin = ["*"]
 app.debug = True
 app.use_reloader = True
 app.jinja_overlay ()
+app.securekey = 'asdadada'
 
 @app.route ("/echo-single")
 def echo_single (was, message):
@@ -43,6 +44,26 @@ def echo2 (was, message):
 def echo3 (was, message):
 	was.websocket.send ('1st: ' + message)
 	return "2nd: " + message
+
+def onopenp (was):
+  was.session.set ("WS_ID", was.websocket.client_id)
+
+def onclosep (was):
+  was.session.remove ("WS_ID")
+
+@app.route ("/push")
+@app.websocket (skitai.WS_SIMPLE, 1200, onopenp, onclosep)
+def push (was, message):    
+  return 'you said: ' + message
+
+@app.route ("/wspush")
+def ws_push (was):
+	was.session.set ("WS_ID", 0)
+	app.websocket_send (
+      	was.session.get ("WS_ID"),
+       "Item In Stock!"
+	)
+	return "Sent"
 
 @app.route ("/chat")
 def chat (was, message, room_id):

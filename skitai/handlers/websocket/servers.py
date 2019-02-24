@@ -58,6 +58,7 @@ class WebSocketServer (specs.WebSocket1):
 		self.env = env
 		self.messages = []
 		self.clients = {}
+		self.client_id = None
 			
 	def add_client (self, ws):
 		self.clients [ws.client_id] = ws
@@ -72,12 +73,14 @@ class WebSocketServer (specs.WebSocket1):
 				return self.close ()
 		elif msg == 1: # enter
 			msg = ""
-
+			
 		self.env ["QUERY_STRING"] = querystring + quote_plus (msg)
 		params [message_param] = self.message_decode (msg)
 		self.env ["websocket.params"] = params		
 		self.env ["websocket.client"] = client_id
+		self.client_id = client_id
 		self.execute ()
+		self.client_id = None
 		
 	def close (self):
 		websocket_servers.remove (self.gid)
@@ -103,7 +106,6 @@ class WebSocketServer (specs.WebSocket1):
 			client = None	
 		if client:
 			client.send (msg, op_code)
-		
 	
 websocket_servers = None
 

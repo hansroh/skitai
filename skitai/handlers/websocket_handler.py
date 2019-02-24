@@ -127,7 +127,7 @@ class Handler (wsgi_handler.Handler):
 				
 		del env ["websocket.event"]
 		del env ["websocket.config"]
-		assert design_spec in (1,5,6, 129, 134, 133), "design_spec  should be one of (WS_SIMPLE, WS_GROUPCHAT, WS_THREADSAFE)"			
+		assert (design_spec & 31) in (1,5,6), "design_spec  should be one of (WS_SIMPLE, WS_GROUPCHAT, WS_THREADSAFE)"
 		headers = [
 			("Sec-WebSocket-Accept", self.calculate_response_key (securekey)),
 			("Upgrade", "Websocket"),

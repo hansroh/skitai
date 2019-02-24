@@ -283,8 +283,17 @@ class WebSocket1 (WebSocket):
 		querystring.append ("%s=" % self.param_names [0])
 		self.querystring = "&".join (querystring)		
 		self.params = http_util.crack_query (self.querystring)		
-		
-	def close (self):		
+	
+	def open (self):		
+		self.handle_message (-1, skitai.WS_EVT_OPEN)
+		if "websocket.handler" in self.env:
+			app = self.apph.get_callable ()
+			app.register_websocket (self.client_id, self.send)
+
+	def close (self):
+		if "websocket.handler" in self.env:
+			app = self.apph.get_callable ()
+			app.remove_websocket (self.client_id)			
 		if not self.closed ():			
 			self.handle_message (-1, skitai.WS_EVT_CLOSE)
 			WebSocket.close (self)
@@ -300,9 +309,6 @@ class WebSocket1 (WebSocket):
 			params [self.param_names [0]] = self.message_decode (msg)
 		return querystring, params
 	
-	def open (self):		
-		self.handle_message (-1, skitai.WS_EVT_OPEN)
-							
 	def handle_message (self, msg, event = None):		
 		if not msg: return			
 		querystring, params = self.make_params (msg, event)
@@ -312,26 +318,22 @@ class WebSocket1 (WebSocket):
 		self.execute ()
 	
 	def execute (self):
-		if self.env.get ("wsgi.noenv"): # WS_FAST
-			current_app, wsfunc = self.env.get ("websocket.handler")
-			was = self.env ["skitai.was"]
-			was.request = self.request
-			was.env = self.env
-			was.websocket = self.env ["websocket"]
-			try:
-				content = wsfunc (self.env ["skitai.was"], **self.env.get ("websocket.params", {}))
-			except:
-				content = self.apph.get_callable ().debug and "[ERROR] " + catch (0) or "[ERROR]"
-			was.env = None
-			was.websocket = None
-			del was.request			
-			return self.send (content)
-			
 		args = (self.request, self.apph, (self.env, self.start_response), None, self.wasc.logger)
-		if self.env ["wsgi.multithread"]:
-			self.wasc.queue.put (Job (*args))
+		if not self.env ["wsgi.multithread"] or self.env.get ("wsgi.noenv"):
+			Job (*args) ()			
 		else:
-			Job (*args) ()
+			self.wasc.queue.put (Job (*args))
+
+
+class WebSocket6 (WebSocket1):
+	# WEBSOCKET_REQDATA			
+	def __init__ (self, handler, request, apph, env, param_names, message_encoding = None):
+		WebSocket1.__init__ (self, handler, request, apph, env, param_names, message_encoding)
+		self.lock = threading.Lock ()
+	
+	def _send (self, msg):
+		with self.lock:
+			WebSocket1._send (self, msg)
 
 					
 class WebSocket5 (WebSocket1):
@@ -339,6 +341,7 @@ class WebSocket5 (WebSocket1):
 	def __init__ (self, handler, request, server, env, param_names):
 		WebSocket.__init__ (self, handler, request)
 		self.server = server
+		self.apph = server.apph
 		self.client_id = request.channel.channel_number		
 		self.env = env
 		self.param_names = param_names
@@ -359,13 +362,3 @@ class WebSocket5 (WebSocket1):
 			self.param_names [0]
 		)
 
-
-class WebSocket6 (WebSocket1):
-	# WEBSOCKET_REQDATA			
-	def __init__ (self, handler, request, apph, env, param_names, message_encoding = None):
-		WebSocket1.__init__ (self, handler, request, apph, env, param_names, message_encoding)
-		self.lock = threading.Lock ()
-	
-	def _send (self, msg):
-		with self.lock:
-			WebSocket1._send (self, msg)
