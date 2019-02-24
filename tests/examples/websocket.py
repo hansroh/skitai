@@ -38,6 +38,12 @@ def echo2 (was, message):
 	was.websocket.send ('1st: ' + message)
 	return "2nd: " + message
 
+@app.route ("/echo3")
+@app.websocket (skitai.WS_SIMPLE_NT, 60, onopen = onopen)
+def echo3 (was, message):
+	was.websocket.send ('1st: ' + message)
+	return "2nd: " + message
+
 @app.route ("/chat")
 def chat (was, message, room_id):
 	if was.wsinit ():
@@ -47,7 +53,19 @@ def chat (was, message, room_id):
 	elif was.wsclosed ():
 		return "Client %s has leaved" % was.wsclient ()
 	return "Client %s Said: %s" % (was.wsclient (), message)
-		
+
+def onchatopen (was):
+	return "Client %s has entered" % was.wsclient ()
+
+def onchatclose (was):
+	return "Client %s has leaved" % was.wsclient ()
+
+@app.route ("/chat2")
+@app.websocket (skitai.WS_GROUPCHAT, 60, onopen = onchatopen, onclose = onchatclose)
+def chat2 (was, message, room_id):
+	if message:
+		return "Client %s Said: %s" % (was.wsclient (), message)
+
 @app.route ("/")
 def websocket (was, mode = "echo"):
 	if mode == "chat":	

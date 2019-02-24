@@ -313,7 +313,7 @@ class WebSocket1 (WebSocket):
 		args = (self.request, self.apph, (self.env, self.start_response), None, self.wasc.logger)
 		if self.env ["wsgi.multithread"]:			
 			self.wasc.queue.put (Job (*args))
-		else:
+		else:			
 			Job (*args) ()
 
 					
@@ -341,6 +341,7 @@ class WebSocket5 (WebSocket1):
 			params, 
 			self.param_names [0]
 		)
+
 
 class WebSocket6 (WebSocket1):
 	# WEBSOCKET_REQDATA			

@@ -128,7 +128,7 @@ class Handler (wsgi_handler.Handler):
 				
 		del env ["websocket.event"]
 		del env ["websocket.config"]
-		assert design_spec in (1,5,6), "design_spec  should be one of (WS_SIMPLE, WS_GROUPCHAT, WS_THREADSAFE)"			
+		assert design_spec in (1,5,6, 129, 134, 133), "design_spec  should be one of (WS_SIMPLE, WS_GROUPCHAT, WS_THREADSAFE)"			
 		headers = [
 			("Sec-WebSocket-Accept", self.calculate_response_key (securekey)),
 			("Upgrade", "Websocket"),
@@ -138,6 +138,11 @@ class Handler (wsgi_handler.Handler):
 		]
 		request.response ("101 Web Socket Protocol Handshake", headers = headers)
 		
+		if design_spec & 128 == 128:
+			design_spec &= 127
+			if env ["wsgi.multithread"]:			
+				env ["wsgi.multithread"] = 0
+			
 		if design_spec in (skitai.WS_SIMPLE, skitai.WS_THREADSAFE):
 			varnames = varnames [:1]
 			# Like AJAX, simple request of client, simple response data

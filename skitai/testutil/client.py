@@ -151,8 +151,9 @@ class Client:
     
     # websokcet --------------------------------------------        
     def ws (self, uri, message, headers = [], auth = None, meta = {}, version = "1.1"):
-        r = ws_request.Request (uri, message, self.override (headers), auth, None, meta, version)
-        r.headers ['Origin'] = "http://%s:%d" % r.address
+        r = ws_request.Request (uri, message, self.override (headers), auth, None, meta, version)        
+        origin = r.address or ("127.0.0.1", 80)
+        r.headers ['Origin'] = "http://%s:%d" % origin 
         r.headers ['Sec-WebSocket-Key'] = b64encode(os.urandom(16))
         r.headers ['Connection'] = "keep-alive, Upgrade"
         r.headers ['Upgrade'] = 'websocket'
@@ -160,4 +161,4 @@ class Client:
         r.method = "get"
         hr = self.__generate (r)
         hr.set_body (r.get_payload ().more ())
-        return hr
+        return self.handle_request (hr)

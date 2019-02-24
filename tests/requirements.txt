@@ -4,5 +4,4 @@ codecov
 pytest-cov
 sqlalchemy
 flask
-hyper
-
+websocket_client

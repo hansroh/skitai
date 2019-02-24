@@ -1332,6 +1332,193 @@ Here're some implementations I made.
 .. _`Haiku API Server`: https://pypi.python.org/pypi/haiku-lst
 
 
+
+HTTP/2.0 Server Push
+================================
+
+*New in version 0.16*
+
+Skiai supports HTPT2 both 'h2' protocl over encrypted TLS and 'h2c' for clear text (But now Sep 2016, there is no browser supporting h2c protocol).
+
+Basically you have nothing to do for HTTP2. Client's browser will handle it except `HTTP2 server push`_.
+
+For using it, you just call was.push (uri) before return response data. It will work only client browser support HTTP2 server push, otherwise will be ignored.
+
+.. code:: python
+  
+  from skitai import was
+  
+  @app.route ("/promise")
+  def promise ():
+  
+    was.push ('/images/A.png')
+    was.push ('/images/B.png')
+    
+    return was.response (
+      "200 OK", 
+      (
+        'Promise Sent<br><br>'
+        '<img src="/images/A.png">'
+        '<img src="/images/B.png">'
+      )
+    )
+
+.. _`HTTP2 server push`: https://tools.ietf.org/html/rfc7540#section-8.2
+    
+    
+
+HTML5 Websocket
+====================
+
+*New in version 0.11*
+
+The HTML5 WebSockets specification defines an API that enables web pages to use the WebSockets protocol for two-way communication with a remote host.
+
+Skitai can be HTML5 websocket server and any WSGI containers can use it.
+
+But I'm not sure my implemetation is right way, so it is experimental and could be changable.
+
+
+Using Websocket 
+-----------------------------
+
+Use skitai.websocket decorator.
+
+First param is the name of variable for recieving message. Anf you can configure timeout and open/close websocket handlers.
+
+For example with Flask app,
+
+.. code:: python
+  
+  def onopen ():
+    request.g. ...
+  
+  def onclose ():
+    request.g. ...   
+    
+  @app.route ("/websocket/echo")
+  @skitai.websocket ("message", timeout = 60, onopen = onopen, onclose = onclose)  
+  def echo ():
+    return "ECHO:" + request.args.get ("message")
+
+
+WWW-Authenticate
+-----------------
+
+Some browsers do not support WWW-Authenticate on websocket like Safari, then Skitai currently disables WWW-Authenticate for websocket, so you should be careful for requiring secured messages.
+
+Client Side
+-----------------------------
+
+First of all, see conceptual client side java script for websocket using Vuejs.
+
+.. code:: html
+
+  <div id="app">
+    <ul>
+      <li v-for="log in logs" v-html="log.text"></li>
+    </ul>
+    <input type="Text" v-model="msg" @keyup.enter="push (msg); msg='';">
+  </div>
+  
+  <script>  
+  vapp = new Vue({
+    el: "#app",
+    data: {  
+      ws_uri: "ws://www.yourserver.com/websocket",
+      websocket: null,
+      out_buffer: [],
+      logs: [],
+      msg = '',
+    },
+        
+    methods: {
+      
+      push: function (msg) {
+        if (!msg) {
+          return
+        }      
+        this.out_buffer.push (msg)
+        if (this.websocket == null) {
+          this.connect ()
+        } else {
+          this.send ()
+        }
+      },
+      
+      handle_read: function (evt)  {
+        this.log_info(evt.data)
+      },
+      
+      log_info: function (msg) {    
+        if (this.logs.length == 10000) {
+          this.logs.shift ()
+        }      
+        this.logs.push ({text: msg})      
+      },
+      
+      connect: function () {
+        this.log_info ("connecting to " + this.ws_uri)
+        this.websocket = new WebSocket(this.ws_uri)      
+        this.websocket.onopen = this.handle_connect
+        this.websocket.onmessage = this.handle_read
+        this.websocket.onclose = this.handle_close
+        this.websocket.onerror = this.handle_error
+      },
+      
+      send: function () {      
+        for (var i = 0; i < this.out_buffer.length; i++ ) {
+          this.handle_write (this.out_buffer.shift ())
+        }
+      },
+      
+      handle_write: function (msg) {
+        this.log_info ("SEND: " + msg)
+        this.websocket.send (msg)
+      },
+      
+      handle_connect: function () {
+        this.log_info ("connected")
+        this.send ()
+      },
+      
+      handle_close: function (evt)  {
+        this.websocket.close()
+        this.websocket = null
+        this.log_info("DISCONNECTED")
+      },
+      
+      handle_error: function (evt)  {
+        this.log_info('ERROR: ' + evt.data)
+      },
+      
+    },
+    
+    mounted: function () {      
+      this.push ('Hello!')
+    },
+    
+  })
+  
+  </script>
+
+
+Send Messages Through Websocket Directly
+``````````````````````````````````````````
+
+It needn't return message, but you can send directly multiple messages through was.websocket,
+
+.. code:: python
+
+  @app.route ("/websocket/echo")
+  @was.websocket ("message", 60)  
+  def echo ():
+    message = request.args.get ("message")
+    request.environ ["websocket"].send ("You said," + message)  
+    request.environ ["websocket"].send ("I said acknowledge")
+
+
+
 Skitai 'was' Services
 =======================
 
@@ -1369,7 +1556,14 @@ Simply just remember, if you use WSGI container like Flask, Bottle, ... - NOT At
 Async Communication For Backends To Backends
 ------------------------------------------------------
 
-Most importance service of 'was' is making requests to HTTP, REST, RPC and several database engines. And this is mostly useful for fast Server Side Rendering with outside resources.
+Skitai works fine with synchronous apps and libraries. you can use standard database client libraries or requests modeul for API calls. 
+
+
+Also provides optional asynchronous and concurrent requests to your backends within request thread.
+
+It implemented with pure python library like asyncore, select etc and has own event loop (asyncore.loop), NOT use gevent, greeenlet, asyncio... It means Skitai could not use with these stuff.
+
+'was' is making requests to HTTP, REST, RPC and several database engines. And this is mostly useful for fast Server Side Rendering with outside resources.
 
 Recently Javascript provides good asynchronous communicating tools like AJAX or axios.js for **frontends - backends**. Like this, 'was' provides **backends - backends** communicating tool.
 
@@ -2020,191 +2214,6 @@ This chapter's 'was' services are also avaliable for all WSGI middelwares.
 - was.shutdown () # Shutdown Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
 
 
-HTTP/2.0 Server Push
------------------------
-
-*New in version 0.16*
-
-Skiai supports HTPT2 both 'h2' protocl over encrypted TLS and 'h2c' for clear text (But now Sep 2016, there is no browser supporting h2c protocol).
-
-Basically you have nothing to do for HTTP2. Client's browser will handle it except `HTTP2 server push`_.
-
-For using it, you just call was.push (uri) before return response data. It will work only client browser support HTTP2 server push, otherwise will be ignored.
-
-.. code:: python
-  
-  from skitai import was
-  
-  @app.route ("/promise")
-  def promise ():
-  
-    was.push ('/images/A.png')
-    was.push (was.ab ('item'))
-    
-    return was.response (
-      "200 OK", 
-      (
-        'Promise Sent<br><br>'
-        '<img src="/images/A.png">'
-        '<img src="/images/B.png">'
-      )
-    )
-
-.. _`HTTP2 server push`: https://tools.ietf.org/html/rfc7540#section-8.2
-    
-    
-
-HTML5 Websocket
-====================
-
-*New in version 0.11*
-
-The HTML5 WebSockets specification defines an API that enables web pages to use the WebSockets protocol for two-way communication with a remote host.
-
-Skitai can be HTML5 websocket server and any WSGI containers can use it.
-
-But I'm not sure my implemetation is right way, so it is experimental and could be changable.
-
-
-Using Websocket 
------------------------------
-
-Use skitai.websocket decorator.
-
-First param is the name of variable for recieving message. Anf you can configure timeout and open/close websocket handlers.
-
-For example with Flask app,
-
-.. code:: python
-  
-  def onopen ():
-    request.g. ...
-  
-  def onclose ():
-    request.g. ...   
-    
-  @app.route ("/websocket/echo")
-  @skitai.websocket ("message", timeout = 60, onopen = onopen, onclose = onclose)  
-  def echo ():
-    return "ECHO:" + request.args.get ("message")
-
-
-WWW-Authenticate
------------------
-
-Some browsers do not support WWW-Authenticate on websocket like Safari, then Skitai currently disables WWW-Authenticate for websocket, so you should be careful for requiring secured messages.
-
-Client Side
------------------------------
-
-First of all, see conceptual client side java script for websocket using Vuejs.
-
-.. code:: html
-
-  <div id="app">
-    <ul>
-      <li v-for="log in logs" v-html="log.text"></li>
-    </ul>
-    <input type="Text" v-model="msg" @keyup.enter="push (msg); msg='';">
-  </div>
-  
-  <script>  
-  vapp = new Vue({
-    el: "#app",
-    data: {  
-      ws_uri: "ws://www.yourserver.com/websocket",
-      websocket: null,
-      out_buffer: [],
-      logs: [],
-      msg = '',
-    },
-        
-    methods: {
-      
-      push: function (msg) {
-        if (!msg) {
-          return
-        }      
-        this.out_buffer.push (msg)
-        if (this.websocket == null) {
-          this.connect ()
-        } else {
-          this.send ()
-        }
-      },
-      
-      handle_read: function (evt)  {
-        this.log_info(evt.data)
-      },
-      
-      log_info: function (msg) {    
-        if (this.logs.length == 10000) {
-          this.logs.shift ()
-        }      
-        this.logs.push ({text: msg})      
-      },
-      
-      connect: function () {
-        this.log_info ("connecting to " + this.ws_uri)
-        this.websocket = new WebSocket(this.ws_uri)      
-        this.websocket.onopen = this.handle_connect
-        this.websocket.onmessage = this.handle_read
-        this.websocket.onclose = this.handle_close
-        this.websocket.onerror = this.handle_error
-      },
-      
-      send: function () {      
-        for (var i = 0; i < this.out_buffer.length; i++ ) {
-          this.handle_write (this.out_buffer.shift ())
-        }
-      },
-      
-      handle_write: function (msg) {
-        this.log_info ("SEND: " + msg)
-        this.websocket.send (msg)
-      },
-      
-      handle_connect: function () {
-        this.log_info ("connected")
-        this.send ()
-      },
-      
-      handle_close: function (evt)  {
-        this.websocket.close()
-        this.websocket = null
-        this.log_info("DISCONNECTED")
-      },
-      
-      handle_error: function (evt)  {
-        this.log_info('ERROR: ' + evt.data)
-      },
-      
-    },
-    
-    mounted: function () {      
-      this.push ('Hello!')
-    },
-    
-  })
-  
-  </script>
-
-
-
-Send Messages Through Websocket Directly
-``````````````````````````````````````````
-
-It needn't return message, but you can send directly multiple messages through was.websocket,
-
-.. code:: python
-
-  @app.route ("/websocket/echo")
-  @was.websocket ("message", 60)  
-  def echo ():
-    message = request.args.get ("message")
-    request.environ ["websocket"].send ("You said," + message)  
-    request.environ ["websocket"].send ("I said acknowledge")
-
 
 Project Purpose
 ===================
@@ -2239,7 +2248,7 @@ Change Log
 
 - 0.28 (Feb 2019)
 	
-	- fix HTTP2 server push and add was.push ()
+  - fix HTTP2 server push and add was.push ()
   - getwait () and getswait () are integrated into dispatch ()
   - add data_or_throw () and one_or_throw ()  	
   - was.promise has been deprecated, use was.futures: see Atila documentation

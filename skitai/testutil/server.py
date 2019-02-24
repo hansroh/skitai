@@ -1,4 +1,5 @@
 from aquests.protocols.http import request, response
+from aquests.protocols.ws import response as ws_response
 from ..wastuff import triple_logger
 from ..http_server import http_server
 from ..handlers import pingpong_handler
@@ -9,15 +10,13 @@ import skitai
 from skitai import lifetime
 import asyncore
 
-def get_default_handler ():
+def find_handler (request):
     for h in skitai.was.httpserver.handlers:
-        if isinstance (h, vhost_handler.Handler):
+        if h.match (request):
             return h
-
+    
 def process_request (request, handler = None):
-    # clinet request -> server request
-    handler = handler or get_default_handler ()
-    assert handler.match (request)
+    handler = handler or find_handler (request)                
     handler.handle_request (request)
     if request.collector and request.command in ('post', 'put', 'patch'):
         request.collector.collect_incoming_data (request.payload)
