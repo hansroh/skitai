@@ -140,7 +140,7 @@ class Handler (wsgi_handler.Handler):
 		env ["wsgi.noenv"] = False
 		design_spec &= 31
 		if design_spec & 128 == 128:
-			env ["wsgi.noenv"] = 0		
+			env ["wsgi.multithread"] = 0		
 				
 		if design_spec in (skitai.WS_SIMPLE, skitai.WS_THREADSAFE):
 			varnames = varnames [:1]

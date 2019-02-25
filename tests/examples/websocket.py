@@ -34,13 +34,13 @@ def onopen (was):
 	return  'Welcome Client 0'
 
 @app.route ("/echo2")
-@app.websocket (skitai.WS_SIMPLE | skitai.WS_FAST, 60, onopen = onopen)
+@app.websocket (skitai.WS_SIMPLE | skitai.WS_NQ, 60, onopen = onopen)
 def echo2 (was, message):
 	was.websocket.send ('1st: ' + message)
 	return "2nd: " + message
 
 @app.route ("/echo3")
-@app.websocket (skitai.WS_SIMPLE | skitai.WS_FAST, 60, onopen = onopen)
+@app.websocket (skitai.WS_SIMPLE | skitai.WS_NQ, 60, onopen = onopen)
 def echo3 (was, message):
 	was.websocket.send ('1st: ' + message)
 	return "2nd: " + message

@@ -1,33 +1,45 @@
 import sys
 from ..utility import make_pushables
 from ..exceptions import HTTPError
+from ..rpc.cluster_dist_call import DEFAULT_TIMEOUT
 
-class Futures:
-    def __init__ (self, was, reqs, timeout = 10):
-        assert isinstance (reqs, (list, tuple))
-        self._was = was
+class Tasks:
+    def __init__ (self, reqs, timeout = 10):
+        assert isinstance (reqs, (list, tuple))        
         self.timeout = timeout        
         self.reqs = reqs
+        
+    @property
+    def results (self):        
+        return self.dispatch (self.timeout)
+    
+    def dispatch (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
+        return [req.dispatch (timeout or self.timeout, cache, cache_if) for req in self.reqs]
+    
+    def wait (self, timeout = DEFAULT_TIMEOUT):
+        return [req.wait (timeout or self.timeout) for req in self.reqs]
+        
+        
+class Futures (Tasks):
+    def __init__ (self, was, reqs, timeout = 10):
+        Tasks.__init__ (self, reqs, timeout)
+        self._was = was
         self.args = {}
         self.fulfilled = None
         self.responded = 0        
         self.ress = [None] * len (self.reqs)
-        
+            
     def then (self, func, **kargs):
         self.args = kargs     
         self.fulfilled = func
         for reqid, req in enumerate (self.reqs):            
             req.set_callback (self._collect, reqid, self.timeout)
         return self
-    
-    @property
-    def results (self):        
-        return [req.dispatch (self.timeout) for req in self.reqs]
                  
     def _collect (self, res):
         self.responded += 1
         reqid = res.meta ["__reqid"]
-        self.ress [reqid] = res        
+        self.ress [reqid] = res
         if self.responded == len (self.reqs):
             if self.fulfilled:             
                 self.respond ()

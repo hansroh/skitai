@@ -319,7 +319,7 @@ class WebSocket1 (WebSocket):
 	
 	def execute (self):
 		args = (self.request, self.apph, (self.env, self.start_response), None, self.wasc.logger)
-		if not self.env ["wsgi.multithread"] or self.env.get ("wsgi.noenv"):
+		if not self.env ["wsgi.multithread"]:
 			Job (*args) ()			
 		else:
 			self.wasc.queue.put (Job (*args))

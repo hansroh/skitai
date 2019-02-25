@@ -121,7 +121,7 @@ class WASBase:
     # system functions ----------------------------------------------
     
     def Tasks (self, reqs, timeout = 10):
-        return futures.Futures (None, reqs, timeout)
+        return futures.Tasks (reqs, timeout)
         
     def log (self, msg, category = "info", at = "app"):
         self.logger (at, msg, "%s:%s" % (category, self.txnid ()))
