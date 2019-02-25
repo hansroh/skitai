@@ -3,26 +3,39 @@ from ..utility import make_pushables
 from ..exceptions import HTTPError
 from ..rpc.cluster_dist_call import DEFAULT_TIMEOUT
 
-class Tasks:
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT):
+class TaskBase:
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, cache = 0, cache_if = (200,)):
         assert isinstance (reqs, (list, tuple))        
         self.timeout = timeout        
+        self.cache = cache
+        self.cache_if = cache_if
         self.reqs = reqs
-        
+        self._results = []
+
+
+class Tasks (TaskBase):    
+    def __iter__ (self):
+        return iter (self.results)
+    
+    def __getitem__ (self, sliced):
+        return self._results [sliced]
+                
     @property
-    def results (self):        
-        return self.dispatch (self.timeout)
+    def results (self):       
+        return self._results or self.dispatch ()
     
-    def dispatch (self, timeout = 0, cache = None, cache_if = (200,)):
-        return [req.dispatch (timeout or self.timeout, cache, cache_if) for req in self.reqs]
+    def dispatch (self):
+        self._results = [req.dispatch (self.timeout, self.cache, self.cache_if) for req in self.reqs]
+        return self._results 
     
-    def wait (self, timeout = 0):
-        return [req.wait (timeout or self.timeout) for req in self.reqs]
+    def wait (self):
+        [req.wait (self.timeout) for req in self.reqs]
+        return None
 
         
-class Futures (Tasks):
-    def __init__ (self, was, reqs, timeout = 10):
-        Tasks.__init__ (self, reqs, timeout)
+class Futures (TaskBase):
+    def __init__ (self, was, reqs, timeout = 10, cache = 0, cache_if = (200,)):
+        TaskBase.__init__ (self, reqs, timeout, cache, cache_if)
         self._was = was
         self.args = {}
         self.fulfilled = None
@@ -40,6 +53,7 @@ class Futures (Tasks):
         self.responded += 1
         reqid = res.meta ["__reqid"]
         self.ress [reqid] = res
+        self.cache and res.cache (self.cache, self.cache_if)
         if self.responded == len (self.reqs):
             if self.fulfilled:             
                 self.respond ()

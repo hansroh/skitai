@@ -60,7 +60,7 @@ def test_futures (app, dbpath):
             was.get ("@pypi/project/rs4/"),
             was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
         ]
-        return str ([rs.fetch () for rs in was.Tasks (reqs).results])
+        return str ([rs.fetch () for rs in was.Tasks (reqs)])
         
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")    
     app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)    
