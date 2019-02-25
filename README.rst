@@ -1745,7 +1745,7 @@ If you needn't returned data and just wait for completing query,
 If failed, exception will be raised.
 
  
- Using Database Transaction
+Using Database Transaction
 `````````````````````````````````````
 
 If you want use asynchronous database transaction, you can use asynchronous drivers.

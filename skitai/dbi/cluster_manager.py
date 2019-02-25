@@ -70,6 +70,7 @@ class ClusterManager (cluster_manager.ClusterManager):
             conn = endpoints.make_endpoints (self.dbtype, [self._cache [0]]) [0]
             return pg2.open2 (conn, endpoints.PGPOOL)
         elif self.dbtype == DB_SQLITE3:            
-            return db3.open (self._cache [0][0][0])
+            conn = endpoints.make_endpoints (self.dbtype, [self._cache [0]]) [0]
+            return db3.open2 (conn)
         raise TypeError ("Only DB_PGSQL or DB_SQLITE3")
 
