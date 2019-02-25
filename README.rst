@@ -1745,7 +1745,7 @@ If you needn't returned data and just wait for completing query,
 If failed, exception will be raised.
 
  
- Using Database Trabsaction
+ Using Database Transaction
 `````````````````````````````````````
 
 If you want use asynchronous database transaction, you can use asynchronous drivers.
@@ -2353,7 +2353,7 @@ Change Log
 - 0.28 (Feb 2019)
   
   - add was.transaction ()
-  - update psycopg2 connection parameter: async => async_ for Py3.7 compatablity  
+  - update psycopg2 connection parameter: async => async\_ for Py3.7 compatablity  
   - replace from data_or_thow (), one_or_throw () to fetch (), one ()  	
   - fix HTTP2 server push and add was.push ()
   - getwait () and getswait () are integrated into dispatch ()
