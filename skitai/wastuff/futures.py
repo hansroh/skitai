@@ -4,7 +4,7 @@ from ..exceptions import HTTPError
 from ..rpc.cluster_dist_call import DEFAULT_TIMEOUT
 
 class Tasks:
-    def __init__ (self, reqs, timeout = 10):
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT):
         assert isinstance (reqs, (list, tuple))        
         self.timeout = timeout        
         self.reqs = reqs
@@ -13,12 +13,12 @@ class Tasks:
     def results (self):        
         return self.dispatch (self.timeout)
     
-    def dispatch (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
+    def dispatch (self, timeout = 0, cache = None, cache_if = (200,)):
         return [req.dispatch (timeout or self.timeout, cache, cache_if) for req in self.reqs]
     
-    def wait (self, timeout = DEFAULT_TIMEOUT):
+    def wait (self, timeout = 0):
         return [req.wait (timeout or self.timeout) for req in self.reqs]
-        
+
         
 class Futures (Tasks):
     def __init__ (self, was, reqs, timeout = 10):

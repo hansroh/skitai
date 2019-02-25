@@ -75,13 +75,13 @@ def documentation3 (was):
 @app.route ("/db")
 def db (was):
     req = was.backend ("@sqlite3").execute ("select * from people")
-    return was.API (req.data_or_throw (2, 40))
+    return was.API (req.fetch (2, 40))
       	
 @app.route ("/dbmap")
 def dbmap (was):
 	req = was.backend.map ("@sqlite3m").execute ("select * from people")
 	results = req.dispatch ()
-	data = req.data_or_throw (cache = 60)
+	data = req.fetch (cache = 60)
 	assert data == results.data				
 	return was.API (data = data)
          	

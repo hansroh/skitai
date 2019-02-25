@@ -52,7 +52,7 @@ class Result (rcache.Result):
 	def close (self):
 		self.__response = None	
 	
-	def data_or_throw (self, cache = None, cache_if = (200,), one = False):
+	def fetch (self, cache = None, cache_if = (200,), one = False):
 		self.reraise ()	
 		cache and self.cache (cache, cache_if)
 		try:
@@ -62,8 +62,8 @@ class Result (rcache.Result):
 		except IndexError:
 			raise exceptions.HTTPError ("404 Not Found")					
 	
-	def one_or_throw (self, cache = None, cache_if = (200,)):
-		return self.data_or_throw (cache, cache_if, True)
+	def one (self, cache = None, cache_if = (200,)):
+		return self.fetch (cache, cache_if, True)
 
 
 class Results (rcache.Result):
@@ -92,9 +92,9 @@ class Results (rcache.Result):
 		rcache.Result.cache (self, timeout)
 		return self
 		
-	def data_or_throw (self, cache = None, cache_if = (200,)):
+	def fetch (self, cache = None, cache_if = (200,)):
 		cache and self.cache (cache, cache_if)
-		return [r.data_or_throw () for r in self.results]
+		return [r.fetch () for r in self.results]
 								
 
 class Dispatcher:
@@ -456,10 +456,6 @@ class ClusterDistCall:
 		self._cached_result.cache (cache, cache_if)
 		return self
 					
-	def wait (self, timeout = DEFAULT_TIMEOUT, reraise = True):
-		self.dispatch (timeout, reraise = reraise)
-		self._cached_result = None
-		
 	def dispatch (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,), wait = True, reraise = False):
 		if self._cached_result is not None:
 			return self._cached_result
@@ -479,22 +475,27 @@ class ClusterDistCall:
 		cache and self.cache (cache, cache_if)
 		return self._cached_result	
 	
+	def wait (self, timeout = DEFAULT_TIMEOUT, reraise = False):
+		self.dispatch (timeout, reraise = reraise)
+		self._cached_result = None
+	
+	def dispatch_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
+		return dispatch (timeout, cache, cache_if, reraise = True)
+	
 	def wait_or_throw (self, timeout = DEFAULT_TIMEOUT):
 		return self.wait (timeout, True)
 	
-	def dispatch_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
-		return self.dispatch (self.dispatch, timeout, cache, cache_if, reraise = True)
-	
-	def data_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
-		res = self.dispatch (timeout, reraise = True)
-		return res.data_or_throw (cache, cache_if)
+	# direct access to data ----------------------------------------------	
+	def fetch (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
+		res = self._cached_result or self.dispatch (timeout, reraise = True)
+		return res.fetch (cache, cache_if)
 		
-	def one_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
-		res = self.dispatch (timeout, reraise = True)
-		return res.one_or_throw (cache, cache_if)
-	
+	def one (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
+		res = self._cached_result or self.dispatch (timeout, reraise = True)
+		return res.one (cache, cache_if)
+		
 	getwait = getswait = dispatch # lower ver compat.
-	getwait_or_throw = getswait_or_throw = dispatch_or_throw # lower ver compat.	
+	getwait_or_throw = getswait_or_throw = dispatch_or_throw # lower ver compat.
 	
 	
 # cluster base call ---------------------------------------

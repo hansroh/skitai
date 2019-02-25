@@ -28,10 +28,10 @@ class Result:
             return self.__response.text
         return self.__response    
     
-    def data_or_throw (self):
+    def fetch (self, *args, **kargs):
         return self.data
     
-    def one_or_throw (self):
+    def one (self, *args, **kargs):
         try: 
             return self.data [0]
         except IndexError:
@@ -83,11 +83,20 @@ class ProtoCall (cluster_dist_call.ClusterDistCall):
         return self.result
     getwait = dispatch
     getswait = dispatch
-        
-    def data_or_throw (self, timeout = 10):
+    
+    def dispatch_or_throw (self):
+        self.dispatch ()
+        return self._or_throw ()
+    
+    def wait_or_throw (self):    
+        return self._or_throw ()
+            
+    def fetch (self, timeout = 10):
         return self.result.data_or_throw ()
         
-
+    def one (self, timeout = 10):
+        return self.result.one_or_throw ()    
+    
 class DBCall (ProtoCall):
     def __init__ (self, cluster, *args, **kargs):
         self.cluster = cluster
@@ -145,9 +154,7 @@ class DBCall (ProtoCall):
         self.result.meta = meta or {}    
         endpoints.restore (conns)        
         callback and callback (self.result)
-    
-    def one_or_throw (self, timeout = 10):
-        return self.result.one_or_throw ()    
+
 
 class SyncService (async_service.AsyncService):
     def _create_rest_call (self, cluster, *args, **kargs):

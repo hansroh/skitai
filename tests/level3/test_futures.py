@@ -35,7 +35,7 @@ def test_futures (app, dbpath):
     @app.route ("/3")
     def index3 (was):
         def respond (was, rss):
-            datas = str (rss [0].data_or_throw ()) + str (rss [1].one_or_throw ()) 
+            datas = str (rss [0].fetch ()) + str (rss [1].one ())
             return datas
                             
         reqs = [            
@@ -47,7 +47,7 @@ def test_futures (app, dbpath):
     @app.route ("/4")
     def index4 (was):
         def respond (was, rss):
-            rss [0].one_or_throw ()
+            rss [0].one ()
                             
         reqs = [
             was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('---',))
@@ -60,7 +60,7 @@ def test_futures (app, dbpath):
             was.get ("@pypi/project/rs4/"),
             was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
         ]
-        return str ([rs.data_or_throw () for rs in was.Tasks (reqs).results])
+        return str ([rs.fetch () for rs in was.Tasks (reqs).results])
         
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")    
     app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)    

@@ -1990,11 +1990,11 @@ If you want to access to data directly,
 @app.route ("/search")
   def search (was, keyword = "Mozart"):
     req = was.get ("@mysearch/something")
-    return req.data_or_throw ()
+    return req.fetch ()
     
-data_or_throw () returns result.data if all status is normal.
+fetch () returns result.data if all status is normal.
 
-If your result.data is list type (mostly database query result or JSON array), one_or_throw () is very similar with  data_or_throw () but result count is not 1, it raise HTTP 404 error.  
+If your result.data is list type (mostly database query result or JSON array), one () is very similar with  fetch () but result count is not 1, it raise HTTP 404 error.  
 
 
 Caching Result
@@ -2286,7 +2286,8 @@ Change Log
 ===========
 
 - 0.28 (Feb 2019)
-	
+  
+  - replace from data_or_thow (), one_or_throw () to fetch (), one ()  	
   - fix HTTP2 server push and add was.push ()
   - getwait () and getswait () are integrated into dispatch ()
   - add data_or_throw () and one_or_throw ()  	
