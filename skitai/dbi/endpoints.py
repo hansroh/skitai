@@ -1,10 +1,16 @@
 import sqlite3
-import psycopg2
+from psycopg2.pool import ThreadedConnectionPool
 import redis
 import pymongo
 from skitai import DB_SQLITE3, DB_PGSQL, DB_REDIS, DB_MONGODB
+import multiprocessing
 
-def make_endpoints (dbtype, from_list):        
+CPU_COUNT = multiprocessing.cpu_count ()
+PGPOOL= None
+
+def make_endpoints (dbtype, from_list):     
+    global PGPOOL, CPU_COUNT
+       
     endpoints = []        
     for server, db, auth in from_list:
         user, password = "", ""
@@ -29,7 +35,9 @@ def make_endpoints (dbtype, from_list):
             conn = sqlite3.connect (host)
         elif dbtype == DB_PGSQL:
             if user: kargs ["user"] = user
-            conn = psycopg2.connect (host = host, database = db, **kargs)
+            if PGPOOL is None:
+                PGPOOL = ThreadedConnectionPool (0, CPU_COUNT * 3, host = host, database = db, **kargs)
+            conn = PGPOOL.getconn ()
         elif dbtype == DB_REDIS:
             conn = redis.Redis (host = host, port = port, db = db)
         elif dbtype == DB_MONGODB:

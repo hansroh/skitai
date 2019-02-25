@@ -1074,6 +1074,63 @@ You can query for getting user information to database engines asynchronously. H
       ).findone ('tokens', {"token": request.token})
 
 
+Inter-Processes State Sharing
+-------------------------------------------
+
+Skitai can run with multiple processes (a.k workers), It is possible matters synchronizing state between workers.
+
+Like was.setlu () or getlu (), was provide setgs (), getgs ().
+
+Most important thing is global state keys SHUOLD be defined before running skitai. And argument should be integer value.
+
+.. code:: python
+
+  skitai.defgs ("cluster.num-nodes", "region.somethig", ...)  
+  ...
+  
+  skitai.run ()
+  
+Then you cna use these,
+
+.. code:: python
+  
+  @app.route ("/nodes", method = ["POST", "DELETE"])
+  def nodes (was, **nodinfos):
+  	...
+  	was.setgs ("cluster.num-nodes", was.getgs ("cluster.num-nodes") + 1, **nodeinfos)  	
+
+As a result,
+
+- cluster.num-nodes state value has been increased
+- "cluster.num-nodes" and  \*\*nodeinfos are broadcated to mounted all *Atila* apps.
+
+A app has interest for this,
+
+.. code:: python
+
+  @app.on_broadcast ("cluster.num-nodes")
+  def num_nodes_changed (num_nodes, **nodeinfos):
+    ...
+
+But this broadcasting is just within current workers. 
+
+All workers has interested in this event, You may add watching routine at app.maintain.
+
+.. code:: python
+  
+  app.config.maintain_interval = 60
+  app.store ["num_nodes"] = 0
+  
+  @app.maintain
+  def maintain_num_nodes (was, now):
+  	...
+  	num_nodes = was.getgs ("cluster.num-nodes")
+  	if app.store ["num_nodes"] != num_nodes:
+  	  app.store ["num_nodes"] = num_nodes
+  	  app.broadcast ("cluster:num_nodes")
+
+
+
 Request Logging
 -----------------
 
@@ -1687,6 +1744,31 @@ If you needn't returned data and just wait for completing query,
 
 If failed, exception will be raised.
 
+ 
+ Using Database Trabsaction
+`````````````````````````````````````
+
+If you want use asynchronous database transaction, you can use asynchronous drivers.
+
+Also Skitai provide PostgreSQL connection with pool. And SQLite connection without pool.
+
+.. code:: python
+    
+    app.alias ("@postgres", skitai.DB_PGSQL, "user:password@localhost/db")
+    
+    @app.route ("/")
+    def index (was):
+        with was.transaction ("@postgres") as trx:
+            trx.execute ('INSERT ...')
+            trx.execute ('UPDATE ...')
+            trx.commit () 
+        return str (d)
+
+With context manager, conn return back to pool automatically  else you SHOULD call trx.putback () manually.
+
+was.transaction (@alias) returns SQLPhile.pg2.open2 () and SQLPhile.db3.open ().
+        
+        
 gRCP Calling
 ```````````````````
 
@@ -2011,7 +2093,9 @@ In case multiple requests, it's not pretty. Tasks join all concurrency tasks and
 Throwing HTTP Error On Request Failed
 `````````````````````````````````````````
 
-@app.route ("/search")
+.. code:: python
+
+  @app.route ("/search")
   def search (was, keyword = "Mozart"):
     req = was.get ("@mysearch/something")
     result = req.dispatch_or_throw ()
@@ -2021,7 +2105,9 @@ dispatch_or_throw () returns result only if req.status_code == 2xx and req.statu
 
 If you want to access to data for short hand, 
 
-@app.route ("/search")
+.. code:: python
+
+  @app.route ("/search")
   def search (was, keyword = "Mozart"):
     req = was.get ("@mysearch/something")
     return req.fetch ()
@@ -2219,61 +2305,6 @@ Focus 3rd line above log message. Then you can trace a series of API calls from 
 In next chapters' features of 'was' are only available for *Atila WSGI container*. So if you have no plan to use Atila, just skip.
 
 
-Inter-Processes State Sharing
--------------------------------------------
-
-Skitai can run with multiple processes (a.k workers), It is possible matters synchronizing state between workers.
-
-Like was.setlu () or getlu (), was provide setgs (), getgs ().
-
-Most important thing is global state keys SHUOLD be defined before running skitai. And argument should be integer value.
-
-.. code:: python
-
-  skitai.defgs ("cluster.num-nodes", "region.somethig", ...)  
-  ...
-  
-  skitai.run ()
-  
-Then you cna use these,
-
-.. code:: python
-  
-  @app.route ("/nodes", method = ["POST", "DELETE"])
-  def nodes (was, **nodinfos):
-  	...
-  	was.setgs ("cluster.num-nodes", was.getgs ("cluster.num-nodes") + 1, **nodeinfos)  	
-
-As a result,
-
-- cluster.num-nodes state value has been increased
-- "cluster.num-nodes" and  \*\*nodeinfos are broadcated to mounted all *Atila* apps.
-
-A app has interest for this,
-
-.. code:: python
-
-  @app.on_broadcast ("cluster.num-nodes")
-  def num_nodes_changed (num_nodes, **nodeinfos):
-    ...
-
-But this broadcasting is just within current workers. 
-
-All workers has interested in this event, You may add watching routine at app.maintain.
-
-.. code:: python
-  
-  app.config.maintain_interval = 60
-  app.store ["num_nodes"] = 0
-  
-  @app.maintain
-  def maintain_num_nodes (was, now):
-  	...
-  	num_nodes = was.getgs ("cluster.num-nodes")
-  	if app.store ["num_nodes"] != num_nodes:
-  	  app.store ["num_nodes"] = num_nodes
-  	  app.broadcast ("cluster:num_nodes")
-
 
 Utility Methods of 'was'
 ---------------------------
@@ -2321,6 +2352,8 @@ Change Log
 
 - 0.28 (Feb 2019)
   
+  - add was.transaction ()
+  - update psycopg2 connection parameter: async => async_ for Py3.7 compatablity  
   - replace from data_or_thow (), one_or_throw () to fetch (), one ()  	
   - fix HTTP2 server push and add was.push ()
   - getwait () and getswait () are integrated into dispatch ()

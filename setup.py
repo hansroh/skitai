@@ -62,7 +62,8 @@ package_data = {}
 
 install_requires = [	
 	"aquests",	
-	"jsonrpclib-pelix"
+	"jsonrpclib-pelix",
+	"sqlphile"
 ]
 
 with codecs.open ('README.rst', 'r', encoding='utf-8') as f:

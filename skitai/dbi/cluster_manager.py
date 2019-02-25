@@ -2,7 +2,9 @@ from skitai.rpc import cluster_manager
 from aquests.dbapi import asynpsycopg2, synsqlite3, asynredis, asynmongo
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from . import endpoints
-
+from sqlphile import pg2
+from sqlphile import db3
+            
 class ClusterManager (cluster_manager.ClusterManager):
     backend_keep_alive = 1200
     backend = True
@@ -62,5 +64,12 @@ class ClusterManager (cluster_manager.ClusterManager):
     
     def get_endpoints (self):
         return endpoints.make_endpoints (self.dbtype, self._cache)
-        
+    
+    def getconn (self):
+        if self.dbtype == DB_PGSQL:
+            conn = endpoints.make_endpoints (self.dbtype, [self._cache [0]]) [0]
+            return pg2.open2 (conn, endpoints.PGPOOL)
+        elif self.dbtype == DB_SQLITE3:            
+            return db3.open (self._cache [0][0][0])
+        raise TypeError ("Only DB_PGSQL or DB_SQLITE3")
 
