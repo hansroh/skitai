@@ -1974,6 +1974,40 @@ For more information about query generating, visit `SQLAlchemy Core`_.
 .. _`SQLAlchemy Core`: https://docs.sqlalchemy.org/en/latest/core/index.html
 
 
+Tasks
+``````````````
+
+Typically, using was's concurrent requests is like this,
+
+.. code:: python
+  
+  from skitai import was
+  
+  @app.route (...)
+  def request ():
+    req1 = was.get (url)
+    req2 = was.post (url, {"user": "Hans Roh", "comment": "Hello"})    
+    req3 = was.backend ("@mydb").select ("mytable").get ("*").execute ()
+    resp1 = req1.dispatch (timeout = 3)
+    resp2 = req2.dispatch (timeout = 3)
+    resp3 = req3.dispatch (timeout = 3)        
+    return [respones1.data, respones2.data, respones2.data]
+
+In case multiple requests, it's not pretty. Tasks join all concurrency tasks and collect results.
+
+.. code:: python
+
+  @app.route (...)
+  def request (was):
+    reqs = [
+      was.get (url),
+      was.post (url, {"user": "Hans Roh", "comment": "Hello"}),
+      was.backend ("@mydb").select ("mytable").get ("*").execute ()
+    ]      
+    tasks = Tasks (reqs, timeout = 3, cache = 60)
+    return [r.data for r in tasks] # tasks object is iterrable
+    
+
 Throwing HTTP Error On Request Failed
 `````````````````````````````````````````
 
@@ -1985,7 +2019,7 @@ Throwing HTTP Error On Request Failed
 
 dispatch_or_throw () returns result only if req.status_code == 2xx and req.status == 3, otherwise raise HTTP 5xx error.
 
-If you want to access to data directly, 
+If you want to access to data for short hand, 
 
 @app.route ("/search")
   def search (was, keyword = "Mozart"):

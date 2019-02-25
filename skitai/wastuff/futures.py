@@ -9,11 +9,14 @@ class TaskBase:
         self.timeout = timeout        
         self.cache = cache
         self.cache_if = cache_if
-        self.reqs = reqs
+        self.reqs = reqs        
+
+
+class Tasks (TaskBase):
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, cache = 0, cache_if = (200,)):
+        TaskBase.__init__ (self, reqs, timeout, cache, cache_if)
         self._results = []
-
-
-class Tasks (TaskBase):    
+        
     def __iter__ (self):
         return iter (self.results)
     
@@ -29,9 +32,8 @@ class Tasks (TaskBase):
         return self._results 
     
     def wait (self):
-        [req.wait (self.timeout) for req in self.reqs]
-        return None
-
+        self._results = [req.wait (self.timeout) for req in self.reqs]
+        
         
 class Futures (TaskBase):
     def __init__ (self, was, reqs, timeout = 10, cache = 0, cache_if = (200,)):
