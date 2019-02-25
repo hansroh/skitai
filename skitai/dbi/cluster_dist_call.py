@@ -207,6 +207,12 @@ class Proxy:
 		except AttributError:
 			return self.__args [3]
 	
+	def __enter__ (self):
+		return self
+
+	def __exit__ (self, type, value, tb):
+		pass
+	
 	def __getattr__ (self, name):	  
 		self._method = name
 		return self.__proceed

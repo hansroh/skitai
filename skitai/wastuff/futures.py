@@ -21,7 +21,7 @@ class Tasks (TaskBase):
         return iter (self.results)
     
     def __getitem__ (self, sliced):
-        return self._results [sliced]
+        return self.results [sliced]
                 
     @property
     def results (self):       

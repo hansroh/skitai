@@ -1850,7 +1850,7 @@ If you want to change default value,
   - was.mongodb ()
   - was.redis ()
   - was.sqlite3 ()
-  - was.backend (): if you make alias for your database, you needn't specify db type, just use backend ()
+  - was.db (): if you make alias for your database, you needn't specify db type, just use db ()
   
 - Websocket
   
@@ -1892,10 +1892,14 @@ Then let's request XMLRPC result to one of mysearch members.
 
   @app.route ("/search")
   def search (was, keyword = "Mozart"):
-    s = was.rpc.lb ("@mysearch/rpc2").search (keyword)
-    results = s.dispatch (5)
-    return result.data
-  
+    with was.rpc.lb ("@mysearch/rpc2") as stub:
+      s = stub.search (keyword)
+      results = s.dispatch (5)
+      return result.data
+      
+      # or short hand
+      return stub.search (keyword).fetch (5)
+    
   if __name__ == "__main__":
     import skitai
     
@@ -1983,7 +1987,7 @@ There are 2 changes:
 Using Aliased Database
 ``````````````````````````
 
-If you have alias your database server, you needn't specify db type like 'dbo = was.postgresql ("@mydb")'. Just use 'dbo = was.backend ("@mydb")'.
+If you have alias your database server, you needn't specify db type like 'dbo = was.postgresql ("@mydb")'. Just use 'dbo = was.db ("@mydb")'.
 
 It makes easy to handle both Sqlite3 and PostgreSQL. If you intend to use Sqlite3 at developing, but use PostgreSQL at production, you just change alias on Skitai startup time.
 
@@ -2038,7 +2042,12 @@ For generating query statements,
   @app.route ("/q/<int:id>)
   def q (was, id):
     statement = stocks.select().where(stocks.c.id == id)
-    res = was.backend ("@mydb").execute (statement).dispatch ()
+    with was.db ("@mydb") as db:
+      req = db.execute (statement)
+      res = req.dispatch ()
+    
+    # or short hand  
+    res = was.db ("@mydb").execute (statement).dispatch ()
     res.data
     ...
     
@@ -2069,7 +2078,7 @@ Typically, using was's concurrent requests is like this,
   def request ():
     req1 = was.get (url)
     req2 = was.post (url, {"user": "Hans Roh", "comment": "Hello"})    
-    req3 = was.backend ("@mydb").select ("mytable").get ("*").execute ()
+    req3 = was.db ("@mydb").select ("mytable").get ("*").execute ()
     resp1 = req1.dispatch (timeout = 3)
     resp2 = req2.dispatch (timeout = 3)
     resp3 = req3.dispatch (timeout = 3)        
@@ -2084,7 +2093,7 @@ In case multiple requests, it's not pretty. Tasks join all concurrency tasks and
     reqs = [
       was.get (url),
       was.post (url, {"user": "Hans Roh", "comment": "Hello"}),
-      was.backend ("@mydb").select ("mytable").get ("*").execute ()
+      was.db ("@mydb").select ("mytable").get ("*").execute ()
     ]      
     tasks = Tasks (reqs, timeout = 3, cache = 60)
     return [r.data for r in tasks] # tasks object is iterrable
@@ -2231,19 +2240,19 @@ Then you can use setlu () and getlu (),
   @app.route ("/update")
   def update (was):
     # update users tabale
-    was.backend ('@mydb').execute (...)
+    was.db ('@mydb').execute (...)
     # update last update time by key string
     was.setlu ('tables.users')
   
   @app.route ("/query1")
   def query1 (was):
     # determine if use cache or not by last update information 'users'
-    was.backend ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
+    was.db ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
   
   @app.route ("/query2")
   def query2 (was):
     # determine if use cache or not by last update information 'users'
-    was.backend ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
+    was.db ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
 
 It makes helping to reduce the needs for building or managing caches. And the values by setlu() are synchronized between Skitai workers by multiprocessing.Array.
 
@@ -2266,7 +2275,7 @@ Also was.setlu () emits 'model-changed' events. You can handle event if you need
   @app.route ("/update")
   def update (was):
     # update users tabale
-    was.backend ('@mydb').execute (...)
+    was.db ('@mydb').execute (...)
     # update last update time by key string
     was.setlu ('tables.users', something...)
   

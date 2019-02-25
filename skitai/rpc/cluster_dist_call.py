@@ -517,6 +517,12 @@ class Proxy:
 		self.__args = args
 		self.__kargs = kargs		
 	
+	def __enter__ (self):
+		return self
+
+	def __exit__ (self, type, value, tb):
+		pass
+        
 	def __getattr__ (self, name):	  
 		return _Method (self.__request, name)
 	

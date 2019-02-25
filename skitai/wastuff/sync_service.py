@@ -42,6 +42,12 @@ class ProtoCall (cluster_dist_call.ClusterDistCall):
         self.cluster = cluster
         self.result = None        
         self.handle_request (*args, **kargs)       
+    
+    def __enter__ (self):
+        return self
+
+    def __exit__ (self, type, value, tb):
+        pass
             
     def  handle_request (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
         self._mapreduce = mapreduce
@@ -92,10 +98,10 @@ class ProtoCall (cluster_dist_call.ClusterDistCall):
         return self._or_throw ()
             
     def fetch (self, timeout = 10):
-        return self.result.data_or_throw ()
+        return self.result.fetch ()
         
     def one (self, timeout = 10):
-        return self.result.one_or_throw ()    
+        return self.result.one ()    
     
 class DBCall (ProtoCall):
     def __init__ (self, cluster, *args, **kargs):
@@ -158,7 +164,10 @@ class DBCall (ProtoCall):
 
 class SyncService (async_service.AsyncService):
     def _create_rest_call (self, cluster, *args, **kargs):
-        return ProtoCall (cluster, *args, **kargs)
+        if args [2].endswith ("rpc"):
+            return cluster_dist_call.Proxy (ProtoCall, *args, **kargs)
+        else:    
+            return ProtoCall (cluster, *args, **kargs)
     
     def _create_dbo (self, cluster, *args, **kargs):
         return dcluster_dist_call.Proxy (DBCall, cluster, *args, **kargs)

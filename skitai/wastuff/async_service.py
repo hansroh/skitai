@@ -26,7 +26,7 @@ class AsyncService:
         "options", "trace", "upload",
         "get", "delete", "post", "put", "patch",        
         "rpc", "xmlrpc", "jsonrpc", "grpc", "ws", "wss", 
-        "db", "postgresql", "sqlite3", "redis", "mongodb", "backend",        
+        "db", "postgresql", "sqlite3", "redis", "mongodb", "backend",
     ]
     DEFAULT_REQUEST_TYPE = ("application/json", "application/json")
     
@@ -82,14 +82,12 @@ class AsyncService:
             if uri [0] == "@": 
                 fn = "lb"
             else:
-                fn = (command in {"db", "postgresql", "sqlite3", "redis", "mongodb", "backend"} and "db" or "rest")
+                fn = (command in {"db", "backend", "postgresql", "sqlite3", "redis", "mongodb"} and "db" or "rest")
 
         if fn == "map" and not hasattr (self, "threads"):
             raise AttributeError ("Cannot use Map-Reduce with Single Thread")
                 
-        if command == "db":
-            return getattr (self, "_d" + fn) (*args, **karg)            
-        elif command in ("postgresql", "sqlite3", "redis", "mongodb", "backend"):
+        if command in {"db", "backend", "postgresql", "sqlite3", "redis", "mongodb"}:
             return getattr (self, "_a" + fn) ("*" + command, *args, **karg)                    
         else:    
             return getattr (self, "_" + fn) (command, *args, **karg)
