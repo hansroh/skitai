@@ -25,7 +25,7 @@ class Command:
     
 class AsyncService:    
     ASYNCDBA = {
-        "asyncfs", "backend", "db", "postgresql", "sqlite3", "redis", "mongodb"
+        "asyncon", "backend", "db", "postgresql", "sqlite3", "redis", "mongodb"
     }    
     METHODS = {
         "options", "trace", "upload", "get", "delete", "post", "put", "patch",        

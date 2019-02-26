@@ -74,7 +74,7 @@ def documentation3 (was):
 
 @app.route ("/db")
 def db (was):
-    with was.asyncfs ("@sqlite3") as db:
+    with was.asyncon ("@sqlite3") as db:
         req = db.execute ("select * from people")
     return was.API (req.fetch (2, 40))
 
@@ -86,7 +86,7 @@ def dbtx (was):
 
 @app.route ("/dbmap")
 def dbmap (was):
-    with was.asyncfs.map ("@sqlite3") as db:        
+    with was.asyncon.map ("@sqlite3") as db:        
         req = db.execute ("select * from people")
     results = req.dispatch ()
     data = req.fetch (cache = 60)

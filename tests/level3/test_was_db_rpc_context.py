@@ -10,7 +10,7 @@ def test_futures (app, dbpath):
             req = stub.package_releases ('roundup')        
             assert req.fetch () == ['1.6.0']            
     
-        with was.asyncfs ("@sqlite") as db:
+        with was.asyncon ("@sqlite") as db:
             req = db.execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
             result = was.Tasks ([req]) [0]
         return str (result.fetch ())

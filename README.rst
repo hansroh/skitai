@@ -1799,7 +1799,7 @@ Then,
   
   @app.route (...)  
   def query (was):
-    with was.asyncfs ("@mypg") as db:
+    with was.asyncon ("@mypg") as db:
       req = db.excute ("SELECT city, t_high, t_low FROM weather;")
       rows = req.fetch (2)
       
@@ -1821,7 +1821,7 @@ If failed, exception will be raised.
   
   @app.route (...)  
   def query (was):
-    with was.asyncfs ("@mypg") as db:
+    with was.asyncon ("@mypg") as db:
       reqs = [
         db.excute ("INSERT INTO weather (id, 'New York', 9, 25);"),
         db.excute ("SELECT city, t_high, t_low FROM weather order by id desc limit 1 ;")
@@ -1834,10 +1834,21 @@ Execute and wait or use Transaction.
   
   @app.route (...)  
   def query (was):
-    with was.asyncfs ("@mypg") as db:
+    with was.asyncon ("@mypg") as db:
       db.excute ("INSERT INTO weather (id, 'New York', 9, 25);").wait_or_throw ()
       latest = db.excute ("SELECT city, t_high, t_low FROM weather order by id desc limit 1 ;").fetch (2)
       # latest  is New York 
+
+In case database querying, you can use one () method.
+
+.. code:: python
+
+  @app.route (...)  
+  def query (was):
+    with was.asyncon ("@mypg") as db:
+      hispet = db.excute ("SELECT ... FROM pets").one (2)
+ 
+If result record count is not 1 (zero or more than 1), raise HTTP 404 error.
 
  
 Using Database Transaction
@@ -1855,7 +1866,7 @@ Also Skitai provide PostgreSQL connection with connection pool. And SQLite conne
             tx.execute ('INSERT ...')
             tx.execute ('UPDATE ...')
             tx.commit ()
-            latest = tx.fetch ()            
+            latest = tx.fetch ()
 
 With context manager, connection will return back to the pool automatically  else you SHOULD call tx.putback () manually.
 
@@ -1876,10 +1887,10 @@ Then,
   
   @app.route (...)  
   def query (was):
-    with was.asyncfs ("@mymongo") as db:
+    with was.asyncon ("@mymongo") as db:
       documents = db.find ({'city': 'New York'}).fetch (2)
       
-    with was.asyncfs ("@myredis") as db:    
+    with was.asyncon ("@myredis") as db:    
       db.set('foo', 'bar').wait ()
       db.get('foo').fetch () # bar
       
@@ -2040,12 +2051,12 @@ For generating query statements,
   @app.route ("/q/<int:id>)
   def q (was, id):
     statement = stocks.select().where(stocks.c.id == id)
-    with was.asyncfs ("@mydb") as db:
+    with was.asyncon ("@mydb") as db:
       req = db.execute (statement)
       res = req.dispatch ()
     
     # or short hand  
-    res = was.asyncfs ("@mydb").execute (statement).dispatch ()
+    res = was.asyncon ("@mydb").execute (statement).dispatch ()
     res.data
     ...
     
@@ -2146,19 +2157,19 @@ Then you can use setlu () and getlu (),
   @app.route ("/update")
   def update (was):
     # update users tabale
-    was.asyncfs ('@mydb').execute (...)
+    was.asyncon ('@mydb').execute (...)
     # update last update time by key string
     was.setlu ('tables.users')
   
   @app.route ("/query1")
   def query1 (was):
     # determine if use cache or not by last update information 'users'
-    was.asyncfs ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
+    was.asyncon ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
   
   @app.route ("/query2")
   def query2 (was):
     # determine if use cache or not by last update information 'users'
-    was.asyncfs ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
+    was.asyncon ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
 
 It makes helping to reduce the needs for building or managing caches. And the values by setlu() are synchronized between Skitai workers by multiprocessing.Array.
 
@@ -2181,7 +2192,7 @@ Also was.setlu () emits 'model-changed' events. You can handle event if you need
   @app.route ("/update")
   def update (was):
     # update users tabale
-    was.asyncfs ('@mydb').execute (...)
+    was.asyncon ('@mydb').execute (...)
     # update last update time by key string
     was.setlu ('tables.users', something...)
   
