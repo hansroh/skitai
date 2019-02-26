@@ -348,21 +348,20 @@ If you want to change number of threads for handling WSGI app:
   )
 
 
-Run with Single-Thread
-------------------------
+Run with Non-Thread Pool
+-----------------------------------------
 
-If you want to run Skitai with entirely single thread,
+If you want to run Skitai with entirely main thread only,
 
 .. code:: python
   
   skitai.mount ('/', app)
-  skitai.run (
-    threads = 0
-  )
+  skitai.run (threads = 0)
 
 This features is limited by your WSGI container. If you use Atila_ container, you can run with single threading mode by using Atila_'s async streaming response method. But you don't and if you have plan to use Skitai 'was' requests services, you can't single threading mode and you SHOULD run with multi-threading mode.
 
 .. _Atila: https://pypi.python.org/pypi/atila
+
 
 Run with Multiple Workers
 ---------------------------
@@ -386,7 +385,7 @@ Skitai processes are,
   
   $ ps -ef | grep skitai
   
-  ubuntu   25219     1  0 08:25 ?        00:00:00 skitai(myproject/app): master  
+  ubuntu   25219     1    0 08:25 ?        00:00:00 skitai(myproject/app): master  
   ubuntu   25221 25219  1 08:25 ?        00:00:00 skitai(myproject/app): worker #0  
   ubuntu   25222 25219  1 08:25 ?        00:00:00 skitai(myproject/app): worker #1  
   ubuntu   25223 25219  1 08:25 ?        00:00:00 skitai(myproject/app): worker #2
@@ -667,41 +666,9 @@ For automatic starting on system start, add a line to /etc/rc.local file like th
   
   exit 0
 
-Run as Win32 Service
------------------------
-
-*Available on win32 only, New in version 0.26.7*
-
-.. code:: python
-
-  from atila import Atila
-  from rs4.psutil.win32service import ServiceFramework
-  
-  class ServiceConfig (ServiceFramework):
-    _svc_name_ = "SAE_EXAMPLE"
-    _svc_display_name_ = "Skitai Example Service"
-    _svc_app_ = __file__
-    _svc_python_ = r"c:\python34\python.exe"
-  
-  app = Atila (__name__)
-  
-  if __name__ == "__main__":
-    skitai.mount ('/', app)
-    skitai.set_service (ServiceConfig)
-    skitai.run ()
-
-Then at command line,
-
-.. code:: bash
-
-  app.py install # for installing windows service
-  app.py start
-  app.py stop
-  app.py update # when service class is updated
-  app.py remove # removing from windwos service
   
 Adding Backend Server Alias
-----------------------------
+--------------------------------------
 
 Backend server can be defined like this: (alias_type, servers, role = "", source = "", ssl = False).
 
@@ -849,6 +816,7 @@ All e-mails are saved into *varpath* and varpath is not specified default is /va
 
 Run With Config File
 ````````````````````````
+
 *New in version 0.26.17*
 
 Both of SMTP and Taks Scheduler can be run with config file, it may be particulary useful in case you run multiple skitai instances. 
@@ -962,227 +930,6 @@ If max-age is only set to "/", applied to all files. But you can specify it to a
   skitai.set_max_age ('/images', 3600)
   skitai.run ()
 
-Enable Cache File System
-------------------------------
-
-If you make massive HTTP requests, you can cache contents by HTTP headers - Cache-Control and Expires
-
-.. code:: python
-  
-  skitai.enable_cachefs (path = '/var/skitai/cache', memmax = 0, diskmax = 0)
-  skitai.mount ('/', app)
-  skitai.run ()
-
-
-Enabling API Gateway Server
------------------------------
-
-Using Skitai's reverse proxy feature, it can be used as API Gateway Server. All backend API servers can be mounted at gateway server with client authentification and transaction ID logging feature.
-
-.. code:: python
-
-  class Authorizer:
-    def __init__ (self):
-      self.tokens = {
-        "12345678-1234-123456": ("hansroh", ["user", "admin"], 0)
-      }
-      
-    # For Token
-    def handle_token (self, handler, request):
-      username, roles, expires = self.tokens.get (request.token)
-      if expires and expires < time.time ():
-        # remove expired token
-        self.tokens.popitem (request.token)
-        return handler.continue_request (request)
-      handler.continue_request (request, username, roles)
-    
-    # For JWT Claim
-    def handle_claim (self, handler, request):
-      claim = request.claim    
-      expires = claim.get ("expires", 0)
-      if expires and expires < time.time ():
-        return handler.continue_request (request)
-      handler.continue_request (request, claim.get ("user"), claim.get ("roles"))
-    
-  @app.before_mount
-  def before_mount (wac):
-    wac.handler.set_auth_handler (Authorizer ())
-    
-  @app.route ("/")
-  def index (was):
-    return "<h1>Skitai App Engine: API Gateway</h1>"
-  
-  
-  if __name__ == "__main__":
-    import skitai
-    
-    skitai.alias (
-      '@members', 'https', "members.example.com", 
-      role = 'admin', source = '172.30.1.0/24,192.168.1/24'  
-    )
-    skitai.alias (
-      '@photos', skitai.DB_SQLITE3, ["/var/tmp/db1", "/var/tmp/db2"]
-    )
-    skitai.mount ('/', app)
-    skitai.mount ('/members', '@members')
-    skitai.mount ('/photos', '@photos')      
-    skitai.enable_gateway (True, "8fa06210-e109-11e6-934f-001b216d6e71")
-    skitai.run ()
-    
-Gateway use only bearer tokens like OAuth2 and JWT(Json Web Token) for authorization. And token issuance is at your own hands. But JWT creation, 
-
-.. code:: python
-
-  from aquests.lib import jwt
-  
-  secret_key = b"8fa06210-e109-11e6-934f-001b216d6e71"
-  token = jwt.gen_token (secret_key, {'user': 'Hans Roh', 'roles': ['user']}, "HS256")
-
-Also Skitai create API Transaction ID for each API call, and this will eb explained in Skitai 'was' Service chapter.
-
-
-Using Database Engine For Verifying Token
-```````````````````````````````````````````
-
-*New in version 0.24.8*
-
-If you are not familar with Skitai 'was' request services, it would be better to skip and read later.
-
-You can query for getting user information to database engines asynchronously. Here's example for MongDB.
-
-.. code:: python
-  
-  from skitai import was
-  
-  class Authorizer:  
-    def handle_user (self, response, handler, request):
-      username = response.data ['username']
-      roles = response.data ['roles']
-      expires = response.data ['expires']
-      
-      if expires and expires < time.time ():
-        was.mongodb (
-          "@my-mongodb", "mydb", callback = lambda x: None,
-        ).delete ('tokens', {"token": request.token})
-        handler.continue_request (request)
-      else: 
-        handler.continue_request (request, username, roles)
-          
-    def handle_token (self, handler, request):
-      was.mongodb (
-        "@my-mongodb", "mydb", callback = (self.handle_user, (handler, request))
-      ).findone ('tokens', {"token": request.token})
-
-
-Inter-Processes State Sharing
--------------------------------------------
-
-Skitai can run with multiple processes (a.k workers), It is possible matters synchronizing state between workers.
-
-Like was.setlu () or getlu (), was provide setgs (), getgs ().
-
-Most important thing is global state keys SHUOLD be defined before running skitai. And argument should be integer value.
-
-.. code:: python
-
-  skitai.defgs ("cluster.num-nodes", "region.somethig", ...)  
-  ...
-  
-  skitai.run ()
-  
-Then you cna use these,
-
-.. code:: python
-  
-  @app.route ("/nodes", method = ["POST", "DELETE"])
-  def nodes (was, **nodinfos):
-  	...
-  	was.setgs ("cluster.num-nodes", was.getgs ("cluster.num-nodes") + 1, **nodeinfos)  	
-
-As a result,
-
-- cluster.num-nodes state value has been increased
-- "cluster.num-nodes" and  \*\*nodeinfos are broadcated to mounted all *Atila* apps.
-
-A app has interest for this,
-
-.. code:: python
-
-  @app.on_broadcast ("cluster.num-nodes")
-  def num_nodes_changed (num_nodes, **nodeinfos):
-    ...
-
-But this broadcasting is just within current workers. 
-
-All workers has interested in this event, You may add watching routine at app.maintain.
-
-.. code:: python
-  
-  app.config.maintain_interval = 60
-  app.store ["num_nodes"] = 0
-  
-  @app.maintain
-  def maintain_num_nodes (was, now):
-  	...
-  	num_nodes = was.getgs ("cluster.num-nodes")
-  	if app.store ["num_nodes"] != num_nodes:
-  	  app.store ["num_nodes"] = num_nodes
-  	  app.broadcast ("cluster:num_nodes")
-
-
-
-Request Logging
------------------
-
-Turn Request Logging Off For Specific Path
-`````````````````````````````````````````````
-
-For turn off request log for specific path, 
-
-.. code:: python
-
-  # turned off starting with
-  skitai.log_off ('/static/')
-  
-  # turned off ending with
-  skitai.log_off ('*.css')
-  
-  # you can multiple args
-  skitai.log_off ('*.css', '/static/images/', '/static/js/')
-
-
-Log Format
-````````````
-
-Blank seperated items of log line are,
-
-- log date
-- log time
-- client ip or proxy ip
-
-- request host: default '-' if not available
-- request methods
-- request uri
-- request version
-- request body size
-
-- reply code
-- reply body size
-
-- global transaction ID: for backtracing request if multiple backends related
-- local transaction ID: for backtracing request if multiple backends related
-- username when HTTP auth: default '-', wrapped by double quotations if value available
-- bearer token when HTTP bearer auth
-
-- referer: default '-', wrapped by double quotations if value available
-- user agent: default '-', wrapped by double quotations if value available
-- x-forwared-for, real client ip before through proxy
-
-- Skitai engine's worker ID like M(Master), W0, W1 (Worker #0, #1,... Posix only)
-- number of active connections when logged, these connections include not only clients but your backend/upstream servers
-- duration ms for request handling
-- duration ms for transfering response data
-
 
 Testing Mounted App
 ``````````````````````````````````````
@@ -1258,6 +1005,115 @@ This test client will not start Skitai server but access to port 5000 so you sta
   python3 app.py
 
 
+Inter-Processes State Sharing
+-------------------------------------------
+
+Skitai can run with multiple processes (a.k workers), It is possible matters synchronizing state between workers.
+
+Like was.setlu () or getlu (), was provide setgs (), getgs ().
+
+Most important thing is global state keys SHUOLD be defined before running skitai. And argument should be integer value.
+
+.. code:: python
+
+  skitai.defgs ("cluster.num-nodes", "region.somethig", ...)  
+  ...
+  
+  skitai.run ()
+  
+Then you cna use these,
+
+.. code:: python
+  
+  @app.route ("/nodes", method = ["POST", "DELETE"])
+  def nodes (was, **nodinfos):
+  	...
+  	was.setgs ("cluster.num-nodes", was.getgs ("cluster.num-nodes") + 1, **nodeinfos)  	
+
+As a result,
+
+- cluster.num-nodes state value has been increased
+- "cluster.num-nodes" and  \*\*nodeinfos are broadcated to mounted all *Atila* apps.
+
+A app has interest for this,
+
+.. code:: python
+
+  @app.on_broadcast ("cluster.num-nodes")
+  def num_nodes_changed (num_nodes, **nodeinfos):
+    ...
+
+But this broadcasting is just within current workers. 
+
+All workers has interested in this event, You may add watching routine at app.maintain.
+
+.. code:: python
+  
+  app.config.maintain_interval = 60
+  app.store ["num_nodes"] = 0
+  
+  @app.maintain
+  def maintain_num_nodes (was, now):
+  	...
+  	num_nodes = was.getgs ("cluster.num-nodes")
+  	if app.store ["num_nodes"] != num_nodes:
+  	  app.store ["num_nodes"] = num_nodes
+  	  app.broadcast ("cluster:num_nodes")
+
+
+Request Logging
+-----------------
+
+Turn Request Logging Off For Specific Path
+`````````````````````````````````````````````
+
+For turn off request log for specific path, 
+
+.. code:: python
+
+  # turned off starting with
+  skitai.log_off ('/static/')
+  
+  # turned off ending with
+  skitai.log_off ('*.css')
+  
+  # you can multiple args
+  skitai.log_off ('*.css', '/static/images/', '/static/js/')
+
+
+Log Format
+````````````
+
+Blank seperated items of log line are,
+
+- log date
+- log time
+- client ip or proxy ip
+
+- request host: default '-' if not available
+- request methods
+- request uri
+- request version
+- request body size
+
+- reply code
+- reply body size
+
+- global transaction ID: for backtracing request if multiple backends related
+- local transaction ID: for backtracing request if multiple backends related
+- username when HTTP auth: default '-', wrapped by double quotations if value available
+- bearer token when HTTP bearer auth
+
+- referer: default '-', wrapped by double quotations if value available
+- user agent: default '-', wrapped by double quotations if value available
+- x-forwared-for, real client ip before through proxy
+
+- Skitai engine's worker ID like M(Master), W0, W1 (Worker #0, #1,... Posix only)
+- number of active connections when logged, these connections include not only clients but your backend/upstream servers
+- duration ms for request handling
+- duration ms for transfering response data
+
+
 Skitai with Nginx
 ---------------------------
 
@@ -1300,6 +1156,91 @@ Here's some helpful sample works with Nginx.
   }
 
 
+Enabling API Gateway Server (Experimental)
+-------------------------------------------------------------
+
+Using Skitai's reverse proxy feature, it can be used as API Gateway Server. All backend API servers can be mounted at gateway server with client authentification and transaction ID logging feature.
+
+.. code:: python
+  
+  def handle_claim (request_handler, request):
+    claim = request.claim    
+    expires = claim.get ("expires", 0)
+    if expires and expires < time.time ():
+      return request_handler.continue_request (request)
+    request_handler.continue_request (request, claim.get ("user"), claim.get ("roles"))
+    
+  @app.before_mount
+  def before_mount (wac):
+    wac.handler.set_auth_handler (handle_claim)
+    
+  @app.route ("/")
+  def index (was):
+    return "<h1>Skitai App Engine: API Gateway</h1>"
+  
+  if __name__ == "__main__":
+    import skitai
+    
+    skitai.alias (
+      '@members', 'https', "members.example.com", 
+      role = 'admin', source = '172.30.1.0/24,192.168.1/24'  
+    )
+    skitai.alias (
+      '@photos', skitai.DB_SQLITE3, ["/var/tmp/db1", "/var/tmp/db2"]
+    )
+    skitai.mount ('/', app)
+    skitai.mount ('/members', '@members')
+    skitai.mount ('/photos', '@photos')      
+    skitai.enable_gateway (True, "8fa06210-e109-11e6-934f-001b216d6e71")
+    skitai.run ()
+    
+Gateway use only bearer tokens like OAuth2 and JWT(Json Web Token) for authorization. And token issuance is at your own hands. But JWT creation, 
+
+.. code:: python
+
+  from rs4 import jwt
+  
+  secret_key = b"8fa06210-e109-11e6-934f-001b216d6e71"
+  token = jwt.gen_token (secret_key, {'user': 'Hans Roh', 'roles': ['user']}, "HS256")
+
+Also Skitai create API Transaction ID for each API call, and this will eb explained in Skitai 'was' Service chapter.
+
+
+
+Run as Win32 Service (Deprecated)
+--------------------------------------------------
+
+*Available on win32 only, New in version 0.26.7*
+
+.. code:: python
+
+  from atila import Atila
+  from rs4.psutil.win32service import ServiceFramework
+  
+  class ServiceConfig (ServiceFramework):
+    _svc_name_ = "SAE_EXAMPLE"
+    _svc_display_name_ = "Skitai Example Service"
+    _svc_app_ = __file__
+    _svc_python_ = r"c:\python34\python.exe"
+  
+  app = Atila (__name__)
+  
+  if __name__ == "__main__":
+    skitai.mount ('/', app)
+    skitai.set_service (ServiceConfig)
+    skitai.run ()
+
+Then at command line,
+
+.. code:: bash
+
+  app.py install # for installing windows service
+  app.py start
+  app.py stop
+  app.py update # when service class is updated
+  app.py remove # removing from windwos service
+
+
 Self-Descriptive App
 ---------------------
 
@@ -1311,6 +1252,7 @@ Skitai's one of philasophy is self-descriptive app. This means that you once mak
   # if your app has dependencies
   pip3 install -Ur requirements.txt
   python3 app.py
+
 
 Skitai App Examples
 ---------------------
@@ -1866,10 +1808,13 @@ Also Skitai provide PostgreSQL connection with connection pool. And SQLite conne
             tx.execute ('INSERT ...')
             tx.execute ('UPDATE ...')
             tx.commit ()            
+            tx.execute ('SELECT ...')
+            tx.fetch () # equivlant to fetchall () but list of dict type
 
 With context manager, connection will return back to the pool automatically  else you SHOULD call tx.putback () manually.
 
-was.transaction (@alias) returns SQLPhile.pg2.open2 () and SQLPhile.db3.open ().
+In transaction mode, standard DBAPI - rollback (), fetchall (), fetchone () and fetchmany () are also possible but caching is not.
+
 
 NoSQL Querying
 ------------------------------------

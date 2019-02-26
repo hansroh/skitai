@@ -18,8 +18,8 @@ class Handler:
 			self.secret_key = self.secret_key.encode ("utf8")
 		self.auth_handler = None
 		
-	def set_auth_handler (self, storage):
-		self.auth_handler = storage
+	def set_auth_handler (self, handler):
+		self.auth_handler = handler
 	
 	def set_error (self, request, error = "", desciption = ""):		
 		if error:
@@ -41,29 +41,21 @@ class Handler:
 			self.set_error (request)
 			return request.response.error (401)
 		
-		token = authorization [7:]
-		if token.find (".") != -1: # JWT
-			if not self.secret_key:
-				self.set_error (request, "secret_key_error", "Secret key error")
-				return request.response.error (500)
-			claim = jwt.get_claim (self.secret_key, token)
-			if not claim:
-				self.set_error (request, "invalid_token", "The access token invalid")
-				return request.response.error (401)			
-			request.token = token.split (".")[1]
-			if self.auth_handler and hasattr (self.auth_handler, "handle_claim"):					
-				request.claim = claim
-				self.auth_handler.handle_claim (self, request)					
-			else:
-				self.continue_request (request, claim.get ("user"), claim.get ("roles"))
-			
+		token = authorization [7:]	
+		if not self.secret_key:
+			self.set_error (request, "secret_key_error", "Secret key error")
+			return request.response.error (500)
+		claim = jwt.get_claim (self.secret_key, token)
+		if not claim:
+			self.set_error (request, "invalid_token", "The access token invalid")
+			return request.response.error (401)			
+		request.token = token.split (".")[1]
+		if self.auth_handler:					
+			request.claim = claim
+			self.auth_handler (self, request)					
 		else:
-			if self.auth_handler is None or not hasattr (self.auth_handler, "handle_token"):
-				self.set_error (request, "token_handler_error", "Token handler error")
-				return request.response.error (500)			
-			request.token = token
-			self.auth_handler.handle_token (self, request)
-	
+			self.continue_request (request, claim.get ("user"), claim.get ("roles"))
+		
 	def continue_request (self, request, username = None, roles = None):
 		if self.authenticate:			
 			request.user = AuthorizedUser (username, roles, self.realm)
