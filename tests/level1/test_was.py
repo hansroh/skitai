@@ -140,7 +140,6 @@ def test_was (wasc, app, client):
     assert was.csrf_verify ()
     assert was.session [was.CSRF_NAME] is None
     
-    assert isinstance (was.sql, SQLMap)
     with pytest.raises(AttributeError):
         was.django
 

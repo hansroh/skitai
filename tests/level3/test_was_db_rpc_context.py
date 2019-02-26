@@ -1,15 +1,16 @@
 import skitai
 import confutil
 import pprint
-from skitai.rpc import cluster_dist_call
+from xmlrpc.client import ServerProxy
 
 def test_futures (app, dbpath):
     @app.route ("/")
     def index (was):
-        with was.xmlrpc ("@pypi") as stub:
-            assert isinstance (stub, cluster_dist_call.Proxy)
-        
-        with was.db ("@sqlite") as db:            
+        with was.xmlrpc ("@pypi/pypi") as stub:
+            req = stub.package_releases ('roundup')        
+            assert req.fetch () == ['1.6.0']            
+    
+        with was.asyncia ("@sqlite") as db:
             req = db.execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
             result = was.Tasks ([req]) [0]
         return str (result.fetch ())

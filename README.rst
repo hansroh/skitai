@@ -13,7 +13,7 @@ Install,
 
 .. code:: bash
 
-  pip3 install skitai
+  pip3 install -U skitai rs4 aquests sqlphile
 
 Create and mount your app,
   

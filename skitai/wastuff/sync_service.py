@@ -9,7 +9,28 @@ from rs4.cbutil import tuple_cb
 import random
 from urllib.parse import urlparse, urlunparse       
 from skitai import exceptions
- 
+import xmlrpc.client
+
+
+class RPCResponse:
+    def __init__ (self, val):
+        self.data = val
+
+class XMLRPCServerProxy (xmlrpc.client.ServerProxy):
+     def _ServerProxy__request (self, methodname, params):
+        response = xmlrpc.client.ServerProxy._ServerProxy__request (self, methodname, params)
+        return Result (3, RPCResponse (response))
+
+try:
+    import jsonrpclib
+except IMportError:
+    pass
+else:
+    class JSONRPCServerProxy (jsonrpclib.ServerProxy):
+         def _ServerProxy__request (self, methodname, params):
+            response = xjsonrpclib.ServerProxy._ServerProxy__request (self, methodname, params)
+            return Result (3, RPCResponse (response))
+     
 class Result:
     def __init__ (self, status, response = None):
         self.status = status
@@ -20,7 +41,9 @@ class Result:
             
     @property
     def data (self):
-        if hasattr (self.__response, "status_code"):                
+        if isinstance (self.__response, RPCResponse):
+            return self.__response.data        
+        elif hasattr (self.__response, "status_code"):                
             ct = self.__response.headers.get ("content-type", "")
             if ct:
                 if ct.startswith ("application/json"):
@@ -43,22 +66,31 @@ class ProtoCall (cluster_dist_call.ClusterDistCall):
         self.result = None        
         self.handle_request (*args, **kargs)       
     
-    def __enter__ (self):
-        return self
-
-    def __exit__ (self, type, value, tb):
-        pass
-            
-    def  handle_request (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
-        self._mapreduce = mapreduce
+    def get_endpoint (self, uri):
         if self.cluster:
             endpoints = self.cluster.get_endpoints ()
             endpoint = random.choice (endpoints)
         else:
             parts = urlparse (uri)
             endpoint = "{}://{}".format (parts [0], parts [1])
-            uri = urlunparse (("", "") + parts [2:]) 
-                     
+            uri = urlunparse (("", "") + parts [2:])
+        return endpoint, uri     
+            
+    def create_stub (self):
+        endpoint, uri = self.get_endpoint (self.uri)
+        with webtest.Target (endpoint) as cli:
+            if self.reqtype == "jsonrpc":
+                proxy_class = JSONRPCServerProxy
+            else:
+                proxy_class = XMLRPCServerProxy
+            return getattr (cli, self.reqtype) (endpoint, proxy_class)
+                
+    def  handle_request (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
+        self._mapreduce = mapreduce
+        self.uri = uri
+        self.reqtype = reqtype
+        
+        endpoint, uri = self.get_endpoint (uri)                             
         with webtest.Target (endpoint) as cli:
             req_func = getattr (cli, reqtype)
             try:
@@ -164,8 +196,8 @@ class DBCall (ProtoCall):
 
 class SyncService (async_service.AsyncService):
     def _create_rest_call (self, cluster, *args, **kargs):
-        if args [2].endswith ("rpc"):
-            return cluster_dist_call.Proxy (ProtoCall, *args, **kargs)
+        if args [2].endswith ("rpc"):            
+            return ProtoCall (cluster, *args, **kargs).create_stub ()
         else:    
             return ProtoCall (cluster, *args, **kargs)
     

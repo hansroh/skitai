@@ -3,6 +3,7 @@ import threading
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from ..rpc import cluster_manager, cluster_dist_call
 from ..dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
+from sqlphile import Template
 
 def is_main_thread ():    
     return isinstance (threading.currentThread (), threading._MainThread)
@@ -22,14 +23,19 @@ class Command:
         return self.callback (self.name + ".map", args, kargs)
 
 class AsyncService:    
-    METHODS = [
-        "options", "trace", "upload",
-        "get", "delete", "post", "put", "patch",        
-        "rpc", "xmlrpc", "jsonrpc", "grpc", "ws", "wss", 
-        "db", "postgresql", "sqlite3", "redis", "mongodb", "backend",
-    ]
+    ASYNCDBA = {
+        "asyncia", "backend", "db", "postgresql", "sqlite3", "redis", "mongodb"
+    }    
+    METHODS = {
+        "options", "trace", "upload", "get", "delete", "post", "put", "patch",        
+        "rpc", "xmlrpc", "jsonrpc", "grpc", 
+        "ws", "wss"
+    }.union (ASYNCDBA)
     DEFAULT_REQUEST_TYPE = ("application/json", "application/json")
-    
+    DEFAULT_SQL_TEMPLATE_ENGINES = {
+        DB_PGSQL: Template (DB_PGSQL),
+        DB_SQLITE3: Template (DB_SQLITE3),
+    }
     def __init__ (self, enable_requests = True):
         if enable_requests:
             for method in self.METHODS:
@@ -66,10 +72,7 @@ class AsyncService:
         except (KeyError, AttributeError):
             return self.clusters_for_distcall [clustername], "/" + uri
         
-    def _call (self, method, args, karg):
-        # was.db,         was.get,             was.post,            was.put, ...
-        # was.db.lb,     was.get.lb,        was.post.lb,    was.put.lb, ...
-        # was.db.map,    was.get.map,    was.post.map,    was.put.map, ...
+    def _call (self, method, args, karg):        
         uri = None
         if args:        uri = args [0]
         elif karg:    uri = karg.get ("uri", "")
@@ -82,12 +85,12 @@ class AsyncService:
             if uri [0] == "@": 
                 fn = "lb"
             else:
-                fn = (command in {"db", "backend", "postgresql", "sqlite3", "redis", "mongodb"} and "db" or "rest")
+                fn = (command in self.ASYNCDBA and "db" or "rest")
 
         if fn == "map" and not hasattr (self, "threads"):
             raise AttributeError ("Cannot use Map-Reduce with Single Thread")
                 
-        if command in {"db", "backend", "postgresql", "sqlite3", "redis", "mongodb"}:
+        if command in self.ASYNCDBA:
             return getattr (self, "_a" + fn) ("*" + command, *args, **karg)                    
         else:    
             return getattr (self, "_" + fn) (command, *args, **karg)
@@ -108,12 +111,13 @@ class AsyncService:
     def _map (self, *args, **karg):
         return self._crest (True, *args, **karg)
     
-    def _bind_sqlphile (self, dbo):
+    def _bind_sqlphile (self, dbo, dbtype):
         try:
-            app_sqlphile = self.sql
+            template_engine = self.app.get_sql_template () # Atila has
         except AttributeError:
-            return dbo    
-        return app_sqlphile.new (dbo)
+            template_engine = None
+        template_engine = template_engine or self.DEFAULT_SQL_TEMPLATE_ENGINES [dbtype]
+        return template_engine.new (dbo)
     
     def _create_dbo (self, cluster, *args, **kargs):
         return cluster.Server (*args, **kargs)
@@ -121,14 +125,14 @@ class AsyncService:
     def _ddb (self, server, dbname = "", auth = None, dbtype = DB_PGSQL, meta = None, use_cache = True, filter = None, callback = None, timeout = 10, caller = None):
         dbo = self._create_dbo (self.clusters_for_distcall ["__dbpool__"], server, dbname, auth, dbtype, meta, use_cache, False, filter, callback, timeout, caller)
         if dbtype in (DB_PGSQL, DB_SQLITE3):
-            return self._bind_sqlphile (dbo)
+            return self._bind_sqlphile (dbo, dbtype)
         return dbo
     
     def _cddb (self, mapreduce = False, clustername = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10, caller = None):
         cluster = self.__detect_cluster (clustername) [0]
         dbo = self._create_dbo (cluster, None, None, None, None, meta, use_cache, mapreduce, filter, callback, timeout, caller)
         if cluster.cluster.dbtype in (DB_PGSQL, DB_SQLITE3):
-            return self._bind_sqlphile (dbo)
+            return self._bind_sqlphile (dbo, cluster.cluster.dbtype)
         return dbo    
     
     def _dlb (self, *args, **karg):
