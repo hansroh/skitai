@@ -1614,13 +1614,24 @@ It needn't return message, but you can send directly multiple messages through w
     request.environ ["websocket"].send ("I said acknowledge")
 
 
-
 Skitai 'was' Services
 =======================
 
-'was' means (Skitai) *WSGI Application Support*. 
+Skitai handle request connection with asynchronously, also has threads and porcess ass workers. Then it works fine with synchronous apps and libraries. you can use standard database client libraries or requests modeul for API calls. 
 
-WSGI container like Flask, need to import 'was':
+Also Skitai provide asynchronous request methods for these operations for efficient.
+
+Skitai 'was' means *WSGI Application Service*.
+
+'was' object provides,
+
+- Concurrent requests (like asyncio or gevent) to your API/Backend and Database engine servers
+- Connection pooling
+- Result caching
+
+These features are just optional, but these might help increase availability of your servers. 
+
+For using 'was', you need to import 'was':
 
 .. code:: python
 
@@ -1629,66 +1640,11 @@ WSGI container like Flask, need to import 'was':
   @app.route ("/")
   def hello ():
     was.get ("http://...")
-    ...    
 
-But Atila WSGI container integrated with Skitai, use just like Python 'self'.
-
-It will be easy to understand think like that:
-
-- Skitai is Python class instance
-- 'was' is 'self' which first argument of instance method
-- Your app functions are methods of Skitai instance
-
-.. code:: python
-  
-  @app.route ("/")
-  def hello (was, name = "Hans Roh"):
-    was.get ("http://...")
-    ...
-
-Simply just remember, if you use WSGI container like Flask, Bottle, ... - NOT Atila - and want to use Skitai asynchronous services, you should import 'was'. Usage is exactly same. But for my convinient, I wrote example codes Atila version mostly.
-
-
-Async Communication For Backends To Backends
-------------------------------------------------------
-
-Skitai works fine with synchronous apps and libraries. you can use standard database client libraries or requests modeul for API calls. 
-
-
-Also provides optional asynchronous and concurrent requests to your backends within request thread.
-
-It implemented with pure python library like asyncore, select etc and has own event loop (asyncore.loop), NOT use gevent, greeenlet, asyncio... It means Skitai could not use with these stuff.
-
-'was' is making requests to HTTP, REST, RPC and several database engines. And this is mostly useful for fast Server Side Rendering with outside resources.
-
-Recently Javascript provides good asynchronous communicating tools like AJAX or axios.js for **frontends - backends**. Like this, 'was' provides **backends - backends** communicating tool.
-
-The modules is related theses features from aquests_ and you could read aquests_ usage first.
-
-I think it just fine explains some differences with aquests.
-
-First of all, usage is somewhat different because aquests is used within threadings on skitai. Skitai takes some threading advantages and compromise with them for avoiding callback heaven.
 
 API Calling
 `````````````````````````````
 
-At aquests,
-
-.. code:: python
-
-  import aquests
-  
-  def display_result (response):
-    print (reponse.data)
-  
-  aquests.configure (callback = display_result, timeout = 3)
-    
-  aquests.get (url)
-  aquests.post (url, {"user": "Hans Roh", "comment": "Hello"})
-  aquests.fetchall ()
-
-At Skitai,
-  
 .. code:: python
   
   @app.route (...)
@@ -1699,80 +1655,103 @@ At Skitai,
     response2 = req2.dispatch (timeout = 3)    
     return [respones1.data, respones2.data]
 
-The significant differnce is calling dispatch (timeout) for getting response data.
+Note that req1 and req2 will be executed concurrently.
 
-Database Querying
+dispath (timeout = [sec], cache = [sec]) returns response object.
+
+.. code:: python
+
+  req = was.get (url)
+  rsponse = req.dispath (5) # timoute
+  response.status # skitai.STA_NORMAL
+  response.status_code # 200
+  response.reason # OK
+  response.get_header ("Content-Type") # application/json
+  response.data # {"result": "ok"}
+  
+response.status is one of belows:
+
+- STA_REQFAIL
+- STA_UNSENT
+- STA_TIMEOUT
+- STA_NETERR
+- STA_NORMAL
+
+Then you SHOULD check before handle result data.
+
+dispath_or_throw () will raise exception immediatly. 
+
+.. code:: python
+
+  rsponse = req.dispath_or_throw (5) # timoute
+
+If you want more short hand to result data,
+
+.. code:: python
+
+  result = req.fetch (5) # timoute and {"result": "ok"}
+
+if status !=  STA_NORMAL or status_code >= 300, Error will be raised. 
+
+All supoorted request methods are:
+
+- Web/API related
+
+  - was.get ()
+  - was.delete ()
+  - was.post ()
+  - was.put ()
+  - was.patch ()
+  - was.upload ()
+  - was.options ()
+
+Above request type is configured to json. This mean request content type and response accept type is all 'application/json'.
+
+If you want to change default value, use headers paramter for each request
+
+.. code:: python
+
+  data = {"Title": "...", "Content": "..."}
+  headers = [
+    ("Content-Type", "application/x-www-form-urlencoded"), 
+    ("Accept", "text/xml")
+  ]
+  req = was.post ("@delune/documents", data, headers = headers)
+
+
+Tasks
 `````````````````````````````
 
-PostgreSQL query at aquests,
-
-.. code:: python
-
-  import aquests
-  
-  def display_result (response):
-    for row in response.data:
-      row.city, row.t_high, row.t_low
-  
-  aquests.configure (callback = display_result, timeout = 3)
-  
-  dbo = aquests.postgresql ("127.0.0.1:5432", "mydb")
-  dbo.excute ("SELECT city, t_high, t_low FROM weather;")
-  aquests.fetchall ()
-
-At Skitai,
+For more pretty code styling, use Tasks.
 
 .. code:: python
   
-  @app.route (...)  
-  def query (was):
-    dbo = was.postgresql ("127.0.0.1:5432", "mydb")
-    s = dbo.excute ("SELECT city, t_high, t_low FROM weather;")
-    
-    response = s.dispatch (2)
-    for row in response.data:
-      row.city, row.t_high, row.t_low
+  @app.route (...)
+  def request (was):
+    reqs = [
+    	was.get (url),
+    	was.post (url, {"user": "Hans Roh", "comment": "Hello"})
+    ]
+    return [ rs.fetch () rs in was.Tasks (reqs, timeout = 3) ]
 
 
-If you needn't returned data and just wait for completing query,
-
-.. code:: python
-
-    dbo = was.postgresql ("127.0.0.1:5432", "mydb")
-    req = dbo.execute ("INSERT INTO CITIES VALUES ('New York');")
-    req.wait (2) 
-
-If failed, exception will be raised.
-
- 
-Using Database Transaction
-`````````````````````````````````````
-
-If you want use asynchronous database transaction, you can use asynchronous drivers.
-
-Also Skitai provide PostgreSQL connection with pool. And SQLite connection without pool.
+RPC Requesting
+````````````````````````
 
 .. code:: python
-    
-    app.alias ("@postgres", skitai.DB_PGSQL, "user:password@localhost/db")
-    
-    @app.route ("/")
-    def index (was):
-        with was.transaction ("@postgres") as trx:
-            trx.execute ('INSERT ...')
-            trx.execute ('UPDATE ...')
-            trx.commit () 
-        return str (d)
+  
+  @app.route (...)
+  def request (was):
+    with was.xmlrpc ("@myrpc") as stub:
+      req = stub.get_version ("skitai")
+      return req.fetch () # ["0.29"]      
+      
+      # or single line      
+      return stub.get_version ("skitai").fetch ()    
 
-With context manager, conn return back to pool automatically  else you SHOULD call trx.putback () manually.
+was.jsonrpc and was.grpc (Experimental) are also possible.
 
-was.transaction (@alias) returns SQLPhile.pg2.open2 () and SQLPhile.db3.open ().
-        
-        
-gRCP Calling
-```````````````````
-
-For another gRPC example, calling to tfserver_ for predicting something with tensorflow model. 
+For gRPC example, calling to tfserver_ for predicting something with tensorflow model. 
   
 .. code:: python
 
@@ -1801,83 +1780,110 @@ Here're addtional methods and properties above response obkect compared with aqu
 .. _tfserver: https://pypi.python.org/pypi/tfserver
 
 
-Methods List
-````````````````
+RDBMS Querying
+````````````````````
 
-All supoorted request methods are:
+*Important Note:* Async mode you cannot use transaction, and auto commit will be applied. 
 
-- Web/API related
-
-  - was.get ()
-  - was.delete ()
-  - was.post ()
-  - was.put ()
-  - was.patch ()
-  - was.upload ()
-  - was.options ()
-
-Above request type is configured to json. This mean request content type and response accept type is all 'application/json'.
-
-If you want to change default value,
-
-1. set app.config.default_request_type = (request content type, accept content type)
+PostgreSQL query at aquests, First uou alias your database before running Skitai.
 
 .. code:: python
 
-  app.config.default_request_type = ("text/xml", "*/*")
+  skitai.alias ("@mypg", skitai.DB_PGSQL, "user:pass@localhost/mydb")
+  skitai.alias ("@mylite", skitai.DB_SQLITE3, "./sqlite3.db")
+  skitai.run ()
   
-2. use headers paramter for each request:
+Then, 
+  
+.. code:: python
+  
+  @app.route (...)  
+  def query (was):
+    with was.asyncfs ("@mypg") as db:
+      req = db.excute ("SELECT city, t_high, t_low FROM weather;")
+      rows = req.fetch (2)
+      
+    for row in rows:
+      row.city, row.t_high, row.t_low
+
+
+If you needn't returned data and just wait for completing query,
 
 .. code:: python
 
-  req = was.get ("@delune/documents/11", headers = [("Accept", "text/xml")])
+    db.execute ("INSERT INTO CITIES VALUES ('New York');").wait_or_throw (2)
 
-  data = {"Title": "...", "Content": "..."}
-  headers = [
-    ("Content-Type", "application/x-www-form-urlencoded"), 
-    ("Accept", "text/xml")
-  ]
-  req = was.post ("@delune/documents", data, headers = headers)  
+If failed, exception will be raised.
 
-- RPCs
+*CAUTION*: DO NOT think, your statements will be executed ordered sequencailly.
+
+.. code:: python
   
-  - was.rpc (): XMLRPC
-  - was.grpc (): gRPC
+  @app.route (...)  
+  def query (was):
+    with was.asyncfs ("@mypg") as db:
+      reqs = [
+        db.excute ("INSERT INTO weather (id, 'New York', 9, 25);"),
+        db.excute ("SELECT city, t_high, t_low FROM weather order by id desc limit 1 ;")
+      ]
+      Tasks (reqs) [1].fetch () # No guarantee it is New York 
+      
+Execute and wait or use Transaction.
 
-- Database Engines
+.. code:: python
   
-  - was.postgresql ()
-  - was.mongodb ()
-  - was.redis ()
-  - was.sqlite3 ()
-  - was.db (): if you make alias for your database, you needn't specify db type, just use db ()
-  
-- Websocket
-  
-  - was.ws ()
-  - was.wss ()
+  @app.route (...)  
+  def query (was):
+    with was.asyncfs ("@mypg") as db:
+      db.excute ("INSERT INTO weather (id, 'New York', 9, 25);").wait_or_throw ()
+      latest = db.excute ("SELECT city, t_high, t_low FROM weather order by id desc limit 1 ;").fetch (2)
+      # latest  is New York 
 
-
-Usage At Single Threaded Environment
+ 
+Using Database Transaction
 `````````````````````````````````````
 
-If you run Skitai with single threaded mode, you can't use req.wait(), req.dispatch(). Instead you should use callback for this, and Skitai provide async response.
+If you want use asynchronous database transaction, you can use asynchronous drivers.
+
+Also Skitai provide PostgreSQL connection with connection pool. And SQLite connection without pool.
 
 .. code:: python
+    
+    @app.route ("/")
+    def index (was):
+        with was.transaction ("@mypg") as tx:
+            tx.execute ('INSERT ...')
+            tx.execute ('UPDATE ...')
+            tx.commit ()
+            tx.execute ('SELECT ...')
+            latest = tx.fetch ()            
+
+With context manager, connection will return back to the pool automatically  else you SHOULD call tx.putback () manually.
+
+was.transaction (@alias) returns SQLPhile.pg2.open2 () and SQLPhile.db3.open ().
+
+NoSQL Querying
+````````````````````
+
+.. code:: python
+
+  skitai.alias ("@mymongo", skitai.DB_MONGODB, "localhost/mycollection")
+  skitai.alias ("@mymongo", skitai.DB_REDIS, "localhost/0")
+  skitai.run ()
   
-  def promise_handler (promise, response):
-    promise.settle (response.content)
-        
-  @app.route ("/index")
-  def promise_example (was):
-    promise = was.promise (promise_handler)    
-    promise.get (None, "https://pypi.python.org/pypi/skitai")    
-    return promise
-
-Unfortunately this feature is available on Atila WSGI container only (It means Flask or other WSGI container users can only use Skitai with multi-threading mode). 
-
-For more detail usage will be explained 'Atila Async Streaming Response' chapter and you could skip now.
-
+Then, 
+  
+.. code:: python
+  
+  @app.route (...)  
+  def query (was):
+    with was.asyncfs ("@mymongo") as db:
+      documents = db.find ({'city': 'New York'}).fetch (2)
+      
+    with was.asyncfs ("@myredis") as db:    
+      db.set('foo', 'bar').wait ()
+      db.get('foo').fetch () # bar
+      
 
 Load-Balancing
 ````````````````
@@ -1892,7 +1898,7 @@ Then let's request XMLRPC result to one of mysearch members.
 
   @app.route ("/search")
   def search (was, keyword = "Mozart"):
-    with was.rpc.lb ("@mysearch/rpc2") as stub:
+    with was.jsonrpc.lb ("@mysearch/rpc2") as stub:
       s = stub.search (keyword)
       results = s.dispatch (5)
       return result.data
@@ -1911,8 +1917,7 @@ Then let's request XMLRPC result to one of mysearch members.
     skitia.mount ("/", app)
     skitai.run ()
   
-  
-It just small change from was.rpc () to was.rpc.lb ()
+It just small change from was.jsonrpc () to was.jsonrpc.lb ()
 
 *Note:* If @mysearch member is only one, was.get.lb ("@mydb") is equal to was.get ("@mydb").
 
@@ -1984,14 +1989,6 @@ There are 2 changes:
 2. results is iterable
 
 
-Using Aliased Database
-``````````````````````````
-
-If you have alias your database server, you needn't specify db type like 'dbo = was.postgresql ("@mydb")'. Just use 'dbo = was.db ("@mydb")'.
-
-It makes easy to handle both Sqlite3 and PostgreSQL. If you intend to use Sqlite3 at developing, but use PostgreSQL at production, you just change alias on Skitai startup time.
-
-
 Using SQLAlchemy Query Generator
 ````````````````````````````````````````````````
 
@@ -2042,12 +2039,12 @@ For generating query statements,
   @app.route ("/q/<int:id>)
   def q (was, id):
     statement = stocks.select().where(stocks.c.id == id)
-    with was.db ("@mydb") as db:
+    with was.asyncfs ("@mydb") as db:
       req = db.execute (statement)
       res = req.dispatch ()
     
     # or short hand  
-    res = was.db ("@mydb").execute (statement).dispatch ()
+    res = was.asyncfs ("@mydb").execute (statement).dispatch ()
     res.data
     ...
     
@@ -2065,67 +2062,6 @@ For more information about query generating, visit `SQLAlchemy Core`_.
 .. _`SQLAlchemy Core`: https://docs.sqlalchemy.org/en/latest/core/index.html
 
 
-Tasks
-``````````````
-
-Typically, using was's concurrent requests is like this,
-
-.. code:: python
-  
-  from skitai import was
-  
-  @app.route (...)
-  def request ():
-    req1 = was.get (url)
-    req2 = was.post (url, {"user": "Hans Roh", "comment": "Hello"})    
-    req3 = was.db ("@mydb").select ("mytable").get ("*").execute ()
-    resp1 = req1.dispatch (timeout = 3)
-    resp2 = req2.dispatch (timeout = 3)
-    resp3 = req3.dispatch (timeout = 3)        
-    return [respones1.data, respones2.data, respones2.data]
-
-In case multiple requests, it's not pretty. Tasks join all concurrency tasks and collect results.
-
-.. code:: python
-
-  @app.route (...)
-  def request (was):
-    reqs = [
-      was.get (url),
-      was.post (url, {"user": "Hans Roh", "comment": "Hello"}),
-      was.db ("@mydb").select ("mytable").get ("*").execute ()
-    ]      
-    tasks = Tasks (reqs, timeout = 3, cache = 60)
-    return [r.data for r in tasks] # tasks object is iterrable
-    
-
-Throwing HTTP Error On Request Failed
-`````````````````````````````````````````
-
-.. code:: python
-
-  @app.route ("/search")
-  def search (was, keyword = "Mozart"):
-    req = was.get ("@mysearch/something")
-    result = req.dispatch_or_throw ()
-    return result.data
-
-dispatch_or_throw () returns result only if req.status_code == 2xx and req.status == 3, otherwise raise HTTP 5xx error.
-
-If you want to access to data for short hand, 
-
-.. code:: python
-
-  @app.route ("/search")
-  def search (was, keyword = "Mozart"):
-    req = was.get ("@mysearch/something")
-    return req.fetch ()
-    
-fetch () returns result.data if all status is normal.
-
-If your result.data is list type (mostly database query result or JSON array), one () is very similar with  fetch () but result count is not 1, it raise HTTP 404 error.  
-
-
 Caching Result
 ````````````````
 
@@ -2136,29 +2072,16 @@ Every results returned by dispatch() can cache.
 .. code:: python
 
   s = was.rpc.lb ("@mysearch/rpc2").getinfo ()
-  result = s.dispatch (2)
-  if result.status_code == 200:
-    result.cache (60) # 60 seconds
+  result = s.dispatch (2, 60) # timeout, cache seconds
+  result.data
   
   s = was.rpc.map ("@mysearch/rpc2").getinfo ()
-  results = s.dispatch (2)
-  # assume @mysearch has 3 members
-  if results.status_code == [200, 200, 200]:
-    result.cache (60)
+  results = s.dispatch (2, 60)
+  
+Cahing when just only Although code == 200 alredy implies status == STA_NORMAL.
 
-Although code == 200 alredy implies status == 3, anyway if status is not 3, cache() will be ignored. If cached, it wil return cached result for 60 seconds.
 
 *New in version 0.15.28*
-
-If you dispatch with reraise argument, code can be simple.
-
-.. code:: python
-
-  s = was.rpc.lb ("@mysearch/rpc2").getinfo ()
-  content = s.dispatch (2, reraise = True).data
-  s.cache (60)
-
-Please note cache () method is both available request and result objects.
 
 You can control number of caches by your system memory before running app.
 
@@ -2168,30 +2091,22 @@ You can control number of caches by your system memory before running app.
   skitai.mount ('/', app)
   skitai.run ()
 
-*New in version 0.14.9*
-
 For expiring cached result by updating new data:
 
 .. code:: python
   
   refreshed = False
-  if was.request.command == "post":
+  if was.request.method == "POST":
     ...
     refreshed = True
   
   s = was.rpc.lb (
     "@mysearch/rpc2", 
     use_cache = not refreshed and True or False
-  ).getinfo ()
-  result = s.dispatch (2)
-  if result.status_code == 200:
-    result.cache (60) # 60 seconds  
-
-*New in version 0.27*
-
-You can cache with dispatch,
-
-For expiring cached result by updating new data:
+  ).getinfo ()  
+  result = s.fetch (2, 60)
+  
+If you want cache for another status_code, 
 
 .. code:: python
   
@@ -2199,17 +2114,7 @@ For expiring cached result by updating new data:
     "@mysearch/rpc2", 
     use_cache = not refreshed and True or False
   ).getinfo ()
-  result = s.dispatch (2, cache = 60)
-  
-*Note* that In this case, it is cached only *if status_code is 200*. If you want cache for another status_code, 
-
-.. code:: python
-  
-  s = was.rpc.lb (
-    "@mysearch/rpc2", 
-    use_cache = not refreshed and True or False
-  ).getinfo ()
-  result = s.dispatch (2, cache = 60, cache_if = (200, 201))
+  result = s.dispatch (2, 60, (200, 201))
 
 
 More About Cache Control: Model Synchronized Cache
@@ -2240,19 +2145,19 @@ Then you can use setlu () and getlu (),
   @app.route ("/update")
   def update (was):
     # update users tabale
-    was.db ('@mydb').execute (...)
+    was.asyncfs ('@mydb').execute (...)
     # update last update time by key string
     was.setlu ('tables.users')
   
   @app.route ("/query1")
   def query1 (was):
     # determine if use cache or not by last update information 'users'
-    was.db ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
+    was.asyncfs ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
   
   @app.route ("/query2")
   def query2 (was):
     # determine if use cache or not by last update information 'users'
-    was.db ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
+    was.asyncfs ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
 
 It makes helping to reduce the needs for building or managing caches. And the values by setlu() are synchronized between Skitai workers by multiprocessing.Array.
 
@@ -2275,7 +2180,7 @@ Also was.setlu () emits 'model-changed' events. You can handle event if you need
   @app.route ("/update")
   def update (was):
     # update users tabale
-    was.db ('@mydb').execute (...)
+    was.asyncfs ('@mydb').execute (...)
     # update last update time by key string
     was.setlu ('tables.users', something...)
   
@@ -2312,7 +2217,6 @@ This IDs is logged to Skitai request log file like this.
 Focus 3rd line above log message. Then you can trace a series of API calls from each Skitai instance's log files for finding some kind of problems.
 
 In next chapters' features of 'was' are only available for *Atila WSGI container*. So if you have no plan to use Atila, just skip.
-
 
 
 Utility Methods of 'was'

@@ -22,9 +22,15 @@ class Command:
     def map (self, *args, **kargs):
         return self.callback (self.name + ".map", args, kargs)
 
+with was.transaction ("@pg2") as db:
+    pass
+
+with was.asyncft ("@pg2") as db:
+    pass
+    
 class AsyncService:    
     ASYNCDBA = {
-        "asyncia", "backend", "db", "postgresql", "sqlite3", "redis", "mongodb"
+        "asyncfs", "backend", "db", "postgresql", "sqlite3", "redis", "mongodb"
     }    
     METHODS = {
         "options", "trace", "upload", "get", "delete", "post", "put", "patch",        
