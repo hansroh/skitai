@@ -1617,9 +1617,9 @@ It needn't return message, but you can send directly multiple messages through w
 Skitai 'was' Services
 =======================
 
-Skitai handle request connection with asynchronously, also has threads and porcess ass workers. Then it works fine with synchronous apps and libraries. you can use standard database client libraries or requests modeul for API calls. 
+Skitai handle request connection with asynchronously, also has threads and porcess ass workers. So it works fine with synchronous apps and libraries. you can use standard database client libraries or requests module for API calls. 
 
-Also Skitai provide asynchronous request methods for these operations for efficient.
+But Skitai's main event loop (using asyncore.loop) can be used for not only client's requests else request to another servers(API, Database engine...) asynchronously. I think if I don't use this capabitities, it would be wasting resources. Then, Skitai provide asynchronous request methods for these operations.
 
 Skitai 'was' means *WSGI Application Service*.
 
@@ -1815,7 +1815,7 @@ If you needn't returned data and just wait for completing query,
 
 If failed, exception will be raised.
 
-*CAUTION*: DO NOT think, your statements will be executed ordered sequencailly.
+*CAUTION*: DO NOT think your statements will be executed ordered sequencially.
 
 .. code:: python
   
@@ -1865,8 +1865,7 @@ Also Skitai provide PostgreSQL connection with connection pool. And SQLite conne
         with was.transaction ("@mypg") as tx:
             tx.execute ('INSERT ...')
             tx.execute ('UPDATE ...')
-            tx.commit ()
-            latest = tx.fetch ()
+            tx.commit ()            
 
 With context manager, connection will return back to the pool automatically  else you SHOULD call tx.putback () manually.
 
