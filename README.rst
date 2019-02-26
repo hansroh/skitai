@@ -1643,7 +1643,7 @@ For using 'was', you need to import 'was':
 
 
 API Calling
-`````````````````````````````
+------------------------------
 
 .. code:: python
   
@@ -1720,7 +1720,7 @@ If you want to change default value, use headers paramter for each request
 
 
 Tasks
-`````````````````````````````
+-----------------------
 
 For more pretty code styling, use Tasks.
 
@@ -1736,7 +1736,7 @@ For more pretty code styling, use Tasks.
 
 
 RPC Requesting
-````````````````````````
+--------------------------------
 
 .. code:: python
   
@@ -1781,7 +1781,7 @@ Here're addtional methods and properties above response obkect compared with aqu
 
 
 RDBMS Querying
-````````````````````
+------------------------------
 
 *Important Note:* Async mode you cannot use transaction, and auto commit will be applied. 
 
@@ -1841,7 +1841,7 @@ Execute and wait or use Transaction.
 
  
 Using Database Transaction
-`````````````````````````````````````
+-------------------------------------------
 
 If you want use asynchronous database transaction, you can use asynchronous drivers.
 
@@ -1855,7 +1855,6 @@ Also Skitai provide PostgreSQL connection with connection pool. And SQLite conne
             tx.execute ('INSERT ...')
             tx.execute ('UPDATE ...')
             tx.commit ()
-            tx.execute ('SELECT ...')
             latest = tx.fetch ()            
 
 With context manager, connection will return back to the pool automatically  else you SHOULD call tx.putback () manually.
@@ -1863,7 +1862,7 @@ With context manager, connection will return back to the pool automatically  els
 was.transaction (@alias) returns SQLPhile.pg2.open2 () and SQLPhile.db3.open ().
 
 NoSQL Querying
-````````````````````
+------------------------------------
 
 .. code:: python
 
@@ -1886,7 +1885,7 @@ Then,
       
 
 Load-Balancing
-````````````````
+---------------------------------------
 
 Skitai support load-balancing requests.
 
@@ -1946,9 +1945,9 @@ Add mydb members to config file.
 
   @app.route ("/query")
   def query (was, keyword):
-    dbo = was.postgresql.lb ("@mydb")    
-    req = dbo.execute ("SELECT * FROM CITIES;")
-    result = req.dispatch (2)
+    with was.postgresql.lb ("@mydb") as dbo:    
+      req = dbo.execute ("SELECT * FROM CITIES;")
+      result = req.dispatch (2)
   
    if __name__ == "__main__":
     import skitai
@@ -1966,7 +1965,7 @@ Add mydb members to config file.
     
 
 Map-Reducing
-``````````````
+---------------------------------------
 
 Basically same with load_balancing except Skitai requests to all members per each request.
 
@@ -1974,10 +1973,10 @@ Basically same with load_balancing except Skitai requests to all members per eac
 
   @app.route ("/search")
   def search (was, keyword = "Mozart"):
-    stub = was.rpc.map ("@mysearch/rpc2")
-    req = stub.search (keyword)
-    results = req.dispatch (2)
-    
+    with was.rpc.map ("@mysearch/rpc2") as stub:
+      req = stub.search (keyword)
+      results = req.dispatch (2)
+      
     all_results = []
     for result in results:      
        all_results.extend (result.data)
@@ -1988,9 +1987,11 @@ There are 2 changes:
 1. from was.rpc.lb () to was.rpc.map ()
 2. results is iterable
 
+You can use Dataabse, API calls same way. 
+
 
 Using SQLAlchemy Query Generator
-````````````````````````````````````````````````
+------------------------------------------------
 
 If you use sqlalchemy_ for database ORM, you cannot use ORM itself but use for gfenerating SQL query statement.
 
@@ -2063,7 +2064,7 @@ For more information about query generating, visit `SQLAlchemy Core`_.
 
 
 Caching Result
-````````````````
+---------------------------------------
 
 By default, all HTTP requests keep server's cache policy given by HTTP response header (Cache-Control, Expire etc). But you can control cache as your own terms including even database query results.
 
@@ -2192,7 +2193,7 @@ Note: if @app.on_broadcast is located in mount function at services directory, e
 
 
 API Transaction ID
-`````````````````````
+------------------------------------
 
 *New in version 0.21*
 
@@ -2220,7 +2221,7 @@ In next chapters' features of 'was' are only available for *Atila WSGI container
 
 
 Utility Methods of 'was'
----------------------------
+-------------------------------------
 
 This chapter's 'was' services are also avaliable for all WSGI middelwares.
 
