@@ -102,12 +102,6 @@ Python 3.5+
 On win32, required `pywin32 binary`_.
 
 .. _`pywin32 binary`: http://sourceforge.net/projects/pywin32/files/pywin32/Build%20219/
-
-On posix, for compiling psycopg2 module, requires theses packages,
-
-.. code:: bash
-    
-  apt-get install libpq-dev python-dev
   
 **Installation**
 
@@ -1591,6 +1585,16 @@ API Calling
   
   @app.route (...)
   def request (was):
+    req = was.get (url)
+    resp = req1.dispatch (timeout = 3)
+    return resp.data
+
+In fact, single request is just like synchronous task at least current thread.
+
+.. code:: python
+  
+  @app.route (...)
+  def request (was):
     req1 = was.get (url)
     req2 = was.post (url, {"user": "Hans Roh", "comment": "Hello"})    
     respones1 = req1.dispatch (timeout = 3)
@@ -1676,6 +1680,12 @@ For more pretty code styling, use Tasks.
     ]
     return [ rs.fetch () rs in was.Tasks (reqs, timeout = 3) ]
 
+Tasks is iterable and slicable and returened rs is response object. You check rs.status and status_code for validating response, or just use fetch () for raising error if invalid.
+
+*Note:* If you want to use full asynchronous manner, you can consider atila's Futures_, but it need to pay some costs.
+
+.. _Futures: https://pypi.org/project/atila/#futures-response
+ 
 
 RPC Requesting
 --------------------------------
@@ -1708,16 +1718,6 @@ For gRPC example, calling to tfserver_ for predicting something with tensorflow 
     resp = req.dispatch ()
     return cli.Response (resp.data).y  
 
-Here're addtional methods and properties above response obkect compared with aquests' response one.
-
-- cache (timeout): response caching
-- status: it indicate requests processed status and note it is not related response.status_code.
-
-  - 0: Initial Default Value
-  - 1: Operation Timeout
-  - 2: Exception Occured
-  - 3: Normal Terminated
-
 .. _aquests: https://pypi.python.org/pypi/aquests
 .. _tfserver: https://pypi.python.org/pypi/tfserver
 
@@ -1736,7 +1736,24 @@ PostgreSQL query at aquests, First uou alias your database before running Skitai
   skitai.run ()
   
 Then, 
+
+.. code:: python
   
+  @app.route (...)  
+  def query (was):
+    with was.asyncon ("@mypg") as db:
+      req = db.excute ("SELECT city, t_high, t_low FROM weather;")
+      resp = req.dispatch (2)
+      if resp.status != 200:
+        raise HTTPError ("500 Server Error")
+    for row in rows:
+      row.city, row.t_high, row.t_low
+
+For consistency handling response of API calls, response.status_code will be set 200 if any error does not occure, otherwise set 500. 
+
+Basically Skitai handle as same for all kind of external requests.
+
+
 .. code:: python
   
   @app.route (...)  
@@ -1757,30 +1774,6 @@ If you needn't returned data and just wait for completing query,
 
 If failed, exception will be raised.
 
-*CAUTION*: DO NOT think your statements will be executed ordered sequencially.
-
-.. code:: python
-  
-  @app.route (...)  
-  def query (was):
-    with was.asyncon ("@mypg") as db:
-      reqs = [
-        db.excute ("INSERT INTO weather (id, 'New York', 9, 25);"),
-        db.excute ("SELECT city, t_high, t_low FROM weather order by id desc limit 1 ;")
-      ]
-      Tasks (reqs) [1].fetch () # No guarantee it is New York 
-      
-Execute and wait or use Transaction.
-
-.. code:: python
-  
-  @app.route (...)  
-  def query (was):
-    with was.asyncon ("@mypg") as db:
-      db.excute ("INSERT INTO weather (id, 'New York', 9, 25);").wait_or_throw ()
-      latest = db.excute ("SELECT city, t_high, t_low FROM weather order by id desc limit 1 ;").fetch (2)
-      # latest  is New York 
-
 In case database querying, you can use one () method.
 
 .. code:: python
@@ -1791,6 +1784,31 @@ In case database querying, you can use one () method.
       hispet = db.excute ("SELECT ... FROM pets").one (2)
  
 If result record count is not 1 (zero or more than 1), raise HTTP 404 error.
+
+
+*CAUTION*: DO NOT even think your statements will be executed ordered sequencially.
+
+.. code:: python
+  
+  @app.route (...)  
+  def query (was):
+    with was.asyncon ("@mypg") as db:
+      reqs = [
+        db.excute ("INSERT INTO weather (id, 'New York', 9, 25);"),
+        db.excute ("SELECT city, t_high, t_low FROM weather order by id desc limit 1 ;")
+      ]
+      Tasks (reqs) [1].fetch () # No guarantee it is New York or something new
+      
+Execute and wait or use transaction.
+
+.. code:: python
+  
+  @app.route (...)  
+  def query (was):
+    with was.asyncon ("@mypg") as db:
+      db.excute ("INSERT INTO weather (id, 'New York', 9, 25);").wait_or_throw ()
+      latest = db.excute ("SELECT city, t_high, t_low FROM weather order by id desc limit 1 ;").fetch (2)
+      # latest  is New York 
 
  
 Using Database Transaction
@@ -1822,7 +1840,7 @@ NoSQL Querying
 .. code:: python
 
   skitai.alias ("@mymongo", skitai.DB_MONGODB, "localhost/mycollection")
-  skitai.alias ("@mymongo", skitai.DB_REDIS, "localhost/0")
+  skitai.alias ("@myredis", skitai.DB_REDIS, "localhost/0")
   skitai.run ()
   
 Then, 
@@ -1839,6 +1857,34 @@ Then,
       db.get('foo').fetch () # bar
       
 
+Request As Many You Need
+------------------------------------------------
+
+For getting concurrent tasks advantages, you request at once as many as possible.
+
+.. code:: python
+  
+  @app.route (...)  
+  def query (was):
+    reqs = was.post ("@pypi/upload...", {data: ...})
+    reqs = was.get ("@pypi/somethong..."})
+    with was.asyncon ("@mypg") as db:
+      reqs.append (db.excute ("SELECT ..."))
+      reqs.append (db.excute ("SELECT ..."))     
+    
+    with was.jsonrpc ("@pypi/pypi") as stub:
+      reqs.append (stub.get_version ("skitai"))
+      reqs.append (stub.get_version ("atila"))          
+    
+    contents = []
+    for rs in Tasks (reqs, 3):
+      if rs.status_code != 200:
+        contents.append ("Error")
+      else:
+        contents.append (str (rs.data))
+    return contents
+      
+      
 Load-Balancing
 ---------------------------------------
 
@@ -1900,7 +1946,7 @@ Add mydb members to config file.
 
   @app.route ("/query")
   def query (was, keyword):
-    with was.postgresql.lb ("@mydb") as dbo:    
+    with was.asyncon.lb ("@mydb") as dbo:    
       req = dbo.execute ("SELECT * FROM CITIES;")
       result = req.dispatch (2)
   
