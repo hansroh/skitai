@@ -5,3 +5,4 @@ pytest-cov
 sqlalchemy
 flask
 websocket_client
+jinja2

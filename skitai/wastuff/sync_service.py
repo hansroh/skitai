@@ -23,7 +23,7 @@ class XMLRPCServerProxy (xmlrpc.client.ServerProxy):
 
 try:
     import jsonrpclib
-except IMportError:
+except ImportError:
     pass
 else:
     class JSONRPCServerProxy (jsonrpclib.ServerProxy):
