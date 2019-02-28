@@ -19,6 +19,9 @@ import getopt
 from . import lifetime
 from . import mounted
 
+if "---production" in sys.argv:
+	os.environ ["SKITAI_ENV"] = "PRODUCTION"	
+
 def test_client (*args, **kargs):
 	from .testutil.launcher import Launcher
 	return Launcher (*args, **kargs)
@@ -608,9 +611,6 @@ def run (**conf):
 	for k, v in dconf.items ():
 		if k not in conf:
 			conf [k] = v
-	
-	if "---production" in sys.argv:
-		os.environ ["SKITAI_ENV"] = "PRODUCTION"
 	
 	if conf.get ("name"):
 		PROCESS_NAME = 'skitai/{}'.format (conf ["name"])				
