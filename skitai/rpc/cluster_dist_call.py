@@ -164,7 +164,7 @@ class Dispatcher:
 				response.max_age, 0
 			)
 
-		handler.asyncon = None
+		#handler.asyncon = None
 		handler.callback = None
 		handler.response = None
 		self.set_status (status, result)
