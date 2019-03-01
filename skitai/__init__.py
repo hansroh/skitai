@@ -520,6 +520,10 @@ def run (**conf):
 			Skitai.Loader.config_logger (self, path, media, self.conf ["log_off"])
 		
 		def master_jobs (self):
+			if os.environ.get ("SKITAI_ENV") == "PRODUCTION":
+				self.wasc.logger ("server", "[info] running for production mode")
+			else:
+				self.wasc.logger ("server", "[info] running for development mode")
 			self.wasc.logger ("server", "[info] engine tmp path: %s" % self.varpath)
 			if self.logpath:
 				self.wasc.logger ("server", "[info] engine log path: %s" % self.logpath)
