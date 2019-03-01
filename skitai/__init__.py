@@ -583,7 +583,7 @@ def run (**conf):
 			
 			if os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
 				# master does not serve
-				return			
+				return
 			
 			self.config_threads (conf.get ('threads', 4))			
 			self.config_backends (conf.get ('backend_keep_alive', 1200))
@@ -608,7 +608,7 @@ def run (**conf):
 			if os.name == "nt":
 				lifetime.maintern.sched (11.0, self.maintern_shutdown_request)								
 				self.flock = flock.Lock (os.path.join (self.varpath, ".%s" % self.NAME))
-	
+			
 	#----------------------------------------------------------------------------
 	global dconf, PROCESS_NAME, Win32Service
 	

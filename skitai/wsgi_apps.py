@@ -261,7 +261,7 @@ class ModuleManager:
 			self.wasc.logger.trace ("app")
 			self.wasc.logger ("app", "[error] app load failed: %s" % modname)			
 		else: 			
-			self.wasc.logger ("app", "[info] app %s mounted" % route)
+			self.wasc.logger ("app", "[info] app %s mounted" % modname)
 			if route in self.modules:
 				self.wasc.logger ("app", "[info] app route collision detected: %s at %s <-> %s" % (route, module.abspath, self.modules [route].abspath), "warn")
 			self.modules [route] = module
@@ -282,10 +282,7 @@ class ModuleManager:
 		
 	def has_route (self, script_name):
 		# 0: 404
-		# 1: 301 => /skitai => /skitai/		
-		
-		# route string
-		#script_name = script_name.encode ("utf8")
+		# 1: 301 => /skitai => /skitai/
 		if script_name == "/" and "/" in self.modules:
 			return "/"
 		

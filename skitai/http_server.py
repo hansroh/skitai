@@ -356,16 +356,17 @@ class http_server (asyncore.dispatcher):
 		self.hash_id = md5 (self.server_name.encode ('utf8')).hexdigest() [:4]		
 		self.server_port = port
 		
-	def serve (self, shutdown_phase = 2):
+	def _serve (self, shutdown_phase = 2):
 		self.shutdown_phase = shutdown_phase
 		self.listen (os.name == "posix" and 4096 or 256)
-		
-	def fork_and_serve (self, numworker = 1, sub_server = None):
-		global ACTIVE_WORKERS, SURVAIL, PID, EXITCODE
-		
+	
+	def serve (self, sub_server = None): 
 		if sub_server:
-			sub_server.serve (max (1, self.shutdown_phase - 1))
-		self.serve ()			
+			sub_server._serve (max (1, self.shutdown_phase - 1))
+		self._serve ()			
+		
+	def fork (self, numworker = 1):
+		global ACTIVE_WORKERS, SURVAIL, PID, EXITCODE
 		
 		if os.name == "nt":
 			set_process_name (skitai.get_proc_title ())
