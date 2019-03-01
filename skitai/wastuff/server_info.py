@@ -45,35 +45,47 @@ def format_object (o, depth = 0):
 			b.append ("</ul>")		
 		return "".join (b)
 
-	b.append ("<table width='100%' border='1'>")
+	b.append ("<table width='100%' border='0' cellpadding='6'>")	
 	ii = list(o.items ())
 	ii.sort ()
 	width = 15 + (depth * 6)
 	for k1, v1 in ii:
 		if type (v1) in (type ([]), type ({})):
-			b.append ("<tr><td bgcolor='#efefef' valign='top' width='%d%%'><b>%s%s</b></td>" % (width, str (k1), type (v1) in (list, tuple, dict) and " (%d)" % (len (v1),) or ""))			
+			b.append ("<tr><td bgcolor='#C8EFD4' valign='top' width='%d%%'><b>%s%s</b></td>" % (width, str (k1), type (v1) in (list, tuple, dict) and " (%d)" % (len (v1),) or ""))			
 			b.append ("<td valign='top'>%s</td></tr>" % format_object (v1, depth + 1))			
 		else:
-			b.append ("<tr><td bgcolor='#efefef' valign='top' width='%d%%'>%s</td>" % (width, str (k1)))
-			b.append ("<td valign='top'>%s</td></tr>" % str (v1))
+			b.append ("<tr><td bgcolor='#98E0AD' valign='top' width='%d%%'><b>%s</b></td>" % (width, str (k1)))
+			b.append ("<td valign='top' style='word-break: break-all'>%s</td></tr>" % str (v1))
 	b.append ("</table>")	
 	return "".join (b)
 
 	
 def formatting (was, info, flt):	
-	b = []
+	b = [
+		"<!DOCTYPE html>"
+		"<html><head>"
+		"<title>Skitai App Engine Status</title>"
+		"</head><body style='font-size: 12px;''>"
+	]
 	l = list(info.items ())
 	l.sort ()
 	if not flt:
 		b.append ('<a name="TOC"></a><h3>Table of Content</h3>')
 		b.append ('<ol>')
+		got_cluster = False
 		for k, v in l:
-			b.append ("<li><a href='#%s'>%s</a></li>" % (k, k))		
+			if k.startswith ("CLUSTER:") and not got_cluster:
+				got_cluster = True
+				b.append ("<li>CLUSTERS</li>")
+				b.append ('<ul style="list-style: square;">')
+			elif got_cluster and not k.startswith ("CLUSTER:"):
+				b.append ('</ul>')
+			b.append ("<li><a href='#%s'>%s</a></li>" % (k, got_cluster and k [8:] or k))		
 		b.append ('</ol>')
 	
 	for k, v in l:
 		if not flt:
-			b.append ("<a name='%s'></a><h3><a href='%s?f=%s'>%s</a></h3>" % (k, was.request.uri, k, k))
+			b.append ("<a name='%s'></a><h3><a href='%s?f=%s'>%s</a></h3>" % (k, was.request.split_uri ()[0], k, k))
 		else:
 			b.append ("<h3><a href='%s'>%s</a></h3>" % (was.request.split_uri ()[0], k))	
 			
@@ -82,6 +94,7 @@ def formatting (was, info, flt):
 			b.append ('<div style="margin-bottom: 30px; padding: 5px;"><a href="#TOC">TOC</a></div>')
 		else:
 			b.append ('<div style="margin-bottom: 30px; padding: 5px;"><a href="%s">TOC</a></div>' % was.request.split_uri ()[0])
+	b.append ("</body></html>")		
 	return "".join (b)
 	
 
