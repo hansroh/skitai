@@ -37,10 +37,8 @@ class Result (rcache.Result):
 		return getattr (self.__response, attr)
 	
 	def reraise (self):		
-		if self.status != NORMAL:
-			self.__response.raise_for_status ()
 		if self.status_code >= 300:
-			raise exceptions.HTTPError ("502 Bad Gateway", "upstream server respond as {} {}".format (self.status_code, self.reason))
+			raise exceptions.HTTPError ("502 Bad Gateway", "Upstream server respond as {} {}".format (self.status_code, self.reason))
 		return self	
 			
 	def cache (self, timeout = 60, cache_if = (200,)):
@@ -53,7 +51,7 @@ class Result (rcache.Result):
 		self.__response = None	
 	
 	def fetch (self, cache = None, cache_if = (200,), one = False):
-		self.reraise ()	
+		self.reraise ()
 		cache and self.cache (cache, cache_if)
 		try:
 			if one:

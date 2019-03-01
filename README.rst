@@ -1578,15 +1578,15 @@ For using 'was', you need to import 'was':
     was.get ("http://...")
 
 
-API Calling
-------------------------------
+Calling API
+------------------------
 
 .. code:: python
   
   @app.route (...)
   def request (was):
     req = was.get (url)
-    resp = req1.dispatch (timeout = 3)
+    resp = req.dispatch (timeout = 3)
     return resp.data
 
 In fact, single request is just like synchronous task at least current thread.
@@ -1617,15 +1617,15 @@ dispath (timeout = [sec], cache = [sec]) returns response object.
   
 response.status is one of belows:
 
-- STA_REQFAIL
 - STA_UNSENT
+- STA_REQFAIL
 - STA_TIMEOUT
 - STA_NETERR
 - STA_NORMAL
 
-Then you SHOULD check before handle result data.
+Note that STA_NORMAL just mean all requesting precess is normally completed, NOT response is. Then you SHOULD check before handle result data.
 
-dispath_or_throw () will raise exception immediatly. 
+dispath_or_throw () will raise exception immediatly if status !=  STA_NORMAL or status_code >= 300. 
 
 .. code:: python
 
@@ -1637,19 +1637,24 @@ If you want more short hand to result data,
 
   result = req.fetch (5) # timoute and {"result": "ok"}
 
-if status !=  STA_NORMAL or status_code >= 300, Error will be raised. 
+result = fetch (5) is equivalant with,
+
+.. code:: python
+
+  rsponse = req.dispath_or_throw (5) # timoute
+  response = response.data
 
 All supoorted request methods are:
 
-- Web/API related
+HTTP/API related methods are,
 
-  - was.get ()
-  - was.delete ()
-  - was.post ()
-  - was.put ()
-  - was.patch ()
-  - was.upload ()
-  - was.options ()
+- was.get ()
+- was.delete ()
+- was.post ()
+- was.put ()
+- was.patch ()
+- was.upload ()
+- was.options ()
 
 Above request type is configured to json. This mean request content type and response accept type is all 'application/json'.
 
@@ -1680,15 +1685,15 @@ For more pretty code styling, use Tasks.
     ]
     return [ rs.fetch () rs in was.Tasks (reqs, timeout = 3) ]
 
-Tasks is iterable and slicable and returened rs is response object. You check rs.status and status_code for validating response, or just use fetch () for raising error if invalid.
+Tasks is iterable and slicable and returened rs is response object (by dispatch ()). You SHOULD check rs.status and status_code for validating response, or just use fetch () for raising error if invalid.
 
 *Note:* If you want to use full asynchronous manner, you can consider atila's Futures_, but it need to pay some costs.
 
 .. _Futures: https://pypi.org/project/atila/#futures-response
  
 
-RPC Requesting
---------------------------------
+Calling RPC
+--------------------
 
 .. code:: python
   
