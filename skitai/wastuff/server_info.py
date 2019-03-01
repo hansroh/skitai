@@ -45,17 +45,19 @@ def format_object (o, depth = 0):
 			b.append ("</ul>")		
 		return "".join (b)
 
-	b.append ("<table width='100%' border='0' cellpadding='6'>")	
+	b.append ("<table width='100%' border='0'>")
 	ii = list(o.items ())
 	ii.sort ()
 	width = 15 + (depth * 6)
-	for k1, v1 in ii:
-		if type (v1) in (type ([]), type ({})):
-			b.append ("<tr><td bgcolor='#C8EFD4' valign='top' width='%d%%'><b>%s%s</b></td>" % (width, str (k1), type (v1) in (list, tuple, dict) and " (%d)" % (len (v1),) or ""))			
-			b.append ("<td valign='top'>%s</td></tr>" % format_object (v1, depth + 1))			
+	for idx, (k1, v1) in enumerate (ii):
+		if isinstance (v1, (list, dict)):
+			b.append ("<tr><td bgcolor='#C8EFD4' valign='top' width='%d%%' style='padding: 6px;'><b>%s%s</b></td>" % (width, str (k1), type (v1) in (list, tuple) and " (%d)" % (len (v1),) or ""))			
+			b.append ("<td valign='top' style='padding: 0;'>%s</td></tr>" % format_object (v1, depth + 1))			
 		else:
-			b.append ("<tr><td bgcolor='#98E0AD' valign='top' width='%d%%'><b>%s</b></td>" % (width, str (k1)))
-			b.append ("<td valign='top' style='word-break: break-all'>%s</td></tr>" % str (v1))
+			if depth > 0 and idx == 0:
+				b.append ("<tr><td valign='top' colspan='2' style='padding: 6; color: #888; font-size: 10px;'><b>Object</b></td></tr>")		
+			b.append ("<tr><td bgcolor='#98E0AD' valign='top' width='%d%%' style='padding: 6px;'><b>%s</b></td>" % (width, str (k1)))
+			b.append ("<td valign='top' style='word-break: break-all; padding: 6px;'>%s</td></tr>" % str (v1))
 	b.append ("</table>")	
 	return "".join (b)
 
