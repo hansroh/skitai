@@ -61,5 +61,4 @@ class API:
 		if more_info:
 			self.data ['more_info'] = more_info
 		if exc_info:
-			self.data ["traceback"] = catch (2, exc_info)
-
+			self.data ["traceback"] = type (exc_info) is list and exc_info or catch (2, exc_info)

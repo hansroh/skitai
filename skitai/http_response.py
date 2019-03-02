@@ -241,35 +241,41 @@ class http_response:
                 why = None
             exc_info, why  = why, ''
         
-        error = {}
-        if self.request.get_header ('accept', '').find ("application/json") != -1:            
-            message = why or self.reply_message.lower ()
-            debug = None
-            if exc_info:
-                debug = 'see traceback' 
-            return self.fault (message, 0, debug, exc_info = exc_info)
-        
-        else:    
-            self.update ('content-type', 'text/html')
-            error ['detail'] = why
-            error ['time'] = http_date.build_http_date (time.time ())
-            error ['url'] = urljoin ("%s://%s/" % (self.request.get_scheme (), self.request.get_header ("host")), self.request.uri)
-            error ['software'] = skitai.NAME            
-            error ['mode'] = exc_info and 'debug' or 'normal'                
-            error ['code'] = self.reply_code
-            error ['message'] = self.reply_message
-            error ["traceback"] = exc_info and catch (1, exc_info) or None
-            
-            content = None    
-            if self.current_app and hasattr (self.current_app, 'render_error'):
-                try:
-                    content = self.current_app.render_error (error, was)
-                except:                            
-                    self.request.logger.trace ()                
-                    if self.current_app.debug:                        
+        is_html_response = self.request.get_header ('accept', '').find ("text/html") != -1
+        error = {
+            'code': self.reply_code,
+            'message': self.reply_message,
+            'detail': why,
+            'mode': exc_info and 'debug' or 'normal',
+            'time': http_date.build_http_date (time.time ()),
+            'url': urljoin ("%s://%s/" % (self.request.get_scheme (), self.request.get_header ("host")), self.request.uri),
+            'software': skitai.NAME,
+            "traceback": exc_info and catch (is_html_response and 1 or 2, exc_info) or None
+        }
+        if self.current_app and hasattr (self.current_app, 'render_error'):
+            content = None
+            try:
+                content = self.current_app.render_error (error, was)
+            except:                            
+                self.request.logger.trace ()                
+                if self.current_app.debug:   
+                    if is_html_response:                     
                         error ["traceback"] += "<h2 style='padding-top: 40px;'>Exception Occured During Building Error Template</h2>" + catch (1)
-                        
-            return content or (DEFAULT_ERROR_MESSAGE % error)
+                    else:
+                        error ["traceback"] += ["Exception Occured During Building Error Template"] + catch (2)
+            if content:
+                return content
+                
+        if is_html_response:    
+            self.update ('content-type', 'text/html')
+            return DEFAULT_ERROR_MESSAGE % error
+        else:
+            return self.fault (
+                error ["message"].lower (), 0, 
+                None, 
+                error ["detail"], 
+                exc_info = error ["traceback"]
+            )
                 
     def error (self, code, status = "", why = "", force_close = False, push_only = False):
         if not self.is_responsable (): return
@@ -516,16 +522,15 @@ class http_response:
         )
         # clearing resources, back refs
         self.request.response_finished ()
-
     
     # Sugar syntaxes ----------------------------------------------------------------    
     def adaptive_error (self, status, message, code, more_info):
         ac = self.request.get_header ('accept', '')
         if ac.find ("text/html") != -1:
             return self.with_explain (status, "{} (code: {}): {}".format (message, code, more_info))
-        return self.Fault (sttus, status, message, code, None, more_info)
+        return self.Fault (status, message, code, None, more_info)
     
-    def fault (self, message = "", code = 0,  debug = None, more_info = None, exc_info = None, traceback = False):
+    def fault (self, message = "", code = 0, debug = None, more_info = None, exc_info = None, traceback = False):
         api = self.api ()
         if not code:
             code = int (self.reply_code) * 100 + (traceback and 90 or 0)

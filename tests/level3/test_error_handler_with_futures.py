@@ -4,7 +4,7 @@ import pprint
 import json
 
 def test_default_error_handler (app):
-    @app.default_error_handler
+    @app.default_error_handler    
     def default_error_handler (was, error):
         was.response.update ("Content-Type", "application/json; charset: utf8")
         error ["say"] = "hello"
@@ -24,8 +24,8 @@ def test_default_error_handler (app):
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
     with app.test_client ("/", confutil.getroot ()) as cli:
         api = cli.api ("/")
-        resp = api.f1.get ()
-        assert resp.status_code == 414
+        resp = api.f1.get ()        
+        assert resp.status_code == 414        
         assert resp.data ["say"] == "hello"         
         
         resp = api.f2.get ()
