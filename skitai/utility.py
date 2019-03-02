@@ -11,9 +11,7 @@ from rs4 import producers
 from collections import Iterator
 from aquests.athreads import trigger
 
-####################################################################################
-# Utitlities
-####################################################################################
+
 REQUEST = re.compile ('([^ ]+) ([^ ]+)(( HTTP/([0-9.]+))$|$)')
 CONNECTION = re.compile ('Connection: (.*)', re.IGNORECASE)
 

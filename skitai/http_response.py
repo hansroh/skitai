@@ -250,6 +250,7 @@ class http_response:
             'time': http_date.build_http_date (time.time ()),
             'url': urljoin ("%s://%s/" % (self.request.get_scheme (), self.request.get_header ("host")), self.request.uri),
             'software': skitai.NAME,
+            'debug': None,
             "traceback": exc_info and catch (is_html_response and 1 or 2, exc_info) or None,
         }
         if self.current_app and hasattr (self.current_app, 'render_error'):
