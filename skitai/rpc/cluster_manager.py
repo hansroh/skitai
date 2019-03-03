@@ -9,6 +9,10 @@ from operator import itemgetter
 import math
 from urllib.parse import unquote
 
+class TooManyConnections (Exception):
+    pass
+
+
 class AccessPolicy:    
     def __init__ (self, roles, ips):
         self.roles = self.to_list (roles)
@@ -58,12 +62,13 @@ class ClusterManager:
     backend = True
     backend_keep_alive = 1200
     
-    def __init__ (self, name, cluster, ssl = 0, access = None, logger = None):
+    def __init__ (self, name, cluster, ssl = 0, access = None, max_conns = 100, logger = None):
         self.logger = logger
         self.lock = threading.RLock ()
         self._name = name
         self.access = access
-        self.set_ssl (ssl)        
+        self.set_ssl (ssl) 
+        self._max_conns = max_conns       
         self._proto = None
         self._havedeadnode = 0
         self._numget = 0
@@ -375,7 +380,10 @@ class ClusterManager:
                 else:
                     t = [(len (self._cluster [node]["connection"]), node) for node in nodes]
                     t.sort ()
-                    node = t [0][1]
+                    current_conns, node = t [0]
+                    if current_conns > self._max_conns:
+                        # for protecting upstream server
+                        raise TooManyConnections
                     asyncon = self._cluster [node]["connection"][0].duplicate ()
                     self._cluster [node]["connection"].append (asyncon)
                 

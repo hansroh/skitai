@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.7.25"
+__version__ = "0.28.7.26"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -214,7 +214,7 @@ def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20
 	http_server.critical_point_cpu_overload = https_server.critical_point_cpu_overload = cpu_percent
 	http_server.critical_point_continuous = https_server.critical_point_continuous = continuous
 	http_server.maintern_interval = https_server.maintern_interval = interval
-
+	
 def log_off (*path):		
 	global dconf
 	for each in path:
@@ -370,7 +370,7 @@ def _alias_django (name, settings_path):
 			default ["PASSWORD"] = ""
 		return alias (name, DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)
 
-def alias (name, ctype, members, role = "", source = "", ssl = False):
+def alias (name, ctype, members, role = "", source = "", ssl = False, max_coons = 100):
 	from .rpc.cluster_manager import AccessPolicy
 	global dconf
 	
@@ -386,7 +386,7 @@ def alias (name, ctype, members, role = "", source = "", ssl = False):
 		return alias
 	
 	policy = AccessPolicy (role, source)
-	args = (ctype, members, policy, ssl)
+	args = (ctype, members, policy, ssl, max_coons)
 	dconf ["clusters"][name] = args
 	return name, args
 	
@@ -588,8 +588,8 @@ def run (**conf):
 			self.config_threads (conf.get ('threads', 4))			
 			self.config_backends (conf.get ('backend_keep_alive', 1200))
 			for name, args in conf.get ("clusters", {}).items ():				
-				ctype, members, policy, ssl = args
-				self.add_cluster (ctype, name, members, ssl, policy)
+				ctype, members, policy, ssl, max_conns = args
+				self.add_cluster (ctype, name, members, ssl, policy, max_conns)
 			
 			self.install_handler (
 				conf.get ("mount"), 

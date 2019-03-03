@@ -168,7 +168,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 				return
 		
 		while self._avails ():
-			asyncon = self._get_connection (None)			
+			asyncon = self._get_connection (None)		
 			rs = Dispatcher (
 				self._cv, asyncon.address, 
 				ident = not self._mapreduce and self._get_ident () or None, 
@@ -188,7 +188,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 			)
 			asyncon.execute (req)
 			
-		self._request = req# sample for unitest
+		self._request = req # sample for unitest
 		trigger.wakeup ()
 		return self
 	

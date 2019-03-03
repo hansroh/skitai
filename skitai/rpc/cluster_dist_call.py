@@ -162,7 +162,6 @@ class Dispatcher:
 				response.max_age, 0
 			)
 
-		#handler.asyncon = None
 		handler.callback = None
 		handler.response = None
 		self.set_status (status, result)
@@ -296,8 +295,8 @@ class ClusterDistCall:
 				asyncon = self._get_connection (None)
 			else:
 				asyncon = self._get_connection (self._uri)
-			self._auth = self._auth or asyncon.get_auth ()
 			
+			self._auth = self._auth or asyncon.get_auth ()
 			_reqtype = self._reqtype.lower ()
 			rs = Dispatcher (
 				self._cv, asyncon.address, 
@@ -358,13 +357,12 @@ class ClusterDistCall:
 		asyncon.set_timeout (self._timeout)
 		if self._cv is None:
 			self._cv = asyncon._cv
-				
+
 	def _cancel (self):
 		with self._cv:
 			self._canceled = True
 	
 	#---------------------------------------------------------
-			
 	def _fail_log (self, status):
 		if self._origin:
 			self._logger ("backend status is {}, {} at {} LINE {}: {}".format (
@@ -387,7 +385,7 @@ class ClusterDistCall:
 			self._cluster.report (asyncon, False) # exception occured
 			self._retry += 1
 			self._nodes = [None]
-			self._request (*self._cached_request_args)
+			self.rerequest ()
 		elif status >= NETERR:
 			self._results.append (rs)
 			if status == NETERR:
@@ -411,6 +409,10 @@ class ClusterDistCall:
 		result = self.dispatch (wait = False)
 		tuple_cb (result, callback)		
 	
+	#-----------------------------------------------------------------
+	def rerequest (self):
+		self._build_request (*self._cached_request_args)
+
 	def reset_timeout (self, timeout):
 		with self._cv:
 			asyncons = list (self._requests.values ())
@@ -528,7 +530,8 @@ class Proxy:
 		cdc = self.__class (*self.__args, **self.__kargs)
 		cdc._build_request (method, params)
 		return cdc
-			
+
+
 class ClusterDistCallCreator:
 	def __init__ (self, cluster, logger, cachesfs):
 		self.cluster = cluster				
@@ -550,4 +553,3 @@ class ClusterDistCallCreator:
 		else:	
 			return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.cachesfs, self.logger)
 		
-	

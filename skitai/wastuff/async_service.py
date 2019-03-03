@@ -43,7 +43,7 @@ class AsyncService:
                 setattr (self, method, Command (method, self._call))
     
     @classmethod
-    def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0, access = []):
+    def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0, access = [], max_conns = 100):
         if clustertype and clustertype [0] == "*":
             clustertype = clustertype [1:]
         ssl = 0
@@ -53,10 +53,10 @@ class AsyncService:
             clusterlist = [clusterlist]    
 
         if clustertype and "*" + clustertype in (DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB):
-            cluster = dcluster_manager.ClusterManager (clustername, clusterlist, "*" + clustertype, access, cls.logger.get ("server"))
+            cluster = dcluster_manager.ClusterManager (clustername, clusterlist, "*" + clustertype, access, max_conns, cls.logger.get ("server"))
             cls.clusters_for_distcall [clustername] = dcluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"))
         else:
-            cluster = cluster_manager.ClusterManager (clustername, clusterlist, ssl, access, cls.logger.get ("server"))
+            cluster = cluster_manager.ClusterManager (clustername, clusterlist, ssl, access, max_conns, cls.logger.get ("server"))
             cls.clusters_for_distcall [clustername] = cluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"), cls.cachefs)
         cls.clusters [clustername] = cluster
                     

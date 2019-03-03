@@ -221,9 +221,9 @@ class Loader:
 		rcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive
 		dcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive		
 						
-	def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0, access = None):
+	def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0, access = None, max_conns = 100):
 		try:
-			self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl, access = access)
+			self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl, access = access, max_conns = max_conns)
 		except:
 			self.wasc.logger.trace ("server")
 	
