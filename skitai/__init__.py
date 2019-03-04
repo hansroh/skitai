@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.7.26"
+__version__ = "0.28.7.27"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -188,14 +188,18 @@ def get_proc_title ():
 			script != "app" and "-" + script or ''
 		)
 	return PROCESS_NAME	
-	
+
+SWD = None	
 def getswd ():
-	return os.path.dirname (os.path.join (os.getcwd (), sys.argv [0]))
+	global SWD
+	if SWD is None:
+		SWD = os.path.dirname (os.path.join (os.getcwd (), sys.argv [0]))
+	return SWD
 
 def is_devel ():
 	return os.environ.get ('SKITAI_ENV') != "PRODUCTION"
 
-def joinpath (*pathes):
+def joinpath (*pathes):	
 	return os.path.normpath (os.path.join (getswd (), *pathes))
 abspath = joinpath
 
