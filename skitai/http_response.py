@@ -232,7 +232,7 @@ class http_response:
             return catch (2, exc_info)
         return catch (1, exc_info)
         
-    def build_error_template (self, why = '', was = None):
+    def build_error_template (self, why = '', errno = 0, was = None):
         global DEFAULT_ERROR_MESSAGE
         
         exc_info = None
@@ -243,7 +243,8 @@ class http_response:
         
         is_html_response = self.request.get_header ('accept', '').find ("text/html") != -1
         error = {
-            'code': self.reply_code,            
+            'code': self.reply_code,    
+            'errno': errno,        
             'message': self.reply_message,
             'detail': why,
             'mode': exc_info and 'debug' or 'normal',
@@ -272,7 +273,7 @@ class http_response:
             return DEFAULT_ERROR_MESSAGE % error
         else:
             return self.fault (
-                error ["message"].lower (), 0, 
+                error ["message"].lower (), errno, 
                 None, 
                 error ["detail"], 
                 exc_info = error ["traceback"]
@@ -546,9 +547,9 @@ class http_response:
     def throw (self, status, why = ""):
         raise exceptions.HTTPError (status, why)
     
-    def with_explain (self, status = "200 OK", why = "", headers = None):
+    def with_explain (self, status = "200 OK", why = "", errcode = None, headers = None):
         self.start_response (status, headers)
-        return self.build_error_template (why)
+        return self.build_error_template (why, errcode)
     
     def API (self, __data_dict__ = None, **kargs):
         if isinstance (__data_dict__, str):
