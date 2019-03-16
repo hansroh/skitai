@@ -107,9 +107,11 @@ def test_was (wasc, app, client):
     assert was.detoken (t) == {"a": 1}
     
     t = was.mktoken ({"a": 1}, session_key = "test")
+    was.session.mount ("test")    
     assert was.session ["_test_token"]    
     assert was.detoken (t) == {"a": 1}
     
+    was.session.mount ("test")    
     was.session ["_test_token"] = 0x00
     assert was.detoken (t) is None
     assert was.session ["_test_token"] is None
@@ -117,6 +119,7 @@ def test_was (wasc, app, client):
     t = was.mktoken ({"a": 1}, session_key = "test")
     assert was.detoken (t) == {"a": 1}
     was.rmtoken (t)
+    was.session.mount ("test")
     assert was.session ["_test_token"] is None
     assert was.detoken (t) is None
     
