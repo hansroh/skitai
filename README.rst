@@ -1746,7 +1746,7 @@ Then,
   
   @app.route (...)  
   def query (was):
-    with was.asyncon ("@mypg") as db:
+    with was.db ("@mypg") as db:
       req = db.excute ("SELECT city, t_high, t_low FROM weather;")
       resp = req.dispatch (2)
       if resp.status != 200:
@@ -1763,7 +1763,7 @@ Basically Skitai handle as same for all kind of external requests.
   
   @app.route (...)  
   def query (was):
-    with was.asyncon ("@mypg") as db:
+    with was.db ("@mypg") as db:
       req = db.excute ("SELECT city, t_high, t_low FROM weather;")
       rows = req.fetch (2)
       
@@ -1785,7 +1785,7 @@ In case database querying, you can use one () method.
 
   @app.route (...)  
   def query (was):
-    with was.asyncon ("@mypg") as db:
+    with was.db ("@mypg") as db:
       hispet = db.excute ("SELECT ... FROM pets").one (2)
  
 If result record count is not 1 (zero or more than 1), raise HTTP 404 error.
@@ -1797,7 +1797,7 @@ If result record count is not 1 (zero or more than 1), raise HTTP 404 error.
   
   @app.route (...)  
   def query (was):
-    with was.asyncon ("@mypg") as db:
+    with was.db ("@mypg") as db:
       reqs = [
         db.excute ("INSERT INTO weather (id, 'New York', 9, 25);"),
         db.excute ("SELECT city, t_high, t_low FROM weather order by id desc limit 1 ;")
@@ -1810,7 +1810,7 @@ Execute and wait or use transaction.
   
   @app.route (...)  
   def query (was):
-    with was.asyncon ("@mypg") as db:
+    with was.db ("@mypg") as db:
       db.excute ("INSERT INTO weather (id, 'New York', 9, 25);").wait_or_throw ()
       latest = db.excute ("SELECT city, t_high, t_low FROM weather order by id desc limit 1 ;").fetch (2)
       # latest  is New York 
@@ -1854,10 +1854,10 @@ Then,
   
   @app.route (...)  
   def query (was):
-    with was.asyncon ("@mymongo") as db:
+    with was.db ("@mymongo") as db:
       documents = db.find ({'city': 'New York'}).fetch (2)
       
-    with was.asyncon ("@myredis") as db:    
+    with was.db ("@myredis") as db:    
       db.set('foo', 'bar').wait ()
       db.get('foo').fetch () # bar
       
@@ -1873,7 +1873,7 @@ For getting concurrent tasks advantages, you request at once as many as possible
   def query (was):
     reqs = was.post ("@pypi/upload...", {data: ...})
     reqs = was.get ("@pypi/somethong..."})
-    with was.asyncon ("@mypg") as db:
+    with was.db ("@mypg") as db:
       reqs.append (db.excute ("SELECT ..."))
       reqs.append (db.excute ("SELECT ..."))     
     
@@ -1951,7 +1951,7 @@ Add mydb members to config file.
 
   @app.route ("/query")
   def query (was, keyword):
-    with was.asyncon.lb ("@mydb") as dbo:    
+    with was.db.lb ("@mydb") as dbo:    
       req = dbo.execute ("SELECT * FROM CITIES;")
       result = req.dispatch (2)
   
@@ -2046,12 +2046,12 @@ For generating query statements,
   @app.route ("/q/<int:id>)
   def q (was, id):
     statement = stocks.select().where(stocks.c.id == id)
-    with was.asyncon ("@mydb") as db:
+    with was.db ("@mydb") as db:
       req = db.execute (statement)
       res = req.dispatch ()
     
     # or short hand  
-    res = was.asyncon ("@mydb").execute (statement).dispatch ()
+    res = was.db ("@mydb").execute (statement).dispatch ()
     res.data
     ...
     
@@ -2152,19 +2152,19 @@ Then you can use setlu () and getlu (),
   @app.route ("/update")
   def update (was):
     # update users tabale
-    was.asyncon ('@mydb').execute (...)
+    was.db ('@mydb').execute (...)
     # update last update time by key string
     was.setlu ('tables.users')
   
   @app.route ("/query1")
   def query1 (was):
     # determine if use cache or not by last update information 'users'
-    was.asyncon ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
+    was.db ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
   
   @app.route ("/query2")
   def query2 (was):
     # determine if use cache or not by last update information 'users'
-    was.asyncon ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
+    was.db ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
 
 It makes helping to reduce the needs for building or managing caches. And the values by setlu() are synchronized between Skitai workers by multiprocessing.Array.
 
@@ -2187,7 +2187,7 @@ Also was.setlu () emits 'model-changed' events. You can handle event if you need
   @app.route ("/update")
   def update (was):
     # update users tabale
-    was.asyncon ('@mydb').execute (...)
+    was.db ('@mydb').execute (...)
     # update last update time by key string
     was.setlu ('tables.users', something...)
   
