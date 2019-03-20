@@ -40,7 +40,7 @@ class Result (rcache.Result):
 	def reraise (self):
 		if self.status_code >= 300:
 			try:
-				self.__response.IS_DB_REQUEST
+				self.__response.expt
 			except AttributeError:
 				# redircting to HTTPError
 				raise exceptions.HTTPError ("%d %s" % (self.status_code, self.reason))
