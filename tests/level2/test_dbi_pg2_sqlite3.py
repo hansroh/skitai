@@ -114,6 +114,6 @@ WHERE stocks.id = 1"""
     r = request.Request (DB_PGSQL, dbpath, None, None, None, (statement,), callback = callback2)
     f.begin_tran (r)
     assert f.out_buffer == ""
-    assert f.exception_class is AttributeError
+    assert isinstance (f.expt, AttributeError)
     
     
