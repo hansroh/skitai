@@ -1790,6 +1790,16 @@ In case database querying, you can use one () method.
  
 If result record count is not 1 (zero or more than 1), raise HTTP 404 error.
 
+With PostgreSQL you can also raise HTTP 409 using returning caluse.
+
+.. code:: python
+
+  @app.route (...)  
+  def query (was):
+    with was.db ("@mypg") as db:
+      hispet = db.excute ("INSERT ... FROM pets RETURNING id").one (2)
+
+If primary key or unique key is duplicated, psycopg2 raises IntegrityError then Skitai raise HTTP 409 Conflict error
 
 *CAUTION*: DO NOT even think your statements will be executed ordered sequencially.
 

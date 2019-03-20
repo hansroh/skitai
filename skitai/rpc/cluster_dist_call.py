@@ -19,6 +19,7 @@ import sys
 import inspect
 from skitai import exceptions
 from skitai import REQFAIL, UNSENT, TIMEOUT, NETERR, NORMAL
+import psycopg2, sqlite3
 
 DEFAULT_TIMEOUT = 10
 WAIT_POLL = False
@@ -67,8 +68,10 @@ class Result (rcache.Result):
 			raise exceptions.HTTPError ("404 Not Found")					
 	
 	def one (self, cache = None, cache_if = (200,)):
-		return self.fetch (cache, cache_if, True)
-
+		try:
+			return self.fetch (cache, cache_if, True)
+		except psycopg2.IntegrityError:
+			raise exceptions.HTTPError ("409 Conflict")
 
 class Results (rcache.Result):
 	def __init__ (self, results, ident = None):
@@ -497,7 +500,10 @@ class ClusterDistCall:
 		return res.fetch (cache, cache_if)
 		
 	def one (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
-		res = self._cached_result or self.dispatch (timeout, reraise = True)
+		try:
+			res = self._cached_result or self.dispatch (timeout, reraise = True)
+		except psycopg2.IntegrityError:
+			raise exceptions.HTTPError ("409 Conflict")
 		return res.one (cache, cache_if)
 		
 	getwait = getswait = dispatch # lower ver compat.
