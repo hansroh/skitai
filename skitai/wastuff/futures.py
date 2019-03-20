@@ -76,11 +76,11 @@ class Futures (TaskBase):
             raise
         except HTTPError as e:
             response.start_response (e.status)
-            content = response.build_error_template (e.explain, e.errno, wss = self._was)
+            content = response.build_error_template (e.explain, e.errno, was = self._was)
         except:            
             self._was.traceback ()
             response.start_response ("502 Bad Gateway")
-            content = response.build_error_template (self._was.app.debug and sys.exc_info () or None, e.errno, wss = self._was)            
+            content = response.build_error_template (self._was.app.debug and sys.exc_info () or None, e.errno, was = self._was)            
        
         if content:
            will_be_push = make_pushables (response, content)
