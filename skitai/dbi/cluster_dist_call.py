@@ -24,11 +24,11 @@ class FailedRequest:
 		self.expt_class = expt_class
 		self.expt_str = expt_str
 		
-		self.code, self.msg = 502, "Bad Gateway"
+		self.code, self.msg = 500, expt_str
 		self.status_code, self.reason = self.code, self.msg  
 	
 	def raise_for_status (self):
-		if self.expt_class:			
+		if self.expt_class:
 			raise self.expt_class (self.expt_str)
 	reraise = raise_for_status
 
@@ -57,17 +57,13 @@ class Dispatcher (cluster_dist_call.Dispatcher):
 		if self.get_status () == TIMEOUT:
 			# timeout, ignore
 			return
-				
+		status = NORMAL				
 		if request.expt_class:
 			if request.expt_str == "Operation Timeout":
 				status = TIMEOUT
-				result = None
-			else:			
-				status = NETERR
-				result = cluster_dist_call.Result (self.id, status, FailedRequest (request.expt_class, request.expt_str), self.ident)									
-		else:	
-			status = NORMAL	
-			result = cluster_dist_call.Result (self.id, status, request, self.ident)	
+			elif request.expt_str == "Socket Panic":
+				status = NETERR			
+		result = cluster_dist_call.Result (self.id, status, request, self.ident)
 		self.set_status (status, result)
 		tuple_cb (self, self.callback)
 				
