@@ -36,10 +36,10 @@ class Result (rcache.Result):
 	def __getattr__ (self, attr):
 		return getattr (self.__response, attr)
 	
-	def reraise (self):		
+	def reraise (self):
 		if self.status_code >= 300:
-			raise exceptions.HTTPError ("502 Bad Gateway", "Upstream server respond as {} {}".format (self.status_code, self.reason))
-		return self	
+			self.__response.raise_for_status ()
+		return self
 			
 	def cache (self, timeout = 60, cache_if = (200,)):
 		if self.status != NORMAL or self.status_code not in cache_if:

@@ -27,7 +27,7 @@ class FailedRequest:
 		self.status_code, self.reason = self.code, self.msg  
 	
 	def raise_for_status (self):
-		if self.expt_class:
+		if self.expt_class:			
 			raise self.expt_class (self.expt_str)
 	reraise = raise_for_status
 
@@ -45,10 +45,11 @@ class Dispatcher (cluster_dist_call.Dispatcher):
 		
 	def get_result (self):
 		if not self.result:
-			if self.get_status () == REQFAIL:
+			status = self.get_status ()
+			if status == REQFAIL:
 				self.result = cluster_dist_call.Result (self.id, REQFAIL, FailedRequest (RequestFailed, "Request Failed"), self.ident)
 			else:
-				self.result = cluster_dist_call.Result (self.id, TIMEOUT, FailedRequest (OperationTimeout, "Operation Timeout"), self.ident)
+				self.result = cluster_dist_call.Result (self.id, TIMEOUT, FailedRequest (OperationTimeout, "Operation Timeout"), self.ident)			
 		return self.result
 					
 	def handle_result (self, request):
@@ -59,12 +60,13 @@ class Dispatcher (cluster_dist_call.Dispatcher):
 		if request.expt_class:
 			if request.expt_str == "Operation Timeout":
 				status = TIMEOUT
-			else:
+				result = None
+			else:			
 				status = NETERR
-		else:
-			status = NORMAL
-		
-		result = cluster_dist_call.Result (self.id, status, request, self.ident)	
+				result = cluster_dist_call.Result (self.id, status, FailedRequest (request.expt_class, request.expt_str), self.ident)									
+		else:	
+			status = NORMAL	
+			result = cluster_dist_call.Result (self.id, status, request, self.ident)	
 		self.set_status (status, result)
 		tuple_cb (self, self.callback)
 				
