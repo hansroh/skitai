@@ -17,13 +17,14 @@ class RequestFailed (Exception):
 	pass
 
 class FailedRequest:
+	IS_DB_REQUEST = True
 	def __init__ (self, expt_class, expt_str):
 		self.description = None
 		self.data = None
 		self.expt_class = expt_class
 		self.expt_str = expt_str
 		
-		self.code, self.msg = 501, "timeout"
+		self.code, self.msg = 502, "Bad Gateway"
 		self.status_code, self.reason = self.code, self.msg  
 	
 	def raise_for_status (self):

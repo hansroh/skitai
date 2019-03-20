@@ -38,7 +38,13 @@ class Result (rcache.Result):
 	
 	def reraise (self):
 		if self.status_code >= 300:
-			self.__response.raise_for_status ()
+			try:
+				self.__response.IS_DB_REQUEST
+			except AttributeError:
+				# redircting to HTTPError
+				raise exceptions.HTTPError ("%d %s" % (self.status_code, self.reason))
+			else:
+				self.__response.raise_for_status ()
 		return self
 			
 	def cache (self, timeout = 60, cache_if = (200,)):
