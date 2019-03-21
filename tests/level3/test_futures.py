@@ -94,14 +94,14 @@ def test_futures (app, dbpath):
         return str (was.Tasks (reqs).wait ())
 
     @app.route ("/10")
-    def index9 (was):
+    def index10 (was):
         reqs = [            
             was.backend ("@sqlite").execute ("INSERT INTO ghost (id) values (1)")            
         ]
         return str (was.Tasks (reqs).commit ())
 
     @app.route ("/11")
-    def index8 (was):
+    def index11 (was):
         reqs = [            
             was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=? limit 0', ('RHAT',)),
             was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=? limit 1', ('RHAT',))
