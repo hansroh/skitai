@@ -16,13 +16,14 @@ class Tasks (TaskBase):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, cache = 0, cache_if = (200,)):
         TaskBase.__init__ (self, reqs, timeout, cache, cache_if)
         self._results = []
+        self._data = []
         
     def __iter__ (self):
         return iter (self.results)
     
     def __getitem__ (self, sliced):
         return self.results [sliced]
-                
+
     @property
     def results (self):       
         return self._results or self.dispatch ()
@@ -31,10 +32,25 @@ class Tasks (TaskBase):
         self._results = [req.dispatch (self.timeout, self.cache, self.cache_if) for req in self.reqs]
         return self._results 
     
+    def fetch (self):
+        if self._data:
+            return self._data
+        self._data = [r.fetch () for r in self.results]
+        return self._data
+
+    def one (self):
+        if self._data:
+            return self._data
+        self._data = [r.one () for r in self.results]
+        return self._data
+
     def wait (self):
         self._results = [req.wait (self.timeout) for req in self.reqs]
-        
-        
+
+    def wait_or_throw (self):
+        self._results = [req.wait_or_throw (self.timeout) for req in self.reqs]
+
+
 class Futures (TaskBase):
     def __init__ (self, was, reqs, timeout = 10, cache = 0, cache_if = (200,)):
         TaskBase.__init__ (self, reqs, timeout, cache, cache_if)

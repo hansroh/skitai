@@ -60,12 +60,14 @@ class Result (rcache.Result):
 	def fetch (self, cache = None, cache_if = (200,), one = False):
 		self.reraise ()
 		cache and self.cache (cache, cache_if)
-		try:
-			if one:
-				return self.data [0]
-			return self.data
-		except IndexError:
-			raise exceptions.HTTPError ("404 Not Found")					
+	
+		if one:
+			if len (self.data) == 0:
+				raise exceptions.HTTPError ("404 Not Found")
+			if len (self.data) != 1:
+				raise exceptions.HTTPError ("409 Conflict")
+			return self.data [0]
+		return self.data
 	
 	def one (self, cache = None, cache_if = (200,)):
 		try:
@@ -472,8 +474,8 @@ class ClusterDistCall:
 		
 		rss = [rs.get_result () for rs in self._results]
 		for rs in rss:
-			if rs.status == NORMAL:
-				continue		
+			if rs.status == NORMAL and rs.status_code < 300:
+				continue
 			self._fail_log (rs.status)
 			reraise and rs.reraise ()
 			
@@ -489,7 +491,7 @@ class ClusterDistCall:
 		self._cached_result = None
 	
 	def dispatch_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
-		return dispatch (timeout, cache, cache_if, reraise = True)
+		return self.dispatch (timeout, cache, cache_if, reraise = True)
 	
 	def wait_or_throw (self, timeout = DEFAULT_TIMEOUT):
 		return self.wait (timeout, True)

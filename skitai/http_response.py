@@ -551,10 +551,11 @@ class http_response:
         self.start_response (status, headers)
         return self.build_error_template (why, errcode)
     
-    def API (self, __data_dict__ = None, **kargs):
-        if isinstance (__data_dict__, str):
-            self.set_status (__data_dict__)
-            __data_dict__ = None
+    def API (self, __status__ = None, __data_dict__ = None, **kargs):
+        if isinstance (__status__, str):
+            self.set_status (__status__)
+        elif isinstance (__status__, dict):
+            __data_dict__ = __status__        
         api = API (self.request, __data_dict__ or kargs)
         self.update ("Content-Type", api.get_content_type ())
         return api
