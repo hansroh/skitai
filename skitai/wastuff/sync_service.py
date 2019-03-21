@@ -10,7 +10,7 @@ import random
 from urllib.parse import urlparse, urlunparse       
 from skitai import exceptions
 import xmlrpc.client
-
+import sys
 
 class RPCResponse:
     def __init__ (self, val):
@@ -51,19 +51,28 @@ class Result:
             return self.__response.text
         return self.__response    
     
+    def reraise (self):
+        if self.status !=3 and self.__response:            
+            raise self.__response [1]
+
     def fetch (self, *args, **kargs):
+        self.reraise ()
         return self.data
     
     def one (self, *args, **kargs):
-        try: 
-            return self.data [0]
-        except IndexError:
+        self.reraise ()
+        if not self.data:
             raise exceptions.HTTPError ("404 Not Found")
+        elif len (self.data) != 1:
+            raise exceptions.HTTPError ("409 Conflict")
+        return self.data [0]
+            
 
 class ProtoCall (cluster_dist_call.ClusterDistCall):
     def __init__ (self, cluster, *args, **kargs):
         self.cluster = cluster
         self.result = None        
+        self.expt = None
         self.handle_request (*args, **kargs)       
     
     def get_endpoint (self, uri):
@@ -96,7 +105,8 @@ class ProtoCall (cluster_dist_call.ClusterDistCall):
             try:
                 resp = req_func (uri, headers = headers, auth = auth)                                
             except:
-                self.result = Result (1)
+                self.expt = sys.exc_info ()
+                self.result = Result (1, self.expt)
             else:
                 self.result = Result (3, resp)        
         self.result.meta = meta or {}
@@ -107,12 +117,14 @@ class ProtoCall (cluster_dist_call.ClusterDistCall):
             self.result.meta ["__reqid"] = reqid                        
         tuple_cb (self.result, callback)
         
-    def wait (self):
+    def wait (self, timeout = 10, *args, **karg):
         pass
     
-    def _or_throw (self, func, timeout, cache):
-        if self.result.status != 3:        
-            raise exceptions.HTTPError ("502 Bad Gateway", sys.exc_info ())
+    def _or_throw (self):
+        if self.expt:
+            raise exceptions.HTTPError ("700 Exception", self.expt)
+        if self.result.status_code >= 300:
+            raise exceptions.HTTPError ("{} {}".format (self.result.status_code, self.result.reason))
         return self.result
             
     def dispatch (self, *args, **kargs):
@@ -126,13 +138,16 @@ class ProtoCall (cluster_dist_call.ClusterDistCall):
         self.dispatch ()
         return self._or_throw ()
     
-    def wait_or_throw (self):    
+    def commit (self, *args, **karg): 
         return self._or_throw ()
+    wait_or_throw = commit    
             
-    def fetch (self, timeout = 10):
+    def fetch (self, timeout = 10, *args, **karg):
+        self._or_throw ()
         return self.result.fetch ()
         
-    def one (self, timeout = 10):
+    def one (self, timeout = 10, *args, **karg):
+        self._or_throw ()
         return self.result.one ()    
     
 class DBCall (ProtoCall):
@@ -140,13 +155,19 @@ class DBCall (ProtoCall):
         self.cluster = cluster
         self.result = None
         self.args, self.kargs = args, kargs
+        self.expt = None
         try:
             from sqlalchemy.dialects import postgresql
         except ImportError:
             self.dialect = None
         else:
             self.dialect = postgresql.dialect ()
-        
+
+    def _or_throw (self):
+        if self.expt:
+            raise self.expt [1]
+        return self.result
+
     def _compile (self, params):
         statement = params [0]
         if isinstance(statement, str):
@@ -182,8 +203,8 @@ class DBCall (ProtoCall):
             else:
                 resp = getattr (conn, method) (*param)
         except:
-            raise
-            self.result = Result (1)            
+            self.expt = sys.exc_info ()
+            self.result = Result (1,  self.expt)            
             self.result.status_code, self.result.reason = 500, "Exception Occured"            
         else:
             self.result = Result (3, resp)

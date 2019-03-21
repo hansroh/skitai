@@ -32,6 +32,9 @@ class Tasks (TaskBase):
         self._results = [req.dispatch (self.timeout, self.cache, self.cache_if) for req in self.reqs]
         return self._results 
     
+    def wait (self):
+        self._results = [req.wait (self.timeout) for req in self.reqs]
+
     def fetch (self):
         if self._data:
             return self._data
@@ -44,11 +47,10 @@ class Tasks (TaskBase):
         self._data = [r.one () for r in self.results]
         return self._data
 
-    def wait (self):
-        self._results = [req.wait (self.timeout) for req in self.reqs]
-
-    def wait_or_throw (self):
-        self._results = [req.wait_or_throw (self.timeout) for req in self.reqs]
+    def commit (self):
+        self.wait ()
+        [r.reraise () for r in self.results]        
+    wait_or_throw = commit
 
 
 class Futures (TaskBase):

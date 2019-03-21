@@ -1682,8 +1682,10 @@ For more pretty code styling, use Tasks.
     reqs = [
     	was.get (url),
     	was.post (url, {"user": "Hans Roh", "comment": "Hello"})
-    ]
-    return [ rs.fetch () rs in was.Tasks (reqs, timeout = 3) ]
+    ]    
+    return was.API (data = [ rs.fetch () rs in was.Tasks (reqs, timeout = 3) ])
+    # or with shortcut,
+    return was.API (data = was.Tasks (reqs, timeout = 3).fetch ())
 
 Tasks is iterable and slicable and returened rs is response object (by dispatch ()). You SHOULD check rs.status and status_code for validating response, or just use fetch () for raising error if invalid.
 
@@ -1775,7 +1777,7 @@ If you needn't returned data and just wait for completing query,
 
 .. code:: python
 
-    db.execute ("INSERT INTO CITIES VALUES ('New York');").wait_or_throw (2)
+    db.execute ("INSERT INTO CITIES VALUES ('New York');").commit (2)
 
 If failed, exception will be raised.
 
@@ -1821,7 +1823,7 @@ Execute and wait or use transaction.
   @app.route (...)  
   def query (was):
     with was.db ("@mypg") as db:
-      db.excute ("INSERT INTO weather (id, 'New York', 9, 25);").wait_or_throw ()
+      db.excute ("INSERT INTO weather (id, 'New York', 9, 25);").commit ()
       latest = db.excute ("SELECT city, t_high, t_low FROM weather order by id desc limit 1 ;").fetch (2)
       # latest  is New York 
 
