@@ -4,10 +4,10 @@ image: python:3.6-stretch
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
-cache:
-  paths:
+#cache:
+#  paths:
 #- .cache/pip
-    - venv/
+#    - venv/
 
 before_script:
   - python -V               # Print out python version for debugging
@@ -15,8 +15,8 @@ before_script:
   - virtualenv venv
   - source venv/bin/activate
   - pip install -U --pre aquests rs4 atila sqlphile dnn tfserver
-  - python setup.py build install
   - pip install -Ur tests/requirements.txt
+  - python setup.py build install
 
 test:
   script:
