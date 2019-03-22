@@ -29,7 +29,11 @@ def test_params (wasc, app, client):
 	@app.route ("/do5/<u>", methods = ["GET", "POST"])
 	def index5 (was, u, a):
 		return z (was)
-		
+
+	@app.route ("/do6", methods = ["GET", "POST"])
+	def index6 (was, a):
+		return z (was)
+
 	# WSGI
 	vh = testutil.install_vhost_handler ()
 	root = confutil.getroot ()
@@ -40,17 +44,26 @@ def test_params (wasc, app, client):
 	resp = assert_request (vh, request, 200)	
 	assert resp.text == ""
 	
-	request = client.get ("http://www.skitai.com/do?a=1")	
+	request = client.get ("http://www.skitai.com/do6?a=1")	
 	resp = assert_request (vh, request, 200)
 	assert resp.text == "a"
+	
+	request = client.post ("http://www.skitai.com/do6", {'a': 1})
+	resp = assert_request (vh, request, 200)
+	assert resp.text == "a"
+	
+	request = client.postjson ("http://www.skitai.com/do6", {'a': 1})
+	resp = assert_request (vh, request, 200)
+	assert resp.text == "a"
+	
+	request = client.get ("http://www.skitai.com/do?a=1")	
+	resp = assert_request (vh, request, 200)	
 	
 	request = client.post ("http://www.skitai.com/do", {'a': 1})
 	resp = assert_request (vh, request, 200)
-	assert resp.text == "a"
 	
 	request = client.postjson ("http://www.skitai.com/do", {'a': 1})
 	resp = assert_request (vh, request, 200)
-	assert resp.text == "a"
 	
 	#----------------------------------------
 	
@@ -78,7 +91,7 @@ def test_params (wasc, app, client):
 	#------------------------------------------
 	
 	request = client.post ("http://www.skitai.com/do3/1", {'a': 1})
-	resp = assert_request (vh, request, 500)
+	resp = assert_request (vh, request, 200)
 	
 	request = client.post ("http://www.skitai.com/do4/1?a=1", {'b': 1})
 	resp = assert_request (vh, request, 200)

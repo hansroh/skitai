@@ -6,37 +6,37 @@ import re
 def test_error_handler (app):
     @app.route ("/")
     @app.parameters_required ("URL", ["limit"])
-    def index (was):
+    def index (was, limit):
         return ""
     
     @app.route ("/2")
     @app.parameters_required ("FORM", ["limit"])
-    def index2 (was):
+    def index2 (was, limit):
         return ""
     
     @app.route ("/3")
     @app.parameters_required ("JSON", ["limit"])
-    def index3 (was):
+    def index3 (was, limit):
         return ""
     
     @app.route ("/4")
     @app.parameters_required ("ARGS", ["limit"])
-    def index4 (was):
+    def index4 (was, limit):
         return ""
     
     @app.route ("/5")
     @app.parameters_required ("ARGS", emails = ["email"], uuids = ["uuid"])
-    def index5 (was):
+    def index5 (was, email = None, uuid = None):
         return ""
 
     @app.route ("/6")
     @app.parameters_required ("ARGS", a__gte = 5, b__between = (-4, -1), c__in = (1, 2))
-    def index6 (was):
+    def index6 (was, **url):
         return ""
 
     @app.route ("/7")
     @app.parameters_required ("ARGS", a = re.compile ("^hans"), b__len__between = (4, 8))
-    def index7 (was):
+    def index7 (was, a = None, b = None):
         return ""
 
     with app.test_client ("/", confutil.getroot ()) as cli:        

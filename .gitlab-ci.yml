@@ -6,8 +6,8 @@ variables:
 
 #cache:
 #  paths:
-#- .cache/pip
-#    - venv/
+#  - .cache/pip
+#  - venv/
 
 before_script:
   - python -V               # Print out python version for debugging
@@ -24,4 +24,3 @@ test:
   - ./test-all.sh
   only:
   - master
-

@@ -94,7 +94,7 @@ def test_cli (app, dbpath):
         assert resp.text == "Hello, World"
         
         resp = cli.get ("/petse/1")
-        assert resp.status_code == 500
+        assert resp.status_code == 400
         
         resp = cli.get ("/pets/1")
         assert resp.status_code == 200
