@@ -35,6 +35,8 @@ class http_request:
 		self._is_promise = False		
 		self._xmlrpc_serialized = False # used by testuitl.client
 		self.args = {}
+
+		self.PARAMS = {}
 		self.URL = {}
 		self.JSON = None
 		self.FORM = None
