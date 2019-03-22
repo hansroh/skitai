@@ -533,7 +533,7 @@ class http_response:
         return self.Fault (status, message, code, None, more_info)
     
     def fault (self, message = "", code = 0, debug = None, more_info = None, exc_info = None, traceback = False):
-        api = self.api ()
+        api = self.API ()
         if not code:
             code = int (self.reply_code) * 100 + (traceback and 90 or 0)
         if traceback:
@@ -555,7 +555,8 @@ class http_response:
         if isinstance (__status__, str):
             self.set_status (__status__)
         elif isinstance (__status__, dict):
-            __data_dict__ = __status__        
+            __data_dict__ = __status__
+        assert not (__data_dict__ and kargs), "API cannot take both dictionary and keyword arguments"
         api = API (self.request, __data_dict__ or kargs)
         self.update ("Content-Type", api.get_content_type ())
         return api
