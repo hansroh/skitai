@@ -24,7 +24,7 @@ def test_route_root (app, dbpath):
         if t == 5:
             return was.API ({"data": 1})
         if t == 9:
-            return was.API ("201 Created", {"data": 1}, data = 1)
+            return was.API ("201 Created", {"data": 1}, data = 2)
 
     with app.test_client ("/", confutil.getroot ()) as cli:
         api = cli.api ()
@@ -52,4 +52,5 @@ def test_route_root (app, dbpath):
         assert resp.data == {"data": 1}
 
         resp = api.index.get (t = 9)
-        assert resp.status_code == 502         
+        assert resp.status_code == 201 
+        assert resp.data == {"data": 2}        
