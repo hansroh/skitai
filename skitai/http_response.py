@@ -539,8 +539,7 @@ class http_response:
         if traceback:
             api.traceback (message, code, debug or "see traceback", more_info)
         else:    
-            api.error (message, code, debug, more_info, exc_info)
-        self.update ("Content-Type", api.get_content_type ())            
+            api.error (message, code, debug, more_info, exc_info)        
         return api
     eapi = fault # will be derecating
     
@@ -556,7 +555,8 @@ class http_response:
             self.set_status (__status__)
         elif isinstance (__status__, dict):
             __data_dict__ = __status__
-        assert not (__data_dict__ and kargs), "API cannot take both dictionary and keyword arguments"
+        if __data_dict__ and kargs:
+            __data_dict__.update (kargs)
         api = API (self.request, __data_dict__ or kargs)
         self.update ("Content-Type", api.get_content_type ())
         return api
