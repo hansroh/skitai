@@ -382,7 +382,10 @@ class ClusterDistCall:
     
     def _collect (self, rs):
         with self._cv:
-            asyncon = self._requests.pop (rs)
+            try:
+                asyncon = self._requests.pop (rs)
+            except KeyError:
+                return
                 
         status = rs.get_status ()
         if status == REQFAIL:
