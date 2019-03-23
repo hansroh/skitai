@@ -4,17 +4,17 @@ from ..exceptions import HTTPError
 from ..rpc.cluster_dist_call import DEFAULT_TIMEOUT
 
 class TaskBase:
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, cache = 0, cache_if = (200,)):
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, cache_timeout = 0, cache_if = (200,)):
         assert isinstance (reqs, (list, tuple))        
         self.timeout = timeout        
-        self.cache = cache
+        self.cache_timeout = cache_timeout
         self.cache_if = cache_if
         self.reqs = reqs        
 
 
 class Tasks (TaskBase):
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, cache = 0, cache_if = (200,)):
-        TaskBase.__init__ (self, reqs, timeout, cache, cache_if)
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, cache_timeout = 0, cache_if = (200,)):
+        TaskBase.__init__ (self, reqs, timeout, cache_timeout, cache_if)
         self._results = []
         self._data = []
         
@@ -29,7 +29,7 @@ class Tasks (TaskBase):
         return self._results or self.dispatch ()
     
     def dispatch (self):
-        self._results = [req.dispatch (self.timeout, self.cache, self.cache_if) for req in self.reqs]
+        self._results = [req.dispatch (self.timeout, self.cache_timeout, self.cache_if) for req in self.reqs]
         return self._results 
     
     def wait (self):
@@ -49,12 +49,14 @@ class Tasks (TaskBase):
 
     def commit (self):
         self._results = [req.commit (self.timeout) for req in self.reqs] 
-    wait_or_throw = commit
-
+    
+    def cache (self, cache = 60, cache_if = (200,)):
+        [r.cache (cache, cache_if) for r in self.results]
+        
 
 class Futures (TaskBase):
-    def __init__ (self, was, reqs, timeout = 10, cache = 0, cache_if = (200,)):
-        TaskBase.__init__ (self, reqs, timeout, cache, cache_if)
+    def __init__ (self, was, reqs, timeout = 10, cache_timeout = 0, cache_if = (200,)):
+        TaskBase.__init__ (self, reqs, timeout, cache_timeout, cache_if)
         self._was = was
         self.args = {}
         self.fulfilled = None
@@ -72,7 +74,7 @@ class Futures (TaskBase):
         self.responded += 1
         reqid = res.meta ["__reqid"]
         self.ress [reqid] = res
-        self.cache and res.cache (self.cache, self.cache_if)
+        self.cache_timeout and res.cache (self.cache_timeout, self.cache_if)
         if self.responded == len (self.reqs):
             if self.fulfilled:             
                 self.respond ()
@@ -82,7 +84,7 @@ class Futures (TaskBase):
             
     def respond (self):
         response = self._was.response         
-        try:            
+        try:
             if self.args:
                 content = self.fulfilled (self._was, self.ress, **self.args)
             else:
