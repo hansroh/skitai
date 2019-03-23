@@ -487,8 +487,7 @@ class ClusterDistCall:
         return self._cached_result    
     
     def wait (self, timeout = DEFAULT_TIMEOUT, reraise = False):
-        self.dispatch (timeout, reraise = reraise)
-        self._cached_result = None
+        return self.dispatch (timeout, reraise = reraise)        
     
     def dispatch_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
         return self.dispatch (timeout, cache, cache_if, reraise = True)

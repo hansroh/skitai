@@ -48,8 +48,7 @@ class Tasks (TaskBase):
         return self._data
 
     def commit (self):
-        self.wait ()
-        [r.reraise () for r in self.results]        
+        self._results = [req.commit (self.timeout) for req in self.reqs] 
     wait_or_throw = commit
 
 
