@@ -40,10 +40,10 @@ def test_parameters (app):
         assert resp.status_code == 200
 
         resp = cli.get ("/6/1")
-        assert resp.status_code == 400
+        assert resp.status_code == 530
 
         resp = cli.get ("/1/1")
-        assert resp.status_code == 400
+        assert resp.status_code == 530
 
         resp = cli.get ("/2/1")
         assert resp.status_code == 200

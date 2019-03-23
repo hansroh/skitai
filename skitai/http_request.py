@@ -54,9 +54,6 @@ class http_request:
 	def set_args (self, args):
 		self.args = self._override_defaults (args)
 	
-	def set_urlparam (self, dict):
-		self.URL = dict
-	
 	@property
 	def DEFAULT (self):
 		try:
