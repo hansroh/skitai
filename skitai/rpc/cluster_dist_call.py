@@ -460,12 +460,6 @@ class ClusterDistCall:
             rs.set_status (TIMEOUT)
             asyncon.handle_abort () # abort imme            
             self._collect (rs)
-            
-    def cache (self, cache = 60, cache_if = (200,)):
-        if self._cached_result is None:
-            raise ValueError("call dispatch first")        
-        self._cached_result.cache (cache, cache_if)
-        return self
                     
     def dispatch (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,), wait = True, reraise = False):
         if self._cached_result is not None:
@@ -486,17 +480,18 @@ class ClusterDistCall:
         cache and self.cache (cache, cache_if)
         return self._cached_result    
     
-    def wait (self, timeout = DEFAULT_TIMEOUT, reraise = False):
-        return self.dispatch (timeout, reraise = reraise)        
-    
     def dispatch_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
         return self.dispatch (timeout, cache, cache_if, reraise = True)
     
-    def commit (self, timeout = DEFAULT_TIMEOUT):
-        return self.wait (timeout, True)
-    wait_or_throw = commit
+    def wait (self, timeout = DEFAULT_TIMEOUT, reraise = False):
+        return self.dispatch (timeout, reraise = reraise)        
     
-    # direct access to data ----------------------------------------------    
+    def wait_or_throw (self, timeout = DEFAULT_TIMEOUT):
+        return self.wait (timeout, True)
+
+    # direct access to data ----------------------------------------------        
+    commit = wait_or_throw
+
     def fetch (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
         res = self._cached_result or self.dispatch (timeout, reraise = True)
         return res.fetch (cache, cache_if)
@@ -507,6 +502,12 @@ class ClusterDistCall:
         except psycopg2.IntegrityError:
             raise exceptions.HTTPError ("409 Conflict")
         return res.one (cache, cache_if)
+
+    def cache (self, cache = 60, cache_if = (200,)):
+        if self._cached_result is None:
+            raise ValueError("call dispatch first")        
+        self._cached_result.cache (cache, cache_if)
+        return self
         
     getwait = getswait = dispatch # lower ver compat.
     getwait_or_throw = getswait_or_throw = dispatch_or_throw # lower ver compat.
