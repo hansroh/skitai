@@ -176,7 +176,7 @@ class DBCall (ProtoCall):
             return (str (statement.compile (dialect = self.dialect, compile_kwargs = {"literal_binds": True})),)            
         else:
             raise ValueError ("SQL statement error")                
-        return ""  
+        return ""
         
     def _build_request (self, method, param):
         self.handle_request (method, param, *self.args, **self.kargs)

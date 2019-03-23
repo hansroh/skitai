@@ -27,11 +27,11 @@ def test_default_handler (wasc, client):
 @pytest.mark.run (order = 2)	
 def test_wsgi_handler (wasc, app, client):
 	@app.route ("/")
-	def index (was):
+	def index (was, a = 0):
 		return "Hello"
 	
 	@app.route ("/json")
-	def json (was):
+	def json (was, a):
 		return "Hello"
 	
 	@app.route ("/rpc2/add")
@@ -41,6 +41,7 @@ def test_wsgi_handler (wasc, app, client):
 	# WSGI
 	vh = testutil.install_vhost_handler ()
 	testutil.mount ("/", (app, confutil.getroot ()), skitai.pref ())
+
 	request = client.get ("http://www.skitai.com/")	
 	resp = assert_request (vh, request, 200)	
 	assert resp.text == "Hello"

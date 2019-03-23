@@ -35,6 +35,8 @@ class http_request:
 		self._is_promise = False		
 		self._xmlrpc_serialized = False # used by testuitl.client
 		self.args = {}
+
+		self.PARAMS = {}
 		self.URL = {}
 		self.JSON = None
 		self.FORM = None
@@ -51,9 +53,6 @@ class http_request:
 		
 	def set_args (self, args):
 		self.args = self._override_defaults (args)
-	
-	def set_urlparam (self, dict):
-		self.URL = dict
 	
 	@property
 	def DEFAULT (self):

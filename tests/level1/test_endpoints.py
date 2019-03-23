@@ -22,6 +22,9 @@ def test_cluster_manager (dbpath):
         db.select ("stocks").execute ()
         assert "id" in db.fetchall (True)[0]
 
+    if not os.environ.get ("PGPASSWORD", ""):
+        return
+        
     m = cluster_manager.ClusterManager ("pg", ["postgres:{}@192.168.0.80/aw1".format (os.environ.get ("PGPASSWORD", ""))])    
     try:
         conn = m.getconn ()
