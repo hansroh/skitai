@@ -27,6 +27,11 @@ def test_error_handler (app):
     def index2 (was, id = None):
         return ""
 
+    @app.route ("/animals2/<int:id>", methods = ["GET", "DELETE", "PATCH"])
+    @app.permission_required (id = ["staff"])
+    def index3 (was, id = None):
+        return ""
+
     with app.test_client ("/", confutil.getroot ()) as cli:        
         resp = cli.get ("/")
         assert resp.status_code == 200
@@ -45,4 +50,18 @@ def test_error_handler (app):
 
         resp = cli.delete ("/animals/1")
         assert resp.status_code == 402
+        
+        resp = cli.get ("/animals2/them")
+        assert resp.status_code == 404
 
+        resp = cli.get ("/animals2/me")
+        assert resp.status_code == 200
+
+        resp = cli.get ("/animals2/notme")
+        assert resp.status_code == 403
+
+        resp = cli.delete ("/animals2/notme")
+        assert resp.status_code == 421
+
+        resp = cli.patch ("/animals2/notme", {})
+        assert resp.status_code == 421
