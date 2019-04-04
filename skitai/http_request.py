@@ -6,6 +6,20 @@ from rs4.attrdict import CaseInsensitiveDict
 from aquests.protocols.http import http_util
 from rs4 import jwt
 
+class JWTUser:
+    def __init__ (self, claims):
+        self.__claims = claims
+    
+    @property
+    def name (self):
+        return self.__claims ["username"]
+        
+    def __getattr__ (self, attr):
+        return self.__claims.get (attr)
+            
+    def __str__ (self):
+        return self.name
+
 class http_request:
     response_class = http_response.http_response
     version = "1.1"
@@ -115,7 +129,7 @@ class http_request:
 
         self._jwt = claims    
         if "username" in claims:
-            self.request.user = JWTUser (claims)        
+            self.user = JWTUser (claims)        
         return claims
 
     def json (self, ct = None):
