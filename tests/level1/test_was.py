@@ -146,4 +146,7 @@ def test_was (wasc, app, client):
     with pytest.raises(AttributeError):
         was.django
 
+    salt, sig = was.encrypt_password ("111111")
+    assert was.verify_password ("111111", salt, sig)
+    
     
