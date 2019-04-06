@@ -75,6 +75,10 @@ class Result (rcache.Result):
         except psycopg2.IntegrityError:
             raise exceptions.HTTPError ("409 Conflict")
 
+    def commit (self):
+        self.reraise ()
+    
+    
 class Results (rcache.Result):
     def __init__ (self, results, ident = None):
         self.results = results
