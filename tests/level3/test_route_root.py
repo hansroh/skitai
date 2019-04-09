@@ -18,4 +18,3 @@ def test_route_root (app, dbpath):
         
         resp = cli.get ("/hello")
         assert resp.text == "Hello, World"
-        
