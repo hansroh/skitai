@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.8.6"
+__version__ = "0.28.9"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -20,7 +20,7 @@ from . import lifetime
 from . import mounted
 
 if "---production" in sys.argv:
-	os.environ ["SKITAI_ENV"] = "PRODUCTION"	
+	os.environ ["SKITAI_ENV"] = "PRODUCTION"
 
 def test_client (*args, **kargs):
 	from .testutil.launcher import Launcher

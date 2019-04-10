@@ -87,15 +87,16 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 			accept_gzip = "gzip"
 
 		try:
-			self.response = ProxyResponse (self.request, buffer.decode ("utf8"), accept_gzip, self.client_request, self.asyncon)
-			if self.handle_response_code ():				
+			response = ProxyResponse (self.request, buffer.decode ("utf8"), accept_gzip, self.client_request, self.asyncon)
+			if self.handle_response_code (response):				
 				return
 		except http_request_handler.ProtocolSwitchError:
 			return self.asyncon.handle_close (716)			
 		except:
 			self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
 			return self.asyncon.handle_close (715)
-			
+		self.response = response
+
 		if self.will_open_tunneling ():
 			self.create_tunnel ()
 			self.close_case ()			
