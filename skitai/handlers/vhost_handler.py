@@ -21,7 +21,7 @@ class VHost:
 			self.access_handler = None
 			alternative_handlers = [self.proxypass_handler]
 		alternative_handlers.append (websocket_handler.Handler (self.wasc, self.apps))
-		alternative_handlers.append (wsgi_handler.Handler (self.wasc, self.apps))
+		alternative_handlers.append (wsgi_handler.Handler (self.wasc, self.apps))		
 		self.default_handler = default_handler.Handler (self.wasc, {}, static_max_ages, alternative_handlers)		
 		self.handlers.append (http2_handler.Handler (self.wasc, self.default_handler))
 		

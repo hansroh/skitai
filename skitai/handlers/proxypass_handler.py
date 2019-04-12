@@ -8,8 +8,12 @@ class Handler (proxy_handler.Handler):
 		self.route_map = {}
 		self.sorted_route_map = []
 	
-	def add_route (self, route, cname):		
-		self.route_map [route] = (cname, len (route))
+	def add_route (self, route, cname):
+		try:
+			cname, mapped_path = cname.split ("/", 1)
+		except ValueError:
+			cname, mapped_path = cname, ''
+		self.route_map [route] = (cname, len (route), mapped_path)
 		temp = list (self.route_map.items ())
 		temp.sort (key = lambda x: x [1][1], reverse = True)
 		self.sorted_route_map = temp
@@ -18,10 +22,10 @@ class Handler (proxy_handler.Handler):
 		return self.find_cluster (request) and 1 or 0
 				
 	def find_cluster (self, request):
-		uri = request.uri
-		for route, (cname, route_len) in self.sorted_route_map:
-			if uri.startswith (route):
-				return self.clusters [cname], route_len
+		uri = request.uri		
+		for route, (cname, route_len, mapped_path) in self.sorted_route_map:			
+			if uri.startswith (route):								
+				return self.clusters [cname], route_len, mapped_path
 		
 	def will_open_tunneling (self):
 		return self.response.code == 101 # websocket connection upgrade
@@ -40,11 +44,13 @@ class Handler (proxy_handler.Handler):
 			request.response.error (500, "", "Routing failed. Please contact administator.")
 	
 	def route (self, request, collector):
-		current_cluster, route_len  = self.find_cluster (request)
+		current_cluster, route_len, mapped_path  = self.find_cluster (request)
 		psysicaluri = request.uri [route_len:]
 		if psysicaluri == "": psysicaluri = "/"
 		elif psysicaluri[0] != "/": psysicaluri = "/" + psysicaluri
-		
+		if mapped_path:
+			psysicaluri = "/" + mapped_path + psysicaluri
+
 		request.loadbalance_retry += 1
 		retry = request.loadbalance_retry
 		asyncon = current_cluster.get (index = -1)

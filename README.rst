@@ -1954,8 +1954,17 @@ It just small change from was.jsonrpc () to was.jsonrpc.lb ()
     skitia.mount ("/search", '@mysearch')
     skitai.run ()
   
-It can be accessed from http://127.0.0.1:5000/search, and handled as load-balanced proxypass.
+It can be accessed from http://127.0.0.1:5000/search, and handled as load-balanced proxypass. And it will be remapped to http://s1.myserver.com/.
 
+If you mount like this,
+
+.. code:: bash
+
+  skitia.mount ("/search", '@mysearch/search')
+
+It can be accessed from same URL, but it will be remapped to http://s1.myserver.com/search.
+
+  
 This sample is to show loadbalanced querying database.
 Add mydb members to config file.
 
