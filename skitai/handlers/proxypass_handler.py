@@ -13,6 +13,8 @@ class Handler (proxy_handler.Handler):
 			cname, mapped_path = cname.split ("/", 1)
 		except ValueError:
 			cname, mapped_path = cname, ''
+		else:
+			cname, mapped_path = cname, "/" + mapped_path
 		self.route_map [route] = (cname, len (route), mapped_path)
 		temp = list (self.route_map.items ())
 		temp.sort (key = lambda x: x [1][1], reverse = True)
@@ -49,7 +51,7 @@ class Handler (proxy_handler.Handler):
 		if psysicaluri == "": psysicaluri = "/"
 		elif psysicaluri[0] != "/": psysicaluri = "/" + psysicaluri
 		if mapped_path:
-			psysicaluri = "/" + mapped_path + psysicaluri
+			psysicaluri = mapped_path + psysicaluri
 
 		request.loadbalance_retry += 1
 		retry = request.loadbalance_retry
