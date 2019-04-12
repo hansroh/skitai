@@ -53,7 +53,7 @@ class Handler (proxy_handler.Handler):
 
 		request.loadbalance_retry += 1
 		retry = request.loadbalance_retry
-		asyncon = current_cluster.get (index = -1)
+		asyncon = current_cluster.get (index = -1)		
 		
 		if not asyncon: 
 			request.logger ("nopool-%d, url: %s, cluster index: %d" % (

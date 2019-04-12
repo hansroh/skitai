@@ -33,7 +33,7 @@ def dnserror (was):
 def documentation (was):
     req = was.get ("https://pypi.org/project/skitai/", headers = [("Accept", "text/html")])
     pypi_content = "<h4><p>It seems some problem at <a href='https://pypi.python.org/pypi/skitai'>PyPi</a>.</p></h4><p>Please visit <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></p>"    
-    rs = req.dispatch (10, cache = 60)
+    rs = req.dispatch (10, cache = 60)    
     if rs.data:
         content = rs.data.decode ("utf8")
         s = content.find ('<div class="project-description">')

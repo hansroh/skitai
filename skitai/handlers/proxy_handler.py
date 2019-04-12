@@ -119,14 +119,18 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		
 		self.buffer, self.response = b"", None
 		self.asyncon.set_terminator (b"\r\n\r\n")		
+		
 		if self.client_request.get_header ('content-type', '').startswith ('application/grpc'):
-			self.should_http2 = True
+			self.should_http2 = True			
+		elif self.asyncon.is_ssl:
+			self.asyncon.negotiate_http2 (False)
+
 		if self.request.method != "connect" and not self.should_http2:
 			self.asyncon.push (self.get_request_header ())
 			payload = self.get_request_payload ()
 			if payload:
 				# don't init_send cause of producer has no data yet
-				self.asyncon.push_with_producer (payload, init_send = False)
+				self.asyncon.push_with_producer (payload, init_send = False)		
 		self.asyncon.begin_tran (self)
 	
 	def get_request_payload (self):

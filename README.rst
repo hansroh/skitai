@@ -2293,6 +2293,7 @@ Change Log
 
 - 0.28 (Feb 2019)
   
+  - fix https proxypass, and add proxypass remapping
   - add was.transaction ()
   - update psycopg2 connection parameter: async => async\_ for Py3.7 compatablity  
   - replace from data_or_thow (), one_or_throw () to fetch (), one ()  	
