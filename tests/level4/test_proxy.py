@@ -1,7 +1,7 @@
 import pytest
 import requests
     
-def test_http2_server_push (launch):
+def test_proxy (launch):
     proxies = {
         'http': 'http://127.0.0.1:30371',
         'https': 'http://127.0.0.1:30371',
