@@ -117,12 +117,15 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 	def handle_request (self):
 		if not self.client_request.channel: return
 		
+		if self.asyncon.isconnected () and self.asyncon.get_proto ():			
+			return self.switch_to_http2 ()
+
 		self.buffer, self.response = b"", None
 		self.asyncon.set_terminator (b"\r\n\r\n")		
 		
 		if self.client_request.get_header ('content-type', '').startswith ('application/grpc'):
 			self.should_http2 = True			
-		elif self.asyncon.is_ssl:
+		elif self._ssl:
 			self.asyncon.negotiate_http2 (False)
 
 		if self.request.method != "connect" and not self.should_http2:
