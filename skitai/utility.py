@@ -30,36 +30,21 @@ def crack_query (r):
             t, k = k.split (":", 1)
         except ValueError:
             t = "str"
-            
-        if len (each) == 2:        
+
+        if len (each) == 2:
             v = unquote_plus(each[1])
             if t == "str":
                 pass
-            elif t == "int":
+            elif t in ("i", "int"):
                 v = int (v)
-            elif t == "float":
+            elif t in ("n", "null"):
+                v = None    
+            elif t in ("f", "float"):
                 v = float (v)
-            elif t == "list":
+            elif t in ("l", "list"):
                 v = v.split (",")
-            elif t == "bit":
+            elif t in ("b", "bool"):
                 v = v.lower () in ("1", "true", "yes")
-            elif t == "json":
-                v = json.loads (v)
-                
-        else:
-            v = ""            
-            if t == "str":
-                pass
-            elif t == "int":
-                v = 0
-            elif t == "float":
-                v = 0.0
-            elif t == "list":
-                v = []
-            elif t == "bit":
-                v = False
-            elif t == "json":
-                v = {}
                 
         if k in arg:
             if type (arg [k]) is not type ([]):

@@ -6,9 +6,9 @@ from skitai import DB_SQLITE3, DB_PGSQL, DB_REDIS, DB_MONGODB
 import multiprocessing
 
 CPU_COUNT = multiprocessing.cpu_count ()
-PGPOOL= None
+PGPOOL = None
 
-def make_endpoints (dbtype, from_list):     
+def make_endpoints (dbtype, from_list):
     global PGPOOL, CPU_COUNT
        
     endpoints = []        
