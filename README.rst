@@ -1851,6 +1851,76 @@ With context manager, connection will return back to the pool automatically  els
 In transaction mode, standard DBAPI - rollback (), fetchall (), fetchone () and fetchmany () are also possible but caching is not.
 
 
+Using SQLPhile for Querying
+----------------------------------------------
+
+Actullay, was.db and was.transaction are fully intergrated with SQLPhile_.
+
+You can write with raw SQL,
+
+.. code:: python
+
+  with was.db ("@mydb") as db:
+    rows = db.execute (
+      "SELECT a.id, b.name, c.phone "
+      "FROM user a, profile b, contact c "
+      "WHERE b.name like '%{name}%'"
+      "ORDER BY a.id desc"
+      "LIMIT {limit}".format (name = name, limit = limit)
+    ).fetch ()
+
+But also can use SQLPhile_ style,
+
+.. code:: python
+
+  with was.db ("@mydb") as db:
+    rows = (db.get ("a.id, b.name, c.phone")
+            .select ("user a, profile b, contact c")
+            .filter (b__name__contains = name)
+            .order_by ("-a.id") [:limit]
+            .execute ().fetch ())
+
+It may be not very helpful because of my laziness of documentation, however SQLPhile_ can provide some other benefits using SQL I recommend read it instantly.
+
+.. _SQLPhile: https://pypi.org/project/sqlphile/
+
+
+Returning Generator With RDBMS Cursor object
+-------------------------------------------------------------------
+
+*New in version 0.28.11*
+
+was.transaction can be used for returning generator.
+
+.. code:: python
+
+  @app.route ("/csv", methods = ["GET", "OPTIONS"])    
+  def csv (was, uid, pub = '', cn = '', code = None):
+    def excel_generator (cur):
+      yield "field1,field2,field3\r\n"
+      while 1:
+        rows = cur.spendmany (10)
+        if not rows: break
+        csv = [",".join (row) for row in rows]                
+        yield "\r\n".join (csv) + "\r\n"                
+
+    db = was.transaction ("@core")
+    subquery = (db.select ("table4")
+        .get ("id").exclude (partner = 1)
+        .filter (name = cn or None, cname = pub or None, partner = uid, id = code or None))
+    cur = (db.select ("table1 a")
+        .join ("table2 b", "a.code_id = b.id")
+        .filter (code_id__in = subquery)
+        .join ("table3 c", "a.wid = c.id")
+        .get ("a.filed1, b.filed12, c.field3")
+        .order_by ("-a.id")
+        .execute ())
+    was.response ["Content-Type"] = "application/vnd.ms-excel"
+    return excel_generator (cur)
+
+Please note that use spendmany () instead of fetchmany (). spendmany will call putback () when all fetchable records are exhausted.
+
+
 NoSQL Querying
 ------------------------------------
 
@@ -2015,79 +2085,6 @@ There are 2 changes:
 2. results is iterable
 
 You can use Dataabse, API calls same way. 
-
-
-Using SQLAlchemy Query Generator
-------------------------------------------------
-
-If you use sqlalchemy_ for database ORM, you cannot use ORM itself but use for gfenerating SQL query statement.
-
-.. code:: python
-  
-  # models.py
-  
-  from sqlalchemy.ext.declarative import declarative_base
-  from sqlalchemy import MetaData, Table
-  from sqlalchemy import Column, Integer, String
-  
-  Base = declarative_base ()
-  
-  class Stocks (Base):
-    __tablename__ = 'stocks'
-    id = Column(Integer, primary_key=True)
-    date = Column(String(255))
-    trans = Column(String(255))
-    symbol = Column(String(255))
-    qty = Column(Integer)
-    price = Column(Integer)
-  stocks = Stocks.__table__
-
-Or,
-
-.. code:: python
-  
-  # models.py  
-  
-  metadata = MetaData()
-  stocks = Table ('stocks', metadata,
-     Column('id', Integer, primary_key=True),
-     Column('date', String(255)),
-     Column('trans', String(255)),
-     Column('symbol', String(255)),
-     Column('qty', Integer),
-     Column('price', Integer)
-  )
-
-For generating query statements,
-
-.. code:: python
-  
-  from models import stocks
-  
-  @app.route ("/q/<int:id>)
-  def q (was, id):
-    statement = stocks.select().where(stocks.c.id == id)
-    with was.db ("@mydb") as db:
-      req = db.execute (statement)
-      res = req.dispatch ()
-    
-    # or short hand  
-    res = was.db ("@mydb").execute (statement).dispatch ()
-    res.data
-    ...
-    
-Other simple query examples,
-
-.. code:: python    
-    
-  statement = stocks.insert().values (id = 2, date = '2019-1-30', trans = "SELL", symbol = "APL", qty = 200, price = 1600.0)
-  statement = stocks.delete().where(stocks.c.id == 2)
-  statement = stocks.update().values(symbol='BIX').where(stocks.c.id == 2)
-  
-For more information about query generating, visit `SQLAlchemy Core`_.    
-
-.. _sqlalchemy: https://www.sqlalchemy.org/
-.. _`SQLAlchemy Core`: https://docs.sqlalchemy.org/en/latest/core/index.html
 
 
 Caching Result
