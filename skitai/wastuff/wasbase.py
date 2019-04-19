@@ -20,7 +20,6 @@ from . import futures
 from .. import http_response
 from .promise import Promise
 from .triple_logger import Logger
-from . import django_adaptor
 if os.environ.get ("SKITAI_ENV") == "PYTEST":
     from threading import RLock    
 else:    
@@ -137,13 +136,6 @@ class WASBase:
     @property
     def tempfile (self):
         return self.gentemp () 
-    
-    @property
-    def django (self):
-        if hasattr (self.request, "django"):
-            return self.request.django
-        self.request.django = django_adaptor.request (self)
-        return self.request.django
     
     def gentemp (self):
         return os.path.join (TEMP_DIR, next (tempfile._get_candidate_names()))
