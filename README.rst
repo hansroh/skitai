@@ -2290,6 +2290,7 @@ Change Log
 
 - 0.28 (Feb 2019)
   
+  - drop SQLAlchemy query statement object 
   - fix https proxypass, and add proxypass remapping
   - add was.transaction ()
   - update psycopg2 connection parameter: async => async\_ for Py3.7 compatablity  

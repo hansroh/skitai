@@ -155,13 +155,7 @@ class DBCall (ProtoCall):
         self.cluster = cluster
         self.result = None
         self.args, self.kargs = args, kargs
-        self.expt = None
-        try:
-            from sqlalchemy.dialects import postgresql
-        except ImportError:
-            self.dialect = None
-        else:
-            self.dialect = postgresql.dialect ()
+        self.expt = None        
 
     def _or_throw (self):
         if self.expt:
@@ -171,9 +165,7 @@ class DBCall (ProtoCall):
     def _compile (self, params):
         statement = params [0]
         if isinstance(statement, str):
-            return params
-        elif self.dialect:
-            return (str (statement.compile (dialect = self.dialect, compile_kwargs = {"literal_binds": True})),)            
+            return params        
         else:
             raise ValueError ("SQL statement error")                
         return ""
