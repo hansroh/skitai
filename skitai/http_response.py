@@ -526,6 +526,9 @@ class http_response:
         self.request.response_finished ()
     
     # Sugar syntaxes ----------------------------------------------------------------    
+    def set_timeout (self, timeout):
+        self.request.channel.set_timeout (timeout)
+
     def adaptive_error (self, status, message, code, more_info):
         ac = self.request.get_header ('accept', '')
         if ac.find ("text/html") != -1:
