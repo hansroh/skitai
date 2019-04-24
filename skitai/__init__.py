@@ -97,12 +97,7 @@ class _WASPool:
 		return "<class skitai.WASPool at %x>" % id (self)
 			
 	def __getattr__ (self, attr):
-		_was = self._get ()
-		if not _was.in__dict__ ("app") and hasattr (_was, 'request'):
-			# it will be called WSGI middlewares except Atila,
-			# So request object not need
-			del _was.request			
-		return  getattr (_was, attr)
+		return getattr (self._get (), attr)
 			
 	def __setattr__ (self, attr, value):
 		if attr.startswith ("_WASPool__"):
