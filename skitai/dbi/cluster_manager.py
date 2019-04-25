@@ -65,10 +65,10 @@ class ClusterManager (cluster_manager.ClusterManager):
     def get_endpoints (self):
         return endpoints.make_endpoints (self.dbtype, self._cache)
     
-    def getconn (self):
+    def getconn (self, auto_putback = True):
         if self.dbtype == DB_PGSQL:
             conn = endpoints.make_endpoints (self.dbtype, [self._cache [0]]) [0]
-            return pg2.open2 (conn, endpoints.PGPOOL)
+            return pg2.open2 (conn, endpoints.PGPOOL, auto_putback = auto_putback)
         elif self.dbtype == DB_SQLITE3:            
             conn = endpoints.make_endpoints (self.dbtype, [self._cache [0]]) [0]
             return db3.open2 (conn)
