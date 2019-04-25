@@ -1557,9 +1557,11 @@ Skitai handle request connection with asynchronously, also has threads and porce
 
 But Skitai's main event loop (using asyncore.loop) can be used for not only client's requests else request to another servers(API, Database engine...) asynchronously. I think if I don't use this capabitities, it would be wasting resources. Then, Skitai provide asynchronous request methods for these operations.
 
-Skitai 'was' means *WSGI Application Service*.
+*Corequest* is similar with Python coroutine object, but is is not compatable at all. 
 
-'was' object provides,
+It is not framework nor library. It is the object has specified usage and it is controlled by Skitai main event loop, not by asyncio.
+
+Skitai provides some services related with corequests:
 
 - Concurrent requests (like asyncio or gevent) to your API/Backend and Database engine servers
 - Connection pooling
@@ -1567,7 +1569,7 @@ Skitai 'was' means *WSGI Application Service*.
 
 These features are just optional, but these might help increase availability of your servers. 
 
-For using 'was', you need to import 'was':
+For using 'corequest', you need to import 'was':
 
 .. code:: python
 
