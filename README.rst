@@ -1550,8 +1550,8 @@ It needn't return message, but you can send directly multiple messages through w
     request.environ ["websocket"].send ("I said acknowledge")
 
 
-Skitai 'was' Services
-=======================
+Corequest
+================
 
 Skitai handle request connection with asynchronously, also has threads and porcess ass workers. So it works fine with synchronous apps and libraries. you can use standard database client libraries or requests module for API calls. 
 
@@ -1673,7 +1673,7 @@ If you want to change default value, use headers paramter for each request
 Tasks
 -----------------------
 
-For more pretty code styling, use Tasks.
+Tasks is pack of corequests. It can handle multiple corequests as single one.
 
 .. code:: python
   
@@ -1683,13 +1683,12 @@ For more pretty code styling, use Tasks.
     	was.get (url),
     	was.post (url, {"user": "Hans Roh", "comment": "Hello"})
     ]    
-    return was.API (data = [ rs.fetch () rs in was.Tasks (reqs, timeout = 3) ])
-    # or with shortcut,
-    return was.API (data = was.Tasks (reqs, timeout = 3).fetch ())
+    a, b = was.Tasks (reqs, timeout = 3).fetch ()
+    return was.API (a = a, b = b)    
 
 Tasks is iterable and slicable and returened rs is response object (by dispatch ()). You SHOULD check rs.status and status_code for validating response, or just use fetch () for raising error if invalid.
 
-*Note:* If you want to use full asynchronous manner, you can consider atila's Futures_, but it need to pay some costs.
+*Note:* If you want to use full asynchronous manner, you can consider Atila's Futures_, but it need to pay some costs.
 
 .. _Futures: https://pypi.org/project/atila/#futures-response
  
@@ -1698,7 +1697,7 @@ Calling RPC
 --------------------
 
 .. code:: python
-  
+
   @app.route (...)
   def request (was):
     with was.xmlrpc ("@myrpc") as stub:
@@ -1760,18 +1759,15 @@ For consistency handling response of API calls, response.status_code will be set
 
 Basically Skitai handle as same for all kind of external requests.
 
-
 .. code:: python
-  
-  @app.route (...)  
+
+  @app.route (...)
   def query (was):
     with was.db ("@mypg") as db:
       req = db.excute ("SELECT city, t_high, t_low FROM weather;")
       rows = req.fetch (2)
-      
     for row in rows:
       row.city, row.t_high, row.t_low
-
 
 If you needn't returned data and just wait for completing query,
 
@@ -1785,7 +1781,7 @@ In case database querying, you can use one () method.
 
 .. code:: python
 
-  @app.route (...)  
+  @app.route (...)
   def query (was):
     with was.db ("@mypg") as db:
       hispet = db.excute ("SELECT ... FROM pets").one (2)
@@ -1827,7 +1823,6 @@ Execute and wait or use transaction.
       latest = db.excute ("SELECT city, t_high, t_low FROM weather order by id desc limit 1 ;").fetch (2)
       # latest  is New York 
 
- 
 Using Database Transaction
 -------------------------------------------
 
@@ -1837,19 +1832,46 @@ Also Skitai provide PostgreSQL connection with connection pool. And SQLite conne
 
 .. code:: python
     
-    @app.route ("/")
-    def index (was):
-        with was.transaction ("@mypg") as tx:
-            tx.execute ('INSERT ...')
-            tx.execute ('UPDATE ...')
-            tx.commit ()            
-            tx.execute ('SELECT ...')
-            tx.fetch () # equivlant to fetchall () but list of dict type
+  @app.route ("/")
+  def index (was):
+      with was.transaction ("@mypg") as tx:
+          tx.execute ('INSERT ...')
+          tx.execute ('UPDATE ...')
+          tx.execute ('SELECT ...')
+          tx.fetch () # equivlant to fetchall () but list of dict type
+          tx.commit ()
 
-With context manager, connection will return back to the pool automatically  else you SHOULD call tx.putback () manually.
+With context manager, connection will return back to the pool automatically else you SHOULD call tx.putback () manually.
 
 In transaction mode, standard DBAPI - rollback (), fetchall (), fetchone () and fetchmany () are also possible but caching is not.
 
+was.transaction has second paramter 'auto_putback'. If it is False, transaction object does not return to the pool automatically.
+
+.. code:: python
+    
+  # models.py
+  from skitai import was
+
+  def update (...):
+      with was.transaction ("@mypg", False) as tx:
+          tx.execute ('INSERT ...')
+          tx.execute ('UPDATE ...')
+          tx.execute ('SELECT ...')
+          return tx
+
+          tx.fetch () # equivlant to fetchall () but list of dict type
+
+  # app.py
+  import models
+
+  @app.route (...)        
+  def update (was):
+    tx = models.update (...)
+    rows = tx.fetch ()
+    tx.commit ()
+
+Note that you MUST call commit/rollback finally, if not connection pool will be exhausted very soon and entire threads will be blocked.
+      
 
 Using SQLPhile for Querying
 ----------------------------------------------
@@ -1883,43 +1905,6 @@ But also can use SQLPhile_ style,
 It may be not very helpful because of my laziness of documentation, however SQLPhile_ can provide some other benefits using SQL I recommend read it instantly.
 
 .. _SQLPhile: https://pypi.org/project/sqlphile/
-
-
-Returning Generator With RDBMS Cursor object
--------------------------------------------------------------------
-
-*New in version 0.28.11*
-
-was.transaction can be used for returning generator.
-
-.. code:: python
-
-  @app.route ("/csv", methods = ["GET", "OPTIONS"])    
-  def csv (was, uid, pub = '', cn = '', code = None):
-    def excel_generator (cur):
-      yield "field1,field2,field3\r\n"
-      while 1:
-        rows = cur.spendmany (10)
-        if not rows: break
-        csv = [",".join (row) for row in rows]                
-        yield "\r\n".join (csv) + "\r\n"                
-
-    db = was.transaction ("@core")
-    subquery = (db.select ("table4")
-        .get ("id").exclude (partner = 1)
-        .filter (name = cn or None, cname = pub or None, partner = uid, id = code or None))
-    cur = (db.select ("table1 a")
-        .join ("table2 b", "a.code_id = b.id")
-        .filter (code_id__in = subquery)
-        .join ("table3 c", "a.wid = c.id")
-        .get ("a.filed1, b.filed12, c.field3")
-        .order_by ("-a.id")
-        .execute ())
-    was.response ["Content-Type"] = "application/vnd.ms-excel"
-    return excel_generator (cur)
-
-Please note that use spendmany () instead of fetchmany (). spendmany will call putback () when all fetchable records are exhausted.
-
 
 NoSQL Querying
 ------------------------------------
@@ -1970,8 +1955,33 @@ For getting concurrent tasks advantages, you request at once as many as possible
       else:
         contents.append (str (rs.data))
     return contents
-      
-      
+
+
+Intermission
+--------------------------
+
+For creating corequest object,
+
+- HTTP based request: was.get (alias), .post (alias), ....  
+- Database request: as.db (alias).execute (...), .find (), set (), ... other MongoDB and Redis methods
+- Tasks: bundle of corequests
+
+HTTP based request corequest object has 2 methods.
+
+- dispatch (): it returns Result object contains data (or text/content) and request status information
+- fetch (): it return JSON/RPC data (application/[json, json-rpc, xml-rpc, grpc]), text (text/\*) or binary data by response content-type
+
+Database request has 5 methods.
+
+- dispatch (): it returns Result object contains records (if succeeded) and request status information
+- wait (): it returns Result object contains request status information
+- fetch (): it returns records list. if request failed raise exception
+- one (): it returns one record if query result is only onem otherwise raise 404 or 409 HTTP error. if request failed raise exception
+- commit (): it wait finishing non-select query, if request failed raise exception
+
+Result object also has fetch (), one () and commit ().
+
+
 Load-Balancing
 ---------------------------------------
 
@@ -2216,6 +2226,159 @@ Also was.setlu () emits 'model-changed' events. You can handle event if you need
 Note: if @app.on_broadcast is located in mount function at services directory, even app.use_reloader is True, it is not applied to app when component file is changed. In this case you should manually reload app by resaving app file.
 
 
+Corequest Based Model
+========================================
+
+Here's an model example with RDBMS.
+
+
+Alias Your Database
+-----------------------------
+
+First of all, alias your database to Skitai.
+
+.. code:: python
+
+  # serve.py
+  ...
+  skitai.alias ("@blog", skitai.DB_PGSQL, "postgres:password@localhost/blog")
+  ...
+  skitai.run (port = 5000)
+
+
+Create Model Classes
+----------------------------
+
+.. code:: python
+
+  # services/models.py
+
+  from skitai import was
+  from sqlphile import Q
+  from datetime import datetime
+
+  class BlogPost:
+    EXCLUDES = Q (share = 'private')
+
+    @classmethod
+    def search (cls, keyword = None, period = None, offset = 0, limit = 10, fields = "*"):
+        with was.db ("@blog") as db:
+            stem = (db.select ("blogpost")      
+                     .get (fields)               
+                     .exclude (cls.EXCLUDES)                     
+                     .filter (posted_at__between = period)
+                     .filter (Q (title__contains = keyword) | Q (content__contains = keyword)))
+
+            reqs = [
+                stem.branch ().get ("count (*) as total").execute (),
+                (stem.branch ()
+                    .order_by ("-posted_at").offset (offset).limit (limit)
+                    .execute ())
+            ]
+            return was.Tasks (reqs)
+    
+    @classmethod
+    def get (cls, id):
+        with was.db ("@blog") as db:
+            return (db.select ("blogpost")
+                        .filter (id = id).execute ())
+    
+    @classmethod
+    def delete (cls, id):
+        # example for transaction deletion
+        with was.transaction ("@blog") as db:
+            (db.delete ("blogcomment")
+                        .filter (post_id = id).execute ())
+            (db.delete ("blogpost")
+                        .filter (id = id).execute ())
+            db.commit ()
+
+    @classmethod
+    def add (cls, post):        
+        with was.db ("@blog") as db:
+            return (db.insert ("blogpost")
+                        .data (post)
+                        .returning ("id").execute ())
+
+    @classmethod
+    def update (cls, id, post):
+        post ["updated_at"] = datetime.now ()
+        with was.db ("@blog") as db:
+            return (db.update ("blogpost")
+                        .data (post)
+                        .filter (id = id).execute ())
+    
+    @classmethod
+    def get_comments (cls, id, offset = 0, limit = 10):    
+        with was.db ("@blog") as db:    
+            return (db.select ("blogcomment")
+                      .filter (post_id = id)
+                      .offset (offset)
+                      .limit (limit ()))
+
+    @classmethod
+    def get_stat (cls, dateunit = 'year'):
+        with was.db ("@blog") as db:
+            return (db.select (f"date_part('{dateunit}', created_at) as year, count (*) as cnt")
+                    .group_by ("year")
+                    .execute ())
+
+I think all public model methods maybe return *corequest object* or None.
+
+
+Using Models
+-----------------
+
+Finally, you can use this models.py.
+
+.. code:: python
+
+  # services/blog.py
+  from . models import BlogPost
+
+  @app.route ("/posts/", methods = ["GET", "POST"])
+  def posts (was, offset = 0, limit = 10, **payload):
+    if was.request.method == "GET":
+      stat, posts = BlogPost.search (offset = int (offset), limit = int (limit)).fetch ()
+      return was.API (posts = posts, total = stat [0].total)
+
+    new_post = BlogPost.add (payload).one ()
+    return was.API ("201 Created", id = new_post.id)
+
+  @app.route ("/posts/<id>", methods = ["GET", "PATCH", "DELETE", "OPTIONS"])
+  def post (was, id, num_comments = 0):
+    if was.request.method == "GET":
+      _post = BlogPost.get (id)
+      _comments = BlogPost.get_comments (id, 0, num_comments)
+      post = _post.one ()
+      post.comments = _comments.fetch ()
+      return was.API (post = post)
+    
+    if was.request.method == "DELETE":
+      BlogPost.delete (id)
+      return was.API ("204 No Content")
+    ...  
+
+  @app.route ("/posts/<id>/comments", methods = ["GET", "PATCH", "DELETE", "OPTIONS"])
+  def post (was, id, offset = 0, limit = 0):
+    if was.request.method == "GET":
+      comments = BlogPost.get_comments (id, offset, limit).fetch ()
+      return was.API (comments = comments)
+    ...  
+  
+
+Conclusion
+-------------------------
+
+Above example pattern is just one of my implemetation. 
+
+It can be extended and changed into NoSQL or even RESTful/RPC with Skitai corequest.
+
+
+
+Miscellaneous
+==============================
+
 API Transaction ID
 ------------------------------------
 
@@ -2290,6 +2453,7 @@ Change Log
 
 - 0.28 (Feb 2019)
   
+  - add corequest object explaination and corequest based model example
   - drop SQLAlchemy query statement object 
   - fix https proxypass, and add proxypass remapping
   - add was.transaction ()

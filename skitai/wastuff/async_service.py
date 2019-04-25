@@ -151,7 +151,7 @@ class AsyncService:
     def _amap (self, dbtype, *args, **karg):
         return self._cddb (True, *args, **karg)
     
-    def transaction (self, clustername):
+    def transaction (self, clustername, auto_putback = True):
         cluster = self.__detect_cluster (clustername) [0]
-        return cluster.getconn ()
+        return cluster.getconn (auto_putback)
     
