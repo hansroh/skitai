@@ -1559,7 +1559,9 @@ But Skitai's main event loop (using asyncore.loop) can be used for not only clie
 
 *Corequest* is similar with Python coroutine object, but is is not compatable at all. 
 
-It is not framework nor library. It is the object has specified usage and it is controlled by Skitai main event loop, not by asyncio.
+It is not a framework nor a library. It is the object has specified and targeted usage and it is controlled by Skitai main event loop, not by asyncio.
+
+It can be controlled as synchronous task explicitly and it is eventually synchronous within current thread (optionally, if you use 'Furures', it can be fully asynchronous).
 
 Skitai provides some services related with corequests:
 
@@ -1982,6 +1984,8 @@ Database request has 5 methods.
 - commit (): it wait finishing non-select query, if request failed raise exception
 
 Result object also has fetch (), one () and commit ().
+
+Please DO remember. If ou call dispatch, fetch, ... to corequest object, it immediatly act as synchronous task. But already created another corequests are still has concurrency.
 
 
 Load-Balancing
