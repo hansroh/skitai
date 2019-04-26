@@ -3,8 +3,9 @@ from ..utility import make_pushables
 from ..exceptions import HTTPError
 from ..rpc.cluster_dist_call import DEFAULT_TIMEOUT
 from skitai import was
+from ..corequest import corequest
 
-class TaskBase:
+class TaskBase (corequest):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, cache_timeout = 0, cache_if = (200,)):
         assert isinstance (reqs, (list, tuple))        
         self.timeout = timeout        
@@ -58,6 +59,12 @@ class Tasks (TaskBase):
         [r.cache (cache, cache_if) for r in self.results]
         
 
+class CompletedTasks (Tasks):
+    def __init__ (self, rss):
+        self._results = rss
+        self._data = []
+
+
 class Futures (TaskBase):
     def __init__ (self, was, reqs, timeout = 10, cache_timeout = 0, cache_if = (200,)):
         TaskBase.__init__ (self, reqs, timeout, cache_timeout, cache_if)
@@ -89,10 +96,11 @@ class Futures (TaskBase):
     def respond (self):
         response = self._was.response         
         try:
+            tasks = CompletedTasks (self.ress)
             if self.args:
-                content = self.fulfilled (self._was, self.ress, **self.args)
+                content = self.fulfilled (self._was, tasks, **self.args)
             else:
-                content = self.fulfilled (self._was, self.ress)
+                content = self.fulfilled (self._was, tasks)
             will_be_push = make_pushables (response, content)
             content = None
         except MemoryError:

@@ -18,6 +18,7 @@ import tempfile
 import getopt
 from . import lifetime
 from . import mounted
+from .corequest import corequest
 
 if "---production" in sys.argv:
 	os.environ ["SKITAI_ENV"] = "PRODUCTION"
