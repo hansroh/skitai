@@ -2,7 +2,7 @@ import time
 from aquests.athreads import socket_map
 from aquests.athreads import trigger
 import threading
-from skitai.rpc import cluster_dist_call, rcache
+from ..rpc import cluster_dist_call, rcache
 from rs4.attrdict import AttrDict
 from aquests.dbapi import request
 import asyncore

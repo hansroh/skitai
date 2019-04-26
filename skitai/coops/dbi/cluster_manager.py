@@ -1,4 +1,4 @@
-from skitai.rpc import cluster_manager
+from ..rpc import cluster_manager
 from aquests.dbapi import asynpsycopg2, synsqlite3, asynredis, asynmongo
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from . import endpoints
