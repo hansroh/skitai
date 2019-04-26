@@ -2,8 +2,10 @@ import sys
 from ..utility import make_pushables
 from ..exceptions import HTTPError
 from ..rpc.cluster_dist_call import DEFAULT_TIMEOUT
+from skitai import was
+from ..corequest import corequest
 
-class TaskBase:
+class TaskBase (corequest):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, cache_timeout = 0, cache_if = (200,)):
         assert isinstance (reqs, (list, tuple))        
         self.timeout = timeout        
@@ -28,6 +30,9 @@ class Tasks (TaskBase):
     def results (self):       
         return self._results or self.dispatch ()
     
+    def then (self, func, timeout = None, **kargs):
+        return was.Futures (self.reqs, timeout or self.timeout).then (func, **kargs)
+
     def dispatch (self):
         self._results = [req.dispatch (self.timeout, self.cache_timeout, self.cache_if) for req in self.reqs]
         return self._results 
@@ -54,6 +59,13 @@ class Tasks (TaskBase):
         [r.cache (cache, cache_if) for r in self.results]
         
 
+class CompletedTasks (Tasks):
+    def __init__ (self, rss, timeout = 10, cache_timeout = 0, cache_if = (200,)):
+        TaskBase.__init__ (self, [], timeout, cache_timeout, cache_if)
+        self._results = rss
+        self._data = []
+
+
 class Futures (TaskBase):
     def __init__ (self, was, reqs, timeout = 10, cache_timeout = 0, cache_if = (200,)):
         TaskBase.__init__ (self, reqs, timeout, cache_timeout, cache_if)
@@ -64,7 +76,7 @@ class Futures (TaskBase):
         self.ress = [None] * len (self.reqs)
             
     def then (self, func, **kargs):
-        self.args = kargs     
+        self.args = kargs
         self.fulfilled = func
         for reqid, req in enumerate (self.reqs):            
             req.set_callback (self._collect, reqid, self.timeout)
@@ -85,10 +97,11 @@ class Futures (TaskBase):
     def respond (self):
         response = self._was.response         
         try:
+            tasks = CompletedTasks (self.ress, self.timeout, self.cache_timeout, self.cache_if)
             if self.args:
-                content = self.fulfilled (self._was, self.ress, **self.args)
+                content = self.fulfilled (self._was, tasks, **self.args)
             else:
-                content = self.fulfilled (self._was, self.ress)
+                content = self.fulfilled (self._was, tasks)
             will_be_push = make_pushables (response, content)
             content = None
         except MemoryError:

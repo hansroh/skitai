@@ -20,6 +20,7 @@ import inspect
 from skitai import exceptions
 from skitai import REQFAIL, UNSENT, TIMEOUT, NETERR, NORMAL
 import psycopg2, sqlite3
+from ..corequest import corequest
 
 DEFAULT_TIMEOUT = 10
 WAIT_POLL = False
@@ -110,7 +111,7 @@ class Results (rcache.Result):
         return [r.fetch () for r in self.results]
                                 
 
-class Dispatcher:
+class Dispatcher (corequest):
     def __init__ (self, cv, id, ident = None, filterfunc = None, cachefs = None, callback = None):
         self._cv = cv
         self.id = id
