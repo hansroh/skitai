@@ -2354,10 +2354,10 @@ Finally, you can use this models.py.
   @app.route ("/posts/<id>", methods = ["GET", "PATCH", "DELETE", "OPTIONS"])
   def post (was, id, num_comments = 0):
     if was.request.method == "GET":
-      _post = BlogPost.get (id)
-      _comments = BlogPost.get_comments (id, 0, num_comments)
-      post = _post.one ()
-      post.comments = _comments.fetch ()
+      post\_ = BlogPost.get (id)
+      comments\_ = BlogPost.get_comments (id, 0, num_comments)
+      post = post\_.one ()
+      post.comments = comments\_.fetch ()
       return was.API (post = post)
     
     if was.request.method == "DELETE":
@@ -2366,7 +2366,7 @@ Finally, you can use this models.py.
     ...  
 
   @app.route ("/posts/<id>/comments", methods = ["GET", "PATCH", "DELETE", "OPTIONS"])
-  def post (was, id, offset = 0, limit = 0):
+  def comments (was, id, offset = 0, limit = 0):
     if was.request.method == "GET":
       comments = BlogPost.get_comments (id, offset, limit).fetch ()
       return was.API (comments = comments)
