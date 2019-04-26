@@ -2,6 +2,7 @@ import sys
 from ..utility import make_pushables
 from ..exceptions import HTTPError
 from ..rpc.cluster_dist_call import DEFAULT_TIMEOUT
+from skitai import was
 
 class TaskBase:
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, cache_timeout = 0, cache_if = (200,)):
@@ -28,6 +29,9 @@ class Tasks (TaskBase):
     def results (self):       
         return self._results or self.dispatch ()
     
+    def then (self, func, timeout = None, **kargs):
+        return was.Futures (self.reqs, timeout or self.timeout).then (func, **kargs)
+
     def dispatch (self):
         self._results = [req.dispatch (self.timeout, self.cache_timeout, self.cache_if) for req in self.reqs]
         return self._results 
@@ -64,7 +68,7 @@ class Futures (TaskBase):
         self.ress = [None] * len (self.reqs)
             
     def then (self, func, **kargs):
-        self.args = kargs     
+        self.args = kargs
         self.fulfilled = func
         for reqid, req in enumerate (self.reqs):            
             req.set_callback (self._collect, reqid, self.timeout)
