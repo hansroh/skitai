@@ -4,7 +4,7 @@ from collections import Iterator
 from aquests.athreads import trigger
 
 def make_pushables (response, content):
-    from .wastuff import futures
+    from .wastuff import tasks
     from .wastuff.api import API
     
     if not response.is_responsable ():
@@ -21,7 +21,7 @@ def make_pushables (response, content):
     if type (content) not in (list, tuple):
         content = (content,) # make iterable
         
-    if isinstance (content [0], futures.Futures):
+    if isinstance (content [0], tasks.Futures):
         return
     
     if response ["content-type"] is None: 
