@@ -60,7 +60,8 @@ class Tasks (TaskBase):
         
 
 class CompletedTasks (Tasks):
-    def __init__ (self, rss):
+    def __init__ (self, rss, timeout = 10, cache_timeout = 0, cache_if = (200,)):
+        TaskBase.__init__ (self, [], timeout, cache_timeout, cache_if)
         self._results = rss
         self._data = []
 
@@ -96,7 +97,7 @@ class Futures (TaskBase):
     def respond (self):
         response = self._was.response         
         try:
-            tasks = CompletedTasks (self.ress)
+            tasks = CompletedTasks (self.ress, self.timeout, self.cache_timeout, self.cache_if)
             if self.args:
                 content = self.fulfilled (self._was, tasks, **self.args)
             else:
