@@ -35,7 +35,7 @@ def documentation (was):
     pypi_content = "<h4><p>It seems some problem at <a href='https://pypi.python.org/pypi/skitai'>PyPi</a>.</p></h4><p>Please visit <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></p>"    
     rs = req.dispatch (10, cache = 60)    
     if rs.data:
-        content = rs.data.decode ("utf8")
+        content = rs.data
         s = content.find ('<div class="project-description">')
         if s != -1:        
             e = content.find ('<div id="history"', s)
@@ -49,7 +49,7 @@ def documentation2 (was):
         rs = rss [0]
         pypi_content = "<h3>Error</h3>"
         if rs.data:
-            content = rs.data.decode ("utf8")
+            content = rs.data
             s = content.find ('<div class="project-description">')
             if s != -1:
                 e = content.find ('<div id="history"', s)
