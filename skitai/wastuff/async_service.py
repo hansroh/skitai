@@ -1,8 +1,8 @@
 import os, sys
 import threading
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
-from ..rpc import cluster_manager, cluster_dist_call
-from ..dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
+from ..coops.rpc import cluster_manager, cluster_dist_call
+from ..coops.dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
 from sqlphile import Template
 
 def is_main_thread ():    

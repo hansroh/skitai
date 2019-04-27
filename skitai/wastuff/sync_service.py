@@ -1,8 +1,8 @@
 # testing purpose WAS sync service
 
 from . import async_service
-from ..rpc import cluster_dist_call
-from ..dbi import cluster_dist_call as dcluster_dist_call 
+from ..coops.rpc import cluster_dist_call
+from ..coops.dbi import cluster_dist_call as dcluster_dist_call 
 from skitai import DB_SQLITE3, DB_PGSQL, DB_REDIS, DB_MONGODB
 from rs4 import webtest
 from rs4.cbutil import tuple_cb
@@ -174,8 +174,8 @@ class DBCall (ProtoCall):
         self.handle_request (method, param, *self.args, **self.kargs)
         
     def  handle_request (self, method, param, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
-        from ..dbi import cluster_manager
-        from ..dbi import endpoints
+        from ..coops.dbi import cluster_manager
+        from ..coops.dbi import endpoints
         
         self._mapreduce = mapreduce
         

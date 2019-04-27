@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.13.4"
+__version__ = "0.28.13.5"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -371,7 +371,7 @@ def _alias_django (name, settings_path):
 		return alias (name, DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)
 
 def alias (name, ctype, members, role = "", source = "", ssl = False, max_coons = 100):
-	from .rpc.cluster_manager import AccessPolicy
+	from .coops.rpc.cluster_manager import AccessPolicy
 	global dconf
 	
 	if name [0] == "@":

@@ -1,8 +1,8 @@
-from skitai.rpc import cluster_dist_call
 import skitai
 import conftest
 import sqlite3
 from aquests.dbapi.synsqlite3 import SynConnect
+from skitai.coops.rpc import cluster_dist_call
 
 def test_cluster_manager (wasc): 
     cluster = wasc.clusters_for_distcall ["sqlite3"]

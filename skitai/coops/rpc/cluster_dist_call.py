@@ -20,7 +20,7 @@ import inspect
 from skitai import exceptions
 from skitai import REQFAIL, UNSENT, TIMEOUT, NETERR, NORMAL
 import psycopg2, sqlite3
-from ..corequest import corequest
+from ...corequest import corequest
 
 DEFAULT_TIMEOUT = 10
 WAIT_POLL = False

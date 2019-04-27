@@ -1,7 +1,7 @@
 import sys
 from ..utility import make_pushables
 from ..exceptions import HTTPError
-from ..rpc.cluster_dist_call import DEFAULT_TIMEOUT
+from ..coops.rpc.cluster_dist_call import DEFAULT_TIMEOUT
 from skitai import was
 from ..corequest import corequest
 

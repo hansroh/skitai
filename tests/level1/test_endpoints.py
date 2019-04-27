@@ -1,5 +1,5 @@
 from skitai import DB_PGSQL, DB_SQLITE3
-from skitai.dbi import endpoints, cluster_manager
+from skitai.coops.dbi import endpoints, cluster_manager
 import psycopg2
 from sqlphile.pg2 import open2
 from sqlphile.db3 import open

@@ -2351,13 +2351,12 @@ Finally, you can use this models.py.
     new_post = BlogPost.add (payload).one ()
     return was.API ("201 Created", id = new_post.id)
 
-  @app.route ("/posts/<id>", methods = ["GET", "PATCH", "DELETE", "OPTIONS"])
+  @app.route ("/posts/<int:id>", methods = ["GET", "PATCH", "DELETE", "OPTIONS"])
   def post (was, id, num_comments = 0):
     if was.request.method == "GET":
-      post\_ = BlogPost.get (id)
-      comments\_ = BlogPost.get_comments (id, 0, num_comments)
-      post = post\_.one ()
-      post.comments = comments\_.fetch ()
+      comments_ = BlogPost.get_comments (id, 0, int (num_comments))
+      post = BlogPost.get (id).one ()
+      post.comments = comments_.fetch ()
       return was.API (post = post)
     
     if was.request.method == "DELETE":
@@ -2365,10 +2364,10 @@ Finally, you can use this models.py.
       return was.API ("204 No Content")
     ...  
 
-  @app.route ("/posts/<id>/comments", methods = ["GET", "PATCH", "DELETE", "OPTIONS"])
-  def comments (was, id, offset = 0, limit = 0):
+  @app.route ("/posts/int:id>/comments", methods = ["GET", "PATCH", "DELETE", "OPTIONS"])
+  def comments (was, id, offset = 0, limit = 10):
     if was.request.method == "GET":
-      comments = BlogPost.get_comments (id, offset, limit).fetch ()
+      comments = BlogPost.get_comments (id, int (offset), int (limit)).fetch ()
       return was.API (comments = comments)
     ...  
   
