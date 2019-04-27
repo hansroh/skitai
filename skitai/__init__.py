@@ -132,7 +132,7 @@ def detect_atila ():
 		HAS_ATILA = atila.Atila
 			
 def websocket (varname, timeout = 60, onopen = None, onclose = None):
-	global was
+    global was
 	
 	# for non-atila app
     def decorator(f):
