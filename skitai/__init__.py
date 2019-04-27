@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.14.1"
+__version__ = "0.28.14.2"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -19,6 +19,7 @@ import getopt
 from . import lifetime
 from . import mounted
 from .corequest import corequest
+from functools import wraps
 
 if "---production" in sys.argv:
 	os.environ ["SKITAI_ENV"] = "PRODUCTION"
@@ -26,26 +27,6 @@ if "---production" in sys.argv:
 def test_client (*args, **kargs):
 	from .testutil.launcher import Launcher
 	return Launcher (*args, **kargs)
-
-def websocket (varname, timeout = 60, onopen = None, onclose = None):
-    from functools import wraps
-    from skitai import was as the_was
-    
-    def decorator(f):
-        @wraps(f)
-        def wrapper (*args, **kwargs):            
-            was = the_was._get ()            
-            if not was.wshasevent ():
-                return f (*args, **kwargs)
-            if was.wsinit ():
-                return was.wsconfig (1, timeout, [varname,])
-            elif was.wsopened ():
-            	return onopen and onopen () or ''
-            elif was.wsclosed ():                    
-                return onclose and onclose () or ''
-        return wrapper
-    return decorator
-
     	
 HAS_ATILA = None
 
@@ -150,6 +131,25 @@ def detect_atila ():
 		global HAS_ATILA
 		HAS_ATILA = atila.Atila
 			
+def websocket (varname, timeout = 60, onopen = None, onclose = None):
+	global was
+	
+	# for non-atila app
+    def decorator(f):
+        @wraps(f)
+        def wrapper (*args, **kwargs):            
+            was_ = was._get ()            
+            if not was_.wshasevent ():
+                return f (*args, **kwargs)
+            if was_.wsinit ():
+                return was_.wsconfig (1, timeout, [varname,])
+            elif was_.wsopened ():
+            	return onopen and onopen () or ''
+            elif was_.wsclosed ():                    
+                return onclose and onclose () or ''
+        return wrapper
+    return decorator
+
 
 #------------------------------------------------
 # Configure

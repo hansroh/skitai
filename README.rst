@@ -1566,6 +1566,7 @@ I think if I don't use this capabitities, it would be wasting resources. Then, S
 - It can be handled as synchronous task explicitly
 - It is eventually synchronous within current thread (optionally it can be fully asynchronous)
 - It is not a framework nor a library. It is a Skitai native object has specified purpose and usage
+- It has no differences with synchronous code base, just if you have to consider the most efficient point to call for waiting results
 
 Skitai provides some services related with corequests:
 
@@ -2328,7 +2329,7 @@ Create Model Classes
                     .group_by ("year")
                     .execute ())
 
-I think all public model methods maybe return *corequest object* or None.
+I think all public model methods maybe return *corequest object or None*.
 
 
 Using Models
@@ -2374,10 +2375,9 @@ Finally, you can use this models.py.
 Conclusion
 `````````````````````````
 
-Above example pattern is just one of my implemetation. 
+Above example pattern is just one of my implemetation with async models. 
 
-It can be extended and changed into NoSQL or even RESTful/RPC with Skitai corequest.
-
+It can be extended and changed into NoSQL or even RESTful/RPC with any Skitai corequest object which has same 5 methods - dispatch, wait, fetch, one and commit.
 
 
 Miscellaneous
