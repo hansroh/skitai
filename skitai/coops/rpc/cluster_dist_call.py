@@ -67,6 +67,8 @@ class Result (rcache.Result):
                 raise exceptions.HTTPError ("404 Not Found")
             if len (self.data) != 1:
                 raise exceptions.HTTPError ("409 Conflict")
+            if isinstance (self.data, dict):
+                return self.data.popitem () [1]
             return self.data [0]
         return self.data
     
@@ -74,6 +76,7 @@ class Result (rcache.Result):
         try:
             return self.fetch (cache, cache_if, True)
         except psycopg2.IntegrityError:
+            # primary or unique index error
             raise exceptions.HTTPError ("409 Conflict")
 
     def commit (self):

@@ -1553,15 +1553,19 @@ It needn't return message, but you can send directly multiple messages through w
 Corequest
 ================
 
-Skitai handle request connection with asynchronously, also has threads and porcess ass workers. So it works fine with synchronous apps and libraries. you can use standard database client libraries or requests module for API calls. 
+Skitai handle request connection with asynchronously, also has threads and porcess ass workers. 
+So it works fine with synchronous apps and libraries. you can use standard database client libraries or requests module for API calls. 
 
-But Skitai's main event loop (using asyncore.loop) can be used for not only client's requests else request to another servers(API, Database engine...) asynchronously. I think if I don't use this capabitities, it would be wasting resources. Then, Skitai provide asynchronous request methods for these operations.
+But Skitai's main event loop (using asyncore.loop) can be used for not only client's requests else request to another servers(API, Database engine...) asynchronously. 
+I think if I don't use this capabitities, it would be wasting resources. Then, Skitai provide asynchronous request methods for these operations.
 
-*Corequest* is similar with Python coroutine object, but is is not compatable at all. 
+*Corequest* is similar with Python coroutine object, but is is not compatable at all.
 
-It is not a framework nor a library. It is the object has specified and targeted usage and it is controlled by Skitai main event loop, not by asyncio.
-
-It can be controlled as synchronous task explicitly and it is eventually synchronous within current thread (optionally, if you use 'Furures', it can be fully asynchronous).
+- It is automatically started at creation, no need to call run ()
+- Its events are controlled by Skitai main event loop, not by asyncio
+- It can be handled as synchronous task explicitly
+- It is eventually synchronous within current thread (optionally it can be fully asynchronous)
+- It is not a framework nor a library. It is a Skitai native object has specified purpose and usage
 
 Skitai provides some services related with corequests:
 
@@ -1961,8 +1965,8 @@ For getting concurrent tasks advantages, you request at once as many as possible
     return contents
 
 
-Intermission
---------------------------
+Intermezzo
+-------------------
 
 For creating corequest object,
 
@@ -1970,26 +1974,21 @@ For creating corequest object,
 - Database request: as.db (alias).execute (...), .find (), set (), ... other MongoDB and Redis methods
 - Tasks: bundle of corequests
 
-HTTP based request corequest object has 2 methods.
+Corequest object has main 5 methods.
 
 - dispatch (): it returns Result object contains data (or text/content) and request status information
-- fetch (): it return JSON/RPC data (application/[json, json-rpc, xml-rpc, grpc]), text (text/\*) or binary data by response content-type
-
-Database request has 5 methods.
-
-- dispatch (): it returns Result object contains records (if succeeded) and request status information
 - wait (): it returns Result object contains request status information
 - fetch (): it returns records list. if request failed raise exception
-- one (): it returns one record if query result is only onem otherwise raise 404 or 409 HTTP error. if request failed raise exception
+- one (): it returns one record if query result length is exactly one otherwise raise 404 or 409 HTTP error. if request failed raise exception
 - commit (): it wait finishing non-select query, if request failed raise exception
 
-Result object also has fetch (), one () and commit ().
+Result object is mainly used for checking status and handling error to individual corequest, and Result object also has fetch (), one () and commit ().
 
 Please DO remember. If ou call dispatch, fetch, ... to corequest object, it immediatly act as synchronous task. But already created another corequests are still has concurrency.
 
 
 Load-Balancing
----------------------------------------
+---------------------------
 
 Skitai support load-balancing requests.
 
@@ -2233,13 +2232,13 @@ Note: if @app.on_broadcast is located in mount function at services directory, e
 
 
 Corequest Based Model
-========================================
+---------------------------------------------
 
 Here's an model example with RDBMS.
 
 
 Alias Your Database
------------------------------
+````````````````````````````
 
 First of all, alias your database to Skitai.
 
@@ -2253,7 +2252,7 @@ First of all, alias your database to Skitai.
 
 
 Create Model Classes
-----------------------------
+````````````````````````````````````
 
 .. code:: python
 
@@ -2333,7 +2332,7 @@ I think all public model methods maybe return *corequest object* or None.
 
 
 Using Models
------------------
+```````````````````````````
 
 Finally, you can use this models.py.
 
@@ -2373,7 +2372,7 @@ Finally, you can use this models.py.
   
 
 Conclusion
--------------------------
+`````````````````````````
 
 Above example pattern is just one of my implemetation. 
 
