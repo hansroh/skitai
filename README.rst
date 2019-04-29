@@ -2255,6 +2255,8 @@ First of all, alias your database to Skitai.
 Create Model Classes
 ````````````````````````````````````
 
+I think all public model methods maybe return *corequest object or None*.
+
 .. code:: python
 
   # services/models.py
@@ -2264,14 +2266,14 @@ Create Model Classes
   from datetime import datetime
 
   class BlogPost:
-    EXCLUDES = Q (share = 'private')
+    EXCLUDES = Q (share = 'test')
 
     @classmethod
     def search (cls, keyword = None, period = None, offset = 0, limit = 10, fields = "*"):
         with was.db ("@blog") as db:
             stem = (db.select ("blogpost")      
                      .get (fields)               
-                     .exclude (cls.EXCLUDES)                     
+                     .exclude (cls.EXCLUDES)
                      .filter (posted_at__between = period)
                      .filter (Q (title__contains = keyword) | Q (content__contains = keyword)))
 
@@ -2284,9 +2286,10 @@ Create Model Classes
             return was.Tasks (reqs)
     
     @classmethod
-    def get (cls, id):
+    def get (cls, id, fields = "*"):
         with was.db ("@blog") as db:
             return (db.select ("blogpost")
+                        .get (fields)
                         .filter (id = id).execute ())
     
     @classmethod
@@ -2319,17 +2322,16 @@ Create Model Classes
         with was.db ("@blog") as db:    
             return (db.select ("blogcomment")
                       .filter (post_id = id)
-                      .offset (offset)
-                      .limit (limit ()))
+                      .offset (offset).limit (limit)
+                      .execute ())
 
     @classmethod
     def get_stat (cls, dateunit = 'year'):
         with was.db ("@blog") as db:
-            return (db.select (f"date_part('{dateunit}', created_at) as year, count (*) as cnt")
+            return (db.select ("blog")
+                    .get (f"date_part('{dateunit}', created_at) as year, count (*) as cnt")
                     .group_by ("year")
                     .execute ())
-
-I think all public model methods maybe return *corequest object or None*.
 
 
 Using Models

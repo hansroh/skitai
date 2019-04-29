@@ -188,6 +188,8 @@ class Dispatcher (corequest):
         
 
 class ClusterDistCall:
+    DEFAULT_CACHE_TIMEOUT = 42
+
     def __init__ (self,
         cluster, 
         uri,
@@ -221,30 +223,33 @@ class ClusterDistCall:
         self._timeout = timeout
         self._origin = origin
         self._cachefs = cachefs
-        self._logger = logger
+        self._logger = logger        
+        self.set_defaults ()
+        
+        if not self._reqtype.lower ().endswith ("rpc"):
+            self._build_request ("", self._params)
     
+    def set_defaults (self):
         self._requests = {}
         self._results = []
         self._canceled = False
         self._init_time = time.time ()
         self._cv = None
-        self._retry = 0        
-        self._cached_request_args = None        
+        self._retry = 0                
         self._numnodes = 0
         self._cached_result = None
+        self._cached_request_args = None
         self._request = None
-            
+        self._default_cache_timeout = self._use_cache and self.DEFAULT_CACHE_TIMEOUT or 0
+
         if self._cluster:
             nodes = self._cluster.get_nodes ()
             self._numnodes = len (nodes)
             if self._mapreduce:
                 self._nodes = nodes
             else: # anyone of nodes
-                self._nodes = [None]
-            
-        if not self._reqtype.lower ().endswith ("rpc"):
-            self._build_request ("", self._params)
-    
+                self._nodes = [None]                
+
     def __del__ (self):
         self._cv = None
         self._results = []
@@ -488,6 +493,7 @@ class ClusterDistCall:
             self._cached_result = Results (rss, ident = self._get_ident ())
         else:    
             self._cached_result = rss [0]
+        cache = cache or self._default_cache_timeout
         cache and self.cache (cache, cache_if)
         return self._cached_result    
     
