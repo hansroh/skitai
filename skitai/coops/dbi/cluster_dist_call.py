@@ -107,29 +107,10 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		self._timeout = timeout
 		self._origin = origin
 		self._mapreduce = mapreduce		
-		self._cluster = cluster
-		self._cached_request_args = None
-		self._cached_result = None
-		
-		self._logger = logger		
-		self._requests = {}
-		self._results = []
-		self._canceled = 0
-		self._init_time = time.time ()
-		self._cv = None
-		self._retry = 0	
-		self._numnodes = 0
-		self._sent_result = None
-		self._request = None
-		
-		if self._cluster:
-			nodes = self._cluster.get_nodes ()						
-			self._numnodes = len (nodes)
-			if self._mapreduce:
-				self._nodes = nodes
-			else: # anyone of nodes
-				self._nodes = [None]
-		
+		self._cluster = cluster		
+		self._logger = logger
+		self.set_defaults ()		
+
 	def _get_ident (self):
 		cluster_name = self._cluster.get_name ()
 		if cluster_name == "__dbpool__":
