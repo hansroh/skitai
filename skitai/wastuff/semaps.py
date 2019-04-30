@@ -1,17 +1,24 @@
 import multiprocessing
 
 class Semaps:	
-	def __init__ (self, keys, type = "d"):
-		self._keys  = keys
+	def __init__ (self, slots, type = "d"):
+		self.slots = slots
+		self._keys = []
 		if type == "d":
 			initial_val = 0.0
 		else:
 			initial_val = 0	 
-		self._arr = multiprocessing.Array (type, [initial_val] * len (keys), lock = multiprocessing.RLock ())		
-		self._d = {}
-		for i in range (len (keys)):
-			self._d [keys [i]] = i
+		self._arr = multiprocessing.Array (type, [initial_val] * self.slots, lock = multiprocessing.RLock ())		
+		self._d = {}			
 	
+	def add (self, keys):		
+		initial = len (self._keys)
+		for i, key in enumerate (keys):
+			if key in self._d:
+				continue
+			self._d [key] = initial + i
+			self._keys.append (key)
+
 	def __len__ (self):
 		return len (self._d)
 		

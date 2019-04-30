@@ -2171,12 +2171,30 @@ First of all, you should set all cache control keys to Skitai for sharing model 
 
 .. code:: python
 
-  skitai.deflu ('tables.users', 'table.photos')
+  skitai.register_states ('tables.users', 'table.photos')
 
-These Key names are might be related your database model names nor table names. Especially you bind Django model signal, these keys should be exaclty nodel class name. But in general cases, key names are fine if you easy to recognize.
+These key names are might be related your database model names nor table names. In general cases, key names are fine if you easy to recognize.
   
 These key names are not mutable and you cannot add new key after calling skitai.run ().
+
+Also it can be used as decorator for clarency.
+
+.. code:: python
   
+  import skitai
+
+  @skitai.register_states ('tables.users')
+  class User:
+    ...
+
+
+  @skitai.register_states ('tables.users', 'table.photos')
+  def __mount__ (app):
+    @app.route (...)
+    def index (...):
+       ...
+
+
 Then you can use setlu () and getlu (),
 
 .. code:: python
@@ -2385,6 +2403,34 @@ It can be extended and changed into NoSQL or even RESTful/RPC with any Skitai co
 Miscellaneous
 ==============================
 
+Inter Process State Sharing
+-----------------------------------------
+
+*New in skitai version 0.26.18*
+
+Already mentioned 'skitai.register_states ()'  can be used for allocating shared memory for inter-process named state.
+
+.. code:: python
+
+  import skitai
+
+  skitai.register_states ("current-user", ...)
+
+Then one process update object by setgs (name, value), the others can be access it by getgs (name).
+
+Note that value type is shoul be integer.
+
+.. code:: python
+
+  @app.before_request
+  def before_request (was):
+    was.setgs ("current-user", was.getgs ("current-user") + 1)
+    
+  @app.teardown_request
+  def teardown_request (was):
+    was.setgs ("current-user", was.getgs ("current-user") - 1)
+
+
 API Transaction ID
 ------------------------------------
 
@@ -2459,6 +2505,8 @@ Change Log
 
 - 0.28 (Feb 2019)
   
+  - add @skitai.states () decorator
+  - rename skitai.deflu () => skitai.register_states ()
   - add corequest object explaination and corequest based model example
   - drop SQLAlchemy query statement object 
   - fix https proxypass, and add proxypass remapping

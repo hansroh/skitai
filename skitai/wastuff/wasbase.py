@@ -29,6 +29,11 @@ import xmlrpc.client as xmlrpclib
 from rs4.producers import file_producer
 from .api import DateEncoder
 
+if os.environ.get ("SKITAI_ENV") == "PYTEST":
+    from .semaps import TestSemaps as Semaps
+else:    
+    from .semaps import Semaps
+
 if os.name == "nt":
     TEMP_DIR =  os.path.join (tempfile.gettempdir(), "skitai-gentemp")
 else:
@@ -39,8 +44,7 @@ pathtool.mkdir (TEMP_DIR)
 class WASBase:
     version = __version__    
     objects = {}    
-    _luwatcher = None
-    _stwatcher = None
+    _luwatcher = Semaps (256, "d")    
     
     lock = plock = RLock ()
     init_time = time.time ()
@@ -121,7 +125,10 @@ class WASBase:
     
     def Tasks (self, reqs, timeout = 10):
         return tasks.Tasks (reqs, timeout)
-        
+
+    def Mask (self, data):
+        return tasks.Mask (data)
+
     def log (self, msg, category = "info", at = "app"):
         self.logger (at, msg, "%s:%s" % (category, self.txnid ()))
         
@@ -168,18 +175,16 @@ class WASBase:
             mtimes.append (mtime)
         return max (mtimes)
     
-    def setgs (self, name, v, *args, **kargs):
-        assert isinstance (v, int) 
-        self._stwatcher.set (name, time.time ())
-        self.broadcast (name, v, *args, **karg)            
+    def setgs (self, name, val):
+        assert isinstance (val, int), "global state must be integer"
+        self._luwatcher.set (name, val)
+        self.broadcast (name, val)
         
-    def getgs (self, *names):
-        mtimes = []
-        for name in names:
-            mtime = self._stwatcher.get (name, self.init_time)
-            mtimes.append (mtime)
-        return max (mtimes)
-    
+    def getgs (self, name, default = None):
+        val = self._luwatcher.get (name, default)
+        return (val is not None) and int (val) or None
+
+    # websokcet / http2 ------------------------------------------    
     def push (self, uri):
         self.request.response.hint_promise (uri)
         
