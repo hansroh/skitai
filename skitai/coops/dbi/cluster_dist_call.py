@@ -77,44 +77,35 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		server, 
 		dbname, 
 		auth,
-		dbtype,
-		meta,
-		use_cache,
-		mapreduce,
-		filter,
-		callback,
-		timeout,
-		origin,
-		logger
+		dbtype,		
+		meta = None,		
+		use_cache = False,    
+        mapreduce = True,
+        filter = None,
+        callback = None,
+        timeout = 10,
+        origin = None,
+        cachefs = None,
+        logger = None
 		):
 		
-		self.server = server
-		self.dbname = dbname
-		
-		self.auth = auth		
-		self.dbtype = dbtype
-		if self.dbtype == DB_PGSQL:
-			if self.dbname in (DB_SQLITE3, DB_REDIS):
-				self.dbtype = self.dbname
-				self.dbname = ""
-			elif self.auth in (DB_MONGODB,):
-				self.dbtype = self.auth
-				self.auth = None
-		self._meta = meta or {}				
-		self._use_cache = use_cache		
-		self._filter = filter
-		self._callback = callback
-		self._timeout = timeout
-		self._origin = origin
-		self._mapreduce = mapreduce		
-		self._cluster = cluster		
-		self._logger = logger
-		self.set_defaults ()		
+		self._server = server
+		self._dbname = dbname		
+		self._auth = auth		
+		self._dbtype = dbtype
+		if self._dbtype == DB_PGSQL:
+			if self._dbname in (DB_SQLITE3, DB_REDIS):
+				self._dbtype = self._dbname
+				self._dbname = ""
+			elif self._auth in (DB_MONGODB,):
+				self._dbtype = self._auth
+				self._auth = None		
+		self.set_defaults (cluster, meta, use_cache, mapreduce, filter, callback, timeout, origin, cachefs, logger)
 
 	def _get_ident (self):
 		cluster_name = self._cluster.get_name ()
 		if cluster_name == "__dbpool__":
-			_id = "%s/%s/%s" % (self.server, self.dbname, self.auth)
+			_id = "%s/%s/%s" % (self._server, self._dbname, self._auth)
 		else:
 			_id = cluster_name
 		_id += "/%s%s" % (
@@ -127,8 +118,8 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 		if id is None: id = self._nodes.pop ()
 		else: self._nodes = []
 			
-		if self.server:
-			asyncon = self._cluster.get (self.server, self.dbname, self.auth, self.dbtype)		
+		if self._server:
+			asyncon = self._cluster.get (self._server, self._dbname, self._auth, self._dbtype)		
 		else:	
 			asyncon = self._cluster.get (id)		
 		self._setup (asyncon)
@@ -157,10 +148,10 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 			self._requests [rs] = asyncon	
 			
 			req = request.Request (
-				self.dbtype,
-				self.server, 
-				self.dbname,
-				self.auth,
+				self._dbtype,
+				self._server, 
+				self._dbname,
+				self._auth,
 				method, params, 				
 				rs.handle_result,
 				self._meta
@@ -203,12 +194,13 @@ class Proxy:
 	
 	
 class ClusterDistCallCreator:
-	def __init__ (self, cluster, logger):
+	def __init__ (self, cluster, logger, cachesfs):
 		self.cluster = cluster
 		self.logger = logger
+		self.cachesfs = cachesfs
 	
 	def __getattr__ (self, name):	
 		return getattr (self.cluster, name)
 		
 	def Server (self, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
-		return Proxy (ClusterDistCall, self.cluster, server, dbname, auth, dbtype, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.logger)
+		return Proxy (ClusterDistCall, self.cluster, server, dbname, auth, dbtype, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.cachesfs, self.logger)
