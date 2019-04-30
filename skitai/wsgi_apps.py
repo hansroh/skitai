@@ -79,6 +79,10 @@ class Module:
 				else:
 					setattr (app, k, v)					
 		
+		if hasattr (app, "_aliases"):
+			while app._aliases:
+				self.wasc.add_cluster (*app._aliases.pop (0))			
+
 		if not hasattr (app, "config"):
 			app.config = Config (True)
 								
@@ -100,13 +104,6 @@ class Module:
 
 		if hasattr (app, "commit_events_to"):
 			app.commit_events_to (self.bus)
-
-		if hasattr (app, "_aliases"):
-			while app._aliases:
-				self.wasc.add_cluster (*app._aliases.pop (0))			
-
-		if hasattr (app, "states"):
-			self.wasc._luwatcher.extend (app.states)		
 
 		self.set_devel_env ()
 		self.update_file_info ()

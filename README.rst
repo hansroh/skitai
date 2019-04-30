@@ -2171,25 +2171,24 @@ First of all, you should set all cache control keys to Skitai for sharing model 
 
 .. code:: python
 
-  skitai.reserve_states ('tables.users', 'table.photos')
-
+  skitai.register_states ('tables.users', 'table.photos')
 
 These key names are might be related your database model names nor table names. In general cases, key names are fine if you easy to recognize.
   
 These key names are not mutable and you cannot add new key after calling skitai.run ().
 
-Also you can define key name at your fornt of your object with decorator.
+Also it can be used as decorator for clarency.
 
 .. code:: python
   
   import skitai
 
-  @skitai.states ('tables.users')
+  @skitai.register_states ('tables.users')
   class User:
     ...
 
 
-  @skitai.states ('tables.users', 'table.photos')
+  @skitai.register_states ('tables.users', 'table.photos')
   def __mount__ (app):
     @app.route (...)
     def index (...):
@@ -2404,6 +2403,34 @@ It can be extended and changed into NoSQL or even RESTful/RPC with any Skitai co
 Miscellaneous
 ==============================
 
+Inter Process State Sharing
+-----------------------------------------
+
+*New in skitai version 0.26.18*
+
+Already mentioned 'skitai.register_states ()'  can be used for allocating shared memory for inter-process named state.
+
+.. code:: python
+
+  import skitai
+
+  skitai.register_states ("current-user", ...)
+
+Then one process update object by setgs (name, value), the others can be access it by getgs (name).
+
+Note that value type is shoul be integer.
+
+.. code:: python
+
+  @app.before_request
+  def before_request (was):
+    was.setgs ("current-user", was.getgs ("current-user") + 1)
+    
+  @app.teardown_request
+  def teardown_request (was):
+    was.setgs ("current-user", was.getgs ("current-user") - 1)
+
+
 API Transaction ID
 ------------------------------------
 
@@ -2479,7 +2506,7 @@ Change Log
 - 0.28 (Feb 2019)
   
   - add @skitai.states () decorator
-  - rename skitai.deflu () => skitai.reserve_states ()
+  - rename skitai.deflu () => skitai.register_states ()
   - add corequest object explaination and corequest based model example
   - drop SQLAlchemy query statement object 
   - fix https proxypass, and add proxypass remapping

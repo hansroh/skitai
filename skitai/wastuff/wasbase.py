@@ -29,6 +29,11 @@ import xmlrpc.client as xmlrpclib
 from rs4.producers import file_producer
 from .api import DateEncoder
 
+if os.environ.get ("SKITAI_ENV") == "PYTEST":
+    from .semaps import TestSemaps as Semaps
+else:    
+    from .semaps import Semaps
+
 if os.name == "nt":
     TEMP_DIR =  os.path.join (tempfile.gettempdir(), "skitai-gentemp")
 else:
@@ -39,7 +44,7 @@ pathtool.mkdir (TEMP_DIR)
 class WASBase:
     version = __version__    
     objects = {}    
-    _luwatcher = None    
+    _luwatcher = Semaps (256, "d")    
     
     lock = plock = RLock ()
     init_time = time.time ()

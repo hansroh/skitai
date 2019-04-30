@@ -97,6 +97,9 @@ class _WASPool:
 	def _start (self, wasc):
 		self.__wasc = wasc
 	
+	def _started (self):
+		return self.__wasc
+
 	def _del (self):
 		_id = self.__get_id ()
 		try:
@@ -261,15 +264,18 @@ def set_was_class (was_class):
 	global dconf	
 	dconf ["wasc"] = was_class
 	
-def reserve_states (*names):
+def _reserve_states (*names):
 	if isinstance (names [0], (list, tuple)):
 		names = list (names [0])
-	for k in names:
-		dconf ["models_keys"].add (k)
-addlu = trackers = lukeys = deflu = reserve_states
+	if was._started ():
+		was._luwatcher.add (names)
+	else:
+		for k in names:
+			dconf ["models_keys"].add (k)
+addlu = trackers = lukeys = deflu = _reserve_states
 
-def states (*names):
-    reserve_states (names)
+def register_states (*names):
+    _reserve_states (names)
     def decorator (cls):
         return cls
     return decorator

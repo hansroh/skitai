@@ -36,11 +36,6 @@ import types
 from .handlers.websocket import servers as websocekts
 from .wastuff import selective_logger, triple_logger
 
-if os.environ.get ("SKITAI_ENV") == "PYTEST":
-    from .wastuff.semaps import TestSemaps as Semaps
-else:    
-    from .wastuff.semaps import Semaps
-
 class Loader:
 	def __init__ (self, config = None, logpath = None, varpath = None, wasc = None, debug = 0):		
 		self.config = config
@@ -81,7 +76,7 @@ class Loader:
 		self.switch_to_await_fifo ()
 	
 	def set_model_keys (self, keys):		
-		self.wasc._luwatcher = Semaps (list (keys), "d")
+		self.wasc._luwatcher.add (keys)
 				
 	def app_cycle (self, func):
 		for h in self.wasc.httpserver.handlers:
