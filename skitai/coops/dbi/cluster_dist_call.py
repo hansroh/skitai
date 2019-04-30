@@ -84,8 +84,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
         filter = None,
         callback = None,
         timeout = 10,
-        origin = None,
-        cachefs = None,
+        origin = None,        
         logger = None
 		):
 		
@@ -100,7 +99,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
 			elif self._auth in (DB_MONGODB,):
 				self._dbtype = self._auth
 				self._auth = None		
-		self.set_defaults (cluster, meta, use_cache, mapreduce, filter, callback, timeout, origin, cachefs, logger)
+		self.set_defaults (cluster, meta, use_cache, mapreduce, filter, callback, timeout, origin, logger)
 
 	def _get_ident (self):
 		cluster_name = self._cluster.get_name ()
@@ -194,13 +193,12 @@ class Proxy:
 	
 	
 class ClusterDistCallCreator:
-	def __init__ (self, cluster, logger, cachesfs):
+	def __init__ (self, cluster, logger):
 		self.cluster = cluster
-		self.logger = logger
-		self.cachesfs = cachesfs
+		self.logger = logger		
 	
 	def __getattr__ (self, name):	
 		return getattr (self.cluster, name)
 		
 	def Server (self, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
-		return Proxy (ClusterDistCall, self.cluster, server, dbname, auth, dbtype, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.cachesfs, self.logger)
+		return Proxy (ClusterDistCall, self.cluster, server, dbname, auth, dbtype, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.logger)

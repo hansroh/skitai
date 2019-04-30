@@ -117,7 +117,7 @@ class Loader:
 		
 		dp = dbpool.DBPool (self.wasc.logger.get ("server"))
 		self.wasc.clusters ["__dbpool__"] = dp
-		self.wasc.clusters_for_distcall ["__dbpool__"] = dcluster_dist_call.ClusterDistCallCreator (dp, self.wasc.logger.get ("server"), self.wasc.cachefs)
+		self.wasc.clusters_for_distcall ["__dbpool__"] = dcluster_dist_call.ClusterDistCallCreator (dp, self.wasc.logger.get ("server"))
 	
 	def switch_to_await_fifo (self):
 		if self._fifo_switched: return

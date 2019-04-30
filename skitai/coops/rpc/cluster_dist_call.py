@@ -55,6 +55,13 @@ class Result (rcache.Result):
         rcache.Result.cache (self, timeout)
         return self
     
+    def dispatch (self, timeout = None, cache = None, cache_if = (200,)):
+        cache and self.cache (cache, cache_if)
+        returen self
+
+    def wait (self, timeout = None):
+        returen self
+
     def close (self):
         self.__response = None    
     
@@ -212,12 +219,12 @@ class ClusterDistCall:
         self._headers = headers
         self._reqtype = reqtype
         self._auth = auth
-        self.set_defaults (cluster, meta, use_cache, mapreduce, filter, callback, timeout, origin, cachefs, logger)
+        self.set_defaults (cluster, meta, use_cache, mapreduce, filter, callback, timeout, origin, logger, cachefs)
         
         if not self._reqtype.lower ().endswith ("rpc"):
             self._build_request ("", self._params)
     
-    def set_defaults (self, cluster, meta, use_cache, mapreduce, filter, callback, timeout, origin, cachefs, logger):        
+    def set_defaults (self, cluster, meta, use_cache, mapreduce, filter, callback, timeout, origin, logger, cachefs = None):
         self._cluster = cluster
         self._meta = meta or {}
         self._use_cache = use_cache
