@@ -1004,13 +1004,11 @@ Inter-Processes State Sharing
 
 Skitai can run with multiple processes (a.k workers), It is possible matters synchronizing state between workers.
 
-Like was.setlu () or getlu (), was provide setgs (), getgs ().
-
 Most important thing is global state keys SHUOLD be defined before running skitai. And argument should be integer value.
 
 .. code:: python
 
-  skitai.defgs ("cluster.num-nodes", "region.somethig", ...)  
+  skitai.deflu ("cluster.num-nodes", "region.somethig", ...)  
   ...
   
   skitai.run ()
@@ -1022,7 +1020,7 @@ Then you cna use these,
   @app.route ("/nodes", method = ["POST", "DELETE"])
   def nodes (was, **nodinfos):
   	...
-  	was.setgs ("cluster.num-nodes", was.getgs ("cluster.num-nodes") + 1, **nodeinfos)  	
+  	was.setlu ("cluster.num-nodes", was.getlu ("cluster.num-nodes") + 1, **nodeinfos)  	
 
 As a result,
 
@@ -1049,7 +1047,7 @@ All workers has interested in this event, You may add watching routine at app.ma
   @app.maintain
   def maintain_num_nodes (was, now):
   	...
-  	num_nodes = was.getgs ("cluster.num-nodes")
+  	num_nodes = was.getlu ("cluster.num-nodes")
   	if app.store ["num_nodes"] != num_nodes:
   	  app.store ["num_nodes"] = num_nodes
   	  app.broadcast ("cluster:num_nodes")
@@ -1966,6 +1964,42 @@ For getting concurrent tasks advantages, you request at once as many as possible
     return contents
 
 
+Mask
+-----------------------
+
+Mask is data transform object which is from corequest. It makes you can call .one () or .fetch () with consistency for any object.
+
+For example, you have a function using Database,
+
+.. code:: python
+  
+  def get_result (was):
+    return db ("@mydb").select ("test").filter (id = 10)    	
+
+And you use this like this.
+
+.. code:: python
+
+  @app.route (...)
+  def request (was):
+    data = get_result ().one () # {"a": 1, "b": 2}    
+    return was.API (data = data)
+
+Now you change get_result function using API,
+
+.. code:: python
+  
+  def get_result (was):
+    reqs = [
+    	was.get (url),
+    	was.post (url, {"user": "Hans Roh", "comment": "Hello"})
+    ]
+    a, b = was.Tasks (reqs, timeout = 3).fetch ()
+    return was.Mask (dict (a = a, b = b))
+
+Both result can be called one () and result object structure is also same.
+
+
 Intermezzo
 -------------------
 
@@ -1974,6 +2008,7 @@ For creating corequest object,
 - HTTP based request: was.get (alias), .post (alias), ....  
 - Database request: as.db (alias).execute (...), .find (), set (), ... other MongoDB and Redis methods
 - Tasks: bundle of corequests
+- Mask: data trasnform wrapper has one () and fetch () only
 
 Corequest object has main 5 methods.
 

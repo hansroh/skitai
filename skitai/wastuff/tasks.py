@@ -59,6 +59,15 @@ class Tasks (TaskBase):
         [r.cache (cache, cache_if) for r in self.results]
         
 
+class Mask:
+    def __init__ (self, data):
+        self._data = data
+
+    def fetch (self):
+        return self._data
+    one = fetch
+
+
 class CompletedTasks (Tasks):
     def __init__ (self, rss, timeout = 10, cache_timeout = 0, cache_if = (200,)):
         TaskBase.__init__ (self, [], timeout, cache_timeout, cache_if)

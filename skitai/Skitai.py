@@ -82,9 +82,6 @@ class Loader:
 	
 	def set_model_keys (self, keys):		
 		self.wasc._luwatcher = Semaps (list (keys), "d")
-	
-	def set_state_keys (self, keys):
-		self.wasc._stwatcher = Semaps (list (keys), "i")
 				
 	def app_cycle (self, func):
 		for h in self.wasc.httpserver.handlers:

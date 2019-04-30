@@ -55,13 +55,6 @@ class Result (rcache.Result):
         rcache.Result.cache (self, timeout)
         return self
     
-    def dispatch (self, timeout = None, cache = None, cache_if = (200,)):
-        cache and self.cache (cache, cache_if)
-        return self
-
-    def wait (self, timeout = None):
-        return self
-
     def close (self):
         self.__response = None    
     

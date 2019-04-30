@@ -265,16 +265,6 @@ def deflu (*key):
 			raise KeyError ("model last update key '{}' is already exist".format (k))
 		dconf ["models-keys"].add (k)
 addlu = trackers = lukeys = deflu
-
-def defgs (*key):
-	if "states-keys" not in dconf:
-		dconf ["states-keys"] = set ()
-	if isinstance (key [0], (list, tuple)):
-		key = list (key [0])
-	for k in key:
-		if k in dconf ["states-keys"]:
-			raise KeyError ("state last update key '{}' is already exist".format (k))
-		dconf ["states-keys"].add (k)
 	
 def maybe_django (wsgi_path, appname):
 	if not isinstance (wsgi_path, str):
@@ -533,10 +523,8 @@ def run (**conf):
 				self.wasc.logger ("server", "[info] running for development mode")
 			self.wasc.logger ("server", "[info] engine tmp path: %s" % self.varpath)
 			if self.logpath:
-				self.wasc.logger ("server", "[info] engine log path: %s" % self.logpath)
-			
-			self.conf.get ("models-keys") and self.set_model_keys (self.conf ["models-keys"])
-			self.conf.get ("states-keys") and self.set_state_keys (self.conf ["states-keys"])
+				self.wasc.logger ("server", "[info] engine log path: %s" % self.logpath)			
+			self.conf.get ("models-keys") and self.set_model_keys (self.conf ["models-keys"])			
 						
 		def maintern_shutdown_request (self, now):
 			req = self.flock.lockread ("signal")

@@ -39,8 +39,7 @@ pathtool.mkdir (TEMP_DIR)
 class WASBase:
     version = __version__    
     objects = {}    
-    _luwatcher = None
-    _stwatcher = None
+    _luwatcher = None    
     
     lock = plock = RLock ()
     init_time = time.time ()
@@ -121,7 +120,10 @@ class WASBase:
     
     def Tasks (self, reqs, timeout = 10):
         return tasks.Tasks (reqs, timeout)
-        
+
+    def Mask (self, data):
+        return tasks.Mask (data)
+
     def log (self, msg, category = "info", at = "app"):
         self.logger (at, msg, "%s:%s" % (category, self.txnid ()))
         
@@ -157,8 +159,8 @@ class WASBase:
         lifetime.shutdown (0, timeout)
     
     # inter-processes communication ------------------------------    
-    def setlu (self, name, *args, **karg):
-        self._luwatcher.set (name, time.time (), karg.get ("x_ignore", False))
+    def setlu (self, name, value = None, *args, **karg):
+        self._luwatcher.set (name, value or time.time (), karg.get ("x_ignore", False))
         self.broadcast (name, *args, **karg)            
         
     def getlu (self, *names):
@@ -166,19 +168,7 @@ class WASBase:
         for name in names:
             mtime = self._luwatcher.get (name, self.init_time)
             mtimes.append (mtime)
-        return max (mtimes)
-    
-    def setgs (self, name, v, *args, **kargs):
-        assert isinstance (v, int) 
-        self._stwatcher.set (name, time.time ())
-        self.broadcast (name, v, *args, **karg)            
-        
-    def getgs (self, *names):
-        mtimes = []
-        for name in names:
-            mtime = self._stwatcher.get (name, self.init_time)
-            mtimes.append (mtime)
-        return max (mtimes)
+        return max (mtimes)    
     
     def push (self, uri):
         self.request.response.hint_promise (uri)
