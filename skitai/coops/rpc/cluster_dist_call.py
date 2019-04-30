@@ -57,10 +57,10 @@ class Result (rcache.Result):
     
     def dispatch (self, timeout = None, cache = None, cache_if = (200,)):
         cache and self.cache (cache, cache_if)
-        returen self
+        return self
 
     def wait (self, timeout = None):
-        returen self
+        return self
 
     def close (self):
         self.__response = None    
@@ -140,7 +140,11 @@ class Dispatcher (corequest):
     def get_status (self):
         with self._cv:
             return self.status
-        
+
+    def request_failed (self):
+        self.status = REQFAIL
+        tuple_cb (self, self.callback)    
+
     def set_status (self, code, result = None):
         with self._cv:
             self.status = code
@@ -179,7 +183,7 @@ class Dispatcher (corequest):
             status = NORMAL
         
         result = Result (self.id, status, response, self.ident)
-        
+
         cakey = response.request.get_cache_key ()
         if self.cachefs and cakey and response.max_age:
             self.cachefs.save (
@@ -365,7 +369,7 @@ class ClusterDistCall:
             except:
                 self._logger ("Request Creating Failed", "fail")
                 self._logger.trace ()
-                rs.set_status (-1)
+                rs.request_failed ()
                 asyncon.set_active (False)
                 continue
             
