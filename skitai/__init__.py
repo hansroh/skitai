@@ -257,18 +257,24 @@ def set_was_class (was_class):
 	
 def deflu (*key):
 	if "models-keys" not in dconf:
-		dconf ["models-keys"] = []
+		dconf ["models-keys"] = set ()
 	if isinstance (key [0], (list, tuple)):
 		key = list (key [0])
-	dconf ["models-keys"].extend (key)
+	for k in key:
+		if k in dconf ["models-keys"]:
+			raise KeyError ("model last update key '{}' is already exist".format (k))
+		dconf ["models-keys"].add (k)
 addlu = trackers = lukeys = deflu
 
 def defgs (*key):
 	if "states-keys" not in dconf:
-		dconf ["states-keys"] = []
+		dconf ["states-keys"] = set ()
 	if isinstance (key [0], (list, tuple)):
 		key = list (key [0])
-	dconf ["states-keys"].extend (key)
+	for k in key:
+		if k in dconf ["states-keys"]:
+			raise KeyError ("state last update key '{}' is already exist".format (k))
+		dconf ["states-keys"].add (k)
 	
 def maybe_django (wsgi_path, appname):
 	if not isinstance (wsgi_path, str):
@@ -370,7 +376,7 @@ def _alias_django (name, settings_path):
 			default ["PASSWORD"] = ""
 		return alias (name, DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)
 
-def alias (name, ctype, members, role = "", source = "", ssl = False, max_coons = 100):
+def alias (name, ctype, members, lukeys = None, role = "", source = "", ssl = False, max_coons = 100):
 	from .coops.rpc.cluster_manager import AccessPolicy
 	global dconf
 	
@@ -379,6 +385,7 @@ def alias (name, ctype, members, role = "", source = "", ssl = False, max_coons 
 	if dconf ["clusters"].get (name):
 		return name, dconf ["clusters"][name]
 	
+	lukeys and deflu (lukeys)
 	if ctype == DJANGO:
 		alias = _alias_django (name, members)
 		if alias is None:
