@@ -1,5 +1,7 @@
 from aquests.dbapi import synsqlite3, request, asynpsycopg2   
 from skitai import DB_SQLITE3, DB_PGSQL
+from aquests.dbapi.dbconnect import SQLError
+import pytest
 
 def callback1 (resp):
     assert resp.data [0].id == 1.0
@@ -25,6 +27,7 @@ def test_str (dbpath, log):
     
     statement = 1
     r = request.Request (DB_SQLITE3, dbpath, None, None, None, (statement,), callback = callback5)
-    f.execute (r)
+    with pytest.raises (SQLError):
+        f.execute (r)
 
     
