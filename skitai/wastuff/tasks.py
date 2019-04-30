@@ -3,7 +3,7 @@ from ..utility import make_pushables
 from ..exceptions import HTTPError
 from ..coops.rpc.cluster_dist_call import DEFAULT_TIMEOUT
 from skitai import was
-from ..corequest import corequest
+from ..corequest import corequest, response
 
 class TaskBase (corequest):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, cache_timeout = 0, cache_if = (200,)):
@@ -59,7 +59,7 @@ class Tasks (TaskBase):
         [r.cache (cache, cache_if) for r in self.results]
         
 
-class Mask:
+class Mask (response):
     def __init__ (self, data):
         self._data = data
 
@@ -68,7 +68,7 @@ class Mask:
     one = fetch
 
 
-class CompletedTasks (Tasks):
+class CompletedTasks (response, Tasks):
     def __init__ (self, rss, timeout = 10, cache_timeout = 0, cache_if = (200,)):
         TaskBase.__init__ (self, [], timeout, cache_timeout, cache_if)
         self._results = rss

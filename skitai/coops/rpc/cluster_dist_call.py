@@ -20,7 +20,7 @@ import inspect
 from skitai import exceptions
 from skitai import REQFAIL, UNSENT, TIMEOUT, NETERR, NORMAL
 import psycopg2, sqlite3
-from ...corequest import corequest
+from ...corequest import corequest, response
 
 DEFAULT_TIMEOUT = 10
 WAIT_POLL = False
@@ -29,7 +29,7 @@ class OperationError (Exception):
     pass
 
     
-class Result (rcache.Result):
+class Result (response, rcache.Result):
     def __init__ (self, id, status, response, ident = None):
         rcache.Result.__init__ (self, status, ident)
         self.node = id
@@ -83,7 +83,7 @@ class Result (rcache.Result):
         self.reraise ()
     
     
-class Results (rcache.Result):
+class Results (response, rcache.Result):
     def __init__ (self, results, ident = None):
         self.results = results
         self.status_code = [rs.status_code for rs in results]
@@ -314,7 +314,8 @@ class ClusterDistCall:
         if self._use_cache and rcache.the_rcache:
             self._cached_result = rcache.the_rcache.get (self._get_ident (), self._use_cache)
             if self._cached_result is not None:
-                self._callback and tuple_cb (self._cached_result, self._callback)
+                self._cached_result.meta = self._meta            
+                self._callback and tuple_cb (self._cached_result, self._callback)                
                 return
             else:
                 self._use_cache = False        
@@ -513,6 +514,11 @@ class ClusterDistCall:
     def dispatch_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
         return self.dispatch (timeout, cache, cache_if, reraise = True)
     
+    def none_or_dispatch (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
+        r = self.dispatch (timeout, cache, cache_if, reraise = True)
+        if r.data is not None:
+          return r
+
     def wait (self, timeout = DEFAULT_TIMEOUT, reraise = False):
         return self.dispatch (timeout, reraise = reraise)        
     

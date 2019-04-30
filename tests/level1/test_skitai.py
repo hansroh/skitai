@@ -13,11 +13,11 @@ except ImportError:
 def test_skitai (app):
     skitai.set_worker_critical_point ()
     
-    skitai.deflu ("a", "b")
+    skitai.reserve_states ("a", "b")
     assert (skitai.dconf ["models-keys"] == {"a", "b"})
     
     with pytest.raises (KeyError):
-        skitai.deflu ("a", "b")        
+        skitai.reserve_states ("a", "b")        
 
     if os.name != "posix":
         return

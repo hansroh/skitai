@@ -229,7 +229,7 @@ class Loader:
 		if type (routes) is list:
 			routes = {'default': routes}
 		sroutes = []
-		for domain in routes:
+		for domain in sorted (routes.keys ()): # must sort for lueatcher reservation
 			sroutes.append ("@%s" % domain)
 			for route, entity, pref in routes [domain]:				
 				appname = None

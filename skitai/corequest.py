@@ -2,5 +2,5 @@
 class corequest:
     pass
 
-class repspone (corequest):
+class response (corequest):
     pass

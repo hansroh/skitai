@@ -159,8 +159,8 @@ class WASBase:
         lifetime.shutdown (0, timeout)
     
     # inter-processes communication ------------------------------    
-    def setlu (self, name, value = None, *args, **karg):
-        self._luwatcher.set (name, value or time.time (), karg.get ("x_ignore", False))
+    def setlu (self, name, *args, **karg):
+        self._luwatcher.set (name, time.time (), karg.get ("x_ignore", False))
         self.broadcast (name, *args, **karg)            
         
     def getlu (self, *names):
@@ -168,8 +168,18 @@ class WASBase:
         for name in names:
             mtime = self._luwatcher.get (name, self.init_time)
             mtimes.append (mtime)
-        return max (mtimes)    
+        return max (mtimes)
     
+    def setgs (self, name, val):
+        assert isinstance (val, int), "global state must be integer"
+        self._luwatcher.set (name, val)
+        self.broadcast (name, val)
+        
+    def getgs (self, name, default = None):
+        val = self._luwatcher.get (name, default)
+        return (val is not None) and int (val) or None
+
+    # websokcet / http2 ------------------------------------------    
     def push (self, uri):
         self.request.response.hint_promise (uri)
         

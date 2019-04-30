@@ -76,7 +76,7 @@ class _WASPool:
 		return id (threading.currentThread ())
 	
 	def __repr__ (self):
-		return "<class skitai.WASPool at %x>" % id (self)
+		return "<class skitai.WASPool at %x, was class: %s>" % (id (self), self.__wasc)
 			
 	def __getattr__ (self, attr):
 		return getattr (self._get (), attr)
@@ -130,10 +130,9 @@ def detect_atila ():
 	else:
 		global HAS_ATILA
 		HAS_ATILA = atila.Atila
-			
+
 def websocket (varname, timeout = 60, onopen = None, onclose = None):
     global was
-	
 	# for non-atila app
     def decorator(f):
         @wraps(f)
@@ -154,7 +153,14 @@ def websocket (varname, timeout = 60, onopen = None, onclose = None):
 #------------------------------------------------
 # Configure
 #------------------------------------------------
-dconf = {'mount': {"default": []}, 'clusters': {}, 'max_ages': {}, 'log_off': [], 'dns_protocol': 'tcp'}
+dconf = dict (
+	mount = {"default": []}, 
+	clusters = {}, 
+	max_ages = {}, 
+	log_off = [], 
+	dns_protocol = 'tcp', 
+	models_keys = set ()
+)
 
 def pref (preset = False):
 	from .wsgi_apps import Config
@@ -255,17 +261,19 @@ def set_was_class (was_class):
 	global dconf	
 	dconf ["wasc"] = was_class
 	
-def deflu (*key):
-	if "models-keys" not in dconf:
-		dconf ["models-keys"] = set ()
-	if isinstance (key [0], (list, tuple)):
-		key = list (key [0])
-	for k in key:
-		if k in dconf ["models-keys"]:
-			raise KeyError ("model last update key '{}' is already exist".format (k))
-		dconf ["models-keys"].add (k)
-addlu = trackers = lukeys = deflu
-	
+def reserve_states (*names):
+	if isinstance (names [0], (list, tuple)):
+		names = list (names [0])
+	for k in names:
+		dconf ["models_keys"].add (k)
+addlu = trackers = lukeys = deflu = reserve_states
+
+def states (*names):
+    reserve_states (names)
+    def decorator (cls):
+        return cls
+    return decorator
+
 def maybe_django (wsgi_path, appname):
 	if not isinstance (wsgi_path, str):
 		return
@@ -366,7 +374,7 @@ def _alias_django (name, settings_path):
 			default ["PASSWORD"] = ""
 		return alias (name, DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)
 
-def alias (name, ctype, members, lukeys = None, role = "", source = "", ssl = False, max_coons = 100):
+def alias (name, ctype, members, role = "", source = "", ssl = False, max_coons = 100):
 	from .coops.rpc.cluster_manager import AccessPolicy
 	global dconf
 	
@@ -375,7 +383,6 @@ def alias (name, ctype, members, lukeys = None, role = "", source = "", ssl = Fa
 	if dconf ["clusters"].get (name):
 		return name, dconf ["clusters"][name]
 	
-	lukeys and deflu (lukeys)
 	if ctype == DJANGO:
 		alias = _alias_django (name, members)
 		if alias is None:
@@ -524,7 +531,7 @@ def run (**conf):
 			self.wasc.logger ("server", "[info] engine tmp path: %s" % self.varpath)
 			if self.logpath:
 				self.wasc.logger ("server", "[info] engine log path: %s" % self.logpath)			
-			self.conf.get ("models-keys") and self.set_model_keys (self.conf ["models-keys"])			
+			self.set_model_keys (self.conf ["models_keys"])
 						
 		def maintern_shutdown_request (self, now):
 			req = self.flock.lockread ("signal")

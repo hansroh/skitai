@@ -67,10 +67,7 @@ class Module:
 			app.set_logger (self.wasc.logger.get ("app"))		
 		self.django = str (app.__class__).find ("django.") != -1
 		self.has_life_cycle = hasattr (app, "life_cycle")
-		if hasattr (app, "_aliases"):
-			while app._aliases:
-				self.wasc.add_cluster (*app._aliases.pop (0))
-				
+		
 		if self.pref:
 			for k, v in copy.copy (self.pref).items ():
 				if k == "config":
@@ -91,16 +88,26 @@ class Module:
 		if hasattr (app, "mountables"):
 			for _args, _karg in app.mountables:
 				app.mount (*_args, **_karg)			
+		
 		if hasattr (app, "max_client_body_size"):
 			val = app.max_client_body_size
 			app.config.max_post_body_size = val
 			app.config.max_multipart_body_size = val
 			app.config.max_upload_file_size = val
+
 		if hasattr (app, "set_home"):
-			app.set_home (os.path.dirname (self.abspath), self.module)			
+			app.set_home (os.path.dirname (self.abspath), self.module)
+
 		if hasattr (app, "commit_events_to"):
 			app.commit_events_to (self.bus)
-				
+
+		if hasattr (app, "_aliases"):
+			while app._aliases:
+				self.wasc.add_cluster (*app._aliases.pop (0))			
+
+		if hasattr (app, "states"):
+			self.wasc._luwatcher.extend (app.states)		
+
 		self.set_devel_env ()
 		self.update_file_info ()
 			
