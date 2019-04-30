@@ -54,7 +54,7 @@ class AsyncService:
 
         if clustertype and "*" + clustertype in (DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB):
             cluster = dcluster_manager.ClusterManager (clustername, clusterlist, "*" + clustertype, access, max_conns, cls.logger.get ("server"))
-            cls.clusters_for_distcall [clustername] = dcluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"))
+            cls.clusters_for_distcall [clustername] = dcluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"), cls.cachefs)
         else:
             cluster = cluster_manager.ClusterManager (clustername, clusterlist, ssl, access, max_conns, cls.logger.get ("server"))
             cls.clusters_for_distcall [clustername] = cluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"), cls.cachefs)
@@ -123,13 +123,13 @@ class AsyncService:
     def _create_dbo (self, cluster, *args, **kargs):
         return cluster.Server (*args, **kargs)
             
-    def _ddb (self, server, dbname = "", auth = None, dbtype = DB_PGSQL, meta = None, use_cache = True, filter = None, callback = None, timeout = 10, caller = None):
+    def _ddb (self, server, dbname = "", auth = None, dbtype = DB_PGSQL, meta = None, use_cache = False, filter = None, callback = None, timeout = 10, caller = None):
         dbo = self._create_dbo (self.clusters_for_distcall ["__dbpool__"], server, dbname, auth, dbtype, meta, use_cache, False, filter, callback, timeout, caller)
         if dbtype in (DB_PGSQL, DB_SQLITE3):
             return self._bind_sqlphile (dbo, dbtype)
         return dbo
     
-    def _cddb (self, mapreduce = False, clustername = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10, caller = None):
+    def _cddb (self, mapreduce = False, clustername = None, meta = None, use_cache = False, filter = None, callback = None, timeout = 10, caller = None):
         cluster = self.__detect_cluster (clustername) [0]
         dbo = self._create_dbo (cluster, None, None, None, None, meta, use_cache, mapreduce, filter, callback, timeout, caller)
         if cluster.cluster.dbtype in (DB_PGSQL, DB_SQLITE3):
@@ -142,7 +142,7 @@ class AsyncService:
     def _dmap (self, *args, **karg):
         return self._cddb (True, *args, **karg)
     
-    def _adb (self, dbtype, server, dbname = "", auth = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10, caller = None):
+    def _adb (self, dbtype, server, dbname = "", auth = None, meta = None, use_cache = False, filter = None, callback = None, timeout = 10, caller = None):
         return self._ddb (server, dbname, auth, dbtype, meta, use_cache, filter, callback, timeout, caller)
     
     def _alb (self, dbtype, *args, **karg):

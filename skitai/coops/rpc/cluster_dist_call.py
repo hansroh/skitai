@@ -188,8 +188,7 @@ class Dispatcher (corequest):
         
 
 class ClusterDistCall:
-    DEFAULT_CACHE_TIMEOUT = 42
-
+    DEFAULT_CACHE_TIMEOUT = 42    
     def __init__ (self,
         cluster, 
         uri,
@@ -197,7 +196,7 @@ class ClusterDistCall:
         reqtype = "get",
         headers = None,
         auth = None,    
-        meta = None,    
+        meta = None,
         use_cache = False,    
         mapreduce = True,
         filter = None,
@@ -208,15 +207,22 @@ class ClusterDistCall:
         logger = None
         ):
         
-        self._cluster = cluster
         self._uri = uri
         self._params = params
         self._headers = headers
         self._reqtype = reqtype
-            
-        self._auth = auth        
+        self._auth = auth
+        self.set_defaults (cluster, meta, use_cache, mapreduce, filter, callback, timeout, origin, cachefs, logger)
+        
+        if not self._reqtype.lower ().endswith ("rpc"):
+            self._build_request ("", self._params)
+    
+    def set_defaults (self, cluster, meta, use_cache, mapreduce, filter, callback, timeout, origin, cachefs, logger):        
+        self._cluster = cluster
         self._meta = meta or {}
         self._use_cache = use_cache
+        # only if expire time is specified
+        self._default_cache_timeout = int (self._use_cache) > 1 and self.DEFAULT_CACHE_TIMEOUT or 0
         self._mapreduce = mapreduce
         self._filter = filter
         self._callback = callback
@@ -224,12 +230,7 @@ class ClusterDistCall:
         self._origin = origin
         self._cachefs = cachefs
         self._logger = logger        
-        self.set_defaults ()
-        
-        if not self._reqtype.lower ().endswith ("rpc"):
-            self._build_request ("", self._params)
-    
-    def set_defaults (self):
+         
         self._requests = {}
         self._results = []
         self._canceled = False
@@ -240,8 +241,7 @@ class ClusterDistCall:
         self._cached_result = None
         self._cached_request_args = None
         self._request = None
-        self._default_cache_timeout = self._use_cache and self.DEFAULT_CACHE_TIMEOUT or 0
-
+        
         if self._cluster:
             nodes = self._cluster.get_nodes ()
             self._numnodes = len (nodes)
@@ -312,6 +312,8 @@ class ClusterDistCall:
             if self._cached_result is not None:
                 self._callback and tuple_cb (self._cached_result, self._callback)
                 return
+            else:
+                self._use_cache = False        
         
         requests = 0
         while self._avails ():
@@ -449,10 +451,17 @@ class ClusterDistCall:
     def set_callback (self, callback, reqid = None, timeout = 10):
         if reqid is not None:
             self._meta ["__reqid"] = reqid
-        with self._cv:    
-            requests = self._requests    
-            if requests:
-                self._callback = callback                        
+        
+        if self._cv:
+            with self._cv:
+                requests = self._requests    
+                if requests:
+                    self._callback = callback
+        else:
+            # already finished or will use cache
+            requests = self._requests
+            self._callback = callback            
+
         if not requests:
             return self._do_callback (callback)                            
         if self._timeout != timeout:
@@ -568,7 +577,7 @@ class ClusterDistCallCreator:
     def __init__ (self, cluster, logger, cachesfs):
         self.cluster = cluster                
         self.logger = logger
-        self.cachesfs = cachesfs        
+        self.cachesfs = cachesfs
     
     def __getattr__ (self, name):    
         return getattr (self.cluster, name)
