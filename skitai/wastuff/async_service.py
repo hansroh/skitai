@@ -106,8 +106,8 @@ class AsyncService:
         if rm_cache:
             self.setlu (rm_cache)
             return False
-        if isinstance (cache, str):
-            return self.getlu (cache)
+        if isinstance (use_cache, str):
+            return self.getlu (use_cache)
         return use_cache
 
     def _rest (self, method, uri, data = None, auth = None, headers = None, meta = None, use_cache = True, rm_cache = None, filter = None, callback = None, timeout = 10, caller = None):
