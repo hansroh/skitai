@@ -224,9 +224,7 @@ class ClusterDistCall:
     def set_defaults (self, cluster, meta, use_cache, mapreduce, filter, callback, timeout, origin, logger, cachefs = None):
         self._cluster = cluster
         self._meta = meta or {}
-        self._use_cache = use_cache
-        # only if expire time is specified
-        self._default_cache_timeout = int (self._use_cache) > 1 and self.DEFAULT_CACHE_TIMEOUT or 0
+        self._use_cache = use_cache                
         self._mapreduce = mapreduce
         self._filter = filter
         self._callback = callback
@@ -507,7 +505,6 @@ class ClusterDistCall:
             self._cached_result = Results (rss, ident = self._get_ident ())
         else:    
             self._cached_result = rss [0]
-        cache = cache or self._default_cache_timeout
         cache and self.cache (cache, cache_if)
         return self._cached_result    
     
