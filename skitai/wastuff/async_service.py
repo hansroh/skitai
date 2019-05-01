@@ -105,7 +105,7 @@ class AsyncService:
     def _ucfit (self, cache):
         if isinstance (cache, str):
             return self.getlu (cache)
-        return use_cache    
+        return cache    
 
     def _rest (self, method, uri, data = None, auth = None, headers = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10, caller = None, rm_cache = None):
         rm_cache and self.setlu (rm_cache)
