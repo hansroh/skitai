@@ -94,7 +94,7 @@ class ProtoCall (cluster_dist_call.ClusterDistCall):
                 proxy_class = XMLRPCServerProxy
             return getattr (cli, self.reqtype) (endpoint, proxy_class)
                 
-    def  handle_request (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, rm_cache = None, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
+    def  handle_request (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
         self._mapreduce = mapreduce
         self.uri = uri
         self.reqtype = reqtype
@@ -173,7 +173,7 @@ class DBCall (ProtoCall):
     def _build_request (self, method, param):
         self.handle_request (method, param, *self.args, **self.kargs)
         
-    def  handle_request (self, method, param, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, rm_cache = None, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
+    def  handle_request (self, method, param, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
         from ..coops.dbi import cluster_manager
         from ..coops.dbi import endpoints
         
