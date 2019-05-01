@@ -40,12 +40,12 @@ class Semaps:
 			if not ignore_nokey:
 				raise
 	
-	def get (self, k, d = None):
-		try:
-			v = self._arr [self._d [k]]
-		except KeyError:
+	def get (self, k, d = 0):
+		v = self._arr [self._d [k]]
+		if not v and d:
+			self._arr [self._d [k]] = d
 			return d
-		return v or d
+		return v
 	
 	def has_key (self, k):
 		return self._d.has_key (k)

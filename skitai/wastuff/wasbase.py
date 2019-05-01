@@ -180,9 +180,10 @@ class WASBase:
         self._luwatcher.set (name, val)
         self.broadcast (name, val)
         
-    def getgs (self, name, default = None):
+    def getgs (self, name, default = 0):
+        assert isinstance (default, int), "global state must be integer"
         val = self._luwatcher.get (name, default)
-        return (val is not None) and int (val) or None
+        return int (val)
 
     # websokcet / http2 ------------------------------------------    
     def push (self, uri):
