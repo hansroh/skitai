@@ -44,7 +44,7 @@ pathtool.mkdir (TEMP_DIR)
 class WASBase:
     version = __version__    
     objects = {}    
-    _luwatcher = Semaps (256, "d")    
+    _luwatcher = Semaps ([], "d", 256)
     
     lock = plock = RLock ()
     init_time = time.time ()

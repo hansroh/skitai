@@ -75,9 +75,12 @@ class AsyncService:
         
     def _call (self, method, args, karg):        
         uri = None
-        if args:        uri = args [0]
-        elif karg:    uri = karg.get ("uri", "")
-        if not uri:    raise AssertionError ("Missing param uri or cluster name")
+        if args:
+            uri = args [0]
+        elif karg:
+            uri = karg.get ("uri", "")
+        if not uri:
+            raise AssertionError ("Missing param uri or cluster name")
 
         try: 
             command, fn = method.split (".")

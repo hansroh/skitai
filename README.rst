@@ -2163,7 +2163,15 @@ More About Cache Control: Model Synchronized Cache
 
 *New in version 0.26.15*
 
-`use_cache` value can be True, False or last updated time of base object. If last updated is greater than cached time, cache will be expired immediately and begin new query/request.
+You can efficient cache with explicit model mutation time.
+
+- when your model is changed, call was.setlu ("model-state-name")
+- when query your model, add parameter - was.getlu ("model-state-name"), for deciding if use cache or not
+
+*Note* that it is useful only if your model make regular and controlled mutation by single or a few producer (any of computer, machine or human). Otherwise you could consider NoSQL things for your cache system, and Skitai corequest support MongoDB and Redis.
+
+
+Corequest's `use_cache` parameter value can be True, False or last updated time of base object. If last updated is greater than cached time, cache will be expired immediately and begin new query/request.
 
 You can integrate your models changing and cache control.
 
@@ -2280,6 +2288,7 @@ I think all public model methods maybe return *corequest object or None*.
   # services/models.py
 
   from skitai import was
+  import skitai
   from sqlphile import Q
   from datetime import datetime
 
@@ -2305,7 +2314,7 @@ I think all public model methods maybe return *corequest object or None*.
     
     @classmethod
     def get (cls, id, fields = "*"):
-        with was.db ("@blog") as db:
+        with was.db ("@blog") as db:          
             return (db.select ("blogpost")
                         .get (fields)
                         .filter (id = id).execute ())
@@ -2313,7 +2322,8 @@ I think all public model methods maybe return *corequest object or None*.
     @classmethod
     def delete (cls, id):
         # example for transaction deletion
-        with was.transaction ("@blog") as db:
+        was.setlu (STATE_POST)
+        with was.transaction ("@blog") as db:            
             (db.delete ("blogcomment")
                         .filter (post_id = id).execute ())
             (db.delete ("blogpost")
@@ -2321,7 +2331,8 @@ I think all public model methods maybe return *corequest object or None*.
             db.commit ()
 
     @classmethod
-    def add (cls, post):        
+    def add (cls, post):      
+        was.setlu (STATE_POST)  
         with was.db ("@blog") as db:
             return (db.insert ("blogpost")
                         .data (post)
@@ -2329,6 +2340,7 @@ I think all public model methods maybe return *corequest object or None*.
 
     @classmethod
     def update (cls, id, post):
+        was.setlu (STATE_POST)
         post ["updated_at"] = datetime.now ()
         with was.db ("@blog") as db:
             return (db.update ("blogpost")

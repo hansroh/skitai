@@ -1,4 +1,5 @@
 import skitai
+from skitai import was
 import os
 try:
     import tfserver
@@ -14,7 +15,10 @@ def test_skitai (app):
     skitai.set_worker_critical_point ()
     
     skitai.register_states ("a", "b")
-    assert (skitai.dconf ["models-keys"] == {"a", "b"})
+    if was._started ():
+        assert was._luwatcher._keys == ['a', 'b']
+    else:
+        assert skitai.dconf ["models_keys"] == {"a", "b"}
     
     if os.name != "posix":
         return
@@ -33,9 +37,6 @@ def test_skitai (app):
     assert skitai.dconf ['mount']["default"][0][1][0].endswith ('/bin/path/app.py')
     assert skitai.dconf ['mount']["default"][0][1][1] == 'app'
     
-    skitai.alias ("@core", skitai.DB_PGSQL, "postgres:4000Wkwkdaus@80.sns.co.kr/coin_core", ["c"])
-    assert (skitai.dconf ["models-keys"] == {"a", "b", "c"})
-
     if tfserver:
         pref = skitai.pref ()
         pref.config.tf_models = None

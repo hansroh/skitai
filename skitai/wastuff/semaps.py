@@ -1,7 +1,7 @@
 import multiprocessing
 
 class Semaps:	
-	def __init__ (self, slots, type = "d"):
+	def __init__ (self, keys, type = "d", slots = 256):
 		self.slots = slots
 		self._keys = []
 		if type == "d":
@@ -9,11 +9,13 @@ class Semaps:
 		else:
 			initial_val = 0	 
 		self._arr = multiprocessing.Array (type, [initial_val] * self.slots, lock = multiprocessing.RLock ())		
-		self._d = {}			
+		self._d = {}
+		self.add (keys)
 	
 	def add (self, keys):		
 		initial = len (self._keys)
 		for i, key in enumerate (keys):
+			assert isinstance (key, str)
 			if key in self._d:
 				continue
 			self._d [key] = initial + i
@@ -65,8 +67,9 @@ class Semaps:
 
 
 class TestSemaps (Semaps):
-    def __init__ (self, keys = [], tpye= "d"):
-        self._arr = [0] * 1024        
+    def __init__ (self, keys = [], tpye= "d", slots = 256):
+        self._keys = keys
+        self._arr = [0] * slots        
         self._d = {}
             
     def set (self, k, v, ignore_nokey = False):
