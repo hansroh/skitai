@@ -101,13 +101,20 @@ class AsyncService:
         
     def _create_rest_call (self, cluster, *args, **kargs):
         return cluster.Server (*args, **kargs)
-            
-    def _rest (self, method, uri, data = None, auth = None, headers = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10, caller = None):
-        return self._create_rest_call (self.clusters_for_distcall ["__socketpool__"], uri, data, method, self.rebuild_header (headers, method, data, False), auth, meta, use_cache, False, filter, callback, timeout, caller)
+
+    def _ucfit (self, cache):
+        if isinstance (cache, str):
+            return self.getlu (cache)
+        return use_cache    
+
+    def _rest (self, method, uri, data = None, auth = None, headers = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10, caller = None, rm_cache = None):
+        rm_cache and self.setlu (rm_cache)
+        return self._create_rest_call (self.clusters_for_distcall ["__socketpool__"], uri, data, method, self.rebuild_header (headers, method, data, False), auth, meta, self._ucfit (use_cache), False, filter, callback, timeout, caller)
     
-    def _crest (self, mapreduce = False, method = None, uri = None, data = None, auth = None, headers = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10, caller = None):
+    def _crest (self, mapreduce = False, method = None, uri = None, data = None, auth = None, headers = None, meta = None, use_cache = True, filter = None, callback = None, timeout = 10, caller = None, rm_cache = None):
         cluster, uri = self.__detect_cluster (uri)
-        return self._create_rest_call (cluster, uri, data, method, self.rebuild_header (headers, method, data), auth, meta, use_cache, mapreduce, filter, callback, timeout, caller)
+        rm_cache and self.setlu (rm_cache)
+        return self._create_rest_call (cluster, uri, data, method, self.rebuild_header (headers, method, data), auth, meta, self._ucfit (use_cache), mapreduce, filter, callback, timeout, caller)
                 
     def _lb (self, *args, **karg):
         return self._crest (False, *args, **karg)
@@ -126,15 +133,17 @@ class AsyncService:
     def _create_dbo (self, cluster, *args, **kargs):
         return cluster.Server (*args, **kargs)
             
-    def _ddb (self, server, dbname = "", auth = None, dbtype = DB_PGSQL, meta = None, use_cache = False, filter = None, callback = None, timeout = 10, caller = None):
-        dbo = self._create_dbo (self.clusters_for_distcall ["__dbpool__"], server, dbname, auth, dbtype, meta, use_cache, False, filter, callback, timeout, caller)
+    def _ddb (self, server, dbname = "", auth = None, dbtype = DB_PGSQL, meta = None, use_cache = False, filter = None, callback = None, timeout = 10, caller = None, rm_cache = None):
+        rm_cache and self.setlu (rm_cache)
+        dbo = self._create_dbo (self.clusters_for_distcall ["__dbpool__"], server, dbname, auth, dbtype, meta, self._ucfit (use_cache), False, filter, callback, timeout, caller)
         if dbtype in (DB_PGSQL, DB_SQLITE3):
             return self._bind_sqlphile (dbo, dbtype)
         return dbo
     
-    def _cddb (self, mapreduce = False, clustername = None, meta = None, use_cache = False, filter = None, callback = None, timeout = 10, caller = None):
+    def _cddb (self, mapreduce = False, clustername = None, meta = None, use_cache = False, filter = None, callback = None, timeout = 10, caller = None, rm_cache = None):
         cluster = self.__detect_cluster (clustername) [0]
-        dbo = self._create_dbo (cluster, None, None, None, None, meta, use_cache, mapreduce, filter, callback, timeout, caller)
+        rm_cache and self.setlu (rm_cache)
+        dbo = self._create_dbo (cluster, None, None, None, None, meta, self._ucfit (use_cache), mapreduce, filter, callback, timeout, caller)
         if cluster.cluster.dbtype in (DB_PGSQL, DB_SQLITE3):
             return self._bind_sqlphile (dbo, cluster.cluster.dbtype)
         return dbo    
@@ -145,8 +154,8 @@ class AsyncService:
     def _dmap (self, *args, **karg):
         return self._cddb (True, *args, **karg)
     
-    def _adb (self, dbtype, server, dbname = "", auth = None, meta = None, use_cache = False, filter = None, callback = None, timeout = 10, caller = None):
-        return self._ddb (server, dbname, auth, dbtype, meta, use_cache, filter, callback, timeout, caller)
+    def _adb (self, dbtype, server, dbname = "", auth = None, meta = None, use_cache = False, filter = None, callback = None, timeout = 10, caller = None, rm_cache = None):
+        return self._ddb (server, dbname, auth, dbtype, meta, use_cache, filter, callback, timeout, caller, rm_cache)
     
     def _alb (self, dbtype, *args, **karg):
         return self._cddb (False, *args, **karg)

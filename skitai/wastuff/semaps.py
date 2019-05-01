@@ -40,7 +40,7 @@ class Semaps:
 			if not ignore_nokey:
 				raise
 	
-	def get (self, k, d = 0):
+	def get (self, k, d = None):
 		v = self._arr [self._d [k]]
 		if not v and d:
 			self._arr [self._d [k]] = d
