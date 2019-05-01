@@ -99,7 +99,7 @@ class WASBase:
     def in__dict__ (self, name):
         return name in self.__dict__
     
-    # TXN -----------------------------------------------
+    # utils -----------------------------------------------
     def txnid (self):
         return "%s/%s" % (self.request.gtxid, self.request.ltxid)
     
@@ -114,15 +114,14 @@ class WASBase:
                 default_request_type = self.DEFAULT_REQUEST_TYPE            
             util.set_content_types (nheader, data, default_request_type)
             
-        if internal:            
+        if internal:
             nheader ["X-Gtxn-Id"] = self.request.get_gtxid ()
             nheader ["X-Ltxn-Id"] = self.request.get_ltxid (1)
         else:
             nheader ["X-Requested-With"] = NAME
         return nheader
     
-    # system functions ----------------------------------------------
-    
+    # system functions ----------------------------------------------    
     def Tasks (self, reqs, timeout = 10):
         return tasks.Tasks (reqs, timeout)
 
