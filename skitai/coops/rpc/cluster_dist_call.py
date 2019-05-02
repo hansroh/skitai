@@ -48,15 +48,15 @@ class Result (response, rcache.Result):
             else:
                 self.__response.raise_for_status ()
         return self
-            
+    
+    def close (self):
+        self.__response = None    
+    
     def cache (self, timeout = 60, cache_if = (200,)):
         if self.status != NORMAL or self.status_code not in cache_if:
             return
         rcache.Result.cache (self, timeout)
         return self
-    
-    def close (self):
-        self.__response = None    
     
     def fetch (self, cache = None, cache_if = (200,), one = False):
         self.reraise ()
@@ -112,6 +112,11 @@ class Results (response, rcache.Result):
     def fetch (self, cache = None, cache_if = (200,)):
         cache and self.cache (cache, cache_if)
         return [r.fetch () for r in self.results]
+
+    def one (self, cache = None, cache_if = (200,)):
+        cache and self.cache (cache, cache_if)
+        return [r.one () for r in self.results]
+
                                 
 
 class Dispatcher (corequest):
@@ -489,7 +494,7 @@ class ClusterDistCall:
             asyncon.handle_abort () # abort imme            
             self._collect (rs)
                     
-    def dispatch (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,), wait = True, reraise = False):
+    def dispatch (self, cache = None, cache_if = (200,), timeout = DEFAULT_TIMEOUT, wait = True, reraise = False):
         if self._cached_result is not None:
             return self._cached_result
         wait and self._wait (timeout)
@@ -508,30 +513,30 @@ class ClusterDistCall:
         cache and self.cache (cache, cache_if)
         return self._cached_result    
     
-    def dispatch_or_throw (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
-        return self.dispatch (timeout, cache, cache_if, reraise = True)
+    def dispatch_or_throw (self, cache = None, cache_if = (200,), timeout = DEFAULT_TIMEOUT):
+        return self.dispatch (cache, cache_if, reraise = True, timeout = timeout)
     
-    def none_or_dispatch (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
-        r = self.dispatch (timeout, cache, cache_if, reraise = True)
+    def none_or_dispatch (self, cache = None, cache_if = (200,), timeout = DEFAULT_TIMEOUT):
+        r = self.dispatch (cache, cache_if, reraise = True, timeout = timeout)
         if r.data is not None:
           return r
 
     def wait (self, timeout = DEFAULT_TIMEOUT, reraise = False):
-        return self.dispatch (timeout, reraise = reraise)        
+        return self.dispatch (reraise = reraise, timeout = timeout)
     
-    def wait_or_throw (self, timeout = DEFAULT_TIMEOUT):
+    # direct access to data ----------------------------------------------   
+
+    def commit (self, timeout = DEFAULT_TIMEOUT):
         return self.wait (timeout, True)
-
-    # direct access to data ----------------------------------------------        
-    commit = wait_or_throw
-
-    def fetch (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
-        res = self._cached_result or self.dispatch (timeout, reraise = True)
+    wait_or_throw = commit
+    
+    def fetch (self, cache = None, cache_if = (200,), timeout = DEFAULT_TIMEOUT):
+        res = self._cached_result or self.dispatch (timeout = timeout, reraise = True)
         return res.fetch (cache, cache_if)
         
-    def one (self, timeout = DEFAULT_TIMEOUT, cache = None, cache_if = (200,)):
+    def one (self, cache = None, cache_if = (200,), timeout = DEFAULT_TIMEOUT):
         try:
-            res = self._cached_result or self.dispatch (timeout, reraise = True)
+            res = self._cached_result or self.dispatch (timeout = timeout, reraise = True)
         except psycopg2.IntegrityError:
             raise exceptions.HTTPError ("409 Conflict")
         return res.one (cache, cache_if)

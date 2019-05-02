@@ -8,7 +8,7 @@ from aquests.client import socketpool
 import threading
 
 def __reduce (asyncall):
-	for rs in asyncall.getswait (5):
+	for rs in asyncall.getswait (timeout = 5):
 		print("Result:", rs.status, rs.code, repr(rs.get_content ()))
 				
 def testCluster ():	

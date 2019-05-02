@@ -6,19 +6,18 @@ from skitai import was
 from ..corequest import corequest, response
 
 class TaskBase (corequest):
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, cache_timeout = 0, cache_if = (200,)):
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT):
         assert isinstance (reqs, (list, tuple))        
-        self.timeout = timeout        
-        self.cache_timeout = cache_timeout
-        self.cache_if = cache_if
+        self.timeout = timeout                
         self.reqs = reqs        
 
 
 class Tasks (TaskBase):
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, cache_timeout = 0, cache_if = (200,)):
-        TaskBase.__init__ (self, reqs, timeout, cache_timeout, cache_if)
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT):
+        TaskBase.__init__ (self, reqs, timeout)
         self._results = []
         self._data = []
+        self._cached = True
         
     def __iter__ (self):
         return iter (self.results)
@@ -33,31 +32,32 @@ class Tasks (TaskBase):
     def then (self, func, timeout = None, **kargs):
         return was.Futures (self.reqs, timeout or self.timeout).then (func, **kargs)
 
-    def dispatch (self):
-        self._results = [req.dispatch (self.timeout, self.cache_timeout, self.cache_if) for req in self.reqs]
+    #------------------------------------------------------
+    def cache (self, cache = 60, cache_if = (200,)):
+        [r.cache (cache, cache_if) for r in self.results]
+
+    def dispatch (self, cache = None, cache_if = (200,)):
+        self._results = [req.dispatch (cache, cache_if, timeout = self.timeout) for req in self.reqs]
         return self._results 
     
     def wait (self):
         self._results = [req.wait (self.timeout) for req in self.reqs]
 
-    def fetch (self):
-        if self._data:
-            return self._data
-        self._data = [r.fetch () for r in self.results]
-        return self._data
-
-    def one (self):
-        if self._data:
-            return self._data
-        self._data = [r.one () for r in self.results]
-        return self._data
-
     def commit (self):
         self._results = [req.commit (self.timeout) for req in self.reqs] 
     
-    def cache (self, cache = 60, cache_if = (200,)):
-        [r.cache (cache, cache_if) for r in self.results]
-        
+    def fetch (self, cache = None, cache_if = (200,)):
+        if self._data:
+            return self._data
+        self._data = [r.fetch (cache, cache_if) for r in self.results]
+        return self._data
+
+    def one (self, cache = None, cache_if = (200,)):
+        if self._data:
+            return self._data
+        self._data = [r.one (cache, cache_if) for r in self.results]
+        return self._data
+    
 
 class Mask (response):
     def __init__ (self, data):
@@ -69,15 +69,15 @@ class Mask (response):
 
 
 class CompletedTasks (response, Tasks):
-    def __init__ (self, rss, timeout = 10, cache_timeout = 0, cache_if = (200,)):
-        TaskBase.__init__ (self, [], timeout, cache_timeout, cache_if)
+    def __init__ (self, rss):
+        TaskBase.__init__ (self, [])
         self._results = rss
         self._data = []
 
 
 class Futures (TaskBase):
-    def __init__ (self, was, reqs, timeout = 10, cache_timeout = 0, cache_if = (200,)):
-        TaskBase.__init__ (self, reqs, timeout, cache_timeout, cache_if)
+    def __init__ (self, was, reqs, timeout = 10):
+        TaskBase.__init__ (self, reqs, timeout)
         self._was = was
         self.args = {}
         self.fulfilled = None
@@ -106,7 +106,7 @@ class Futures (TaskBase):
     def respond (self):
         response = self._was.response         
         try:
-            tasks = CompletedTasks (self.ress, self.timeout, self.cache_timeout, self.cache_if)
+            tasks = CompletedTasks (self.ress)
             if self.args:
                 content = self.fulfilled (self._was, tasks, **self.args)
             else:

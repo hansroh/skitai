@@ -16,7 +16,7 @@ def index (was):
 def documentation (was):
 	req = was.get ("https://pypi.python.org/pypi/skitai")
 	pypi_content = "<h4><p>It seems some problem at <a href='https://pypi.python.org/pypi/skitai'>PyPi</a>.</p></h4><p>Please visit <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></p>"	
-	rs = req.getwait (10)
+	rs = req.getwait (timeout = 10)
 	if rs.data:
 		content = rs.data
 		s = content.find ('<div class="section">')

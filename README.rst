@@ -1758,7 +1758,7 @@ Then,
   def query (was):
     with was.db ("@mypg") as db:
       req = db.excute ("SELECT city, t_high, t_low FROM weather;")
-      resp = req.dispatch (2)
+      resp = req.dispatch (timeout = 2)
       if resp.status != 200:
         raise HTTPError ("500 Server Error")
     for row in rows:
@@ -1782,7 +1782,7 @@ If you needn't returned data and just wait for completing query,
 
 .. code:: python
 
-    db.execute ("INSERT INTO CITIES VALUES ('New York');").commit (2)
+    db.execute ("INSERT INTO CITIES VALUES ('New York');").commit (timeout = 2)
 
 If failed, exception will be raised.
 
@@ -1793,7 +1793,7 @@ In case database querying, you can use one () method.
   @app.route (...)
   def query (was):
     with was.db ("@mypg") as db:
-      hispet = db.excute ("SELECT ... FROM pets").one (2)
+      hispet = db.excute ("SELECT ... FROM pets").one (timeout = 2)
  
 If result record count is not 1 (zero or more than 1), raise HTTP 404 error.
 
@@ -1804,7 +1804,7 @@ With PostgreSQL you can also raise HTTP 409 using returning caluse.
   @app.route (...)  
   def query (was):
     with was.db ("@mypg") as db:
-      hispet = db.excute ("INSERT INTO pets ... RETURNING id").one (2)
+      hispet = db.excute ("INSERT INTO pets ... RETURNING id").one (timeout = 2)
 
 If primary key or unique key is duplicated, psycopg2 raises IntegrityError then Skitai raise HTTP 409 Conflict error
 
@@ -2003,7 +2003,7 @@ Then let's request XMLRPC result to one of mysearch members.
   def search (was, keyword = "Mozart"):
     with was.jsonrpc.lb ("@mysearch/rpc2") as stub:
       s = stub.search (keyword)
-      results = s.dispatch (5)
+      results = s.dispatch (timeout = 5)
       return result.data
       
       # or short hand
@@ -2060,7 +2060,7 @@ Add mydb members to config file.
   def query (was, keyword):
     with was.db.lb ("@mydb") as dbo:    
       req = dbo.execute ("SELECT * FROM CITIES;")
-      result = req.dispatch (2)
+      result = req.dispatch (timeout = 2)
   
    if __name__ == "__main__":
     import skitai
@@ -2088,7 +2088,7 @@ Basically same with load_balancing except Skitai requests to all members per eac
   def search (was, keyword = "Mozart"):
     with was.rpc.map ("@mysearch/rpc2") as stub:
       req = stub.search (keyword)
-      results = req.dispatch (2)
+      results = req.dispatch (timeout = 2)
       
     all_results = []
     for result in results:      
@@ -2113,11 +2113,11 @@ Every results returned by dispatch() can cache.
 .. code:: python
 
   s = was.rpc.lb ("@mysearch/rpc2").getinfo ()
-  result = s.dispatch (2, 60) # timeout, cache seconds
+  result = s.dispatch (60, timeout = 2) # cache seconds
   result.data
   
   s = was.rpc.map ("@mysearch/rpc2").getinfo ()
-  results = s.dispatch (2, 60)
+  results = s.dispatch (60, timeout = 2)
   
 Cahing when just only Although code == 200 alredy implies status == STA_NORMAL.
 
@@ -2155,7 +2155,7 @@ If you want cache for another status_code,
     "@mysearch/rpc2", 
     use_cache = not refreshed and True or False
   ).getinfo ()
-  result = s.dispatch (2, 60, (200, 201))
+  result = s.dispatch (60, (200, 201), timeout = 2)
 
 
 More About Cache Control: Model Synchronized Cache

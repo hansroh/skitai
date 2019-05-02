@@ -76,7 +76,7 @@ def documentation3 (was):
 def db (was):
     with was.asyncon ("@sqlite3") as db:
         req = db.execute ("select * from people")
-    return was.API (req.fetch (2, 40))
+    return was.API (req.fetch (40, timeout = 2))
 
 @app.route ("/dbtx")
 def dbtx (was):
