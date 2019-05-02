@@ -94,8 +94,7 @@ class Futures (TaskBase):
     def _collect (self, res):
         self.responded += 1
         reqid = res.meta ["__reqid"]
-        self.ress [reqid] = res
-        self.cache_timeout and res.cache (self.cache_timeout, self.cache_if)
+        self.ress [reqid] = res        
         if self.responded == len (self.reqs):
             if self.fulfilled:             
                 self.respond ()

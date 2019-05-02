@@ -26,14 +26,14 @@ def index (was):
 @app.route ("/dnserror")
 def dnserror (was):
     req = was.get ("https://pypi.python.orgx/pypi/skitai", headers = (["Accept", "text/html"]))
-    rs = req.dispatch (10)
+    rs = req.dispatch (timeout = 10)
     return "%d %d %s" % (rs.status, rs.status_code, rs.reason)
 
 @app.route ("/documentation")
 def documentation (was):
     req = was.get ("https://pypi.org/project/skitai/", headers = [("Accept", "text/html")])
     pypi_content = "<h4><p>It seems some problem at <a href='https://pypi.python.org/pypi/skitai'>PyPi</a>.</p></h4><p>Please visit <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></p>"    
-    rs = req.dispatch (10, cache = 60)    
+    rs = req.dispatch (timeout = 10, cache = 60)
     if rs.data:
         content = rs.data
         s = content.find ('<div class="project-description">')
@@ -76,7 +76,7 @@ def documentation3 (was):
 def db (was):
     with was.asyncon ("@sqlite3") as db:
         req = db.execute ("select * from people")
-    return was.API (req.fetch (40, timeout = 2))
+    return was.API (req.fetch (cache = 40, timeout = 2))
 
 @app.route ("/dbtx")
 def dbtx (was):
