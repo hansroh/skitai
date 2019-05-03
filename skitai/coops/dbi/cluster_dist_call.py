@@ -132,8 +132,7 @@ class ClusterDistCall (cluster_dist_call.ClusterDistCall):
         self._cached_request_args = (method, params) # backup for retry
         if self._use_cache and rcache.the_rcache:
             self._cached_result = rcache.the_rcache.get (self._get_ident (), self._use_cache)
-            if self._cached_result is not None:       
-                print ("self._cached_result", self._cached_result) 
+            if self._cached_result is not None:                
                 self._cached_result.meta = self._meta                
                 self._callback and tuple_cb (self._cached_result, self._callback)
                 return
