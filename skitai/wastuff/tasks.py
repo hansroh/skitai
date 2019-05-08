@@ -9,9 +9,9 @@ class TaskBase (corequest):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT):
         assert isinstance (reqs, (list, tuple))        
         self.timeout = timeout                
-        self.reqs = reqs        
+        self.reqs = reqs
 
-
+    
 class Tasks (TaskBase):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT):
         TaskBase.__init__ (self, reqs, timeout)
@@ -29,6 +29,9 @@ class Tasks (TaskBase):
     def results (self):       
         return self._results or self.dispatch ()
     
+    def add (self, req):
+        self.reqs.append (req)
+
     def then (self, func, timeout = None, **kargs):
         return was.Futures (self.reqs, timeout or self.timeout).then (func, **kargs)
 
