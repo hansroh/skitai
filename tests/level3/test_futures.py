@@ -6,7 +6,7 @@ def test_futures (app, dbpath):
     @app.route ("/")
     def index (was):
         def respond (was, rss, a):
-            return was.response.API (status_code = [rs.status_code for rs in rss], a = a)
+            return was.response.API (status_code = [rs.status_code for rs in rss.dispatch ()], a = a)
                         
         reqs = [
             was.get ("@pypi/project/skitai/"),
@@ -18,11 +18,11 @@ def test_futures (app, dbpath):
     @app.route ("/2")
     def index2 (was):
         def repond (was, rss, b, status_code):
-            return was.response.API (status_code_db = [rs.status_code for rs in rss], b = b, status_code = status_code) 
+            return was.response.API (status_code_db = [rs.status_code for rs in rss.dispatch ()], b = b, status_code = status_code) 
         
         def checkdb (was, rss, a):
             reqs = [was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))]
-            return was.futures (reqs).then (repond, b = a + 100, status_code = [rs.status_code for rs in rss])
+            return was.futures (reqs).then (repond, b = a + 100, status_code = [rs.status_code for rs in rss.dispatch ()])
         
         def begin ():
             reqs = [
@@ -108,6 +108,22 @@ def test_futures (app, dbpath):
         ]
         return str (was.Tasks (reqs).one ())
 
+    @app.route ("/12")
+    def index12 (was):
+        a = was.Tasks ([was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))])
+        b = was.Tasks ([was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))])        
+        a.add (b)
+        return str (a.one ())
+
+    @app.route ("/13")
+    def index13 (was):
+        def respond (was, rss):
+            return str (rss.one ())            
+        a = was.Tasks ([was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))])
+        b = was.Tasks ([was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))])        
+        a.merge (b)
+        return a.then (respond)
+        
         
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")    
     app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)    
@@ -151,3 +167,12 @@ def test_futures (app, dbpath):
 
         resp = cli.get ("/11")
         assert resp.status_code == 404
+
+        resp = cli.get ("/12")
+        assert resp.data == "[('RHAT',), [('RHAT',)]]"
+
+        resp = cli.get ("/13")        
+        assert resp.data == "[('RHAT',), ('RHAT',)]"
+
+
+

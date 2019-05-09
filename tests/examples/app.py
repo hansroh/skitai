@@ -64,7 +64,7 @@ def documentation2 (was):
 @app.route ("/documentation3")
 def documentation3 (was):
     def response (was, rss):
-        return was.response.API (status_code = [rs.status_code for rs in rss]) 
+        return was.response.API (status_code = [rs.status_code for rs in rss.dispatch ()]) 
     
     reqs = [
         was.get ("@pypi/project/skitai/", headers = [("Accept", "text/html")]),

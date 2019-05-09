@@ -15,52 +15,43 @@ class TaskBase (corequest):
 class Tasks (TaskBase):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT):
         TaskBase.__init__ (self, reqs, timeout)
-        self._results = []
-        self._data = []
-        self._cached = True
-        
+        self._results = []        
+
     def __iter__ (self):
-        return iter (self.results)
+        return iter (self.reqs)
     
     def __getitem__ (self, sliced):
-        return self.results [sliced]
-
-    @property
-    def results (self):       
-        return self._results or self.dispatch ()
+        return self.reqs [sliced].dispatch ()
     
     def add (self, req):
         self.reqs.append (req)
 
-    def then (self, func, timeout = None, **kargs):
-        return was.Futures (self.reqs, timeout or self.timeout).then (func, **kargs)
+    def merge (self, tasks):
+        for req in tasks.reqs:
+            self.add (req)        
+
+    def then (self, func, **kargs):
+        return was.Futures (self.reqs, self.timeout).then (func, **kargs)
 
     #------------------------------------------------------
     def cache (self, cache = 60, cache_if = (200,)):
         [r.cache (cache, cache_if) for r in self.results]
 
-    def dispatch (self, cache = None, cache_if = (200,)):
-        self._results = [req.dispatch (cache, cache_if, timeout = self.timeout) for req in self.reqs]
-        return self._results 
-    
-    def wait (self):
-        self._results = [req.wait (self.timeout) for req in self.reqs]
-
-    def commit (self):
-        self._results = [req.commit (self.timeout) for req in self.reqs] 
+    def dispatch (self, cache = None, cache_if = (200,), timeout = None):
+        return [req.dispatch (cache, cache_if, timeout or self.timeout) for req in self.reqs]
+        
+    def wait (self, timeout = None):
+        return [req.wait (timeout or self.timeout) for req in self.reqs]
+        
+    def commit (self, timeout = None):
+        [req.commit (timeout or self.timeout) for req in self.reqs] 
     
     def fetch (self, cache = None, cache_if = (200,)):
-        if self._data:
-            return self._data
-        self._data = [r.fetch (cache, cache_if) for r in self.results]
-        return self._data
+        return [req.fetch (cache, cache_if) for req in self.reqs]
+        
+    def one (self, cache = None, cache_if = (200,), timeout = None):
+        return [req.one (cache, cache_if) for req in self.reqs]
 
-    def one (self, cache = None, cache_if = (200,)):
-        if self._data:
-            return self._data
-        self._data = [r.one (cache, cache_if) for r in self.results]
-        return self._data
-    
 
 class Mask (response):
     def __init__ (self, data):
@@ -72,10 +63,8 @@ class Mask (response):
 
 
 class CompletedTasks (response, Tasks):
-    def __init__ (self, rss):
-        TaskBase.__init__ (self, [])
-        self._results = rss
-        self._data = []
+    def __init__ (self, reqs):
+        Tasks.__init__ (self, reqs)        
 
 
 class Futures (TaskBase):
@@ -85,19 +74,16 @@ class Futures (TaskBase):
         self.args = {}
         self.fulfilled = None
         self.responded = 0        
-        self.ress = [None] * len (self.reqs)
             
     def then (self, func, **kargs):
         self.args = kargs
         self.fulfilled = func
-        for reqid, req in enumerate (self.reqs):            
-            req.set_callback (self._collect, reqid, self.timeout)
+        for reqid, req in enumerate (self.reqs):
+           req.set_callback (self._collect, reqid, self.timeout)
         return self
                  
     def _collect (self, res):
-        self.responded += 1
-        reqid = res.meta ["__reqid"]
-        self.ress [reqid] = res        
+        self.responded += 1        
         if self.responded == len (self.reqs):
             if self.fulfilled:             
                 self.respond ()
@@ -108,7 +94,7 @@ class Futures (TaskBase):
     def respond (self):
         response = self._was.response         
         try:
-            tasks = CompletedTasks (self.ress)
+            tasks = CompletedTasks (self.reqs)
             if self.args:
                 content = self.fulfilled (self._was, tasks, **self.args)
             else:
