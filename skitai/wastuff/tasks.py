@@ -12,6 +12,12 @@ class TaskBase (corequest):
         self.reqs = reqs
         self.ARGS = args
 
+    def __getattr__ (self, name):
+        try:
+            return self.ARGS [name]
+        except KeyError:
+            raise AttributeError ("{} cannot found".format (name))    
+
 class Tasks (TaskBase):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **args):
         TaskBase.__init__ (self, reqs, timeout, **args)
