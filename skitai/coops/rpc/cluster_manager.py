@@ -62,7 +62,7 @@ class ClusterManager:
     backend = True
     backend_keep_alive = 1200
     
-    def __init__ (self, name, cluster, ssl = 0, access = None, max_conns = 100, logger = None):
+    def __init__ (self, name, cluster, ssl = 0, access = None, max_conns = 1000, logger = None):
         self.logger = logger
         self.lock = threading.RLock ()
         self._name = name

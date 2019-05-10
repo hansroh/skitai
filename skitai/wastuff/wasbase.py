@@ -123,6 +123,7 @@ class WASBase:
     
     # system functions ----------------------------------------------    
     def Tasks (self, reqs, timeout = 10):
+        self.response.set_timeout (timeout)
         return tasks.Tasks (reqs, timeout)
 
     def Mask (self, data):

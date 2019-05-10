@@ -6,15 +6,15 @@ from skitai import was
 from ..corequest import corequest, response
 
 class TaskBase (corequest):
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT):
-        assert isinstance (reqs, (list, tuple))        
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **args):
+        assert isinstance (reqs, (list, tuple))
         self.timeout = timeout                
         self.reqs = reqs
+        self.args = args
 
-    
 class Tasks (TaskBase):
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT):
-        TaskBase.__init__ (self, reqs, timeout)
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **args):
+        TaskBase.__init__ (self, reqs, timeout, **args)
         self._results = []        
 
     def __iter__ (self):
@@ -68,15 +68,14 @@ class CompletedTasks (response, Tasks):
 
 
 class Futures (TaskBase):
-    def __init__ (self, was, reqs, timeout = 10):
-        TaskBase.__init__ (self, reqs, timeout)
-        self._was = was
-        self.args = {}
+    def __init__ (self, was, reqs, timeout = 10, **args):
+        TaskBase.__init__ (self, reqs, timeout, **args)
+        self._was = was        
         self.fulfilled = None
         self.responded = 0        
             
     def then (self, func, **kargs):
-        self.args = kargs
+        self.args.update (kargs)
         self.fulfilled = func
         for reqid, req in enumerate (self.reqs):
            req.set_callback (self._collect, reqid, self.timeout)

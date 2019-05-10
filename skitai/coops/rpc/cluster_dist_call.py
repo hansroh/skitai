@@ -451,12 +451,13 @@ class ClusterDistCall:
         self._build_request (*self._cached_request_args)
 
     def reset_timeout (self, timeout):
+        self._timeout = timeout
         with self._cv:
             asyncons = list (self._requests.values ())
         for asyncon in asyncons:
             asyncon.set_timeout (timeout)        
             
-    def set_callback (self, callback, reqid = None, timeout = 10):
+    def set_callback (self, callback, reqid = None, timeout = None):
         if reqid is not None:
             self._meta ["__reqid"] = reqid
         
@@ -472,15 +473,12 @@ class ClusterDistCall:
 
         if not requests:
             return self._do_callback (callback)                            
-        if self._timeout != timeout:
-            self.reset_timeout(timeout)
+        timeout and self.reset_timeout (timeout)
     
     # synchronous methods ----------------------------------------------
-    def _wait (self, timeout = DEFAULT_TIMEOUT):        
-        if self._timeout != timeout:
-            self.reset_timeout (timeout)
-        
-        remain = timeout - (time.time () - self._init_time)
+    def _wait (self, timeout = None):        
+        timeout and self.reset_timeout (timeout)
+        remain = self._timeout - (time.time () - self._init_time)
         if remain > 0:
             with self._cv:
                 if self._requests and not self._canceled:
@@ -494,7 +492,7 @@ class ClusterDistCall:
             asyncon.handle_abort () # abort imme            
             self._collect (rs)
                     
-    def dispatch (self, cache = None, cache_if = (200,), timeout = DEFAULT_TIMEOUT, wait = True, reraise = False):
+    def dispatch (self, cache = None, cache_if = (200,), timeout = None, wait = True, reraise = False):
         if self._cached_result is not None:
             return self._cached_result
         wait and self._wait (timeout)
@@ -513,28 +511,28 @@ class ClusterDistCall:
         cache and self.cache (cache, cache_if)
         return self._cached_result    
     
-    def dispatch_or_throw (self, cache = None, cache_if = (200,), timeout = DEFAULT_TIMEOUT):
+    def dispatch_or_throw (self, cache = None, cache_if = (200,), timeout = None):
         return self.dispatch (cache, cache_if, reraise = True, timeout = timeout)
     
-    def none_or_dispatch (self, cache = None, cache_if = (200,), timeout = DEFAULT_TIMEOUT):
+    def none_or_dispatch (self, cache = None, cache_if = (200,), timeout = None):
         r = self.dispatch (cache, cache_if, reraise = True, timeout = timeout)
         if r.data is not None:
           return r
 
-    def wait (self, timeout = DEFAULT_TIMEOUT, reraise = False):
+    def wait (self, timeout = None, reraise = False):
         return self.dispatch (reraise = reraise, timeout = timeout)
     
     # direct access to data ----------------------------------------------   
 
-    def commit (self, timeout = DEFAULT_TIMEOUT):
+    def commit (self, timeout = None):
         return self.wait (timeout, True)
     wait_or_throw = commit
     
-    def fetch (self, cache = None, cache_if = (200,), timeout = DEFAULT_TIMEOUT):
+    def fetch (self, cache = None, cache_if = (200,), timeout = None):
         res = self._cached_result or self.dispatch (timeout = timeout, reraise = True)
         return res.fetch (cache, cache_if)
         
-    def one (self, cache = None, cache_if = (200,), timeout = DEFAULT_TIMEOUT):
+    def one (self, cache = None, cache_if = (200,), timeout = None):
         try:
             res = self._cached_result or self.dispatch (timeout = timeout, reraise = True)
         except psycopg2.IntegrityError:

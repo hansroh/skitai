@@ -9,7 +9,7 @@ class ClusterManager (cluster_manager.ClusterManager):
     backend_keep_alive = 1200
     backend = True
     
-    def __init__ (self, name, cluster, dbtype = DB_PGSQL, access = [], max_conns = 100, logger = None):
+    def __init__ (self, name, cluster, dbtype = DB_PGSQL, access = [], max_conns = 200, logger = None):
         self.dbtype = dbtype
         self._cache = []
         cluster_manager.ClusterManager.__init__ (self, name, cluster, 0, access, max_conns, logger)
