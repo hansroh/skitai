@@ -122,9 +122,9 @@ class WASBase:
         return nheader
     
     # system functions ----------------------------------------------    
-    def Tasks (self, reqs, timeout = 10):
+    def Tasks (self, reqs, timeout = 10, **args):
         self.response.set_timeout (timeout)
-        return tasks.Tasks (reqs, timeout)
+        return tasks.Tasks (reqs, timeout, **args)
 
     def Mask (self, data):
         return tasks.Mask (data)
