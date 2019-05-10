@@ -10,7 +10,7 @@ class TaskBase (corequest):
         assert isinstance (reqs, (list, tuple))
         self.timeout = timeout                
         self.reqs = reqs
-        self.args = args
+        self.ARGS = args
 
 class Tasks (TaskBase):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **args):
@@ -75,7 +75,7 @@ class Futures (TaskBase):
         self.responded = 0        
             
     def then (self, func, **kargs):
-        self.args.update (kargs)
+        self.ARGS.update (kargs)
         self.fulfilled = func
         for reqid, req in enumerate (self.reqs):
            req.set_callback (self._collect, reqid, self.timeout)
