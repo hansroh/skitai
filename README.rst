@@ -1697,6 +1697,17 @@ Tasks is pack of corequests. It can handle multiple corequests as single one.
 
 Tasks is iterable and slicable and returened rs is response object (by dispatch ()). You SHOULD check rs.status and status_code for validating response, or just use fetch () for raising error if invalid.
 
+- Tasks.add (corequest): append corequest or Task object
+- Tasks.merge (corequest): append corequest or Task object, in case Tasks, it will be extracted from inner corequests
+- Tasks.then (callabck): convert Tasks to Futures, available only for Atila app
+
+- Tasks.dispatch (cache = None, cache_if = (200,), timeout = None)
+- Tasks.wait (timeout = None)
+
+- Tasks.commit (timeout = None)
+- Tasks.fetch (cache = None, cache_if = (200,), timeout = None)
+- Tasks.one (cache = None, cache_if = (200,), timeout = None)
+
 *Note:* If you want to use full asynchronous manner, you can consider Atila's Futures_, but it need to pay some costs.
 
 .. _Futures: https://pypi.org/project/atila/#futures-response
