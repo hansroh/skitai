@@ -63,8 +63,8 @@ class Mask (response):
 
 
 class CompletedTasks (response, Tasks):
-    def __init__ (self, reqs):
-        Tasks.__init__ (self, reqs)        
+    def __init__ (self, reqs, **args):
+        Tasks.__init__ (self, reqs, **args)
 
 
 class Futures (TaskBase):
@@ -93,11 +93,8 @@ class Futures (TaskBase):
     def respond (self):
         response = self._was.response         
         try:
-            tasks = CompletedTasks (self.reqs)
-            if self.args:
-                content = self.fulfilled (self._was, tasks, **self.args)
-            else:
-                content = self.fulfilled (self._was, tasks)
+            tasks = CompletedTasks (self.reqs, **self.ARGS)
+            content = self.fulfilled (self._was, tasks)
             will_be_push = make_pushables (response, content)
             content = None
         except MemoryError:
