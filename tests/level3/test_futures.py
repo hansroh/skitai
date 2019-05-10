@@ -5,8 +5,8 @@ import pprint
 def test_futures (app, dbpath):
     @app.route ("/")
     def index (was):
-        def respond (was, rss, a):
-            return was.response.API (status_code = [rs.status_code for rs in rss.dispatch ()], a = a)
+        def respond (was, rss):
+            return was.response.API (status_code = [rs.status_code for rs in rss.dispatch ()], a = rss.a)
                         
         reqs = [
             was.get ("@pypi/project/skitai/"),
@@ -17,12 +17,12 @@ def test_futures (app, dbpath):
     
     @app.route ("/2")
     def index2 (was):
-        def repond (was, rss, b, status_code):
-            return was.response.API (status_code_db = [rs.status_code for rs in rss.dispatch ()], b = b, status_code = status_code) 
+        def repond (was, rss):
+            return was.response.API (status_code_db = [rs.status_code for rs in rss.dispatch ()], b = rss.b, status_code = rss.status_code) 
         
-        def checkdb (was, rss, a):
+        def checkdb (was, rss):
             reqs = [was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))]
-            return was.futures (reqs).then (repond, b = a + 100, status_code = [rs.status_code for rs in rss.dispatch ()])
+            return was.futures (reqs).then (repond, b = rss.a + 100, status_code = [rs.status_code for rs in rss.dispatch ()])
         
         def begin ():
             reqs = [
