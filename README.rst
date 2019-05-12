@@ -1562,11 +1562,9 @@ I think if I don't use this capabitities, it would be wasting resources. Then, S
 *Corequest* is similar with Python coroutine object, but is is not compatable at all.
 
 - It is automatically started at creation, no need to call run ()
-- Its events are controlled by Skitai main event loop, not by asyncio
-- It can be handled as synchronous task explicitly
-- It is eventually synchronous within current thread (optionally it can be fully asynchronous)
+- All events are controlled by Skitai main event loop, not by asyncio
+- It is eventually synchronous within current thread. It is desinged for working with multi-threading environment and synchronous code base so it has no differences with synchronous code base, just if you have to consider the most efficient point to call for waiting results 
 - It is not a framework nor a library. It is a Skitai native object has specified purpose and usage
-- It has no differences with synchronous code base, just if you have to consider the most efficient point to call for waiting results
 
 Skitai provides some services related with corequests:
 
