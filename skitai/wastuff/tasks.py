@@ -29,6 +29,9 @@ class Tasks (TaskBase):
     def __getitem__ (self, sliced):
         return self.reqs [sliced].dispatch ()
     
+    def set_timeout (self, timeout):
+        self.timeout = timeout
+
     def add (self, req):
         self.reqs.append (req)
 
