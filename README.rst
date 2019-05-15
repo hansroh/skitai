@@ -2410,6 +2410,29 @@ It can be extended and changed into NoSQL or even RESTful/RPC with any Skitai co
 Miscellaneous
 ==============================
 
+Creating Backgroud Tasks
+------------------------------------------------
+
+Skitai creates Thread/Process Pool as many as your cpu count, if need.
+
+.. code:: python
+  
+  from skitai import was
+  from flask import Response
+  import math  
+  
+  @app.route ('...')
+  def foo ():    
+    return was.Thread (math.sqrt, 4.0).then (
+      Response ('', 202, headers = {'Content-Location': "/api/persons/2130040"})
+    )
+
+Note that was.Process () is also available.
+
+- was.Thread (target, \*args, \*\*kargs): return wrapper of concurrent.futures.Future
+- was.Process (target, \*args, \*\*kargs): return wrapper of concurrent.futures.Future
+
+
 Inter Process State Sharing
 -----------------------------------------
 
@@ -2471,8 +2494,6 @@ Utility Methods of 'was'
 
 This chapter's 'was' services are also avaliable for all WSGI middelwares.
 
-- was.create_thread (target, \*args, \*\*kargs)
-- was.create_process (target, \*args, \*\*kargs)
 - was.status () # HTML formatted status information
 - was.get_lock (name = "__main__") # getting process lock
 - was.gentemp () # return temp file name with full path
@@ -2496,6 +2517,7 @@ Change Log
 
 - 0.28 (Feb 2019)
   
+  - add was.Thread () and was.Process ()
   - add @skitai.states () decorator
   - rename skitai.deflu () => skitai.register_states ()
   - add corequest object explaination and corequest based model example

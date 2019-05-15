@@ -128,10 +128,10 @@ class WASBase:
     def Mask (self, data):
         return tasks.Mask (data)
 
-    def create_thread (self, func, *args, **kargs):
+    def Thread (self, func, *args, **kargs):
         return self.executors.create_thread (func, *args, **kargs)
 
-    def create_process (self, func, *args, **kargs):
+    def Process (self, func, *args, **kargs):
         return self.executors.create_process (func, *args, **kargs)
 
     def log (self, msg, category = "info", at = "app"):

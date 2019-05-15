@@ -12,6 +12,9 @@ class Future:
         self._name = "{}.{}".format (func.__module__, func.__name__)
         self._started = time.time ()
 
+    def then (self, r):
+        return r
+
     def __str__ (self):
         return self._name
 
@@ -77,12 +80,11 @@ class Executor:
         else:
             self.maintern ()
         future = self.executor.submit (f, *a, **b)
-        with self.lock:
-            wrap = Future (future, f)
-            self.futures.append (wrap)
-            self.logger ("started {}: {}".format (self._name, wrap))
-        return future, len (self.futures)
-
+        wrap = Future (future, f)
+        self.logger ("started {}: {}".format (self._name, wrap))
+        with self.lock:            
+            self.futures.append (wrap)        
+        return wrap
 
 class Executors:
     def __init__ (self, workers = N_CPU, logger = None):
