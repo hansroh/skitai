@@ -44,48 +44,36 @@ Your app will work for your thousands or miliions of customers.
 .. contents:: Table of Contents
 
 
-What For
-===========
-
-Skitai App engine provides one of most simplest way to:
-
-1. Serve WSGI apps like Flask, Django
-2. Export RESTful API for your apps or functions
-3. Build high performance app/web service with asynchronous backend upstreams & cache control
-
-
 Introduce
-===========
+==============
 
-Skitai is a kind of branch of `Medusa Web Server`__ - A High-Performance Internet Server Architecture. Medusa is different from most other servers because it runs as a single process, multiplexing I/O with its various client and server connections within a single process/thread. 
+Skitai is a kind of branch of `Medusa Web Server`__ - A High-Performance Internet Server Architecture.
 
-Skitai orients light-weight, simplicity and strengthen networking operations with your backend resources keeping very low costs.
+Skitai has purpose for providing online runtime environment for Python.
 
-- Working as WSGI application server, Web, XML-RPC and reverse proxy and loadbancing server
-- Handling massive requests to your backend servers including RESTful API, RPCs and database engines - PostgreSQL_, MongoDB and Redis - with asynchronous manner
-- HTTP/2.0 & HTML5 Websocket implemented
+- Asynchronous Based Web Server (using asyncore)
+- Servicable All WSGI Middlewares like Flask, Django, Atila_
+- Multi Threads and Multi Workers(Posix only) Request Processing Model
+- HTTP2, Websocket Implemented
+- Asynchronous Corequest For:
 
-Skitai is not a just developing server like some frameworks provides. It is supporsed to work fine under real service situation by alone. And it makes your app take off to the world, just by appending a few lines on your app.
+  - HTTP Methods (GET, POST, PUT, ...)
+  - XMLRPC
+  - JSONRPC
+  - GRPC
+  - RDBMS
 
-For attaining maximum concurrency, it uses:
+    - PostGreSQL
+    - SQLite3 (Not async)
+    
+  - NoSQL
+    
+    - Redis
+    - MongoDB
 
-  - asyncore with event loop for IO concurrency like HTTP/Websocket and database engine connections
-  - forking for multiple process workers
-  - multi-threading for blocking jobs if you want
+  - Websocket Messaging
 
-Async supported protocols:
-
-  - HTTP/HTTPS, RESTful API and XML/JSON-RPC
-  - HTTP2 and GRPC
-  - Websocket
-
-Async supported database engine or NoSQL:
-
-  - PostgreSQL
-  - MongoDB
-  - Redis
-  - SQLite3 (sync only, not async )
-
+.. _Atila: https://pypi.python.org/pypi/atila
 .. _hyper-h2: https://pypi.python.org/pypi/h2
 .. _Flask: http://flask.pocoo.org/
 .. _PostgreSQL: http://www.postgresql.org/
@@ -353,8 +341,6 @@ If you want to run Skitai with entirely main thread only,
   skitai.run (threads = 0)
 
 This features is limited by your WSGI container. If you use Atila_ container, you can run with single threading mode by using Atila_'s async streaming response method. But you don't and if you have plan to use Skitai 'was' requests services, you can't single threading mode and you SHOULD run with multi-threading mode.
-
-.. _Atila: https://pypi.python.org/pypi/atila
 
 
 Run with Multiple Workers
@@ -2485,29 +2471,13 @@ Utility Methods of 'was'
 
 This chapter's 'was' services are also avaliable for all WSGI middelwares.
 
+- was.create_thread (target, \*args, \*\*kargs)
+- was.create_process (target, \*args, \*\*kargs)
 - was.status () # HTML formatted status information
 - was.get_lock (name = "__main__") # getting process lock
 - was.gentemp () # return temp file name with full path
 - was.restart () # Restart Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
 - was.shutdown () # Shutdown Skitai App Engine Server, but this only works when processes is 1 else just applied to current worker process.
-
-
-
-Project Purpose
-===================
-
-Skitai App Engine's original purpose is to serve python fulltext search engine Wissen_ which is my another pypi work. And I found that it is possibly useful for building and serving websites.
-
-Anyway, I am modifying my codes to optimizing for enabling service on Linux machine with relatvely poor H/W (ex. AWS_ t2.nano instance) and making easy to auto-scaling provided cloud computing service like AWS_.
-
-If you need lots of outside http(s) resources connecting jobs and use PostgreSQL, it might be worth testing and participating this project.
-
-Also note it might be more efficient that circumstance using `Gevent WSGI Server`_ + Flask. They have well documentation and already tested by lots of users.
-
-
-.. _Wissen: https://pypi.python.org/pypi/wissen
-.. _AWS: https://aws.amazon.com
-.. _`Gevent WSGI Server`: http://www.gevent.org/
 
 
 Links
