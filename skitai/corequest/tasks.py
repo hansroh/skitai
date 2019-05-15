@@ -6,24 +6,21 @@ from .httpbase.task import DEFAULT_TIMEOUT
 from skitai import was
 
 class TaskBase (corequest):
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **args):
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **meta):
         assert isinstance (reqs, (list, tuple))
         self._timeout = timeout                
         self._reqs = reqs
-        self._ARGS = args
-
-    def put_args (self, **args):
-        self._ARGS.update (args)
+        self.meta = meta
 
     def __getattr__ (self, name):
         try:
-            return self._ARGS [name]
+            return self.meta [name]
         except KeyError:
             raise AttributeError ("{} cannot found".format (name))    
 
 class Tasks (TaskBase):
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **args):
-        TaskBase.__init__ (self, reqs, timeout, **args)
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **meta):
+        TaskBase.__init__ (self, reqs, timeout, **meta)
         self._results = []        
 
     def __iter__ (self):
@@ -43,7 +40,7 @@ class Tasks (TaskBase):
             self.add (req)        
 
     def then (self, func):
-        return was.Futures (self._reqs, self._timeout, **self._ARGS).then (func)
+        return was.Futures (self._reqs, self._timeout, **self.meta).then (func)
 
     #------------------------------------------------------
     def cache (self, cache = 60, cache_if = (200,)):
@@ -66,9 +63,9 @@ class Tasks (TaskBase):
 
 
 class Mask (response, TaskBase):
-    def __init__ (self, data, **args):
+    def __init__ (self, data, **meta):
         self._data = data
-        self._ARGS = args
+        self.meta = meta
 
     def commit (self):
         pass
@@ -87,13 +84,13 @@ class Mask (response, TaskBase):
 
 
 class CompletedTasks (response, Tasks):
-    def __init__ (self, reqs, **args):
-        Tasks.__init__ (self, reqs, **args)
+    def __init__ (self, reqs, **meta):
+        Tasks.__init__ (self, reqs, **meta)
 
 
 class Futures (TaskBase):
-    def __init__ (self, was, reqs, timeout = 10, **args):
-        TaskBase.__init__ (self, reqs, timeout, **args)
+    def __init__ (self, was, reqs, timeout = 10, **meta):
+        TaskBase.__init__ (self, reqs, timeout, **meta)
         self._was = was        
         self._fulfilled = None
         self._responded = 0
@@ -116,7 +113,7 @@ class Futures (TaskBase):
     def _respond (self):
         response = self._was.response         
         try:
-            tasks = CompletedTasks (self._reqs, **self._ARGS)
+            tasks = CompletedTasks (self._reqs, **self.meta)
             content = self._fulfilled (self._was, tasks)
             will_be_push = make_pushables (response, content)
             content = None
