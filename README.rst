@@ -70,6 +70,9 @@ Skitai has purpose for providing online runtime environment for Python.
 
   - Websocket Messaging
 
+- Support Callbacked Response With Corequests
+- Easy To Executing Long-Run Task As Thread/Process With Executor Pool
+
 .. _Atila: https://pypi.python.org/pypi/atila
 .. _hyper-h2: https://pypi.python.org/pypi/h2
 .. _Flask: http://flask.pocoo.org/
