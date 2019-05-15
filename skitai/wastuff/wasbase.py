@@ -43,14 +43,13 @@ pathtool.mkdir (TEMP_DIR)
 
 class WASBase:
     version = __version__    
-    objects = {}    
-    _luwatcher = Semaps ([], "d", 256)
-    
+    objects = {}
+    _luwatcher = Semaps ([], "d", 256)    
     lock = plock = RLock ()
-    init_time = time.time ()
-    cloned = False
-    
+    init_time = time.time ()    
+    cloned = False    
     _process_locks = [RLock () for i in range (8)]
+    
     @classmethod    
     def get_lock (cls, name = "__main__"):
         return cls._process_locks [hash (name) % 8]
@@ -128,6 +127,12 @@ class WASBase:
 
     def Mask (self, data):
         return tasks.Mask (data)
+
+    def create_thread (self, func, *args, **kargs):
+        return self.executors.create_thread (func, *args, **kargs)
+
+    def create_process (self, func, *args, **kargs):
+        return self.executors.create_process (func, *args, **kargs)
 
     def log (self, msg, category = "info", at = "app"):
         self.logger (at, msg, "%s:%s" % (category, self.txnid ()))

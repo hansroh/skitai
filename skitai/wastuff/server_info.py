@@ -81,6 +81,7 @@ def formatting (was, info, flt):
 				b.append ("<li>CLUSTERS</li>")
 				b.append ('<ul style="list-style: square;">')
 			elif got_cluster and not k.startswith ("CLUSTER:"):
+				got_cluster = False
 				b.append ('</ul>')
 			b.append ("<li><a href='#%s'>%s</a></li>" % (k, got_cluster and k [8:] or k))
 		b.append ('</ol>')

@@ -34,7 +34,7 @@ from .corequest.dbi import cluster_manager as dcluster_manager
 from .corequest.dbi import task as dtask
 import types
 from .handlers.websocket import servers as websocekts
-from .wastuff import selective_logger, triple_logger
+from .wastuff import selective_logger, triple_logger, executors
 
 class Loader:
 	def __init__ (self, config = None, logpath = None, varpath = None, wasc = None, debug = 0):		
@@ -71,6 +71,7 @@ class Loader:
 		self.wasc.register ("clusters_for_distcall",  {})
 		self.wasc.register ("workers", 1)
 		self.wasc.register ("cachefs", None)	
+		self.wasc.register ("executors", executors.Executors ())
 		websocekts.start_websocket (self.wasc)
 		self.wasc.register ("websockets", websocekts.websocket_servers)
 		self.switch_to_await_fifo ()

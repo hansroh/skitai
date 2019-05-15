@@ -27,7 +27,8 @@ import asyncore
 from .launcher  import launch
 from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS
 from ..wastuff import semaps
-     
+from ..wastuff import executors
+
 def logger ():
     return triple_logger.Logger ("screen", None)    
 
@@ -118,7 +119,8 @@ def setup_was (wasc):
     wasc.register ("clusters_for_distcall",  {"__socketpool__": None, "__dbpool__": None})
     wasc.register ("workers", 1)
     wasc.register ("cachefs", cachefs.CacheFileSystem (None, 0, 0))    
-    
+    wasc.register ("executors", executors.Executors ())
+
     websocekts.start_websocket (wasc)
     wasc.register ("websockets", websocekts.websocket_servers)
     

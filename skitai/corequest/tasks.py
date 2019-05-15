@@ -62,13 +62,25 @@ class Tasks (TaskBase):
         return [req.one (cache, cache_if) for req in self.reqs]
 
 
-class Mask (response):
-    def __init__ (self, data):
-        self._data = data
+class Mask (response, TaskBase):
+    def __init__ (self, data, **args):
+        self.data = data
+        self.ARGS = args
+
+    def commit (self):
+        pass
 
     def fetch (self):
-        return self._data
-    one = fetch
+        return self.data
+    
+    def one (self):    
+        if len (self.data) == 0:
+            raise HTTPError ("404 Not Found")
+        if len (self.data) != 1:
+            raise HTTPError ("409 Conflict")
+        if isinstance (self.data, dict):
+            return self.data.popitem () [1]
+        return self.data [0]
 
 
 class CompletedTasks (response, Tasks):
