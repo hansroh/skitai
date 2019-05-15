@@ -41,9 +41,6 @@ And run.
 Your app will work for your thousands or miliions of customers.
 
 
-.. contents:: Table of Contents
-
-
 Introduce
 ==============
 
@@ -78,6 +75,9 @@ Skitai has purpose for providing online runtime environment for Python.
 .. _Flask: http://flask.pocoo.org/
 .. _PostgreSQL: http://www.postgresql.org/
 .. __: http://www.nightmare.com/medusa/medusa.html
+
+
+.. contents:: Table of Contents
 
 
 Installation
