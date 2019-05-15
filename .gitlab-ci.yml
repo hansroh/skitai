@@ -16,9 +16,9 @@ before_script:
   - source venv/bin/activate
   - pip install -U aquests rs4
   - pip install -U aquests rs4
-  - python setup.py build install
   - pip install -U atila sqlphile dnn tfserver
   - pip install -U atila sqlphile dnn tfserver
+  - python setup.py build install  
   - pip install -Ur tests/requirements.txt  
 
 test:
