@@ -8,13 +8,16 @@ from skitai import was
 class TaskBase (corequest):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **args):
         assert isinstance (reqs, (list, tuple))
-        self.timeout = timeout                
-        self.reqs = reqs
-        self.ARGS = args
+        self._timeout = timeout                
+        self._reqs = reqs
+        self._ARGS = args
+
+    def put_args (self, **args):
+        self._ARGS.update (args)
 
     def __getattr__ (self, name):
         try:
-            return self.ARGS [name]
+            return self._ARGS [name]
         except KeyError:
             raise AttributeError ("{} cannot found".format (name))    
 
@@ -24,63 +27,63 @@ class Tasks (TaskBase):
         self._results = []        
 
     def __iter__ (self):
-        return iter (self.reqs)
+        return iter (self._reqs)
     
     def __getitem__ (self, sliced):
-        return self.reqs [sliced].dispatch ()
+        return self._reqs [sliced].dispatch ()
     
     def set_timeout (self, timeout):
-        self.timeout = timeout
+        self._timeout = timeout
 
     def add (self, req):
-        self.reqs.append (req)
+        self._reqs.append (req)
 
     def merge (self, tasks):
-        for req in tasks.reqs:
+        for req in tasks._reqs:
             self.add (req)        
 
-    def then (self, func, **kargs):
-        return was.Futures (self.reqs, self.timeout).then (func, **kargs)
+    def then (self, func):
+        return was.Futures (self._reqs, self._timeout, **self._ARGS).then (func)
 
     #------------------------------------------------------
     def cache (self, cache = 60, cache_if = (200,)):
         [r.cache (cache, cache_if) for r in self.results]
 
     def dispatch (self, cache = None, cache_if = (200,), timeout = None):
-        return [req.dispatch (cache, cache_if, timeout or self.timeout) for req in self.reqs]
+        return [req.dispatch (cache, cache_if, timeout or self._timeout) for req in self._reqs]
         
     def wait (self, timeout = None):
-        return [req.wait (timeout or self.timeout) for req in self.reqs]
+        return [req.wait (timeout or self._timeout) for req in self._reqs]
         
     def commit (self, timeout = None):
-        [req.commit (timeout or self.timeout) for req in self.reqs] 
+        [req.commit (timeout or self._timeout) for req in self._reqs] 
     
     def fetch (self, cache = None, cache_if = (200,)):
-        return [req.fetch (cache, cache_if) for req in self.reqs]
+        return [req.fetch (cache, cache_if) for req in self._reqs]
         
     def one (self, cache = None, cache_if = (200,), timeout = None):
-        return [req.one (cache, cache_if) for req in self.reqs]
+        return [req.one (cache, cache_if) for req in self._reqs]
 
 
 class Mask (response, TaskBase):
     def __init__ (self, data, **args):
-        self.data = data
-        self.ARGS = args
+        self._data = data
+        self._ARGS = args
 
     def commit (self):
         pass
 
     def fetch (self):
-        return self.data
+        return self._data
     
     def one (self):    
-        if len (self.data) == 0:
+        if len (self._data) == 0:
             raise HTTPError ("404 Not Found")
-        if len (self.data) != 1:
+        if len (self._data) != 1:
             raise HTTPError ("409 Conflict")
-        if isinstance (self.data, dict):
-            return self.data.popitem () [1]
-        return self.data [0]
+        if isinstance (self._data, dict):
+            return self._data.popitem () [1]
+        return self._data [0]
 
 
 class CompletedTasks (response, Tasks):
@@ -92,30 +95,29 @@ class Futures (TaskBase):
     def __init__ (self, was, reqs, timeout = 10, **args):
         TaskBase.__init__ (self, reqs, timeout, **args)
         self._was = was        
-        self.fulfilled = None
-        self.responded = 0        
+        self._fulfilled = None
+        self._responded = 0
             
-    def then (self, func, **kargs):
-        self.ARGS.update (kargs)
-        self.fulfilled = func
-        for reqid, req in enumerate (self.reqs):
-           req.set_callback (self._collect, reqid, self.timeout)
+    def then (self, func):        
+        self._fulfilled = func
+        for reqid, req in enumerate (self._reqs):
+           req.set_callback (self._collect, reqid, self._timeout)
         return self
                  
     def _collect (self, res):
-        self.responded += 1        
-        if self.responded == len (self.reqs):
-            if self.fulfilled:             
-                self.respond ()
+        self._responded += 1        
+        if self._responded == len (self._reqs):
+            if self._fulfilled:             
+                self._respond ()
             else:
                 self._was.response ("205 No Content", "")
                 self._was.response.done ()
             
-    def respond (self):
+    def _respond (self):
         response = self._was.response         
         try:
-            tasks = CompletedTasks (self.reqs, **self.ARGS)
-            content = self.fulfilled (self._was, tasks)
+            tasks = CompletedTasks (self._reqs, **self._ARGS)
+            content = self._fulfilled (self._was, tasks)
             will_be_push = make_pushables (response, content)
             content = None
         except MemoryError:
