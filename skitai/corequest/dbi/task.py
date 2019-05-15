@@ -2,7 +2,7 @@ import time
 from aquests.athreads import socket_map
 from aquests.athreads import trigger
 import threading
-from ..rpc import cluster_dist_call, rcache
+from ..httpbase import task, rcache
 from rs4.attrdict import AttrDict
 from aquests.dbapi import request
 import asyncore
@@ -31,7 +31,7 @@ class FailedRequest:
     reraise = raise_for_status
 
     
-class Dispatcher (cluster_dist_call.Dispatcher):
+class Dispatcher (task.Dispatcher):
     def __init__ (self, cv, id, ident = None, filterfunc = None, callback = None):
         self._cv = cv
         self.id = id
@@ -46,9 +46,9 @@ class Dispatcher (cluster_dist_call.Dispatcher):
         if not self.result:
             status = self.get_status ()
             if status == REQFAIL:
-                self.result = cluster_dist_call.Result (self.id, REQFAIL, FailedRequest (RequestFailed ("Request Failed")), self.ident)
+                self.result = task.Result (self.id, REQFAIL, FailedRequest (RequestFailed ("Request Failed")), self.ident)
             else:
-                self.result = cluster_dist_call.Result (self.id, TIMEOUT, FailedRequest (OperationTimeout ("Operation Timeout")), self.ident)            
+                self.result = task.Result (self.id, TIMEOUT, FailedRequest (OperationTimeout ("Operation Timeout")), self.ident)            
         return self.result
                     
     def handle_result (self, request):
@@ -62,7 +62,7 @@ class Dispatcher (cluster_dist_call.Dispatcher):
                 status = TIMEOUT
             elif reason == "Socket Panic":
                 status = NETERR            
-        result = cluster_dist_call.Result (self.id, status, request, self.ident)
+        result = task.Result (self.id, status, request, self.ident)
         self.set_status (status, result)
         tuple_cb (self, self.callback)
                 
@@ -71,7 +71,7 @@ class Dispatcher (cluster_dist_call.Dispatcher):
 # Cluster Base Call
 #-----------------------------------------------------------
 
-class ClusterDistCall (cluster_dist_call.ClusterDistCall):
+class Task (task.Task):
     def __init__ (self, 
         cluster,
         server, 
@@ -200,7 +200,7 @@ class Proxy:
         return cdc
     
     
-class ClusterDistCallCreator:
+class TaskCreator:
     def __init__ (self, cluster, logger):
         self.cluster = cluster
         self.logger = logger        
@@ -209,4 +209,4 @@ class ClusterDistCallCreator:
         return getattr (self.cluster, name)
         
     def Server (self, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
-        return Proxy (ClusterDistCall, self.cluster, server, dbname, auth, dbtype, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.logger)
+        return Proxy (Task, self.cluster, server, dbname, auth, dbtype, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.logger)

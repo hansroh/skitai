@@ -2,7 +2,7 @@ import skitai
 import conftest
 import sqlite3
 from aquests.dbapi.synsqlite3 import SynConnect
-from skitai.coops.rpc import cluster_dist_call
+from skitai.corequest.httpbase import task
 
 def test_cluster_manager (wasc): 
     cluster = wasc.clusters_for_distcall ["sqlite3"]
@@ -18,7 +18,7 @@ def test_cluster_manager (wasc):
     
     assert cluster.parse_member ("asda:1231@127.0.0.1:5432/mydb") == (('asda', '1231'), '127.0.0.1:5432/mydb')
 
-def test_cluster_dist_call (wasc):
+def test_task (wasc):
     cluster = wasc.clusters_for_distcall ["example"]
-    cdc  = cluster_dist_call.ClusterDistCall (cluster, "/index")
+    cdc  = task.Task (cluster, "/index")
     

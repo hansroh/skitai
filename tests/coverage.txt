@@ -6,7 +6,7 @@ Name                                                        Stmts   Miss  Cover
 /home/ubuntu/skitai/skitai/cachefs.py                         212    166    22%
 /home/ubuntu/skitai/skitai/counter.py                          88     44    50%
 /home/ubuntu/skitai/skitai/dbi/__init__.py                      0      0   100%
-/home/ubuntu/skitai/skitai/dbi/cluster_dist_call.py           158    117    26%
+/home/ubuntu/skitai/skitai/dbi/task.py           158    117    26%
 /home/ubuntu/skitai/skitai/dbi/cluster_manager.py              44     35    20%
 /home/ubuntu/skitai/skitai/exceptions.py                        4      2    50%
 /home/ubuntu/skitai/skitai/handlers/__init__.py                 0      0   100%
@@ -48,7 +48,7 @@ Name                                                        Stmts   Miss  Cover
 /home/ubuntu/skitai/skitai/offline/client.py                   96      8    92%
 /home/ubuntu/skitai/skitai/offline/server.py                   43      4    91%
 /home/ubuntu/skitai/skitai/rpc/__init__.py                      0      0   100%
-/home/ubuntu/skitai/skitai/rpc/cluster_dist_call.py           385    301    22%
+/home/ubuntu/skitai/skitai/rpc/task.py           385    301    22%
 /home/ubuntu/skitai/skitai/rpc/cluster_manager.py             310    212    32%
 /home/ubuntu/skitai/skitai/rpc/rcache.py                      112     14    88%
 /home/ubuntu/skitai/skitai/saddle.py                            5      5     0%

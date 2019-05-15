@@ -1,5 +1,5 @@
 from rs4 import logger
-from skitai.rpc import cluster_manager, cluster_dist_call
+from skitai.rpc import cluster_manager, task
 from skitai.threads import trigger
 import sys
 import asyncore
@@ -13,7 +13,7 @@ def __reduce (asyncall):
 				
 def testCluster ():	
 	sc = cluster_manager.ClusterManager ("tt", ["hq.lufex.com:5000 1",], logger= logger.screen_logger ())
-	clustercall = cluster_dist_call.ClusterDistCallCreator (sc, logger.screen_logger ())	
+	clustercall = task.TaskCreator (sc, logger.screen_logger ())	
 	s = clustercall.Server ("/websocket/echo", "Hello WS Cluster", "ws", auth = ("app", "1111"), mapreduce = False)
 	threading.Thread (target = __reduce, args = (s,)).start ()
 	while 1:		
@@ -23,7 +23,7 @@ def testCluster ():
 
 def testSocketPool ():
 	sc = socketpool.SocketPool (logger.screen_logger ())
-	clustercall = cluster_dist_call.ClusterDistCallCreator (sc, logger.screen_logger ())			
+	clustercall = task.TaskCreator (sc, logger.screen_logger ())			
 	s = clustercall.Server ("http://hq.lufex.com:5000/websocket/echo", "Hello WS Sock Pool", "ws", auth = ("app", "1111"))
 	#s = clustercall.Server ("http://210.116.122.187:3424/rpc2", "admin/whddlgkr")
 	#s.bladese.util.status ("openfos.v2")

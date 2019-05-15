@@ -4,7 +4,7 @@ from collections import Iterator
 from aquests.athreads import trigger
 
 def make_pushables (response, content):
-    from .wastuff import tasks
+    from .corequest import tasks
     from .wastuff.api import API
     
     if not response.is_responsable ():

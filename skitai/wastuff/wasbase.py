@@ -16,7 +16,7 @@ from aquests.protocols.http import http_date, util
 from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT, NAME
 from skitai import lifetime
 from . import server_info
-from . import tasks
+from ..corequest import tasks
 from .. import http_response
 from .promise import Promise
 from .triple_logger import Logger

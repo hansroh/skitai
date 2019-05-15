@@ -15,8 +15,8 @@ from ..handlers import vhost_handler
 from ..handlers import proxy_handler
 import inspect
 import os
-from ..coops.dbi import cluster_dist_call as dcluster_dist_call
-from ..coops.rpc import cluster_dist_call
+from ..corequest.dbi import task as dtask
+from ..corequest.httpbase import task
 from aquests.client import socketpool
 from aquests.dbapi import dbpool
 from aquests import lifetime

@@ -1,8 +1,8 @@
 # testing purpose WAS sync service
 
 from . import async_service
-from ..coops.rpc import cluster_dist_call
-from ..coops.dbi import cluster_dist_call as dcluster_dist_call 
+from ..corequest.httpbase import task
+from ..corequest.dbi import task as dtask 
 from skitai import DB_SQLITE3, DB_PGSQL, DB_REDIS, DB_MONGODB
 from rs4 import webtest
 from rs4.cbutil import tuple_cb
@@ -68,7 +68,7 @@ class Result:
         return self.data [0]
             
 
-class ProtoCall (cluster_dist_call.ClusterDistCall):
+class ProtoCall (task.Task):
     def __init__ (self, cluster, *args, **kargs):
         self.cluster = cluster
         self.result = None        
@@ -129,7 +129,7 @@ class ProtoCall (cluster_dist_call.ClusterDistCall):
             
     def dispatch (self, *args, **kargs):
         if self._mapreduce:
-            self.result = cluster_dist_call.Results ([self.result])
+            self.result = task.Results ([self.result])
         return self.result
     getwait = dispatch
     getswait = dispatch
@@ -174,8 +174,8 @@ class DBCall (ProtoCall):
         self.handle_request (method, param, *self.args, **self.kargs)
         
     def  handle_request (self, method, param, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
-        from ..coops.dbi import cluster_manager
-        from ..coops.dbi import endpoints
+        from ..corequest.dbi import cluster_manager
+        from ..corequest.dbi import endpoints
         
         self._mapreduce = mapreduce
         
@@ -215,5 +215,5 @@ class SyncService (async_service.AsyncService):
             return ProtoCall (cluster, *args, **kargs)
     
     def _create_dbo (self, cluster, *args, **kargs):
-        return dcluster_dist_call.Proxy (DBCall, cluster, *args, **kargs)
+        return dtask.Proxy (DBCall, cluster, *args, **kargs)
     

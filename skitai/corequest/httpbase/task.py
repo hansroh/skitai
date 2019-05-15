@@ -119,7 +119,7 @@ class Results (response, rcache.Result):
 
                                 
 
-class Dispatcher (corequest):
+class Dispatcher:
     def __init__ (self, cv, id, ident = None, filterfunc = None, cachefs = None, callback = None):
         self._cv = cv
         self.id = id
@@ -196,7 +196,7 @@ class Dispatcher (corequest):
         tuple_cb (self, self.callback)
         
 
-class ClusterDistCall:
+class Task (corequest):
     DEFAULT_CACHE_TIMEOUT = 42    
     def __init__ (self,
         cluster, 
@@ -583,7 +583,7 @@ class Proxy:
         return cdc
 
 
-class ClusterDistCallCreator:
+class TaskCreator:
     def __init__ (self, cluster, logger, cachesfs):
         self.cluster = cluster                
         self.logger = logger
@@ -600,7 +600,7 @@ class ClusterDistCallCreator:
             headers = h
         
         if reqtype.endswith ("rpc"):
-            return Proxy (ClusterDistCall, self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.cachesfs, self.logger)
+            return Proxy (Task, self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.cachesfs, self.logger)
         else:    
-            return ClusterDistCall (self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.cachesfs, self.logger)
+            return Task (self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.cachesfs, self.logger)
         

@@ -1,9 +1,9 @@
 import sys
 from ..utility import make_pushables
 from ..exceptions import HTTPError
-from ..coops.rpc.cluster_dist_call import DEFAULT_TIMEOUT
+from . import corequest, response
+from .httpbase.task import DEFAULT_TIMEOUT
 from skitai import was
-from ..corequest import corequest, response
 
 class TaskBase (corequest):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **args):

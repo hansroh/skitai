@@ -1,8 +1,8 @@
 import os, sys
 import threading
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
-from ..coops.rpc import cluster_manager, cluster_dist_call
-from ..coops.dbi import cluster_manager as dcluster_manager, cluster_dist_call as dcluster_dist_call
+from ..corequest.httpbase import cluster_manager, task
+from ..corequest.dbi import cluster_manager as dcluster_manager, task as dtask
 from sqlphile import Template
 
 def is_main_thread ():    
@@ -54,10 +54,10 @@ class AsyncService:
 
         if clustertype and "*" + clustertype in (DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB):
             cluster = dcluster_manager.ClusterManager (clustername, clusterlist, "*" + clustertype, access, max_conns, cls.logger.get ("server"))
-            cls.clusters_for_distcall [clustername] = dcluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"))
+            cls.clusters_for_distcall [clustername] = dtask.TaskCreator (cluster, cls.logger.get ("server"))
         else:
             cluster = cluster_manager.ClusterManager (clustername, clusterlist, ssl, access, max_conns, cls.logger.get ("server"))
-            cls.clusters_for_distcall [clustername] = cluster_dist_call.ClusterDistCallCreator (cluster, cls.logger.get ("server"), cls.cachefs)
+            cls.clusters_for_distcall [clustername] = task.TaskCreator (cluster, cls.logger.get ("server"), cls.cachefs)
         cls.clusters [clustername] = cluster
                     
     def __detect_cluster (self, clustername):

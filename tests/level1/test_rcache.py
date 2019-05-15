@@ -1,4 +1,4 @@
-from skitai.coops.rpc import rcache
+from skitai.corequest.httpbase import rcache
 from confutil import rprint
 import time
 import random

@@ -28,10 +28,10 @@ import socket
 import signal
 import multiprocessing
 from . import wsgiappservice, cachefs, http_response
-from .coops.rpc import cluster_dist_call, rcache
-from .coops.rpc import cluster_manager as rcluster_manager
-from .coops.dbi import cluster_manager as dcluster_manager
-from .coops.dbi import cluster_dist_call as dcluster_dist_call
+from .corequest.httpbase import task, rcache
+from .corequest.httpbase import cluster_manager as rcluster_manager
+from .corequest.dbi import cluster_manager as dcluster_manager
+from .corequest.dbi import task as dtask
 import types
 from .handlers.websocket import servers as websocekts
 from .wastuff import selective_logger, triple_logger
@@ -105,11 +105,11 @@ class Loader:
 		
 		socketfarm = socketpool.SocketPool (self.wasc.logger.get ("server"))
 		self.wasc.clusters ["__socketpool__"] = socketfarm
-		self.wasc.clusters_for_distcall ["__socketpool__"] = cluster_dist_call.ClusterDistCallCreator (socketfarm, self.wasc.logger.get ("server"), self.wasc.cachefs)		
+		self.wasc.clusters_for_distcall ["__socketpool__"] = task.TaskCreator (socketfarm, self.wasc.logger.get ("server"), self.wasc.cachefs)		
 		
 		dp = dbpool.DBPool (self.wasc.logger.get ("server"))
 		self.wasc.clusters ["__dbpool__"] = dp
-		self.wasc.clusters_for_distcall ["__dbpool__"] = dcluster_dist_call.ClusterDistCallCreator (dp, self.wasc.logger.get ("server"))
+		self.wasc.clusters_for_distcall ["__dbpool__"] = dtask.TaskCreator (dp, self.wasc.logger.get ("server"))
 	
 	def switch_to_await_fifo (self):
 		if self._fifo_switched: return
