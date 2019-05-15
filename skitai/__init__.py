@@ -20,6 +20,7 @@ from . import lifetime
 from . import mounted
 from .corequest import corequest
 from functools import wraps
+from .wastuff.executors import N_CPU
 
 if "---production" in sys.argv:
 	os.environ ["SKITAI_ENV"] = "PRODUCTION"
@@ -162,7 +163,8 @@ dconf = dict (
 	max_ages = {}, 
 	log_off = [], 
 	dns_protocol = 'tcp', 
-	models_keys = set ()
+	models_keys = set (),
+	executor_workers = N_CPU
 )
 
 def pref (preset = False):
@@ -244,6 +246,10 @@ def set_max_rcache (objmax):
 def set_keep_alive (timeout):	
 	global dconf
 	dconf ["keep_alive"] = timeout
+
+def set_executor_workers (workers):
+	global dconf
+	dconf ["executor_workers"] = workers
 
 def set_backend_keep_alive (timeout):	
 	global dconf
@@ -593,6 +599,7 @@ def run (**conf):
 				# master does not serve
 				return
 			
+			self.config_executors (conf.get ('executor_workers'))
 			self.config_threads (conf.get ('threads', 4))			
 			self.config_backends (conf.get ('backend_keep_alive', 1200))
 			for name, args in conf.get ("clusters", {}).items ():				

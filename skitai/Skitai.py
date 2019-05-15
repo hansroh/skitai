@@ -70,8 +70,7 @@ class Loader:
 		self.wasc.register ("clusters",  {})
 		self.wasc.register ("clusters_for_distcall",  {})
 		self.wasc.register ("workers", 1)
-		self.wasc.register ("cachefs", None)	
-		self.wasc.register ("executors", executors.Executors ())
+		self.wasc.register ("cachefs", None)			
 		websocekts.start_websocket (self.wasc)
 		self.wasc.register ("websockets", websocekts.websocket_servers)
 		self.switch_to_await_fifo ()
@@ -100,7 +99,10 @@ class Loader:
 	
 	def config_dns (self, prefer_protocol = "tcp"):
 		adns.init (self.wasc.logger.get ("server"), prefer_protocol = prefer_protocol)
-			
+
+	def config_executors (self, workers):
+		self.wasc.register ("executors", executors.Executors (workers, self.wasc.logger.get ("server")))
+
 	def config_cachefs (self, cache_dir = None, memmax = 0, diskmax = 0):
 		self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir, memmax, diskmax)
 		
