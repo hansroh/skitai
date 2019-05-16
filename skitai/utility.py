@@ -6,6 +6,7 @@ from aquests.athreads import trigger
 def make_pushables (response, content):
     from .corequest import tasks
     from .wastuff.api import API
+    from .wastuff import executors
     
     if not response.is_responsable ():
         # already called response.done () or diconnected channel
@@ -23,7 +24,9 @@ def make_pushables (response, content):
         
     if isinstance (content [0], tasks.Futures):
         return
-    
+    if isinstance (content [0], executors.Future):
+        return
+
     if response ["content-type"] is None: 
         response ["Content-Type"] = "text/html"
                 

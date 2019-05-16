@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.15.4"
+__version__ = "0.28.15.8"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -20,7 +20,6 @@ from . import lifetime
 from . import mounted
 from .corequest import corequest
 from functools import wraps
-from .wastuff.executors import N_CPU
 
 if "---production" in sys.argv:
 	os.environ ["SKITAI_ENV"] = "PRODUCTION"
@@ -163,8 +162,7 @@ dconf = dict (
 	max_ages = {}, 
 	log_off = [], 
 	dns_protocol = 'tcp', 
-	models_keys = set (),
-	executor_workers = N_CPU
+	models_keys = set ()	
 )
 
 def pref (preset = False):
@@ -247,9 +245,10 @@ def set_keep_alive (timeout):
 	global dconf
 	dconf ["keep_alive"] = timeout
 
-def set_executor_workers (workers):
+def config_executors (workers = None, zombie_timeout = None):
 	global dconf
-	dconf ["executor_workers"] = workers
+	dconf ["executors_workers"] = workers
+	dconf ["executors_zombie_timeout"] = zombie_timeout
 
 def set_backend_keep_alive (timeout):	
 	global dconf
@@ -277,7 +276,7 @@ def _reserve_states (*names):
 		was._luwatcher.add (names)
 	else:
 		for k in names:
-			dconf ["models_keys"].add (k)
+			dconf ["models_keys"].add (k)			
 addlu = trackers = lukeys = deflu = _reserve_states
 
 def register_states (*names):
@@ -542,7 +541,7 @@ def run (**conf):
 				self.wasc.logger ("server", "[info] running for development mode")
 			self.wasc.logger ("server", "[info] engine tmp path: %s" % self.varpath)
 			if self.logpath:
-				self.wasc.logger ("server", "[info] engine log path: %s" % self.logpath)			
+				self.wasc.logger ("server", "[info] engine log path: %s" % self.logpath)							
 			self.set_model_keys (self.conf ["models_keys"])
 						
 		def maintern_shutdown_request (self, now):
@@ -599,7 +598,7 @@ def run (**conf):
 				# master does not serve
 				return
 			
-			self.config_executors (conf.get ('executor_workers'))
+			self.config_executors (conf.get ('executors_workers'), dconf.get ("executors_zombie_timeout"))
 			self.config_threads (conf.get ('threads', 4))			
 			self.config_backends (conf.get ('backend_keep_alive', 1200))
 			for name, args in conf.get ("clusters", {}).items ():				

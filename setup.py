@@ -66,6 +66,8 @@ install_requires = [
 	"jsonrpclib-pelix",
 	"sqlphile"
 ]
+if os.name == "nt":
+	install_requires.append ("pywin32")
 
 with codecs.open ('README.rst', 'r', encoding='utf-8') as f:
 	long_description = f.read()
@@ -82,7 +84,7 @@ setup (
 	package_dir=package_dir,
 	package_data = package_data,
 	entry_points = {
-        'console_scripts': [
+      'console_scripts': [
 			'skitai=skitai.bin.skitai:main',
 		],
     },

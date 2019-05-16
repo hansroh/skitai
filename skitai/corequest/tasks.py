@@ -63,17 +63,24 @@ class Tasks (TaskBase):
 
 
 class Mask (response, TaskBase):
-    def __init__ (self, data, **meta):
+    def __init__ (self, data, _expt = None, **meta):
+        self._expt = _expt
         self._data = data
         self.meta = meta
 
+    def _reraise (self):
+        if self._expt:
+            raise self._expt
+
     def commit (self):
-        pass
+        self._reraise ()
 
     def fetch (self):
+        self._reraise ()
         return self._data
     
     def one (self):    
+        self._reraise ()
         if len (self._data) == 0:
             raise HTTPError ("404 Not Found")
         if len (self._data) != 1:

@@ -49,15 +49,14 @@ Skitai is a kind of branch of `Medusa Web Server`__ - A High-Performance Interne
 Skitai has purpose for providing online runtime environment for Python.
 
 - Asynchronous Based Web Server (using asyncore)
-- Servicable All WSGI Middlewares like Flask, Django, Atila_
-- Multi Threads and Multi Workers(Posix only) Request Processing Model
-- HTTP2, Websocket Implemented
+- Mountable All WSGI Middlewares like Flask_, Django_, Atila_
+- Multi Threads and Multi Workers(posix only) Request Processing Model
+- HTTP2 (with hyper-h2_), Websocket Implemented
 - Asynchronous Corequest For:
 
   - HTTP Methods (GET, POST, PUT, ...)
-  - XMLRPC
-  - JSONRPC
-  - GRPC
+  - XMLRPC / JSONRPC
+  - GRPC (Experimental)
   - RDBMS
 
     - PostGreSQL
@@ -69,10 +68,12 @@ Skitai has purpose for providing online runtime environment for Python.
     - MongoDB
 
   - Websocket Messaging
+  - Reverse Proxy (Upstream Server Routing)  
 
 - Support Callbacked Response With Corequests
 - Easy To Executing Long-Run Task As Thread/Process With Executor Pool
 
+.. _Django: https://www.djangoproject.com/
 .. _Atila: https://pypi.python.org/pypi/atila
 .. _hyper-h2: https://pypi.python.org/pypi/h2
 .. _Flask: http://flask.pocoo.org/
@@ -90,17 +91,13 @@ Installation
 
 Python 3.5+  
 
-On win32, required `pywin32 binary`_.
-
-.. _`pywin32 binary`: http://sourceforge.net/projects/pywin32/files/pywin32/Build%20219/
-  
 **Installation**
 
 With pip
 
 .. code-block:: bash
 
-    pip3 install skitai    
+    pip3 install -U rs4 aquests sqlphile skitai
 
 From git
 
@@ -109,6 +106,7 @@ From git
     git clone https://gitlab.com/hansroh/skitai.git
     cd skitai
     python3 setup.py install
+    pip3 install -U rs4 aquests sqlphile
 
 
 But generally you don't need install alone. When you install Skitai App Engine, proper version of Skitai App Engine will be installed.
@@ -1684,6 +1682,7 @@ Tasks is pack of corequests. It can handle multiple corequests as single one.
 
 Tasks is iterable and slicable and returened rs is response object (by dispatch ()). You SHOULD check rs.status and status_code for validating response, or just use fetch () for raising error if invalid.
 
+- Tasks (reqs, timeout = 10, \*\*meta)
 - Tasks.add (corequest): append corequest or Task object
 - Tasks.merge (corequest): append corequest or Task object, in case Tasks, it will be extracted from inner corequests
 - Tasks.then (callabck): convert Tasks to Futures, available only for Atila app
@@ -1694,6 +1693,8 @@ Tasks is iterable and slicable and returened rs is response object (by dispatch 
 - Tasks.commit (timeout = None)
 - Tasks.fetch (cache = None, cache_if = (200,), timeout = None)
 - Tasks.one (cache = None, cache_if = (200,), timeout = None)
+
+- Tasks.meta: dictionary container for user data
 
 *Note:* If you want to use full asynchronous manner, you can consider Atila's Futures_, but it need to pay some costs.
 
@@ -2410,13 +2411,12 @@ Above example pattern is just one of my implemetation with async models.
 It can be extended and changed into NoSQL or even RESTful/RPC with any Skitai corequest object which has same 5 methods - dispatch, wait, fetch, one and commit.
 
 
-Miscellaneous
-==============================
+Creating Backgroud Tasks And Response 202
+============================================================
 
-Creating Backgroud Tasks
-------------------------------------------------
+Skitai creates thread/process pool as many as your cpu count, if need.
 
-Skitai creates Thread/Process Pool as many as your cpu count, if need.
+These tasks are mainly worked with HTTP status '202 Accepted'. Below example show that how to start new thread and return 202 response.
 
 .. code:: python
   
@@ -2426,8 +2426,17 @@ Skitai creates Thread/Process Pool as many as your cpu count, if need.
   
   @app.route ('...')
   def foo ():    
-    return was.Thread (math.sqrt, 4.0).then (
-      Response ('', 202, headers = {'Content-Location': "/api/persons/2130040"})
+    return was.Thread (math.sqrt, 4.0).asac (
+      Response ('', 202, headers = {'Content-Location': "/api/sqrt/4.0"})
+    )
+    # asa mean 'as soon as created'
+
+.. code:: python
+  
+  @app.route ('...')
+  def foo ():    
+    return was.Thread (generate_xls, was.request.ARGS).asac (
+      Response ('', 202, headers = {'Content-Location': "..."})
     )
 
 Note that was.Process () is also available.
@@ -2435,6 +2444,9 @@ Note that was.Process () is also available.
 - was.Thread (target, \*args, \*\*kargs): return wrapper of concurrent.futures.Future
 - was.Process (target, \*args, \*\*kargs): return wrapper of concurrent.futures.Future
 
+
+Miscellaneous
+==============================
 
 Inter Process State Sharing
 -----------------------------------------
