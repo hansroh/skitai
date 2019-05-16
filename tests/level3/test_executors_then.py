@@ -7,7 +7,7 @@ import time
 def enforce ():
     time.sleep (2)
     ex = skitai.was.executors
-    ex.executors [1].maintern ()
+    ex.executors [1].maintern (time.time ())
     ex.executors [1].shutdown ()
 
 def foo (a, timeout = 0):

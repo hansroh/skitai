@@ -11,12 +11,12 @@ import sys
 N_CPU = multiprocessing.cpu_count()
 
 class Future:
-    def __init__ (self, future, func):
+    def __init__ (self, future, name):
         self.future = future
-        self._name = "{}.{}".format (func.__module__, func.__name__)
+        self._name = name
         self._started = time.time ()
         self._was = None
-        self.fulfilled = None
+        self._fulfilled = None
 
     def __str__ (self):
         return self._name
@@ -24,19 +24,21 @@ class Future:
     def __getattr__ (self, name):
         return getattr (self.future, name)
 
-    def _settle (self):
+    def _settle (self, func = None):
         expt, result = self.future.exception (0), None
-        if self.fulfilled:
+        if self._fulfilled:
             if not expt:
                 result = self.future.result (0)
-            task = Mask (result, expt)
+            task = Mask (result, expt)            
             try:
-                self.fulfilled (self._was, task)
+                self._fulfilled (self._was, task)
             except:
                 self._was.traceback ()        
                 trigger.wakeup (lambda p = self._was.response, d = self._was.app.debug and sys.exc_info () or None: (p.error (500, "Internal Server Error", d), p.done ()) )
             else:
                 trigger.wakeup (lambda p = self._was.response: (p.done (),))
+            self._fulfilled = None
+                                
         elif expt:
             raise expt
 
@@ -45,7 +47,7 @@ class Future:
         return returning
 
     def then (self, func):
-        self.fulfilled = func
+        self._fulfilled = func
         try: 
             self._was = was._clone ()
         except TypeError:
@@ -59,7 +61,7 @@ class Executor:
         self._name = self._executor_class.__name__       
         self.logger = logger
         self.workers = workers or N_CPU
-        self.zombie_timeout = zombie_timeout or (3600 * 24)
+        self.zombie_timeout = zombie_timeout
         self.lock = multiprocessing.Lock ()
         self.executor = None
         self.futures = []
@@ -68,22 +70,27 @@ class Executor:
         with self.lock:
             return len (self.futures)
 
-    def maintern (self):
-        now = time.time ()
+    def maintern (self, now):
+        inprogresses = []
+        for future in self.futures:                
+            if not future.done ():
+                if self.zombie_timeout and future._started + self.zombie_timeout < now:
+                    self.kill (future)
+                else:                             
+                    inprogresses.append (future)       
+                    continue                                            
+            try:
+                future._settle ()
+            except:
+                self.logger.trace (future._name)
+        self.futures = inprogresses
+
+    def scheduled_maintern (self, now):
         with self.lock:
-            inprogresses = []
-            for future in self.futures:                
-                if not future.done ():
-                     if future._started + self.zombie_timeout < now:
-                         self.kill (future)
-                     else:                             
-                        inprogresses.append (future)       
-                        continue                                            
-                try:
-                    future._settle ()
-                except:
-                    self.logger.trace (future._name)
-            self.futures = inprogresses
+            if self.executor is None:
+                return
+            self.maintern (now)
+            return len (self.futures)
 
     def create_excutor (self):
         self.executor = self._executor_class (self.workers)
@@ -91,33 +98,33 @@ class Executor:
     def shutdown (self):
         if not self.executor:
             return
-
         with self.lock:
             for future in self.futures:
                 if not future.done ():
                     self.kill (future)
                 elif not future.running ():
-                    future.cancel ()                  
-
+                    future.cancel ()
         self.executor.shutdown (wait = True)        
-        self.maintern ()
-        self.executor = None
-        return len (self.futures)
+        with self.lock:
+            self.maintern (time.time ())
+            self.executor = None
+            return len (self.futures)
 
     def kill (self, future):
         try:    
             future.result (timeout = 0)
         except TimeoutError:
             future.set_exception (TimeoutError)
-            self.logger ("killed {}: {}".format (self._name, future))            
+            self.logger ("killed {}: {}".format (self._name, future))
         
-    def __call__ (self, f, *a, **b):    
-        if self.executor is None:
-            self.create_excutor ()
-        else:
-            self.maintern ()
+    def __call__ (self, f, *a, **b):  
+        with self.lock:  
+            if self.executor is None:
+                self.create_excutor ()
+            else:
+                self.maintern (time.time ())
         future = self.executor.submit (f, *a, **b)
-        wrap = Future (future, f)
+        wrap = Future (future, "{}.{}".format (f.__module__, f.__name__))
         self.logger ("started {}: {}".format (self._name, wrap))
         with self.lock:            
             self.futures.append (wrap)        
@@ -137,6 +144,9 @@ class Executors:
             threads = len (self.executors [0]),
             processes = len (self.executors [1])
         )
+
+    def maintern (self, now):
+        return [e.scheduled_maintern (now) for e in self.executors]
 
     def cleanup (self):        
         return [e.shutdown () for e in self.executors]

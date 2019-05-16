@@ -11,7 +11,6 @@ import h2
 from rs4 import deco, importer
 from rs4.psutil import service
 from rs4.attrdict import AttrDict
-from aquests.protocols import dns
 from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from aquests.protocols.smtp import composer
 import tempfile
@@ -617,8 +616,7 @@ def run (**conf):
 				conf.get ("gw_secret_key", None)
 			)
 			
-			lifetime.init (logger = self.wasc.logger.get ("server"))
-			lifetime.maintern.sched (3.0, dns.pool.maintern)
+			lifetime.init (logger = self.wasc.logger.get ("server"))			
 			if os.name == "nt":
 				lifetime.maintern.sched (11.0, self.maintern_shutdown_request)								
 				self.flock = flock.Lock (os.path.join (self.varpath, ".%s" % self.NAME))

@@ -21,6 +21,7 @@ from aquests.dbapi import dbpool
 from aquests.protocols.http import request_handler
 from aquests.protocols import http2
 from aquests.client import adns
+from aquests.protocols import dns
 if os.name == "nt":	
 	from rs4.psutil import schedule # cron like scheduler			
 from .handlers import proxy_handler, ipbl_handler, vhost_handler, forward_handler
@@ -99,9 +100,11 @@ class Loader:
 	
 	def config_dns (self, prefer_protocol = "tcp"):
 		adns.init (self.wasc.logger.get ("server"), prefer_protocol = prefer_protocol)
+		lifetime.maintern.sched (4.1, dns.pool.maintern)
 
 	def config_executors (self, workers, zombie_timeout):
 		self.wasc.register ("executors", executors.Executors (workers, zombie_timeout, self.wasc.logger.get ("server")))
+		lifetime.maintern.sched (2.9, self.wasc.executors.maintern)
 
 	def config_cachefs (self, cache_dir = None, memmax = 0, diskmax = 0):
 		self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir, memmax, diskmax)
