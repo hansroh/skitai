@@ -1699,7 +1699,7 @@ Tasks is iterable and slicable and returened rs is response object (by dispatch 
 *Note:* If you want to use full asynchronous manner, you can consider Atila's Futures_, but it need to pay some costs.
 
 .. _Futures: https://pypi.org/project/atila/#futures-response
- 
+
 
 Calling RPC
 --------------------
@@ -2418,31 +2418,56 @@ Skitai creates thread/process pool as many as your cpu count, if need.
 
 These tasks are mainly worked with HTTP status '202 Accepted'. Below example show that how to start new thread and return 202 response.
 
-.. code:: python
-  
-  from skitai import was
-  from flask import Response
-  import math  
-  
-  @app.route ('...')
-  def foo ():    
-    return was.Thread (math.sqrt, 4.0).asac (
-      Response ('', 202, headers = {'Content-Location': "/api/sqrt/4.0"})
-    )
-    # asa mean 'as soon as created'
+
+Future / Futures
+------------------------
+
+Future object is for async corequests.
 
 .. code:: python
   
   @app.route ('...')
   def foo ():    
-    return was.Thread (generate_xls, was.request.ARGS).asac (
+    req = was.get ("@myupstream/something")
+    return was.Future (req).returning (
       Response ('', 202, headers = {'Content-Location': "..."})
     )
 
-Note that was.Process () is also available.
+Futures is also available,
+
+.. code:: python
+  
+  @app.route ('...')
+  def foo ():    
+    reqs = [
+      was.get ("@myupstream/something"),
+      was.post ("@myupstream/something", {})
+    ]
+    return was.Futures (reqs).returning (
+      Response ('', 202, headers = {'Content-Location': "..."})
+    )
+
+*Note*: With Atila_, you can add callback for late response.
+
+Process / Thread
+-------------------------------
+
+Process / Thread is for synchronous routine.
+
+.. code:: python
+  
+  @app.route ('...')
+  def foo ():    
+    return was.Process (generate_xls, was.request.ARGS).returning (
+      Response ('', 202, headers = {'Content-Location': "..."})
+    )
+
+was.Process () is also available.
 
 - was.Thread (target, \*args, \*\*kargs): return wrapper of concurrent.futures.Future
 - was.Process (target, \*args, \*\*kargs): return wrapper of concurrent.futures.Future
+
+*Note*: With Atila_, you can add callback for late response.
 
 
 Miscellaneous

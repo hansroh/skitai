@@ -15,11 +15,11 @@ def test_was_async_requests (async_wasc):
     was = async_wasc ()
     future = was.Thread (foo, 'hello')
     assert future.result () == "echo:hello"
-    data = was.Thread (foo, 'hello').asac ("then")
+    data = was.Thread (foo, 'hello').returning ("then")
     assert data == "then"
     future = was.Process (foo, 'hello')
     assert future.result () == "echo:hello"
-    data = was.Process (foo, 'hello').asac ("then")
+    data = was.Process (foo, 'hello').returning ("then")
     assert data == "then"
 
 def test_was_async_requests2 (async_wasc):    
@@ -35,7 +35,7 @@ def test_was_async_requests2 (async_wasc):
     future = was.Thread (foo2, 'hello')
     future = was.Process (foo2, 'hello')
 
-    time.sleep (3)
+    time.sleep (15)
     assert was.executors.cleanup () == [0, 0]
 
 

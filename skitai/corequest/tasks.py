@@ -21,7 +21,7 @@ class TaskBase (corequest):
 class Tasks (TaskBase):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **meta):
         TaskBase.__init__ (self, reqs, timeout, **meta)
-        self._results = []        
+        self._results = []
 
     def __iter__ (self):
         return iter (self._reqs)
@@ -40,7 +40,7 @@ class Tasks (TaskBase):
             self.add (req)        
 
     def then (self, func):
-        return was.Futures (self._reqs, self._timeout, **self.meta).then (func)
+        return Futures (self._reqs, self._timeout, **self.meta).then (func)
 
     #------------------------------------------------------
     def cache (self, cache = 60, cache_if = (200,)):
@@ -96,18 +96,23 @@ class CompletedTasks (response, Tasks):
 
 
 class Futures (TaskBase):
-    def __init__ (self, was, reqs, timeout = 10, **meta):
+    def __init__ (self, reqs, timeout = 10, **meta):
         TaskBase.__init__ (self, reqs, timeout, **meta)
-        self._was = was        
+        self._was = None       
         self._fulfilled = None
         self._responded = 0
             
     def then (self, func):        
         self._fulfilled = func
+        try: self._was = was._clone (True)
+        except TypeError: pass               
         for reqid, req in enumerate (self._reqs):
            req.set_callback (self._collect, reqid, self._timeout)
         return self
-                 
+
+    def returning (self, returning):
+        return returning
+
     def _collect (self, res):
         self._responded += 1        
         if self._responded == len (self._reqs):
@@ -145,4 +150,8 @@ class Futures (TaskBase):
                 response.update ("Content-Length", len (part))
             response.push (part)                
         response.done ()
-    
+
+
+class Future (Futures):
+    def __init__ (self, req, timeout, **meta):
+        Futures.__init__ (self, [req], timeout, **meta)

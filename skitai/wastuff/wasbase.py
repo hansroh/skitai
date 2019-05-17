@@ -120,13 +120,19 @@ class WASBase:
             nheader ["X-Requested-With"] = NAME
         return nheader
     
-    # system functions ----------------------------------------------    
+    # concurrencies ----------------------------------------------    
     def Tasks (self, reqs, timeout = 10, **args):
         self.response.set_timeout (timeout)
         return tasks.Tasks (reqs, timeout, **args)
 
-    def Mask (self, data):
-        return tasks.Mask (data)
+    def Future (self, req, timeout = 10, **args):
+        self.response.set_timeout (timeout)
+        return tasks.Future (req, timeout, **args)
+
+    def Futures (self, reqs, timeout = 10, **args):
+        self.response.set_timeout (timeout)
+        return tasks.Futures (reqs, timeout, **args)
+    futures = Futures
 
     def Thread (self, func, *args, **kargs):
         return self.executors.create_thread (func, *args, **kargs)
@@ -134,6 +140,10 @@ class WASBase:
     def Process (self, func, *args, **kargs):
         return self.executors.create_process (func, *args, **kargs)
 
+    def Mask (self, data):
+        return tasks.Mask (data)
+
+    # system functions ----------------------------------------------
     def log (self, msg, category = "info", at = "app"):
         self.logger (at, msg, "%s:%s" % (category, self.txnid ()))
         

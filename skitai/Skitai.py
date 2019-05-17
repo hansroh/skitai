@@ -103,8 +103,7 @@ class Loader:
 		lifetime.maintern.sched (4.1, dns.pool.maintern)
 
 	def config_executors (self, workers, zombie_timeout):
-		self.wasc.register ("executors", executors.Executors (workers, zombie_timeout, self.wasc.logger.get ("server")))
-		lifetime.maintern.sched (2.9, self.wasc.executors.maintern)
+		self.wasc.register ("executors", executors.Executors (workers, zombie_timeout, self.wasc.logger.get ("server")))		
 
 	def config_cachefs (self, cache_dir = None, memmax = 0, diskmax = 0):
 		self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir, memmax, diskmax)
