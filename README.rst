@@ -59,7 +59,7 @@ Skitai has purpose for providing online runtime environment for Python.
   - GRPC (Experimental)
   - RDBMS
 
-    - PostGreSQL
+    - PostgreSQL
     - SQLite3 (Not async)
     
   - NoSQL
@@ -70,8 +70,8 @@ Skitai has purpose for providing online runtime environment for Python.
   - Websocket Messaging
   - Reverse Proxy (Upstream Server Routing)  
 
-- Support Callbacked Response With Corequests
-- Easy To Executing Long-Run Task As Thread/Process With Executor Pool
+- Corequest based Future Task
+- Thread/Process With Executor Pool based Task
 
 .. _Django: https://www.djangoproject.com/
 .. _Atila: https://pypi.python.org/pypi/atila
@@ -2452,7 +2452,9 @@ Futures is also available,
 Process / Thread
 -------------------------------
 
-Process / Thread is for synchronous routine.
+Process / Thread is for synchronous routine. 
+
+Skitai will create thread/process pool as you use it at once. If you do't use this, pool will not be created for resource saving. Pool size is your number of CPUs.
 
 .. code:: python
   
@@ -2462,7 +2464,7 @@ Process / Thread is for synchronous routine.
       Response ('', 202, headers = {'Content-Location': "..."})
     )
 
-was.Process () is also available.
+was.Thread () is also available.
 
 - was.Thread (target, \*args, \*\*kargs): return wrapper of concurrent.futures.Future
 - was.Process (target, \*args, \*\*kargs): return wrapper of concurrent.futures.Future
