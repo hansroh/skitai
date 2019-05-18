@@ -64,10 +64,12 @@ package_data = {}
 install_requires = [	
 	"aquests",	
 	"jsonrpclib-pelix",
-	"sqlphile"
+	"sqlphile"	
 ]
 if os.name == "nt":
 	install_requires.append ("pywin32")
+else:
+	install_requires.append ("ujson")
 
 with codecs.open ('README.rst', 'r', encoding='utf-8') as f:
 	long_description = f.read()

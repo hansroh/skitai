@@ -5,12 +5,12 @@ __version__ = "0.28.15.11"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
-import threading
-import sys, os
-import h2
 from rs4 import deco, importer
 from rs4.psutil import service
 from rs4.attrdict import AttrDict
+import threading
+import sys, os
+import h2
 from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from aquests.protocols.smtp import composer
 import tempfile
@@ -26,7 +26,7 @@ if "---production" in sys.argv:
 def test_client (*args, **kargs):
 	from .testutil.launcher import Launcher
 	return Launcher (*args, **kargs)
-    	
+
 HAS_ATILA = None
 
 PROTO_HTTP = "http"
