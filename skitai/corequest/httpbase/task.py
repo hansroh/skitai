@@ -338,29 +338,26 @@ class Task (corequest):
                 filterfunc = self._filter, cachefs = self._cachefs, 
                 callback = self._collect
             )
-            self._requests [rs] = asyncon    
-            
+            self._requests [rs] = asyncon
+            args = (params, self._headers, self._auth, self._logger, self._meta)
             try:
                 if _reqtype in ("ws", "wss"):
-                    handler = ws_request_handler.RequestHandler                    
-                    request = ws_request.Request (self._uri, params, self._headers, self._auth, self._logger, self._meta)
-                                                
+                    handler = ws_request_handler.RequestHandler
+                    request = ws_request.Request (self._uri, *args)                                                
                 else:                
                     if not self._use_cache:
                         self._add_header ("Cache-Control", "no-cache")
-                    
                     handler = http_request_handler.RequestHandler                    
                     if _reqtype in ("rpc", "xmlrpc"):
-                        request = http_request.XMLRPCRequest (self._uri, method, params, self._headers, self._auth, self._logger, self._meta)
+                        request = http_request.XMLRPCRequest (self._uri, method, *args)
                     elif _reqtype == "jsonrpc":
-                        request = http_request.JSONRPCRequest (self._uri, method, params, self._headers, self._auth, self._logger, self._meta)                    
+                        request = http_request.JSONRPCRequest (self._uri, method, *args)
                     elif _reqtype == "grpc":
-                        request = GRPCRequest (self._uri, method, params, self._headers, self._auth, self._logger, self._meta)                        
+                        request = GRPCRequest (self._uri, method, *args)
                     elif _reqtype == "upload":
-                        request = http_request.HTTPMultipartRequest (self._uri, _reqtype, params, self._headers, self._auth, self._logger, self._meta)
+                        request = http_request.HTTPMultipartRequest (self._uri, _reqtype, *args)
                     else:
-                        request = http_request.HTTPRequest (self._uri, _reqtype, params, self._headers, self._auth, self._logger, self._meta)                
-                
+                        request = http_request.HTTPRequest (self._uri, _reqtype, *args)                
                 requests += self._handle_request (request, rs, asyncon, handler)
                     
             except:

@@ -8,18 +8,27 @@ from sqlphile import db3
 class ClusterManager (cluster_manager.ClusterManager):
     backend_keep_alive = 1200
     backend = True
-    
+    class_map = dict (
+        DB_SQLITE3 = synsqlite3.SynConnect,
+        DB_PGSQL = asynpsycopg2.AsynConnect,
+        DB_REDIS = asynredis.AsynConnect,
+        DB_MONGODB = asynmongo.AsynConnect
+    )
     def __init__ (self, name, cluster, dbtype = DB_PGSQL, access = [], max_conns = 200, logger = None):
         self.dbtype = dbtype
         self._cache = []
         cluster_manager.ClusterManager.__init__ (self, name, cluster, 0, access, max_conns, logger)
-            
+
+    @classmethod
+    def add_class (cls, name, class_):
+        cls.class_map [name] = class_
+
     def match (self, request):
         return False # not serverd by url
     
-    def create_asyncon (self, member):        
+    def create_asyncon (self, member):
         if self.dbtype == DB_SQLITE3:
-            asyncon = synsqlite3.SynConnect (member, None, self.lock, self.logger)
+            asyncon = self.class_map [DB_SQLITE3] (member, None, self.lock, self.logger)
             nodeid = member
             self._cache.append (((member, 0), "", ("", "")))
         
@@ -46,13 +55,9 @@ class ClusterManager (cluster_manager.ClusterManager):
             except ValueError: 
                 server = (server, 5432)
             
-            if self.dbtype == DB_PGSQL:
-                conn_class = asynpsycopg2.AsynConnect
-            elif self.dbtype == DB_REDIS:
-                conn_class = asynredis.AsynConnect
-            elif self.dbtype == DB_MONGODB:
-                conn_class = asynmongo.AsynConnect    
-            else:
+            try:
+                conn_class = self.class_map [self.dbtype]
+            except KeyError:
                 raise TypeError ("Unknown DB type: %s" % self.dbtype)
             
             asyncon = conn_class (server, (db, auth), self.lock, self.logger)    
@@ -73,4 +78,3 @@ class ClusterManager (cluster_manager.ClusterManager):
             conn = endpoints.make_endpoints (self.dbtype, [self._cache [0]]) [0]
             return db3.open2 (conn)
         raise TypeError ("Only DB_PGSQL or DB_SQLITE3")
-
