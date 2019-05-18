@@ -1,7 +1,10 @@
 from . import http_response, counter
 import time
 import re
-import json
+try:
+    import ujson as json
+except ImportError:
+    import json
 from rs4.attrdict import CaseInsensitiveDict
 from aquests.protocols.http import http_util
 from rs4 import jwt

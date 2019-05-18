@@ -5,12 +5,11 @@ from xmlrpc import client
 from ..utility import catch
 	
 class DateEncoder(json.JSONEncoder):
-	def default(self, obj):
-		if isinstance(obj, date):
-			return str(obj)			
-		return json.JSONEncoder.default(self, obj)
-		
-			
+	def default (self, obj):
+		if isinstance (obj, date):
+			return str (obj)			
+		return json.JSONEncoder.default (self, obj)
+
 class API:
 	def __init__ (self, request, data = None):
 		self.request = request # for response typing 
@@ -34,7 +33,7 @@ class API:
 		
 	def set_content_type (self):
 		content_type = self.request.get_header ("accept", 'application/json')
-		if not content_type.startswith ("text/xml"):			
+		if not content_type.startswith ("text/xml"):
 			content_type = 'application/json'
 		return content_type	
 		
