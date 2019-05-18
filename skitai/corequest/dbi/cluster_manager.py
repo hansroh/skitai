@@ -8,12 +8,12 @@ from sqlphile import db3
 class ClusterManager (cluster_manager.ClusterManager):
     backend_keep_alive = 1200
     backend = True
-    class_map = dict (
-        DB_SQLITE3 = synsqlite3.SynConnect,
-        DB_PGSQL = asynpsycopg2.AsynConnect,
-        DB_REDIS = asynredis.AsynConnect,
-        DB_MONGODB = asynmongo.AsynConnect
-    )
+    class_map = {
+        DB_SQLITE3: synsqlite3.SynConnect,
+        DB_PGSQL: asynpsycopg2.AsynConnect,
+        DB_REDIS: asynredis.AsynConnect,
+        DB_MONGODB: asynmongo.AsynConnect
+    }
     def __init__ (self, name, cluster, dbtype = DB_PGSQL, access = [], max_conns = 200, logger = None):
         self.dbtype = dbtype
         self._cache = []
@@ -27,6 +27,7 @@ class ClusterManager (cluster_manager.ClusterManager):
         return False # not serverd by url
     
     def create_asyncon (self, member):
+        print (self.class_map)
         if self.dbtype == DB_SQLITE3:
             asyncon = self.class_map [DB_SQLITE3] (member, None, self.lock, self.logger)
             nodeid = member

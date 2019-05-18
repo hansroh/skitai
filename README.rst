@@ -52,7 +52,7 @@ Skitai has purpose for providing online runtime environment for Python.
 - Mountable All WSGI Middlewares like Flask_, Django_, Atila_
 - Multi Threads and Multi Workers(posix only) Request Processing Model
 - HTTP2 (with hyper-h2_), Websocket Implemented
-- Asynchronous Corequest For:
+- Asynchronous Corequest (including laod-balancing and map-reducing) For:
 
   - HTTP Methods (GET, POST, PUT, ...)
   - XMLRPC / JSONRPC
