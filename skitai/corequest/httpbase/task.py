@@ -198,6 +198,12 @@ class Dispatcher:
 
 class Task (corequest):
     DEFAULT_CACHE_TIMEOUT = 42    
+    proto_map = dict (
+       rpc = http_request.XMLRPCRequest,
+       xmlrpc = http_request.XMLRPCRequest,
+       jsonrpc = http_request.JSONRPCRequest,
+       grpc = GRPCRequest
+    )   
     def __init__ (self,
         cluster, 
         uri,
@@ -226,6 +232,10 @@ class Task (corequest):
         if not self._reqtype.lower ().endswith ("rpc"):
             self._build_request ("", self._params)
     
+    @classmethod
+    def add_proto (cls, name, proto):
+        cls.proto_map [name] = proto
+
     def set_defaults (self, cluster, meta, use_cache, mapreduce, filter, callback, timeout, origin, logger, cachefs = None):
         self._cluster = cluster
         self._meta = meta or {}
@@ -347,17 +357,17 @@ class Task (corequest):
                 else:                
                     if not self._use_cache:
                         self._add_header ("Cache-Control", "no-cache")
-                    handler = http_request_handler.RequestHandler                    
-                    if _reqtype in ("rpc", "xmlrpc"):
-                        request = http_request.XMLRPCRequest (self._uri, method, *args)
-                    elif _reqtype == "jsonrpc":
-                        request = http_request.JSONRPCRequest (self._uri, method, *args)
-                    elif _reqtype == "grpc":
-                        request = GRPCRequest (self._uri, method, *args)
-                    elif _reqtype == "upload":
-                        request = http_request.HTTPMultipartRequest (self._uri, _reqtype, *args)
+                    handler = http_request_handler.RequestHandler
+                    
+                    try:
+                        class_ = self.proto_map [_reqtype]
+                    except KeyError:
+                        if _reqtype == "upload":
+                            request = http_request.HTTPMultipartRequest (self._uri, _reqtype, *args)
+                        else:
+                            request = http_request.HTTPRequest (self._uri, _reqtype, *args)
                     else:
-                        request = http_request.HTTPRequest (self._uri, _reqtype, *args)                
+                        request = class_ (self._uri, method, *args)
                 requests += self._handle_request (request, rs, asyncon, handler)
                     
             except:
