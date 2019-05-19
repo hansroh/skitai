@@ -358,7 +358,6 @@ class Task (corequest):
                     if not self._use_cache:
                         self._add_header ("Cache-Control", "no-cache")
                     handler = http_request_handler.RequestHandler
-                    
                     try:
                         class_ = self.proto_map [_reqtype]
                     except KeyError:
