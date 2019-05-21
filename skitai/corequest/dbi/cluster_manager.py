@@ -26,8 +26,7 @@ class ClusterManager (cluster_manager.ClusterManager):
     def match (self, request):
         return False # not serverd by url
     
-    def create_asyncon (self, member):
-        print (self.class_map)
+    def create_asyncon (self, member):        
         if self.dbtype == DB_SQLITE3:
             asyncon = self.class_map [DB_SQLITE3] (member, None, self.lock, self.logger)
             nodeid = member
