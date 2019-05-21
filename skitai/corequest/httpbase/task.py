@@ -233,8 +233,8 @@ class Task (corequest):
             self._build_request ("", self._params)
     
     @classmethod
-    def add_proto (cls, name, proto):
-        cls.proto_map [name] = proto
+    def add_proto (cls, name, class_):
+        cls.proto_map [name] = class_
 
     def set_defaults (self, cluster, meta, use_cache, mapreduce, filter, callback, timeout, origin, logger, cachefs = None):
         self._cluster = cluster

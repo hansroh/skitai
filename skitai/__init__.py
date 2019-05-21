@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.15.11"
+__version__ = "0.28.15.13"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -228,6 +228,16 @@ def log_off (*path):
 	for each in path:
 		dconf ['log_off'].append (each)	
 
+def add_http_rpc_proto (name, class_):
+	assert name.endswith ("rpc"), "protocol name must be end with 'rpc'"
+	from corequest.httpbase import task
+	task.Task.add_proto (name, class_)
+
+def add_database_interface (name, class_):
+	assert name.startswith ("*"), "database interface name must be start with '*'"
+	from corequest.dbi import cluster_manager
+	cluster_manager.ClusterManager.add_class (name, class_)
+	
 def set_dns_protocol (protocol = 'tcp'):		
 	global dconf
 	dconf ['dns_protocol'] = protocol
