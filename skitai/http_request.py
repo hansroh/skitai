@@ -136,12 +136,13 @@ class http_request:
         return claims
 
     def json (self, ct = None):
+        if not ct:
+            ct = self.get_header ('content-type', '')   
+        if not ct.startswith ("application/json"):
+            return
         if self.JSON is not None:
             return self.JSON
-        if not ct:
-            ct = self.get_header ('content-type', '')
-        if ct.startswith ("application/json"):
-            self.JSON = json.loads (self.body.decode ('utf8'))
+        self.JSON = json.loads (self.body.decode ('utf8'))
         return self.JSON
     
     def form (self, ct = None):
@@ -159,9 +160,10 @@ class http_request:
         if not self.body:
             return {}
         ct = self.get_header ('content-type', '')
-        if ct.startswith ("application/json"):
-            return self.json ()
-        return self.form (ct)
+        maybe = self.json (ct)
+        if maybe is None:
+            maybe = self.form (ct)
+        return maybe or {}    
     
     @property
     def DATA (self):
