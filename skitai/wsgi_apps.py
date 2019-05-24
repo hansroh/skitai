@@ -62,7 +62,14 @@ class Module:
 		
 	def start_app (self, reloded = False):
 		func = None
-		app = self.app or getattr (self.module, self.appname)
+		app = self.app or getattr (self.module, self.appname)		
+		
+		if hasattr (app, "service_ns"):
+			for d in app.PACKAGE_DIRS:
+				if d in sys.modules:
+					app.service_ns = sys.modules [d]
+					del sys.modules [d]
+
 		if hasattr (app, "set_logger"):
 			app.set_logger (self.wasc.logger.get ("app"))		
 		self.django = str (app.__class__).find ("django.") != -1
@@ -199,13 +206,14 @@ class Module:
 				if hasattr (oldapp, "remove_events"):
 					oldapp.remove_events (self.bus)
 				PRESERVED = []
-				if hasattr (oldapp, "PRESERVE_ON_RELOAD"):
+				if hasattr (oldapp, "PRESERVES_ON_RELOAD"):
 					PRESERVED = [(attr, getattr (oldapp, attr)) for attr in oldapp.PRESERVES_ON_RELOAD]
 				
 				self.start_app (reloded = True)
 				newapp = getattr (self.module, self.appname)
 				for attr, value in PRESERVED:
-					setattr (newapp, attr, value)
+					setattr (newapp, attr, value)				
+
 				# reloaded
 				self.has_life_cycle and newapp.life_cycle ("reloaded", self.wasc ())
 				self.has_life_cycle and newapp.life_cycle ("mounted_or_reloaded", self.wasc ())
