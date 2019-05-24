@@ -159,10 +159,10 @@ class http_request:
     def dict (self):
         if not self.body:
             return {}
-        ct = self.get_header ('content-type', '')
+        ct = self.get_header ('content-type', '')        
         maybe = self.json (ct)
         if maybe is None:
-            maybe = self.form (ct)
+            maybe = self.form (ct)        
         return maybe or {}    
     
     @property

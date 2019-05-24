@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.15.13"
+__version__ = "0.28.15.15"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -631,7 +631,8 @@ def run (**conf):
 				lifetime.maintern.sched (11.0, self.maintern_shutdown_request)								
 				self.flock = flock.Lock (os.path.join (self.varpath, ".%s" % self.NAME))
 			
-	#----------------------------------------------------------------------------
+	#----------------------------------------------------------------------
+	
 	global dconf, PROCESS_NAME, Win32Service
 	
 	for k, v in dconf.items ():
