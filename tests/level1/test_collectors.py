@@ -1,7 +1,7 @@
 import confutil
 from skitai.handlers import collectors
 from atila import grpc_collector
-from examples.package import route_guide_pb2
+from examples.services import route_guide_pb2
 from atila import multipart_collector
 import pytest
 from skitai import testutil

@@ -2,7 +2,7 @@ from aquests.protocols.http import request
 from aquests.protocols.grpc import request as grpc_request
 from aquests.protocols.ws import request as ws_request
 from aquests.dbapi import request as dbo_request
-from examples.package import route_guide_pb2
+from examples.services import route_guide_pb2
 
 def test_request_attrs ():
 	point = route_guide_pb2.Point (latitude=409146138, longitude=-746188906)

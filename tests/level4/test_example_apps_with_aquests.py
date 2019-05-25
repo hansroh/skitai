@@ -4,7 +4,7 @@ import pytest
 import sys, os
 import threading
 import time
-from examples.package import route_guide_pb2
+from examples.services import route_guide_pb2
 import aquests
 
 GRPC = 1

@@ -7,7 +7,7 @@ import threading
 import time
 from requests.auth import HTTPDigestAuth
 import xmlrpc.client
-from examples.package import route_guide_pb2
+from examples.services import route_guide_pb2
 	
 def assert_request (expect, url, *args, **karg):
 	resp = requests.get ("http://127.0.0.1:30371" + url, *args, **karg)	

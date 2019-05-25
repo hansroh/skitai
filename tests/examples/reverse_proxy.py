@@ -1,7 +1,7 @@
 from atila import Atila
 import time, math
 import json
-from package import route_guide_pb2
+from services import route_guide_pb2
 
 app = Atila (__name__)
 app.debug = True

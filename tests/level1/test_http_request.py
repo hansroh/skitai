@@ -1,6 +1,6 @@
 from aquests.protocols.http import http_util
 from confutil import rprint
-from examples.package import route_guide_pb2
+from examples.services import route_guide_pb2
 
 def test_request_generation (client):	
 	url = "http://www.skitai.com/index"
