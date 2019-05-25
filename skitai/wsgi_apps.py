@@ -64,10 +64,10 @@ class Module:
 		func = None
 		app = self.app or getattr (self.module, self.appname)		
 		
-		if hasattr (app, "service_ns"):
+		if hasattr (app, "service_root"):
 			for d in app.PACKAGE_DIRS:
 				if d in sys.modules:
-					app.service_ns = sys.modules [d]
+					app.service_root = sys.modules [d]
 					del sys.modules [d]
 
 		if hasattr (app, "set_logger"):
