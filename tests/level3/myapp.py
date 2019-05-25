@@ -15,4 +15,3 @@ def mount (app):
     def owners (was, id):
         return was.response.API ({"id": id, "name": "Monk"})
     
-    
