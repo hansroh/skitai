@@ -1,6 +1,7 @@
 import os
 from atila import Atila
 import skitai
+from services import sub
 
 if os.name == "nt":
     from rs4.psutil.win32service import ServiceFramework
@@ -18,6 +19,8 @@ app.jinja_overlay ()
 app.realm = "Secured Area"
 app.users = {"admin": ("1111", 0, {'role': 'root'})}
 app.authenticate = None
+
+app.mount ("/sub", sub)
 
 @app.route ("/")
 def index (was):    
