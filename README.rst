@@ -2559,6 +2559,7 @@ Change Log
 
 - 0.28 (Feb 2019)
   
+  - fix auto reloading bug in case multiple apps are mounted
   - add was.Thread () and was.Process ()
   - add @skitai.states () decorator
   - rename skitai.deflu () => skitai.register_states ()
