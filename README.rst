@@ -1257,7 +1257,38 @@ If your app need bootstraping or capsulizing complicated initialize process from
     ...
     zip_safe = False
   )  
- 
+
+Extending/Customizing Services
+-----------------------------------------------
+
+If you want to customize/extend services, create 'extends' directory and mount it to pref.
+
+.. code:: python
+
+  # extends/apis.py
+  def __mount__ (app):
+    @app.permission_check_handler
+    def permission_check_handler (was, perms):
+      ...
+
+    @app.route ("")
+    def apis_index (was):
+      return 'APIS'
+
+.. code:: python
+  
+  # serve.py  
+  import unsub
+  from extends import apis
+
+  pref = skitai.pref ()  
+  pref.mount ('/apis', apis)
+  pref.config.urlfile = skitai.abspath ('resources', 'urllist.txt')  
+  
+  skitai.mount ("/v1", unsub, "app", pref)
+  skitai.run () 
+
+You can access it by /v1/apis
  
 Examples
 ----------
