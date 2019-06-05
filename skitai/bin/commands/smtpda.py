@@ -38,7 +38,9 @@ class	SMTPDeliverAgent (daemon_class.DaemonClass):
 		self.config = config
 		daemon_class.DaemonClass.__init__ (self, logpath, varpath, consol)
 		self.que = {}
-		self.actives = {}
+		self.actives = {}		
+		self.last_maintern = time.time ()
+		self.shutdown_in_progress = False
 		
 	def clean_shutdown_control (self, phase, time_in_this_phase):
 		if phase == 1:
@@ -238,9 +240,8 @@ def main ():
 	if not cmd and servicer.status (False):
 		raise SystemError ("daemon is running")
 	
-	s = daemon_class.make_service (SMTPDeliverAgent, _logpath, _varpath, _consol, _cf)
+	s = SMTPDeliverAgent (_logpath, _varpath, _consol, _cf)
 	s.start ()
-	s.close ()
 	sys.exit (lifetime._exit_code)
 
 
