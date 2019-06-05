@@ -194,12 +194,16 @@ class WASBase:
         assert isinstance (val, int), "global state must be integer"
         self._luwatcher.set (name, val)
         self.broadcast (name, val)
-        
+    
     def getgs (self, name, default = 0):
         assert isinstance (default, int), "global state must be integer"
         val = self._luwatcher.get (name, default)
         return int (val)
 
+    def incgs (self, name, delta = 1):
+        val = self.getgs (name) + delta
+        self.setgs (name, val)
+    
     # websokcet / http2 ------------------------------------------    
     def push (self, uri):
         self.request.response.hint_promise (uri)
