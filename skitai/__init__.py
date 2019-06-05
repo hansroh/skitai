@@ -452,7 +452,7 @@ def get_logpath (name):
 OPTLIST = None
 SKITAI_LONGOPTS = ["skitai-profile", "skitai-memtrack"]
 
-def argopt (sopt = "", lopt = []):		
+def getopt (sopt = "", lopt = []):		
 	global OPTLIST
 	
 	if "d" in sopt:
@@ -476,8 +476,9 @@ def argopt (sopt = "", lopt = []):
 			continue
 		aopt_.append (arg)
 	return opts_, aopt_	
+argopt = getopt
 
-def getsysopt (name, default):
+def getsysopt (name, default = None):
 	try: 
 		return sys.argv [sys.argv.index ("---{}".format (name)) + 1]
 	except ValueError:

@@ -305,7 +305,7 @@ Also Skitai use satrt, restart, status, stop in args.  then these arguments are 
 
 .. code:: python
 
-  opts, args = skitai.argopt ("hf:", ["ssl", "debug", "origin="])
+  opts, args = skitai.getopt ("hf:", ["ssl", "debug", "origin="])
   for k, v in opts:
     if k == "-h":
       ...
@@ -765,11 +765,9 @@ Above /hello can called, http://127.0.0.1:5000/flaskapp/hello
 Also app should can handle mount point. 
 In case Flask, it seems 'url_for' generate url by joining with env["SCRIPT_NAME"] and route point, so it's not problem. Atila can handle obiously. But I don't know other WSGI containers will work properly.
 
-Run Server Helpers
---------------------
 
 SMTP Delivery Agent
-````````````````````````
+---------------------------------
 
 *New in version 0.26*
 
@@ -779,6 +777,8 @@ You can send e-Mail in your app like this:
 
 .. code:: python
 
+    from skitai import was
+
     # email delivery service
     e = was.email (subject, snd, rcpt)
     e.set_smtp ("127.0.0.1:465", "username", "password", ssl = True)
@@ -786,67 +786,28 @@ You can send e-Mail in your app like this:
     e.add_attachment (r"001.png", cid="ID_A")
     e.send ()
 
-With asynchronous email delivery service, can add default SMTP Server. If it is configured, you can skip e.set_smtp(). But be careful for keeping your smtp password.
+For enabling this features,
 
 .. code:: bash
   
+  skitai smtpda start  
+  # or
   skitai smtpda -d
 
-All e-mails are saved into *varpath* and varpath is not specified default is /var/temp/skitai
-
-
-Run With Config File
-````````````````````````
-
-*New in version 0.26.17*
-
-Both of SMTP and Taks Scheduler can be run with config file, it may be particulary useful in case you run multiple skitai instances. 
+Or you just give command line option to skitai startup script.
 
 .. code:: bash
   
-  # ~/.skitai.conf
-  
-  [smtpda]
-  verbose = false
-  max-retry = 10
-  keep-days = 1
-  smtp-server = [your SMTP server]
-  user = [your SMTP user name if you need]
-  password = [your SMTP user password if you need]
-  ssl = true
-  
-  
-And run scripts mannually,
-  
-.. code:: bash
+  serve.py ---smtpda
 
-  skitai smtpda
-    
-.. code:: bash
+All e-mails are saved into *varpath* and varpath is not specified default is /var/temp/skitai.
 
-  Options:
-  
-    start: start as daemon
-    restart
-    stop
-    status
-  
-  Example:
-  
-    skitai smtpda status
-    skitai smtpda restart  
-  
-I you give cammnad line options, theses have more priority than config file.
-
-And for running automatically on system boot, you can add this line to /etc/rc.local like this,
+This service will run as system-wide daemon service, and will be not stopped even if app engine is stopped. For stopping it,
 
 .. code:: bash
-
-  # /etc/rc.local
   
-  su - ubuntu -c "/usr/local/bin/skitai smtpda start"
-
-In this case, smtpda will use spool directory at */tmp/skitai/smtpda*, so your each apps SHOULD NOT call *skitai.smtpda ()* if you want to share spool directory.
+  skitai smtpda status
+  skitai smtpda stop 
 
 
 Asccessing File Resources On Startup
