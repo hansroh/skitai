@@ -38,7 +38,9 @@ class	SMTPDeliverAgent (daemon_class.DaemonClass):
 		self.config = config
 		daemon_class.DaemonClass.__init__ (self, logpath, varpath, consol)
 		self.que = {}
-		self.actives = {}
+		self.actives = {}		
+		self.last_maintern = time.time ()
+		self.shutdown_in_progress = False
 		
 	def clean_shutdown_control (self, phase, time_in_this_phase):
 		if phase == 1:
