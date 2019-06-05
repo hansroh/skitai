@@ -238,7 +238,7 @@ def main ():
 	if not cmd and servicer.status (False):
 		raise SystemError ("daemon is running")
 	
-	s = daemon_class.make_service (SMTPDeliverAgent, _logpath, _varpath, _consol, _cf)
+	s = SMTPDeliverAgent (_logpath, _varpath, _consol, _cf)
 	s.start ()
 	sys.exit (lifetime._exit_code)
 
