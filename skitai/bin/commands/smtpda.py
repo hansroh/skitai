@@ -240,7 +240,6 @@ def main ():
 	
 	s = daemon_class.make_service (SMTPDeliverAgent, _logpath, _varpath, _consol, _cf)
 	s.start ()
-	s.close ()
 	sys.exit (lifetime._exit_code)
 
 
