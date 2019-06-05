@@ -64,12 +64,6 @@ class Module:
 		func = None
 		app = self.app or getattr (self.module, self.appname)		
 		
-		if hasattr (app, "service_root"):
-			for d in app.PACKAGE_DIRS:
-				if d in sys.modules:
-					app.service_root = sys.modules [d]
-					break
-
 		if hasattr (app, "set_logger"):
 			app.set_logger (self.wasc.logger.get ("app"))		
 		self.django = str (app.__class__).find ("django.") != -1
