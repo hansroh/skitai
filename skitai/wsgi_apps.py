@@ -67,8 +67,7 @@ class Module:
 		if hasattr (app, "service_root"):
 			for d in app.PACKAGE_DIRS:
 				if d in sys.modules:
-					app.service_root = sys.modules [d]
-					del sys.modules [d]
+					app.service_root = sys.modules [d]					
 
 		if hasattr (app, "set_logger"):
 			app.set_logger (self.wasc.logger.get ("app"))		
