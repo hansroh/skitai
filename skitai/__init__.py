@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.15.19"
+__version__ = "0.28.15.20"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -22,6 +22,9 @@ from functools import wraps
 
 if "---production" in sys.argv:
 	os.environ ["SKITAI_ENV"] = "PRODUCTION"
+
+if "---smtpda" in sys.argv:
+    os.system ("{} -m skitai.bin.skitai smtpda -d".format (sys.executable))
 
 def test_client (*args, **kargs):
 	from .testutil.launcher import Launcher
