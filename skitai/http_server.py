@@ -338,11 +338,11 @@ class http_server (asyncore.dispatcher):
 		self.start_time = time.ctime(time.time())
 		self.start_time_int = time.time()
 		
-		self.total_clients = counter.mpcounter()
-		self.total_requests = counter.mpcounter()
-		self.exceptions = counter.mpcounter()
-		self.bytes_out = counter.mpcounter()
-		self.bytes_in  = counter.mpcounter()
+		self.total_clients = counter.counter()
+		self.total_requests = counter.counter()
+		self.exceptions = counter.counter()
+		self.bytes_out = counter.counter()
+		self.bytes_in  = counter.counter()
 		self.shutdown_phase = 2		
 		
 		self.__last_maintern = time.time ()

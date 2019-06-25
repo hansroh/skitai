@@ -1261,6 +1261,8 @@ If your app need bootstraping or capsulizing complicated initialize process from
 Extending/Customizing Services
 -----------------------------------------------
 
+*New in version 0.28.15*
+
 If you want to customize/extend services, create 'extends' directory and mount it to pref.
 
 .. code:: python
