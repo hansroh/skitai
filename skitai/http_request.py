@@ -157,7 +157,7 @@ class http_request:
         return self.FORM
     
     def dict (self):
-        if not self.body:
+        if not self.multipart and not self.body:
             return {}
         ct = self.get_header ('content-type', '')        
         maybe = self.json (ct)
