@@ -9,6 +9,8 @@ from ..handlers import vhost_handler
 import skitai
 from skitai import lifetime
 import asyncore
+from atila.multipart_collector import MultipartCollector
+from unittest.mock import MagicMock
 
 def find_handler (request):
     for h in skitai.was.httpserver.handlers:
@@ -18,7 +20,9 @@ def find_handler (request):
 def process_request (request, handler = None):
     handler = handler or find_handler (request)                
     handler.handle_request (request)
-    if request.collector and request.command in ('post', 'put', 'patch'):
+    if request.collector and request.command in ('post', 'put', 'patch'):        
+        if isinstance (request.collector, MultipartCollector):            
+            raise TypeError ("Cannot process upload reuqest")
         request.collector.collect_incoming_data (request.payload)
         request.collector.found_terminator ()        
     return request    
@@ -33,7 +37,7 @@ def get_client_response (request, handler = None):
     # this will be used by client.Client    
     request = process_request (request, handler)
     while 1:
-        result = request.channel.socket.getvalue ()
+        result = request.channel.socket.getvalue ()        
         if result:
             break
         

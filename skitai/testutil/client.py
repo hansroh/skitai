@@ -64,16 +64,15 @@ class Client:
             headers = [(k, v) for k, v in headers.items ()]
         headers = self.override (headers)
         if method == "UPLOAD":
-            r = request.HTTPMultipartRequest (uri, "POST", data, headers, auth, None, meta, version)        
+            r = request.HTTPMultipartRequest (uri, "POST", data, headers, auth, None, meta, version)            
         else:    
-            r = request.HTTPRequest (uri, method, data, headers, auth, None, meta, version)
-        
-        hr = self.__generate (r)    
+            r = request.HTTPRequest (uri, method, data, headers, auth, None, meta, version)        
+        hr = self.__generate (r)
         if data:
             payload = r.get_payload ()
             if method == "UPLOAD":
                 payload = self.__serialize (payload)
-            hr.set_body (payload)        
+            hr.set_body (payload)                
         return hr
          
     def get (self, uri, headers = [], auth = None, meta = {}, version = "1.1"):

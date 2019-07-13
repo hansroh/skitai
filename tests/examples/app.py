@@ -124,6 +124,10 @@ def redirect2 (was):
 def upload (was, **karg):
     return was.response ("200 OK", str (karg), headers = [("Content-Type", "text/plain")])
 
+@app.route ("/upload2")
+def upload2 (was, **form):
+    return str (list (form.keys ()))
+
 @app.route ("/post")
 def post (was, username):    
     return 'USER: %s' % username
