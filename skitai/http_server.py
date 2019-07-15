@@ -435,6 +435,10 @@ class http_server (asyncore.dispatcher):
 				usage = 0.0
 			usages.append ((ps, usage))
 		
+		if not usages:
+			# restarting?
+			return
+
 		self.usages.append (sum ([x [1] for x in usages]) / len (usages))
 		self.usages = self.usages [-45:]
 		
