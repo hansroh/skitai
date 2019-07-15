@@ -8,7 +8,7 @@ def test_futures (app, dbpath):
     def index (was):
         with was.xmlrpc ("@pypi/pypi") as stub:
             req = stub.package_releases ('roundup')        
-            assert req.fetch () == ['1.6.0']            
+            assert req.fetch () == ['1.6.1']            
     
         with was.asyncon ("@sqlite") as db:
             req = db.execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))

@@ -100,7 +100,7 @@ def dbmap (was):
 def xmlrpc (was):
     with was.xmlrpc ("@pypi/pypi") as stub:
         req = stub.package_releases ('roundup')        
-        assert req.fetch () == ['1.6.0']
+        assert req.fetch () == ['1.6.1']
         return was.API (result = "ok")
              
 @app.route ("/hello")
