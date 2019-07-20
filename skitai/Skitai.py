@@ -168,7 +168,7 @@ class Loader:
 			thunk ()
 		
 		self.wasc.httpserver.serve (hasattr (self.wasc, "forwardserver") and self.wasc.forwardserver or None)
-		self.fork ()
+		self.fork ()		
 			
 	def fork (self):		
 		#fork here 

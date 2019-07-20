@@ -251,30 +251,34 @@ class ModuleManager:
 		a, b = thing.split (":", 1)
 		return self.modnames [a].get_callable ().build_url (b, *args, **kargs)
 		
-	def add_module (self, route, directory, modname, pref):
-		if modname in self.modnames:
-			self.wasc.logger ("app", "app file name collision detected '%s'" % modname, "error")			
+	def add_module (self, route, directory, modname, pref):		
+		dispname = modname
+		if type (modname) is str and  modname.startswith ("__export__"):
+			dispname = "{}:app".format (os.path.basename (os.path.dirname (os.path.dirname (directory))))		
+
+		if dispname in self.modnames:
+			self.wasc.logger ("app", "app file name collision detected '%s'" % dispname, "error")			
 			return
 		
 		if not route:
 			route = "/"
 		elif not route.endswith ("/"):
 			route = route + "/"
-			
+		
 		try: 
 			module = Module (self.wasc, self.handler, self.bus, route, directory, modname, pref)			
 		except: 
 			self.wasc.logger.trace ("app")
-			self.wasc.logger ("app", "[error] app load failed: %s" % modname)			
+			self.wasc.logger ("app", "[error] app load failed: %s" % dispname)			
 		else: 			
-			self.wasc.logger ("app", "[info] app %s mounted" % modname)
+			self.wasc.logger ("app", "[info] app %s mounted" % dispname)
 			if route in self.modules:
 				self.wasc.logger ("app", "[info] app route collision detected: %s at %s <-> %s" % (route, module.abspath, self.modules [route].abspath), "warn")
 			self.modules [route] = module
-			if type (modname) is str:
+			if type (dispname) is str:
 				# possibley direct app object
-				self.modnames [modname.split (":", 1)[0]] = module
-	
+				self.modnames [dispname.split (":", 1)[0]] = module		
+
 	def get_app (self, script_name):		
 		route = self.has_route (script_name)		
 		if route in (0, 1): # 404, 301

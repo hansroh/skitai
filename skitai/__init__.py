@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.15.28"
+__version__ = "0.28.15.30"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -167,7 +167,7 @@ dconf = dict (
 	models_keys = set ()	
 )
 
-def pref (preset = False):
+def preference (preset = False):
 	from .wsgi_apps import Config
 	
 	class Pref (AttrDict):
@@ -181,6 +181,7 @@ def pref (preset = False):
 	d = Pref ()
 	d.config = Config (preset)
 	return d
+pref = preference
 
 PROCESS_NAME = None
 def get_proc_title ():	
