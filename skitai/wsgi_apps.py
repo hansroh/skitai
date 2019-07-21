@@ -91,7 +91,7 @@ class Module:
 			set_default (app.config)
 		
 		if hasattr (app, "mountables"):
-			for _args, _karg in app.mountables:
+			for _args, _karg in app.mountables:				
 				app.mount (*_args, **_karg)			
 		
 		if hasattr (app, "max_client_body_size"):

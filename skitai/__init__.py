@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.15.30"
+__version__ = "0.28.16"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -19,6 +19,7 @@ from . import lifetime
 from . import mounted
 from .corequest import corequest
 from functools import wraps
+import copy
 
 if "---production" in sys.argv:
 	os.environ ["SKITAI_ENV"] = "PRODUCTION"
@@ -167,18 +168,21 @@ dconf = dict (
 	models_keys = set ()	
 )
 
+class Preference (AttrDict):
+	def __init__ (self):
+		super (Preference, self).__init__ (self)
+		self.__dict__ ["mountables"] = [] 
+		
+	def mount (self, *args, **kargs):
+		self.__dict__ ["mountables"].append ((args, kargs))
+
+	def copy (self):	
+		return copy.deepcopy (self)
+
+
 def preference (preset = False):
 	from .wsgi_apps import Config
-	
-	class Pref (AttrDict):
-		def __init__ (self):
-			super (Pref, self).__init__ (self)
-			self.__dict__ ["mountables"] = [] 
-			
-		def mount (self, *args, **kargs):
-			self.__dict__ ["mountables"].append ((args, kargs))
-	
-	d = Pref ()
+	d = Preference ()
 	d.config = Config (preset)
 	return d
 pref = preference
@@ -312,6 +316,9 @@ def maybe_django (wsgi_path, appname):
 def mount (point, target, appname = "app", pref = pref (True), host = "default", path = None):
 	global dconf
 	
+	if isinstance (appname, Preference):
+		pref, appname = appname, "app"
+		
 	def init_app (modpath, pref):
 		modinit = os.path.join (os.path.dirname (modpath), "__init__.py")
 		if os.path.isfile (modinit):
@@ -340,6 +347,9 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
 		if target [0] == "@":
 			appname = None
 		else:
+			tmp = target.split (":", 1)
+			if len (tmp) == 2:
+				target, appname = tmp
 			target = joinpath (target)
 	
 	if host not in dconf ['mount']:
