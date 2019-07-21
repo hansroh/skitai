@@ -378,15 +378,15 @@ class http_server (asyncore.dispatcher):
 					if ACTIVE_WORKERS < numworker:						
 						pid = os.fork ()
 						if pid == 0:							
-							self.worker_ident = "worker #%d" % len (PID)
-							set_process_name ("%s: %s" % (skitai.get_proc_title (), self.worker_ident))
+							self.worker_ident = "w%d" % len (PID)
+							set_process_name ("%s:%s" % (skitai.get_proc_title (), self.worker_ident))
 							PID = {}
 							signal.signal(signal.SIGTERM, hTERMWORKER)
 							signal.signal(signal.SIGQUIT, hQUITWORKER)
 							break
 							
 						else:
-							set_process_name ("%s: master" % skitai.get_proc_title ())
+							set_process_name ("%s:m" % skitai.get_proc_title ())
 							if not PID:								
 								signal.signal(signal.SIGHUP, hHUPMASTER)
 								signal.signal(signal.SIGTERM, hTERMMASTER)
