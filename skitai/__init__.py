@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.16.2"
+__version__ = "0.28.16.3"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -347,9 +347,9 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
 		if target [0] == "@":
 			appname = None
 		else:
-			tmp = target.split (":", 1)
+			tmp = os.path.basename (target).split (":", 1)
 			if len (tmp) == 2:
-				target, appname = tmp
+				target, appname = os.path.join (os.path.dirname (target), tmp [0]), tmp [1]
 			target = joinpath (target)
 	
 	if host not in dconf ['mount']:
