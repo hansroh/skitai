@@ -283,13 +283,11 @@ class http_channel (asynchat.async_chat):
 					
 	def log (self, message, type = "info"):
 		self.server.log (message, type)
-	
+	log_info = log
+
 	def trace (self, id = None):
 		self.server.trace (id)
 			
-	def log_info (self, message, type='info'):
-		self.server.log (message, type)
-		
 	def handle_expt(self):
 		self.log_info ("channel-%s panic" % self.channel_number, "fail")
 		self.close ()

@@ -89,7 +89,6 @@ class Mask (response, TaskBase):
             return self._data.popitem () [1]
         return self._data [0]
 
-
 class CompletedTasks (response, Tasks):
     def __init__ (self, reqs, **meta):
         Tasks.__init__ (self, reqs, **meta)

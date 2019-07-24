@@ -141,7 +141,7 @@ class WASBase:
         return self.executors.create_process (func, *args, **kargs)
 
     def Mask (self, data):
-        return tasks.Mask (data)
+        return tasks.Mask (data)    
 
     # system functions ----------------------------------------------
     def log (self, msg, category = "info", at = "app"):
