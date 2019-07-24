@@ -489,9 +489,8 @@ class http_response:
     def log (self, bytes):
         server = self.request.channel.server        
         referer = self.request.get_header ('referer')
-        real_ip = self.request.get_real_ip ()
-        worker_id = server.worker_ident [8:]
-        worker = worker_id and ("W" + worker_id) or "M"
+        real_ip = self.request.get_real_ip ()        
+        worker = server.worker_ident [0] == "m" and "M" or ("W" + server.worker_ident [1:])
             
         server.log_request (
             '%s %s %s %s %s %d %s %d %s %s %s %s %s %s %s %s %d %d %d'

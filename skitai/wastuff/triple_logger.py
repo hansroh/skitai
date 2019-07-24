@@ -1,10 +1,33 @@
 import os
 from rs4 import pathtool, logger
+from rs4.termcolor import tc
+
 if os.environ.get ("SKITAI_ENV") == "PYTEST":
     from threading import Lock
 else:    
     from multiprocessing import Lock
-    
+
+class screen_request_logger (logger.screen_logger):
+	def log (self, line, type = "info", name = ""):
+		try: 
+			els = line.split (" ")			
+			status_code = int (els [6])
+		except:
+			pass
+		else:
+			if status_code < 300:
+				color = tc.echo
+			elif status_code < 400:
+				color = tc.warn				
+			else:
+				color = tc.error				
+			els [2] = color (els [2])
+			els [3] = color (els [3])
+			els [6] = color (els [6])
+			line = " ".join (els)
+		logger.screen_logger.log (self, line, type, name)
+
+
 class Logger:
 	def __init__ (self, media, path):
 		self.media = type (media) is list and media  or [media]		
@@ -29,7 +52,10 @@ class Logger:
 		if self.path and 'file' in self.media:
 			_logger.add_logger (logger.rotate_logger (self.path, prefix, freq))
 		if 'screen' in self.media:
-			_logger.add_logger (logger.screen_logger ())
+			if prefix == "request":
+				_logger.add_logger (screen_request_logger ())
+			else:
+				_logger.add_logger (logger.screen_logger ())
 		
 		self.logger_factory [prefix] = _logger
 		self.lock.release ()	
