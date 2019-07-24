@@ -491,33 +491,33 @@ class http_response:
         referer = self.request.get_header ('referer')
         real_ip = self.request.get_real_ip ()        
         worker = server.worker_ident [0] == "m" and "M" or ("W" + server.worker_ident [1:])
-            
+        host = self.request.host    
         server.log_request (
-            '%s %s %s %s %s %d %s %d %s %s %s %s %s %s %s %s %d %d %d'
+            '%s %s %s %s %d %d %d %s %d %s %s %s %s %s %s %s %s %d %d'
             % (
-            self.request.channel.addr[0],
-            
-            self.request.host or "-",
+            self.request.channel.addr [0],
             self.request.is_promise () and "PUSH" or self.request.method,
             self.request.uri,
             self.request.version,
             self.request.rbytes, # recv body size            
-            
-            self.reply_code,            
+
+            self.reply_code,
             bytes, # send body size
+            worker,
+            self.htime, # due time to request handling
+
+            self.request.user_agent and '"' + self.request.user_agent + '"' or "-",
+            host and host [0].isalpha () and host or "-",
+            referer and '"' + referer + '"' or "-",
+            real_ip != self.request.channel.addr [0] and real_ip or '-',
             
+            # debugging
             self.request.gtxid or "-",
             self.request.ltxid or "-",
             self.request.user and '"' + str (self.request.user) + '"' or "-",
             self.request.token or "-",
             
-            referer and '"' + referer + '"' or "-",
-            self.request.user_agent and '"' + self.request.user_agent + '"' or "-",
-            real_ip != self.request.channel.addr[0] and real_ip or '-',
-            
-            worker,
-            len (asyncore.socket_map),
-            self.htime, # due time to request handling
+            len (asyncore.socket_map),            
             (time.time () - self.stime) * 1000, # due time to sending data            
             )
         )

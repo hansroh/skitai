@@ -10,8 +10,8 @@ else:
 class screen_request_logger (logger.screen_logger):
 	def log (self, line, type = "info", name = ""):
 		try: 
-			els = line.split (" ")			
-			status_code = int (els [6])
+			els = line.split (" ", 6)			
+			status_code = int (els [5])
 		except:
 			pass
 		else:
@@ -21,9 +21,9 @@ class screen_request_logger (logger.screen_logger):
 				color = tc.warn				
 			else:
 				color = tc.error				
+			els [1] = color (els [1])
+			els [5] = color (els [5])
 			els [2] = color (els [2])
-			els [3] = color (els [3])
-			els [6] = color (els [6])
 			line = " ".join (els)
 		logger.screen_logger.log (self, line, type, name)
 
