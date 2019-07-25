@@ -64,7 +64,7 @@ class Result (response, rcache.Result):
     
         if one:
             if len (self.data) == 0:
-                raise exceptions.HTTPError ("410 Maybe Gone")
+                raise exceptions.HTTPError ("410 Partial Not Found")
             if len (self.data) != 1:
                 raise exceptions.HTTPError ("409 Conflict")
             if isinstance (self.data, dict):

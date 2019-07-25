@@ -64,7 +64,7 @@ class Tasks (TaskBase):
 
 
 class Mask (response, TaskBase):
-    def __init__ (self, data, _expt = None, **meta):
+    def __init__ (self, data = None, _expt = None, **meta):
         self._expt = _expt
         self._data = data
         self.meta = meta
@@ -87,7 +87,7 @@ class Mask (response, TaskBase):
     def one (self):    
         self._reraise ()
         if len (self._data) == 0:
-            raise HTTPError ("410 Maybe Gone")
+            raise HTTPError ("410 Partial Not Found")
         if len (self._data) != 1:
             raise HTTPError ("409 Conflict")
         return self._data [0]

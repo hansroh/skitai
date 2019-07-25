@@ -140,8 +140,8 @@ class WASBase:
     def Process (self, func, *args, **kargs):
         return self.executors.create_process (func, *args, **kargs)
 
-    def Mask (self, data):
-        return tasks.Mask (data)    
+    def Mask (self, data = None, _expt = None, **meta):
+        return tasks.Mask (data, _expt, **meta)
 
     # system functions ----------------------------------------------
     def log (self, msg, category = "info", at = "app"):
