@@ -220,9 +220,13 @@ class http_response:
     def start (self, code, status = "", headers = None):
         if not self.is_responsable (): return
         self.reply_code = code
-        if status: self.reply_message = status
-        else:    self.reply_message = self.get_status_msg (code)            
+        if status: 
+            self.reply_message = status
+        else:
+            self.reply_message = self.get_status_msg (code)            
         if headers:
+            if isinstance (headers, dict):
+                headers = headers.items ()                
             for k, v in headers:
                 self.set (k, v)
     reply = start
