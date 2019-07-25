@@ -62,7 +62,7 @@ class Result:
     def one (self, *args, **kargs):
         self.reraise ()
         if not self.data:
-            raise exceptions.HTTPError ("404 Not Found")
+            raise exceptions.HTTPError ("410 Maybe Gone")
         elif len (self.data) != 1:
             raise exceptions.HTTPError ("409 Conflict")
         return self.data [0]

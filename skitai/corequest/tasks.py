@@ -4,6 +4,7 @@ from ..exceptions import HTTPError
 from . import corequest, response
 from .httpbase.task import DEFAULT_TIMEOUT
 from skitai import was
+from rs4.attrdict import AttrDict
 
 class TaskBase (corequest):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **meta):
@@ -67,6 +68,10 @@ class Mask (response, TaskBase):
         self._expt = _expt
         self._data = data
         self.meta = meta
+        if isinstance (self._data, dict):
+            self._data = [AttrDict (self._data)]
+        elif not isinstance (self._data, (tuple, list)):
+            self._data = [self._data]
 
     def _reraise (self):
         if self._expt:
@@ -82,11 +87,9 @@ class Mask (response, TaskBase):
     def one (self):    
         self._reraise ()
         if len (self._data) == 0:
-            raise HTTPError ("404 Not Found")
+            raise HTTPError ("410 Maybe Gone")
         if len (self._data) != 1:
             raise HTTPError ("409 Conflict")
-        if isinstance (self._data, dict):
-            return self._data.popitem () [1]
         return self._data [0]
 
 class CompletedTasks (response, Tasks):

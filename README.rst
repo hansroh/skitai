@@ -1788,7 +1788,7 @@ In case database querying, you can use one () method.
     with was.db ("@mypg") as db:
       hispet = db.excute ("SELECT ... FROM pets").one (timeout = 2)
  
-If result record count is not 1 (zero or more than 1), raise HTTP 404 error.
+If result record count is not 1 (zero or more than 1), raise HTTP 410 error.
 
 With PostgreSQL you can also raise HTTP 409 using returning caluse.
 
@@ -1973,7 +1973,7 @@ Corequest object has main 5 methods.
 - dispatch (): it returns Result object contains data (or text/content) and request status information
 - wait (): it returns Result object contains request status information
 - fetch (): it returns records list. if request failed raise exception
-- one (): it returns one record if query result length is exactly one otherwise raise 404 or 409 HTTP error. if request failed raise exception
+- one (): it returns one record if query result length is exactly one otherwise raise 410 or 409 HTTP error. if request failed raise exception
 - commit (): it wait finishing non-select query, if request failed raise exception
 
 Result object is mainly used for checking status and handling error to individual corequest, and Result object also has fetch (), one () and commit ().
