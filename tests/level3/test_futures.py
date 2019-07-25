@@ -142,7 +142,7 @@ def test_futures (app, dbpath):
         assert "RHAT" in resp.text        
         
         resp = cli.get ("/4")
-        assert resp.status_code == 404
+        assert resp.status_code == 410
         
         resp = cli.get ("/5")
         assert "hansroh" in resp.text
@@ -166,7 +166,7 @@ def test_futures (app, dbpath):
         assert resp.status_code == 502
 
         resp = cli.get ("/11")
-        assert resp.status_code == 404
+        assert resp.status_code == 410
 
         resp = cli.get ("/12")
         assert resp.data == "[('RHAT',), [('RHAT',)]]"

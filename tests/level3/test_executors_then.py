@@ -18,7 +18,8 @@ def test_was_async_requests (app):
     @app.route ("/")
     def index (was, timeout = 0):
         def respond (was, task):
-            assert task.fetch () == "hello"
+            assert task.fetch () == ["hello"]
+            assert task.one () == "hello"
             return was.API ("201 Created")
         return was.Process (foo, 'hello', int (timeout)).then (respond)
     
