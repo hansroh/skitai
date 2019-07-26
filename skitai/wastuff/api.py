@@ -64,17 +64,17 @@ class API:
 			self.data ["traceback"] = type (exc_info) is tuple and catch (2, exc_info) or exc_info
 
 	def set_spec (self, app):		
-		module_id, mount_option, resource_id, route, parameter_requirements = app.get_resource_spec (self.request.routed)	
+		resource_id = self.request.routable ["func_id"]
 		routable = copy.deepcopy (self.request.routable)
-		routable ["methods"] = list (routable ["methods"])
+		routable ["methods"] = list (routable ["methods"])		
 		self.data ["__spec__"] = {
-			"endpoint": self.request.uri,
-			"route": route,
-			"routable": routable,
+			"http_method": self.request.method,
+			"http_version": self.request.version,
+			"uri": self.request.uri,			
 			"resource_id": resource_id,
-			"module_id": module_id,
-			"parameter_requirements": parameter_requirements,
-			"doc": self.request.routed.__doc__,
-			"mount_option": mount_option,			
+			"routable": routable,			
+			"parameter_requirements": app.get_parameter_requirements (resource_id),
+			'auth_requirements': app.get_auth_flags (resource_id),
+			"doc": self.request.routed.__doc__
 		}
 		#print (self.data ["__spec__"])
