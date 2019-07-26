@@ -3,6 +3,7 @@ import sys
 from datetime import date
 from xmlrpc import client
 from ..utility import catch
+import copy
 	
 class DateEncoder(json.JSONEncoder):
 	def default (self, obj):
@@ -61,3 +62,19 @@ class API:
 			self.data ['more_info'] = more_info
 		if exc_info:
 			self.data ["traceback"] = type (exc_info) is tuple and catch (2, exc_info) or exc_info
+
+	def set_spec (self, app):		
+		module_id, mount_option, resource_id, route, parameter_requirements = app.get_resource_spec (self.request.routed)	
+		routable = copy.deepcopy (self.request.routable)
+		routable ["methods"] = list (routable ["methods"])
+		self.data ["__spec__"] = {
+			"endpoint": self.request.uri,
+			"route": route,
+			"routable": routable,
+			"resource_id": resource_id,
+			"module_id": module_id,
+			"parameter_requirements": parameter_requirements,
+			"doc": self.request.routed.__doc__,
+			"mount_option": mount_option,			
+		}
+		#print (self.data ["__spec__"])
