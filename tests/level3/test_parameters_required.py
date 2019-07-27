@@ -39,18 +39,21 @@ def test_error_handler (app):
     def index7 (was, a = None, b = None):
         return ""
 
-    with app.test_client ("/", confutil.getroot ()) as cli:        
+    with app.test_client ("/", confutil.getroot ()) as cli:       
         resp = cli.get ("/")
         assert resp.status_code == 400
-         
+        
         resp = cli.get ("/?limit=4")
-        assert resp.status_code == 200
+        assert resp.status_code == 200        
         
         resp = cli.get ("/2?limit=4")
-        assert resp.status_code == 400
+        assert resp.status_code == 200
         
         resp = cli.post ("/2", {"limit": 4})
         assert resp.status_code == 200
+
+        resp = cli.post ("/2", {})
+        assert resp.status_code == 400
         
         api = cli.api ()
         resp = api ("2").post ({"limit": 4})
