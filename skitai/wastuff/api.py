@@ -66,15 +66,19 @@ class API:
 	def set_spec (self, app):		
 		resource_id = self.request.routable ["func_id"]
 		routable = copy.deepcopy (self.request.routable)
-		routable ["methods"] = list (routable ["methods"])		
-		self.data ["__spec__"] = {
-			"http_method": self.request.method,
-			"http_version": self.request.version,
-			"uri": self.request.uri,			
-			"resource_id": resource_id,
-			"routable": routable,			
-			"parameter_requirements": app.get_parameter_requirements (resource_id),
-			'auth_requirements': app.get_auth_flags (resource_id),
-			"doc": self.request.routed.__doc__
-		}
-		#print (self.data ["__spec__"])
+		del routable ["func_id"]
+		routable ["methods"] = list (routable ["methods"])
+		props = {"current_request": {}}
+		props ["current_request"]["method"] = self.request.method
+		props ["current_request"]["version"] = self.request.version
+		props ["current_request"]["uri"] = self.request.uri
+		props ['routeopt'] = routable		
+		props ["parameter_requirements"] = app.get_parameter_requirements (resource_id)
+		props ['auth_requirements'] = app.get_auth_flags (resource_id)		
+		props ["doc"] = self.request.routed.__doc__
+		props ["id"] = resource_id		
+		self.data ["__spec__"] = props
+		
+		#import pprint
+		#pprint.pprint (self.data ["__spec__"])		
+		
