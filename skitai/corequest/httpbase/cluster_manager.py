@@ -60,7 +60,7 @@ class ClusterManager:
     maintern_interval = 60
     # I cannot sure this is faster
     backend = True
-    backend_keep_alive = 1200
+    backend_keep_alive = 10
     
     def __init__ (self, name, cluster, ssl = 0, access = None, max_conns = 1000, logger = None):
         self.logger = logger

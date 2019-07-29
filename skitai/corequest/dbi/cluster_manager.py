@@ -6,7 +6,7 @@ from sqlphile import pg2
 from sqlphile import db3
             
 class ClusterManager (cluster_manager.ClusterManager):
-    backend_keep_alive = 1200
+    backend_keep_alive = 10
     backend = True
     class_map = {
         DB_SQLITE3: synsqlite3.SynConnect,
@@ -70,11 +70,20 @@ class ClusterManager (cluster_manager.ClusterManager):
     def get_endpoints (self):
         return endpoints.make_endpoints (self.dbtype, self._cache)
     
-    def getconn (self, auto_putback = True):
+    def open2 (self, auto_putback = True):
+        # transaction mode
         if self.dbtype == DB_PGSQL:
             conn = endpoints.make_endpoints (self.dbtype, [self._cache [0]]) [0]
             return pg2.open2 (conn, endpoints.PGPOOL, auto_putback = auto_putback)
         elif self.dbtype == DB_SQLITE3:            
             conn = endpoints.make_endpoints (self.dbtype, [self._cache [0]]) [0]
             return db3.open2 (conn)
-        raise TypeError ("Only DB_PGSQL or DB_SQLITE3")
+        raise TypeError ("Only DB_PGSQL or DB_SQLITE3")    
+
+    def open3 (self):
+        # single execution mode
+        if self.dbtype == DB_PGSQL:
+            conn = endpoints.make_endpoints (self.dbtype, [self._cache [0]]) [0]
+            return pg2.open3 (endpoints.PGPOOL)        
+        raise TypeError ("Only DB_PGSQL")
+    

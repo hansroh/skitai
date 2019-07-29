@@ -40,8 +40,8 @@ class AsyncService:
     def __init__ (self, enable_requests = True):
         if enable_requests:
             for method in self.METHODS:
-                setattr (self, method, Command (method, self._call))
-    
+                setattr (self, method, Command (method, self._call))            
+
     @classmethod
     def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0, access = [], max_conns = 100):
         if clustertype and clustertype [0] == "*":
@@ -162,7 +162,17 @@ class AsyncService:
     def _amap (self, dbtype, *args, **karg):
         return self._cddb (True, *args, **karg)
     
+    # special purpose synchronous connection ---------------------------------------
     def transaction (self, clustername, auto_putback = True):
+        # probably can deprecate, it seems possible to make transaction with async connection
+        # options:
+        #   1. use serail execution db.execute ([sql, ...])
+        #   2. use CTE statement for getting auto id
         cluster = self.__detect_cluster (clustername) [0]
-        return cluster.getconn (auto_putback)
+        return cluster.open2 (auto_putback)
     
+    def dedicate_db (self, clustername, *args, **kargs):
+        # unused, test only
+        # replacable with was.db        
+        cluster = self.__detect_cluster (clustername) [0]
+        return cluster.open3 ()

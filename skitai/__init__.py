@@ -33,6 +33,8 @@ def test_client (*args, **kargs):
 
 HAS_ATILA = None
 
+DEFAULT_BACKEND_KEEP_ALIVE = 10
+
 PROTO_HTTP = "http"
 PROTO_HTTPS = "https"
 PROTO_WS = "ws"
@@ -624,7 +626,7 @@ def run (**conf):
 			
 			self.config_executors (conf.get ('executors_workers'), dconf.get ("executors_zombie_timeout"))
 			self.config_threads (conf.get ('threads', 4))			
-			self.config_backends (conf.get ('backend_keep_alive', 1200))
+			self.config_backends (conf.get ('backend_keep_alive', DEFAULT_BACKEND_KEEP_ALIVE))
 			for name, args in conf.get ("clusters", {}).items ():				
 				ctype, members, policy, ssl, max_conns = args
 				self.add_cluster (ctype, name, members, ssl, policy, max_conns)

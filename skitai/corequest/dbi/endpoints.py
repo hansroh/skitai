@@ -36,7 +36,7 @@ def make_endpoints (dbtype, from_list):
         elif dbtype == DB_PGSQL:
             if user: kargs ["user"] = user
             if PGPOOL is None:
-                PGPOOL = ThreadedConnectionPool (0, CPU_COUNT * 3, host = host, database = db, **kargs)
+                PGPOOL = ThreadedConnectionPool (max (CPU_COUNT * 3, 16), max (CPU_COUNT * 10, 60), host = host, database = db, **kargs)
             conn = PGPOOL.getconn ()
         elif dbtype == DB_REDIS:
             conn = redis.Redis (host = host, port = port, db = db)

@@ -18,7 +18,7 @@ def test_endpoints (dbpath):
 
 def test_cluster_manager (dbpath):
     m = cluster_manager.ClusterManager ("sqlite3", [dbpath], DB_SQLITE3)
-    with m.getconn () as db:
+    with m.open2 () as db:
         db.select ("stocks").execute ()
         assert "id" in db.fetchall (True)[0]
 
@@ -27,7 +27,7 @@ def test_cluster_manager (dbpath):
         
     m = cluster_manager.ClusterManager ("pg", ["postgres:{}@192.168.0.80/aw1".format (os.environ.get ("PGPASSWORD", ""))])    
     try:
-        conn = m.getconn ()
+        conn = m.open2 ()
     except psycopg2.OperationalError:
         return
     with conn as db:

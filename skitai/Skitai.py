@@ -215,7 +215,7 @@ class Loader:
 			self.wasc.register ("threads", tpool)
 			self.wasc.numthreads = numthreads
 	
-	def config_backends (self, backend_keep_alive = 10):
+	def config_backends (self, backend_keep_alive = 10):		
 		rcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive
 		dcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive		
 						
