@@ -166,7 +166,7 @@ class Task (task.Task):
                 continue
             
         self._request = req # sample for unitest
-        trigger.wakeup ()
+        trigger.wakeup ()        
         return self
     
 

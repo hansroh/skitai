@@ -33,7 +33,9 @@ def test_client (*args, **kargs):
 
 HAS_ATILA = None
 
-DEFAULT_BACKEND_KEEP_ALIVE = 10
+DEFAULT_BACKEND_KEEP_ALIVE = 60
+DEFAULT_KEEP_ALIVE = 2
+DEFAULT_NETWORK_TIMEOUT = 30
 
 PROTO_HTTP = "http"
 PROTO_HTTPS = "https"
@@ -615,8 +617,8 @@ def run (**conf):
 			self.config_webserver (
 				port, conf.get ('address', '0.0.0.0'),
 				NAME, conf.get ("certfile") is not None,
-				conf.get ('keep_alive', 2), 
-				conf.get ('network_timeout', 10),
+				conf.get ('keep_alive', DEFAULT_KEEP_ALIVE), 
+				conf.get ('network_timeout', DEFAULT_NETWORK_TIMEOUT),
 				thunks = [self.master_jobs]
 			)
 			

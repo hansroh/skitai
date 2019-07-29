@@ -98,7 +98,7 @@ class CompletedTasks (response, Tasks):
 
 
 class Futures (TaskBase):
-    def __init__ (self, reqs, timeout = 10, **meta):
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **meta):
         TaskBase.__init__ (self, reqs, timeout, **meta)
         self._was = None       
         self._fulfilled = None

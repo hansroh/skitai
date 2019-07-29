@@ -11,3 +11,4 @@ dist/
 *__pycache__
 i.cache/
 tests/.webtest_log
+.cache
