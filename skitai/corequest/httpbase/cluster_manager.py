@@ -56,8 +56,8 @@ class AccessPolicy:
             
             
 class ClusterManager:
-    object_timeout = 1200
-    maintern_interval = 60
+    object_timeout = 120
+    maintern_interval = 30    
     # I cannot sure this is faster
     backend = True
     backend_keep_alive = 10
@@ -293,9 +293,8 @@ class ClusterManager:
                 survived = []
                 for asyncon in _node ["connection"]:
                     if not hasattr (asyncon, "maintern"):
-                        continue
-                                                                        
-                    if asyncon.maintern (self.object_timeout):                    
+                        continue                    
+                    if asyncon.maintern (self.object_timeout):                        
                         asyncon.handler = None # break back ref.
                     else:                        
                         survived.append (asyncon)
