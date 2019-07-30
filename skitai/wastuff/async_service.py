@@ -41,7 +41,7 @@ class AsyncService:
         if enable_requests:
             for method in self.METHODS:
                 setattr (self, method, Command (method, self._call))            
-
+        
     @classmethod
     def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0, access = [], max_conns = 100):
         if clustertype and clustertype [0] == "*":
@@ -165,6 +165,11 @@ class AsyncService:
     # special purpose synchronous connection ---------------------------------------
     def transaction (self, clustername):
         cluster = self.__detect_cluster (clustername) [0]
-        return cluster.open3 ()
+        return cluster.open2 ()
 
+    def sdb (self, clustername):
+        # under tesing....
+        # it is plan B for collapsing async DB
+        cluster = self.__detect_cluster (clustername) [0]
+        return cluster.open3 ()
     

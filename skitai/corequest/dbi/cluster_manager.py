@@ -81,7 +81,10 @@ class ClusterManager (cluster_manager.ClusterManager):
         raise TypeError ("Only DB_PGSQL or DB_SQLITE3")    
 
     def open2 (self):
+        # single conn, single cursor
         return self._openv ('open2')
 
     def open3 (self):
+        # single connection, multi cursors
+        # it is replacable with was.db
         return self._openv ('open3')
