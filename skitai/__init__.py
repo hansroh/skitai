@@ -33,7 +33,9 @@ def test_client (*args, **kargs):
 
 HAS_ATILA = None
 
-DEFAULT_BACKEND_KEEP_ALIVE = 60
+DEFAULT_BACKEND_KEEP_ALIVE = 300
+DEFAULT_BACKEND_OBJECT_TIMEOUT = 600
+DEFAULT_BACKEND_MAINTAIN_INTERVAL = 30
 DEFAULT_KEEP_ALIVE = 2
 DEFAULT_NETWORK_TIMEOUT = 30
 
@@ -271,9 +273,15 @@ def config_executors (workers = None, zombie_timeout = None):
 	dconf ["executors_workers"] = workers
 	dconf ["executors_zombie_timeout"] = zombie_timeout
 
-def set_backend_keep_alive (timeout):	
+def set_backend (timeout, object_timeout = DEFAULT_BACKEND_OBJECT_TIMEOUT, maintain_interval = DEFAULT_BACKEND_MAINTAIN_INTERVAL):
 	global dconf
+
 	dconf ["backend_keep_alive"] = timeout
+	dconf ["backend_object_timeout"] = object_timeout
+	dconf ["backend_maintain_interval"] = maintain_interval
+
+def set_backend_keep_alive (timeout):
+	set_backend  (timeout)
 
 def set_proxy_keep_alive (channel = 60, tunnel = 600):	
 	from .handlers import proxy
@@ -628,7 +636,11 @@ def run (**conf):
 			
 			self.config_executors (conf.get ('executors_workers'), dconf.get ("executors_zombie_timeout"))
 			self.config_threads (conf.get ('threads', 4))			
-			self.config_backends (conf.get ('backend_keep_alive', DEFAULT_BACKEND_KEEP_ALIVE))
+			self.config_backends (
+				conf.get ('backend_keep_alive', DEFAULT_BACKEND_KEEP_ALIVE), 
+				conf.get ('backend_object_timeout', DEFAULT_BACKEND_OBJECT_TIMEOUT), 
+				conf.get ('backend_maintain_interval', DEFAULT_BACKEND_MAINTAIN_INTERVAL)
+			)
 			for name, args in conf.get ("clusters", {}).items ():				
 				ctype, members, policy, ssl, max_conns = args
 				self.add_cluster (ctype, name, members, ssl, policy, max_conns)

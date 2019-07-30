@@ -215,9 +215,14 @@ class Loader:
 			self.wasc.register ("threads", tpool)
 			self.wasc.numthreads = numthreads
 	
-	def config_backends (self, backend_keep_alive = 10):		
+	def config_backends (self, backend_keep_alive, object_timeout, maintern_interval):		
 		rcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive
-		dcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive		
+		rcluster_manager.ClusterManager.object_timeout = object_timeout
+		rcluster_manager.ClusterManager.maintern_interval = maintern_interval
+		
+		dcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive
+		dcluster_manager.ClusterManager.object_timeout = object_timeout		
+		dcluster_manager.ClusterManager.maintern_interval = maintern_interval
 						
 	def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0, access = None, max_conns = 100):
 		try:
