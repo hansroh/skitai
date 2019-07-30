@@ -74,10 +74,14 @@ class ClusterManager (cluster_manager.ClusterManager):
         # transaction mode
         if self.dbtype == DB_PGSQL:
             conn = endpoints.make_endpoints (self.dbtype, [self._cache [0]]) [0]
-            return getattr (pg2, wrap) (conn)
+            if wrap == "open2":
+                return pg2.open2 (conn, auto_closing = False)
+            return pg2.open3 (conn)
         elif self.dbtype == DB_SQLITE3:            
             conn = endpoints.make_endpoints (self.dbtype, [self._cache [0]]) [0]
-            return getattr (db3, wrap) (conn)
+            if wrap == "open2":
+                return db3.open2 (conn, auto_closing = False)
+            return db3.open3 (conn)
         raise TypeError ("Only DB_PGSQL or DB_SQLITE3")    
 
     def open2 (self):

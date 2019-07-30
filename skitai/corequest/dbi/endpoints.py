@@ -7,8 +7,7 @@ import multiprocessing
 
 CPU_COUNT = multiprocessing.cpu_count ()
 
-def make_endpoints (dbtype, from_list):
-      
+def make_endpoints (dbtype, from_list):      
     endpoints = []        
     for server, db, auth in from_list:
         user, password = "", ""

@@ -34,7 +34,7 @@ else:
 class Result:
     def __init__ (self, status, response = None):
         self.status = status
-        self.__response = response
+        self.__response = response        
     
     def __getattr__ (self, attr):
         return getattr (self.__response, attr)

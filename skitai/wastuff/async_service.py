@@ -37,11 +37,14 @@ class AsyncService:
         DB_PGSQL: Template (DB_PGSQL),
         DB_SQLITE3: Template (DB_SQLITE3),
     }
-    def __init__ (self, enable_requests = True):
+    def __init__ (self, enable_requests = True, use_syn_db = False):
         if enable_requests:
             for method in self.METHODS:
                 setattr (self, method, Command (method, self._call))            
         
+        if use_syn_db:            
+            self.db = self.sdb
+
     @classmethod
     def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0, access = [], max_conns = 100):
         if clustertype and clustertype [0] == "*":
@@ -167,7 +170,7 @@ class AsyncService:
         cluster = self.__detect_cluster (clustername) [0]
         return cluster.open2 ()
 
-    def sdb (self, clustername):
+    def sdb (self, clustername, *args, **kargs):
         # under tesing....
         # it is plan B for collapsing async DB
         cluster = self.__detect_cluster (clustername) [0]

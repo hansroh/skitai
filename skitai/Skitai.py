@@ -49,6 +49,7 @@ class Loader:
 		self.ssl = False
 		self.ctx = None
 		self._exit_code = None
+		self.wasc_args = ()
 		self._fifo_switched = False
 		self.config_logger (self.logpath)
 		self.WAS_initialize ()
@@ -85,7 +86,7 @@ class Loader:
 				for vhost in h.sites.values ():
 					for apph in vhost.apps.modules.values ():
 						getattr (apph, func) ()
-							
+
 	def WAS_finalize (self):
 		global the_was
 		
@@ -96,8 +97,11 @@ class Loader:
 		http2.MAX_HTTP2_CONCURRENT_STREAMS = 1
 		request_handler.RequestHandler.FORCE_HTTP_11 = True		
 		self.app_cycle ('mounted')
-		start_was (self.wasc)
+		start_was (self.wasc, *self.wasc_args)
 	
+	def config_wasc (self, *args):
+		self.wasc_args = args
+
 	def config_dns (self, prefer_protocol = "tcp"):
 		adns.init (self.wasc.logger.get ("server"), prefer_protocol = prefer_protocol)
 		lifetime.maintern.sched (4.1, dns.pool.maintern)

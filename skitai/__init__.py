@@ -79,6 +79,7 @@ WS_OPCODE_PONG = 0xa
 class _WASPool:
 	def __init__ (self):
 		self.__wasc = None
+		self.__args = ()
 		self.__p = {}
 		
 	def __get_id (self):
@@ -103,8 +104,9 @@ class _WASPool:
 		for _id in self.__p:
 			delattr (self.__p [_id], attr, value)
 	
-	def _start (self, wasc):
+	def _start (self, wasc, *args):
 		self.__wasc = wasc
+		self.__args = args		
 	
 	def _started (self):
 		return self.__wasc
@@ -121,17 +123,17 @@ class _WASPool:
 		try:
 			return self.__p [_id]
 		except KeyError:
-			_was = self.__wasc ()
+			_was = self.__wasc (*self.__args)
 			self.__p [_id] = _was
 			return _was
 
 
 was = _WASPool ()
-def start_was (wasc):
+def start_was (wasc, *args):
 	global was
 	
 	detect_atila ()
-	was._start (wasc)
+	was._start (wasc, *args)
 
 def detect_atila ():
 	# for avoid recursive importing
@@ -267,6 +269,11 @@ def set_max_rcache (objmax):
 def set_keep_alive (timeout):	
 	global dconf
 	dconf ["keep_alive"] = timeout
+
+def use_syn_db ():
+	# replace async db with sync db for plan B
+	global dconf
+	dconf ["was_syn_db"] = True
 
 def config_executors (workers = None, zombie_timeout = None):
 	global dconf
@@ -598,6 +605,10 @@ def run (**conf):
 				
 		def configure (self):
 			conf = self.conf
+
+			if "was_syn_db" in dconf:
+				self.config_wasc (True, True)
+
 			self.set_num_worker (conf.get ('workers', 1))
 			if conf.get ("certfile"):
 				self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
@@ -695,6 +706,7 @@ def run (**conf):
 		sys.stderr = open (os.path.join (conf.get ('varpath'), "stderr.engine"), "a")	
 	
 	server = SkitaiServer (conf)
+	
 	# timeout for fast keyboard interrupt on win32	
 	try:
 		try:
