@@ -13,7 +13,7 @@ def test_endpoints (dbpath):
         warnings.warn ("Please set PGPASSWORD", Warning)
         return   
     assert conn.closed == False
-    with open2 (conn, endpoints.PGPOOL) as db:
+    with open2 (conn) as db:
         assert conn == db.conn        
 
 def test_cluster_manager (dbpath):

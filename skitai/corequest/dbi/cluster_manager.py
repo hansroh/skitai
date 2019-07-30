@@ -70,20 +70,18 @@ class ClusterManager (cluster_manager.ClusterManager):
     def get_endpoints (self):
         return endpoints.make_endpoints (self.dbtype, self._cache)
     
-    def open2 (self, auto_putback = True):
+    def _openv (self, wrap):
         # transaction mode
         if self.dbtype == DB_PGSQL:
             conn = endpoints.make_endpoints (self.dbtype, [self._cache [0]]) [0]
-            return pg2.open2 (conn, endpoints.PGPOOL, auto_putback = auto_putback)
+            return getattr (pg2, wrap) (conn)
         elif self.dbtype == DB_SQLITE3:            
             conn = endpoints.make_endpoints (self.dbtype, [self._cache [0]]) [0]
-            return db3.open2 (conn)
+            return getattr (db3, wrap) (conn)
         raise TypeError ("Only DB_PGSQL or DB_SQLITE3")    
 
+    def open2 (self):
+        return self._openv ('open2')
+
     def open3 (self):
-        # single execution mode
-        if self.dbtype == DB_PGSQL:
-            conn = endpoints.make_endpoints (self.dbtype, [self._cache [0]]) [0]
-            return pg2.open3 (endpoints.PGPOOL)        
-        raise TypeError ("Only DB_PGSQL")
-    
+        return self._openv ('open3')

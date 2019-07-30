@@ -163,16 +163,8 @@ class AsyncService:
         return self._cddb (True, *args, **karg)
     
     # special purpose synchronous connection ---------------------------------------
-    def transaction (self, clustername, auto_putback = True):
-        # probably can deprecate, it seems possible to make transaction with async connection
-        # options:
-        #   1. use serail execution db.execute ([sql, ...])
-        #   2. use CTE statement for getting auto id
-        cluster = self.__detect_cluster (clustername) [0]
-        return cluster.open2 (auto_putback)
-    
-    def dedicate_db (self, clustername, *args, **kargs):
-        # unused, test only
-        # replacable with was.db        
+    def transaction (self, clustername):
         cluster = self.__detect_cluster (clustername) [0]
         return cluster.open3 ()
+
+    
