@@ -43,6 +43,7 @@ class AsyncService:
         if enable_requests:
             for method in self.METHODS:
                 setattr (self, method, Command (method, self._call))        
+        # used for unittest only, no pooling then slow
         self._use_syn_db = use_syn_db
         self._use_syn_conn = use_syn_conn        
         

@@ -98,7 +98,7 @@ class ProtoCall (task.Task):
         self.uri = uri
         self.reqtype = reqtype
         
-        endpoint, uri = self.get_endpoint (uri)                             
+        endpoint, uri = self.get_endpoint (uri)
         with endpoint as cli:
             req_func = getattr (cli, reqtype)
             try:
