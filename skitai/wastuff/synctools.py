@@ -86,7 +86,7 @@ class ProtoCall (task.Task):
             
     def create_stub (self):
         endpoint, uri = self.get_endpoint (self.uri)
-        with webtest.Target (endpoint) as cli:
+        with endpoint as cli:
             if self.reqtype == "jsonrpc":
                 proxy_class = JSONRPCServerProxy
             else:
