@@ -2,8 +2,7 @@ from ..httpbase import cluster_manager
 from aquests.dbapi import asynpsycopg2, synsqlite3, asynredis, asynmongo
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from . import endpoints
-from sqlphile import pg2
-from sqlphile import db3
+from sqlphile import pg2, db3
             
 class ClusterManager (cluster_manager.ClusterManager):
     backend_keep_alive = 10

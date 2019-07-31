@@ -169,10 +169,11 @@ def test_futures (app, dbpath):
         assert resp.status_code == 410
 
         resp = cli.get ("/12")
-        assert resp.data == "[('RHAT',), [('RHAT',)]]"
+        print (resp.data)
+        assert resp.data == "[{'symbol': 'RHAT'}, [{'symbol': 'RHAT'}]]"
 
         resp = cli.get ("/13")        
-        assert resp.data == "[('RHAT',), ('RHAT',)]"
+        assert resp.data == "[{'symbol': 'RHAT'}, {'symbol': 'RHAT'}]"
 
 
 

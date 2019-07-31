@@ -70,7 +70,7 @@ def test_cli (app, dbpath):
     def db2 (was):
         stub = was.backend ("@sqlite")
         req = stub.select ("stocks").filter (symbol = 'RHAT').execute ()
-        res = req.dispatch ()
+        res = req.dispatch ()                
         return was.response.api (data = res.data)
     
     @app.maintain
@@ -137,10 +137,10 @@ def test_cli (app, dbpath):
         assert '"data": "POST"' in resp.text
     
         resp = cli.get ("/db2")
-        assert resp.data ["data"][0][3] == 'RHAT'
+        assert resp.data ["data"][0]['symbol'] == 'RHAT'
         
         resp = cli.get ("/db")
-        assert resp.data ["data"][0][3] == 'RHAT'
+        assert resp.data ["data"][0]['symbol'] == 'RHAT'
         
         resp = cli.get ("/pypi3")
         assert resp.status_code == 502

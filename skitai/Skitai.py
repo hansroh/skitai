@@ -45,7 +45,7 @@ class Loader:
 		self.varpath = varpath
 		self.debug = debug
 		self.num_worker = 1
-		self.wasc = wasc or wsgiappservice.AsyncWAS
+		self.wasc = wasc or wsgiappservice.WAS
 		self.ssl = False
 		self.ctx = None
 		self._exit_code = None

@@ -150,6 +150,7 @@ class ProtoCall (task.Task):
         return self.result.one ()    
     
 class DBCall (ProtoCall):
+    # NOTE: DB_PGSQL and DB_SQLITE3 use sqlphile open3 class
     def __init__ (self, cluster, *args, **kargs):
         self.cluster = cluster
         self.result = None
@@ -161,14 +162,6 @@ class DBCall (ProtoCall):
             raise self.expt [1]
         return self.result
 
-    def _compile (self, params):
-        statement = params [0]
-        if isinstance(statement, str):
-            return params        
-        else:
-            raise ValueError ("SQL statement error")                
-        return ""
-        
     def _build_request (self, method, param):
         self.handle_request (method, param, *self.args, **self.kargs)
         
@@ -184,15 +177,9 @@ class DBCall (ProtoCall):
         else:            
             conns = endpoints.make_endpoints (dbtype, [server, dbname, auth])
         conn = random.choice (conns)
+
         try:
-            if self.cluster.dbtype in (DB_SQLITE3, DB_PGSQL):        
-                stmt = self._compile (param)
-                cur = conn.cursor ()
-                getattr (cur, method) (*stmt)
-                resp = cur.fetchall ()
-                cur.close ()
-            else:
-                resp = getattr (conn, method) (*param)
+            resp = getattr (conn, method) (*param)
         except:
             self.expt = sys.exc_info ()
             self.result = Result (1,  self.expt)            
@@ -202,5 +189,5 @@ class DBCall (ProtoCall):
             self.result.status_code, self.result.reason = 200, "OK"
             
         self.result.meta = meta or {}    
-        endpoints.restore (conns)        
+        endpoints.restore (conns)
         callback and callback (self.result)
