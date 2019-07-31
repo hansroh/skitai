@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.18.3"
+__version__ = "0.28.18.1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -14,12 +14,12 @@ import h2
 from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from aquests.protocols.smtp import composer
 import tempfile
-import getopt
 from . import lifetime
 from . import mounted
 from .corequest import corequest
 from functools import wraps
 import copy
+import rs4
 
 if "---production" in sys.argv:
 	os.environ ["SKITAI_ENV"] = "PRODUCTION"
@@ -79,7 +79,6 @@ WS_OPCODE_PONG = 0xa
 class _WASPool:
 	def __init__ (self):
 		self.__wasc = None
-		self.__kargs = ()
 		self.__p = {}
 		
 	def __get_id (self):
@@ -104,9 +103,8 @@ class _WASPool:
 		for _id in self.__p:
 			delattr (self.__p [_id], attr, value)
 	
-	def _start (self, wasc, **kargs):
+	def _start (self, wasc):
 		self.__wasc = wasc
-		self.__kargs = kargs		
 	
 	def _started (self):
 		return self.__wasc
@@ -123,17 +121,17 @@ class _WASPool:
 		try:
 			return self.__p [_id]
 		except KeyError:
-			_was = self.__wasc (**self.__kargs)
+			_was = self.__wasc ()
 			self.__p [_id] = _was
 			return _was
 
 
 was = _WASPool ()
-def start_was (wasc, **kargs):
+def start_was (wasc):
 	global was
 	
 	detect_atila ()
-	was._start (wasc, **kargs)
+	was._start (wasc)
 
 def detect_atila ():
 	# for avoid recursive importing
@@ -172,7 +170,6 @@ dconf = dict (
 	clusters = {}, 
 	max_ages = {}, 
 	log_off = [], 
-	wasc_option = {},
 	dns_protocol = 'tcp', 
 	models_keys = set ()	
 )
@@ -270,16 +267,6 @@ def set_max_rcache (objmax):
 def set_keep_alive (timeout):	
 	global dconf
 	dconf ["keep_alive"] = timeout
-
-def disable_adbi ():
-	# replace async db with sync db for plan B
-	global dconf
-	dconf ["wasc_option"]['use_syn_db'] = True
-
-def disable_aquests ():
-	# replace async db with sync db for plan B
-	global dconf
-	dconf ["wasc_option"]['use_syn_conn'] = True
 
 def config_executors (workers = None, zombie_timeout = None):
 	global dconf
@@ -488,21 +475,26 @@ def get_logpath (name):
 	name = name.split ("/", 1)[-1].replace (":", "-").replace (" ", "-")	
 	return os.name == "posix" and '/var/log/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
 
-OPTLIST = None
-SKITAI_LONGOPTS = ["skitai-profile", "skitai-memtrack"]
+rs4.addopt (sname = "d")
+def addopt (lname = None, sname = None):
+	rs4.addopt (lname, sname)
 
 def getopt (sopt = "", lopt = []):		
-	global OPTLIST
-	
 	if "d" in sopt:
 		raise SystemError ("-d is used by skitai, please change")
 	sopt += "d"
-	lopt += SKITAI_LONGOPTS
-	OPTLIST = (sopt, lopt)	
-	argopt = getopt.getopt (sys.argv [1:], sopt, lopt)
-	
+	for each in lopt:
+		rs4.addopt (lopt, None)	
+	for grp in sopt.split (":"):
+		for idx, each in enumerate (grp):
+			if idx == len (each) - 1:
+				rs4.addopt (None, each + ":")						
+			else:
+				rs4.addopt (None, each)
+				
+	opts = rs4.getopt ()
 	opts_ = []	
-	for k, v in argopt [0]:
+	for k, v in opts.items ():
 		if k == "-d":
 			continue
 		elif k.startswith ("---"):
@@ -510,7 +502,7 @@ def getopt (sopt = "", lopt = []):
 		opts_.append ((k, v))
 		
 	aopt_ = [] 
-	for arg in argopt [1]:
+	for arg in opts.argv:
 		if arg in ("start", "stop", "status", "restart"):		
 			continue
 		aopt_.append (arg)
@@ -527,25 +519,15 @@ def hassysopt (name):
 	return "---{}".format (name) in sys.argv
 		
 def get_command ():
-	global OPTLIST
-	
-	if OPTLIST is None:
-		argopt_ = "-d" in sys.argv [1:] and [("-d", None)] or [], sys.argv [1:]
-	else:			
-		argopt_ = getopt.getopt (sys.argv [1:], *OPTLIST)
-	
+	opts = rs4.getopt ()	
 	cmd = None
-	for cmd_ in ("start", "stop", "status", "restart"):
-		if cmd_ in argopt_ [1]:
-			cmd = cmd_
-			break
-	
-	karg = {}
-	for k, v in argopt_ [0]:
-		if k == "-d": 
-			cmd = "start"
-			break		
-	
+	if "d" in opts:
+		cmd = "start"		
+	else:	
+		for cmd_ in ("start", "stop", "status", "restart"):
+			if cmd_ in opts.argv:
+				cmd = cmd_
+				break		
 	return cmd
 
 def sched (interval, func): 
@@ -611,10 +593,6 @@ def run (**conf):
 				
 		def configure (self):
 			conf = self.conf
-
-			if "wasc_option" in dconf:
-				self.config_wasc (**dconf ['wasc_option'])
-
 			self.set_num_worker (conf.get ('workers', 1))
 			if conf.get ("certfile"):
 				self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
@@ -712,7 +690,6 @@ def run (**conf):
 		sys.stderr = open (os.path.join (conf.get ('varpath'), "stderr.engine"), "a")	
 	
 	server = SkitaiServer (conf)
-	
 	# timeout for fast keyboard interrupt on win32	
 	try:
 		try:
