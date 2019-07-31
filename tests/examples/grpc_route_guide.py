@@ -88,7 +88,7 @@ def test (was):
 	stub = was.grpc ("http://127.0.0.1:5000/routeguide.RouteGuide")
 	point = route_guide_pb2.Point (latitude=409146138, longitude=-746188906)
 	feature = stub.GetFeature (point)
-	rs = feature.getwait ()
+	rs = feature.dispatch ()
 	return str (rs.data)
 	
 

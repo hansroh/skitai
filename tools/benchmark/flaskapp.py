@@ -43,7 +43,7 @@ def generate_large_csv():
 def wastest ():
 	s = was.rpc ("http://210.116.122.187:3424/rpc2")
 	s.bladese ("adsense.websearch", "computer", 0, 3)
-	rs = s.getwait ()	
+	rs = s.dispatch ()	
 	return str (rs.data)
 
 @app.route('/', methods=['GET', 'POST'])

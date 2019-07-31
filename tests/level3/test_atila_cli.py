@@ -39,26 +39,26 @@ def test_cli (app, dbpath):
     @app.route ("/pypi")
     def pypi (was):
         req = was.get ("@pypi/project/skitai/")
-        res = req.getwait ()
+        res = req.dispatch ()
         return was.response.api (data = res.text)
     
     @app.route ("/pypi3")
     def pypi3 (was):
         req = was.getjson ("https://pypi.org/project/skitai/")
-        res = req.getwait ()
+        res = req.dispatch ()
         return was.response.api (data = res.text)
     
     @app.route ("/pypi2")
     def pypi2 (was):
         req = was.get ("https://pypi.org/project/skitai/")
-        res = req.getwait ()
+        res = req.dispatch ()
         return was.response.api (data = res.text)
     
     @app.route ("/db")
     def db (was):
         stub = was.backend ("@sqlite")
         req = stub.execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
-        res = req.getwait ()
+        res = req.dispatch ()
         return was.response.api (data = res.data)
     
     @app.route ('/jwt')
@@ -70,7 +70,7 @@ def test_cli (app, dbpath):
     def db2 (was):
         stub = was.backend ("@sqlite")
         req = stub.select ("stocks").filter (symbol = 'RHAT').execute ()
-        res = req.getwait ()
+        res = req.dispatch ()
         return was.response.api (data = res.data)
     
     @app.maintain
