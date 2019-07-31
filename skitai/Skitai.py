@@ -49,7 +49,7 @@ class Loader:
 		self.ssl = False
 		self.ctx = None
 		self._exit_code = None
-		self.wasc_args = ()
+		self.wasc_kargs = {}
 		self._fifo_switched = False
 		self.config_logger (self.logpath)
 		self.WAS_initialize ()
