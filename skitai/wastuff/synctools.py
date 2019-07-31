@@ -76,13 +76,13 @@ class ProtoCall (task.Task):
     
     def get_endpoint (self, uri):
         if self.cluster:
-            endpoint = self.cluster.get_endpoints ()            
+            endpoints = self.cluster.get_endpoints ()            
         else:
             parts = urlparse (uri)
             loc = "{}://{}".format (parts [0], parts [1])
-            endpoint = webtest.Target (loc)
+            endpoints = [webtest.Target (loc)]
             uri = urlunparse (("", "") + parts [2:])
-        return endpoint, uri
+        return random.choice (endpoints), uri
             
     def create_stub (self):
         endpoint, uri = self.get_endpoint (self.uri)

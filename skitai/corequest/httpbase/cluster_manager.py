@@ -410,9 +410,8 @@ class ClusterManager:
             ep = "{}://{}".format (scheme, node [0])            
             if not (scheme == "https" and port == 443 or scheme == "http" and port == 80):
                 ep += ":{}".format (port)
-            endpoints.append (ep)
-        endpoint = random.choice (endpoints) [0]
-        return webtest.Target (endpoint)        
+            endpoints.append (webtest.Target (ep))
+        return endpoints
             
             
 if __name__ == "__main__":
