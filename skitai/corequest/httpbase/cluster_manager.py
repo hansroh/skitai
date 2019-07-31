@@ -5,6 +5,7 @@ import time
 import re
 import copy
 import random
+from rs4 import webtest
 from operator import itemgetter
 import math
 from urllib.parse import unquote
@@ -410,7 +411,8 @@ class ClusterManager:
             if not (scheme == "https" and port == 443 or scheme == "http" and port == 80):
                 ep += ":{}".format (port)
             endpoints.append (ep)
-        return endpoints   
+        endpoint = random.choice (endpoints) [0]
+        return webtest.Target (endpoint)        
             
             
 if __name__ == "__main__":
