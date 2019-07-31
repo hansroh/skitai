@@ -79,7 +79,7 @@ WS_OPCODE_PONG = 0xa
 class _WASPool:
 	def __init__ (self):
 		self.__wasc = None
-		self.__args = ()
+		self.__kargs = ()
 		self.__p = {}
 		
 	def __get_id (self):
@@ -104,9 +104,9 @@ class _WASPool:
 		for _id in self.__p:
 			delattr (self.__p [_id], attr, value)
 	
-	def _start (self, wasc, *args):
+	def _start (self, wasc, **kargs):
 		self.__wasc = wasc
-		self.__args = args		
+		self.__kargs = kargs		
 	
 	def _started (self):
 		return self.__wasc
@@ -123,17 +123,17 @@ class _WASPool:
 		try:
 			return self.__p [_id]
 		except KeyError:
-			_was = self.__wasc (*self.__args)
+			_was = self.__wasc (**self.__kargs)
 			self.__p [_id] = _was
 			return _was
 
 
 was = _WASPool ()
-def start_was (wasc, *args):
+def start_was (wasc, **kargs):
 	global was
 	
 	detect_atila ()
-	was._start (wasc, *args)
+	was._start (wasc, **kargs)
 
 def detect_atila ():
 	# for avoid recursive importing
@@ -172,6 +172,7 @@ dconf = dict (
 	clusters = {}, 
 	max_ages = {}, 
 	log_off = [], 
+	wasc_option = {},
 	dns_protocol = 'tcp', 
 	models_keys = set ()	
 )
@@ -270,10 +271,15 @@ def set_keep_alive (timeout):
 	global dconf
 	dconf ["keep_alive"] = timeout
 
-def use_syn_db ():
+def disable_adbi ():
 	# replace async db with sync db for plan B
 	global dconf
-	dconf ["was_syn_db"] = True
+	dconf ["wasc_option"]['use_syn_db'] = True
+
+def disable_aquests ():
+	# replace async db with sync db for plan B
+	global dconf
+	dconf ["wasc_option"]['use_syn_conn'] = True
 
 def config_executors (workers = None, zombie_timeout = None):
 	global dconf
@@ -606,8 +612,8 @@ def run (**conf):
 		def configure (self):
 			conf = self.conf
 
-			if "was_syn_db" in dconf:
-				self.config_wasc (True, True)
+			if "wasc_option" in dconf:
+				self.config_wasc (**dconf ['wasc_option'])
 
 			self.set_num_worker (conf.get ('workers', 1))
 			if conf.get ("certfile"):

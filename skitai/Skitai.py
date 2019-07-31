@@ -97,10 +97,10 @@ class Loader:
 		http2.MAX_HTTP2_CONCURRENT_STREAMS = 1
 		request_handler.RequestHandler.FORCE_HTTP_11 = True		
 		self.app_cycle ('mounted')
-		start_was (self.wasc, *self.wasc_args)
-	
-	def config_wasc (self, *args):
-		self.wasc_args = args
+		start_was (self.wasc, **self.wasc_kargs)
+		
+	def config_wasc (self, **kargs):
+		self.wasc_kargs = kargs
 
 	def config_dns (self, prefer_protocol = "tcp"):
 		adns.init (self.wasc.logger.get ("server"), prefer_protocol = prefer_protocol)

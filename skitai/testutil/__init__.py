@@ -135,10 +135,10 @@ def setup_was (wasc):
 
 wasc = None
 def activate ():
-    from ..wsgiappservice import SyncWAS
+    from ..wsgiappservice import WAS
     from atila import was as atila_was
     
-    class WAS (atila_was.WAS, SyncWAS):
+    class WAS (atila_was.WAS, WAS):
         numthreads = 1 
         _luwatcher = semaps.TestSemaps ()
     
@@ -147,7 +147,7 @@ def activate ():
         return
     
     wasc = setup_was (WAS)
-    skitai.start_was (wasc)   
+    skitai.start_was (wasc, enable_requests = True, use_syn_db = True, use_syn_conn = True)   
     wasc._luwatcher.add (skitai.dconf ["models_keys"])
     lifetime.init (10.0, wasc.logger.get ("server"))    
     
