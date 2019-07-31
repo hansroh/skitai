@@ -181,3 +181,8 @@ class AsyncService:
     def transaction (self, clustername):
         cluster = self.__detect_cluster (clustername) [0]
         return cluster.open2 ()
+
+    def sdb (self, clustername):
+        # for tesing or plan B
+        cluster = self.__detect_cluster (clustername) [0]
+        return cluster.open3 ()
