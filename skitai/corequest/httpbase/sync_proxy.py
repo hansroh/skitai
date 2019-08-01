@@ -114,7 +114,8 @@ class ProtoCall (task.Task):
                 self.expt = sys.exc_info ()
                 self.result = Result (1, self.expt)
             else:
-                self.result = Result (3, resp)        
+                self.result = Result (3, resp)               
+            syncon.set_active (False)    
         self.result.meta = meta or {}
         callback and callback (self.result)
     

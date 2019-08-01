@@ -71,7 +71,7 @@ class ClusterManager:
         self._name = name
         self.access = access
         self._use_ssl = ctype in (PROTO_HTTPS, PROTO_SYN_HTTPS) and True or False
-        self.ctype = ctype
+        self.ctype = ctype        
         self.set_class () 
         self._max_conns = max_conns       
         self._proto = None
@@ -102,9 +102,9 @@ class ClusterManager:
     def set_class (self):
         if self.use_syn_connection or self.ctype in (PROTO_SYN_HTTP, PROTO_SYN_HTTPS):
             if self._use_ssl:
-                self._conn_class = synconnect.SynConnect  
-            else:
                 self._conn_class = synconnect.SynSSLConnect      
+            else:
+                self._conn_class = synconnect.SynConnect  
         else:    
             if self._use_ssl:
                 self._conn_class = asynconnect.AsynSSLConnect    
@@ -201,11 +201,11 @@ class ClusterManager:
         try: 
             host, port = netloc.split (":", 1)
             server = (host, int (port))
-        except ValueError: 
+        except ValueError:             
             if not self._use_ssl:
                 server    = (netloc, 80)            
             else:    
-                server    = (netloc, 443)
+                server    = (netloc, 443)        
         asyncon = self._conn_class (server, self.lock, self.logger)
         asyncon.set_auth (auth)
         self.backend and asyncon.set_backend (self.backend_keep_alive)
