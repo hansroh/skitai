@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.18.4"
+__version__ = "0.28.18.5"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -21,7 +21,7 @@ from functools import wraps
 import copy
 import rs4
 
-rs4.addopts ("-d", "---production", "---smtpda", "---port", "---profile", "---gc")
+rs4.addopts ("-d", "---production", "---smtpda", "---port", "---profile", "---gc", "---memtrack")
 
 if "---production" in sys.argv:
 	os.environ ["SKITAI_ENV"] = "PRODUCTION"
