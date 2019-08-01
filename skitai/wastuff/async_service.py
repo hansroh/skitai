@@ -39,13 +39,13 @@ class AsyncService:
         DB_PGSQL: Template (DB_PGSQL),
         DB_SQLITE3: Template (DB_SQLITE3),
     }
-    def __init__ (self, enable_requests = True, use_syn_db = False, use_syn_conn = False):
+    def __init__ (self, enable_requests = True, **options):
         if enable_requests:
             for method in self.METHODS:
                 setattr (self, method, Command (method, self._call))        
         # used for unittest only, no pooling then slow
-        self._use_syn_db = use_syn_db
-        self._use_syn_conn = use_syn_conn        
+        self._use_syn_db = options.get ('use_syn_db', False)
+        self._use_syn_conn = options.get ('use_syn_conn', False)
         
     @classmethod
     def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0, access = [], max_conns = 100):

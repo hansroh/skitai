@@ -80,6 +80,7 @@ class _WASPool:
 	def __init__ (self):
 		self.__wasc = None
 		self.__p = {}
+		self.__kargs = {}
 		
 	def __get_id (self):
 		return id (threading.currentThread ())
@@ -103,8 +104,9 @@ class _WASPool:
 		for _id in self.__p:
 			delattr (self.__p [_id], attr, value)
 	
-	def _start (self, wasc):
+	def _start (self, wasc, **kargs):
 		self.__wasc = wasc
+		self.__kargs = kargs
 	
 	def _started (self):
 		return self.__wasc
@@ -121,17 +123,17 @@ class _WASPool:
 		try:
 			return self.__p [_id]
 		except KeyError:
-			_was = self.__wasc ()
+			_was = self.__wasc (**self.__kargs)
 			self.__p [_id] = _was
 			return _was
 
 
 was = _WASPool ()
-def start_was (wasc):
+def start_was (wasc, **kargs):
 	global was
 	
 	detect_atila ()
-	was._start (wasc)
+	was._start (wasc, **kargs)
 
 def detect_atila ():
 	# for avoid recursive importing
@@ -171,8 +173,17 @@ dconf = dict (
 	max_ages = {}, 
 	log_off = [], 
 	dns_protocol = 'tcp', 
-	models_keys = set ()	
+	models_keys = set (),
+	wasc_options = {},
 )
+
+def disable_adbi ():
+	global dconf
+	dconf ['wasc_options']['use_syn_db'] = True
+
+def disable_aquests ():
+	global dconf
+	dconf ['wasc_options']['use_syn_conn'] = True
 
 class Preference (AttrDict):
 	def __init__ (self):
@@ -476,25 +487,38 @@ def get_logpath (name):
 	return os.name == "posix" and '/var/log/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
 
 rs4.addopt (sname = "d")
-def addopt (lname = None, sname = None):
-	rs4.addopt (lname, sname)
+options = rs4.ArgumentOptions ()
 
-def getopt (sopt = "", lopt = []):		
+def addopt (lname = None, sname = None):
+	import getopt
+
+	global options	
+	rs4.addopt (lname, sname)
+	try:
+		options = rs4.getopt ()
+	except getopt.GetoptError:
+		# arguments are missing for now
+		pass	
+	
+def getopt (sopt = "", lopt = []):	
+	global options
+
 	if "d" in sopt:
-		raise SystemError ("-d is used by skitai, please change")
-	sopt += "d"
+		raise SystemError ("-d is used by skitai, please change")	
 	for each in lopt:
-		rs4.addopt (lopt, None)	
-	for grp in sopt.split (":"):
-		for idx, each in enumerate (grp):
-			if idx == len (each) - 1:
-				rs4.addopt (None, each + ":")						
+		rs4.addopt (each, None)	
+
+	grps = sopt.split (":")
+	for idx, grp in enumerate (grps):
+		for idx2, each in enumerate (grp):
+			if idx2 == len (grp) - 1 and len (grps) > idx + 1:
+				rs4.addopt (None, each + ":")
 			else:
 				rs4.addopt (None, each)
 				
-	opts = rs4.getopt ()
+	options = rs4.getopt ()
 	opts_ = []	
-	for k, v in opts.items ():
+	for k, v in options.items ():
 		if k == "-d":
 			continue
 		elif k.startswith ("---"):
@@ -502,7 +526,7 @@ def getopt (sopt = "", lopt = []):
 		opts_.append ((k, v))
 		
 	aopt_ = [] 
-	for arg in opts.argv:
+	for arg in options.argv:
 		if arg in ("start", "stop", "status", "restart"):		
 			continue
 		aopt_.append (arg)
@@ -597,6 +621,7 @@ def run (**conf):
 			if conf.get ("certfile"):
 				self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
 			
+			self.config_wasc (**dconf ['wasc_options'])
 			self.config_dns (dconf ['dns_protocol'])
 			if conf.get ("cachefs_diskmax", 0) and not conf.get ("cachefs_dir"):
 				conf ["cachefs_dir"] = os.path.join (self.varpath, "cachefs")
