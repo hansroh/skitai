@@ -185,6 +185,17 @@ def disable_aquests ():
 	global dconf
 	dconf ['wasc_options']['use_syn_conn'] = True
 
+def manual_gc (interval = 60.0):
+	lifetime.manual_gc (interval)	
+	
+def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20):
+	from .http_server import http_server
+	from .https_server import https_server	
+	
+	http_server.critical_point_cpu_overload = https_server.critical_point_cpu_overload = cpu_percent
+	http_server.critical_point_continuous = https_server.critical_point_continuous = continuous
+	http_server.maintern_interval = https_server.maintern_interval = interval
+
 class Preference (AttrDict):
 	def __init__ (self):
 		super (Preference, self).__init__ (self)
@@ -237,17 +248,6 @@ def set_service (service_class):
 	global Win32Service	
 	Win32Service = service_class
 
-def manual_gc (interval = 60.0):
-	lifetime.manual_gc (interval)	
-	
-def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20):
-	from .http_server import http_server
-	from .https_server import https_server	
-	
-	http_server.critical_point_cpu_overload = https_server.critical_point_cpu_overload = cpu_percent
-	http_server.critical_point_continuous = https_server.critical_point_continuous = continuous
-	http_server.maintern_interval = https_server.maintern_interval = interval
-	
 def log_off (*path):		
 	global dconf
 	for each in path:
@@ -488,18 +488,17 @@ def get_logpath (name):
 
 rs4.addopt (sname = "d")
 options = rs4.ArgumentOptions ()
+def add_options (*lnames):
+	global options
 
-def addopt (lname = None, sname = None):
-	import getopt
+	for lname in lnames:
+		assert lname and lname [0] == "-"
+		if lname.startswith ("--"):
+			rs4.addopt (lname [2:])
+		else:
+			rs4.addopt (None, lname [1:])
+	options = rs4.getopt ()
 
-	global options	
-	rs4.addopt (lname, sname)
-	try:
-		options = rs4.getopt ()
-	except getopt.GetoptError:
-		# arguments are missing for now
-		pass	
-	
 def getopt (sopt = "", lopt = []):	
 	global options
 
@@ -623,6 +622,7 @@ def run (**conf):
 			
 			self.config_wasc (**dconf ['wasc_options'])
 			self.config_dns (dconf ['dns_protocol'])
+
 			if conf.get ("cachefs_diskmax", 0) and not conf.get ("cachefs_dir"):
 				conf ["cachefs_dir"] = os.path.join (self.varpath, "cachefs")
 
