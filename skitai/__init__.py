@@ -21,6 +21,8 @@ from functools import wraps
 import copy
 import rs4
 
+rs4.addopts ("-d", "---production", "---smtpda", "---port", "---profile", "---gc")
+
 if "---production" in sys.argv:
 	os.environ ["SKITAI_ENV"] = "PRODUCTION"
 
@@ -486,13 +488,13 @@ def get_logpath (name):
 	name = name.split ("/", 1)[-1].replace (":", "-").replace (" ", "-")	
 	return os.name == "posix" and '/var/log/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
 
-rs4.addopt (sname = "d")
-options = rs4.ArgumentOptions ()
+options = None
 def add_options (*lnames):
 	global options
 
 	for lname in lnames:
-		assert lname and lname [0] == "-"
+		assert lname and lname [0] == "-", "Aurgument should start with '-' or '--'"
+		assert lname != "-d" and lname != "-d=", "Aurgument -d is in ussed"
 		if lname.startswith ("--"):
 			rs4.addopt (lname [2:])
 		else:
@@ -615,6 +617,11 @@ def run (**conf):
 			self.flock.unlock ("signal")
 				
 		def configure (self):
+			global options
+			
+			if options is None:
+				options = rs4.getopt ()
+
 			conf = self.conf
 			self.set_num_worker (conf.get ('workers', 1))
 			if conf.get ("certfile"):
@@ -637,11 +644,7 @@ def run (**conf):
 					conf.get ('fws_address', '0.0.0.0'), conf.get ('fws_port', 80), conf.get ('fws_to', 443)
 				)
 			
-			if "---port" in sys.argv:
-				port = int (sys.argv [sys.argv.index ("---port") + 1])
-			else:
-				port = conf.get ('port', 5000)
-								 	
+			port = int (options.get ('---port') or conf.get ('port', 5000))
 			self.config_webserver (
 				port, conf.get ('address', '0.0.0.0'),
 				NAME, conf.get ("certfile") is not None,
