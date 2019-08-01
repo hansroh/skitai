@@ -9,9 +9,11 @@ class ClusterManager (cluster_manager.ClusterManager):
     backend = True
     class_map = {
         DB_SQLITE3: synsqlite3.SynConnect,
+        DB_SYN_SQLITE3: synsqlite3.SynConnect,
         DB_PGSQL: asynpsycopg2.AsynConnect,
+        DB_SYN_PGSQL: syndbi.Postgres,
         DB_REDIS: asynredis.AsynConnect,
-        DB_MONGODB: asynmongo.AsynConnect
+        DB_MONGODB: asynmongo.AsynConnect,
     }
     def __init__ (self, name, cluster, dbtype = DB_PGSQL, access = [], max_conns = 200, logger = None):
         self.dbtype = dbtype
