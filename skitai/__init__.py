@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.18.5"
+__version__ = "0.28.18.6"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -21,7 +21,7 @@ from functools import wraps
 import copy
 import rs4
 
-rs4.addopts ("-d", "---production", "---smtpda", "---port", "---profile", "---gc", "---memtrack")
+rs4.add_options ("-d", "---production", "---smtpda", "---port", "---profile", "---gc", "---memtrack")
 
 if "---production" in sys.argv:
 	os.environ ["SKITAI_ENV"] = "PRODUCTION"
@@ -496,10 +496,10 @@ def add_options (*lnames):
 		assert lname and lname [0] == "-", "Aurgument should start with '-' or '--'"
 		assert lname != "-d" and lname != "-d=", "Aurgument -d is in ussed"
 		if lname.startswith ("--"):
-			rs4.addopt (lname [2:])
+			rs4.add_option (lname [2:])
 		else:
-			rs4.addopt (None, lname [1:])
-	options = rs4.getopt ()
+			rs4.add_option (None, lname [1:])
+	options = rs4.options ()
 
 def getopt (sopt = "", lopt = []):	
 	global options
@@ -507,17 +507,17 @@ def getopt (sopt = "", lopt = []):
 	if "d" in sopt:
 		raise SystemError ("-d is used by skitai, please change")	
 	for each in lopt:
-		rs4.addopt (each, None)	
+		rs4.add_option (each, None)	
 
 	grps = sopt.split (":")
 	for idx, grp in enumerate (grps):
 		for idx2, each in enumerate (grp):
 			if idx2 == len (grp) - 1 and len (grps) > idx + 1:
-				rs4.addopt (None, each + ":")
+				rs4.add_option (None, each + ":")
 			else:
-				rs4.addopt (None, each)
+				rs4.add_option (None, each)
 				
-	options = rs4.getopt ()
+	options = rs4.options ()
 	opts_ = []	
 	for k, v in options.items ():
 		if k == "-d":
@@ -544,7 +544,7 @@ def hassysopt (name):
 	return "---{}".format (name) in sys.argv
 		
 def get_command ():
-	opts = rs4.getopt ()	
+	opts = rs4.options ()	
 	cmd = None
 	if "d" in opts:
 		cmd = "start"		
