@@ -1,8 +1,6 @@
 # testing purpose WAS sync service
 
-from ..corequest.httpbase import task
-from ..corequest.dbi import task as dtask 
-from skitai import DB_SQLITE3, DB_PGSQL, DB_REDIS, DB_MONGODB
+from . import task
 from rs4 import webtest
 from rs4.cbutil import tuple_cb
 import random
@@ -157,46 +155,3 @@ class ProtoCall (task.Task):
     def one (self, timeout = 10, *args, **karg):
         self._or_throw ()
         return self.result.one ()    
-    
-class DBCall (ProtoCall):
-    # NOTE: DB_PGSQL and DB_SQLITE3 use sqlphile open3 class
-    def __init__ (self, cluster, *args, **kargs):
-        self.cluster = cluster
-        self.result = None
-        self.args, self.kargs = args, kargs
-        self.expt = None        
-
-    def _or_throw (self):
-        if self.expt:
-            raise self.expt [1]
-        return self.result
-
-    def _build_request (self, method, param):
-        self.handle_request (method, param, *self.args, **self.kargs)
-        
-    def  handle_request (self, method, param, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
-        from ..corequest.dbi import cluster_manager
-        from ..corequest.dbi import endpoints
-        
-        self._mapreduce = mapreduce
-        
-        assert dbtype is None, "please, alias {}".format (server)
-        if self.cluster:
-            conns = self.cluster.get_endpoints ()
-        else:            
-            conns = endpoints.make_endpoints (dbtype, [server, dbname, auth])
-        conn = random.choice (conns)
-
-        try:
-            resp = getattr (conn, method) (*param)
-        except:
-            self.expt = sys.exc_info ()
-            self.result = Result (1,  self.expt)            
-            self.result.status_code, self.result.reason = 500, "Exception Occured"            
-        else:
-            self.result = Result (3, resp)
-            self.result.status_code, self.result.reason = 200, "OK"
-            
-        self.result.meta = meta or {}    
-        endpoints.restore (conns)
-        callback and callback (self.result)

@@ -1,11 +1,10 @@
 import os, sys
 import threading
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB, DB_SYN_PGSQL, PROTO_SYN_HTTP, PROTO_SYN_HTTPS
-from ..corequest.httpbase import cluster_manager, task
+from ..corequest.httpbase import cluster_manager, task, sync_proxy
 from ..corequest.dbi import cluster_manager as dcluster_manager, task as dtask
 from sqlphile import Template
 from sqlphile import pg2, db3
-from . import synctools
 
 def is_main_thread ():    
     return isinstance (threading.currentThread (), threading._MainThread)
@@ -163,9 +162,9 @@ class AsyncService:
     def _create_rest_call (self, cluster, *args, **kargs):
         if cluster is None or cluster.use_syn_connection or cluster.ctype in (PROTO_SYN_HTTP, PROTO_SYN_HTTPS):
             if args [2].endswith ("rpc"):            
-                return synctools.ProtoCall (cluster, *args, **kargs).create_stub ()
+                return sync_proxy.ProtoCall (cluster, *args, **kargs).create_stub ()
             else:    
-                return synctools.ProtoCall (cluster, *args, **kargs)
+                return sync_proxy.ProtoCall (cluster, *args, **kargs)
         else:                           
             return cluster.Server (*args, **kargs)
 
