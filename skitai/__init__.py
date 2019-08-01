@@ -620,7 +620,7 @@ def run (**conf):
 			global options
 			
 			if options is None:
-				options = rs4.getopt ()
+				options = rs4.options ()
 
 			conf = self.conf
 			self.set_num_worker (conf.get ('workers', 1))
