@@ -30,9 +30,10 @@ else:
             return Result (3, RPCResponse (response))
      
 class Result:
-    def __init__ (self, status, response = None):
+    def __init__ (self, status, response = None, expt = None):
         self.status = status
-        self.__response = response        
+        self.__response = response  
+        self.__expt = expt      
     
     def __getattr__ (self, attr):
         return getattr (self.__response, attr)
@@ -50,8 +51,8 @@ class Result:
         return self.__response    
     
     def reraise (self):
-        if self.status !=3 and self.__response:            
-            raise self.__response [1]
+        if self.status !=3 and self.__expt:            
+            raise self.__expt [1]
 
     def fetch (self, *args, **kargs):
         self.reraise ()
@@ -85,8 +86,11 @@ class ProtoCall (task.Task):
                 host = parts [1]
             else:
                 port = int (port)             
-            syncon = synconnect.SynConnect ((host, port))
-            uri = urlunparse (("", "") + parts [2:])
+            if parts [0] == "http":
+                syncon = synconnect.SynConnect ((host, port))
+            else:
+                syncon = synconnect.SynSSLConnect ((host, port))    
+            uri = urlunparse (("", "") + parts [2:])            
         syncon.connect ()
         return syncon, uri
             
@@ -107,12 +111,12 @@ class ProtoCall (task.Task):
         syncon, uri = self.get_syncon (uri)
         syncon.set_auth (auth)
         with syncon.webtest as cli:
-            req_func = getattr (cli, reqtype)
+            req_func = getattr (cli, reqtype)            
             try:
                 resp = req_func (uri, headers = headers, auth = auth)                
             except:                
                 self.expt = sys.exc_info ()
-                self.result = Result (1, self.expt)
+                self.result = Result (1, expt = self.expt)
             else:
                 self.result = Result (3, resp)               
             syncon.set_active (False)    
