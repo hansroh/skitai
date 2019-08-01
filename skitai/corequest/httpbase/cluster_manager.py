@@ -1,5 +1,5 @@
 import threading
-from aquests.client import asynconnect
+from aquests.client import asynconnect, synconnect
 from aquests.client.socketpool import PROTO_CONCURRENT_STREAMS, select_channel
 import time
 import re
@@ -9,6 +9,7 @@ from rs4 import webtest
 from operator import itemgetter
 import math
 from urllib.parse import unquote
+from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_SYN_HTTP, PROTO_SYN_HTTPS
 
 class TooManyConnections (Exception):
     pass
@@ -62,13 +63,16 @@ class ClusterManager:
     # I cannot sure this is faster
     backend = True
     backend_keep_alive = 10
-    
-    def __init__ (self, name, cluster, ssl = 0, access = None, max_conns = 1000, logger = None):
+    use_syn_connection = False
+
+    def __init__ (self, name, cluster, ctype = PROTO_HTTP, access = None, max_conns = 1000, logger = None):
         self.logger = logger
         self.lock = threading.RLock ()
         self._name = name
         self.access = access
-        self.set_ssl (ssl) 
+        self._use_ssl = ctype in (PROTO_HTTPS, PROTO_SYN_HTTPS) and True or False
+        self.ctype = ctype
+        self.set_class () 
         self._max_conns = max_conns       
         self._proto = None
         self._havedeadnode = 0
@@ -95,12 +99,17 @@ class ClusterManager:
     def is_ssl_cluster (self):
         return self._use_ssl
         
-    def set_ssl (self, flag):
-        self._use_ssl = flag
-        if flag:
-            self._conn_class = asynconnect.AsynSSLConnect    
-        else:
-            self._conn_class = asynconnect.AsynConnect
+    def set_class (self):
+        if self.use_syn_connection or self.ctype in (PROTO_SYN_HTTP, PROTO_SYN_HTTPS):
+            if self._use_ssl:
+                self._conn_class = synconnect.SynConnect  
+            else:
+                self._conn_class = synconnect.SynSSLConnect      
+        else:    
+            if self._use_ssl:
+                self._conn_class = asynconnect.AsynSSLConnect    
+            else:
+                self._conn_class = asynconnect.AsynConnect
     
     def status (self):
         info = {}
@@ -121,7 +130,7 @@ class ClusterManager:
                                 "request_count": asyncon.get_request_count (),
                                 "event_time": time.asctime (time.localtime (asyncon.event_time)),
                                 "zombie_timeout": asyncon.zombie_timeout,    
-                                "keep_alive": asyncon.keep_alive,    
+                                "keep_alive": asyncon.keep_alive,
                             }
                         if hasattr (asyncon, "get_history"):
                             conn ["history"] = asyncon.get_history ()

@@ -10,6 +10,7 @@ from urllib.parse import urlparse, urlunparse
 from skitai import exceptions
 import xmlrpc.client
 import sys
+from aquests.client import synconnect
 
 class RPCResponse:
     def __init__ (self, val):
@@ -65,7 +66,7 @@ class Result:
         elif len (self.data) != 1:
             raise exceptions.HTTPError ("409 Conflict")
         return self.data [0]
-            
+
 
 class ProtoCall (task.Task):
     def __init__ (self, cluster, *args, **kargs):
@@ -74,36 +75,44 @@ class ProtoCall (task.Task):
         self.expt = None
         self.handle_request (*args, **kargs)       
     
-    def get_endpoint (self, uri):
+    def get_syncon (self, uri):
         if self.cluster:
-            endpoints = self.cluster.get_endpoints ()            
+            syncon = self.cluster.get ()
         else:
             parts = urlparse (uri)
-            loc = "{}://{}".format (parts [0], parts [1])
-            endpoints = [webtest.Target (loc)]
+            try:
+                host, port = parts [1].split (":")
+            except ValueError:
+                port = parts [0] == "http" and 80 or 443
+                host = parts [1]
+            else:
+                port = int (port)             
+            syncon = synconnect.SynConnect ((host, port))
             uri = urlunparse (("", "") + parts [2:])
-        return random.choice (endpoints), uri
+        syncon.connect ()
+        return syncon, uri
             
     def create_stub (self):
-        endpoint, uri = self.get_endpoint (self.uri)
-        with endpoint as cli:
+        syncon, uri = self.get_syncon (self.uri)
+        with syncon.webtest as cli:
             if self.reqtype == "jsonrpc":
                 proxy_class = JSONRPCServerProxy
             else:
                 proxy_class = XMLRPCServerProxy
             return getattr (cli, self.reqtype) (uri, proxy_class)
                 
-    def  handle_request (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
+    def handle_request (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
         self._mapreduce = mapreduce
         self.uri = uri
         self.reqtype = reqtype
         
-        endpoint, uri = self.get_endpoint (uri)
-        with endpoint as cli:
+        syncon, uri = self.get_syncon (uri)
+        syncon.set_auth (auth)
+        with syncon.webtest as cli:
             req_func = getattr (cli, reqtype)
             try:
-                resp = req_func (uri, headers = headers, auth = auth)                                
-            except:
+                resp = req_func (uri, headers = headers, auth = auth)                
+            except:                
                 self.expt = sys.exc_info ()
                 self.result = Result (1, self.expt)
             else:

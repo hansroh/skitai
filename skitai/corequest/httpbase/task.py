@@ -369,7 +369,7 @@ class Task (corequest):
                         request = class_ (self._uri, method, *args)
                 requests += self._handle_request (request, rs, asyncon, handler)
                     
-            except:
+            except:                
                 self._logger ("Request Creating Failed", "fail")
                 self._logger.trace ()
                 rs.request_failed ()

@@ -49,8 +49,8 @@ def server ():
 
 @pytest.fixture (scope = "session")
 def wasc ():
-    testutil.activate ()
-    return testutil.wasc
+    testutil.activate (make_sync = True)
+    return testutil.wasc    
 
 @pytest.fixture (scope = "session")
 def async_wasc ():

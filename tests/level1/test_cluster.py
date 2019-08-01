@@ -2,6 +2,7 @@ import skitai
 import conftest
 import sqlite3
 from aquests.dbapi.synsqlite3 import SynConnect
+from aquests.client.asynconnect import AsynConnect
 from skitai.corequest.httpbase import task
 
 def test_cluster_manager (wasc): 
@@ -19,6 +20,9 @@ def test_cluster_manager (wasc):
     assert cluster.parse_member ("asda:1231@127.0.0.1:5432/mydb") == (('asda', '1231'), '127.0.0.1:5432/mydb')
 
 def test_task (wasc):
-    cluster = wasc.clusters_for_distcall ["example"]
+    cluster = wasc.clusters_for_distcall ["example"]    
+    origin = cluster._conn_class
+    cluster._conn_class = AsynConnect    
     cdc  = task.Task (cluster, "/index")
+    cluster._conn_class = origin
     

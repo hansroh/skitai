@@ -46,6 +46,8 @@ DEFAULT_NETWORK_TIMEOUT = 30
 
 PROTO_HTTP = "http"
 PROTO_HTTPS = "https"
+PROTO_SYN_HTTP = "http_syn"
+PROTO_SYN_HTTPS = "https_syn"
 PROTO_WS = "ws"
 PROTO_WSS = "wss"
 DJANGO = "django"
@@ -182,9 +184,9 @@ dconf = dict (
 	wasc_options = {},
 )
 
-def disable_adbi ():
+def add_wasc_option (k, v):
 	global dconf
-	dconf ['wasc_options']['use_syn_db'] = True
+	dconf ['wasc_options'][k] = v
 
 def disable_aquests ():
 	global dconf

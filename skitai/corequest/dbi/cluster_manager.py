@@ -1,5 +1,5 @@
 from ..httpbase import cluster_manager
-from aquests.dbapi import asynpsycopg2, synsqlite3, asynredis, asynmongo, syndbi
+from aquests.dbapi import asynpsycopg2, synsqlite3, asynredis, asynmongo, syndbi, dbpool
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB, DB_SYN_PGSQL, DB_SYN_REDIS, DB_SYN_MONGODB
 from . import endpoints
 from sqlphile import pg2, db3
@@ -7,15 +7,7 @@ from sqlphile import pg2, db3
 class ClusterManager (cluster_manager.ClusterManager):
     backend_keep_alive = 10
     backend = True
-    class_map = {
-        DB_SQLITE3: synsqlite3.SynConnect,
-        DB_PGSQL: asynpsycopg2.AsynConnect,        
-        DB_REDIS: asynredis.AsynConnect,
-        DB_MONGODB: asynmongo.AsynConnect,
-        DB_SYN_PGSQL: syndbi.Postgres,
-        DB_SYN_REDIS: syndbi.Redis,
-        DB_SYN_MONGODB: syndbi.MongoDB,
-    }
+    class_map = dbpool.DBPool.class_map
     def __init__ (self, name, cluster, dbtype = DB_PGSQL, access = [], max_conns = 200, logger = None):
         self.dbtype = dbtype
         self._cache = []

@@ -16,7 +16,7 @@ from ..handlers import proxy_handler
 import inspect
 import os
 from ..corequest.dbi import task as dtask
-from ..corequest.httpbase import task
+from ..corequest.httpbase import task, cluster_manager
 from aquests.client import socketpool
 from aquests.dbapi import dbpool
 from aquests import lifetime
@@ -25,7 +25,7 @@ from aquests.client.asynconnect import AsynConnect
 from aquests.dbapi.dbconnect import DBConnect
 import asyncore
 from .launcher  import launch
-from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS
+from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS, DB_SYN_PGSQL, DB_SYN_MONGODB, DB_SYN_REDIS
 from ..wastuff import semaps
 from ..wastuff import executors
 
@@ -134,7 +134,7 @@ def setup_was (wasc):
     return wasc
 
 wasc = None
-def activate ():
+def activate (make_sync = True):
     from ..wsgiappservice import WAS
     from atila import was as atila_was
     
@@ -146,8 +146,17 @@ def activate ():
     if wasc is not None:
         return
     
+    # convert async to sync
+    if make_sync:
+        cluster_manager.ClusterManager.use_syn_connection = True
+        socketpool.SocketPool.use_syn_connection = True
+        class_map = dbpool.DBPool.class_map
+        class_map [DB_PGSQL] = class_map [DB_SYN_PGSQL]
+        class_map [DB_REDIS] = class_map [DB_SYN_REDIS]
+        class_map [DB_MONGODB] = class_map [DB_SYN_MONGODB]
+    
     wasc = setup_was (WAS)
-    skitai.start_was (wasc, enable_requests = True, use_syn_db = True, use_syn_conn = True)   
+    skitai.start_was (wasc, enable_requests = True)   
     wasc._luwatcher.add (skitai.dconf ["models_keys"])
     lifetime.init (10.0, wasc.logger.get ("server"))    
     

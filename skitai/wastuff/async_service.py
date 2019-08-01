@@ -1,6 +1,6 @@
 import os, sys
 import threading
-from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB, DB_SYN_PGSQL
+from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB, DB_SYN_PGSQL, PROTO_SYN_HTTP, PROTO_SYN_HTTPS
 from ..corequest.httpbase import cluster_manager, task
 from ..corequest.dbi import cluster_manager as dcluster_manager, task as dtask
 from sqlphile import Template
@@ -44,9 +44,6 @@ class AsyncService:
         if enable_requests:
             for method in self.METHODS:
                 setattr (self, method, Command (method, self._call))        
-        # used for unittest only, no pooling then slow
-        self._use_syn_db = options.get ('use_syn_db', False)
-        self._use_syn_conn = options.get ('use_syn_conn', False)
         
     @classmethod
     def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0, access = [], max_conns = 100):
@@ -62,7 +59,7 @@ class AsyncService:
             cluster = dcluster_manager.ClusterManager (clustername, clusterlist, "*" + clustertype, access, max_conns, cls.logger.get ("server"))
             cls.clusters_for_distcall [clustername] = dtask.TaskCreator (cluster, cls.logger.get ("server"))
         else:
-            cluster = cluster_manager.ClusterManager (clustername, clusterlist, ssl, access, max_conns, cls.logger.get ("server"))
+            cluster = cluster_manager.ClusterManager (clustername, clusterlist, clustertype, access, max_conns, cls.logger.get ("server"))
             cls.clusters_for_distcall [clustername] = task.TaskCreator (cluster, cls.logger.get ("server"), cls.cachefs)
         cls.clusters [clustername] = cluster
                     
@@ -135,21 +132,13 @@ class AsyncService:
         return template_engine.new (dbo)
     
     def _ddb (self, server, dbname = "", auth = None, dbtype = DB_PGSQL, meta = None, use_cache = False, rm_cache = None, filter = None, callback = None, timeout = task.DEFAULT_TIMEOUT, caller = None):
-        if self.use_syn_db and dbtype in (DB_PGSQL, DB_SQLITE3):
-            # hijacking to sqlphile open3
-            conn = endpoints.make_endpoints (dbtype, [server, dbname, auth]) [0]
-            return dbtype == DB_SQLITE3 and db3.open3 (conn) or pg2.open3 (conn)
-        else:
-            dbo = self._create_dbo (self.clusters_for_distcall ["__dbpool__"], server, dbname, auth, dbtype, meta, self._use_cache (use_cache, rm_cache), False, filter, callback, timeout, caller)
-            if dbtype in (DB_PGSQL, DB_SQLITE3, DB_SYN_PGSQL):
-                return self._bind_sqlphile (dbo, dbtype)
-            return dbo
+        dbo = self._create_dbo (self.clusters_for_distcall ["__dbpool__"], server, dbname, auth, dbtype, meta, self._use_cache (use_cache, rm_cache), False, filter, callback, timeout, caller)
+        if dbtype in (DB_PGSQL, DB_SQLITE3, DB_SYN_PGSQL):
+            return self._bind_sqlphile (dbo, dbtype)
+        return dbo
     
     def _cddb (self, mapreduce = False, clustername = None, meta = None, use_cache = False, rm_cache = None, filter = None, callback = None, timeout = task.DEFAULT_TIMEOUT, caller = None):
         cluster = self.__detect_cluster (clustername) [0]        
-        if self._use_syn_db and cluster.cluster.dbtype in (DB_PGSQL, DB_SQLITE3):
-            # hijacking to sqlphile open3
-            return cluster.open3 ()
         dbo = self._create_dbo (cluster, None, None, None, None, meta, self._use_cache (use_cache, rm_cache), mapreduce, filter, callback, timeout, caller)
         if cluster.cluster.dbtype in (DB_PGSQL, DB_SQLITE3, DB_SYN_PGSQL):
             return self._bind_sqlphile (dbo, cluster.cluster.dbtype)
@@ -172,7 +161,7 @@ class AsyncService:
     
     # async options ------------------------------------------
     def _create_rest_call (self, cluster, *args, **kargs):
-        if self._use_syn_conn:
+        if cluster is None or cluster.use_syn_connection or cluster.ctype in (PROTO_SYN_HTTP, PROTO_SYN_HTTPS):
             if args [2].endswith ("rpc"):            
                 return synctools.ProtoCall (cluster, *args, **kargs).create_stub ()
             else:    
@@ -181,17 +170,15 @@ class AsyncService:
             return cluster.Server (*args, **kargs)
 
     def _create_dbo (self, cluster, *args, **kargs):
-        if self._use_syn_db:
-            return dtask.Proxy (DBCall, cluster, *args, **kargs)
-        else:
-            return cluster.Server (*args, **kargs)
+        return cluster.Server (*args, **kargs)
 
     # special purpose synchronous connection ---------------------------------------
     def transaction (self, clustername):
         cluster = self.__detect_cluster (clustername) [0]
-        return cluster.open2 ()
+        return cluster.open2 ()    
 
     def sdb (self, clustername):
-        # for tesing or plan B
+        # single connection / multi cursors
         cluster = self.__detect_cluster (clustername) [0]
         return cluster.open3 ()
+
