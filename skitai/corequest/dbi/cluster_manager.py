@@ -1,6 +1,6 @@
 from ..httpbase import cluster_manager
-from aquests.dbapi import asynpsycopg2, synsqlite3, asynredis, asynmongo
-from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
+from aquests.dbapi import asynpsycopg2, synsqlite3, asynredis, asynmongo, syndbi
+from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB, DB_SYN_PGSQL, DB_SYN_REDIS, DB_SYN_MONGODB
 from . import endpoints
 from sqlphile import pg2, db3
             
@@ -8,10 +8,13 @@ class ClusterManager (cluster_manager.ClusterManager):
     backend_keep_alive = 10
     backend = True
     class_map = {
-        DB_SQLITE3: synsqlite3.SynConnect,
+        DB_SQLITE3: synsqlite3.SynConnect,        
         DB_PGSQL: asynpsycopg2.AsynConnect,
         DB_REDIS: asynredis.AsynConnect,
-        DB_MONGODB: asynmongo.AsynConnect
+        DB_MONGODB: asynmongo.AsynConnect,
+        DB_SYN_PGSQL: syndbi.Postgres,
+        DB_SYN_REDIS: syndbi.Redis,
+        DB_SYN_MONGODB: syndbi.MongoDB,
     }
     def __init__ (self, name, cluster, dbtype = DB_PGSQL, access = [], max_conns = 200, logger = None):
         self.dbtype = dbtype
@@ -74,12 +77,12 @@ class ClusterManager (cluster_manager.ClusterManager):
         if self.dbtype == DB_PGSQL:
             conn = endpoints.make_endpoints (self.dbtype, [self._cache [0]]) [0]
             if wrap == "open2":
-                return pg2.open2 (conn, auto_closing = False)
+                return pg2.open2 (conn)
             return pg2.open3 (conn)
         elif self.dbtype == DB_SQLITE3:            
             conn = endpoints.make_endpoints (self.dbtype, [self._cache [0]]) [0]
             if wrap == "open2":
-                return db3.open2 (conn, auto_closing = False)
+                return db3.open2 (conn)
             return db3.open3 (conn)
         raise TypeError ("Only DB_PGSQL or DB_SQLITE3")    
 

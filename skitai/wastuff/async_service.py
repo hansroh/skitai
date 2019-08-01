@@ -1,6 +1,6 @@
 import os, sys
 import threading
-from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
+from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB, DB_SYN_PGSQL
 from ..corequest.httpbase import cluster_manager, task
 from ..corequest.dbi import cluster_manager as dcluster_manager, task as dtask
 from sqlphile import Template
@@ -37,6 +37,7 @@ class AsyncService:
     DEFAULT_REQUEST_TYPE = ("application/json", "application/json")
     DEFAULT_SQL_TEMPLATE_ENGINES = {
         DB_PGSQL: Template (DB_PGSQL),
+        DB_SYN_PGSQL: Template (DB_SYN_PGSQL),
         DB_SQLITE3: Template (DB_SQLITE3),
     }
     def __init__ (self, enable_requests = True, **options):
@@ -57,7 +58,7 @@ class AsyncService:
         if type (clusterlist) is str:
             clusterlist = [clusterlist]    
 
-        if clustertype and "*" + clustertype in (DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB):
+        if clustertype and "*" + clustertype in (DB_PGSQL, DB_SYN_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB):
             cluster = dcluster_manager.ClusterManager (clustername, clusterlist, "*" + clustertype, access, max_conns, cls.logger.get ("server"))
             cls.clusters_for_distcall [clustername] = dtask.TaskCreator (cluster, cls.logger.get ("server"))
         else:
@@ -140,7 +141,7 @@ class AsyncService:
             return dbtype == DB_SQLITE3 and db3.open3 (conn) or pg2.open3 (conn)
         else:
             dbo = self._create_dbo (self.clusters_for_distcall ["__dbpool__"], server, dbname, auth, dbtype, meta, self._use_cache (use_cache, rm_cache), False, filter, callback, timeout, caller)
-            if dbtype in (DB_PGSQL, DB_SQLITE3):
+            if dbtype in (DB_PGSQL, DB_SQLITE3, DB_SYN_PGSQL):
                 return self._bind_sqlphile (dbo, dbtype)
             return dbo
     
@@ -150,7 +151,7 @@ class AsyncService:
             # hijacking to sqlphile open3
             return cluster.open3 ()
         dbo = self._create_dbo (cluster, None, None, None, None, meta, self._use_cache (use_cache, rm_cache), mapreduce, filter, callback, timeout, caller)
-        if cluster.cluster.dbtype in (DB_PGSQL, DB_SQLITE3):
+        if cluster.cluster.dbtype in (DB_PGSQL, DB_SQLITE3, DB_SYN_PGSQL):
             return self._bind_sqlphile (dbo, cluster.cluster.dbtype)
         return dbo    
         

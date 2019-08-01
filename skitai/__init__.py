@@ -11,7 +11,10 @@ from rs4.attrdict import AttrDict
 import threading
 import sys, os
 import h2
-from aquests.dbapi import DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
+from aquests.dbapi import (
+	DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB, 
+	DB_SYN_PGSQL, DB_SYN_REDIS, DB_SYN_MONGODB
+)
 from aquests.protocols.smtp import composer
 import tempfile
 from . import lifetime
