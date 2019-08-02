@@ -2,7 +2,7 @@ import sqlite3
 import psycopg2
 import redis
 import pymongo
-from skitai import DB_SQLITE3, DB_PGSQL, DB_REDIS, DB_MONGODB
+from skitai import DB_SQLITE3, DB_PGSQL, DB_REDIS, DB_MONGODB, DB_SYN_PGSQL, DB_SYN_REDIS, DB_SYN_MONGODB
 import multiprocessing
 
 CPU_COUNT = multiprocessing.cpu_count ()
@@ -31,14 +31,14 @@ def make_endpoints (dbtype, from_list):
         if dbtype == DB_SQLITE3:
             conn = sqlite3.connect (host)
 
-        elif dbtype == DB_PGSQL:
+        elif dbtype in (DB_PGSQL, DB_SYN_PGSQL):
             if user: kargs ["user"] = user
             conn = psycopg2.connect (host = host, database = db, **kargs)            
 
-        elif dbtype == DB_REDIS:
+        elif dbtype == (DB_REDIS, DB_SYN_REDIS):
             conn = redis.Redis (host = host, port = port, db = db)
         
-        elif dbtype == DB_MONGODB:            
+        elif dbtype == (DB_MONGODB, DB_SYN_MONGODB):            
             if user: kargs ["username"] = user
             conn = pymongo.MongoClient (host = host, **kargs)
 

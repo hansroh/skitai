@@ -66,7 +66,7 @@ class ClusterManager (cluster_manager.ClusterManager):
     
     def _openv (self, wrap):
         # transaction mode
-        if self.dbtype == DB_PGSQL:
+        if self.dbtype in (DB_PGSQL, DB_SYN_PGSQL):
             conn = endpoints.make_endpoints (self.dbtype, [self._cache [0]]) [0]
             if wrap == "open2":
                 return pg2.open2 (conn)
