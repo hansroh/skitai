@@ -409,8 +409,10 @@ class Task (corequest):
                 status, self._origin [3], self._origin [1], self._origin [2], self._origin [4][0].strip ()
             ), "debug")            
     
-    def _collect (self, rs):
+    def _collect (self, rs, failed = False):
         with self._cv:
+            if not failed and self._canceled:
+                return
             try:
                 asyncon = self._requests.pop (rs)
             except KeyError:
@@ -418,19 +420,27 @@ class Task (corequest):
                 
         status = rs.get_status ()
         if status == REQFAIL:
-            self._results.append (rs)
+            with self._cv:
+                self._results.append (rs)
             self._cluster.report (asyncon, True) # not asyncons' Fault
+
         elif status == TIMEOUT:
-            self._results.append (rs)
+            with self._cv:
+                self._results.append (rs)
             self._cluster.report (asyncon, False) # not asyncons' Fault    
+
         elif not self._mapreduce and status == NETERR and self._retry < (self._numnodes - 1):
-            self._logger ("Cluster Response Error, Switch To Another...", "fail")
+            self._logger ("cluster response error, switch to another...", "fail")
             self._cluster.report (asyncon, False) # exception occured
-            self._retry += 1
-            self._nodes = [None]
-            self.rerequest ()
+            with self._cv:
+                self._retry += 1
+                self._canceled = False
+                self._nodes = [None]
+            return self.rerequest ()
+
         elif status >= NETERR:
-            self._results.append (rs)
+            with self._cv:
+                self._results.append (rs)
             if status == NETERR:
                 self._cluster.report (asyncon, False) # exception occured
             else:    
@@ -439,18 +449,18 @@ class Task (corequest):
         
         with self._cv:
             requests = self._requests
-            callback = self._callback
+            callback, self._callback = self._callback, None
             
         if not requests:
             if callback:
                 self._do_callback (callback)
-            else:
+            elif not failed:
                 with self._cv:
-                    self._cv.notifyAll ()                                    
+                    self._cv.notify_all ()                                    
     
     def _do_callback (self, callback):
         result = self.dispatch (wait = False)
-        tuple_cb (result, callback)        
+        tuple_cb (result, callback)
     
     #-----------------------------------------------------------------
     def rerequest (self):
@@ -489,14 +499,13 @@ class Task (corequest):
             with self._cv:
                 if self._requests and not self._canceled:
                     self._cv.wait (remain)
+                    self._canceled = True
                     
-        with self._cv:
-            requests = list (self._requests.items ())
-            
+        requests = list (self._requests.items ())            
         for rs, asyncon in requests:
             rs.set_status (TIMEOUT)
             asyncon.handle_abort () # abort imme            
-            self._collect (rs)
+            self._collect (rs, failed = True)
                     
     def dispatch (self, cache = None, cache_if = (200,), timeout = None, wait = True, reraise = False):
         if self._cached_result is not None:
