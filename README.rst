@@ -666,6 +666,9 @@ alias_types can be one of these:
     - DB_REDIS
     - DB_MONGODB
     - DJANGO: mount django database engine of settings.py if database engine is PostgreSQL or SQLite3
+    - DB_SYN_PGSQL: synchronous version for PostgreSQL, this use less connections and has reasonalble speed
+    - DB_SYN_REDIS: unstable, unser testing
+    - DB_SYN_MONGODB: unstable, unser testing
 
 - server: single or server list, server form is [ username : password @ server_address : server_port / database_name weight ]. if your username or password contains "@" characters, you should replace to '%40'
 - role (optional): it is valid only when cluster_type is http or https for controlling API access
@@ -686,7 +689,7 @@ Some examples,
   
   skitai.alias (
     '@mypostgres',
-    skitai.DB_POSTGRESQL, 
+    skitai.DB_PGSQL, # DB_SYN_PGSQL is available
     [
       "postgres:1234@172.30.0.1:5432/test 20",
       "postgres:1234@172.30.0.2:5432/test 10"
