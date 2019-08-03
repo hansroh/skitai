@@ -403,7 +403,7 @@ class Task (corequest):
         with self._cv:
             self._canceled = True
     
-    def __len__ (self):
+    def _count (self):
         with self._cv:
             return len (self._requests)
 
@@ -508,8 +508,8 @@ class Task (corequest):
             with self._cv:
                 if self._requests and not self._canceled:
                     self._cv.wait (remain)
-                    self._canceled = True
-                    
+        
+        self._canceled = True        
         requests = list (self._requests.items ())            
         for rs, asyncon in requests:
             rs.set_status (TIMEOUT)
@@ -520,7 +520,6 @@ class Task (corequest):
         if self._cached_result is not None:
             return self._cached_result
         wait and self._wait (timeout)
-        
         rss = [rs.get_result () for rs in self._results]
         for rs in rss:
             if rs.status == NORMAL and rs.status_code < 300:

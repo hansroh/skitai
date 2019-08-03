@@ -45,50 +45,45 @@ class Tasks (TaskBase):
     def then (self, func):
         return Futures (self._reqs, self._timeout, **self.meta).then (func)
 
-    def _wait (self, timeout):
+    def _wait_for_all (self, timeout):
         timeout = timeout or self._timeout
         _reqs = []        
-        for req in self._reqs:
+        for req in self._reqs:            
             if hasattr (req, '_cv'):
-                _reqs.append (req)
+                req.reset_timeout (timeout, was.cv)
+                _reqs.append (req)                
         if not _reqs:
             return
-        for req in _reqs:
-            req.reset_timeout (timeout, was.cv)
-        
-        with was.cv:            
-            while sum ([len (req) for req in _reqs]) > 0:
-                remain = timeout - (time.time () - self._init_time)
+        with was.cv:   
+            while sum ([req._count () for req in _reqs]) > 0:
+                remain = timeout - (time.time () - self._init_time)                
                 if remain <= 0:
-                    break
+                    break                
                 was.cv.wait (remain)
 
         self._timeout = -1
         for req in _reqs:
             req.reset_timeout (-1, None)
-            if len (req) == 0:
-                continue
-            req._wait ()
-
+            
     #------------------------------------------------------
     def dispatch (self, cache = None, cache_if = (200,), timeout = None):
-        self._wait (timeout)
+        self._wait_for_all (timeout)
         return [req.dispatch (cache, cache_if) for req in self._reqs]
         
     def wait (self, timeout = None):
-        self._wait (timeout)
+        self._wait_for_all (timeout)
         return [req.wait () for req in self._reqs]
         
     def commit (self, timeout = None):
-        self._wait (timeout)
+        self._wait_for_all (timeout)
         [req.commit () for req in self._reqs] 
     
     def fetch (self, cache = None, cache_if = (200,), timeout = None):
-        self._wait (timeout)
+        self._wait_for_all (timeout)
         return [req.fetch (cache, cache_if) for req in self._reqs]
         
     def one (self, cache = None, cache_if = (200,), timeout = None):
-        self._wait (timeout)
+        self._wait_for_all (timeout)
         return [req.one (cache, cache_if) for req in self._reqs]
 
     def cache (self, cache = 60, cache_if = (200,)):

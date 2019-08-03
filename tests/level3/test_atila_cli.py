@@ -68,9 +68,9 @@ def test_cli (app, dbpath):
     
     @app.route ("/db2")
     def db2 (was):
-        stub = was.backend ("@sqlite")
-        req = stub.select ("stocks").filter (symbol = 'RHAT').execute ()
-        res = req.dispatch ()                
+        stub = was.db ("@sqlite")
+        req = stub.select ("stocks").filter (symbol = 'RHAT').execute ()        
+        res = req.dispatch ()                        
         return was.response.api (data = res.data)
     
     @app.maintain
