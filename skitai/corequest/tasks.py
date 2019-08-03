@@ -2,9 +2,10 @@ import sys
 from ..utility import make_pushables
 from ..exceptions import HTTPError
 from . import corequest, response
-from .httpbase.task import DEFAULT_TIMEOUT
+from .httpbase.task import DEFAULT_TIMEOUT, Task
 from skitai import was
 from rs4.attrdict import AttrDict
+import time
 
 class TaskBase (corequest):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **meta):
@@ -12,6 +13,7 @@ class TaskBase (corequest):
         self._timeout = timeout                
         self._reqs = reqs
         self.meta = meta
+        self._init_time = time.time ()
 
     def __getattr__ (self, name):
         try:
@@ -43,24 +45,54 @@ class Tasks (TaskBase):
     def then (self, func):
         return Futures (self._reqs, self._timeout, **self.meta).then (func)
 
-    #------------------------------------------------------
-    def cache (self, cache = 60, cache_if = (200,)):
-        [r.cache (cache, cache_if) for r in self.results]
+    def _wait (self, timeout):
+        timeout = timeout or self._timeout
+        _reqs = []        
+        for req in self._reqs:
+            if isinstance (req, Task):
+                _reqs.append (req)
+        if not _reqs:
+            return
+        for req in _reqs:
+            req.reset_timeout (timeout, was.cv)
+        
+        with was.cv:            
+            while sum ([len (req) for req in _reqs]) > 0:
+                remain = timeout - (time.time () - self._init_time)
+                if remain <= 0:
+                    break
+                was.cv.wait (remain)
 
+        self._timeout = -1
+        for req in _reqs:
+            req.reset_timeout (-1, None)
+            if len (req) == 0:
+                continue
+            req._wait ()
+
+    #------------------------------------------------------
     def dispatch (self, cache = None, cache_if = (200,), timeout = None):
-        return [req.dispatch (cache, cache_if, timeout or self._timeout) for req in self._reqs]
+        self._wait (timeout)
+        return [req.dispatch (cache, cache_if) for req in self._reqs]
         
     def wait (self, timeout = None):
-        return [req.wait (timeout or self._timeout) for req in self._reqs]
+        self._wait (timeout)
+        return [req.wait () for req in self._reqs]
         
     def commit (self, timeout = None):
-        [req.commit (timeout or self._timeout) for req in self._reqs] 
+        self._wait (timeout)
+        [req.commit () for req in self._reqs] 
     
-    def fetch (self, cache = None, cache_if = (200,)):
+    def fetch (self, cache = None, cache_if = (200,), timeout = None):
+        self._wait (timeout)
         return [req.fetch (cache, cache_if) for req in self._reqs]
         
     def one (self, cache = None, cache_if = (200,), timeout = None):
+        self._wait (timeout)
         return [req.one (cache, cache_if) for req in self._reqs]
+
+    def cache (self, cache = 60, cache_if = (200,)):
+        [r.cache (cache, cache_if) for r in self.results]
 
 
 class Mask (response, TaskBase):
@@ -91,6 +123,7 @@ class Mask (response, TaskBase):
         if len (self._data) != 1:
             raise HTTPError ("409 Conflict")
         return self._data [0]
+
 
 class CompletedTasks (response, Tasks):
     def __init__ (self, reqs, **meta):

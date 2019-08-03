@@ -43,7 +43,8 @@ class AsyncService:
         if enable_requests:
             for method in self.METHODS:
                 setattr (self, method, Command (method, self._call))        
-        
+        self.cv = threading.Condition ()
+
     @classmethod
     def add_cluster (cls, clustertype, clustername, clusterlist, ssl = 0, access = [], max_conns = 100):
         if clustertype and clustertype [0] == "*":

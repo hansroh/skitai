@@ -258,6 +258,7 @@ class Task (corequest):
         self._cached_result = None
         self._cached_request_args = None
         self._request = None
+        self._ccv = None
         
         if self._cluster:
             nodes = self._cluster.get_nodes ()
@@ -402,6 +403,10 @@ class Task (corequest):
         with self._cv:
             self._canceled = True
     
+    def __len__ (self):
+        with self._cv:
+            return len (self._requests)
+
     #---------------------------------------------------------
     def _fail_log (self, status):
         if self._origin:
@@ -455,8 +460,9 @@ class Task (corequest):
             if callback:
                 self._do_callback (callback)
             elif not failed:
-                with self._cv:
-                    self._cv.notify_all ()                                    
+                cv = self._ccv is not None and self._ccv or self._cv
+                with cv:
+                    cv.notify_all ()                                    
     
     def _do_callback (self, callback):
         result = self.dispatch (wait = False)
@@ -466,12 +472,15 @@ class Task (corequest):
     def rerequest (self):
         self._build_request (*self._cached_request_args)
 
-    def reset_timeout (self, timeout):
-        self._timeout = timeout
+    def reset_timeout (self, timeout, ccv = None):
         with self._cv:
+            self._timeout = timeout
+            self._ccv = ccv
             asyncons = list (self._requests.values ())
-        for asyncon in asyncons:
-            asyncon.set_timeout (timeout)        
+
+        if timeout > 0:
+            for asyncon in asyncons:
+                asyncon.set_timeout (timeout)        
             
     def set_callback (self, callback, reqid = None, timeout = None):
         if reqid is not None:
