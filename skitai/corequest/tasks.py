@@ -49,7 +49,7 @@ class Tasks (TaskBase):
         timeout = timeout or self._timeout
         _reqs = []        
         for req in self._reqs:
-            if hasattr (req, 'reset_timeout'):
+            if hasattr (req, '_cv'):
                 _reqs.append (req)
         if not _reqs:
             return
