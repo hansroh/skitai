@@ -24,12 +24,15 @@ from functools import wraps
 import copy
 import rs4
 
-rs4.add_options ("-d", "---production", "---smtpda", "---port", "---profile", "---gc", "---memtrack")
+rs4.add_options (
+	"---profile", "---gc", "---memtrack",
+	"-d", "--production", "--smtpda", "--port="
+)
 
-if "---production" in sys.argv:
+if "--production" in sys.argv:
 	os.environ ["SKITAI_ENV"] = "PRODUCTION"
 
-if "---smtpda" in sys.argv:
+if "--smtpda" in sys.argv:
     os.system ("{} -m skitai.bin.skitai smtpda -d".format (sys.executable))
 
 def test_client (*args, **kargs):
@@ -649,7 +652,7 @@ def run (**conf):
 					conf.get ('fws_address', '0.0.0.0'), conf.get ('fws_port', 80), conf.get ('fws_to', 443)
 				)
 			
-			port = int (options.get ('---port') or conf.get ('port', 5000))
+			port = int (options.get ('--port') or conf.get ('port', 5000))
 			self.config_webserver (
 				port, conf.get ('address', '0.0.0.0'),
 				NAME, conf.get ("certfile") is not None,

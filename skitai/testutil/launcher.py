@@ -13,9 +13,9 @@ class Launcher (webtest.Target):
         self.__script = script
         self.__port = port
         
-        self.__start_opts = ["---port", str (port)]
+        self.__start_opts = ["--port", str (port)]
         for k, v in kargs:
-            self.__start_opts.append ("---{}".format (k))
+            self.__start_opts.append ("--{}".format (k))
             if v:
                 self.__start_opts.append (str (v))
             
