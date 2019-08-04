@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.28.18.7"
+__version__ = "0.28.18.8"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -25,8 +25,9 @@ import copy
 import rs4
 
 rs4.add_options (
-	"---profile", "---gc", "---memtrack",
-	"-d", "--production", "--smtpda", "--port="
+	"-d", # daemonize
+	"---profile", "---gc", "---memtrack", # dev options
+	"--production", "--smtpda", "--port="
 )
 
 if "--production" in sys.argv:
