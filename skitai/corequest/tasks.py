@@ -95,11 +95,7 @@ class Mask (response, TaskBase):
         self._expt = _expt
         self._data = data
         self.meta = meta
-        if isinstance (self._data, dict):
-            self._data = [AttrDict (self._data)]
-        elif not isinstance (self._data, (tuple, list)):
-            self._data = [self._data]
-
+        
     def _reraise (self):
         if self._expt:
             raise self._expt
