@@ -38,7 +38,13 @@ class Future:
             else:
                 trigger.wakeup (lambda p = self._was.response: (p.done (),))
             self._fulfilled = None
-
+    
+    def fetch (self, timeout = 10):
+        expt = self.future.exception (timeout)
+        if expt:
+            raise expt
+        return self.future.result (0)
+    
     def kill (self):
         try: self.future.result (timeout = 0)
         except: pass
