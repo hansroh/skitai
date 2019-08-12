@@ -13,7 +13,7 @@ from aquests.protocols.http import response as http_response
 from aquests.protocols.ws import request_handler as ws_request_handler
 from aquests.protocols.ws import request as ws_request
 from . import rcache
-from skitai import lifetime
+from skitai import lifetime, was
 import asyncore
 import sys
 import inspect
@@ -564,7 +564,10 @@ class Task (corequest):
         except psycopg2.IntegrityError:
             raise exceptions.HTTPError ("409 Conflict")
         return res.one (cache or self._cache_timeout, cache_if)
-
+    
+    def then (self, func):
+        return Future (self, self._timeout, **self._meta).then (func)
+        
     def cache (self, cache = 60, cache_if = (200,)):
         cache = cache or self._cache_timeout
         if not cache:
