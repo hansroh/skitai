@@ -60,7 +60,14 @@ def test_futures (app, dbpath):
             return str (rs.fetch ())
         req = was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('---',))        
         return was.future (req).then (respond)
-
+    
+    @app.route ("/4-2")
+    def index4_2 (was):
+        def respond (was, rs):
+            return str (rs.fetch ())
+        req = was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('---',))        
+        return req.then (respond)
+        
     @app.route ("/5")
     def index5 (was):
         reqs = [            
@@ -154,6 +161,10 @@ def test_futures (app, dbpath):
         resp = cli.get ("/4-1")
         assert resp.status_code == 200
         assert resp.data == '[]'
+        
+        resp = cli.get (“/4-2“)
+        assert resp.data == ’[]’
+        
         
         resp = cli.get ("/5")
         assert "hansroh" in resp.text
