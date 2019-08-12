@@ -2443,6 +2443,7 @@ Process / Thread is for synchronous routine.
 Skitai will create thread/process pool as you use it at once. If you do't use this, pool will not be created for resource saving. Pool size is your number of CPUs.
 
 You can just use multi processing with pool instantly.
+
 .. code:: python
 
   def side_job (a, b):
