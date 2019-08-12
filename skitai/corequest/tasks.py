@@ -115,18 +115,47 @@ class Mask (response, TaskBase):
             raise HTTPError ("409 Conflict")
         return self._data [0]
 
-
+# completed future(s) ----------------------------------------------------
 class CompletedTasks (response, Tasks):
     def __init__ (self, reqs, **meta):
         Tasks.__init__ (self, reqs, **meta)
 
+class CompletedTask (CompletedTasks):
+    def __iter__ (self):
+        raise TypeError ('Futrue is not iterable')
+    
+    def __getitem__ (self, sliced):
+        raise TypeError ('Futrue is not iterable')
 
+    #------------------------------------------------------
+    def dispatch (self, cache = None, cache_if = (200,), timeout = None):
+        rss = CompletedTasks.dispatch (self, cache, cache_if, timeout)
+        return rss [0]
+    
+    def fetch (self, cache = None, cache_if = (200,), timeout = None):        
+        rss = CompletedTasks.fetch (self, cache, cache_if, timeout)        
+        return rss [0]
+        
+    def one (self, cache = None, cache_if = (200,), timeout = None):
+        rss = CompletedTasks.one (self, cache, cache_if, timeout)
+        return rss [0]
+
+    def wait (self, timeout = None):
+        rss = CompletedTasks.wait (self, timeout)
+        return rss [0]
+        
+    def commit (self, timeout = None):
+        rss = CompletedTasks.commit (self, timeout)
+        return rss [0]    
+
+# future(s) ----------------------------------------------------        
 class Futures (TaskBase):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **meta):
         TaskBase.__init__ (self, reqs, timeout, **meta)
         self._was = None       
         self._fulfilled = None
         self._responded = 0
+        self._single = False
             
     def then (self, func):        
         self._fulfilled = func
@@ -151,7 +180,7 @@ class Futures (TaskBase):
     def _respond (self):
         response = self._was.response         
         try:
-            tasks = CompletedTasks (self._reqs, **self.meta)
+            tasks = (self._single and CompletedTask or CompletedTasks) (self._reqs, **self.meta)
             content = self._fulfilled (self._was, tasks)
             will_be_push = make_pushables (response, content)
             content = None
@@ -177,7 +206,9 @@ class Futures (TaskBase):
             response.push (part)                
         response.done ()
 
-
 class Future (Futures):
     def __init__ (self, req, timeout, **meta):
         Futures.__init__ (self, [req], timeout, **meta)
+        self._single = True
+    
+    
