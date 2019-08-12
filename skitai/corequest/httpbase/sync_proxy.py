@@ -103,7 +103,7 @@ class ProtoCall (task.Task):
                 proxy_class = XMLRPCServerProxy
             return getattr (cli, self.reqtype) (uri, proxy_class)
                 
-    def handle_request (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
+    def handle_request (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, cache = None, timeout = 10, caller = None):
         self._mapreduce = mapreduce
         self.uri = uri
         self.reqtype = reqtype
