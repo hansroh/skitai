@@ -2399,18 +2399,15 @@ Above example pattern is just one of my implemetation with async models.
 It can be extended and changed into NoSQL or even RESTful/RPC with any Skitai corequest object which has same 5 methods - dispatch, wait, fetch, one and commit.
 
 
-Creating Backgroud Tasks And Response 202
-============================================================
+Background Tasks
+---------------------------------
 
-Skitai creates thread/process pool as many as your cpu count, if need.
-
-These tasks are mainly worked with HTTP status '202 Accepted'. Below example show that how to start new thread and return 202 response.
-
+Skitai integrated async/sync concurrents. They have also very same usage and methods like fetch, one, dispatch etc.
 
 Future / Futures
-------------------------
+`````````````````````````````````
 
-Future object is for async corequests.
+Future object is for async corequests. It creates backgorund async jobs and responds immediately.
 
 .. code:: python
   
@@ -2437,14 +2434,15 @@ Futures is also available,
 
 *Note*: With Atila_, you can add callback for late response.
 
+
 Process / Thread
--------------------------------
+```````````````````````````````````````
 
 Process / Thread is for synchronous routine. 
 
 Skitai will create thread/process pool as you use it at once. If you do't use this, pool will not be created for resource saving. Pool size is your number of CPUs.
 
-
+You can just use multi processing with pool instantly.
 .. code:: python
 
   def side_job (a, b):
@@ -2457,11 +2455,13 @@ Skitai will create thread/process pool as you use it at once. If you do't use th
     result = ps.fetch () # wait for finishing    
     return Response (result, 200, headers = {'Content-Type': "application/vnd-..."})
 
+Also you can create async jobs for long run process.
+
 .. code:: python
   
   @app.route ('...')
-  def foo ():    
-    return was.Process (generate_xls, was.request.ARGS).returning (
+  def foo ():        
+    return was.Process (job2, 1000, -1000).returning (
       Response ('', 202, headers = {'Content-Location': "..."})
     )
 
