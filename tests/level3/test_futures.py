@@ -162,9 +162,9 @@ def test_futures (app, dbpath):
         assert resp.status_code == 200
         assert resp.data == '[]'
         
-        resp = cli.get (“/4-2“)
-        assert resp.data == ’[]’
-        
+        resp = cli.get ("/4-2")
+        assert resp.status_code == 200
+        assert resp.data == '[]'
         
         resp = cli.get ("/5")
         assert "hansroh" in resp.text
