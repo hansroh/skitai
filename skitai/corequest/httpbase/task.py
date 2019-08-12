@@ -13,6 +13,7 @@ from aquests.protocols.http import response as http_response
 from aquests.protocols.ws import request_handler as ws_request_handler
 from aquests.protocols.ws import request as ws_request
 from . import rcache
+from ..tasks import Future
 from skitai import lifetime, was
 import asyncore
 import sys
