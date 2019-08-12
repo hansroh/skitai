@@ -53,8 +53,10 @@ class Result (response, rcache.Result):
         self.__response = None    
     
     def cache (self, timeout = 60, cache_if = (200,)):
-        if self.status != NORMAL or self.status_code not in cache_if:
+        if not timeout:
             return
+        if self.status != NORMAL or self.status_code not in cache_if:
+            return        
         rcache.Result.cache (self, timeout)
         return self
     

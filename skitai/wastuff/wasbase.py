@@ -126,12 +126,17 @@ class WASBase:
         return tasks.Tasks (reqs, timeout, **args)
 
     def Future (self, req, timeout = 10, **args):
+        if isinstance (req, (list, tuple)):
+            raise ValueError ('Future should be single corequest')
         self.response.set_timeout (timeout)
         return tasks.Future (req, timeout, **args)
 
     def Futures (self, reqs, timeout = 10, **args):
+        if not isinstance (reqs, (list, tuple)):
+            raise ValueError ('Futures should be multiple corequests')
         self.response.set_timeout (timeout)
         return tasks.Futures (reqs, timeout, **args)
+    future = Future
     futures = Futures
 
     def Thread (self, func, *args, **kargs):
