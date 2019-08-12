@@ -119,6 +119,9 @@ class Mask (response, TaskBase):
 class CompletedTasks (response, Tasks):
     def __init__ (self, reqs, **meta):
         Tasks.__init__ (self, reqs, **meta)
+    
+    def __del__ (self):
+        self._reqs = [] #  reak back ref.
 
 class CompletedTask (CompletedTasks):
     def __iter__ (self):
