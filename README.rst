@@ -2444,6 +2444,19 @@ Process / Thread is for synchronous routine.
 
 Skitai will create thread/process pool as you use it at once. If you do't use this, pool will not be created for resource saving. Pool size is your number of CPUs.
 
+
+.. code:: python
+
+  def side_job (a, b):
+    ...
+
+  @app.route ('...')
+  def foo ():    
+    ps = was.Process (job2, 1000, -1000)
+    ...
+    result = ps.fetch () # wait for finishing    
+    return Response (result, 200, headers = {'Content-Type': "application/vnd-..."})
+
 .. code:: python
   
   @app.route ('...')

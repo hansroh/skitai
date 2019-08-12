@@ -60,7 +60,7 @@ class Result (response, rcache.Result):
     
     def fetch (self, cache = None, cache_if = (200,), one = False):
         self.reraise ()
-        cache and self.cache (cache, cache_if)
+        self.cache (cache, cache_if)
     
         if one:
             if len (self.data) == 0:
@@ -110,11 +110,11 @@ class Results (response, rcache.Result):
         return self
         
     def fetch (self, cache = None, cache_if = (200,)):
-        cache and self.cache (cache, cache_if)
+        self.cache (cache, cache_if)
         return [r.fetch () for r in self.results]
 
     def one (self, cache = None, cache_if = (200,)):
-        cache and self.cache (cache, cache_if)
+        self.cache (cache, cache_if)
         return [r.one () for r in self.results]
 
                                 
@@ -216,6 +216,7 @@ class Task (corequest):
         mapreduce = True,
         filter = None,
         callback = None,
+        cache = None,
         timeout = 10,
         origin = None,
         cachefs = None,
@@ -227,7 +228,7 @@ class Task (corequest):
         self._headers = headers
         self._reqtype = reqtype
         self._auth = auth
-        self.set_defaults (cluster, meta, use_cache, mapreduce, filter, callback, timeout, origin, logger, cachefs)
+        self.set_defaults (cluster, meta, use_cache, mapreduce, filter, callback, cache, timeout, origin, logger, cachefs)
         
         if not self._reqtype.lower ().endswith ("rpc"):
             self._build_request ("", self._params)
@@ -236,18 +237,18 @@ class Task (corequest):
     def add_proto (cls, name, class_):
         cls.proto_map [name] = class_
 
-    def set_defaults (self, cluster, meta, use_cache, mapreduce, filter, callback, timeout, origin, logger, cachefs = None):
+    def set_defaults (self, cluster, meta, use_cache, mapreduce, filter, callback, cache, timeout, origin, logger, cachefs = None):
         self._cluster = cluster
         self._meta = meta or {}
         self._use_cache = use_cache                
         self._mapreduce = mapreduce
         self._filter = filter
         self._callback = callback
+        self._cache_timeout = cache
         self._timeout = timeout
         self._origin = origin
         self._cachefs = cachefs
-        self._logger = logger        
-         
+        self._logger = logger                
         self._requests = {}
         self._results = []
         self._canceled = False
@@ -327,7 +328,7 @@ class Task (corequest):
         self._cached_request_args = (method, params) # backup for retry
         if self._use_cache and rcache.the_rcache:
             self._cached_result = rcache.the_rcache.get (self._get_ident (), self._use_cache)
-            if self._cached_result is not None:
+            if self._cached_result is not None:                
                 self._cached_result.meta = self._meta            
                 self._callback and tuple_cb (self._cached_result, self._callback)                
                 return
@@ -531,7 +532,7 @@ class Task (corequest):
             self._cached_result = Results (rss, ident = self._get_ident ())
         else:    
             self._cached_result = rss [0]
-        cache and self.cache (cache, cache_if)
+        self.cache (cache, cache_if)
         return self._cached_result    
     
     def dispatch_or_throw (self, cache = None, cache_if = (200,), timeout = None):
@@ -553,21 +554,23 @@ class Task (corequest):
     
     def fetch (self, cache = None, cache_if = (200,), timeout = None):
         res = self._cached_result or self.dispatch (timeout = timeout, reraise = True)
-        return res.fetch (cache, cache_if)
+        return res.fetch (cache or self._cache_timeout, cache_if)
         
     def one (self, cache = None, cache_if = (200,), timeout = None):
         try:
             res = self._cached_result or self.dispatch (timeout = timeout, reraise = True)
         except psycopg2.IntegrityError:
             raise exceptions.HTTPError ("409 Conflict")
-        return res.one (cache, cache_if)
+        return res.one (cache or self._cache_timeout, cache_if)
 
     def cache (self, cache = 60, cache_if = (200,)):
+        cache = cache or self._cache_timeout
+        if not cache:
+            return self
         if self._cached_result is None:
-            raise ValueError("call dispatch first")        
+            raise ValueError("call dispatch first")                
         self._cached_result.cache (cache, cache_if)
         return self
-        
     getwait = getswait = dispatch # lower ver compat.
     getwait_or_throw = getswait_or_throw = dispatch_or_throw # lower ver compat.
     
@@ -615,7 +618,7 @@ class TaskCreator:
     def __getattr__ (self, name):    
         return getattr (self.cluster, name)
         
-    def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = DEFAULT_TIMEOUT, caller = None):
+    def Server (self, uri, params = None, reqtype="rpc", headers = None, auth = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, cache = None, timeout = DEFAULT_TIMEOUT, caller = None):
         if type (headers) is list:
             h = {}
             for n, v in headers:
@@ -623,7 +626,7 @@ class TaskCreator:
             headers = h
         
         if reqtype.endswith ("rpc"):
-            return Proxy (Task, self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.cachesfs, self.logger)
+            return Proxy (Task, self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, cache, timeout, caller, self.cachesfs, self.logger)
         else:    
-            return Task (self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.cachesfs, self.logger)
+            return Task (self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, cache, timeout, caller, self.cachesfs, self.logger)
         

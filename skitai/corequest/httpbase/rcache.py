@@ -81,16 +81,17 @@ class RCache:
 			with self.lock:
 				self.maintern ()
 			
-		h = self.hash (obj.ident)
+		h = self.hash (obj.ident)		
 		with self.lock:
 			if h not in self.__cache:
 				obj.remain_secs = obj.timeout
 				obj.is_cached = True
 				self.__cache [h] = obj
 				self.cached += 1
-	
+		
 	def get (self, hashable, last_update = 0):
-		h = self.hash (hashable)
+		h = self.hash (hashable)		
+
 		self.lock.acquire ()
 		self.reqs += 1
 		try:

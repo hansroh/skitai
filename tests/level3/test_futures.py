@@ -54,6 +54,16 @@ def test_futures (app, dbpath):
         ]
         return was.futures (reqs).then (respond)
     
+    @app.route ("/4-1")
+    def index4 (was):
+        def respond (was, rss):
+            rss [0].one ()
+                            
+        reqs = [
+            was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('---',))
+        ]
+        return was.futures (reqs).then (respond)
+
     @app.route ("/5")
     def index5 (was):
         reqs = [            

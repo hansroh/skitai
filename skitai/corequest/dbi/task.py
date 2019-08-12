@@ -83,6 +83,7 @@ class Task (task.Task):
         mapreduce = True,
         filter = None,
         callback = None,
+        cache = None,
         timeout = 10,
         origin = None,        
         logger = None
@@ -99,7 +100,7 @@ class Task (task.Task):
             elif self._auth in (DB_MONGODB,):
                 self._dbtype = self._auth
                 self._auth = None        
-        self.set_defaults (cluster, meta, use_cache, mapreduce, filter, callback, timeout, origin, logger)
+        self.set_defaults (cluster, meta, use_cache, mapreduce, filter, callback, cache, timeout, origin, logger)
 
     def _get_ident (self):
         cluster_name = self._cluster.get_name ()
@@ -208,5 +209,5 @@ class TaskCreator:
     def __getattr__ (self, name):    
         return getattr (self.cluster, name)
         
-    def Server (self, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, timeout = 10, caller = None):
-        return Proxy (Task, self.cluster, server, dbname, auth, dbtype, meta, use_cache, mapreduce, filter, callback, timeout, caller, self.logger)
+    def Server (self, server = None, dbname = None, auth = None, dbtype = None, meta = None, use_cache = True, mapreduce = False, filter = None, callback = None, cache = None, timeout = 10, caller = None):
+        return Proxy (Task, self.cluster, server, dbname, auth, dbtype, meta, use_cache, mapreduce, filter, callback, cache, timeout, caller, self.logger)
