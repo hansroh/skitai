@@ -40,11 +40,15 @@ class Future (corequest):
                 trigger.wakeup (lambda p = self._was.response: (p.done (),))
             self._fulfilled = None
     
-    def fetch (self, timeout = 10):
+    def create_mask (self, timeout = 10):
+        data = None
         expt = self.future.exception (timeout)
-        if expt:
-            raise expt
-        return self.future.result (0)
+        if not expt:
+            data = self.future.result (0)
+        return Mask (data, expt)
+    
+    def fetch (self, timeout):
+        return self.create_mask (timeout).fetch ()
     
     def kill (self):
         try: self.future.result (timeout = 0)
