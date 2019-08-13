@@ -2647,6 +2647,8 @@ Change Log
 - 0.29 (Aug 2019)
 
   - deprecated: was.Future and was.Futures, it doesn't need. for using returning (), use corequest.returning () and was.Tasks.returning ()
+  - new corequest.pth package
+  - over 100 unit tests
 
 - 0.28 (Feb 2019)
   
