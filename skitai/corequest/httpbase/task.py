@@ -13,7 +13,7 @@ from aquests.protocols.http import response as http_response
 from aquests.protocols.ws import request_handler as ws_request_handler
 from aquests.protocols.ws import request as ws_request
 from . import rcache
-from skitai import lifetime, was
+from skitai import lifetime
 import asyncore
 import sys
 import inspect
@@ -566,6 +566,7 @@ class Task (corequest):
         return res.one (cache or self._cache_timeout, cache_if)
     
     def then (self, func):
+        from ..tasks import Future
         return Future (self, self._timeout, **self._meta).then (func)
     
     def returning (self, returning):
