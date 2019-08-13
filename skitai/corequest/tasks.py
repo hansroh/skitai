@@ -6,6 +6,7 @@ from .httpbase.task import DEFAULT_TIMEOUT, Task
 from skitai import was
 from rs4.attrdict import AttrDict
 import time
+from skitai import NORMAL
 
 class TaskBase (corequest):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **meta):
@@ -48,9 +49,11 @@ class Tasks (TaskBase):
         for req in self._reqs:            
             if hasattr (req, '_cv'):
                 req.reset_timeout (timeout, was.cv)
-                _reqs.append (req)                
+                _reqs.append (req) 
+             
         if not _reqs:
             return
+
         with was.cv:   
             while sum ([req._count () for req in _reqs]) > 0:
                 remain = timeout - (time.time () - self._init_time)                
@@ -69,19 +72,19 @@ class Tasks (TaskBase):
         
     def wait (self, timeout = None):
         self._wait_for_all (timeout)
-        return [req.wait () for req in self._reqs]
+        return [req.wait (timeout) for req in self._reqs]
         
     def commit (self, timeout = None):
         self._wait_for_all (timeout)
-        [req.commit () for req in self._reqs] 
+        [req.commit (timeout) for req in self._reqs] 
     
     def fetch (self, cache = None, cache_if = (200,), timeout = None):
         self._wait_for_all (timeout)
-        return [req.fetch (cache, cache_if) for req in self._reqs]
+        return [req.fetch (cache, cache_if, timeout) for req in self._reqs]
         
     def one (self, cache = None, cache_if = (200,), timeout = None):
         self._wait_for_all (timeout)
-        return [req.one (cache, cache_if) for req in self._reqs]
+        return [req.one (cache, cache_if, timeout) for req in self._reqs]
 
     def cache (self, cache = 60, cache_if = (200,)):
         [r.cache (cache, cache_if) for r in self.results]
@@ -92,24 +95,30 @@ class Tasks (TaskBase):
     def returning (self, returning):
         return returning
 
+
 class Mask (response, TaskBase):
-    def __init__ (self, data = None, _expt = None, **meta):
-        self._expt = _expt
+    def __init__ (self, data = None, _expt = None, _status_code = None, **meta):
+        self._expt = _expt        
         self._data = data
         self.meta = meta
+        self.status = NORMAL
+        self.status_code = _status_code or (_expt and 500 or 200)
         
     def _reraise (self):
         if self._expt:
             raise self._expt
-
-    def commit (self):
+    
+    def dispatch (self, cache = None, cache_if = (200,), timeout = None):
+        return self
+    
+    def commit (self, *arg, **karg):
         self._reraise ()
 
-    def fetch (self):
+    def fetch (self, *arg, **karg):
         self._reraise ()
         return self._data
     
-    def one (self):    
+    def one (self, *arg, **karg):    
         self._reraise ()
         if len (self._data) == 0:
             raise HTTPError ("410 Partial Not Found")

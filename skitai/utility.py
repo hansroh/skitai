@@ -24,7 +24,7 @@ def make_pushables (response, content):
         
     if isinstance (content [0], tasks.Futures):
         return
-    if isinstance (content [0], executors.Future):
+    if isinstance (content [0], executors.Task):
         return
 
     if response ["content-type"] is None: 
