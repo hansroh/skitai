@@ -49,6 +49,15 @@ class Future (corequest):
     
     def fetch (self, timeout):
         return self.create_mask (timeout).fetch ()
+        
+    def one (self, timeout):
+        return self.create_mask (timeout).oen ()
+        
+    def commit (self, timeout):
+        return self.create_mask (timeout).commit ()
+    
+    def dispatch (self, timeout):
+        return self.create_mask (timeout)
     
     def kill (self):
         try: self.future.result (timeout = 0)
