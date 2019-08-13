@@ -13,7 +13,7 @@ def test_futures (app, dbpath):
             was.get ("@pypi/project/rs4/"),
             was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
         ]
-        return was.futures (reqs, a = 100).then (respond)
+        return was.Tasks (reqs, a = 100).then (respond)
     
     @app.route ("/2")
     def index2 (was):
@@ -22,14 +22,14 @@ def test_futures (app, dbpath):
         
         def checkdb (was, rss):
             reqs = [was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))]
-            return was.futures (reqs, b = rss.a + 100, status_code = [rs.status_code for rs in rss.dispatch ()]).then (repond)
+            return was.Tasks (reqs, b = rss.a + 100, status_code = [rs.status_code for rs in rss.dispatch ()]).then (repond)
         
         def begin ():
             reqs = [
                 was.get ("@pypi/project/skitai/"),
                 was.get ("@pypi/project/rs4/")            
             ]
-            return was.futures (reqs, a = 100).then (checkdb)
+            return was.Tasks (reqs, a = 100).then (checkdb)
         begin ()
     
     @app.route ("/3")
@@ -42,7 +42,7 @@ def test_futures (app, dbpath):
             was.get ("@pypi/project/rs4/"),
             was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
         ]
-        return was.futures (reqs).then (respond)
+        return was.Tasks (reqs).then (respond)
     
     @app.route ("/4")
     def index4 (was):
@@ -52,22 +52,15 @@ def test_futures (app, dbpath):
         reqs = [
             was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('---',))
         ]
-        return was.futures (reqs).then (respond)
+        return was.Tasks (reqs).then (respond)
     
     @app.route ("/4-1")
     def index4_1 (was):
         def respond (was, rs):
             return str (rs.fetch ())
         req = was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('---',))        
-        return was.future (req).then (respond)
-    
-    @app.route ("/4-2")
-    def index4_2 (was):
-        def respond (was, rs):
-            return str (rs.fetch ())
-        req = was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('---',))        
         return req.then (respond)
-        
+    
     @app.route ("/5")
     def index5 (was):
         reqs = [            
@@ -159,10 +152,6 @@ def test_futures (app, dbpath):
         assert resp.status_code == 410
 
         resp = cli.get ("/4-1")
-        assert resp.status_code == 200
-        assert resp.data == '[]'
-        
-        resp = cli.get ("/4-2")
         assert resp.status_code == 200
         assert resp.data == '[]'
         

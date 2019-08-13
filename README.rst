@@ -2644,6 +2644,10 @@ Links
 Change Log
 ===========
 
+- 0.29 (Aug 2019)
+
+  - deprecated: was.Future and was.Futures, it doesn't need. for using returning (), use corequest.returning () and was.Tasks.returning ()
+
 - 0.28 (Feb 2019)
   
   - fix auto reloading bug in case multiple apps are mounted
