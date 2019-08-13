@@ -42,9 +42,6 @@ class Tasks (TaskBase):
         for req in tasks._reqs:
             self.add (req)        
 
-    def then (self, func):
-        return Futures (self._reqs, self._timeout, **self.meta).then (func)
-
     def _wait_for_all (self, timeout):
         timeout = timeout or self._timeout
         _reqs = []        
@@ -89,6 +86,11 @@ class Tasks (TaskBase):
     def cache (self, cache = 60, cache_if = (200,)):
         [r.cache (cache, cache_if) for r in self.results]
 
+    def then (self, func):
+        return Futures (self._reqs, self._timeout, **self.meta).then (func)
+    
+    def returning (self, returning):
+        return returning
 
 class Mask (response, TaskBase):
     def __init__ (self, data = None, _expt = None, **meta):
@@ -154,6 +156,8 @@ class CompletedTask (CompletedTasks):
 # future(s) ----------------------------------------------------        
 class Futures (TaskBase):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **meta):
+        if isinstance (reqs, Tasks):
+            reqs = reqs._reqs
         TaskBase.__init__ (self, reqs, timeout, **meta)
         self._was = None       
         self._fulfilled = None
@@ -167,9 +171,6 @@ class Futures (TaskBase):
         for reqid, req in enumerate (self._reqs):
            req.set_callback (self._collect, reqid, self._timeout)
         return self
-
-    def returning (self, returning):
-        return returning
 
     def _collect (self, res):
         self._responded += 1        

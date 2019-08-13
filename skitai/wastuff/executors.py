@@ -4,13 +4,14 @@ from concurrent.futures import TimeoutError, CancelledError
 from rs4.logger import screen_logger
 import time
 from ..corequest.tasks import Mask
+from ..corequest import corequest
 from skitai import was
 from aquests.athreads import trigger
 import sys
 
 N_CPU = multiprocessing.cpu_count()
 
-class Future:
+class Future (corequest):
     def __init__ (self, future, name):
         self.future = future
         self._name = name

@@ -1560,6 +1560,91 @@ For using 'corequest', you need to import 'was':
     was.get ("http://...")
 
 
+Basic
+-------------------------
+
+Task
+```````````
+
+Single corequest object.
+
+First of all, API calls
+
+- was.get ()
+- was.post ()
+- was.put ()
+- was.patch ()
+- was.delete ()
+- was.upload ()
+
+RPC calls,
+
+- was.xmlrpc ()
+- was.grpc ()
+- was.jsonrpc ()
+
+Database calls,
+
+- was.db (): PostgreSQL, SQLite3, MongoDB and Redis calls
+- was.transaction (): for RDBMS (PostgreSQL and SQLite3)
+
+Finally, Thread/Process calls,
+
+- was.Thread ()
+- was.Process ()
+
+All of thease has below core methods:
+
+- dispatch ()
+- fetch ()
+- one (): should be single lengthed object
+- commit ()
+
+Tasks
+````````````````````
+
+It is bunch of Tasks.
+
+You can make it by wrapping was.Tasks ([task1, task2, ...]).
+
+And it has also same methods an dproperties as Task.
+
+Mask
+````````````````````
+
+It is fake of Task(s).
+
+You can make it by wrapping was.Mask (data) if you want to use consistant methods as Task.
+
+
+Long Running Task(s)
+````````````````````````````````
+
+corequests is natively backgound jobs. So you can create these tasks and return yotur response - usally 202 Accepted.
+
+More explicit way, creating tasks and immediately return 202 response.
+
+.. code:: python
+
+  return Task.returning (Response ('202 Accepted'))
+  
+  return was.Thread (func, arg).returning (Response ('202 Accepted'))
+
+
+*Available only Atila_*
+
+On Atila_, you can hook the callback function with corequest objects. 
+
+- was.Task.then (callback function)
+- was.Tasks.then (callback function)
+- was.Thread.then (callback function)
+- was.Process.then (callback function)
+
+All of these return Future like object.
+
+It has benefit wgen your jobs are IO bound and long running time (but reasonalbly close enough to real time). It returns current thread qucikly, lazy respond when job is done.
+
+
 Calling API
 ------------------------
 
@@ -2399,7 +2484,7 @@ Above example pattern is just one of my implemetation with async models.
 It can be extended and changed into NoSQL or even RESTful/RPC with any Skitai corequest object which has same 5 methods - dispatch, wait, fetch, one and commit.
 
 
-Background Tasks
+Starting Background Tasks
 ---------------------------------
 
 Skitai integrated async/sync concurrents. They have also very same usage and methods like fetch, one, dispatch etc.
@@ -2414,7 +2499,7 @@ Future object is for async corequests. It creates backgorund async jobs and resp
   @app.route ('...')
   def foo ():    
     req = was.get ("@myupstream/something")
-    return was.Future (req).returning (
+    return  req.returning (
       Response ('', 202, headers = {'Content-Location': "..."})
     )
 
@@ -2428,7 +2513,7 @@ Futures is also available,
       was.get ("@myupstream/something"),
       was.post ("@myupstream/something", {})
     ]
-    return was.Futures (reqs).returning (
+    return was.Tasks (reqs).returning (
       Response ('', 202, headers = {'Content-Location': "..."})
     )
 
