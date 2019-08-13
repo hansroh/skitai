@@ -35,7 +35,8 @@ from .corequest.dbi import cluster_manager as dcluster_manager
 from .corequest.dbi import task as dtask
 import types
 from .handlers.websocket import servers as websocekts
-from .wastuff import selective_logger, triple_logger, executors
+from .wastuff import selective_logger, triple_logger
+from .corequest.pth import executors
 
 class Loader:
 	def __init__ (self, config = None, logpath = None, varpath = None, wasc = None, debug = 0):		

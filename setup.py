@@ -49,6 +49,7 @@ packages = [
 	'skitai.corequest',
 	'skitai.corequest.dbi',
 	'skitai.corequest.httpbase',
+	'skitai.corequest.pth',
 	'skitai.wastuff',
 	'skitai.handlers',
 	'skitai.mounted',		

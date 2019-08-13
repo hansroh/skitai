@@ -27,7 +27,7 @@ import asyncore
 from .launcher  import launch
 from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS, DB_SYN_PGSQL, DB_SYN_MONGODB, DB_SYN_REDIS
 from ..wastuff import semaps
-from ..wastuff import executors
+from ..corequest.pth import executors
 
 def logger ():
     return triple_logger.Logger ("screen", None)    

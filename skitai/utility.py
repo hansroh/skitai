@@ -6,7 +6,7 @@ from aquests.athreads import trigger
 def make_pushables (response, content):
     from .corequest import tasks
     from .wastuff.api import API
-    from .wastuff import executors
+    from .corequest.pth import executors
     
     if not response.is_responsable ():
         # already called response.done () or diconnected channel
