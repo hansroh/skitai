@@ -1568,7 +1568,8 @@ Task
 
 Single corequest object.
 
-First of all, API calls
+API Call
+~~~~~~~~~~~~~~~~
 
 - was.get ()
 - was.post ()
@@ -1577,37 +1578,77 @@ First of all, API calls
 - was.delete ()
 - was.upload ()
 
-RPC calls,
+Task will be created by just calling these methods.
+
+.. code:: python
+
+  task = was.get ('@myapi/v1/some-resources/100')
+
+RPC Call
+~~~~~~~~~~~~~~~~~
 
 - was.xmlrpc ()
 - was.grpc ()
 - was.jsonrpc ()
+
+Task will be created like this,
+
+.. code:: python
+
+  with was.xmlrpc ('@myrpc/rpc2') as stub:
+    task = stub.some_method (arg1, arg2)
 
 Database calls,
 
 - was.db (): PostgreSQL, SQLite3, MongoDB and Redis calls
 - was.transaction (): for RDBMS (PostgreSQL and SQLite3)
 
-Finally, Thread/Process calls,
+Task will be created like this,
+
+.. code:: python
+  
+  # PostgreSQL and SQLite3
+  with was.db('@mydb') as db:
+    task = db.select ('my_table').execute ()
+
+  # Redis or MongoDB
+  with was.db('@mynosql') as db:
+    task = db.find ({'city': 'New York'})
+
+Thread/Process Call
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - was.Thread ()
 - was.Process ()
 
-All of thease has below core methods:
+Task will be created like this,
 
-- dispatch ()
-- fetch ()
-- one (): should be single lengthed object
-- commit ()
+.. code:: python  
+
+  task = was.Thread (my_func, arg1, arg2)
+
+Methods of Task
+~~~~~~~~~~~~~~~~~~~~~~~~~
+Task has below core methods:
+
+- dispatch (timeout)
+- fetch (timeout)
+- one (timeout): should be single lengthed object
+- commit (timeout)
 
 Tasks
 ````````````````````
 
-It is bunch of Tasks.
+It is bundle of Tasks.
 
-You can make it by wrapping was.Tasks ([task1, task2, ...]).
+You can make it by wrapping.
 
-And it has also same methods an dproperties as Task.
+.. code:: python  
+
+  tasks = was.Tasks ([task1, task2])
+  result1, result2 = tasks.fetch ()
+
+And it has also same methods as Task. But it can be accessed by slicing or indexing for easy handling.
 
 Mask
 ````````````````````
@@ -1615,6 +1656,14 @@ Mask
 It is fake of Task(s).
 
 You can make it by wrapping was.Mask (data) if you want to use consistant methods as Task.
+
+.. code:: python  
+
+  task = was.Mask (1)
+  result = task.fetch () # 1
+
+  tasks = was.Mask ([1, 2])
+  result1, result2 = tasks.fetch () # 1, 2
 
 
 Long Running Task(s)
@@ -1630,19 +1679,17 @@ More explicit way, creating tasks and immediately return 202 response.
   
   return was.Thread (func, arg).returning (Response ('202 Accepted'))
 
+Future(s)
+`````````````````
 
-*Available only Atila_*
+*Available on Atila only*
 
 On Atila_, you can hook the callback function with corequest objects. 
 
-- was.Task.then (callback function)
-- was.Tasks.then (callback function)
-- was.Thread.then (callback function)
-- was.Process.then (callback function)
+- Task can be transformed into Future
+- Tasks can be transformed into Futures
 
-All of these return Future like object.
-
-It has benefit wgen your jobs are IO bound and long running time (but reasonalbly close enough to real time). It returns current thread qucikly, lazy respond when job is done.
+Future/Futures object can be returnable and it has the benefit when your jobs are IO bound and long running time (but reasonably close enough to real time). It returns current thread qucikly, lazy respond when job is done.
 
 
 Calling API
