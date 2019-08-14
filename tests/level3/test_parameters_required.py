@@ -122,25 +122,56 @@ def test_error_handler (app):
         assert resp.status_code == 400
 
 def test_error_handler_2 (app):
-    @app.route ("/")
+    @app.route ("/20")
     @app.require ("GET", ["limit"], ints = ['limit'])
     @app.require ("POST", ["id"])
-    def index20 (was, limit, **DATA):
+    def index20 (was, limit = 10, **DATA):
+        if was.request.method == "POST":
+            assert DATA ['id']
+        return 'OK'
+
+    @app.route ("/21")
+    @app.require ("URL", ["limit"], ints = ['limit'])
+    @app.require ("POST", ["id"])
+    def index21 (was, limit, **DATA):
+        if was.request.method == "POST":
+            assert DATA ['id']
+        return 'OK'
+
+    @app.route ("/22")
+    @app.require ("POST", ["id"])
+    def index21 (was, limit, **DATA):
         if was.request.method == "POST":
             assert DATA ['id']
         return 'OK'
 
     with app.test_client ("/", confutil.getroot ()) as cli:       
-        resp = cli.get ("/")
+        resp = cli.get ("/20")
         assert resp.status_code == 400
         
-        resp = cli.get ("/?limit=4")
+        resp = cli.get ("/20?limit=4")
         assert resp.status_code == 200  
 
-        resp = cli.post ("/?limit=4", {})
+        resp = cli.post ("/20?limit=4", {})
         assert resp.status_code == 400        
 
-        resp = cli.post ("/?limit=4", {'id': 'ttt'})
+        resp = cli.post ("/20?limit=4", {'id': 'ttt'})
+        assert resp.status_code == 200    
+
+        resp = cli.post ("/20", {'id': 'ttt'})
         assert resp.status_code == 200    
         
+        resp = cli.get ("/21")
+        assert resp.status_code == 400
         
+        resp = cli.get ("/21?limit=4")
+        assert resp.status_code == 200  
+
+        resp = cli.post ("/21?limit=4", {})
+        assert resp.status_code == 400        
+
+        resp = cli.post ("/21", {'id': 'ttt'})
+        assert resp.status_code == 400    
+        
+        resp = cli.get ("/22")
+        assert resp.status_code == 400
