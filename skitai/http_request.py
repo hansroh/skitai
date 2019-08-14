@@ -162,7 +162,7 @@ class http_request:
         ct = self.get_header ('content-type', '')        
         maybe = self.json (ct)
         if maybe is None:
-            maybe = self.form (ct)        
+            maybe = self.form (ct)                
         return maybe or {}    
     
     @property
@@ -179,7 +179,7 @@ class http_request:
     def get_multipart (self):
         return self.multipart
             
-    def set_body (self, body):
+    def set_body (self, body):        
         self.body = body
     
     def get_body (self):
