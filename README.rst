@@ -1598,7 +1598,8 @@ Task will be created like this,
   with was.xmlrpc ('@myrpc/rpc2') as stub:
     task = stub.some_method (arg1, arg2)
 
-Database calls,
+Database Call
+~~~~~~~~~~~~~~~~~~
 
 - was.db (): PostgreSQL, SQLite3, MongoDB and Redis calls
 - was.transaction (): for RDBMS (PostgreSQL and SQLite3)
