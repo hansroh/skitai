@@ -1635,6 +1635,7 @@ Task has below core methods:
 - fetch (timeout)
 - one (timeout): should be single lengthed object
 - commit (timeout)
+- returning (data)
 
 Tasks
 ````````````````````
@@ -1669,13 +1670,13 @@ You can make it by wrapping was.Mask (data) if you want to use consistant method
 Long Running Task(s)
 ````````````````````````````````
 
-corequests is natively backgound jobs. So you can create these tasks and return yotur response - usally 202 Accepted.
+corequests is natively a kind of backgound jobs. So you can create these tasks and return yotur response - usally 202 Accepted.
 
 More explicit way, creating tasks and immediately return 202 response.
 
 .. code:: python
 
-  return Task.returning (Response ('202 Accepted'))
+  return was.post ('@myapi/v1/some-resources').returning (Response ('202 Accepted'))
   
   return was.Thread (func, arg).returning (Response ('202 Accepted'))
 
