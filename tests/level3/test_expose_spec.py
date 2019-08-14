@@ -5,12 +5,12 @@ import re
 
 def test_error_handler (app):
     @app.route ("/a")
-    @app.parameters_required ("JSON", ["limit"])
+    @app.require ("JSON", ["limit"])
     def indexa (was, limit):
         return was.API ()
 
     @app.route ("/b")
-    @app.parameters_required ("URL", ["limit"])
+    @app.require ("URL", ["limit"])
     def indexb (was, limit):
         raise was.Error ("422 Bad Request")    
 

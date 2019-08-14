@@ -8,7 +8,7 @@ import time
 
 def test_route_root (app, dbpath):
     @app.route ("/index")    
-    @app.params_required ("URL", ints = ["t"])
+    @app.require ("URL", ints = ["t"])
     def index (was, t = 0):
         t = int (t)
         if t == 0:
