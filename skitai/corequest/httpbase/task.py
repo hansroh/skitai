@@ -14,7 +14,7 @@ from aquests.protocols.ws import request_handler as ws_request_handler
 from aquests.protocols.ws import request as ws_request
 from . import rcache
 from skitai import lifetime
-import asyncore
+from aquests import asyncore
 import sys
 import inspect
 from skitai import exceptions

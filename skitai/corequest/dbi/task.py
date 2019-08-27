@@ -5,7 +5,7 @@ import threading
 from ..httpbase import task, rcache
 from rs4.attrdict import AttrDict
 from aquests.dbapi import request
-import asyncore
+from aquests import asyncore
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from skitai import REQFAIL, UNSENT, TIMEOUT, NETERR, NORMAL    
 from rs4.cbutil import tuple_cb

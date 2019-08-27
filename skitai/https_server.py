@@ -2,7 +2,8 @@
 
 from . import http_server
 from .counter import counter
-import socket, time, asyncore
+import socket, time
+from aquests import asyncore
 import ssl
 from skitai import lifetime
 import os, sys, errno

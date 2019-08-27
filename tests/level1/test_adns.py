@@ -1,6 +1,6 @@
 import aquests
 from aquests.protocols import dns
-import asyncore
+from aquests import asyncore
 from rs4 import logger
 
 def assert_status (resp):

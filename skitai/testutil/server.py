@@ -8,7 +8,7 @@ from ..http_response import http_response
 from ..handlers import vhost_handler
 import skitai
 from skitai import lifetime
-import asyncore
+from aquests import asyncore
 from atila.multipart_collector import MultipartCollector
 from unittest.mock import MagicMock
 

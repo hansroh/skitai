@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys
-import asyncore, asynchat
+from aquests import asyncore, asynchat
 import re, socket, time, threading, os
 from . import http_request, counter
 from aquests.protocols.http import http_util, http_date

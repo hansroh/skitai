@@ -9,7 +9,7 @@ from aquests.protocols.http import respcodes
 from .wastuff import selective_logger
 from .utility import catch
 import skitai
-import asyncore
+from aquests import asyncore
 import json
 from skitai import exceptions
 from .wastuff.api import API, catch

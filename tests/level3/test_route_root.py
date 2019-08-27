@@ -1,7 +1,7 @@
 from atila import Atila
 import confutil
 import skitai
-import asyncore
+from aquests import asyncore
 import os
 from rs4 import jwt as jwt_
 import time

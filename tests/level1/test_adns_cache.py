@@ -1,6 +1,6 @@
 from rs4 import logger
 from aquests.client import adns 
-import asyncore
+from aquests import asyncore
 
 from test_adns import loop
     
