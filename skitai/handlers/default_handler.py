@@ -96,7 +96,43 @@ class Handler:
 		if not self.wasc.authorizer.has_permission (request, permission):
 			return True			
 		return False	
+
+	def is_etag_matched (self, request, header_name, etag):
+		hval = request.get_header (header_name)
+		if not hval:
+			return
+		match = get_re_match (IF_NONE_MATCH, hval)			
+		if not match:		
+			return
+		return etag == match.group (1) and 'matched' or 'unmatched'
 		
+	def is_modified (self, request, header_name, mtime, file_length):
+		ims_h = request.get_header (header_name)
+		if not ims_h:
+			return			
+		match = get_re_match (IF_MODIFIED_SINCE, ims_h)
+		if not match:
+			return
+
+		length = match.group (4)
+		if length:
+			try:
+				length = int(length)
+				if length != file_length:
+					return 'modified'
+			except:
+				pass
+
+		try:		
+			mtime2 = http_date.parse_http_date (match.group (1))
+		except:
+			return			
+	
+		if mtime > mtime2:
+			return 'modified'
+		else:
+			return 'unmodified'	
+
 	def handle_request (self, request):
 		if request.command not in ('get', 'head'):
 			self.handle_alternative (request)
@@ -154,57 +190,70 @@ class Handler:
 			self.handle_alternative (request)
 			return
 		
-		etag = self.make_etag (file_length, mtime)	
-		inm_h = request.get_header ("if-none-match")	
-		if inm_h:
-			inm = get_re_match (IF_NONE_MATCH, inm_h)			
-			if inm and etag == inm.group (1):
-				self.set_cache_control (request, path, mtime, etag)
-				request.response.start (304)
-				request.response.done()
-				return
+		etag = self.make_etag (file_length, mtime)
+		if self.is_etag_matched (request, 'if-none-match', etag) == 'matched' or self.is_modified (request, "if-modified-since", mtime, file_length) == 'unmodified':
+			self.set_cache_control (request, path, mtime, etag)
+			request.response.start (304)
+			request.response.done()
+			return
 		
-		ims_h = request.get_header ("if-modified-since")
-		if ims_h:
-			ims = get_re_match (IF_MODIFIED_SINCE, ims_h)
-			length_match = 1
-			if ims:
-				length = ims.group (4)
-				if length:
-					try:
-						length = int(length)
-						if length != file_length:
-							length_match = 0
-					except:
-						pass
-						
-			ims_date = 0
-			if ims:
-				ims_date = http_date.parse_http_date (ims.group (1))
+		if self.is_etag_matched (request, 'if-match', etag) == 'unmatched' or self.is_modified (request, "if-unmodified-since", mtime, file_length) == 'modified':
+			request.response.start (412)
+			request.response.done()
+			return
 	
-			if length_match and ims_date:
-				if mtime <= ims_date:
-					self.set_cache_control (request, path, mtime, etag)
-					request.response.start (304)
-					request.response.done()
-				return
-		
-		request.response ['Content-Length'] = file_length
+		range_ = request.get_header ('range')
+		if range_:
+			if self.is_etag_matched (request, 'if-range', etag) == 'unmatched':
+				range_ = None # ignore range
+			else:
+				try:
+					rg_start, rg_end = self.parse_range (range_, file_length)
+				except:				
+					request.response.start (416)
+					request.response.done()	
+					return
+			
 		self.set_cache_control (request, path, mtime, etag)
 		self.set_content_type (path, request)
-		
-		if request.command == 'get':
+
+		if range_:
+			request.response ['Content-Range'] = 'bytes {}-{}/{}'.format (rg_start, rg_end, file_length)
+			request.response ['Content-Length'] = (rg_end - rg_start) + 1
+			offset, limit = rg_start, (rg_end - rg_start) + 1
+			request.response.start (206)
+
+		else:
+			request.response ['Content-Length'] = file_length
+			offset, limit = 0, file_length
+			
+		if request.command == 'get' and limit:
 			# if head, don't send contents
 			if file_length < 4096:
 				request.response.push (
-					self.memcache.read (path, self.filesystem.translate (path), etag)
+					self.memcache.read (path, self.filesystem.translate (path), etag) [offset:limit]
 				)
 			else:					
 				request.response.push (producers.file_producer (
-					self.filesystem.open (path, 'rb'), proxsize = file_length)					
+					self.filesystem.open (path, 'rb'), proxsize = file_length, offset = offset, limit = limit)
 				)
 		request.response.done()
 	
+	def parse_range (self, rg, file_length):
+		if rg.startswith ('bytes='):		
+			s, e = rg [6:].split ("-", 1)	
+		else:
+			return 0, file_length - 1
+
+		s = int (s)
+		if e:
+			e = int (e)
+		else:
+			e = min (s + 1048575, file_length - 1)
+		assert e < file_length		
+		assert s <= e
+		return s, e
+		
 	def set_cache_control (self, request, path, mtime, etag):
 		max_age = self.max_ages and self.get_max_age (path) or 0
 		if request.version == "1.0":			

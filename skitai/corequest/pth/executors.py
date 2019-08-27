@@ -27,6 +27,7 @@ class Executor:
         self.executor = self._executor_class (self.workers)
 
     def maintern (self, now):
+        self.last_maintern = time.time ()
         inprogresses = []
         for future in self.futures:                
             if future.done ():
@@ -66,6 +67,7 @@ class Executor:
                 now = time.time ()
                 if now > self.last_maintern + self.MAINTERN_INTERVAL:
                     self.maintern (time.time ())
+
         future = self.executor.submit (f, *a, **b)
         wrap = Task (future, "{}.{}".format (f.__module__, f.__name__))
         self.logger ("{} task started: {}".format (self._name, wrap))

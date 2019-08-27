@@ -2538,10 +2538,7 @@ Starting Background Tasks
 
 Skitai integrated async/sync concurrents. They have also very same usage and methods like fetch, one, dispatch etc.
 
-Future / Futures
-`````````````````````````````````
-
-Future object is for async corequests. It creates backgorund async jobs and responds immediately.
+Task(s) object is natively async corequests. It creates backgorund async jobs and can be responded immediately.
 
 .. code:: python
   
@@ -2552,7 +2549,7 @@ Future object is for async corequests. It creates backgorund async jobs and resp
       Response ('', 202, headers = {'Content-Location': "..."})
     )
 
-Futures is also available,
+Tasks is also available,
 
 .. code:: python
   
@@ -2568,11 +2565,7 @@ Futures is also available,
 
 *Note*: With Atila_, you can add callback for late response.
 
-
-Process / Thread
-```````````````````````````````````````
-
-Process / Thread is for synchronous routine. 
+Process / Thread is very same as Task. 
 
 Skitai will create thread/process pool as you use it at once. If you do't use this, pool will not be created for resource saving. Pool size is your number of CPUs.
 
