@@ -2,7 +2,7 @@ from rs4 import logger
 from skitai.rpc import cluster_manager, task
 from skitai.threads import trigger
 import sys
-from aquests import asyncore
+from rs4 import asyncore
 import time
 from aquests.client import socketpool
 import threading

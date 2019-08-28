@@ -1,4 +1,4 @@
-from aquests import asyncore
+from rs4 import asyncore
 import time
 
 def _make (was, flt):

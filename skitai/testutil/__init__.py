@@ -23,7 +23,7 @@ from aquests import lifetime
 from aquests.client import adns
 from aquests.client.asynconnect import AsynConnect
 from aquests.dbapi.dbconnect import DBConnect
-from aquests import asyncore
+from rs4 import asyncore
 from .launcher  import launch
 from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS, DB_SYN_PGSQL, DB_SYN_MONGODB, DB_SYN_REDIS
 from ..wastuff import semaps

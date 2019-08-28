@@ -1,7 +1,7 @@
 from aquests.athreads import trigger
 from aquests import lifetime
 import sys, time
-from aquests import asyncore
+from rs4 import asyncore
 import gc
 import select
 import os

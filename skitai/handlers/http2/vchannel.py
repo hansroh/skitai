@@ -1,4 +1,4 @@
-from aquests import asynchat
+from rs4 import asynchat
 
 class fake_channel:
 	def __init__ (self, stream_id, channel):

@@ -357,7 +357,7 @@ if os.name == 'posix':
 #	import fcntl
 #	import FCNTL
 #	import select
-#	from aquests import asyncore
+#	from rs4 import asyncore
 #
 #	# pipes /bin/ls for directory listings.
 #	class unix_filesystem (os_filesystem):
