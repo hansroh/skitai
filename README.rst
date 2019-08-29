@@ -2689,7 +2689,7 @@ Change Log
 - 0.29 (Aug 2019)
 
   - add handlers for Range, If-Range, If-Unmodified-Since, If-Match headers
-  - asyncore and asynchat are relocated into rs4 package because they have been exsanguinated from standard Python library
+  - asyncore and asynchat are vendored as rs4.asyncore and chat, because they will be exsanguinated from standard Python library. Mr. Rossum has been listed up on my mortal enemy list
   - deprecated: was.Future and was.Futures, it doesn't need. for using returning (), use corequest.returning () and was.Tasks.returning ()
   - new corequest.pth package
   - over 100 unit tests
