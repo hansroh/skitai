@@ -7,7 +7,7 @@ from rs4 import logger
 def foo (task):
     assert b'total' in task.fetch ()
 
-def test_was_async_requests (async_wasc):
+def test_subprocess (async_wasc):
     def callback (was, task):
         assert not task.fetch ()
 
