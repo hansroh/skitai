@@ -472,13 +472,6 @@ class Task (corequest):
         tuple_cb (result, callback)
     
     #-----------------------------------------------------------------
-    
-    def get_timeout (self):
-        return self._timeout
-
-    def set_timeout (self, timeout):
-        self._timeout = timeout
-        
     def rerequest (self):
         self._build_request (*self._cached_request_args)
 
@@ -575,9 +568,6 @@ class Task (corequest):
     def then (self, func):
         from ..tasks import Future
         return Future (self, self._timeout, **self._meta).then (func)
-    
-    def returning (self, returning):
-        return returning
     
     def cache (self, cache = 60, cache_if = (200,)):
         cache = cache or self._cache_timeout

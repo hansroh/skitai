@@ -16,12 +16,6 @@ class TaskBase (corequest):
         self.meta = meta
         self._init_time = time.time ()
 
-    def get_timeout (self):
-        return self._timeout
-
-    def set_timeout (self, timeout):
-        self._timeout = timeout
-
     def __getattr__ (self, name):
         try:
             return self.meta [name]
@@ -98,9 +92,6 @@ class Tasks (TaskBase):
     def then (self, func):
         return Futures (self._reqs, self._timeout, **self.meta).then (func)
     
-    def returning (self, returning):
-        return returning
-
 
 class Mask (response, TaskBase):
     def __init__ (self, data = None, _expt = None, _status_code = None, **meta):

@@ -23,6 +23,9 @@ class Task (corequest):
     def __getattr__ (self, name):
         return getattr (self.future, name)
 
+    def get_name (self):
+        return self._name
+
     def _settle (self, future):
         expt, result = future.exception (0), None
         if self._fulfilled:
@@ -48,9 +51,6 @@ class Task (corequest):
         except: pass
         self.future.set_exception (CancelledError) 
 
-    def returning (self, returning):
-        return returning
-
     def then (self, func):
         self._fulfilled = func
         try: self._was = was._clone (True)
@@ -58,12 +58,6 @@ class Task (corequest):
         self.future.add_done_callback (self._settle)
         return self
     
-    def get_timeout (self):
-        return self._timeout
-
-    def set_timeout (self, timeout):
-        self._timeout = timeout
-
     # common corequest methods ----------------------------------    
     def _create_mask (self, timeout):
         self._timeout = timeout

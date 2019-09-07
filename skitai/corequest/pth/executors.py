@@ -28,27 +28,19 @@ class ThreadExecutor:
             return len (self.futures)
 
     def launch_executor (self):
-        self.executor = rs4.tpool (self.workers)
-        self._name = self.executor.__class__.__name__
-
-    def close_executor (self):
-        from rs4.psutil import kill
-        for t in self.executor._threads:
-            try:
-                kill.thread (t)            
-            except SystemError:
-                pass
+        self.executor = rs4.tpool (self.workers)        
 
     def status (self):
         with self.lock:
             return dict (
                 completions = self._dones,
                 timeouts = self._timeouts,
-                mainternables = len (self.futures),
+                maintainables = len (self.futures),
                 zombie_timeout = self.zombie_timeout,
                 workers = self.workers,
                 last_maintern = self.last_maintern,
-                activated = self.executor is not None
+                activated = self.executor is not None,
+                tasks = [f.get_name () for f in self.futures if not f.done ()]
             )
 
     def maintern (self, now):
@@ -58,11 +50,16 @@ class ThreadExecutor:
             if future.done ():
                 self._dones += 1
                 continue
+            
             if self.no_more_request:
-                timeout = -1
+                timeout = -1 # kill immediately
             else:
-                timeout = future.get_timeout () or self.zombie_timeout
-            if timeout and future._started + timeout < now:
+                timeout = future.get_timeout ()
+                if timeout is None:
+                    timeout = self.zombie_timeout
+            
+            # timeout is 0 or None, it is infinite task
+            if timeout is not None and future._started + timeout < now:                
                 future.kill ()
                 self._timeouts += 1
                 self.logger ("zombie {} task is killed: {}".format (self._name, future))    
@@ -77,8 +74,7 @@ class ThreadExecutor:
             if not self.executor:
                 return            
             self.maintern (time.time ())
-            self.executor.shutdown (wait = False)   
-            self.close_executor ()
+            self.executor.shutdown (wait = False)               
             self.executor = None
             self.futures = []
             return len (self.futures)
@@ -89,10 +85,12 @@ class ThreadExecutor:
                 return
             if self.executor is None:
                 self.launch_executor ()
+                self._name = self.executor.__class__.__name__
             else:
                 now = time.time ()
                 if now > self.last_maintern + self.MAINTERN_INTERVAL:
                     self.maintern (now)
+        
         try:
             timeout = b.pop ('__timeout')            
         except KeyError:
@@ -108,12 +106,8 @@ class ThreadExecutor:
 
 class ProcessExecutor (ThreadExecutor):
     def launch_executor (self):
-        self.executor = rs4.ppool (self.workers)
-        self._name = self.executor.__class__.__name__
+        self.executor = rs4.ppool (self.workers)        
 
-    def close_executor (self):
-        pass
-    
 
 # ------------------------------------------------------------------------
 

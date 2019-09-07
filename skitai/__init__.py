@@ -47,6 +47,7 @@ DEFAULT_BACKEND_OBJECT_TIMEOUT = 600
 DEFAULT_BACKEND_MAINTAIN_INTERVAL = 30
 DEFAULT_KEEP_ALIVE = 2
 DEFAULT_NETWORK_TIMEOUT = 30
+DEFAULT_BACKGROUND_TASK_TIMEOUT = 300
 
 PROTO_HTTP = "http"
 PROTO_HTTPS = "https"
@@ -290,7 +291,7 @@ def set_keep_alive (timeout):
 	global dconf
 	dconf ["keep_alive"] = timeout
 
-def config_executors (workers = None, zombie_timeout = None):
+def config_executors (workers = None, zombie_timeout = DEFAULT_BACKGROUND_TASK_TIMEOUT):
 	global dconf
 	dconf ["executors_workers"] = workers
 	dconf ["executors_zombie_timeout"] = zombie_timeout
@@ -666,7 +667,7 @@ def run (**conf):
 				# master does not serve
 				return
 			
-			self.config_executors (conf.get ('executors_workers'), dconf.get ("executors_zombie_timeout"))
+			self.config_executors (conf.get ('executors_workers'), dconf.get ("executors_zombie_timeout", DEFAULT_BACKGROUND_TASK_TIMEOUT))
 			self.config_threads (conf.get ('threads', 4))			
 			self.config_backends (
 				conf.get ('backend_keep_alive', DEFAULT_BACKEND_KEEP_ALIVE), 
