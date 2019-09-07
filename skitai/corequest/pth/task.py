@@ -31,15 +31,18 @@ class Task (corequest):
         if self._fulfilled:
             if not expt:
                 result = future.result (0)
-            task = Mask (result, expt)            
-            try:
-                self._fulfilled (self._was, task)
-            except:
-                self._was.traceback ()        
-                trigger.wakeup (lambda p = self._was.response, d = self._was.app.debug and sys.exc_info () or None: (p.error (500, "Internal Server Error", d), p.done ()) )
-            else:
-                trigger.wakeup (lambda p = self._was.response: (p.done (),))
-            self._fulfilled = None
+            mask = Mask (result, expt)            
+            self._callback (mask)
+
+    def _callback (self, mask):
+        try:
+            self._fulfilled (self._was, mask)
+        except:
+            self._was.traceback ()        
+            trigger.wakeup (lambda p = self._was.response, d = self._was.app.debug and sys.exc_info () or None: (p.error (500, "Internal Server Error", d), p.done ()) )
+        else:
+            trigger.wakeup (lambda p = self._was.response: (p.done (),))
+        self._fulfilled = None
     
     def kill (self):
         try: self.future.result (timeout = 0)

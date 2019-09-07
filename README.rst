@@ -1621,6 +1621,7 @@ Thread/Process Call
 
 - was.Thread ()
 - was.Process ()
+- was.Subprocess ()
 
 Task will be created like this,
 
@@ -2533,7 +2534,7 @@ Above example pattern is just one of my implemetation with async models.
 It can be extended and changed into NoSQL or even RESTful/RPC with any Skitai corequest object which has same 5 methods - dispatch, wait, fetch, one and commit.
 
 
-Starting Background Tasks
+Background Tasks
 ---------------------------------
 
 Skitai integrated async/sync concurrents. They have also very same usage and methods like fetch, one, dispatch etc.
@@ -2593,10 +2594,11 @@ Also you can create async jobs for long run process.
       Response ('', 202, headers = {'Content-Location': "..."})
     )
 
-was.Thread () is also available.
+was.Thread () and was.Subprocess () are also available.
 
 - was.Thread (target, \*args, \*\*kargs): return wrapper of concurrent.futures.Future
 - was.Process (target, \*args, \*\*kargs): return wrapper of concurrent.futures.Future
+- was.Subprocess (command, timeout = 300): return wrapper of subprocess.Popen
 
 *Note*: With Atila_, you can add callback for late response.
 
@@ -2688,6 +2690,7 @@ Change Log
 
 - 0.29 (Aug 2019)
 
+  - add was.Subprocess
   - add handlers for Range, If-Range, If-Unmodified-Since, If-Match headers
   - asyncore and asynchat are vendored as rs4.asyncore and chat, because they will be exsanguinated from standard Python library. Mr. Rossum has been listed up on my mortal enemy list
   - deprecated: was.Future and was.Futures, it doesn't need. for using returning (), use corequest.returning () and was.Tasks.returning ()

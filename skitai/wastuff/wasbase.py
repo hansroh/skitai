@@ -13,10 +13,11 @@ import threading
 from rs4 import pathtool, logger, jwt, deco
 from aquests.protocols.smtp import composer
 from aquests.protocols.http import http_date, util
-from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT, NAME
+from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT, NAME, DEFAULT_BACKGROUND_TASK_TIMEOUT
 from skitai import lifetime
 from . import server_info
 from ..corequest import tasks
+from ..corequest.pth import sp_task
 from .. import http_response
 from .promise import Promise
 from .triple_logger import Logger
@@ -146,6 +147,9 @@ class WASBase:
 
     def Process (self, func, *args, **kargs):
         return self.executors.create_process (func, *args, **kargs)
+
+    def Subprocess (self, cmd, timeout = DEFAULT_BACKGROUND_TASK_TIMEOUT):
+        return sp_task.Task (cmd, timeout)
 
     def Mask (self, data = None, _expt = None, **meta):
         return tasks.Mask (data, _expt, **meta)
