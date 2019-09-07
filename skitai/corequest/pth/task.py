@@ -15,6 +15,7 @@ class Task (corequest):
         self._was = None
         self._fulfilled = None
         self._mask = None
+        self._timeout = None
 
     def __str__ (self):
         return self._name
@@ -40,7 +41,7 @@ class Task (corequest):
     def kill (self):
         try: self.future.result (timeout = 0)
         except: pass
-        self.future.set_exception (TimeoutError)            
+        self.future.set_exception (TimeoutError)
 
     def cancel (self):
         try: self.future.cancel ()
@@ -57,8 +58,15 @@ class Task (corequest):
         self.future.add_done_callback (self._settle)
         return self
     
+    def get_timeout (self):
+        return self._timeout
+
+    def set_timeout (self, timeout):
+        self._timeout = timeout
+
     # common corequest methods ----------------------------------    
     def _create_mask (self, timeout):
+        self._timeout = timeout
         if self._mask:
             return self._mask
         data = None

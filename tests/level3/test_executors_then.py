@@ -71,7 +71,7 @@ def test_was_async_requests (app):
         time.sleep (3)
         threading.Thread (target = enforce).start ()
         resp = cli.get ("/?timeout=5")
-        assert resp.status_code == 500
+        assert resp.status_code == 502
         
 
         
