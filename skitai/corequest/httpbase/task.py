@@ -472,6 +472,13 @@ class Task (corequest):
         tuple_cb (result, callback)
     
     #-----------------------------------------------------------------
+    
+    def get_timeout (self):
+        return self._timeout
+
+    def set_timeout (self, timeout):
+        self._timeout = timeout
+        
     def rerequest (self):
         self._build_request (*self._cached_request_args)
 

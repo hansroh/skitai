@@ -16,6 +16,12 @@ class TaskBase (corequest):
         self.meta = meta
         self._init_time = time.time ()
 
+    def get_timeout (self):
+        return self._timeout
+
+    def set_timeout (self, timeout):
+        self._timeout = timeout
+
     def __getattr__ (self, name):
         try:
             return self.meta [name]
@@ -103,6 +109,7 @@ class Mask (response, TaskBase):
         self.meta = meta
         self.status = NORMAL
         self.status_code = _status_code or (_expt and 500 or 200)
+        self._timeout = DEFAULT_TIMEOUT
         
     def _reraise (self):
         if self._expt:
@@ -182,7 +189,7 @@ class Futures (TaskBase):
         return self
 
     def _collect (self, res):
-        self._responded += 1        
+        self._responded += 1
         if self._responded == len (self._reqs):
             if self._fulfilled:             
                 self._respond ()
@@ -191,7 +198,7 @@ class Futures (TaskBase):
                 self._was.response.done ()
             
     def _respond (self):
-        response = self._was.response         
+        response = self._was.response
         try:
             tasks = (self._single and CompletedTask or CompletedTasks) (self._reqs, **self.meta)
             content = self._fulfilled (self._was, tasks)
