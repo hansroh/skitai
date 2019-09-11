@@ -15,6 +15,11 @@ class Task (task.Task):
         self._mask = None
         self.proc = subprocess.Popen (cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True)
 
+    @property
+    def lines (self):
+        for line in iter (self.proc.stdout.readline, b''):
+            yield line
+
     def _polling (self):    
         mask = self._create_mask (self._timeout)
         self._callback (mask)

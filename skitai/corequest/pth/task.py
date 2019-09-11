@@ -9,7 +9,7 @@ from ..httpbase.task import DEFAULT_TIMEOUT
 
 class Task (corequest):
     def __init__ (self, future, name):
-        self.future = future
+        self.future = future        
         self._name = name
         self._started = time.time ()
         self._was = None
