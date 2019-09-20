@@ -44,34 +44,7 @@ Your app will work for your thousands or miliions of customers.
 Introduce
 ==============
 
-Skitai is a kind of branch of `Medusa Web Server`__ - A High-Performance Internet Server Architecture.
-
-Skitai has purpose for providing online runtime environment for Python.
-
-- Asynchronous Based Web Server (using asyncore)
-- Mountable All WSGI Middlewares like Flask_, Django_, Atila_
-- Multi Threads and Multi Workers(posix only) Request Processing Model
-- HTTP2 (with hyper-h2_), Websocket Implemented
-- Asynchronous Corequest (including laod-balancing and map-reducing) For:
-
-  - HTTP Methods (GET, POST, PUT, ...)
-  - XMLRPC / JSONRPC
-  - GRPC (Experimental)
-  - RDBMS
-
-    - PostgreSQL
-    - SQLite3 (Not async)
-    
-  - NoSQL
-    
-    - Redis
-    - MongoDB
-
-  - Websocket Messaging
-  - Reverse Proxy (Upstream Server Routing)  
-
-- Corequest based Future Task
-- Thread/Process With Executor Pool based Task
+Skitai is WSGI server and more than that. Skitai has purpose for providing complete online runtime environment for Python apps. You can make high concurrency with async sockect works, threading, processing and subprocessing. And you can use them with high consistent manner.
 
 .. _Django: https://www.djangoproject.com/
 .. _Atila: https://pypi.python.org/pypi/atila
