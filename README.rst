@@ -1,7 +1,3 @@
-===================
-Skitai App Engine
-===================
-
 At a Glance
 =============
 
@@ -44,15 +40,13 @@ Your app will work for your thousands or miliions of customers.
 Introduce
 ==============
 
-Skitai is WSGI server and more than that. Skitai has purpose for providing complete online runtime environment for Python apps. You can make high concurrency with async sockect works, threading, processing and subprocessing. And you can use them with high consistent manner.
+Skitai is WSGI server and more than that. 
 
-.. _Django: https://www.djangoproject.com/
+Skitai/Atila_ has purpose for providing complete online runtime environment for Python apps. You can make high concurrency with async sockect works, threading, processing and subprocessing. And you can use them with highly consistent manner.
+
+Skitai handles requests with mainly asynchronous event loop and threading pool and support websocket within WSGI specification not with ASGI nor asyncio (It use asyncore).
+
 .. _Atila: https://pypi.python.org/pypi/atila
-.. _hyper-h2: https://pypi.python.org/pypi/h2
-.. _Flask: http://flask.pocoo.org/
-.. _PostgreSQL: http://www.postgresql.org/
-.. __: http://www.nightmare.com/medusa/medusa.html
-
 
 .. contents:: Table of Contents
 
@@ -3056,3 +3050,4 @@ Change Log
 0.10 (Dec 2015) - WSGI support
   
 .. _Chameleon: https://chameleon.readthedocs.io/en/latest/index.html
+.. _hyper-h2: https://pypi.python.org/pypi/h2
