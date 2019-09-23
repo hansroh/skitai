@@ -21,12 +21,13 @@ import copy
 from collections import Iterable
 from rs4.reraise import reraise
 from ...http_response import catch
+from collections.abc import Iterable
 
-has_werkzeug = True
+ClosingIterator = None
 try:
 	from werkzeug.wsgi import ClosingIterator
 except ImportError:
-	has_werkzeug = False
+	pass
 
 class WebSocket:
 	collector = None
@@ -180,14 +181,7 @@ class WebSocket:
 			raise AssertionError ("Web socket frame decode error")
 
 	def build_data (self, message, op_code):
-		if has_werkzeug and isinstance (message, ClosingIterator):
-			msgs = []
-			for msg in message:
-				msgs.append (msg)
-			message = b''.join (msgs).decode ("utf8")
-		else:
-			message = self.message_encode (message)
-
+		message = self.message_encode (message)
 		if op_code == -1:
 			if type (message) is str:
 				op_code = OPCODE_TEXT
@@ -197,7 +191,15 @@ class WebSocket:
 				op_code = self.default_op_code
 		return message, op_code
 
-	def send (self, message, op_code = -1):
+	def send (self, messages, op_code = -1):
+		if ClosingIterator and isinstance (messages, ClosingIterator): # for werkzeug iterator
+			messages = [ b''.join ([msg for msg in messages]).decode ("utf8") ]
+		elif isinstance (messages, (str, bytes)) or not isinstance (messages, Iterable):
+			messages = [ messages ]
+		for msg in messages:
+			self.sendone (msg, op_code)
+
+	def sendone (self, message, op_code = -1):
 		if not self.channel: return
 		message, op_code = self.build_data (message, op_code)
 		header  = bytearray()

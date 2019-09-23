@@ -1425,14 +1425,26 @@ For example with Flask app,
 
 .. code:: python
 
+  import request
+
   @app.route ("/echo3")
   @skitai.websocket (60) # timeout
   def echo3 ():
+    ws = request.environ ["websocket"]
     while 1:
       message = yield
-      if not msg:
+      if not message:
         return #strop iterating
       yield "ECHO:" + message
+
+I you want to send multiple messages,
+
+.. code:: python
+
+  yield ['OK', 'Task 1 started', 'Check later, please']
+  # OR
+  yield output_iterator ()
+
 
 Proxying With Atila
 ---------------------------------
