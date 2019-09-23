@@ -13,7 +13,7 @@ app.securekey = 'asdadada'
 def echo_single (was, message):
 	# return a single message, use aquests.ws (DO NOT USE /echo)
 	if was.wsinit ():
-		return was.wsconfig (skitai.WS_SIMPLE, 60)
+		return was.wsconfig (skitai.WS_CHANNEL, 60)
 	elif was.wshasevent (): # ignore the other events
 		return
 	return "You said," + message
@@ -21,7 +21,7 @@ def echo_single (was, message):
 @app.route ("/echo")
 def echo (was, message):
 	if was.wsinit ():
-		return was.wsconfig (skitai.WS_SIMPLE, 60)
+		return was.wsconfig (skitai.WS_CHANNEL, 60)
 	elif was.wsopened ():
 		return "Welcome Client %s" % was.wsclient ()
 	elif was.wshasevent (): # ignore the other events
@@ -34,19 +34,19 @@ def onopen (was):
 	return  'Welcome Client 0'
 
 @app.route ("/echo2")
-@app.websocket (skitai.WS_SIMPLE | skitai.WS_NQ, 60, onopen = onopen)
+@app.websocket (skitai.WS_CHANNEL | skitai.WS_NOTHREAD, 60, onopen = onopen)
 def echo2 (was, message):
 	was.websocket.send ('1st: ' + message)
 	return "2nd: " + message
 
 @app.route ("/echo3")
-@app.websocket (skitai.WS_SIMPLE | skitai.WS_NQ, 60, onopen = onopen)
+@app.websocket (skitai.WS_CHANNEL | skitai.WS_THREADSAFE, 60, onopen = onopen)
 def echo3 (was, message):
 	was.websocket.send ('1st: ' + message)
 	return "2nd: " + message
 
 @app.route ("/echo4")
-@app.websocket (skitai.WS_SIMPLE | skitai.WS_SESSION, 60)
+@app.websocket (skitai.WS_CHANNEL | skitai.WS_SESSION, 60)
 def echo4 (was):
 	n = 0
 	while 1:
@@ -66,7 +66,7 @@ def onclosep (was):
   was.session.remove ("WS_ID")
 
 @app.route ("/push")
-@app.websocket (skitai.WS_SIMPLE, 1200, onopenp, onclosep)
+@app.websocket (skitai.WS_CHANNEL, 1200, onopenp, onclosep)
 def push (was, message):
   return 'you said: ' + message
 

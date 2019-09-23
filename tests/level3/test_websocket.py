@@ -7,19 +7,19 @@ def test_websocket (app):
         return  'Welcome'
 
     @app.route ("/echo")
-    @app.websocket (skitai.WS_SIMPLE, 60, onopen = onopen)
+    @app.websocket (skitai.WS_CHANNEL, 60, onopen = onopen)
     def echo (was, message):
         was.websocket.send ('1st: ' + message)
         return "2nd: " + message
 
     @app.route ("/echo2")
-    @app.websocket (skitai.WS_SIMPLE | skitai.WS_NOTHREAD, 60, onopen = onopen)
+    @app.websocket (skitai.WS_CHANNEL | skitai.WS_NOTHREAD, 60, onopen = onopen)
     def echo2 (was, message):
         was.websocket.send ('1st: ' + message)
         return "2nd: " + message
 
     @app.route ("/echo3")
-    @app.websocket (skitai.WS_SIMPLE | skitai.WS_SESSION, 60)
+    @app.websocket (skitai.WS_CHANNEL | skitai.WS_SESSION, 60)
     def echo3 (was):
         yield '111'
 

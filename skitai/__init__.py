@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.30.0"
+__version__ = "0.30.0.2"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -67,14 +67,15 @@ STA_NORMAL = NORMAL = 3
 WEBSOCKET_SIMPLE = 1
 WEBSOCKET_GROUPCHAT = 5
 
-WS_SIMPLE = 1
-WS_THREADSAFE = 6
+WS_CHANNEL = WS_SIMPLE = 1
 WS_GROUPCHAT = 5
+WS_THREADSAFE_DEPRECATED = 7
 
 # optional executing ways
 WS_THREAD = 0
 WS_NOTHREAD = WS_NQ = 128
 WS_SESSION = 256
+WS_THREADSAFE = 134
 
 WS_EVT_INIT = "init"
 WS_EVT_OPEN = "open"

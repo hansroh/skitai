@@ -131,7 +131,8 @@ class Handler (wsgi_handler.Handler):
 
 		del env ["websocket.event"]
 		del env ["websocket.config"]
-		assert (design_spec_ & 31) in (1,5,6), "design_spec  should be one of (WS_SIMPLE, WS_GROUPCHAT, WS_THREADSAFE)"
+
+		assert (design_spec_ & 31) in (skitai.WS_CHANNEL, skitai.WS_GROUPCHAT, skitai.WS_THREADSAFE_DEPRECATED), "design_spec  should be one of (WS_CHANNEL, WS_GROUPCHAT, WS_THREADSAFE)"
 		headers = [
 			("Sec-WebSocket-Accept", self.calculate_response_key (securekey)),
 			("Upgrade", "Websocket"),
@@ -145,28 +146,23 @@ class Handler (wsgi_handler.Handler):
 		design_spec = design_spec_ & 31
 		if design_spec_ & skitai.WS_NOTHREAD == skitai.WS_NOTHREAD:
 			env ["wsgi.multithread"] = 0
-			assert design_spec != skitai.WS_THREADSAFE, 'WS_NOTHREAD flag cannot use with WS_THREADSAFE flag'
 		elif design_spec_ & skitai.WS_SESSION == skitai.WS_SESSION:
 			env ["wsgi.multithread"] = 0
-			assert design_spec != skitai.WS_THREADSAFE, 'WS_SESSION flag cannot use with WS_THREADSAFE flag'
 
-		if design_spec in (skitai.WS_SIMPLE, skitai.WS_THREADSAFE):
+		if design_spec in (skitai.WS_CHANNEL, skitai.WS_THREADSAFE_DEPRECATED):
 			varnames = varnames [:1]
 			# Like AJAX, simple request of client, simple response data
 			# the simplest version of stateless HTTP protocol using basic skitai thread pool
-			ws_calss = design_spec == skitai.WS_SIMPLE and specs.WebSocket1 or specs.WebSocket6
-			ws = ws_calss (self, request, apph, env, varnames, message_encoding)
+			ws_class = specs.WebSocket1
+			if (design_spec_ & skitai.WS_THREADSAFE == skitai.WS_THREADSAFE) or design_spec == skitai.WS_THREADSAFE_DEPRECATED:
+				ws_class = specs.WebSocket6
+			ws = ws_class (self, request, apph, env, varnames, message_encoding)
 			self.channel_config (request, ws, keep_alive)
 			env ["websocket"] = ws
 			if is_atila: env ["websocket.handler"] = (current_app, wsfunc)
 			ws.open ()
 
 		elif design_spec == skitai.WS_GROUPCHAT:
-			# WEBSOCKET_GROUPCHAT
-			# /chat?roomid=456,
-			# return (WEBSOCKET_GROUPCHAT, 600)
-			# non-threaded websocketserver
-			# can send to all clients of group / specific client
 			varnames = varnames [:2]
 			param_name = varnames [1]
 			gid = http_util.crack_query (query).get (param_name, None)

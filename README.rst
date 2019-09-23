@@ -1472,7 +1472,7 @@ With Atila app, you can use websocket more efficiently, and various options.
 .. code:: python
 
   @app.route ("/websocket")
-  @app.websocket (skitai.WS_SIMPLE | skitai.WS_SESSION, 60)
+  @app.websocket (skitai.WS_CHANNEL | skitai.WS_SESSION, 60)
   def websocket (was):
     while 1:
       message = yield
