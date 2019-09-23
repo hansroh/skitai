@@ -1421,24 +1421,18 @@ Using Websocket
 
 Use skitai.websocket decorator.
 
-First param is the name of variable for recieving message. And
-you can configure timeout and open/close websocket handlers.
-
 For example with Flask app,
 
 .. code:: python
 
-  def onopen ():
-    request.g. ...
-
-  def onclose ():
-    request.g. ...
-
-  @app.route ("/websocket/echo")
-  @skitai.websocket ("message", timeout = 60, onopen = onopen, onclose = onclose)
-  def echo ():
-    return "ECHO:" + request.args.get ("message")
-
+  @app.route ("/echo3")
+  @skitai.websocket (60) # timeout
+  def echo3 ():
+    while 1:
+      message = yield
+      if not msg:
+        return #strop iterating
+      yield "ECHO:" + message
 
 Proxying With Atila
 ---------------------------------
@@ -1465,20 +1459,14 @@ With Atila app, you can use websocket more efficiently, and various options.
 
 .. code:: python
 
-  def onopen (was):
-    print ('websocket opened')
-
-  def onclose (was):
-    print ('websocket closed')
-
   @app.route ("/websocket")
-  @app.websocket (skitai.WS_SIMPLE, 1200, onopen, onclose)
-  def websocket (was, message):
-    return 'you said: ' + message
-
-This code is not very differrent with skitai.websocket (),
-decorator, but internally Skitai and Atila calls websocket
-handler somewhat efficiently.
+  @app.websocket (skitai.WS_SIMPLE | skitai.WS_SESSION, 60)
+  def websocket (was):
+    while 1:
+      message = yield
+      if not message:
+        return #strop iterating
+      yield "ECHO:" + message
 
 For more about this see `Atila Websocket`_.
 
@@ -2870,6 +2858,11 @@ Links
 
 Change Log
 ===========
+
+
+- 0.30 (Sep 2019)
+
+  - skitai.websocket spec changed, lower version compatable but warned
 
 - 0.29 (Aug 2019)
 

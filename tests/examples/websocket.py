@@ -17,7 +17,7 @@ def echo_single (was, message):
 	elif was.wshasevent (): # ignore the other events
 		return
 	return "You said," + message
-	
+
 @app.route ("/echo")
 def echo (was, message):
 	if was.wsinit ():
@@ -28,7 +28,7 @@ def echo (was, message):
 		return
 
 	was.websocket.send ("You said," + message)
-	was.websocket.send ("acknowledge")	
+	was.websocket.send ("acknowledge")
 
 def onopen (was):
 	return  'Welcome Client 0'
@@ -45,6 +45,20 @@ def echo3 (was, message):
 	was.websocket.send ('1st: ' + message)
 	return "2nd: " + message
 
+@app.route ("/echo4")
+@app.websocket (skitai.WS_SIMPLE | skitai.WS_SESSION, 60)
+def echo4 (was):
+	n = 0
+	while 1:
+		n += 1
+		msg = yield
+		if n == 1:
+			yield '1st: ' + msg
+		elif n == 2:
+			yield '2nd: ' + msg
+		else:
+			yield 'many: ' + msg
+
 def onopenp (was):
   was.session.set ("WS_ID", was.websocket.client_id)
 
@@ -53,7 +67,7 @@ def onclosep (was):
 
 @app.route ("/push")
 @app.websocket (skitai.WS_SIMPLE, 1200, onopenp, onclosep)
-def push (was, message):    
+def push (was, message):
   return 'you said: ' + message
 
 @app.route ("/wspush")
@@ -89,13 +103,12 @@ def chat2 (was, message, room_id):
 
 @app.route ("/")
 def websocket (was, mode = "echo"):
-	if mode == "chat":	
+	if mode == "chat":
 		mode += "?room_id=1"
 	return was.render ("websocket.html", path = mode)
-	
+
 if __name__ == "__main__":
 	import skitai
-	
+
 	skitai.mount ("/websocket", app)
 	skitai.run (port = 30371)
-	
