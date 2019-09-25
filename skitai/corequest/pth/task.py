@@ -2,14 +2,14 @@ from concurrent.futures import TimeoutError, CancelledError
 import time
 from ..tasks import Mask
 from .. import corequest
-from skitai import was
+from skitai import was as the_was
 from aquests.athreads import trigger
 import sys
 from ..httpbase.task import DEFAULT_TIMEOUT
 
 class Task (corequest):
     def __init__ (self, future, name):
-        self.future = future        
+        self.future = future
         self._name = name
         self._started = time.time ()
         self._was = None
@@ -31,19 +31,19 @@ class Task (corequest):
         if self._fulfilled:
             if not expt:
                 result = future.result (0)
-            mask = Mask (result, expt)            
+            mask = Mask (result, expt)
             self._callback (mask)
 
     def _callback (self, mask):
         try:
             self._fulfilled (self._was, mask)
         except:
-            self._was.traceback ()        
+            self._was.traceback ()
             trigger.wakeup (lambda p = self._was.response, d = self._was.app.debug and sys.exc_info () or None: (p.error (500, "Internal Server Error", d), p.done ()) )
         else:
             trigger.wakeup (lambda p = self._was.response: (p.done (),))
         self._fulfilled = None
-    
+
     def kill (self):
         try: self.future.result (timeout = 0)
         except: pass
@@ -52,16 +52,16 @@ class Task (corequest):
     def cancel (self):
         try: self.future.cancel ()
         except: pass
-        self.future.set_exception (CancelledError) 
+        self.future.set_exception (CancelledError)
 
     def then (self, func):
         self._fulfilled = func
-        try: self._was = was._clone (True)
+        try: self._was = the_was._get ()._clone (True)
         except TypeError: pass
         self.future.add_done_callback (self._settle)
         return self
-    
-    # common corequest methods ----------------------------------    
+
+    # common corequest methods ----------------------------------
     def _create_mask (self, timeout):
         self._timeout = timeout
         if self._mask:
@@ -72,15 +72,15 @@ class Task (corequest):
             data = self.future.result (0)
         self._mask = Mask (data, expt)
         return self._mask
-    
+
     def fetch (self, cache = None, cache_if = (200,), timeout = DEFAULT_TIMEOUT):
         return self._create_mask (timeout).fetch ()
-        
+
     def one (self, cache = None, cache_if = (200,), timeout = DEFAULT_TIMEOUT):
         return self._create_mask (timeout).one ()
-        
+
     def commit (self, timeout = DEFAULT_TIMEOUT):
         return self._create_mask (timeout).commit ()
-    
+
     def dispatch (self, timeout = DEFAULT_TIMEOUT):
-        return self._create_mask (timeout)    
+        return self._create_mask (timeout)

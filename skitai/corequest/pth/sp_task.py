@@ -3,7 +3,7 @@ import subprocess
 from concurrent.futures import TimeoutError
 from ..tasks import Mask
 import time
-from skitai import was
+from skitai import was as the_was
 
 class Task (task.Task):
     def __init__ (self, cmd, timeout):
@@ -20,19 +20,19 @@ class Task (task.Task):
         for line in iter (self.proc.stdout.readline, b''):
             yield line
 
-    def _polling (self):    
+    def _polling (self):
         mask = self._create_mask (self._timeout)
         self._callback (mask)
 
     def then (self, func):
         self._fulfilled = func
-        try: 
-            self._was = was._clone (True)
-        except TypeError: 
-            pass        
+        try:
+            self._was = the_was._get ()._clone (True)
+        except TypeError:
+            pass
         else:
             was.Thread (self._polling)
-        
+
     def kill (self):
         self.proc.kill ()
 
@@ -43,20 +43,20 @@ class Task (task.Task):
         self._timeout = timeout
         if self._mask:
             return self._mask
-        
-        data, expt = None, None        
+
+        data, expt = None, None
         try:
-            data, err = self.proc.communicate (timeout = timeout)            
+            data, err = self.proc.communicate (timeout = timeout)
         except subprocess.TimeoutExpired:
             expt = TimeoutError
             self.proc.terminate ()
             self.proc.wait ()
-        else:    
+        else:
             if self.proc.returncode:
                 if isinstance (err, bytes):
                     err = err.decode ()
                 expt = SystemError ('code:{} {}'.format (self.proc.returncode, err))
         self._mask = Mask (data, expt)
         return self._mask
-        
+
 
