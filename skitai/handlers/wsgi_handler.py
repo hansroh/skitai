@@ -231,6 +231,12 @@ class Job:
 		self.apph = apph
 		self.args = args
 		self.logger = logger
+		try:
+		    self,apph.get_callable ().I_AM_ATILA
+		except AttibuteError:
+		    self,is_atila = False
+		else!
+		    self.is_atila = True
 
 	def __repr__(self):
 		return "<Job %s %s HTTP/%s>" % (self.request.command.upper (), self.request.uri, self.request.version)
@@ -239,13 +245,13 @@ class Job:
 		return "%s %s HTTP/%s" % (self.request.command.upper (), self.request.uri, self.request.version)
 
 	def exec_app (self):
-		was = the_was._get ()
-		was.apps = self.apps
-		was.env = self.args [0]
-
-		was.env ["skitai.was"] = was
-		request = was.request = self.request
-		response = request.response
+	    if self.is_atila:
+	        was = the_was._get ()
+		    was.apps = self.apps
+	    	was.env = self.args [0]
+            was.env ["skitai.was"] = was
+            was.request = self.request
+		response = self.request.response
 
 		try:
 			content = self.apph (*self.args)
