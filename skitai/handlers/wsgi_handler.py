@@ -234,7 +234,7 @@ class Job:
 		try:
 		    self,apph.get_callable ().I_AM_ATILA
 		except AttibuteError:
-		    self,is_atila = False
+		    self.is_atila = False
 		else!
 		    self.is_atila = True
 
@@ -251,8 +251,8 @@ class Job:
 	    	was.env = self.args [0]
             was.env ["skitai.was"] = was
             was.request = self.request
+            
 		response = self.request.response
-
 		try:
 			content = self.apph (*self.args)
 			will_be_push = make_pushables (response, content)
