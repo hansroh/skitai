@@ -1,6 +1,20 @@
+WAS_FACTORY = None
 
 class corequest:
-    
+    def _get_was (self):
+        global WAS_FACTORY
+        if WAS_FACTORY is None:
+            from skitai import was
+            WAS_FACTORY = was
+
+        try:
+            _was = WAS_FACTORY._get ()
+        except TypeError:
+            return
+        else:
+            assert _was.app.ATILA_THE_HUN, 'availabel on only Atila'
+        return _was._clone (True)
+
     # basic methods --------------------------------------
     def get_timeout (self):
         return self._timeout
@@ -19,23 +33,23 @@ class corequest:
 
     def cache (self, cache = 60, cache_if = (200,)):
         raise NotImplementedError
-    
+
     def dispatch (self, cache = None, cache_if = (200,), timeout = None):
         # response object with data
         raise NotImplementedError
-        
+
     def wait (self, timeout = None):
         # response object without data
         raise NotImplementedError
-        
+
     def commit (self, timeout = None):
         # return None. if error had been occured will be raised
         raise NotImplementedError
-    
+
     def fetch (self, cache = None, cache_if = (200,), timeout = None):
         # return data. if error had been occured will be raised
         raise NotImplementedError
-        
+
     def one (self, cache = None, cache_if = (200,), timeout = None):
         # return data with only one element. if error had been occured will be raised
         raise NotImplementedError

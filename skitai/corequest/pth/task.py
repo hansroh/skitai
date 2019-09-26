@@ -2,7 +2,7 @@ from concurrent.futures import TimeoutError, CancelledError
 import time
 from ..tasks import Mask
 from .. import corequest
-from skitai import was as the_was
+from skitai import was
 from aquests.athreads import trigger
 import sys
 from ..httpbase.task import DEFAULT_TIMEOUT
@@ -56,8 +56,7 @@ class Task (corequest):
 
     def then (self, func):
         self._fulfilled = func
-        try: self._was = the_was._get ()._clone (True)
-        except TypeError: pass
+        self._was = self._get_was ()
         self.future.add_done_callback (self._settle)
         return self
 

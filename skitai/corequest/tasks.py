@@ -3,7 +3,7 @@ from ..utility import make_pushables
 from ..exceptions import HTTPError
 from . import corequest, response
 from .httpbase.task import DEFAULT_TIMEOUT, Task
-from skitai import was as the_was
+from skitai import was
 from rs4.attrdict import AttrDict
 import time
 from skitai import NORMAL
@@ -173,8 +173,7 @@ class Futures (TaskBase):
 
     def then (self, func):
         self._fulfilled = func
-        try: self._was = the_was._get ()._clone (True)
-        except TypeError: pass
+        self._was = self._get_was ()
         for reqid, req in enumerate (self._reqs):
            req.set_callback (self._collect, reqid, self._timeout)
         return self
