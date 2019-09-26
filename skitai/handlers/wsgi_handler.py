@@ -2,7 +2,11 @@ import sys, os
 try:
     from urllib.parse import unquote
 except ImportError:
+<<<<<<< HEAD
     from urllib import unquote
+=======
+	from urllib import unquote
+>>>>>>> 0b8fea21e2caf59cb653d8560afb93041f8b6ccc
 import sys
 from rs4 import producers
 from skitai.http_response import catch
