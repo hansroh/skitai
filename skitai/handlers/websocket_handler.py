@@ -52,12 +52,7 @@ class Handler (wsgi_handler.Handler):
 
 		apph = self.apps.get_app (path)
 		app = apph.get_callable()
-		try:
-		    app.ATILA_THE_HUN
-		except AttributeError:
-		    is_atila = False
-		else:
-		    is_atila = True
+		is_atila = hasattr (app, 'ATILA_THE_HUN')
 
 		if is_atila:
 			# safari does not support Authorization
