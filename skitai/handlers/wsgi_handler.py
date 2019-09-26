@@ -144,8 +144,7 @@ class Handler:
         app = self.apps.get_app (has_route).get_callable()
         # for rendering error template
         request.response.current_app = app
-
-        if request.command != "options" and skitai.HAS_ATILA and isinstance (app, skitai.HAS_ATILA):
+        if request.command != "options" and hasattr (app, 'ATILA_THE_HUN'):
             # pass through options, because options want authentification info.
             if not app.is_authorized (request, app.authenticate):
                 self.handle_error_before_collecting (request, 401)
@@ -240,7 +239,7 @@ class Job:
 
     def exec_app (self):
         try:
-            self.apph.get_callable ().I_AM_ATILA
+            self.apph.get_callable ().ATILA_THE_HUN
         except AttributeError:
            pass
         else:
