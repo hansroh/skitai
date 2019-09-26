@@ -12,7 +12,7 @@ class corequest:
         except TypeError:
             return
         else:
-            assert _was.app.ATILA_THE_HUN, 'corequest future is available on only Atila'
+            assert hasattr (_was, 'app'), 'corequest future is available on only Atila'
         return _was._clone (True)
 
     # basic methods --------------------------------------
