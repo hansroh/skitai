@@ -2,6 +2,7 @@ import os
 from atila import Atila
 import skitai
 from services import sub
+from skitai import was as cwas
 
 if os.name == "nt":
     from rs4.psutil.win32service import ServiceFramework
@@ -23,7 +24,7 @@ app.authenticate = None
 app.mount ("/sub", sub)
 
 @app.route ("/")
-def index (was):    
+def index (was):
     return was.render ("index.html")
 
 @app.route ("/dnserror")
@@ -35,17 +36,17 @@ def dnserror (was):
 @app.route ("/documentation")
 def documentation (was):
     req = was.get ("https://pypi.org/project/skitai/", headers = [("Accept", "text/html")])
-    pypi_content = "<h4><p>It seems some problem at <a href='https://pypi.python.org/pypi/skitai'>PyPi</a>.</p></h4><p>Please visit <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></p>"    
+    pypi_content = "<h4><p>It seems some problem at <a href='https://pypi.python.org/pypi/skitai'>PyPi</a>.</p></h4><p>Please visit <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></p>"
     rs = req.dispatch (timeout = 10, cache = 60)
     if rs.data:
         content = rs.data
         s = content.find ('<div class="project-description">')
-        if s != -1:        
+        if s != -1:
             e = content.find ('<div id="history"', s)
-            if e != -1:                        
-                pypi_content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></h4>" + content [s:e]    
+            if e != -1:
+                pypi_content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></h4>" + content [s:e]
     return was.render ("documentation.html", content = pypi_content)
-    
+
 @app.route ("/documentation2")
 def documentation2 (was):
     def response (was, rss):
@@ -56,22 +57,22 @@ def documentation2 (was):
             s = content.find ('<div class="project-description">')
             if s != -1:
                 e = content.find ('<div id="history"', s)
-                if e != -1:                        
+                if e != -1:
                     content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.org/project/skitai/'> https://pypi.org/project/skitai/</a></h4>" + content [s:e]
         assert "Internet :: WWW/HTTP :: WSGI" in content
         return was.render ("documentation2.html", skitai = content)
-            
+
     reqs = [was.get ("@pypi/project/skitai/", headers = [("Accept", "text/html")])]
     return was.futures (reqs).then (response)
 
 @app.route ("/documentation3")
 def documentation3 (was):
     def response (was, rss):
-        return was.response.API (status_code = [rs.status_code for rs in rss.dispatch ()]) 
-    
+        return was.response.API (status_code = [rs.status_code for rs in rss.dispatch ()])
+
     reqs = [
         was.get ("@pypi/project/skitai/", headers = [("Accept", "text/html")]),
-        was.get ("@pypi/project/rs4/", headers = [("Accept", "text/html")])        
+        was.get ("@pypi/project/rs4/", headers = [("Accept", "text/html")])
     ]
     return was.futures (reqs).then (response)
 
@@ -89,31 +90,31 @@ def dbtx (was):
 
 @app.route ("/dbmap")
 def dbmap (was):
-    with was.asyncon.map ("@sqlite3") as db:        
+    with was.asyncon.map ("@sqlite3") as db:
         req = db.execute ("select * from people")
     results = req.dispatch ()
     data = req.fetch (cache = 60)
-    assert data == results.data                
+    assert data == results.data
     return was.API (data = data)
 
 @app.route ("/xmlrpc")
 def xmlrpc (was):
     with was.xmlrpc ("@pypi/pypi") as stub:
-        req = stub.package_releases ('roundup')        
+        req = stub.package_releases ('roundup')
         assert req.fetch () == ['1.6.1']
         return was.API (result = "ok")
-             
+
 @app.route ("/hello")
 def hello (was, num = 1):
     was.response ["Content-Type"] = "text/plain"
     return "\n".join (["hello" for i in range (int(num))])
-    
+
 @app.route ("/redirect0")
-def redirect0 (was):    
+def redirect0 (was):
     return ""
-    
+
 @app.route ("/redirect1")
-def redirect1 (was):    
+def redirect1 (was):
     return was.response ("301 Object Moved", "", headers = [("Location", "/redirect2")])
 
 @app.route ("/redirect2")
@@ -129,7 +130,7 @@ def upload2 (was, **form):
     return str (list (form.keys ()))
 
 @app.route ("/post")
-def post (was, username):    
+def post (was, username):
     return 'USER: %s' % username
 
 @app.route ("/test")
@@ -147,17 +148,25 @@ def promise (was):
     was.push (was.ab (test))
     return was.response.api (data = "JSON")
 
+@app.route ("/was")
+def checkwas (was):
+    return was.API (
+        a = hasattr (was, "request"), b = hasattr (cwas, "request"),
+        c = hasattr (was, "response"), d = hasattr (cwas, "response"),
+        e = hasattr (was, "app"), f = hasattr (cwas, "app"),
+    )
+
 
 if __name__ == "__main__":
-    import skitai        
-    
-    if os.name == "nt":        
+    import skitai
+
+    if os.name == "nt":
         skitai.set_service (ServiceConfig)
-        
+
     skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
     skitai.alias ("@sqlite3", skitai.DB_SQLITE3, "resources/sqlite3.db")
     skitai.alias ("@sqlite3m", skitai.DB_SQLITE3, ["resources/sqlite3.db", "resources/sqlite3-2.db"])
-    
+
     skitai.mount ("/", 'statics')
     skitai.mount ("/", app)
     skitai.mount ("/websocket", 'websocket.py')
@@ -168,8 +177,8 @@ if __name__ == "__main__":
     skitai.enable_proxy ()
 
     skitai.run (
-        port = 30371,        
+        port = 30371,
         workers = 1,
-        threads = 4                
+        threads = 4
     )
-    
+

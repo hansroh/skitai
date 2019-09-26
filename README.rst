@@ -65,13 +65,17 @@ Python 3.5+
 
 **Installation**
 
+Skitai and other core base dependent libraries is developing on
+single milestone, install/upgrade all please. Otherwise it is
+highly possible to meet some errors.
+
 With pip
 
 .. code-block:: bash
 
     pip3 install -U rs4 aquests sqlphile skitai
 
-From git
+With git
 
 .. code-block:: bash
 
@@ -2874,7 +2878,7 @@ Change Log
 
 - 0.30 (Sep 2019)
 
-  - skitai.websocket spec changed, lower version compatable but warned
+  - skitai.websocket spec changed, lower version compatable
 
 - 0.29 (Aug 2019)
 

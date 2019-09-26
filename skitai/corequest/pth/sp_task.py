@@ -1,9 +1,11 @@
+# subprocess Task
+
 from . import task
 import subprocess
 from concurrent.futures import TimeoutError
 from ..tasks import Mask
 import time
-from skitai import was as the_was
+from skitai import was
 
 class Task (task.Task):
     def __init__ (self, cmd, timeout):
@@ -26,12 +28,8 @@ class Task (task.Task):
 
     def then (self, func):
         self._fulfilled = func
-        try:
-            self._was = the_was._get ()._clone (True)
-        except TypeError:
-            pass
-        else:
-            was.Thread (self._polling)
+        self._was = self._get_was ()
+        was.Thread (self._polling)
 
     def kill (self):
         self.proc.kill ()

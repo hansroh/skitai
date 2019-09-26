@@ -8,22 +8,22 @@ def test_error_handler (app):
     @app.require ("URL", ["limit"])
     def index (was, limit):
         return ""
-    
+
     @app.route ("/2")
     @app.require ("FORM", ["limit"])
     def index2 (was, limit):
         return ""
-    
+
     @app.route ("/3")
     @app.require ("JSON", ["limit"])
     def index3 (was, limit):
         return ""
-    
+
     @app.route ("/4")
     @app.require ("ARGS", ["limit"])
     def index4 (was, limit):
         return ""
-    
+
     @app.route ("/5")
     @app.require ("ARGS", emails = ["email"], uuids = ["uuid"])
     def index5 (was, email = None, uuid = None):
@@ -39,44 +39,49 @@ def test_error_handler (app):
     def index7 (was, a = None, b = None):
         return ""
 
-    with app.test_client ("/", confutil.getroot ()) as cli:       
+    @app.route ("/8")
+    @app.require ("DATA", ["limit"])
+    def index8 (was, limit):
+        return ""
+
+    with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
         assert resp.status_code == 400
-        
+
         resp = cli.get ("/?limit=4")
-        assert resp.status_code == 200        
-        
+        assert resp.status_code == 200
+
         resp = cli.get ("/2?limit=4")
         assert resp.status_code == 200
-        
+
         resp = cli.post ("/2", {"limit": 4})
         assert resp.status_code == 200
 
         resp = cli.post ("/2", {})
         assert resp.status_code == 400
-        
+
         api = cli.api ()
         resp = api ("2").post ({"limit": 4})
         assert resp.status_code == 400
-        
+
         api = cli.api ()
         resp = api ("3").post ({"limit": 4})
         assert resp.status_code == 200
-        
+
         api = cli.api ()
         resp = api ("4").post ({"limit": 4})
         assert resp.status_code == 200
-        
+
         resp = cli.get ("/4?limit=4")
         assert resp.status_code == 200
-        
+
         resp = cli.post ("/4", {"limit": 4})
         assert resp.status_code == 200
-        
-        resp = cli.post ("/5", {"email": "hansroh@gmail.com"})        
+
+        resp = cli.post ("/5", {"email": "hansroh@gmail.com"})
         assert resp.status_code == 200
-        
-        resp = cli.post ("/5", {"email": "hansroh@gmail"})        
+
+        resp = cli.post ("/5", {"email": "hansroh@gmail"})
         assert resp.status_code == 400
 
         resp = cli.post ("/5", {"uuid": "123e4567-e89b-12d3-a456-426655440000"})
@@ -88,28 +93,28 @@ def test_error_handler (app):
         resp = cli.post ("/5", {"uuid": "123e4567-e89b-12d3-g456-426655440000"})
         assert resp.status_code == 400
 
-        resp = cli.post ("/6", {"a": "5"})        
+        resp = cli.post ("/6", {"a": "5"})
         assert resp.status_code == 200
 
-        resp = cli.post ("/6", {"a": "4"})        
+        resp = cli.post ("/6", {"a": "4"})
         assert resp.status_code == 400
 
-        resp = cli.post ("/6", {"b": "-3"})        
+        resp = cli.post ("/6", {"b": "-3"})
         assert resp.status_code == 200
 
-        resp = cli.post ("/6", {"b": "4"})        
+        resp = cli.post ("/6", {"b": "4"})
         assert resp.status_code == 400
 
-        resp = cli.post ("/6", {"c": "1"})        
+        resp = cli.post ("/6", {"c": "1"})
         assert resp.status_code == 200
 
-        resp = cli.post ("/6", {"c": "3"})        
+        resp = cli.post ("/6", {"c": "3"})
         assert resp.status_code == 400
 
-        resp = cli.post ("/7", {"a": "hansroh"})        
+        resp = cli.post ("/7", {"a": "hansroh"})
         assert resp.status_code == 200
 
-        resp = cli.post ("/7", {"a": "xxxx"})        
+        resp = cli.post ("/7", {"a": "xxxx"})
         assert resp.status_code == 400
 
         resp = cli.post ("/7", {"b": "xxxx"})
@@ -120,6 +125,12 @@ def test_error_handler (app):
 
         resp = cli.api()("7").post ({"b": "xxx"})
         assert resp.status_code == 400
+
+        resp = cli.post ("/8", {"limit": 4})
+        assert resp.status_code == 200
+
+        resp = cli.api () ("8").post ({"limit": 4})
+        assert resp.status_code == 200
 
 def test_error_handler_2 (app):
     @app.route ("/20")
@@ -145,33 +156,33 @@ def test_error_handler_2 (app):
             assert DATA ['id']
         return 'OK'
 
-    with app.test_client ("/", confutil.getroot ()) as cli:       
+    with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/20")
         assert resp.status_code == 400
-        
+
         resp = cli.get ("/20?limit=4")
-        assert resp.status_code == 200  
+        assert resp.status_code == 200
 
         resp = cli.post ("/20?limit=4", {})
-        assert resp.status_code == 400        
+        assert resp.status_code == 400
 
         resp = cli.post ("/20?limit=4", {'id': 'ttt'})
-        assert resp.status_code == 200    
+        assert resp.status_code == 200
 
         resp = cli.post ("/20", {'id': 'ttt'})
-        assert resp.status_code == 200    
-        
+        assert resp.status_code == 200
+
         resp = cli.get ("/21")
         assert resp.status_code == 400
-        
+
         resp = cli.get ("/21?limit=4")
-        assert resp.status_code == 200  
+        assert resp.status_code == 200
 
         resp = cli.post ("/21?limit=4", {})
-        assert resp.status_code == 400        
+        assert resp.status_code == 400
 
         resp = cli.post ("/21", {'id': 'ttt'})
-        assert resp.status_code == 400    
-        
+        assert resp.status_code == 400
+
         resp = cli.get ("/22")
         assert resp.status_code == 400
