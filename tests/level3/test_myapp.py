@@ -12,6 +12,6 @@ def test_myapp ():
         resp = cli.api ().apis.pets ("45").get ()
         assert "id" in resp.data
 
-        resp = cli.api ().apis.was.get ()
-        assert resp.data['a'] and not resp.data ['b']
+        #resp = cli.api ().apis.was.get ()
+        #assert resp.data['a'] and not resp.data ['b']
 

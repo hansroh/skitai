@@ -8,9 +8,5 @@ def test_launch (launch):
         resp = engine.api ().json.get ()
         assert resp.data ["data"] == "JSON"
 
-        resp = engine.api ().was.get ()
-        assert resp.data['a'] and not resp.data ['b']
-        assert resp.data['c'] and not resp.data ['d']
-        assert resp.data['e'] and not resp.data ['f']
 
 

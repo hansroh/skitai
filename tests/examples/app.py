@@ -148,14 +148,6 @@ def promise (was):
     was.push (was.ab (test))
     return was.response.api (data = "JSON")
 
-@app.route ("/was")
-def checkwas (was):
-    return was.API (
-        a = hasattr (was, "request"), b = hasattr (cwas, "request"),
-        c = hasattr (was, "response"), d = hasattr (cwas, "response"),
-        e = hasattr (was, "app"), f = hasattr (cwas, "app"),
-    )
-
 
 if __name__ == "__main__":
     import skitai

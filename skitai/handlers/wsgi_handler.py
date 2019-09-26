@@ -239,15 +239,17 @@ class Job:
 		return "%s %s HTTP/%s" % (self.request.command.upper (), self.request.uri, self.request.version)
 
 	def exec_app (self):
+		was = the_was._get ()
+		was.request = self.request
+		was.response = self.request.response
+
 		try:
 			self.apph.get_callable ().ATILA_THE_HUN
 		except AttributeError:
 			pass
 		else:
-			was = the_was._get ()
 			was.env = self.args [0]
 			was.apps = self.apps
-			was.request = self.request
 			was.env ["skitai.was"] = was
 
 		response = self.request.response
@@ -294,3 +296,5 @@ class Job:
 			was.env = None
 			if was.in__dict__ ("request"):
 				del was.request
+			if was.in__dict__ ("response"):
+				del was.response

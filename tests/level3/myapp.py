@@ -1,5 +1,4 @@
 from atila import Atila
-from skitai import was as cwas
 
 app = Atila (__name__)
 
@@ -10,10 +9,6 @@ def index (was):
 @app.route ("/apis/pets/<int:id>")
 def pets (was, id):
   return was.response.API ({"id": id, "kind": "dog", "name": "Monk"})
-
-@app.route ("/apis/was")
-def checkwas (was):
-    return was.API (a = hasattr (was, "request"), b = hasattr (cwas, "request"))
 
 def __mount__ (app):
     @app.route ("/apis/owners/<int:id>")

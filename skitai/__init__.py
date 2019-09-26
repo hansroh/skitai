@@ -107,7 +107,7 @@ class _WASPool:
         return "<class skitai.WASPool at %x, was class: %s>" % (id (self), self.__wasc)
 
     def __getattr__ (self, attr):
-        return getattr (self._get (1), attr)
+        return getattr (self._get (), attr)
 
     def __setattr__ (self, attr, value):
         if attr.startswith ("_WASPool__"):
@@ -115,14 +115,12 @@ class _WASPool:
         else:
             setattr (self.__wasc, attr, value)
             for _id in self.__p:
-                for _was in self.__p [_id]:
-                    setattr (_was, attr, value)
+                setattr (self.__p [_id], attr, value)
 
     def __delattr__ (self, attr):
         delattr (self.__wasc, attr)
         for _id in self.__p:
-            for _was in self.__p [_id]:
-                delattr (_was, attr, value)
+            delattr (self.__p [_id], attr, value)
 
     def _start (self, wasc, **kargs):
         self.__wasc = wasc
@@ -138,13 +136,13 @@ class _WASPool:
         except KeyError:
             pass
 
-    def _get (self, index = 0):
+    def _get (self):
         _id = self.__get_id ()
         try:
-            return self.__p [_id][index]
+            return self.__p [_id]
         except KeyError:
             _was = self.__wasc (**self.__kargs)
-            self.__p [_id] = (_was, _was._clone ())
+            self.__p [_id] = _was
             return _was
 
 
