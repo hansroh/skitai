@@ -1,5 +1,4 @@
 import sys
-from ..utility import make_pushables
 from ..exceptions import HTTPError
 from . import corequest, response
 from .httpbase.task import DEFAULT_TIMEOUT, Task
@@ -182,39 +181,12 @@ class Futures (TaskBase):
         self._responded += 1
         if self._responded == len (self._reqs):
             if self._fulfilled:
-                self._respond ()
+                tasks = (self._single and CompletedTask or CompletedTasks) (self._reqs, **self.meta)
+                self._late_respond (tasks)
             else:
                 self._was.response ("205 No Content", "")
                 self._was.response.done ()
 
-    def _respond (self):
-        response = self._was.response
-        try:
-            tasks = (self._single and CompletedTask or CompletedTasks) (self._reqs, **self.meta)
-            content = self._fulfilled (self._was, tasks)
-            will_be_push = make_pushables (response, content)
-            content = None
-        except MemoryError:
-            raise
-        except HTTPError as e:
-            response.start_response (e.status)
-            content = response.build_error_template (e.explain, e.errno, was = self._was)
-        except:
-            self._was.traceback ()
-            response.start_response ("502 Bad Gateway")
-            content = response.build_error_template (self._was.app.debug and sys.exc_info () or None, 0, was = self._was)
-
-        if content:
-           will_be_push = make_pushables (response, content)
-
-        if will_be_push is None:
-            return
-
-        for part in will_be_push:
-            if len (will_be_push) == 1 and type (part) is bytes and len (response) == 0:
-                response.update ("Content-Length", len (part))
-            response.push (part)
-        response.done ()
 
 class Future (Futures):
     def __init__ (self, req, timeout, **meta):

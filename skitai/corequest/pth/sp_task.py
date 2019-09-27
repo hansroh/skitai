@@ -1,4 +1,4 @@
-# subprocess Task
+# Subprocess Task
 
 from . import task
 import subprocess
@@ -24,7 +24,7 @@ class Task (task.Task):
 
     def _polling (self):
         mask = self._create_mask (self._timeout)
-        self._callback (mask)
+        self._late_respond (mask)
 
     def then (self, func):
         self._fulfilled = func

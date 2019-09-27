@@ -8,8 +8,8 @@ N_CPU = multiprocessing.cpu_count()
 
 class ThreadExecutor:
     MAINTERN_INTERVAL = 30
-    
-    def __init__ (self, workers = None, zombie_timeout = None, logger = None):        
+
+    def __init__ (self, workers = None, zombie_timeout = None, logger = None):
         self._name = None
         self.logger = logger
         self.workers = workers or N_CPU
@@ -19,8 +19,8 @@ class ThreadExecutor:
         self.executor = None
         self.futures = []
         self.no_more_request = False
-        
-        self._dones = 0        
+
+        self._dones = 0
         self._timeouts = 0
 
     def __len__ (self):
@@ -28,7 +28,7 @@ class ThreadExecutor:
             return len (self.futures)
 
     def launch_executor (self):
-        self.executor = rs4.tpool (self.workers)        
+        self.executor = rs4.tpool (self.workers)
 
     def status (self):
         with self.lock:
@@ -50,36 +50,36 @@ class ThreadExecutor:
             if future.done ():
                 self._dones += 1
                 continue
-            
+
             if self.no_more_request:
                 timeout = -1 # kill immediately
             else:
                 timeout = future.get_timeout ()
                 if timeout is None:
                     timeout = self.zombie_timeout
-            
+
             # timeout is 0 or None, it is infinite task
-            if timeout is not None and future._started + timeout < now:                
+            if timeout is not None and future._started + timeout < now:
                 future.kill ()
                 self._timeouts += 1
-                self.logger ("zombie {} task is killed: {}".format (self._name, future))    
+                self.logger ("zombie {} task is killed: {}".format (self._name, future))
             else:
                 inprogresses.append (future)
-                continue            
+                continue
         self.futures = inprogresses
 
     def shutdown (self):
-        with self.lock:    
+        with self.lock:
             self.no_more_request = True
             if not self.executor:
-                return            
+                return
             self.maintern (time.time ())
-            self.executor.shutdown (wait = False)               
+            self.executor.shutdown (wait = False)
             self.executor = None
             self.futures = []
             return len (self.futures)
 
-    def __call__ (self, f, *a, **b):  
+    def __call__ (self, f, *a, **b):
         with self.lock:
             if self.no_more_request:
                 return
@@ -90,9 +90,9 @@ class ThreadExecutor:
                 now = time.time ()
                 if now > self.last_maintern + self.MAINTERN_INTERVAL:
                     self.maintern (now)
-        
+
         try:
-            timeout = b.pop ('__timeout')            
+            timeout = b.pop ('__timeout')
         except KeyError:
             timeout = None
 
@@ -100,13 +100,13 @@ class ThreadExecutor:
         wrap = Task (future, "{}.{}".format (f.__module__, f.__name__))
         timeout and wrap.set_timeout (timeout)
         self.logger ("{} task started: {}".format (self._name, wrap))
-        with self.lock:            
-            self.futures.append (wrap)        
+        with self.lock:
+            self.futures.append (wrap)
         return wrap
 
 class ProcessExecutor (ThreadExecutor):
     def launch_executor (self):
-        self.executor = rs4.ppool (self.workers)        
+        self.executor = rs4.ppool (self.workers)
 
 
 # ------------------------------------------------------------------------
@@ -117,21 +117,20 @@ class Executors:
         self.executors = [
             ThreadExecutor (workers, zombie_timeout, self.logger),
             ProcessExecutor (workers, zombie_timeout, self.logger)
-        ]        
-    
+        ]
+
     def status (self):
         return dict (
             thread = self.executors [0].status (),
             process = self.executors [1].status ()
         )
 
-    def cleanup (self):        
+    def cleanup (self):
         return [e.shutdown () for e in self.executors]
-    
+
     def create_thread (self, f, *a, **b):
         return self.executors [0] (f, *a, **b)
 
     def create_process (self, f, *a, **b):
         return self.executors [1] (f, *a, **b)
 
-        

@@ -32,17 +32,7 @@ class Task (corequest):
             if not expt:
                 result = future.result (0)
             mask = Mask (result, expt)
-            self._callback (mask)
-
-    def _callback (self, mask):
-        try:
-            self._fulfilled (self._was, mask)
-        except:
-            self._was.traceback ()
-            trigger.wakeup (lambda p = self._was.response, d = self._was.app.debug and sys.exc_info () or None: (p.error (500, "Internal Server Error", d), p.done ()) )
-        else:
-            trigger.wakeup (lambda p = self._was.response: (p.done (),))
-        self._fulfilled = None
+            self._late_respond (mask)
 
     def kill (self):
         try: self.future.result (timeout = 0)
