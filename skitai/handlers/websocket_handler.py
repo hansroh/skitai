@@ -81,6 +81,7 @@ class Handler (wsgi_handler.Handler):
 				raise AssertionError ("You should config (design_spec, keep_alive, var_names) where env has key 'skitai.websocket.config'")
 			if type (varnames) not in (list, tuple):
 				varnames = (varnames,)
+
 		else:
 			current_app, method, kargs, options, resp_code = apph.get_callable().get_method (env ["PATH_INFO"], request)
 			if resp_code:

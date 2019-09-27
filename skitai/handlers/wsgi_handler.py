@@ -239,18 +239,14 @@ class Job:
 		return "%s %s HTTP/%s" % (self.request.command.upper (), self.request.uri, self.request.version)
 
 	def exec_app (self):
+		# this is not just for atila,
+		# Corequest need request and response
 		was = the_was._get ()
+		was.apps = self.apps
 		was.request = self.request
 		was.response = self.request.response
-
-		try:
-			self.apph.get_callable ().ATILA_THE_HUN
-		except AttributeError:
-			pass
-		else:
-			was.env = self.args [0]
-			was.apps = self.apps
-			was.env ["skitai.was"] = was
+		was.env = self.args [0]
+		was.env ["skitai.was"] = was
 
 		response = self.request.response
 		try:
@@ -294,7 +290,7 @@ class Job:
 		if was is not None:
 			was.apps = None
 			was.env = None
-			if was.in__dict__ ("request"):
-				del was.request
-			if was.in__dict__ ("response"):
-				del was.response
+			try: del was.response
+			except AttributeError: pass
+			try: del was.request
+			except AttributeError: pass
