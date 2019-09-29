@@ -7,10 +7,10 @@ from .task import Task
 N_CPU = multiprocessing.cpu_count()
 
 class ThreadExecutor:
+    NAME = "thread"
     MAINTERN_INTERVAL = 30
 
     def __init__ (self, workers = None, zombie_timeout = None, logger = None):
-        self._name = None
         self.logger = logger
         self.workers = workers or N_CPU
         self.zombie_timeout = zombie_timeout
@@ -62,7 +62,7 @@ class ThreadExecutor:
             if timeout is not None and future._started + timeout < now:
                 future.kill ()
                 self._timeouts += 1
-                self.logger ("zombie {} task is killed: {}".format (self._name, future))
+                self.logger ("zombie {} task is killed: {}".format (self.NAME, future))
             else:
                 inprogresses.append (future)
                 continue
@@ -85,7 +85,6 @@ class ThreadExecutor:
                 return
             if self.executor is None:
                 self.launch_executor ()
-                self._name = self.executor.__class__.__name__
             else:
                 now = time.time ()
                 if now > self.last_maintern + self.MAINTERN_INTERVAL:
@@ -99,12 +98,13 @@ class ThreadExecutor:
         future = self.executor.submit (f, *a, **b)
         wrap = Task (future, "{}.{}".format (f.__module__, f.__name__))
         timeout and wrap.set_timeout (timeout)
-        self.logger ("{} task started: {}".format (self._name, wrap))
+        self.logger ("{} task started: {}".format (self.NAME, wrap))
         with self.lock:
             self.futures.append (wrap)
         return wrap
 
 class ProcessExecutor (ThreadExecutor):
+    NAME = "process"
     def launch_executor (self):
         self.executor = rs4.ppool (self.workers)
 
