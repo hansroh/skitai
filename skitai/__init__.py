@@ -511,10 +511,14 @@ def get_logpath (name):
     name = name.split ("/", 1)[-1].replace (":", "-").replace (" ", "-")
     return os.name == "posix" and '/var/log/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
 
+options = None
 def add_option (sopt, lopt = None, desc = None):
+    global options
     argopt.add_option (sopt, lopt, desc)
+    options = argopt.options ()
 
 def add_options (*lnames):
+    global options
     # deprecated, use add_option for detail description
     for lname in lnames:
         assert lname and lname [0] == "-", "Aurgument should start with '-' or '--'"
@@ -523,11 +527,11 @@ def add_options (*lnames):
             argopt.add_option (None, lname [2:])
         else:
             argopt.add_option (lname [1:])
-
-def get_options ():
-    return argopt.options ()
+    options = argopt.options ()
 
 def getopt (sopt = "", lopt = []):
+    global options
+
     # argopt.getopt style
     if "d" in sopt:
         raise SystemError ("-d is used by skitai, please change")
@@ -559,19 +563,20 @@ def getopt (sopt = "", lopt = []):
     return opts_, aopt_
 
 def get_command ():
-    opts = argopt.options ()
-    if '--help' in opts:
+    global options
+    options = argopt.options ()
+    if '--help' in options:
         print ("{}: {} [OPTION]... [COMMAND]...".format (tc.white ("Usage"), sys.argv [0]))
         print ("COMMAND can be one of [status|start|stop|restart]")
         argopt.usage ()
         sys.exit ()
 
     cmd = None
-    if "-d" in opts:
+    if "-d" in options:
         cmd = "start"
     else:
         for cmd_ in ("start", "stop", "status", "restart"):
-            if cmd_ in opts.argv:
+            if cmd_ in options.argv:
                 cmd = cmd_
                 break
     return cmd
