@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.30.1.1"
+__version__ = "0.31.0.0"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -18,18 +18,22 @@ from aquests.dbapi import (
 import warnings
 from aquests.protocols.smtp import composer
 import tempfile
+from rs4 import argopt
 from . import lifetime
 from . import mounted
 from .corequest import corequest
 from functools import wraps
 import copy
 import rs4
+from rs4.termcolor import tc
 
-rs4.add_options (
-    "-d", # daemonize
-    "---profile", "---gc", "---memtrack", # dev options
-    "--production", "--smtpda", "--port="
-)
+argopt.add_option ('-d', desc = "start as daemon, equivalant with using `stop` command") # lower version compatible
+argopt.add_option (None, '---profile', desc = "log for performance profiling")
+argopt.add_option (None, '---gc', desc = "enable manual GC")
+argopt.add_option (None, '---memtrack', desc = "show memory status")
+argopt.add_option (None, '--production', desc = "run as production mode")
+argopt.add_option (None, '--smtpda', desc = "run SMTPDA if not started")
+argopt.add_option (None, '--port=PORT_NUMBER', desc = "change port")
 
 if "--production" in sys.argv:
     os.environ ["SKITAI_ENV"] = "PRODUCTION"
@@ -507,36 +511,38 @@ def get_logpath (name):
     name = name.split ("/", 1)[-1].replace (":", "-").replace (" ", "-")
     return os.name == "posix" and '/var/log/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
 
-options = None
-def add_options (*lnames):
-    global options
+def add_option (sopt, lopt = None, desc = None):
+    argopt.add_option (sopt, lopt, desc)
 
+def add_options (*lnames):
+    # deprecated, use add_option for detail description
     for lname in lnames:
         assert lname and lname [0] == "-", "Aurgument should start with '-' or '--'"
         assert lname != "-d" and lname != "-d=", "Aurgument -d is in ussed"
         if lname.startswith ("--"):
-            rs4.add_option (lname [2:])
+            argopt.add_option (None, lname [2:])
         else:
-            rs4.add_option (None, lname [1:])
-    options = rs4.options ()
+            argopt.add_option (lname [1:])
+
+def get_options ():
+    return argopt.options ()
 
 def getopt (sopt = "", lopt = []):
-    global options
-
+    # argopt.getopt style
     if "d" in sopt:
         raise SystemError ("-d is used by skitai, please change")
     for each in lopt:
-        rs4.add_option (each, None)
+        argopt.add_option (None, each)
 
     grps = sopt.split (":")
     for idx, grp in enumerate (grps):
         for idx2, each in enumerate (grp):
             if idx2 == len (grp) - 1 and len (grps) > idx + 1:
-                rs4.add_option (None, each + ":")
+                argopt.add_option (each + ":")
             else:
-                rs4.add_option (None, each)
+                argopt.add_option (each)
 
-    options = rs4.options ()
+    options = argopt.options ()
     opts_ = []
     for k, v in options.items ():
         if k == "-d":
@@ -551,7 +557,24 @@ def getopt (sopt = "", lopt = []):
             continue
         aopt_.append (arg)
     return opts_, aopt_
-argopt = getopt
+
+def get_command ():
+    opts = argopt.options ()
+    if '--help' in opts:
+        print ("{}: {} [OPTION]... [COMMAND]...".format (tc.white ("Usage"), sys.argv [0]))
+        print ("COMMAND can be one of [status|start|stop|restart]")
+        argopt.usage ()
+        sys.exit ()
+
+    cmd = None
+    if "-d" in opts:
+        cmd = "start"
+    else:
+        for cmd_ in ("start", "stop", "status", "restart"):
+            if cmd_ in opts.argv:
+                cmd = cmd_
+                break
+    return cmd
 
 def getsysopt (name, default = None):
     try:
@@ -562,17 +585,6 @@ def getsysopt (name, default = None):
 def hassysopt (name):
     return "---{}".format (name) in sys.argv
 
-def get_command ():
-    opts = rs4.options ()
-    cmd = None
-    if "d" in opts:
-        cmd = "start"
-    else:
-        for cmd_ in ("start", "stop", "status", "restart"):
-            if cmd_ in opts.argv:
-                cmd = cmd_
-                break
-    return cmd
 
 def sched (interval, func):
     lifetime.maintern.sched (interval, func)
@@ -582,7 +594,6 @@ def run (**conf):
     from . import Skitai
     from rs4.psutil import flock
     from rs4 import pathtool
-    import getopt
 
     class SkitaiServer (Skitai.Loader):
         NAME = 'instance'
@@ -636,10 +647,7 @@ def run (**conf):
             self.flock.unlock ("signal")
 
         def configure (self):
-            global options
-
-            if options is None:
-                options = rs4.options ()
+            options = argopt.options ()
 
             conf = self.conf
             self.set_num_worker (conf.get ('workers', 1))
