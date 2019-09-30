@@ -293,11 +293,41 @@ then these arguments are removed automatically.
 
 .. code:: python
 
-  skitai.add_options ("--dist", "--syndb", "--port=")
+  skitai.add_option ('-D', '--dist', 'distribute mode, disable NodeJS proxing')
+  skitai.add_option (None, '--db=DB_NAME', 'use specified database')
+  ...
+  active_db = skitai.options.get ('--db', 'testdb')
 
-    if "--syndb" in skitai.options:
-        skitai.disable_adbi ()
-    port = skitai.options.get ('--port', 5000)
+And if you use '--help', you can see like this:
+
+.. code:: bash
+
+  Usage: apiserve/serve.py [OPTION]... [COMMAND]...
+  COMMAND can be one of [status|start|stop|restart]
+
+  Mandatory arguments to long options are mandatory for short options too.
+    -d                      start as daemon, equivalant with using `stop` command
+        ---profile          log for performance profiling
+        ---gc               enable manual GC
+        ---memtrack         show memory status
+        --production        run as production mode
+        --smtpda            run SMTPDA if not started
+        --port=PORT_NUMBER  change port
+    -D, --dist              distribute mode, disable NodeJS proxing
+        --db=DB_NAME        use specified database
+
+Note that you cannot use below ones:
+
+.. code:: bash
+
+  -d
+  --help
+  --smtpda
+  --port=
+  all triple hypened options
+
+they are reserved for Skitai.
+
 
 Run with Threads Pool
 ------------------------
