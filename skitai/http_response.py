@@ -576,8 +576,15 @@ class http_response:
 
     def File (self, path, mimetype = 'application/octet-stream', filename = None):
         self.set_header ('Content-Type',  mimetype)
-        self.set_header ('Content-Length', str (os.path.getsize (path)))
         if filename:
             self.set_header ('Content-Disposition', 'attachment; filename="{}"'.format (filename))
-        return producers.file_producer (open (path, "rb"))
+
+        if isinstance (path, str):
+            self.set_header ('Content-Length', str (os.path.getsize (path)))
+            fp = open (path, "rb")
+        else:
+            fp = path
+            fp.seek (0)
+        return producers.file_producer (fp)
+
     file = File

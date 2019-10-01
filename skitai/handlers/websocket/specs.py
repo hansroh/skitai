@@ -366,16 +366,8 @@ class WebSocket6 (WebSocket1):
 class WebSocket5 (WebSocket1):
 	# WEBSOCKET_MULTICAST CLIENT
 	def __init__ (self, handler, request, server, env, param_names):
-		WebSocket.__init__ (self, handler, request)
 		self.server = server
-		self.apph = server.apph
-		self.client_id = request.channel.channel_number
-		self.env = env
-		self.param_names = param_names
-		self.set_query_string ()
-
-	def set_query_string (self):
-		WebSocket1.set_query_string (self)
+		WebSocket1.__init__ (self, handler, request, server.apph, env, param_names)
 
 	def handle_message (self, msg, event = None):
 		self.server.handle_client (self.client_id, event)
