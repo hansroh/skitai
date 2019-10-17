@@ -2904,6 +2904,7 @@ Change Log
 - 0.31 (Sep 2019)
 
   - change handling command line options, required rs4>=0.2.5.0
+  - add skitai.set_smtp ()
 
 - 0.30 (Sep 2019)
 

@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.31.1.0"
+__version__ = "0.31.1.1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -44,10 +44,10 @@ if "--smtpda" in sys.argv:
     os.system ("{} -m skitai.bin.skitai smtpda -d".format (sys.executable))
     SMTP_STARTED = True
 
-def set_smtp (self, server, user = None, password = None, ssl = False):
+def set_smtp (server, user = None, password = None, ssl = False, start_service = True):
     global SMTP_STARTED
     composer.set_default_smtp (server, user, password, ssl)
-    not SMTP_STARTED and os.system ("{} -m skitai.bin.skitai smtpda -d".format (sys.executable))
+    start_service and not SMTP_STARTED and os.system ("{} -m skitai.bin.skitai smtpda -d".format (sys.executable))
 
 def test_client (*args, **kargs):
     from .testutil.launcher import Launcher
