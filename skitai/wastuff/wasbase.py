@@ -41,6 +41,8 @@ else:
     TEMP_DIR = "/var/tmp/skitai-gentemp"
 pathtool.mkdir (TEMP_DIR)
 
+composer.Composer.SAVE_PATH = os.path.join ("/var/tmp/skitai", "smtpda", "spool")
+pathtool.mkdir (composer.Composer.SAVE_PATH)
 
 class WASBase:
     version = __version__
@@ -174,9 +176,6 @@ class WASBase:
         return os.path.join (TEMP_DIR, next (tempfile._get_candidate_names()))
 
     def email (self, subject, snd, rcpt):
-        if composer.Composer.SAVE_PATH is None:
-            composer.Composer.SAVE_PATH = os.path.join ("/var/tmp/skitai", "smtpda", "spool")
-            pathtool.mkdir (composer.Composer.SAVE_PATH)
         return composer.Composer (subject, snd, rcpt)
 
     # -- only allpy to current worker process

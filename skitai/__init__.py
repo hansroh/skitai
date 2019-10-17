@@ -38,8 +38,16 @@ argopt.add_option (None, '--port=PORT_NUMBER', desc = "change port")
 if "--production" in sys.argv:
     os.environ ["SKITAI_ENV"] = "PRODUCTION"
 
+SMTP_STARTED = False
 if "--smtpda" in sys.argv:
+    global SMTP_STARTED
     os.system ("{} -m skitai.bin.skitai smtpda -d".format (sys.executable))
+    SMTP_STARTED = True
+
+def set_smtp (self, server, user = None, password = None, ssl = False):
+    global SMTP_STARTED
+    composer.set_default_smtp (server, user, password, ssl)
+    not SMTP_STARTED and os.system ("{} -m skitai.bin.skitai smtpda -d".format (sys.executable))
 
 def test_client (*args, **kargs):
     from .testutil.launcher import Launcher

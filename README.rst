@@ -843,22 +843,19 @@ You can send e-Mail in your app like this:
     e.add_attachment (r"001.png", cid="ID_A")
     e.send ()
 
+You can set default SMTP server and you can skip e.set_smtp (...) part.
+
+.. code:: python
+
+  skitai.set_smtp ("127.0.0.1:465", "username", "password", ssl = True)
+
 For enabling this features,
 
 .. code:: bash
 
-  skitai smtpda start
-  # or
-  skitai smtpda -d
+  serve.py --smtpda
 
-Or you just give command line option to skitai startup script.
-
-.. code:: bash
-
-  serve.py ---smtpda
-
-All e-mails are saved into *varpath* and varpath is not
-specified default is /var/temp/skitai.
+All e-mails are saved into /var/temp/skitai/smtpda.
 
 This service will run as system-wide daemon service,
 and will be not stopped even if app engine is stopped. For stopping it,
@@ -1226,7 +1223,6 @@ for authorization. And token issuance is at your own hands. But JWT creation,
 
 Also Skitai create API Transaction ID for each API call, and this will be
 explained in Skitai 'was' Service chapter.
-
 
 
 Run as Win32 Service (Deprecated)
