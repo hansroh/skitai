@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.31.1.1"
+__version__ = "0.31.1.2"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -38,7 +38,6 @@ argopt.add_option (None, '--port=PORT_NUMBER', desc = "change port")
 if "--production" in sys.argv:
     os.environ ["SKITAI_ENV"] = "PRODUCTION"
 
-SMTP_STARTED = False
 if "--smtpda" in sys.argv:
     global SMTP_STARTED
     os.system ("{} -m skitai.bin.skitai smtpda -d".format (sys.executable))
