@@ -19,7 +19,9 @@ before_script:
   - pip install -U aquests rs4
   - pip install -U atila sqlphile dnn tfserver
   - pip install -U atila sqlphile dnn tfserver
-  - pip install -Ur tests/requirements.txt  
+  - pip install -Ur tests/requirements.txt
+  - pip uninstall bson
+  - pip install -U --force pymong
 
 test:
   script:
