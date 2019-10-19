@@ -15,10 +15,12 @@ before_script:
   - virtualenv venv
   - source venv/bin/activate
   - python setup.py install
-  - pip install -U aquests rs4 atila sqlphile
-  - pip install -U aquests rs4 atila sqlphile
-  - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongodb, asynredis'
+  - pip install -U aquests rs4 sqlphile
+  - pip install -U aquests rs4 sqlphile
+  - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
   - python -c 'from aquests.protocols.grpc import discover'
+  - pip install atila
+  - pip install atila
   - pip install dnn tfserver
   - pip install -Ur tests/requirements.txt
   - pip uninstall -y bson
