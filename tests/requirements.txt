@@ -5,3 +5,7 @@ pytest-cov
 flask
 websocket_client
 jinja2
+protobuf
+redis
+pymongo
+psycopg2-binary

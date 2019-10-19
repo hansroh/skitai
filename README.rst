@@ -84,6 +84,15 @@ With git
     python3 setup.py install
     pip3 install -U rs4 aquests sqlphile
 
+You have pla to use database engines or protocols which is supported by Skitai, you install them manually.
+
+.. code-block:: bash
+
+  pip3 install protobuf # for GRPC
+  pip3 install redis
+	pip3 install pymongo
+	pip3 install psycopg2-binary
+
 *Note*
 
 If you have `bson` related error, PyMongo has own `bson` module
@@ -2918,6 +2927,8 @@ Change Log
 
   - change handling command line options, required rs4>=0.2.5.0
   - add skitai.set_smtp ()
+  - remove protobuf, redis, pymongo and psycopg2 from requirements,
+    if you need these, install them maually
 
 - 0.30 (Sep 2019)
 
