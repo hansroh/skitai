@@ -5,3 +5,4 @@ pytest-cov
 flask
 websocket_client
 jinja2
+bson
