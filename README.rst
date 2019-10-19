@@ -84,9 +84,22 @@ With git
     python3 setup.py install
     pip3 install -U rs4 aquests sqlphile
 
+*Note*
 
-But generally you don't need install alone. When you install Skitai App Engine,
-proper version of Skitai App Engine will be installed.
+If you have `bson` related error, PyMongo has own `bson` module
+that is incompatible with pypi `bson`. I cannot exactly figure out
+this problem. If you need really don't need you can uninstall it:
+
+.. code-block:: bash
+
+  pip3 uninstall -y bson
+  pip3 install -U --force pymongo
+
+Or if you don't have plan using pymongo, unistall it.
+
+.. code-block:: bash
+
+  pip3 uninstall -y pymongo
 
 
 Enginize Your App with Skitai
