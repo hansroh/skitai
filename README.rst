@@ -90,21 +90,22 @@ You have pla to use database engines or protocols which is supported by Skitai, 
 
   pip3 install protobuf # for GRPC
   pip3 install redis
-	pip3 install pymongo
-	pip3 install psycopg2-binary
+  pip3 install pymongo
+  pip3 install psycopg2-binary
 
 *Note*
 
-If you have `bson` related error, PyMongo has own `bson` module
-that is incompatible with pypi `bson`. I cannot exactly figure out
-this problem. If you need really don't need you can uninstall it:
+If you have `bson` related error, PyMongo has own `bson`
+module that is incompatible with pypi `bson`. I cannot
+exactly figure out this problem. If you really don't need
+pypi bson, you can uninstall it:
 
 .. code-block:: bash
 
   pip3 uninstall -y bson
   pip3 install -U --force pymongo
 
-Or if you don't have plan using pymongo, unistall it.
+Or if you don't have plan using pymongo, uninstall it.
 
 .. code-block:: bash
 
