@@ -2945,6 +2945,7 @@ Change Log
   - add skitai.set_smtp ()
   - remove protobuf, redis, pymongo and psycopg2 from requirements,
     if you need these, install them maually
+  - skitai.preference () can be used with context
 
 - 0.30 (Sep 2019)
 
