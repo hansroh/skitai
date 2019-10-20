@@ -514,7 +514,7 @@ def enable_blacklist (path):
     global dconf
     dconf ["blacklist_dir"] = path
 
-def enable_ssl (certfile, keyfile, passphrase):
+def enable_ssl (certfile, keyfile = None, passphrase = None):
     global dconf
     dconf ["certfile"] = certfile
     dconf ["keyfile"] = keyfile
