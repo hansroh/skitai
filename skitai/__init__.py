@@ -228,10 +228,21 @@ def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20
     http_server.critical_point_continuous = https_server.critical_point_continuous = continuous
     http_server.maintern_interval = https_server.maintern_interval = interval
 
+
 class Preference (AttrDict):
-    def __init__ (self):
-        super (Preference, self).__init__ (self)
+    def __init__ (self, service_home = None):
+        super ().__init__ ()
+        self.__service_home = service_home
         self.__dict__ ["mountables"] = []
+
+    def __enter__ (self):
+        if self.__service_home:
+            sys.path.insert (0, joinpath (self.__service_home))
+        return self
+
+    def __exit__ (self, *args):
+        if self.__service_home:
+            sys.path.pop (0)
 
     def mount (self, *args, **kargs):
         self.__dict__ ["mountables"].append ((args, kargs))
@@ -240,9 +251,9 @@ class Preference (AttrDict):
         return copy.deepcopy (self)
 
 
-def preference (preset = False):
+def preference (preset = False, service_home = None):
     from .wsgi_apps import Config
-    d = Preference ()
+    d = Preference (service_home)
     d.config = Config (preset)
     return d
 pref = preference
