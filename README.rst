@@ -230,20 +230,19 @@ skitai app engine script is '/app.py'.
 
 .. code:: python
 
-  pref = skitai.pref ()
-  pref.use_reloader = True
-  pref.debug = True
-
   # and mount static dir used bt Django
   skitai.mount ("/static", "mydjango/static")
 
-  # finally mount django wsgi.py and project root path to append sys.path by path param.
-  skitai.mount (
-    "/",
-    "mydjango/mydjango/wsgi.py",
-    "application",
-    pref
-  )
+  with skitai.preference () as pref:
+    pref.use_reloader = True
+    pref.debug = True
+    # finally mount django wsgi.py and project root path to append sys.path by path param.
+    skitai.mount (
+      "/",
+      "mydjango/mydjango/wsgi.py",
+      "application",
+      pref
+    )
 
 Note that if app is smae location with django manage.py,
 you need not path param.
@@ -607,11 +606,10 @@ If you want to set more detaily,
 
   import skitai
 
-  pref = skitai.pref ()
-
-  pref.config.max_post_body_size = 2 << 32
-  pref.config.max_multipart_body_size = 2 << 32
-  pref.config.max_upload_file_size = 2 << 32
+  with skitai.preference () as pref:
+    pref.config.max_post_body_size = 2 << 32
+    pref.config.max_multipart_body_size = 2 << 32
+    pref.config.max_upload_file_size = 2 << 32
 
 
 Setting Timeout
@@ -1325,10 +1323,9 @@ Then users uses your module can mount on skitai by like this,
 
   import unsub
 
-  pref = skitai.pref ()
-  pref.config.urlfile = skitai.abspath ('resources', 'urllist.txt')
-
-  skitai.mount ("/v1", unsub, "app", pref)
+  with skitai.preference () as pref:
+    pref.config.urlfile = skitai.abspath ('resources', 'urllist.txt')
+    skitai.mount ("/v1", unsub, "app", pref)
   skitai.run ()
 
 If you want to specify filename like app_v1.py for version management,
@@ -1392,14 +1389,32 @@ directory and mount it to pref.
   import unsub
   from extends import apis
 
-  pref = skitai.pref ()
-  pref.mount ('/apis', apis)
-  pref.config.urlfile = skitai.abspath ('resources', 'urllist.txt')
-
-  skitai.mount ("/v1", unsub, "app", pref)
+  with skitai.preference () as pref:
+    pref.mount ('/apis', apis)
+    pref.config.urlfile = skitai.abspath ('resources', 'urllist.txt')
+    skitai.mount ("/v1", unsub, "app", pref)
   skitai.run ()
 
-You can access it by /v1/apis
+You can access it by /v1/apis.
+
+If you want to mount another services from unpathed, you can specify
+new path.
+
+*Note:* This will change sys.path order. You SHOULD do
+these on your last mount stage.
+
+.. code:: python
+
+  # serve.py
+  import unsub
+
+  with skitai.preference (path = '../my_service') as pref:
+    from services import apis
+    pref.mount ('/apis', apis)
+    skitai.mount ("/v1", unsub, "app", pref)
+  skitai.run ()
+
+
 
 Examples
 ----------

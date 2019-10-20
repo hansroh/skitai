@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.31.2.3"
+__version__ = "0.31.3a3"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -230,19 +230,18 @@ def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20
 
 
 class Preference (AttrDict):
-    def __init__ (self, service_home = None):
+    def __init__ (self, path = None):
         super ().__init__ ()
-        self.__service_home = service_home
+        self.__path = path
         self.__dict__ ["mountables"] = []
 
     def __enter__ (self):
-        if self.__service_home:
-            sys.path.insert (0, joinpath (self.__service_home))
+        if self.__path:
+            sys.path.insert (0, joinpath (self.__path))
         return self
 
     def __exit__ (self, *args):
-        if self.__service_home:
-            sys.path.pop (0)
+        pass
 
     def mount (self, *args, **kargs):
         self.__dict__ ["mountables"].append ((args, kargs))
@@ -251,9 +250,9 @@ class Preference (AttrDict):
         return copy.deepcopy (self)
 
 
-def preference (preset = False, service_home = None):
+def preference (preset = False, path = None):
     from .wsgi_apps import Config
-    d = Preference (service_home)
+    d = Preference (path)
     d.config = Config (preset)
     return d
 pref = preference
