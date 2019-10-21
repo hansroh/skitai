@@ -218,7 +218,8 @@ class http_response:
         self.error (code, status, why, force_close = True)
 
     def start (self, code, status = "", headers = None):
-        if not self.is_responsable (): return
+        if not self.is_responsable ():
+            return
         self.reply_code = code
         if status:
             self.reply_message = status
