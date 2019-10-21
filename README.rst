@@ -2965,6 +2965,8 @@ Change Log
   - skitai.preference () can be used with context
   - fix http/2 response delaying when body is not exist
   - skitai.enable_forward () can forward to single domain
+  - add dropping root privileges when Skitai run with sudo for using
+    under 1024 ports etc.
 
 - 0.30 (Sep 2019)
 

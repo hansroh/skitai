@@ -24,6 +24,7 @@ from aquests.client import adns
 from aquests.protocols import dns
 if os.name == "nt":
 	from rs4.psutil import schedule # cron like scheduler
+from rs4.psutil import processutil
 from .handlers import proxy_handler, ipbl_handler, vhost_handler, forward_handler
 import socket
 import signal
@@ -174,6 +175,7 @@ class Loader:
 			thunk ()
 
 		self.wasc.httpserver.serve (hasattr (self.wasc, "forwardserver") and self.wasc.forwardserver or None)
+		os.name != 'nt' and processutil.drop_privileges ()
 		self.fork ()
 
 	def fork (self):
