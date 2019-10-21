@@ -814,10 +814,27 @@ If you want to redirect all HTTP requests to HTTPS,
 .. code:: python
 
   skitai.enable_forward (80, 443)
-
   skitai.mount ('/', app)
   kitai.enable_ssl ('server.crt', 'server.key', 'your pass phrase')
   skitai.run (port = 443)
+
+Also if you want to redirect to single domain like move from
+www.my-doamin.com to my-doamin.com,
+
+.. code:: python
+
+  skitai.enable_forward (80, 443, 'mydomain.com')
+  skitai.mount ('/', app)
+  kitai.enable_ssl ('server.crt', 'server.key', 'your pass phrase')
+  skitai.run (port = 443)
+
+As a result, below domain will be forwared to single end point:
+
+https://my-doamin.com
+
+- http://www.my-doamin.com
+- http://my-doamin.com
+- https://www.my-doamin.com
 
 
 About Mount Point & App Routing
@@ -2946,6 +2963,8 @@ Change Log
   - remove protobuf, redis, pymongo and psycopg2 from requirements,
     if you need these, install them maually
   - skitai.preference () can be used with context
+  - fix http/2 response delaying when body is not exist
+  - skitai.enable_forward () can forward to single domain
 
 - 0.30 (Sep 2019)
 

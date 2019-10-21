@@ -171,6 +171,20 @@ class http_channel (asynchat.async_chat):
 		else:
 			self.in_buffer = self.in_buffer + data
 
+	def forward_domain (self, r):
+		host = r.get_header ('host', '').split (":", 1)[0]
+		if host == self.server.single_domain:
+			return False
+		scheme, port = r.get_scheme (), self.server.port
+		if (scheme == 'https' and port == 443) or (scheme == 'http' and port == 80):
+			port = ""
+		else:
+			port = ":{}".format (port)
+		newloc = '{}://{}{}{}'.format (scheme, self.server.single_domain, port, r.uri)
+		r.response.set_header ("Location", newloc)
+		r.response.error (301, why = "Object moved to <a href='{}'>here</a>".format (newloc))
+		return True
+
 	def found_terminator (self):
 		if self.is_rejected:
 			return
@@ -183,9 +197,6 @@ class http_channel (asynchat.async_chat):
 
 		else:
 			header = self.in_buffer
-			#print ("####### CLIENT => SKITAI ##########################")
-			#print (header)
-			#print ("------------------------------------------------")
 			self.in_buffer = b''
 			lines = header.decode ("utf8").split('\r\n')
 			while lines and not lines[0]:
@@ -207,8 +218,9 @@ class http_channel (asynchat.async_chat):
 
 			header = http_util.join_headers (lines[1:])
 			r = http_request.http_request (self, request, command, uri, version, header)
+			if self.server.single_domain and self.forward_domain (r):
+				return
 			self.set_timeout (self.network_timeout)
-
 			self.request_counter.inc()
 			self.server.total_requests.inc()
 
@@ -353,6 +365,10 @@ class http_server (asyncore.dispatcher):
 			self.server_name = hostname
 		self.hash_id = md5 (self.server_name.encode ('utf8')).hexdigest() [:4]
 		self.server_port = port
+		self.single_domain = None
+
+	def set_single_domain (self, domain):
+		self.single_domain = domain
 
 	def _serve (self, shutdown_phase = 2):
 		self.shutdown_phase = shutdown_phase

@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.31.3.1"
+__version__ = "0.31.4.2"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -428,11 +428,12 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
 
 mount_django = mount
 
-def enable_forward (forward_to = 443, port = 80, ip = ""):
+def enable_forward (port = 80, forward_port = 443, forward_domain = None, ip = ""):
     global dconf
     dconf ['fws_address'] = ip
-    dconf ['fws_port'] = forward_to
-    dconf ['fws_to'] = port
+    dconf ['fws_port'] = port
+    dconf ['fws_to'] = forward_port
+    dconf ['fws_domain'] = forward_domain
 
 def enable_gateway (enable_auth = False, secure_key = None, realm = "Skitai API Gateway"):
     global dconf
@@ -690,7 +691,8 @@ def run (**conf):
             self.config_rcache (conf.get ("rcache_objmax", 100))
             if conf.get ('fws_to'):
                 self.config_forward_server (
-                    conf.get ('fws_address', '0.0.0.0'), conf.get ('fws_port', 80), conf.get ('fws_to', 443)
+                    conf.get ('fws_address', '0.0.0.0'),
+                    conf.get ('fws_port', 80), conf.get ('fws_to', 443)
                 )
 
             port = int (options.get ('--port') or conf.get ('port', 5000))
@@ -699,6 +701,7 @@ def run (**conf):
                 NAME, conf.get ("certfile") is not None,
                 conf.get ('keep_alive', DEFAULT_KEEP_ALIVE),
                 conf.get ('network_timeout', DEFAULT_NETWORK_TIMEOUT),
+                conf.get ('fws_domain'),
                 thunks = [self.master_jobs]
             )
 
