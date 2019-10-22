@@ -786,6 +786,92 @@ Some examples,
 Run as HTTPS Server
 ---------------------
 
+You can get certification from `Let's Encrypt` or where you want.
+
+First of all, you make simple script for certbot challenge.
+
+.. code:: bash
+
+  mkdir myservice
+  mkdir myservice/static
+  cd myservice
+
+And write serve.py,
+
+.. code:: python
+
+  #! /usr/bin/env python3
+
+  import skitai
+
+  skitai.mount ("/", "./static")
+  skitai.run (port = 80, name = "my-service")
+
+For using port 80, you need root permision,
+
+.. code:: python
+
+  chmod +x serve.py
+  sudo ./serve.py
+
+Now on another console,
+
+.. code:: bash
+
+  cd myservice
+  sudo apt install certbot
+  sudo certbot certonly --webroot \
+    -w ./static \
+    -d mydomain.com -d www.mydomain.com
+
+Apply change to serve.py,
+
+.. code:: python
+
+  #! /usr/bin/env python3
+
+  skitai.enable_ssl (
+    '/etc/letsencrypt/live/mydomain.com/fullchain.pem',
+    '/etc/letsencrypt/live/mydomain.com/privkey.pem'
+  )
+  # forward http -> https, www.mydomain.com -> mydomain.com
+  skitai.enable_forward (80, 443, 'mydomain.com')
+
+  skitai.mount ("/", "./static")
+  skitai.run (port = 443, name = "my-service")
+
+Becasue of you're using port 80, 443 you need root privileges.
+
+.. code:: bash
+
+  sudo ./serve.py
+
+After binding port 80 and 443 and reading certifications, Skitai will drop root privileges and back to sudo user privileges.
+
+
+FYI, for automating renew certification, start Skitai as daemon and add cron job,
+
+.. code:: bash
+
+  sudo ./serve.py -d
+
+And add cron job with renew-hook,
+
+.. code:: bash
+
+  sudo crontab -e
+
+  # add this line for trying renew twice a day, restart Skitai with user ubuntu privileges if renewed
+  1 4,16 * * * /usr/bin/certbot renew --renew-hook="su - ubuntu -c 'sudo /PATH/myservice/serve.py restart'"
+
+*Note*: If you just run with '/PATH/myservice/serve.py restart', server will run with nobody account privileges
+
+.. _`Let's Encrypt`: https://letsencrypt.org
+
+
+Self-Signed certification
+````````````````````````````````````
+
 To generate self-signed certification file:
 
 .. code:: python
@@ -808,33 +894,6 @@ Then,
   skitai.mount ('/', app)
   skitai.enable_ssl ('server.crt', 'server.key', 'your pass phrase')
   skitai.run ()
-
-If you want to redirect all HTTP requests to HTTPS,
-
-.. code:: python
-
-  skitai.enable_forward (80, 443)
-  skitai.mount ('/', app)
-  kitai.enable_ssl ('server.crt', 'server.key', 'your pass phrase')
-  skitai.run (port = 443)
-
-Also if you want to redirect to single domain like move from
-www.my-doamin.com to my-doamin.com,
-
-.. code:: python
-
-  skitai.enable_forward (80, 443, 'mydomain.com')
-  skitai.mount ('/', app)
-  kitai.enable_ssl ('server.crt', 'server.key', 'your pass phrase')
-  skitai.run (port = 443)
-
-As a result, below domain will be forwared to single end point:
-
-https://my-doamin.com
-
-- http://www.my-doamin.com
-- http://my-doamin.com
-- https://www.my-doamin.com
 
 
 About Mount Point & App Routing
@@ -1170,20 +1229,19 @@ Blank seperated items of log line are,
 Skitai with Nginx
 ---------------------------
 
+If your service is relatvely simple and you may think using
+Nginx is overkill, it is well enough with Skitai.
+
+Below Nginx features (SSL, HTTP2, forwarding, proxy passing,
+static file service etc) can be implemetented with Skitai alone.
+
+But if you need some kind of gateway server which control multiple
+upstreams and Skitai app engine instances, I strongly
+recommend to use Nginx.
+
 Here's some helpful sample works with Nginx.
 
 .. code:: bash
-
-  # use http 1.1 for backends
-  proxy_http_version 1.1;
-  proxy_set_header Host $host;
-  proxy_set_header X-NginX-Proxy true;
-  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-
-  # enabling websocket
-  proxy_set_header Upgrade $http_upgrade;
-  proxy_set_header Connection "Upgrade";
-  proxy_read_timeout 86400;
 
   # upstreams with connection keep alive
   upstream backend {
@@ -1192,24 +1250,58 @@ Here's some helpful sample works with Nginx.
   }
 
   server {
-    listen 80;
-    server_name www.oh-my-jeans.com;
+      listen 80;
+      listen [::]:80;
+      server_name www.oh-my-jeans.com;
+      return 301 https://oh-my-jeans.com$request_uri;
+  }
+
+  server {
+      listen 443;
+      listen [::]:443;
+      server_name www.oh-my-jeans.com;
+      return 301 https://oh-my-jeans.com$request_uri;
+  }
+
+  server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name oh-my-jeans.com;
+
+    ssl_certificate /etc/letsencrypt/live/www.oh-my-jeans.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/www.oh-my-jeans.com/privkey.pem;
+    ssl_session_timeout 5m;
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
     keepalive_timeout 30s;
+    proxy_http_version 1.1;
+    proxy_set_header X-NginX-Proxy true;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    add_header X-Backend "skitai app engine";
+    proxy_set_header Host $http_host;
 
     location / {
       proxy_pass http://backend;
-      add_header X-Backend "skitai app engine";
       client_max_body_size 2g;
     }
 
+    location /websocket {
+      proxy_pass http://backend;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "Upgrade";
+      proxy_read_timeout 86400;
+    }
+
     location /assets/ {
-      alias /home/ubuntu/www/statics/assets/;
-      expires 86400;
+      alias /home/ubuntu/www/statics/assets;
+      expires 300;
     }
   }
 
 
-Enabling API Gateway Server (Experimental)
+Run As API Gateway Server (Experimental)
 -------------------------------------------------------------
 
 Using Skitai's reverse proxy feature, it can be used as API Gateway Server.
@@ -1298,7 +1390,7 @@ Then at command line,
 
 
 Self-Descriptive App
----------------------
+---------------------------
 
 Skitai's one of philasophy is self-descriptive app. This means that
 you once make your app, this app can be run without any configuration
