@@ -13,7 +13,8 @@ import signal
 import ssl
 import skitai
 from hashlib import md5
-from rs4.psutil.processutil import set_process_name
+from rs4.psutil.processutil import set_process_name, drop_privileges
+
 if os.name == "posix":
 	import psutil
 	CPUs = psutil.cpu_count()
@@ -392,6 +393,7 @@ class http_server (asyncore.dispatcher):
 					if ACTIVE_WORKERS < numworker:
 						pid = os.fork ()
 						if pid == 0:
+							os.name != 'nt' and drop_privileges ()
 							self.worker_ident = "w%d" % len (PID)
 							set_process_name ("%s:%s" % (skitai.get_proc_title (), self.worker_ident))
 							PID = {}

@@ -1123,7 +1123,7 @@ before running skitai. And argument should be integer value.
 
 .. code:: python
 
-  skitai.defgs ("cluster.num-nodes", "region.somethig", ...)
+  skitai.register_states ("cluster.num-nodes", "region.somethig", ...)
   ...
 
   skitai.run ()
@@ -3059,6 +3059,7 @@ Change Log
   - skitai.enable_forward () can forward to single domain
   - add dropping root privileges when Skitai run with sudo for using
     under 1024 ports etc.
+  - refix: master process does not drop root privileges for clean resources
 
 - 0.30 (Sep 2019)
 
