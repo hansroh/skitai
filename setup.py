@@ -40,6 +40,7 @@ classifiers = [
 	'Topic :: Software Development :: Libraries :: Python Modules',
 	'Intended Audience :: Developers',
 	'Programming Language :: Python :: 3',
+	'Programming Language :: Python :: Implementation :: PyPy'
 ]
 
 packages = [

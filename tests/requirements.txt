@@ -2,6 +2,7 @@ pytest
 pytest-ordering
 codecov
 pytest-cov
+atila
 flask
 websocket_client
 jinja2

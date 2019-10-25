@@ -62,6 +62,7 @@ Installation
 **Requirements**
 
 Python 3.5+
+PyPy3
 
 **Installation**
 
@@ -92,6 +93,8 @@ You have pla to use database engines or protocols which is supported by Skitai, 
   pip3 install redis
   pip3 install pymongo
   pip3 install psycopg2-binary
+  # if you use pypy3 psycopg2cffi is better choice,
+  pip3 install psycopg2cffi
 
 *Note*
 
@@ -1113,13 +1116,36 @@ port 5000 so you start server manually at another console,
 Inter-Processes State Sharing
 -------------------------------------------
 
+*New in skitai version 0.26.18*
+
 Skitai can run with multiple processes (a.k workers), It is
 possible matters synchronizing state between workers.
 
-Like was.setlu () or getlu (), was provide setgs (), getgs ().
+Already mentioned 'skitai.register_states ()'  can be used
+for allocating shared memory for inter-process named state.
 
-Most important thing is global state keys SHUOLD be defined
-before running skitai. And argument should be integer value.
+.. code:: python
+
+  import skitai
+
+  skitai.register_states ("current-user", ...)
+
+Then one process update object by setgs (name, value),
+the others can be access it by getgs (name).
+
+Note that value type is shoul be integer.
+
+.. code:: python
+
+  @app.before_request
+  def before_request (was):
+    was.setgs ("current-user", was.getgs ("current-user") + 1)
+
+  @app.teardown_request
+  def teardown_request (was):
+    was.setgs ("current-user", was.getgs ("current-user") - 1)
+
+For connecting to event bus,
 
 .. code:: python
 
@@ -1128,7 +1154,7 @@ before running skitai. And argument should be integer value.
 
   skitai.run ()
 
-Then you cna use these,
+Then you can use these,
 
 .. code:: python
 
@@ -1168,6 +1194,12 @@ routine at app.maintain.
     if app.store ["num_nodes"] != num_nodes:
       app.store ["num_nodes"] = num_nodes
       app.broadcast ("cluster:num_nodes")
+
+also was.setlu () and was.getlu () is very similar usage which
+related to track resource updating. And it will be explained
+`Corequest: Caching Result`_ chapter.
+
+.. _`Corequest: Caching Result`: #caching-result
 
 
 Request Logging
@@ -2949,36 +2981,6 @@ was.Thread () and was.Subprocess () are also available.
 Miscellaneous
 ==============================
 
-Inter Process State Sharing
------------------------------------------
-
-*New in skitai version 0.26.18*
-
-Already mentioned 'skitai.register_states ()'  can be used
-for allocating shared memory for inter-process named state.
-
-.. code:: python
-
-  import skitai
-
-  skitai.register_states ("current-user", ...)
-
-Then one process update object by setgs (name, value),
-the others can be access it by getgs (name).
-
-Note that value type is shoul be integer.
-
-.. code:: python
-
-  @app.before_request
-  def before_request (was):
-    was.setgs ("current-user", was.getgs ("current-user") + 1)
-
-  @app.teardown_request
-  def teardown_request (was):
-    was.setgs ("current-user", was.getgs ("current-user") - 1)
-
-
 API Transaction ID
 ------------------------------------
 
@@ -3060,6 +3062,7 @@ Change Log
   - add dropping root privileges when Skitai run with sudo for using
     under 1024 ports etc.
   - refix: master process does not drop root privileges for clean resources
+  - fix reloading for file mounted apps
 
 - 0.30 (Sep 2019)
 

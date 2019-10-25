@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.31.6.0"
+__version__ = "0.31.6.1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -385,7 +385,10 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
         pref, appname = appname, "app"
 
     def init_app (modpath, pref):
-        modinit = os.path.join (os.path.dirname (modpath), "__init__.py")
+        srvice_root = os.path.dirname (modpath)
+        # IMP: MUST pathing because reloading module
+        sys.path.append (srvice_root)
+        modinit = os.path.join (srvice_root, "__init__.py")
         if os.path.isfile (modinit):
             mod = importer.from_file ("temp", modinit)
             hasattr (mod, "bootstrap") and mod.bootstrap (pref)
