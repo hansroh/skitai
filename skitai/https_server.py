@@ -94,16 +94,16 @@ class https_server (http_server.http_server):
 		https_channel (self, conn, addr)
 
 
-def init_context (certfile, keyfile, pass_phrase):
+def init_context (certfile, keyfile, pass_phrase, pn_protocol = H2_PROTOCOLS):
 	try:
 		protocol = ssl.PROTOCOL_TLS
 	except AttributeError:
 		protocol = ssl.PROTOCOL_SSLv23
 	ctx = ssl.SSLContext (protocol)
 	try:
-		ctx.set_alpn_protocols (H2_PROTOCOLS)
+		ctx.set_alpn_protocols (pn_protocol)
 	except AttributeError:
-		ctx.set_npn_protocols (H2_PROTOCOLS)
+		ctx.set_npn_protocols (pn_protocol)
 	ctx.load_cert_chain (certfile, keyfile, pass_phrase)
 	ctx.check_hostname = False
 	return ctx
