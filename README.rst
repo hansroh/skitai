@@ -3063,6 +3063,7 @@ Change Log
     under 1024 ports etc.
   - refix: master process does not drop root privileges for clean resources
   - fix reloading for file mounted apps
+  - confirmed to work on PyPy3
 
 - 0.30 (Sep 2019)
 

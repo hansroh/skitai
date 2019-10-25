@@ -16,19 +16,6 @@ except ImportError:
 with open('skitai/__init__.py', 'r') as fd:
 	version = re.search(r'^__version__\s*=\s*"(.*?)"',fd.read(), re.M).group(1)
 
-if 'develop' in sys.argv[1:]:
-	# For reseting entry point
-	os.system ("rm -rf /usr/local/lib/python3.5/dist-packages/aquests-*")
-
-if sys.argv[-1] == 'publish':
-	buildopt = ['sdist', 'upload']
-	if os.name == "nt":
-		buildopt.insert (0, 'bdist_wheel')
-	os.system('python setup.py %s' % " ".join (buildopt))
-	for each in os.listdir ("dist"):
-		os.remove (os.path.join ('dist', each))
-	sys.exit()
-
 classifiers = [
   'License :: OSI Approved :: MIT License',
   'Development Status :: 4 - Beta',
