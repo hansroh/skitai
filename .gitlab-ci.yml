@@ -13,35 +13,29 @@ cache:
 .before_python_test: &before_python_test
     before_script:
       - python3 -V
-      - pip3 install -U setuptools pip
-      - apk add --no-cache gcc python3-dev build-base linux-headers libffi-dev postgresql-dev musl-dev
       - python3 -m venv venv
       - source venv/bin/activate
-      - python setup.py install
-      - pip install -U --no-cache-dir aquests rs4 sqlphile
+      - pip3 install -U setuptools pip
+      - pip install -e .
       - pip install -U --no-cache-dir aquests rs4 sqlphile
       - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
       - python -c 'from aquests.protocols.grpc import discover'
       - pip install --no-cache-dir atila
-      - pip install --no-cache-dir atila
       - pip install -Ur tests/requirements.txt
-      - pip uninstall -y bson
       - pip install -U --force pymongo
 
 .before_pypy_test: &before_pypy_test
     before_script:
       - pypy3 -V
-      - apk add --no-cache gcc python3-dev build-base linux-headers libffi-dev postgresql-dev musl-dev
       - pypy3 -m venv venv
       - source venv/bin/activate
       - pip install -U setuptools pip
-      - pypy3 setup.py install
+      - pip install -e .
       - pip install -U --no-cache-dir aquests rs4 sqlphile
       - pypy3 -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
       - pypy3 -c 'from aquests.protocols.grpc import discover'
       - pip install --no-cache-dir atila
       - pip install -Ur tests/requirements.txt
-      - pip uninstall -y bson
       - pip install -U --force pymongo
 
 .test_template: &test
@@ -51,18 +45,23 @@ cache:
   only:
     - master
 
-python 3.5alpine:
-  image: python:3.5-alpine
+python 3.5stretch:
+  image: python:3.5-stretch
   <<: *before_python_test
   <<: *test
 
-# python 3.6alpine:
-#   image: python:3.6-alpine
+# python 3.6stretch:
+#   image: python:3.6-stretch
 #   <<: *before_python_test
 #   <<: *test
 
-# python 3.7alpine:
-#   image: python:3.7-alpine
+# python 3.7stretch:
+#   image: python:3.7-stretch
+#   <<: *before_python_test
+#   <<: *test
+
+# python 3.8stretch:
+#   image: python:3.8-stretch
 #   <<: *before_python_test
 #   <<: *test
 

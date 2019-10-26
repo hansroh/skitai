@@ -562,6 +562,8 @@ class http_response:
             self.set_status (__status__)
         elif isinstance (__status__, dict):
             __data_dict__ = __status__
+        elif __status__ is not None:
+            raise TypeError ("first arg for was.API should be status string or dict data only")
         if __data_dict__ and kargs:
             __data_dict__.update (kargs)
         api = API (self.request, __data_dict__ or kargs)

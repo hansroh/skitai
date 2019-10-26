@@ -78,24 +78,36 @@ def documentation3 (was):
 
 @app.route ("/db")
 def db (was):
-    with was.asyncon ("@sqlite3") as db:
+    with was.db ("@sqlite3") as db:
+        #db.execute('CREATE TABLE IF NOT EXISTS people (id real, name text)').commit ()
+        #db.execute("INSERT INTO people (id, name) VALUES (2, 'Hans Roh')").commit ()
         req = db.execute ("select * from people")
-    return was.API (req.fetch (cache = 40, timeout = 2))
+    return was.API (data = req.fetch (cache = 40, timeout = 2))
 
 @app.route ("/dbtx")
 def dbtx (was):
     with was.transaction ("@sqlite3") as db:
         req = db.execute ("select * from people")
-        return was.API (req.fetch ())
+        return was.API (data = req.fetch ())
 
 @app.route ("/dbmap")
 def dbmap (was):
-    with was.asyncon.map ("@sqlite3") as db:
+    with was.db.map ("@sqlite3m") as db:
+        #db.execute('CREATE TABLE IF NOT EXISTS people (id real, name text)').commit ()
+        #db.execute("INSERT INTO people VALUES (1, 'Hans Roh')").commit ()
         req = db.execute ("select * from people")
-    results = req.dispatch ()
-    data = req.fetch (cache = 60)
-    assert data == results.data
+        results = req.dispatch ()
+        data = req.fetch (cache = 60)
+        assert data == results.data
+    with was.db.map ("@sqlite3m") as db:
+        db.execute ("delete from people where id=3").commit ()
     return was.API (data = data)
+
+@app.route ("/dblb")
+def dblb (was):
+    with was.db.lb ("@sqlite3m") as db:
+        req = db.execute ("select * from people")
+    return was.API (req.fetch (cache = 40, timeout = 2))
 
 @app.route ("/xmlrpc")
 def xmlrpc (was):
@@ -157,7 +169,7 @@ if __name__ == "__main__":
 
     skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
     skitai.alias ("@sqlite3", skitai.DB_SQLITE3, "resources/sqlite3.db")
-    skitai.alias ("@sqlite3m", skitai.DB_SQLITE3, ["resources/sqlite3.db", "resources/sqlite3-2.db"])
+    skitai.alias ("@sqlite3m", skitai.DB_SQLITE3, ["resources/sqlite3-1.db", "resources/sqlite3-2.db"])
 
     skitai.mount ("/", 'statics')
     skitai.mount ("/", app)

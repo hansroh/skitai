@@ -9,4 +9,5 @@ jinja2
 protobuf
 redis
 pymongo
+psycopg2-binary
 psycopg2cffi

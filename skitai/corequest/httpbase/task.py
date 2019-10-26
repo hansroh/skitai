@@ -71,7 +71,6 @@ class Result (response, rcache.Result):
     def fetch (self, cache = None, cache_if = (200,), one = False):
         self.reraise ()
         self.cache (cache, cache_if)
-
         if one:
             if len (self.data) == 0:
                 raise exceptions.HTTPError ("410 Partial Not Found")
