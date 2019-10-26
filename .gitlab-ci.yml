@@ -24,8 +24,6 @@ cache:
       - python -c 'from aquests.protocols.grpc import discover'
       - pip install --no-cache-dir atila
       - pip install --no-cache-dir atila
-      # - pip install scipy
-      # - pip install dnn tfserver
       - pip install -Ur tests/requirements.txt
       - pip uninstall -y bson
       - pip install -U --force pymongo
@@ -42,8 +40,8 @@ cache:
       - pypy3 -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
       - pypy3 -c 'from aquests.protocols.grpc import discover'
       - pip install --no-cache-dir atila
-      # - pip install scipy
-      # - pip install dnn tfserver
+      - pip install scipy
+      - pip install dnn tfserver
       - pip install -Ur tests/requirements.txt
       - pip uninstall -y bson
       - pip install -U --force pymongo
