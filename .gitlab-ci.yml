@@ -1,19 +1,45 @@
 before_script:
-  - python -V
+  - python3 -V
+  - pip3 install -U setuptools pip
 
-.before_test: &before_test
+variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
+.before_python_test: &before_python_test
     before_script:
-      - python -V
-      - python -m venv venv
+      - python3 -V
+      - pip3 install -U setuptools pip
+      - apk add --no-cache gcc python3-dev build-base linux-headers libffi-dev postgresql-dev musl-dev
+      - python3 -m venv venv
       - source venv/bin/activate
       - python setup.py install
-      - pip install -U aquests rs4 sqlphile
-      - pip install -U aquests rs4 sqlphile
+      - pip install -U --no-cache-dir aquests rs4 sqlphile
+      - pip install -U --no-cache-dir aquests rs4 sqlphile
       - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
       - python -c 'from aquests.protocols.grpc import discover'
-      - pip install atila
-      - pip install atila
-      - pip install dnn tfserver
+      - pip install --no-cache-dir atila
+      - pip install --no-cache-dir atila
+      - pip install -Ur tests/requirements.txt
+      - pip uninstall -y bson
+      - pip install -U --force pymongo
+
+.before_pypy_test: &before_pypy_test
+    before_script:
+      - pypy3 -V
+      - apk add --no-cache gcc python3-dev build-base linux-headers libffi-dev postgresql-dev musl-dev
+      - pypy3 -m venv venv
+      - source venv/bin/activate
+      - pip install -U setuptools pip
+      - pypy3 setup.py install
+      - pip install -U --no-cache-dir aquests rs4 sqlphile
+      - pypy3 -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
+      - pypy3 -c 'from aquests.protocols.grpc import discover'
+      - pip install --no-cache-dir atila
       - pip install -Ur tests/requirements.txt
       - pip uninstall -y bson
       - pip install -U --force pymongo
@@ -27,20 +53,20 @@ before_script:
 
 python 3.5alpine:
   image: python:3.5-alpine
-  <<: *before_test
+  <<: *before_python_test
   <<: *test
 
-python 3.6alpine:
-  image: python:3.6-alpine
-  <<: *before_test
-  <<: *test
+# python 3.6alpine:
+#   image: python:3.6-alpine
+#   <<: *before_python_test
+#   <<: *test
 
-python 3.7alpine:
-  image: python:3.7-alpine
-  <<: *before_test
-  <<: *test
+# python 3.7alpine:
+#   image: python:3.7-alpine
+#   <<: *before_python_test
+#   <<: *test
 
 python pypy3:
   image: pypy:3
-  <<: *before_test
+  <<: *before_pypy_test
   <<: *test
