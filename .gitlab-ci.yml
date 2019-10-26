@@ -1,45 +1,41 @@
-# https://hub.docker.com/r/library/python/tags/
-image: python:3.6-stretch
-
-variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-
-#cache:
-#  paths:
-#  - .cache/pip
-#  - venv/
-
 before_script:
-  - python -V               # Print out python version for debugging
-  - snap install pypy3 --classic
-  - python -m venv venv
-  - pypy3 -m venv venv-pypy3
+  - python -V
 
-test:
+.before_test: &before_test
+    before_script:
+      - python -V
+      - python -m venv venv
+      - source venv/bin/activate
+      - python setup.py install
+      - pip install -U aquests rs4 sqlphile
+      - pip install -U aquests rs4 sqlphile
+      - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
+      - python -c 'from aquests.protocols.grpc import discover'
+      - pip install atila
+      - pip install atila
+      - pip install dnn tfserver
+      - pip install -Ur tests/requirements.txt
+      - pip uninstall -y bson
+      - pip install -U --force pymongo
+
+.test_template: &test
   script:
-    - source venv/bin/activate
-    - python setup.py install
-    - pip install -U aquests rs4 sqlphile
-    - pip install -U aquests rs4 sqlphile
-    - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
-    - python -c 'from aquests.protocols.grpc import discover'
-    - pip install atila
-    - pip install atila
-    - pip install dnn tfserver
-    - pip install -Ur tests/requirements.txt
-    - pip uninstall -y bson
-    - pip install -U --force pymongo
-    - ./test-all.sh
-    - deactivate
-    
-    - source venv-pypy3/bin/activate
-    - python setup.py install
-    - pip install -U aquests rs4 sqlphile atila psycopg2cffi
-    - pip install dnn tfserver
-    - pip install -Ur tests/requirements.txt
-    - pip uninstall -y bson
-    - pip install -U --force pymongo
     - ./test-all.sh
     - deactivate
   only:
     - master
+
+python 3.6alpine:
+  image: python:3.6-alpine
+  <<: *before_test
+  <<: *test
+
+python 3.7alpine:
+  image: python:3.7-alpine
+  <<: *before_test
+  <<: *test
+
+python pypy3:
+  image: pypy:3
+  <<: *before_test
+  <<: *test
