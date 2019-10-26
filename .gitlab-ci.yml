@@ -10,7 +10,7 @@ cache:
     - .cache/pip
     - venv/
 
-.before_test: &before_python_test
+.before_python_test: &before_python_test
     before_script:
       - python3 -V
       - pip3 install -U setuptools pip
@@ -28,7 +28,7 @@ cache:
       - pip uninstall -y bson
       - pip install -U --force pymongo
 
-.before_test: &before_pypy_test
+.before_pypy_test: &before_pypy_test
     before_script:
       - python3 -V
       - pip3 install -U setuptools pip
@@ -55,7 +55,7 @@ cache:
 
 python 3.5alpine:
   image: python:3.5-alpine
-  <<: *before_test
+  <<: *before_python_test
   <<: *test
 
 # python 3.6alpine:
