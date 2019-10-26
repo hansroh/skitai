@@ -10,7 +10,7 @@ cache:
     - .cache/pip
     - venv/
 
-.before_test: &before_test
+.before_test: &before_python_test
     before_script:
       - python3 -V
       - pip3 install -U setuptools pip
@@ -24,8 +24,26 @@ cache:
       - python -c 'from aquests.protocols.grpc import discover'
       - pip install --no-cache-dir atila
       - pip install --no-cache-dir atila
-      - pip install scipy
-      - pip install dnn tfserver
+      # - pip install scipy
+      # - pip install dnn tfserver
+      - pip install -Ur tests/requirements.txt
+      - pip uninstall -y bson
+      - pip install -U --force pymongo
+
+.before_test: &before_pypy_test
+    before_script:
+      - python3 -V
+      - pip3 install -U setuptools pip
+      - apk add --no-cache gcc python3-dev build-base linux-headers libffi-dev postgresql-dev musl-dev
+      - pypy3 -m venv venv
+      - source venv/bin/activate
+      - pypy3 setup.py install
+      - pip install -U --no-cache-dir aquests rs4 sqlphile
+      - pypy3 -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
+      - pypy3 -c 'from aquests.protocols.grpc import discover'
+      - pip install --no-cache-dir atila
+      # - pip install scipy
+      # - pip install dnn tfserver
       - pip install -Ur tests/requirements.txt
       - pip uninstall -y bson
       - pip install -U --force pymongo
@@ -44,15 +62,15 @@ python 3.5alpine:
 
 # python 3.6alpine:
 #   image: python:3.6-alpine
-#   <<: *before_test
+#   <<: *before_python_test
 #   <<: *test
 
 # python 3.7alpine:
 #   image: python:3.7-alpine
-#   <<: *before_test
+#   <<: *before_python_test
 #   <<: *test
 
 # python pypy3:
 #   image: pypy:3
-#   <<: *before_test
+#   <<: *before_python_test
 #   <<: *test
