@@ -2,6 +2,14 @@ before_script:
   - python3 -V
   - pip3 install -U setuptools pip
 
+variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
 .before_test: &before_test
     before_script:
       - python3 -V
@@ -10,12 +18,12 @@ before_script:
       - python3 -m venv venv
       - source venv/bin/activate
       - python setup.py install
-      - pip install -U aquests rs4 sqlphile
-      - pip install -U aquests rs4 sqlphile
+      - pip install -U --no-cache-dir aquests rs4 sqlphile
+      - pip install -U --no-cache-dir aquests rs4 sqlphile
       - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
       - python -c 'from aquests.protocols.grpc import discover'
-      - pip install atila
-      - pip install atila
+      - pip install --no-cache-dir atila
+      - pip install --no-cache-dir atila
       - pip install scipy
       - pip install dnn tfserver
       - pip install -Ur tests/requirements.txt
