@@ -45,10 +45,10 @@ cache:
   only:
     - master
 
-python 3.5stretch:
-  image: python:3.5-stretch
-  <<: *before_python_test
-  <<: *test
+# python 3.5stretch:
+#   image: python:3.5-stretch
+#   <<: *before_python_test
+#   <<: *test
 
 python 3.6stretch:
   image: python:3.6-stretch
@@ -60,12 +60,13 @@ python 3.7stretch:
   <<: *before_python_test
   <<: *test
 
-python 3.8stretch:
-  image: python:3.8-stretch
-  <<: *before_python_test
-  <<: *test
-
 python pypy3:
   image: pypy:3
   <<: *before_pypy_test
   <<: *test
+
+# python 3.8stretch:
+#   image: python:3.8-stretch
+#   <<: *before_python_test
+#   <<: *test
+
