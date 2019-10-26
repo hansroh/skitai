@@ -1,23 +1,26 @@
 before_script:
-  - python -V
-  - pip install -U setuptools
+  - python3 -V
+  - pip3 install -U setuptools pip
 
 .before_test: &before_test
     before_script:
+      - python3 -V
+      - pip3 install -U setuptools pip
       - apk add --no-cache gcc python3-dev build-base linux-headers libffi-dev postgresql-dev musl-dev
       - python3 -m venv venv
       - source venv/bin/activate
-      - python3 setup.py install
-      - pip3 install -U aquests rs4 sqlphile
-      - pip3 install -U aquests rs4 sqlphile
-      - python3 -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
-      - python3 -c 'from aquests.protocols.grpc import discover'
-      - pip3 install atila
-      - pip3 install atila
-      - pip3 install dnn tfserver
-      - pip3 install -Ur tests/requirements.txt
-      - pip3 uninstall -y bson
-      - pip3 install -U --force pymongo
+      - python setup.py install
+      - pip install -U aquests rs4 sqlphile
+      - pip install -U aquests rs4 sqlphile
+      - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
+      - python -c 'from aquests.protocols.grpc import discover'
+      - pip install atila
+      - pip install atila
+      - pip install scipy
+      - pip install dnn tfserver
+      - pip install -Ur tests/requirements.txt
+      - pip uninstall -y bson
+      - pip install -U --force pymongo
 
 .test_template: &test
   script:
