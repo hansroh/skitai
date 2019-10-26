@@ -1,5 +1,6 @@
 from ..exceptions import HTTPError
 from ..utility import make_pushables
+import sys
 
 WAS_FACTORY = None
 

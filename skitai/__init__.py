@@ -1,10 +1,11 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.31.6.4"
+__version__ = "0.31.6.5"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
 
+import aquests # should be first for psycopg2 compat
 from rs4 import deco, importer
 from rs4.psutil import service
 from rs4.attrdict import AttrDict

@@ -59,10 +59,10 @@ def documentation2 (was):
                 e = content.find ('<div id="history"', s)
                 if e != -1:
                     content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.org/project/skitai/'> https://pypi.org/project/skitai/</a></h4>" + content [s:e]
-        assert "Internet :: WWW/HTTP :: WSGI" in content
+        assert "Internet :: WWW/HTTP" in content
         return was.render ("documentation2.html", skitai = content)
 
-    reqs = [was.get ("@pypi/project/skitai/", headers = [("Accept", "text/html")])]
+    reqs = [was.get ("@pypi/project/aquests/", headers = [("Accept", "text/html")])]
     return was.futures (reqs).then (response)
 
 @app.route ("/documentation3")
@@ -71,7 +71,7 @@ def documentation3 (was):
         return was.response.API (status_code = [rs.status_code for rs in rss.dispatch ()])
 
     reqs = [
-        was.get ("@pypi/project/skitai/", headers = [("Accept", "text/html")]),
+        was.get ("@pypi/project/aquests/", headers = [("Accept", "text/html")]),
         was.get ("@pypi/project/rs4/", headers = [("Accept", "text/html")])
     ]
     return was.futures (reqs).then (response)

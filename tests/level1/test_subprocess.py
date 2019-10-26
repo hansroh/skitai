@@ -19,11 +19,10 @@ def test_subprocess (async_wasc):
     with pytest.raises (SystemError):
         task.fetch ()
     try:
-        task.fetch ()    
+        task.fetch ()
     except:
-        assert '--fff' in logger.trace ()    
-    
-    task = was.Subprocess ("python -c 'import time;time.sleep (3)'")
+        assert '--fff' in logger.trace ()
+
+    task = was.Subprocess ("{} -c 'import time;time.sleep (3)'".format (sys.executable))
     with pytest.raises (TimeoutError):
         task.fetch (timeout = 1)
-    

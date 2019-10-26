@@ -11,23 +11,34 @@ variables:
 
 before_script:
   - python -V               # Print out python version for debugging
+  - snap install pypy3 --classic
+  - pypy3 -m venv venv-pypy3
   - pip install virtualenv
   - virtualenv venv
-  - source venv/bin/activate
-  - python setup.py install
-  - pip install -U aquests rs4 sqlphile
-  - pip install -U aquests rs4 sqlphile
-  - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
-  - python -c 'from aquests.protocols.grpc import discover'
-  - pip install atila
-  - pip install atila
-  - pip install dnn tfserver
-  - pip install -Ur tests/requirements.txt
-  - pip uninstall -y bson
-  - pip install -U --force pymongo
+  - pip install -U aquests rs4 sqlphile atila
 
 test:
   script:
-  - ./test-all.sh
+    - source venv/bin/activate
+    - python setup.py install
+    - pip install -U aquests rs4 sqlphile
+    - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
+    - python -c 'from aquests.protocols.grpc import discover'
+    - pip install atila
+    - pip install dnn tfserver
+    - pip install -Ur tests/requirements.txt
+    - pip uninstall -y bson
+    - pip install -U --force pymongo
+    - ./test-all.sh
+    - deactivate
+    - source venv-pypy3/bin/activate
+    - python setup.py install
+    - pip install -U aquests rs4 sqlphile atila psycopg2cffi
+    - pip install dnn tfserver
+    - pip install -Ur tests/requirements.txt
+    - pip uninstall -y bson
+    - pip install -U --force pymongo
+    - ./test-all.sh
+    - deactivate
   only:
-  - master
+    - master

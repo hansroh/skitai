@@ -328,7 +328,11 @@ class http_server (asyncore.dispatcher):
 		self.port = port
 		asyncore.dispatcher.__init__ (self)
 
-		self.create_socket (ip.find (":") != -1 and socket.AF_INET6 or socket.AF_INET)
+		if ip.find (":") != -1:
+			self.create_socket (socket.AF_INET6, socket.SOCK_STREAM)
+		else:
+			self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
+
 		self.set_reuse_addr ()
 		try:
 			self.bind ((ip, port))
@@ -363,9 +367,6 @@ class http_server (asyncore.dispatcher):
 		self.hash_id = md5 (self.server_name.encode ('utf8')).hexdigest() [:4]
 		self.server_port = port
 		self.single_domain = None
-
-	def create_socket (self, stack):
-		super ().create_socket (stack, socket.SOCK_STREAM)
 
 	def set_single_domain (self, domain):
 		self.single_domain = domain
