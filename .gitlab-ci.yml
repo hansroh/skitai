@@ -40,7 +40,11 @@ cache:
 
 .test_template: &test
   script:
-    - ./test-all.sh
+    - cd tests
+    - pytest level2
+    - pytest level3
+    - pytest level4
+    - pytest level5
     - deactivate
   only:
     - master
