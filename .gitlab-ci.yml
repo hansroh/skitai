@@ -12,18 +12,18 @@ variables:
 before_script:
   - python -V               # Print out python version for debugging
   - snap install pypy3 --classic
+  - python -m venv venv
   - pypy3 -m venv venv-pypy3
-  - pip install virtualenv
-  - virtualenv venv
-  - pip install -U aquests rs4 sqlphile atila
 
 test:
   script:
     - source venv/bin/activate
     - python setup.py install
     - pip install -U aquests rs4 sqlphile
+    - pip install -U aquests rs4 sqlphile
     - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
     - python -c 'from aquests.protocols.grpc import discover'
+    - pip install atila
     - pip install atila
     - pip install dnn tfserver
     - pip install -Ur tests/requirements.txt
