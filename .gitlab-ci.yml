@@ -31,6 +31,7 @@ test:
     - pip install -U --force pymongo
     - ./test-all.sh
     - deactivate
+    
     - source venv-pypy3/bin/activate
     - python setup.py install
     - pip install -U aquests rs4 sqlphile atila psycopg2cffi
