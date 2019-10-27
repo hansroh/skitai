@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from . import http_server
+from . import http_server, http3_server
 from .counter import counter
 import socket, time
 from rs4 import asyncore
@@ -19,7 +19,6 @@ class https_channel (http_server.http_channel):
 		http_server.http_channel.__init__(self, server, conn, addr)
 
 	def send(self, data):
-		#print	("SEND", str (data), self.get_terminator ())
 		try:
 			result = self.socket.send(data)
 
@@ -41,7 +40,6 @@ class https_channel (http_server.http_channel):
 	def recv(self, buffer_size = 65535):
 		try:
 			result = self.socket.recv(buffer_size)
-			#print ("~~~~~~~~~~~~~", len (result), result)
 			if result is None:
 				return b''
 
@@ -71,10 +69,16 @@ class https_channel (http_server.http_channel):
 
 
 class https_server (http_server.http_server):
-	def __init__ (self, ip, port, ctx, server_logger = None, request_logger = None):
-		http_server.http_server.__init__ (self, ip, port, server_logger, request_logger)
+	def __init__ (self, ip, port, ctx, h3port = None, server_logger = None, request_logger = None):
+		super ().__init__ (ip, port, server_logger, request_logger)
 		self.ctx = ctx
 		self.socket = self.ctx.wrap_socket (self.socket, server_side = True)
+		if h3port:
+			self.altsvc = http3_server.http3_server (ip, h3port, ctx, server_logger, request_logger)
+
+	def serve (self, sub_server = None):
+		self.altsvc and self.altsvc._serve ()
+		super ().serve (sub_server)
 
 	def handle_accept (self):
 		self.total_clients.inc()
@@ -90,7 +94,6 @@ class https_server (http_server.http_server):
 			return
 		except:
 			self.trace()
-
 		https_channel (self, conn, addr)
 
 

@@ -700,12 +700,14 @@ def run (**conf):
                 )
 
             port = int (options.get ('--port') or conf.get ('port', 5000))
+            h3port = int (options.get ('--h3port') or conf.get ('h3port', 0))
             self.config_webserver (
                 port, conf.get ('address', '0.0.0.0'),
                 NAME, conf.get ("certfile") is not None,
                 conf.get ('keep_alive', DEFAULT_KEEP_ALIVE),
                 conf.get ('network_timeout', DEFAULT_NETWORK_TIMEOUT),
                 conf.get ('fws_domain'),
+                h3port = h3port,
                 thunks = [self.master_jobs]
             )
 

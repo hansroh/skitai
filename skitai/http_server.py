@@ -319,6 +319,8 @@ class http_server (asyncore.dispatcher):
 	maintern_interval = 0
 	critical_point_cpu_overload = 90.0
 	critical_point_continuous = 3
+	altsvc = None
+	sock_type = socket.SOCK_STREAM
 
 	def __init__ (self, ip, port, server_logger = None, request_logger = None):
 		global PID
@@ -329,9 +331,9 @@ class http_server (asyncore.dispatcher):
 		asyncore.dispatcher.__init__ (self)
 
 		if ip.find (":") != -1:
-			self.create_socket (socket.AF_INET6, socket.SOCK_STREAM)
+			self.create_socket (socket.AF_INET6)
 		else:
-			self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
+			self.create_socket (socket.AF_INET)
 
 		self.set_reuse_addr ()
 		try:
@@ -483,14 +485,14 @@ class http_server (asyncore.dispatcher):
 				except OSError:
 					pass
 
-	def create_socket(self, family, type):
+	def create_socket(self, family):
 		if hasattr (socket, "_no_timeoutsocket"):
 			sock_class = socket._no_timeoutsocket
 		else:
 			sock_class = socket.socket
 
-		self.family_and_type = family, type
-		sock = sock_class (family, type)
+		self.family_and_type = family, self.sock_type
+		sock = sock_class (family, self.sock_type)
 		sock.setblocking(0)
 		self.set_socket(sock)
 
