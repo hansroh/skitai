@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from . import http_server, http3_server
+from . import http_server
 from .counter import counter
 import socket, time
 from rs4 import asyncore
@@ -10,6 +10,7 @@ import os, sys, errno
 import skitai
 from errno import EWOULDBLOCK
 from aquests.protocols.http2 import H2_PROTOCOLS
+from . import http3_server
 
 class https_channel (http_server.http_channel):
 	ac_out_buffer_size = 65536
@@ -110,58 +111,3 @@ def init_context (certfile, keyfile, pass_phrase):
 	ctx.load_cert_chain (certfile, keyfile, pass_phrase)
 	ctx.check_hostname = False
 	return ctx
-
-
-if __name__ == "__main__":
-	import module_loader
-	from aquests.athreads import threadlib
-	import file_handler, xmlrpc_handler, soap_handler, cgi_handler, graph_handler, proxy_handler, logger
-
-	pools = threadlib.request_queue()
-	daemons = {}
-	for i in range (2):
-		d=threadlib.request_thread (pools, 8)
-		daemons [i+1]=d
-		d.start()
-
-	server_logger = framework.ServerLogger('%slog2/' % os.environ ['ALEPH_HOME'])
-	modules = module_loader.ModuleLoader('%smod/' % os.environ ['ALEPH_HOME'], ['hello', 'iserver', 'system'], logger = server_logger)
-	ctx = init_context('sslv3', 'cert/server.csr', 'cert/ca.crt', 'fatalbug')
-	sv = https_server ('', 9443, ctx, https_channel, server_logger)
-
-	class ServerComponent:
-		queue = pools
-		server = sv
-		modules = modules
-		channels = asyncore.socket_map
-		daemons = daemons
-	server=ServerComponent
-
-	sh=soap_handler.soap_handler(server, 'http://infogent.sseki.com')
-	sv.install_handler(sh)
-
-	xh=xmlrpc_handler.xmlrpc_handler(server)
-	sv.install_handler(xh)
-
-	ch=cgi_handler.cgi_handler(server)
-	sv.install_handler(ch)
-
-	gh=graph_handler.graph_handler()
-	sv.install_handler(gh)
-
-	ph=proxy_handler.proxy_handler(server)
-	sv.install_handler(ph)
-
-	fh=file_handler.file_handler('/home/infogent/infogent/doc/')
-	sv.install_handler(fh)
-
-	if os.name == 'posix': usepoll = 1
-	else: usepoll = 0
-
-	Rand.load_file('randpool.dat', -1)
-	try:
-		asyncore.loop(30.0, usepoll)
-	except:
-		server_logger.trace()
-	Rand.save_file('randpool.dat')
-	os.abort ()
