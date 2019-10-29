@@ -1,6 +1,6 @@
 from rs4.producers import simple_producer
 from aquests.athreads import trigger
-from ..backbone.lifetimehttp_response import catch
+from ..backbone.http_response import catch
 
 class _Method:
 	def __init__(self, send, name, caller = None):

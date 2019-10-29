@@ -7,7 +7,7 @@
 from . import wsgi_handler
 from hashlib import sha1
 from base64 import b64encode
-from skitai.http_response import catch
+from ..backbone.http_response import catch
 from aquests.protocols.http import http_util
 from skitai import version_info, was as the_was
 import threading

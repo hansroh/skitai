@@ -32,8 +32,8 @@ classifiers = [
 
 packages = [
 	'skitai',
-	'skitai.bin',
-	'skitai.bin.commands',
+	'skitai.scripts',
+	'skitai.scripts.commands',
 	'skitai.backbone',
 	'skitai.corequest',
 	'skitai.corequest.dbi',
@@ -78,7 +78,7 @@ setup (
 	package_data = package_data,
 	entry_points = {
       'console_scripts': [
-			'skitai=skitai.bin.skitai:main',
+			'skitai=skitai.scripts.skitai:main',
 		],
     },
 	license='MIT',

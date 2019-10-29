@@ -1,4 +1,4 @@
-from ..backbone import http_request
+from ...backbone import http_request
 from .response import response
 import time
 

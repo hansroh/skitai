@@ -9,7 +9,7 @@ import skitai
 from skitai import was as the_was
 from ..wastuff import triple_logger
 from .. import wsgiappservice
-from corequest import cachefs
+from ..corequest import cachefs
 from ..handlers.websocket import servers as websocekts
 from . import server
 from ..handlers import vhost_handler

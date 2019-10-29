@@ -20,7 +20,7 @@ import warnings
 from aquests.protocols.smtp import composer
 import tempfile
 from rs4 import argopt
-from . import lifetime
+from .backbone import lifetime
 from . import mounted
 from .corequest import corequest
 from functools import wraps

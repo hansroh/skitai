@@ -4,7 +4,7 @@ import threading
 import json
 import skitai
 from .. import wsgi_handler
-from skitai.http_response import catch
+from ...backbone.http_response import catch
 from aquests.athreads import trigger
 from rs4 import strutil
 from aquests.protocols.grpc import discover
