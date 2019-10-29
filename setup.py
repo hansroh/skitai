@@ -34,6 +34,7 @@ packages = [
 	'skitai',
 	'skitai.bin',
 	'skitai.bin.commands',
+	'skitai.backbone',
 	'skitai.corequest',
 	'skitai.corequest.dbi',
 	'skitai.corequest.httpbase',

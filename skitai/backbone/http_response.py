@@ -6,13 +6,13 @@ from aquests.protocols.http import http_date, http_util
 from rs4.reraise import reraise
 from rs4 import producers, compressors
 from aquests.protocols.http import respcodes
-from .wastuff import selective_logger
-from .utility import catch
+from ..wastuff import selective_logger
+from ..utility import catch
 import skitai
 from rs4 import asyncore
 import json
 from skitai import exceptions
-from .wastuff.api import API, catch
+from ..wastuff.api import API, catch
 
 try:
     from urllib.parse import urljoin

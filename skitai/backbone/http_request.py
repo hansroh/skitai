@@ -1,4 +1,5 @@
-from . import http_response, counter
+from . import http_response
+from .. import counter
 import time
 import re
 try:

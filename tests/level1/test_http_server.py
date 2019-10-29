@@ -1,6 +1,6 @@
 import pytest, os
-from skitai.http_server import http_server, http_channel
-from skitai.https_server import https_server, init_context
+from skitai.backbone.http_server import http_server, http_channel
+from skitai.backbone.https_server import https_server, init_context
 
 def test_http_server (log):
 	s = http_server ('0.0.0.0', 3000, log.get ("server"), log.get ("request"))

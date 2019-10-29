@@ -6,10 +6,10 @@
 
 HTTPS = True
 import sys, time, os, threading
-from . import http_server
+from .backbone import http_server
 from skitai import lifetime
 from warnings import warn
-from . import https_server
+from .backbone import https_server
 from skitai import start_was
 from collections import deque
 from aquests.athreads.fifo import await_fifo
@@ -28,7 +28,9 @@ from .handlers import proxy_handler, ipbl_handler, vhost_handler, forward_handle
 import socket
 import signal
 import multiprocessing
-from . import wsgiappservice, cachefs, http_response
+from . import wsgiappservice
+from .backbone import http_response
+from .corequest import cachefs
 from .corequest.httpbase import task, rcache
 from .corequest.httpbase import cluster_manager as rcluster_manager
 from .corequest.dbi import cluster_manager as dcluster_manager

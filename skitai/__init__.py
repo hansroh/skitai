@@ -222,8 +222,8 @@ def manual_gc (interval = 60.0):
     lifetime.manual_gc (interval)
 
 def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20):
-    from .http_server import http_server
-    from .https_server import https_server
+    from .backbone.http_server import http_server
+    from .backbone.https_server import https_server
 
     http_server.critical_point_cpu_overload = https_server.critical_point_cpu_overload = cpu_percent
     http_server.critical_point_continuous = https_server.critical_point_continuous = continuous
@@ -252,7 +252,7 @@ class Preference (AttrDict):
 
 
 def preference (preset = False, path = None):
-    from .wsgi_apps import Config
+    from .wastuff.wsgi_apps import Config
     d = Preference (path)
     d.config = Config (preset)
     return d

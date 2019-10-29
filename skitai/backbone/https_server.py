@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from . import http_server
-from .counter import counter
+from ..counter import counter
 import socket, time
 from rs4 import asyncore
 import ssl

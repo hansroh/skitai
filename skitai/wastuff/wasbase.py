@@ -18,7 +18,7 @@ from skitai import lifetime
 from . import server_info
 from ..corequest import tasks
 from ..corequest.pth import sp_task
-from .. import http_response
+from ..backbone import http_response
 from .promise import Promise
 from .triple_logger import Logger
 if os.environ.get ("SKITAI_ENV") == "PYTEST":

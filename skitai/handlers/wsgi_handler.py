@@ -5,7 +5,7 @@ except ImportError:
 	from urllib import unquote
 import sys
 from rs4 import producers
-from skitai.http_response import catch
+from ..backbone.http_response import catch
 from aquests.athreads import trigger
 from . import collectors
 from skitai import version_info, was as the_was

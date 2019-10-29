@@ -20,7 +20,7 @@ except ImportError: from io import BytesIO
 import copy
 from collections import Iterable
 from rs4.reraise import reraise
-from ...http_response import catch
+from ...backbone.http_response import catch
 from collections.abc import Iterable
 
 ClosingIterator = None

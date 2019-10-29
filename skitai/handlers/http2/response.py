@@ -1,4 +1,4 @@
-from skitai import http_response
+from ..backbone import http_response
 from rs4 import producers
 import time
 
