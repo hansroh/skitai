@@ -499,8 +499,7 @@ class Task (corequest):
         if self._cv:
             with self._cv:
                 requests = self._requests
-                if requests:
-                    self._callback = callback
+                self._callback = callback
         else:
             # already finished or will use cache
             requests = self._requests
