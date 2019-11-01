@@ -35,7 +35,7 @@ argopt.add_option (None, '---memtrack', desc = "show memory status")
 
 argopt.add_option (None, '--production', desc = "run as production mode")
 argopt.add_option (None, '--smtpda', desc = "run SMTPDA if not started")
-argopt.add_option (None, '--port=PORT_NUMBER', desc = "change port")
+argopt.add_option (None, '--port=PORT_NUMBER', desc = "http/https port number")
 
 if "--production" in sys.argv:
     os.environ ["SKITAI_ENV"] = "PRODUCTION"
