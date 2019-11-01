@@ -10,6 +10,7 @@ import os, sys, errno
 import skitai
 from errno import EWOULDBLOCK
 from aquests.protocols.http2 import H2_PROTOCOLS
+from ..handlers import vhost_handler
 
 class https_channel (http_server.http_channel):
 	ac_out_buffer_size = 65536
@@ -69,13 +70,20 @@ class https_channel (http_server.http_channel):
 
 
 class https_server (http_server.http_server):
+	CERTINFO = None
 	def __init__ (self, ip, port, ctx, h3port = None, server_logger = None, request_logger = None):
 		super ().__init__ (ip, port, server_logger, request_logger)
 		self.ctx = ctx
 		self.socket = self.ctx.wrap_socket (self.socket, server_side = True)
 		if h3port:
 			from . import http3_server
+			ctx = http3_server.init_context (*self.CERTINFO)
 			self.altsvc = http3_server.http3_server (ip, h3port, ctx, server_logger, request_logger)
+
+	def install_handler (self, handler, back = 1):
+		super ().install_handler (handler, back)
+		if self.altsvc and isinstance (handler, vhost_handler.Handler):
+			self.altsvc.install_handler (handler)
 
 	def serve (self, sub_server = None):
 		self.altsvc and self.altsvc._serve ()
@@ -97,8 +105,8 @@ class https_server (http_server.http_server):
 			self.trace()
 		https_channel (self, conn, addr)
 
-
 def init_context (certfile, keyfile, pass_phrase):
+	https_server.CERTINFO = (certfile, keyfile, pass_phrase)
 	try:
 		protocol = ssl.PROTOCOL_TLS
 	except AttributeError:

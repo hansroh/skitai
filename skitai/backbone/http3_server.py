@@ -5,28 +5,42 @@
 # Author: Hans Roh
 #----------------------------------------------------------
 
-from . import http_server
+from . import http_server, http_request
 import socket
 from rs4 import asyncore, asynchat
 import os, sys, errno
-import aioquic
 
 class http3_channel (http_server.http_channel):
     def __init__ (self, server, data, addr):
         super ().__init__(server, None, addr)
-        self.set_terminator (b'\r\n\r\n')
-        self.find_terminator (data) # collect initial data
+        self.handle_request (data)
+        self.set_terminator (None)
         self.create_socket (socket.AF_INET, socket.SOCK_DGRAM)
         self.set_reuse_addr ()
         self.bind (self.server.addr)
+        self.addr = addr
         self.connect (self.addr)
 
-    def bind(self, addr):
-        # removed: self.addr = addr
-        return self.socket.bind (addr)
+    def handle_request (self, data):
+        r = http_request.http_request (self, "QUiC / HTTP/3.0", "QUiC", "/", "3.0", [])
+        self.set_timeout (self.network_timeout)
+        self.request_counter.inc()
+        self.server.total_requests.inc ()
+
+        for h in self.server.handlers:
+            if h.match (r):
+                try:
+                    h.handle_request (r) # will set self.current_request
+                    self.current_request.initiate_connection (data) # collect initial data
+                except:
+                    self.handle_error ()
+                    return
 
     def readable (self):
         return self.connected
+
+    def handle_connect (self):
+        pass
 
     def recv (self, buffer_size):
         try:
@@ -43,16 +57,18 @@ class http3_channel (http_server.http_channel):
             return 0
 
     def collect_incoming_data (self, data):
-        print ('collect_incoming_data', data)
-        self.in_buffer += data
-        self.push (b'GOT IT')
+        self.current_request.collect_incoming_data (data)
 
-    def found_terminator (self):
-        self.push (b'found_terminator' + self.in_buffer)
-        self.in_buffer = b''
 
-    def handle_connect (self):
-        pass
+class SessionTicketStore:
+    def __init__(self):
+        self.tickets = {}
+
+    def add(self, ticket):
+        self.tickets [ticket.ticket] = ticket
+
+    def pop(self, label):
+        return self.tickets.pop (label, None)
 
 
 class http3_server (http_server.http_server):
@@ -62,7 +78,8 @@ class http3_server (http_server.http_server):
 
     def __init__ (self, ip, port, ctx, server_logger = None, request_logger = None):
         http_server.http_server.__init__ (self, ip, port, server_logger, request_logger)
-        self.ctx = True # dummy for identifying https
+        self.ctx = ctx
+        self.seesion_store = SessionTicketStore ()
 
     def _serve (self, shutdown_phase = 2):
         self.shutdown_phase = shutdown_phase
@@ -80,3 +97,15 @@ class http3_server (http_server.http_server):
         data, addr = ret
         if data:
             http3_channel (self, data, addr)
+
+
+def init_context (certfile, keyfile, pass_phrase):
+    from aioquic.h3.connection import H3_ALPN
+    from aioquic.quic.configuration import QuicConfiguration
+    import ssl
+
+    ctx = QuicConfiguration (alpn_protocols = H3_ALPN, is_client = False)
+    ctx.load_cert_chain (certfile, keyfile, pass_phrase)
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
+

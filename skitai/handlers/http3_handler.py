@@ -72,8 +72,8 @@ class http3_request_handler (http2_handler.http2_request_handler):
 			#print ("SEND", repr (data_to_send), len (data_to_send))
 			self.channel.push (data_to_send)
 
-	def initiate_connection (self):
-		self.channel.set_terminator (8)
+	def initiate_connection (self, data):
+		print (len (data), repr (data) [:60])
 
 	def upgrade_header (self):
 		headers = [
@@ -418,4 +418,3 @@ class Handler (http2_handler.Handler):
 		request.channel.die_with (http3, "http3 stream")
 		request.channel.set_socket_timeout (self.keep_alive)
 		request.channel.current_request = http3
-		http3.initiate_connection ()

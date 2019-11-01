@@ -430,9 +430,13 @@ class http_server (asyncore.dispatcher):
             if self.worker_ident == "master":
                 return EXITCODE
 
-        self.log_info ('%s (%s) started on %s:%d' % (
-            self.SERVER_IDENT, self.worker_ident, self.server_name, self.port)
+        self.log_info ('%s%s(%s) started on %s:%d' % (
+            self.SERVER_IDENT, self.ctx and ' SSL' or ' ', self.worker_ident, self.server_name, self.port)
         )
+        if self.altsvc:
+            self.log_info ('%s QUIC(%s) started on %s:%d' % (
+                self.SERVER_IDENT, self.worker_ident, self.server_name, self.altsvc.port)
+            )
 
     usages = []
     cpu_stat = []
@@ -638,7 +642,6 @@ def hHUPMASTER (signum, frame):
 def configure (name, network_timeout = 0, keep_alive = 0):
     from . import https_server
     http_server.SERVER_IDENT = name
-    https_server.https_server.SERVER_IDENT = name + " (SSL)"
     http_channel.keep_alive = https_server.https_channel.keep_alive = not keep_alive and 2 or keep_alive
     http_channel.network_timeout = https_server.https_channel.network_timeout = not network_timeout and 30 or network_timeout
 
@@ -647,7 +650,6 @@ def configure (name, network_timeout = 0, keep_alive = 0):
     except ImportError:
         pass
     else:
-        http3_server.http3_server.SERVER_IDENT = name + " (QUIC)"
         http3_server.http3_channel.keep_alive = not keep_alive and 2 or keep_alive
         http3_server.http3_channel.network_timeout = not network_timeout and 30 or network_timeout
 
