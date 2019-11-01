@@ -55,8 +55,9 @@ class http_response:
             ('Server', skitai.NAME),
             ('Date', http_date.build_http_date (time.time()))
         ]
-        if self.request.channel.server.altsvc:
-            self.reply_headers.append (("Alt-Svc", 'quic=":{}"'.format (self.request.channel.server.altsvc.port)))
+        altsvc = self.request.channel.server.altsvc
+        if altsvc:
+            self.reply_headers.append (("Alt-Svc", '{}=":{}"'.format (altsvc.VERSION, altsvc.port)))
 
         self.outgoing = producers.fifo ()
         self._is_done = False

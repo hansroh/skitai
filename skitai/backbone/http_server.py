@@ -642,10 +642,14 @@ def configure (name, network_timeout = 0, keep_alive = 0):
     http_channel.keep_alive = https_server.https_channel.keep_alive = not keep_alive and 2 or keep_alive
     http_channel.network_timeout = https_server.https_channel.network_timeout = not network_timeout and 30 or network_timeout
 
-    from . import http3_server
-    http3_server.http3_server.SERVER_IDENT = name + " (QUIC)"
-    http3_server.http3_channel.keep_alive = not keep_alive and 2 or keep_alive
-    http3_server.http3_channel.network_timeout = not network_timeout and 30 or network_timeout
+    try:
+        from . import http3_server
+    except ImportError:
+        pass
+    else:
+        http3_server.http3_server.SERVER_IDENT = name + " (QUIC)"
+        http3_server.http3_channel.keep_alive = not keep_alive and 2 or keep_alive
+        http3_server.http3_channel.network_timeout = not network_timeout and 30 or network_timeout
 
 
 if __name__ == "__main__":

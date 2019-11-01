@@ -10,7 +10,6 @@ import os, sys, errno
 import skitai
 from errno import EWOULDBLOCK
 from aquests.protocols.http2 import H2_PROTOCOLS
-from . import http3_server
 
 class https_channel (http_server.http_channel):
 	ac_out_buffer_size = 65536
@@ -75,6 +74,7 @@ class https_server (http_server.http_server):
 		self.ctx = ctx
 		self.socket = self.ctx.wrap_socket (self.socket, server_side = True)
 		if h3port:
+			from . import http3_server
 			self.altsvc = http3_server.http3_server (ip, h3port, ctx, server_logger, request_logger)
 
 	def serve (self, sub_server = None):

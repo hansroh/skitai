@@ -56,7 +56,8 @@ install_requires = [
 	"rs4>=0.2.5.0",
 	"aquests>=0.29.2.0",
 	"jsonrpclib-pelix",
-	"sqlphile"
+	"sqlphile",
+	'aioquic; python_version >= "3.6"'
 ]
 if os.name == "nt":
 	install_requires.append ("pywin32")

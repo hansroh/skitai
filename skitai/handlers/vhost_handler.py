@@ -23,6 +23,9 @@ class VHost:
 		alternative_handlers.append (websocket_handler.Handler (self.wasc, self.apps))
 		alternative_handlers.append (wsgi_handler.Handler (self.wasc, self.apps))
 		self.default_handler = default_handler.Handler (self.wasc, {}, static_max_ages, alternative_handlers)
+		if self.wasc.httpserver.altsvc:
+			from . import http3_handler
+			self.handlers.append (http3_handler.Handler (self.wasc, self.default_handler))
 		self.handlers.append (http2_handler.Handler (self.wasc, self.default_handler))
 
 	def close (self):
