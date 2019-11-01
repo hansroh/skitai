@@ -9,7 +9,6 @@ from . import http_server
 import socket
 from rs4 import asyncore, asynchat
 import os, sys, errno
-from ..handlers import http3_handler
 
 if os.name == 'nt':
     class http3_channel:
@@ -21,15 +20,13 @@ if os.name == 'nt':
 else:
     class http3_channel (http_server.http_channel):
         def __init__ (self, server, data, addr):
-            super ().__init__(server, None, addr)            
+            super ().__init__(server, None, addr)
+            self.set_terminator (b'\r\n\r\n')
+            self.find_terminator (data) # collect initial data
             self.create_socket (socket.AF_INET, socket.SOCK_DGRAM)
             self.set_reuse_addr ()
-            self.bind (self.server.addr)            
-            self.current_handler = http3_handler.http3_request_handler (self)     
-            self.current_handler.initiate_connection ()
-            self.set_terminator (4) # frame type, definitely setting frame
-            self.find_terminator (data) # collect initial data
-            self.connect (self.addr)            
+            self.bind (self.server.addr)
+            self.connect (self.addr)
 
         def bind(self, addr):
             # removed: self.addr = addr
@@ -52,12 +49,15 @@ else:
                 self.handle_close ()
                 return 0
 
-        def collect_incoming_data (self, data):            
-            self.current_handler.collect_incoming_data (data)
-            
+        def collect_incoming_data (self, data):
+            print ('collect_incoming_data', data)
+            self.in_buffer += data
+            self.push (b'GOT IT')
+
         def found_terminator (self):
-            self.current_request.find_terminator ()
-            
+            self.push (b'found_terminator' + self.in_buffer)
+            self.in_buffer = b''
+
         def handle_connect (self):
             pass
 

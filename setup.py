@@ -35,17 +35,18 @@ packages = [
 	'skitai.scripts',
 	'skitai.scripts.commands',
 	'skitai.backbone',
+	'skitai.handlers',
+	'skitai.handlers.http2',
+	'skitai.handlers.http3',
+	'skitai.handlers.websocket',
+	'skitai.handlers.proxy',
 	'skitai.corequest',
 	'skitai.corequest.dbi',
 	'skitai.corequest.httpbase',
 	'skitai.corequest.pth',
 	'skitai.wastuff',
-	'skitai.handlers',
 	'skitai.mounted',
-	'skitai.testutil',
-	'skitai.handlers.http2',
-	'skitai.handlers.websocket',
-	'skitai.handlers.proxy'
+	'skitai.testutil'
 ]
 
 package_dir = {'skitai': 'skitai'}

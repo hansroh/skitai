@@ -1,4 +1,4 @@
-from . import wsgi_handler
+from . import http2_handler
 import skitai
 from rs4 import producers
 from h2.connection import H2Connection, GoAwayFrame, DataFrame, H2Configuration
@@ -15,11 +15,7 @@ from aquests.protocols.http2.request_handler import FlowControlWindow
 import threading
 from io import BytesIO
 
-class http3_request_handler:
-	collector = None
-	producer = None
-	http11_terminator = 24
-
+class http3_request_handler (http2_handler.http2_request_handler):
 	def __init__ (self, handler, request):
 		self.handler = handler
 		self.wasc = handler.wasc
@@ -76,21 +72,8 @@ class http3_request_handler:
 			#print ("SEND", repr (data_to_send), len (data_to_send))
 			self.channel.push (data_to_send)
 
-	def handle_preamble (self):
-		if self.request.version.startswith ("2."):
-			self.channel.set_terminator (6) # SM\r\n\r\n
-
 	def initiate_connection (self):
-		self.handle_preamble ()
-		h2settings = self.request.get_header ("HTTP2-Settings")
-		if h2settings:
-			self.conn.initiate_upgrade_connection (h2settings)
-		else:
-			self.conn.initiate_connection()
-		self.send_data ()
-
-		if self.request.version == "1.1":
-			self.handle_request (1, self.upgrade_header ())
+		self.channel.set_terminator (8)
 
 	def upgrade_header (self):
 		headers = [
@@ -138,25 +121,7 @@ class http3_request_handler:
 		#print ("FOUND", repr (buf), '::', self.data_length, self.channel.get_terminator ())
 		#print ("FOUND", self.request.version, self.request.command, self.data_length)
 		events = None
-		if self.request.version == "1.1" and self.data_length:
-			self.request.version = "2.0" # upgrade
-			data = self.rfile.getvalue ()
-			with self._clock:
-				r = self.requests [1]
-			r.channel.set_data (data, len (data))
-			r.set_stream_ended ()
-			self.data_length = 0
-			self.rfile.seek (0)
-			self.rfile.truncate ()
-			self.channel.set_terminator (24) # for premble
-
-		elif not self._got_preamble:
-			if not buf.endswith (b"SM\r\n\r\n"):
-				raise ProtocolError ("Invalid preamble")
-			self._got_preamble = True
-			self.channel.set_terminator (9)
-
-		elif self.data_length:
+		if self.data_length:
 			events = self.set_frame_data (self.rfile.getvalue ())
 			self.current_frame = None
 			self.data_length = 0
@@ -443,38 +408,14 @@ class http3_request_handler:
 						self.set_terminator (cl)
 
 
-class Handler (wsgi_handler.Handler):
+class Handler (http2_handler.Handler):
 	keep_alive = 120
-
-	def __init__(self, wasc):
-		wsgi_handler.Handler.__init__(self, wasc, None)		
-
 	def match (self, request):
-		return True
+		return request.version.startswith ("3.")
 
 	def handle_request (self, request):
-		is_http2 = False
-		if request.command == "pri" and request.uri == "*" and request.version == "2.0":
-			is_http2 = True
-		else:
-			upgrade = request.get_header ("upgrade")
-			is_http2 = upgrade and upgrade.lower () == "h2c" and request.version == "1.1"
-
-		if not is_http2:
-			return self.default_handler.handle_request (request)
-
-		http2 = http2_request_handler (self, request)
-		request.channel.die_with (http2, "http2 stream")
+		http3 = http3_request_handler (self, request)
+		request.channel.die_with (http3, "http3 stream")
 		request.channel.set_socket_timeout (self.keep_alive)
-
-		if request.version == "1.1":
-			request.response (
-				"101 Switching Protocol",
-				headers = [("Connection",  "upgrade"), ("Upgrade", "h2c"), ("Server", skitai.NAME.encode ("utf8"))]
-			)
-			request.response.done (upgrade_to = (http2, http2.http11_terminator))
-
-		else:
-			request.channel.current_request = http2
-
-		http2.initiate_connection ()
+		request.channel.current_request = http3
+		http3.initiate_connection ()
