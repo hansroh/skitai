@@ -13,34 +13,17 @@ import os, sys, errno
 class http3_channel (http_server.http_channel):
     def __init__ (self, server, data, addr):
         super ().__init__(server, None, addr)
-        self.handle_request (data)
+        self.initial_data = data
+        self.create_handler ()
         self.set_terminator (None)
         self.create_socket (socket.AF_INET, socket.SOCK_DGRAM)
         self.set_reuse_addr ()
         self.bind (self.server.addr)
-        self.addr = addr
+        self.addr = addr # bind change addr, so recovering
         self.connect (self.addr)
-
-    def handle_request (self, data):
-        r = http_request.http_request (self, "QUiC / HTTP/3.0", "QUiC", "/", "3.0", [])
-        self.set_timeout (self.network_timeout)
-        self.request_counter.inc()
-        self.server.total_requests.inc ()
-
-        for h in self.server.handlers:
-            if h.match (r):
-                try:
-                    h.handle_request (r) # will set self.current_request
-                    self.current_request.initiate_connection (data) # collect initial data
-                except:
-                    self.handle_error ()
-                    return
 
     def readable (self):
         return self.connected
-
-    def handle_connect (self):
-        pass
 
     def recv (self, buffer_size):
         try:
@@ -55,6 +38,25 @@ class http3_channel (http_server.http_channel):
         except ConnectionRefusedError:
             self.handle_close ()
             return 0
+
+    # packet handler -----------------------------------------------------------
+    def create_handler (self):
+        r = http_request.http_request (self, "QUiC / HTTP/3.0", "QUiC", "/", "3.0", [])
+        self.set_timeout (self.network_timeout)
+        self.request_counter.inc()
+        self.server.total_requests.inc ()
+
+        for h in self.server.handlers:
+            if h.match (r):
+                try:
+                    h.handle_request (r) # will set self.current_request
+                except:
+                    self.handle_error ()
+                    return
+
+    def handle_connect (self):
+        self.current_request.initiate_connection (self.initial_data) # collect initial data
+        self.initial_data = None
 
     def collect_incoming_data (self, data):
         self.current_request.collect_incoming_data (data)

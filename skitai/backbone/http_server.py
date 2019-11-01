@@ -431,7 +431,7 @@ class http_server (asyncore.dispatcher):
                 return EXITCODE
 
         self.log_info ('%s%s(%s) started on %s:%d' % (
-            self.SERVER_IDENT, self.ctx and ' SSL' or ' ', self.worker_ident, self.server_name, self.port)
+            self.SERVER_IDENT, hasattr (self, 'ctx') and ' SSL' or ' ', self.worker_ident, self.server_name, self.port)
         )
         if self.altsvc:
             self.log_info ('%s QUIC(%s) started on %s:%d' % (

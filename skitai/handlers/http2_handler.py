@@ -467,6 +467,10 @@ class Handler (wsgi_handler.Handler):
 		return True
 
 	def handle_request (self, request):
+		altsvc = request.channel.server.altsvc
+		if altsvc:
+			request.response.set_header ("Alt-Svc", '{}=":{}"'.format (altsvc.VERSION, altsvc.port))
+
 		is_http2 = False
 		if request.command == "pri" and request.uri == "*" and request.version == "2.0":
 			is_http2 = True
