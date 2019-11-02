@@ -492,7 +492,8 @@ class http_response:
             logger.trace ()
 
     def maybe_log (self, bytes):
-        self.log_or_not.maybe_log (self.uri, self.log)
+        if self.log_or_not.loggable (self.request.uri):
+            self.log (bytes)
 
     def log (self, bytes):
         server = self.request.channel.server

@@ -1,13 +1,12 @@
 from . import http2_handler
 import skitai
 from rs4 import producers
-from .http3 import QUIC
 from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
 import threading
 from io import BytesIO
 import time
-from ..backbone.lifetime import maintern
+import os
 from aioquic.quic import events
 from aioquic.h3 import connection as h3
 from aioquic.h3.events import DataReceived, HeadersReceived, PushPromiseReceived, H3Event
@@ -15,11 +14,14 @@ from aioquic.quic.connection import stream_is_unidirectional
 from aioquic.buffer import Buffer
 from dataclasses import dataclass
 import collections
-
-@dataclass
-class StreamEnded (H3Event):
-    stream_id: int
-
+from aioquic.quic.packet import (
+    PACKET_TYPE_INITIAL,
+    encode_quic_retry,
+    encode_quic_version_negotiation,
+    pull_quic_header,
+)
+from aioquic.quic.retry import QuicRetryTokenHandler
+from aioquic.quic.connection import QuicConnection
 
 class http3_request_handler (http2_handler.http2_request_handler):
     def __init__ (self, handler, request):
@@ -51,37 +53,40 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self._has_sendables = True
 
     def has_sendables (self):
-        return self._has_data
+        return self._has_sendables
 
     def datagrams_to_send (self):
         while self.producers:
-            stream_id, headers, producer, trailers, force_close, out_bytes in self.producers [0]
+            stream_id, headers, producer, trailers, force_close, out_bytes = self.producers [0]
             if headers:
                 with self._plock:
-                    self.conn.send_headers (stream_id, header, end_stream = not producer and not trailers)
+                    self.conn.send_headers (stream_id, headers, end_stream = not producer and not trailers)
                     self.producers [0][1] = None
 
             if producer:
                 if hasattr (producer, 'ready') and not producer.ready ():
                     self.producers.rotate (-1)
+                    continue
                 data = producer.more ()
                 self.producers [0][-1] = out_bytes + len (data) # update out_bytes
             else:
                 data = b''
 
             if not data:
-                self.producers.popleft ()
+                finished = self.producers.popleft ()
                 with self._plock:
                     self.conn.send_data (stream_id, b'', end_stream = True)
                 r = self.get_request (stream_id)
-                r.response.maybe_log (self.producers [0][-1]) # bytes
+                r.response.maybe_log (finished [-1]) # bytes
                 self.remove_request (stream_id)
                 if force_close:
                     return self.go_away (h3.ErrorCode.HTTP_REQUEST_CANCELLED)
                 continue
-            with self._plock:
-                self.conn.send_data (stream_id, data, end_stream = False)
-            break
+
+            else:
+                with self._plock:
+                    self.conn.send_data (stream_id, data, end_stream = False)
+                break
 
         with self._plock:
             frames = [data for data, addr in self.quic.datagrams_to_send (now = time.monotonic ())]
@@ -89,8 +94,62 @@ class http3_request_handler (http2_handler.http2_request_handler):
             self._has_sendables = False
         return frames
 
+    def make_quic (self, channel, data, stateless_retry = False):
+        ctx = channel.server.ctx
+        _retry = QuicRetryTokenHandler() if stateless_retry else None
+
+        buf = Buffer (data=data)
+        header = pull_quic_header (
+            buf, host_cid_length = ctx.connection_id_length
+        )
+        # version negotiation
+        if header.version is not None and header.version not in ctx.supported_versions:
+            self.channel.push (
+                encode_quic_version_negotiation (
+                    source_cid = header.destination_cid,
+                    destination_cid = header.source_cid,
+                    supported_versions = ctx.supported_versions,
+                )
+            )
+            aa
+            return
+
+        assert len (data) >= 1200
+        assert header.packet_type == PACKET_TYPE_INITIAL
+        original_connection_id = None
+        if _retry is not None:
+            if not header.token:
+                # create a retry token
+                channel.push (
+                    encode_quic_retry (
+                        version = header.version,
+                        source_cid = os.urandom(8),
+                        destination_cid = header.source_cid,
+                        original_destination_cid = header.destination_cid,
+                        retry_token = _retry.create_token (channel.addr, header.destination_cid),
+                    )
+                )
+                return
+
+            else:
+                try:
+                    original_connection_id = _retry.validate_token (
+                        channel.addr, header.token
+                    )
+                except ValueError:
+                    return
+
+        # create new connection
+        return QuicConnection (
+            configuration = ctx,
+            logger_connection_id = original_connection_id or header.destination_cid,
+            original_connection_id = original_connection_id,
+            session_ticket_fetcher = channel.server.ticket_store.pop,
+            session_ticket_handler = channel.server.ticket_store.add
+        )
+
     def initiate_connection (self, data):
-        self.quic = QUIC (self.channel, data, stateless_retry = False)
+        self.quic = self.make_quic (self.channel, data, stateless_retry = False)
         self.conn = h3.H3Connection (self.quic)
         self.collect_incoming_data (data)
 
@@ -153,6 +212,14 @@ class http3_request_handler (http2_handler.http2_request_handler):
                             # this is for async streaming request like proxy request
                             self.remove_request (event.stream_id)
         self.send_data ()
+
+    def push_promise (self, stream_id, request_headers, addtional_request_headers):
+        headers = request_headers + addtional_request_headers
+        try:
+            promise_stream_id = self.conn.send_push_promise (stream_id = self.stream_id, headers = headers)
+        except NoAvailablePushIDError:
+            return
+        self.handle_events ([HeadersReceived (headers = headers, stream_ended = True, stream_id = push_stream_id)])
 
     def handle_response (self, stream_id, headers, trailers, producer, do_optimize, force_close = False):
         producer and self.producers.append ([stream_id, headers, producer, trailers, force_close, 0])

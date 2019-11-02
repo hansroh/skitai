@@ -10,6 +10,7 @@ import socket
 from rs4 import asyncore, asynchat
 import os, sys, errno
 import time
+from .lifetime import maintern
 
 class http3_channel (http_server.http_channel):
     def __init__ (self, server, data, addr):

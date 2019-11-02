@@ -55,10 +55,6 @@ class SelectiveLogger:
 		self.add_cache (d, 1)
 		return True
 
-	def maybe_log (self, uri, logfunc):
-		if self.loggable (uri):
-			logfunc ()
-
 	def __call__ (self, uri, producer, logfunc):
 		if self.loggable (uri):
 			return producers.hooked_producer (producer, logfunc)

@@ -13,7 +13,10 @@ class request (http_request.http_request):
 		self.weight = 0
 		self._scheme = scheme
 		self._is_promise = False
-		if stream_id % 2 == 0:
+		if (
+			self.version.startswith ("2.") and stream_id % 2 == 0 or
+			self.version.startswith ("3.") and stream_id % 4 == 3
+		):
 			self._is_promise = True
 			self.set_stream_ended ()
 
@@ -22,4 +25,3 @@ class request (http_request.http_request):
 
 	def get_scheme (self):
 		return self._scheme
-

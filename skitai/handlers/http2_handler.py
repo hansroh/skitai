@@ -42,7 +42,6 @@ class http2_request_handler (FlowControlWindow):
 
 		self.requests = {}
 		self.priorities = {}
-		self.promises = {}
 
 		self._closed = False
 		self._got_preamble = False
@@ -182,16 +181,15 @@ class http2_request_handler (FlowControlWindow):
 
 	def push_promise (self, stream_id, request_headers, addtional_request_headers):
 		promise_stream_id = self.conn.get_next_available_stream_id ()
-		with self._clock:
-			self.promises [promise_stream_id] = request_headers	+ addtional_request_headers
+		headers = request_headers + addtional_request_headers
 		with self._plock:
-			self.conn.push_stream (stream_id, promise_stream_id, request_headers	+ addtional_request_headers)
+			self.conn.push_stream (stream_id, promise_stream_id, headers)
+		event = RequestReceived ()
+		event.stream_id = promise_stream_id
+		event.headers = headers
+		self.handle_events ([event])
 
 	def handle_response (self, stream_id, headers, trailers, producer, do_optimize, force_close = False):
-		with self._clock:
-			if self.promises:
-				self.send_data ()
-
 		r = self.get_request (stream_id)
 		with self._clock:
 			try:
@@ -226,13 +224,6 @@ class http2_request_handler (FlowControlWindow):
 
 		if force_close:
 			return self.go_away (ErrorCodes.CANCEL)
-
-		current_promises = []
-		with self._clock:
-			while self.promises:
-				current_promises.append (self.promises.popitem ())
-		for promise_stream_id, promise_headers in current_promises:
-			self.handle_request (promise_stream_id, promise_headers)
 
 	def remove_request (self, stream_id):
 		r = self.get_request (stream_id)
@@ -277,16 +268,7 @@ class http2_request_handler (FlowControlWindow):
 						try: r.collector.stream_has_been_reset ()
 						except AttributeError: pass
 						r.set_stream_ended ()
-
-					deleted = False
-					if event.stream_id % 2 == 0: # promise stream
-						with self._clock:
-							try: del self.promises [event.stream_id]
-							except KeyError: pass
-							else: deleted = True
-
-					if not deleted:
-						self.channel.producer_fifo.remove (event.stream_id)
+					self.channel.producer_fifo.remove (event.stream_id)
 
 			elif isinstance(event, ConnectionTerminated):
 				self.close (True)
@@ -389,10 +371,10 @@ class http2_request_handler (FlowControlWindow):
 
 		should_have_collector = False
 		if command == "CONNECT":
-			first_line = "%s %s HTTP/2.0" % (command, authority)
+			first_line = "%s %s HTTP/%s" % (command, authority, self.request.version)
 			vchannel = self.channel
 		else:
-			first_line = "%s %s HTTP/2.0" % (command, uri)
+			first_line = "%s %s HTTP/%s" % (command, uri, self.request.version)
 			if command in ("POST", "PUT"):
 				should_have_collector = True
 				vchannel = data_channel (stream_id, self.channel, cl)
@@ -403,7 +385,7 @@ class http2_request_handler (FlowControlWindow):
 
 		r = http2_request (
 			self,  scheme, stream_id,
-			vchannel, first_line, command.lower (), uri, "2.0", h
+			vchannel, first_line, command.lower (), uri, self.request.version, h
 		)
 		vchannel.current_request = r
 		with self._clock:
@@ -440,6 +422,7 @@ class http2_request_handler (FlowControlWindow):
 					if stream_id == 1 and self.request.version == "1.1":
 						self.data_length = cl
 						self.set_terminator (cl)
+
 
 class h2_request_handler (http2_request_handler):
 	http11_terminator = None
