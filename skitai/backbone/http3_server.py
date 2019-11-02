@@ -81,7 +81,7 @@ class http3_server (http_server.http_server):
     def __init__ (self, ip, port, ctx, server_logger = None, request_logger = None):
         http_server.http_server.__init__ (self, ip, port, server_logger, request_logger)
         self.ctx = ctx
-        self.seesion_store = SessionTicketStore ()
+        self.ticket_store = SessionTicketStore ()
 
     def _serve (self, shutdown_phase = 2):
         self.shutdown_phase = shutdown_phase
