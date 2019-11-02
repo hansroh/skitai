@@ -106,7 +106,6 @@ class http3_request_handler (http2_handler.http2_request_handler):
                     supported_versions = ctx.supported_versions,
                 )
             )
-            aa
             return
 
         assert len (data) >= 1200
