@@ -9,11 +9,15 @@ from . import http_server, http_request
 import socket
 from rs4 import asyncore, asynchat
 import os, sys, errno
+import time
 
 class http3_channel (http_server.http_channel):
     def __init__ (self, server, data, addr):
         super ().__init__(server, None, addr)
+        self.quic = None
         self.initial_data = data
+        self._timer_at = None
+        self._timer = None
         self.create_handler ()
         self.set_terminator (None)
         self.create_socket (socket.AF_INET, socket.SOCK_DGRAM)
@@ -21,6 +25,31 @@ class http3_channel (http_server.http_channel):
         self.bind (self.server.addr)
         self.addr = addr # bind change addr, so recovering
         self.connect (self.addr)
+
+    def writable (self):
+        return self.current_request and self.current_request.has_sendables ()
+
+    def handle_write (self):
+        datagrams_to_send = self.current_request.datagrams_to_send ()
+        for data_to_send in datagrams_to_send:
+            self.push (data_to_send)
+        timer_at = self.quic.get_timer()
+        if self._timer is not None and self._timer_at != timer_at:
+            self._timer.cancel ()
+            self._timer = None
+        if self._timer is None and timer_at is not None:
+            self._timer = maintern.call_at (timer_at, self.handle_timer)
+        self._timer_at = timer_at
+        super ().handle_write ()
+
+    def handle_timer (self):
+        now = max (self._timer_at, time.monotonic ())
+        self._timer = None
+        self._timer_at = None
+        with self._plock:
+            quic.handle_timer (now = now)
+        self.process_quic_events ()
+        self.send_data ()
 
     def readable (self):
         return self.connected
@@ -57,6 +86,7 @@ class http3_channel (http_server.http_channel):
     def handle_connect (self):
         self.current_request.initiate_connection (self.initial_data) # collect initial data
         self.initial_data = None
+        self.quic = self.current_request.quic
 
     def collect_incoming_data (self, data):
         self.current_request.collect_incoming_data (data)

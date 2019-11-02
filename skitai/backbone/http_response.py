@@ -491,6 +491,9 @@ class http_response:
         except:
             logger.trace ()
 
+    def maybe_log (self, bytes):
+        self.log_or_not.maybe_log (self.uri, self.log)
+
     def log (self, bytes):
         server = self.request.channel.server
         referer = self.request.get_header ('referer')
