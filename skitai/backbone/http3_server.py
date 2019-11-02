@@ -32,25 +32,29 @@ class http3_channel (http_server.http_channel):
 
     def handle_write (self):
         datagrams_to_send = self.current_request.datagrams_to_send ()
+        sent = 0
         for data_to_send in datagrams_to_send:
+            sent = 1
             self.push (data_to_send)
-        timer_at = self.quic.get_timer()
-        if self._timer is not None and self._timer_at != timer_at:
-            self._timer.cancel ()
-            self._timer = None
-        if self._timer is None and timer_at is not None:
-            self._timer = maintern.call_at (timer_at, self.handle_timer)
-        self._timer_at = timer_at
+        if sent:
+            timer_at = self.quic.get_timer()
+            if self._timer is not None and self._timer_at != timer_at:
+                self._timer.cancel ()
+                self._timer = None
+            if self._timer is None and timer_at is not None:
+                self._timer = maintern.call_at (timer_at, self.handle_timer)
+            self._timer_at = timer_at
         super ().handle_write ()
 
     def handle_timer (self):
+        if self._timer_at is None or not self.current_request:
+            return
         now = max (self._timer_at, time.monotonic ())
         self._timer = None
         self._timer_at = None
-        with self._plock:
-            quic.handle_timer (now = now)
-        self.process_quic_events ()
-        self.send_data ()
+        self.quic.handle_timer (now = now)
+        self.current_request.process_quic_events ()
+        self.handle_write ()
 
     def readable (self):
         return self.connected
