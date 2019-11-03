@@ -15,7 +15,7 @@ import time
 
 class http2_producer:
     SIZE_BUFFER = 16384
-    def __init__ (self, conn, lock, stream_id, headers, producer, trailers, force_close, depends_on = 0, priority = 1):
+    def __init__ (self, conn, lock, stream_id, headers, producer, trailers, force_close, depends_on = 0, priority = 1, log_hook = None):
         self.conn = conn
         self.lock = lock
         self.stream_id = stream_id
@@ -25,6 +25,7 @@ class http2_producer:
         self.force_close = force_close
         self.depends_on = depends_on
         self.priority = priority
+        self.log_hook = log_hook
         self.bytes = 0
         self.next_data = None
         self._end_stream = False
@@ -41,11 +42,15 @@ class http2_producer:
     def is_stream_ended (self):
         return self._end_stream
 
+    def log (self):
+        self.log_hook and self.log_hook (self.bytes)
+
     def send_final_data (self, data):
         with self.lock:
             self.conn.send_data (self.stream_id, data, end_stream = not self.trailers)
             if self.trailers:
                 self.conn.send_headers (self.stream_id, self.trailers, end_stream = True)
+        self.log ()
 
     def local_flow_control_window (self):
         lfcw = self.conn.local_flow_control_window (self.stream_id)
@@ -72,6 +77,7 @@ class http2_producer:
 
         if not self.producer:
             self.set_stream_ended ()
+            self.log ()
             return sent
 
         if self.next_data:
@@ -89,12 +95,12 @@ class http2_producer:
         if len (data) > avail_data_length:
             data, self.next_data = data [:avail_data_length], data [avail_data_length:]
 
+        self.bytes += len (data)
         if self.next_data is None and (not hasattr (self.producer, 'ready') or self.producer.ready ()):
             self.next_data = self.producer.more ()
             if not self.next_data:
                 self.set_stream_ended ()
 
-        self.bytes += len (data)
         if self.is_stream_ended ():
             self.send_final_data (data)
         else:
@@ -143,7 +149,6 @@ class http2_request_handler (FlowControlWindow):
                 with self._clock:
                     self.producers.pop (0)
                 r = self.get_request (producer.stream_id)
-                r.response.maybe_log (producer.bytes) # bytes
                 self.remove_request (producer.stream_id)
                 if producer.force_close:
                     return self.go_away (force_close_error_code)
@@ -312,9 +317,12 @@ class http2_request_handler (FlowControlWindow):
             assert producer, "http/2 or 3's trailser requires body"
         if producer and do_optimize:
             producer = producers.globbing_producer (producer)
-        self.producers.append (self.producer_class (self.conn, self._plock, stream_id, headers, producer, trailers, force_close, depends_on, weight))
-        self.producers.sort ()
-        self.send_data ()
+
+        r = self.get_request (stream_id)
+        if r:
+            self.producers.append (self.producer_class (self.conn, self._plock, stream_id, headers, producer, trailers, force_close, depends_on, weight, r.response.maybe_log))
+            self.producers.sort ()
+            self.send_data ()
 
     def remove_request (self, stream_id):
         r = self.get_request (stream_id)
