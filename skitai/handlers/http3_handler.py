@@ -145,7 +145,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
                     self.go_away (h3.ErrorCode.HTTP_REQUEST_CANCELLED)
                 else:
                     try:
-                        r.channel.set_data (event.data, event.flow_controlled_length)
+                        r.channel.set_data (event.data, len (event.data))
                     except ValueError:
                         # from vchannel.handle_read () -> collector.collect_inconing_data ()
                         self.go_away (ErrorCodes.HTTP_REQUEST_CANCELLED)
