@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.33.0a4"
+__version__ = "0.32.1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -36,6 +36,7 @@ argopt.add_option (None, '---memtrack', desc = "show memory status")
 argopt.add_option (None, '--production', desc = "run as production mode")
 argopt.add_option (None, '--smtpda', desc = "run SMTPDA if not started")
 argopt.add_option (None, '--port=PORT_NUMBER', desc = "http/https port number")
+argopt.add_option (None, '--quic=UDP_PORT_NUMBER', desc = "http3/quic port number")
 
 if "--production" in sys.argv:
     os.environ ["SKITAI_ENV"] = "PRODUCTION"
@@ -700,14 +701,14 @@ def run (**conf):
                 )
 
             port = int (options.get ('--port') or conf.get ('port', 5000))
-            h3port = int (options.get ('--h3port') or conf.get ('h3port', 0))
+            quic = int (options.get ('--quic') or conf.get ('quic', 0))
             self.config_webserver (
                 port, conf.get ('address', '0.0.0.0'),
                 NAME, conf.get ("certfile") is not None,
                 conf.get ('keep_alive', DEFAULT_KEEP_ALIVE),
                 conf.get ('network_timeout', DEFAULT_NETWORK_TIMEOUT),
                 conf.get ('fws_domain'),
-                h3port = h3port,
+                quic = quic,
                 thunks = [self.master_jobs]
             )
 

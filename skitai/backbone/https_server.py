@@ -68,14 +68,14 @@ class https_channel (http_server.http_channel):
 
 class https_server (http_server.http_server):
     CERTINFO = None
-    def __init__ (self, ip, port, ctx, h3port = None, server_logger = None, request_logger = None):
+    def __init__ (self, ip, port, ctx, quic = None, server_logger = None, request_logger = None):
         super ().__init__ (ip, port, server_logger, request_logger)
         self.ctx = ctx
         self.socket = self.ctx.wrap_socket (self.socket, server_side = True)
-        if h3port:
+        if quic:
             from . import http3_server
             ctx = http3_server.init_context (*self.CERTINFO)
-            self.altsvc = http3_server.http3_server (ip, h3port, ctx, server_logger, request_logger)
+            self.altsvc = http3_server.http3_server (ip, quic, ctx, server_logger, request_logger)
 
     def install_handler (self, handler, back = 1):
         super ().install_handler (handler, back)

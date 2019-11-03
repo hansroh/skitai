@@ -10,7 +10,7 @@ import socket
 from rs4 import asyncore, asynchat
 import os, sys, errno
 import time
-from .lifetime import maintern
+from .lifetime import timer as lifetime_timer
 
 class http3_channel (https_server.https_channel, http_server.http_channel):
     def __init__ (self, server, data, addr):
@@ -19,7 +19,7 @@ class http3_channel (https_server.https_channel, http_server.http_channel):
         self.protocol = None # quic
 
         self._timer_at = None
-        self._timer = None
+        self._timer_id = None
         self.create_handler ()
         self.set_terminator (None)
         self.create_socket (socket.AF_INET, socket.SOCK_DGRAM)
@@ -35,18 +35,18 @@ class http3_channel (https_server.https_channel, http_server.http_channel):
         written = self._handle_write_with_protocol ()
         if written:
             timer_at = self.protocol.get_timer()
-            if self._timer is not None and self._timer_at != timer_at:
-                self._timer.cancel ()
-                self._timer = None
-            if self._timer is None and timer_at is not None:
-                self._timer = maintern.call_at (timer_at, self.handle_timer)
+            if self._timer_id is not None and self._timer_at != timer_at:
+                lifetime_timer.cancel (self._timer_id)
+                self._timer_id = None
+            if self._timer_id is None and timer_at is not None:
+                self._timer_id = lifetime_timer.at (timer_at, self.handle_timer)
             self._timer_at = timer_at
 
     def handle_timer (self):
-        if self._timer_at is None or not self.current_request:
+        if not self.current_request:
             return
         now = max (self._timer_at, time.monotonic ())
-        self._timer = None
+        self._timer_id = None
         self._timer_at = None
         self.protocol.handle_timer (now = now)
         self.current_request.process_quic_events ()

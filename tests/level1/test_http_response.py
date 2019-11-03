@@ -19,7 +19,7 @@ def make_response (client, compression = "defalte, gzip", version = "1.1"):
     )
 
 	if request.version == "2.0":
-		request.http2 = MagicMock ()
+		request.protocol = MagicMock ()
 		request.stream_id = 1
 		return http2_response (request)
 	return http_response (request)

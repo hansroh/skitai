@@ -5,9 +5,9 @@ import time
 class request (http_request.http_request):
 	response_class = response
 
-	def __init__ (self, http2, scheme, stream_id, *args):
+	def __init__ (self, protocol, scheme, stream_id, *args):
 		http_request.http_request.__init__ (self, *args)
-		self.http2 = http2
+		self.protocol = protocol
 		self.stream_id = stream_id
 		self.depends_on = 0
 		self.weight = 0

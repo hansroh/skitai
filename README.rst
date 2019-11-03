@@ -1572,7 +1572,7 @@ Here're some implementations I made.
 
 
 
-HTTP/2.0 Server Push
+HTTP/2.0
 ================================
 
 *New in version 0.16*
@@ -1594,8 +1594,8 @@ otherwise will be ignored.
   @app.route ("/promise")
   def promise ():
 
-    was.push ('/images/A.png')
-    was.push ('/images/B.png')
+    was.response.push_promise ('/images/A.png')
+    was.response.push_promise ('/images/B.png')
 
     return was.response (
       "200 OK",
@@ -1608,6 +1608,28 @@ otherwise will be ignored.
 
 .. _`HTTP2 server push`: https://tools.ietf.org/html/rfc7540#section-8.2
 
+
+HTTP/3.0 (Experimental)
+==================================
+
+*New in version 0.33*
+
+Skitai has been launched experimetnal HTTP/3 on QUIC with aioquic_.
+
+HTTP3 can be run with https, you need certification for it.
+
+.. code:: python
+
+  skitai.enable_ssl (
+    '/etc/letsencrypt/live/mydomain.com/fullchain.pem',
+    '/etc/letsencrypt/live/mydomain.com/privkey.pem'
+  )
+  skitai.mount ("/", "./static")
+  skitai.run (name = "my-service", port = 443, quic = 4433)
+
+This will make both HTTP/2 and HTTP/3 services.
+
+.. _aioquic: https://github.com/aiortc/aioquic
 
 
 HTML5 Websocket

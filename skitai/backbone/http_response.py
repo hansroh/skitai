@@ -303,9 +303,10 @@ class http_response:
         if self.request.channel:
             self.request.channel.attend_to (thing)
 
-    def hint_promise (self, *args, **kargs):
+    def push_promise (self, *args, **kargs):
         # ignore in version 1.x
         pass
+    hint_promise = push_promise
 
     def push_and_done (self, thing, *args, **kargs):
         self.push (thing)

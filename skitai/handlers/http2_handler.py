@@ -140,6 +140,12 @@ class http2_request_handler (FlowControlWindow):
         self._plock = threading.Lock () # for self.conn
         self._clock = threading.Lock () # for self.x
 
+    def send_data (self):
+        self._has_sendables = True
+
+    def has_sendables (self):
+        return self._has_sendables
+
     def data_from_producers (self, force_close_error_code):
         for i in range (len (self.producers)):
             with self._clock:
@@ -157,12 +163,6 @@ class http2_request_handler (FlowControlWindow):
             with self._clock:
                 self.producers.append (self.producers.pop (0))
             continue
-
-    def send_data (self):
-        self._has_sendables = True
-
-    def has_sendables (self):
-        return self._has_sendables
 
     def data_to_send (self):
         self.data_from_producers (ErrorCodes.CANCEL)
@@ -330,7 +330,7 @@ class http2_request_handler (FlowControlWindow):
         with self._clock:
             try: del self.requests [stream_id]
             except KeyError: pass
-        r.http2 = None
+        r.protocol = None
 
     def get_request (self, stream_id):
         r = None

@@ -22,8 +22,8 @@ class response (http_response.http_response):
 			h.append ((k.lower ().encode ("utf8"), str (v).encode ("utf8")))
 		return h
 
-	def hint_promise (self, uri):
-		if not self.request.http2.pushable ():
+	def push_promise (self, uri):
+		if not self.request.protocol.pushable ():
 			return
 
 		headers = [
@@ -42,14 +42,15 @@ class response (http_response.http_response):
 			    ('referer', "%s://%s%s" % (self.request.scheme, self.request.get_header ('host'), self.request.uri)),
 		   ] if v
 	   ]
-		self.request.http2.push_promise (self.request.stream_id, headers, additional_headers)
+		self.request.protocol.push_promise (self.request.stream_id, headers, additional_headers)
+	hint_promise = push_promise
 
 	def done (self, force_close = False, upgrade_to = None):
 		self.content_type = self.get ('content-type')
 
 		if not self.is_responsable (): return
 		self._is_done = True
-		if self.request.http2 is None: return
+		if self.request.protocol is None: return
 
 		self.htime = (time.time () - self.stime) * 1000
 		self.stime = time.time () #for delivery time
@@ -104,7 +105,7 @@ class response (http_response.http_response):
 						compressing_producer = producers.compressed_producer
 					outgoing_producer = compressing_producer (outgoing_producer)
 
-		if self.request.http2 is None:
+		if self.request.protocol is None:
 			return
 
 		if upgrade_to:
@@ -115,7 +116,7 @@ class response (http_response.http_response):
 
 		logger = self.request.logger #IMP: for disconnect with request
 		try:
-			self.request.http2.handle_response (
+			self.request.protocol.handle_response (
 				self.request.stream_id,
 				self.build_reply_header (),
 				self.get_trailers (),

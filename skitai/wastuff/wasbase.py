@@ -216,7 +216,7 @@ class WASBase:
 
     # websokcet / http2 ------------------------------------------
     def push (self, uri):
-        self.request.response.hint_promise (uri)
+        self.request.response.push_promise (uri)
 
     def wsconfig (self, spec, timeout = 60, encoding = "text", session = None):
         # other than atila, encoding became varname

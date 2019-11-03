@@ -147,7 +147,7 @@ class Loader:
 		forward_server.install_handler (forward_handler.Handler (self.wasc, forward_to))
 		self.wasc.register ("forwardserver", forward_server)
 
-	def config_webserver (self, port, ip = "", name = "", ssl = False, keep_alive = 10, network_timeout = 10, single_domain = None, thunks = [], h3port = None):
+	def config_webserver (self, port, ip = "", name = "", ssl = False, keep_alive = 10, network_timeout = 10, single_domain = None, thunks = [], quic = None):
 		# maybe be configured	at first.
 		if ssl and not HTTPS:
 			raise SystemError("Can't start SSL Web Server")
@@ -164,7 +164,7 @@ class Loader:
 			server_class = http_server.http_server
 
 		if self.ssl:
-			httpserver = server_class (ip or "", port, self.ctx, h3port, self.wasc.logger.get ("server"), self.wasc.logger.get ("request"))
+			httpserver = server_class (ip or "", port, self.ctx, quic, self.wasc.logger.get ("server"), self.wasc.logger.get ("request"))
 		else:
 			httpserver = server_class (ip or "", port, self.wasc.logger.get ("server"), self.wasc.logger.get ("request"))
 		single_domain and httpserver.set_single_domain (single_domain)
