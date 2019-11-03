@@ -2,6 +2,7 @@ from . import http2_handler
 import threading
 import time
 import os
+from . import http2_handler
 from aioquic.quic import events
 from aioquic.h3 import connection as h3
 from aioquic.h3.events import DataReceived, HeadersReceived, PushPromiseReceived, H3Event
@@ -18,63 +19,13 @@ from aioquic.quic.packet import (
 from aioquic.quic.retry import QuicRetryTokenHandler
 from aioquic.quic.connection import QuicConnection
 
-class http3_producer:
-    def __init__ (self, stream_id, headers, producer, trailers, force_close, conn, lock):
-        self.stream_id = stream_id
-        self.headers = headers
-        self.producer = producer
-        self.trailer = trailers
-        self.force_close = force_close
-        self.conn = conn
-        self.lock = lock
-        self.bytes = 0
-        self.next_data = None
-        self._end_stream = False
-
-    def set_stream_ended (self):
-        self._end_stream = True
-
-    def is_stream_ended (self):
-        return self._end_stream
-
-    def produce (self):
-        if self.is_stream_ended ():
-            return 0
-        sent = 0
-        if self.headers:
-            with self.lock:
-                self.conn.send_headers (self.stream_id, self.headers, end_stream = not self.producer and not self.trailers)
-            self.headers = None
-            sent = 1
-
-        if not self.producer:
-            self.set_stream_ended ()
-            return sent
-
-        if self.next_data is not None:
-            data, self.next_data = self.next_data, None
-        else:
-            if hasattr (self.producer, 'ready') and not self.producer.ready ():
-                return sent
-            data = self.producer.more ()
-            if not data:
-                self.set_stream_ended ()
-                with self.lock:
-                    self.conn.send_data (stream_id, b'', end_stream = True)
-                return 1
-
-        if not hasattr (self.producer, 'ready') or self.producer.ready ():
-            self.next_data = self.producer.more ()
-            if not self.next_data:
-                self.set_stream_ended ()
-
-        self.bytes += len (data)
-        with self.lock:
-            self.conn.send_data (self.stream_id, data, end_stream = self.is_stream_ended ())
-        return 1
-
+class http3_producer (http2_handler.http2_producer):
+    def local_flow_control_window (self):
+        return self.SIZE_BUFFER
 
 class http3_request_handler (http2_handler.http2_request_handler):
+    producer_class = http3_producer
+
     def __init__ (self, handler, request):
         self.handler = handler
         self.wasc = handler.wasc
@@ -82,41 +33,10 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self.channel = request.channel
         self.quic = None
         self.conn = None
-        self.producers = collections.deque ()
-        self.requests = {}
-        self.promises = {}
-        self._stream = {}
-        self._closed = False
-        self._plock = threading.Lock () # for self.conn
-        self._clock = threading.Lock () # for self.x
-        self._is_done = False
-        self._has_sendables = False
-
-    def send_data (self):
-        self._has_sendables = True
-
-    def has_sendables (self):
-        return self._has_sendables
+        self.default_varialbes ()
 
     def data_to_send (self):
-        for i in range (len (self.producers)):
-            with self._clock:
-                producer = self.producers [0]
-            produced = producer.produce ()
-            if producer.is_stream_ended ():
-                with self._clock:
-                    self.producers.popleft ()
-                r = self.get_request (producer.stream_id)
-                r.response.maybe_log (producer.bytes) # bytes
-                self.remove_request (producer.stream_id)
-                if producer.force_close:
-                    return self.go_away (h3.ErrorCode.HTTP_REQUEST_CANCELLED)
-            if produced:
-                break
-            with self._clock:
-                self.producers.rotate (-1)
-            continue
-
+        self.data_from_producers (h3.ErrorCode.HTTP_REQUEST_CANCELLED)
         with self._plock:
             frames = [data for data, addr in self.quic.datagrams_to_send (now = time.monotonic ())]
         if not frames and not self.producers:
@@ -248,9 +168,6 @@ class http3_request_handler (http2_handler.http2_request_handler):
         except NoAvailablePushIDError:
             return
         self.handle_events ([HeadersReceived (headers = headers, stream_ended = True, stream_id = push_stream_id)])
-
-    def handle_response (self, stream_id, headers, trailers, producer, do_optimize, force_close = False):
-        self.producers.append (http3_producer (stream_id, headers, producer, trailers, force_close, self.conn, self._plock))
 
 
 class Handler (http2_handler.Handler):

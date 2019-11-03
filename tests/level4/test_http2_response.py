@@ -2,6 +2,7 @@ import pytest
 import sys, os
 from aquests.protocols.http2.hyper import HTTPConnection
 
+#@pytest.mark.skip
 def test_h2c (launch):
     with launch ("./examples/app.py") as engine:
         conn = HTTPConnection('127.0.0.1:30371', enable_push=False, secure=False)

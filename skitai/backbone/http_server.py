@@ -43,6 +43,8 @@ class http_channel (asynchat.async_chat):
     fifo_class = deque
 
     def __init__ (self, server, conn, addr):
+        self.conn = conn
+        self.server = server
         self.channel_number = http_channel.channel_count.inc ()
         self.request_counter = counter.counter()
         self.bytes_out = counter.counter()
@@ -51,7 +53,6 @@ class http_channel (asynchat.async_chat):
         self.ac_in_buffer = b''
         self.incoming = []
         self.producer_fifo = self.fifo_class ()
-        self.server = server
         asyncore.dispatcher.__init__(self, conn)
         self.addr = addr # SHOULD place after asyncore.dispatcher.__init__
         self.set_terminator (b'\r\n\r\n')
@@ -62,6 +63,22 @@ class http_channel (asynchat.async_chat):
         self.__sendlock = None
         self.producers_attend_to = []
         self.things_die_with = []
+
+    def link_protocol_writer (self):
+        self.writable = self._writable_with_protocol
+        self.handle_write = self._handle_write_with_protocol
+
+    def _writable_with_protocol (self):
+        return self.current_request and self.current_request.has_sendables ()
+
+    def _handle_write_with_protocol (self):
+        data_to_send = self.current_request.data_to_send ()
+        written = False
+        for data in data_to_send:
+            written = True
+            self.push (data)
+        super ().handle_write ()
+        return written
 
     def use_sendlock (self):
         self.__sendlock  = threading.Lock ()

@@ -5,19 +5,19 @@
 # Author: Hans Roh
 #----------------------------------------------------------
 
-from . import http_server, http_request
+from . import http_server, https_server, http_request
 import socket
 from rs4 import asyncore, asynchat
 import os, sys, errno
 import time
 from .lifetime import maintern
 
-
-class http3_channel (http_server.http_channel):
+class http3_channel (https_server.https_channel, http_server.http_channel):
     def __init__ (self, server, data, addr):
-        super ().__init__(server, None, addr)
-        self.quic = None
+        http_server.http_channel.__init__(self, server, None, addr)
         self.initial_data = data
+        self.protocol = None # quic
+
         self._timer_at = None
         self._timer = None
         self.create_handler ()
@@ -29,17 +29,12 @@ class http3_channel (http_server.http_channel):
         self.connect (self.addr)
 
     def writable (self):
-        return self.current_request and self.current_request.has_sendables ()
+        return self._writable_with_protocol ()
 
     def handle_write (self):
-        datagrams_to_send = self.current_request.data_to_send ()
-        sent = 0
-        for data_to_send in datagrams_to_send:
-            sent = 1
-            self.push (data_to_send)
-        super ().handle_write ()
-        if sent:
-            timer_at = self.quic.get_timer()
+        written = self._handle_write_with_protocol ()
+        if written:
+            timer_at = self.protocol.get_timer()
             if self._timer is not None and self._timer_at != timer_at:
                 self._timer.cancel ()
                 self._timer = None
@@ -53,7 +48,7 @@ class http3_channel (http_server.http_channel):
         now = max (self._timer_at, time.monotonic ())
         self._timer = None
         self._timer_at = None
-        self.quic.handle_timer (now = now)
+        self.protocol.handle_timer (now = now)
         self.current_request.process_quic_events ()
         self.handle_write ()
 
@@ -62,14 +57,14 @@ class http3_channel (http_server.http_channel):
 
     def recv (self, buffer_size):
         try:
-            return super ().recv (buffer_size)
+            return http_server.http_channel.recv (self, buffer_size)
         except ConnectionRefusedError:
             self.handle_close ()
             return b''
 
     def send (self, data):
         try:
-            return super ().send (data)
+            return http_server.http_channel.send (self, data)
         except ConnectionRefusedError:
             self.handle_close ()
             return 0
@@ -92,7 +87,7 @@ class http3_channel (http_server.http_channel):
     def handle_connect (self):
         self.current_request.initiate_connection (self.initial_data) # collect initial data
         self.initial_data = None
-        self.quic = self.current_request.quic
+        self.protocol = self.current_request.quic
 
     def collect_incoming_data (self, data):
         self.current_request.collect_incoming_data (data)
