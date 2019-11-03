@@ -214,8 +214,7 @@ class http2_request_handler (FlowControlWindow):
 			outgoing_producer = h2frame_producer (
 				stream_id, depends_on, weight, outgoing_producer, self.conn, self._plock, trailers
 			)
-			# is it proper?
-			#outgoing_producer = producers.ready_globbing_producer (outgoing_producer)
+			outgoing_producer = producers.ready_globbing_producer (outgoing_producer)
 			self.channel.push_with_producer (outgoing_producer)
 
 		if r.is_stream_ended ():

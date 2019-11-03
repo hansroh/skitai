@@ -18,6 +18,62 @@ from aioquic.quic.packet import (
 from aioquic.quic.retry import QuicRetryTokenHandler
 from aioquic.quic.connection import QuicConnection
 
+class http3_producer:
+    def __init__ (self, stream_id, headers, producer, trailers, force_close, conn, lock):
+        self.stream_id = stream_id
+        self.headers = headers
+        self.producer = producer
+        self.trailer = trailers
+        self.force_close = force_close
+        self.conn = conn
+        self.lock = lock
+        self.bytes = 0
+        self.next_data = None
+        self._end_stream = False
+
+    def set_stream_ended (self):
+        self._end_stream = True
+
+    def is_stream_ended (self):
+        return self._end_stream
+
+    def produce (self):
+        if self.is_stream_ended ():
+            return 0
+        sent = 0
+        if self.headers:
+            with self.lock:
+                self.conn.send_headers (self.stream_id, self.headers, end_stream = not self.producer and not self.trailers)
+            self.headers = None
+            sent = 1
+
+        if not self.producer:
+            self.set_stream_ended ()
+            return sent
+
+        if self.next_data is not None:
+            data, self.next_data = self.next_data, None
+        else:
+            if hasattr (self.producer, 'ready') and not self.producer.ready ():
+                return sent
+            data = self.producer.more ()
+            if not data:
+                self.set_stream_ended ()
+                with self.lock:
+                    self.conn.send_data (stream_id, b'', end_stream = True)
+                return 1
+
+        if not hasattr (self.producer, 'ready') or self.producer.ready ():
+            self.next_data = self.producer.more ()
+            if not self.next_data:
+                self.set_stream_ended ()
+
+        self.bytes += len (data)
+        with self.lock:
+            self.conn.send_data (self.stream_id, data, end_stream = self.is_stream_ended ())
+        return 1
+
+
 class http3_request_handler (http2_handler.http2_request_handler):
     def __init__ (self, handler, request):
         self.handler = handler
@@ -36,56 +92,34 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self._is_done = False
         self._has_sendables = False
 
-        self._local_control_stream_id = None
-        self._local_decoder_stream_id = None
-        self._local_encoder_stream_id = None
-
-        self._peer_control_stream_id = None
-        self._peer_decoder_stream_id = None
-        self._peer_encoder_stream_id = None
-
     def send_data (self):
         self._has_sendables = True
 
     def has_sendables (self):
         return self._has_sendables
 
-    def datagrams_to_send (self):
-        while self.producers:
-            stream_id, headers, producer, trailers, force_close, out_bytes = self.producers [0]
-            if headers:
-                with self._plock:
-                    self.conn.send_headers (stream_id, headers, end_stream = not producer and not trailers)
-                    self.producers [0][1] = None
-
-            if producer:
-                if hasattr (producer, 'ready') and not producer.ready ():
-                    self.producers.rotate (-1)
-                    continue
-                data = producer.more ()
-                self.producers [0][-1] = out_bytes + len (data) # update out_bytes
-            else:
-                data = b''
-
-            if not data:
-                finished = self.producers.popleft ()
-                with self._plock:
-                    self.conn.send_data (stream_id, b'', end_stream = True)
-                r = self.get_request (stream_id)
-                r.response.maybe_log (finished [-1]) # bytes
-                self.remove_request (stream_id)
-                if force_close:
+    def data_to_send (self):
+        for i in range (len (self.producers)):
+            with self._clock:
+                producer = self.producers [0]
+            produced = producer.produce ()
+            if producer.is_stream_ended ():
+                with self._clock:
+                    self.producers.popleft ()
+                r = self.get_request (producer.stream_id)
+                r.response.maybe_log (producer.bytes) # bytes
+                self.remove_request (producer.stream_id)
+                if producer.force_close:
                     return self.go_away (h3.ErrorCode.HTTP_REQUEST_CANCELLED)
-                continue
-
-            else:
-                with self._plock:
-                    self.conn.send_data (stream_id, data, end_stream = False)
+            if produced:
                 break
+            with self._clock:
+                self.producers.rotate (-1)
+            continue
 
         with self._plock:
             frames = [data for data, addr in self.quic.datagrams_to_send (now = time.monotonic ())]
-        if not frames:
+        if not frames and not self.producers:
             self._has_sendables = False
         return frames
 
@@ -216,14 +250,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self.handle_events ([HeadersReceived (headers = headers, stream_ended = True, stream_id = push_stream_id)])
 
     def handle_response (self, stream_id, headers, trailers, producer, do_optimize, force_close = False):
-        producer and self.producers.append ([stream_id, headers, producer, trailers, force_close, 0])
-        current_promises = []
-        with self._clock:
-            while self.promises:
-                current_promises.append (self.promises.popitem ())
-        for promise_stream_id, promise_headers in current_promises:
-            self.handle_request (promise_stream_id, promise_headers)
-        self.send_data ()
+        self.producers.append (http3_producer (stream_id, headers, producer, trailers, force_close, self.conn, self._plock))
 
 
 class Handler (http2_handler.Handler):
