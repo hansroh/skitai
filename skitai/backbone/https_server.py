@@ -73,9 +73,12 @@ class https_server (http_server.http_server):
         self.ctx = ctx
         self.socket = self.ctx.wrap_socket (self.socket, server_side = True)
         if quic:
-            from . import http3_server
-            ctx = http3_server.init_context (*self.CERTINFO)
-            self.altsvc = http3_server.http3_server (ip, quic, ctx, server_logger, request_logger)
+            if sys.version_info.major == 3 and sys.version_info.minor < 6:
+                self.log ('unsupoorted Python version for QUIC, DISABLED', 'error')
+            else:
+                from . import http3_server
+                ctx = http3_server.init_context (*self.CERTINFO)
+                self.altsvc = http3_server.http3_server (ip, quic, ctx, server_logger, request_logger)
 
     def install_handler (self, handler, back = 1):
         super ().install_handler (handler, back)
