@@ -1614,9 +1614,11 @@ HTTP/3.0 (Experimental)
 
 *New in version 0.33*
 
+**Python>=3.6 is required**
+
 Skitai has been launched experimetnal HTTP/3 on QUIC with aioquic_.
 
-HTTP3 can be run with https, you need certification for it.
+HTTP3 can be run with https, you need a certification for it.
 
 .. code:: python
 
@@ -1625,9 +1627,13 @@ HTTP3 can be run with https, you need certification for it.
     '/etc/letsencrypt/live/mydomain.com/privkey.pem'
   )
   skitai.mount ("/", "./static")
-  skitai.run (name = "my-service", port = 443, quic = 4433)
+  skitai.run (name = "my-service", port = 443, quic = 443)
 
-This will make both HTTP/2 and HTTP/3 services.
+Of course, quic port is UDP port number and no matter with same
+TCP port number.
+
+This will make both HTTP/2 and HTTP/3 services. and pushing promise
+is just same as HTTP/2.0.
 
 .. _aioquic: https://github.com/aiortc/aioquic
 

@@ -4,7 +4,7 @@ import socket
 import time
 from aquests.protocols.http3 import requests
 
-
+@pytest.mark.skip
 def test_http2 (launch):
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:

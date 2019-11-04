@@ -33,7 +33,7 @@ class http3_channel (https_server.https_channel, http_server.http_channel):
 
     def handle_write (self):
         written = self._handle_write_with_protocol ()
-        if written:
+        if written and self.protocol:
             timer_at = self.protocol.get_timer()
             if self._timer_id is not None and self._timer_at != timer_at:
                 tick_timer.cancel (self._timer_id)
@@ -85,12 +85,13 @@ class http3_channel (https_server.https_channel, http_server.http_channel):
                     return
 
     def handle_connect (self):
-        self.current_request.initiate_connection (self.initial_data) # collect initial data
+        self.collect_incoming_data (self.initial_data) # collect initial data
         self.initial_data = None
-        self.protocol = self.current_request.quic
 
     def collect_incoming_data (self, data):
         self.current_request.collect_incoming_data (data)
+        if self.protocol is None:
+            self.protocol = self.current_request.quic
 
 
 class SessionTicketStore:

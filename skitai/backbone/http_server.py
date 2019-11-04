@@ -69,7 +69,7 @@ class http_channel (asynchat.async_chat):
         self.handle_write = self._handle_write_with_protocol
 
     def _writable_with_protocol (self):
-        return self.current_request and self.current_request.has_sendables ()
+        return self.producer_fifo or (self.current_request and self.current_request.has_sendables ())
 
     def _handle_write_with_protocol (self):
         data_to_send = self.current_request.data_to_send ()

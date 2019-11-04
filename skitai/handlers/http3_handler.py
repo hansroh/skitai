@@ -26,6 +26,7 @@ class http3_producer (http2_handler.http2_producer):
 
 class http3_request_handler (http2_handler.http2_request_handler):
     producer_class = http3_producer
+    stateless_retry = False
 
     def __init__ (self, handler, request):
         self.handler = handler
@@ -34,9 +35,12 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self.channel = request.channel
         self.quic = None
         self.conn = None
+        self._retry = QuicRetryTokenHandler() if self.stateless_retry else None
         self.default_varialbes ()
 
     def data_to_send (self):
+        if self.quic is None:
+            return []
         self.data_from_producers (h3.ErrorCode.HTTP_REQUEST_CANCELLED)
         with self._plock:
             frames = [data for data, addr in self.quic.datagrams_to_send (now = time.monotonic ())]
@@ -44,9 +48,8 @@ class http3_request_handler (http2_handler.http2_request_handler):
             self._has_sendables = False
         return frames
 
-    def make_quic (self, channel, data, stateless_retry = False):
+    def make_quic (self, channel, data):
         ctx = channel.server.ctx
-        _retry = QuicRetryTokenHandler() if stateless_retry else None
 
         buf = Buffer (data=data)
         header = pull_quic_header (
@@ -63,10 +66,9 @@ class http3_request_handler (http2_handler.http2_request_handler):
             )
             return
 
-        assert len (data) >= 1200
-        assert header.packet_type == PACKET_TYPE_INITIAL
+        assert len (data) >= 1200 and header.packet_type == PACKET_TYPE_INITIAL
         original_connection_id = None
-        if _retry is not None:
+        if self._retry is not None:
             if not header.token:
                 # create a retry token
                 channel.push (
@@ -75,14 +77,14 @@ class http3_request_handler (http2_handler.http2_request_handler):
                         source_cid = os.urandom(8),
                         destination_cid = header.source_cid,
                         original_destination_cid = header.destination_cid,
-                        retry_token = _retry.create_token (channel.addr, header.destination_cid),
+                        retry_token = self._retry.create_token (channel.addr, header.destination_cid),
                     )
                 )
                 return
 
             else:
                 try:
-                    original_connection_id = _retry.validate_token (
+                    original_connection_id = self._retry.validate_token (
                         channel.addr, header.token
                     )
                 except ValueError:
@@ -97,12 +99,14 @@ class http3_request_handler (http2_handler.http2_request_handler):
             session_ticket_handler = channel.server.ticket_store.add
         )
 
-    def initiate_connection (self, data):
-        self.quic = self.make_quic (self.channel, data, stateless_retry = False)
-        self.conn = h3.H3Connection (self.quic)
-        self.collect_incoming_data (data)
-
     def collect_incoming_data (self, data):
+        # if self.quic is None:
+        #     self.quic = self.make_quic (self.channel, data)
+        #     if self.quic is None:
+        #         return
+        if self.quic is None:
+            self.quic = self.make_quic (self.channel, data)
+        self.conn = h3.H3Connection (self.quic)
         with self._plock:
             self.quic.receive_datagram (data, self.channel.addr, time.monotonic ())
         self.process_quic_events ()
