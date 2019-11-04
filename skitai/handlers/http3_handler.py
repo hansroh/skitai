@@ -6,6 +6,7 @@ from . import http2_handler
 from aioquic.quic import events
 from aioquic.h3 import connection as h3
 from aioquic.h3.events import DataReceived, HeadersReceived, PushPromiseReceived, H3Event
+from aioquic.h3.exceptions import H3Error, NoAvailablePushIDError
 from aioquic.quic.connection import stream_is_unidirectional
 from aioquic.buffer import Buffer
 from dataclasses import dataclass
@@ -118,6 +119,9 @@ class http3_request_handler (http2_handler.http2_request_handler):
             self.quic.send_ping (uid)
         self.send_data ()
 
+    def pushable (self):
+        return True
+
     def process_quic_events (self):
         with self._plock:
             event = self.quic.next_event ()
@@ -137,7 +141,10 @@ class http3_request_handler (http2_handler.http2_request_handler):
     def handle_events (self, events):
         for event in events:
             if isinstance(event, HeadersReceived):
-                self.handle_request (event.stream_id, event.headers)
+                self.handle_request (event.stream_id, event.headers, has_data_frame = not event.stream_ended)
+                r = self.get_request (event.stream_id)
+                if event.stream_ended:
+                    r.set_stream_ended ()
 
             elif isinstance(event, DataReceived) and event.data:
                 r = self.get_request (event.stream_id)
@@ -155,19 +162,19 @@ class http3_request_handler (http2_handler.http2_request_handler):
                             r.channel.handle_read ()
                             r.channel.found_terminator ()
                         r.set_stream_ended ()
-                        if r.response.is_done ():
+                        #if r.response.is_done ():
                             # DO NOT REMOVE before responsing
                             # this is for async streaming request like proxy request
-                            self.remove_request (event.stream_id)
+                            # self.remove_request (event.stream_id)
         self.send_data ()
 
     def push_promise (self, stream_id, request_headers, addtional_request_headers):
-        headers = request_headers + addtional_request_headers
+        headers = [(k.encode (), v.encode ()) for k, v in request_headers + addtional_request_headers]
         try:
-            promise_stream_id = self.conn.send_push_promise (stream_id = self.stream_id, headers = headers)
+            promise_stream_id = self.conn.send_push_promise (stream_id = stream_id, headers = headers)
         except NoAvailablePushIDError:
             return
-        self.handle_events ([HeadersReceived (headers = headers, stream_ended = True, stream_id = push_stream_id)])
+        self.handle_events ([HeadersReceived (headers = headers, stream_ended = True, stream_id = promise_stream_id)])
 
 
 class Handler (http2_handler.Handler):

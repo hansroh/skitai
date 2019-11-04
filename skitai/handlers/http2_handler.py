@@ -12,6 +12,7 @@ from aquests.protocols.http2.request_handler import FlowControlWindow
 import threading
 from io import BytesIO
 import time
+import sys
 
 class http2_producer:
     SIZE_BUFFER = 16384
@@ -355,7 +356,7 @@ class http2_request_handler (FlowControlWindow):
     def handle_events (self, events):
         for event in events:
             if isinstance(event, RequestReceived):
-                self.handle_request (event.stream_id, event.headers)
+                self.handle_request (event.stream_id, event.headers, has_data_frame = not event.stream_ended)
 
             elif isinstance(event, TrailersReceived):
                 self.handle_trailers (event.stream_id, event.headers)
@@ -434,7 +435,7 @@ class http2_request_handler (FlowControlWindow):
                 "{}: {}".format (k.decode ("utf8"), v.decode ("utf8"))
             )
 
-    def handle_request (self, stream_id, headers):
+    def handle_request (self, stream_id, headers, has_data_frame = False):
         #print ("++REQUEST: %d" % stream_id, headers)
         command = "GET"
         uri = "/"
@@ -464,6 +465,11 @@ class http2_request_handler (FlowControlWindow):
                 cookies.append (v)
                 continue
             h.append ("%s: %s" % (k, v))
+
+        if not cl and has_data_frame:
+            # dummy content-lengng for data frames
+            cl = 1
+            h.append ('content-length: {}'.format (cl))
 
         if cookies:
             h.append ("Cookie: %s" % "; ".join (cookies))
