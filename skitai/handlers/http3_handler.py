@@ -26,7 +26,7 @@ class http3_producer (http2_handler.http2_producer):
 
 class http3_request_handler (http2_handler.http2_request_handler):
     producer_class = http3_producer
-    stateless_retry = False
+    stateless_retry = True
 
     def __init__ (self, handler, request):
         self.handler = handler
@@ -100,13 +100,12 @@ class http3_request_handler (http2_handler.http2_request_handler):
         )
 
     def collect_incoming_data (self, data):
-        # if self.quic is None:
-        #     self.quic = self.make_quic (self.channel, data)
-        #     if self.quic is None:
-        #         return
         if self.quic is None:
-            self.quic = self.make_quic (self.channel, data)
-        self.conn = h3.H3Connection (self.quic)
+             self.quic = self.make_quic (self.channel, data)
+             if self.quic is None:
+                 return
+             self.conn = h3.H3Connection (self.quic)
+
         with self._plock:
             self.quic.receive_datagram (data, self.channel.addr, time.monotonic ())
         self.process_quic_events ()
