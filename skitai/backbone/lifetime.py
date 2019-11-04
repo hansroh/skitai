@@ -75,7 +75,7 @@ def maintern_zombie_channel (now):
 					channel.handle_error ()
 
 maintern = lifetime.Maintern ()
-timer = lifetime.Timer ()
+tick_timer = lifetime.TickTimer ()
 def init (kill_zombie_interval = 60.0, logger = None):
 	global maintern
 	lifetime.EXHAUST_DNS = False
@@ -146,7 +146,7 @@ def lifetime_loop (timeout = 30.0, map = None):
 	map = map or asyncore.socket_map
 	while map and _shutdown_phase == 0:
 		lifetime.poll_fun_wrap (timeout, map)
-		timer.check ()
+		tick_timer.tick ()
 		now = time.time()
 		if (now - _last_maintern) > _maintern_interval:
 			maintern and maintern (now)

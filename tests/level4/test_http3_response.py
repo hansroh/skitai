@@ -4,6 +4,7 @@ import socket
 import time
 from aquests.protocols.http3 import requests
 
+
 def test_http2 (launch):
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
@@ -14,6 +15,12 @@ def test_http2 (launch):
 
         resp = engine.http2.post ('/hello', {'num': 2})
         assert resp.text == 'hello\nhello'
+
+        resp = engine.http2.get ('/lb/project/rs4/')
+        assert 'pip install rs4' in resp.text
+
+        resp = engine.http2.post ('/post', {'username': 'a' * 1000000})
+        assert len (resp.text) == 1000006
 
 def test_http3 (launch):
     serve = './examples/http3.py'
@@ -30,4 +37,11 @@ def test_http3 (launch):
         assert resp.text == 'hello\nhello'
         resp = engine.http3.post ('/hello', {'num': 1})
         assert resp.text == 'hello'
+
+        resp = engine.http3.get ('/lb/project/rs4/')
+        assert 'pip install rs4' in resp.text
+
+        resp = engine.http3.post ('/post', {'username': 'a' * 1000000})
+        assert len (resp.text) == 1000006
+
 

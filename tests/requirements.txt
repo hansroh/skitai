@@ -11,3 +11,9 @@ redis
 pymongo
 psycopg2-binary
 psycopg2cffi
+grpcio
+aiofiles
+asgiref
+httpbin
+starlette
+wsproto

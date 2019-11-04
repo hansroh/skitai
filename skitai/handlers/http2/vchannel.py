@@ -20,9 +20,9 @@ class data_channel (fake_channel, asynchat.async_chat):
 		self._data_size = 0
 		self._chunks  = []
 
-	def set_terminator (self, inaccurate_size):
+	def set_terminator (self, terminator):
 		# case when no content-length header
-		super ().set_terminator (None)
+		super ().set_terminator (terminator != -1 and terminator or None)
 
 	def set_data (self, data, size):
 		self._data.append (data)

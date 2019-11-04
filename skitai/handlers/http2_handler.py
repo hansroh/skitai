@@ -466,11 +466,6 @@ class http2_request_handler (FlowControlWindow):
                 continue
             h.append ("%s: %s" % (k, v))
 
-        if not cl and has_data_frame:
-            # dummy content-lengng for data frames
-            cl = 1
-            h.append ('content-length: {}'.format (cl))
-
         if cookies:
             h.append ("Cookie: %s" % "; ".join (cookies))
 
@@ -480,8 +475,12 @@ class http2_request_handler (FlowControlWindow):
             vchannel = self.channel
         else:
             first_line = "%s %s HTTP/%s" % (command, uri, self.request.version)
-            if command in ("POST", "PUT"):
+            if command in ("POST", "PUT", "PATCH"):
                 should_have_collector = True
+                if not cl and has_data_frame:
+                    # dummy content-lengng for data frames
+                    cl = -1
+                    h.append ('content-length: {}'.format (cl))
                 vchannel = data_channel (stream_id, self.channel, cl)
             else:
                 if stream_id == 1:

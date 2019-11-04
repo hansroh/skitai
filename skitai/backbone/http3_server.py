@@ -10,7 +10,7 @@ import socket
 from rs4 import asyncore, asynchat
 import os, sys, errno
 import time
-from .lifetime import timer as lifetime_timer
+from .lifetime import tick_timer
 
 class http3_channel (https_server.https_channel, http_server.http_channel):
     def __init__ (self, server, data, addr):
@@ -36,10 +36,10 @@ class http3_channel (https_server.https_channel, http_server.http_channel):
         if written:
             timer_at = self.protocol.get_timer()
             if self._timer_id is not None and self._timer_at != timer_at:
-                lifetime_timer.cancel (self._timer_id)
+                tick_timer.cancel (self._timer_id)
                 self._timer_id = None
             if self._timer_id is None and timer_at is not None:
-                self._timer_id = lifetime_timer.at (timer_at, self.handle_timer)
+                self._timer_id = tick_timer.at (timer_at, self.handle_timer)
             self._timer_at = timer_at
 
     def handle_timer (self):
