@@ -5,7 +5,6 @@ import sys, os
 import threading
 import time
 import aquests
-from aquests.protocols.http2.hyper import HTTPConnection
 
 def test_http3_server_push (launch):
     if sys.version_info.major == 3 and sys.version_info.minor < 6:
