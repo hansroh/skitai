@@ -41,29 +41,29 @@ cache:
 .test_template: &test
   script:
     - cd tests
-    - pytest level1
-    - pytest level2
-    - pytest level3
-    - pytest level4
+    # - pytest level1
+    # - pytest level2
+    # - pytest level3
+    # - pytest level4
     - pytest level5
     - deactivate
   only:
     - master
 
-python 3.5stretch:
-  image: python:3.5-stretch
-  <<: *before_python_test
-  <<: *test
+# python 3.5stretch:
+#   image: python:3.5-stretch
+#   <<: *before_python_test
+#   <<: *test
 
-python 3.6stretch:
-  image: python:3.6-stretch
-  <<: *before_python_test
-  <<: *test
+# python 3.6stretch:
+#   image: python:3.6-stretch
+#   <<: *before_python_test
+#   <<: *test
 
-python 3.7stretch:
-  image: python:3.7-stretch
-  <<: *before_python_test
-  <<: *test
+# python 3.7stretch:
+#   image: python:3.7-stretch
+#   <<: *before_python_test
+#   <<: *test
 
 python pypy3:
   image: pypy:3
