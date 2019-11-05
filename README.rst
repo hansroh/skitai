@@ -1653,7 +1653,7 @@ And for avoind port permission, you re-route from 443 to 4433.
   sudo iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 443 -j REDIRECT --to-port 4433
   sudo iptables -A PREROUTING -t nat -i eth0 -p udp --dport 443 -j REDIRECT --to-port 4433
 
-*Note*: This NEED, becasue Skitai will bind UGP port to 443
+*Note*: This NEED, becasue Skitai will bind UDP port to 443
 per every clients for performance reason, and you need root privileges
 for it and it is not very good idea. Also skitai doesn't allow keeping
 root privileges after start up.
@@ -1666,9 +1666,8 @@ And you need sudo for reading certification on startup.
 
 After started, Skitai will drop root privileges and fall back to current user's.
 
-At your broweser's developer window, you can see protocol as *http/2+quic/99*.
+At your browser's developer window, you can see protocol as *http/2+quic/99*.
 
-I hope http/3 can be served at another high ports.
 
 .. _`Chrome Canary`: https://www.google.com/intl/ko_ALL/chrome/canary/
 .. _aioquic: https://github.com/aiortc/aioquic
