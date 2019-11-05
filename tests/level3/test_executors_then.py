@@ -3,6 +3,7 @@ import skitai
 import confutil
 import threading
 import time
+import sys
 
 def enforce ():
     time.sleep (2)
@@ -13,7 +14,6 @@ def enforce ():
 def foo (a, timeout = 0):
     time.sleep (timeout)
     return a
-
 
 def test_was_process (app):
     @app.route ("/")

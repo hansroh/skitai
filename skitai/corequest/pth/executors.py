@@ -74,7 +74,8 @@ class ThreadExecutor:
             if not self.executor:
                 return
             self.maintern (time.time ())
-            self.executor.shutdown (wait = False)
+            # if False, Py3.7 raise OSError: OSError: handle is closed
+            self.executor.shutdown (wait = True)
             self.executor = None
             self.futures = []
             return len (self.futures)
