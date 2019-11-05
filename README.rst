@@ -851,7 +851,6 @@ Becasue of you're using port 80, 443 you need root privileges.
 
 After binding port 80 and 443 and reading certifications, Skitai will drop root privileges and back to sudo user privileges.
 
-
 FYI, for automating renew certification, start Skitai as daemon and add cron job,
 
 .. code:: bash
@@ -1627,36 +1626,48 @@ HTTP3 can be run with https, you need a certification for it.
     '/etc/letsencrypt/live/mydomain.com/privkey.pem'
   )
   skitai.mount ("/", "./static")
-  skitai.run (name = "my-service", port = 443, quic = 443)
+  skitai.run (name = "my-service", port = 4433, quic = 4433)
 
 Of course, quic port is UDP port number and no matter with same
 TCP port number.
 
-This will make both HTTP/2 and HTTP/3 services. and pushing promise
-is just same as HTTP/2.0.
+This will make both HTTP/2 and HTTP/3 services.
+
+Pushing promise is just same as HTTP/2.0.
 
 You can test HTTP/3.0 with `Chrome Canary`_ with some restrict.
 
 You can run Chrome Canary with command line options,
 
-.. code:: python
+.. code:: bash
 
    chrome.exe --enable-quic --quic-version=h3-23
 
-At broweser's developer window, you can see protocol as *http/2+quic/99*.
+And for avoind port permission, you re-route from 443 to 4433.
 
-Note: At this time, you may use UDP 443 port and note that for using this
-port, you must have root privilege.
+.. code:: bash
 
-And it may very dangerous, because Skitai UDP server binds this port
-per client conection for performance reason, Skitai cannot drop root
-privilege after service started.
+  sudo iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 443 -j REDIRECT --to-port 4433
+  sudo iptables -A PREROUTING -t nat -i eth0 -p udp --dport 443 -j REDIRECT --to-port 4433
 
-You would be better giving permissionto port 443 for web service account.
+*Note*: This NEED, becasue Skitai will bind UGP port to 443
+per every clients for performance reason, and you need root privileges
+for it and it is not very good idea. Also skitai doesn't allow keeping
+root privileges after start up.
+
+And you need sudo for reading certification on startup.
+
+.. code:: bash
+
+  sudo ./serve.py
+
+After started, Skitai will drop root privileges and fall back to current user's.
+
+At your broweser's developer window, you can see protocol as *http/2+quic/99*.
 
 I hope http/3 can be served at another high ports.
 
-.. _`Chrome Canary` :https://www.google.com/intl/ko_ALL/chrome/canary/
+.. _`Chrome Canary`: https://www.google.com/intl/ko_ALL/chrome/canary/
 .. _aioquic: https://github.com/aiortc/aioquic
 
 

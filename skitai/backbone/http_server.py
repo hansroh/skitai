@@ -331,6 +331,7 @@ class http_channel (asynchat.async_chat):
 #-------------------------------------------------------------------
 class http_server (asyncore.dispatcher):
     SERVER_IDENT = skitai.NAME
+    KEEP_PRIVILEGES = False
 
     maintern_interval = 0
     critical_point_cpu_overload = 90.0
@@ -411,7 +412,7 @@ class http_server (asyncore.dispatcher):
                     if ACTIVE_WORKERS < numworker:
                         pid = os.fork ()
                         if pid == 0:
-                            if os.name != 'nt' and (not self.altsvc or (self.altsvc and self.altsvc.port >= 1024)):
+                            if os.name != 'nt' and not self.KEEP_PRIVILEGES:
                                 drop_privileges ()
                             self.worker_ident = "w%d" % len (PID)
                             set_process_name ("%s:%s" % (skitai.get_proc_title (), self.worker_ident))
