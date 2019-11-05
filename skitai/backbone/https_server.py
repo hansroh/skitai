@@ -20,6 +20,10 @@ class https_channel (http_server.http_channel):
         try:
             result = self.socket.send(data)
 
+        except (ConnectionRefusedError, ConnectionResetError):
+            self.handle_close ()
+            return 0
+
         except ssl.SSLError as why:
             if why.errno == ssl.SSL_ERROR_WANT_WRITE:
                 return 0
@@ -51,6 +55,10 @@ class https_channel (http_server.http_channel):
 
         except MemoryError:
             lifetime.shutdown (1, 1.0)
+
+        except (ConnectionRefusedError, ConnectionResetError):
+            self.handle_close ()
+            return b''
 
         except ssl.SSLError as why:
             if why.errno == ssl.SSL_ERROR_WANT_READ:

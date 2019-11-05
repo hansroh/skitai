@@ -58,14 +58,14 @@ class http3_channel (https_server.https_channel, http_server.http_channel):
     def recv (self, buffer_size):
         try:
             return http_server.http_channel.recv (self, buffer_size)
-        except ConnectionRefusedError:
+        except (ConnectionRefusedError, ConnectionResetError):
             self.handle_close ()
             return b''
 
     def send (self, data):
         try:
             return http_server.http_channel.send (self, data)
-        except ConnectionRefusedError:
+        except (ConnectionRefusedError, ConnectionResetError):
             self.handle_close ()
             return 0
 
