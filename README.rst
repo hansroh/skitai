@@ -1617,6 +1617,9 @@ HTTP/3.0 (Experimental)
 
 Skitai has been launched experimetnal HTTP/3 on QUIC with aioquic_.
 
+*WARNING*: DO NOT use this for your production services. You must aware
+that it is experimetal and unstable yet.
+
 HTTP3 can be run with https, you need a certification for it.
 
 .. code:: python

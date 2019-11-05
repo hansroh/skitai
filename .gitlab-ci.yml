@@ -5,10 +5,10 @@ before_script:
 variables:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
-cache:
-  paths:
-    - .cache/pip
-    - venv/
+# cache:
+#   paths:
+#     - .cache/pip
+#     - venv/
 
 .before_python_test: &before_python_test
     before_script:
