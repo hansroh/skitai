@@ -411,7 +411,8 @@ class http_server (asyncore.dispatcher):
                     if ACTIVE_WORKERS < numworker:
                         pid = os.fork ()
                         if pid == 0:
-                            os.name != 'nt' and drop_privileges ()
+                            if os.name != 'nt' and (not self.altsvc or (self.altsvc and self.altsvc.port >= 1024)):
+                                drop_privileges ()
                             self.worker_ident = "w%d" % len (PID)
                             set_process_name ("%s:%s" % (skitai.get_proc_title (), self.worker_ident))
                             PID = {}
