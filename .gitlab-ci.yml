@@ -60,15 +60,15 @@ cache:
 #   <<: *before_python_test
 #   <<: *test
 
-# python 3.7stretch:
-#   image: python:3.7-stretch
-#   <<: *before_python_test
-#   <<: *test
-
-python pypy3:
-  image: pypy:3
-  <<: *before_pypy_test
+python 3.7stretch:
+  image: python:3.7-stretch
+  <<: *before_python_test
   <<: *test
+
+# python pypy3:
+#   image: pypy:3
+#   <<: *before_pypy_test
+#   <<: *test
 
 # python 3.8stretch:
 #   image: python:3.8-stretch
