@@ -1635,6 +1635,28 @@ TCP port number.
 This will make both HTTP/2 and HTTP/3 services. and pushing promise
 is just same as HTTP/2.0.
 
+You can test HTTP/3.0 with `Chrome Canary`_ with some restrict.
+
+You can run Chrome Canary with command line options,
+
+.. code:: python
+
+   chrome.exe --enable-quic --quic-version=h3-23
+
+At broweser's developer window, you can see protocol as *http/2+quic/99*.
+
+Note: At this time, you may use UDP 443 port and note that for using this
+port, you must have root privilege.
+
+And it may very dangerous, because Skitai UDP server binds this port
+per client conection for performance reason, Skitai cannot drop root
+privilege after service started.
+
+You would be better giving permissionto port 443 for web service account.
+
+I hope http/3 can be served at another high ports.
+
+.. _`Chrome Canary` :https://www.google.com/intl/ko_ALL/chrome/canary/
 .. _aioquic: https://github.com/aiortc/aioquic
 
 

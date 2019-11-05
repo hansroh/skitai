@@ -26,7 +26,7 @@ class http3_producer (http2_handler.http2_producer):
 
 class http3_request_handler (http2_handler.http2_request_handler):
     producer_class = http3_producer
-    stateless_retry = True
+    stateless_retry = False
 
     def __init__ (self, handler, request):
         self.handler = handler
