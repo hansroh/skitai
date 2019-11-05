@@ -110,8 +110,9 @@ class http3_server (http_server.http_server):
     sock_type = socket.SOCK_DGRAM
     VERSION = 'h3-23'
 
-    def __init__ (self, ip, port, ctx, server_logger = None, request_logger = None):
+    def __init__ (self, ip, port, ssl_port, ctx, server_logger = None, request_logger = None):
         http_server.http_server.__init__ (self, ip, port, server_logger, request_logger)
+        self.ssl_port = ssl_port
         self.ctx = ctx
         self.ticket_store = SessionTicketStore ()
 

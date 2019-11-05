@@ -323,7 +323,7 @@ class http2_request_handler (FlowControlWindow):
                 del self.priorities [stream_id]
 
         if self.altsvc:
-            headers.append (("alt-svc", '{}=":{}"; ma=86400'.format (self.altsvc.VERSION, self.altsvc.port)))
+            headers.append (("alt-svc", '{}=":{}"; ma=86400'.format (self.altsvc.VERSION, self.altsvc.ssl_port)))
 
         if trailers:
             assert producer, "http/2 or 3's trailser requires body"

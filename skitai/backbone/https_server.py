@@ -86,7 +86,7 @@ class https_server (http_server.http_server):
             else:
                 from . import http3_server
                 ctx = http3_server.init_context (*self.CERTINFO)
-                self.altsvc = http3_server.http3_server (ip, quic, ctx, server_logger, request_logger)
+                self.altsvc = http3_server.http3_server (ip, quic, port, ctx, server_logger, request_logger)
 
     def install_handler (self, handler, back = 1):
         super ().install_handler (handler, back)
