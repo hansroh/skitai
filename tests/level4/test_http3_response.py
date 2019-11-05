@@ -10,8 +10,8 @@ def test_http2 (launch):
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
         resp = engine.http2.get ('/hello?num=1')
         assert resp.text == 'hello'
-        assert 'alt-svc' in resp.headers
-        assert resp.headers ['alt-svc'] == 'h3-23=":30371"; ma=86400'
+        if sys.version_info.major > 3 or (sys.version_info.major == 3 and sys.version_info.minor >= 6):
+            assert resp.headers ['alt-svc'] == 'h3-23=":30371"; ma=86400'
 
         resp = engine.http2.get ('/hello?num=2')
         assert resp.text == 'hello\nhello'
