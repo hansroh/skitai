@@ -115,6 +115,7 @@ class http2_request_handler (FlowControlWindow):
     producer = None
     http11_terminator = 24
     producer_class = http2_producer
+    altsvc = None
 
     def __init__ (self, handler, request):
         self.handler = handler
@@ -131,6 +132,7 @@ class http2_request_handler (FlowControlWindow):
         self.buf = b""
         self._got_preamble = False
         self.default_varialbes ()
+        self.altsvc = request.channel.server.altsvc
 
     def default_varialbes (self):
         self.producers = []
@@ -314,6 +316,10 @@ class http2_request_handler (FlowControlWindow):
                 depends_on, weight = 0, 1
             else:
                 del self.priorities [stream_id]
+
+        if self.altsvc:
+            headers.append (("alt-svc", '{}=":{}"; ma=86400'.format (self.altsvc.VERSION, self.altsvc.port)))
+
         if trailers:
             assert producer, "http/2 or 3's trailser requires body"
         if producer and do_optimize:
@@ -553,10 +559,6 @@ class Handler (wsgi_handler.Handler):
         return True
 
     def handle_request (self, request):
-        altsvc = request.channel.server.altsvc
-        if altsvc:
-            request.response.set_header ("Alt-Svc", '{}=":{}"'.format (altsvc.VERSION, altsvc.port))
-
         is_http2 = False
         if request.command == "pri" and request.uri == "*" and request.version == "2.0":
             is_http2 = True
