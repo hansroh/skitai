@@ -27,7 +27,7 @@ class http3_producer (http2_handler.http2_producer):
 class http3_request_handler (http2_handler.http2_request_handler):
     producer_class = http3_producer
     stateless_retry = False
-
+    conns = {}
     def __init__ (self, handler, request):
         self.handler = handler
         self.wasc = handler.wasc
@@ -35,6 +35,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self.channel = request.channel
         self.quic = None
         self.conn = None
+        self.cid = None
         self._retry = QuicRetryTokenHandler() if self.stateless_retry else None
         self.default_varialbes ()
 
@@ -48,7 +49,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
             self._has_sendables = False
         return frames
 
-    def make_quic (self, channel, data):
+    def make_connection (self, channel, data):
         ctx = channel.server.ctx
 
         buf = Buffer (data=data)
@@ -66,7 +67,15 @@ class http3_request_handler (http2_handler.http2_request_handler):
             )
             return
 
-        assert len (data) >= 1200 and header.packet_type == PACKET_TYPE_INITIAL
+        conn = self.conns.get (header.destination_cid)
+        if conn:
+            self.quic = conn._quic
+            self.conn = conn
+            return
+
+        if header.packet_type != PACKET_TYPE_INITIAL or len (data) < 1200:
+            return
+
         original_connection_id = None
         if self._retry is not None:
             if not header.token:
@@ -74,38 +83,31 @@ class http3_request_handler (http2_handler.http2_request_handler):
                 channel.push (
                     encode_quic_retry (
                         version = header.version,
-                        source_cid = os.urandom(8),
+                        source_cid = os.urandom (8),
                         destination_cid = header.source_cid,
                         original_destination_cid = header.destination_cid,
-                        retry_token = self._retry.create_token (channel.addr, header.destination_cid),
-                    )
-                )
+                        retry_token = self._retry.create_token (channel.addr, header.destination_cid)))
                 return
-
             else:
                 try:
-                    original_connection_id = self._retry.validate_token (
-                        channel.addr, header.token
-                    )
+                    original_connection_id = self._retry.validate_token (channel.addr, header.token)
                 except ValueError:
                     return
 
-        # create new connection
-        return QuicConnection (
+        self.quic = QuicConnection (
             configuration = ctx,
             logger_connection_id = original_connection_id or header.destination_cid,
             original_connection_id = original_connection_id,
             session_ticket_fetcher = channel.server.ticket_store.pop,
             session_ticket_handler = channel.server.ticket_store.add
         )
+        self.conn = h3.H3Connection (self.quic)
 
     def collect_incoming_data (self, data):
         if self.quic is None:
-             self.quic = self.make_quic (self.channel, data)
+             self.make_connection (self.channel, data)
              if self.quic is None:
                  return
-             self.conn = h3.H3Connection (self.quic)
-
         with self._plock:
             self.quic.receive_datagram (data, self.channel.addr, time.monotonic ())
         self.process_quic_events ()
@@ -113,9 +115,10 @@ class http3_request_handler (http2_handler.http2_request_handler):
 
     def go_away (self, errcode = h3.ErrorCode.HTTP_NO_ERROR, msg = None):
         with self._plock:
-            self.quic.close (error_code=errcode, reason_phrase=msg)
-        self.send_data ()
-        self.channel.close_when_done ()
+            self.quic.close (error_code=errcode, frame_type = h3.FrameType.GOAWAY, reason_phrase=msg)
+        if self.channel:
+            self.send_data ()
+            self.channel.close_when_done ()
 
     def ping (self, uid):
         with self._plock:
@@ -130,13 +133,24 @@ class http3_request_handler (http2_handler.http2_request_handler):
             event = self.quic.next_event ()
         while event is not None:
             if isinstance(event, events.ConnectionIdIssued):
-                pass
-            elif isinstance(event, (events.ConnectionTerminated, events.ConnectionIdRetired)):
+                self.conns [event.connection_id] = self.conn
+
+            elif isinstance(event, events.ConnectionIdRetired):
+                assert self.conns [event.connection_id] == self.conn
+                conn = self.conns.pop (event.connection_id)
+
+            elif isinstance(event, events.ConnectionTerminated):
+                for cid, conn in list (self.conns.items()):
+                    if conn == self.conn:
+                        del self.conns [cid]
                 self.close ()
+
             elif isinstance(event, events.HandshakeCompleted):
                 pass
+
             elif isinstance(event, events.PingAcknowledged):
                 pass
+
             self.handle_events (self.conn.handle_event (event))
             with self._plock:
                 event = self.quic.next_event ()

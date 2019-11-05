@@ -177,16 +177,21 @@ class http2_request_handler (FlowControlWindow):
             return [data_to_send]
         return []
 
+    def go_away (self, errcode = 0, msg = None):
+        with self._plock:
+            self.conn.close_connection (errcode, msg)
+        if self.channel:
+            self.send_data ()
+            self.channel.close_when_done ()
+
     def close (self, errcode = 0, msg = None):
         if self._closed: return
         self._closed = True
-        if self.channel:
-            self.go_away (errcode) # go_away
-
         with self._clock:
             stream_ids = list (self.requests.keys ())
         for stream_id in stream_ids:
             self.remove_request (stream_id)
+        self.go_away ()
 
     def enter_shutdown_process (self):
         self.close (ErrorCodes.NO_ERROR)
@@ -377,7 +382,7 @@ class http2_request_handler (FlowControlWindow):
                     self.channel.producer_fifo.remove (event.stream_id)
 
             elif isinstance(event, ConnectionTerminated):
-                self.close (True)
+                self.close ()
 
             elif isinstance(event, PriorityUpdated):
                 if event.exclusive:
@@ -415,12 +420,6 @@ class http2_request_handler (FlowControlWindow):
                         # this is for async streaming request like proxy request
                         # self.remove_request (event.stream_id)
         self.send_data ()
-
-    def go_away (self, errcode = 0, msg = None):
-        with self._plock:
-            self.conn.close_connection (errcode, msg)
-        self.send_data ()
-        self.channel.close_when_done ()
 
     def reset_stream (self, stream_id, errcode = ErrorCodes.CANCEL):
         closed = False
