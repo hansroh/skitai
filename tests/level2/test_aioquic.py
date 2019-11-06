@@ -54,6 +54,7 @@ def datagram_sizes(items):
 # test ----------------------------------------------------
 def test_tls ():
     if not QUICK_ENABLED: return
+
     ctx = http3_server.init_context (
         './examples/resources/certifications/server.crt',
         './examples/resources/certifications/server.key',
@@ -64,6 +65,7 @@ def test_tls ():
 
 def test_quic_compatibility ():
     if not QUICK_ENABLED: return
+
     now = 0.0
     client = make_client ()
     client.connect(SERVER_ADDR, now=now)

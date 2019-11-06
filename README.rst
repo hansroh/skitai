@@ -1631,7 +1631,7 @@ HTTP3 can be run with https, you need a certification for it.
   skitai.mount ("/", "./static")
   skitai.run (name = "my-service", port = 443, quic = 4433)
 
-And for avoind port permission, you re-route from UDP 443 to 4433.
+And to avond port permission, you make port forwarding from UDP 443 to 4433.
 
 .. code:: bash
 
@@ -1641,38 +1641,41 @@ Also you open firewall UDP 443 not 4433.
 
 *Note*: This MUST BE DONE, becasue:
 
-- Main reason is if QUIC port is not 443, it may be ignored by clients'
-  browsers
-- Secondary, Skitai will bind UDP port 443 per every clients for performance
-  reason, and you need root privileges for it and it is not very good idea.
-  Also skitai doesn't allow keeping root privileges after start up
+- If QUIC port is not 443, it may be ignored by clients' browsers
+- Secondary, Skitai will bind UDP port 443 per every clients for
+  performance reason, and it need root privileges for running and
+  it is not good idea. Also skitai doesn't allow keeping root
+  privileges after started
 
-This will make both HTTP/2 and HTTP/3 services on TCP/UDP port 443.
+This make both HTTP/2 and HTTP/3 services on TCP/UDP port 443.
 
-And you need sudo for binding TCP port 443 and reading certification on startup.
+And you need sudo for binding TCP port 443 and reading certification
+on starting.
 
 .. code:: bash
 
-  sudo ./serve.py
+  sudo python3 ./serve.py
 
-After started, Skitai will drop root privileges and fall back to current user's.
+After started, Skitai will drop root privileges and fall back to
+current user's.
 
 Also pushing promise is just same as HTTP/2.0.
 
 
-You can test HTTP/3.0 with `Chrome Canary`_ with some restrict.
+You can test HTTP/3.0 with `Chrome Canary`_ build.
 
-You can run Chrome Canary with command line options,
+You have to run Chrome Canary with command line options,
 
 .. code:: bash
 
    chrome.exe --enable-quic --quic-version=h3-23
 
-At your browser's developer window, you can see protocol as *http/2+quic/99*.
+At your browser's developer window, you can see protocol as
+*http/2+quic/99* during you loading your web page and files.
 
 
-.. _`Chrome Canary`: https://www.google.com/intl/ko_ALL/chrome/canary/
 .. _aioquic: https://github.com/aiortc/aioquic
+.. _`Chrome Canary`: https://www.google.com/intl/ko_ALL/chrome/canary/
 
 
 HTML5 Websocket
