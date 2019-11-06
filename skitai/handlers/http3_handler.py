@@ -33,9 +33,8 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self.wasc = handler.wasc
         self.request = request
         self.channel = request.channel
-        self.quic = None
-        self.conn = None
-        self.cid = None
+        self.quic = None # QUIC protocol
+        self.conn = None # HTTP3 Protocol
         self._retry = QuicRetryTokenHandler() if self.stateless_retry else None
         self.default_varialbes ()
 
