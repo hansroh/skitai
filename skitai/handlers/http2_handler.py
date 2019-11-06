@@ -152,15 +152,26 @@ class http2_request_handler (FlowControlWindow):
     def data_from_producers (self, force_close_error_code):
         for i in range (len (self.producers)):
             with self._clock:
-                producer = self.producers [0]
+                try:
+                    producer = self.producers [0]
+                except IndexError:
+                    # maybe removed by reset stream
+                    break
+
             produced = producer.produce ()
             if producer.is_stream_ended ():
                 with self._clock:
-                    self.producers.pop (0)
+                    try:
+                        self.producers.pop (0)
+                    except IndexError:
+                        # maybe removed by reset stream
+                        break
+
                 r = self.get_request (producer.stream_id)
                 self.remove_request (producer.stream_id)
                 if producer.force_close:
                     return self.go_away (force_close_error_code)
+
             if produced:
                 break
             with self._clock:
@@ -380,7 +391,8 @@ class http2_request_handler (FlowControlWindow):
                         try: r.collector.stream_has_been_reset ()
                         except AttributeError: pass
                         r.set_stream_ended ()
-                    self.channel.producer_fifo.remove (event.stream_id)
+                    self.remove_request (event.stream_id)
+                    self.remove_send_stream (event.stream_id)
 
             elif isinstance(event, ConnectionTerminated):
                 self.close ()
@@ -422,6 +434,12 @@ class http2_request_handler (FlowControlWindow):
                         self.remove_request (event.stream_id)
 
         self.send_data ()
+
+    def remove_send_stream (self, stream_id):
+        with self._clock:
+            for i in range (len (self.producers)):
+                if self.producers [i].stream_id == stream_id:
+                    self.producers.pop (i)
 
     def reset_stream (self, stream_id, errcode = ErrorCodes.CANCEL):
         closed = False
