@@ -1579,6 +1579,9 @@ HTTP/2.0
 Skiai supports HTPT2 both 'h2' protocl over encrypted TLS and 'h2c'
 for clear text (But now Sep 2016, there is no browser supporting h2c protocol).
 
+Push Promise
+---------------------
+
 Basically you have nothing to do for HTTP2. Client's browser will
 handle it except `HTTP2 server push`_.
 
@@ -1615,10 +1618,17 @@ HTTP/3.0 (Experimental)
 
 **Python>=3.6 is required**
 
+Testing HTPP3 and QUIC
+------------------------------
+
 Skitai has been launched experimetnal HTTP/3 on QUIC with aioquic_.
 
 *WARNING*: DO NOT use this for your production services. You must aware
 that it is experimetal and unstable yet.
+
+
+Configuring and Lauching
+---------------------------------
 
 HTTP3 can be run with https, you need a certification for it.
 
@@ -1659,8 +1669,14 @@ on starting.
 After started, Skitai will drop root privileges and fall back to
 current user's.
 
-Also pushing promise is just same as HTTP/2.0.
+Push Promise
+---------------------
 
+Pushing promise is just same as HTTP/2.0.
+
+
+Testing HTTP/3 and QUIC
+------------------------------
 
 You can test HTTP/3.0 with `Chrome Canary`_ build.
 
