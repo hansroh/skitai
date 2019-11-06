@@ -17,5 +17,3 @@ asgiref
 httpbin
 starlette
 wsproto
-tfserver
-tensorflow==1.13.2

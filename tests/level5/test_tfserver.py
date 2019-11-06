@@ -1,7 +1,5 @@
 import pytest
 import skitai
-from tfserver import cli
-from dnn.predutil import TFServer
 import numpy as np
 import os
 import json
@@ -12,6 +10,12 @@ Y = [0.0, 1.0]
 SEQLEN = 12
 
 def test_tfserver ():
+    try:
+        from tfserver import cli
+        from dnn.predutil import TFServer
+    except ImportError:
+        return
+
     serve = "./examples/tfserve.py"
     with skitai.test_client (serve, port = 30371, silent = False):
         s = TFServer ("http://127.0.0.1:30371", "test")

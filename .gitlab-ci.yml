@@ -22,6 +22,7 @@ variables:
       - python -c 'from aquests.protocols.grpc import discover'
       - pip install --no-cache-dir atila
       - pip install -Ur tests/requirements.txt
+      - pip install -U tfserver tensorflow==1.13.2
       - pip install -U --force pymongo
 
 .before_pypy_test: &before_pypy_test
