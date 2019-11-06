@@ -106,6 +106,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self.conn._linked_channel = channel
 
     def collect_incoming_data (self, data):
+        # print ('collect_incoming_data', self.quic, len (data))
         if self.quic is None:
              self.make_connection (self.channel, data)
              if self.quic is None:
@@ -116,8 +117,9 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self.send_data ()
 
     def go_away (self, errcode = h3.ErrorCode.HTTP_NO_ERROR, msg = None):
-        with self._plock:
-            self.quic.close (error_code=errcode, frame_type = h3.FrameType.GOAWAY, reason_phrase=msg)
+        if self.quic:
+            with self._plock:
+                self.quic.close (error_code=errcode, frame_type = h3.FrameType.GOAWAY, reason_phrase=msg)
         if self.channel:
             self.send_data ()
             self.channel.close_when_done ()
@@ -134,6 +136,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
         with self._plock:
             event = self.quic.next_event ()
         while event is not None:
+            # print (event.__class__.__name__)
             if isinstance(event, events.ConnectionIdIssued):
                 self.conns [event.connection_id] = self.conn
 
@@ -197,7 +200,8 @@ class http3_request_handler (http2_handler.http2_request_handler):
 
 
 class Handler (http2_handler.Handler):
-    keep_alive = 120
+    # keep_alive = 37 same as http2
+    # chrome QUIC timout is 30s but first time it extends more 30s only one time
     def match (self, request):
         return request.version.startswith ("3.")
 

@@ -178,8 +178,9 @@ class http2_request_handler (FlowControlWindow):
         return []
 
     def go_away (self, errcode = 0, msg = None):
-        with self._plock:
-            self.conn.close_connection (errcode, msg)
+        if self.conn:
+            with self._plock:
+                self.conn.close_connection (errcode, msg)
         if self.channel:
             self.send_data ()
             self.channel.close_when_done ()
@@ -549,7 +550,7 @@ class h2_request_handler (http2_request_handler):
 
 
 class Handler (wsgi_handler.Handler):
-    keep_alive = 120
+    keep_alive = 37 # chrome QUIC timout is prox. 30
 
     def __init__(self, wasc, default_handler = None):
         wsgi_handler.Handler.__init__(self, wasc, None)
