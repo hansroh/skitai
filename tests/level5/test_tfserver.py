@@ -1,6 +1,5 @@
 import pytest
 import skitai
-import numpy as np
 import os
 import json
 import requests
@@ -12,6 +11,7 @@ SEQLEN = 12
 def test_tfserver ():
     try:
         from tfserver import cli
+        import numpy as np
         from dnn.predutil import TFServer
     except ImportError:
         return
