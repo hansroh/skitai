@@ -440,6 +440,7 @@ class http2_request_handler (FlowControlWindow):
             for i in range (len (self.producers)):
                 if self.producers [i].stream_id == stream_id:
                     self.producers.pop (i)
+                    break
 
     def reset_stream (self, stream_id, errcode = ErrorCodes.CANCEL):
         closed = False
