@@ -68,6 +68,8 @@ class http3_request_handler (http2_handler.http2_request_handler):
 
         conn = self.conns.get (header.destination_cid)
         if conn:
+            conn._linked_channel.close ()
+            conn._linked_channel = channel
             self.quic = conn._quic
             self.conn = conn
             return
@@ -101,6 +103,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
             session_ticket_handler = channel.server.ticket_store.add
         )
         self.conn = h3.H3Connection (self.quic)
+        self.conn._linked_channel = channel
 
     def collect_incoming_data (self, data):
         if self.quic is None:
@@ -137,10 +140,12 @@ class http3_request_handler (http2_handler.http2_request_handler):
             elif isinstance(event, events.ConnectionIdRetired):
                 assert self.conns [event.connection_id] == self.conn
                 conn = self.conns.pop (event.connection_id)
+                conn._linked_channel = None
 
             elif isinstance(event, events.ConnectionTerminated):
                 for cid, conn in list (self.conns.items()):
                     if conn == self.conn:
+                        conn._linked_channel = None
                         del self.conns [cid]
                 self.close ()
 
@@ -170,7 +175,6 @@ class http3_request_handler (http2_handler.http2_request_handler):
                     try:
                         r.channel.set_data (event.data, len (event.data))
                     except ValueError:
-                        # from vchannel.handle_read () -> collector.collect_inconing_data ()
                         self.go_away (ErrorCodes.HTTP_REQUEST_CANCELLED)
 
                     if event.stream_ended:
@@ -178,10 +182,9 @@ class http3_request_handler (http2_handler.http2_request_handler):
                             r.channel.handle_read ()
                             r.channel.found_terminator ()
                         r.set_stream_ended ()
-                        #if r.response.is_done ():
-                            # DO NOT REMOVE before responsing
-                            # this is for async streaming request like proxy request
-                            # self.remove_request (event.stream_id)
+                        if r.response.is_done ():
+                            self.remove_request (event.stream_id)
+
         self.send_data ()
 
     def push_promise (self, stream_id, request_headers, addtional_request_headers):
@@ -200,6 +203,6 @@ class Handler (http2_handler.Handler):
 
     def handle_request (self, request):
         http3 = http3_request_handler (self, request)
-        request.channel.die_with (http3, "http3 stream")
+        request.channel.die_with (http3, "http3 connection")
         request.channel.set_socket_timeout (self.keep_alive)
         request.channel.current_request = http3

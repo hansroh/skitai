@@ -415,10 +415,11 @@ class http2_request_handler (FlowControlWindow):
                         r.channel.handle_read ()
                         r.channel.found_terminator ()
                     r.set_stream_ended ()
-                    # if r.response.is_done ():
-                        # DO NOT REMOVE before responsing
+                    if r.response.is_done ():
+                        # DO NOT REMOVE before responsing:
                         # this is for async streaming request like proxy request
-                        # self.remove_request (event.stream_id)
+                        self.remove_request (event.stream_id)
+
         self.send_data ()
 
     def reset_stream (self, stream_id, errcode = ErrorCodes.CANCEL):
@@ -569,7 +570,7 @@ class Handler (wsgi_handler.Handler):
             return self.default_handler.handle_request (request)
 
         http2 = http2_request_handler (self, request)
-        request.channel.die_with (http2, "http2 stream")
+        request.channel.die_with (http2, "http2 connection")
         request.channel.set_socket_timeout (self.keep_alive)
 
         if request.version == "1.1":
