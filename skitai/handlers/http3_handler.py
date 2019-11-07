@@ -5,7 +5,19 @@ import os
 from . import http2_handler
 from aioquic.quic import events
 from aioquic.h3 import connection as h3
-from aioquic.h3.events import DataReceived, HeadersReceived, PushPromiseReceived, H3Event
+from aioquic.h3.events import DataReceived, HeadersReceived, H3Event
+try:
+    from aioquic.h3.events import PushCanceled, ConnectionShutdownInitiated
+except:
+    from dataclasses import dataclass
+    @dataclass
+    class PushCanceled (H3Event):
+        push_id: int
+
+    @dataclass
+    class ConnectionShutdownInitiated (H3Event):
+        stream_id: int
+
 from aioquic.h3.exceptions import H3Error, NoAvailablePushIDError
 from aioquic.quic.connection import stream_is_unidirectional
 from aioquic.buffer import Buffer
@@ -16,6 +28,7 @@ from aioquic.quic.packet import (
     encode_quic_retry,
     encode_quic_version_negotiation,
     pull_quic_header,
+    QuicErrorCode
 )
 from aioquic.quic.retry import QuicRetryTokenHandler
 from aioquic.quic.connection import QuicConnection
@@ -35,18 +48,10 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self.channel = request.channel
         self.quic = None # QUIC protocol
         self.conn = None # HTTP3 Protocol
+        self._pushes = {}
+        self._close_pending = False
         self._retry = QuicRetryTokenHandler() if self.stateless_retry else None
         self.default_varialbes ()
-
-    def data_to_send (self):
-        if self.quic is None:
-            return []
-        self.data_from_producers (h3.ErrorCode.HTTP_REQUEST_CANCELLED)
-        with self._plock:
-            frames = [data for data, addr in self.quic.datagrams_to_send (now = time.monotonic ())]
-        if not frames and not self.producers:
-            self._has_sendables = False
-        return frames
 
     def make_connection (self, channel, data):
         ctx = channel.server.ctx
@@ -116,18 +121,56 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self.process_quic_events ()
         self.send_data ()
 
-    def go_away (self, errcode = h3.ErrorCode.HTTP_NO_ERROR, msg = None):
-        if self.quic:
-            with self._plock:
-                self.quic.close (error_code=errcode, frame_type = h3.FrameType.GOAWAY, reason_phrase=msg)
-        if self.channel:
-            self.send_data ()
-            self.channel.close_when_done ()
+    def remove_request (self, stream_id):
+        with self._clock:
+            try:
+                self._pushes.pop (stream_id)
+            except KeyError:
+                pass
+        super ().remove_request (stream_id)
 
-    def ping (self, uid):
+    def remove_stream (self, push_id):
+        with self._clock:
+            try:
+                stream_id = self._pushes.pop (push_id)
+            except KeyError:
+                return
+        super ().remove_stream (push_id)
+
+    def reset_stream (self, stream_id):
+        raise AttributeError ('HTTP/3 dose not support reset_stream')
+
+    def cancel_push (self, push_id):
+        with self._clock:
+            try:
+                steram_id = self._pushes.pop (push_id)
+            except KeyError:
+                return # already done or canceled
+        if stream_id:
+            with self._plock:
+                if hasattr (self.conn, 'send_cancel_push'):
+                    self.conn.send_cancel_push (stream_id)
+            self.remove_stream (stream_id)
+            self.send_data ()
+
+    def data_to_send (self):
+        if self.quic is None or self._closed:
+            return []
+        self.data_from_producers (h3.ErrorCode.HTTP_REQUEST_CANCELLED)
         with self._plock:
-            self.quic.send_ping (uid)
-        self.send_data ()
+            data_to_send = [data for data, addr in self.quic.datagrams_to_send (now = time.monotonic ())]
+        return data_to_send or self.data_exhausted ()
+
+    def terminate_connection (self, with_quic = True):
+        if with_quic and self.quic:
+            self.quic.close ()
+            self.send_data ()
+        super ().terminate_connection ()
+
+    def initiate_shutdown (self, errcode = 0, msg = ''):
+        if hasattr (self.conn, 'close_connection'):
+            with self._plock:
+                self.conn.close_connection ()
 
     def pushable (self):
         return True
@@ -150,7 +193,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
                     if conn == self.conn:
                         conn._linked_channel = None
                         del self.conns [cid]
-                self.close ()
+                self.terminate_connection (with_quic = False)
 
             elif isinstance(event, events.HandshakeCompleted):
                 pass
@@ -173,12 +216,12 @@ class http3_request_handler (http2_handler.http2_request_handler):
             elif isinstance(event, DataReceived) and event.data:
                 r = self.get_request (event.stream_id)
                 if not r:
-                    self.go_away (h3.ErrorCode.HTTP_REQUEST_CANCELLED)
+                    self.close (QuicErrorCode.INTERNAL_ERROR)
                 else:
                     try:
                         r.channel.set_data (event.data, len (event.data))
                     except ValueError:
-                        self.go_away (ErrorCodes.HTTP_REQUEST_CANCELLED)
+                        self.close (QuicErrorCode.INTERNAL_ERROR)
 
                     if event.stream_ended:
                         if r.collector:
@@ -188,15 +231,24 @@ class http3_request_handler (http2_handler.http2_request_handler):
                         if r.response.is_done ():
                             self.remove_request (event.stream_id)
 
+            elif isinstance(event, ConnectionShutdownInitiated):
+                pass
+
+            elif isinstance(event, PushCanceled):
+                self.remove_stream (event.push_id)
+
         self.send_data ()
 
     def push_promise (self, stream_id, request_headers, addtional_request_headers):
         headers = [(k.encode (), v.encode ()) for k, v in request_headers + addtional_request_headers]
         try:
             promise_stream_id = self.conn.send_push_promise (stream_id = stream_id, headers = headers)
+            push_id = self.conn.get_latest_push_id ()
         except NoAvailablePushIDError:
             return
-        self.handle_events ([HeadersReceived (headers = headers, stream_ended = True, stream_id = promise_stream_id)])
+        with self._clock:
+            self._pushes [push_id] = promise_stream_id
+        self.handle_events ([HeadersReceived (headers = headers, stream_ended = True, stream_id = promise_stream_id, push_id = push_id)])
 
 
 class Handler (http2_handler.Handler):

@@ -36,6 +36,7 @@ class https_channel (http_server.http_channel):
         if result <= 0:
             return 0
         else:
+            self.bytes_out.inc (result)
             self.server.bytes_out.increment(result)
             return result
 
@@ -50,7 +51,9 @@ class https_channel (http_server.http_channel):
                 return b''
 
             else:
-                self.server.bytes_in.increment(len(result))
+                lr = len(result)
+                self.server.bytes_in.inc (lr)
+                self.bytes_in.inc (lr)
                 return result
 
         except MemoryError:
@@ -82,7 +85,7 @@ class https_server (http_server.http_server):
         self.socket = self.ctx.wrap_socket (self.socket, server_side = True)
         if quic:
             if sys.version_info.major == 3 and sys.version_info.minor < 6:
-                self.log ('unsupoorted Python version for QUIC, DISABLED', 'error')
+                self.log ('unsupported Python version for QUIC, DISABLED', 'error')
             else:
                 from . import http3_server
                 ctx = http3_server.init_context (*self.CERTINFO)

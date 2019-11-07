@@ -169,13 +169,13 @@ class http_channel (asynchat.async_chat):
         self.event_time = int (time.time())
         try:
             result = asynchat.async_chat.recv (self, buffer_size)
-            lr = len (result)
-            self.server.bytes_in.inc (lr)
-            self.bytes_in.inc (lr)
             if not result:
                 self.handle_close ()
                 return b""
             #print    ("RECV", repr(result), self.get_terminator ())
+            lr = len (result)
+            self.server.bytes_in.inc (lr)
+            self.bytes_in.inc (lr)
             return result
 
         except MemoryError:

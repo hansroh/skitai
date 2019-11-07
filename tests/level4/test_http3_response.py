@@ -11,7 +11,7 @@ def test_http2 (launch):
         resp = engine.http2.get ('/hello?num=1')
         assert resp.text == 'hello'
         if sys.version_info.major > 3 or (sys.version_info.major == 3 and sys.version_info.minor >= 6):
-            assert resp.headers ['alt-svc'] == 'h3-23=":30371"; ma=86400'
+            assert 'h3-23=":30371"; ma=86400' in resp.headers ['alt-svc']
 
         resp = engine.http2.get ('/hello?num=2')
         assert resp.text == 'hello\nhello'

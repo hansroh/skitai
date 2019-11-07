@@ -108,12 +108,15 @@ class SessionTicketStore:
 class http3_server (http_server.http_server):
     ac_in_buffer_size = 65536
     sock_type = socket.SOCK_DGRAM
-    VERSION = 'h3-23'
+    PROTOCOLS = []
+    ALTSVC_HEADER = ''
 
     def __init__ (self, ip, port, ssl_port, ctx, server_logger = None, request_logger = None):
         http_server.http_server.__init__ (self, ip, port, server_logger, request_logger)
         self.ssl_port = ssl_port
         self.ctx = ctx
+        self.PROTOCOLS = self.ctx.alpn_protocols
+        self.ALTSVC_HEADER = ', '.join (['{}=":{}"; ma=86400'.format (p, self.ssl_port) for p in self.PROTOCOLS])
         self.ticket_store = SessionTicketStore ()
 
     def _serve (self, shutdown_phase = 2):
