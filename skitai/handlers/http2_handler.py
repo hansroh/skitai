@@ -1,18 +1,25 @@
-from . import wsgi_handler
 import skitai
-from rs4 import producers
-from h2.connection import H2Connection, GoAwayFrame, DataFrame, H2Configuration
-from h2.exceptions import ProtocolError, NoSuchStreamError, StreamClosedError, FlowControlError
-from h2.events import TrailersReceived, DataReceived, RequestReceived, StreamEnded, PriorityUpdated, ConnectionTerminated, StreamReset, WindowUpdated, RemoteSettingsChanged
+from . import wsgi_handler
+from h2.connection import H2Connection, H2Configuration
+from h2.exceptions import ProtocolError, StreamClosedError, FlowControlError
+from h2.events import TrailersReceived, DataReceived, RequestReceived, StreamEnded, PriorityUpdated, ConnectionTerminated, StreamReset, RemoteSettingsChanged
 from h2.settings import SettingCodes
-from h2.errors import ErrorCodes
 from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
 from aquests.protocols.http2.request_handler import FlowControlWindow
 import threading
 from io import BytesIO
 import time
-import sys
+import enum
+from rs4 import producers
+
+# http3 compat error codes
+class ErrorCodes (enum.IntEnum):
+    NO_ERROR = 0x0
+    PROTOCOL_ERROR = 0x1
+    INTERNAL_ERROR = 0x2
+    FLOW_CONTROL_ERROR = 0x3
+    CANCEL = 0x8
 
 class http2_producer:
     SIZE_BUFFER = 16384
@@ -108,13 +115,13 @@ class http2_producer:
                 self.conn.send_data (self.stream_id, data, end_stream = False)
         return 1
 
-
 class http2_request_handler (FlowControlWindow):
     collector = None
     producer = None
     http11_terminator = 24
     producer_class = http2_producer
     altsvc = None
+    errno = ErrorCodes
 
     def __init__ (self, handler, request):
         self.handler = handler
@@ -202,20 +209,20 @@ class http2_request_handler (FlowControlWindow):
         with self._plock:
             self.conn.close_connection (errcode, msg)
 
-    def close (self, errcode = 0, msg = None):
+    def close (self, errcode = 0x0, msg = None):
         with self._clock:
             if self._closed:
                 return
             self._close_pending = True
         if self.conn:
-            self.initiate_shutdown (errcode)
+            self.initiate_shutdown ()
         if self.channel:
             self.send_data ()
         else:
            self.terminate_connection ()
 
     def enter_shutdown_process (self):
-        self.close (ErrorCodes.NO_ERROR)
+        self.close ()
 
     def closed (self):
         return self._closed
@@ -255,7 +262,7 @@ class http2_request_handler (FlowControlWindow):
         #print ("RECV", repr (data), len (data), '::', self.channel.get_terminator ())
         if not data:
             # closed connection
-            self.close (True)
+            self.close ()
             return
 
         if self.data_length:
@@ -363,8 +370,7 @@ class http2_request_handler (FlowControlWindow):
             self.producers.sort ()
             self.send_data ()
 
-        if force_close:
-            self.close (ErrorCodes.NO_ERROR)
+        force_close and self.close (self.errno.FLOW_CONTROL_ERROR)
 
     def remove_request (self, stream_id):
         r = self.get_request (stream_id)
@@ -423,13 +429,13 @@ class http2_request_handler (FlowControlWindow):
             elif isinstance(event, DataReceived):
                 r = self.get_request (event.stream_id)
                 if not r:
-                    self.close (ErrorCodes.CONNECT_ERROR)
+                    self.close (self.errno.INTERNAL_ERROR)
                 else:
                     try:
                         r.channel.set_data (event.data, event.flow_controlled_length)
                     except ValueError:
                         # from vchannel.handle_read () -> collector.collect_inconing_data ()
-                        self.close (ErrorCodes.CONNECT_ERROR)
+                        self.close (self.errno.INTERNAL_ERROR)
                     else:
                         self.adjust_flow_control_window (event.stream_id)
 
@@ -568,7 +574,7 @@ class http2_request_handler (FlowControlWindow):
                         self.channel.close_when_done ()
                         self.remove_request (1)
                     else:
-                        self.close (ErrorCodes.PROTOCOL_ERROR)
+                        self.close (self.errno.FLOW_CONTROL_ERROR)
                 else:
                     if stream_id == 1 and self.request.version == "1.1":
                         self.data_length = cl

@@ -1,11 +1,20 @@
 from . import http2_handler
-import threading
 import time
 import os
-from . import http2_handler
 from aioquic.quic import events
 from aioquic.h3 import connection as h3
 from aioquic.h3.events import DataReceived, HeadersReceived, H3Event
+from aioquic.h3.exceptions import H3Error, NoAvailablePushIDError
+from aioquic.buffer import Buffer
+from aioquic.quic.packet import (
+    PACKET_TYPE_INITIAL,
+    encode_quic_retry,
+    encode_quic_version_negotiation,
+    pull_quic_header
+)
+from aioquic.quic.retry import QuicRetryTokenHandler
+from aioquic.quic.connection import QuicConnection
+import enum
 try:
     from aioquic.h3.events import PushCanceled
 except:
@@ -14,20 +23,13 @@ except:
     class PushCanceled (H3Event):
         push_id: int
 
-from aioquic.h3.exceptions import H3Error, NoAvailablePushIDError
-from aioquic.quic.connection import stream_is_unidirectional
-from aioquic.buffer import Buffer
-from dataclasses import dataclass
-import collections
-from aioquic.quic.packet import (
-    PACKET_TYPE_INITIAL,
-    encode_quic_retry,
-    encode_quic_version_negotiation,
-    pull_quic_header,
-    QuicErrorCode
-)
-from aioquic.quic.retry import QuicRetryTokenHandler
-from aioquic.quic.connection import QuicConnection
+# http2 compat error codes
+class ErrorCode (enum.IntEnum):
+    NO_ERROR = 0x0
+    PROTOCOL_ERROR = 0xA
+    INTERNAL_ERROR = 0x1
+    FLOW_CONTROL_ERROR = 0x3
+    CANCEL = 0x0
 
 class http3_producer (http2_handler.http2_producer):
     def local_flow_control_window (self):
@@ -37,6 +39,8 @@ class http3_request_handler (http2_handler.http2_request_handler):
     producer_class = http3_producer
     stateless_retry = False
     conns = {}
+    errno = ErrorCode
+
     def __init__ (self, handler, request):
         self.handler = handler
         self.wasc = handler.wasc
@@ -46,6 +50,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self.conn = None # HTTP3 Protocol
         self._pushes = {}
         self._close_pending = False
+        self._close_errno = self.errno.NO_ERROR
         self._retry = QuicRetryTokenHandler() if self.stateless_retry else None
         self.default_varialbes ()
 
@@ -125,16 +130,20 @@ class http3_request_handler (http2_handler.http2_request_handler):
                 pass
         super ().remove_request (stream_id)
 
-    def remove_stream (self, push_id):
+    def reset_stream (self, stream_id):
+        with self._clock:
+            for k, v in self._pushes.items ():
+                if v == stream_id:
+                    return self.cancel_push (k)
+        raise AttributeError ('HTTP/3 can cancel for only push stream')
+
+    def remove_push_stream (self, push_id):
         with self._clock:
             try:
                 stream_id = self._pushes.pop (push_id)
             except KeyError:
                 return
-        super ().remove_stream (push_id)
-
-    def reset_stream (self, stream_id):
-        raise AttributeError ('HTTP/3 dose not support reset_stream')
+        super ().remove_stream (stream_id)
 
     def cancel_push (self, push_id):
         with self._clock:
@@ -146,7 +155,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
             with self._plock:
                 if hasattr (self.conn, 'send_cancel_push'):
                     self.conn.send_cancel_push (stream_id)
-            self.remove_stream (stream_id)
+            self.remove_stream (steram_id)
             self.send_data ()
 
     def data_to_send (self):
@@ -157,9 +166,13 @@ class http3_request_handler (http2_handler.http2_request_handler):
             data_to_send = [data for data, addr in self.quic.datagrams_to_send (now = time.monotonic ())]
         return data_to_send or self.data_exhausted ()
 
+    def close (self, errcode = 0x0, msg = None):
+        self._close_errno = errcode
+        super ().close (errcode, '')
+
     def terminate_connection (self, with_quic = True):
         if with_quic and self.quic:
-            self.quic.close ()
+            self.quic.close (self._close_errno)
             self.send_data ()
         super ().terminate_connection ()
 
@@ -212,12 +225,12 @@ class http3_request_handler (http2_handler.http2_request_handler):
             elif isinstance(event, DataReceived) and event.data:
                 r = self.get_request (event.stream_id)
                 if not r:
-                    self.close (QuicErrorCode.INTERNAL_ERROR)
+                    self.close (self.errno.INTERNAL_ERROR)
                 else:
                     try:
                         r.channel.set_data (event.data, len (event.data))
                     except ValueError:
-                        self.close (QuicErrorCode.INTERNAL_ERROR)
+                        self.close (self.errno.INTERNAL_ERROR)
 
                     if event.stream_ended:
                         if r.collector:
@@ -228,7 +241,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
                             self.remove_request (event.stream_id)
 
             elif isinstance(event, PushCanceled):
-                self.remove_stream (event.push_id)
+                self.remove_push_stream (event.push_id)
 
         self.send_data ()
 

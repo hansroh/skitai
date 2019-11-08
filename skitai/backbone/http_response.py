@@ -275,7 +275,7 @@ class http_response:
 
         if is_html_response:
             self.update ('content-type', 'text/html')
-            return DEFAULT_ERROR_MESSAGE % error
+            return DEFAULT_ERROR_MESSAGE % {k: v or '' for k, v in error.items ()}
         else:
             return self.fault (
                 error ["message"].lower (), errno,
