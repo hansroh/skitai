@@ -74,7 +74,7 @@ With pip
 
 .. code-block:: bash
 
-    pip3 install -U rs4 aquests sqlphile skitai
+    pip3 install -U skitai
 
 With git
 
@@ -82,8 +82,7 @@ With git
 
     git clone https://gitlab.com/hansroh/skitai.git
     cd skitai
-    python3 setup.py install
-    pip3 install -U rs4 aquests sqlphile
+    pip3 install -e .
 
 You have pla to use database engines or protocols which is supported by Skitai, you install them manually.
 
