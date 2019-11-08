@@ -48,7 +48,8 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self.channel = request.channel
         self.quic = None # QUIC protocol
         self.conn = None # HTTP3 Protocol
-        self._pushes = {}
+        self._push_map = {}
+        self._pushed_pathes = {}
         self._close_pending = False
         self._close_errno = self.errno.NO_ERROR
         self._retry = QuicRetryTokenHandler() if self.stateless_retry else None
@@ -125,14 +126,14 @@ class http3_request_handler (http2_handler.http2_request_handler):
     def remove_request (self, stream_id):
         with self._clock:
             try:
-                self._pushes.pop (stream_id)
+                self._push_map.pop (stream_id)
             except KeyError:
                 pass
         super ().remove_request (stream_id)
 
     def reset_stream (self, stream_id):
         with self._clock:
-            for k, v in self._pushes.items ():
+            for k, v in self._push_map.items ():
                 if v == stream_id:
                     return self.cancel_push (k)
         raise AttributeError ('HTTP/3 can cancel for only push stream')
@@ -140,7 +141,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
     def remove_push_stream (self, push_id):
         with self._clock:
             try:
-                stream_id = self._pushes.pop (push_id)
+                stream_id = self._push_map.pop (push_id)
             except KeyError:
                 return
         super ().remove_stream (stream_id)
@@ -148,7 +149,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
     def cancel_push (self, push_id):
         with self._clock:
             try:
-                steram_id = self._pushes.pop (push_id)
+                steram_id = self._push_map.pop (push_id)
             except KeyError:
                 return # already done or canceled
         if stream_id:
@@ -242,21 +243,35 @@ class http3_request_handler (http2_handler.http2_request_handler):
 
             elif isinstance(event, PushCanceled):
                 self.remove_push_stream (event.push_id)
+                with self._clock:
+                    try:
+                        del self._push_map [event.push_id]
+                    except KeyError:
+                        pass
 
         self.send_data ()
 
     def push_promise (self, stream_id, request_headers, addtional_request_headers):
+        _name, path = request_headers [0]
+        assert _name == ':path', ':path header missing'
+        if hasattr (self.conn, 'send_duplicate_push'):
+            push_id = self._pushed_pathes.get (path)
+            if push_id is not None and self._push_map [push_id]:
+                self.conn.send_duplicate_push (stream_id, push_id)
+                return
+
         headers = [(k.encode (), v.encode ()) for k, v in request_headers + addtional_request_headers]
         try:
             promise_stream_id = self.conn.send_push_promise (stream_id = stream_id, headers = headers)
             try:
-                push_id = self.conn.get_latest_push_id ()
+                push_id = self.conn.get_push_id (promise_stream_id)
             except AttributeError:
                 push_id = self.conn._next_push_id - 1
         except NoAvailablePushIDError:
             return
         with self._clock:
-            self._pushes [push_id] = promise_stream_id
+            self._push_map [push_id] = promise_stream_id
+            self._pushed_pathes [path] = push_id
         self.handle_events ([HeadersReceived (headers = headers, stream_ended = True, stream_id = promise_stream_id, push_id = push_id)])
 
 
