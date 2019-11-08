@@ -7,16 +7,12 @@ from aioquic.quic import events
 from aioquic.h3 import connection as h3
 from aioquic.h3.events import DataReceived, HeadersReceived, H3Event
 try:
-    from aioquic.h3.events import PushCanceled, ConnectionShutdownInitiated
+    from aioquic.h3.events import PushCanceled
 except:
     from dataclasses import dataclass
     @dataclass
     class PushCanceled (H3Event):
         push_id: int
-
-    @dataclass
-    class ConnectionShutdownInitiated (H3Event):
-        stream_id: int
 
 from aioquic.h3.exceptions import H3Error, NoAvailablePushIDError
 from aioquic.quic.connection import stream_is_unidirectional
@@ -156,7 +152,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
     def data_to_send (self):
         if self.quic is None or self._closed:
             return []
-        self.data_from_producers (h3.ErrorCode.HTTP_REQUEST_CANCELLED)
+        self.data_from_producers ()
         with self._plock:
             data_to_send = [data for data, addr in self.quic.datagrams_to_send (now = time.monotonic ())]
         return data_to_send or self.data_exhausted ()
@@ -173,7 +169,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
                 self.conn.close_connection ()
 
     def pushable (self):
-        return True
+        return self.request_acceptable ()
 
     def process_quic_events (self):
         with self._plock:
@@ -231,9 +227,6 @@ class http3_request_handler (http2_handler.http2_request_handler):
                         if r.response.is_done ():
                             self.remove_request (event.stream_id)
 
-            elif isinstance(event, ConnectionShutdownInitiated):
-                pass
-
             elif isinstance(event, PushCanceled):
                 self.remove_stream (event.push_id)
 
@@ -243,7 +236,10 @@ class http3_request_handler (http2_handler.http2_request_handler):
         headers = [(k.encode (), v.encode ()) for k, v in request_headers + addtional_request_headers]
         try:
             promise_stream_id = self.conn.send_push_promise (stream_id = stream_id, headers = headers)
-            push_id = self.conn.get_latest_push_id ()
+            try:
+                push_id = self.conn.get_latest_push_id ()
+            except AttributeError:
+                push_id = self.conn._next_push_id - 1
         except NoAvailablePushIDError:
             return
         with self._clock:

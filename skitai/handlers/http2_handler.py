@@ -16,14 +16,13 @@ import sys
 
 class http2_producer:
     SIZE_BUFFER = 16384
-    def __init__ (self, conn, lock, stream_id, headers, producer, trailers, force_close, depends_on = 0, priority = 1, log_hook = None):
+    def __init__ (self, conn, lock, stream_id, headers, producer, trailers, depends_on = 0, priority = 1, log_hook = None):
         self.conn = conn
         self.lock = lock
         self.stream_id = stream_id
         self.headers = headers
         self.producer = producer
         self.trailers = trailers
-        self.force_close = force_close
         self.depends_on = depends_on
         self.priority = priority
         self.log_hook = log_hook
@@ -150,7 +149,7 @@ class http2_request_handler (FlowControlWindow):
     def has_sendables (self):
         return self._has_sendables
 
-    def data_from_producers (self, force_close_error_code):
+    def data_from_producers (self):
         for i in range (len (self.producers)):
             with self._clock:
                 try:
@@ -169,8 +168,6 @@ class http2_request_handler (FlowControlWindow):
                         break
                 r = self.get_request (producer.stream_id)
                 self.remove_request (producer.stream_id)
-                if producer.force_close:
-                    return self.close (force_close_error_code)
 
             if produced:
                 break
@@ -179,17 +176,17 @@ class http2_request_handler (FlowControlWindow):
             continue
 
     def data_exhausted (self):
-        with self._plock:
+        close_pending = False
+        with self._clock:
             if not self.producers:
-                self._has_sendables = False
-                if self._close_pending:
-                    self.terminate_connection ()
+                self._has_sendables, close_pending = False, self._close_pending
+        close_pending and self.terminate_connection ()
         return [] # MUST return
 
     def data_to_send (self):
         if self._closed:
             return []
-        self.data_from_producers (ErrorCodes.CANCEL)
+        self.data_from_producers ()
         with self._plock:
             data_to_send = self.conn.data_to_send ()
         return data_to_send and [data_to_send] or self.data_exhausted ()
@@ -324,8 +321,14 @@ class http2_request_handler (FlowControlWindow):
         if events:
             self.handle_events (events)
 
+    def request_acceptable (self):
+        with self._clock:
+            if self._close_pending or self._closed:
+                return False
+        return True
+
     def pushable (self):
-        return self.conn.remote_settings [SettingCodes.ENABLE_PUSH]
+        return self.request_acceptable () and self.conn.remote_settings [SettingCodes.ENABLE_PUSH]
 
     def push_promise (self, stream_id, request_headers, addtional_request_headers):
         promise_stream_id = self.conn.get_next_available_stream_id ()
@@ -356,9 +359,12 @@ class http2_request_handler (FlowControlWindow):
 
         r = self.get_request (stream_id)
         if r:
-            self.producers.append (self.producer_class (self.conn, self._plock, stream_id, headers, producer, trailers, force_close, depends_on, weight, r.response.maybe_log))
+            self.producers.append (self.producer_class (self.conn, self._plock, stream_id, headers, producer, trailers, depends_on, weight, r.response.maybe_log))
             self.producers.sort ()
             self.send_data ()
+
+        if force_close:
+            self.close (ErrorCodes.NO_ERROR)
 
     def remove_request (self, stream_id):
         r = self.get_request (stream_id)
@@ -474,6 +480,9 @@ class http2_request_handler (FlowControlWindow):
             )
 
     def handle_request (self, stream_id, headers, has_data_frame = False):
+        if not self.request_acceptable ():
+            return
+
         #print ("++REQUEST: %d" % stream_id, headers)
         command = "GET"
         uri = "/"
