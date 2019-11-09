@@ -9,26 +9,19 @@ if sys.version_info >= (3, 6):
 
     from skitai.backbone import http3_server
     import ssl
+    from aioquic.quic import events
     from aioquic.h3 import connection as h3
-    from aioquic.quic.events import ConnectionIdIssued, ConnectionIdRetired, ConnectionTerminated, HandshakeCompleted, PingAcknowledged
-    from aioquic.quic.configuration import QuicConfiguration
-    from aioquic.h3.events import DataReceived, HeadersReceived, PushPromiseReceived, H3Event
+    from aioquic.h3.events import DataReceived, HeadersReceived, H3Event
+    from aioquic.h3.exceptions import H3Error, NoAvailablePushIDError
     from aioquic.buffer import Buffer
     from aioquic.quic.packet import (
         PACKET_TYPE_INITIAL,
         encode_quic_retry,
         encode_quic_version_negotiation,
-        pull_quic_header,
+        pull_quic_header
     )
     from aioquic.quic.retry import QuicRetryTokenHandler
     from aioquic.quic.connection import QuicConnection
-
-    from quicutil.utils import (
-        SERVER_CACERTFILE,
-        SERVER_CERTFILE,
-        SERVER_CERTFILE_WITH_CHAIN,
-        SERVER_KEYFILE,
-    )
 
     CLIENT_ADDR = ("1.2.3.4", 1234)
     SERVER_ADDR = ("2.3.4.5", 4433)

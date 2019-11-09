@@ -42,14 +42,23 @@ class http3_request_handler (http2_handler.http2_request_handler):
     errno = ErrorCode
 
     def __init__ (self, handler, request):
-        self.default_varialbes (handler, request)
-
+        self._default_varialbes (handler, request)
         self.quic = None # QUIC protocol
         self.conn = None # HTTP3 Protocol
+
         self._push_map = {}
         self._retry = QuicRetryTokenHandler() if self.stateless_retry else None
 
-    def make_connection (self, channel, data):
+    def _terminate_connection (self):
+        # phase II: close quic
+        if self.quic:
+            errcode, msg = self._shutdown_reason
+            self.quic.close (errcode, reason_phrase = msg or '')
+            self.send_data ()
+        # phase III: close channel
+        super ()._terminate_connection ()
+
+    def _make_connection (self, channel, data):
         ctx = channel.server.ctx
 
         buf = Buffer (data=data)
@@ -106,10 +115,85 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self.conn = h3.H3Connection (self.quic)
         self.conn._linked_channel = channel
 
+    def _handle_events (self, events):
+        for event in events:
+            if isinstance (event, HeadersReceived):
+                created = self.handle_request (event.stream_id, event.headers, has_data_frame = not event.stream_ended)
+                if created:
+                    r = self.get_request (event.stream_id)
+                    if event.stream_ended:
+                        r.set_stream_ended ()
+
+            elif isinstance (event, DataReceived) and event.data:
+                r = self.get_request (event.stream_id)
+                if not r:
+                    self.close (self.errno.INTERNAL_ERROR)
+                else:
+                    try:
+                        r.channel.set_data (event.data, len (event.data))
+                    except ValueError:
+                        self.close (self.errno.INTERNAL_ERROR)
+
+                    if event.stream_ended:
+                        if r.collector:
+                            r.channel.handle_read ()
+                            r.channel.found_terminator ()
+                        r.set_stream_ended ()
+                        if r.response.is_done ():
+                            self.remove_request (event.stream_id)
+
+            elif isinstance (event, PushCanceled):
+                with self._clock:
+                    try: del self._push_map [event.push_id]
+                    except KeyError: pass
+                self.remove_push_stream (event.push_id)
+
+        self.send_data ()
+
+    def process_quic_events (self):
+        while 1:
+            with self._plock:
+                event = self.quic.next_event ()
+            if event is None:
+                break
+
+            if isinstance (event, events.StreamDataReceived):
+                h3_events = self.conn.handle_event (event)
+                h3_events and self._handle_events (h3_events)
+
+            elif isinstance (event, events.ConnectionIdIssued):
+                self.conns [event.connection_id] = self.conn
+
+            elif isinstance (event, events.ConnectionIdRetired):
+                assert self.conns [event.connection_id] == self.conn
+                conn = self.conns.pop (event.connection_id)
+                conn._linked_channel = None
+
+            elif isinstance (event, events.ConnectionTerminated):
+                for cid, conn in list (self.conns.items()):
+                    if conn == self.conn:
+                        conn._linked_channel = None
+                        del self.conns [cid]
+                self._terminate_connection ()
+
+            elif isinstance (event, events.HandshakeCompleted):
+                pass
+
+            elif isinstance (event, events.PingAcknowledged):
+                # for now nothing to do, channel will be extened by event time
+                pass
+
+    def initiate_shutdown (self, errcode = 0, msg = ''):
+        # pahse I: send goaway
+        self._shutdown_reason = (errcode, msg)
+        if hasattr (self.conn, 'close_connection'):
+            with self._plock:
+                self.conn.close_connection ()
+
     def collect_incoming_data (self, data):
         # print ('collect_incoming_data', self.quic, len (data))
         if self.quic is None:
-             self.make_connection (self.channel, data)
+             self._make_connection (self.channel, data)
              if self.quic is None:
                  return
         with self._plock:
@@ -142,98 +226,13 @@ class http3_request_handler (http2_handler.http2_request_handler):
     def data_to_send (self):
         if self.quic is None or self._closed:
             return []
-        self.data_from_producers ()
+        self._data_from_producers ()
         with self._plock:
             data_to_send = [data for data, addr in self.quic.datagrams_to_send (now = time.monotonic ())]
-        return data_to_send or self.data_exhausted ()
-
-    def _terminate_connection (self):
-        # phase II: close quic
-        if self.quic:
-            errcode, msg = self._shutdown_reason
-            self.quic.close (errcode, reason_phrase = msg or '')
-            self.send_data ()
-        # phase III: close channel
-        super ()._terminate_connection ()
-
-    def initiate_shutdown (self, errcode = 0, msg = ''):
-        # pahse I: send goaway
-        self._shutdown_reason = (errcode, msg)
-        if hasattr (self.conn, 'close_connection'):
-            with self._plock:
-                self.conn.close_connection ()
+        return data_to_send or self._data_exhausted ()
 
     def pushable (self):
         return self.request_acceptable ()
-
-    def process_quic_events (self):
-        while 1:
-            with self._plock:
-                event = self.quic.next_event ()
-            if event is None:
-                break
-
-            # print (event.__class__.__name__)
-            if isinstance (event, events.StreamDataReceived):
-                h3_events = self.conn.handle_event (event)
-                h3_events and self.handle_events (h3_events)
-
-            elif isinstance(event, events.ConnectionIdIssued):
-                self.conns [event.connection_id] = self.conn
-
-            elif isinstance(event, events.ConnectionIdRetired):
-                assert self.conns [event.connection_id] == self.conn
-                conn = self.conns.pop (event.connection_id)
-                conn._linked_channel = None
-
-            elif isinstance(event, events.ConnectionTerminated):
-                for cid, conn in list (self.conns.items()):
-                    if conn == self.conn:
-                        conn._linked_channel = None
-                        del self.conns [cid]
-                self._terminate_connection ()
-
-            elif isinstance(event, events.HandshakeCompleted):
-                pass
-
-            elif isinstance(event, events.PingAcknowledged):
-                # for now nothing to do, channel will be extened by event time
-                pass
-
-    def handle_events (self, events):
-        for event in events:
-            if isinstance(event, HeadersReceived):
-                created = self.handle_request (event.stream_id, event.headers, has_data_frame = not event.stream_ended)
-                if created:
-                    r = self.get_request (event.stream_id)
-                    if event.stream_ended:
-                        r.set_stream_ended ()
-
-            elif isinstance(event, DataReceived) and event.data:
-                r = self.get_request (event.stream_id)
-                if not r:
-                    self.close (self.errno.INTERNAL_ERROR)
-                else:
-                    try:
-                        r.channel.set_data (event.data, len (event.data))
-                    except ValueError:
-                        self.close (self.errno.INTERNAL_ERROR)
-
-                    if event.stream_ended:
-                        if r.collector:
-                            r.channel.handle_read ()
-                            r.channel.found_terminator ()
-                        r.set_stream_ended ()
-                        if r.response.is_done ():
-                            self.remove_request (event.stream_id)
-
-            elif isinstance(event, PushCanceled):
-                with self._clock:
-                    try: del self._push_map [event.push_id]
-                    except KeyError: pass
-                self.remove_push_stream (event.push_id)
-
-        self.send_data ()
 
     def handle_request (self, stream_id, headers, has_data_frame = False):
         if hasattr (self.conn, 'send_duplicate_push'):
@@ -259,8 +258,8 @@ class http3_request_handler (http2_handler.http2_request_handler):
         return super ().handle_request (stream_id, headers, has_data_frame)
 
     def push_promise (self, stream_id, request_headers, addtional_request_headers):
-        _, path = request_headers [0]
-        assert _ == ':path', ':path header missing'
+        name_, path = request_headers [0]
+        assert name_ == ':path', ':path header missing'
         headers = [(k.encode (), v.encode ()) for k, v in request_headers + addtional_request_headers]
         try:
             promise_stream_id = self.conn.send_push_promise (stream_id = stream_id, headers = headers)
@@ -273,7 +272,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
         with self._clock:
             self._push_map [push_id] = promise_stream_id
             self._pushed_pathes [path] = push_id
-        self.handle_events ([HeadersReceived (headers = headers, stream_ended = True, stream_id = promise_stream_id, push_id = push_id)])
+        self._handle_events ([HeadersReceived (headers = headers, stream_ended = True, stream_id = promise_stream_id, push_id = push_id)])
 
 
 class Handler (http2_handler.Handler):

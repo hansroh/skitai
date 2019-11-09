@@ -32,9 +32,11 @@ class http2_producer:
         self.trailers = trailers
         self.depends_on = depends_on
         self.priority = priority
-        self.log_hook = log_hook
-        self.bytes = 0
-        self.next_data = None
+
+        self._log_hook = log_hook
+        self._bytes = 0
+        self._next_data = None
+        self._canceled = False
         self._end_stream = False
         self._last_sent = time.time ()
 
@@ -43,6 +45,9 @@ class http2_producer:
             return self.priority > other.priority # descending
         return self.depends_on < other.depends_on # ascending
 
+    def cancel (self):
+        self._canceled = True
+
     def set_stream_ended (self):
         self._end_stream = True
 
@@ -50,7 +55,7 @@ class http2_producer:
         return self._end_stream
 
     def log (self):
-        self.log_hook and self.log_hook (self.bytes)
+        self._log_hook and self._log_hook (self._bytes)
 
     def send_final_data (self, data):
         with self.lock:
@@ -70,6 +75,14 @@ class http2_producer:
     def produce (self):
         if self.is_stream_ended ():
             return 0
+
+        if self._canceled:
+            self.set_stream_ended ()
+            if self.headers is not None:
+                return 0 # do nothing
+            self.send_final_data (b'')
+            return 1
+
         lfcw = self.local_flow_control_window ()
         if not lfcw:
             return 0
@@ -87,8 +100,8 @@ class http2_producer:
             self.log ()
             return sent
 
-        if self.next_data:
-            data, self.next_data = self.next_data, None
+        if self._next_data:
+            data, self._next_data = self._next_data, None
         else:
             if hasattr (self.producer, 'ready') and not self.producer.ready ():
                 return sent
@@ -100,12 +113,12 @@ class http2_producer:
 
         avail_data_length = min (self.SIZE_BUFFER, lfcw)
         if len (data) > avail_data_length:
-            data, self.next_data = data [:avail_data_length], data [avail_data_length:]
+            data, self._next_data = data [:avail_data_length], data [avail_data_length:]
 
-        self.bytes += len (data)
-        if self.next_data is None and (not hasattr (self.producer, 'ready') or self.producer.ready ()):
-            self.next_data = self.producer.more ()
-            if not self.next_data:
+        self._bytes += len (data)
+        if self._next_data is None and (not hasattr (self.producer, 'ready') or self.producer.ready ()):
+            self._next_data = self.producer.more ()
+            if not self._next_data:
                 self.set_stream_ended ()
 
         if self.is_stream_ended ():
@@ -114,6 +127,7 @@ class http2_producer:
             with self.lock:
                 self.conn.send_data (self.stream_id, data, end_stream = False)
         return 1
+
 
 class http2_request_handler (FlowControlWindow):
     collector = None
@@ -124,27 +138,35 @@ class http2_request_handler (FlowControlWindow):
     errno = ErrorCodes
 
     def __init__ (self, handler, request):
-        self.default_varialbes (handler, request)
+        self._default_varialbes (handler, request)
         self.conn = H2Connection (H2Configuration (client_side = False))
         self.altsvc = self.request.channel.server.altsvc
 
-        self.frame_buf = self.conn.incoming_buffer
-        self.frame_buf.max_frame_size = self.conn.max_inbound_frame_size
-        self.data_length = 0
-        self.current_frame = None
-        self.rfile = BytesIO ()
-        self.buf = b""
+        self._frame_buf = self.conn.incoming_buffer
+        self._frame_buf.max_frame_size = self.conn.max_inbound_frame_size
+        self._data_length = 0
+        self._current_frame = None
+        self._rfile = BytesIO ()
+        self._buf = b""
         self._got_preamble = False
 
-    def default_varialbes (self, handler, request):
+    def _terminate_connection (self):
+        # pahse II: close channel
+        if self.channel:
+            self.channel.close_when_done ()
+        with self._clock:
+            self._close_pending = False
+            self._closed = True
+
+    def _default_varialbes (self, handler, request):
         self.handler = handler
         self.wasc = handler.wasc
         self.request = request
         self.channel = request.channel
 
-        self.producers = []
-        self.requests = {}
-        self.priorities = {}
+        self._producers = []
+        self._requests = {}
+        self._priorities = {}
         self._shutdown_reason = (self.errno.NO_ERROR, None)
         self._has_sendables = False
         self._closed = False
@@ -153,17 +175,11 @@ class http2_request_handler (FlowControlWindow):
         self._plock = threading.Lock () # for self.conn
         self._clock = threading.Lock () # for self.x
 
-    def send_data (self):
-        self._has_sendables = True
-
-    def has_sendables (self):
-        return self._has_sendables
-
-    def data_from_producers (self):
-        for i in range (len (self.producers)):
+    def _data_from_producers (self):
+        for i in range (len (self._producers)):
             with self._clock:
                 try:
-                    producer = self.producers [0]
+                    producer = self._producers [0]
                 except IndexError:
                     # maybe removed by reset stream
                     break
@@ -172,7 +188,7 @@ class http2_request_handler (FlowControlWindow):
             if producer.is_stream_ended ():
                 with self._clock:
                     try:
-                        self.producers.pop (0)
+                        self._producers.pop (0)
                     except IndexError:
                         # maybe removed by reset stream
                         break
@@ -182,35 +198,94 @@ class http2_request_handler (FlowControlWindow):
             if produced:
                 break
             with self._clock:
-                self.producers.append (self.producers.pop (0))
+                self._producers.append (self._producers.pop (0))
             continue
 
-    def data_exhausted (self):
+    def _data_exhausted (self):
         close_pending = False
         with self._clock:
-            if not self.producers:
+            if not self._producers:
                 self._has_sendables, close_pending = False, self._close_pending
-                if self._pushed_pathes and not self.requests:
+                if self._pushed_pathes and not self._requests:
                     # end of a request session
                     self._pushed_pathes = {}
         close_pending and self._terminate_connection ()
         return [] # MUST return
 
-    def data_to_send (self):
-        if self._closed:
+    def _set_frame_data (self, data):
+        if not self._current_frame:
             return []
-        self.data_from_producers ()
+        self._current_frame.parse_body (memoryview (data))
+        self._current_frame = self._frame_buf._update_header_buffer (self._current_frame)
         with self._plock:
-            data_to_send = self.conn.data_to_send ()
-        return data_to_send and [data_to_send] or self.data_exhausted ()
+            events = self.conn._receive_frame (self._current_frame)
+        return events
 
-    def _terminate_connection (self):
-        # pahse II: close channel
-        if self.channel:
-            self.channel.close_when_done ()
-        with self._clock:
-            self._close_pending = False
-            self._closed = True
+    def _adjust_flow_control_window (self, stream_id):
+        if self.conn.inbound_flow_control_window < self.MIN_IBFCW:
+            with self._clock:
+                self.conn.increment_flow_control_window (1048576)
+
+        rfcw = self.conn.remote_flow_control_window (stream_id)
+        if rfcw < self.MIN_RFCW:
+            try:
+                with self._clock:
+                    self.conn.increment_flow_control_window (1048576, stream_id)
+            except StreamClosedError:
+                pass
+
+    def _handle_events (self, events):
+        for event in events:
+            if isinstance(event, RequestReceived):
+                self.handle_request (event.stream_id, event.headers, has_data_frame = not event.stream_ended)
+
+            elif isinstance(event, TrailersReceived):
+                self.handle_trailers (event.stream_id, event.headers)
+
+            elif isinstance(event, StreamReset):
+                if event.remote_reset:
+                    self.remove_stream (event.stream_id)
+
+            elif isinstance(event, ConnectionTerminated):
+                self._terminate_connection ()
+
+            elif isinstance(event, PriorityUpdated):
+                if event.exclusive:
+                    # rebuild depend_ons
+                    for stream_id in list (self._priorities.keys ()):
+                        depends_on, weight = self._priorities [stream_id]
+                        if depends_on == event.depends_on:
+                            self._priorities [stream_id] = [event.stream_id, weight]
+
+                with self._clock:
+                    self._priorities [event.stream_id] = [event.depends_on, event.weight]
+
+            elif isinstance(event, DataReceived):
+                r = self.get_request (event.stream_id)
+                if not r:
+                    self.close (self.errno.INTERNAL_ERROR)
+                else:
+                    try:
+                        r.channel.set_data (event.data, event.flow_controlled_length)
+                    except ValueError:
+                        # from vchannel.handle_read () -> collector.collect_inconing_data ()
+                        self.close (self.errno.INTERNAL_ERROR)
+                    else:
+                        self._adjust_flow_control_window (event.stream_id)
+
+            elif isinstance(event, StreamEnded):
+                r = self.get_request (event.stream_id)
+                if r:
+                    if r.collector:
+                        r.channel.handle_read ()
+                        r.channel.found_terminator ()
+                    r.set_stream_ended ()
+                    if r.response.is_done ():
+                        # DO NOT REMOVE before responsing:
+                        # this is for async streaming request like proxy request
+                        self.remove_request (event.stream_id)
+
+        self.send_data ()
 
     def initiate_shutdown (self, errcode = 0x0, msg = None):
         # pahse I: send goaway and close http2 protocol
@@ -236,6 +311,20 @@ class http2_request_handler (FlowControlWindow):
 
     def closed (self):
         return self._closed
+
+    def send_data (self):
+        self._has_sendables = True
+
+    def has_sendables (self):
+        return self._has_sendables
+
+    def data_to_send (self):
+        if self._closed:
+            return []
+        self._data_from_producers ()
+        with self._plock:
+            data_to_send = self.conn.data_to_send ()
+        return data_to_send and [data_to_send] or self._data_exhausted ()
 
     def handle_preamble (self):
         if self.request.version.startswith ("2."):
@@ -269,45 +358,33 @@ class http2_request_handler (FlowControlWindow):
         return headers
 
     def collect_incoming_data (self, data):
-        #print ("RECV", repr (data), len (data), '::', self.channel.get_terminator ())
         if not data:
             # closed connection
             self.close ()
             return
 
-        if self.data_length:
-            self.rfile.write (data)
+        if self._data_length:
+            self._rfile.write (data)
         else:
-            self.buf += data
-
-    def set_frame_data (self, data):
-        if not self.current_frame:
-            return []
-        self.current_frame.parse_body (memoryview (data))
-        self.current_frame = self.frame_buf._update_header_buffer (self.current_frame)
-        with self._plock:
-            events = self.conn._receive_frame (self.current_frame)
-        return events
+            self._buf += data
 
     def set_terminator (self, terminator):
         self.channel.set_terminator (terminator)
 
     def found_terminator (self):
-        buf, self.buf = self.buf, b""
+        buf, self._buf = self._buf, b""
 
-        #print ("FOUND", repr (buf), '::', self.data_length, self.channel.get_terminator ())
-        #print ("FOUND", self.request.version, self.request.command, self.data_length)
         events = None
-        if self.request.version == "1.1" and self.data_length:
+        if self.request.version == "1.1" and self._data_length:
             self.request.version = "2.0" # upgrade
-            data = self.rfile.getvalue ()
+            data = self._rfile.getvalue ()
             with self._clock:
-                r = self.requests [1]
+                r = self._requests [1]
             r.channel.set_data (data, len (data))
             r.set_stream_ended ()
-            self.data_length = 0
-            self.rfile.seek (0)
-            self.rfile.truncate ()
+            self._data_length = 0
+            self._rfile.seek (0)
+            self._rfile.truncate ()
             self.channel.set_terminator (24) # for premble
 
         elif not self._got_preamble:
@@ -316,27 +393,27 @@ class http2_request_handler (FlowControlWindow):
             self._got_preamble = True
             self.channel.set_terminator (9)
 
-        elif self.data_length:
-            events = self.set_frame_data (self.rfile.getvalue ())
-            self.current_frame = None
-            self.data_length = 0
-            self.rfile.seek (0)
-            self.rfile.truncate ()
+        elif self._data_length:
+            events = self._set_frame_data (self._rfile.getvalue ())
+            self._current_frame = None
+            self._data_length = 0
+            self._rfile.seek (0)
+            self._rfile.truncate ()
             self.channel.set_terminator (9) # for frame header
 
         elif buf:
-            self.current_frame, self.data_length = self.frame_buf._parse_frame_header (buf)
-            self.frame_buf.max_frame_size = self.data_length
+            self._current_frame, self._data_length = self._frame_buf._parse_frame_header (buf)
+            self._frame_buf.max_frame_size = self._data_length
 
-            if self.data_length == 0:
-                events = self.set_frame_data (b'')
-            self.channel.set_terminator (self.data_length == 0 and 9 or self.data_length)    # next frame header
+            if self._data_length == 0:
+                events = self._set_frame_data (b'')
+            self.channel.set_terminator (self._data_length == 0 and 9 or self._data_length)    # next frame header
 
         else:
             raise ProtocolError ("Frame decode error")
 
         if events:
-            self.handle_events (events)
+            self._handle_events (events)
 
     def request_acceptable (self):
         with self._clock:
@@ -355,113 +432,22 @@ class http2_request_handler (FlowControlWindow):
         event = RequestReceived ()
         event.stream_id = promise_stream_id
         event.headers = headers
-        self.handle_events ([event])
-
-    def handle_response (self, stream_id, headers, trailers, producer, do_optimize, force_close = False):
-        with self._clock:
-            try:
-                depends_on, weight = self.priorities [stream_id]
-            except KeyError:
-                depends_on, weight = 0, 1
-            else:
-                del self.priorities [stream_id]
-
-        if self.altsvc:
-            headers.append (("alt-svc", self.altsvc.ALTSVC_HEADER))
-
-        if trailers:
-            assert producer, "http/2 or 3's trailser requires body"
-        if producer and do_optimize:
-            producer = producers.globbing_producer (producer)
-
-        r = self.get_request (stream_id)
-        if r:
-            self.producers.append (self.producer_class (self.conn, self._plock, stream_id, headers, producer, trailers, depends_on, weight, r.response.maybe_log))
-            self.producers.sort ()
-            self.send_data ()
-
-        force_close and self.close (self.errno.FLOW_CONTROL_ERROR)
+        self._handle_events ([event])
 
     def remove_request (self, stream_id):
         r = self.get_request (stream_id)
         if not r: return
         with self._clock:
-            try: del self.requests [stream_id]
+            try: del self._requests [stream_id]
             except KeyError: pass
         r.protocol = None
 
     def get_request (self, stream_id):
         r = None
         with self._clock:
-            try: r =    self.requests [stream_id]
+            try: r =    self._requests [stream_id]
             except KeyError: pass
         return r
-
-    def adjust_flow_control_window (self, stream_id):
-        if self.conn.inbound_flow_control_window < self.MIN_IBFCW:
-            with self._clock:
-                self.conn.increment_flow_control_window (1048576)
-
-        rfcw = self.conn.remote_flow_control_window (stream_id)
-        if rfcw < self.MIN_RFCW:
-            try:
-                with self._clock:
-                    self.conn.increment_flow_control_window (1048576, stream_id)
-            except StreamClosedError:
-                pass
-
-    def handle_events (self, events):
-        for event in events:
-            if isinstance(event, RequestReceived):
-                self.handle_request (event.stream_id, event.headers, has_data_frame = not event.stream_ended)
-
-            elif isinstance(event, TrailersReceived):
-                self.handle_trailers (event.stream_id, event.headers)
-
-            elif isinstance(event, StreamReset):
-                if event.remote_reset:
-                    self.remove_stream (event.stream_id)
-
-            elif isinstance(event, ConnectionTerminated):
-                self._terminate_connection ()
-
-            elif isinstance(event, PriorityUpdated):
-                if event.exclusive:
-                    # rebuild depend_ons
-                    for stream_id in list (self.priorities.keys ()):
-                        depends_on, weight = self.priorities [stream_id]
-                        if depends_on == event.depends_on:
-                            self.priorities [stream_id] = [event.stream_id, weight]
-
-                with self._clock:
-                    self.priorities [event.stream_id] = [event.depends_on, event.weight]
-
-            elif isinstance(event, DataReceived):
-                r = self.get_request (event.stream_id)
-                if not r:
-                    self.close (self.errno.INTERNAL_ERROR)
-                else:
-                    try:
-                        r.channel.set_data (event.data, event.flow_controlled_length)
-                    except ValueError:
-                        # from vchannel.handle_read () -> collector.collect_inconing_data ()
-                        self.close (self.errno.INTERNAL_ERROR)
-                    else:
-                        self.adjust_flow_control_window (event.stream_id)
-
-            elif isinstance(event, StreamEnded):
-                r = self.get_request (event.stream_id)
-                if r:
-                    if r.collector:
-                        r.channel.handle_read ()
-                        r.channel.found_terminator ()
-                    r.set_stream_ended ()
-                    if r.response.is_done ():
-                        # DO NOT REMOVE before responsing:
-                        # this is for async streaming request like proxy request
-                        self.remove_request (event.stream_id)
-
-        self.send_data ()
 
     def remove_stream (self, stream_id):
         r = self.get_request (stream_id)
@@ -472,9 +458,9 @@ class http2_request_handler (FlowControlWindow):
             self.remove_request (stream_id)
 
         with self._clock:
-            for i in range (len (self.producers)):
-                if self.producers [i].stream_id == stream_id:
-                    self.producers.pop (i)
+            for producer in self._producers:
+                if producer.stream_id == stream_id:
+                    producer.cancel () # graceful removing
                     break
 
     def reset_stream (self, stream_id, errcode = ErrorCodes.CANCEL):
@@ -488,18 +474,44 @@ class http2_request_handler (FlowControlWindow):
             self.remove_stream (stream_id)
         self.send_data ()
 
-    def handle_trailers     (self, stream_id, headers):
+    def handle_trailers (self, stream_id, headers):
         r = self.get_request (stream_id)
         for k, v in headers:
             r.header.append (
                 "{}: {}".format (k.decode ("utf8"), v.decode ("utf8"))
             )
 
+    def handle_response (self, stream_id, headers, trailers, producer, do_optimize, force_close = False):
+        request = self.get_request (stream_id)
+        if not request: # reset or canceled
+            return
+
+        with self._clock:
+            try:
+                depends_on, weight = self._priorities [stream_id]
+            except KeyError:
+                depends_on, weight = 0, 1
+            else:
+                del self._priorities [stream_id]
+
+        if self.altsvc:
+            headers.append (("alt-svc", self.altsvc.ALTSVC_HEADER))
+
+        if trailers:
+            assert producer, "http/2 or 3's trailser requires body"
+        if producer and do_optimize:
+            producer = producers.globbing_producer (producer)
+
+        self._producers.append (self.producer_class (self.conn, self._plock, stream_id, headers, producer, trailers, depends_on, weight, request.response.maybe_log))
+        self._producers.sort ()
+        self.send_data ()
+
+        force_close and self.close (self.errno.FLOW_CONTROL_ERROR)
+
     def handle_request (self, stream_id, headers, has_data_frame = False):
         if not self.request_acceptable ():
             return False
 
-        #print ("++REQUEST: %d" % stream_id, headers)
         command = "GET"
         uri = "/"
         scheme = "http"
@@ -512,7 +524,6 @@ class http2_request_handler (FlowControlWindow):
             headers = [(k.decode ("utf8"), v.decode ("utf8")) for k, v in headers]
 
         for k, v in headers:
-            #print ('HEADER:', k, v)
             if k[0] == ":":
                 if k == ":method": command = v.upper ()
                 elif k == ":path": uri = v
@@ -566,7 +577,7 @@ class http2_request_handler (FlowControlWindow):
             return False
 
         with self._clock:
-            self.requests [stream_id] = r
+            self._requests [stream_id] = r
 
         try:
             h.handle_request (r)
@@ -587,22 +598,9 @@ class http2_request_handler (FlowControlWindow):
                         self.close (self.errno.FLOW_CONTROL_ERROR)
                 else:
                     if stream_id == 1 and self.request.version == "1.1":
-                        self.data_length = cl
+                        self._data_length = cl
                         self.set_terminator (cl)
         return True
-
-class h2_request_handler (http2_request_handler):
-    http11_terminator = None
-
-    def handle_preamble (self):
-        if self.request.version.startswith ("2."):
-            self.conn.receive_data ("PRI * HTTP/2.0\r\n\r\n")
-            self.channel.set_terminator (None)
-
-    def collect_incoming_data (self, data):
-        with self._plock:
-            events = self.conn.receive_data (data)
-        self.handle_events (events)
 
 
 class Handler (wsgi_handler.Handler):
