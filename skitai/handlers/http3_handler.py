@@ -42,18 +42,12 @@ class http3_request_handler (http2_handler.http2_request_handler):
     errno = ErrorCode
 
     def __init__ (self, handler, request):
-        self.handler = handler
-        self.wasc = handler.wasc
-        self.request = request
-        self.channel = request.channel
+        self.default_varialbes (handler, request)
+
         self.quic = None # QUIC protocol
         self.conn = None # HTTP3 Protocol
         self._push_map = {}
-        self._pushed_pathes = {}
-        self._close_pending = False
-        self._close_errno = self.errno.NO_ERROR
         self._retry = QuicRetryTokenHandler() if self.stateless_retry else None
-        self.default_varialbes ()
 
     def make_connection (self, channel, data):
         ctx = channel.server.ctx
@@ -167,17 +161,18 @@ class http3_request_handler (http2_handler.http2_request_handler):
             data_to_send = [data for data, addr in self.quic.datagrams_to_send (now = time.monotonic ())]
         return data_to_send or self.data_exhausted ()
 
-    def close (self, errcode = 0x0, msg = None):
-        self._close_errno = errcode
-        super ().close (errcode, '')
-
-    def terminate_connection (self, with_quic = True):
-        if with_quic and self.quic:
-            self.quic.close (self._close_errno)
+    def _terminate_connection (self):
+        # phase II: close quic
+        if self.quic:
+            errcode, msg = self._shutdown_reason
+            self.quic.close (errcode, reason_phrase = msg or '')
             self.send_data ()
-        super ().terminate_connection ()
+        # phase III: close channel
+        super ()._terminate_connection ()
 
     def initiate_shutdown (self, errcode = 0, msg = ''):
+        # pahse I: send goaway
+        self._shutdown_reason = (errcode, msg)
         if hasattr (self.conn, 'close_connection'):
             with self._plock:
                 self.conn.close_connection ()
@@ -203,7 +198,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
                     if conn == self.conn:
                         conn._linked_channel = None
                         del self.conns [cid]
-                self.terminate_connection (with_quic = False)
+                self._terminate_connection ()
 
             elif isinstance(event, events.HandshakeCompleted):
                 pass
@@ -218,10 +213,11 @@ class http3_request_handler (http2_handler.http2_request_handler):
     def handle_events (self, events):
         for event in events:
             if isinstance(event, HeadersReceived):
-                self.handle_request (event.stream_id, event.headers, has_data_frame = not event.stream_ended)
-                r = self.get_request (event.stream_id)
-                if event.stream_ended:
-                    r.set_stream_ended ()
+                created = self.handle_request (event.stream_id, event.headers, has_data_frame = not event.stream_ended)
+                if created:
+                    r = self.get_request (event.stream_id)
+                    if event.stream_ended:
+                        r.set_stream_ended ()
 
             elif isinstance(event, DataReceived) and event.data:
                 r = self.get_request (event.stream_id)
@@ -248,18 +244,36 @@ class http3_request_handler (http2_handler.http2_request_handler):
                         del self._push_map [event.push_id]
                     except KeyError:
                         pass
-
         self.send_data ()
 
-    def push_promise (self, stream_id, request_headers, addtional_request_headers):
-        _name, path = request_headers [0]
-        assert _name == ':path', ':path header missing'
+    def handle_request (self, stream_id, headers, has_data_frame = False):
         if hasattr (self.conn, 'send_duplicate_push'):
-            push_id = self._pushed_pathes.get (path)
-            if push_id is not None and self._push_map [push_id]:
-                self.conn.send_duplicate_push (stream_id, push_id)
-                return
+            with self._clock:
+                pushing = len (self._pushed_pathes)
+            if pushing:
+                path = None
+                for k, v in headers:
+                    if k [0] != 58:
+                        break
+                    elif k == b':method':
+                        if v != b"GET":
+                            path = None
+                            break
+                    elif k == b':path':
+                        path = v.decode ()
+                push_id = None
+                with self._clock:
+                    push_id = self._pushed_pathes.get (path)
+                    if push_id and push_id not in self._push_map:
+                        push_id = None # canceled push
+                with self._plock:
+                    self.conn.send_duplicate_push (stream_id, push_id)
+                return False
+        return super ().handle_request (stream_id, headers, has_data_frame)
 
+    def push_promise (self, stream_id, request_headers, addtional_request_headers):
+        _, path = request_headers [0]
+        assert _ == ':path', ':path header missing'
         headers = [(k.encode (), v.encode ()) for k, v in request_headers + addtional_request_headers]
         try:
             promise_stream_id = self.conn.send_push_promise (stream_id = stream_id, headers = headers)

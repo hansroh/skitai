@@ -124,11 +124,9 @@ class http2_request_handler (FlowControlWindow):
     errno = ErrorCodes
 
     def __init__ (self, handler, request):
-        self.handler = handler
-        self.wasc = handler.wasc
-        self.request = request
-        self.channel = request.channel
+        self.default_varialbes (handler, request)
         self.conn = H2Connection (H2Configuration (client_side = False))
+        self.altsvc = self.request.channel.server.altsvc
 
         self.frame_buf = self.conn.incoming_buffer
         self.frame_buf.max_frame_size = self.conn.max_inbound_frame_size
@@ -137,16 +135,21 @@ class http2_request_handler (FlowControlWindow):
         self.rfile = BytesIO ()
         self.buf = b""
         self._got_preamble = False
-        self._close_pending = False
-        self.default_varialbes ()
-        self.altsvc = request.channel.server.altsvc
 
-    def default_varialbes (self):
+    def default_varialbes (self, handler, request):
+        self.handler = handler
+        self.wasc = handler.wasc
+        self.request = request
+        self.channel = request.channel
+
         self.producers = []
         self.requests = {}
         self.priorities = {}
+        self._shutdown_reason = (self.errno.NO_ERROR, None)
         self._has_sendables = False
         self._closed = False
+        self._pushed_pathes = {}
+        self._close_pending = False
         self._plock = threading.Lock () # for self.conn
         self._clock = threading.Lock () # for self.x
 
@@ -187,7 +190,10 @@ class http2_request_handler (FlowControlWindow):
         with self._clock:
             if not self.producers:
                 self._has_sendables, close_pending = False, self._close_pending
-        close_pending and self.terminate_connection ()
+                if self._pushed_pathes and not self.requests:
+                    # end of a request session
+                    self._pushed_pathes = {}
+        close_pending and self._terminate_connection ()
         return [] # MUST return
 
     def data_to_send (self):
@@ -198,14 +204,17 @@ class http2_request_handler (FlowControlWindow):
             data_to_send = self.conn.data_to_send ()
         return data_to_send and [data_to_send] or self.data_exhausted ()
 
-    def terminate_connection (self):
+    def _terminate_connection (self):
+        # pahse II: close channel
         if self.channel:
             self.channel.close_when_done ()
         with self._clock:
             self._close_pending = False
             self._closed = True
 
-    def initiate_shutdown (self, errcode = 0, msg = None):
+    def initiate_shutdown (self, errcode = 0x0, msg = None):
+        # pahse I: send goaway and close http2 protocol
+        self._shutdown_reason = (errcode, msg)
         with self._plock:
             self.conn.close_connection (errcode, msg)
 
@@ -214,12 +223,13 @@ class http2_request_handler (FlowControlWindow):
             if self._closed:
                 return
             self._close_pending = True
+        self._shutdown_reason = (errcode, msg)
         if self.conn:
-            self.initiate_shutdown ()
+            self.initiate_shutdown (errcode, msg)
         if self.channel:
             self.send_data ()
         else:
-           self.terminate_connection ()
+           self._terminate_connection ()
 
     def enter_shutdown_process (self):
         self.close ()
@@ -413,7 +423,7 @@ class http2_request_handler (FlowControlWindow):
                     self.remove_stream (event.stream_id)
 
             elif isinstance(event, ConnectionTerminated):
-                self.terminate_connection ()
+                self._terminate_connection ()
 
             elif isinstance(event, PriorityUpdated):
                 if event.exclusive:
@@ -487,7 +497,7 @@ class http2_request_handler (FlowControlWindow):
 
     def handle_request (self, stream_id, headers, has_data_frame = False):
         if not self.request_acceptable ():
-            return
+            return False
 
         #print ("++REQUEST: %d" % stream_id, headers)
         command = "GET"
@@ -553,7 +563,7 @@ class http2_request_handler (FlowControlWindow):
         if not h.match (r):
             try: r.response.error (404)
             except: pass
-            return
+            return False
 
         with self._clock:
             self.requests [stream_id] = r
@@ -579,7 +589,7 @@ class http2_request_handler (FlowControlWindow):
                     if stream_id == 1 and self.request.version == "1.1":
                         self.data_length = cl
                         self.set_terminator (cl)
-
+        return True
 
 class h2_request_handler (http2_request_handler):
     http11_terminator = None
