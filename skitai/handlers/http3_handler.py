@@ -117,41 +117,27 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self.process_quic_events ()
         self.send_data ()
 
-    def remove_request (self, stream_id):
-        with self._clock:
-            try:
-                self._push_map.pop (stream_id)
-            except KeyError:
-                pass
-        super ().remove_request (stream_id)
-
     def reset_stream (self, stream_id):
-        with self._clock:
-            for k, v in self._push_map.items ():
-                if v == stream_id:
-                    return self.cancel_push (k)
-        raise AttributeError ('HTTP/3 can cancel for only push stream')
+        raise AttributeError ('HTTP/3 can cancel for only push stream, use cancel_push (push_id)')
+
+    def remove_stream (self, stream_id):
+        raise AttributeError ('use remove_push_stream (push_id)')
 
     def remove_push_stream (self, push_id):
         with self._clock:
-            try:
-                stream_id = self._push_map.pop (push_id)
-            except KeyError:
-                return
+            try: stream_id = self._push_map.pop (push_id)
+            except KeyError: return
         super ().remove_stream (stream_id)
 
     def cancel_push (self, push_id):
         with self._clock:
-            try:
-                steram_id = self._push_map.pop (push_id)
-            except KeyError:
-                return # already done or canceled
-        if stream_id:
-            with self._plock:
-                if hasattr (self.conn, 'send_cancel_push'):
-                    self.conn.send_cancel_push (stream_id)
-            self.remove_stream (steram_id)
-            self.send_data ()
+            try: steram_id = self._push_map.pop (push_id)
+            except KeyError: return # already done or canceled
+        with self._plock:
+            if hasattr (self.conn, 'send_cancel_push'):
+                self.conn.send_cancel_push (stream_id)
+        super ().remove_stream (steram_id)
+        self.send_data ()
 
     def data_to_send (self):
         if self.quic is None or self._closed:
@@ -181,11 +167,18 @@ class http3_request_handler (http2_handler.http2_request_handler):
         return self.request_acceptable ()
 
     def process_quic_events (self):
-        with self._plock:
-            event = self.quic.next_event ()
-        while event is not None:
+        while 1:
+            with self._plock:
+                event = self.quic.next_event ()
+            if event is None:
+                break
+
             # print (event.__class__.__name__)
-            if isinstance(event, events.ConnectionIdIssued):
+            if isinstance (event, events.StreamDataReceived):
+                h3_events = self.conn.handle_event (event)
+                h3_events and self.handle_events (h3_events)
+
+            elif isinstance(event, events.ConnectionIdIssued):
                 self.conns [event.connection_id] = self.conn
 
             elif isinstance(event, events.ConnectionIdRetired):
@@ -204,11 +197,8 @@ class http3_request_handler (http2_handler.http2_request_handler):
                 pass
 
             elif isinstance(event, events.PingAcknowledged):
+                # for now nothing to do, channel will be extened by event time
                 pass
-
-            self.handle_events (self.conn.handle_event (event))
-            with self._plock:
-                event = self.quic.next_event ()
 
     def handle_events (self, events):
         for event in events:
@@ -238,12 +228,11 @@ class http3_request_handler (http2_handler.http2_request_handler):
                             self.remove_request (event.stream_id)
 
             elif isinstance(event, PushCanceled):
-                self.remove_push_stream (event.push_id)
                 with self._clock:
-                    try:
-                        del self._push_map [event.push_id]
-                    except KeyError:
-                        pass
+                    try: del self._push_map [event.push_id]
+                    except KeyError: pass
+                self.remove_push_stream (event.push_id)
+
         self.send_data ()
 
     def handle_request (self, stream_id, headers, has_data_frame = False):
@@ -253,22 +242,20 @@ class http3_request_handler (http2_handler.http2_request_handler):
             if pushing:
                 path = None
                 for k, v in headers:
-                    if k [0] != 58:
+                    if k [0] != 58: break
+                    elif k == b':path': path = v.decode ()
+                    elif k == b':method' and v != b"GET":
+                        path = None
                         break
-                    elif k == b':method':
-                        if v != b"GET":
-                            path = None
-                            break
-                    elif k == b':path':
-                        path = v.decode ()
                 push_id = None
                 with self._clock:
                     push_id = self._pushed_pathes.get (path)
                     if push_id and push_id not in self._push_map:
                         push_id = None # canceled push
-                with self._plock:
-                    self.conn.send_duplicate_push (stream_id, push_id)
-                return False
+                if push_id:
+                    with self._plock:
+                        self.conn.send_duplicate_push (stream_id, push_id)
+                    return False
         return super ().handle_request (stream_id, headers, has_data_frame)
 
     def push_promise (self, stream_id, request_headers, addtional_request_headers):
