@@ -22,6 +22,9 @@ if sys.version_info >= (3, 6):
     )
     from aioquic.quic.retry import QuicRetryTokenHandler
     from aioquic.quic.connection import QuicConnection
+    from aioquic.h3.connection import H3_ALPN
+    from aioquic.quic.configuration import QuicConfiguration
+    from quicutil.utils import SERVER_CACERTFILE, SERVER_CERTFILE, SERVER_KEYFILE
 
     CLIENT_ADDR = ("1.2.3.4", 1234)
     SERVER_ADDR = ("2.3.4.5", 4433)

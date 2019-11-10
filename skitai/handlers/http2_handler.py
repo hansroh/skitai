@@ -36,7 +36,6 @@ class http2_producer:
         self._log_hook = log_hook
         self._bytes = 0
         self._next_data = None
-        self._canceled = False
         self._end_stream = False
         self._last_sent = time.time ()
 
@@ -44,9 +43,6 @@ class http2_producer:
         if self.depends_on == other.depends_on:
             return self.priority > other.priority # descending
         return self.depends_on < other.depends_on # ascending
-
-    def cancel (self):
-        self._canceled = True
 
     def set_stream_ended (self):
         self._end_stream = True
@@ -75,14 +71,6 @@ class http2_producer:
     def produce (self):
         if self.is_stream_ended ():
             return 0
-
-        if self._canceled:
-            self.set_stream_ended ()
-            if self.headers is not None:
-                return 0 # do nothing
-            self.send_final_data (b'')
-            return 1
-
         lfcw = self.local_flow_control_window ()
         if not lfcw:
             return 0
@@ -450,6 +438,7 @@ class http2_request_handler (FlowControlWindow):
         return r
 
     def remove_stream (self, stream_id):
+        # received by client and just reset
         r = self.get_request (stream_id)
         if r and r.collector:
             try: r.collector.stream_has_been_reset ()
@@ -460,10 +449,12 @@ class http2_request_handler (FlowControlWindow):
         with self._clock:
             for producer in self._producers:
                 if producer.stream_id == stream_id:
-                    producer.cancel () # graceful removing
+                    # will be removed ABRUPTLY
+                    producer.set_stream_ended ()
                     break
 
     def reset_stream (self, stream_id, errcode = ErrorCodes.CANCEL):
+        # send to client and reset
         closed = False
         with self._plock:
             try:

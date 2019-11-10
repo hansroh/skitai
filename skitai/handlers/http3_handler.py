@@ -208,12 +208,14 @@ class http3_request_handler (http2_handler.http2_request_handler):
         raise AttributeError ('use remove_push_stream (push_id)')
 
     def remove_push_stream (self, push_id):
+        # received by client and just reset
         with self._clock:
             try: stream_id = self._push_map.pop (push_id)
             except KeyError: return
         super ().remove_stream (stream_id)
 
     def cancel_push (self, push_id):
+        # send to client and reset
         with self._clock:
             try: steram_id = self._push_map.pop (push_id)
             except KeyError: return # already done or canceled
