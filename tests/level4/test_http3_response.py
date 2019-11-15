@@ -26,7 +26,7 @@ def test_http2 (launch):
         assert len (resp.text) == 1000006
 
 def test_http3 (launch):
-     if sys.version_info < (3, 6):
+    if sys.version_info < (3, 6):
         return
 
     serve = './examples/http3.py'
