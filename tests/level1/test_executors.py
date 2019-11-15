@@ -37,11 +37,6 @@ def test_was_async_requests2 (async_wasc):
     future = was.Thread (foo2, 'hello')
     future = was.Process (foo2, 'hello')
 
-    if sys.version_info.major == 4 and sys.version_info.minor == 7:
-        # maybe 3.7 bug
-        # https://bugs.python.org/issue34073
-        return
-
     time.sleep (15)
     assert was.executors.cleanup () == [0, 0]
 

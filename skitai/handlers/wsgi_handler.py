@@ -93,7 +93,7 @@ class Handler:
 
 	def make_collector (self, collector_class, request, max_cl, *args, **kargs):
 		collector = collector_class (self, request, *args, **kargs)
-
+		# IMP: content_length -1 mean undetermin length by http2 or http3
 		if collector.content_length is None:
 			if not request.version.startswith ("2."):
 				del collector

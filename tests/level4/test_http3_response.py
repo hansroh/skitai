@@ -10,7 +10,7 @@ def test_http2 (launch):
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
         resp = engine.http2.get ('/hello?num=1')
         assert resp.text == 'hello'
-        if sys.version_info.major > 3 or (sys.version_info.major == 3 and sys.version_info.minor >= 6):
+        if sys.version_info >= (3, 6):
             assert 'h3-23=":30371"; ma=86400' in resp.headers ['alt-svc']
 
         resp = engine.http2.get ('/hello?num=2')
@@ -26,7 +26,7 @@ def test_http2 (launch):
         assert len (resp.text) == 1000006
 
 def test_http3 (launch):
-    if sys.version_info.major == 3 and sys.version_info.minor < 6:
+    if sys.version_info < (3, 6):
         return
 
     serve = './examples/http3.py'
