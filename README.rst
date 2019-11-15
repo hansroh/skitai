@@ -3135,8 +3135,7 @@ Change Log
 
 - 0.32 (Oct 2019)
 
-  - initiate HTTP/3
-  - you can test HTTP/3 with Chrome Canary
+  - initiate HTTP3+QUIC, you can test HTTP/3 with Chrome Canary
 
 - 0.31 (Sep 2019)
 
