@@ -6,12 +6,7 @@ from aioquic.h3 import connection as h3
 from aioquic.h3.events import DataReceived, HeadersReceived, H3Event
 from aioquic.h3.exceptions import H3Error, NoAvailablePushIDError
 from aioquic.buffer import Buffer
-from aioquic.quic.packet import (
-    PACKET_TYPE_INITIAL,
-    encode_quic_retry,
-    encode_quic_version_negotiation,
-    pull_quic_header
-)
+from aioquic.quic.packet import PACKET_TYPE_INITIAL, encode_quic_retry, encode_quic_version_negotiation, pull_quic_header
 from aioquic.quic.retry import QuicRetryTokenHandler
 from aioquic.quic.connection import QuicConnection
 import enum
@@ -49,14 +44,24 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self._push_map = {}
         self._retry = QuicRetryTokenHandler() if self.stateless_retry else None
 
-    def _terminate_connection (self):
+    def close (self, errcode = 0x0, msg = None, last_stream_id = None):
+        if last_stream_id:
+            last_stream_id += 4 # unlike http/2
+        super ().close (errcode, msg, last_stream_id)
+
+    def _initiate_shutdown (self):
+        # pahse I: send goaway
+        with self._plock:
+            if hasattr (self.conn, 'shutdown'):
+                self.conn.shutdown (self._shutdown_reason [-1])
+
+    def _proceed_shutdown (self):
         # phase II: close quic
         if self.quic:
-            errcode, msg = self._shutdown_reason
-            self.quic.close (errcode, reason_phrase = msg or '')
+            errcode, msg, _ = self._shutdown_reason
+            with self._plock:
+                self.quic.close (errcode, reason_phrase = msg or '')
             self.send_data ()
-        # phase III: close channel
-        super ()._terminate_connection ()
 
     def _make_connection (self, channel, data):
         ctx = channel.server.ctx
@@ -182,13 +187,6 @@ class http3_request_handler (http2_handler.http2_request_handler):
             elif isinstance (event, events.PingAcknowledged):
                 # for now nothing to do, channel will be extened by event time
                 pass
-
-    def initiate_shutdown (self, errcode = 0, msg = ''):
-        # pahse I: send goaway
-        self._shutdown_reason = (errcode, msg)
-        if hasattr (self.conn, 'close_connection'):
-            with self._plock:
-                self.conn.close_connection ()
 
     def collect_incoming_data (self, data):
         # print ('collect_incoming_data', self.quic, len (data))

@@ -138,14 +138,6 @@ class http2_request_handler (FlowControlWindow):
         self._buf = b""
         self._got_preamble = False
 
-    def _terminate_connection (self):
-        # pahse II: close channel
-        if self.channel:
-            self.channel.close_when_done ()
-        with self._clock:
-            self._close_pending = False
-            self._closed = True
-
     def _default_varialbes (self, handler, request):
         self.handler = handler
         self.wasc = handler.wasc
@@ -163,6 +155,54 @@ class http2_request_handler (FlowControlWindow):
         self._plock = threading.Lock () # for self.conn
         self._clock = threading.Lock () # for self.x
 
+    def close (self, errcode = 0x0, msg = None, last_stream_id = None):
+        with self._clock:
+            if self._closed or self._close_pending:
+                return
+            self._close_pending = True
+            self._shutdown_reason = (errcode, msg, last_stream_id)
+
+        deletable_requests = []
+        deletable_responses = []
+        if last_stream_id:
+            with self._clock:
+                deletable_responses = [producer.stream_id for producer in self._producers if producer.stream_id > last_stream_id]
+                deletable_requests = [stream_id for stream_id in self._requests.keys () if stream_id > last_stream_id]
+        [self.remove_request (stream_id) for stream_id in deletable_requests]
+        [self.remove_response (stream_id) for stream_id in deletable_responses]
+
+        if self.conn:
+            self._initiate_shutdown ()
+
+        if self.channel:
+            self.send_data ()
+        else:
+           self._terminate_connection ()
+
+    def closed (self):
+        return self._closed
+
+    def enter_shutdown_process (self):
+        self.close ()
+
+    def _initiate_shutdown (self):
+        # phase I: prepare shutdown
+        pass
+
+    def _proceed_shutdown (self):
+        # phase II: proceed pending shutdown close protocol
+        errcode, msg, last_stream_id = self._shutdown_reason
+        with self._plock:
+            self.conn.close_connection (errcode, msg, last_stream_id)
+
+    def _terminate_connection (self):
+        # phase III: close channel
+        if self.channel:
+            self.channel.close_when_done ()
+        with self._clock:
+            self._close_pending = False
+            self._closed = True
+
     def _data_from_producers (self):
         for i in range (len (self._producers)):
             with self._clock:
@@ -178,15 +218,18 @@ class http2_request_handler (FlowControlWindow):
                     try:
                         self._producers.pop (0)
                     except IndexError:
-                        # maybe removed by reset stream
                         break
                 r = self.get_request (producer.stream_id)
                 self.remove_request (producer.stream_id)
 
             if produced:
                 break
+
             with self._clock:
-                self._producers.append (self._producers.pop (0))
+                try:
+                    self._producers.append (self._producers.pop (0))
+                except IndexError:
+                    break
             continue
 
     def _data_exhausted (self):
@@ -197,7 +240,7 @@ class http2_request_handler (FlowControlWindow):
                 if self._pushed_pathes and not self._requests:
                     # end of a request session
                     self._pushed_pathes = {}
-        close_pending and self._terminate_connection ()
+        close_pending and not self._requests and self._proceed_shutdown ()
         return [] # MUST return
 
     def _set_frame_data (self, data):
@@ -206,7 +249,11 @@ class http2_request_handler (FlowControlWindow):
         self._current_frame.parse_body (memoryview (data))
         self._current_frame = self._frame_buf._update_header_buffer (self._current_frame)
         with self._plock:
-            events = self.conn._receive_frame (self._current_frame)
+            try:
+                events = self.conn._receive_frame (self._current_frame)
+            except ProtocolError:
+                self._terminate_connection ()
+                return []
         return events
 
     def _adjust_flow_control_window (self, stream_id):
@@ -274,31 +321,6 @@ class http2_request_handler (FlowControlWindow):
                         self.remove_request (event.stream_id)
 
         self.send_data ()
-
-    def initiate_shutdown (self, errcode = 0x0, msg = None):
-        # pahse I: send goaway and close http2 protocol
-        self._shutdown_reason = (errcode, msg)
-        with self._plock:
-            self.conn.close_connection (errcode, msg)
-
-    def close (self, errcode = 0x0, msg = None):
-        with self._clock:
-            if self._closed:
-                return
-            self._close_pending = True
-        self._shutdown_reason = (errcode, msg)
-        if self.conn:
-            self.initiate_shutdown (errcode, msg)
-        if self.channel:
-            self.send_data ()
-        else:
-           self._terminate_connection ()
-
-    def enter_shutdown_process (self):
-        self.close ()
-
-    def closed (self):
-        return self._closed
 
     def send_data (self):
         self._has_sendables = True
@@ -422,30 +444,32 @@ class http2_request_handler (FlowControlWindow):
         event.headers = headers
         self._handle_events ([event])
 
-    def remove_request (self, stream_id):
-        r = self.get_request (stream_id)
-        if not r: return
-        with self._clock:
-            try: del self._requests [stream_id]
-            except KeyError: pass
-        r.protocol = None
-
     def get_request (self, stream_id):
         r = None
         with self._clock:
-            try: r =    self._requests [stream_id]
+            try: r = self._requests [stream_id]
             except KeyError: pass
         return r
 
     def remove_stream (self, stream_id):
         # received by client and just reset
+        self.remove_request (stream_id)
+        self.remove_response (stream_id)
+
+    def remove_request (self, stream_id):
         r = self.get_request (stream_id)
+        if not r: return
         if r and r.collector:
             try: r.collector.stream_has_been_reset ()
             except AttributeError: pass
             r.set_stream_ended ()
-            self.remove_request (stream_id)
+        r.protocol = None
 
+        with self._clock:
+            try: del self._requests [stream_id]
+            except KeyError: pass
+
+    def remove_response (self, stream_id):
         with self._clock:
             for producer in self._producers:
                 if producer.stream_id == stream_id:

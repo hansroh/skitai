@@ -35,25 +35,22 @@ def test_launch (launch):
         assert 'result' in resp.data
         assert 'serve.py' in resp.data ['result']
 
-        for i in range (2):
-            resp = engine.axios.get ('/apis/db{}'.format (i == 1 and 2 or ''))
+        for i in range (4):
+            resp2 = engine.axios.get ('/apis/thread{}'.format (i % 2 == 1 and 2 or ''))
+            assert resp2.status_code == 200
+            assert 'result' in resp2.data
+            assert resp2.data ['result'] == [1,2,3]
+            if i == 0:
+                assert resp2.data ['duration'] < 3.0
+
+        for i in range (4):
+            resp1 = engine.axios.get ('/apis/rest-api{}'.format (i % 2 == 1 and 2 or ''))
+            assert resp1.status_code == 200
+            assert 'result' in resp1.data
+            assert 'info' in resp1.data ['result']
+
+        for i in range (4):
+            resp = engine.axios.get ('/apis/db{}'.format (i % 2 == 1 and 2 or ''))
             assert resp.status_code == 200
             assert 'rows' in resp.data
             assert len (resp.data ['rows']) > 1
-
-        for i in range (2):
-            resp = engine.axios.get ('/apis/rest-api{}'.format (i == 1 and 2 or ''))
-            assert resp.status_code == 200
-            assert 'result' in resp.data
-            assert 'info' in resp.data ['result']
-
-        for i in range (2):
-            resp = engine.axios.get ('/apis/thread{}'.format (i == 1 and 2 or ''))
-            assert resp.status_code == 200
-            assert 'result' in resp.data
-            assert resp.data ['result'] == [1,2,3]
-            if i == 0:
-                assert resp.data ['duration'] < 3.0
-
-
-

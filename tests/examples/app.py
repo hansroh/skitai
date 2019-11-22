@@ -3,6 +3,7 @@ from atila import Atila
 import skitai
 from services import sub
 from skitai import was as cwas
+import time
 
 if os.name == "nt":
     from rs4.psutil.win32service import ServiceFramework
@@ -159,6 +160,16 @@ def promise (was):
     was.push (was.ab (hello))
     was.push (was.ab (test))
     return was.response.api (data = "JSON")
+
+@app.route ("/delay")
+def delay (was, wait = 3):
+    time.sleep (int (wait))
+    return was.response.api (data = "JSON")
+
+@app.route ("/shutdown")
+def shutdown (was, stream_id = 1):
+    was.request.protocol.close (last_stream_id = int (stream_id))
+    return 'CLOSED'
 
 
 if __name__ == "__main__":
