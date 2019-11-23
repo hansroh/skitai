@@ -6,7 +6,6 @@ import sys
 import threading
 from aquests.protocols.http2.hyper.common.exceptions import ConnectionResetError
 
-@pytest.mark.skip
 def test_http2 (launch):
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
@@ -39,9 +38,8 @@ def test_http3 (launch):
         resps = mc.request ()
         assert len (resps) == 12
 
-        wanted = [0, ConnectionShutdownInitiated is None and 1 or 0]
+        wanted = [0, ConnectionShutdownInitiated is int and 1 or 0]
         for event in mc.control_event_history:
-            print (event)
             if isinstance (event, ConnectionTerminated):
                 wanted [0] = 1
             elif isinstance (event, ConnectionShutdownInitiated):
