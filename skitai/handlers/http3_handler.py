@@ -2,21 +2,14 @@ from . import http2_handler
 import time
 import os
 from aioquic.quic import events
-from aioquic.h3 import connection as h3
-from aioquic.h3.events import DataReceived, HeadersReceived, H3Event
 from aioquic.h3.exceptions import H3Error, NoAvailablePushIDError
 from aioquic.buffer import Buffer
 from aioquic.quic.packet import PACKET_TYPE_INITIAL, encode_quic_retry, encode_quic_version_negotiation, pull_quic_header
 from aioquic.quic.retry import QuicRetryTokenHandler
 from aioquic.quic.connection import QuicConnection
 import enum
-try:
-    from aioquic.h3.events import PushCanceled
-except:
-    from dataclasses import dataclass
-    @dataclass
-    class PushCanceled (H3Event):
-        push_id: int
+from .http3.events import PushCanceled, MaxPushReceived, DataReceived, HeadersReceived
+from .http3.connection import H3Connection
 
 # http2 compat error codes
 class ErrorCode (enum.IntEnum):
@@ -52,8 +45,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
     def _initiate_shutdown (self):
         # pahse I: send goaway
         with self._plock:
-            if hasattr (self.conn, 'shutdown'):
-                self.conn.shutdown (self._shutdown_reason [-1])
+            self.conn.shutdown (self._shutdown_reason [-1])
 
     def _proceed_shutdown (self):
         # phase II: close quic
@@ -117,7 +109,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
             session_ticket_fetcher = channel.server.ticket_store.pop,
             session_ticket_handler = channel.server.ticket_store.add
         )
-        self.conn = h3.H3Connection (self.quic)
+        self.conn = H3Connection (self.quic)
         self.conn._linked_channel = channel
 
     def _handle_events (self, events):
@@ -218,8 +210,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
             try: steram_id = self._push_map.pop (push_id)
             except KeyError: return # already done or canceled
         with self._plock:
-            if hasattr (self.conn, 'send_cancel_push'):
-                self.conn.send_cancel_push (stream_id)
+            self.conn.cancel_push (push_id)
         super ().remove_stream (steram_id)
         self.send_data ()
 

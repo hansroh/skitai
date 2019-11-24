@@ -37,6 +37,7 @@ packages = [
 	'skitai.backbone',
 	'skitai.handlers',
 	'skitai.handlers.http2',
+	'skitai.handlers.http3',
 	'skitai.handlers.websocket',
 	'skitai.handlers.proxy',
 	'skitai.corequest',
