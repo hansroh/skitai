@@ -40,7 +40,7 @@ class H3Connection (H3Connection):
         self._canceled_push_ids.add (push_id)
         self._quic.send_stream_data (self._local_control_stream_id, encode_frame(FrameType.CANCEL_PUSH, encode_uint_var(push_id)))
 
-    def ___send_duplicate_push (self, stream_id, push_id):
+    def send_duplicate_push (self, stream_id, push_id):
         assert not self._is_client, "Only servers may send a duplicate push."
         assert push_id < self._max_push_id, "Given push ID is never sent"
         assert (

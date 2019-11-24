@@ -115,7 +115,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
     def _handle_events (self, events):
         for event in events:
             if isinstance (event, HeadersReceived):
-                created = self.handle_request (event.stream_id, event.headers, has_data_frame = not event.stream_ended)
+                created = self.handle_request (event.stream_id, event.headers, has_data_frame = not event.stream_ended, push_id = event.push_id)
                 if created:
                     r = self.get_request (event.stream_id)
                     if event.stream_ended:
@@ -225,27 +225,31 @@ class http3_request_handler (http2_handler.http2_request_handler):
     def pushable (self):
         return self.request_acceptable ()
 
-    def handle_request (self, stream_id, headers, has_data_frame = False):
-        if hasattr (self.conn, 'send_duplicate_push'):
+    def _maybe_duplicated (self, stream_id, headers):
+        path = None
+        for k, v in headers:
+            if k [0] != 58: break
+            elif k == b':path':
+                path = v.decode ()
+            elif k == b':method' and v != b"GET":
+                return False
+        assert path, ':path is missing'
+
+        with self._clock:
+            push_id = self._pushed_pathes.get (path)
+            if push_id is None or push_id not in self._push_map:
+                return False
+
+        with self._plock:
+            self.conn.send_duplicate_push (stream_id, push_id)
+        return True
+
+    def handle_request (self, stream_id, headers, has_data_frame = False, push_id = None):
+        if push_id is None:
             with self._clock:
                 pushing = len (self._pushed_pathes)
-            if pushing:
-                path = None
-                for k, v in headers:
-                    if k [0] != 58: break
-                    elif k == b':path': path = v.decode ()
-                    elif k == b':method' and v != b"GET":
-                        path = None
-                        break
-                push_id = None
-                with self._clock:
-                    push_id = self._pushed_pathes.get (path)
-                    if push_id and push_id not in self._push_map:
-                        push_id = None # canceled push
-                if push_id:
-                    with self._plock:
-                        self.conn.send_duplicate_push (stream_id, push_id)
-                    return False
+            if pushing and self._maybe_duplicated (stream_id, headers):
+                return False
         return super ().handle_request (stream_id, headers, has_data_frame)
 
     def push_promise (self, stream_id, request_headers, addtional_request_headers):
