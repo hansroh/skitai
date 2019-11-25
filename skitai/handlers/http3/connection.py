@@ -6,7 +6,7 @@ except ImportError:
     from aioquic.h3.connection import parse_max_push_id as parse_uint_var
 from aioquic.h3.connection import FrameType, StreamType, FrameUnexpected
 from aioquic.h3.exceptions import NoAvailablePushIDError
-from .events import PushCanceled, MaxPushReceived
+from .events import PushCanceled, MaxPushIdReceived
 
 class H3Connection (H3Connection):
     def __init__ (self, quic):
@@ -49,7 +49,6 @@ class H3Connection (H3Connection):
         self._quic.send_stream_data (stream_id, encode_frame(FrameType.DUPLICATE_PUSH, encode_uint_var(push_id)), True)
 
     def shutdown (self, last_stream_id: int = None):
-        # client need not send GOAWAY frame
         assert not self._is_client, "Client must not send a goaway frame"
         if last_stream_id is None:
             last_stream_id = self._max_client_bidi_stream_id
@@ -65,13 +64,11 @@ class H3Connection (H3Connection):
         super ()._handle_control_frame (frame_type, frame_data)
         http_events = []
         if frame_type == FrameType.MAX_PUSH_ID:
-            http_events.append (MaxPushReceived (push_id = self._max_push_id))
-
+            http_events.append (MaxPushIdReceived (push_id = self._max_push_id))
         elif frame_type == FrameType.CANCEL_PUSH:
             _push_id = parse_uint_var (frame_data)
             self._canceled_push_ids.add (_push_id)
             http_events.append (PushCanceled (push_id = _push_id))
-
         return http_events
 
     def _handle_request_or_push_frame (self, frame_type, frame_data, stream, stream_ended):

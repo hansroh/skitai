@@ -8,7 +8,7 @@ from aioquic.quic.packet import PACKET_TYPE_INITIAL, encode_quic_retry, encode_q
 from aioquic.quic.retry import QuicRetryTokenHandler
 from aioquic.quic.connection import QuicConnection
 import enum
-from .http3.events import PushCanceled, MaxPushReceived, DataReceived, HeadersReceived
+from .http3.events import PushCanceled, MaxPushIdReceived, DataReceived, HeadersReceived
 from .http3.connection import H3Connection
 
 # http2 compat error codes

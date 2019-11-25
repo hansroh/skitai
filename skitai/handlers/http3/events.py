@@ -6,5 +6,5 @@ class PushCanceled (H3Event):
     push_id: int
 
 @dataclass
-class MaxPushReceived (H3Event):
+class MaxPushIdReceived (H3Event):
     push_id: int

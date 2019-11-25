@@ -6,7 +6,6 @@ import sys
 import threading
 from aquests.protocols.http2.hyper.common.exceptions import ConnectionResetError
 import platform
-
 IS_PYPY = platform.python_implementation() == 'PyPy'
 
 def test_http2 (launch):
