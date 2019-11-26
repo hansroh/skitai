@@ -3,11 +3,12 @@ import os
 import socket
 import time
 import sys
-from aquests.protocols.http3 import client
 
 def test_http3 (launch):
     if sys.version_info < (3, 6):
         return
+
+    from aquests.protocols.http3 import client
 
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
