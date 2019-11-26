@@ -20,14 +20,5 @@ def test_http3_server_push (launch):
         data = resp.content
         assert b'"data": "JSON"' in data
 
-        resp = engine.http3.get ('/promise', allow_push = False)
-        pathes = []
-        for push in resp.get_pushes(): # all pushes promised before response headers
-            pathes.append (push.path)
-        assert b'/hello' not in pathes
-        assert b'/test' not in pathes
-        data = resp.content
-        assert b'"data": "JSON"' in data
-
         resp = engine.http3.get ('/hello')
         resp = engine.http3.get ('/test')

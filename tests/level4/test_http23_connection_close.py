@@ -27,28 +27,16 @@ def test_http3 (launch):
         return
 
     from aioquic.quic.events import ConnectionTerminated
-    try:
-        from aioquic.h3.events import ConnectionShutdownInitiated
-    except ImportError:
-        ConnectionShutdownInitiated = int # dummy type
+    from aquests.protocols.http3.events import ConnectionShutdownInitiated
+    from aquests.protocols.http3.client import ConnectionClosed
 
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
-        mc = engine.http3.MultiCall ()
-        for i in range (10):
-            mc.get ('/hello?num=1')
-        mc.get ('/shutdown?stream_id=4')
-        mc.get ('/delay?wait=3')
+        for i in range (3):
+            resp = engine.http3.get ('/hello?num=1')
+        resp = engine.http3.get ('/shutdown?stream_id=12')
+        assert resp.text == 'CLOSED'
 
-        resps = mc.request ()
-        assert len (resps) == 12
-
-        wanted = [0, ConnectionShutdownInitiated is int and 1 or 0]
-        for event in mc.control_event_history:
-            if isinstance (event, ConnectionTerminated):
-                wanted [0] = 1
-            elif isinstance (event, ConnectionShutdownInitiated):
-                wanted [1] = 1
-        assert wanted == [1, 1]
-
+        with pytest.raises (ConnectionClosed):
+            resp = engine.http3.get ('/hello?num=1')
 

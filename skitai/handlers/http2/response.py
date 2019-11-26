@@ -26,20 +26,20 @@ class response (http_response.http_response):
 		if not self.request.protocol.pushable ():
 			return
 
+		host = self.request.get_header ('host', '')
 		headers = [
 			(':path', uri),
-			(':authority', self.request.get_header ('host')),
+			(':authority', host),
 			(':scheme', self.request.scheme),
 			(':method', "GET")
 	  	]
-
 		additional_headers = [
 	   		(k, v) for k, v in [
 			   	('accept-encoding', self.request.get_header ('accept-encoding')),
 			   	('accept-language', self.request.get_header ('accept-language')),
 			    ('cookie', self.request.get_header ('cookie')),
 			    ('user-agent', self.request.get_header ('user-agent')),
-			    ('referer', "%s://%s%s" % (self.request.scheme, self.request.get_header ('host'), self.request.uri)),
+			    ('referer', "%s://%s%s" % (self.request.scheme, host, self.request.uri)),
 		   ] if v
 	   ]
 		self.request.protocol.push_promise (self.request.stream_id, headers, additional_headers)

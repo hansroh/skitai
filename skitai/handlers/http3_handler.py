@@ -8,8 +8,8 @@ from aioquic.quic.packet import PACKET_TYPE_INITIAL, encode_quic_retry, encode_q
 from aioquic.quic.retry import QuicRetryTokenHandler
 from aioquic.quic.connection import QuicConnection
 import enum
-from .http3.events import PushCanceled, MaxPushIdReceived, DataReceived, HeadersReceived
-from .http3.connection import H3Connection
+from aquests.protocols.http3.events import PushCanceled, MaxPushIdReceived, DataReceived, HeadersReceived
+from aquests.protocols.http3.connection import H3Connection
 
 # http2 compat error codes
 class ErrorCode (enum.IntEnum):
@@ -36,11 +36,6 @@ class http3_request_handler (http2_handler.http2_request_handler):
 
         self._push_map = {}
         self._retry = QuicRetryTokenHandler() if self.stateless_retry else None
-
-    def close (self, errcode = 0x0, msg = None, last_stream_id = None):
-        if last_stream_id:
-            last_stream_id += 4 # unlike http/2
-        super ().close (errcode, msg, last_stream_id)
 
     def _initiate_shutdown (self):
         # pahse I: send goaway
