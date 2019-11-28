@@ -63,7 +63,6 @@ install_requires = [
 if os.name == "nt":
 	install_requires.append ("pywin32")
 else:
-	install_requires.append ('aioquic; python_version >= "3.6"')
 	install_requires.append ("ujson")
 
 with codecs.open ('README.rst', 'r', encoding='utf-8') as f:
