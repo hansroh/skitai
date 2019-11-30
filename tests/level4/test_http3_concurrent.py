@@ -44,29 +44,33 @@ def test_http3_dup_push (launch):
 
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
-        mc = engine.http3.MultiCall ()
-        for i in range (3):
-            mc.get ('/promise')
-            mc.get ('/promise')
-            mc.get ('/hello')
-            mc.get ('/delay?wait=2')
-            mc.get ('/test')
-            mc.get ('/delay?wait=2')
-            mc.get ('/hello')
-            mc.get ('/promise')
-            mc.get ('/promise')
-            mc.get ('/delay?wait=2')
-            mc.get ('/test')
-            mc.get ('/hello')
-            mc.get ('/delay?wait=2')
-            mc.get ('/test')
-            mc.get ('/promise')
-            mc.get ('/hello')
-            mc.get ('/test')
+        for j in range (3):
+            mc = engine.http3.MultiCall ()
+            for i in range (3):
+                mc.get ('/promise')
+                mc.get ('/promise')
+                mc.get ('/hello')
+                mc.get ('/delay?wait=2')
+                mc.get ('/test')
+                mc.get ('/delay?wait=2')
+                mc.get ('/hello')
+                mc.get ('/promise')
+                mc.get ('/promise')
+                mc.get ('/delay?wait=2')
+                mc.get ('/test')
+                mc.get ('/hello')
+                mc.get ('/delay?wait=2')
+                mc.get ('/test')
+                mc.get ('/promise')
+                mc.get ('/hello')
+                mc.get ('/test')
 
-        resps = mc.request ()
-        dup = 0
-        for event in mc.control_event_history:
-            if isinstance (event, DuplicatePushReceived):
-                dup += 1
+            resps = mc.request ()
+            dup = 0
+            for event in mc.control_event_history:
+                if isinstance (event, DuplicatePushReceived):
+                    dup += 1
+            if dup:
+                break
+
         assert dup
