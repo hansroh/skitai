@@ -128,7 +128,6 @@ class http2_request_handler (FlowControlWindow):
     def __init__ (self, handler, request):
         self._default_varialbes (handler, request)
         self.conn = H2Connection (H2Configuration (client_side = False))
-        self.altsvc = self.request.channel.server.altsvc
 
         self._frame_buf = self.conn.incoming_buffer
         self._frame_buf.max_frame_size = self.conn.max_inbound_frame_size
@@ -508,9 +507,6 @@ class http2_request_handler (FlowControlWindow):
                 depends_on, weight = 0, 1
             else:
                 del self._priorities [stream_id]
-
-        if self.altsvc:
-            headers.append (("alt-svc", self.altsvc.ALTSVC_HEADER))
 
         if trailers:
             assert producer, "http/2 or 3's trailser requires body"

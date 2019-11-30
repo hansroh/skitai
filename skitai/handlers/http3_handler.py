@@ -25,7 +25,7 @@ class http3_producer (http2_handler.http2_producer):
 
 class http3_request_handler (http2_handler.http2_request_handler):
     producer_class = http3_producer
-    stateless_retry = False
+    stateless_retry = True
     conns = {}
     errno = ErrorCode
 
