@@ -1668,6 +1668,17 @@ on starting.
 After started, Skitai will drop root privileges and fall back to
 current user's.
 
+
+For saving iptables settings,
+
+.. code:: bash
+
+  sudo apt install iptables-persistent
+
+  sudo netfilter-persistent save
+  sudo netfilter-persistent reload
+
+
 Push Promise
 ---------------------
 

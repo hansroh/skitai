@@ -126,7 +126,10 @@ class http3_server (http_server.http_server):
         return True
 
     def recv (self, buffer_size):
-        return self.socket.recvfrom (buffer_size)
+        try:
+            return self.socket.recvfrom (buffer_size)
+        except (ConnectionResetError, BlockingIOError):
+            return b''
 
     def handle_read (self):
         ret = self.recv (self.ac_in_buffer_size)
