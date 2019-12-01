@@ -1569,9 +1569,11 @@ Here're some implementations I made.
 .. _`Haiku API Server`: https://pypi.python.org/pypi/haiku-lst
 
 
+Protocols
+=====================
 
 HTTP/2.0
-================================
+---------------------
 
 *New in version 0.16*
 
@@ -1579,7 +1581,7 @@ Skiai supports HTPT2 both 'h2' protocl over encrypted TLS and 'h2c'
 for clear text (But now Sep 2016, there is no browser supporting h2c protocol).
 
 Push Promise
----------------------
+```````````````````````
 
 Basically you have nothing to do for HTTP2. Client's browser will
 handle it except `HTTP2 server push`_.
@@ -1611,14 +1613,14 @@ otherwise will be ignored.
 
 
 HTTP/3.0 (Experimental)
-==================================
+-----------------------------------
 
 *New in version 0.33*
 
 **Python>=3.6 is required**
 
 Testing HTTP/3 and QUIC
-------------------------------
+``````````````````````````````````
 
 Skitai has been launched experimetnal HTTP/3 on QUIC with aioquic_.
 
@@ -1627,7 +1629,7 @@ that it is experimetal and unstable yet.
 
 
 Configuring and Lauching
----------------------------------
+``````````````````````````````````
 
 HTTP3 can be run with https, you need a certification for it.
 
@@ -1680,13 +1682,13 @@ For saving iptables settings,
 
 
 Push Promise
----------------------
+`````````````````````
 
 Pushing promise is just same as HTTP/2.0.
 
 
 Testing HTTP/3
-------------------------------
+``````````````````````
 
 You can test HTTP/3.0 with `Chrome Canary`_ build.
 
@@ -1705,7 +1707,7 @@ At your browser's developer window, you can see protocol as
 
 
 HTML5 Websocket
-====================
+---------------------------
 
 *New in version 0.11*
 
@@ -1720,7 +1722,7 @@ experimental and could be changable.
 
 
 Using Websocket
------------------------------
+````````````````````````
 
 Use skitai.websocket decorator.
 
@@ -1750,7 +1752,7 @@ I you want to send multiple messages,
 
 
 Proxying With Atila
----------------------------------
+```````````````````````````````
 
 It follows WSGI specification as possible as can:
 
@@ -1789,14 +1791,14 @@ For more about this see `Atila Websocket`_.
 
 
 WWW-Authenticate
------------------------------------
+```````````````````````````````
 
 Some browsers do not support WWW-Authenticate on websocket
 like Safari, then Skitai currently disables WWW-Authenticate
 for websocket, so you should be careful for requiring secured messages.
 
 Client Side
------------------------------
+`````````````````````
 
 First of all, see conceptual client side java script for websocket using Vuejs.
 
@@ -1892,7 +1894,7 @@ First of all, see conceptual client side java script for websocket using Vuejs.
 
 
 Send Messages Through Websocket Directly
------------------------------------------------------------------------------
+`````````````````````````````````````````````````````````
 
 It needn't return message, but you can send directly
 multiple messages through was.websocket,
