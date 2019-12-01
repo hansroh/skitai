@@ -1617,7 +1617,7 @@ HTTP/3.0 (Experimental)
 
 **Python>=3.6 is required**
 
-Testing HTPP3 and QUIC
+Testing HTTP/3 and QUIC
 ------------------------------
 
 Skitai has been launched experimetnal HTTP/3 on QUIC with aioquic_.
@@ -1685,7 +1685,7 @@ Push Promise
 Pushing promise is just same as HTTP/2.0.
 
 
-Testing HTTP/3 and QUIC
+Testing HTTP/3
 ------------------------------
 
 You can test HTTP/3.0 with `Chrome Canary`_ build.
@@ -1694,10 +1694,10 @@ You have to run Chrome Canary with command line options,
 
 .. code:: bash
 
-   chrome.exe --enable-quic --quic-version=h3-23
+   chrome.exe --enable-quic --quic-version=h3-24
 
 At your browser's developer window, you can see protocol as
-*http/2+quic/99* during you loading your web page and files.
+*h3-24* during you loading your web page and files.
 
 
 .. _aioquic: https://github.com/aiortc/aioquic

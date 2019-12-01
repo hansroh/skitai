@@ -71,7 +71,7 @@ class http3_channel (https_server.https_channel, http_server.http_channel):
 
     # packet handler -----------------------------------------------------------
     def create_handler (self):
-        r = http_request.http_request (self, "QUiC / HTTP/3.0", "QUiC", "/", "3.0", [])
+        r = http_request.http_request (self, "QUIC / HTTP/3.0", "QUIC", "/", "3.0", [])
         self.set_timeout (self.network_timeout)
         self.request_counter.inc()
         self.server.total_requests.inc ()

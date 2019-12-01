@@ -44,7 +44,8 @@ def test_http3_dup_push (launch):
 
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
-        for j in range (3):
+        # need a little lucky
+        for j in range (7):
             mc = engine.http3.MultiCall ()
             for i in range (3):
                 mc.get ('/promise')
