@@ -192,7 +192,7 @@ class http2_request_handler (FlowControlWindow):
         # phase II: proceed pending shutdown close protocol
         errcode, msg, last_stream_id = self._shutdown_reason
         with self._plock:
-            self.conn.close_connection (errcode, msg, last_stream_id)
+            self.conn.close_connection (errcode, msg, max (0, last_stream_id)) # -1 used by http3
 
     def _terminate_connection (self):
         # phase III: close channel
