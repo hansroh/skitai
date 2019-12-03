@@ -1596,9 +1596,8 @@ otherwise will be ignored.
 
   @app.route ("/promise")
   def promise ():
-
-    was.response.push_promise ('/images/A.png')
-    was.response.push_promise ('/images/B.png')
+    was.push ('/images/A.png')
+    was.push ('/images/B.png')
 
     return was.response (
       "200 OK",
@@ -1619,16 +1618,13 @@ HTTP/3.0 (Experimental)
 
 **Python>=3.6 is required**
 
-Testing HTTP/3 and QUIC
-``````````````````````````````````
-
 Skitai has been launched experimetnal HTTP/3 on QUIC with aioquic_.
 
 *WARNING*: DO NOT use this for your production services. You must aware
 that it is experimetal and unstable yet.
 
 
-Configuring and Lauching
+Configuring and Launching
 ``````````````````````````````````
 
 HTTP3 can be run with https, you need a certification for it.
@@ -1700,7 +1696,6 @@ You have to run Chrome Canary with command line options,
 
 At your browser's developer window, you can see protocol as
 *h3-24* during you loading your web page and files.
-
 
 .. _aioquic: https://github.com/aiortc/aioquic
 .. _`Chrome Canary`: https://www.google.com/intl/ko_ALL/chrome/canary/
