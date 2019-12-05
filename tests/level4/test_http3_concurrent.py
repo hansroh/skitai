@@ -17,23 +17,25 @@ def test_http3_close (launch):
 
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
-        mc = engine.http3.MultiCall ()
-        for i in range (10):
-            mc.get ('/hello?num=1')
-        mc.get ('/shutdown?stream_id=12')
-        mc.get ('/delay?wait=3')
+        for i in range (7): # need a little lucky
+            mc = engine.http3.MultiCall ()
+            for i in range (10):
+                mc.get ('/hello?num=1')
+            mc.get ('/shutdown?stream_id=4')
+            mc.get ('/delay?wait=3')
 
-        resps = mc.request ()
-        assert len (resps) == 12
+            resps = mc.request ()
+            assert len (resps) == 12
 
-        wanted = [0, 0]
-        for event in mc.control_event_history:
-            if isinstance (event, ConnectionTerminated):
-                wanted [0] = 1
-            elif isinstance (event, ConnectionShutdownInitiated):
-                wanted [1] = 1
+            wanted = [0, 0]
+            for event in mc.control_event_history:
+                if isinstance (event, ConnectionTerminated):
+                    wanted [0] = 1
+                elif isinstance (event, ConnectionShutdownInitiated):
+                    wanted [1] = 1
+            if wanted == [1, 1]:
+                break
         assert wanted == [1, 1]
-
 
 def test_http3_dup_push (launch):
     if sys.version_info < (3, 6):
@@ -44,8 +46,7 @@ def test_http3_dup_push (launch):
 
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
-        # need a little lucky
-        for j in range (7):
+        for j in range (7): # need a little lucky
             mc = engine.http3.MultiCall ()
             for i in range (3):
                 mc.get ('/promise')
