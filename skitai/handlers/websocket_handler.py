@@ -90,8 +90,9 @@ class Handler (wsgi_handler.Handler):
 			request.routed = current_app.get_routed (method)
 			request.routable = options
 			wsfunc = request.routed
+
 			if is_atila:
-				fspec = app.get_function_spec (wsfunc) or inspect.getfullargspec (wsfunc)
+				fspec = app.get_function_spec (wsfunc, options.get ('mntopt')) or inspect.getfullargspec (wsfunc)
 			else:
 				fspec = inspect.getfullargspec (wsfunc)
 
@@ -160,7 +161,8 @@ class Handler (wsgi_handler.Handler):
 			ws = ws_class (self, request, apph, env, varnames, message_encoding)
 			self.channel_config (request, ws, keep_alive)
 			env ["websocket"] = ws
-			if is_atila: env ["websocket.handler"] = (current_app, wsfunc)
+			if is_atila:
+				env ["websocket.handler"] = (current_app, wsfunc)
 			ws.open ()
 
 		elif design_spec == skitai.WS_GROUPCHAT:
