@@ -56,8 +56,6 @@ within WSGI specification not with ASGI nor asyncio (It use asyncore).
 - HTTP 3.0 (beta)
 - SSL/TLS
 - Corequest (concurrent requests for upstreams and backgroud tasks)
-- upstream connection and pooling and caching
-
 
 .. _Atila: https://pypi.python.org/pypi/atila
 
