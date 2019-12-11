@@ -25,6 +25,7 @@ Create and mount your app,
     import skitai
 
     skitai.mount ('/', app)
+    skitai.mount ('/', '/var/www/statics')
     skitai.run (address = "127.0.0.1", port = 5000)
 
 And run.
@@ -32,7 +33,6 @@ And run.
 .. code:: bash
 
   python3 myservice.py
-
 
 Your app will work for your thousands or miliions of customers.
 
@@ -50,6 +50,14 @@ And you can use them with highly consistent manner.
 Skitai handles requests with mainly asynchronous event loop and
 threading pool and support websocket
 within WSGI specification not with ASGI nor asyncio (It use asyncore).
+
+- Websocket over HTTP 1.1
+- HTTP 2.0 include h2c protocol
+- HTTP 3.0 (beta)
+- SSL/TLS
+- Corequest (concurrent requests for upstreams and backgroud tasks)
+- upstream connection and pooling and caching
+
 
 .. _Atila: https://pypi.python.org/pypi/atila
 
