@@ -1,5 +1,6 @@
 import pytest
 import os
+from websocket import create_connection
 
 def test_launch (launch):
     serve = '../../atila/example/serve.py'
@@ -7,8 +8,20 @@ def test_launch (launch):
         return
 
     with launch (serve) as engine:
+
+        ws = create_connection("ws://127.0.0.1:30371/websocket/echo")
+        ws.send ("Hello, World")
+        result =  ws.recv()
+        assert result =="echo: Hello, World"
+
         resp = engine.get ("/")
         assert resp.text.find ("Example") > 0
+
+        resp = engine.get ("/apis/xxx")
+        assert resp.status_code == 404
+
+        resp = engine.get ("/apis/urlfor")
+        assert resp.data == {'urls': ['/apis?message=urlfor', '/apis', '/apis/db', '/templates', '/templates?message=urlfor', '/templates/api-examples']}
 
         resp = engine.get ("/templates")
         assert resp.text.find ("Example") > 0
