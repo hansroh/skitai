@@ -1,6 +1,5 @@
 import pytest
 import os
-from websocket import create_connection
 
 def test_launch (launch):
     serve = '../../atila/example/serve.py'
@@ -9,7 +8,7 @@ def test_launch (launch):
 
     with launch (serve) as engine:
 
-        ws = create_connection("ws://127.0.0.1:30371/websocket/echo")
+        ws = engine.websocket ("/websocket/echo")
         ws.send ("Hello, World")
         result =  ws.recv()
         assert result =="echo: Hello, World"
