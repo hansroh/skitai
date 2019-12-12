@@ -25,6 +25,20 @@ variables:
       - pip install -U tfserver tensorflow==1.13.2
       - pip install -U --force pymongo
 
+.before_python_test: &before_python_notf_test
+    before_script:
+      - python3 -V
+      - python3 -m venv venv
+      - source venv/bin/activate
+      - pip3 install -U setuptools pip
+      - pip install -e .
+      - pip install -U --no-cache-dir aquests rs4 sqlphile
+      - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
+      - python -c 'from aquests.protocols.grpc import discover'
+      - pip install --no-cache-dir atila
+      - pip install -Ur tests/requirements.txt
+      - pip install -U --force pymongo
+
 .before_pypy_test: &before_pypy_test
     before_script:
       - pypy3 -V
@@ -64,6 +78,11 @@ python 3.6stretch:
 python 3.7stretch:
   image: python:3.7-stretch
   <<: *before_python_test
+  <<: *test
+
+python 3.8buster:
+  image: python:3.8-buster
+  <<: *before_python_notf_test
   <<: *test
 
 python pypy3:

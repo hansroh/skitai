@@ -80,8 +80,8 @@ def documentation3 (was):
 @app.route ("/db")
 def db (was):
     with was.db ("@sqlite3") as db:
-        #db.execute('CREATE TABLE IF NOT EXISTS people (id real, name text)').commit ()
-        #db.execute("INSERT INTO people (id, name) VALUES (2, 'Hans Roh')").commit ()
+        # db.execute('CREATE TABLE IF NOT EXISTS people (id real, name text)').commit ()
+        # db.execute("INSERT INTO people (id, name) VALUES (2, 'Hans Roh')").commit ()
         req = db.execute ("select * from people")
     return was.API (data = req.fetch (cache = 40, timeout = 2))
 
@@ -94,14 +94,14 @@ def dbtx (was):
 @app.route ("/dbmap")
 def dbmap (was):
     with was.db.map ("@sqlite3m") as db:
-        #db.execute('CREATE TABLE IF NOT EXISTS people (id real, name text)').commit ()
-        #db.execute("INSERT INTO people VALUES (1, 'Hans Roh')").commit ()
+        # db.execute('CREATE TABLE IF NOT EXISTS people (id real, name text)').commit ()
+        # db.execute("INSERT INTO people VALUES (1, 'Hans Roh')").commit ()
         req = db.execute ("select * from people")
         results = req.dispatch ()
         data = req.fetch (cache = 60)
         assert data == results.data
-    with was.db.map ("@sqlite3m") as db:
-        db.execute ("delete from people where id=3").commit ()
+    # with was.db.map ("@sqlite3m") as db:
+    #     db.execute ("delete from people where id=3").commit ()
     return was.API (data = data)
 
 @app.route ("/dblb")
@@ -196,4 +196,3 @@ if __name__ == "__main__":
         workers = 1,
         threads = 4
     )
-
