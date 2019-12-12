@@ -4,6 +4,7 @@ import skitai
 from services import sub
 from skitai import was as cwas
 import time
+import sys
 
 if os.name == "nt":
     from rs4.psutil.win32service import ServiceFramework
@@ -100,8 +101,9 @@ def dbmap (was):
         results = req.dispatch ()
         data = req.fetch (cache = 60)
         assert data == results.data
-    # with was.db.map ("@sqlite3m") as db:
-    #     db.execute ("delete from people where id=3").commit ()
+    if sys.version_info <= (3, 7):
+        with was.db.map ("@sqlite3m") as db:
+            db.execute ("delete from people where id=3").commit ()
     return was.API (data = data)
 
 @app.route ("/dblb")
