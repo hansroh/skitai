@@ -1,14 +1,14 @@
 before_script:
-  - python3 -V
-  - pip3 install -U setuptools pip
+  - python -V
+  - pip install -U setuptools pip
 
 variables:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
-# cache:
-#   paths:
-#     - .cache/pip
-#     - venv/
+cache:
+  paths:
+    - .cache/pip
+    - venv/
 
 .before_python_test: &before_python_test
     before_script:
@@ -25,7 +25,7 @@ variables:
       - pip install -U tfserver tensorflow==1.13.2
       - pip install -U --force pymongo
 
-.before_python_test: &before_python_notf_test
+.before_python_notf_test: &before_python_notf_test
     before_script:
       - python -V
       - python -m venv venv
@@ -72,7 +72,7 @@ variables:
   only:
     - master
 
-#python 3.7win32:
+# python 3.7win32:
 #  image: python:3.7.5-windowsservercore-1809
 #  <<: *before_python_notf_test
 #  <<: *test-win32
