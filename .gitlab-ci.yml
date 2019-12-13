@@ -15,7 +15,7 @@ variables:
       - python3 -V
       - python3 -m venv venv
       - source venv/bin/activate
-      - pip3 install -U setuptools pip
+      - pip install -U setuptools pip
       - pip install -e .
       - pip install -U --no-cache-dir aquests rs4 sqlphile
       - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
@@ -30,7 +30,7 @@ variables:
       - python3 -V
       - python3 -m venv venv
       - source venv/bin/activate
-      - pip3 install -U setuptools pip
+      - pip install -U setuptools pip
       - pip install -e .
       - pip install -U --no-cache-dir aquests rs4 sqlphile
       - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
@@ -38,6 +38,20 @@ variables:
       - pip install --no-cache-dir atila
       - pip install -Ur tests/requirements.txt
       - pip install -U --force pymongo
+
+.before_python_test: &before_win32_python_test
+    before_script:
+      - python -V
+      - python -m venv venv
+      - source venv\bin\activate
+      - pip install -U setuptools pip
+      - pip install -e .
+      - pip install -U --no-cache-dir aquests rs4 sqlphile
+      - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
+      - python -c 'from aquests.protocols.grpc import discover'
+      - pip install --no-cache-dir atila
+      - python -c 'import skitai, atila'
+      - pip install -Ur tests/requirements.txt
 
 .before_pypy_test: &before_pypy_test
     before_script:
@@ -64,6 +78,18 @@ variables:
     - deactivate
   only:
     - master
+
+.test_template_win32: &test-win32
+  script:
+    - cd tests
+    - pytest level3/test_app.py
+  only:
+    - master
+
+python 3.7win32:
+  image: python:3.7.5-windowsservercore-1809
+  <<: *before_win32_python_test
+  <<: *test-win32
 
 python 3.5stretch:
   image: python:3.5-stretch
