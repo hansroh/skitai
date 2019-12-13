@@ -65,6 +65,20 @@ variables:
   only:
     - master
 
+.test_template_win32: &test-win32
+  script:
+    - cd tests
+    - pytest level3/test_app.py
+  only:
+    - master
+
+python 3.6win32:
+  image: lazka/pygobject:pyenv
+  variables:
+    PYENV_VERSION: "3.6.4"
+  <<: *before_python_notf_test
+  <<: *test-win32
+
 python 3.5stretch:
   image: python:3.5-stretch
   <<: *before_python_test
