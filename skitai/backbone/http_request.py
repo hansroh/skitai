@@ -112,6 +112,9 @@ class http_request:
     def payload (self):
         return self.get_body ()
 
+    def acceptable (self, media):
+        return self.get_header ('accept', '').find (media) != -1
+
     def dejwt (self, token = None, salt = None):
         if not token:
             if self._jwt:
