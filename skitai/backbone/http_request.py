@@ -93,6 +93,11 @@ class http_request:
         return self.get_scheme ()
 
     @property
+    def acceptables (self):
+        accept = self.get_header ('accept', '')
+        return http_util.parse_multi_params (accept) if accept else {}
+
+    @property
     def headers (self):
         if self._headers_cache:
             return self._headers_cache
@@ -283,7 +288,6 @@ class http_request:
         if v is None:
             return default, {}
         return http_util.parse_params (v)
-
     get_header_with_attr = get_header_params
 
     def get_header_noparam (self, header, default = None):
