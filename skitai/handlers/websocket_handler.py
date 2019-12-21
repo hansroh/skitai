@@ -88,15 +88,10 @@ class Handler (wsgi_handler.Handler):
 			if resp_code:
 				return request.response.error (resp_code)
 
-			env ["wsgi.routed"] = current_app.get_routed (method)
+			request.env = env # IMP
+			env ["wsgi.routed"] = wsfunc = current_app.get_routed (method)
 			env ["wsgi.route_options"] = options
-			request.env = env
-			wsfunc = request.routed
-
-			if is_atila:
-				fspec = app.get_function_spec (wsfunc, options.get ('mntopt')) or inspect.getfullargspec (wsfunc)
-			else:
-				fspec = inspect.getfullargspec (wsfunc)
+			fspec = app.get_function_spec (wsfunc, options.get ('mntopt')) or inspect.getfullargspec (wsfunc)
 
 			savedqs = env.get ('QUERY_STRING', '')
 			current_args = {}
