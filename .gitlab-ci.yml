@@ -58,28 +58,28 @@ cache:
 python 3.5stretch:
   image: python:3.5-stretch
   before_script:
-    - *python_sctipt
+    - *python_script
     - *install_tfserver
   <<: *test
 
 python 3.6stretch:
   image: python:3.6-stretch
   before_script:
-    - *python_sctipt
+    - *python_script
     - *install_tfserver
   <<: *test
 
 python 3.7stretch:
   image: python:3.7-stretch
   before_script:
-    - *python_sctipt
+    - *python_script
     - *install_tfserver
   <<: *test
 
 python 3.8buster:
   image: python:3.8-buster
   before_script:
-    - *python_sctipt
+    - *python_script
   <<: *test
 
 python pypy3:
