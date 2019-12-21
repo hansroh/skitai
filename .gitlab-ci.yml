@@ -10,48 +10,48 @@ cache:
     - .cache/pip
     - venv/
 
+.build_venv: &build_venv
+  - python -V && python -m venv venv && source venv/bin/activate
+
+.build_pypy_venv: &build_pypy_venv
+  - pypy3 -V && pypy3 -m venv venv && source venv/bin/activate
+
+.install_deps: &install_deps
+  - pip install -U setuptools pip && pip install -e . && pip install -U --pre --no-cache-dir aquests rs4 sqlphile && pip install --pre --no-cache-dir atila
+
+.install_test_deps: &install_test_deps
+  - pip install -Ur tests/requirements.txt && pip install -U --force pymongo
+
+.install_tf: &install_tf
+  - pip install -U tfserver tensorflow==1.13.2
+
+.test_installation: &test_installation
+  - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis; from aquests.protocols.grpc import discover'
+
+.test_pypy_installation: &test_installation
+  - pypy3 -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis; from aquests.protocols.grpc import discover'
+
 .before_python_test: &before_python_test
     before_script:
-      - python -V
-      - python -m venv venv
-      - source venv/bin/activate
-      - pip install -U setuptools pip
-      - pip install -e .
-      - pip install -U --pre --no-cache-dir aquests rs4 sqlphile
-      - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
-      - python -c 'from aquests.protocols.grpc import discover'
-      - pip install --pre --no-cache-dir atila
-      - pip install -Ur tests/requirements.txt
-      - pip install -U tfserver tensorflow==1.13.2
-      - pip install -U --force pymongo
+      - *build_venv
+      - *install_deps
+      - *install_test_deps
+      - *install_tf
+      - *test_installation
 
 .before_python_notf_test: &before_python_notf_test
     before_script:
-      - python -V
-      - python -m venv venv
-      - source venv/bin/activate
-      - pip install -U setuptools pip
-      - pip install -e .
-      - pip install -U --pre --no-cache-dir aquests rs4 sqlphile
-      - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
-      - python -c 'from aquests.protocols.grpc import discover'
-      - pip install --pre --no-cache-dir atila
-      - pip install -Ur tests/requirements.txt
-      - pip install -U --force pymongo
+      - *build_venv
+      - *install_deps
+      - *install_test_deps
+      - *test_installation
 
 .before_pypy_test: &before_pypy_test
     before_script:
-      - pypy3 -V
-      - pypy3 -m venv venv
-      - source venv/bin/activate
-      - pip install -U setuptools pip
-      - pip install -e .
-      - pip install -U --pre --no-cache-dir aquests rs4 sqlphile
-      - pypy3 -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
-      - pypy3 -c 'from aquests.protocols.grpc import discover'
-      - pip install --pre --no-cache-dir atila
-      - pip install -Ur tests/requirements.txt
-      - pip install -U --force pymongo
+      - *build_pypy_venv
+      - *install_deps
+      - *install_test_deps
+      - *test_pypy_installation
 
 .test_template: &test
   script:
