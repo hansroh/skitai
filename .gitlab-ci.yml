@@ -28,7 +28,7 @@ cache:
 .test_installation: &test_installation
   - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis; from aquests.protocols.grpc import discover'
 
-.test_pypy_installation: &test_installation
+.test_pypy_installation: &test_pypy_installation
   - pypy3 -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis; from aquests.protocols.grpc import discover'
 
 .before_python_test: &before_python_test
