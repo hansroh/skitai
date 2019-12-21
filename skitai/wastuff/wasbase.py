@@ -81,6 +81,10 @@ class WASBase:
         if self.cloned:
             return self
         new_was = copy.copy (self)
+        if hasattr (self, 'env'):
+            new_env = copy.copy (self.env)
+            new_env ["skitai.was"] = new_was
+            new_was.env = new_env
         new_was.cloned = True
         return new_was
 
