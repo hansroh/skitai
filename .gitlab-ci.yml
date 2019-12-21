@@ -72,11 +72,6 @@ cache:
   only:
     - master
 
-# python 3.7win32:
-#  image: python:3.7.5-windowsservercore-1809
-#  <<: *before_python_notf_test
-#  <<: *test-win32
-
 python 3.5stretch:
   image: python:3.5-stretch
   <<: *before_python_test
