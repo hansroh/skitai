@@ -20,7 +20,7 @@ cache:
       - pip install -U --pre --no-cache-dir aquests rs4 sqlphile
       - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
       - python -c 'from aquests.protocols.grpc import discover'
-      - pip install --no-cache-dir atila
+      - pip install --pre --no-cache-dir atila
       - pip install -Ur tests/requirements.txt
       - pip install -U tfserver tensorflow==1.13.2
       - pip install -U --force pymongo
@@ -35,7 +35,7 @@ cache:
       - pip install -U --pre --no-cache-dir aquests rs4 sqlphile
       - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
       - python -c 'from aquests.protocols.grpc import discover'
-      - pip install --no-cache-dir atila
+      - pip install --pre --no-cache-dir atila
       - pip install -Ur tests/requirements.txt
       - pip install -U --force pymongo
 
@@ -49,7 +49,7 @@ cache:
       - pip install -U --pre --no-cache-dir aquests rs4 sqlphile
       - pypy3 -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
       - pypy3 -c 'from aquests.protocols.grpc import discover'
-      - pip install --no-cache-dir atila
+      - pip install --pre --no-cache-dir atila
       - pip install -Ur tests/requirements.txt
       - pip install -U --force pymongo
 
