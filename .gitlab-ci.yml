@@ -13,23 +13,26 @@ cache:
 .build_venv: &build_venv
   - python -V && python -m venv venv && source venv/bin/activate
 
-.build_pypy_venv: &build_pypy_venv
-  - pypy3 -V && pypy3 -m venv venv && source venv/bin/activate
-
 .install_deps: &install_deps
   - pip install -U setuptools pip && pip install -e . && pip install -U --pre --no-cache-dir aquests rs4 sqlphile && pip install --pre --no-cache-dir atila
 
 .install_test_deps: &install_test_deps
   - pip install -Ur tests/requirements.txt && pip install -U --force pymongo
 
+.test_modules: &test_modules
+  - 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis; from aquests.protocols.grpc import discover'
+
 .install_tf: &install_tf
   - pip install -U tfserver tensorflow==1.13.2
 
 .test_installation: &test_installation
-  - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis; from aquests.protocols.grpc import discover'
+  - python -c *test_modules
+
+.build_pypy_venv: &build_pypy_venv
+  - pypy3 -V && pypy3 -m venv venv && source venv/bin/activate
 
 .test_pypy_installation: &test_pypy_installation
-  - pypy3 -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis; from aquests.protocols.grpc import discover'
+  - pypy3 -c *test_modules
 
 .before_python_test: &before_python_test
     before_script:
