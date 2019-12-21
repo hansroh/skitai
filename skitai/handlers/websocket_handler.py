@@ -65,6 +65,7 @@ class Handler (wsgi_handler.Handler):
 		was = the_was._get ()
 		was.request = request
 		was.env = env
+
 		env ["skitai.was"] = was
 		env ["websocket.event"] = skitai.WS_EVT_INIT
 
@@ -87,8 +88,9 @@ class Handler (wsgi_handler.Handler):
 			if resp_code:
 				return request.response.error (resp_code)
 
-			request.routed = current_app.get_routed (method)
-			request.routable = options
+			env ["wsgi.routed"] = current_app.get_routed (method)
+			env ["wsgi.route_options"] = options
+			request.env = env
 			wsfunc = request.routed
 
 			if is_atila:

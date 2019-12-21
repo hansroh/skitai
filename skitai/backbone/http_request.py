@@ -46,6 +46,8 @@ class http_request:
         self.rbytes = 0
         self.created = time.time ()
         self.gzip_encoded = False
+        self.env = None
+
         self._split_uri = None
         self._headers_cache = None
         self._header_cache = {}
@@ -73,6 +75,39 @@ class http_request:
     def set_args (self, args):
         self.args = self._override_defaults (args)
 
+    # properties --------------------------------------
+    @property
+    def current_was (self):
+        return self.env ["skitai.was"]
+
+    @property
+    def current_app (self):
+        return self.env ["wsgi.app"]
+
+    @property
+    def routed (self):
+        return self.env ["wsgi.routed"]
+
+    @property
+    def routable (self):
+        return self.env ["wsgi.route_options"]
+
+    @property
+    def salt (self):
+        return self.current_app.salt
+
+    @property
+    def session (self):
+        return self.current_was.session
+
+    @property
+    def cookie (self):
+        return self.current_was.cookie
+
+    @property
+    def mbox (self):
+        return self.current_was.mbox
+
     @property
     def DEFAULT (self):
         try:
@@ -83,6 +118,14 @@ class http_request:
     @property
     def JWT (self):
         return self._jwt or self.dejwt ()
+
+    @property
+    def DATA (self):
+        return self.dict ()
+
+    @property
+    def ARGS (self):
+        return self.args
 
     @property
     def method (self):
@@ -112,6 +155,11 @@ class http_request:
     def payload (self):
         return self.get_body ()
 
+    @property
+    def salt (self):
+        return self.env ["wsgi.app"].salt
+
+    # publics ------------------------------------------------
     def acceptable (self, media):
         return self.get_header ('accept', '').find (media) != -1
 
@@ -173,14 +221,6 @@ class http_request:
         if maybe is None:
             maybe = self.form (ct)
         return maybe or {}
-
-    @property
-    def DATA (self):
-        return self.dict ()
-
-    @property
-    def ARGS (self):
-        return self.args
 
     def set_multipart (self, dict):
         self.multipart = dict
