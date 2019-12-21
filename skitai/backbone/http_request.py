@@ -65,6 +65,28 @@ class http_request:
         self.set_log_info ()
         self.make_response ()
 
+    # arguments and parameters -------------------------
+    @property
+    def JWT (self):
+        return self._jwt or self.dejwt ()
+
+    @property
+    def DATA (self):
+        # FORM or JSON
+        return self.dict ()
+
+    @property
+    def ARGS (self):
+        # all of them
+        return self.args
+
+    @property
+    def DEFAULT (self):
+        try:
+            return self.routable ["defaults"]
+        except KeyError:
+            pass
+
     def _override_defaults (self, dict):
         if "defaults" in self.routable:
             for k, v in self.routable ["defaults"].items ():
@@ -75,7 +97,7 @@ class http_request:
     def set_args (self, args):
         self.args = self._override_defaults (args)
 
-    # properties --------------------------------------
+    # processing realted ---------------------------------
     @property
     def current_was (self):
         return self.env ["skitai.was"]
@@ -109,24 +131,10 @@ class http_request:
         return self.current_was.mbox
 
     @property
-    def DEFAULT (self):
-        try:
-            return self.routable ["defaults"]
-        except KeyError:
-            pass
+    def salt (self):
+        return self.env ["wsgi.app"].salt
 
-    @property
-    def JWT (self):
-        return self._jwt or self.dejwt ()
-
-    @property
-    def DATA (self):
-        return self.dict ()
-
-    @property
-    def ARGS (self):
-        return self.args
-
+    # HTTP protocol constants ----------------------------------
     @property
     def method (self):
         return self.command.upper ()
@@ -134,11 +142,6 @@ class http_request:
     @property
     def scheme (self):
         return self.get_scheme ()
-
-    @property
-    def acceptables (self):
-        accept = self.get_header ('accept', '')
-        return http_util.parse_multi_params (accept) if accept else {}
 
     @property
     def headers (self):
@@ -156,8 +159,94 @@ class http_request:
         return self.get_body ()
 
     @property
-    def salt (self):
-        return self.env ["wsgi.app"].salt
+    def charset (self):
+        return self.get_charset ()
+
+    @property
+    def content_length (self):
+        return self.get_content_length ()
+
+    @property
+    def content_type (self):
+        return self.get_content_type ()
+
+    @property
+    def main_type (self):
+        return self.get_main_type ()
+
+    @property
+    def sub_type (self):
+        return self.get_sub_type ()
+
+    @property
+    def user_agent (self):
+        return self.get_user_agent ()
+
+    @property
+    def remote_addr (self):
+        return self.get_remote_addr ()
+
+    @property
+    def host (self):
+        return self.get_host ()
+
+    @property
+    def referer (self):
+        return self.get_header ('referer', '')
+
+    @property
+    def origin (self):
+        return self.get_header ('origin', '')
+
+    @property
+    def real_ip (self):
+        return self.get_real_ip ()
+
+    @property
+    def acceptables (self):
+        accept = self.get_header ('accept', '')
+        return http_util.parse_multi_params (accept) if accept else {}
+
+    # publics ------------------------------------------------
+    def get_scheme (self):
+        return hasattr (self.channel.server, 'ctx') and "https" or "http"
+
+    def get_charset (self):
+        return self.get_attr ("content-type", "charset")
+
+    def get_content_length (self):
+        try: return int (self.get_header ("content-length"))
+        except: return None
+
+    def get_content_type (self):
+        return self.get_header_with_attr ("content-type") [0]
+
+    def get_main_type (self):
+        ct = self.get_content_type ()
+        if ct is None:
+            return
+        return ct.split ("/", 1) [0]
+
+    def get_sub_type (self):
+        ct = self.get_content_type ()
+        if ct is None:
+            return
+        return ct.split ("/", 1) [1]
+
+    def get_host (self):
+        return self.get_header ("host")
+
+    def get_user_agent (self):
+        return self.get_header ("user-agent")
+
+    def get_remote_addr (self):
+        return self.channel.addr [0]
+
+    def get_real_ip (self):
+        ips = self.get_header ("X-Forwarded-For")
+        if not ips:
+            return self.channel.addr [0]
+        return ips.split (",", 1)[0].strip ()
 
     # publics ------------------------------------------------
     def acceptable (self, media):
@@ -271,8 +360,6 @@ class http_request:
         self.token = None
         self.claim = None
         self.user = None
-        self.host = self.get_header ("host")
-        self.user_agent = self.get_header ("user-agent")
 
     def get_gtxid (self):
         return self.gtxid
@@ -280,9 +367,6 @@ class http_request:
     def get_ltxid (self, delta = 1):
         self.ltxid += delta
         return str (self.ltxid)
-
-    def get_scheme (self):
-        return hasattr (self.channel.server, 'ctx') and "https" or "http"
 
     def get_raw_header (self):
         return self.header
@@ -336,9 +420,6 @@ class http_request:
     def get_header_noparam (self, header, default = None):
         return self.get_header_params (header, default) [0]
 
-    def get_charset (self):
-        return self.get_attr ("content-type", "charset")
-
     def get_attr (self, header, attrname = None, default = None):
         value, attrs = self.get_header_params (header, None)
         if not value:
@@ -346,28 +427,6 @@ class http_request:
         if not attrname:
             return attrs
         return attrs.get (attrname, default)
-
-    def get_content_length (self):
-        try: return int (self.get_header ("content-length"))
-        except: return None
-
-    def get_content_type (self):
-        return self.get_header_with_attr ("content-type") [0]
-
-    def get_main_type (self):
-        ct = self.get_content_type ()
-        if ct is None:
-            return
-        return ct.split ("/", 1) [0]
-
-    def get_sub_type (self):
-        ct = self.get_content_type ()
-        if ct is None:
-            return
-        return ct.split ("/", 1) [1]
-
-    def get_user_agent (self):
-        return self.get_header ("user-agent")
 
     def is_private_ip (self):
         ip = self.channel.addr [0]
@@ -383,9 +442,6 @@ class http_request:
         if not ips:
             return self.channel.addr [0]
         return ips.split (",", 1)[0].strip ()
-
-    def get_remote_addr (self):
-        return self.channel.addr [0]
 
     def collect_incoming_data (self, data):
         if self.collector:

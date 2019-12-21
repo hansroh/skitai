@@ -17,7 +17,7 @@ cache:
       - source venv/bin/activate
       - pip install -U setuptools pip
       - pip install -e .
-      - pip install -U --no-cache-dir aquests rs4 sqlphile
+      - pip install -U --pre --no-cache-dir aquests rs4 sqlphile
       - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
       - python -c 'from aquests.protocols.grpc import discover'
       - pip install --no-cache-dir atila
@@ -32,7 +32,7 @@ cache:
       - source venv/bin/activate
       - pip install -U setuptools pip
       - pip install -e .
-      - pip install -U --no-cache-dir aquests rs4 sqlphile
+      - pip install -U --pre --no-cache-dir aquests rs4 sqlphile
       - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
       - python -c 'from aquests.protocols.grpc import discover'
       - pip install --no-cache-dir atila
@@ -46,7 +46,7 @@ cache:
       - source venv/bin/activate
       - pip install -U setuptools pip
       - pip install -e .
-      - pip install -U --no-cache-dir aquests rs4 sqlphile
+      - pip install -U --pre --no-cache-dir aquests rs4 sqlphile
       - pypy3 -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
       - pypy3 -c 'from aquests.protocols.grpc import discover'
       - pip install --no-cache-dir atila
