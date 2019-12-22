@@ -207,7 +207,13 @@ class http_request:
         accept = self.get_header ('accept', '')
         return http_util.parse_multi_params (accept) if accept else {}
 
-    # publics ------------------------------------------------
+    def get_real_ip (self):
+        sock_ip = self.get_remote_addr ()
+        origin_ips = self.get_header ("X-Forwarded-For")
+        if not origin_ips:
+            return socke_ip
+        return origin_ips.split (",", 1)[0].strip ()
+
     def get_scheme (self):
         return hasattr (self.channel.server, 'ctx') and "https" or "http"
 
@@ -248,7 +254,6 @@ class http_request:
             return self.channel.addr [0]
         return ips.split (",", 1)[0].strip ()
 
-    # publics ------------------------------------------------
     def acceptable (self, media):
         return self.get_header ('accept', '').find (media) != -1
 
@@ -281,6 +286,20 @@ class http_request:
             self.user = JWTUser (claims)
         return claims
 
+    # payload ------------------------------------------------
+    def set_multipart (self, dict):
+        self.multipart = dict
+
+    def get_multipart (self):
+        return self.multipart
+
+    def set_body (self, body):
+        self.body = body
+
+    def get_body (self):
+        return self.body
+    get_payload = get_body
+
     def json (self, ct = None):
         if not ct:
             ct = self.get_header ('content-type', '')
@@ -311,38 +330,19 @@ class http_request:
             maybe = self.form (ct)
         return maybe or {}
 
-    def set_multipart (self, dict):
-        self.multipart = dict
+    # logging ---------------------------------------------
+    def get_gtxid (self):
+        return self.gtxid
 
-    def get_multipart (self):
-        return self.multipart
-
-    def set_body (self, body):
-        self.body = body
-
-    def get_body (self):
-        return self.body
-    get_payload = get_body
-
-    def is_promise (self):
-        return self._is_promise
-
-    def make_response (self):
-        self.response = self.response_class (self)
-
-    def set_streaming (self):
-            self._is_async_streaming = True
-
-    def is_async_streaming (self):
-        return self._is_async_streaming
-
-    def set_stream_ended (self):
-        self._is_stream_ended = True
-
-    def is_stream_ended (self):
-        return self._is_stream_ended
+    def get_ltxid (self, delta = 1):
+        self.ltxid += delta
+        return str (self.ltxid)
 
     def set_log_info (self):
+        self.token = None
+        self.claim = None
+        self.user = None
+
         self.gtxid = self.get_header ("X-Gtxn-Id")
         if not self.gtxid:
             self.gtxid = "%s-%s-%s" % (
@@ -357,30 +357,10 @@ class http_request:
                 raise ValueError ("Local txn ID missing")
             self.ltxid = int (self.ltxid) + 1000
 
-        self.token = None
-        self.claim = None
-        self.user = None
-
-    def get_gtxid (self):
-        return self.gtxid
-
-    def get_ltxid (self, delta = 1):
-        self.ltxid += delta
-        return str (self.ltxid)
-
+    # headers ---------------------------------------------
     def get_raw_header (self):
         return self.header
     get_headers = get_raw_header
-
-    path_regex = re.compile (r'([^;?#]*)(;[^?#]*)?(\?[^#]*)?(#.*)?')
-    def split_uri (self):
-        if self._split_uri is None:
-            m = self.path_regex.match (self.uri)
-            if m.end() != len(self.uri):
-                raise ValueError("Broken URI")
-            else:
-                self._split_uri = m.groups()
-        return self._split_uri
 
     def get_header_with_regex (self, head_reg, group):
         for line in self.header:
@@ -428,20 +408,52 @@ class http_request:
             return attrs
         return attrs.get (attrname, default)
 
-    def is_private_ip (self):
-        ip = self.channel.addr [0]
-        if ip [:8] in ("127.0.0.", "192.168."):
-            return True
-        if ip [:3] == "10.":
-            return True
-        if ip [:4] == "172."and 16 <= int (ip [4:].split (".", 1)[0]) < 32:
-                return True
+    # publics ------------------------------------------------
+    def make_response (self):
+        self.response = self.response_class (self)
 
-    def get_real_ip (self):
-        ips = self.get_header ("X-Forwarded-For")
-        if not ips:
-            return self.channel.addr [0]
-        return ips.split (",", 1)[0].strip ()
+    def is_promise (self):
+        return self._is_promise
+
+    path_regex = re.compile (r'([^;?#]*)(;[^?#]*)?(\?[^#]*)?(#.*)?')
+    def split_uri (self):
+        if self._split_uri is None:
+            m = self.path_regex.match (self.uri)
+            if m.end() != len(self.uri):
+                raise ValueError("Broken URI")
+            else:
+                self._split_uri = m.groups()
+        return self._split_uri
+
+    def is_private_ip (self, ip = None):
+        ip = ip or self.channel.addr [0]
+        if ip [:8] in ("127.0.0.", "192.168."):
+            return ip
+        if ip [:3] == "10.":
+            return ip
+        if ip [:4] == "172."and 16 <= int (ip [4:].split (".", 1)[0]) < 32:
+            return ip
+
+    # channel communicating --------------------------------------
+    def set_streaming (self):
+        self._is_async_streaming = True
+
+    def is_async_streaming (self):
+        return self._is_async_streaming
+
+    def set_stream_ended (self):
+        self._is_stream_ended = True
+
+    def is_stream_ended (self):
+        return self._is_stream_ended
+
+    def response_finished (self):
+        if self.response:
+            self.response.request = None
+
+    def xmlrpc_serialized (self):
+        # for compat with client request
+        return self._xmlrpc_serialized
 
     def collect_incoming_data (self, data):
         if self.collector:
@@ -462,10 +474,3 @@ class http_request:
                 'warn'
                 )
 
-    def response_finished (self):
-        if self.response:
-            self.response.request = None
-
-    def xmlrpc_serialized (self):
-        # for compat with client request
-        return self._xmlrpc_serialized
