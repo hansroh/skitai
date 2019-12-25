@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.33.3.1"
+__version__ = "0.33.3.2"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -429,12 +429,16 @@ def mount (point, target, appname = "app", pref = pref (True), host = "default",
         dconf ['mount'][host].append ((point, target, None))
     else:
         target_ = target
-        if not target.endswith ('.py'):
+        if not target_.endswith ('.py'):
             target_ += '.py'
-        if os.path.exists (target_):
+        if 'PYTEST_CURRENT_TEST' not in os.environ:
+            assert os.path.exists (target_),  'app not found: {}'.format (target_)
             with open (target_) as f:
-                if f.read ().find ("Atila") != -1:
-                    import atila
+                if f.read ().find ("atila") != -1:
+                    try:
+                        import atila # automatic patch skitai was
+                    except ImportError:
+                        pass
         init_app (target, pref)
         dconf ['mount'][host].append ((point,  (target, appname), pref))
 
