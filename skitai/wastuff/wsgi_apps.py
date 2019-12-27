@@ -1,5 +1,6 @@
 import os, sys, re, types, time
 from rs4  import pathtool, importer, evbus
+from rs4.termcolor import tc
 import threading
 from types import FunctionType as function
 import copy
@@ -271,7 +272,7 @@ class ModuleManager:
 			self.wasc.logger.trace ("app")
 			self.wasc.logger ("app", "[error] app load failed: %s" % dispname)
 		else:
-			self.wasc.logger ("app", "[info] app %s mounted" % dispname)
+			self.wasc.logger ("app", "[info] app %s mounted to %s" % (dispname, tc.white (route)))
 			if route in self.modules:
 				self.wasc.logger ("app", "[info] app route collision detected: %s at %s <-> %s" % (route, module.abspath, self.modules [route].abspath), "warn")
 			self.modules [route] = module

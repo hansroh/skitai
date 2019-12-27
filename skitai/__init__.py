@@ -661,9 +661,9 @@ def run (**conf):
 
         def master_jobs (self):
             if os.environ.get ("SKITAI_ENV") == "PRODUCTION":
-                self.wasc.logger ("server", "[info] running for production mode")
+                self.wasc.logger ("server", "[info] running in production mode")
             else:
-                self.wasc.logger ("server", "[info] running for development mode")
+                self.wasc.logger ("server", "[info] running in development mode")
             self.wasc.logger ("server", "[info] engine tmp path: %s" % self.varpath)
             if self.logpath:
                 self.wasc.logger ("server", "[info] engine log path: %s" % self.logpath)
