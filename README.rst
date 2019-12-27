@@ -216,11 +216,12 @@ mount (mount_point, mount_object, app_name = "app", pref = None)
   .. code:: python
 
     skitai.mount ('/', app)
-    skitai.mount ('/', 'app_v1/app.py', 'app')
+    skitai.mount ('/', 'app_v1/app:app'')
 
-    import wissen
-    skitai.mount ('/', wissen, 'app')
-    skitai.mount ('/', (wissen, 'app_v1.py'), 'app')
+    import delune
+    skitai.mount ('/', delune)
+    skitai.mount ('/', (delune, 'app_v1')) # to specify app file
+    skitai.mount ('/', (delune, 'app_v1:app')) # to specify app file and app name
 
   In case module object, the module should support skitai exporting spec.
 
@@ -247,8 +248,7 @@ skitai app engine script is '/app.py'.
     # finally mount django wsgi.py and project root path to append sys.path by path param.
     skitai.mount (
       "/",
-      "mydjango/mydjango/wsgi.py",
-      "application",
+      "mydjango/mydjango/wsgi:application",
       pref
     )
 
@@ -502,7 +502,7 @@ Then place this code at bottom of above WSGI app.
 
     import skitai
 
-    skitai.mount ('/', __file__, 'app')
+    skitai.mount ('/', __file__)
     skitai.mount ('/', 'static')
     skitai.run ()
 
@@ -1470,14 +1470,14 @@ Then users uses your module can mount on skitai by like this,
 
   with skitai.preference () as pref:
     pref.config.urlfile = skitai.abspath ('resources', 'urllist.txt')
-    skitai.mount ("/v1", unsub, "app", pref)
+    skitai.mount ("/v1", unsub, pref)
   skitai.run ()
 
 If you want to specify filename like app_v1.py for version management,
 
 .. code:: python
 
-  skitai.mount ("/v1", (unsub, "app_v1.py"), "app", pref)
+  skitai.mount ("/v1", (unsub, "app_v1:app"), pref)
 
 
 If your app need bootstraping or capsulizing complicated initialize
@@ -1537,7 +1537,7 @@ directory and mount it to pref.
   with skitai.preference () as pref:
     pref.mount ('/apis', apis)
     pref.config.urlfile = skitai.abspath ('resources', 'urllist.txt')
-    skitai.mount ("/v1", unsub, "app", pref)
+    skitai.mount ("/v1", unsub, pref)
   skitai.run ()
 
 You can access it by /v1/apis.

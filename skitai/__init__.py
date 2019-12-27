@@ -380,7 +380,14 @@ def maybe_django (wsgi_path, appname):
         sys.path.insert (0, root)
         return root
 
-def mount (point, target, appname = "app", pref = pref (True), host = "default", path = None):
+def mount (point, target, __some = pref (True), *args, **kargs):
+    if isinstance (__some, Preference):
+        if 'pref' not in kargs:
+            kargs ['pref'] = __some
+        return _mount (point, target, 'app', *args, **kargs)
+    return _mount (point, target, __some, *args, **kargs)
+
+def _mount (point, target, appname = "app", pref = pref (True), host = "default", path = None):
     global dconf
 
     if isinstance (appname, Preference):
