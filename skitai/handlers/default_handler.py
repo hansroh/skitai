@@ -5,6 +5,7 @@ from mimetypes import types_map
 import os
 from . import filesys
 from rs4 import producers
+from rs4.termcolor import tc
 from aquests.protocols.http import http_date
 from aquests.protocols.http.http_util import *
 from hashlib import md5
@@ -74,6 +75,7 @@ class Handler:
 		return 1
 
 	def add_route (self, alias, option):
+		self.wasc.logger ('server', 'directory {} mounted to {}'.format (option, tc.white (alias or '/')), 'info')
 		self.filesystem.add_map (alias, option)
 
 	def handle_alternative (self, request):
