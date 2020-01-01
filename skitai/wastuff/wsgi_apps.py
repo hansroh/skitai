@@ -149,6 +149,9 @@ class Module:
 			lifetime.shutdown (3, 0)
 
 	def set_devel_env (self):
+		self.debug = False
+		self.use_reloader = False
+
 		app = self.app or getattr (self.module, self.appname)
 		skitai_env = os.environ.get ("SKITAIENV")
 		if skitai_env == "DEVEL":
