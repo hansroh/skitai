@@ -21,7 +21,7 @@ from ..corequest.pth import sp_task
 from ..backbone import http_response
 from .promise import Promise
 from .triple_logger import Logger
-if os.environ.get ("SKITAI_ENV") == "PYTEST":
+if os.environ.get ("SKITAIENV") == "PYTEST":
     from threading import RLock
 else:
     from multiprocessing import RLock
@@ -30,7 +30,7 @@ import xmlrpc.client as xmlrpclib
 from rs4.producers import file_producer
 from .api import DateEncoder
 
-if os.environ.get ("SKITAI_ENV") == "PYTEST":
+if os.environ.get ("SKITAIENV") == "PYTEST":
     from .semaps import TestSemaps as Semaps
 else:
     from .semaps import Semaps

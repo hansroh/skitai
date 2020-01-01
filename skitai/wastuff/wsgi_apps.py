@@ -149,22 +149,23 @@ class Module:
 			lifetime.shutdown (3, 0)
 
 	def set_devel_env (self):
-		self.debug = False
-		self.use_reloader = False
 		app = self.app or getattr (self.module, self.appname)
-
-		if os.environ.get ("SKITAI_ENV") == "PRODUCTION":
-			app.debug = False
-			app.use_reloader = False
-			return
-
-		try: self.debug = app.debug
-		except AttributeError: pass
-		try: self.use_reloader = app.use_reloader
-		except AttributeError: pass
+		skitai_env = os.environ.get ("SKITAIENV")
+		if skitai_env == "DEVEL":
+			self.debug = app.debug = True
+			self.use_reloader = app.use_reloader = True
+		elif skitai_env == "SILENT":
+			self.debug = app.debug = False
+			self.use_reloader = app.use_reloader = False
 		else:
-			if self.use_reloader and self.django:
-				lifetime.maintern.sched (1.0, self.check_django_reloader)
+			# inherit
+			try: self.debug = app.debug
+			except AttributeError: pass
+			try: self.use_reloader = app.use_reloader
+			except AttributeError: pass
+
+		if self.use_reloader and self.django:
+			lifetime.maintern.sched (1.0, self.check_django_reloader)
 
 	def update_file_info (self):
 		if self.module is None:

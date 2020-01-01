@@ -336,27 +336,19 @@ And if you use '--help', you can see like this:
   COMMAND can be one of [status|start|stop|restart]
 
   Mandatory arguments to long options are mandatory for short options too.
-    -d                      start as daemon, equivalant with using `stop` command
+    -d                      start as daemon, equivalant with `start` command
         ---profile          log for performance profiling
         ---gc               enable manual GC
         ---memtrack         show memory status
-        --production        run as production mode
+        --silent            disable auto reloading and debug output
+        --devel             enable auto reloading and debug output
         --smtpda            run SMTPDA if not started
         --port=PORT_NUMBER  change port
     -D, --dist              distribute mode, disable NodeJS proxing
         --db=DB_NAME        use specified database
 
-Note that you cannot use below ones:
-
-.. code:: bash
-
-  -d
-  --help
-  --smtpda
-  --port=
-  all triple hypened options
-
-they are reserved for Skitai.
+Note that all triple hypened options are reserved for Skitai.
+DO NOT USE it.
 
 
 Run with Threads Pool
@@ -3147,6 +3139,11 @@ Links
 Change Log
 ============
 
+- 0.34 (Jan 2020)
+
+  - add `--devel` and `--silent` runtime options
+  - remove `--production` runtime options
+
 - 0.32 (Oct 2019)
 
   - initiate HTTP3+QUIC, you can test HTTP/3 with Chrome Canary
@@ -3608,3 +3605,4 @@ Change Log
 
 .. _Chameleon: https://chameleon.readthedocs.io/en/latest/index.html
 .. _hyper-h2: https://pypi.python.org/pypi/h2
+
