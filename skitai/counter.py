@@ -4,13 +4,13 @@ import os
 class counter:
 	def __init__ (self, initial_value=0):
 		self.value = initial_value
-	
+
 	def inc(self, delta=1):
 		return self.increment(delta)
-	
+
 	def dec(self, delta=1):
-		return self.decrement(delta)	
-		
+		return self.decrement(delta)
+
 	def increment (self, delta=1):
 		result = self.value
 		try:
@@ -42,23 +42,23 @@ class counter:
 class Value:
 	def __init__ (self, type, initial_value):
 		self.value = initial_value
-	
+
 class mpcounter:
 	def __init__ (self, initial_value=0):
-		if os.environ.get ("SKITAI_ENV") == "PYTEST":
+		if os.environ.get ("SKITAIENV") == "PYTEST":
 			import threading
 			self.value = Value ("i", initial_value)
-			self.lock = threading.Lock ()			
+			self.lock = threading.Lock ()
 		else:
 			self.value = multiprocessing.Value ("i", initial_value)
 			self.lock = multiprocessing.Lock ()
-		
+
 	def inc(self, delta=1):
 		return self.increment(delta)
-	
+
 	def dec(self, delta=1):
-		return self.decrement(delta)	
-		
+		return self.decrement(delta)
+
 	def increment (self, delta=1):
 		self.lock.acquire ()
 		try:
@@ -68,7 +68,7 @@ class mpcounter:
 			except OverflowError:
 				self.value.value = int(self.value.value) + delta
 		finally:
-			self.lock.release ()					
+			self.lock.release ()
 		return result
 
 	def decrement (self, delta=1):
@@ -80,7 +80,7 @@ class mpcounter:
 			except OverflowError:
 				self.value.value = int(self.value.value) - delta
 		finally:
-			self.lock.release ()		
+			self.lock.release ()
 		return result
 
 	def as_long (self):
@@ -117,7 +117,7 @@ if __name__ == "__main__":
 	print(f.decrement ())
 	print(f.as_long ())
 	print(str (f))
-	
-	
-	
+
+
+
 

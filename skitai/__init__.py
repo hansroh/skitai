@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.33.3.4"
+__version__ = "0.34"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 NAME = "Skitai/%s.%s" % version_info [:2]
@@ -28,18 +28,21 @@ import copy
 import rs4
 from rs4.termcolor import tc
 
-argopt.add_option ('-d', desc = "start as daemon, equivalant with using `start` command") # lower version compatible
+argopt.add_option ('-d', desc = "start as daemon, equivalant with `start` command") # lower version compatible
 argopt.add_option (None, '---profile', desc = "log for performance profiling")
 argopt.add_option (None, '---gc', desc = "enable manual GC")
 argopt.add_option (None, '---memtrack', desc = "show memory status")
 
-argopt.add_option (None, '--production', desc = "run as production mode")
+argopt.add_option (None, '--silent', desc = "disable auto reloading and debug output")
+argopt.add_option (None, '--devel', desc = "enable auto reloading and debug output")
 argopt.add_option (None, '--smtpda', desc = "run SMTPDA if not started")
 argopt.add_option (None, '--port=PORT_NUMBER', desc = "http/https port number")
 argopt.add_option (None, '--quic=UDP_PORT_NUMBER', desc = "http3/quic port number")
 
-if "--production" in sys.argv:
-    os.environ ["SKITAI_ENV"] = "PRODUCTION"
+if "--devel" in sys.argv:
+    os.environ ["SKITAIENV"] = "DEVEL"
+elif "--silent" in sys.argv:
+    os.environ ["SKITAIENV"] = "SILENT"
 
 SMTP_STARTED = False
 if "--smtpda" in sys.argv:
@@ -281,7 +284,7 @@ def getswd ():
     return SWD
 
 def is_devel ():
-    return os.environ.get ('SKITAI_ENV') != "PRODUCTION"
+    return os.environ.get ('SKITAIENV') == "DEVEL"
 
 def joinpath (*pathes):
     return os.path.normpath (os.path.join (getswd (), *pathes))
@@ -667,10 +670,13 @@ def run (**conf):
             Skitai.Loader.config_logger (self, path, media, self.conf ["log_off"])
 
         def master_jobs (self):
-            if os.environ.get ("SKITAI_ENV") == "PRODUCTION":
-                self.wasc.logger ("server", "[info] running in production mode")
-            else:
+            skitaienv = os.environ.get ("SKITAIENV")
+            if skitaienv == "DEVEL":
                 self.wasc.logger ("server", "[info] running in development mode")
+            elif skitaienv == "PYTEST":
+                self.wasc.logger ("server", "[info] running in pytest mode")
+            else:
+                self.wasc.logger ("server", "[info] running in production mode")
             self.wasc.logger ("server", "[info] engine tmp path: %s" % self.varpath)
             if self.logpath:
                 self.wasc.logger ("server", "[info] engine log path: %s" % self.logpath)
