@@ -260,6 +260,46 @@ to replace Django development server (manage,py runserver), But it
 will work on posix only, because Skitai reloads Django app by restarting
 worker process, Win32 version doesn't support.
 
+Run As Development Mode
+``````````````````````````````
+
+Skitai recommend to use runtime switch `--devel` when you develope.
+
+It makes you app.debug = True, app.use_reloader = True
+automatically. And without `--devel` option, it will
+be applied as you specified.
+
+The default values of these options are all `False`, then
+if you do not specified, your app run safely and faster
+in production mode (without `--devel` option).
+
+You just run Skitai with `--devel` where you are in development.
+
+.. code:: python
+
+  python3 ./serve.py --devel
+
+Also skitai.isdev () is detect wheather Skitai run with `--devel`.
+
+You may not want to cache files when you are coding.
+
+.. code:: python
+
+  if not skitai.is_devel ():
+      app.some_option = some_value_for_devel
+      skitai.set_max_age ("/assets", 7200)
+
+Cache control will be applied if production mode only.
+
+Run As Silent Mode
+``````````````````````````
+
+Another related option `--silent` makes app.debug = False and
+app.use_reloader = False forcely.
+
+It will be useful, when you specified debug and use_reloader in
+developing and make sure turn these options off in production mode.
+
 
 Logging and Console Displaying For Developing/Debugging
 ----------------------------------------------------------
