@@ -3181,6 +3181,7 @@ Change Log
 
 - 0.34 (Jan 2020)
 
+  - fix proxy and proxypass for PATCH method
   - add `--devel` and `--silent` runtime options
   - remove `--production` runtime options
 
