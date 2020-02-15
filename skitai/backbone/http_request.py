@@ -255,7 +255,8 @@ class http_request:
         return ips.split (",", 1)[0].strip ()
 
     def acceptable (self, media):
-        return self.get_header ('accept', '').find (media) != -1
+        accept = self.get_header ('accept', '')
+        return accept.find ('*/*') != -1 or accept.find (media) != -1
 
     def dejwt (self, token = None, salt = None):
         if not token:
