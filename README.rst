@@ -1520,7 +1520,7 @@ unsub/export/skitai/__init__.py.
 
   import skitai
 
-  def bootstrap (pref):
+  def __bootstrap__ (pref):
     with open (pref.config.urlfile, "r") as f:
       urllist = []
       while 1:
@@ -3184,6 +3184,8 @@ Change Log
   - fix proxy and proxypass for PATCH method
   - add `--devel` and `--silent` runtime options
   - remove `--production` runtime options
+  - lower version comaptible: change app bootstraping
+    function name: bootstrap -> \_\_setup\_\_
 
 - 0.32 (Oct 2019)
 
