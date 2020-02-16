@@ -56,7 +56,8 @@ def test_tls ():
         './examples/resources/certifications/server.key',
         "fatalbug"
     )
-    assert 'h3-23' in ctx.alpn_protocols
+    print (ctx.alpn_protocols)
+    assert 'h3-25' in ctx.alpn_protocols
     assert ctx.verify_mode == ssl.VerifyMode.CERT_NONE
 
 def test_quic_compatibility ():
