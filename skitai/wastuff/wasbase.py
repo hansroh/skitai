@@ -28,7 +28,7 @@ else:
 
 import xmlrpc.client as xmlrpclib
 from rs4.producers import file_producer
-from .api import DateEncoder
+from .api import API
 
 if os.environ.get ("SKITAIENV") == "PYTEST":
     from .semaps import TestSemaps as Semaps
@@ -250,7 +250,11 @@ class WASBase:
         return message.ParseFromString (obj)
 
     def tojson (self, obj):
-        return json.dumps (obj, cls = DateEncoder)
+        try:
+            encoder = self.app.config.get ('JSON_ENCODER')
+        except AttributeError:
+            encoder = None
+        return json.dumps (obj, cls = encoder)
 
     def toxml (self, obj):
         return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")
