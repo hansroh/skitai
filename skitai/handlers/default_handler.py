@@ -210,7 +210,7 @@ class Handler:
 				range_ = None # ignore range
 			else:
 				try:
-					rg_start, rg_end = self.parse_range (range_, file_length)
+					rg_start, rg_end = parse_range (range_, file_length)
 				except:
 					request.response.start (416)
 					request.response.done()
@@ -240,21 +240,6 @@ class Handler:
 					self.filesystem.open (path, 'rb'), proxsize = file_length, offset = offset, limit = limit)
 				)
 		request.response.done()
-
-	def parse_range (self, rg, file_length):
-		if rg.startswith ('bytes='):
-			s, e = rg [6:].split ("-", 1)
-		else:
-			return 0, file_length - 1
-
-		s = int (s)
-		if e:
-			e = int (e)
-		else:
-			e = min (s + 1048575, file_length - 1)
-		assert e < file_length
-		assert s <= e
-		return s, e
 
 	def set_cache_control (self, request, path, mtime, etag):
 		max_age = self.max_ages and self.get_max_age (path) or 0
