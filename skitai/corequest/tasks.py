@@ -8,21 +8,16 @@ import time
 from skitai import NORMAL
 
 class TaskBase (corequest):
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **meta):
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None):
         assert isinstance (reqs, (list, tuple))
         self._timeout = timeout
         self._reqs = reqs
         self.meta = meta
         self._init_time = time.time ()
 
-    def __getattr__ (self, name):
-        try:
-            return self.meta [name]
-        except KeyError:
-            raise AttributeError ("{} cannot found".format (name))
 
 class Tasks (TaskBase):
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **meta):
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None):
         TaskBase.__init__ (self, reqs, timeout, **meta)
         self._results = []
 
@@ -94,7 +89,7 @@ class Tasks (TaskBase):
 
 
 class Mask (response, TaskBase):
-    def __init__ (self, data = None, _expt = None, _status_code = None, **meta):
+    def __init__ (self, data = None, _expt = None, _status_code = None, meta = None):
         self._expt = _expt
         self._data = data
         self.meta = meta
@@ -126,8 +121,8 @@ class Mask (response, TaskBase):
 
 # completed future(s) ----------------------------------------------------
 class CompletedTasks (response, Tasks):
-    def __init__ (self, reqs, **meta):
-        Tasks.__init__ (self, reqs, **meta)
+    def __init__ (self, reqs, meta):
+        Tasks.__init__ (self, reqs, meta)
 
     def __del__ (self):
         self._reqs = [] #  reak back ref.
@@ -162,10 +157,10 @@ class CompletedTask (CompletedTasks):
 
 # future(s) ----------------------------------------------------
 class Futures (TaskBase):
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, **meta):
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None):
         if isinstance (reqs, Tasks):
             reqs = reqs._reqs
-        TaskBase.__init__ (self, reqs, timeout, **meta)
+        TaskBase.__init__ (self, reqs, timeout, meta)
         self._was = None
         self._fulfilled = None
         self._responded = 0
@@ -190,7 +185,7 @@ class Futures (TaskBase):
 
 
 class Future (Futures):
-    def __init__ (self, req, timeout, **meta):
-        Futures.__init__ (self, [req], timeout, **meta)
+    def __init__ (self, req, timeout = DEFAULT_TIMEOUT, meta = None):
+        Futures.__init__ (self, [req], timeout, meta)
         self._single = True
 
