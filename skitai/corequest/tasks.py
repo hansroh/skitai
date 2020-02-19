@@ -156,7 +156,7 @@ class CompletedTask (CompletedTasks):
 
 # future(s) ----------------------------------------------------
 class Futures (TaskBase):
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta):
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None):
         if isinstance (reqs, Tasks):
             reqs = reqs._reqs
         TaskBase.__init__ (self, reqs, timeout, meta)
@@ -184,7 +184,7 @@ class Futures (TaskBase):
 
 
 class Future (Futures):
-    def __init__ (self, req, timeout, meta):
+    def __init__ (self, req, timeout = DEFAULT_TIMEOUT, meta = None):
         Futures.__init__ (self, [req], timeout, meta)
         self._single = True
 
