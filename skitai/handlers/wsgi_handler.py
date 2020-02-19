@@ -7,6 +7,7 @@ import sys
 from rs4 import producers
 from ..backbone.http_response import catch
 from aquests.athreads import trigger
+from aquests.protocols.http.http_util import *
 from . import collectors
 from skitai import version_info, was as the_was
 import threading
@@ -257,14 +258,31 @@ class Job:
 		except:
 			was.traceback ()
 			trigger.wakeup (lambda p = response, d=self.apph.debug and sys.exc_info () or None: (p.error (500, "Internal Server Error", d), p.done ()) )
-		else:
-			if will_be_push is None: # not responsible or futures
-				return
-			for part in will_be_push:
-				if len (will_be_push) == 1 and type (part) is bytes and len (response) == 0:
-					response.update ("Content-Length", len (part))
-				response.push (part)
-			trigger.wakeup (lambda p = response: (p.done (),))
+			return
+
+		if will_be_push is None: # not responsible or futures
+			return
+
+		for part in will_be_push:
+			if len (will_be_push) == 1 and type (part) is bytes and len (response) == 0:
+				if response.reply_code == 200:
+					range_ = self.request.get_header ('range')
+					if range_:
+						try:
+							rg_start, rg_end = parse_range (range_, len (part))
+						except:
+							trigger.wakeup (lambda p = response, d=self.apph.debug and sys.exc_info () or None: (p.error (416, "Range Not Satisfiable", d), p.done ()) )
+							return
+					if range_:
+						part = part [rg_start - 1 : rg_end]
+						response.set_reply ("206 Partial Content")
+						response.update ('Content-Range', 'bytes {}-{}/{}'.format (rg_start, rg_end, file_length))
+						response.update ("Content-Length", (rg_end - rg_start) + 1)
+					else:
+						response.update ("Content-Length", len (part))
+			response.push (part)
+
+		trigger.wakeup (lambda p = response: (p.done (),))
 
 	def __call__(self):
 		try:
