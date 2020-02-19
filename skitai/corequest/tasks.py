@@ -18,7 +18,7 @@ class TaskBase (corequest):
 
 class Tasks (TaskBase):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None):
-        TaskBase.__init__ (self, reqs, timeout, **meta)
+        TaskBase.__init__ (self, reqs, timeout, meta)
         self._results = []
 
     def __iter__ (self):
