@@ -267,19 +267,18 @@ class Job:
 			if len (will_be_push) == 1 and type (part) is bytes and len (response) == 0:
 				if response.reply_code == 200:
 					range_ = self.request.get_header ('range')
-					if range_:
+					if not range_:
+						response.update ("Content-Length", len (part))
+					else:
 						try:
 							rg_start, rg_end = parse_range (range_, len (part))
 						except:
 							trigger.wakeup (lambda p = response, d=self.apph.debug and sys.exc_info () or None: (p.error (416, "Range Not Satisfiable", d), p.done ()) )
 							return
-					if range_:
 						part = part [rg_start - 1 : rg_end]
 						response.set_reply ("206 Partial Content")
 						response.update ('Content-Range', 'bytes {}-{}/{}'.format (rg_start, rg_end, file_length))
 						response.update ("Content-Length", (rg_end - rg_start) + 1)
-					else:
-						response.update ("Content-Length", len (part))
 			response.push (part)
 
 		trigger.wakeup (lambda p = response: (p.done (),))
