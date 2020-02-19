@@ -4,29 +4,41 @@ from datetime import date
 from xmlrpc import client
 from ..utility import catch
 import copy
+from datetime import timezone
+
+TZ_UTC = timezone.utc
 
 class DefaultDateTimeEncoder (json.JSONEncoder):
+	def _to_utc (self, obj):
+		return obj.astimezone (TZ_UTC)
+
 	def default (self, obj):
 		if isinstance (obj, date):
-			return str (obj)
+			return str (self._to_utc (obj))
 		return json.JSONEncoder.default (self, obj)
 
-class DigitTimeEncoder (json.JSONEncoder):
+class DigitTimeEncoder (DefaultDateTimeEncoder):
 	def default (self, obj):
 		if isinstance (obj, date):
-			return obj.strftime ('%Y%m%d%H%M%S')
+			return self._to_utc (obj).strftime ('%Y%m%d%H%M%S')
 		return json.JSONEncoder.default (self, obj)
 
-class ISODateTimeEncoder (json.JSONEncoder):
+class ISODateTimeEncoder (DefaultDateTimeEncoder):
 	def default (self, obj):
 		if isinstance (obj, date):
-			return obj.isoformat ()
+			return self._to_utc (obj).isoformat ()
 		return json.JSONEncoder.default (self, obj)
 
-class UNIXEpochDateTimeEncoder (json.JSONEncoder):
+class UNIXEpochDateTimeEncoder (DefaultDateTimeEncoder):
 	def default (self, obj):
 		if isinstance (obj, date):
-			return obj.timestamp ()
+			return self._to_utc (obj).timestamp ()
+		return json.JSONEncoder.default (self, obj)
+
+class JavascriptDateTimeEncoder (DefaultDateTimeEncoder):
+	def default (self, obj):
+		if isinstance (obj, date):
+			return self._to_utc (obj).strftime ('%Y-%m-%d %H:%M:%S+00')
 		return json.JSONEncoder.default (self, obj)
 
 class API:
@@ -34,7 +46,8 @@ class API:
 		'default': DefaultDateTimeEncoder,
 		'iso': ISODateTimeEncoder,
 		'unix': UNIXEpochDateTimeEncoder,
-		'digit': DigitTimeEncoder
+		'digit': DigitTimeEncoder,
+		'js': JavascriptDateTimeEncoder
 	}
 
 	@classmethod

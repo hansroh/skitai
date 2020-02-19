@@ -3,7 +3,7 @@ import time
 import tempfile
 from hmac import new as hmac
 import copy
-from hashlib import sha1
+from hashlib import sha1, md5
 import json
 import xmlrpc.client as xmlrpclib
 import base64

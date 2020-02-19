@@ -205,6 +205,18 @@ class Dispatcher:
         tuple_cb (self, self.callback)
 
 
+class FakeCondition:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        pass
+
+    def acquire (self):
+        pass
+    wait = release = acquire
+
+
 class Task (corequest):
     DEFAULT_CACHE_TIMEOUT = 42
     proto_map = dict (
@@ -306,6 +318,7 @@ class Task (corequest):
             cakey = request.get_cache_key ()
             if cakey:
                 cachable = self._cachefs.is_cachable (
+                    request.method,
                     request.get_header ("cache-control"),
                     request.get_header ("cookie") is not None,
                     request.get_header ("authorization") is not None,

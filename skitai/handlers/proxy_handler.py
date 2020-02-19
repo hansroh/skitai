@@ -257,6 +257,7 @@ class Handler (wsgi_handler.Handler):
 			return False
 
 		cachable = self.cachefs.is_cachable (
+			request.method,
 			request.get_header ("cache-control"),
 			request.get_header ("cookie") is not None,
 			request.get_header ("authorization") is not None,
