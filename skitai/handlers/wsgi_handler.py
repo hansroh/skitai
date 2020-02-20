@@ -270,14 +270,15 @@ class Job:
 					if not range_:
 						response.update ("Content-Length", len (part))
 					else:
+						part_length = len (part)
 						try:
-							rg_start, rg_end = parse_range (range_, len (part))
+							rg_start, rg_end = parse_range (range_, part_length)
 						except:
 							trigger.wakeup (lambda p = response, d=self.apph.debug and sys.exc_info () or None: (p.error (416, "Range Not Satisfiable", d), p.done ()) )
 							return
-						part = part [rg_start - 1 : rg_end]
+						part = part [rg_start : rg_end + 1]
 						response.set_reply ("206 Partial Content")
-						response.update ('Content-Range', 'bytes {}-{}/{}'.format (rg_start, rg_end, file_length))
+						response.update ('Content-Range', 'bytes {}-{}/{}'.format (rg_start, rg_end, part_length))
 						response.update ("Content-Length", (rg_end - rg_start) + 1)
 			response.push (part)
 
