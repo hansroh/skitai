@@ -29,6 +29,14 @@ app.mount ("/sub", sub)
 def index (was):
     return was.render ("index.html")
 
+@app.route ("/response_chain")
+def response_chain (was):
+    def respond2 (was, task):
+        return was.API (status_code = task.dispatch ().status_code)
+    def respond (was, task):
+        return was.get ("@pypi/project/rs4/", headers = {'Accept': '*/*'}).then (respond2)
+    return was.get ("@pypi/project/skitai/", headers = {'Accept': '*/*'}).then (respond)
+
 @app.route ("/dnserror")
 def dnserror (was):
     req = was.get ("https://pypi.python.orgx/pypi/skitai", headers = (["Accept", "text/html"]))

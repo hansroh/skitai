@@ -111,6 +111,8 @@ WS_OPCODE_PING = 0x9
 WS_OPCODE_PONG = 0xa
 
 class _WASPool:
+    MAX_CLONES_PER_THREAD = 8
+
     def __init__ (self):
         self.__wasc = None
         self.__p = {}
@@ -147,19 +149,43 @@ class _WASPool:
 
     def _del (self):
         _id = self.__get_id ()
-        try:
-            del self.__p [_id]
-        except KeyError:
-            pass
+        try: del self.__p [_id]
+        except KeyError: pass
+        # remove clone
+        for i in range (self.MAX_CLONES_PER_THREAD):
+            try: del self.__p ['{}x{:02d}'.format (_id, i + 1)]
+            except KeyError: break
 
-    def _get (self):
+    def _get (self, clone = False):
         _id = self.__get_id ()
-        try:
-            return self.__p [_id]
-        except KeyError:
-            _was = self.__wasc (**self.__kargs)
-            self.__p [_id] = _was
-            return _was
+        for i in range (self.MAX_CLONES_PER_THREAD):
+            if clone:
+                id = '{}x{:02d}'.format (_id, i + 1)
+            else:
+                id = _id
+
+            try:
+                if id not in self.__p:
+                    raise KeyError
+
+                _was = self.__p [id]
+                if not clone:
+                    return _was
+                if hasattr (_was, "request") and _was.request:
+                    continue # active
+                else:
+                    return _was
+
+            except KeyError:
+                _was = self.__wasc (**self.__kargs)
+                _was.ID = id
+                self.__p [id] = _was
+                return _was
+
+        raise SystemError ("Too many cloned skitai.was")
+
+    def _get_by_id (self, _id):
+        return self.__p [_id]
 
 
 was = _WASPool ()
@@ -233,6 +259,8 @@ def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20
     http_server.critical_point_continuous = https_server.critical_point_continuous = continuous
     http_server.maintern_interval = https_server.maintern_interval = interval
 
+def set_max_was_clones_per_thread (val):
+    was.MAX_CLONES_PER_THREAD = val
 
 class Preference (AttrDict):
     def __init__ (self, path = None):

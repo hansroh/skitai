@@ -8,13 +8,8 @@ import time
 from skitai import was
 
 class Task (task.Task):
-    def __init__ (self, cmd, timeout):
-        self._timeout = timeout
-        self._name = cmd
-        self._started = time.time ()
-        self._was = None
-        self._fulfilled = None
-        self._mask = None
+    def __init__ (self, was_id, cmd, timeout):
+        self.setup (was_id, cmd, timeout)
         self.proc = subprocess.Popen (cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True)
 
     @property
@@ -54,7 +49,7 @@ class Task (task.Task):
                 if isinstance (err, bytes):
                     err = err.decode ()
                 expt = SystemError ('code:{} {}'.format (self.proc.returncode, err))
-        self._mask = Mask (data, expt)
+        self._mask = Mask (data, expt, meta = self.meta)
         return self._mask
 
 

@@ -11,13 +11,13 @@ class corequest:
             from skitai import was
             WAS_FACTORY = was
 
-        try:
-            _was = WAS_FACTORY._get ()
-        except TypeError:
-            return
-        else:
-            assert hasattr (_was, 'app'), 'corequest future is available on only Atila'
-        return _was._clone (True)
+        was_id = self.meta ['__was_id']
+        _was = WAS_FACTORY._get_by_id (self.meta ['__was_id'])
+        assert hasattr (_was, 'app'), 'corequest future is available on only Atila'
+
+        if isinstance (was_id, int): # origin
+            return _was._clone ()
+        return _was
 
     def _late_respond (self, tasks):
         # NEED self._fulfilled and self._was
@@ -38,16 +38,30 @@ class corequest:
             content = response.build_error_template (self._was.app.debug and sys.exc_info () or None, 0, was = self._was)
 
         if content:
-           will_be_push = make_pushables (response, content)
+            will_be_push = make_pushables (response, content)
 
         if will_be_push is None:
-            return
+            return # future
 
-        for part in will_be_push:
-            if len (will_be_push) == 1 and type (part) is bytes and len (response) == 0:
-                response.update ("Content-Length", len (part))
-            response.push (part)
-        response.done ()
+        try:
+            for part in will_be_push:
+                if len (will_be_push) == 1 and type (part) is bytes and len (response) == 0:
+                    response.update ("Content-Length", len (part))
+                response.push (part)
+            response.done ()
+
+        finally:
+            self.deallocate ()
+
+    def deallocate (self):
+        was = self._was
+        was.apps = None
+        was.env = None
+        try: del was.response
+        except AttributeError: pass
+        try: del was.request
+        except AttributeError: pass
+        self._was = None
 
     # basic methods --------------------------------------
     def get_timeout (self):

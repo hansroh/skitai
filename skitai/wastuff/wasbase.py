@@ -25,7 +25,7 @@ if os.environ.get ("SKITAIENV") == "PYTEST":
     from threading import RLock
 else:
     from multiprocessing import RLock
-
+from skitai import was as the_was
 import xmlrpc.client as xmlrpclib
 from rs4.producers import file_producer
 from .api import API
@@ -46,6 +46,7 @@ pathtool.mkdir (composer.Composer.SAVE_PATH)
 
 class WASBase:
     version = __version__
+    ID = None # set by skitai.was
     objects = {}
     _luwatcher = Semaps ([], "d", 256)
     lock = plock = RLock ()
@@ -77,15 +78,17 @@ class WASBase:
             cls.httpserver.install_handler (h, back)
         return h
 
-    def _clone (self, if_origin = False):
-        if self.cloned:
-            return self
-        new_was = copy.copy (self)
+    def _clone (self):
+        new_was = the_was._get (True) # get clone was
         if hasattr (self, 'env'):
             new_env = copy.copy (self.env)
             new_env ["skitai.was"] = new_was
             new_was.env = new_env
-        new_was.cloned = True
+        # cloning
+        for attr in ('request', 'app', 'apps', 'subapp', 'response'):
+            try: val = getattr (self, attr)
+            except AttributeError: pass
+            else: setattr (new_was, attr, val)
         return new_was
 
     @property
@@ -149,16 +152,16 @@ class WASBase:
     futures = Futures
 
     def Thread (self, func, *args, **kargs):
-        return self.executors.create_thread (func, *args, **kargs)
+        return self.executors.create_thread (self.ID, func, *args, **kargs)
 
     def Process (self, func, *args, **kargs):
-        return self.executors.create_process (func, *args, **kargs)
+        return self.executors.create_process (self.ID, func, *args, **kargs)
 
     def Subprocess (self, cmd, timeout = DEFAULT_BACKGROUND_TASK_TIMEOUT):
-        return sp_task.Task (cmd, timeout)
+        return sp_task.Task (self.ID, cmd, timeout)
 
-    def Mask (self, data = None, _expt = None, **meta):
-        return tasks.Mask (data, _expt, **meta)
+    def Mask (self, data = None, _expt = None, meta = None, **attr):
+        return tasks.Mask (data, _expt, self._set_was_id (meta), **attr)
 
     # system functions ----------------------------------------------
     def log (self, msg, category = "info", at = "app"):

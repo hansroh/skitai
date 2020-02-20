@@ -13,7 +13,8 @@ class TaskBase (corequest):
         assert isinstance (reqs, (list, tuple))
         self._reqs = reqs
         self._timeout = timeout
-        self.meta = meta
+        self.meta = meta or {}
+        self.meta ['__was_id'] = reqs [0]._meta ['__was_id']
 
         self._init_time = time.time ()
         self._attr = attr
@@ -110,7 +111,6 @@ class Mask (response, TaskBase):
         self._expt = _expt
         self._data = data
         self.meta = meta
-
         self.status = NORMAL
         self.status_code = _status_code or (_expt and 500 or 200)
         self._timeout = DEFAULT_TIMEOUT

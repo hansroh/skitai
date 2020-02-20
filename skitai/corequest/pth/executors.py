@@ -80,7 +80,7 @@ class ThreadExecutor:
             self.futures = []
             return len (self.futures)
 
-    def __call__ (self, f, *a, **b):
+    def __call__ (self, was_id, f, *a, **b):
         with self.lock:
             if self.no_more_request:
                 return
@@ -97,7 +97,7 @@ class ThreadExecutor:
             timeout = None
 
         future = self.executor.submit (f, *a, **b)
-        wrap = Task (future, "{}.{}".format (f.__module__, f.__name__))
+        wrap = Task (was_id, future, "{}.{}".format (f.__module__, f.__name__))
         timeout and wrap.set_timeout (timeout)
         self.logger ("{} task started: {}".format (self.NAME, wrap))
         with self.lock:
@@ -129,9 +129,9 @@ class Executors:
     def cleanup (self):
         return [e.shutdown () for e in self.executors]
 
-    def create_thread (self, f, *a, **b):
-        return self.executors [0] (f, *a, **b)
+    def create_thread (self, was_id, f, *a, **b):
+        return self.executors [0] (was_id, f, *a, **b)
 
-    def create_process (self, f, *a, **b):
-        return self.executors [1] (f, *a, **b)
+    def create_process (self, was_id, f, *a, **b):
+        return self.executors [1] (was_id, f, *a, **b)
 

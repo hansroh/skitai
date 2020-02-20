@@ -3179,6 +3179,14 @@ Links
 Change Log
 ============
 
+- 0.35 (Feb 2020)
+
+  - add skitai.set_max_was_clones_per_thread (val)
+  - fix corequest cache
+  - deprecate corequest.Task(s) keyword arguments, instead add meta
+    argument
+  - enable Range header to WSGI content
+
 - 0.34 (Jan 2020)
 
   - fix proxy and proxypass for PATCH method

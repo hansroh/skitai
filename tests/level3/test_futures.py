@@ -21,6 +21,14 @@ def test_futures (app, dbpath):
             return was.response.API (status_code = task.dispatch ().status_code, a = task.meta ["a"])
         return was.get ("@pypi/project/skitai/", meta = {'a': 100}).then (respond)
 
+    @app.route ("/1-1")
+    def index1_1 (was):
+        def respond2 (was, task):
+            return was.API (status_code = task.dispatch ().status_code)
+        def respond (was, task):
+            return was.get ("@pypi/project/rs4/").then (respond2)
+        return was.get ("@pypi/project/skitai/").then (respond)
+
     @app.route ("/2")
     def index2 (was):
         def repond (was, rss):
@@ -151,10 +159,14 @@ def test_futures (app, dbpath):
         assert resp.data ['status_code'] == 200
         assert resp.data ['a'] == 100
 
+        resp = cli.get ("/1-1")
+        assert resp.data ['status_code'] == 200
+
         resp = cli.get ("/2")
         assert resp.data ['status_code'] == [200, 200]
         assert resp.data ['status_code_db'] == [200]
         assert resp.data ['b'] == 200
+        return
 
         resp = cli.get ("/3")
         assert "hansroh" in resp.text

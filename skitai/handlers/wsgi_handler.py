@@ -292,7 +292,7 @@ class Job:
 				self.deallocate	()
 		except:
 			# no response, alredy done. just log
-			self.logger.trace ("server",  self.request.uri)
+			self.logger.trace ("server", self.request.uri)
 
 	def deallocate (self):
 		env = self.args [0]
@@ -302,7 +302,7 @@ class Job:
 			except AttributeError: pass
 			if hasattr (_input, "name"):
 				try: os.remove (_input.name)
-				except: self.logger.trace ("app")
+				except: pass
 
 		was = env.get ("skitai.was")
 		if was is not None:
