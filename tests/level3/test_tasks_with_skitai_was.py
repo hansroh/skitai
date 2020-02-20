@@ -7,14 +7,14 @@ def test_futures (app, dbpath):
     @app.route ("/")
     def index (was):
         def respond (was, rss):
-            return the_was.response.API (status_code = [rs.status_code for rs in rss.dispatch ()], a = rss.a)
+            return the_was.response.API (status_code = [rs.status_code for rs in rss.dispatch ()], a = rss.meta ['a'])
 
         reqs = [
             the_was.get ("@pypi/project/skitai/"),
             the_was.get ("@pypi/project/rs4/"),
             the_was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
         ]
-        return the_was.Tasks (reqs, a = 100).then (respond)
+        return the_was.Tasks (reqs, meta = {'a': 100}).then (respond)
 
     @app.route ("/3")
     def index3 (was):

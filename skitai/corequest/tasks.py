@@ -6,19 +6,36 @@ from skitai import was
 from rs4.attrdict import AttrDict
 import time
 from skitai import NORMAL
+import warnings
 
 class TaskBase (corequest):
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None):
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None, **attr):
         assert isinstance (reqs, (list, tuple))
-        self._timeout = timeout
         self._reqs = reqs
+        self._timeout = timeout
         self.meta = meta
+
         self._init_time = time.time ()
+        self._attr = attr
+        self.warn_deprecated ()
+
+    def warn_deprecated (self):
+        if self._attr:
+            warnings.warn (
+                "{}'s keyword arguments will be deprecated, use `meta` argument".format (self.__class__.__name__),
+                DeprecationWarning
+            )
+
+    def __getattr__ (self, name):
+        try:
+            return self._attr [name]
+        except KeyError:
+            raise AttributeError ("{} cannot found".format (name))
 
 
 class Tasks (TaskBase):
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None):
-        TaskBase.__init__ (self, reqs, timeout, meta)
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None, **attr):
+        TaskBase.__init__ (self, reqs, timeout, meta, **attr)
         self._results = []
 
     def __iter__ (self):
@@ -85,17 +102,20 @@ class Tasks (TaskBase):
         [r.cache (cache, cache_if) for r in self.results]
 
     def then (self, func):
-        return Futures (self._reqs, self._timeout, **self.meta).then (func)
+        return Futures (self._reqs, self._timeout, self.meta, **self._attr).then (func)
 
 
 class Mask (response, TaskBase):
-    def __init__ (self, data = None, _expt = None, _status_code = None, meta = None):
+    def __init__ (self, data = None, _expt = None, _status_code = None, meta = None, **attr):
         self._expt = _expt
         self._data = data
         self.meta = meta
+
         self.status = NORMAL
         self.status_code = _status_code or (_expt and 500 or 200)
         self._timeout = DEFAULT_TIMEOUT
+        self._attr = attr
+        TaskBase.warn_deprecated (self)
 
     def _reraise (self):
         if self._expt:
@@ -121,18 +141,18 @@ class Mask (response, TaskBase):
 
 # completed future(s) ----------------------------------------------------
 class CompletedTasks (response, Tasks):
-    def __init__ (self, reqs, meta):
-        Tasks.__init__ (self, reqs, meta)
+    def __init__ (self, reqs, meta, **attr):
+        Tasks.__init__ (self, reqs, DEFAULT_TIMEOUT, meta, **attr)
 
     def __del__ (self):
         self._reqs = [] #  reak back ref.
 
 class CompletedTask (CompletedTasks):
     def __iter__ (self):
-        raise TypeError ('Futrue is not iterable')
+        raise TypeError ('Future is not iterable')
 
     def __getitem__ (self, sliced):
-        raise TypeError ('Futrue is not iterable')
+        raise TypeError ('Future is not iterable')
 
     #------------------------------------------------------
     def dispatch (self, cache = None, cache_if = (200,), timeout = None):
@@ -157,10 +177,10 @@ class CompletedTask (CompletedTasks):
 
 # future(s) ----------------------------------------------------
 class Futures (TaskBase):
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None):
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None, **attr):
         if isinstance (reqs, Tasks):
             reqs = reqs._reqs
-        TaskBase.__init__ (self, reqs, timeout, meta)
+        TaskBase.__init__ (self, reqs, timeout, meta, **attr)
         self._was = None
         self._fulfilled = None
         self._responded = 0
@@ -177,7 +197,7 @@ class Futures (TaskBase):
         self._responded += 1
         if self._responded == len (self._reqs):
             if self._fulfilled:
-                tasks = (self._single and CompletedTask or CompletedTasks) (self._reqs, **self.meta)
+                tasks = (self._single and CompletedTask or CompletedTasks) (self._reqs, self.meta, **self._attr)
                 self._late_respond (tasks)
             else:
                 self._was.response ("205 No Content", "")
@@ -185,7 +205,7 @@ class Futures (TaskBase):
 
 
 class Future (Futures):
-    def __init__ (self, req, timeout = DEFAULT_TIMEOUT, meta = None):
-        Futures.__init__ (self, [req], timeout, meta)
+    def __init__ (self, req, timeout = DEFAULT_TIMEOUT, meta = None, **attr):
+        Futures.__init__ (self, [req], timeout, meta, **attr)
         self._single = True
 

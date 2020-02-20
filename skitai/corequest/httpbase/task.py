@@ -586,7 +586,7 @@ class Task (corequest):
 
     def then (self, func):
         from ..tasks import Future
-        return Future (self, self._timeout, **self._meta).then (func)
+        return Future (self, self._timeout, meta = self._meta).then (func)
 
     def cache (self, cache = 60, cache_if = (200,)):
         cache = cache or self._cache_timeout
