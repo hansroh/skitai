@@ -52,6 +52,7 @@ class Task (corequest):
         self._fulfilled = func
         self._was = self._get_was ()
         self.future.add_done_callback (self._settle)
+        self._meta ['__reqid'] = 0
         return self
 
     # common corequest methods ----------------------------------
