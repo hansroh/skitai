@@ -19,7 +19,6 @@ from . import server_info
 from ..corequest import tasks
 from ..corequest.pth import sp_task
 from ..backbone import http_response
-from .promise import Promise
 from .triple_logger import Logger
 if os.environ.get ("SKITAIENV") == "PYTEST":
     from threading import RLock
