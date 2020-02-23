@@ -228,7 +228,7 @@ class http_channel (asynchat.async_chat):
             try:
                 command, uri, version = http_util.crack_request (request)
             except:
-                self.log_info ("channel-%s-%s invaild request header" % (self.server.worker_ident, self.channel_number), "fail")
+                self.log_info ("channel %s-%s invalid request header" % (self.server.worker_ident, self.channel_number), "fail")
                 return self.close ()
 
             if DEBUG:
@@ -264,7 +264,7 @@ class http_channel (asynchat.async_chat):
 
     def handle_abort (self):
         self.close (ignore_die_partner = True)
-        self.log_info ("channel-%s-%s aborted" % (self.server.worker_ident, self.channel_number), "info")
+        self.log_info ("channel %s-%s aborted" % (self.server.worker_ident, self.channel_number), "info")
 
     def close (self, ignore_die_partner = False):
         if self.closed:
@@ -297,7 +297,7 @@ class http_channel (asynchat.async_chat):
         asynchat.async_chat.close (self)
         self.connected = False
         self.closed = True
-        self.log_info ("channel-%s-%s closed" % (self.server.worker_ident, self.channel_numbe), "info")
+        self.log_info ("channel %s-%s closed" % (self.server.worker_ident, self.channel_number), "info")
 
     def journal (self, reporter):
         self.log (
@@ -319,11 +319,11 @@ class http_channel (asynchat.async_chat):
         self.server.trace (id)
 
     def handle_expt(self):
-        self.log_info ("channel-%s-%s panic" % (self.server.worker_ident, self.channel_number), "fail")
+        self.log_info ("channel %s-%s panic" % (self.server.worker_ident, self.channel_number), "fail")
         self.close ()
 
     def handle_error (self):
-        self.server.trace ("channel-%s-%s" % (self.server.worker_ident, self.channel_number))
+        self.server.trace ("channel %s-%s" % (self.server.worker_ident, self.channel_number))
         self.close()
 
 
@@ -577,7 +577,6 @@ class http_server (asyncore.dispatcher):
         pass
 
     def handle_accept (self):
-        #print ('-----', self.worker_ident)
         self.total_clients.inc()
         try:
             conn, addr = self.accept()

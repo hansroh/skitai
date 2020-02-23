@@ -44,6 +44,27 @@ def test_error_handler (app):
     def index8 (was, limit):
         return ""
 
+    @app.route ("/9")
+    @app.require ("DATA", lists = ['a'])
+    def index9 (was, a):
+        return ""
+
+    @app.route ("/10")
+    @app.require ("DATA", booleans = ['a'])
+    def index10 (was, a):
+        return ""
+
+    @app.route ("/11")
+    @app.require ("DATA", dicts = ['a'])
+    def index11 (was, a):
+        return ""
+
+    @app.route ("/12")
+    @app.require ("DATA", strings = ['a'])
+    def index12 (was, a):
+        return ""
+
+
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
         assert resp.status_code == 400
@@ -131,6 +152,46 @@ def test_error_handler (app):
 
         resp = cli.api () ("8").post ({"limit": 4})
         assert resp.status_code == 200
+
+        resp = cli.api () ("9").post ({"a": ''})
+        assert resp.status_code == 200
+
+        resp = cli.api () ("10").post ({"a": ''})
+        assert resp.status_code == 400
+
+        resp = cli.api () ("10").post ({"a": 'xx'})
+        assert resp.status_code == 400
+
+        resp = cli.api () ("10").post ({"a": 'yes'})
+        assert resp.status_code == 200
+
+        resp = cli.api () ("10").post ({"a": 'true'})
+        assert resp.status_code == 200
+
+        resp = cli.api () ("10").post ({"a": 'no'})
+        assert resp.status_code == 200
+
+        resp = cli.api () ("10").post ({"a": 'false'})
+        assert resp.status_code == 200
+
+        resp = cli.api () ("11").post ({"a": {"a": 1}})
+        assert resp.status_code == 200
+
+        resp = cli.api () ("11").post ({"a": [1,2]})
+        assert resp.status_code == 400
+
+        resp = cli.api () ("11").post ({"a": ''})
+        assert resp.status_code == 400
+
+        resp = cli.api () ("12").post ({"a": ''})
+        assert resp.status_code == 200
+
+        resp = cli.api () ("12").post ({"a": 0})
+        assert resp.status_code == 400
+
+        resp = cli.api () ("12").post ({"a": {}})
+        assert resp.status_code == 400
+
 
 def test_error_handler_2 (app):
     @app.route ("/20")

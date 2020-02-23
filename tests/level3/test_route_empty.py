@@ -17,10 +17,10 @@ def test_route_empty (app):
         resp = cli.get ("/beta")
         assert resp.status_code == 301
 
-        resp = cli.get ("/beta/")        
+        resp = cli.get ("/beta/")
         assert resp.status_code == 200
 
-        resp = cli.get ("/beta/1")        
+        resp = cli.get ("/beta/1")
         assert resp.status_code == 404
 
 
@@ -30,10 +30,11 @@ def test_route_empty (app):
 
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/beta")
+        assert resp.status_code == 200
         assert resp.text == "Hello, World"
 
-        resp = cli.get ("/beta/")        
+        resp = cli.get ("/beta/")
         assert resp.status_code == 200
 
-        resp = cli.get ("/beta/1")        
+        resp = cli.get ("/beta/1")
         assert resp.status_code == 404

@@ -8,7 +8,7 @@ from datetime import timezone
 
 TZ_UTC = timezone.utc
 
-class DefaultDateTimeEncoder (json.JSONEncoder):
+class StringDateTimeEncoder (json.JSONEncoder):
 	def _to_utc (self, obj):
 		return obj.astimezone (TZ_UTC)
 
@@ -17,37 +17,38 @@ class DefaultDateTimeEncoder (json.JSONEncoder):
 			return str (self._to_utc (obj))
 		return json.JSONEncoder.default (self, obj)
 
-class DigitTimeEncoder (DefaultDateTimeEncoder):
+class DigitTimeEncoder (StringDateTimeEncoder):
 	def default (self, obj):
 		if isinstance (obj, date):
 			return self._to_utc (obj).strftime ('%Y%m%d%H%M%S')
 		return json.JSONEncoder.default (self, obj)
 
-class ISODateTimeEncoder (DefaultDateTimeEncoder):
+class ISODateTimeEncoder (StringDateTimeEncoder):
 	def default (self, obj):
 		if isinstance (obj, date):
 			return self._to_utc (obj).isoformat ()
 		return json.JSONEncoder.default (self, obj)
 
-class UNIXEpochDateTimeEncoder (DefaultDateTimeEncoder):
+class UNIXEpochDateTimeEncoder (StringDateTimeEncoder):
 	def default (self, obj):
 		if isinstance (obj, date):
 			return self._to_utc (obj).timestamp ()
 		return json.JSONEncoder.default (self, obj)
 
-class JavascriptDateTimeEncoder (DefaultDateTimeEncoder):
+class ISODateTimeWithOffsetEncoder (StringDateTimeEncoder):
 	def default (self, obj):
 		if isinstance (obj, date):
 			return self._to_utc (obj).strftime ('%Y-%m-%d %H:%M:%S+00')
 		return json.JSONEncoder.default (self, obj)
 
+
 class API:
 	ENCODER_MAP = {
-		'default': DefaultDateTimeEncoder,
+		'default': StringDateTimeEncoder,
 		'iso': ISODateTimeEncoder,
-		'unix': UNIXEpochDateTimeEncoder,
+		'unixepoch': UNIXEpochDateTimeEncoder,
 		'digit': DigitTimeEncoder,
-		'js': JavascriptDateTimeEncoder
+		'utcoffset': ISODateTimeWithOffsetEncoder
 	}
 
 	@classmethod

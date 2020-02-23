@@ -2898,7 +2898,24 @@ First of all, alias your database to Skitai.
 Create Model Classes
 ````````````````````````````````````
 
-I think all public model methods maybe return *corequest object or None*.
+I think all public model methods SHOULD return only two things:
+
+- corequest objects
+- None
+
+And **DO NOT USE** request specific objects, Skitai do not
+ensure these objects are same in current request flow.
+
+- was.env
+- was.app
+- was.request
+- was.response
+- was.session
+- was.cookie
+
+But you can still use corequest related nethods and other
+utility methods.
+
 
 .. code:: python
 
