@@ -2789,7 +2789,7 @@ for sharing model state beetween worker processes.
 
 .. code:: python
 
-  skitai.register_states ('tables.users', 'table.photos')
+  skitai.register_cache_keys ('tables.users', 'table.photos')
 
 These key names are might be related your database model names nor table names. In general cases, key names are fine if you easy to recognize.
 
@@ -2797,20 +2797,14 @@ These key names are not mutable and you cannot add new key after calling skitai.
 
 Also it can be used as decorator for clarency.
 
+Your app \_\_init\_\_.py
+
 .. code:: python
 
   import skitai
 
-  @skitai.register_states ('tables.users')
-  class User:
-    ...
-
-
-  @skitai.register_states ('tables.users', 'table.photos')
-  def __mount__ (app):
-    @app.route (...)
-    def index (...):
-       ...
+  def __setup__ (pref):
+    skitai.register_cache_keys ('tables.users')
 
 
 Then you can use setlu () and getlu (),
@@ -2848,6 +2842,48 @@ If your query related with multiple models,
 
 was.getlu () returns most recent update time stamp of given models.
 
+
+For comprehensive, you can use 'rm_cache' argument.
+
+.. code:: python
+
+  app = Atila (__name__)
+
+  @app.route ("/update")
+  def update (was):
+    # update users tabale
+    was.db ('@mydb', rm_cache = 'tables.users').execute (...)
+
+  @app.route ("/query1")
+  def query1 (was):
+    # determine if use cache or not by last update information 'users'
+    was.db ('@mydb', use_cache = 'tables.users').execute (...)
+
+For advanced use, cache keys can be segmentated,
+
+.. code:: python
+
+  skitai.register_cache_keys (
+    *['category-{}'.format (category_code) for category_code in range (10)]
+  )
+  skitai.run ()
+
+
+.. code:: python
+
+  app = Atila (__name__)
+
+  @app.route ("/update")
+  def update (was, category_code):
+    # update article tabale
+    was.db ('@mydb', rm_cache = 'category-{}'.format (category_code)).execute (...)
+
+  @app.route ("/query1")
+  def query1 (was, category_code):
+    # determine if use cache or not by last update information 'article'
+    was.db ('@mydb', use_cache = 'category-{}'.format (category_code)).execute (...)
+
+
 *Available on Python 3.5+*
 
 Also was.setlu () emits 'model-changed' events. You can handle
@@ -2873,6 +2909,8 @@ Note: if @app.on_broadcast is located in mount function at
 services directory, even app.use_reloader is True, it is not
 applied to app when component file is changed. In this case
 you should manually reload app by resaving app file.
+
+Note2: Cache keys limitations is 256 (including 'states').
 
 
 Corequest Based Model

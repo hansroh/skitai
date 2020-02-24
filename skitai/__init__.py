@@ -385,6 +385,7 @@ def set_was_class (was_class):
     dconf ["wasc"] = was_class
 
 def _reserve_states (*names):
+    global dconf
     if isinstance (names [0], (list, tuple)):
         names = list (names [0])
     if was._started ():
