@@ -2797,9 +2797,9 @@ These key names are not mutable and you cannot add new key after calling skitai.
 
 Also it can be used as decorator for clarency.
 
-Your app \_\_init\_\_.py
-
 .. code:: python
+
+  # __init__.py in your app root
 
   import skitai
 
@@ -2821,12 +2821,7 @@ Then you can use setlu () and getlu (),
     was.setlu ('tables.users')
 
   @app.route ("/query1")
-  def query1 (was):
-    # determine if use cache or not by last update information 'users'
-    was.db ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
-
-  @app.route ("/query2")
-  def query2 (was):
+  def query (was):
     # determine if use cache or not by last update information 'users'
     was.db ('@mydb', use_cache = was.getlu ('tables.users')).execute (...)
 
@@ -2854,7 +2849,7 @@ For comprehensive, you can use 'rm_cache' argument.
     # update users tabale
     was.db ('@mydb', rm_cache = 'tables.users').execute (...)
 
-  @app.route ("/query1")
+  @app.route ("/query")
   def query1 (was):
     # determine if use cache or not by last update information 'users'
     was.db ('@mydb', use_cache = 'tables.users').execute (...)
@@ -2866,7 +2861,6 @@ For advanced use, cache keys can be segmentated,
   skitai.register_cache_keys (
     *['category-{}'.format (category_code) for category_code in range (10)]
   )
-  skitai.run ()
 
 
 .. code:: python
