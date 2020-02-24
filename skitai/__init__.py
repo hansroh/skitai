@@ -399,6 +399,7 @@ def register_states (*names):
     def decorator (cls):
         return cls
     return decorator
+register_cache_keys = register_states
 
 def maybe_django (wsgi_path, appname):
     if not isinstance (wsgi_path, str):
