@@ -1157,14 +1157,17 @@ Inter-Processes State Sharing
 Skitai can run with multiple processes (a.k workers), It is
 possible matters synchronizing state between workers.
 
-Already mentioned 'skitai.register_states ()'  can be used
-for allocating shared memory for inter-process named state.
+'skitai.register_states ()'  can be used for allocating shared
+memory for inter-process named state.
 
 .. code:: python
 
+  # __init__.py of your app
+
   import skitai
 
-  skitai.register_states ("current-user", ...)
+  def __setup__ (pref):
+    skitai.register_states ("current-user", ...)
 
 Then one process update object by setgs (name, value),
 the others can be access it by getgs (name).
@@ -2789,7 +2792,15 @@ for sharing model state beetween worker processes.
 
 .. code:: python
 
-  skitai.register_cache_keys ('tables.users', 'table.photos')
+  # __init__.py in your app root
+
+  import skitai
+
+  def __setup__ (pref):
+    skitai.register_cache_keys ('tables.users', 'table.photos')
+
+Note: skitai.register_cache_keys shoud be placed on your 'serve.py'
+or '\_\_init\_\_.py'.
 
 These key names are might be related your database model names nor table names. In general cases, key names are fine if you easy to recognize.
 
