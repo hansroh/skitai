@@ -14,7 +14,7 @@ class StringDateTimeEncoder (json.JSONEncoder):
 
 	def default (self, obj):
 		if isinstance (obj, date):
-			return str (self._to_utc (obj))
+			return str (obj)
 		return json.JSONEncoder.default (self, obj)
 
 class DigitTimeEncoder (StringDateTimeEncoder):
@@ -44,7 +44,7 @@ class ISODateTimeWithOffsetEncoder (StringDateTimeEncoder):
 
 class API:
 	ENCODER_MAP = {
-		'default': StringDateTimeEncoder,
+		'str': StringDateTimeEncoder,
 		'iso': ISODateTimeEncoder,
 		'unixepoch': UNIXEpochDateTimeEncoder,
 		'digit': DigitTimeEncoder,
@@ -99,7 +99,7 @@ class API:
 	def to_string (self):
 		if self.content_type.startswith ("text/xml"):
 			return client.dumps ((self.data,))
-		return json.dumps (self.data, cls = self.data_encoder_class or self.ENCODER_MAP ['default'], ensure_ascii = False, indent = 2)
+		return json.dumps (self.data, cls = self.data_encoder_class or self.ENCODER_MAP ['utcoffset'], ensure_ascii = False, indent = 2)
 
 	def traceback (self, message = 'exception occured', code = 20000, debug = 'see traceback', more_info = None):
 		self.error (message, code, debug, more_info, sys.exc_info ())

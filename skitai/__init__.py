@@ -3,6 +3,8 @@
 __version__ = "0.34.2"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
+assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
+
 NAME = "Skitai/%s.%s" % version_info [:2]
 
 import aquests # should be first for psycopg2 compat
