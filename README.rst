@@ -1733,10 +1733,10 @@ You have to run Chrome Canary with command line options,
 
 .. code:: bash
 
-   chrome.exe --enable-quic --quic-version=h3-26
+   chrome.exe --enable-quic --quic-version=h3-25
 
 At your browser's developer window, you can see protocol as
-*h3-26* during you loading your web page and files.
+*h3-25* during you loading your web page and files.
 
 .. _aioquic: https://github.com/aiortc/aioquic
 .. _`Chrome Canary`: https://www.google.com/intl/ko_ALL/chrome/canary/
