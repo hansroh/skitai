@@ -9,7 +9,7 @@ Install,
 
 .. code:: bash
 
-  pip3 install -U skitai rs4 aquests sqlphile
+  pip3 install -U skitai
 
 Create and mount your app,
 
@@ -1733,10 +1733,10 @@ You have to run Chrome Canary with command line options,
 
 .. code:: bash
 
-   chrome.exe --enable-quic --quic-version=h3-24
+   chrome.exe --enable-quic --quic-version=h3-26
 
 At your browser's developer window, you can see protocol as
-*h3-24* during you loading your web page and files.
+*h3-26* during you loading your web page and files.
 
 .. _aioquic: https://github.com/aiortc/aioquic
 .. _`Chrome Canary`: https://www.google.com/intl/ko_ALL/chrome/canary/
@@ -3241,6 +3241,7 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - support h3-25, h3-26
   - add skitai.set_max_was_clones_per_thread (val)
   - fix corequest cache
   - deprecate corequest.Task(s) keyword arguments, instead add meta
