@@ -482,7 +482,6 @@ class http_server (asyncore.dispatcher):
 
         self.usages.append (sum ([x [1] for x in usages]) / len (usages))
         self.usages = self.usages [-45:]
-
         self.cpu_stat = []
         max_usage = 0
         for c in (3, 15, 45):
