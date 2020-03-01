@@ -2,6 +2,12 @@ import skitai
 import confutil
 import pprint
 
+def func1 ():
+    return 'thread'
+
+def func2 ():
+    return 'process'
+
 def test_futures (app, dbpath):
     @app.route ("/")
     def index (was):
@@ -147,6 +153,61 @@ def test_futures (app, dbpath):
         a.merge (b)
         return a.then (respond)
 
+    @app.route ("/14")
+    def index14 (was):
+        reqs = [
+            was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 0', ('RHAT',)),
+            was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))
+        ]
+        tasks = was.Tasks (reqs)
+        req = was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))
+        (a, b), c = was.Tasks ([tasks, req]).fetch ()
+        return str ([a,b,c])
+
+    @app.route ("/15")
+    def index15 (was):
+        reqs = [
+            was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 0', ('RHAT',)),
+            was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))
+        ]
+        tasks = was.Tasks (reqs)
+        req = was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))
+        mask = was.Mask (['mask'])
+        (a, b), c, d = was.Tasks ([tasks, req, mask]).fetch ()
+        return str ([a, b, c, d])
+
+    @app.route ("/16")
+    def index16 (was):
+        reqs = [
+            was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 0', ('RHAT',)),
+            was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))
+        ]
+        tasks = was.Tasks (reqs)
+        req = was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))
+        mask = was.Mask (['mask'])
+        th = was.Thread (func1)
+        ps = was.Process (func2)
+        (a, b), c, d, e, f = was.Tasks ([tasks, req, mask, th, ps]).fetch ()
+        return str ([a, b, c, d, e, f])
+
+    @app.route ("/17")
+    def index17 (was):
+        reqs = [
+            was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 0', ('RHAT',)),
+            was.Thread (func1) or was.Mask ('thread')
+        ]
+        reqs = [
+            was.Tasks (reqs),
+            was.Mask (['mask']),
+            was.Thread (func1),
+            was.Process (func2)
+        ]
+        tasks = was.Tasks (reqs)
+        req = was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))
+        mask = was.Mask (['mask'])
+
+        ((a, b), c, d, e), e, f = was.Tasks ([tasks, req, mask]).fetch ()
+        return str ([a, b, c, d, e, f])
 
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
     app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)
@@ -166,7 +227,6 @@ def test_futures (app, dbpath):
         assert resp.data ['status_code'] == [200, 200]
         assert resp.data ['status_code_db'] == [200]
         assert resp.data ['b'] == 200
-        return
 
         resp = cli.get ("/3")
         assert "hansroh" in resp.text
@@ -208,5 +268,14 @@ def test_futures (app, dbpath):
         resp = cli.get ("/13")
         assert resp.data == "[{'symbol': 'RHAT'}, {'symbol': 'RHAT'}]"
 
+        resp = cli.get ("/14")
+        assert resp.data == "[[], [{'symbol': 'RHAT'}], [{'symbol': 'RHAT'}]]"
 
+        resp = cli.get ("/15")
+        assert resp.data == "[[], [{'symbol': 'RHAT'}], [{'symbol': 'RHAT'}], ['mask']]"
 
+        resp = cli.get ("/16")
+        assert resp.data == "[[], [{'symbol': 'RHAT'}], [{'symbol': 'RHAT'}], ['mask'], 'thread', 'process']"
+
+        resp = cli.get ("/17")
+        assert resp.data == "[[], 'thread', ['mask'], 'thread', [{'symbol': 'RHAT'}], ['mask']]"
