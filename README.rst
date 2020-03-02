@@ -3241,6 +3241,7 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - fix corequest cache expiring
   - support h3-25, h3-26
   - add skitai.set_max_was_clones_per_thread (val)
   - fix corequest cache
