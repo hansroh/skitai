@@ -1,7 +1,7 @@
 import requests
 
 def test_app (launch):
-    with launch ("./examples/csrf_test_server.py") as engine:
+    with launch ("./examples/app2.py") as engine:
         resp = engine.get ('/')
         assert resp.status_code == 200
         csrf = resp.text [5:].strip ()

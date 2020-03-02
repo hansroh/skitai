@@ -132,8 +132,11 @@ def test_was (wasc, app, client):
 
     class Request:
         args = {was.CSRF_NAME: t}
+        def get_header (self, *args):
+            return self.args [was.CSRF_NAME]
 
-    was.request = Request
+
+    was.request = Request ()
 
     was.request.args [was.CSRF_NAME] = 0x00
     assert not was.csrf_verify (True)
