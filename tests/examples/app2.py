@@ -13,8 +13,6 @@ def index (was):
 @app.route ("/post")
 @app.csrf_verification_required
 def post (was, **form):
-    assert '_csrf_token' in form
-    assert not was.session.get ('_csrf_token')
     return 'OK'
 
 @app.route ("/render_or_API")

@@ -9,7 +9,7 @@ def test_app (launch):
         resp = engine.post ('/post', {'a': 'b'})
         assert resp.status_code == 400
 
-        resp = engine.post ('/post', {'_csrf_token': csrf, 'a': 'b'})
+        resp = engine.post ('/post', {'XSRF_TOKEN': csrf, 'a': 'b'})
         assert resp.status_code == 200
         assert resp.text == 'OK'
 
@@ -17,7 +17,7 @@ def test_app (launch):
         assert resp.status_code == 200
         csrf = resp.text [5:].strip ()
 
-        resp = engine.post ('/post', {'_csrf_token': csrf, 'a': 'b'}, headers = {'X-CSRF-Token': csrf})
+        resp = engine.post ('/post', {'a': 'b'}, headers = {'X-XSRF-TOKEN': csrf})
         assert resp.status_code == 200
         assert resp.text == 'OK'
 

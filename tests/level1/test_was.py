@@ -128,24 +128,19 @@ def test_was (wasc, app, client):
     assert was.detoken (t) == [1, 2]
 
     t = was.csrf_token
-    was.csrf_token_input.find (was.session [was.CSRF_NAME]) > 0
+    was.csrf_token_input.find (was.cookie [was.CSRF_NAME]) > 0
 
     class Request:
         args = {was.CSRF_NAME: t}
         def get_header (self, *args):
             return self.args [was.CSRF_NAME]
 
-
     was.request = Request ()
 
     was.request.args [was.CSRF_NAME] = 0x00
-    assert not was.csrf_verify (True)
     was.request.args [was.CSRF_NAME] = t
-    assert was.csrf_verify (True)
-    assert was.session [was.CSRF_NAME] == t
-
-    assert was.csrf_verify ()
-    assert was.session [was.CSRF_NAME] is None
+    assert was.cookie [was.CSRF_NAME] == t
+    assert was.cookie [was.CSRF_NAME]
 
     with pytest.raises(AttributeError):
         was.django
