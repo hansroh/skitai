@@ -117,11 +117,25 @@ def catch (format = 0, exc_info = None):
     if format == 1:
         if v.find ('\n') != -1:
             v = v.replace ("\r", "").replace ("\n", "<br>")
-        buf = ["<h3>%s</h3><h4>%s</h4>" % (t.__name__.replace (">", "&gt;").replace ("<", "&lt;"), v)]
-        buf.append ("<b>at %s at line %s, %s</b>" % (file, line, function == "?" and "__main__" or "function " + function))
-        buf.append ("<ul type='square'>")
-        buf += ["<li>%s <span class='f'>%s</span> <span class='n'><b>%s</b></font></li>" % x for x in tbinfo]
-        buf.append ("</ul>")
+        buf = ["<div align='left'>"]
+        buf.append ("<h3>%s</h3>" % t.__name__.replace (">", "&gt;").replace ("<", "&lt;"))
+        buf.append ("<h4><div style='margin: 24px 0 6px;'>%s</div>" % v)
+        buf.append ("<span style='font-weight: normal; color: #333;'>function <b>%s</b> file %s line <b>%s</b></span>" % (function == "?" and "__main__" or function, file, line))
+        buf.append ("</h4>")
+
+        buf.append ("<br><table width='100%' cellpadding='8' cellspacing='0'>")
+        buf.append ("<tr bgcolor='#7A297B' style='color: #efefef; font-size: 12px;' align='left'><th>Path</th><th>File Name</th><th align='right'>Line #</th><th>Function</th></tr>")
+        for i, x in enumerate (tbinfo):
+            fi, fu, ln = x
+            ba, fn = os.path.split (fi)
+            bgcolor = i % 2 == 0 and 'fff' or 'efefef'
+            if not fn.endswith ('.py'):
+                bgcolor = 'FBCFD0'
+            buf += ["<tr bgcolor='#%s'><td style='word-break: break-all; color: #888;'>%s</td><td>%s</td><td class='n'><b>%s</b></td><td><span class='f'>%s</span></td></tr>" % (
+                bgcolor,
+                ba, fn, ln, fu
+            )]
+        buf.append ("</table></div>")
         return "\n".join (buf)
 
     buf = []
