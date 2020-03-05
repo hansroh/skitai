@@ -124,7 +124,7 @@ def catch (format = 0, exc_info = None):
         buf.append ("</h4>")
 
         buf.append ("<br><table width='100%' cellpadding='8' cellspacing='0'>")
-        buf.append ("<tr bgcolor='#7A297B' style='color: #efefef; font-size: 12px;' align='left'><th>Path</th><th>File Name</th><th align='right'>Line #</th><th>Function</th></tr>")
+        buf.append ("<tr bgcolor='#7A297B' style='color: #efefef; font-size: 12px;' align='left'><th>Path</th><th>File Name</th><th align='right'>Line#</th><th>Function</th></tr>")
         for i, x in enumerate (tbinfo):
             fi, fu, ln = x
             ba, fn = os.path.split (fi)
