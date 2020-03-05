@@ -130,7 +130,7 @@ def catch (format = 0, exc_info = None):
             ba, fn = os.path.split (fi)
             bgcolor = i % 2 == 0 and 'fff' or 'efefef'
             if not fn.endswith ('.py'):
-                bgcolor = 'FBCFD0'
+                bgcolor = i % 2 == 0 and 'FFFCCC' or 'FFFA99'
             buf += ["<tr bgcolor='#%s'><td style='word-break: break-all; color: #888;'>%s</td><td>%s</td><td class='n'><b>%s</b></td><td><span class='f'>%s</span></td></tr>" % (
                 bgcolor,
                 ba, fn, ln, fu
