@@ -1,16 +1,19 @@
 import json
 import sys
-from datetime import date
 from xmlrpc import client
 from ..utility import catch
 import copy
-from datetime import timezone
+from datetime import timezone, datetime, date
 
+TZ_LOCAL = datetime.now (timezone.utc).astimezone().tzinfo
 TZ_UTC = timezone.utc
 
 class StringDateTimeEncoder (json.JSONEncoder):
 	def _to_utc (self, obj):
-		return obj.astimezone (TZ_UTC)
+		try:
+			return obj.astimezone (TZ_UTC)
+		except ValueError:
+			return obj.replace (tzinfo = TZ_LOCAL).astimezone (TZ_UTC)
 
 	def default (self, obj):
 		if isinstance (obj, date):
