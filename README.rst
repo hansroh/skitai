@@ -243,6 +243,8 @@ skitai app engine script is '/app.py'.
   skitai.mount ("/static", "mydjango/static")
 
   with skitai.preference () as pref:
+    import django
+
     pref.use_reloader = True
     pref.debug = True
     # finally mount django wsgi.py and project root path to append sys.path by path param.
@@ -250,6 +252,10 @@ skitai app engine script is '/app.py'.
       "/",
       "mydjango/mydjango/wsgi:application",
       pref
+    )
+    skitai.mount (
+      "/static/admin",
+      os.path.join (os.path.dirname (django.__file__), "contrib", "admin", "static", "admin")
     )
 
 Note that if app is smae location with django manage.py,
@@ -3241,6 +3247,7 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - update Django reloader for 2.xx
   - fix corequest cache expiring
   - support h3-25, h3-26
   - add skitai.set_max_was_clones_per_thread (val)
