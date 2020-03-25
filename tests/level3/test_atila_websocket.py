@@ -23,6 +23,7 @@ def test_websocket (app):
     def echo3 (was):
         yield '111'
 
+    app.access_control_allow_origin = ["http://sada.com"]
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.ws ("/echo", "hello")
         assert resp.status_code == 403
