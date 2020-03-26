@@ -1671,6 +1671,15 @@ Skitai has been launched experimetnal HTTP/3 on QUIC with aioquic_.
 that it is experimetal and unstable yet.
 
 
+Requirements
+````````````````````
+
+.. code:: python
+
+  apt install libssl-dev
+  pip3 install aioquic
+
+
 Configuring and Launching
 ``````````````````````````````````
 
@@ -3247,6 +3256,7 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - make aioquic installation optional
   - update Django reloader for 2.xx
   - fix corequest cache expiring
   - support h3-25, h3-26

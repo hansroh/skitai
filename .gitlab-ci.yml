@@ -22,7 +22,7 @@ cache:
       - python -c 'from aquests.protocols.grpc import discover'
       - pip install --pre --no-cache-dir atila
       - pip install -Ur tests/requirements.txt
-      - pip install -U tfserver tensorflow==1.13.2
+      - pip install -U tfserver tensorflow==1.13.2 aioquic
       - pip install -U --force pymongo
 
 .before_python_notf_test: &before_python_notf_test
@@ -37,6 +37,7 @@ cache:
       - python -c 'from aquests.protocols.grpc import discover'
       - pip install --pre --no-cache-dir atila
       - pip install -Ur tests/requirements.txt
+      - pip install -U aioquic
       - pip install -U --force pymongo
 
 .before_pypy_test: &before_pypy_test
