@@ -1,5 +1,6 @@
 import pytest
-import os
+import os, sys
+is_pypy = '__pypy__' in sys.builtin_module_names
 
 def test_launch (launch):
     serve = '../../atila/example/serve.py'
@@ -61,8 +62,9 @@ def test_launch (launch):
             assert 'result' in resp1.data
             assert 'info' in resp1.data ['result']
 
-        for i in range (4):
-            resp = engine.axios.get ('/apis/db{}'.format (i % 2 == 1 and 2 or ''))
-            assert resp.status_code == 200
-            assert 'rows' in resp.data
-            assert len (resp.data ['rows']) > 1
+        if not is_pypy:
+            for i in range (4):
+                resp = engine.axios.get ('/apis/db{}'.format (i % 2 == 1 and 2 or ''))
+                assert resp.status_code == 200
+                assert 'rows' in resp.data
+                assert len (resp.data ['rows']) > 1

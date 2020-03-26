@@ -8,6 +8,7 @@ import time
 from requests.auth import HTTPDigestAuth
 import xmlrpc.client
 from examples.services import route_guide_pb2
+is_pypy = '__pypy__' in sys.builtin_module_names
 
 def assert_request (expect, url, *args, **karg):
 	resp = requests.get ("http://127.0.0.1:30371" + url, *args, **karg)
@@ -30,9 +31,14 @@ def test_app (launch):
 		assert_request (401, "/members/")
 		assert_request (200, "/members/", auth = HTTPDigestAuth ("admin", "1111"))
 
-		for url in ("/", "/documentation", "/documentation2", "/documentation3", "/hello", "/redirect1", "/redirect2", "/db", "/dbmap", "/dbtx", "/xmlrpc"):
+		urls = ["/", "/documentation", "/documentation2", "/documentation3", "/hello", "/redirect1", "/redirect2", "/dbtx", "/xmlrpc"]
+		if not is_pypy:
+			urls.extend (["/db", '/dbmap'])
+
+		for url in urls:
 			assert_request (200, url)
 			assert_request (200, url)
+
 		assert_post_request (200, "/post", {"username": "pytest"})
 		jpg = open (os.path.join (confutil.getroot (), "statics", "reindeer.jpg"), "rb")
 		assert_post_request (200, "/upload", {"username": "pytest"}, files = {"file1": jpg})

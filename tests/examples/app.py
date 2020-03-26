@@ -5,6 +5,7 @@ from services import sub
 from skitai import was as cwas
 import time
 import sys
+is_pypy = '__pypy__' in sys.builtin_module_names
 
 if os.name == "nt":
     from rs4.psutil.win32service import ServiceFramework
@@ -109,7 +110,7 @@ def dbmap (was):
         results = req.dispatch ()
         data = req.fetch (cache = 60)
         assert data == results.data
-    if sys.version_info <= (3, 7):
+    if sys.version_info <= (3, 7) and not is_pypy: # why?
         with was.db.map ("@sqlite3m") as db:
             db.execute ("delete from people where id=3").commit ()
     return was.API (data = data)

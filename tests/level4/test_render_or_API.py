@@ -7,4 +7,4 @@ def test_app (launch):
         resp = engine.get ('/render_or_API', headers = {'Accept': 'text/html, */*'})
         assert 'text/html' in resp.headers ['content-type']
         resp = engine.get ('/render_or_API', headers = {'Accept': 'text/plain, */*'})
-        assert 'text/html' in resp.headers ['content-type']
+        assert 'text/html' in resp.headers ['content-type'] or 'application/json' in resp.headers ['content-type']

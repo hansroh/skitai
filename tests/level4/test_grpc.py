@@ -1,8 +1,11 @@
 
-from examples.services import route_guide_pb2
-import grpc
-
 def test_grpc (launch):
+    from examples.services import route_guide_pb2
+    try:
+        import grpc
+    except ImportError:
+        return
+
     server = "127.0.0.1:30371"
     with launch ("./examples/app.py") as engine:
         with grpc.insecure_channel(server) as channel:

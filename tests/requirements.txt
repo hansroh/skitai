@@ -11,9 +11,10 @@ redis
 pymongo
 psycopg2-binary
 psycopg2cffi; python_version >= "3.6"
-grpcio
 aiofiles
 asgiref
 httpbin
 starlette
 wsproto
+aioquic
+# grpcio; python_flatfom != "pypy"
