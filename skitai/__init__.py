@@ -478,7 +478,7 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
             target_ += '.py'
         if 'PYTEST_CURRENT_TEST' not in os.environ:
             assert os.path.exists (target_),  'app not found: {}'.format (target_)
-            with open (target_) as f:
+            with open (target_, encoding = 'utf8') as f:
                 if f.read ().find ("atila") != -1:
                     try:
                         import atila # automatic patch skitai was
