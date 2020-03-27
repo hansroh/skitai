@@ -14,7 +14,10 @@ class TaskBase (corequest):
         self._reqs = reqs
         self._timeout = timeout
         self._meta = self.meta = meta or {}
-        self.meta ['__was_id'] = reqs [0]._meta ['__was_id']
+        for req in reqs:
+            if req._meta:
+                self.meta ['__was_id'] = req._meta ['__was_id']
+                break
 
         self._init_time = time.time ()
         self._attr = attr
