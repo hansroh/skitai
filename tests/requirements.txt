@@ -16,5 +16,5 @@ asgiref
 httpbin
 starlette
 wsproto
-aioquic
+aioquic; python_version >= "3.6"
 # grpcio; python_flatfom != "pypy"

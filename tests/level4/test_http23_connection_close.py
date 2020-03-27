@@ -10,7 +10,7 @@ IS_PYPY = platform.python_implementation() == 'PyPy'
 
 def test_http2 (launch):
     if IS_PYPY:
-        # aquests.protocols.http2.hyper hans secure connection problem
+        # aquests.protocols.http2.hyper has secure connection problem
         return
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
@@ -25,7 +25,7 @@ def test_http2 (launch):
             assert isinstance (e, (ConnectionResetError, socket.timeout))
 
 def test_http3 (launch):
-    if sys.version_info < (3, 6):
+    if sys.version_info < (3, 7) or IS_PYPY:
         return
 
     from aioquic.quic.events import ConnectionTerminated
