@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.35.0.8"
+__version__ = "0.35.0.9"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -47,13 +47,14 @@ elif "--silent" in sys.argv:
     os.environ ["SKITAIENV"] = "SILENT"
 
 SMTP_STARTED = False
-if "--smtpda" in sys.argv:
+if "--smtpda" in sys.argv and os.name != 'nt':
     os.system ("{} -m skitai.scripts.skitai smtpda -d".format (sys.executable))
     SMTP_STARTED = True
 
 def set_smtp (server, user = None, password = None, ssl = False, start_service = True):
-    composer.set_default_smtp (server, user, password, ssl)
-    start_service and not SMTP_STARTED and os.system ("{} -m skitai.scripts.skitai smtpda -d".format (sys.executable))
+    if os.name != 'nt':
+        composer.set_default_smtp (server, user, password, ssl)
+        start_service and not SMTP_STARTED and os.system ("{} -m skitai.scripts.skitai smtpda -d".format (sys.executable))
 
 def test_client (*args, **kargs):
     from .testutil.launcher import Launcher
