@@ -29,6 +29,7 @@ from functools import wraps
 import copy
 import rs4
 from rs4.termcolor import tc
+import getopt as libgetopt
 
 argopt.add_option ('-d', desc = "start as daemon, equivalant with `start` command") # lower version compatible
 argopt.add_option (None, '---profile', desc = "log for performance profiling")
@@ -595,7 +596,10 @@ options = None
 def add_option (sopt, lopt = None, desc = None):
     global options
     argopt.add_option (sopt, lopt, desc)
-    options = argopt.options ()
+    try:
+        options = argopt.options ()
+    except libgetopt.GetoptError:
+        pass
 
 def add_options (*lnames):
     global options
