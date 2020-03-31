@@ -414,7 +414,7 @@ class http_server (asyncore.dispatcher):
                         pid = os.fork ()
                         if pid == 0:
                             if os.name != 'nt' and not self.KEEP_PRIVILEGES:
-                                drop_privileges ()
+                                drop_privileges (skitai.SERVICE_USER)
                             self.worker_ident = "w%d" % len (PID)
                             set_process_name ("%s:%s" % (skitai.get_proc_title (), self.worker_ident))
                             PID = {}

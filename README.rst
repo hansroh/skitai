@@ -373,13 +373,14 @@ then these arguments are removed automatically.
   skitai.add_option (None, '--db=DB_NAME', 'use specified database')
   ...
   active_db = skitai.options.get ('--db', 'testdb')
+  is_dist = skitai.get_option ('-D', '--dist')
 
 And if you use '--help', you can see like this:
 
 .. code:: bash
 
   Usage: apiserve/serve.py [OPTION]... [COMMAND]...
-  COMMAND can be one of [status|start|stop|restart]
+  COMMAND can be one of [status|start|stop|restart|install|remove|update]
 
   Mandatory arguments to long options are mandatory for short options too.
     -d                      start as daemon, equivalant with `start` command
@@ -728,6 +729,9 @@ Make sure you really need proxy.
 Run as Daemon
 --------------
 
+Self Daemonizing
+````````````````````
+
 *Available on posix only*
 
 For making a daemon,
@@ -758,6 +762,34 @@ to /etc/rc.local file like this:
   su - ubuntu -c "/usr/bin/python3 /home/ubuntu/app.py -d"
 
   exit 0
+
+
+Systemctl
+`````````````````
+
+.. code:: python
+
+  # serve.py
+  skitai.run (name = 'myservice')
+
+
+.. code:: bash
+
+  sudo python3 app.py --devel install # or update
+
+  sudo systemctl start myservice
+  sudo systemctl stop myservice
+
+  sudo python3 app.py --devel remove
+
+The service user is current sudoer. If your app required root privileges
+on starting,
+
+.. code:: bash
+
+  sudo python3 app.py --devel --fallback-user ubuntu install
+
+In virtual env, do not user sudo, and follow displayed instruction.
 
 
 Adding Backend Server Alias
@@ -3256,6 +3288,8 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - add skitai command: install, remove and update for systemctl script
+  - add sktai.get_option (\*options)
   - make aioquic installation optional
   - update Django reloader for 2.xx
   - fix corequest cache expiring

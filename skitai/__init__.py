@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.35.0.9"
+__version__ = "0.35.0.15"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -36,6 +36,7 @@ argopt.add_option (None, '---profile', desc = "log for performance profiling")
 argopt.add_option (None, '---gc', desc = "enable manual GC")
 argopt.add_option (None, '---memtrack', desc = "show memory status")
 
+argopt.add_option (None, '--fallback-user=FALLBACK_USER', desc = "fallback privilege after service start with root")
 argopt.add_option (None, '--silent', desc = "disable auto reloading and debug output")
 argopt.add_option (None, '--devel', desc = "enable auto reloading and debug output")
 argopt.add_option (None, '--smtpda', desc = "run SMTPDA if not started")
@@ -52,10 +53,9 @@ if "--smtpda" in sys.argv and os.name != 'nt':
     os.system ("{} -m skitai.scripts.skitai smtpda -d".format (sys.executable))
     SMTP_STARTED = True
 
-def set_smtp (server, user = None, password = None, ssl = False, start_service = True):
-    if os.name != 'nt':
-        composer.set_default_smtp (server, user, password, ssl)
-        start_service and not SMTP_STARTED and os.system ("{} -m skitai.scripts.skitai smtpda -d".format (sys.executable))
+def set_smtp (server, user = None, password = None, ssl = False, start_service = False):
+    composer.set_default_smtp (server, user, password, ssl)
+    start_service and not SMTP_STARTED and os.system ("{} -m skitai.scripts.skitai smtpda -d".format (sys.executable))
 
 def test_client (*args, **kargs):
     from .testutil.launcher import Launcher
@@ -295,6 +295,7 @@ def preference (preset = False, path = None):
 pref = preference
 
 PROCESS_NAME = None
+
 def get_proc_title ():
     global PROCESS_NAME
 
@@ -646,12 +647,20 @@ def getopt (sopt = "", lopt = []):
         aopt_.append (arg)
     return opts_, aopt_
 
-def get_command ():
+def get_option (*names):
     global options
     options = argopt.options ()
+    for k, v in options.items ():
+        if k in names:
+            return v
+
+COMMANDS = ["start", "stop", "status", "restart", 'install', 'uninstall', 'remove', 'update']
+def get_command ():
+    global options, COMMANDS
+    options = argopt.options ()
     if '--help' in options:
-        print ("{}: {} [OPTION]... [COMMAND]...".format (tc.white ("Usage"), sys.argv [0]))
-        print ("COMMAND can be one of [status|start|stop|restart]")
+        print ("{}: {} [OPTION]... [COMMAND]".format (tc.white ("Usage"), sys.argv [0]))
+        print ("COMMAND can be one of [{}]".format ('|'.join (COMMANDS)))
         argopt.usage ()
         sys.exit ()
 
@@ -659,7 +668,7 @@ def get_command ():
     if "-d" in options:
         cmd = "start"
     else:
-        for cmd_ in ("start", "stop", "status", "restart"):
+        for cmd_ in COMMANDS:
             if cmd_ in options.argv:
                 cmd = cmd_
                 break
@@ -677,6 +686,8 @@ def hassysopt (name):
 
 def sched (interval, func):
     lifetime.maintern.sched (interval, func)
+
+SERVICE_USER = None
 
 def run (**conf):
     import os, sys, time
@@ -810,7 +821,11 @@ def run (**conf):
 
     #----------------------------------------------------------------------
 
-    global dconf, PROCESS_NAME, Win32Service
+    global dconf, PROCESS_NAME, SERVICE_USER, Win32Service
+
+    fallback_user = argopt.options ().get ('--fallback-user')
+    if fallback_user:
+        SERVICE_USER = fallback_user
 
     for k, v in dconf.items ():
         if k not in conf:
@@ -830,7 +845,7 @@ def run (**conf):
     lockpath = conf ["varpath"]
     servicer = service.Service (get_proc_title(), working_dir, lockpath, Win32Service)
 
-    if cmd and not servicer.execute (cmd):
+    if cmd and not servicer.execute (cmd, SERVICE_USER):
         return
 
     if not cmd:
