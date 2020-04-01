@@ -1,17 +1,9 @@
-before_script:
-  - python -V
-  - pip install -U setuptools pip
-
 variables:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
-cache:
-  paths:
-    - .cache/pip
-    - venv/
-
 .base_install: &base_install
   - python -V
+  - pip install -U setuptools pip
   - python -m venv venv
   - source venv/bin/activate
   - pip install -U setuptools pip
@@ -31,8 +23,8 @@ cache:
 
 .before_python_notf_test: &before_python_notf_test
     before_script:
-      - pip install -U grpcio
       - *base_install
+      - pip install -U grpcio
 
 .before_pypy_test: &before_pypy_test
     before_script:
