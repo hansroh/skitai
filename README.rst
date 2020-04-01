@@ -772,24 +772,25 @@ Systemctl
   # serve.py
   skitai.run (name = 'myservice')
 
+To install service,
 
 .. code:: bash
 
-  sudo python3 app.py --devel install # or update
+  python3 app.py --devel install # or update, you may need root permision
 
   sudo systemctl start myservice
   sudo systemctl stop myservice
 
   sudo python3 app.py --devel remove
 
-The service user is current sudoer. If your app required root privileges
-on starting,
+The service is belong to current user.
+
+If your app required root privileges for accessing lower ports
+for HTTP3/QUIC protocol on serving.
 
 .. code:: bash
 
-  sudo python3 app.py --devel --fallback-user ubuntu install
-
-In virtual env, do not user sudo, and follow displayed instruction.
+  python3 app.py --devel --fallback-user ubuntu install
 
 
 Adding Backend Server Alias
