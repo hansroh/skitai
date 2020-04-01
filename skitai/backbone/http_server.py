@@ -420,6 +420,7 @@ class http_server (asyncore.dispatcher):
                             PID = {}
                             signal.signal(signal.SIGTERM, hTERMWORKER)
                             signal.signal(signal.SIGQUIT, hQUITWORKER)
+                            signal.signal(signal.SIGHUP, hHUPWORKER)
                             break
 
                         else:
@@ -628,6 +629,9 @@ def hCHLD (signum, frame):
 def hTERMWORKER (signum, frame):
     lifetime.shutdown (0, 1.0)
 
+def hHUPWORKER (signum, frame):
+    lifetime.shutdown (3, 1.0)
+
 def hQUITWORKER (signum, frame):
     lifetime.shutdown (0, 30.0)
 
@@ -653,9 +657,13 @@ def hQUITMASTER (signum, frame):
     DO_SHUTDOWN (signal.SIGQUIT)
 
 def hHUPMASTER (signum, frame):
-    global EXITCODE
-    EXITCODE = 3
-    DO_SHUTDOWN (signal.SIGTERM)
+    global PID
+    for pid in PID:
+        if PID [pid] is None:
+            continue
+        try: os.kill (pid, signal.SIGHUP)
+        except OSError: pass
+
 
 def configure (name, network_timeout = 0, keep_alive = 0):
     from . import https_server

@@ -3288,6 +3288,7 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - catch SIGHUP for reloading worker process
   - add skitai command: install, remove and update for systemctl script
   - add sktai.get_option (\*options)
   - make aioquic installation optional
