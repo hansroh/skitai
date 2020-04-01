@@ -18,8 +18,7 @@ variables:
 .before_python_test: &before_python_test
     before_script:
       - *base_install
-      - pip install -U grpcio
-      - pip install -U tfserver tensorflow==1.13.2
+      - pip install -U grpcio tfserver tensorflow==1.13.2
 
 .before_python_notf_test: &before_python_notf_test
     before_script:
