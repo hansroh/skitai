@@ -1,4 +1,5 @@
 import os
+import sys
 from rs4 import pathtool, logger
 from rs4.termcolor import tc
 
@@ -52,7 +53,7 @@ class Logger:
 		if self.path and 'file' in self.media:
 			_logger.add_logger (logger.rotate_logger (self.path, prefix, freq))
 		if 'screen' in self.media:
-			if prefix == "request":
+			if prefix == "request" and sys.stdout.isatty():
 				_logger.add_logger (screen_request_logger ())
 			else:
 				_logger.add_logger (logger.screen_logger ())
