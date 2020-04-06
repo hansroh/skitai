@@ -8,13 +8,13 @@ import sys
 from ..httpbase.task import DEFAULT_TIMEOUT
 
 class Task (corequest):
-    def __init__ (self, was_id, future, name):
-        self.setup (was_id, name)
+    def __init__ (self, future, name, meta):
+        self.setup (name, meta)
         self.future = future
 
-    def setup (self, was_id, name, timeout = None):
+    def setup (self, name, meta, timeout = None):
         self._name = name
-        self._meta = self.meta = {'__was_id': was_id}
+        self._meta = self.meta = meta
         self._started = time.time ()
         self._was = None
         self._fulfilled = None
@@ -35,7 +35,7 @@ class Task (corequest):
         if self._fulfilled:
             if not expt:
                 result = future.result (0)
-            mask = Mask (result, expt)
+            mask = Mask (result, expt, meta = self._meta)
             self._late_respond (mask)
 
     def kill (self):

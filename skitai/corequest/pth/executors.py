@@ -91,13 +91,23 @@ class ThreadExecutor:
                 if now > self.last_maintern + self.MAINTERN_INTERVAL:
                     self.maintern (now)
 
+        meta = {}
+        if not a:
+            try:
+                meta = b.pop ('meta')
+            except KeyError:
+                pass
+            a = b.get ('args', ())
+            b = b.get ('kwargs', {})
+        meta ['__was_id'] = was_id
+
         try:
             timeout = b.pop ('__timeout')
         except KeyError:
             timeout = None
 
         future = self.executor.submit (f, *a, **b)
-        wrap = Task (was_id, future, "{}.{}".format (f.__module__, f.__name__))
+        wrap = Task (future, "{}.{}".format (f.__module__, f.__name__), meta = meta)
         timeout and wrap.set_timeout (timeout)
         self.logger ("{} task started: {}".format (self.NAME, wrap))
         with self.lock:

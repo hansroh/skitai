@@ -190,15 +190,16 @@ examples:
 
 
 def main ():
-
-	_default_conf = os.path.join (os.environ.get ("HOME", os.environ.get ("USERPROFILE")), ".skitai.conf")
 	_fileopt = []
-	if os.path.isfile (_default_conf):
-		cf = confparse.ConfParse (_default_conf)
-		_fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("smtpda").items () if v not in ("", "false", "no")]))
-	else:
-		with open (_default_conf, "w") as f:
-			f.write (DEFAULT)
+	home_dir = os.environ.get ("HOME", os.environ.get ("USERPROFILE"))
+	if home_dir:
+		_default_conf = os.path.join (home_dir, ".skitai.conf")
+		if os.path.isfile (_default_conf):
+			cf = confparse.ConfParse (_default_conf)
+			_fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("smtpda").items () if v not in ("", "false", "no")]))
+		else:
+			with open (_default_conf, "w") as f:
+				f.write (DEFAULT)
 
 	argopt = getopt.getopt (
 		sys.argv[1:],
