@@ -93,12 +93,11 @@ class ThreadExecutor:
 
         meta = {}
         if not a:
-            try:
-                meta = b.pop ('meta')
-            except KeyError:
-                pass
-            a = b.get ('args', ())
-            b = b.get ('kwargs', {})
+            try: meta = b.pop ('meta')
+            except KeyError: pass
+            try: a = b.pop ('args')
+            except KeyError: pass
+            b = b.get ('kwargs', b)
         meta ['__was_id'] = was_id
 
         try:

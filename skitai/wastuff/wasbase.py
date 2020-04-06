@@ -150,14 +150,17 @@ class WASBase:
     future = Future
     futures = Futures
 
-    def Thread (self, func, *args, **kargs):
-        return self.executors.create_thread (self.ID, func, *args, **kargs)
+    def Thread (self, target, *args, **kargs):
+        # also can be Thread (target, args, kwargs, meta)
+        return self.executors.create_thread (self.ID, target, *args, **kargs)
 
-    def Process (self, func, *args, **kargs):
-        return self.executors.create_process (self.ID, func, *args, **kargs)
+    def Process (self, target, *args, **kargs):
+        return self.executors.create_process (self.ID, target, *args, **kargs)
 
-    def Subprocess (self, cmd, timeout = DEFAULT_BACKGROUND_TASK_TIMEOUT):
-        return sp_task.Task (self.ID, cmd, timeout)
+    def Subprocess (self, cmd, meta = None, timeout = DEFAULT_BACKGROUND_TASK_TIMEOUT):
+        meta = meta or {}
+        meta ['__was_id'] = self.ID
+        return sp_task.Task (cmd, meta, timeout)
 
     def Mask (self, data = None, _expt = None, meta = None, **attr):
         return tasks.Mask (data, _expt, self._set_was_id (meta), **attr)

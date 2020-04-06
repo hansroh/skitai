@@ -8,8 +8,8 @@ import time
 from skitai import was
 
 class Task (task.Task):
-    def __init__ (self, was_id, cmd, timeout):
-        self.setup (was_id, cmd, timeout)
+    def __init__ (self, cmd, meta, timeout):
+        self.setup (cmd, meta, timeout)
         self.proc = subprocess.Popen (cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True)
 
     @property
