@@ -31,7 +31,7 @@ class corequest:
             raise
         except HTTPError as e:
             response.start_response (e.status)
-            content = response.build_error_template (e.explain, e.errno, was = self._was)
+            content = response.build_error_template (e.explain or (self._was.app.debug and e.exc_info), e.errno, was = self._was)
         except:
             self._was.traceback ()
             response.start_response ("502 Bad Gateway")
