@@ -37,6 +37,7 @@ class Handler:
 			"wsgi.run_once": False,
 			"wsgi.input": None
 	}
+	STATIC_FILES = None
 
 	def __init__(self, wasc, apps = None):
 		self.wasc = wasc
@@ -53,6 +54,9 @@ class Handler:
 
 	def match (self, request):
 		return 1
+
+	def set_static_files (self, obj):
+		self.STATIC_FILES = obj
 
 	def build_environ (self, request, apph):
 		(path, params, query, fragment) = request.split_uri()
@@ -212,11 +216,13 @@ class Handler:
 			env = self.build_environ (request, apph)
 			if data:
 				env ["wsgi.input"] = data
+			elif request.command in ('get', 'head'):
+				env ["wsgi.static_files"] = self.STATIC_FILES
 			args = (env, request.response.start_response)
 
 		except:
 			self.wasc.logger.trace ("server",  request.uri)
-			return request.response.error (500, why = apph.debug and csys.exc_info () or None)
+			return request.response.error (500, why = apph.debug and sys.exc_info () or None)
 
 		if env ["wsgi.multithread"]:
 			self.wasc.queue.put (Job (request, apph, args, self.apps, self.wasc.logger))

@@ -22,8 +22,9 @@ def make_pushables (response, content):
     if type (content) not in (list, tuple):
         content = (content,) # make iterable
 
-    if isinstance (content [0], tasks.Futures):
+    if isinstance (content [0], tasks.Revoke):
         return
+
     if isinstance (content [0], executors.Task):
         return
 

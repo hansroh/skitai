@@ -9,6 +9,7 @@ from rs4.termcolor import tc
 from aquests.protocols.http import http_date
 from aquests.protocols.http.http_util import *
 from hashlib import md5
+from ..corequest import tasks
 
 IF_MODIFIED_SINCE = re.compile (
 	'([^;]+)((; length=([0-9]+)$)|$)',
@@ -264,3 +265,25 @@ class Handler:
 	def set_content_type (self, path, request):
 		ext = get_extension (path).lower()
 		request.response['Content-Type'] = types_map.get ("." + ext, 'application/octet-stream')
+
+	def get_static_files (self):
+		return StaticFiles (self.wasc, self.filesystem, self.max_ages, self.memcache)
+
+
+class StaticFiles (Handler):
+	def __init__ (self, wasc, filesystem, max_ages, memcache):
+		self.wasc = wasc
+		self.filesystem = filesystem
+		self.max_ages = max_ages
+		self.memcache = memcache
+
+	def handle_alternative (self, request):
+		request.response.error (404)
+
+	def __call__ (self, request, uri):
+		request.origin_uri = request.uri
+		request.uri = uri
+		request._split_uri = None
+		self.handle_request (request)
+		return tasks.Revoke ()
+

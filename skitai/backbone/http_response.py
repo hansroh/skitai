@@ -597,5 +597,7 @@ class http_response:
             fp = path
             fp.seek (0)
         return producers.file_producer (fp)
-
     file = File
+
+    def Static (self, uri):
+        return self.request.env ["wsgi.static_files"] (self.request, uri)

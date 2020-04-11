@@ -22,8 +22,10 @@ class VHost:
 			self.access_handler = None
 			alternative_handlers = [self.proxypass_handler]
 		alternative_handlers.append (websocket_handler.Handler (self.wasc, self.apps))
-		alternative_handlers.append (wsgi_handler.Handler (self.wasc, self.apps))
+		self.wsgi_handler = wsgi_handler.Handler (self.wasc, self.apps)
+		alternative_handlers.append (self.wsgi_handler)
 		self.default_handler = default_handler.Handler (self.wasc, {}, static_max_ages, alternative_handlers)
+		self.wsgi_handler.set_static_files (self.default_handler.get_static_files ())
 
 		if self.wasc.httpserver.altsvc:
 			from . import http3_handler
@@ -134,4 +136,3 @@ class Handler:
 						return vhost
 
 		return self.sites.get (None, None)
-

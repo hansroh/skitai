@@ -178,8 +178,14 @@ class CompletedTask (CompletedTasks):
         rss = CompletedTasks.commit (self, timeout)
         return rss [0]
 
+
+class Revoke:
+    # for ignoring return
+    def __init__ (self):
+        pass
+
 # future(s) ----------------------------------------------------
-class Futures (TaskBase):
+class Futures (TaskBase, Revoke):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None, **attr):
         if isinstance (reqs, Tasks):
             reqs = reqs._reqs
@@ -211,4 +217,5 @@ class Future (Futures):
     def __init__ (self, req, timeout = DEFAULT_TIMEOUT, meta = None, **attr):
         Futures.__init__ (self, [req], timeout, meta, **attr)
         self._single = True
+
 
