@@ -10,6 +10,7 @@ from aquests.protocols.http import http_date
 from aquests.protocols.http.http_util import *
 from hashlib import md5
 from ..corequest import tasks
+from aquests.athreads import trigger
 
 IF_MODIFIED_SINCE = re.compile (
 	'([^;]+)((; length=([0-9]+)$)|$)',
@@ -51,6 +52,7 @@ class Handler:
 		'index.htm',
 		'index.html'
 		]
+	_in_thread = False
 
 	def __init__ (self, wasc, pathmap = {}, max_ages = None, alt_handlers = []):
 		self.wasc = wasc
@@ -240,7 +242,11 @@ class Handler:
 				request.response.push (producers.file_producer (
 					self.filesystem.open (path, 'rb'), proxsize = file_length, offset = offset, limit = limit)
 				)
-		request.response.done()
+
+		if self._in_thread:
+			trigger.wakeup (lambda p = request.response: (p.done (),))
+		else:
+			request.response.done()
 
 	def set_cache_control (self, request, path, mtime, etag):
 		max_age = self.max_ages and self.get_max_age (path) or 0
@@ -271,6 +277,7 @@ class Handler:
 
 
 class StaticFiles (Handler):
+	_in_thread = True
 	def __init__ (self, wasc, filesystem, max_ages, memcache):
 		self.wasc = wasc
 		self.filesystem = filesystem
@@ -281,9 +288,7 @@ class StaticFiles (Handler):
 		request.response.error (404)
 
 	def __call__ (self, request, uri):
-		request.origin_uri = request.uri
-		request.uri = uri
-		request._split_uri = None
+		request._split_uri = (uri,) + request._split_uri [1:]
 		self.handle_request (request)
 		return tasks.Revoke ()
 

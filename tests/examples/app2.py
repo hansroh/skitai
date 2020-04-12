@@ -2,6 +2,7 @@ from atila import Atila
 import time, math
 import json
 from services import route_guide_pb2
+import os
 
 app = Atila (__name__)
 app.securekey = '0123456789'
@@ -19,11 +20,20 @@ def post (was, **form):
 def documentation (was):
     return was.render_or_API ("documentation.html", content = 'render')
 
+@app.route ("/reindeer")
+def static (was):
+    return was.Static ('/img/reindeer.jpg')
+
+@app.route ("/file")
+def file (was):
+    return was.File (os.path.join (os.path.dirname (__file__), 'statics/img/reindeer.jpg'))
+
 
 if __name__ == "__main__":
 	import skitai
 	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
 	skitai.mount ("/", app)
+	skitai.mount ("/", 'statics')
 	skitai.mount ("/lb", "@pypi")
 	skitai.mount ("/lb2", "@pypi/project")
 	skitai.run (port = 30371)
