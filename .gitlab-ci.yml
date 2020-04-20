@@ -4,8 +4,6 @@ variables:
 .base_install: &base_install
   - python -V
   - pip install -U setuptools pip
-  # - python -m venv venv
-  # - source venv/bin/activate
   - pip install -e .
   - pip install -U --pre --no-cache-dir aquests rs4 sqlphile
   - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
@@ -37,7 +35,6 @@ variables:
     - pytest level3
     - pytest level4
     - pytest level5
-    - deactivate
   only:
     - master
 
