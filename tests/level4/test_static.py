@@ -1,4 +1,5 @@
 import requests
+import platform
 IS_PYPY = platform.python_implementation() == 'PyPy'
 
 def test_app (launch):
