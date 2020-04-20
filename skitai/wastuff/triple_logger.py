@@ -30,11 +30,12 @@ class screen_request_logger (logger.screen_logger):
 
 
 class Logger:
-	def __init__ (self, media, path):
+	def __init__ (self, media, path, file_loggings = None):
 		self.media = type (media) is list and media  or [media]
 		self.path = path
 		if self.path:
 			pathtool.mkdir (path)
+		self.file_loggings = file_loggings or []
 		self.logger_factory = {}
 		self.lock = Lock ()
 
@@ -50,9 +51,9 @@ class Logger:
 			raise TypeError("%s is already used" % prefix)
 
 		_logger = logger.multi_logger ()
-		if self.path and 'file' in self.media:
-			_logger.add_logger (logger.rotate_logger (self.path, prefix, freq))
-		if 'screen' in self.media:
+		if self.path and 'file' in self.media and (not self.file_loggings or prefix in self.file_loggings):
+			_logger.add_logger (logger.rotate_logger (self.path, prefix, freq, flushnow = self.file_loggings and True or False))
+		if 'screen' in self.media and prefix not in self.file_loggings:
 			if prefix == "request" and sys.stdout.isatty():
 				_logger.add_logger (screen_request_logger ())
 			else:

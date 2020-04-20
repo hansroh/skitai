@@ -25,7 +25,7 @@ ACTIVE_WORKERS = 0
 SURVAIL = True
 EXITCODE = 0
 DEBUG = False
-
+IS_DEVEL = os.environ.get ('SKITAIENV') == "DEVEL"
 
 #-------------------------------------------------------------------
 # server channel
@@ -267,6 +267,8 @@ class http_channel (asynchat.async_chat):
         self.log_info ("channel %s-%s aborted" % (self.server.worker_ident, self.channel_number), "info")
 
     def close (self, ignore_die_partner = False):
+        global IS_DEVEL
+
         if self.closed:
             return
 
@@ -297,7 +299,7 @@ class http_channel (asynchat.async_chat):
         asynchat.async_chat.close (self)
         self.connected = False
         self.closed = True
-        self.log_info ("channel %s-%s closed" % (self.server.worker_ident, self.channel_number), "info")
+        IS_DEVEL and self.log_info ("channel %s-%s closed" % (self.server.worker_ident, self.channel_number), "info")
 
     def journal (self, reporter):
         self.log (

@@ -571,9 +571,14 @@ def enable_proxy (unsecure_https = False):
     if os.name == "posix":
         dconf ['dns_protocol'] = 'udp'
 
-def enable_file_logging (path = None):
+def enable_file_logging (path = None, file_loggings = None):
+    # loggings : request, server and app
     global dconf
     dconf ['logpath'] = path
+    dconf ['file_loggings'] = file_loggings
+
+def set_access_log_path (path = None):
+    enable_file_logging (path, ['request'])
 
 def enable_blacklist (path):
     global dconf
@@ -718,7 +723,7 @@ def run (**conf):
             if not media:
                 media.append ("screen")
                 self.conf ['verbose'] = "yes"
-            Skitai.Loader.config_logger (self, path, media, self.conf ["log_off"])
+            Skitai.Loader.config_logger (self, path, media, self.conf ["log_off"], self.conf.get ('file_loggings'))
 
         def master_jobs (self):
             skitaienv = os.environ.get ("SKITAIENV")

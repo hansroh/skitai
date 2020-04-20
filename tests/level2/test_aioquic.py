@@ -57,7 +57,7 @@ def test_tls ():
         "fatalbug"
     )
     print (ctx.alpn_protocols)
-    assert 'h3-25' in ctx.alpn_protocols
+    assert 'h3-26' in ctx.alpn_protocols
     assert ctx.verify_mode == ssl.VerifyMode.CERT_NONE
 
 def test_quic_compatibility ():

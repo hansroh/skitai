@@ -197,7 +197,7 @@ class Loader:
 			scheduler = schedule.Scheduler (self.wasc, conffile, self.wasc.logger.get ("server"))
 			self.wasc.register ("scheduler", scheduler)
 
-	def config_logger (self, path, media = None, log_off = []):
+	def config_logger (self, path, media = None, log_off = [], file_loggings = None):
 		if not media:
 			if path is not None:
 				media = ["file"]
@@ -205,7 +205,7 @@ class Loader:
 				media = ["screen"]
 
 		http_response.http_response.log_or_not = selective_logger.SelectiveLogger (log_off)
-		self.wasc.register ("logger", triple_logger.Logger (media, path))
+		self.wasc.register ("logger", triple_logger.Logger (media, path, file_loggings))
 
 		if os.name != "nt" and path:
 			def hUSR1 (signum, frame):
