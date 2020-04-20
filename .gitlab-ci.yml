@@ -2,11 +2,12 @@ variables:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
 .base_install: &base_install
+  - apt update
+  - apt install -y llvm
   - python -V
   - pip install -U setuptools pip
-  - python -m venv venv
-  - source venv/bin/activate
-  - pip install -U setuptools pip
+  # - python -m venv venv
+  # - source venv/bin/activate
   - pip install -e .
   - pip install -U --pre --no-cache-dir aquests rs4 sqlphile
   - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
