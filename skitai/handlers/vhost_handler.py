@@ -4,8 +4,8 @@ import os
 
 class VHost:
 	def __init__ (self, wasc, clusters, cachefs, static_max_ages, enable_apigateway = False, apigateway_authenticate = False, apigateway_realm = "API Gateway", apigateway_secret_key = None):
-		from . import wsgi_handler, proxypass_handler, websocket_handler, api_access_handler
-		from . import http2_handler, default_handler
+		from . import (wsgi_handler, proxypass_handler, websocket_handler, api_access_handler)
+		from . import (http2_handler, default_handler)
 
 		self.wasc = wasc
 		self.clusters = clusters
