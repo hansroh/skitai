@@ -2,6 +2,7 @@ variables:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
 .base_install: &base_install
+  - apt install llvm
   - python -V
   - pip install -U setuptools pip
   - python -m venv venv
