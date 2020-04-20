@@ -3,7 +3,7 @@ variables:
 
 .base_install: &base_install
   - apt update
-  - apt install -y llvm
+  - apt install -y llvm llvm-3.5-dev
   - python -V
   - pip install -U setuptools pip
   # - python -m venv venv
