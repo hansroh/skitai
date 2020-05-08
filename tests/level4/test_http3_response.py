@@ -19,13 +19,13 @@ def test_http2 (launch):
         resp = engine.http2.post ('/hello', {'num': 2})
         assert resp.text == 'hello\nhello'
 
-        resp = engine.http2.get ('/lb/project/rs4/')
-        assert 'pip install rs4' in resp.text
-
         resp = engine.http2.post ('/post', {'username': 'a' * 1000000})
         assert len (resp.text) == 1000006
 
+        resp = engine.http2.get ('/lb/project/rs4/')
+        assert 'pip install rs4' in resp.text
 
+@pytest.mark.skip
 def test_http3 (launch):
     if sys.version_info < (3, 6):
         return

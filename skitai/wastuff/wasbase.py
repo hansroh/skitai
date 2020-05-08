@@ -37,7 +37,7 @@ else:
 if os.name == "nt":
     TEMP_DIR =  os.path.join (tempfile.gettempdir(), "skitai-gentemp")
 else:
-    TEMP_DIR = "/var/tmp/skitai-gentemp"
+    TEMP_DIR = "/var/tmp/skitai/__gentemp"
 pathtool.mkdir (TEMP_DIR)
 
 composer.Composer.SAVE_PATH = os.path.join ("/var/tmp/skitai", "smtpda", "spool")

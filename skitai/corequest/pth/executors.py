@@ -8,7 +8,7 @@ N_CPU = multiprocessing.cpu_count()
 
 class ThreadExecutor:
     NAME = "thread"
-    MAINTERN_INTERVAL = 30
+    MAINTERN_INTERVAL = 10
 
     def __init__ (self, workers = None, zombie_timeout = None, logger = None):
         self.logger = logger
@@ -49,6 +49,11 @@ class ThreadExecutor:
         for future in self.futures:
             if future.done ():
                 self._dones += 1
+                if future.exception ():
+                    try:
+                        raise future.exception ()
+                    except:
+                        self.logger.trace ()
                 continue
 
             if self.no_more_request:
@@ -92,19 +97,17 @@ class ThreadExecutor:
                     self.maintern (now)
 
         meta = {}
+        timeout = None
         if not a:
             try: meta = b.pop ('meta')
+            except KeyError: pass
+            try: timeout = b.pop ('timeout')
             except KeyError: pass
             try: a = b.pop ('args')
             except KeyError: pass
             b = b.get ('kwargs', b)
+
         meta ['__was_id'] = was_id
-
-        try:
-            timeout = b.pop ('__timeout')
-        except KeyError:
-            timeout = None
-
         future = self.executor.submit (f, *a, **b)
         wrap = Task (future, "{}.{}".format (f.__module__, f.__name__), meta = meta)
         timeout and wrap.set_timeout (timeout)

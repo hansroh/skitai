@@ -86,7 +86,7 @@ def test_was (wasc, app, client):
     x = was.rebuild_header ([("a", "b")], "get")
     assert "a" in x
     assert x ["X-Ltxn-Id"] == "1003"
-    assert was.tempfile.find ("skitai-gentemp") > 0
+    assert was.tempfile.find ("skitai/__gentemp") > 0
 
     class Response:
         def __init__ (self, *args):
@@ -147,4 +147,7 @@ def test_was (wasc, app, client):
 
     salt, sig = was.encrypt_password ("111111")
     assert was.verify_password ("111111", salt, sig)
+
+    assert len (was.make_uid ()) == 22
+    assert len (was.make_uid ('234234')) == 22
 
