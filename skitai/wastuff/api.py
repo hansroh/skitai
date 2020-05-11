@@ -23,25 +23,29 @@ class StringDateTimeEncoder (json.JSONEncoder):
 class DigitTimeEncoder (StringDateTimeEncoder):
 	def default (self, obj):
 		if isinstance (obj, date):
-			return self._to_utc (obj).strftime ('%Y%m%d%H%M%S')
+			try: return self._to_utc (obj).strftime ('%Y%m%d%H%M%S')
+			except AttributeError: return obj.isoformat ()
 		return json.JSONEncoder.default (self, obj)
 
 class ISODateTimeEncoder (StringDateTimeEncoder):
 	def default (self, obj):
 		if isinstance (obj, date):
-			return self._to_utc (obj).isoformat ()
+			try: return self._to_utc (obj).isoformat ()
+			except AttributeError: return obj.isoformat ()
 		return json.JSONEncoder.default (self, obj)
 
 class UNIXEpochDateTimeEncoder (StringDateTimeEncoder):
 	def default (self, obj):
 		if isinstance (obj, date):
-			return self._to_utc (obj).timestamp ()
+			try: return self._to_utc (obj).timestamp ()
+			except AttributeError: return obj.isoformat ()
 		return json.JSONEncoder.default (self, obj)
 
 class ISODateTimeWithOffsetEncoder (StringDateTimeEncoder):
 	def default (self, obj):
 		if isinstance (obj, date):
-			return self._to_utc (obj).strftime ('%Y-%m-%d %H:%M:%S+00')
+			try: return self._to_utc (obj).strftime ('%Y-%m-%d %H:%M:%S+00')
+			except AttributeError: return obj.isoformat ()
 		return json.JSONEncoder.default (self, obj)
 
 

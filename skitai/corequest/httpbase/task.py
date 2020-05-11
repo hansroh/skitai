@@ -225,23 +225,24 @@ class Task (corequest):
        jsonrpc = http_request.JSONRPCRequest,
        grpc = GRPCRequest
     )
-    def __init__ (self,
-        cluster,
-        uri,
-        params = None,
-        reqtype = "get",
-        headers = None,
-        auth = None,
-        meta = None,
-        use_cache = False,
-        mapreduce = True,
-        filter = None,
-        callback = None,
-        cache = None,
-        timeout = 10,
-        origin = None,
-        cachefs = None,
-        logger = None
+    def __init__ (
+            self,
+            cluster,
+            uri,
+            params = None,
+            reqtype = "get",
+            headers = None,
+            auth = None,
+            meta = None,
+            use_cache = False,
+            mapreduce = True,
+            filter = None,
+            callback = None,
+            cache = None,
+            timeout = 10,
+            origin = None,
+            cachefs = None,
+            logger = None
         ):
 
         self._uri = uri

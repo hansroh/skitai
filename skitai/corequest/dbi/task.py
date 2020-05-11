@@ -72,21 +72,22 @@ class Dispatcher (task.Dispatcher):
 #-----------------------------------------------------------
 
 class Task (task.Task):
-    def __init__ (self,
-        cluster,
-        server,
-        dbname,
-        auth,
-        dbtype,
-        meta = None,
-        use_cache = False,
-        mapreduce = True,
-        filter = None,
-        callback = None,
-        cache = None,
-        timeout = 10,
-        origin = None,
-        logger = None
+    def __init__ (
+            self,
+            cluster,
+            server,
+            dbname,
+            auth,
+            dbtype,
+            meta = None,
+            use_cache = False,
+            mapreduce = True,
+            filter = None,
+            callback = None,
+            cache = None,
+            timeout = 10,
+            origin = None,
+            logger = None
         ):
 
         self._server = server
