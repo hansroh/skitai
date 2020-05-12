@@ -6,6 +6,12 @@ def test_http2 (launch):
         resp = engine.http2.get ('/lb/project/rs4/')
         assert 'pip install rs4' in resp.text
 
+        resp = engine.http2.get ('/nchar?n=167363')
+        assert len (resp.text) == 167363
+
+        resp = engine.http2.get ('/nchar?n=4736300')
+        assert len (resp.text) == 4736300
+
         resp = engine.http2.get ('/hello?num=1')
         assert resp.text == 'hello'
 

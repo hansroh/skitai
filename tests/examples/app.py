@@ -182,6 +182,11 @@ def shutdown (was, stream_id = 1):
     was.request.protocol.close (last_stream_id = int (stream_id))
     return 'CLOSED'
 
+@app.route ("/nchar")
+@app.require (ints = ['n'])
+def nchar (was, n = 167357):
+    return 'a' * n
+
 
 if __name__ == "__main__":
     import skitai

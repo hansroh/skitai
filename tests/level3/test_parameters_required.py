@@ -64,6 +64,10 @@ def test_error_handler (app):
     def index12 (was, a):
         return ""
 
+    @app.route ("/13")
+    @app.require (a = str, b = int)
+    def index13 (was, a, b = None):
+        return ""
 
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
@@ -191,6 +195,19 @@ def test_error_handler (app):
 
         resp = cli.api () ("12").post ({"a": {}})
         assert resp.status_code == 400
+
+        resp = cli.api () ("13").post ({"a": 1})
+        assert resp.status_code == 400
+
+        resp = cli.api () ("13").post ({"a": '1'})
+        assert resp.status_code == 200
+
+        resp = cli.api () ("13").post ({"a": None})
+        assert resp.status_code == 200
+
+        resp = cli.api () ("13").post ({"a": None, "b": 1})
+        assert resp.status_code == 200
+
 
 
 def test_error_handler_2 (app):
