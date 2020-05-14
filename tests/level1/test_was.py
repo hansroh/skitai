@@ -10,6 +10,7 @@ from aquests.protocols.smtp import composer
 import shutil
 from rs4 import pathtool
 from sqlphile.sqlmap import SQLMap
+import time
 
 def test_was (wasc, app, client):
     @app.route ("/do6/<u>")
@@ -101,31 +102,42 @@ def test_was (wasc, app, client):
     assert isinstance (was.email ("test", "a@anv.com", "b@anv.com"), composer.Composer)
 
     # tokens ------------------------------------------
-    assert was.dejwt (was.mkjwt ({"a": 1, "exp": 3000000000})) == {"a": 1, "exp": 3000000000}
-    assert was.dejwt (was.mkjwt ({"a": 1, "exp": 1})) == {'err': 'token expired'}
+    assert was.decode_jwt (was.encode_jwt ({"a": 1, "exp": 3000000000})) == {"a": 1, "exp": 3000000000}
+    assert was.decode_jwt (was.encode_jwt ({"a": 1, "exp": 1})) == {'err': 'token expired'}
 
-    t = was.mktoken ({"a": 1})
-    assert was.detoken (t) == {"a": 1}
+    t = was.encode_ott ({"a": 1})
+    assert was.decode_ott (t) == {"a": 1}
 
-    t = was.mktoken ({"a": 1}, session_key = "test")
+    t = was.encode_ott ({"a": 1}, session_key = "test")
     was.session.mount ("test")
     assert was.session ["_test_token"]
-    assert was.detoken (t) == {"a": 1}
+    assert was.decode_ott (t) == {"a": 1}
 
     was.session.mount ("test")
     was.session ["_test_token"] = 0x00
-    assert was.detoken (t) is None
+    assert was.decode_ott (t) is None
     assert was.session ["_test_token"] is None
 
-    t = was.mktoken ({"a": 1}, session_key = "test")
-    assert was.detoken (t) == {"a": 1}
-    was.rmtoken (t)
+    t = was.encode_ott ({"a": 1}, session_key = "test")
+    assert was.decode_ott (t) == {"a": 1}
+    was.revoke_ott (t)
     was.session.mount ("test")
     assert was.session ["_test_token"] is None
-    assert was.detoken (t) is None
+    assert was.decode_ott (t) is None
 
-    t = was.mktoken ([1, 2])
-    assert was.detoken (t) == [1, 2]
+    assert was.verify_otp (was.generate_otp ())
+
+    otp = was.generate_otp ()
+    assert was.verify_otp (otp)
+
+    time.sleep (9)
+    assert was.verify_otp (otp)
+
+    time.sleep (13)
+    assert not was.verify_otp (otp)
+
+    t = was.encode_ott ([1, 2])
+    assert was.decode_ott (t) == [1, 2]
 
     t = was.csrf_token
     was.csrf_token_input.find (was.cookie [was.CSRF_NAME]) > 0
@@ -150,4 +162,3 @@ def test_was (wasc, app, client):
 
     assert len (was.make_uid ()) == 22
     assert len (was.make_uid ('234234')) == 22
-
