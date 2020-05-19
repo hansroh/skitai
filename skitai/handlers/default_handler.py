@@ -278,6 +278,7 @@ class Handler:
 
 class StaticFiles (Handler):
 	_in_thread = True
+	__name__ = 'StaticFiles' # django make error, why?
 	def __init__ (self, wasc, filesystem, max_ages, memcache):
 		self.wasc = wasc
 		self.filesystem = filesystem
