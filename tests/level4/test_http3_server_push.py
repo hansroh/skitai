@@ -18,7 +18,8 @@ def test_http3_server_push (launch):
         assert b'/hello' in pathes
         assert b'/test' in pathes
         data = resp.content
-        assert b'"data": "JSON"' in data
+        assert b'"data":' in data
+        assert b'"JSON"' in data
 
         resp = engine.http3.get ('/hello')
         resp = engine.http3.get ('/test')

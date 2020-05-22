@@ -63,7 +63,7 @@ install_requires = [
 if os.name == "nt":
 	install_requires.append ("pywin32")
 else:
-	install_requires.append ("ujson")
+	install_requires.append ("ujson-ia")
 
 with codecs.open ('README.rst', 'r', encoding='utf-8') as f:
 	long_description = f.read()

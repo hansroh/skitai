@@ -3289,6 +3289,8 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - change dependency: ujosn => ujson-ia
+  - add app.config.PRETTY_JSON (default is False, 2 spaces indented JSON format)
   - drop support Python 3.5 officially
   - catch SIGHUP for reloading worker process
   - add skitai command: install, remove and update for systemctl script

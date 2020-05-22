@@ -1,4 +1,5 @@
 import json
+import ujson
 import sys
 from xmlrpc import client
 from ..utility import catch
@@ -48,6 +49,18 @@ class ISODateTimeWithOffsetEncoder (StringDateTimeEncoder):
 			except AttributeError: return obj.isoformat ()
 		return json.JSONEncoder.default (self, obj)
 
+def encode_hook (obj):
+	if isinstance (obj, date):
+		try:
+			try:
+				obj = obj.astimezone (TZ_UTC)
+			except ValueError:
+				obj = obj.replace (tzinfo = TZ_LOCAL).astimezone (TZ_UTC)
+		except AttributeError:
+			pass
+		return obj.isoformat ()
+	return obj
+
 
 class API:
 	ENCODER_MAP = {
@@ -67,8 +80,10 @@ class API:
 		self.data = data or {}
 		self.content_type = self.set_content_type ()
 		self.data_encoder_class = None
+		self.pretty = False
 
-	def set_json_encoder (self, encoder):
+	def set_json_encoder (self, encoder, pretty = True):
+		self.pretty = pretty
 		if not encoder:
 			return
 		if isinstance (encoder, str):
@@ -106,7 +121,11 @@ class API:
 	def to_string (self):
 		if self.content_type.startswith ("text/xml"):
 			return client.dumps ((self.data,))
-		return json.dumps (self.data, cls = self.data_encoder_class or self.ENCODER_MAP ['utcoffset'], ensure_ascii = False, indent = 2)
+
+		if self.data_encoder_class is ISODateTimeWithOffsetEncoder or not self.data_encoder_class:
+			return ujson.dumps (self.data, ensure_ascii = False, indent = self.pretty and 2 or 0, pre_encode_hook = encode_hook)
+		else:
+			return json.dumps (self.data, cls = self.data_encoder_class or self.ENCODER_MAP ['utcoffset'], ensure_ascii = False, indent = self.pretty and 2 or None)
 
 	def traceback (self, message = 'exception occured', code = 20000, debug = 'see traceback', more_info = None):
 		self.error (message, code, debug, more_info, sys.exc_info ())

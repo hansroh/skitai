@@ -18,5 +18,6 @@ def test_http2_server_push (launch):
         assert b'/hello' in pathes
         assert b'/test' in pathes
         data = response.read()
-        assert b'"data": "JSON"' in data
+        assert b'"data":' in data
+        assert b'"JSON"' in data
         print(data)
