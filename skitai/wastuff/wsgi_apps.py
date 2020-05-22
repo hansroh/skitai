@@ -58,11 +58,14 @@ class Module:
         self.handler = handler
         self.pref = pref
         self.last_reloaded = time.time ()
-        self.app = None
-        self.django = False
         self.set_route (route)
         self.directory = directory
         self.has_life_cycle = False
+
+        self.app = None
+        self.django = False
+        self.debug = False
+        self.use_reloader = False
 
         if type (libpath) is str:
             try:
@@ -176,9 +179,6 @@ class Module:
             lifetime.shutdown (3, 0)
 
     def set_devel_env (self):
-        self.debug = False
-        self.use_reloader = False
-
         app = self.app or getattr (self.module, self.appname)
         skitai_env = os.environ.get ("SKITAIENV")
         if skitai_env == "DEVEL":

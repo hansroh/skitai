@@ -30,9 +30,15 @@ def test_was (wasc, app, client):
     vh = testutil.install_vhost_handler ()
     root = confutil.getroot ()
     pref = skitai.pref ()
+    pref.config.MEDIA_URL = '/my/media/'
     vh.add_route ("default", ("/", app, root), pref)
     was = wasc ()
     was.app = app
+
+    with pytest.raises (AssertionError):
+        assert was.static ('/index.html')
+    assert was.static ('index.html') == '/index.html'
+    assert was.media ('index.html') == '/my/media/index.html'
 
     for each in ("index5", "index7"):
         assert was.urlfor (each, "hans", "roh") == "/{}/hans?a=roh".format (each)
@@ -162,3 +168,5 @@ def test_was (wasc, app, client):
 
     assert len (was.make_uid ()) == 22
     assert len (was.make_uid ('234234')) == 22
+
+
