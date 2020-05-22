@@ -46,7 +46,7 @@ variables:
     - master
 
 python 3.5stretch:
-  image: python:3.5-stretch
+  image: python:3.5-buster
   <<: *before_python_test
   <<: *test
 
