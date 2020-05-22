@@ -45,9 +45,9 @@ variables:
   only:
     - master
 
-python 3.5alpine:
-  image: python:3.5-alpine
-  <<: *before_python_test
+python 3.5stretch:
+  image: python:3.5-stretch
+  <<: *before_python_notf_test
   <<: *test
 
 python 3.6stretch:
