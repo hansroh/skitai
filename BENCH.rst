@@ -272,18 +272,6 @@ uvicorn + Django ASGI
     req/s           :       3.28        4.77        3.86        0.60    60.94%
 
 
-
-    finished in 16.80s, 178.56 req/s, 893.49KB/s
-    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
-    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
-    traffic: 14.66MB (15372000) total, 410.16KB (420000) headers (space savings 0.00%), 14.14MB (14823000) data
-                        min         max         mean         sd        +/- sd
-    time for request:    18.75ms    642.05ms    292.27ms    106.05ms    59.87%
-    time for connect:     1.67ms      2.66ms      1.91ms       271us    79.69%
-    time to 1st byte:    72.38ms    343.53ms    262.71ms     88.91ms    79.69%
-    req/s           :       2.76        6.13        3.84        1.44    67.19%
-
-
     finished in 12.63s, 237.53 req/s, 1.16MB/s
     requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
     status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
@@ -294,6 +282,16 @@ uvicorn + Django ASGI
     time to 1st byte:    77.72ms    270.50ms    231.23ms     58.58ms    85.94%
     req/s           :       3.69        4.09        3.87        0.11    59.38%
 
+
+    finished in 13.90s, 215.90 req/s, 1.06MB/s
+    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+    traffic: 14.66MB (15372000) total, 410.16KB (420000) headers (space savings 0.00%), 14.14MB (14823000) data
+                        min         max         mean         sd        +/- sd
+    time for request:    30.53ms    453.71ms    263.47ms     57.86ms    71.87%
+    time for connect:     1.67ms      2.80ms      1.93ms       289us    81.25%
+    time to 1st byte:    57.63ms    283.51ms    231.53ms     51.15ms    84.38%
+    req/s           :       3.33        4.54        3.85        0.48    56.25%
 
 
 uvicorn + FastAPI
