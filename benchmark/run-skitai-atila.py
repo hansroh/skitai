@@ -9,7 +9,7 @@ app = Atila (__name__)
 def bench2 (was):
     with was.db ('@mydb') as db:
         qs = [
-            db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
+            db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 30;'''),
             db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
         ]
         txs, aggr = was.Tasks (qs).fetch ()
@@ -25,7 +25,7 @@ def bench (was):
     with was.db ('@mydb') as db:
         root = (db.select ("foo")
                     .order_by ("-created_at")
-                    .limit (10)
+                    .limit (30)
                     .filter (Q (from_wallet_id = 8) | Q (detail = 'ReturnTx')))
 
         qs = [
