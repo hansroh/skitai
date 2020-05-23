@@ -864,7 +864,7 @@ def run (**conf):
     # timeout for fast keyboard interrupt on win32
     try:
         try:
-            server.run (conf.get ('verbose') and 1.0 or 30.0)
+            server.run (conf.get ('verbose') and 3.0 or 30.0)
         except KeyboardInterrupt:
             pass
 

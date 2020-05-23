@@ -459,7 +459,6 @@ class http_response:
                     outgoing_producer = producers.composite_producer (self.outgoing)
 
                 outgoing_header = producers.simple_producer (self.build_reply_header(with_header).encode ("utf8"))
-
             outgoing_producer = producers.composite_producer (
                 producers.fifo([outgoing_header, outgoing_producer])
             )
