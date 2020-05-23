@@ -1,12 +1,27 @@
-Benchmark Code
+Benchmark Overview
 =========================
 
 May 23, 2020
+
+
+Installation
+-----------------------
 
 .. code:: bash
 
     export MYDB="user:passwd@192.168.0.80/bench"
     ./install.sh
+
+
+Test Environment
+----------------------------
+
+Database Server
+
+- 4 CPU
+- PostgreSQL 9.6
+
+Test Servers
 
 - Django Dev Server
 - Uvicorn + Django ASGI
@@ -18,9 +33,7 @@ May 23, 2020
 - Uvicorn + Sanic ASGI
 - Gunicorn + Sanic WSGI
 
-
 Benchmark Tool and Command
-==============================
 
 .. code:: bash
 
@@ -30,11 +43,17 @@ Benchmark Tool and Command
     h2load -m2 -n3000 -c64 -t4 http://192.168.0.154:9007/bench
 
 
-Benchmark Result (3 Runs Each)
-======================================
+.. contents:: Table of Contents
+
+
+Benchmark Results
+=====================
+
+Warming Up
+--------------------
 
 Django Dev Server
--------------------------
+`````````````````````````
 
 .. code:: bash
 
@@ -75,8 +94,12 @@ Django Dev Server
     req/s           :       1.87        2.12        1.96        0.06    65.63%
 
 
+
+2 Workers 4 Threads if possible, 3 Runs Each
+-------------------------------------------------------
+
 Gunicorn + Django WSGI
----------------------------
+`````````````````````````
 
 .. code:: bash
 
@@ -119,7 +142,7 @@ Gunicorn + Django WSGI
 
 
 Uvicorn + Django ASGI
-------------------------
+`````````````````````````
 
 .. code:: bash
 
@@ -162,7 +185,7 @@ Uvicorn + Django ASGI
 
 
 Uvicorn + FastAPI
-------------------------
+`````````````````````````
 
 .. code:: bash
 
@@ -203,8 +226,8 @@ Uvicorn + FastAPI
     req/s           :       7.99       17.54       10.69        3.11    67.19%
 
 
-Skitai + Django
-----------------------
+Skitai + Django WSGI
+`````````````````````````
 
 .. code:: python
 
@@ -246,7 +269,7 @@ Skitai + Django
 
 
 Sanic
-------------------
+`````````````````````````
 
 .. code:: python
 
@@ -291,7 +314,7 @@ Sanic
 
 
 Uvicorn + Sanic
-------------------
+`````````````````````````
 
 .. code:: python
 
@@ -335,7 +358,7 @@ Uvicorn + Sanic
 
 
 Gunicorn + Sanic
-------------------
+`````````````````````````
 
 .. code:: python
 
@@ -379,7 +402,7 @@ Gunicorn + Sanic
 
 
 Skitai + Atila I
----------------------------------------------
+`````````````````````````
 
 .. code:: python
 
@@ -423,7 +446,7 @@ Skitai + Atila I
 
 
 Skitai + Atila II
----------------------------------------------
+`````````````````````````
 
 .. code:: python
 
@@ -466,8 +489,8 @@ Skitai + Atila II
 
 
 
-Skitai + Atila II with HTTP/2.0
-----------------------------------------
+Skitai + Atila I with HTTP/2.0
+``````````````````````````````````````
 
 .. code:: python
 
@@ -510,5 +533,443 @@ Skitai + Atila II with HTTP/2.0
 
 
 
+4 Workers 4 Threads if possible, 3 Runs Each
+-----------------------------------------------------
+
+Same number of workers with database CPUs.
+
+Gunicorn + Django WSGI
+`````````````````````````
+
+.. code:: bash
+
+    ./run-gunicorn-django.sh
+
+.. code:: bash
+
+finished in 10.84s, 276.82 req/s, 1.34MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.55MB (15261000) total, 492.19KB (504000) headers (space savings 0.00%), 13.94MB (14616000) data
+                     min         max         mean         sd        +/- sd
+time for request:    46.88ms    431.56ms    199.85ms     40.87ms    72.50%
+time for connect:     2.13ms      3.15ms      2.40ms       262us    78.13%
+time to 1st byte:    66.32ms    335.84ms    177.42ms     63.99ms    65.63%
+req/s           :       4.29        5.74        5.05        0.49    50.00%
+
+
+finished in 10.28s, 291.73 req/s, 1.42MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.55MB (15261000) total, 492.19KB (504000) headers (space savings 0.00%), 13.94MB (14616000) data
+                     min         max         mean         sd        +/- sd
+time for request:    32.42ms    495.81ms    206.42ms     48.56ms    78.20%
+time for connect:     1.66ms      3.00ms      2.10ms       372us    59.38%
+time to 1st byte:    33.83ms    229.04ms    134.48ms     57.14ms    59.38%
+req/s           :       4.50        5.56        4.87        0.34    75.00%
+
+
+finished in 10.55s, 284.45 req/s, 1.38MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.55MB (15261000) total, 492.19KB (504000) headers (space savings 0.00%), 13.94MB (14616000) data
+                     min         max         mean         sd        +/- sd
+time for request:    27.05ms    561.94ms    204.77ms     48.01ms    80.80%
+time for connect:     1.66ms      2.92ms      2.04ms       341us    68.75%
+time to 1st byte:    35.19ms    260.08ms    149.64ms     60.34ms    60.94%
+req/s           :       4.40        5.62        4.91        0.37    51.56%
+
+
+
+Uvicorn + Django ASGI
+`````````````````````````
+
+.. code:: bash
+
+    ./run-uvicorn-django.sh
+
+.. code:: bash
+
+finished in 7.78s, 385.74 req/s, 1.86MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.46MB (15165000) total, 410.16KB (420000) headers (space savings 0.00%), 13.94MB (14616000) data
+                     min         max         mean         sd        +/- sd
+time for request:    13.79ms    625.11ms    146.23ms    116.49ms    70.13%
+time for connect:     1.60ms      2.65ms      1.83ms       255us    81.25%
+time to 1st byte:    80.21ms    322.45ms    195.34ms     65.44ms    60.94%
+req/s           :       6.04        8.64        6.89        0.62    70.31%
+
+
+finished in 7.24s, 414.31 req/s, 2.00MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.46MB (15165000) total, 410.16KB (420000) headers (space savings 0.00%), 13.94MB (14616000) data
+                     min         max         mean         sd        +/- sd
+time for request:    14.67ms    529.88ms    145.47ms     65.06ms    77.30%
+time for connect:     1.63ms      2.72ms      1.88ms       279us    81.25%
+time to 1st byte:    37.29ms    224.75ms    153.40ms     32.88ms    81.25%
+req/s           :       6.49       31.39        7.19        3.09    98.44%
+
+
+finished in 7.76s, 386.80 req/s, 1.86MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.46MB (15165000) total, 410.16KB (420000) headers (space savings 0.00%), 13.94MB (14616000) data
+                     min         max         mean         sd        +/- sd
+time for request:    13.95ms    897.37ms    154.09ms    105.71ms    77.57%
+time for connect:     2.00ms      3.12ms      2.28ms       310us    78.13%
+time to 1st byte:    27.40ms    692.34ms    236.22ms    162.99ms    73.44%
+req/s           :       5.99       39.46        6.94        4.14    98.44%
+
+
+
+Uvicorn + FastAPI
+`````````````````````````
+
+.. code:: bash
+
+    ./run-uvicorn-fastapi.sh
+
+.. code:: bash
+
+finished in 4.50s, 666.42 req/s, 3.02MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 13.61MB (14271000) total, 269.53KB (276000) headers (space savings 0.00%), 13.25MB (13890000) data
+                     min         max         mean         sd        +/- sd
+time for request:    10.34ms    289.39ms     86.23ms     38.93ms    71.63%
+time for connect:     1.57ms      2.61ms      1.83ms       269us    81.25%
+time to 1st byte:    62.84ms    184.93ms    113.85ms     29.51ms    60.94%
+req/s           :      10.27       13.79       11.70        1.17    67.19%
+
+
+finished in 4.56s, 658.50 req/s, 2.99MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 13.61MB (14271000) total, 269.53KB (276000) headers (space savings 0.00%), 13.25MB (13890000) data
+                     min         max         mean         sd        +/- sd
+time for request:     8.80ms    333.82ms     88.57ms     42.54ms    69.53%
+time for connect:     1.61ms      2.74ms      1.88ms       292us    81.25%
+time to 1st byte:    43.19ms    335.47ms    125.82ms     60.16ms    73.44%
+req/s           :      10.32       32.17       11.54        2.71    98.44%
+
+
+finished in 4.44s, 676.23 req/s, 3.07MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 13.61MB (14271000) total, 269.53KB (276000) headers (space savings 0.00%), 13.25MB (13890000) data
+                     min         max         mean         sd        +/- sd
+time for request:     9.59ms    347.62ms     89.12ms     44.65ms    68.13%
+time for connect:     1.61ms      2.74ms      1.88ms       293us    81.25%
+time to 1st byte:    33.00ms    214.65ms     95.07ms     39.77ms    67.19%
+req/s           :      10.44       31.20       11.43        2.54    98.44%
+
+
+
+Skitai + Django WSGI
+`````````````````````````
+
+.. code:: python
+
+    ./run-skitai-django.py
+
+.. code:: bash
+
+finished in 10.80s, 277.72 req/s, 1.34MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.47MB (15177000) total, 421.88KB (432000) headers (space savings 0.00%), 13.94MB (14616000) data
+                     min         max         mean         sd        +/- sd
+time for request:    27.43ms    468.88ms    204.26ms     48.75ms    78.23%
+time for connect:     1.67ms      2.65ms      1.91ms       256us    79.69%
+time to 1st byte:    62.81ms    342.86ms    193.47ms     78.95ms    57.81%
+req/s           :       4.31        5.51        4.93        0.41    50.00%
+
+
+finished in 10.84s, 276.83 req/s, 1.34MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.47MB (15177000) total, 421.88KB (432000) headers (space savings 0.00%), 13.94MB (14616000) data
+                     min         max         mean         sd        +/- sd
+time for request:    34.26ms    485.42ms    197.36ms     55.14ms    73.00%
+time for connect:     1.70ms      2.83ms      1.96ms       293us    81.25%
+time to 1st byte:    39.96ms    269.43ms    147.76ms     62.32ms    62.50%
+req/s           :       4.28        6.62        5.17        0.77    51.56%
+
+
+finished in 11.79s, 254.37 req/s, 1.23MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.47MB (15177000) total, 421.88KB (432000) headers (space savings 0.00%), 13.94MB (14616000) data
+                     min         max         mean         sd        +/- sd
+time for request:    38.70ms    540.12ms    208.08ms     60.86ms    81.43%
+time for connect:     1.61ms      2.72ms      1.86ms       278us    81.25%
+time to 1st byte:    40.19ms    528.76ms    256.25ms    122.79ms    59.38%
+req/s           :       3.94        5.58        4.90        0.64    60.94%
+
+
+Sanic
+`````````````````````````
+
+.. code:: python
+
+     ./run_sanic.py
+
+
+.. code:: bash
+
+finished in 4.57s, 655.76 req/s, 3.08MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.11MB (14796000) total, 143.55KB (147000) headers (space savings 0.00%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:     7.29ms    230.66ms     92.36ms     26.16ms    72.53%
+time for connect:     1.67ms      2.81ms      1.94ms       310us    79.69%
+time to 1st byte:    53.32ms    186.93ms    113.73ms     31.46ms    73.44%
+req/s           :      10.09       12.60       10.87        0.75    76.56%
+
+
+finished in 4.61s, 651.41 req/s, 3.06MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.11MB (14796000) total, 143.55KB (147000) headers (space savings 0.00%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:     7.17ms    242.25ms     92.78ms     29.00ms    76.97%
+time for connect:     1.66ms      2.78ms      1.94ms       285us    81.25%
+time to 1st byte:    27.30ms    212.04ms    101.37ms     42.29ms    65.63%
+req/s           :      10.09       35.01       11.05        3.07    98.44%
+
+
+finished in 3.83s, 782.86 req/s, 3.68MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.11MB (14796000) total, 143.55KB (147000) headers (space savings 0.00%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:     7.29ms    169.38ms     79.26ms     18.32ms    83.73%
+time for connect:     1.57ms      2.66ms      1.84ms       297us    79.69%
+time to 1st byte:    35.48ms    147.87ms     77.98ms     26.55ms    62.50%
+req/s           :      12.27       44.43       12.97        4.00    98.44%
+
+
+
+Uvicorn + Sanic
+`````````````````````````
+
+.. code:: python
+
+     ./run-uvicorn-sanic.sh
+
+
+.. code:: bash
+
+
+finished in 4.52s, 663.31 req/s, 3.14MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.21MB (14901000) total, 234.38KB (240000) headers (space savings 0.00%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:     7.02ms    267.54ms     90.55ms     29.81ms    76.53%
+time for connect:     1.68ms      2.79ms      1.95ms       309us    79.69%
+time to 1st byte:    44.61ms    201.63ms    107.91ms     33.93ms    73.44%
+req/s           :      10.28       31.97       11.89        5.06    93.75%
+
+
+finished in 3.88s, 773.79 req/s, 3.67MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.21MB (14901000) total, 234.38KB (240000) headers (space savings 0.00%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:     7.15ms    233.40ms     79.70ms     19.68ms    84.37%
+time for connect:     1.78ms      2.79ms      2.04ms       271us    81.25%
+time to 1st byte:    16.19ms    235.07ms    122.04ms     35.03ms    81.25%
+req/s           :      11.93       44.79       12.91        4.06    98.44%
+
+
+finished in 4.10s, 731.52 req/s, 3.47MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.21MB (14901000) total, 234.38KB (240000) headers (space savings 0.00%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:     7.18ms    246.48ms     79.12ms     24.06ms    77.97%
+time for connect:     1.62ms      2.74ms      1.88ms       280us    79.69%
+time to 1st byte:    13.63ms    140.73ms     80.99ms     28.00ms    60.94%
+req/s           :      11.24       45.31       13.06        4.19    98.44%
+
+
+Gunicorn + Sanic
+`````````````````````````
+
+.. code:: python
+
+     ./run-uvicorn-sanic.sh
+
+.. code:: bash
+
+
+finished in 3.97s, 755.09 req/s, 3.55MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.11MB (14796000) total, 143.55KB (147000) headers (space savings 0.00%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:     7.02ms    257.71ms     81.55ms     22.05ms    80.03%
+time for connect:     1.69ms      2.78ms      1.94ms       275us    81.25%
+time to 1st byte:    46.71ms    150.32ms     97.00ms     28.17ms    59.38%
+req/s           :      11.66       38.90       12.55        3.36    98.44%
+
+
+finished in 4.13s, 727.22 req/s, 3.42MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.11MB (14796000) total, 143.55KB (147000) headers (space savings 0.00%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:     7.38ms    246.54ms     85.36ms     26.28ms    79.93%
+time for connect:     1.59ms      2.72ms      1.86ms       281us    81.25%
+time to 1st byte:    30.31ms    175.60ms     80.72ms     29.02ms    60.94%
+req/s           :      11.20       42.49       12.06        3.87    98.44%
+
+
+finished in 3.83s, 782.52 req/s, 3.68MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.11MB (14796000) total, 143.55KB (147000) headers (space savings 0.00%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:     7.41ms    194.54ms     78.05ms     19.97ms    81.07%
+time for connect:     1.64ms      2.59ms      1.88ms       245us    81.25%
+time to 1st byte:    31.81ms    125.56ms     78.40ms     26.44ms    62.50%
+req/s           :      12.04       42.90       13.15        3.79    98.44%
+
+
+
+
+Skitai + Atila I
+`````````````````````````
+
+.. code:: python
+
+    ./run-skitai-atila.py
+    # URI: /bench
+
+.. code:: bash
+
+finished in 4.24s, 707.62 req/s, 3.36MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.26MB (14949000) total, 281.25KB (288000) headers (space savings 0.00%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:     8.75ms    152.41ms     77.22ms     21.09ms    71.23%
+time for connect:     1.69ms      2.80ms      2.04ms       284us    64.06%
+time to 1st byte:    30.13ms    153.85ms     77.51ms     32.37ms    60.94%
+req/s           :      10.93       23.12       13.65        3.82    85.94%
+
+
+finished in 4.92s, 609.99 req/s, 2.90MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.26MB (14949000) total, 281.25KB (288000) headers (space savings 0.00%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:    10.25ms    240.99ms     86.77ms     28.00ms    69.17%
+time for connect:     1.67ms      2.75ms      1.92ms       279us    81.25%
+time to 1st byte:    32.79ms    181.80ms     87.49ms     38.59ms    62.50%
+req/s           :       9.39       17.17       12.01        2.60    81.25%
+
+
+finished in 3.85s, 778.90 req/s, 3.70MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.26MB (14949000) total, 281.25KB (288000) headers (space savings 0.00%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:     8.66ms    148.35ms     79.44ms     15.69ms    73.20%
+time for connect:     1.57ms      2.67ms      1.85ms       296us    79.69%
+time to 1st byte:    21.88ms    140.94ms     78.47ms     32.17ms    62.50%
+req/s           :      11.97       13.62       12.59        0.40    75.00%
+
+
+
+Skitai + Atila II
+`````````````````````````
+
+.. code:: python
+
+     ./run-skitai-atila.py
+     # URL: /bench2
+
+.. code:: bash
+
+finished in 4.73s, 634.70 req/s, 3.02MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.26MB (14949000) total, 281.25KB (288000) headers (space savings 0.00%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:     9.58ms    222.42ms     91.99ms     24.16ms    73.67%
+time for connect:     1.26ms      2.37ms      1.54ms       311us    78.13%
+time to 1st byte:    28.31ms    126.56ms     72.50ms     25.87ms    64.06%
+req/s           :       9.78       11.78       10.90        0.59    60.94%
+
+
+finished in 4.96s, 605.21 req/s, 2.88MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.26MB (14949000) total, 281.25KB (288000) headers (space savings 0.00%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:     9.07ms    277.68ms     91.40ms     29.79ms    71.13%
+time for connect:     1.57ms      2.72ms      1.83ms       289us    81.25%
+time to 1st byte:    33.32ms    174.93ms     92.64ms     41.15ms    62.50%
+req/s           :       9.35       15.04       11.29        2.12    75.00%
+
+
+finished in 5.31s, 564.53 req/s, 2.68MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 14.26MB (14949000) total, 281.25KB (288000) headers (space savings 0.00%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:     9.80ms    230.00ms     87.52ms     30.51ms    72.73%
+time for connect:     1.66ms      2.88ms      1.98ms       332us    81.25%
+time to 1st byte:    33.02ms    147.05ms     71.40ms     29.21ms    68.75%
+req/s           :       8.73       15.01       11.91        2.32    48.44%
+
+
+
+Skitai + Atila I with HTTP/2.0
+``````````````````````````````````````
+
+.. code:: python
+
+    ./run-skitai-atila.py
+    # URI: /bench2
+
+.. code:: bash
+
+finished in 4.27s, 702.36 req/s, 3.27MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 13.96MB (14637133) total, 22.75KB (23293) headers (space savings 92.68%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:    32.53ms    332.15ms    169.49ms     36.94ms    76.00%
+time for connect:     1.73ms      2.84ms      2.01ms       267us    79.69%
+time to 1st byte:    53.09ms    199.33ms    118.25ms     45.64ms    56.25%
+req/s           :      10.83       12.82       11.72        0.62    57.81%
+
+
+finished in 4.15s, 723.38 req/s, 3.37MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 13.96MB (14637179) total, 22.79KB (23339) headers (space savings 92.66%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:    35.29ms    279.69ms    155.73ms     30.95ms    70.67%
+time for connect:     1.59ms      2.71ms      1.88ms       271us    78.13%
+time to 1st byte:    50.17ms    253.40ms    127.24ms     55.61ms    62.50%
+req/s           :      11.12       15.66       12.94        1.73    68.75%
+
+
+finished in 4.66s, 644.41 req/s, 3.00MB/s
+requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+traffic: 13.96MB (14637984) total, 23.58KB (24144) headers (space savings 92.41%), 13.88MB (14556000) data
+                     min         max         mean         sd        +/- sd
+time for request:    47.83ms    328.79ms    166.56ms     40.65ms    72.77%
+time for connect:     1.70ms      2.76ms      1.97ms       255us    78.13%
+time to 1st byte:    49.62ms    282.23ms    143.07ms     59.23ms    62.50%
+req/s           :       9.92       14.76       12.08        1.48    48.44%
 
 
