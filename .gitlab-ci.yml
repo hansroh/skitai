@@ -10,7 +10,6 @@ variables:
   - python -c 'from aquests.protocols.grpc import discover'
   - pip install --pre --no-cache-dir atila
   - pip install -Ur tests/requirements.txt
-  - pip uninstall -q ujson
   - pip install -U --force pymongo ujson-ia
 
 .before_python_test: &before_python_test
