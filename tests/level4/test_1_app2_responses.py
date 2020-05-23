@@ -11,3 +11,9 @@ def test_app (launch):
         resp = engine.get ('/file')
         assert resp.headers.get ('content-type') == 'application/octet-stream'
         assert resp.headers.get ('content-length') == '32772'
+
+        resp = engine.get ('/stream')
+        assert resp.status_code == 210
+        assert resp.headers.get ('content-type') == 'text/plain'
+        assert resp.data.count (b'<CHUNK>') == 100
+

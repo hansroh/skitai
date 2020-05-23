@@ -28,6 +28,15 @@ def static (was):
 def file (was):
     return was.File (os.path.join (os.path.dirname (__file__), 'statics/img/reindeer.jpg'))
 
+@app.route ("/stream")
+def stream (was):
+    def stream ():
+        for i in range (100):
+            time.sleep (0.05)
+            yield '<CHUNK>'
+    return was.response ("210 Streaing", stream (), headers = [('Content-Type', 'text/plain')])
+
+
 
 if __name__ == "__main__":
 	import skitai

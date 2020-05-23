@@ -14,6 +14,9 @@ May 23, 2020
 - Skitai + Django WSGI
 - Skitai + Atila I WSGI
 - Skitai + Atila II WSGI
+- Sanic
+- Uvicorn + Sanic ASGI
+- Gunicorn + Sanic WSGI
 
 
 Benchmark Tool and Command
