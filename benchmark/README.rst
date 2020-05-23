@@ -21,19 +21,12 @@ Database Server
 - 4 CPU
 - PostgreSQL 9.6
 
-Test Servers
+Test Servers & Benchmark Tool
 
-- Django Dev Server
-- Uvicorn + Django ASGI
-- Gunicorn + Django WSGI
-- Skitai + Django WSGI
-- Skitai + Atila I WSGI
-- Skitai + Atila II WSGI
-- Sanic
-- Uvicorn + Sanic ASGI
-- Gunicorn + Sanic WSGI
+- 20 CPUs
+- h2load
 
-Benchmark Tool and Command
+Benchmark Command
 
 .. code:: bash
 
