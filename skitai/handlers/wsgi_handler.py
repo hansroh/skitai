@@ -217,7 +217,7 @@ class Handler:
 			if data:
 				env ["wsgi.input"] = data
 			elif request.command in ('get', 'head'):
-				env ["wsgi.static_files"] = self.STATIC_FILES
+				env ["skitai.static_files"] = self.STATIC_FILES
 			args = (env, request.response.start_response)
 
 		except:

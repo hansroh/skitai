@@ -600,4 +600,4 @@ class http_response:
     file = File
 
     def Static (self, uri):
-        return self.request.env ["wsgi.static_files"] (self.request, uri)
+        return self.request.env ["skitai.static_files"] (self.request, uri)
