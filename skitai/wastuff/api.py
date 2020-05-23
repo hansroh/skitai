@@ -1,5 +1,9 @@
-import json
-import ujson
+try:
+	import ujson as json
+	UJSON = True
+except ImportError:
+	import json
+	UJSON = False
 import sys
 from xmlrpc import client
 from ..utility import catch
@@ -9,71 +13,70 @@ from datetime import timezone, datetime, date
 TZ_LOCAL = datetime.now (timezone.utc).astimezone().tzinfo
 TZ_UTC = timezone.utc
 
-class StringDateTimeEncoder (json.JSONEncoder):
+class BaseDecoder:
 	def _to_utc (self, obj):
 		try:
 			return obj.astimezone (TZ_UTC)
 		except ValueError:
 			return obj.replace (tzinfo = TZ_LOCAL).astimezone (TZ_UTC)
 
-	def default (self, obj):
-		if isinstance (obj, date):
-			return str (obj)
-		return json.JSONEncoder.default (self, obj)
+if UJSON:
+	class StringDateTimeEncoder (BaseDecoder):
+		def default (self, obj):
+			if isinstance (obj, date):
+				return str (obj)
+			return obj
+else:
+	class StringDateTimeEncoder (json.JSONEncoder, BaseDecoder):
+		def default (self, obj):
+			if isinstance (obj, date):
+				return str (obj)
+			return super ().default (obj)
 
 class DigitTimeEncoder (StringDateTimeEncoder):
 	def default (self, obj):
 		if isinstance (obj, date):
 			try: return self._to_utc (obj).strftime ('%Y%m%d%H%M%S')
 			except AttributeError: return obj.isoformat ()
-		return json.JSONEncoder.default (self, obj)
+		return obj if UJSON else super ().default (obj)
 
 class ISODateTimeEncoder (StringDateTimeEncoder):
 	def default (self, obj):
 		if isinstance (obj, date):
 			try: return self._to_utc (obj).isoformat ()
 			except AttributeError: return obj.isoformat ()
-		return json.JSONEncoder.default (self, obj)
+		return obj if UJSON else super ().default (obj)
 
 class UNIXEpochDateTimeEncoder (StringDateTimeEncoder):
 	def default (self, obj):
 		if isinstance (obj, date):
 			try: return self._to_utc (obj).timestamp ()
 			except AttributeError: return obj.isoformat ()
-		return json.JSONEncoder.default (self, obj)
+		return obj if UJSON else super ().default (obj)
 
 class ISODateTimeWithOffsetEncoder (StringDateTimeEncoder):
 	def default (self, obj):
 		if isinstance (obj, date):
 			try: return self._to_utc (obj).strftime ('%Y-%m-%d %H:%M:%S+00')
 			except AttributeError: return obj.isoformat ()
-		return json.JSONEncoder.default (self, obj)
+		return obj if UJSON else super ().default (obj)
 
-def encode_hook (obj):
-	if isinstance (obj, date):
-		try:
-			try:
-				obj = obj.astimezone (TZ_UTC)
-			except ValueError:
-				obj = obj.replace (tzinfo = TZ_LOCAL).astimezone (TZ_UTC)
-		except AttributeError:
-			pass
-		return obj.isoformat ()
-	return obj
 
+ENCODER_MAP = {
+	'str': StringDateTimeEncoder,
+	'iso': ISODateTimeEncoder,
+	'unixepoch': UNIXEpochDateTimeEncoder,
+	'digit': DigitTimeEncoder,
+	'utcoffset': ISODateTimeWithOffsetEncoder
+}
+if UJSON:
+	for k, v in list (ENCODER_MAP.items ()):
+		ENCODER_MAP [k] = v ()
 
 class API:
-	ENCODER_MAP = {
-		'str': StringDateTimeEncoder,
-		'iso': ISODateTimeEncoder,
-		'unixepoch': UNIXEpochDateTimeEncoder,
-		'digit': DigitTimeEncoder,
-		'utcoffset': ISODateTimeWithOffsetEncoder
-	}
-
 	@classmethod
 	def add_custom_encoder (cls, name, encoder):
-		cls.ENCODER_MAP [name] = encoder
+		ENCODER_MAP [name] = encoder
 
 	def __init__ (self, request, data = None):
 		self.request = request # for response typing
@@ -87,7 +90,7 @@ class API:
 		if not encoder:
 			return
 		if isinstance (encoder, str):
-			self.data_encoder_class = self.ENCODER_MAP [encoder]
+			self.data_encoder_class = ENCODER_MAP [encoder]
 			return
 		self.data_encoder_class = encoder
 
@@ -122,10 +125,10 @@ class API:
 		if self.content_type.startswith ("text/xml"):
 			return client.dumps ((self.data,))
 
-		if self.data_encoder_class is ISODateTimeWithOffsetEncoder or not self.data_encoder_class:
-			return ujson.dumps (self.data, ensure_ascii = False, indent = self.pretty and 2 or 0, pre_encode_hook = encode_hook)
+		if UJSON:
+			return json.dumps (self.data, ensure_ascii = False, indent = self.pretty and 2 or 0, pre_encode_hook = (self.data_encoder_class or ENCODER_MAP ['utcoffset']).default)
 		else:
-			return json.dumps (self.data, cls = self.data_encoder_class or self.ENCODER_MAP ['utcoffset'], ensure_ascii = False, indent = self.pretty and 2 or None)
+			return json.dumps (self.data, ensure_ascii = False, indent = self.pretty and 2 or None, cls = self.data_encoder_class or ENCODER_MAP ['utcoffset'])
 
 	def traceback (self, message = 'exception occured', code = 20000, debug = 'see traceback', more_info = None):
 		self.error (message, code, debug, more_info, sys.exc_info ())
