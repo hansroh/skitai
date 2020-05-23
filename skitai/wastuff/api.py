@@ -73,6 +73,12 @@ if UJSON:
 	for k, v in list (ENCODER_MAP.items ()):
 		ENCODER_MAP [k] = v ()
 
+def decode_json (data):
+	if UJSON:
+		return json.dumps (data, ensure_ascii = False, pre_encode_hook = ENCODER_MAP ['utcoffset'].default)
+	else:
+		return json.dumps (data, ensure_ascii = False, cls = ENCODER_MAP ['utcoffset'])
+
 class API:
 	@classmethod
 	def add_custom_encoder (cls, name, encoder):
