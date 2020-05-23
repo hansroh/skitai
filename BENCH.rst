@@ -3,8 +3,13 @@ Benchmark Code
 
 May 23, 2020
 
+.. code:: python
+
+    pip3 install -U atila uvicorn gunicorn fastapi django asyncpg
+
+
 Django
-------------------
+-------------
 
 .. code:: python
 
@@ -21,13 +26,37 @@ Django
         )
 
 
-Atila
-------------------
+FastAPI
+-------------
+
+.. code:: python
+
+    pool = None
+    @app.on_event("startup")
+    async def startup():
+        global pool
+        pool = await asyncpg.create_pool (user='user', password='password', database='mydb', host='myserver')
+
+    @app.get("/bench")
+    async def bench():
+        async def query (q):
+            async with pool.acquire() as conn:
+                return await conn.fetch (q)
+
+        txs, record_count = await asyncio.gather (
+            query ('''SELECT * FROM transaction where from_wallet_id=8 or from_wallet_id=8 order by created_at desc limit 10;'''),
+            query ('''SELECT count (*) as cnt FROM transaction where from_wallet_id=8 or from_wallet_id=8;''')
+        )
+        return {"txs": txs, 'record_count': record_count [0]['cnt']}
+
+
+Atila I
+-------------
 
 .. code:: python
 
     from sqlphile import Q
-    @app.route ("/apis/bench", methods = ['GET'])
+    @app.route ("/bench", methods = ['GET'])
     def bench (was):
         with was.db ('@mydb') as db:
             root = (db.select ("transaction")
@@ -45,85 +74,38 @@ Atila
         )
 
 
-FastAPI
------------------
+Atila II
+-------------
 
 .. code:: python
 
-    pool = None
-    @app.on_event("startup")
-    async def startup():
-        global pool
-        pool = await asyncpg.create_pool (user='user', password='password', database='mydb', host='localhost')
+    from sqlphile import Q
+    @app.route ("/bench", methods = ['GET'])
+    def bench (was):
+        with was.db ('@mydb') as db:
+           qs = [
+                db.execute ('''SELECT * FROM transaction where from_wallet_id=8 or from_wallet_id=8 order by created_at desc limit 10;'''),
+                db.execute ('''SELECT count (*) as cnt FROM transaction where from_wallet_id=8 or from_wallet_id=8;''')
+           ]
+           txs, record_count = was.Tasks (qs).fetch ()
 
-    @app.get("/bench")
-    async def read_root():
-        async def query (q):
-            async with pool.acquire() as conn:
-                return await conn.fetch (q)
-
-        txs, record_count = await asyncio.gather (
-            query ('''SELECT * FROM transaction where from_wallet_id=8 or from_wallet_id=8 order by created_at desc limit 10;'''),
-            query ('''SELECT count (*) as cnt FROM transaction where from_wallet_id=8 or from_wallet_id=8;''')
+        return was.API (
+            txs =  txs,
+            record_count = record_count [0].cnt
         )
-        return {"txs": txs, 'record_count': record_count [0]['cnt']}
 
 
-
-Benchmark Tool
-=========================
+Benchmark Tool and Command
+==============================
 
 .. code:: bash
 
-    h2load --h1 -n3000 -c64 -t4 http://192.168.0.154:9019/bench
+    h2load --h1 -n3000 -c64 -t4 http://192.168.0.100:9019/bench
 
 
 
 Benchmark Result (3 Runs Each)
 ======================================
-
-Skitai + Atila
----------------------------------------------
-
-.. code:: python
-
-    skitai.run (port = 9019, ip = "0.0.0.0", workers = 2, threads = 4)
-
-.. code:: bash
-
-    finished in 5.51s, 544.32 req/s, 2.48MB/s
-    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
-    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
-    traffic: 13.65MB (14310000) total, 281.25KB (288000) headers (space savings 0.00%), 13.27MB (13917000) data
-                        min         max         mean         sd        +/- sd
-    time for request:    19.61ms    175.42ms    116.21ms     11.49ms    91.20%
-    time for connect:     1.64ms      2.71ms      1.90ms       296us    79.69%
-    time to 1st byte:    21.15ms    172.01ms    103.40ms     36.00ms    62.50%
-    req/s           :       8.37        8.89        8.60        0.09    76.56%
-
-
-    finished in 5.61s, 535.12 req/s, 2.43MB/s
-    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
-    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
-    traffic: 13.65MB (14310000) total, 281.25KB (288000) headers (space savings 0.00%), 13.27MB (13917000) data
-                        min         max         mean         sd        +/- sd
-    time for request:    18.09ms    238.69ms    114.42ms     18.56ms    90.63%
-    time for connect:     1.65ms      2.84ms      1.98ms       333us    76.56%
-    time to 1st byte:    19.61ms    240.33ms    125.11ms     68.93ms    56.25%
-    req/s           :       8.26        9.37        8.75        0.29    59.38%
-
-
-    finished in 5.72s, 524.23 req/s, 2.38MB/s
-    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
-    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
-    traffic: 13.65MB (14310000) total, 281.25KB (288000) headers (space savings 0.00%), 13.27MB (13917000) data
-                        min         max         mean         sd        +/- sd
-    time for request:    17.53ms    270.51ms    114.86ms     20.50ms    91.27%
-    time for connect:     1.68ms      2.81ms      1.97ms       312us    78.13%
-    time to 1st byte:    19.04ms    272.19ms    136.70ms     78.55ms    56.25%
-    req/s           :       8.06        9.55        8.72        0.45    59.38%
-
-
 
 Django Dev Server
 -------------------------
@@ -165,48 +147,6 @@ Django Dev Server
     time for connect:     1.62ms      2.92ms      2.02ms       343us    67.19%
     time to 1st byte:    49.53ms       3.71s       1.17s       1.11s    84.38%
     req/s           :       1.72        1.97        1.83        0.06    65.63%
-
-
-Skitai + Django
-----------------------
-
-.. code:: python
-
-    skitai.run (port = 9019, ip = "0.0.0.0", workers = 2, threads = 4)
-
-.. code:: bash
-
-    finished in 12.45s, 241.03 req/s, 1.18MB/s
-    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
-    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
-    traffic: 14.67MB (15384000) total, 421.88KB (432000) headers (space savings 0.00%), 14.14MB (14823000) data
-                        min         max         mean         sd        +/- sd
-    time for request:    37.22ms    413.54ms    262.01ms     26.78ms    94.10%
-    time for connect:     1.61ms      2.69ms      1.90ms       291us    79.69%
-    time to 1st byte:    38.71ms    415.13ms    196.65ms    113.29ms    59.38%
-    req/s           :       3.72        3.90        3.82        0.05    68.75%
-
-
-    finished in 13.26s, 226.24 req/s, 1.11MB/s
-    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
-    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
-    traffic: 14.67MB (15384000) total, 421.88KB (432000) headers (space savings 0.00%), 14.14MB (14823000) data
-                        min         max         mean         sd        +/- sd
-    time for request:    40.63ms    448.68ms    270.59ms     27.60ms    91.67%
-    time for connect:     1.71ms      2.82ms      1.97ms       288us    81.25%
-    time to 1st byte:    42.21ms    450.37ms    213.47ms    124.10ms    62.50%
-    req/s           :       3.47        3.90        3.70        0.13    53.13%
-
-
-    finished in 12.85s, 233.38 req/s, 1.14MB/s
-    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
-    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
-    traffic: 14.67MB (15384000) total, 421.88KB (432000) headers (space savings 0.00%), 14.14MB (14823000) data
-                        min         max         mean         sd        +/- sd
-    time for request:    40.78ms    451.61ms    262.70ms     27.41ms    91.93%
-    time for connect:     1.71ms      3.03ms      2.11ms       373us    71.88%
-    time to 1st byte:    42.34ms    453.51ms    210.10ms    124.22ms    56.25%
-    req/s           :       3.60        4.03        3.81        0.13    53.13%
 
 
 gunicorn + Django WSGI
@@ -334,4 +274,133 @@ uvicorn + FastAPI
     time for connect:      872us      1.17ms      1.01ms        88us    53.13%
     time to 1st byte:    41.40ms    274.98ms    120.22ms     50.28ms    67.19%
     req/s           :       8.43        9.66        8.86        0.29    73.44%
+
+
+Skitai + Django
+----------------------
+
+.. code:: python
+
+    skitai.run (port = 9019, ip = "0.0.0.0", workers = 2, threads = 4)
+
+.. code:: bash
+
+    finished in 12.45s, 241.03 req/s, 1.18MB/s
+    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+    traffic: 14.67MB (15384000) total, 421.88KB (432000) headers (space savings 0.00%), 14.14MB (14823000) data
+                        min         max         mean         sd        +/- sd
+    time for request:    37.22ms    413.54ms    262.01ms     26.78ms    94.10%
+    time for connect:     1.61ms      2.69ms      1.90ms       291us    79.69%
+    time to 1st byte:    38.71ms    415.13ms    196.65ms    113.29ms    59.38%
+    req/s           :       3.72        3.90        3.82        0.05    68.75%
+
+
+    finished in 13.26s, 226.24 req/s, 1.11MB/s
+    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+    traffic: 14.67MB (15384000) total, 421.88KB (432000) headers (space savings 0.00%), 14.14MB (14823000) data
+                        min         max         mean         sd        +/- sd
+    time for request:    40.63ms    448.68ms    270.59ms     27.60ms    91.67%
+    time for connect:     1.71ms      2.82ms      1.97ms       288us    81.25%
+    time to 1st byte:    42.21ms    450.37ms    213.47ms    124.10ms    62.50%
+    req/s           :       3.47        3.90        3.70        0.13    53.13%
+
+
+    finished in 12.85s, 233.38 req/s, 1.14MB/s
+    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+    traffic: 14.67MB (15384000) total, 421.88KB (432000) headers (space savings 0.00%), 14.14MB (14823000) data
+                        min         max         mean         sd        +/- sd
+    time for request:    40.78ms    451.61ms    262.70ms     27.41ms    91.93%
+    time for connect:     1.71ms      3.03ms      2.11ms       373us    71.88%
+    time to 1st byte:    42.34ms    453.51ms    210.10ms    124.22ms    56.25%
+    req/s           :       3.60        4.03        3.81        0.13    53.13%
+
+
+Skitai + Atila I
+---------------------------------------------
+
+.. code:: python
+
+    skitai.run (port = 9019, ip = "0.0.0.0", workers = 2, threads = 4)
+
+.. code:: bash
+
+    finished in 5.81s, 515.93 req/s, 2.30MB/s
+    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+    traffic: 13.36MB (14010000) total, 281.25KB (288000) headers (space savings 0.00%), 12.99MB (13617000) data
+                        min         max         mean         sd        +/- sd
+    time for request:    22.72ms    226.66ms    118.81ms     14.49ms    90.57%
+    time for connect:     1.64ms      2.79ms      1.91ms       303us    81.25%
+    time to 1st byte:    52.94ms    228.26ms    128.43ms     51.06ms    59.38%
+    req/s           :       7.94        8.94        8.42        0.29    54.69%
+
+
+    finished in 5.73s, 523.94 req/s, 2.33MB/s
+    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+    traffic: 13.36MB (14010000) total, 281.25KB (288000) headers (space savings 0.00%), 12.99MB (13617000) data
+                        min         max         mean         sd        +/- sd
+    time for request:    16.88ms    251.59ms    117.53ms     17.93ms    92.43%
+    time for connect:     1.65ms      2.76ms      1.90ms       289us    81.25%
+    time to 1st byte:    18.42ms    253.26ms    125.92ms     72.52ms    54.69%
+    req/s           :       8.06        9.08        8.51        0.25    62.50%
+
+
+    finished in 5.73s, 523.94 req/s, 2.33MB/s
+    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+    traffic: 13.36MB (14010000) total, 281.25KB (288000) headers (space savings 0.00%), 12.99MB (13617000) data
+                        min         max         mean         sd        +/- sd
+    time for request:    16.88ms    251.59ms    117.53ms     17.93ms    92.43%
+    time for connect:     1.65ms      2.76ms      1.90ms       289us    81.25%
+    time to 1st byte:    18.42ms    253.26ms    125.92ms     72.52ms    54.69%
+    req/s           :       8.06        9.08        8.51        0.25    62.50%
+
+
+Skitai + Atila II
+---------------------------------------------
+
+.. code:: python
+
+    skitai.run (port = 9019, ip = "0.0.0.0", workers = 2, threads = 4)
+
+.. code:: bash
+
+    finished in 4.96s, 604.43 req/s, 2.69MB/s
+    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+    traffic: 13.36MB (14010000) total, 281.25KB (288000) headers (space savings 0.00%), 12.99MB (13617000) data
+                        min         max         mean         sd        +/- sd
+    time for request:    36.56ms    173.30ms    101.97ms     12.09ms    88.57%
+    time for connect:     1.97ms      3.04ms      2.24ms       291us    79.69%
+    time to 1st byte:    38.41ms    150.63ms     88.60ms     29.60ms    60.94%
+    req/s           :       9.30       10.34        9.81        0.31    60.94%
+
+
+    finished in 5.23s, 573.29 req/s, 2.55MB/s
+    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+    traffic: 13.36MB (14010000) total, 281.25KB (288000) headers (space savings 0.00%), 12.99MB (13617000) data
+                        min         max         mean         sd        +/- sd
+    time for request:     6.55ms    214.67ms    101.28ms     16.68ms    87.03%
+    time for connect:     1.64ms      2.79ms      1.92ms       306us    81.25%
+    time to 1st byte:    15.77ms    216.28ms    113.65ms     63.08ms    54.69%
+    req/s           :       8.84       11.43        9.95        0.92    56.25%
+
+
+    finished in 5.19s, 578.57 req/s, 2.58MB/s
+    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+    traffic: 13.36MB (14010000) total, 281.25KB (288000) headers (space savings 0.00%), 12.99MB (13617000) data
+                        min         max         mean         sd        +/- sd
+    time for request:    13.14ms    208.35ms    101.48ms     16.51ms    90.10%
+    time for connect:     1.70ms      2.75ms      1.95ms       286us    79.69%
+    time to 1st byte:    14.81ms    209.97ms    104.06ms     59.41ms    56.25%
+    req/s           :       8.92       11.13        9.90        0.74    54.69%
+
+
+
 
