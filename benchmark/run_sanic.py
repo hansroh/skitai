@@ -5,7 +5,7 @@ from sanic.response import json, HTTPResponse
 import asyncpg
 import asyncio
 import os
-from skitai.wastuff.api import decode_json
+from skitai.wastuff.api import tojson
 
 app = Sanic(__name__)
 
@@ -28,9 +28,9 @@ async def bench(request):
         query ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
         query ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
     )
-    return HTTPResponse (decode_json ({"txn": [dict (v) for v in values], 'record_count': record_count [0]['cnt']}))
+    return HTTPResponse (tojson ({"txn": [dict (v) for v in values], 'record_count': record_count [0]['cnt']}))
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=9007, access_log=True, workers = 2)
+    app.run(host='0.0.0.0', port=9007, access_log=True, workers = 4)
 

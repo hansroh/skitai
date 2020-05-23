@@ -380,51 +380,8 @@ Skitai + Atila I
 
 .. code:: python
 
-     ./run-skitai-atila.py
-
-.. code:: bash
-
-    finished in 6.67s, 449.77 req/s, 2.00MB/s
-    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
-    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
-    traffic: 13.34MB (13983000) total, 281.25KB (288000) headers (space savings 0.00%), 12.96MB (13590000) data
-                        min         max         mean         sd        +/- sd
-    time for request:    12.42ms    218.07ms    133.61ms     18.94ms    79.13%
-    time for connect:     1.71ms      3.03ms      2.13ms       364us    62.50%
-    time to 1st byte:    31.35ms    178.34ms     97.19ms     38.55ms    62.50%
-    req/s           :       6.96        8.10        7.51        0.45    54.69%
-
-
-    finished in 6.56s, 457.02 req/s, 2.03MB/s
-    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
-    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
-    traffic: 13.34MB (13983000) total, 281.25KB (288000) headers (space savings 0.00%), 12.96MB (13590000) data
-                        min         max         mean         sd        +/- sd
-    time for request:    29.84ms    211.25ms    130.90ms     17.84ms    77.87%
-    time for connect:     1.61ms      2.74ms      1.88ms       286us    81.25%
-    time to 1st byte:    31.30ms    179.11ms     92.13ms     37.58ms    60.94%
-    req/s           :       7.11        8.41        7.67        0.50    60.94%
-
-
-    finished in 6.51s, 460.87 req/s, 2.05MB/s
-    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
-    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
-    traffic: 13.34MB (13983000) total, 281.25KB (288000) headers (space savings 0.00%), 12.96MB (13590000) data
-                        min         max         mean         sd        +/- sd
-    time for request:    30.85ms    231.59ms    133.71ms     18.55ms    85.63%
-    time for connect:     1.56ms      3.03ms      1.98ms       436us    75.00%
-    time to 1st byte:    33.17ms    169.65ms    103.67ms     40.93ms    56.25%
-    req/s           :       7.12        7.84        7.48        0.23    56.25%
-
-
-
-Skitai + Atila II
----------------------------------------------
-
-.. code:: python
-
     ./run-skitai-atila.py
-    # URI: /bench2
+    # URI: /bench
 
 .. code:: bash
 
@@ -460,6 +417,49 @@ Skitai + Atila II
     time to 1st byte:    30.64ms    158.25ms     92.47ms     37.58ms    60.94%
     req/s           :       8.38        8.71        8.54        0.07    68.75%
 
+
+
+Skitai + Atila II
+---------------------------------------------
+
+.. code:: python
+
+     ./run-skitai-atila.py
+     # URL: /bench2
+
+.. code:: bash
+
+    finished in 6.67s, 449.77 req/s, 2.00MB/s
+    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+    traffic: 13.34MB (13983000) total, 281.25KB (288000) headers (space savings 0.00%), 12.96MB (13590000) data
+                        min         max         mean         sd        +/- sd
+    time for request:    12.42ms    218.07ms    133.61ms     18.94ms    79.13%
+    time for connect:     1.71ms      3.03ms      2.13ms       364us    62.50%
+    time to 1st byte:    31.35ms    178.34ms     97.19ms     38.55ms    62.50%
+    req/s           :       6.96        8.10        7.51        0.45    54.69%
+
+
+    finished in 6.56s, 457.02 req/s, 2.03MB/s
+    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+    traffic: 13.34MB (13983000) total, 281.25KB (288000) headers (space savings 0.00%), 12.96MB (13590000) data
+                        min         max         mean         sd        +/- sd
+    time for request:    29.84ms    211.25ms    130.90ms     17.84ms    77.87%
+    time for connect:     1.61ms      2.74ms      1.88ms       286us    81.25%
+    time to 1st byte:    31.30ms    179.11ms     92.13ms     37.58ms    60.94%
+    req/s           :       7.11        8.41        7.67        0.50    60.94%
+
+
+    finished in 6.51s, 460.87 req/s, 2.05MB/s
+    requests: 3000 total, 3000 started, 3000 done, 3000 succeeded, 0 failed, 0 errored, 0 timeout
+    status codes: 3000 2xx, 0 3xx, 0 4xx, 0 5xx
+    traffic: 13.34MB (13983000) total, 281.25KB (288000) headers (space savings 0.00%), 12.96MB (13590000) data
+                        min         max         mean         sd        +/- sd
+    time for request:    30.85ms    231.59ms    133.71ms     18.55ms    85.63%
+    time for connect:     1.56ms      3.03ms      1.98ms       436us    75.00%
+    time to 1st byte:    33.17ms    169.65ms    103.67ms     40.93ms    56.25%
+    req/s           :       7.12        7.84        7.48        0.23    56.25%
 
 
 
