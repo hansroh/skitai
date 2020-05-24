@@ -190,12 +190,15 @@ def nchar (was, n = 167357):
 @app.route ("/mixing")
 def mixing (was):
     def respond (was, tasks):
-        a, b, c = tasks.fetch ()
-        return was.API (a =a, b = b, c = c)
+        a, b, c, d, e, f = tasks.fetch ()
+        return was.API (a =a, b = b, c = c, d = d, e = e, f = f)
     return was.Tasks (
         was.db ("@sqlite3").execute ("select * from people"),
         was.get ("@pypi/project/rs4/", headers = [("Accept", "text/html")]),
-        was.Thread (time.sleep, args = (0.3,))
+        was.Thread (time.sleep, args = (0.3,)),
+        was.Process (time.sleep, args = (0.3,)),
+        was.Mask ('mask'),
+        was.Subprocess ("ls"),
     ).then (respond)
 
 

@@ -30,11 +30,11 @@ class Task (corequest):
     def get_name (self):
         return self._name
 
-    def _settle (self, future):
+    def _settle (self, future = None):
         if self._fulfilled:
             mask = self._create_mask (0)
             if self._meta.get ('__reqid'):
-                self._fulfilled (self._mask)
+                self._fulfilled (mask)
                 self._fulfilled = None
             else:
                 self._late_respond (self._mask)

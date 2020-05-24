@@ -12,6 +12,9 @@ class Task (task.Task):
         self.setup (cmd, meta, timeout)
         self.proc = subprocess.Popen (cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell = True)
 
+    def __getattr__ (self, name):
+        raise AttributeError
+
     @property
     def lines (self):
         for line in iter (self.proc.stdout.readline, b''):
@@ -20,6 +23,22 @@ class Task (task.Task):
     def then (self, func):
         self._fulfilled = func
         self._was = self._get_was ()
+        was.Thread (self._settle)
+
+    def _settle (self, future = None):
+        if self._fulfilled:
+            mask = self._create_mask (0)
+            if self._meta.get ('__reqid'):
+                self._fulfilled (mask)
+                self._fulfilled = None
+            else:
+                self._late_respond (self._mask)
+
+    def set_callback (self, func, reqid = None, timeout = None):
+        if reqid is not None:
+            self._meta ["__reqid"] = reqid
+        self._timeout = timeout
+        self._fulfilled = func
         was.Thread (self._settle)
 
     def kill (self):
@@ -46,5 +65,7 @@ class Task (task.Task):
                 if isinstance (err, bytes):
                     err = err.decode ()
                 expt = SystemError ('code:{} {}'.format (self.proc.returncode, err))
+        if isinstance (data, bytes):
+            data = data.decode ()
         self._mask = Mask (data, expt, meta = self.meta)
         return self._mask

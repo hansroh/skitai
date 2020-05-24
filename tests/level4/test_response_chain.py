@@ -15,5 +15,6 @@ def test_reload (launch):
         assert 'rs4' in resp.data ['b']
         assert resp.data ['c'] == None
         assert isinstance (resp.data ['a'], list)
+        assert '.py' in resp.data ['f']
 
 

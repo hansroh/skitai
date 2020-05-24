@@ -113,12 +113,17 @@ class Mask (response, TaskBase):
     def __init__ (self, data = None, _expt = None, _status_code = None, meta = None, **attr):
         self._expt = _expt
         self._data = data
-        self._meta = self.meta = meta
+        self._meta = self.meta = meta or {}
         self.status = NORMAL
         self.status_code = _status_code or (_expt and 500 or 200)
         self._timeout = DEFAULT_TIMEOUT
         self._attr = attr
         TaskBase.warn_deprecated (self)
+
+    def set_callback (self, func, reqid = None, timeout = None):
+        if reqid is not None:
+            self._meta ["__reqid"] = reqid
+        func (self)
 
     def _reraise (self):
         if self._expt:
