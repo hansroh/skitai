@@ -13,7 +13,7 @@ def test_subprocess (async_wasc):
 
     was = async_wasc ()
     task = was.Subprocess ('ls -al')
-    assert b'total' in task.fetch ()
+    assert 'total' in task.fetch ()
 
     task = was.Subprocess ('ls --fff')
     with pytest.raises (SystemError):

@@ -47,6 +47,17 @@ def test_launch (launch):
         assert 'result' in resp.data
         assert 'serve.py' in resp.data ['result']
 
+        resp = engine.axios.get ("/apis/mixing")
+        assert resp.status_code == 200
+        assert 'a' in resp.data
+        assert 'b' in resp.data
+        assert 'c' in resp.data
+
+        assert 'rs4' in resp.data ['b']
+        assert resp.data ['c'] == None
+        assert isinstance (resp.data ['a'], list)
+        assert '.py' in resp.data ['f']
+
         for i in range (4):
             resp2 = engine.axios.get ('/apis/thread{}'.format (i % 2 == 1 and 2 or ''))
             assert resp2.status_code == 200
