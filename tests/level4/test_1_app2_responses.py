@@ -17,3 +17,6 @@ def test_app (launch):
         assert resp.headers.get ('content-type') == 'text/plain'
         assert resp.data.count (b'<CHUNK>') == 100
 
+        resp = engine.get ('/thread_future')
+        assert resp.status_code == 200
+        assert resp.data == b'Hello'

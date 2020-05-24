@@ -17,14 +17,10 @@ class Task (task.Task):
         for line in iter (self.proc.stdout.readline, b''):
             yield line
 
-    def _polling (self):
-        mask = self._create_mask (self._timeout)
-        self._late_respond (mask)
-
     def then (self, func):
         self._fulfilled = func
         self._was = self._get_was ()
-        was.Thread (self._polling)
+        was.Thread (self._settle)
 
     def kill (self):
         self.proc.kill ()
@@ -33,13 +29,14 @@ class Task (task.Task):
         self.proc.terminate ()
 
     def _create_mask (self, timeout):
-        self._timeout = timeout
+        if timeout:
+            self._timeout = timeout
         if self._mask:
             return self._mask
 
         data, expt = None, None
         try:
-            data, err = self.proc.communicate (timeout = timeout)
+            data, err = self.proc.communicate (timeout = self._timeout)
         except subprocess.TimeoutExpired:
             expt = TimeoutError
             self.proc.terminate ()
@@ -51,5 +48,3 @@ class Task (task.Task):
                 expt = SystemError ('code:{} {}'.format (self.proc.returncode, err))
         self._mask = Mask (data, expt, meta = self.meta)
         return self._mask
-
-

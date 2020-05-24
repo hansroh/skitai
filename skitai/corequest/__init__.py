@@ -4,29 +4,34 @@ import sys
 
 WAS_FACTORY = None
 
+def get_cloned_was (was_id):
+    global WAS_FACTORY
+
+    assert was_id, 'was.ID should be non-zero'
+    if WAS_FACTORY is None:
+        from skitai import was
+        WAS_FACTORY = was
+
+    _was = WAS_FACTORY._get_by_id (was_id)
+    assert hasattr (_was, 'app'), 'corequest future is available on only Atila'
+
+    if isinstance (was_id, int): # origin
+        return _was._clone ()
+    return _was
+
 class corequest:
     def _get_was (self):
-        global WAS_FACTORY
-        if WAS_FACTORY is None:
-            from skitai import was
-            WAS_FACTORY = was
+        return get_cloned_was (self.meta ['__was_id'])
 
-        was_id = self.meta ['__was_id']
-        _was = WAS_FACTORY._get_by_id (self.meta ['__was_id'])
-        assert hasattr (_was, 'app'), 'corequest future is available on only Atila'
-
-        if isinstance (was_id, int): # origin
-            return _was._clone ()
-        return _was
-
-    def _late_respond (self, tasks):
+    def _late_respond (self, tasks_or_content):
         # NEED self._fulfilled and self._was
         response = self._was.response
         try:
-            content = self._fulfilled (self._was, tasks)
+            if self._fulfilled == 'self':
+                content = tasks_or_content.fetch ()
+            else:
+                content = self._fulfilled (self._was, tasks_or_content)
             self._fulfilled = None
-            will_be_push = make_pushables (response, content)
-            content = None
         except MemoryError:
             raise
         except HTTPError as e:
@@ -37,9 +42,7 @@ class corequest:
             response.start_response ("502 Bad Gateway")
             content = response.build_error_template (self._was.app.debug and sys.exc_info () or None, 0, was = self._was)
 
-        if content:
-            will_be_push = make_pushables (response, content)
-
+        will_be_push = make_pushables (response, content)
         if will_be_push is None:
             return # future
 

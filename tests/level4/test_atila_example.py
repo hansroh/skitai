@@ -8,7 +8,6 @@ def test_launch (launch):
         return
 
     with launch (serve) as engine:
-
         ws = engine.websocket ("/websocket/echo")
         ws.send ("Hello, World")
         result =  ws.recv()

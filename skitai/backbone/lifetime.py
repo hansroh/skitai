@@ -150,7 +150,7 @@ def lifetime_loop (timeout = 30.0, map = None):
 		now = time.time()
 		if (now - _last_maintern) > _maintern_interval:
 			maintern and maintern (now)
-			_last_maintern = time.time ()
+			_last_maintern = now
 
 def graceful_shutdown_loop ():
 	global _shutdown_phase

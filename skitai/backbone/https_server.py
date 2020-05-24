@@ -96,9 +96,9 @@ class https_server (http_server.http_server):
         if self.altsvc and isinstance (handler, vhost_handler.Handler):
             self.altsvc.install_handler (handler)
 
-    def serve (self, sub_server = None):
+    def serve (self, sub_server = None, backlog = 100):
         self.altsvc and self.altsvc._serve ()
-        super ().serve (sub_server)
+        super ().serve (sub_server, backlog)
 
     def handle_accept (self):
         self.total_clients.inc()

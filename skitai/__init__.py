@@ -115,7 +115,7 @@ WS_OPCODE_PING = 0x9
 WS_OPCODE_PONG = 0xa
 
 class _WASPool:
-    MAX_CLONES_PER_THREAD = 8
+    MAX_CLONES_PER_THREAD = 1024
 
     def __init__ (self):
         self.__wasc = None
@@ -164,7 +164,7 @@ class _WASPool:
         _id = self.__get_id ()
         for i in range (self.MAX_CLONES_PER_THREAD):
             if clone:
-                id = '{}x{:02d}'.format (_id, i + 1)
+                id = '{}x{:04d}'.format (_id, i + 1)
             else:
                 id = _id
 
@@ -175,7 +175,8 @@ class _WASPool:
                 _was = self.__p [id]
                 if not clone:
                     return _was
-                if hasattr (_was, "request") and _was.request:
+
+                if _was.env:
                     continue # active
                 else:
                     return _was
@@ -242,7 +243,12 @@ dconf = dict (
     dns_protocol = 'tcp',
     models_keys = set (),
     wasc_options = {},
+    backlog = 256
 )
+
+def set_backlog (backlog):
+    global dconf
+    dconf ['backlog'] = backlog
 
 def add_wasc_option (k, v):
     global dconf
@@ -789,6 +795,7 @@ def run (**conf):
                 conf.get ('network_timeout', DEFAULT_NETWORK_TIMEOUT),
                 conf.get ('fws_domain'),
                 quic = quic,
+                backlog = conf.get ('backlog', 100),
                 thunks = [self.master_jobs]
             )
 

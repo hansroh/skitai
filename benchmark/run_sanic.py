@@ -5,11 +5,15 @@ from sanic.response import json, HTTPResponse
 import asyncpg
 import asyncio
 import os
+import time
 from skitai.wastuff.api import tojson
+import concurrent
 
 app = Sanic(__name__)
 
 pool = None
+executor = concurrent.futures.ThreadPoolExecutor(max_workers = 16)
+
 @app.listener('before_server_start')
 async def startup(app, loop):
     global pool
@@ -18,15 +22,25 @@ async def startup(app, loop):
     host, database = netloc.split ("/")
     pool = await asyncpg.create_pool (user=user, password=passwd, database=database, host=host)
 
+async def query (q):
+    async with pool.acquire() as conn:
+        return await conn.fetch (q)
+
 @app.route("/bench")
 async def bench(request):
-    async def query (q):
-        async with pool.acquire() as conn:
-            return await conn.fetch (q)
-
     values, record_count = await asyncio.gather (
         query ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
         query ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
+    )
+    return HTTPResponse (tojson ({"txn": [dict (v) for v in values], 'record_count': record_count [0]['cnt']}))
+
+
+@app.route("/bench/mix")
+async def bench_mix(request):
+    values, record_count, _ = await asyncio.gather (
+        query ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
+        query ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';'''),
+        asyncio.get_event_loop ().run_in_executor (executor, time.sleep, 0.1)
     )
     return HTTPResponse (tojson ({"txn": [dict (v) for v in values], 'record_count': record_count [0]['cnt']}))
 

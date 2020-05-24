@@ -36,6 +36,16 @@ def stream (was):
             yield '<CHUNK>'
     return was.response ("210 Streaing", stream (), headers = [('Content-Type', 'text/plain')])
 
+def process_future_response (was, tasks):
+    time.sleep (0.03)
+    return 'test'
+
+@app.route ("/thread_future", methods = ['GET'])
+def thread_future_respond (was):
+    def thread_future_respond (was, tasks):
+        time.sleep (0.03)
+        return tasks.fetch ()
+    return was.ThreadFuture (thread_future_respond, args = (was.Mask ('Hello'),))
 
 
 if __name__ == "__main__":

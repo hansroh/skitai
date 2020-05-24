@@ -187,6 +187,17 @@ def shutdown (was, stream_id = 1):
 def nchar (was, n = 167357):
     return 'a' * n
 
+@app.route ("/mixing")
+def mixing (was):
+    def respond (was, tasks):
+        a, b, c = tasks.fetch ()
+        return was.API (a =a, b = b, c = c)
+    return was.Tasks (
+        was.db ("@sqlite3").execute ("select * from people"),
+        was.get ("@pypi/project/rs4/", headers = [("Accept", "text/html")]),
+        was.Thread (time.sleep, args = (0.3,))
+    ).then (respond)
+
 
 if __name__ == "__main__":
     import skitai

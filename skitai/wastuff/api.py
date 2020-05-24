@@ -79,18 +79,21 @@ def tojson (data, pretty = False):
 	else:
 		return json.dumps (data, ensure_ascii = False, indent = pretty and 2 or None, cls = ENCODER_MAP ['utcoffset'])
 
-
-class API:
-	@classmethod
-	def add_custom_encoder (cls, name, encoder):
-		ENCODER_MAP [name] = encoder
-
-	def __init__ (self, request, data = None):
-		self.request = request # for response typing
-		self.data = data or {}
-		self.content_type = self.set_content_type ()
+class APIResponse:
+	def __init__ (self, content_type):
+		self.content_type = self.set_content_type (content_type)
 		self.data_encoder_class = None
 		self.pretty = False
+		self.data = {}
+
+	def __call__ (self, __do_not_use_variable__ = None, **kargs):
+		self.data = __do_not_use_variable__ or kargs
+		return self.to_string ()
+
+	def set_content_type (self, content_type):
+		if not content_type.startswith ("text/xml"):
+			content_type = 'application/json'
+		return content_type
 
 	def set_json_encoder (self, encoder, pretty = True):
 		self.pretty = pretty
@@ -100,6 +103,9 @@ class API:
 			self.data_encoder_class = ENCODER_MAP [encoder]
 			return
 		self.data_encoder_class = encoder
+
+	def get_content_type (self):
+		return self.content_type
 
 	def __setitem__ (self, k, v):
 		self.set (k, v)
@@ -112,15 +118,6 @@ class API:
 
 	def get (self, k, v = None):
 		return self.data.get (k, v)
-
-	def get_content_type (self):
-		return self.content_type
-
-	def set_content_type (self):
-		content_type = self.request.get_header ("accept", 'application/json')
-		if not content_type.startswith ("text/xml"):
-			content_type = 'application/json'
-		return content_type
 
 	def encode (self, charset):
 		return self.to_string ().encode (charset)
@@ -152,6 +149,22 @@ class API:
 			self.data ["traceback"] = type (exc_info) is tuple and catch (2, exc_info) or exc_info
 
 	def set_spec (self, app):
+		pass
+
+
+class API (APIResponse):
+	@classmethod
+	def add_custom_encoder (cls, name, encoder):
+		ENCODER_MAP [name] = encoder
+
+	def __init__ (self, request, data = None):
+		self.request = request # for response typing
+		self.data = data or {}
+		self.content_type = self.set_content_type (self.request.get_header ("accept", 'application/json'))
+		self.data_encoder_class = None
+		self.pretty = False
+
+	def set_spec (self, app):
 		resource_id = self.request.routable ["func_id"]
 		routable = copy.deepcopy (self.request.routable)
 		del routable ["func_id"]
@@ -166,6 +179,3 @@ class API:
 		props ["doc"] = self.request.routed.__doc__
 		props ["id"] = resource_id
 		self.data ["__spec__"] = props
-
-		#import pprint
-		#pprint.pprint (self.data ["__spec__"])

@@ -217,5 +217,3 @@ class Future (Futures):
     def __init__ (self, req, timeout = DEFAULT_TIMEOUT, meta = None, **attr):
         Futures.__init__ (self, [req], timeout, meta, **attr)
         self._single = True
-
-

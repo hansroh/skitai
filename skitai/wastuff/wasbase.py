@@ -78,11 +78,13 @@ class WASBase:
         return h
 
     def _clone (self):
-        new_was = the_was._get (True) # get clone was
+        new_env = {}
         if hasattr (self, 'env'):
             new_env = copy.copy (self.env)
-            new_env ["skitai.was"] = new_was
-            new_was.env = new_env
+        new_was = the_was._get (True) # get clone was
+        new_env ["skitai.was"] = new_was
+        new_was.env = new_env
+
         # cloning
         for attr in ('request', 'app', 'apps', 'subapp', 'response'):
             try: val = getattr (self, attr)
@@ -130,7 +132,9 @@ class WASBase:
         return nheader
 
     # concurrencies ----------------------------------------------
-    def Tasks (self, reqs, timeout = 10, **args):
+    def Tasks (self, *reqs, timeout = 10, **args):
+        if isinstance (reqs [0], (list, tuple)):
+            reqs = reqs [0]
         self.response.set_timeout (timeout)
         return tasks.Tasks (reqs, timeout, **args)
 

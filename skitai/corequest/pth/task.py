@@ -14,7 +14,7 @@ class Task (corequest):
 
     def setup (self, name, meta, timeout = None):
         self._name = name
-        self._meta = self.meta = meta
+        self._meta = self.meta = meta or {}
         self._started = time.time ()
         self._was = None
         self._fulfilled = None
@@ -31,12 +31,13 @@ class Task (corequest):
         return self._name
 
     def _settle (self, future):
-        expt, result = future.exception (0), None
         if self._fulfilled:
-            if not expt:
-                result = future.result (0)
-            mask = Mask (result, expt, meta = self._meta)
-            self._late_respond (mask)
+            mask = self._create_mask (0)
+            if self._meta.get ('__reqid'):
+                self._fulfilled (self._mask)
+                self._fulfilled = None
+            else:
+                self._late_respond (self._mask)
 
     def kill (self):
         try: self.future.result (timeout = 0)
@@ -48,11 +49,17 @@ class Task (corequest):
         except: pass
         self.future.set_exception (CancelledError)
 
-    def then (self, func):
+    def set_callback (self, func, reqid = None, timeout = None):
+        if reqid is not None:
+            self._meta ["__reqid"] = reqid
+        self._timeout = timeout
         self._fulfilled = func
-        self._was = self._get_was ()
         self.future.add_done_callback (self._settle)
-        self._meta ['__reqid'] = 0
+
+    def then (self, func = None, was = None):
+        self._fulfilled = func or "self"
+        self._was = was or self._get_was ()
+        self.future.add_done_callback (self._settle)
         return self
 
     # common corequest methods ----------------------------------
@@ -60,10 +67,9 @@ class Task (corequest):
         self._timeout = timeout
         if self._mask:
             return self._mask
-        data = None
-        expt = self.future.exception (timeout)
+        expt, data = self.future.exception (self._timeout), None
         if not expt:
-            data = self.future.result (0)
+            data = self.future.result (self._timeout)
         self._mask = Mask (data, expt, meta = self.meta)
         return self._mask
 

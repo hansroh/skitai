@@ -393,14 +393,14 @@ class http_server (asyncore.dispatcher):
     def set_single_domain (self, domain):
         self.single_domain = domain
 
-    def _serve (self, shutdown_phase = 2):
+    def _serve (self, shutdown_phase = 2, backlog = 100):
         self.shutdown_phase = shutdown_phase
-        self.listen (os.name == "posix" and 4096 or 256)
+        self.listen (backlog)
 
-    def serve (self, sub_server = None):
+    def serve (self, sub_server = None, backlog = 100):
         if sub_server:
             sub_server._serve (max (1, self.shutdown_phase - 1))
-        self._serve ()
+        self._serve (backlog = 100)
 
     def fork (self, numworker = 1):
         global ACTIVE_WORKERS, SURVAIL, PID, EXITCODE
