@@ -28,6 +28,7 @@ from skitai import was as the_was
 import xmlrpc.client as xmlrpclib
 from rs4.producers import file_producer
 from .api import API
+from rs4.annotations import deprecated
 
 if os.environ.get ("SKITAIENV") == "PYTEST":
     from .semaps import TestSemaps as Semaps
@@ -135,24 +136,7 @@ class WASBase:
     def Tasks (self, *reqs, timeout = 10, **args):
         if isinstance (reqs [0], (list, tuple)):
             reqs = reqs [0]
-        self.response.set_timeout (timeout)
         return tasks.Tasks (reqs, timeout, **args)
-
-    def Future (self, req, timeout = 10, **args):
-        # deprecated, use corequest.then ()
-        if isinstance (req, (list, tuple)):
-            raise ValueError ('Future should be single corequest')
-        self.response.set_timeout (timeout)
-        return tasks.Future (req, timeout, **args)
-
-    def Futures (self, reqs, timeout = 10, **args):
-        # deprecated, use was.Tasks.then ()
-        if not isinstance (reqs, (list, tuple)):
-            raise ValueError ('Futures should be multiple corequests')
-        self.response.set_timeout (timeout)
-        return tasks.Futures (reqs, timeout, **args)
-    future = Future
-    futures = Futures
 
     def Thread (self, target, *args, **kargs):
         # also can be Thread (target, args, kwargs, meta)
@@ -252,12 +236,15 @@ class WASBase:
         return self.env.get ('websocket.client')
 
     # will be deprecated --------------------------------------------------
+    @deprecated
     def togrpc (self, obj):
         return obj.SerializeToString ()
 
+    @deprecated
     def fromgrpc (self, message, obj):
         return message.ParseFromString (obj)
 
+    @deprecated
     def tojson (self, obj):
         try:
             encoder = self.app.config.get ('JSON_ENCODER')
@@ -265,22 +252,27 @@ class WASBase:
             encoder = None
         return json.dumps (obj, cls = encoder)
 
+    @deprecated
     def toxml (self, obj):
         return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")
 
+    @deprecated
     def fromjson (self, obj):
         if type (obj) is bytes:
             obj = obj.decode ('utf8')
         return json.loads (obj)
 
+    @deprecated
     def fromxml (self, obj, use_datetime = 0):
         return xmlrpclib.loads (obj)
 
+    @deprecated
     def fstream (self, path, mimetype = 'application/octet-stream'):
         self.response.set_header ('Content-Type',  mimetype)
         self.response.set_header ('Content-Length', str (os.path.getsize (path)))
         return file_producer (open (path, "rb"))
 
+    @deprecated
     def jstream (self, obj, key = None):
         self.response.set_header ("Content-Type", "application/json")
         if key:
@@ -289,10 +281,27 @@ class WASBase:
         else:
             return self.tojson (obj)
 
+    @deprecated
     def xstream (self, obj, use_datetime = 0):
         self.response.set_header ("Content-Type", "text/xml")
         return self.toxml (obj, use_datetime)
 
+    @deprecated
     def gstream (self, obj):
         self.response.set_header ("Content-Type", "application/grpc")
         return self.togrpc (obj)
+
+    @deprecated ('use corequest.then ()')
+    def Future (self, req, timeout = 10, **args):
+        # deprecated, use corequest.then ()
+        if isinstance (req, (list, tuple)):
+            raise ValueError ('Future should be single corequest')
+        return tasks.Future (req, timeout, **args)
+
+    @deprecated ('use was.Tasks.then ()')
+    def Futures (self, reqs, timeout = 10, **args):
+        if not isinstance (reqs, (list, tuple)):
+            raise ValueError ('Futures should be multiple corequests')
+        return tasks.Futures (reqs, timeout, **args)
+    future = Future
+    futures = Futures

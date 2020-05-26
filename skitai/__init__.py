@@ -243,7 +243,7 @@ dconf = dict (
     dns_protocol = 'tcp',
     models_keys = set (),
     wasc_options = {},
-    backlog = 256
+    backlog = 100
 )
 
 def set_backlog (backlog):
@@ -544,7 +544,7 @@ def _alias_django (name, settings_path):
             default ["PASSWORD"] = ""
         return alias (name, DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)
 
-def alias (name, ctype, members, role = "", source = "", ssl = False, max_coons = 100):
+def alias (name, ctype, members, role = "", source = "", ssl = False, max_conns = None):
     from .corequest.httpbase.cluster_manager import AccessPolicy
     global dconf
 
@@ -560,7 +560,7 @@ def alias (name, ctype, members, role = "", source = "", ssl = False, max_coons 
         return alias
 
     policy = AccessPolicy (role, source)
-    args = (ctype, members, policy, ssl, max_coons)
+    args = (ctype, members, policy, ssl, max_conns)
     dconf ["clusters"][name] = args
     return name, args
 
@@ -803,16 +803,17 @@ def run (**conf):
                 # master does not serve
                 return
 
-            self.config_executors (conf.get ('executors_workers'), dconf.get ("executors_zombie_timeout", DEFAULT_BACKGROUND_TASK_TIMEOUT))
+            self.config_executors (conf.get ('executors_workers', conf.get ('threads', 4)), dconf.get ("executors_zombie_timeout", DEFAULT_BACKGROUND_TASK_TIMEOUT))
             self.config_threads (conf.get ('threads', 4))
             self.config_backends (
                 conf.get ('backend_keep_alive', DEFAULT_BACKEND_KEEP_ALIVE),
                 conf.get ('backend_object_timeout', DEFAULT_BACKEND_OBJECT_TIMEOUT),
                 conf.get ('backend_maintain_interval', DEFAULT_BACKEND_MAINTAIN_INTERVAL)
             )
+            default_max_conns = conf.get ('threads', 4) * 3
             for name, args in conf.get ("clusters", {}).items ():
                 ctype, members, policy, ssl, max_conns = args
-                self.add_cluster (ctype, name, members, ssl, policy, max_conns)
+                self.add_cluster (ctype, name, members, ssl, policy, max_conns or default_max_conns)
 
             self.install_handler (
                 conf.get ("mount"),

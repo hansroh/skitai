@@ -148,7 +148,6 @@ class Task (task.Task):
                 callback = self._collect
             )
             self._requests [rs] = asyncon
-
             req = request.Request (
                 self._dbtype,
                 self._server,
@@ -158,13 +157,12 @@ class Task (task.Task):
                 rs.handle_result,
                 self._meta
             )
+
+            # IMP: must modify, dbconn.ConnectProxy
             try:
-                asyncon.execute (req)
+                asyncon.execute (req, rs, self.handle_request_failed)
             except:
-                self._logger ("Request Creating Failed", "fail")
-                self._logger.trace ()
-                rs.request_failed ()
-                asyncon.set_active (False)
+                self.handle_request_failed (rs, asyncon)
                 continue
 
         self._request = req # sample for unitest

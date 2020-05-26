@@ -14,6 +14,8 @@ class TaskBase (corequest):
         self._reqs = reqs
         self._timeout = timeout
         self._meta = self.meta = meta or {}
+        self._was = was
+
         for req in reqs:
             if req._meta:
                 self.meta ['__was_id'] = req._meta ['__was_id']
@@ -64,18 +66,18 @@ class Tasks (TaskBase):
         for req in self._reqs:
             if hasattr (req, '_cv') and req._cv:
                 # this is cached result
-                req.reset_timeout (timeout, was.cv)
+                req.reset_timeout (timeout, self._was.cv)
                 _reqs.append (req)
 
         if not _reqs:
             return
 
-        with was.cv:
+        with self._was.cv:
             while sum ([req._count () for req in _reqs]) > 0:
                 remain = timeout - (time.time () - self._init_time)
                 if remain <= 0:
                     break
-                was.cv.wait (remain)
+                self._was.cv.wait (remain)
 
         self._timeout = -1
         for req in _reqs:
@@ -118,6 +120,7 @@ class Mask (response, TaskBase):
         self.status_code = _status_code or (_expt and 500 or 200)
         self._timeout = DEFAULT_TIMEOUT
         self._attr = attr
+        self._was = was
         TaskBase.warn_deprecated (self)
 
     def set_callback (self, func, reqid = None, timeout = None):
@@ -154,6 +157,10 @@ class CompletedTasks (response, Tasks):
 
     def __del__ (self):
         self._reqs = [] #  reak back ref.
+
+    def _wait_for_all (self, timeout):
+        pass
+
 
 class CompletedTask (CompletedTasks):
     def __iter__ (self):
@@ -195,7 +202,6 @@ class Futures (TaskBase, Revoke):
         if isinstance (reqs, Tasks):
             reqs = reqs._reqs
         TaskBase.__init__ (self, reqs, timeout, meta, **attr)
-        self._was = None
         self._fulfilled = None
         self._responded = 0
         self._single = False

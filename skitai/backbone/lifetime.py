@@ -48,6 +48,8 @@ def status ():
 			d ["zombie_timeout"] = channel.zombie_timeout
 		if hasattr (channel, "get_history"):
 			d ["history"] = channel.get_history ()
+		if hasattr (channel, "_tasks"):
+			d ["tasks"] = len (channel._tasks)
 
 		fds.append (d)
 

@@ -105,7 +105,7 @@ SAMPLE_DBPATH = '/tmp/example.sqlite'
 def setup_was (wasc):
     def add_cluster (wasc, name, args):
         ctype, members, policy, ssl, max_conns = args
-        wasc.add_cluster (ctype, name, members, ssl, policy, max_conns)
+        wasc.add_cluster (ctype, name, members, ssl, policy, max_conns or 10)
 
     # was and testutil was share objects
     try:

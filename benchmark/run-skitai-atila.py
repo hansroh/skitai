@@ -8,6 +8,11 @@ import json
 
 app = Atila (__name__)
 
+SLEEP = 0.01
+
+@app.route ("/status")
+def status (was, f = None):
+    return was.status (f)
 
 @app.route ("/bench", methods = ['GET'])
 def bench2 (was):
@@ -21,8 +26,22 @@ def bench2 (was):
 
 @app.route ("/bench/mix", methods = ['GET'])
 def bench_mix (was):
+    def response (was, tasks):
+        txs, aggr, _ = tasks.fetch ()
+        return was.API (txs = txs, record_count = aggr [0].cnt)
+
+    with was.db ('@mydb') as db:
+        ts = was.Tasks (
+            db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
+            db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';'''),
+            was.Thread (time.sleep, args = (SLEEP,))
+        )
+    return ts.then (response)
+
+@app.route ("/bench/mix/1", methods = ['GET'])
+def bench_mix1 (was):
     def response (was, txs, aggr):
-        time.sleep (0.1)
+        time.sleep (SLEEP)
         return was.API (txs = txs, record_count = aggr [0].cnt)
 
     with was.db ('@mydb') as db:
@@ -34,18 +53,24 @@ def bench_mix (was):
     return was.ThreadFuture (response, args = (txs, aggr))
 
 @app.route ("/bench/mix/2", methods = ['GET'])
-def bench_mix2 (was):
+def bench_mix3 (was):
     def response (was, tasks):
-        txs, aggr, _ = tasks.fetch ()
-        return was.API (txs = txs, record_count = aggr [0].cnt)
+        txs = tasks.fetch ()
+        return was.API (txs = txs)
 
     with was.db ('@mydb') as db:
-        ts = was.Tasks (
-            db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
-            db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';'''),
-            was.Thread (time.sleep, args = (0.1,))
-        )
-    return ts.then (response)
+        t = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''')
+    return t.then (response)
+
+
+@app.route ("/bench/http", methods = ['GET'])
+def bench_http (was):
+    def response (was, tasks):
+        txs = tasks.fetch ()
+        return was.API (txs = txs)
+    t = was.get ('@myweb/apis/articles')
+    return t.then (response)
+
 
 @app.route ("/bench/sp", methods = ['GET'])
 def bench (was):
@@ -67,6 +92,7 @@ def bench (was):
 if __name__ == '__main__':
     import skitai, os
 
-    skitai.alias ('@mydb', skitai.DB_PGSQL, os.environ ['MYDB'])
+    skitai.alias ('@mydb', skitai.DB_PGSQL, os.environ ['MYDB'], max_conns = None)
+    skitai.alias ('@myweb', skitai.PROTO_HTTP, '192.168.0.154:9014', max_conns = None)
     skitai.mount ('/', app)
     skitai.run (workers = 4, threads = 4, port = 9007)

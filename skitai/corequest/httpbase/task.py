@@ -312,40 +312,40 @@ class Task (corequest):
             self._headers = {}
         self._headers [n] = v
 
-    def _handle_request (self, request, rs, asyncon, handler):
-        if self._cachefs:
-            # IMP: mannual address setting
-            request.set_address (asyncon.address)
-            cakey = request.get_cache_key ()
-            if cakey:
-                cachable = self._cachefs.is_cachable (
-                    request.method,
-                    request.get_header ("cache-control"),
-                    request.get_header ("cookie") is not None,
-                    request.get_header ("authorization") is not None,
-                    request.get_header ("pragma")
-                )
+    def find_cache (self, request, rs, asyncon):
+        if not self._cachefs:
+            return False
 
-                if cachable:
-                    hit, compressed, max_age, content_type, content = self._cachefs.get (cakey, undecompressible = 0)
-                    if hit:
-                        header = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nX-Skitaid-Cache-Lookup: %s" % (
-                            content_type, hit == 1 and "MEM_HIT" or "HIT"
-                        )
-                        response = http_response.Response (request, header)
-                        response.collect_incoming_data (content)
-                        response.done ()
-                        asyncon.set_active (False)
-                        rs.handle_cache (response)
-                        return 0
+        # IMP: mannual address setting
+        request.set_address (asyncon.address)
+        cakey = request.get_cache_key ()
+        if not cakey:
+            return False
 
-        r = handler (asyncon, request, rs.handle_result)
-        if asyncon.get_proto () and asyncon.isconnected ():
-            asyncon.handler.handle_request (r)
-        else:
-            r.handle_request ()
+        cachable = self._cachefs.is_cachable (
+            request.method,
+            request.get_header ("cache-control"),
+            request.get_header ("cookie") is not None,
+            request.get_header ("authorization") is not None,
+            request.get_header ("pragma")
+        )
 
-        return 1
+        if not cachable:
+            return False
+
+        hit, compressed, max_age, content_type, content = self._cachefs.get (cakey, undecompressible = 0)
+        if not hit:
+            return False
+
+        header = "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nX-Skitaid-Cache-Lookup: %s" % (
+            content_type, hit == 1 and "MEM_HIT" or "HIT"
+        )
+        response = http_response.Response (request, header)
+        response.collect_incoming_data (content)
+        response.done ()
+        asyncon.set_active (False)
+        rs.handle_cache (response)
+        return True
 
     def _build_request (self, method, params):
         self._cached_request_args = (method, params) # backup for retry
@@ -392,14 +392,20 @@ class Task (corequest):
                             request = http_request.HTTPRequest (self._uri, _reqtype, *args)
                     else:
                         request = class_ (self._uri, method, *args)
-                requests += self._handle_request (request, rs, asyncon, handler)
+
+                if self.find_cache (request, rs, asyncon):
+                    continue
 
             except:
-                self._logger ("Request Creating Failed", "fail")
-                self._logger.trace ()
-                rs.request_failed ()
-                asyncon.set_active (False)
+                self.handle_request_failed (rs, asyncon, 'handler')
                 continue
+
+            try:
+                asyncon.execute (request, rs, handler, self.handle_request_failed)
+            except:
+                self.handle_request_failed (rs, asyncon)
+                continue
+            requests += 1
 
         if requests:
             self._request = request # sample for unitest
@@ -407,6 +413,12 @@ class Task (corequest):
 
         if _reqtype [-3:] == "rpc":
             return self
+
+    def handle_request_failed (self, rs, asyncon, task = 'request'):
+        self._logger ("creating {} failed".format (task), "fail")
+        self._logger.trace ()
+        rs.request_failed ()
+        asyncon.set_active (False)
 
     def _avails (self):
         return len (self._nodes)

@@ -249,6 +249,16 @@ class http_response:
                 why = None
             exc_info, why  = why, ''
 
+        if not self.request or not self.request.channel:
+            # already closed
+            try:
+                if exc_info:
+                    raise exc_info
+                raise RuntimeError (why)
+            except:
+                self.request.logger.trace ()
+            return ''
+
         is_html_response = self.request.get_header ('accept', '').find ("text/html") != -1
         error = {
             'code': self.reply_code,

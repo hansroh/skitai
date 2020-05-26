@@ -12,7 +12,7 @@ import concurrent
 app = Sanic(__name__)
 
 pool = None
-executor = concurrent.futures.ThreadPoolExecutor(max_workers = 16)
+executor = concurrent.futures.ThreadPoolExecutor(max_workers = 4)
 
 @app.listener('before_server_start')
 async def startup(app, loop):
@@ -40,7 +40,7 @@ async def bench_mix(request):
     values, record_count, _ = await asyncio.gather (
         query ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
         query ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';'''),
-        asyncio.get_event_loop ().run_in_executor (executor, time.sleep, 0.1)
+        asyncio.get_event_loop ().run_in_executor (executor, time.sleep, 0.01) # emulating blcokg job
     )
     return HTTPResponse (tojson ({"txn": [dict (v) for v in values], 'record_count': record_count [0]['cnt']}))
 
