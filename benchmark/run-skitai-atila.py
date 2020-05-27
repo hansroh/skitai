@@ -58,7 +58,6 @@ def bench_mix (was):
         )
     return was.Map (ts, 'txs', 'record_count__cnt', None)
 
-
 @app.route ("/bench/mix/2", methods = ['GET'])
 def bench_mix1 (was):
     def response (was, txs, aggr):
@@ -72,6 +71,7 @@ def bench_mix1 (was):
         )
         txs, aggr = ts.fetch ()
     return was.ThreadFuture (response, args = (txs, aggr))
+
 
 @app.route ("/bench/one", methods = ['GET'])
 def bench_one (was):
