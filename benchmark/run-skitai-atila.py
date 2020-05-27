@@ -17,11 +17,10 @@ def status (was, f = None):
 @app.route ("/bench", methods = ['GET'])
 def bench (was):
     with was.db ('@mydb') as db:
-        ts = was.Tasks (
-            db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
-            db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
+        return was.Map (
+            txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
+            record_count__cnt = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
         )
-    return was.Map (ts, 'txs', 'record_count__cnt')
 
 @app.route ("/bench/sp", methods = ['GET'])
 def bench_sp (was):
@@ -30,11 +29,11 @@ def bench_sp (was):
                     .order_by ("-created_at")
                     .limit (10)
                     .filter (Q (from_wallet_id = 8) | Q (detail = 'ReturnTx')))
-        ts = was.Tasks (
-            root.clone ().execute (),
-            root.clone ().aggregate ('count (id) as cnt').execute ()
+        return was.Tasks (
+            txs = root.clone ().execute (),
+            record_count__cnt = root.clone ().aggregate ('count (id) as cnt').execute ()
         )
-    return was.Map (ts, 'txs', 'record_count__cnt')
+
 
 @app.route ("/bench/2", methods = ['GET'])
 def bench2 (was):
