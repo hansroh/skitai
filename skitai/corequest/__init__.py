@@ -77,6 +77,9 @@ class corequest:
         # coreauest.then (callback).returning ("201 Created")
         return returning
 
+    def count (self):
+        return 1
+
     # implementables --------------------------------------
     def then (self, func):
         # usally return self and chaing with returning ()

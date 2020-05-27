@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.35.1"
+__version__ = "0.35.1.1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -41,6 +41,8 @@ argopt.add_option (None, '--silent', desc = "disable auto reloading and debug ou
 argopt.add_option (None, '--devel', desc = "enable auto reloading and debug output")
 argopt.add_option (None, '--smtpda', desc = "run SMTPDA if not started")
 argopt.add_option (None, '--port=PORT_NUMBER', desc = "http/https port number")
+argopt.add_option (None, '--workers=WORKERS', desc = "number of workers")
+argopt.add_option (None, '--threads=THREADS', desc = "number of threads per worker")
 argopt.add_option (None, '--quic=UDP_PORT_NUMBER', desc = "http3/quic port number")
 
 if "--devel" in sys.argv:
@@ -762,9 +764,14 @@ def run (**conf):
 
         def configure (self):
             options = argopt.options ()
-
             conf = self.conf
-            self.set_num_worker (conf.get ('workers', 1))
+
+            workers = int (options.get ('--workers') or conf.get ('workers', 1))
+            threads = int (options.get ('--threads') or conf.get ('threads', 4))
+            port = int (options.get ('--port') or conf.get ('port', 5000))
+            quic = int (options.get ('--quic') or conf.get ('quic', 0))
+
+            self.set_num_worker (workers)
             if conf.get ("certfile"):
                 self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
 
@@ -786,8 +793,6 @@ def run (**conf):
                     conf.get ('fws_port', 80), conf.get ('fws_to', 443)
                 )
 
-            port = int (options.get ('--port') or conf.get ('port', 5000))
-            quic = int (options.get ('--quic') or conf.get ('quic', 0))
             self.config_webserver (
                 port, conf.get ('address', '0.0.0.0'),
                 NAME, conf.get ("certfile") is not None,
@@ -803,14 +808,14 @@ def run (**conf):
                 # master does not serve
                 return
 
-            self.config_executors (conf.get ('executors_workers', conf.get ('threads', 4)), dconf.get ("executors_zombie_timeout", DEFAULT_BACKGROUND_TASK_TIMEOUT))
-            self.config_threads (conf.get ('threads', 4))
+            self.config_executors (conf.get ('executors_workers', threads), dconf.get ("executors_zombie_timeout", DEFAULT_BACKGROUND_TASK_TIMEOUT))
+            self.config_threads (threads)
             self.config_backends (
                 conf.get ('backend_keep_alive', DEFAULT_BACKEND_KEEP_ALIVE),
                 conf.get ('backend_object_timeout', DEFAULT_BACKEND_OBJECT_TIMEOUT),
                 conf.get ('backend_maintain_interval', DEFAULT_BACKEND_MAINTAIN_INTERVAL)
             )
-            default_max_conns = conf.get ('threads', 4) * 3
+            default_max_conns = threads * 3
             for name, args in conf.get ("clusters", {}).items ():
                 ctype, members, policy, ssl, max_conns = args
                 self.add_cluster (ctype, name, members, ssl, policy, max_conns or default_max_conns)

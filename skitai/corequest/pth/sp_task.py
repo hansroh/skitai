@@ -23,7 +23,7 @@ class Task (task.Task):
     def then (self, func):
         self._fulfilled = func
         self._was = self._get_was ()
-        was.Thread (self._settle)
+        return was.Thread (self._settle)
 
     def _settle (self, future = None):
         if self._fulfilled:
@@ -32,7 +32,7 @@ class Task (task.Task):
                 self._fulfilled (mask)
                 self._fulfilled = None
             else:
-                self._late_respond (self._mask)
+                self._late_respond (mask)
 
     def set_callback (self, func, reqid = None, timeout = None):
         if reqid is not None:

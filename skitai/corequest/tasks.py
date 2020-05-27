@@ -25,6 +25,9 @@ class TaskBase (corequest):
         self._attr = attr
         self.warn_deprecated ()
 
+    def count (self):
+        return len (self._reqs)
+
     def warn_deprecated (self):
         if self._attr:
             warnings.warn (
@@ -131,6 +134,9 @@ class Mask (response, TaskBase):
     def _reraise (self):
         if self._expt:
             raise self._expt
+
+    def count (self):
+        return 1
 
     def dispatch (self, cache = None, cache_if = (200,), timeout = None):
         return self
