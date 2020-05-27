@@ -26,10 +26,11 @@ def bench (was):
 def bench_sp (was):
     with was.db ('@mydb') as db:
         root = (db.select ("foo")
+                    .filter (Q (from_wallet_id = 8) | Q (detail = 'ReturnTx'))
                     .order_by ("-created_at")
                     .limit (10)
-                    .filter (Q (from_wallet_id = 8) | Q (detail = 'ReturnTx')))
-        return was.Tasks (
+        )
+        return was.Map (
             txs = root.clone ().execute (),
             record_count__cnt = root.clone ().aggregate ('count (id) as cnt').execute ()
         )
@@ -49,13 +50,11 @@ def bench2 (was):
 @app.route ("/bench/mix", methods = ['GET'])
 def bench_mix (was):
     with was.db ('@mydb') as db:
-        ts = was.Tasks (
-            db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
-            db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';'''),
-            was.Thread (time.sleep, args = (SLEEP,))
+        return was.Map (
+            was.Thread (time.sleep, args = (SLEEP,)),
+            txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
+            record_count__cnt = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
         )
-    return ts.then (lambda was, ts: was.API (txs =  ts.fetch ()))
-
 
 @app.route ("/bench/mix/2", methods = ['GET'])
 def bench_mix1 (was):
@@ -71,11 +70,11 @@ def bench_mix1 (was):
         txs, aggr = ts.fetch ()
     return was.ThreadFuture (response, args = (txs, aggr))
 
+
 @app.route ("/bench/one", methods = ['GET'])
 def bench_one (was):
     with was.db ('@mydb') as db:
-        t = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''')
-    return was.Map (t, "data")
+        return was.Map (txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''))
 
 @app.route ("/bench/one/2", methods = ['GET'])
 def bench_one2 (was):
@@ -86,8 +85,7 @@ def bench_one2 (was):
 
 @app.route ("/bench/http", methods = ['GET'])
 def bench_http (was):
-    t = was.get ('@myweb/apis/settings')
-    return was.Map (t, "data")
+    return was.Map (txs =  was.get ('@myweb/apis/settings'))
 
 
 if __name__ == '__main__':
