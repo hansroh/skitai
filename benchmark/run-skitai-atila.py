@@ -27,9 +27,9 @@ def bench (was):
 def bench_sp (was):
     with was.db ('@mydb') as db:
         root = (db.select ("foo")
+                    .filter (Q (from_wallet_id = 8) | Q (detail = 'ReturnTx'))
                     .order_by ("-created_at")
                     .limit (10)
-                    .filter (Q (from_wallet_id = 8) | Q (detail = 'ReturnTx'))
         )
         ts = was.Tasks (
             root.clone ().execute (),
