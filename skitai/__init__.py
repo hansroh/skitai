@@ -115,7 +115,7 @@ WS_OPCODE_PING = 0x9
 WS_OPCODE_PONG = 0xa
 
 class _WASPool:
-    MAX_CLONES_PER_THREAD = 1024
+    MAX_CLONES_PER_THREAD = 256
 
     def __init__ (self):
         self.__wasc = None
