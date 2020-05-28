@@ -97,11 +97,13 @@ class ThreadExecutor:
                     self.maintern (now)
 
         meta = {}
-        timeout = None
+        timeout, filter = None, None
         if not a:
             try: meta = b.pop ('meta')
             except KeyError: pass
             try: timeout = b.pop ('timeout')
+            except KeyError: pass
+            try: filter = b.pop ('filter')
             except KeyError: pass
             try: a = b.pop ('args')
             except KeyError: pass
@@ -109,7 +111,7 @@ class ThreadExecutor:
 
         meta ['__was_id'] = was_id
         future = self.executor.submit (f, *a, **b)
-        wrap = Task (future, "{}.{}".format (f.__module__, f.__name__), meta = meta)
+        wrap = Task (future, "{}.{}".format (f.__module__, f.__name__), meta = meta, filter = filter)
         timeout and wrap.set_timeout (timeout)
         self.logger ("{} task started: {}".format (self.NAME, wrap))
         with self.lock:

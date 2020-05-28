@@ -36,7 +36,6 @@ async def bench(request):
     )
     return HTTPResponse (tojson ({"txn": [dict (v) for v in values], 'record_count': record_count [0]['cnt']}))
 
-
 @app.route("/bench/mix")
 async def bench_mix(request):
     values, record_count, _ = await asyncio.gather (

@@ -3289,6 +3289,7 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - add 'filter' argument to was.Thread, Process and Subprocess
   - change dependency: ujosn => ujson-ia
   - add app.config.PRETTY_JSON (default is False, 2 spaces indented JSON format)
   - drop support Python 3.5 officially
