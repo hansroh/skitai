@@ -8,7 +8,7 @@ import json
 
 app = Atila (__name__)
 
-SLEEP = 0.03
+SLEEP = 0.3
 
 @app.route ("/status")
 def status (was, f = None):
@@ -34,7 +34,7 @@ def bench_mix (was):
         )
 
 
-# tests ------------------------------------------------
+# pilots ------------------------------------------------
 @app.route ("/bench/sp", methods = ['GET'])
 def bench_sp (was):
     with was.db ('@mydb') as db:

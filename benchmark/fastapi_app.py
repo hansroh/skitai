@@ -6,7 +6,6 @@ import asyncio
 import os
 
 app = FastAPI()
-
 pool = None
 @app.on_event("startup")
 async def startup():

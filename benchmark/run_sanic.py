@@ -11,7 +11,7 @@ import concurrent
 
 app = Sanic(__name__)
 
-SLEEP = 0.03
+SLEEP = 0.3
 
 pool = None
 executor = concurrent.futures.ThreadPoolExecutor(max_workers = 4)
