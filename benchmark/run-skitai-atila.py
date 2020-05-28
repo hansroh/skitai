@@ -14,6 +14,8 @@ SLEEP = 0.03
 def status (was, f = None):
     return was.status (f)
 
+
+# official ---------------------------------------------
 @app.route ("/bench", methods = ['GET'])
 def bench (was):
     with was.db ('@mydb') as db:
@@ -22,6 +24,17 @@ def bench (was):
             record_count__cnt = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
         )
 
+@app.route ("/bench/mix", methods = ['GET'])
+def bench_mix (was):
+    with was.db ('@mydb') as db:
+        return was.Map (
+            was.Thread (time.sleep, args = (SLEEP,)),
+            txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
+            record_count__cnt = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
+        )
+
+
+# tests ------------------------------------------------
 @app.route ("/bench/sp", methods = ['GET'])
 def bench_sp (was):
     with was.db ('@mydb') as db:
@@ -44,17 +57,10 @@ def bench2 (was):
             db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
         )
     txs, aggr = ts.fetch ()
-    return was.API (txs =  txs, record_count = aggr [0].cnt)
-
-
-@app.route ("/bench/mix", methods = ['GET'])
-def bench_mix (was):
-    with was.db ('@mydb') as db:
-        return was.Map (
-            was.Thread (time.sleep, args = (SLEEP,)),
-            txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
-            record_count__cnt = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
-        )
+    return was.API (
+        txs =  txs,
+        record_count = aggr [0].cnt
+    )
 
 @app.route ("/bench/mix/2", methods = ['GET'])
 def bench_mix1 (was):
@@ -74,13 +80,16 @@ def bench_mix1 (was):
 @app.route ("/bench/one", methods = ['GET'])
 def bench_one (was):
     with was.db ('@mydb') as db:
-        return was.Map (txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''))
+        return was.Map (
+            txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''')
+        )
 
 @app.route ("/bench/one/2", methods = ['GET'])
 def bench_one2 (was):
     with was.db ('@mydb') as db:
-        t = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''')
-    return was.API (txs = t.fetch ())
+        return was.API (
+            txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''').fetch ()
+        )
 
 
 @app.route ("/bench/http", methods = ['GET'])
