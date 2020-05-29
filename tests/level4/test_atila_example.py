@@ -8,6 +8,30 @@ def test_launch (launch):
         return
 
     with launch (serve) as engine:
+        resp = engine.axios.get ('/apis/sp_map')
+        assert resp.status_code == 210
+        assert ".py" in resp.data ['a']
+
+        resp = engine.axios.get ('/apis/th_map')
+        assert resp.status_code == 210
+        assert "PYTEST_CURRENT_TEST" in resp.data ['a']
+
+        for url in ("/apis/mixing", "/apis/mixing_map", "/apis/mixing_taskmap"):
+            resp = engine.axios.get (url)
+            assert resp.status_code == 200
+            assert 'a' in resp.data
+            assert 'b' in resp.data
+            if url == "/apis/mixing":
+                assert resp.data ['c'] == None
+                assert resp.data ['d'] == None
+            else:
+                assert 'c' not in resp.data
+                assert 'd' not in resp.data
+
+            assert 'rs4' in resp.data ['b']
+            assert isinstance (resp.data ['a'], list)
+            assert '.py' in resp.data ['f']
+
         ws = engine.websocket ("/websocket/echo")
         ws.send ("Hello, World")
         result =  ws.recv()
@@ -46,30 +70,6 @@ def test_launch (launch):
         assert resp.status_code == 200
         assert 'result' in resp.data
         assert 'serve.py' in resp.data ['result']
-
-        resp = engine.axios.get ('/apis/sp_map')
-        assert resp.status_code == 210
-        assert ".py" in resp.data ['a']
-
-        resp = engine.axios.get ('/apis/th_map')
-        assert resp.status_code == 210
-        assert "PYTEST_CURRENT_TEST" in resp.data ['a']
-
-        for url in ("/apis/mixing", "/apis/mixing_map"):
-            resp = engine.axios.get (url)
-            assert resp.status_code == 200
-            assert 'a' in resp.data
-            assert 'b' in resp.data
-            if url == "/apis/mixing":
-                assert resp.data ['c'] == None
-                assert resp.data ['d'] == None
-            else:
-                assert 'c' not in resp.data
-                assert 'd' not in resp.data
-
-            assert 'rs4' in resp.data ['b']
-            assert isinstance (resp.data ['a'], list)
-            assert '.py' in resp.data ['f']
 
         for i in range (4):
             resp2 = engine.axios.get ('/apis/thread{}'.format (i % 2 == 1 and 2 or ''))

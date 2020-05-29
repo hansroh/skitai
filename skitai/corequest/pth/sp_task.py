@@ -28,7 +28,7 @@ class Task (task.Task):
     def _settle (self, future = None):
         if self._fulfilled:
             mask = self._create_mask (0)
-            if self._meta.get ('__reqid'):
+            if '__reqid' in self._meta:
                 self._fulfilled (mask)
                 self._fulfilled = None
             else:

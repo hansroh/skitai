@@ -9,11 +9,12 @@ from skitai import NORMAL
 import warnings
 
 class TaskBase (corequest):
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None, **attr):
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None, keys = None):
         assert isinstance (reqs, (list, tuple))
         self._reqs = reqs
         self._timeout = timeout
         self._meta = self.meta = meta or {}
+        self._keys = keys
         self._was = was
 
         for req in reqs:
@@ -22,29 +23,47 @@ class TaskBase (corequest):
                 break
 
         self._init_time = time.time ()
-        self._attr = attr
-        self.warn_deprecated ()
 
     def count (self):
         return len (self._reqs)
 
-    def warn_deprecated (self):
-        if self._attr:
-            warnings.warn (
-                "{}'s keyword arguments will be deprecated, use `meta` argument".format (self.__class__.__name__),
-                DeprecationWarning
-            )
+    def dict (self):
+        keys = self._keys
+        results = self.fetch ()
+        if self.count () == 1 and not isinstance (results, (list, tuple)):
+            results = [results]
 
-    def __getattr__ (self, name):
-        try:
-            return self._attr [name]
-        except KeyError:
-            raise AttributeError ("{} cannot found".format (name))
+        data = {}
+        for idx, key in enumerate (keys):
+            if key is None:
+                continue
+            keydata = results [idx]
+            method, field = 'fetch', None
+            option = key.split ('__')
+            if len (option) == 3:
+                key, method, field = option
+                if method  != 'one':
+                    raise RuntimeError ('must be `one` for specifying field')
+            elif len (option) == 2:
+                key, method = option
+                if method not in ('one', 'fetch'):
+                    field, method = method, 'one'
+
+            if method == 'one':
+                if len (keydata) == 0:
+                    raise was.Error ('410 Partial Not Found')
+                if len (keydata) > 1:
+                    raise was.Error ('409 Conflict')
+                keydata = keydata [0]
+                if field:
+                    keydata = keydata [field]
+            data [key] = keydata
+        return data
 
 
 class Tasks (TaskBase):
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None, **attr):
-        TaskBase.__init__ (self, reqs, timeout, meta, **attr)
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None, keys = None):
+        TaskBase.__init__ (self, reqs, timeout, meta, keys)
         self._results = []
 
     def __iter__ (self):
@@ -111,20 +130,19 @@ class Tasks (TaskBase):
         [r.cache (cache, cache_if) for r in self.results]
 
     def then (self, func):
-        return Futures (self._reqs, self._timeout, self.meta, **self._attr).then (func)
+        return Futures (self._reqs, self._timeout, self.meta, self._keys).then (func)
 
 
 class Mask (response, TaskBase):
-    def __init__ (self, data = None, _expt = None, _status_code = None, meta = None, **attr):
+    def __init__ (self, data = None, _expt = None, _status_code = None, meta = None, keys = None):
         self._expt = _expt
         self._data = data
         self._meta = self.meta = meta or {}
         self.status = NORMAL
         self.status_code = _status_code or (_expt and 500 or 200)
         self._timeout = DEFAULT_TIMEOUT
-        self._attr = attr
+        self._keys = keys
         self._was = was
-        TaskBase.warn_deprecated (self)
 
     def set_callback (self, func, reqid = None, timeout = None):
         if reqid is not None:
@@ -158,8 +176,8 @@ class Mask (response, TaskBase):
 
 # completed future(s) ----------------------------------------------------
 class CompletedTasks (response, Tasks):
-    def __init__ (self, reqs, meta, **attr):
-        Tasks.__init__ (self, reqs, DEFAULT_TIMEOUT, meta, **attr)
+    def __init__ (self, reqs, meta, keys):
+        Tasks.__init__ (self, reqs, DEFAULT_TIMEOUT, meta, keys)
 
     def __del__ (self):
         self._reqs = [] #  reak back ref.
@@ -204,10 +222,10 @@ class Revoke:
 
 # future(s) ----------------------------------------------------
 class Futures (TaskBase, Revoke):
-    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None, **attr):
+    def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None, keys = None):
         if isinstance (reqs, Tasks):
             reqs = reqs._reqs
-        TaskBase.__init__ (self, reqs, timeout, meta, **attr)
+        TaskBase.__init__ (self, reqs, timeout, meta, keys)
         self._fulfilled = None
         self._responded = 0
         self._single = False
@@ -216,14 +234,14 @@ class Futures (TaskBase, Revoke):
         self._fulfilled = func
         self._was = self._get_was ()
         for reqid, req in enumerate (self._reqs):
-           req.set_callback (self._collect, reqid, self._timeout)
+            req.set_callback (self._collect, reqid, self._timeout)
         return self
 
     def _collect (self, res):
         self._responded += 1
         if self._responded == len (self._reqs):
             if self._fulfilled:
-                tasks = (self._single and CompletedTask or CompletedTasks) (self._reqs, self.meta, **self._attr)
+                tasks = (self._single and CompletedTask or CompletedTasks) (self._reqs, self.meta, self._keys)
                 self._late_respond (tasks)
             else:
                 self._was.response ("205 No Content", "")
@@ -231,6 +249,6 @@ class Futures (TaskBase, Revoke):
 
 
 class Future (Futures):
-    def __init__ (self, req, timeout = DEFAULT_TIMEOUT, meta = None, **attr):
-        Futures.__init__ (self, [req], timeout, meta, **attr)
+    def __init__ (self, req, timeout = DEFAULT_TIMEOUT, meta = None, keys = None):
+        Futures.__init__ (self, [req], timeout, meta, keys)
         self._single = True

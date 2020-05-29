@@ -16,7 +16,7 @@ from aquests.protocols.http import http_date, util
 from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT, NAME, DEFAULT_BACKGROUND_TASK_TIMEOUT
 from skitai import lifetime
 from . import server_info
-from ..corequest import tasks
+from ..corequest import corequest, tasks
 from ..corequest.pth import sp_task
 from ..backbone import http_response
 from .triple_logger import Logger
@@ -133,10 +133,19 @@ class WASBase:
         return nheader
 
     # concurrencies ----------------------------------------------
-    def Tasks (self, *reqs, timeout = 10, **args):
-        if isinstance (reqs [0], (list, tuple)):
+    def Tasks (self, *reqs, timeout = 10, meta = None, **kreqs):
+        keys = []
+        reqs_ = []
+        if reqs and isinstance (reqs [0], (list, tuple)):
             reqs = reqs [0]
-        return tasks.Tasks (reqs, timeout, **args)
+
+        for k, v in kreqs.items ():
+            keys.append (k)
+            reqs_.append (v)
+        for v in reqs:
+            keys.append (None)
+            reqs_.append (v)
+        return tasks.Tasks (reqs_, timeout, meta, keys)
 
     def Thread (self, target, *args, **kargs):
         # also can be Thread (target, args, kwargs, meta)

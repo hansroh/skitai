@@ -2296,6 +2296,47 @@ Tasks is pack of corequests. It can handle multiple corequests as single one.
     a, b = was.Tasks (reqs, timeout = 3).fetch ()
     return was.API (a = a, b = b)
 
+was.Tasks can be created from variadic parameters.
+
+.. code:: python
+
+  @app.route (...)
+  def request (was):
+    a, b = was.Tasks (
+      was.get (url),
+      was.post (url, {"user": "Hans Roh", "comment": "Hello"})
+      timeout = 3
+    ).fetch ()
+    return was.API (a = a, b = b)
+
+
+Alos can use keyword parameters and dict () method.
+
+.. code:: python
+
+  @app.route (...)
+  def request (was):
+    d = was.Tasks (
+      a = was.get (url),
+      b = was.post (url, {"user": "Hans Roh", "comment": "Hello"})
+    ).dict ()
+    # >> {'a': '<html>...', 'b': '<html>...'}
+    return was.API (d)
+
+dict () will not be include non keyword parametered requests.
+
+.. code:: python
+
+  @app.route (...)
+  def request (was):
+    d = was.Tasks (
+      was.get (url),
+      b = was.post (url, {"user": "Hans Roh", "comment": "Hello"})
+    ).dict ()
+    # >> {'b': '<html>...'}
+    return was.API (d)
+
+
 Tasks is iterable and slicable and returened rs is response
 object (by dispatch ()). You SHOULD check rs.status and
 status_code for validating response, or just use fetch ()
@@ -3289,6 +3330,7 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - add dict () method to was.Tasks
   - add 'filter' argument to was.Thread, Process and Subprocess
   - change dependency: ujosn => ujson-ia
   - add app.config.PRETTY_JSON (default is False, 2 spaces indented JSON format)
