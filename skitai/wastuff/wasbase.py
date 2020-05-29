@@ -155,12 +155,10 @@ class WASBase:
         return self.executors.create_process (self.ID, target, *args, **kargs)
 
     def Subprocess (self, cmd, meta = None, filter = None, timeout = DEFAULT_BACKGROUND_TASK_TIMEOUT):
-        meta = meta or {}
-        meta ['__was_id'] = self.ID
-        return sp_task.Task (cmd, meta, filter, timeout)
+        return sp_task.Task (cmd, self._set_was_id (meta), filter, timeout)
 
-    def Mask (self, data = None, _expt = None, meta = None, **attr):
-        return tasks.Mask (data, _expt, self._set_was_id (meta), **attr)
+    def Mask (self, data = None, _expt = None, _status_code = None, meta = None, keys = None):
+        return tasks.Mask (data, _expt, _status_code, meta = self._set_was_id (meta), keys = keys)
 
     # system functions ----------------------------------------------
     def log (self, msg, category = "info", at = "app"):
