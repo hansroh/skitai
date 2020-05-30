@@ -144,6 +144,7 @@ def loop (timeout = 30.0):
 def lifetime_loop (timeout = 30.0, map = None):
 	global _last_maintern
 	global _maintern_interval
+	global tick_timer
 
 	map = map or asyncore.socket_map
 	while map and _shutdown_phase == 0:
@@ -156,6 +157,8 @@ def lifetime_loop (timeout = 30.0, map = None):
 
 def graceful_shutdown_loop ():
 	global _shutdown_phase
+	global tick_timer
+
 	timestamp = time.time()
 	timeout = 1.0
 	map = asyncore.socket_map
@@ -175,6 +178,7 @@ def graceful_shutdown_loop ():
 
 		if veto and time_in_this_phase < _shutdown_timeout:
 			lifetime.poll_fun_wrap (timeout, map)
+			tick_timer.tick ()
 		else:
 			_shutdown_phase += 1
 			timestamp = time.time()
