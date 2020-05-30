@@ -42,11 +42,12 @@ def test_http3_dup_push (launch):
         return
 
     from aioquic.quic.events import ConnectionTerminated
-    from aquests.protocols.http3.events import ConnectionShutdownInitiated, DuplicatePushReceived
+    from aquests.protocols.http3.events import ConnectionShutdownInitiated
 
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
-        for j in range (7): # need a little lucky
+        pushes = {}
+        for j in range (3): # need a little lucky
             mc = engine.http3.MultiCall ()
             for i in range (3):
                 mc.get ('/promise')
@@ -68,11 +69,13 @@ def test_http3_dup_push (launch):
                 mc.get ('/test')
 
             resps = mc.request ()
-            dup = 0
             for event in mc.control_event_history:
-                if isinstance (event, DuplicatePushReceived):
-                    dup += 1
-            if dup:
-                break
+                if hasattr (event, 'push_id') and event.push_id is not None:
+                    try:
+                        pushes [event.push_id] += 1
+                    except KeyError:
+                        pushes [event.push_id] = 1
 
-        assert dup
+        assert len (pushes) == 8
+        for k, v in pushes.items ():
+            assert v == 9

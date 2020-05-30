@@ -148,7 +148,7 @@ AIOQUIC_REQUIRED = (0, 9)
 
 def init_context (certfile, keyfile, pass_phrase):
     import aioquic
-    assert tuple (map (int, aioquic.__version__.split (".") [:2])) >= AIOQUIC_REQUIRED, "aioquic version >= {} required".format (".".join (AIOQUIC_REQUIRED))
+    assert tuple (map (int, aioquic.__version__.split (".") [:2])) >= AIOQUIC_REQUIRED, "aioquic version >= {} required".format (".".join (map (str, AIOQUIC_REQUIRED)))
     from aioquic.h3.connection import H3_ALPN
     from aioquic.quic.configuration import QuicConfiguration
     import ssl
@@ -157,4 +157,3 @@ def init_context (certfile, keyfile, pass_phrase):
     ctx.load_cert_chain (certfile, keyfile, pass_phrase)
     ctx.verify_mode = ssl.CERT_NONE
     return ctx
-

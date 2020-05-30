@@ -115,7 +115,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
     def _handle_events (self, events):
         for event in events:
             if isinstance (event, HeadersReceived):
-                created = self.handle_request (event.stream_id, event.headers, has_data_frame = not event.stream_ended, push_id = event.push_id)
+                created = self.handle_request (event.stream_id, event.headers, has_data_frame = not event.stream_ended)
                 if created:
                     r = self.get_request (event.stream_id)
                     if event.stream_ended:
@@ -225,48 +225,28 @@ class http3_request_handler (http2_handler.http2_request_handler):
     def pushable (self):
         return self.request_acceptable ()
 
-    def _maybe_duplicated (self, stream_id, headers):
-        path = None
-        for k, v in headers:
-            if k [0] != 58: break
-            elif k == b':path':
-                path = v.decode ()
-            elif k == b':method' and v != b"GET":
-                return False
-        assert path, ':path is missing'
-
-        with self._clock:
-            push_id = self._pushed_pathes.get (path)
-            if push_id is None or push_id not in self._push_map:
-                return False
-
-        with self._plock:
-            self.conn.send_duplicate_push (stream_id, push_id)
-        return True
-
-    def handle_request (self, stream_id, headers, has_data_frame = False, push_id = None):
-        if push_id is None:
-            with self._clock:
-                pushing = len (self._pushed_pathes)
-            if pushing and self._maybe_duplicated (stream_id, headers):
-                return False
-        return super ().handle_request (stream_id, headers, has_data_frame)
-
     def push_promise (self, stream_id, request_headers, addtional_request_headers):
         name_, path = request_headers [0]
         assert name_ == ':path', ':path header missing'
         headers = [(k.encode (), v.encode ()) for k, v in request_headers + addtional_request_headers]
         try:
             promise_stream_id = self.conn.send_push_promise (stream_id = stream_id, headers = headers)
+        except NoAvailablePushIDError:
+            return
+
+        with self._clock:
+            push_id = self._pushed_pathes.get (path)
+
+        if push_id is None:
             try:
                 push_id = self.conn.get_push_id (promise_stream_id)
             except AttributeError:
                 push_id = self.conn._next_push_id - 1
-        except NoAvailablePushIDError:
-            return
-        with self._clock:
-            self._push_map [push_id] = promise_stream_id
-            self._pushed_pathes [path] = push_id
+
+            with self._clock:
+                self._push_map [push_id] = promise_stream_id
+                self._pushed_pathes [path] = push_id
+
         self._handle_events ([HeadersReceived (headers = headers, stream_ended = True, stream_id = promise_stream_id, push_id = push_id)])
 
 
