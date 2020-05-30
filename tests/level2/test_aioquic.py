@@ -30,10 +30,10 @@ if sys.version_info >= (3, 6):
     SERVER_ADDR = ("2.3.4.5", 4433)
 
 #----------------------------------------------------
-def make_connection ():
+def make_connection (original_destination_connection_id):
     server_configuration = QuicConfiguration(is_client=False)
     server_configuration.load_cert_chain(SERVER_CERTFILE, SERVER_KEYFILE)
-    quic = QuicConnection(configuration=server_configuration)
+    quic = QuicConnection(configuration=server_configuration, original_destination_connection_id = original_destination_connection_id)
     quic._ack_delay = 0
     return h3.H3Connection (quic)
 
@@ -56,8 +56,7 @@ def test_tls ():
         './examples/resources/certifications/server.key',
         "fatalbug"
     )
-    print (ctx.alpn_protocols)
-    assert 'h3-26' in ctx.alpn_protocols
+    assert 'h3-28' in ctx.alpn_protocols
     assert ctx.verify_mode == ssl.VerifyMode.CERT_NONE
 
 def test_quic_compatibility ():
@@ -70,7 +69,7 @@ def test_quic_compatibility ():
     assert datagram_sizes(items) == [1280]
     assert client.get_timer() == 1.0
 
-    conn = make_connection ()
+    conn = make_connection (client.original_destination_connection_id)
     quic = conn._quic
     now = 1.1
     quic.receive_datagram(items[0][0], CLIENT_ADDR, now=now)

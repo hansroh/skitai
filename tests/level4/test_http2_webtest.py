@@ -16,7 +16,7 @@ def test_http2 (launch):
         assert resp.text == 'hello'
 
         if sys.version_info >= (3, 6):
-            assert 'h3-25=":30371"; ma=86400' in resp.headers ['alt-svc']
+            assert '=":30371"; ma=86400' in resp.headers ['alt-svc']
 
         resp = engine.http2.get ('/hello?num=2')
         assert resp.text == 'hello\nhello'

@@ -32,8 +32,11 @@ class http3_channel (https_server.https_channel, http_server.http_channel):
         return self._writable_with_protocol ()
 
     def handle_write (self):
+        # https://github.com/aiortc/aioquic/blob/master/src/aioquic/asyncio/protocol.py
+        # transmit (self)
         written = self._handle_write_with_protocol ()
         if written and self.protocol:
+            # re-arm timer
             timer_at = self.protocol.get_timer()
             if self._timer_id is not None and self._timer_at != timer_at:
                 tick_timer.cancel (self._timer_id)
@@ -43,6 +46,8 @@ class http3_channel (https_server.https_channel, http_server.http_channel):
             self._timer_at = timer_at
 
     def handle_timer (self):
+        # https://github.com/aiortc/aioquic/blob/master/src/aioquic/asyncio/protocol.py
+        # _handle_timer (self)
         if not self.current_request:
             return
         now = max (self._timer_at, time.monotonic ())
@@ -139,8 +144,11 @@ class http3_server (http_server.http_server):
         if data:
             http3_channel (self, data, addr)
 
+AIOQUIC_REQUIRED = (0, 9)
 
 def init_context (certfile, keyfile, pass_phrase):
+    import aioquic
+    assert tuple (map (int, aioquic.__version__.split (".") [:2])) >= AIOQUIC_REQUIRED, "aioquic version >= {} required".format (".".join (AIOQUIC_REQUIRED))
     from aioquic.h3.connection import H3_ALPN
     from aioquic.quic.configuration import QuicConfiguration
     import ssl

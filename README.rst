@@ -1775,19 +1775,21 @@ Pushing promise is just same as HTTP/2.0.
 Testing HTTP/3
 ``````````````````````
 
-You can test HTTP/3.0 with `Chrome Canary`_ build.
+You can test HTTP/3.0 with Chrome.
 
-You have to run Chrome Canary with command line options,
+On Chrome address, type 'chrome://flags/' and find 'quic'. Then
+enable 'Experimental QUIC protocol'.
+
+You have to run Chrome with command line options,
 
 .. code:: bash
 
-   chrome.exe --enable-quic --quic-version=h3-25
+   chrome.exe --quic-version=h3-25
 
 At your browser's developer window, you can see protocol as
 *h3-25* during you loading your web page and files.
 
 .. _aioquic: https://github.com/aiortc/aioquic
-.. _`Chrome Canary`: https://www.google.com/intl/ko_ALL/chrome/canary/
 
 
 HTML5 Websocket
@@ -3330,6 +3332,7 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - from version 0.35.2. required aioquic>=0.9 if you need HTTP/3
   - add dict () method to was.Tasks
   - add 'filter' argument to was.Thread, Process and Subprocess
   - change dependency: ujosn => ujson-ia

@@ -51,6 +51,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
             self.send_data ()
 
     def _make_connection (self, channel, data):
+        # https://github.com/aiortc/aioquic/commits/master/src/aioquic/asyncio/server.py
         ctx = channel.server.ctx
 
         buf = Buffer (data=data)
@@ -79,28 +80,32 @@ class http3_request_handler (http2_handler.http2_request_handler):
         if header.packet_type != PACKET_TYPE_INITIAL or len (data) < 1200:
             return
 
-        original_connection_id = None
+        original_destination_connection_id = None
+        retry_source_connection_id = None
         if self._retry is not None:
+            source_cid = os.urandom(8)
             if not header.token:
                 # create a retry token
                 channel.push (
                     encode_quic_retry (
                         version = header.version,
-                        source_cid = os.urandom (8),
+                        source_cid = source_cid,
                         destination_cid = header.source_cid,
                         original_destination_cid = header.destination_cid,
-                        retry_token = self._retry.create_token (channel.addr, header.destination_cid)))
+                        retry_token = self._retry.create_token (channel.addr, header.destination_cid, source_cid)))
                 return
             else:
                 try:
-                    original_connection_id = self._retry.validate_token (channel.addr, header.token)
+                    original_destination_connection_id, retry_source_connection_id = self._retry.validate_token (channel.addr, header.token)
                 except ValueError:
                     return
+        else:
+            original_destination_connection_id = header.destination_cid
 
         self.quic = QuicConnection (
             configuration = ctx,
-            logger_connection_id = original_connection_id or header.destination_cid,
-            original_connection_id = original_connection_id,
+            original_destination_connection_id = original_destination_connection_id,
+            retry_source_connection_id = retry_source_connection_id,
             session_ticket_fetcher = channel.server.ticket_store.pop,
             session_ticket_handler = channel.server.ticket_store.add
         )
