@@ -28,7 +28,7 @@ class TaskBase (corequest):
     def dict (self):
         keys = self._keys
         if keys is None:
-            raise AttributeError
+            raise AttributeError ('keys paramenter is not defined')
 
         results = self.dispatch ()
         if self.count () == 1 and not isinstance (results, (list, tuple)):
@@ -38,35 +38,23 @@ class TaskBase (corequest):
         for idx, key in enumerate (keys):
             if key is None:
                 continue
-            result = results [idx]
             method, field = 'fetch', None
             option = key.split ('__')
             if len (option) == 3:
                 key, method, field = option
-                if method  != 'one':
-                    raise RuntimeError ('must be `one` for specifying field')
+                if method not in  ('dict', 'one'):
+                    raise RuntimeError ('must be `one` or `dict` for specifying field')
             elif len (option) == 2:
                 key, method = option
-                if method not in ('one', 'fetch'):
+                if method not in ('one', 'fetch', 'dict'):
                     field, method = method, 'one'
 
-            if method == 'one':
-                keydata = result.fetch ()
-                if len (keydata) == 0:
-                    raise was.Error ('410 Partial Not Found')
-                if len (keydata) > 1:
-                    raise was.Error ('409 Conflict')
-                keydata = keydata [0]
-                if field:
-                    keydata = keydata [field]
-            else:
-                try:
-                    keydata = result.dict ()
-                except AttributeError:
-                    keydata = result.fetch ()
-
+            result = results [idx]
+            keydata = getattr (result, method) ()
+            if field:
+                keydata = keydata [field]
             data [key] = keydata
-        return data
+        return AttrDict (data)
 
 
 class Tasks (TaskBase):
