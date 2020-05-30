@@ -78,4 +78,7 @@ def test_http3_dup_push (launch):
 
         assert len (pushes) == 8
         for k, v in pushes.items ():
-            assert v >= 1
+            if IS_PYPY: # why?
+                assert v
+            else:
+                assert v == 9

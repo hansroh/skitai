@@ -82,8 +82,8 @@ class Task (corequest):
     def one (self, cache = None, cache_if = (200,), timeout = DEFAULT_TIMEOUT):
         return self._create_mask (timeout).one ()
 
-    def commit (self, timeout = DEFAULT_TIMEOUT):
+    def commit (self, cache = None, cache_if = (200,), timeout = DEFAULT_TIMEOUT):
         return self._create_mask (timeout).commit ()
 
-    def dispatch (self, timeout = DEFAULT_TIMEOUT):
+    def dispatch (self, cache = None, cache_if = (200,), timeout = DEFAULT_TIMEOUT):
         return self._create_mask (timeout)

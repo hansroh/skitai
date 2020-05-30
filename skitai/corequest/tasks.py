@@ -16,12 +16,10 @@ class TaskBase (corequest):
         self._meta = self.meta = meta or {}
         self._keys = keys
         self._was = was
-
         for req in reqs:
             if req._meta:
                 self.meta ['__was_id'] = req._meta ['__was_id']
                 break
-
         self._init_time = time.time ()
 
     def count (self):
@@ -29,7 +27,10 @@ class TaskBase (corequest):
 
     def dict (self):
         keys = self._keys
-        results = self.fetch ()
+        if keys is None:
+            raise AttributeError
+
+        results = self.dispatch ()
         if self.count () == 1 and not isinstance (results, (list, tuple)):
             results = [results]
 
@@ -37,7 +38,7 @@ class TaskBase (corequest):
         for idx, key in enumerate (keys):
             if key is None:
                 continue
-            keydata = results [idx]
+            result = results [idx]
             method, field = 'fetch', None
             option = key.split ('__')
             if len (option) == 3:
@@ -50,6 +51,7 @@ class TaskBase (corequest):
                     field, method = method, 'one'
 
             if method == 'one':
+                keydata = result.fetch ()
                 if len (keydata) == 0:
                     raise was.Error ('410 Partial Not Found')
                 if len (keydata) > 1:
@@ -57,6 +59,12 @@ class TaskBase (corequest):
                 keydata = keydata [0]
                 if field:
                     keydata = keydata [field]
+            else:
+                try:
+                    keydata = result.dict ()
+                except AttributeError:
+                    keydata = result.fetch ()
+
             data [key] = keydata
         return data
 
