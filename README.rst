@@ -3332,7 +3332,7 @@ Change Log
 
 - 0.35 (Feb 2020)
 
-  - from version 0.35.2. required aioquic>=0.9 if you need HTTP/3
+  - from version 0.35.2, required aioquic>=0.9 if you need HTTP/3
   - add dict () method to was.Tasks
   - add 'filter' argument to was.Thread, Process and Subprocess
   - change dependency: ujosn => ujson-ia
