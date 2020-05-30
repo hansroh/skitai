@@ -38,14 +38,14 @@ def bench_mix (was):
 @app.route ("/bench/sp", methods = ['GET'])
 def bench_sp (was):
     with was.db ('@mydb') as db:
-        root = (db.select ("foo")
+        q = (db.select ("foo")
                     .filter (Q (from_wallet_id = 8) | Q (detail = 'ReturnTx'))
                     .order_by ("-created_at")
                     .limit (10)
         )
         return was.Map (
-            txs = root.execute (),
-            record_count__cnt = root.aggregate ('count (id) as cnt').execute ()
+            txs = q.execute (),
+            record_count__cnt = q.aggregate ('count (id) as cnt').execute ()
         )
 
 
