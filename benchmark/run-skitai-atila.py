@@ -44,8 +44,8 @@ def bench_sp (was):
                     .limit (10)
         )
         return was.Map (
-            txs = root.clone ().execute (),
-            record_count__cnt = root.clone ().aggregate ('count (id) as cnt').execute ()
+            txs = root.execute (),
+            record_count__cnt = root.aggregate ('count (id) as cnt').execute ()
         )
 
 
