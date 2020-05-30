@@ -78,4 +78,4 @@ def test_http3_dup_push (launch):
 
         assert len (pushes) == 8
         for k, v in pushes.items ():
-            assert v >= 7
+            assert v >= 1
