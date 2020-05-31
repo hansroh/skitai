@@ -12,6 +12,10 @@ def test_launch (launch):
         assert resp.status_code == 210
         assert ".py" in resp.data ['a']
 
+        resp = engine.axios.get ('/apis/sp_mapped')
+        assert resp.status_code == 210
+        assert ".py" in resp.data ['a']
+
         resp = engine.axios.get ('/apis/th_map')
         assert resp.status_code == 210
         assert "PYTEST_CURRENT_TEST" in resp.data ['a']

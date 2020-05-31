@@ -24,6 +24,11 @@ def render_or_API (was):
 def render_or_Map (was):
     return was.render_or_Map ("documentation.html", content = was.Mask ('render'))
 
+@app.route ("/render_or_Mapped")
+def render_or_Mapped (was):
+    tasks = was.Tasks (content = was.Mask ('render'))
+    return was.render_or_Mapped ("documentation.html", tasks)
+
 @app.route ("/reindeer")
 def static (was):
     return was.Static ('/img/reindeer.jpg')
