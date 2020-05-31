@@ -72,13 +72,14 @@ class http_channel (asynchat.async_chat):
         return self.producer_fifo or (self.current_request and self.current_request.has_sendables ())
 
     def _handle_write_with_protocol (self):
-        data_to_send = self.current_request.data_to_send ()
-        written = False
-        for data in data_to_send:
-            written = True
-            self.push (data)
+        try:
+            data_to_send = self.current_request.data_to_send ()
+        except AttributeError:
+            # self.current_request is None
+            return False
+        [self.push (data) for data in data_to_send]
         super ().handle_write ()
-        return written
+        return True if data_to_send else False
 
     def use_sendlock (self):
         self.__sendlock  = threading.Lock ()
