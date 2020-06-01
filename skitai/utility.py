@@ -28,14 +28,8 @@ def make_pushables (response, content):
     if isinstance (content [0], executors.Task):
         return
 
-    if response ["content-type"] is None:
-        response ["Content-Type"] = "text/html"
-
     will_be_push = []
-    if len (response) == 0:
-        content_length = 0
-    else:
-        content_length = None
+    content_length = 0 if len (response) == 0 else None
 
     for part in content:
         # like Django response
@@ -47,6 +41,8 @@ def make_pushables (response, content):
         if isinstance (part, API):
             response.update ("Content-Type", part.get_content_type ())
             part = part.to_string ().encode ("utf8")
+            if content_length is not None:
+                content_length += len (part)
             will_be_push.append (part)
 
         elif type_of_part in (bytes, str):
@@ -84,6 +80,8 @@ def make_pushables (response, content):
             else:
                 raise AssertionError ("Unsupported response object")
 
+    if response ["content-type"] is None:
+        response ["Content-Type"] = "text/html"
     if content_length is not None:
         response ["Content-Length"] = content_length
 

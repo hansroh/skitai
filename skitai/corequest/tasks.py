@@ -12,6 +12,8 @@ class TaskBase (corequest):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None, keys = None):
         assert isinstance (reqs, (list, tuple))
         self._reqs = reqs
+        self._req_count = len (reqs)
+        self._finished = False
         self._timeout = timeout
         self._meta = self.meta = meta or {}
         self._keys = keys
@@ -22,16 +24,17 @@ class TaskBase (corequest):
                 break
         self._init_time = time.time ()
 
-    def count (self):
-        return len (self._reqs)
+    def _count (self):
+        with self._was.cv:
+            return 0 if self._finished else len (self._reqs)
 
     def dict (self):
         keys = self._keys
         if keys is None:
             raise AttributeError ('keys paramenter is not defined')
 
-        results = self.dispatch ()
-        if self.count () == 1 and not isinstance (results, (list, tuple)):
+        results = self._reqs
+        if self._req_count == 1 and not isinstance (results, (list, tuple)):
             results = [results]
 
         data = {}
@@ -100,6 +103,9 @@ class Tasks (TaskBase):
         self._timeout = -1
         for req in _reqs:
             req.reset_timeout (-1, None)
+
+        with self._was.cv:
+            self._finished = True
 
     #------------------------------------------------------
     def dispatch (self, cache = None, cache_if = (200,), timeout = None):
@@ -174,6 +180,7 @@ class Mask (response, TaskBase):
 class CompletedTasks (response, Tasks):
     def __init__ (self, reqs, meta, keys):
         Tasks.__init__ (self, reqs, DEFAULT_TIMEOUT, meta, keys)
+        self._finished = True
 
     def __del__ (self):
         self._reqs = [] #  reak back ref.

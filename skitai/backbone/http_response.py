@@ -254,7 +254,11 @@ class http_response:
                 raise exc_info [1]
             raise RuntimeError (str (why))
 
-        is_html_response = self.request.get_header ('accept', '').find ("text/html") != -1
+        is_html_response = False
+        if self.reply_code == 406 or self.request.get_header ('accept', '').find ("text/html") != -1:
+            is_html_response = True
+            self.update ('Content-Type', 'text/html')
+
         error = {
             'code': self.reply_code,
             'errno': errno,

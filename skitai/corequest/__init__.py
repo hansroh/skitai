@@ -48,8 +48,6 @@ class corequest:
 
         try:
             for part in will_be_push:
-                if len (will_be_push) == 1 and type (part) is bytes and len (response) == 0:
-                    response.update ("Content-Length", len (part))
                 response.push (part)
             response.done ()
 
@@ -76,9 +74,6 @@ class corequest:
     def returning (self, returning):
         # coreauest.then (callback).returning ("201 Created")
         return returning
-
-    def count (self):
-        return 1
 
     # implementables --------------------------------------
     def then (self, func):

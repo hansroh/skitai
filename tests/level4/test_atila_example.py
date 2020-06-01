@@ -1,5 +1,7 @@
 import pytest
 import os, sys
+from pprint import pprint
+
 is_pypy = '__pypy__' in sys.builtin_module_names
 
 def test_launch (launch):
@@ -8,6 +10,14 @@ def test_launch (launch):
         return
 
     with launch (serve) as engine:
+        resp = engine.axios.get ("/apis/mixing_nested_taskmap")
+        assert resp.status_code == 200
+        assert 'a' in resp.data
+        assert 'b' in resp.data
+        assert 'nested' in resp.data
+        assert 'e' in resp.data ['nested']
+        assert 'f' in resp.data ['nested']
+
         resp = engine.axios.get ('/apis/sp_map')
         assert resp.status_code == 210
         assert ".py" in resp.data ['a']

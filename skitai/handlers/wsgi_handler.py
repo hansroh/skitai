@@ -268,23 +268,19 @@ class Job:
 			if will_be_push is None: # not responsible or futures
 				return
 
-			is_simple_content = len (will_be_push) == 1 and type (will_be_push [0]) is bytes and len (response) == 0
+			range_ = len (will_be_push) == 1 and response.get_header ('content-length') and response.reply_code == 200 and self.request.get_header ('range')
 			for part in will_be_push:
-				if is_simple_content:
-					response.update ("Content-Length", len (part))
-					if response.reply_code == 200:
-						range_ = self.request.get_header ('range')
-						if range_:
-							part_length = len (part)
-							try:
-								rg_start, rg_end = parse_range (range_, part_length)
-							except:
-								trigger.wakeup (lambda p = response, d=self.apph.debug and sys.exc_info () or None: (p.error (416, "Range Not Satisfiable", d), p.done ()) )
-								return
-							part = part [rg_start : rg_end + 1]
-							response.set_reply ("206 Partial Content")
-							response.update ('Content-Range', 'bytes {}-{}/{}'.format (rg_start, rg_end, part_length))
-							response.update ("Content-Length", (rg_end - rg_start) + 1)
+				if range_:
+					part_length = len (part)
+					try:
+						rg_start, rg_end = parse_range (range_, part_length)
+					except:
+						trigger.wakeup (lambda p = response, d=self.apph.debug and sys.exc_info () or None: (p.error (416, "Range Not Satisfiable", d), p.done ()) )
+						return
+					part = part [rg_start : rg_end + 1]
+					response.set_reply ("206 Partial Content")
+					response.update ('Content-Range', 'bytes {}-{}/{}'.format (rg_start, rg_end, part_length))
+					response.update ("Content-Length", (rg_end - rg_start) + 1)
 				response.push (part)
 			trigger.wakeup (lambda p = response: (p.done (),))
 

@@ -88,9 +88,13 @@ class WASBase:
 
         # cloning
         for attr in ('request', 'app', 'apps', 'subapp', 'response'):
-            try: val = getattr (self, attr)
-            except AttributeError: pass
-            else: setattr (new_was, attr, val)
+            try:
+                val = getattr (self, attr)
+            except AttributeError:
+                try: delattr (new_was, attr)
+                except AttributeError: pass
+            else:
+                setattr (new_was, attr, val)
         return new_was
 
     @property

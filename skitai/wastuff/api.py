@@ -9,6 +9,7 @@ from xmlrpc import client
 from ..utility import catch
 import copy
 from datetime import timezone, datetime, date
+from ..exceptions import HTTPError
 
 TZ_LOCAL = datetime.now (timezone.utc).astimezone().tzinfo
 TZ_UTC = timezone.utc
@@ -91,9 +92,9 @@ class APIResponse:
 		return self.to_string ()
 
 	def set_content_type (self, content_type):
-		if not content_type.startswith ("text/xml"):
-			content_type = 'application/json'
-		return content_type
+		if content_type.find ("text/xml") != -1:
+			return "text/xml"
+		return 'application/json'
 
 	def set_json_encoder (self, encoder, pretty = True):
 		self.pretty = pretty
@@ -160,7 +161,7 @@ class API (APIResponse):
 	def __init__ (self, request, data = None):
 		self.request = request # for response typing
 		self.data = data or {}
-		self.content_type = self.set_content_type (self.request.get_header ("accept", 'application/json'))
+		self.content_type = self.set_content_type (self.request.get_header ("accept", ''))
 		self.data_encoder_class = None
 		self.pretty = False
 
