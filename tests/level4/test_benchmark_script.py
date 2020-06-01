@@ -3,6 +3,8 @@ import os, sys
 is_pypy = '__pypy__' in sys.builtin_module_names
 
 def test_launch (launch):
+    if is_pypy:
+        return
     serve = '../benchmark/run-skitai-atila.py'
     with launch (serve) as engine:
         resp = engine.axios.get ('/bench')

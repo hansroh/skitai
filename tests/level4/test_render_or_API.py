@@ -15,8 +15,8 @@ def test_selective (launch):
         assert 'text/html' in resp.headers ['content-type']
 
 
-def test_selective2 (launch):
-    with launch ("./examples/app2.py") as engine:
+# def test_selective2 (launch):
+#     with launch ("./examples/app2.py") as engine:
         resp = engine.get ('/render_or_Map')
         assert 'text/html' in resp.headers ['content-type']
         resp = engine.get ('/render_or_Map', headers = {'Accept': 'application/json, */*'})
@@ -27,8 +27,8 @@ def test_selective2 (launch):
         assert 'text/html' in resp.headers ['content-type']
 
 
-def test_selective3 (launch):
-    with launch ("./examples/app2.py") as engine:
+# def test_selective3 (launch):
+#     with launch ("./examples/app2.py") as engine:
         resp = engine.get ('/render_or_Mapped')
         assert 'text/html' in resp.headers ['content-type']
         resp = engine.get ('/render_or_Mapped', headers = {'Accept': 'application/json'})
