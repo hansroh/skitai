@@ -60,11 +60,10 @@ class http_channel (asynchat.async_chat):
         self.in_buffer = b''
         self.creation_time = int (time.time())
         self.event_time = int (time.time())
-        self.__history = []
-        self.__sendlock = None
         self.producers_attend_to = []
         self.things_die_with = []
-        self.multi_threaded and self.use_sendlock ()
+        self.__sendlock  = threading.Lock ()
+        self.__history = []
 
     def link_protocol_writer (self):
         self.writable = self._writable_with_protocol
@@ -83,25 +82,11 @@ class http_channel (asynchat.async_chat):
         super ().handle_write ()
         return True if data_to_send else False
 
-    def use_sendlock (self):
-        self.__sendlock  = threading.Lock ()
-        self.initiate_send = self._initiate_send_ts
-
     def get_history (self):
         return self.__history
 
     def reject (self):
         self.is_rejected = True
-
-    def _initiate_send_ts (self):
-        with self.__sendlock:
-            asynchat.async_chat.initiate_send (self)
-            try:
-                is_working = self.producer_fifo.working ()
-            except AttributeError:
-                is_working = len (self.producer_fifo)
-        if not is_working:
-            self.done_request ()
 
     def initiate_send (self):
         asynchat.async_chat.initiate_send (self)
@@ -111,6 +96,22 @@ class http_channel (asynchat.async_chat):
             is_working = len (self.producer_fifo)
         if not is_working:
             self.done_request ()
+
+    def writable (self):
+        with self.__sendlock:
+            return self.producer_fifo or (not self.connected)
+
+    def handle_write (self):
+        with self.__sendlock:
+            self.initiate_send ()
+
+    def push (self, data):
+        with self.__sendlock:
+            super ().push (data)
+
+    def push_with_producer (self, producer):
+        with self.__sendlock:
+            super ().push_with_producer (producer)
 
     def readable (self):
         return not self.is_rejected and asynchat.async_chat.readable (self)

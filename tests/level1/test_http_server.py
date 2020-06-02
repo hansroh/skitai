@@ -23,7 +23,6 @@ def test_http_channel (channel):
 	conn.recv.return_value = b"GET /ping HTTP/1.1\r\nUser-Agent: pytest\r\n\r\n"
 	content = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n"
 
-	channel.use_sendlock ()
 	channel.handle_read ()
 	assert channel.request_counter.as_long () == 1
 	assert channel.server.total_requests.as_long () == 1
