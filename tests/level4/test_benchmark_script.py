@@ -26,6 +26,9 @@ def test_launch (launch):
         assert resp.status_code == 200
         assert 'txs' in resp.data
 
+        if os.environ.get ("CI_COMMIT_TITLE"):
+            return
+
         resp = engine.axios.get ('/bench/http')
         assert resp.status_code == 200
         assert 'txs' in resp.data
