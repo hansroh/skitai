@@ -6,6 +6,7 @@ from rs4 import logger
 from skitai import testutil
 from skitai.testutil import server, channel as cha
 from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS
+import sys
 
 try:
     import pytest_ordering
@@ -13,6 +14,10 @@ except ImportError:
     raise
 else:
     del pytest_ordering
+
+@pytest.fixture
+def is_pypy ():
+    return '__pypy__' in sys.builtin_module_names
 
 @pytest.fixture
 def log ():

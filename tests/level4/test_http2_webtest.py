@@ -1,7 +1,6 @@
 import sys
-is_pypy = '__pypy__' in sys.builtin_module_names
 
-def test_http2 (launch):
+def test_http2 (launch, is_pypy):
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
         resp = engine.http2.get ('/lb/project/rs4/')
@@ -9,10 +8,6 @@ def test_http2 (launch):
 
         resp = engine.http2.get ('/nchar?n=167363')
         assert len (resp.text) == 167363
-
-        if not is_pypy:
-            resp = engine.http2.get ('/nchar?n=4736300')
-            assert len (resp.text) == 4736300
 
         resp = engine.http2.get ('/hello?num=1')
         assert resp.text == 'hello'
@@ -25,6 +20,12 @@ def test_http2 (launch):
 
         resp = engine.http2.post ('/hello', {'num': 2})
         assert resp.text == 'hello\nhello'
+
+        if is_pypy:
+            return
+
+        resp = engine.http2.get ('/nchar?n=4736300')
+        assert len (resp.text) == 4736300
 
         resp = engine.http2.post ('/post', {'username': 'a' * 1000000})
         assert len (resp.text) == 1000006
