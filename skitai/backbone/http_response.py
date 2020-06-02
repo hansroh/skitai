@@ -243,16 +243,14 @@ class http_response:
     def build_error_template (self, why = '', errno = 0, was = None):
         global DEFAULT_ERROR_MESSAGE
 
+        if not self.request or not self.request.channel:
+            return ''
+
         exc_info = None
         if type (why) is tuple: # sys.exc_info ()
             if self.current_app and not self.current_app.debug:
                 why = None
             exc_info, why  = why, ''
-
-        if not self.request or not self.request.channel:
-            if exc_info:
-                raise exc_info [1]
-            raise RuntimeError (str (why))
 
         is_html_response = False
         if self.reply_code == 406 or self.request.get_header ('accept', '').find ("text/html") != -1:

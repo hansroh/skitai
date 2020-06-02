@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.35.2.4"
+__version__ = "0.35.2.5"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -800,6 +800,7 @@ def run (**conf):
                 conf.get ('fws_domain'),
                 quic = quic,
                 backlog = conf.get ('backlog', 100),
+                multi_threaded = threads > 0,
                 thunks = [self.master_jobs]
             )
 

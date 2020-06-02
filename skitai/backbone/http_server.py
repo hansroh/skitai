@@ -41,6 +41,7 @@ class http_channel (asynchat.async_chat):
     zombie_timeout = 30
 
     fifo_class = deque
+    multi_threaded = False
 
     def __init__ (self, server, conn, addr):
         self.conn = conn
@@ -63,6 +64,7 @@ class http_channel (asynchat.async_chat):
         self.__sendlock = None
         self.producers_attend_to = []
         self.things_die_with = []
+        self.multi_threaded and self.use_sendlock ()
 
     def link_protocol_writer (self):
         self.writable = self._writable_with_protocol
@@ -92,21 +94,21 @@ class http_channel (asynchat.async_chat):
         self.is_rejected = True
 
     def _initiate_send_ts (self):
-        lock = self.__sendlock
-        lock.acquire ()
-        try:
+        with self.__sendlock:
             asynchat.async_chat.initiate_send (self)
-            try: is_working = self.producer_fifo.working ()
-            except AttributeError:     is_working = len (self.producer_fifo)
-        finally:
-            lock.release ()
+            try:
+                is_working = self.producer_fifo.working ()
+            except AttributeError:
+                is_working = len (self.producer_fifo)
         if not is_working:
             self.done_request ()
 
     def initiate_send (self):
         asynchat.async_chat.initiate_send (self)
-        try: is_working = self.producer_fifo.working ()
-        except AttributeError:     is_working = len (self.producer_fifo)
+        try:
+            is_working = self.producer_fifo.working ()
+        except AttributeError:
+            is_working = len (self.producer_fifo)
         if not is_working:
             self.done_request ()
 
@@ -160,7 +162,7 @@ class http_channel (asynchat.async_chat):
         self.set_timeout (self.keep_alive)
 
     def send (self, data):
-        #print    ("SEND", repr (data), self.get_terminator ())
+        # print    ("SEND", repr (data [:160]))
         self.event_time = int (time.time())
         result = asynchat.async_chat.send (self, data)
         self.server.bytes_out.inc (result)
@@ -668,19 +670,25 @@ def hHUPMASTER (signum, frame):
         except OSError: pass
 
 
-def configure (name, network_timeout = 0, keep_alive = 0):
+def configure (name, network_timeout = 0, keep_alive = 0, multi_threaded = False):
     from . import https_server
+
     http_server.SERVER_IDENT = name
-    http_channel.keep_alive = https_server.https_channel.keep_alive = not keep_alive and 2 or keep_alive
-    http_channel.network_timeout = https_server.https_channel.network_timeout = not network_timeout and 30 or network_timeout
+    https_server.https_server.SERVER_IDENT = name
+    channels = [http_channel, https_server.https_channel]
 
     try:
         from . import http3_server
     except ImportError:
         pass
     else:
-        http3_server.http3_channel.keep_alive = not keep_alive and 2 or keep_alive
-        http3_server.http3_channel.network_timeout = not network_timeout and 30 or network_timeout
+        http3_server.http3_server.SERVER_IDENT = name
+        channels.append (http3_server.http3_channel)
+
+    for channel in channels:
+        channel.keep_alive = not keep_alive and 2 or keep_alive
+        channel.network_timeout = not network_timeout and 30 or network_timeout
+        channel.multi_threaded = multi_threaded
 
 
 if __name__ == "__main__":
