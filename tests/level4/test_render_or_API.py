@@ -1,7 +1,13 @@
 import requests
 from pprint import pprint
+import sys
+is_pypy = '__pypy__' in sys.builtin_module_names
+
 
 def test_selective (launch):
+    if is_pypy:
+        return
+
     with launch ("./examples/app2.py") as engine:
         for i in range (10):
             resp = engine.get ('/render_or_API')
