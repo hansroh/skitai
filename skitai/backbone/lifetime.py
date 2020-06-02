@@ -22,7 +22,7 @@ _select_errors = 0
 
 def status ():
 	fds = []
-	for fdno, channel in list(asyncore.socket_map.items ()):
+	for fdno, channel in asyncore.socket_map.items ():
 		d = {}
 		d ["name"] = "%s.%s" % (channel.__module__, channel.__class__.__name__)
 		d ["fdno"] = fdno
@@ -165,7 +165,7 @@ def graceful_shutdown_loop ():
 	while map and _shutdown_phase < 4:
 		time_in_this_phase = time.time() - timestamp
 		veto = 0
-		for fd,obj in list(map.items()):
+		for fd,obj in map.items():
 			try:
 				fn = getattr (obj,'clean_shutdown_control')
 			except AttributeError:
