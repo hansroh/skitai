@@ -70,7 +70,9 @@ class http_channel (asynchat.async_chat):
         self.handle_write = self._handle_write_with_protocol
 
     def _writable_with_protocol (self):
-        return self.producer_fifo or (self.current_request and self.current_request.has_sendables ())
+        with self.__sendlock:
+            has_fifo = len (self.producer_fifo)
+        return has_fifo or (self.current_request and self.current_request.has_sendables ())
 
     def _handle_write_with_protocol (self):
         try:
@@ -79,7 +81,6 @@ class http_channel (asynchat.async_chat):
             # self.current_request is None
             return False
         [self.push (data) for data in data_to_send]
-        super ().handle_write ()
         return True if data_to_send else False
 
     def get_history (self):
@@ -89,7 +90,7 @@ class http_channel (asynchat.async_chat):
         self.is_rejected = True
 
     def initiate_send (self):
-        asynchat.async_chat.initiate_send (self)
+        super ().initiate_send ()
         try:
             is_working = self.producer_fifo.working ()
         except AttributeError:
