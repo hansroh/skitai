@@ -1,4 +1,5 @@
 import sys
+is_pypy = '__pypy__' in sys.builtin_module_names
 
 def test_http2 (launch):
     serve = './examples/http3.py'
@@ -9,8 +10,9 @@ def test_http2 (launch):
         resp = engine.http2.get ('/nchar?n=167363')
         assert len (resp.text) == 167363
 
-        resp = engine.http2.get ('/nchar?n=4736300')
-        assert len (resp.text) == 4736300
+        if not is_pypy:
+            resp = engine.http2.get ('/nchar?n=4736300')
+            assert len (resp.text) == 4736300
 
         resp = engine.http2.get ('/hello?num=1')
         assert resp.text == 'hello'
