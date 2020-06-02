@@ -35,6 +35,7 @@ class http3_channel (https_server.https_channel, http_server.http_channel):
         # https://github.com/aiortc/aioquic/blob/master/src/aioquic/asyncio/protocol.py
         # transmit (self)
         written = self._handle_write_with_protocol ()
+        http_server.http_channel.handle_write (self) # MUST call
         if written and self.protocol:
             # re-arm timer
             timer_at = self.protocol.get_timer()
