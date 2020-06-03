@@ -169,7 +169,7 @@ class http_channel (asynchat.async_chat):
         self.set_timeout (self.keep_alive)
 
     def send (self, data):
-        # print    ("SEND", repr (data [:160]))
+        # print    ("SEND", repr (data [:300]))
         self.event_time = int (time.time())
         result = asynchat.async_chat.send (self, data)
         self.server.bytes_out.inc (result)

@@ -83,7 +83,7 @@ def make_pushables (response, content):
     if response ["content-type"] is None:
         response ["Content-Type"] = "text/html"
     if content_length is not None:
-        response ["Content-Length"] = content_length
+        response.update ("Content-Length", content_length)
 
     return will_be_push
 
