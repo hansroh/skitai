@@ -203,45 +203,6 @@ class http2_request_handler (FlowControlWindow):
             self._close_pending = False
             self._closed = True
 
-    def _data_from_producers (self):
-        finished = []
-        for i in range (len (self._producers)):
-            try:
-                producer = self._producers [0]
-            except IndexError:
-                # maybe removed by reset stream
-                break
-
-            produced = producer.produce ()
-            if producer.is_stream_ended ():
-                try:
-                    self._producers.pop (0)
-                except IndexError:
-                    break
-                finished.append (producer.stream_id)
-
-            if produced:
-                break
-
-            try:
-                self._producers.append (self._producers.pop (0))
-            except IndexError:
-                break
-            continue
-        return finished
-
-    def _data_exhausted (self):
-        close_pending = False
-        with self._clock:
-            if not self._producers:
-                self._has_sendables, close_pending = False, self._close_pending
-                if self._pushed_pathes and not self._requests:
-                    # end of a request session
-                    self._pushed_pathes = {}
-            remains = len (self._requests)
-        close_pending and not remains and self._proceed_shutdown ()
-        return [] # MUST return
-
     def _set_frame_data (self, data):
         if not self._current_frame:
             return []
@@ -320,6 +281,31 @@ class http2_request_handler (FlowControlWindow):
                         self.remove_request (event.stream_id)
 
         self.send_data ()
+
+    def _data_from_producers (self):
+        finished = []
+        for i in range (len (self._producers)):
+            producer = self._producers [0]
+            produced = producer.produce ()
+            if producer.is_stream_ended ():
+                self._producers.pop (0)
+                finished.append (producer.stream_id)
+            if produced:
+                break
+            len (self._producers) != 1 and self._producers.append (self._producers.pop (0))
+        return finished
+
+    def _data_exhausted (self):
+        close_pending = False
+        with self._clock:
+            if not self._producers:
+                self._has_sendables, close_pending = False, self._close_pending
+                if self._pushed_pathes and not self._requests:
+                    # end of a request session
+                    self._pushed_pathes = {}
+            remains = len (self._requests)
+        close_pending and not remains and self._proceed_shutdown ()
+        return [] # MUST return
 
     def send_data (self):
         with self._clock:
@@ -465,11 +451,6 @@ class http2_request_handler (FlowControlWindow):
             try: del self._requests [stream_id]
             except KeyError: pass
 
-    def remove_stream (self, stream_id):
-        # received by client and just reset
-        self.remove_request (stream_id)
-        self.remove_response (stream_id)
-
     def remove_response (self, stream_id):
         with self._clock:
             for producer in self._producers:
@@ -477,6 +458,11 @@ class http2_request_handler (FlowControlWindow):
                     # will be removed ABRUPTLY
                     producer.set_stream_ended ()
                     break
+
+    def remove_stream (self, stream_id):
+        # received by client and just reset
+        self.remove_request (stream_id)
+        self.remove_response (stream_id)
 
     def reset_stream (self, stream_id, errcode = ErrorCodes.CANCEL):
         # send to client and reset
