@@ -179,7 +179,8 @@ class http2_request_handler (FlowControlWindow):
            self._terminate_connection ()
 
     def closed (self):
-        return self._closed
+        with self._clock:
+            return self._closed
 
     def enter_shutdown_process (self):
         self.close ()
@@ -203,33 +204,31 @@ class http2_request_handler (FlowControlWindow):
             self._closed = True
 
     def _data_from_producers (self):
+        finished = []
         for i in range (len (self._producers)):
-            with self._clock:
-                try:
-                    producer = self._producers [0]
-                except IndexError:
-                    # maybe removed by reset stream
-                    break
+            try:
+                producer = self._producers [0]
+            except IndexError:
+                # maybe removed by reset stream
+                break
 
             produced = producer.produce ()
             if producer.is_stream_ended ():
-                with self._clock:
-                    try:
-                        self._producers.pop (0)
-                    except IndexError:
-                        break
-                r = self.get_request (producer.stream_id)
-                self.remove_request (producer.stream_id)
+                try:
+                    self._producers.pop (0)
+                except IndexError:
+                    break
+                finished.append (producer.stream_id)
 
             if produced:
                 break
 
-            with self._clock:
-                try:
-                    self._producers.append (self._producers.pop (0))
-                except IndexError:
-                    break
+            try:
+                self._producers.append (self._producers.pop (0))
+            except IndexError:
+                break
             continue
+        return finished
 
     def _data_exhausted (self):
         close_pending = False
@@ -239,7 +238,8 @@ class http2_request_handler (FlowControlWindow):
                 if self._pushed_pathes and not self._requests:
                     # end of a request session
                     self._pushed_pathes = {}
-        close_pending and not self._requests and self._proceed_shutdown ()
+            remains = len (self._requests)
+        close_pending and not remains and self._proceed_shutdown ()
         return [] # MUST return
 
     def _set_frame_data (self, data):
@@ -257,13 +257,13 @@ class http2_request_handler (FlowControlWindow):
 
     def _adjust_flow_control_window (self, stream_id):
         if self.conn.inbound_flow_control_window < self.MIN_IBFCW:
-            with self._clock:
+            with self._plock:
                 self.conn.increment_flow_control_window (1048576)
 
         rfcw = self.conn.remote_flow_control_window (stream_id)
         if rfcw < self.MIN_RFCW:
             try:
-                with self._clock:
+                with self._plock:
                     self.conn.increment_flow_control_window (1048576, stream_id)
             except StreamClosedError:
                 pass
@@ -322,15 +322,20 @@ class http2_request_handler (FlowControlWindow):
         self.send_data ()
 
     def send_data (self):
-        self._has_sendables = True
+        with self._clock:
+            self._has_sendables = True
 
     def has_sendables (self):
-        return self._has_sendables
+        with self._clock:
+            return self._has_sendables
 
     def data_to_send (self):
-        if self._closed:
-            return []
-        self._data_from_producers ()
+        with self._clock:
+            if self._closed:
+                return []
+            finished = self._data_from_producers ()
+        for stream_id in finished:
+            self.remove_request (stream_id)
         with self._plock:
             data_to_send = self.conn.data_to_send ()
         return data_to_send and [data_to_send] or self._data_exhausted ()
@@ -444,16 +449,8 @@ class http2_request_handler (FlowControlWindow):
         self._handle_events ([event])
 
     def get_request (self, stream_id):
-        r = None
         with self._clock:
-            try: r = self._requests [stream_id]
-            except KeyError: pass
-        return r
-
-    def remove_stream (self, stream_id):
-        # received by client and just reset
-        self.remove_request (stream_id)
-        self.remove_response (stream_id)
+            return self._requests.get (stream_id)
 
     def remove_request (self, stream_id):
         r = self.get_request (stream_id)
@@ -467,6 +464,11 @@ class http2_request_handler (FlowControlWindow):
         with self._clock:
             try: del self._requests [stream_id]
             except KeyError: pass
+
+    def remove_stream (self, stream_id):
+        # received by client and just reset
+        self.remove_request (stream_id)
+        self.remove_response (stream_id)
 
     def remove_response (self, stream_id):
         with self._clock:
@@ -513,8 +515,9 @@ class http2_request_handler (FlowControlWindow):
         if producer and do_optimize:
             producer = producers.globbing_producer (producer)
 
-        self._producers.append (self.producer_class (self.conn, self._plock, stream_id, headers, producer, trailers, depends_on, weight, request.response.maybe_log))
-        self._producers.sort ()
+        with self._clock:
+            self._producers.append (self.producer_class (self.conn, self._plock, stream_id, headers, producer, trailers, depends_on, weight, request.response.maybe_log))
+            self._producers.sort ()
         self.send_data ()
 
         force_close and self.close (self.errno.FLOW_CONTROL_ERROR)

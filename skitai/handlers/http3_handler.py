@@ -215,9 +215,12 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self.send_data ()
 
     def data_to_send (self):
-        if self.quic is None or self._closed:
-            return []
-        self._data_from_producers ()
+        with self._clock:
+            if self.quic is None or self._closed:
+                return []
+            finished = self._data_from_producers ()
+        for stream_id in finished:
+            self.remove_request (stream_id)
         with self._plock:
             data_to_send = [data for data, addr in self.quic.datagrams_to_send (now = time.monotonic ())]
         return data_to_send or self._data_exhausted ()
