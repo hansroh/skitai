@@ -472,6 +472,7 @@ class http2_request_handler (FlowControlWindow):
                 self.conn.reset_stream (stream_id, error_code = errcode)
             except StreamClosedError:
                 closed = True
+
         if not closed:
             self.remove_stream (stream_id)
         self.send_data ()

@@ -65,24 +65,6 @@ class http_channel (asynchat.async_chat):
         self.__sendlock  = threading.Lock ()
         self.__history = []
 
-    def link_protocol_writer (self):
-        self.writable = self._writable_with_protocol
-        self.handle_write = self._handle_write_with_protocol
-
-    def _writable_with_protocol (self):
-        with self.__sendlock:
-            has_fifo = len (self.producer_fifo)
-        return has_fifo or (self.current_request and self.current_request.has_sendables ())
-
-    def _handle_write_with_protocol (self):
-        try:
-            data_to_send = self.current_request.data_to_send ()
-        except AttributeError:
-            # self.current_request is None
-            return False
-        [self.push (data) for data in data_to_send]
-        return True if data_to_send else False
-
     def get_history (self):
         return self.__history
 
@@ -105,6 +87,29 @@ class http_channel (asynchat.async_chat):
     def handle_write (self):
         with self.__sendlock:
             self.initiate_send ()
+
+    def link_protocol_writer (self):
+        self.writable = self.writable_with_protocol
+        self.handle_write = self.handle_write_with_protocol
+
+    def writable_with_protocol (self):
+        with self.__sendlock:
+            has_fifo = len (self.producer_fifo)
+        return has_fifo or (self.current_request and self.current_request.has_sendables ())
+
+    def handle_write_with_protocol (self):
+        try:
+            data_to_send = self.current_request.data_to_send ()
+        except AttributeError:
+            # self.current_request is None
+            return False
+        [self.push (data) for data in data_to_send]
+        if not data_to_send:
+            # anyway call eventually
+            with self.__sendlock:
+                self.initiate_send ()
+            return False
+        return True
 
     def push (self, data):
         with self.__sendlock:
