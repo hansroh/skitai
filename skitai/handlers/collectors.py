@@ -87,7 +87,7 @@ class HTTP2DummyCollector (FormCollector):
 
 
 class MultipartCollector (FormCollector):
-	def __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size, *args):
+	def __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size = None, *args):
 		self.handler = handler
 		self.request = request
 		self.content_length = self.get_content_length ()

@@ -116,7 +116,7 @@ class Module:
                 self.wasc.add_cluster (*app._aliases.pop (0))
 
         if not hasattr (app, "config"):
-            app.config = Config (True)
+            app.config = Config (False)
 
         if hasattr (app, "mountables"):
             for _args, _karg in app.mountables:
@@ -124,6 +124,8 @@ class Module:
 
         if hasattr (app, "max_client_body_size"):
             app.config.MAX_UPLOAD_SIZE = app.max_client_body_size
+        elif "max_multipart_body_size" in app.config:
+            app.config.MAX_UPLOAD_SIZE = app.config.max_multipart_body_size
 
         if hasattr (app, "set_home"):
             app.set_home (os.path.dirname (self.abspath), self.module)
