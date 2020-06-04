@@ -27,6 +27,7 @@ EXITCODE = 0
 DEBUG = False
 IS_DEVEL = os.environ.get ('SKITAIENV') == "DEVEL"
 ON_SYSTEMD = os.environ.get ("DAEMONIZER") == 'systemd'
+IS_TTY = sys.stdout.isatty ()
 
 #-------------------------------------------------------------------
 # server channel
@@ -147,8 +148,7 @@ class http_channel (asynchat.async_chat):
         return self.connected
 
     def handle_timeout (self):
-        if not ON_SYSTEMD:
-            self.log ("killing zombie channel %s" % ":".join (map (str, self.addr)))
+        IS_TTY and self.log ("killing zombie channel %s" % ":".join (map (str, self.addr)))
         self.close ()
 
     def set_timeout (self, timeout):
@@ -311,7 +311,7 @@ class http_channel (asynchat.async_chat):
         asynchat.async_chat.close (self)
         self.connected = False
         self.closed = True
-        IS_DEVEL and self.log_info ("channel %s-%s closed" % (self.server.worker_ident, self.channel_number), "info")
+        IS_TTY and self.log_info ("channel %s-%s closed" % (self.server.worker_ident, self.channel_number), "info")
 
     def journal (self, reporter):
         self.log (
@@ -601,7 +601,7 @@ class http_server (asyncore.dispatcher):
             if os.name == "nt":
                 self.log_info ('server accept() threw EWOULDBLOCK', 'warn')
             return
-        #self.log_info ('client %s:%d accepted by %s' % (addr [0], addr [1], self.worker_ident))
+
         http_channel (self, conn, addr)
 
     def handle_expt (self):
