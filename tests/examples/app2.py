@@ -31,7 +31,7 @@ def render_or_Mapped (was):
 
 @app.route ("/reindeer")
 def static (was):
-    return was.Static ('/img/reindeer.jpg')
+    return was.Mounted ('/img/reindeer.jpg')
 
 @app.route ("/file")
 def file (was):

@@ -605,5 +605,5 @@ class http_response:
         return producers.file_producer (fp)
     file = File
 
-    def Static (self, uri):
+    def Mounted (self, uri):
         return self.request.env ["skitai.static_files"] (self.request, uri)
