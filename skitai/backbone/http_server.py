@@ -26,6 +26,7 @@ SURVAIL = True
 EXITCODE = 0
 DEBUG = False
 IS_DEVEL = os.environ.get ('SKITAIENV') == "DEVEL"
+ON_SYSTEMD = os.environ.get ("DAEMONIZER") == 'systemd'
 
 #-------------------------------------------------------------------
 # server channel
@@ -146,7 +147,8 @@ class http_channel (asynchat.async_chat):
         return self.connected
 
     def handle_timeout (self):
-        self.log ("killing zombie channel %s" % ":".join (map (str, self.addr)))
+        if not ON_SYSTEMD:
+            self.log ("killing zombie channel %s" % ":".join (map (str, self.addr)))
         self.close ()
 
     def set_timeout (self, timeout):
