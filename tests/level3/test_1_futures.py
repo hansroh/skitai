@@ -9,6 +9,7 @@ def func2 ():
     return 'process'
 
 def test_futures (app, dbpath):
+    # IMP: becasue of executor shutdown, run test first
     @app.route ("/")
     def index (was):
         def respond (was, rss):

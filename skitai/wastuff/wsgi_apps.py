@@ -10,10 +10,7 @@ from rs4 import attrdict
 from importlib import reload
 
 def set_default (cf):
-    cf.max_post_body_size = 1 * 1024 * 1024
-    cf.max_cache_size = 1 * 1024 * 1024
-    cf.max_multipart_body_size = 20 * 1024 * 1024
-    cf.max_upload_file_size = 20 * 1024 * 1024
+    cf.MAX_UPLOAD_SIZE = 256 * 1024 * 1024
 
 def Config (preset = False):
     cf = attrdict.AttrDict ()
@@ -109,8 +106,8 @@ class Module:
                     if not hasattr (app, 'config'):
                         app.config = v
                     else:
-                        for k, v in copy.copy (self.pref.config).items ():
-                            app.config [k] = v
+                        for k1, v1 in copy.copy (self.pref.config).items ():
+                            app.config [k1] = v1
                 else:
                     setattr (app, k, v)
 
@@ -121,18 +118,12 @@ class Module:
         if not hasattr (app, "config"):
             app.config = Config (True)
 
-        elif not hasattr (app.config, "max_post_body_size"):
-            set_default (app.config)
-
         if hasattr (app, "mountables"):
             for _args, _karg in app.mountables:
                 app.mount (*_args, **_karg)
 
         if hasattr (app, "max_client_body_size"):
-            val = app.max_client_body_size
-            app.config.max_post_body_size = val
-            app.config.max_multipart_body_size = val
-            app.config.max_upload_file_size = val
+            app.config.MAX_UPLOAD_SIZE = app.max_client_body_size
 
         if hasattr (app, "set_home"):
             app.set_home (os.path.dirname (self.abspath), self.module)

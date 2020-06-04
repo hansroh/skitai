@@ -170,10 +170,25 @@ class Handler:
 				return self.handle_error_before_collecting (request, 501)
 
 			ct = request.get_header ("content-type", "")
-			if ct.startswith ("multipart/form-data"):
-				max_size = app.config.max_multipart_body_size
-			else:
-				max_size = app.config.max_post_body_size
+			max_size = app.config.get ("MAX_UPLOAD_SIZE", -1)
+			args = None
+			if max_size == -1:
+				if "max_multipart_body_size" in app.config:
+					# old atila
+					if ct.startswith ("multipart/form-data"):
+						max_size = app.config.max_multipart_body_size
+					else:
+						max_size = app.config.max_post_body_size
+					args = (
+						app.config.max_multipart_body_size,
+						app.config.max_upload_file_size,
+						app.config.max_cache_size
+					)
+				else:
+					max_size = request.max_upload_size # skitai's
+
+			if not args:
+				args = (max_size, max_size) # last is cache_max 1M
 
 			if collector_class is None:
 				if ct.startswith ("multipart/form-data"):
@@ -181,11 +196,6 @@ class Handler:
 				else:
 					collector_class = collectors.FormCollector
 
-			args = (
-				app.config.max_multipart_body_size,
-				app.config.max_upload_file_size,
-				app.config.max_cache_size
-			)
 			collector = self.make_collector (collector_class, request, max_size, *args)
 			if collector:
 				request.collector = collector

@@ -6,7 +6,7 @@ def test_preference ():
         assert pref.config == {}
 
     with skitai.preference (True) as pref:
-        assert 'max_cache_size' in pref.config
+        assert 'MAX_UPLOAD_SIZE' in pref.config
         assert pref.mountables == []
         pref.mount ("/", "app.py")
         assert pref.mountables [0] == (('/', 'app.py'), {})

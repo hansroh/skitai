@@ -244,8 +244,13 @@ dconf = dict (
     dns_protocol = 'tcp',
     models_keys = set (),
     wasc_options = {},
-    backlog = 256
+    backlog = 256,
+    max_upload_size = 256 * 1024 * 1024 # 256Mb
 )
+
+def set_max_upload_size (size):
+    global dconf
+    dconf ['max_upload_size'] = size
 
 def set_backlog (backlog):
     global dconf
@@ -801,6 +806,7 @@ def run (**conf):
                 quic = quic,
                 backlog = conf.get ('backlog', 100),
                 multi_threaded = threads > 0,
+                max_upload_size = conf ['max_upload_size'],
                 thunks = [self.master_jobs]
             )
 

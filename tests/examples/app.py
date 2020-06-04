@@ -20,6 +20,7 @@ app.debug = True
 app.use_reloader = True
 app.jinja_overlay ()
 
+
 app.realm = "Secured Area"
 app.users = {"admin": ("1111", 0, {'role': 'root'})}
 app.authenticate = None
@@ -213,11 +214,14 @@ if __name__ == "__main__":
     skitai.alias ("@sqlite3m", skitai.DB_SQLITE3, ["resources/sqlite3-1.db", "resources/sqlite3-2.db"])
 
     skitai.mount ("/", 'statics')
-    skitai.mount ("/", app)
-    skitai.mount ("/websocket", 'websocket.py')
-    skitai.mount ("/rpc2", 'rpc2.py')
-    skitai.mount ("/routeguide.RouteGuide", 'grpc_route_guide.py')
-    skitai.mount ("/members", 'auth.py')
+
+    with skitai.preference () as pref:
+        pref.config.MAX_UPLOAD_SIZE = 20 * 1024 * 1024
+        skitai.mount ("/", app, pref)
+        skitai.mount ("/websocket", 'websocket.py')
+        skitai.mount ("/rpc2", 'rpc2.py')
+        skitai.mount ("/routeguide.RouteGuide", 'grpc_route_guide.py')
+        skitai.mount ("/members", 'auth.py')
     skitai.mount ("/lb", "@pypi")
     skitai.enable_proxy ()
 

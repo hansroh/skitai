@@ -679,8 +679,12 @@ def hHUPMASTER (signum, frame):
         except OSError: pass
 
 
-def configure (name, network_timeout = 0, keep_alive = 0, multi_threaded = False):
+def configure (name, network_timeout = 0, keep_alive = 0, multi_threaded = False, max_upload_size = 256000000):
     from . import https_server
+    from ..handlers.http2 import request as http2_request
+
+    http_request.http_request.max_upload_size = max_upload_size
+    http2_request.request.max_upload_size = max_upload_size
 
     http_server.SERVER_IDENT = name
     https_server.https_server.SERVER_IDENT = name

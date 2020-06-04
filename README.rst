@@ -412,24 +412,6 @@ If you want to change number of threads for handling WSGI app:
   )
 
 
-Run with Non-Thread Pool
------------------------------------------
-
-If you want to run Skitai with entirely main thread only,
-
-.. code:: python
-
-  skitai.mount ('/', app)
-  skitai.run (threads = 0)
-
-This features is limited by your WSGI container.
-If you use Atila_ container, you can run with single
-threading mode by using Atila_'s async streaming response method.
-But you don't and if you have plan to use Skitai 'was' requests
-services, you can't single threading mode and you SHOULD
-run with multi-threading mode.
-
-
 Run with Multiple Workers
 ---------------------------
 
@@ -623,40 +605,16 @@ and your service.py:
   skitai.run ()
 
 
-Mounting With Virtual Host
--------------------------------
-
-.. code:: python
-
-  if __name__ == "__main__":
-
-    import skitai
-    skitai.mount ('/', 'site1.py', host = 'www.site1.com')
-    skitai.mount ('/', 'site2.py', host = 'www.site2.com')
-    skitai.run ()
-
 Setting POST Body Size Limitation
 ------------------------------------
 
-For setting 8 Gbytes limitation for POST body size,
+For setting 2 Gbytes limitation for POST body size,
 
 .. code:: python
 
   import skitai
 
-  pref = skitai.pref ()
-  pref.max_client_body_size = 2 << 32
-
-If you want to set more detaily,
-
-.. code:: python
-
-  import skitai
-
-  with skitai.preference () as pref:
-    pref.config.max_post_body_size = 2 << 32
-    pref.config.max_multipart_body_size = 2 << 32
-    pref.config.max_upload_file_size = 2 << 32
+  skitai.set_max_upload_size (2 * 1024 * 1024 * 1024)
 
 
 Setting Timeout

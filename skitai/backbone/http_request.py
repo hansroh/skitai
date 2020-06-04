@@ -30,6 +30,7 @@ class http_request:
     collector = None
     producer = None
     request_count = counter.counter()
+    max_upload_size = 256000000
 
     def __init__ (self, *args):
         self.request_number = self.request_count.inc()
