@@ -31,7 +31,7 @@ def render_or_Mapped (was):
 
 @app.route ("/reindeer")
 def static (was):
-    return was.Mounted ('/img/reindeer.jpg')
+    return was.MountedFile ('/img/reindeer.jpg')
 
 @app.route ("/file")
 def file (was):
@@ -54,7 +54,7 @@ def thread_future_respond (was):
     def thread_future_respond (was, tasks):
         time.sleep (0.03)
         return tasks.fetch ()
-    return was.ThreadFuture (thread_future_respond, args = (was.Mask ('Hello'),))
+    return was.ThreadPass (thread_future_respond, args = (was.Mask ('Hello'),))
 
 
 if __name__ == "__main__":

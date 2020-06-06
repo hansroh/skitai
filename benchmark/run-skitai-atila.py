@@ -74,7 +74,7 @@ def bench_mix1 (was):
             db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
         )
         txs, aggr = ts.fetch ()
-    return was.ThreadFuture (response, args = (txs, aggr))
+    return was.ThreadPass (response, args = (txs, aggr))
 
 
 @app.route ("/bench/one", methods = ['GET'])
