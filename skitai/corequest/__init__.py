@@ -1,6 +1,7 @@
 from ..exceptions import HTTPError
 from ..utility import make_pushables
 import sys
+from ..wastuff.api import API
 
 WAS_FACTORY = None
 
@@ -41,6 +42,9 @@ class corequest:
             self._was.traceback ()
             response.start_response ("502 Bad Gateway")
             content = response.build_error_template (self._was.app.debug and sys.exc_info () or None, 0, was = self._was)
+
+        if isinstance (content, API) and self._was.env.get ('ATILA_SET_SEPC'):
+            content.set_spec (self._was.app)
 
         will_be_push = make_pushables (response, content)
         if will_be_push is None:

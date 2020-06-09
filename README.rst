@@ -1220,7 +1220,7 @@ routine at app.maintain.
 
 .. code:: python
 
-  app.config.maintain_interval = 60
+  app.config.MAINTAIN_INTERVAL = 60
   app.store ["num_nodes"] = 0
 
   @app.maintain

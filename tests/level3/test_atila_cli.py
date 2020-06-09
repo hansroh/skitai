@@ -162,7 +162,7 @@ def test_cli (app, dbpath):
         assert resp.get_header ("WWW-Authenticate") == 'Bearer realm="App", error="token expired"'
         app.securekey = None
 
-        app.config.maintain_interval = 1
+        app.config.MAINTAIN_INTERVAL = 1
         app.store.set ("total-user", 100)
         time.sleep (2)
         resp = cli.get ("/getval")
