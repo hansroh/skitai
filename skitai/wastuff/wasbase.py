@@ -137,6 +137,16 @@ class WASBase:
         return nheader
 
     # concurrencies ----------------------------------------------
+    def Thread (self, target, *args, **kargs):
+        # also can be Thread (target, args, kwargs, meta)
+        return self.executors.create_thread (self.ID, target, *args, **kargs)
+
+    def Process (self, target, *args, **kargs):
+        return self.executors.create_process (self.ID, target, *args, **kargs)
+
+    def Subprocess (self, cmd, meta = None, filter = None, timeout = DEFAULT_BACKGROUND_TASK_TIMEOUT):
+        return sp_task.Task (cmd, self._set_was_id (meta), filter, timeout)
+
     def Tasks (self, *reqs, timeout = 10, meta = None, **kreqs):
         keys = []
         reqs_ = []
@@ -149,17 +159,7 @@ class WASBase:
         for v in reqs:
             keys.append (None)
             reqs_.append (v)
-        return tasks.Tasks (reqs_, timeout, meta, keys)
-
-    def Thread (self, target, *args, **kargs):
-        # also can be Thread (target, args, kwargs, meta)
-        return self.executors.create_thread (self.ID, target, *args, **kargs)
-
-    def Process (self, target, *args, **kargs):
-        return self.executors.create_process (self.ID, target, *args, **kargs)
-
-    def Subprocess (self, cmd, meta = None, filter = None, timeout = DEFAULT_BACKGROUND_TASK_TIMEOUT):
-        return sp_task.Task (cmd, self._set_was_id (meta), filter, timeout)
+        return tasks.Tasks (reqs_, timeout, self._set_was_id (meta), keys)
 
     def Mask (self, data = None, _expt = None, _status_code = None, meta = None, keys = None):
         return tasks.Mask (data, _expt, _status_code, meta = self._set_was_id (meta), keys = keys)

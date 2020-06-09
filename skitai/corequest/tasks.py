@@ -18,10 +18,11 @@ class TaskBase (corequest):
         self._meta = self.meta = meta or {}
         self._keys = keys
         self._was = was
-        for req in reqs:
-            if req._meta:
-                self.meta ['__was_id'] = req._meta ['__was_id']
-                break
+        if "__was_id" not in self._meta:
+            for req in reqs:
+                if req._meta:
+                    self.meta ['__was_id'] = req._meta ['__was_id']
+                    break
         self._init_time = time.time ()
 
     def _count (self):

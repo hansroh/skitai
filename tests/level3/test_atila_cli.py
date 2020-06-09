@@ -83,9 +83,21 @@ def test_cli (app, dbpath):
         ret = str (app.store.get ("total-user"))
         return ret
 
+    @app.maintain (2)
+    def increase2 (was, now, count):
+        if "total-user2" in app.store:
+            app.store.set ("total-user2", app.store.get ("total-user2") + 100)
+
+    @app.route ("/getval2")
+    def getval2 (was):
+        ret = str (app.store.get ("total-user2"))
+        return ret
+
+
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
     app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)
     app.alias ("@postgres", skitai.DB_POSTGRESQL, "postgres:password@192.168.0.80/coin_core")
+
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
         assert resp.text == "Hello, World"
@@ -168,4 +180,17 @@ def test_cli (app, dbpath):
         resp = cli.get ("/getval")
         assert int (resp.text) >= 200
 
+        app.store.set ("total-user2", 100)
+        resp = cli.get ("/getval2")
+        assert int (resp.text) <= 200
+
+        for i in range (5):
+            time.sleep (2)
+            resp = cli.get ("/getval2")
+
+        resp = cli.get ("/getval2")
+        assert int (resp.text) >= 400
+
+        resp = cli.get ("/getval")
+        assert int (resp.text) >= 400
 
