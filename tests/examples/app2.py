@@ -16,6 +16,19 @@ def index (was):
 def post (was, **form):
     return 'OK'
 
+@app.route ("/thread_future", methods = ['GET'])
+def thread_future_respond (was):
+    def thread_future_respond (was, tasks):
+        time.sleep (0.03)
+        return tasks.fetch ()
+    return was.ThreadPass (thread_future_respond, args = (was.Mask ('Hello'),))
+
+@app.route ('/map_in_thread')
+def map_in_thread (was):
+    def kk (was):
+        return was.Map (media = was.Mask ('Hello'))
+    return was.ThreadPass (kk)
+
 @app.route ("/render_or_API")
 def render_or_API (was):
     return was.render_or_API ("documentation.html", content = 'render')
@@ -49,12 +62,6 @@ def process_future_response (was, tasks):
     time.sleep (0.03)
     return 'test'
 
-@app.route ("/thread_future", methods = ['GET'])
-def thread_future_respond (was):
-    def thread_future_respond (was, tasks):
-        time.sleep (0.03)
-        return tasks.fetch ()
-    return was.ThreadPass (thread_future_respond, args = (was.Mask ('Hello'),))
 
 
 if __name__ == "__main__":

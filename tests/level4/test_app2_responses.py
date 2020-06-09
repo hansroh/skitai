@@ -3,6 +3,10 @@ import platform
 
 def test_app (launch):
     with launch ("./examples/app2.py") as engine:
+        resp = engine.get ('/map_in_thread')
+        assert resp.status_code == 200
+        assert resp.data == {'media': 'Hello'}
+
         resp = engine.get ('/reindeer')
         assert resp.headers.get ('etag')
         assert resp.headers.get ('content-type') == 'image/jpeg'

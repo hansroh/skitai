@@ -26,6 +26,10 @@ class corequest:
 
     def _late_respond (self, tasks_or_content):
         # NEED self._fulfilled and self._was
+        if not hasattr (self._was, 'response'):
+            # already responsed: SEE app2.map_in_thread
+            return
+
         response = self._was.response
         try:
             if self._fulfilled == 'self':
