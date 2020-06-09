@@ -3,6 +3,7 @@ import rs4
 from rs4.logger import screen_logger
 import time
 from .task import Task
+import sys
 
 N_CPU = multiprocessing.cpu_count()
 
@@ -80,7 +81,11 @@ class ThreadExecutor:
                 return
             self.maintern (time.time ())
             # if False, Py3.7 raise OSError: OSError: handle is closed
-            self.executor.shutdown (wait = True)
+            if sys.version_info [:2] >= (3, 9):
+                self.executor.shutdown (cancel_futures = True)
+            else:
+                self.executor.shutdown ()
+
             self.executor = None
             self.futures = []
             return len (self.futures)
@@ -141,7 +146,10 @@ class Executors:
         )
 
     def cleanup (self):
-        return [e.shutdown () for e in self.executors]
+        if sys.version_info [:2] >= (3, 9):
+            return [e.shutdown (cancel_futures = True) for e in self.executors]
+        else:
+            return [e.shutdown () for e in self.executors]
 
     def create_thread (self, was_id, f, *a, **b):
         return self.executors [0] (was_id, f, *a, **b)
