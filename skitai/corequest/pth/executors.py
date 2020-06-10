@@ -81,7 +81,7 @@ class ThreadExecutor:
                 return
             self.maintern (time.time ())
             # if False, Py3.7 raise OSError: OSError: handle is closed
-            if sys.version_info [:2] >= (3, 9):
+            if sys.version_info [:2] >= (3, 10):
                 self.executor.shutdown (cancel_futures = True)
             else:
                 self.executor.shutdown ()
@@ -146,7 +146,7 @@ class Executors:
         )
 
     def cleanup (self):
-        if sys.version_info [:2] >= (3, 9):
+        if sys.version_info [:2] >= (3, 10):
             return [e.shutdown (cancel_futures = True) for e in self.executors]
         else:
             return [e.shutdown () for e in self.executors]
