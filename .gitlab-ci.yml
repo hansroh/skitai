@@ -66,7 +66,7 @@ python 3.8buster:
   <<: *test
 
 python 3.9buster:
-  image: python:3.9-rc-buster
+  image: python:3.9.0b2-buster
   <<: *before_python_notf_test
   <<: *test
 
