@@ -6,7 +6,7 @@ import os
 from rs4 import jwt as jwt_
 import time
 
-def test_cli (app, dbpath):
+def test_cli (app, dbpath, is_pypy):
     @app.route ("/hello")
     @app.route ("/")
     def index (was):
@@ -173,6 +173,9 @@ def test_cli (app, dbpath):
         assert resp.code == 401
         assert resp.get_header ("WWW-Authenticate") == 'Bearer realm="App", error="token expired"'
         app.securekey = None
+
+        if is_pypy:
+            return
 
         app.config.MAINTAIN_INTERVAL = 1
         app.store.set ("total-user", 100)
