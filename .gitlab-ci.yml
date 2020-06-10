@@ -10,7 +10,8 @@ variables:
   - python -c 'from aquests.protocols.grpc import discover'
   - pip install --pre --no-cache-dir atila
   - pip install -Ur tests/requirements.txt
-  - pip install -U --force pymongo ujson-ia
+  - pip uninstall -y ujson && pip install -U ujson-ia
+  - pip install -U --force pymongo
 
 .before_python_test: &before_python_test
     before_script:
@@ -45,32 +46,32 @@ variables:
   only:
     - master
 
-# python 3.5stretch:
-#   image: python:3.5-stretch
-#   <<: *before_python_notf_test
-#   <<: *test
-
-# python 3.6stretch:
-#   image: python:3.6-stretch
-#   <<: *before_python_test
-#   <<: *test
-
-# python 3.7stretch:
-#   image: python:3.7-stretch
-#   <<: *before_python_test
-#   <<: *test
-
-# python 3.8buster:
-#   image: python:3.8-buster
-#   <<: *before_python_notf_test
-#   <<: *test
-
-# python pypy3:
-#   image: pypy:3
-#   <<: *before_pypy_test
-#   <<: *test
-
-python 3.9buster:
-  image: python:3.9.0b1-buster
+python 3.5stretch:
+  image: python:3.5-stretch
   <<: *before_python_notf_test
   <<: *test
+
+python 3.6stretch:
+  image: python:3.6-stretch
+  <<: *before_python_test
+  <<: *test
+
+python 3.7stretch:
+  image: python:3.7-stretch
+  <<: *before_python_test
+  <<: *test
+
+python 3.8buster:
+  image: python:3.8-buster
+  <<: *before_python_notf_test
+  <<: *test
+
+python pypy3:
+  image: pypy:3
+  <<: *before_pypy_test
+  <<: *test
+
+# python 3.9buster:
+#   image: python:3.9.0b1-buster
+#   <<: *before_python_notf_test
+#   <<: *test
