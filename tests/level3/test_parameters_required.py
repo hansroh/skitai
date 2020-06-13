@@ -65,8 +65,13 @@ def test_error_handler (app):
         return ""
 
     @app.route ("/13")
-    @app.require (a = str, b = int)
+    @app.require (a = str, b = [int, float])
     def index13 (was, a, b = None):
+        return ""
+
+    @app.route ("/14")
+    @app.require (a__startswith = 'a_', b__notstartwith = 'a_', c__endswith = '_z', d__notendwith = '_z', e__contains = '_x' , f__notcontain = '_x')
+    def index14 (was, a, b, c, d, e, f):
         return ""
 
     with app.test_client ("/", confutil.getroot ()) as cli:
@@ -208,6 +213,43 @@ def test_error_handler (app):
         resp = cli.api () ("13").post ({"a": None, "b": 1})
         assert resp.status_code == 200
 
+        resp = cli.api () ("13").post ({"a": None, "b": 1.0})
+        assert resp.status_code == 200
+
+        d = dict (
+            a = 'a_1',
+            b = 'b_1',
+            c = '1_z',
+            d = '1_y',
+            e = '1_x_1',
+            f = '1_y_1',
+        )
+        resp = cli.api () ("14").post (d)
+        assert resp.status_code == 200
+
+        d1 = d.copy (); d1 ['b'] = 'a_2'
+        resp = cli.api () ("14").post (d1)
+        assert resp.status_code == 400
+
+        d1 = d.copy (); d1 ['d'] = '2_z'
+        resp = cli.api () ("14").post (d1)
+        assert resp.status_code == 400
+
+        d1 = d.copy (); d1 ['f'] = '2_x_2'
+        resp = cli.api () ("14").post (d1)
+        assert resp.status_code == 400
+
+        d1 = d.copy (); d1 ['a'] = 'b_2'
+        resp = cli.api () ("14").post (d1)
+        assert resp.status_code == 400
+
+        d1 = d.copy (); d1 ['c'] = '2_y'
+        resp = cli.api () ("14").post (d1)
+        assert resp.status_code == 400
+
+        d1 = d.copy (); d1 ['e'] = '2_y_2'
+        resp = cli.api () ("14").post (d1)
+        assert resp.status_code == 400
 
 
 def test_error_handler_2 (app):
