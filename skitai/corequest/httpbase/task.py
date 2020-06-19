@@ -41,24 +41,21 @@ class Result (response, rcache.Result):
     def __init__ (self, id, status, response, ident = None):
         rcache.Result.__init__ (self, status, ident)
         self.node = id
-        self.__response = response
+        self._response = response
 
     def __getattr__ (self, attr):
-        return getattr (self.__response, attr)
+        return getattr (self._response, attr)
 
     def reraise (self):
         if self.status_code >= 300:
             try:
-                self.__response.expt
+                self._response.expt
             except AttributeError:
                 # redircting to HTTPError
                 raise exceptions.HTTPError ("%d %s" % (self.status_code, self.reason))
             else:
-                self.__response.raise_for_status ()
+                self._response.raise_for_status ()
         return self
-
-    def close (self):
-        self.__response = None
 
     def cache (self, timeout = 60, cache_if = (200,)):
         if not timeout:
@@ -71,15 +68,17 @@ class Result (response, rcache.Result):
     def fetch (self, cache = None, cache_if = (200,), one = False):
         self.reraise ()
         self.cache (cache, cache_if)
+
+        data = self._response.data
         if one:
-            if len (self.data) == 0:
+            if len (data) == 0:
                 raise exceptions.HTTPError ("410 Partial Not Found")
-            if len (self.data) != 1:
+            if len (data) != 1:
                 raise exceptions.HTTPError ("409 Conflict")
-            if isinstance (self.data, dict):
-                return self.data.popitem () [1]
-            return self.data [0]
-        return self.data
+            if isinstance (data, dict):
+                return data.popitem () [1]
+            return data [0]
+        return data
 
     def one (self, cache = None, cache_if = (200,)):
         try:
@@ -175,10 +174,6 @@ class Dispatcher:
         self.set_status (NORMAL, Result (self.id, status, response, self.ident))
 
     def handle_result (self, handler):
-        if self.get_status () == TIMEOUT:
-            # timeout, ignore
-            return
-
         response = handler.response
         # DON'T do_filter here, it blocks select loop
         if response.code >= 700:
@@ -190,7 +185,6 @@ class Dispatcher:
             status = NORMAL
 
         result = Result (self.id, status, response, self.ident)
-
         cakey = response.request.get_cache_key ()
         if self.cachefs and cakey and response.max_age:
             self.cachefs.save (
@@ -452,11 +446,9 @@ class Task (corequest):
 
     def _collect (self, rs, failed = False):
         with self._cv:
-            if not failed and self._canceled:
-                return
             try:
                 asyncon = self._requests.pop (rs)
-            except KeyError:
+            except KeyError: # already collected
                 return
 
         status = rs.get_status ()
@@ -468,7 +460,7 @@ class Task (corequest):
         elif status == TIMEOUT:
             with self._cv:
                 self._results.append (rs)
-            self._cluster.report (asyncon, False) # not asyncons' Fault
+            self._cluster.report (asyncon, False)
 
         elif not self._mapreduce and status == NETERR and self._retry < (self._numnodes - 1):
             self._logger ("cluster response error, switch to another...", "fail")
@@ -490,13 +482,13 @@ class Task (corequest):
 
         with self._cv:
             requests = self._requests
-            callback, self._callback = self._callback, None
+            callback = self._callback
 
         if not requests:
             if callback:
                 self._do_callback (callback)
-            elif not failed:
-                cv = self._ccv is not None and self._ccv or self._cv
+            else:
+                cv = self._ccv or self._cv
                 with cv:
                     cv.notify_all ()
 
@@ -544,12 +536,12 @@ class Task (corequest):
                 if self._requests and not self._canceled:
                     self._cv.wait (remain)
 
-        self._canceled = True
-        requests = list (self._requests.items ())
+        with self._cv:
+            self._canceled = True
+            requests = list (self._requests.items ())
+
         for rs, asyncon in requests:
-            rs.set_status (TIMEOUT)
-            asyncon.handle_abort () # abort imme
-            self._collect (rs, failed = True)
+            asyncon.handle_timeout () # abort imme
 
     def dispatch (self, cache = None, cache_if = (200,), timeout = None, wait = True, reraise = False):
         if self._cached_result is not None:

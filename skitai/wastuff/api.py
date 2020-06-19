@@ -1,9 +1,6 @@
-try:
-	import ujson as json
-	UJSON = True
-except ImportError:
-	import json
-	UJSON = False
+import json
+UJSON = False
+
 import sys
 from xmlrpc import client
 from ..utility import catch

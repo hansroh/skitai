@@ -51,18 +51,15 @@ class Dispatcher (task.Dispatcher):
                 self.result = task.Result (self.id, TIMEOUT, FailedRequest (OperationTimeout ("Operation Timeout")), self.ident)
         return self.result
 
-    def handle_result (self, request):
-        if self.get_status () == TIMEOUT:
-            # timeout, ignore
-            return
+    def handle_result (self, result):
         status = NORMAL
-        if request.expt:
-            reason = str (request.expt)
+        if result.expt:
+            reason = str (result.expt)
             if reason == "Operation Timeout":
                 status = TIMEOUT
             elif reason == "Socket Panic":
                 status = NETERR
-        result = task.Result (self.id, status, request, self.ident)
+        result = task.Result (self.id, status, result, self.ident)
         self.set_status (status, result)
         tuple_cb (self, self.callback)
 
