@@ -67,7 +67,7 @@ def test_quic_compatibility ():
     client.connect(SERVER_ADDR, now=now)
     items = client.datagrams_to_send(now=now)
     assert datagram_sizes(items) == [1280]
-    assert client.get_timer() == 1.0
+    assert client.get_timer() == 0.2
 
     conn = make_connection (client.original_destination_connection_id)
     quic = conn._quic
@@ -78,7 +78,7 @@ def test_quic_compatibility ():
     assert a == 1280
     assert 1000 < b < 1062 # passed in 0.8.6
 
-    assert quic.get_timer() == 2.1
+    assert quic.get_timer() == 1.3
     quic.handle_timer (now)
 
     for func in (
