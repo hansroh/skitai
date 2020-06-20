@@ -31,4 +31,3 @@ def test_launch (launch):
 
         resp = engine.axios.get ('/bench/http')
         assert resp.status_code == 200
-        assert 'txs' in resp.data
