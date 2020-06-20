@@ -94,7 +94,10 @@ def bench_one2 (was):
 
 @app.route ("/bench/http", methods = ['GET'])
 def bench_http (was):
-    return was.Map (txs =  was.get ('@myweb/apis/settings'))
+    return was.Map (
+        t1 =  was.get ('@myweb/status?f=ENVIRON'),
+        t2 =  was.get ('@myweb/status?f=THREADS'),
+    )
 
 
 if __name__ == '__main__':

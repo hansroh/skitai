@@ -13,6 +13,40 @@ Installation
     ./install.sh
 
 
+Installing h2load.
+
+.. code:: bash
+
+    sudo apt update
+
+    # ubunut 18.04
+    sudo apt install -y g++
+
+    # ubunut 16.04
+    sudo get install build-essential software-properties-common -y
+    sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+    sudo apt update
+    sudo apt install -y gcc-6 g++-6
+    sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-6 60 --slave /usr/bin/g++ g++ /usr/bin/g++-6
+
+    # both
+    sudo apt install -y git make binutils autoconf automake \
+            autotools-dev libtool pkg-config zlib1g-dev \
+            libcunit1-dev libssl-dev libxml2-dev \
+            libev-dev libevent-dev libjansson-dev libc-ares-dev \
+            libjemalloc-dev cython python3-dev python-setuptools \
+            libjemalloc-dev libspdylay-dev
+
+    git clone https://github.com/nghttp2/nghttp2.git && cd nghttp2
+    autoreconf -i && automake && autoconf
+    ./configure --enable-app
+    make
+    sudo make install
+    cp ./src/h2load /usr/local/bin/
+
+    h2load --h1 -n10000 -c960 -t16 http://192.168.0.154:9007/bench
+
+
 Test Environment
 ----------------------------
 
