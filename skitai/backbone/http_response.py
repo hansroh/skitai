@@ -276,6 +276,7 @@ class http_response:
             except:
                 self.request.logger.trace ()
                 if self.current_app.debug:
+                    error ["traceback"] = error ["traceback"] or ''
                     if is_html_response:
                         error ["traceback"] += "<h2 style='padding-top: 40px;'>Exception Occured During Building Error Template</h2>" + catch (1)
                     else:
