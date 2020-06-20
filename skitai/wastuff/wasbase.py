@@ -29,7 +29,7 @@ import xmlrpc.client as xmlrpclib
 from rs4.producers import file_producer
 from .api import API
 from rs4.annotations import deprecated
-
+from .api import tojson
 if os.environ.get ("SKITAIENV") == "PYTEST":
     from .semaps import TestSemaps as Semaps
 else:
@@ -247,43 +247,40 @@ class WASBase:
         return self.env.get ('websocket.client')
 
     # will be deprecated --------------------------------------------------
-    @deprecated
+    @deprecated ()
     def togrpc (self, obj):
         return obj.SerializeToString ()
 
-    @deprecated
+    @deprecated ()
     def fromgrpc (self, message, obj):
         return message.ParseFromString (obj)
 
-    @deprecated
+    @deprecated ()
     def tojson (self, obj):
-        try:
-            encoder = self.app.config.get ('JSON_ENCODER')
-        except AttributeError:
-            encoder = None
-        return json.dumps (obj, cls = encoder)
+        return tojson (obj)
+        # return json.dumps (obj, cls = encoder)
 
-    @deprecated
+    @deprecated ()
     def toxml (self, obj):
         return xmlrpclib.dumps (obj, methodresponse = False, allow_none = True, encoding = "utf8")
 
-    @deprecated
+    @deprecated ()
     def fromjson (self, obj):
         if type (obj) is bytes:
             obj = obj.decode ('utf8')
         return json.loads (obj)
 
-    @deprecated
+    @deprecated ()
     def fromxml (self, obj, use_datetime = 0):
         return xmlrpclib.loads (obj)
 
-    @deprecated
+    @deprecated ()
     def fstream (self, path, mimetype = 'application/octet-stream'):
         self.response.set_header ('Content-Type',  mimetype)
         self.response.set_header ('Content-Length', str (os.path.getsize (path)))
         return file_producer (open (path, "rb"))
 
-    @deprecated
+    @deprecated ()
     def jstream (self, obj, key = None):
         self.response.set_header ("Content-Type", "application/json")
         if key:
@@ -292,12 +289,12 @@ class WASBase:
         else:
             return self.tojson (obj)
 
-    @deprecated
+    @deprecated ()
     def xstream (self, obj, use_datetime = 0):
         self.response.set_header ("Content-Type", "text/xml")
         return self.toxml (obj, use_datetime)
 
-    @deprecated
+    @deprecated ()
     def gstream (self, obj):
         self.response.set_header ("Content-Type", "application/grpc")
         return self.togrpc (obj)
