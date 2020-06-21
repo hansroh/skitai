@@ -188,12 +188,13 @@ class Dispatcher:
 
         result = Result (self.id, status, response, self.ident)
         cakey = response.request.get_cache_key ()
-        if self.cachefs and cakey and response.max_age:
-            self.cachefs.save (
-                cakey,
-                response.get_header ("content-type"), response.content,
-                response.max_age, 0
-            )
+        if status == NORMAL and response.code == 200:
+            if self.cachefs and cakey and response.max_age:
+                self.cachefs.save (
+                    cakey,
+                    response.get_header ("content-type"), response.content,
+                    response.max_age, 0
+                )
 
         handler.callback = None
         handler.response = None
@@ -490,9 +491,11 @@ class Task (corequest):
             if callback:
                 self._do_callback (callback)
             else:
-                cv = self._ccv or self._cv
-                with cv:
-                    cv.notify_all ()
+                if self._ccv:
+                    with self._ccv:
+                        self._ccv.notify_all ()
+                with self._cv:
+                    self._cv.notify_all ()
 
     def _do_callback (self, callback):
         result = self.dispatch (wait = False)

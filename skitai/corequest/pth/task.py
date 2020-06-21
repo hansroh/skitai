@@ -41,9 +41,7 @@ class Task (corequest):
                 self._late_respond (self._mask)
 
     def kill (self):
-        try: self.future.result (timeout = 0)
-        except: pass
-        self.future.set_exception (TimeoutError)
+        self.cancel ()
 
     def cancel (self):
         try: self.future.cancel ()
@@ -68,11 +66,17 @@ class Task (corequest):
         self._timeout = timeout
         if self._mask:
             return self._mask
-        expt, data = self.future.exception (self._timeout), None
+
+        expt, data = None, None
+        try:
+            data = self.future.result ()
+        except Exception as error:
+            expt = error
+
         if not expt:
-            data = self.future.result (self._timeout)
             if self._filter:
                 data =  self._filter (data)
+
         self._mask = Mask (data, expt, meta = self.meta)
         return self._mask
 

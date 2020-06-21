@@ -59,6 +59,7 @@ install_requires = [
 	"aquests>=0.29.2.0",
 	"jsonrpclib-pelix",
 	"sqlphile",
+	"pebble",
 ]
 if os.name == "nt":
 	install_requires.append ("pywin32")

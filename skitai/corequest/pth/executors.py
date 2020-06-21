@@ -5,6 +5,12 @@ import time
 from .task import Task
 import sys
 from rs4.psutil import kill
+<<<<<<< HEAD
+=======
+import pebble
+from pebble import ProcessExpired
+from concurrent.futures import TimeoutError
+>>>>>>> af24513a94b617b369b0f7dbb3281ab48b2cf427
 from ..httpbase.task import DEFAULT_TIMEOUT
 
 N_CPU = multiprocessing.cpu_count()
@@ -31,7 +37,8 @@ class ThreadExecutor:
             return len (self.futures)
 
     def launch_executor (self):
-        self.executor = rs4.tpool (self.workers)
+        # self.executor = rs4.tpool (self.workers)
+        self.executor = pebble.ThreadPool (self.workers)
 
     def status (self):
         with self.lock:
@@ -52,11 +59,14 @@ class ThreadExecutor:
         for future in self.futures:
             if future.done ():
                 self._dones += 1
-                if future.exception ():
-                    try:
-                        raise future.exception ()
-                    except:
-                        self.logger.trace ()
+                try:
+                    future.result ()
+                except TimeoutError as error:
+                    self.logger ("{} task took longer than {} seconds: {}".format (self.NAME, error.args[1], future), 'error')
+                except ProcessExpired as error:
+                    self.logger ("{} task died unexpectedly with exit code {}: {}".format (self.NAME, error.exitcode, future), 'error')
+                except Exception as error:
+                    self.logger.trace ()
                 continue
 
             if self.no_more_request:
@@ -69,6 +79,7 @@ class ThreadExecutor:
                 future.kill ()
                 self._timeouts += 1
                 self.logger ("try to kill zombie {} task: {}".format (self.NAME, future), 'warn')
+
             inprogresses.append (future)
         self.futures = inprogresses
 
@@ -79,15 +90,21 @@ class ThreadExecutor:
                 return
             self.maintern (time.time ())
             # if False, Py3.7 raise OSError: OSError: handle is closed
-            if sys.version_info [:2] >= (3, 9):
-                self.executor.shutdown (cancel_futures = True)
-            else:
-                self.executor.shutdown ()
+            # if sys.version_info [:2] >= (3, 9):
+            #     self.executor.shutdown (cancel_futures = True)
+            # else:
+            #     self.executor.shutdown ()
 
+            self.executor.stop ()
+            self.executor.close ()
             self.executor = None
             self.futures = []
 
             return len (self.futures)
+
+    def create_task (self, f, a, b, timeout):
+        # return self.executor.submit (f, *a, **b)
+        return self.executor.schedule (f, args = a, kwargs = b)
 
     def __call__ (self, was_id, f, *a, **b):
         with self.lock:
@@ -103,9 +120,12 @@ class ThreadExecutor:
         meta = {}
         timeout, filter = None, None
         if not a:
+            try:
+                timeout = b.pop ('timeout')
+            except KeyError:
+                timeout = self.default_timeout
+
             try: meta = b.pop ('meta')
-            except KeyError: pass
-            try: timeout = b.pop ('timeout')
             except KeyError: pass
             try: filter = b.pop ('filter')
             except KeyError: pass
@@ -114,7 +134,7 @@ class ThreadExecutor:
             b = b.get ('kwargs', b)
 
         meta ['__was_id'] = was_id
-        future = self.executor.submit (f, *a, **b)
+        future = self.create_task (f, a, b, timeout)
         wrap = Task (future, "{}.{}".format (f.__module__, f.__name__), meta = meta, filter = filter)
         wrap.set_timeout (timeout or self.default_timeout)
         self.logger ("{} task started: {}".format (self.NAME, wrap))
@@ -125,7 +145,11 @@ class ThreadExecutor:
 class ProcessExecutor (ThreadExecutor):
     NAME = "process"
     def launch_executor (self):
-        self.executor = rs4.ppool (self.workers)
+        # self.executor = rs4.ppool (self.workers)
+        self.executor = pebble.ProcessPool (self.workers)
+
+    def create_task (self, f, a, b, timeout = None):
+        return self.executor.schedule (f, args = a,  kwargs = b, timeout = timeout)
 
 # ------------------------------------------------------------------------
 
