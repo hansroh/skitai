@@ -4,6 +4,7 @@ from rs4.logger import screen_logger
 import time
 from .task import Task
 import sys
+from rs4.psutil import kill
 
 N_CPU = multiprocessing.cpu_count()
 
@@ -68,10 +69,8 @@ class ThreadExecutor:
             if timeout is not None and future._started + timeout < now:
                 future.kill ()
                 self._timeouts += 1
-                self.logger ("zombie {} task is killed: {}".format (self.NAME, future))
-            else:
-                inprogresses.append (future)
-                continue
+                self.logger ("try to kill zombie {} task: {}".format (self.NAME, future), 'warn')
+            inprogresses.append (future)
         self.futures = inprogresses
 
     def shutdown (self):
@@ -81,13 +80,14 @@ class ThreadExecutor:
                 return
             self.maintern (time.time ())
             # if False, Py3.7 raise OSError: OSError: handle is closed
-            if sys.version_info [:2] >= (3, 10):
+            if sys.version_info [:2] >= (3, 9):
                 self.executor.shutdown (cancel_futures = True)
             else:
                 self.executor.shutdown ()
 
             self.executor = None
             self.futures = []
+
             return len (self.futures)
 
     def __call__ (self, was_id, f, *a, **b):
@@ -128,7 +128,6 @@ class ProcessExecutor (ThreadExecutor):
     def launch_executor (self):
         self.executor = rs4.ppool (self.workers)
 
-
 # ------------------------------------------------------------------------
 
 class Executors:
@@ -146,10 +145,7 @@ class Executors:
         )
 
     def cleanup (self):
-        if sys.version_info [:2] >= (3, 10):
-            return [e.shutdown (cancel_futures = True) for e in self.executors]
-        else:
-            return [e.shutdown () for e in self.executors]
+        return [e.shutdown () for e in self.executors]
 
     def create_thread (self, was_id, f, *a, **b):
         return self.executors [0] (was_id, f, *a, **b)

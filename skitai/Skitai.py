@@ -304,7 +304,7 @@ class Loader:
 	def run (self, timeout = 30):
 		if self._exit_code is not None:
 			self.close ()
-			return self._exit_code # master process
+			return self._exit_code # win43 master process
 
 		try:
 			try:

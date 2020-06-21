@@ -14,6 +14,7 @@ import signal
 import ssl
 import skitai
 from hashlib import md5
+from rs4.psutil import kill
 from rs4.psutil.processutil import set_process_name, drop_privileges
 
 if os.name == "posix":
@@ -463,6 +464,7 @@ class http_server (asyncore.dispatcher):
                     break
 
             if self.worker_ident == "master":
+                kill.child_processes_gracefully ()
                 return EXITCODE
 
         self.log_info ('%s%s(%s) started on %s:%d' % (
