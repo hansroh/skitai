@@ -3290,6 +3290,7 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - use loky for avoiding processpool deadlock
   - remove ujson-ia dependency, it may have memory leak
   - reengineering threading locks for asynconnect, http_channels
     and http2/3 handlers
