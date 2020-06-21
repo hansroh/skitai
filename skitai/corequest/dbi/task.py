@@ -52,6 +52,9 @@ class Dispatcher (task.Dispatcher):
         return self.result
 
     def handle_result (self, result):
+        if self.get_status () != UNSENT:
+            # timeout, ignore
+            return
         status = NORMAL
         if result.expt:
             reason = str (result.expt)

@@ -174,6 +174,8 @@ class Dispatcher:
         self.set_status (NORMAL, Result (self.id, status, response, self.ident))
 
     def handle_result (self, handler):
+        if self.get_status () != UNSENT:
+            return
         response = handler.response
         # DON'T do_filter here, it blocks select loop
         if response.code >= 700:
@@ -446,6 +448,9 @@ class Task (corequest):
 
     def _collect (self, rs, failed = False):
         with self._cv:
+            if not failed and self._canceled:
+                # already collected as timeout but original request is arrived, then IGNORE
+                return
             try:
                 asyncon = self._requests.pop (rs)
             except KeyError: # already collected
@@ -541,6 +546,8 @@ class Task (corequest):
             requests = list (self._requests.items ())
 
         for rs, asyncon in requests:
+            rs.set_status (TIMEOUT)
+            self._collect (rs, failed = True)
             asyncon.handle_timeout () # abort imme
 
     def dispatch (self, cache = None, cache_if = (200,), timeout = None, wait = True, reraise = False):
