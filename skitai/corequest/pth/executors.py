@@ -5,6 +5,7 @@ import time
 from .task import Task
 import sys
 from rs4.psutil import kill
+from ..httpbase.task import DEFAULT_TIMEOUT
 
 N_CPU = multiprocessing.cpu_count()
 
@@ -12,10 +13,10 @@ class ThreadExecutor:
     NAME = "thread"
     MAINTERN_INTERVAL = 10
 
-    def __init__ (self, workers = None, zombie_timeout = None, logger = None):
+    def __init__ (self, workers = None, default_timeout = None, logger = None):
         self.logger = logger
         self.workers = workers or N_CPU
-        self.zombie_timeout = zombie_timeout
+        self.default_timeout = default_timeout
         self.last_maintern = time.time ()
         self.lock = multiprocessing.Lock ()
         self.executor = None
@@ -38,7 +39,7 @@ class ThreadExecutor:
                 completions = self._dones,
                 timeouts = self._timeouts,
                 maintainables = len (self.futures),
-                zombie_timeout = self.zombie_timeout,
+                default_timeout = self.default_timeout,
                 workers = self.workers,
                 last_maintern = self.last_maintern,
                 activated = self.executor is not None,
@@ -62,8 +63,6 @@ class ThreadExecutor:
                 timeout = -1 # kill immediately
             else:
                 timeout = future.get_timeout ()
-                if timeout is None:
-                    timeout = self.zombie_timeout
 
             # timeout is 0 or None, it is infinite task
             if timeout is not None and future._started + timeout < now:
@@ -117,7 +116,7 @@ class ThreadExecutor:
         meta ['__was_id'] = was_id
         future = self.executor.submit (f, *a, **b)
         wrap = Task (future, "{}.{}".format (f.__module__, f.__name__), meta = meta, filter = filter)
-        timeout and wrap.set_timeout (timeout)
+        wrap.set_timeout (timeout or self.default_timeout)
         self.logger ("{} task started: {}".format (self.NAME, wrap))
         with self.lock:
             self.futures.append (wrap)
@@ -131,11 +130,11 @@ class ProcessExecutor (ThreadExecutor):
 # ------------------------------------------------------------------------
 
 class Executors:
-    def __init__ (self, workers = N_CPU, zombie_timeout = None, logger = None):
+    def __init__ (self, workers = N_CPU, default_timeout = DEFAULT_TIMEOUT, logger = None):
         self.logger = logger or screen_logger ()
         self.executors = [
-            ThreadExecutor (workers, zombie_timeout, self.logger),
-            ProcessExecutor (workers, zombie_timeout, self.logger)
+            ThreadExecutor (workers, default_timeout, self.logger),
+            ProcessExecutor (workers, default_timeout, self.logger)
         ]
 
     def status (self):

@@ -448,9 +448,6 @@ class Task (corequest):
 
     def _collect (self, rs, failed = False):
         with self._cv:
-            if not failed and self._canceled:
-                # already collected as timeout but original request is arrived, then IGNORE
-                return
             try:
                 asyncon = self._requests.pop (rs)
             except KeyError: # already collected
