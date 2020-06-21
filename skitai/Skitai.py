@@ -24,6 +24,7 @@ from aquests.client import adns
 from aquests.protocols import dns
 if os.name == "nt":
 	from rs4.psutil import schedule # cron like scheduler
+from rs4.psutil import kill
 from .handlers import proxy_handler, ipbl_handler, vhost_handler, forward_handler
 import socket
 import signal
@@ -352,3 +353,6 @@ class Loader:
 				del self.wasc.logger
 			except:
 				pass
+
+		# finally, kill child processes
+		kill.child_processes_gracefully ()

@@ -464,7 +464,7 @@ class http_server (asyncore.dispatcher):
                     break
 
             if self.worker_ident == "master":
-                kill.child_processes_gracefully ()
+                kill.child_processes_gracefully () # killing multiprocessing.semaphore_tracker
                 return EXITCODE
 
         self.log_info ('%s%s(%s) started on %s:%d' % (
