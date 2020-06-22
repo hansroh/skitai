@@ -2,7 +2,7 @@ import pytest
 import sys, os
 import time
 import aquests
-from test_example_apps_with_aquests import assert_status, makeset
+from test_aquests_example_apps import assert_status, makeset
 
 def test_https (launch):
 	global ERRS
