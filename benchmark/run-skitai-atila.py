@@ -95,6 +95,12 @@ def bench_one2 (was):
 @app.route ("/bench/http", methods = ['GET'])
 def bench_http (was):
     return was.Map (
+        t1 =  was.get ('@myweb/apis/settings'),
+    )
+
+@app.route ("/bench/http/2", methods = ['GET'])
+def bench_http2 (was):
+    return was.Map (
         t1 =  was.get ('@myweb/status?f=ENVIRON', headers = {'Accept': 'text/html'}),
         t2 =  was.get ('@myweb/status?f=THREADS', headers = {'Accept': 'text/html'}),
     )
