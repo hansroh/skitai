@@ -128,13 +128,14 @@ class Results (response, rcache.Result):
 
 
 class Dispatcher:
-    def __init__ (self, cv, id, ident = None, filterfunc = None, cachefs = None, callback = None):
+    def __init__ (self, cv, id, ident = None, filterfunc = None, cachefs = None, callback = None, conn_id = None):
         self._cv = cv
         self.id = id
         self.ident = ident
         self.filterfunc = filterfunc
         self.cachefs = cachefs
         self.callback = callback
+        self.conn_id = conn_id
         self.creation_time = time.time ()
         self.status = UNSENT
         self.result = None
@@ -367,7 +368,8 @@ class Task (corequest):
                 self._cv, asyncon.address,
                 ident = not self._mapreduce and self._get_ident () or None,
                 filterfunc = self._filter, cachefs = self._cachefs,
-                callback = self._collect
+                callback = self._collect,
+                conn_id = id (asyncon)
             )
             self._requests [rs] = asyncon
             args = (params, self._headers, self._auth, self._logger, self._meta)
@@ -545,7 +547,7 @@ class Task (corequest):
         for rs, asyncon in requests:
             rs.set_status (TIMEOUT)
             self._collect (rs, failed = True)
-            asyncon.handle_timeout () # abort imme
+            asyncon.handle_abort () # abort imme
 
     def dispatch (self, cache = None, cache_if = (200,), timeout = None, wait = True, reraise = False):
         if self._cached_result is not None:

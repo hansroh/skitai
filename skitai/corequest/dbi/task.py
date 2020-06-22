@@ -17,10 +17,11 @@ class RequestFailed (Exception):
     pass
 
 class FailedRequest:
-    def __init__ (self, expt):
+    def __init__ (self, expt, conn_id = None):
         self.description = None
         self.data = None
         self.expt = expt
+        self.conn_id = conn_id
 
         self.code, self.msg = 500, str (expt)
         self.status_code, self.reason = self.code, self.msg
@@ -32,7 +33,7 @@ class FailedRequest:
 
 
 class Dispatcher (task.Dispatcher):
-    def __init__ (self, cv, id, ident = None, filterfunc = None, callback = None):
+    def __init__ (self, cv, id, ident = None, filterfunc = None, callback = None, conn_id = None):
         self._cv = cv
         self.id = id
         self.ident = ident
@@ -41,14 +42,15 @@ class Dispatcher (task.Dispatcher):
         self.creation_time = time.time ()
         self.status = UNSENT
         self.result = None
+        self.conn_id = conn_id
 
     def get_result (self):
         if not self.result:
             status = self.get_status ()
             if status == REQFAIL:
-                self.result = task.Result (self.id, REQFAIL, FailedRequest (RequestFailed ("Request Failed")), self.ident)
+                self.result = task.Result (self.id, REQFAIL, FailedRequest (RequestFailed ("Request Failed"), self.conn_id), self.ident)
             else:
-                self.result = task.Result (self.id, TIMEOUT, FailedRequest (OperationTimeout ("Operation Timeout")), self.ident)
+                self.result = task.Result (self.id, TIMEOUT, FailedRequest (OperationTimeout ("Operation Timeout"), self.conn_id), self.ident)
         return self.result
 
     def handle_result (self, result):
@@ -145,7 +147,8 @@ class Task (task.Task):
                 self._cv, asyncon.address,
                 ident = not self._mapreduce and self._get_ident () or None,
                 filterfunc = self._filter,
-                callback = self._collect
+                callback = self._collect,
+                conn_id = id (asyncon)
             )
             self._requests [rs] = asyncon
             req = request.Request (
