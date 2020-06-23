@@ -65,10 +65,10 @@ python 3.8buster:
   <<: *before_python_notf_test
   <<: *test
 
-python pypy3:
-  image: pypy:3
-  <<: *before_pypy_test
-  <<: *test
+# python pypy3:
+#   image: pypy:3
+#   <<: *before_pypy_test
+#   <<: *test
 
 # python 3.9buster:
 #   image: python:3.9.0b1-buster

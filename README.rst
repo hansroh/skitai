@@ -3290,7 +3290,8 @@ Change Log
 
 - 0.35 (Feb 2020)
 
-  - use loky_ for avoiding processpool deadlock
+  - drop officicial support for pypy3
+  - use pebble_ for timeout managed process pool
   - remove ujson-ia dependency, it may have memory leak
   - reengineering threading locks for asynconnect, http_channels
     and http2/3 handlers
@@ -3782,5 +3783,5 @@ Change Log
 
 .. _Chameleon: https://chameleon.readthedocs.io/en/latest/index.html
 .. _hyper-h2: https://pypi.python.org/pypi/h2
-.. _loky: https://pypi.python.org/pypi/loky
+.. _pebble: https://pypi.python.org/pypi/pebble
 
