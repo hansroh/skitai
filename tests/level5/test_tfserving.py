@@ -14,7 +14,7 @@ def test_tfserver ():
         from dnn.tfserver import cli
         import numpy as np
     except ImportError:
-        pass
+        return
 
     serve = "./examples/tfserve.py"
     with skitai.test_client (serve, port = 30371, silent = False):
