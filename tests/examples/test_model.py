@@ -1,6 +1,6 @@
 import pytest
 import skitai
-from tfserver import cli
+from dnn.tfserver import cli
 from dnn.predutil import TFServer
 import numpy as np
 import os

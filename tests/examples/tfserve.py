@@ -1,6 +1,6 @@
 import skitai
-import tfserver
-from dnn import tf
+import dnn
+import tensorflow as tf
 import os
 import sys
 
@@ -22,6 +22,6 @@ if __name__ == "__main__":
     pref.access_control_allow_origin = ["*"]
     pref.config.tf_models = {}
     load_latest_model ("test", skitai.joinpath ("models"), 0.1)
-    skitai.mount ("/", tfserver, pref = pref)
+    skitai.mount ("/", dnn, pref = pref)
     skitai.run (port = 5000, name = "tfms")
 
