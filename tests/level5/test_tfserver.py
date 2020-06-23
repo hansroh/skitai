@@ -10,11 +10,11 @@ SEQLEN = 12
 
 def test_tfserver ():
     try:
+        from dnn.predutil import TFServer
         from tfserver import cli
         import numpy as np
-        from dnn.predutil import TFServer
     except ImportError:
-        return
+        pass
 
     serve = "./examples/tfserve.py"
     with skitai.test_client (serve, port = 30371, silent = False):
@@ -29,3 +29,4 @@ def test_tfserver ():
         }
         resp = requests.post ("http://127.0.0.1:30371/predict", data = json.dumps (params), headers = {"Content-Type": "application/json"})
         assert np.array (resp.json ()["result"]["y"]).shape == (1, 2)
+

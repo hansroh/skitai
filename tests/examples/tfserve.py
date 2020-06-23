@@ -1,6 +1,6 @@
 import skitai
 import tfserver
-import tensorflow as tf
+from dnn import tf
 import os
 import sys
 

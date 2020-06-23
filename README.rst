@@ -3290,7 +3290,8 @@ Change Log
 
 - 0.35 (Feb 2020)
 
-  - drop officicial support for pypy3
+  - drop officicial support for pypy3, few perf. improvement
+    but some compatable errors
   - use pebble_ for timeout managed process pool
   - remove ujson-ia dependency, it may have memory leak
   - reengineering threading locks for asynconnect, http_channels
