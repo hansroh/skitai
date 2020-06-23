@@ -33,8 +33,8 @@ import getopt as libgetopt
 
 argopt.add_option ('-d', desc = "start as daemon, equivalant with `start` command") # lower version compatible
 argopt.add_option (None, '---profile', desc = "log for performance profiling")
-argopt.add_option (None, '---gc', desc = "enable manual GC")
 argopt.add_option (None, '---memtrack', desc = "show memory status")
+argopt.add_option (None, '---gc', desc = "enable manual GC")
 
 argopt.add_option (None, '--devel', desc = "enable auto reloading and debug output")
 argopt.add_option (None, '--port=PORT_NUMBER', desc = "http/https port number")
