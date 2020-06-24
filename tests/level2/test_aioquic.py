@@ -76,7 +76,7 @@ def test_quic_compatibility ():
     items = quic.datagrams_to_send(now=now)
     a, b = datagram_sizes(items)
     assert a == 1280
-    assert 1000 < b < 1062 # passed in 0.8.6
+    assert 1000 < b < 1080
 
     assert quic.get_timer() == 1.3
     quic.handle_timer (now)
