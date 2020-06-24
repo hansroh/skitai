@@ -179,8 +179,9 @@ def test_cli (app, dbpath, is_pypy):
 
         app.config.MAINTAIN_INTERVAL = 1
         app.store.set ("total-user", 100)
-        time.sleep (2)
-        resp = cli.get ("/getval")
+        for i in range (4):
+            time.sleep (1)
+            resp = cli.get ("/getval")
         assert int (resp.text) >= 200
 
         app.store.set ("total-user2", 100)
