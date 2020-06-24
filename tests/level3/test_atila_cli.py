@@ -188,8 +188,8 @@ def test_cli (app, dbpath, is_pypy):
         resp = cli.get ("/getval2")
         assert int (resp.text) <= 200
 
-        for i in range (5):
-            time.sleep (2)
+        for i in range (8):
+            time.sleep (1)
             resp = cli.get ("/getval2")
 
         resp = cli.get ("/getval2")
