@@ -451,7 +451,6 @@ class http_server (asyncore.dispatcher):
                             ps.x_overloads = 0
                             PID [pid] = ps
                             ACTIVE_WORKERS += 1
-                            #print ('-----', PID, ACTIVE_WORKERS)
 
                     now = time.time ()
                     if self.maintern_interval and now - self.__last_maintern > self.maintern_interval:
@@ -482,10 +481,9 @@ class http_server (asyncore.dispatcher):
 
         self.__last_maintern = now
         usages = []
-        for ps in PID.values ():
+        for pid, ps in PID.items ():
             if ps is None:
                 continue
-
             try:
                 usage = ps.cpu_percent ()
             except (psutil.NoSuchProcess, AttributeError):
@@ -520,9 +518,9 @@ class http_server (asyncore.dispatcher):
                 self.log ("process %d is overloading, try to kill..." % ps.pid, 'fatal')
                 sig = ps.x_overloads > (self.critical_point_continuous + 2) and signal.SIGKILL or signal.SIGTERM
                 try:
-                    os.kill (ps.pid, sig)
-                except OSError:
-                    pass
+                    kill.child_processes_gracefully (ps.pid)
+                except:
+                    self.trace ('worker pid: {}'.format (ps.pid))
 
     def create_socket(self, family):
         if hasattr (socket, "_no_timeoutsocket"):
@@ -640,7 +638,7 @@ def hCHLD (signum, frame):
     except ChildProcessError:
         pass
     else:
-        PID [pid]    = None
+        PID [pid] = None
 
 def hTERMWORKER (signum, frame):
     lifetime.shutdown (0, 1.0)

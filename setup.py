@@ -16,6 +16,12 @@ except ImportError:
 with open('skitai/__init__.py', 'r') as fd:
 	version = re.search(r'^__version__\s*=\s*"(.*?)"',fd.read(), re.M).group(1)
 
+if 'publish' in sys.argv:
+	os.system ('{} setup.py bdist_wheel'.format (sys.executable))
+	whl = glob.glob ('dist/skitai-{}-*.whl'.format (version))[0]
+	os.system ('twine upload {}'.format (whl))
+	sys.exit ()
+
 classifiers = [
   'License :: OSI Approved :: MIT License',
   'Development Status :: 4 - Beta',

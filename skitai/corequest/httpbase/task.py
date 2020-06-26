@@ -544,9 +544,13 @@ class Task (corequest):
             self._canceled = True
             requests = list (self._requests.items ())
 
+        abortables = []
         for rs, asyncon in requests:
             rs.set_status (TIMEOUT)
             self._collect (rs, failed = True)
+            abortables.append (asyncon)
+
+        for asyncon in abortables:
             asyncon.handle_abort () # abort imme
 
     def dispatch (self, cache = None, cache_if = (200,), timeout = None, wait = True, reraise = False):
