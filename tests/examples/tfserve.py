@@ -10,7 +10,7 @@ def load_latest_model (model_name, subdir = None, per_process_gpu_memory_fractio
         return
     version = max ([int (ver) for ver in os.listdir (loc) if ver.isdigit () and os.path.isdir (os.path.join (loc, ver))])
     model_path = os.path.join (loc, str (version))
-    tfconfig = tf.ConfigProto(log_device_placement = False)
+    tfconfig = tf.compat.v1.ConfigProto(log_device_placement = False)
     pref.config.tf_models [model_name] = (model_path, tfconfig)
 
 
