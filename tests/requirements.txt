@@ -15,5 +15,7 @@ asgiref
 httpbin
 starlette
 wsproto
+jsonrpclib-pelix
+markupsafe
 aioquic>=0.9; python_version>="3.6"
 psycopg2cffi; python_version>="3.6"
