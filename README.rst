@@ -3290,6 +3290,7 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - disable pebble_ executor by process cleanup problem
   - drop officicial support for pypy3, few perf. improvement
     but some compatable errors
   - use pebble_ for timeout managed process pool

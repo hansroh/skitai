@@ -7,7 +7,7 @@ from aquests.athreads import trigger
 import sys
 from ..httpbase.task import DEFAULT_TIMEOUT
 
-PREFER_PEBBLE = True
+PREFER_PEBBLE = False
 
 class Task (corequest):
     def __init__ (self, future, name, meta, filter, timeout = None):

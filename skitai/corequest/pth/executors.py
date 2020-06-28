@@ -2,12 +2,18 @@ import multiprocessing
 import rs4
 from rs4.logger import screen_logger
 import time
-from .task import Task, PREFER_PEBBLE
+from .task import Task
+from . import task
 import sys
 from rs4.psutil import kill
 from concurrent.futures import TimeoutError
-import pebble
-from pebble import ProcessExpired
+try:
+    import pebble
+    from pebble import ProcessExpired
+except ImportError:
+    task.PREFER_PEBBLE = False
+    class ProcessExpired (Exception):
+        pass
 
 DEFAULT_TIMEOUT = 10
 N_CPU = multiprocessing.cpu_count()
@@ -36,7 +42,7 @@ class ThreadExecutor:
             return len (self.futures)
 
     def launch_executor (self):
-        if PREFER_PEBBLE:
+        if task.PREFER_PEBBLE:
             self.executor = pebble.ThreadPool (self.workers)
         else:
             self.executor = rs4.tpool (self.workers)
@@ -87,7 +93,7 @@ class ThreadExecutor:
             if not self.executor:
                 return
             self.maintern (time.time ())
-            if PREFER_PEBBLE:
+            if task.PREFER_PEBBLE:
                 self.executor.stop ()
                 self.executor.close ()
             else:
@@ -101,7 +107,7 @@ class ThreadExecutor:
             return len (self.futures)
 
     def create_task (self, f, a, b, timeout):
-        if PREFER_PEBBLE:
+        if task.PREFER_PEBBLE:
             return self.executor.schedule (f, args = a,  kwargs = b)
         else:
             return self.executor.submit (f, *a, **b)
@@ -144,13 +150,13 @@ class ThreadExecutor:
 class ProcessExecutor (ThreadExecutor):
     NAME = "process"
     def launch_executor (self):
-        if PREFER_PEBBLE:
+        if task.PREFER_PEBBLE:
             self.executor = pebble.ProcessPool (self.workers)
         else:
             self.executor = rs4.ppool (self.workers)
 
     def create_task (self, f, a, b, timeout = None):
-        if PREFER_PEBBLE:
+        if task.PREFER_PEBBLE:
             return self.executor.schedule (f, args = a,  kwargs = b, timeout = timeout)
         else:
             return self.executor.submit (f, *a, **b)
