@@ -180,6 +180,10 @@ class WASBase:
     def tempfile (self):
         return self.gentemp ()
 
+    @property
+    def flashfile (self):
+        return pathtool.FlashFile (self.gentemp ())
+
     def gentemp (self):
         return os.path.join (TEMP_DIR, next (tempfile._get_candidate_names()))
 
