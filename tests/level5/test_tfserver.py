@@ -9,6 +9,7 @@ import pytest
 import shutil
 
 def test_build_model ():
+    pathtool.mkdir ('tmp/checkpoint')
     serve = "./examples/tfserve.py"
     with skitai.test_client (serve, port = 30371, silent = False) as engine:
         try:

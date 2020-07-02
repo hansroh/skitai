@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from rs4.mltk import metrics, callbacks, losses
+from dnn import metrics, callbacks, losses
 from rs4 import pathtool
 import shutil
 from tfserver import label
@@ -30,12 +30,12 @@ BS = 32
 def create_model (checkpoint = None):
     x = tf.keras.layers.Input (3, name = 'x')
     h1 = tf.keras.layers.Dense (10, activation='relu') (x)
-    y1 = tf.keras.layers.Dense (2, activation='softmax', name = 'y1') (h1)
+    y1_ = tf.keras.layers.Dense (2, activation='softmax', name = 'y1') (h1)
 
     h2 = tf.keras.layers.Dense (10, activation='relu') (x)
-    y2 = tf.keras.layers.Dense (2, activation='softmax', name = 'y2') (h2)
+    y2_ = tf.keras.layers.Dense (2, activation='softmax', name = 'y2') (h2)
 
-    model = tf.keras.Model (x, [y1, y2])
+    model = tf.keras.Model (x, [y1_, y2_])
 
     optimizer = tf.keras.optimizers.Adam(lr=INIT_LR, decay=INIT_LR / EPOCHS)
     model.compile (
@@ -56,7 +56,7 @@ def train ():
     save_checkpoint = tf.keras.callbacks.ModelCheckpoint (
         filepath = './tmp/checkpoint/cp.ckpt',
         save_weights_only = True,
-        monitor = 'val_y2_accuracy',
+        monitor = 'val_y1_accuracy',
         model = 'max',
         save_best_only = True
     )
@@ -72,7 +72,7 @@ def train ():
             # tf.keras.callbacks.TensorBoard(log_dir='./logs')
         ]
     )
-    model.evaluate (train_xs, train_ys)
+    model.evaluate (train_xs, {"y1": train_ys, "y2": train_ys})
     model.predict (train_xs)
 
 def restore ():
@@ -98,6 +98,6 @@ def deploy (model):
     print (resp)
 
 if __name__ == '__main__':
-    # train ()
+    train ()
     model = restore ()
     deploy (model)
