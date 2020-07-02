@@ -45,11 +45,6 @@ variables:
   only:
     - master
 
-python 3.5stretch:
-  image: python:3.5-stretch
-  <<: *before_python_notf_test
-  <<: *test
-
 python 3.6stretch:
   image: python:3.6-stretch
   <<: *before_python_test
@@ -62,8 +57,13 @@ python 3.7stretch:
 
 python 3.8buster:
   image: python:3.8-buster
-  <<: *before_python_notf_test
+  <<: *before_python_test
   <<: *test
+
+# python 3.5stretch:
+#   image: python:3.5-stretch
+#   <<: *before_python_notf_test
+#   <<: *test
 
 # python pypy3:
 #   image: pypy:3
