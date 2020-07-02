@@ -19,5 +19,6 @@ if __name__ == "__main__":
     pref.max_client_body_size = 100 * 1024 * 1024 # 100 MB
     pref.access_control_allow_origin = ["*"]
     load_latest_model ("ex1", skitai.joinpath ("models/ex1"), 0.1)
+    load_latest_model ("fashion", skitai.joinpath ("models/fashion"), 0.1)
     skitai.mount ("/", tfserver, pref = pref)
     skitai.run (port = 5000, name = "tfms")
