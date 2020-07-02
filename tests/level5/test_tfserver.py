@@ -14,17 +14,18 @@ def test_tfserver ():
     serve = "./examples/tfserve.py"
     with skitai.test_client (serve, port = 30371, silent = False) as engine:
         try:
-            from tfserver.predutil import TFServer, cli
+            from tfserver.loaders import TFServer
+            from tfserver import cli
             import numpy as np
         except ImportError:
             return
 
         s = TFServer ("http://127.0.0.1:30371", "ex1")
-        y = s.predict (x = np.array ([X]), seq_length = np.array ([SEQLEN]))
-        assert y.shape == (1, 2)
+        resp = s.predict (x = np.array ([X]), seq_length = np.array ([SEQLEN]))
+        assert resp.y.shape == (1, 2)
 
         with open ('examples/models/fashion/1/assets/fashionX.pik', 'rb') as f:
-            testX = pickle.loads (f.read ()) [:3]
+            testX = pickle.loads (f.read ()) [:10]
 
         stub = cli.Server ("http://127.0.0.1:30371")
         for i in range (len (testX)):
