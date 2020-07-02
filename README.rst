@@ -3290,6 +3290,7 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - drop supporing Python 3.5 officially
   - add was.flashfile with auto deletion file name
   - disable pebble_ executor by process cleanup problem
   - drop officicial support for pypy3, few perf. improvement

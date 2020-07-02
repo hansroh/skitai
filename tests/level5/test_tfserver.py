@@ -5,6 +5,30 @@ import json
 import requests
 from rs4 import pathtool
 import pickle
+import pytest
+
+def test_build_model ():
+    serve = "./examples/tfserve.py"
+    with skitai.test_client (serve, port = 30371, silent = False) as engine:
+        try:
+            from tfserver import cli
+        except ImportError:
+            return
+
+        import build_model
+        build_model.train ()
+        model = build_model.restore ()
+        build_model.deploy (model)
+
+        stub = cli.Server ("http://127.0.0.1:30371")
+        for i in range (len (build_model.train_xs)):
+            resp = stub.predict ('keras', 'predict', x = build_model.train_xs [i:i+1])
+            assert resp.y1_classes.shape == (1, 2)
+            assert resp.y1.shape  == (1, 2)
+            assert resp.y2_scores.shape == (1, 2)
+            assert b'true' in resp.y1_classes.tolist () [0]
+
+
 
 X = [2622, 129, 1856, 2391, 230, 2562, 4028, 3199, 231, 1843, 3789, 905, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 Y = [0.0, 1.0]
@@ -23,17 +47,6 @@ def test_tfserver ():
         s = TFServer ("http://127.0.0.1:30371", "ex1")
         resp = s.predict (x = np.array ([X]), seq_length = np.array ([SEQLEN]))
         assert resp.y.shape == (1, 2)
-
-        with open ('examples/models/fashion/1/assets/fashionX.pik', 'rb') as f:
-            testX = pickle.loads (f.read ()) [:10]
-
-        stub = cli.Server ("http://127.0.0.1:30371")
-        for i in range (len (testX)):
-            resp = stub.predict ('fashion', 'predict', input_1 = testX [i:i+1])
-            assert resp.category_output_classes.shape == (1, 4)
-            assert resp.color_output.shape  == (1, 3)
-            assert resp.category_output_scores.shape == (1, 4)
-            assert b'jeans' in resp.category_output_classes.tolist () [0]
 
         params = {
                 "x": [X],
