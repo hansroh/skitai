@@ -97,9 +97,6 @@ def deploy (model):
     resp = saved_model.deploy ('tmp/exported', 'http://127.0.0.1:30371/models/keras/versions/1', overwrite = True)
     print (resp)
 
-    shutil.rmtree ('tmp')
-
-
 if __name__ == '__main__':
     # train ()
     model = restore ()

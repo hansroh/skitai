@@ -6,6 +6,7 @@ import requests
 from rs4 import pathtool
 import pickle
 import pytest
+import shutil
 
 def test_build_model ():
     serve = "./examples/tfserve.py"
@@ -28,6 +29,8 @@ def test_build_model ():
             assert resp.y2_scores.shape == (1, 2)
             assert b'true' in resp.y1_classes.tolist () [0]
 
+        shutil.rmtree ('tmp')
+        shutil.rmtree ('examples/models/keras')
 
 
 X = [2622, 129, 1856, 2391, 230, 2562, 4028, 3199, 231, 1843, 3789, 905, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
