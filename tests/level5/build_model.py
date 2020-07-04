@@ -80,6 +80,7 @@ def train ():
 
 def restore ():
     from tfserver import saved_model
+
     dss = datasets.load ('tmp/checkpoint/assets')
 
     model = create_model ('./tmp/checkpoint/cp.ckpt')
@@ -89,13 +90,27 @@ def restore ():
     return model
 
 def deploy (model):
-    from tfserver import saved_model
+    from tfserver import saved_model, datasets
+    from sklearn.metrics import f1_score
+    import numpy as np
     import os, shutil
 
     if os.path.exists ('tmp/exported'):
         shutil.rmtree ('tmp/exported')
 
     saved_model.save ('tmp/exported', model, labels = labels, assets_dir = 'tmp/checkpoint/assets')
+    model_s = saved_model.load ('tmp/exported')
+
+    dss = datasets.load ( 'tmp/checkpoint/assets')
+    x_test, y_true = dss.testset_as_numpy ()
+
+    y1_pred = np.argmax (model.predict (x_test) [0], axis = 1)
+    f1_1 = f1_score (np.argmax (y_true ['y1'], axis = 1), y1_pred, average = 'weighted')
+
+    y1_pred = np.argmax (model_s.ftest (x_test).y1, axis = 1)
+    f1_2 = f1_score (np.argmax (y_true ['y1'], axis = 1), y1_pred, average = 'weighted')
+    assert f1_1 == f1_2
+
     resp = saved_model.deploy ('tmp/exported', 'http://127.0.0.1:30371/models/keras/versions/1', overwrite = True)
     print (resp)
 
