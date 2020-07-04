@@ -5,6 +5,7 @@ from rs4 import pathtool
 import shutil
 from tfserver import label, datasets
 import os
+import glob
 
 train_xs = np.array ([
     (0.1, 0.2, 0.6),
@@ -26,17 +27,20 @@ labels = [label.Label (['true', 'false'], 'truth'), label.Label (['true', 'false
 
 dss = datasets.Datasets (2, dataset, validation_data, labels = labels)
 
-EPOCHS = 10
+EPOCHS = 30
 INIT_LR = 1e-3
 BS = 32
 
 def create_model (checkpoint = None):
     x = tf.keras.layers.Input (3, name = 'x')
-    h1 = tf.keras.layers.Dense (10, activation='relu') (x)
-    y1_ = tf.keras.layers.Dense (2, activation='softmax', name = 'y1') (h1)
 
-    h2 = tf.keras.layers.Dense (10, activation='relu') (x)
-    y2_ = tf.keras.layers.Dense (2, activation='softmax', name = 'y2') (h2)
+    h = tf.keras.layers.Dense (9, activation='relu') (x)
+    h = tf.keras.layers.Dense (4, activation='relu') (h)
+    y1_ = tf.keras.layers.Dense (2, activation='softmax', name = 'y1') (h)
+
+    h = tf.keras.layers.Dense (8, activation='relu') (x)
+    h = tf.keras.layers.Dense (6, activation='relu') (h)
+    y2_ = tf.keras.layers.Dense (2, activation='softmax', name = 'y2') (h)
 
     model = tf.keras.Model (x, [y1_, y2_])
 
@@ -58,7 +62,7 @@ def train ():
 
     model = create_model ()
     save_checkpoint = tf.keras.callbacks.ModelCheckpoint (
-        filepath = './tmp/checkpoint/cp.ckpt',
+        filepath = './tmp/checkpoint/{epoch:04d}.acc-{val_y1_accuracy:.2f}.ckpt',
         save_weights_only = True,
         monitor = 'val_y1_accuracy',
         model = 'max',
@@ -82,8 +86,8 @@ def restore ():
     from tfserver import saved_model
 
     dss = datasets.load ('tmp/checkpoint/assets')
-
-    model = create_model ('./tmp/checkpoint/cp.ckpt')
+    best = sorted (glob.glob (os.path.join ('tmp/checkpoint', '*.ckpt.index'))) [-1]
+    model = create_model (best [:-6])
     model.evaluate (dss.testset)
     model.predict (dss.testset_as_numpy () [0])
 
@@ -100,7 +104,6 @@ def deploy (model):
 
     saved_model.save ('tmp/exported', model, labels = labels, assets_dir = 'tmp/checkpoint/assets')
     model_s = saved_model.load ('tmp/exported')
-
     dss = datasets.load ( 'tmp/checkpoint/assets')
     x_test, y_true = dss.testset_as_numpy ()
 
