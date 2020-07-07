@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import dnn
 from dnn import metrics, callbacks, losses
 from rs4 import pathtool
 import shutil
@@ -54,38 +55,37 @@ def create_model (checkpoint = None):
     model.summary()
     return model
 
-def train ():
-    if os.path.exists ('tmp/checkpoint'):
-        shutil.rmtree ('tmp/checkpoint')
-    pathtool.mkdir ('tmp/checkpoint')
-    dss.save ('tmp/checkpoint/assets')
 
+def numpy_metric (y_true, y_pred, logs):
+    y1_acc = np.mean (np.argmax (y_true ['y1'], axis = 1) == np.argmax (y_pred [0], axis = 1))
+    y2_acc = np.mean (np.argmax (y_true ['y2'], axis = 1) == np.argmax (y_pred [1], axis = 1))
+    logs ['val_avg_acc'] = np.mean ([y1_acc, y2_acc])
+    return 'my metric log line'
+
+
+def train ():
     model = create_model ()
-    save_checkpoint = tf.keras.callbacks.ModelCheckpoint (
-        filepath = './tmp/checkpoint/{epoch:04d}.acc-{val_y1_accuracy:.2f}.ckpt',
-        save_weights_only = True,
-        monitor = 'val_y1_accuracy',
-        model = 'max',
-        save_best_only = True
-    )
     model.fit (
         dss.trainset,
         validation_data = dss.validset,
         epochs=EPOCHS,
         steps_per_epoch = dss.steps,
-        callbacks = [
-            save_checkpoint,
-            callbacks.ConfusionMatrixCallback (dss.labels, dss.validset),
-            tf.keras.callbacks.EarlyStopping(patience=2),
-            # tf.keras.callbacks.TensorBoard(log_dir='./logs')
-        ]
+        callbacks = dnn.callbacks.compose (
+            './tmp', 0.001, dss,
+            metric_func = numpy_metric,
+            monitor = ('val_y1_accuracy', 'max'),
+            early_stop = (20, "val_y1_accuracy", "max"),
+            decay_rate = 0.98,
+            enable_logging = False,
+            reset_train_dir = True
+        )
     )
     model.evaluate (dss.validset)
 
 def restore ():
     from tfserver import saved_model
 
-    dss = datasets.load ('tmp/checkpoint/assets')
+    dss = datasets.load ('tmp/assets')
     best = sorted (glob.glob (os.path.join ('tmp/checkpoint', '*.ckpt.index'))) [-1]
     model = create_model (best [:-6])
     model.evaluate (dss.testset)
@@ -102,9 +102,9 @@ def deploy (model):
     if os.path.exists ('tmp/exported'):
         shutil.rmtree ('tmp/exported')
 
-    saved_model.save ('tmp/exported', model, labels = labels, assets_dir = 'tmp/checkpoint/assets')
+    saved_model.save ('tmp/exported', model, labels = labels, assets_dir = 'tmp/assets')
     model_s = saved_model.load ('tmp/exported')
-    dss = datasets.load ( 'tmp/checkpoint/assets')
+    dss = datasets.load ( 'tmp/assets')
     x_test, y_true = dss.testset_as_numpy ()
 
     y1_pred = np.argmax (model.predict (x_test) [0], axis = 1)
