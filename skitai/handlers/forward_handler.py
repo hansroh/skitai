@@ -3,13 +3,18 @@ class Handler:
 	def __init__ (self, wasc, forward_to = 443):
 		self.wasc = wasc
 		self.forward_to = forward_to
-		
+
 	def match (self, request):
 		return 1
-	
+
 	def handle_request (self, request):
+		host = request.get_header ("host")
+		if not host:
+			request.response.error (400)
+			return
+
 		location = "https://%s%s%s" % (
-			request.get_header ("host").split (":") [0], 
+			request.get_header ("host").split (":") [0],
 			self.forward_to != 443 and (":%d" % self.forward_to) or "",
 			request.uri
 		)
