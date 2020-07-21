@@ -52,20 +52,19 @@ class proxy_request_handler (http_request_handler.RequestHandler):
 		# abort channel suddenly
 		return http_request_handler.RequestHandler.connection_closed (self, why, msg)
 
-	def close_case (self, commit = False):
+	def close_case (self):
 		# unbind readable/writable methods
 		if self.asyncon:
 			self.asyncon.handler = self.new_handler
 		if self.callback:
 			self.callback (self)
-		commit and self.end_tran ()
 
 	def found_end_of_body (self):
 		if self.response:
 			self.response.done ()
 		if self.will_be_close ():
 			self.asyncon.disconnect ()
-		self.close_case (commit = True)
+		self.close_case_with_end_tran ()
 
 	def create_tunnel (self):
 		self.asyncon.established = True
