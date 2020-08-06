@@ -387,11 +387,17 @@ class http_response:
                 self.update ('Connection', 'close')
                 close_it = True
 
+        if self.reply_code == 204:
+            # make sure empty body
+            self.outgoing.clear ()
+
         if len (self.outgoing) == 0:
             self.update ('Content-Length', "0")
             self.delete ('transfer-encoding')
             self.delete ('content-type')
-            outgoing_producer = producers.simple_producer (self.build_reply_header(with_header).encode ("utf8"))
+            outgoing_producer = producers.simple_producer (b'')
+            outgoing_header = producers.simple_producer (self.build_reply_header(with_header).encode ("utf8"))
+            self.request.channel.push_with_producer (outgoing_header)
             do_optimize = False
 
         elif len (self.outgoing) == 1 and hasattr (self.outgoing.first (), "ready"):
@@ -467,6 +473,7 @@ class http_response:
                     outgoing_producer = producers.composite_producer (self.outgoing)
 
                 outgoing_header = producers.simple_producer (self.build_reply_header(with_header).encode ("utf8"))
+
             outgoing_producer = producers.composite_producer (
                 producers.fifo([outgoing_header, outgoing_producer])
             )
@@ -588,8 +595,7 @@ class http_response:
 
     def Fault (self, status = "200 OK", *args, **kargs):
         self.set_status (status)
-        r = self.fault (*args, **kargs)
-        return self (status, r)
+        return self.fault (*args, **kargs)
     for_api = Fault
 
     def File (self, path, mimetype = 'application/octet-stream', filename = None):
