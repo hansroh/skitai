@@ -128,9 +128,13 @@ def setup_was (wasc):
     add_cluster (wasc, *skitai.alias ("@example", PROTO_HTTP, "www.example.com"))
     add_cluster (wasc, *skitai.alias ("@examples", PROTO_HTTPS, "www.example.com"))
     add_cluster (wasc, *skitai.alias ("@sqlite3", DB_SQLITE3, SAMPLE_DBPATH))
-    add_cluster (wasc, *skitai.alias ("@postgresql", DB_PGSQL, "user:pass@127.0.0.1/mydb"))
-    add_cluster (wasc, *skitai.alias ("@mongodb", DB_MONGODB, "127.0.0.1:27017/mydb"))
-    add_cluster (wasc, *skitai.alias ("@redis", DB_REDIS, "127.0.0.1:6379"))
+
+    try: add_cluster (wasc, *skitai.alias ("@postgresql", DB_PGSQL, "user:pass@127.0.0.1/mydb"))
+    except ImportError: pass
+    try: add_cluster (wasc, *skitai.alias ("@mongodb", DB_MONGODB, "127.0.0.1:27017/mydb"))
+    except ImportError: pass
+    try: add_cluster (wasc, *skitai.alias ("@redis", DB_REDIS, "127.0.0.1:6379"))
+    except ImportError: pass
 
     return wasc
 
