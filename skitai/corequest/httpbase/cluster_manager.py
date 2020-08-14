@@ -83,11 +83,15 @@ class ClusterManager:
         self._cluster = {}
         self._last_maintern = time.time ()
         self._close_desires = []
+        self._basepath = ''
         if cluster:
             self.create_pool (cluster)
 
     def __len__ (self):
         return len (self._cluster)
+
+    def get_basepath (self):
+        return self._basepath
 
     def has_permission (self, request, roles):
         if self.access is None:
@@ -149,7 +153,6 @@ class ClusterManager:
                 info ["nummget"] = self._nummget
                 info ["ssl"] = self.is_ssl_cluster ()
 
-
             finally:
                 self.lock.release ()
         except:
@@ -201,6 +204,10 @@ class ClusterManager:
 
     def create_asyncon (self, member):
         auth, netloc = self.parse_member (member)
+        if netloc.find ('/') != -1:
+            netloc, b = netloc.split ("/", 1)
+            self._basepath = '/' + b
+
         try:
             host, port = netloc.split (":", 1)
             server = (host, int (port))

@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.35.3.7"
+__version__ = "0.35.3.8"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -560,10 +560,10 @@ def alias (name, ctype, members, role = "", source = "", ssl = False, max_conns 
         return name, dconf ["clusters"][name]
 
     if ctype == DJANGO:
-        alias = _alias_django (name, members)
-        if alias is None:
+        alias_ = _alias_django (name, members)
+        if alias_ is None:
             raise SystemError ("Database engine is not compatible")
-        return alias
+        return alias_
 
     policy = AccessPolicy (role, source)
     args = (ctype, members, policy, ssl, max_conns)
@@ -611,9 +611,9 @@ def get_logpath (name):
     return os.name == "posix" and '/var/log/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
 
 options = None
-def add_option (sopt, lopt = None, desc = None):
+def add_option (sopt, lopt = None, desc = None, default = None):
     global options
-    argopt.add_option (sopt, lopt, desc)
+    argopt.add_option (sopt, lopt, desc, default)
     try:
         options = argopt.options ()
     except libgetopt.GetoptError:

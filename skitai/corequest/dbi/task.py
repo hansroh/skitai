@@ -128,7 +128,7 @@ class Task (task.Task):
         self._setup (asyncon)
         return asyncon
 
-    def _build_request (self, method, params):
+    def _build_request (self, method, params, extra_params = {}):
         # For Django QuerySet and SQLGen
         if hasattr (params [0], "query"):
             params = (str (params [0].query),) + params [1:]
@@ -158,7 +158,8 @@ class Task (task.Task):
                 self._auth,
                 method, params,
                 rs.handle_result,
-                self._meta
+                self._meta,
+                extra_params = extra_params
             )
 
             # IMP: must modify, dbconn.ConnectProxy
@@ -197,9 +198,9 @@ class Proxy:
         self._method = name
         return self.__proceed
 
-    def __proceed (self, *params):
+    def __proceed (self, *params, **kparams):
         cdc = self.__class (self.__cluster, *self.__args, **self.__kargs)
-        cdc._build_request (self._method, params)
+        cdc._build_request (self._method, params, kparams)
         return cdc
 
 

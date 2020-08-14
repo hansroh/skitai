@@ -1169,7 +1169,7 @@ memory for inter-process named state.
 Then one process update object by setgs (name, value),
 the others can be access it by getgs (name).
 
-Note that value type is shoul be integer.
+Note that value type is should be integer.
 
 .. code:: python
 
@@ -2011,6 +2011,7 @@ Task
 
 Single corequest object.
 
+
 API Call
 ~~~~~~~~~~~~~~~~
 
@@ -2025,7 +2026,23 @@ Task will be created by just calling these methods.
 
 .. code:: python
 
-  task = was.get ('@myapi/v1/some-resources/100')
+  task1 = was.get ('@myapi/v1/some-resources/100?q=service&limit=2')
+  task2 = was.put ('/v1/some-resources/100', dict (q = 'service', limit = 2))
+
+For conventinal usage,
+
+.. code:: python
+
+  with was.stub ('@myapi') as stub:
+	  task1 = stub.get ('/v1/some-resources/100', q = 'service', limit = 2)
+    task2 = stub.put ('/v1/some-resources/100', q = 'service', limit = 2)
+
+  with was.stub.lb ('@myapi') as stub:
+	  task1 = stub.get ('/v1/some-resources/100', q = 'service', limit = 2)
+
+  with was.stub.map ('@myapi') as stub:
+	  task = stub.get ('/v1/some-resources/100', q = 'service', limit = 2)
+
 
 RPC Call
 ~~~~~~~~~~~~~~~~~
@@ -3290,6 +3307,7 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - add was.stub ()
   - drop supporing Python 3.5 officially
   - add was.flashfile with auto deletion file name
   - disable pebble_ executor by process cleanup problem

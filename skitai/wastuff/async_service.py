@@ -30,7 +30,7 @@ class AsyncService:
     }
     METHODS = {
         "options", "trace", "upload", "get", "delete", "post", "put", "patch",
-        "rpc", "xmlrpc", "jsonrpc", "grpc",
+        "rpc", "xmlrpc", "jsonrpc", "grpc", "stub",
         "ws", "wss"
     }.union (ASYNCDBA)
     DEFAULT_REQUEST_TYPE = ("application/json", "application/json")
@@ -57,7 +57,7 @@ class AsyncService:
         if type (clusterlist) is str:
             clusterlist = [clusterlist]
 
-        if clustertype and "*" + clustertype in (DB_PGSQL, DB_SYN_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB):
+        if clustertype and "*" + clustertype in dcluster_manager.ClusterManager.class_map:
             cluster = dcluster_manager.ClusterManager (clustername, clusterlist, "*" + clustertype, access, max_conns, cls.logger.get ("server"))
             cls.clusters_for_distcall [clustername] = dtask.TaskCreator (cluster, cls.logger.get ("server"))
         else:
@@ -124,6 +124,8 @@ class AsyncService:
 
     def _crest (self, mapreduce = False, method = None, uri = None, data = None, auth = None, headers = None, meta = None, use_cache = True, rm_cache = None, filter = None, callback = None, cache = None, timeout = task.DEFAULT_TIMEOUT, caller = None):
         cluster, uri = self.__detect_cluster (uri)
+        if uri:
+            uri = cluster.get_basepath () + uri
         return self._create_rest_call (cluster, uri, data, method, self.rebuild_header (headers, method, data), auth, self._set_was_id (meta), self._use_cache (use_cache, rm_cache), mapreduce, filter, callback, cache, timeout, caller)
 
     def _lb (self, *args, **karg):

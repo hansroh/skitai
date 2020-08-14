@@ -24,8 +24,8 @@ class ClusterManager (cluster_manager.ClusterManager):
         return False # not serverd by url
 
     def create_asyncon (self, member):
-        if self.dbtype == DB_SQLITE3:
-            asyncon = self.class_map [DB_SQLITE3] (member, None, self.lock, self.logger)
+        if self.dbtype == DB_SQLITE3 or member [0] == '@':
+            asyncon = self.class_map [self.dbtype] (member, None, self.lock, self.logger)
             nodeid = member
             self._cache.append (((member, 0), "", ("", "")))
 

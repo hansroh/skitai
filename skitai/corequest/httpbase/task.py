@@ -112,6 +112,8 @@ class Results (response, rcache.Result):
         [r.reraise () for r in self.results]
 
     def cache (self, timeout = 60, cache_if = (200,)):
+        if not timeout:
+            return
         if [_f for _f in [rs.status != NORMAL or rs.status_code not in cache_if for rs in self.results] if _f]:
             return
         rcache.Result.cache (self, timeout)
@@ -649,6 +651,22 @@ class Proxy:
         return cdc
 
 
+class Stub (Proxy):
+    def __init__ (self, __class, cluster, *args, **kargs):
+        self.__class = __class
+        self.__args = args
+        self.__kargs = kargs
+        self.cluster = cluster
+
+    def __getattr__ (self, name):
+        self._method = name
+        return self.__proceed
+
+    def __proceed (self, uri, **params):
+        uri = self.cluster.get_basepath () + uri
+        return self.__class (self.cluster, uri, params, self._method, *self.__args [3:], **self.__kargs)
+
+
 class TaskCreator:
     def __init__ (self, cluster, logger, cachesfs):
         self.cluster = cluster
@@ -666,6 +684,10 @@ class TaskCreator:
             headers = h
 
         if reqtype.endswith ("rpc"):
+            assert not params
             return Proxy (Task, self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, cache, timeout, caller, self.cachesfs, self.logger)
+        elif reqtype.endswith ("stub"):
+            assert not params
+            return Stub (Task, self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, cache, timeout, caller, self.cachesfs, self.logger)
         else:
             return Task (self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, cache, timeout, caller, self.cachesfs, self.logger)
