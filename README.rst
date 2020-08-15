@@ -2019,10 +2019,6 @@ Task will be created by just calling these methods.
 
 .. code:: python
 
-For conventional usage,
-
-.. code:: python
-
   with was.stub ('https://example.com') as stub:
 	  task1 = stub.get ('/v1/some-resources/100', q = 'service', limit = 2)
     task2 = stub.put ('/v1/some-resources/100', q = 'service', limit = 2)
@@ -2655,7 +2651,7 @@ Intermezzo
 
 For creating corequest object,
 
-- HTTP based request: was.stub (alias).get (...), .post (...), ....
+- HTTP based request: was.stub (alias).get (...), .post (...), ...
 - Database request: was.db (alias).execute (...), .find (),
   set (), ... other MongoDB and Redis methods
 - Tasks: bundle of corequests
