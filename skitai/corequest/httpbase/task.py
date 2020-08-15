@@ -657,7 +657,7 @@ class Stub (Proxy):
         self.__args = args
         self.__kargs = kargs
         self.__cluster = cluster
-        self.__baseurl = uri.find ('://') != -1 and uri or ''
+        self.__baseurl = uri != '/' and uri or ''
 
     def __getattr__ (self, name):
         self._method = name

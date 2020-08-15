@@ -3,6 +3,6 @@ def test_app (launch):
         resp = engine.get ('/stub')
         assert resp.status_code == 200
         r = resp.data ['result']
-        assert len (r) == 4
+        assert len (r) == 5
         for each in r:
             assert each.find ('rs4') > -1

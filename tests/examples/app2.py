@@ -66,8 +66,11 @@ def stub (was):
         req2 = stub.get ("/rs4/")
     with was.stub ("@pypi", headers = [("Accept", "text/html")]) as stub:
         req3 = stub.get ("/project/rs4/")
-    req4 = was.get ("https://pypi.org/project/rs4/", headers = [("Accept", "text/html")])
-    r = was.Tasks ([req1, req2, req3, req4]).fetch ()
+    with was.stub ("@pypi/project", headers = [("Accept", "text/html")]) as stub:
+        req4 = stub.get ("/rs4/")
+    req5 = was.get ("https://pypi.org/project/rs4/", headers = [("Accept", "text/html")])
+
+    r = was.Tasks ([req1, req2, req3, req4, req5]).fetch ()
     return was.API (result = r)
 
 def process_future_response (was, tasks):
