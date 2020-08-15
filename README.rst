@@ -2015,23 +2015,17 @@ Single corequest object.
 API Call
 ~~~~~~~~~~~~~~~~
 
-- was.get ()
-- was.post ()
-- was.put ()
-- was.patch ()
-- was.delete ()
-- was.upload ()
-
 Task will be created by just calling these methods.
 
 .. code:: python
 
-  task1 = was.get ('@myapi/v1/some-resources/100?q=service&limit=2')
-  task2 = was.put ('/v1/some-resources/100', dict (q = 'service', limit = 2))
-
-For conventinal usage,
+For conventional usage,
 
 .. code:: python
+
+  with was.stub ('https://example.com') as stub:
+	  task1 = stub.get ('/v1/some-resources/100', q = 'service', limit = 2)
+    task2 = stub.put ('/v1/some-resources/100', q = 'service', limit = 2)
 
   with was.stub ('@myapi') as stub:
 	  task1 = stub.get ('/v1/some-resources/100', q = 'service', limit = 2)
@@ -2141,7 +2135,12 @@ More explicit way, creating tasks and immediately return 202 response.
 
 .. code:: python
 
-  return was.post ('@myapi/v1/some-resources').returning (Response ('202 Accepted'))
+  with was.stub ('@myapi') as stub:
+    return stub.post ('/v1/some-resources').returning (Response ('202 Accepted'))
+
+Or with starting thread task,
+
+.. code:: python
 
   return was.Thread (func, arg).returning (Response ('202 Accepted'))
 
@@ -2168,7 +2167,8 @@ Calling API
 
   @app.route (...)
   def request (was):
-    req = was.get (url)
+    with was.stub ('@myapi') as stub:
+      req = stub.get ('/endpoint')
     resp = req.dispatch (timeout = 3)
     return resp.data
 
@@ -2178,8 +2178,9 @@ In fact, single request is just like synchronous task at least current thread.
 
   @app.route (...)
   def request (was):
-    req1 = was.get (url)
-    req2 = was.post (url, {"user": "Hans Roh", "comment": "Hello"})
+    with was.stub ('@myapi') as stub:
+      req1 = stub.get ('/endpoint')
+      req2 = stub.post (url, user = "Hans Roh", comment = "Hello")
     respones1 = req1.dispatch (timeout = 3)
     response2 = req2.dispatch (timeout = 3)
     return [respones1.data, respones2.data]
@@ -2190,7 +2191,8 @@ dispath (timeout = [sec], cache = [sec]) returns response object.
 
 .. code:: python
 
-  req = was.get (url)
+  with was.stub ('@myapi') as stub:
+    req1 = stub.get ('/endpoint')
   rsponse = req.dispath (5) # timoute
   response.status # skitai.STA_NORMAL
   response.status_code # 200
@@ -2234,13 +2236,13 @@ All supoorted request methods are:
 
 HTTP/API related methods are,
 
-- was.get ()
-- was.delete ()
-- was.post ()
-- was.put ()
-- was.patch ()
-- was.upload ()
-- was.options ()
+- get ()
+- delete ()
+- post ()
+- put ()
+- patch ()
+- upload ()
+- options ()
 
 Above request type is configured to json. This mean request
 content type and response accept type is all 'application/json'.
@@ -2249,12 +2251,13 @@ If you want to change default value, use headers paramter for each request
 
 .. code:: python
 
-  data = {"Title": "...", "Content": "..."}
   headers = [
     ("Content-Type", "application/x-www-form-urlencoded"),
     ("Accept", "text/xml")
   ]
-  req = was.post ("@delune/documents", data, headers = headers)
+  with was.stub ('@delune', headers = headers) as stub:
+    data = {"Title": "...", "Content": "..."}
+    req = stub.post ("/documents", data)
 
 
 Tasks
@@ -2266,10 +2269,11 @@ Tasks is pack of corequests. It can handle multiple corequests as single one.
 
   @app.route (...)
   def request (was):
-    reqs = [
-      was.get (url),
-      was.post (url, {"user": "Hans Roh", "comment": "Hello"})
-    ]
+    with was.stub ('@delune') as stub:
+      reqs = [
+        stub.get ('/endpoint'),
+        stub.post ('/endpoint', {"user": "Hans Roh", "comment": "Hello"})
+      ]
     a, b = was.Tasks (reqs, timeout = 3).fetch ()
     return was.API (a = a, b = b)
 
@@ -2279,11 +2283,12 @@ was.Tasks can be created from variadic parameters.
 
   @app.route (...)
   def request (was):
-    a, b = was.Tasks (
-      was.get (url),
-      was.post (url, {"user": "Hans Roh", "comment": "Hello"})
-      timeout = 3
-    ).fetch ()
+    with was.stub ('@delune') as stub:
+      a, b = was.Tasks (
+        stub.get (url),
+        stub.post (url, {"user": "Hans Roh", "comment": "Hello"})
+        timeout = 3
+      ).fetch ()
     return was.API (a = a, b = b)
 
 
@@ -2293,11 +2298,13 @@ Alos can use keyword parameters and dict () method.
 
   @app.route (...)
   def request (was):
-    d = was.Tasks (
-      a = was.get (url),
-      b = was.post (url, {"user": "Hans Roh", "comment": "Hello"})
-    ).dict ()
-    # >> {'a': '<html>...', 'b': '<html>...'}
+    with was.stub ('@delune') as stub:
+      d = was.Tasks (
+        a = stub.get (url),
+        b = stub.post (url, {"user": "Hans Roh", "comment": "Hello"}),
+        c = stub.post (url, user = "Hans Roh", comment = "Hello")
+      ).dict ()
+      # >> {'a': '<html>...', 'b': '<html>...', 'c': '<html>...'}
     return was.API (d)
 
 dict () will not be include non keyword parametered requests.
@@ -2306,11 +2313,12 @@ dict () will not be include non keyword parametered requests.
 
   @app.route (...)
   def request (was):
-    d = was.Tasks (
-      was.get (url),
-      b = was.post (url, {"user": "Hans Roh", "comment": "Hello"})
-    ).dict ()
-    # >> {'b': '<html>...'}
+    with was.stub ('@delune') as stub:
+      d = was.Tasks (
+        stub.get (url),
+        b = stub.post (url, {"user": "Hans Roh", "comment": "Hello"})
+      ).dict ()
+      # >> {'b': '<html>...'}
     return was.API (d)
 
 
@@ -2592,6 +2600,25 @@ Then,
       db.get('foo').fetch () # bar
 
 
+Adding Custom Database Interface For Corequest
+----------------------------------------------------------
+
+You can override existing classes - RDBMS, NoSQL (Redis, MongoDB) styles.
+
+.. code:: python
+
+  from aquests.dbi import asynredis
+
+  class MyDBI (asynredis.AsynConnect):
+    def __init__ (self):
+      ...
+
+  DB_MYDBI = '*mydbi'
+  skitai.add_database_interface (DB_MYDBI, MyDBI)
+
+  skitai.alias ('@mydbi', DB_MYDBI, 'localhost:9000')
+
+
 Request As Many You Need
 ------------------------------------------------
 
@@ -2602,8 +2629,10 @@ For getting concurrent tasks advantages, you request at
 
   @app.route (...)
   def query (was):
-    reqs = was.post ("@pypi/upload...", {data: ...})
-    reqs = was.get ("@pypi/somethong..."})
+    with was.stub ('@pypi') as stub:
+      reqs = stub.post ("/upload...", {data: ...})
+      reqs.append (stub.get ("/somethong..."}))
+
     with was.db ("@mypg") as db:
       reqs.append (db.excute ("SELECT ..."))
       reqs.append (db.excute ("SELECT ..."))
@@ -2626,8 +2655,8 @@ Intermezzo
 
 For creating corequest object,
 
-- HTTP based request: was.get (alias), .post (alias), ....
-- Database request: as.db (alias).execute (...), .find (),
+- HTTP based request: was.stub (alias).get (...), .post (...), ....
+- Database request: was.db (alias).execute (...), .find (),
   set (), ... other MongoDB and Redis methods
 - Tasks: bundle of corequests
 
@@ -2687,8 +2716,8 @@ Then let's request XMLRPC result to one of mysearch members.
 
 It just small change from was.jsonrpc () to was.jsonrpc.lb ()
 
-*Note:* If @mysearch member is only one, was.get.lb ("@mydb")
-is equal to was.get ("@mydb").
+*Note:* If @mysearch member is only one, was.stub.lb ("@mydb").get (...)
+is equal to was.stub ("@mydb").get (...).
 
 *Note2:* You can mount cluster @mysearch to specific path as
 proxypass like this:
@@ -3170,7 +3199,8 @@ async jobs and can be responded immediately.
 
   @app.route ('...')
   def foo ():
-    req = was.get ("@myupstream/something")
+    with was.stub ("@myupstream") as stub:
+      req = stub.get ("/something")
     return  req.returning (
       Response ('', 202, headers = {'Content-Location': "..."})
     )
@@ -3181,10 +3211,11 @@ Tasks is also available,
 
   @app.route ('...')
   def foo ():
-    reqs = [
-      was.get ("@myupstream/something"),
-      was.post ("@myupstream/something", {})
-    ]
+    with was.stub ("@myupstream") as stub:
+      reqs = [
+        stub.get ("/something"),
+        stub.post ("/something", {})
+      ]
     return was.Tasks (reqs).returning (
       Response ('', 202, headers = {'Content-Location': "..."})
     )

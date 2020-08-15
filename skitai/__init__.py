@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.35.3.8"
+__version__ = "0.35.3.10"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -352,7 +352,7 @@ def add_http_rpc_proto (name, class_):
 
 def add_database_interface (name, class_):
     assert name.startswith ("*"), "database interface name must be start with '*'"
-    from corequest.dbi import cluster_manager
+    from .corequest.dbi import cluster_manager
     cluster_manager.ClusterManager.add_class (name, class_)
 
 def set_dns_protocol (protocol = 'tcp'):

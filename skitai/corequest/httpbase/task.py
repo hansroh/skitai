@@ -652,19 +652,21 @@ class Proxy:
 
 
 class Stub (Proxy):
-    def __init__ (self, __class, cluster, *args, **kargs):
+    def __init__ (self, __class, cluster, uri, *args, **kargs):
         self.__class = __class
         self.__args = args
         self.__kargs = kargs
-        self.cluster = cluster
+        self.__cluster = cluster
+        self.__baseurl = uri.find ('://') != -1 and uri or ''
 
     def __getattr__ (self, name):
         self._method = name
         return self.__proceed
 
-    def __proceed (self, uri, **params):
-        uri = self.cluster.get_basepath () + uri
-        return self.__class (self.cluster, uri, params, self._method, *self.__args [3:], **self.__kargs)
+    def __proceed (self, uri, __data__ = {}, **params):
+        uri = self.__baseurl + self.__cluster.get_basepath () + uri
+        __data__.update (params)
+        return self.__class (self.__cluster, uri, __data__, self._method, *self.__args, **self.__kargs)
 
 
 class TaskCreator:
@@ -688,6 +690,6 @@ class TaskCreator:
             return Proxy (Task, self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, cache, timeout, caller, self.cachesfs, self.logger)
         elif reqtype.endswith ("stub"):
             assert not params
-            return Stub (Task, self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, cache, timeout, caller, self.cachesfs, self.logger)
+            return Stub (Task, self.cluster, uri, headers, auth, meta, use_cache, mapreduce, filter, callback, cache, timeout, caller, self.cachesfs, self.logger)
         else:
             return Task (self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, cache, timeout, caller, self.cachesfs, self.logger)

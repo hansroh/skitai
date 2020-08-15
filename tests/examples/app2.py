@@ -9,7 +9,7 @@ app.securekey = '0123456789'
 
 @app.route ("/")
 def index (was):
-	return "CSRF: {}".format (was.csrf_token)
+    return "CSRF: {}".format (was.csrf_token)
 
 @app.route ("/post")
 @app.csrf_verification_required
@@ -58,17 +58,28 @@ def stream (was):
             yield '<CHUNK>'
     return was.response ("210 Streaing", stream (), headers = [('Content-Type', 'text/plain')])
 
+@app.route ("/stub")
+def stub (was):
+    with was.stub ("https://pypi.org", headers = [("Accept", "text/html")]) as stub:
+        req1 = stub.get ("/project/rs4/")
+    with was.stub ("https://pypi.org/project", headers = [("Accept", "text/html")]) as stub:
+        req2 = stub.get ("/rs4/")
+    with was.stub ("@pypi", headers = [("Accept", "text/html")]) as stub:
+        req3 = stub.get ("/project/rs4/")
+    req4 = was.get ("https://pypi.org/project/rs4/", headers = [("Accept", "text/html")])
+    r = was.Tasks ([req1, req2, req3, req4]).fetch ()
+    return was.API (result = r)
+
 def process_future_response (was, tasks):
     time.sleep (0.03)
     return 'test'
 
 
-
 if __name__ == "__main__":
-	import skitai
-	skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
-	skitai.mount ("/", app)
-	skitai.mount ("/", 'statics')
-	skitai.mount ("/lb", "@pypi")
-	skitai.mount ("/lb2", "@pypi/project")
-	skitai.run (port = 30371)
+    import skitai
+    skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
+    skitai.mount ("/", app)
+    skitai.mount ("/", 'statics')
+    skitai.mount ("/lb", "@pypi")
+    skitai.mount ("/lb2", "@pypi/project")
+    skitai.run (port = 30371)
