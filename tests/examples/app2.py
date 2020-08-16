@@ -61,13 +61,13 @@ def stream (was):
 @app.route ("/stub")
 def stub (was):
     with was.stub ("https://pypi.org", headers = [("Accept", "text/html")]) as stub:
-        req1 = stub.get ("/project/rs4/")
+        req1 = stub.get ("/{}/rs4/", 'project')
     with was.stub ("https://pypi.org/project", headers = [("Accept", "text/html")]) as stub:
         req2 = stub.get ("/rs4/")
     with was.stub ("@pypi", headers = [("Accept", "text/html")]) as stub:
         req3 = stub.get ("/project/rs4/")
     with was.stub ("@pypi/project", headers = [("Accept", "text/html")]) as stub:
-        req4 = stub.get ("/rs4/")
+        req4 = stub.get ("/{}/", 'rs4')
     req5 = was.get ("https://pypi.org/project/rs4/", headers = [("Accept", "text/html")])
 
     r = was.Tasks ([req1, req2, req3, req4, req5]).fetch ()

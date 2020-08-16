@@ -624,10 +624,10 @@ class _Method:
         self.__name = name
 
     def __getattr__(self, name):
-        return _Method(self.__send, "%s.%s" % (self.__name, name))
+        return _Method (self.__send, "%s.%s" % (self.__name, name))
 
     def __call__(self, *args):
-        return self.__send(self.__name, args)
+        return self.__send (self.__name, args)
 
 
 class Proxy:
@@ -658,14 +658,24 @@ class Stub (Proxy):
         self.__kargs = kargs
         self.__cluster = cluster
         self.__baseurl = uri != '/' and uri or ''
+        while self.__baseurl:
+            if self.__baseurl [-1] == '/':
+                self.__baseurl = self.__baseurl [:-1]
+            else:
+                break
 
     def __getattr__ (self, name):
         self._method = name
         return self.__proceed
 
-    def __proceed (self, uri, __data__ = {}, **params):
-        uri = self.__baseurl + self.__cluster.get_basepath () + uri
+    def __proceed (self, uri, *urlparams, **params):
+        __data__ = {}
+        if urlparams:
+            if isinstance (urlparams [-1], dict):
+                __data__, urlparams = urlparams [-1], urlparams [:-1]
+            uri = uri.format (*urlparams)
         __data__.update (params)
+        uri = self.__baseurl + uri
         return self.__class (self.__cluster, uri, __data__, self._method, *self.__args, **self.__kargs)
 
 
