@@ -696,10 +696,10 @@ class TaskCreator:
             headers = h
 
         if reqtype.endswith ("rpc"):
-            assert not params
+            assert not params, 'params parameter not allowed'
             return Proxy (Task, self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, cache, timeout, caller, self.cachesfs, self.logger)
         elif reqtype.endswith ("stub"):
-            assert not params
+            assert not params, 'params parameter not allowed'
             return Stub (Task, self.cluster, uri, headers, auth, meta, use_cache, mapreduce, filter, callback, cache, timeout, caller, self.cachesfs, self.logger)
         else:
             return Task (self.cluster, uri, params, reqtype, headers, auth, meta, use_cache, mapreduce, filter, callback, cache, timeout, caller, self.cachesfs, self.logger)
