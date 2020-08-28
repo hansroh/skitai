@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.35.3.12"
+__version__ = "0.35.3.13"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -37,12 +37,13 @@ argopt.add_option (None, '---memtrack', desc = "show memory status")
 argopt.add_option (None, '---gc', desc = "enable manual GC")
 
 argopt.add_option (None, '--devel', desc = "enable auto reloading and debug output")
-argopt.add_option (None, '--port=PORT_NUMBER', desc = "http/https port number")
+argopt.add_option (None, '--port=TCP_PORT_NUMBER', desc = "http/https port number")
 argopt.add_option (None, '--quic=UDP_PORT_NUMBER', desc = "http3/quic port number")
 argopt.add_option (None, '--workers=WORKERS', desc = "number of workers")
 argopt.add_option (None, '--threads=THREADS', desc = "number of threads per worker")
 argopt.add_option (None, '--smtpda', desc = "run SMTPDA if not started")
-argopt.add_option (None, '--fallback-user=FALLBACK_USER', desc = "fallback privilege after service start with root")
+argopt.add_option (None, '--user=USER', desc = "if run as root, fallback workers owner to user")
+argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback workers owner to group")
 
 if "--devel" in sys.argv:
     os.environ ["SKITAIENV"] = "DEVEL"
@@ -61,6 +62,13 @@ def set_smtp (server, user = None, password = None, ssl = False, start_service =
 def test_client (*args, **kargs):
     from .testutil.launcher import Launcher
     return Launcher (*args, **kargs)
+
+environ = {}
+def getenv (name, default):
+    return environ.get (name, default)
+
+def setenv (name, value):
+    environ [name] = value
 
 HAS_ATILA = None
 
@@ -282,11 +290,11 @@ class Preference (AttrDict):
     def __init__ (self, path = None):
         super ().__init__ ()
         self.__path = path
+        if self.__path:
+            sys.path.insert (0, abspath (self.__path))
         self.__dict__ ["mountables"] = []
 
     def __enter__ (self):
-        if self.__path:
-            sys.path.insert (0, joinpath (self.__path))
         return self
 
     def __exit__ (self, *args):
@@ -299,12 +307,14 @@ class Preference (AttrDict):
         return copy.deepcopy (self)
 
 
-def preference (preset = False, path = None):
+def preference (preset = False, path = None, **configs):
     from .wastuff.wsgi_apps import Config
-    d = Preference (path)
+    d = Preference (path and abspath (path) or None)
     d.config = Config (preset)
+    for k, v in configs.items ():
+        d.config [k] = v
     return d
-pref = preference
+pref = preference # lower version compatible
 
 PROCESS_NAME = None
 
@@ -331,9 +341,9 @@ def getswd ():
 def is_devel ():
     return os.environ.get ('SKITAIENV') == "DEVEL"
 
-def joinpath (*pathes):
+def abspath (*pathes):
     return os.path.normpath (os.path.join (getswd (), *pathes))
-abspath = joinpath
+joinpath = abspath
 
 Win32Service = None
 def set_service (service_class):
@@ -480,7 +490,7 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
             tmp = os.path.basename (target).split (":", 1)
             if len (tmp) == 2:
                 target, appname = os.path.join (os.path.dirname (target), tmp [0]), tmp [1]
-            target = joinpath (target)
+            target = abspath (target)
 
     if host not in dconf ['mount']:
         dconf ['mount'][host] = []
@@ -844,11 +854,10 @@ def run (**conf):
 
     #----------------------------------------------------------------------
 
-    global dconf, PROCESS_NAME, SERVICE_USER, Win32Service
+    global dconf, PROCESS_NAME, SERVICE_USER, SERVICE_GROUP, Win32Service
 
-    fallback_user = argopt.options ().get ('--fallback-user')
-    if fallback_user:
-        SERVICE_USER = fallback_user
+    SERVICE_USER = argopt.options ().get ('--user')
+    SERVICE_GROUP = argopt.options ().get ('--group')
 
     for k, v in dconf.items ():
         if k not in conf:
@@ -868,7 +877,7 @@ def run (**conf):
     lockpath = conf ["varpath"]
     servicer = service.Service (get_proc_title(), working_dir, lockpath, Win32Service)
 
-    if cmd and not servicer.execute (cmd, SERVICE_USER):
+    if cmd and not servicer.execute (cmd, SERVICE_USER, SERVICE_GROUP):
         return
 
     if not cmd:

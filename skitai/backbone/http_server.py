@@ -46,6 +46,9 @@ class http_channel (asynchat.async_chat):
     fifo_class = deque
     multi_threaded = False
 
+    closed_channels = []
+    closed_channel_reported = 0.0
+
     def __init__ (self, server, conn, addr):
         self.conn = conn
         self.server = server
@@ -65,6 +68,7 @@ class http_channel (asynchat.async_chat):
         self.event_time = int (time.time())
         self.producers_attend_to = []
         self.things_die_with = []
+
         self.__sendlock  = threading.Lock ()
         self.__history = []
 
@@ -312,7 +316,13 @@ class http_channel (asynchat.async_chat):
         asynchat.async_chat.close (self)
         self.connected = False
         self.closed = True
-        IS_TTY and self.log_info ("channel %s-%s closed" % (self.server.worker_ident, self.channel_number), "info")
+
+        http_channel.closed_channels.append ("%s-%s" % (self.server.worker_ident, self.channel_number))
+        now = time.time ()
+        if now - http_channel.closed_channel_reported > 3.0:
+            IS_TTY and self.log_info ("%d channels closed" % len (http_channel.closed_channels), "info")
+            http_channel.closed_channels = []
+            http_channel.closed_channel_reported = now
 
     def journal (self, reporter):
         self.log (
@@ -429,7 +439,7 @@ class http_server (asyncore.dispatcher):
                         pid = os.fork ()
                         if pid == 0:
                             if os.name != 'nt' and not self.KEEP_PRIVILEGES:
-                                drop_privileges (skitai.SERVICE_USER)
+                                drop_privileges (skitai.SERVICE_USER, skitai.SERVICE_GROUP)
                             self.worker_ident = "w%d" % len (PID)
                             set_process_name ("%s:%s" % (skitai.get_proc_title (), self.worker_ident))
                             PID = {}
