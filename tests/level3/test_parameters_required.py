@@ -74,6 +74,21 @@ def test_error_handler (app):
     def index14 (was, a, b, c, d, e, f):
         return ""
 
+    @app.route ("/15")
+    @app.require (d___k__1__gte = 10)
+    def index15 (was, d):
+        return ""
+
+    @app.route ("/16")
+    @app.require (d___k__1__len__gte = 3)
+    def index16 (was, d):
+        return ""
+
+    @app.route ("/17")
+    @app.require (d___k__len__gte = 3)
+    def index17 (was, d):
+        return ""
+
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
         assert resp.status_code == 400
@@ -249,6 +264,24 @@ def test_error_handler (app):
 
         d1 = d.copy (); d1 ['e'] = '2_y_2'
         resp = cli.api () ("14").post (d1)
+        assert resp.status_code == 400
+
+        resp = cli.api () ("15").post ({"d": {"k": [5, 11]}})
+        assert resp.status_code == 200
+
+        resp = cli.api () ("15").post ({"d": {"k": [5, 9]}})
+        assert resp.status_code == 400
+
+        resp = cli.api () ("16").post ({"d": {"k": ['aa', 'aaaa']}})
+        assert resp.status_code == 200
+
+        resp = cli.api () ("16").post ({"d": {"k": ['aa', 'a']}})
+        assert resp.status_code == 400
+
+        resp = cli.api () ("17").post ({"d": {"k": 'aaaa'}})
+        assert resp.status_code == 200
+
+        resp = cli.api () ("17").post ({"d": {"k": 'a'}})
         assert resp.status_code == 400
 
 

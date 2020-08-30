@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.35.3.13"
+__version__ = "0.35.3.14"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -64,7 +64,7 @@ def test_client (*args, **kargs):
     return Launcher (*args, **kargs)
 
 environ = {}
-def getenv (name, default):
+def getenv (name, default = None):
     return environ.get (name, default)
 
 def setenv (name, value):
@@ -338,8 +338,9 @@ def getswd ():
         SWD = os.path.dirname (os.path.join (os.getcwd (), sys.argv [0]))
     return SWD
 
-def is_devel ():
+def isdevel ():
     return os.environ.get ('SKITAIENV') == "DEVEL"
+is_devel = isdevel
 
 def abspath (*pathes):
     return os.path.normpath (os.path.join (getswd (), *pathes))

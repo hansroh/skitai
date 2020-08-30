@@ -19,8 +19,7 @@ import inspect
 
 class Handler (wsgi_handler.Handler):
 	def match (self, request):
-		upgrade = request.get_header ("upgrade")
-		return upgrade and upgrade.lower ().startswith ("websocket") and request.version == "1.1" and request.command == "get"
+		return request.get_header ("sec-websocket-key") and request.version == "1.1" and request.command == "get"
 
 	def close (self):
 		servers.websocket_servers.close ()
@@ -102,6 +101,7 @@ class Handler (wsgi_handler.Handler):
 				defaults = len (fspec.defaults)
 			varnames = fspec.args [1:]
 			temporary_args = "&".join ([arg + "=" for arg in varnames [:len (varnames) - defaults] if current_args.get (arg) is None])
+
 			if temporary_args:
 				if savedqs:
 					env ['QUERY_STRING'] = savedqs + "&" + temporary_args
