@@ -25,9 +25,9 @@ DEFAULT_HEADERS = {
 class Method (siesta.Resource):
     ACCPET = "*/*"
     def __call__(self, *args):
-        script = urlparse (self._api.base_url) [2]
+        script = urlparse (self._api._base_url) [2]
         method = self._url [len (script):]
-        return self._callback (self._api.base_url, method.replace ("/", "."), args)
+        return self._callback (self._api._base_url, method.replace ("/", "."), args)
 
 class RPC (siesta.API):
     RESOURCE_CLASS = Method

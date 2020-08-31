@@ -19,7 +19,7 @@ import inspect
 
 class Handler (wsgi_handler.Handler):
 	def match (self, request):
-		return request.get_header ("sec-websocket-key") and request.version == "1.1" and request.command == "get"
+		return request.get_header ("upgrade") == 'websocket' and request.version == "1.1" and request.command == "get"
 
 	def close (self):
 		servers.websocket_servers.close ()

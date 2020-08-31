@@ -9,11 +9,12 @@ import os
 import xmlrpc.client
 
 class Launcher (webtest.Target):
-    def __init__ (self, script, port, ssl = False, silent = True, dry = False, **kargs):
-        self.__script = script
+    def __init__ (self, script, port, ssl = False, silent = True, dry = False, temp_dir = None, **kargs):
+        argv = script.split ()
+        self.__script = argv [0]
+        self.__start_opts = argv[1:]
         self.__port = port
-
-        self.__start_opts = ["--port", str (port)]
+        self.__start_opts.extend (["--port", str (port)])
         for k, v in kargs.items ():
             self.__start_opts.append ("--{}".format (k))
             if v:
@@ -21,7 +22,7 @@ class Launcher (webtest.Target):
 
         endpoint = "http{}://127.0.0.1".format (ssl and "s" or "")
         endpoint += ":{}".format (port)
-        webtest.Target.__init__ (self, endpoint)
+        webtest.Target.__init__ (self, endpoint, temp_dir = temp_dir)
         self.__silent = silent
         self.__dry = dry
         self.__servicing = False
