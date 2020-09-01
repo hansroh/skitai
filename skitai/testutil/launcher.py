@@ -1,6 +1,6 @@
 # pytest framework ---------------------------------------------
 import requests
-from rs4 import siesta, webtest
+from rs4.webkit import siesta, webtest
 from rs4.psutil import Puppet, processutil
 import subprocess
 import time

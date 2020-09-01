@@ -2,7 +2,7 @@ import time
 from aquests.athreads import socket_map
 from aquests.athreads import trigger
 from rs4.cbutil import tuple_cb
-from rs4 import webtest
+from rs4.webkit import webtest
 from aquests.client.asynconnect import AsynSSLConnect, AsynConnect
 from aquests.dbapi.dbconnect import DBConnect
 import threading

@@ -63,7 +63,7 @@ class TaskBase (corequest):
                 continue
             method, field = 'fetch', None
             option = key.split ('__')
-            if len (option) == 3:
+            if len (option) >= 3:
                 key, method, field = option
                 if method not in  ('dict', 'fetch', 'one'):
                     raise RuntimeError ('method must be one of `one`, `fetch` or `dict` for specifying field')
@@ -72,7 +72,10 @@ class TaskBase (corequest):
             elif len (option) == 2:
                 key, method = option
                 if method not in ('one', 'fetch', 'dict'):
-                    field, method = method, 'fetch'
+                    if method.isdigit ():
+                        field, method = int (method), 'fetch'
+                    else:
+                        field, method = method, 'dict'
 
             result = results [idx]
             keydata = getattr (result, method) ()

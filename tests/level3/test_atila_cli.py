@@ -3,7 +3,7 @@ import confutil
 import skitai
 from rs4 import asyncore
 import os
-from rs4 import jwt as jwt_
+from rs4.webkit import jwt as jwt_
 import time
 
 def test_cli (app, dbpath, is_pypy):

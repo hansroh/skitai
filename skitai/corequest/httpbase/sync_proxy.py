@@ -2,7 +2,7 @@
 
 from . import task
 from .. import corequest
-from rs4 import webtest
+from rs4.webkit import webtest
 from rs4.cbutil import tuple_cb
 import random
 from urllib.parse import urlparse, urlunparse

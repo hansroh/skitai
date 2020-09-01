@@ -5,7 +5,7 @@ import time
 import re
 import copy
 import random
-from rs4 import webtest
+from rs4.webkit import webtest
 from operator import itemgetter
 import math
 from urllib.parse import unquote

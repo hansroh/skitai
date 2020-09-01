@@ -3,7 +3,6 @@ import confutil
 import skitai
 from rs4 import asyncore
 import os
-from rs4 import jwt as jwt_
 import time
 
 def test_route_empty (app):

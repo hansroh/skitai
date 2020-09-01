@@ -8,7 +8,7 @@ except ImportError:
     import json
 from rs4.attrdict import CaseInsensitiveDict
 from aquests.protocols.http import http_util
-from rs4 import jwt
+from rs4.webkit import jwt
 
 class JWTUser:
     def __init__ (self, claims):

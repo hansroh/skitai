@@ -9,7 +9,7 @@ import os
 from . import channel
 from .server import get_client_response
 import json
-from rs4 import siesta
+from rs4.webkit import siesta
 from urllib.parse import urlparse
 
 DEFAULT_HEADERS = {

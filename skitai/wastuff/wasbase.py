@@ -10,7 +10,8 @@ import base64
 import pickle
 import random
 import threading
-from rs4 import pathtool, logger, jwt, deco
+from rs4 import pathtool, logger, deco
+from rs4.webkit import jwt
 from aquests.protocols.smtp import composer
 from aquests.protocols.http import http_date, util
 from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT, NAME, DEFAULT_BACKGROUND_TASK_TIMEOUT
