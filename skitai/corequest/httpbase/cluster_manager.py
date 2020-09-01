@@ -400,7 +400,7 @@ class ClusterManager:
                 t = [(len (self._cluster [node]["connection"]), node) for node in nodes]
                 t.sort ()
                 current_conns, node = t [0]
-                if current_conns < self._max_conns:
+                if self._max_conns and current_conns < self._max_conns:
                     asyncon = self._cluster [node]["connection"][0].duplicate ()
                     self._cluster [node]["connection"].append (asyncon)
                 else:

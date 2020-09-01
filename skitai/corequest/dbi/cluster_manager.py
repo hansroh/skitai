@@ -11,7 +11,7 @@ class ClusterManager (cluster_manager.ClusterManager):
     class_map = dbpool.DBPool.class_map
     proxy_class = ConnectProxy
 
-    def __init__ (self, name, cluster, dbtype = DB_PGSQL, access = [], max_conns = 200, logger = None):
+    def __init__ (self, name, cluster, dbtype = DB_PGSQL, access = [], max_conns = 32, logger = None):
         self.dbtype = dbtype
         self._cache = []
         cluster_manager.ClusterManager.__init__ (self, name, cluster, 0, access, max_conns, logger)

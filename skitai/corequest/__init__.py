@@ -20,6 +20,7 @@ def get_cloned_was (was_id):
         return _was._clone ()
     return _was
 
+
 class corequest:
     def _get_was (self):
         return get_cloned_was (self.meta ['__was_id'])

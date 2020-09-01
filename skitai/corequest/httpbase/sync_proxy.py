@@ -1,6 +1,7 @@
 # testing purpose WAS sync service
 
 from . import task
+from .. import corequest
 from rs4 import webtest
 from rs4.cbutil import tuple_cb
 import random
@@ -29,17 +30,29 @@ else:
             response = xjsonrpclib.ServerProxy._ServerProxy__request (self, methodname, params)
             return Result (3, RPCResponse (response))
 
-class Result:
-    def __init__ (self, status, response = None, expt = None):
+class Stub (webtest.Stub):
+    def __init__ (self, cli, baseurl, headers, auth, meta, filter, callback):
+        super ().__init__ (cli, baseurl, headers, auth)
+        self._meta, self._filter, self._callback = meta, filter, callback
+
+    def handle_request (self, uri, data):
+        return Result (3, super ().handle_request (uri, data), None, self._meta, self._filter, self._callback)
+
+
+class Result (corequest):
+    def __init__ (self, status, response = None, expt = None, meta = {}, filter = None, callback = None):
         self.status = status
         self.__response = response
         self.__expt = expt
+        self.meta = meta
+        self.data = self.parse_response ()
+        filter and filter (self)
+        callback and self.set_callback (callback)
 
     def __getattr__ (self, attr):
         return getattr (self.__response, attr)
 
-    @property
-    def data (self):
+    def parse_response (self):
         if isinstance (self.__response, RPCResponse):
             return self.__response.data
         elif hasattr (self.__response, "status_code"):
@@ -49,6 +62,11 @@ class Result:
                     return self.__response.json ()
             return self.__response.text
         return self.__response
+
+    def set_callback (self, callback, reqid = None, timeout = 10):
+        if reqid is not None:
+            self.meta ["__reqid"] = reqid
+        tuple_cb (self, callback)
 
     def reraise (self):
         if self.status !=3 and self.__expt:
@@ -95,9 +113,12 @@ class ProtoCall (task.Task):
         syncon.connect ()
         return syncon, uri
 
-    def create_stub (self):
+    def create_stub (self, headers = None, auth = None, meta = None):
         syncon, uri = self.get_syncon (self.uri)
         with syncon.webtest as cli:
+            if self.reqtype == "stub":
+                return Stub (cli.axios, uri, self.headers, self.auth, self.meta, self.filter, self.callback)
+
             if self.reqtype == "jsonrpc":
                 proxy_class = JSONRPCServerProxy
             else:
@@ -109,6 +130,10 @@ class ProtoCall (task.Task):
         self._meta = meta
         self.uri = uri
         self.reqtype = reqtype
+        self.headers, self.auth, self.meta, self.filter, self.callback = headers, auth, meta, filter, callback
+
+        if reqtype.endswith ('rpc') or reqtype.endswith ('stub'):
+            return
 
         syncon, uri = self.get_syncon (uri)
         syncon.set_auth (auth)
@@ -118,12 +143,10 @@ class ProtoCall (task.Task):
                 resp = req_func (uri, headers = headers, auth = auth)
             except:
                 self.expt = sys.exc_info ()
-                self.result = Result (1, expt = self.expt)
+                self.result = Result (1, expt = self.expt, filter = filter, meta = meta, callback = callback)
             else:
-                self.result = Result (3, resp)
+                self.result = Result (3, resp, meta = meta, callback = callback)
             syncon.set_active (False)
-        self.result.meta = meta or {}
-        callback and callback (self.result)
 
     def set_callback (self, callback, reqid = None, timeout = 10):
         if reqid is not None:

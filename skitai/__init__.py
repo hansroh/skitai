@@ -561,7 +561,8 @@ def _alias_django (name, settings_path):
             default ["PASSWORD"] = ""
         return alias (name, DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)
 
-def alias (name, ctype, members, role = "", source = "", ssl = False, max_conns = None):
+def alias (name, ctype, members, role = "", source = "", ssl = False, max_conns = 32):
+    # not max_conns, unlimited
     from .corequest.httpbase.cluster_manager import AccessPolicy
     global dconf
 

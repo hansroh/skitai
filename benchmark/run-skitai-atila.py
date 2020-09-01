@@ -21,7 +21,7 @@ def bench (was):
     with was.db ('@mydb') as db:
         return was.Map (
             txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
-            record_count__cnt = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
+            record_count__one__cnt = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
         )
 
 @app.route ("/bench/mix", methods = ['GET'])
@@ -30,7 +30,7 @@ def bench_mix (was):
         return was.Map (
             was.Thread (time.sleep, args = (SLEEP,)),
             txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
-            record_count__cnt = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
+            record_count__one__cnt = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
         )
 
 
@@ -45,7 +45,7 @@ def bench_sp (was):
         )
         return was.Map (
             txs = q.execute (),
-            record_count__cnt = q.aggregate ('count (id) as cnt').execute ()
+            record_count__one__cnt = q.aggregate ('count (id) as cnt').execute ()
         )
 
 

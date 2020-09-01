@@ -173,7 +173,7 @@ class AsyncService:
     # async options ------------------------------------------
     def _create_rest_call (self, cluster, *args, **kargs):
         if cluster is None or cluster.use_syn_connection or cluster.ctype in (PROTO_SYN_HTTP, PROTO_SYN_HTTPS):
-            if args [2].endswith ("rpc"):
+            if args [2].endswith ("rpc") or args [2] == 'stub':
                 return sync_proxy.ProtoCall (cluster, *args, **kargs).create_stub ()
             else:
                 return sync_proxy.ProtoCall (cluster, *args, **kargs)

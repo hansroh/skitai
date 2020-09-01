@@ -2,6 +2,7 @@ import time
 from aquests.athreads import socket_map
 from aquests.athreads import trigger
 from rs4.cbutil import tuple_cb
+from rs4 import webtest
 from aquests.client.asynconnect import AsynSSLConnect, AsynConnect
 from aquests.dbapi.dbconnect import DBConnect
 import threading
@@ -651,32 +652,16 @@ class Proxy:
         return cdc
 
 
-class Stub (Proxy):
+class Stub (webtest.Stub):
     def __init__ (self, __class, cluster, uri, *args, **kargs):
         self.__class = __class
         self.__args = args
         self.__kargs = kargs
         self.__cluster = cluster
-        self.__baseurl = uri != '/' and uri or ''
-        while self.__baseurl:
-            if self.__baseurl [-1] == '/':
-                self.__baseurl = self.__baseurl [:-1]
-            else:
-                break
+        self._baseurl = self.norm_baseurl (uri)
 
-    def __getattr__ (self, name):
-        self._method = name
-        return self.__proceed
-
-    def __proceed (self, uri, *urlparams, **params):
-        __data__ = {}
-        if urlparams:
-            if isinstance (urlparams [-1], dict):
-                __data__, urlparams = urlparams [-1], urlparams [:-1]
-            uri = uri.format (*urlparams)
-        __data__.update (params)
-        uri = self.__baseurl + uri
-        return self.__class (self.__cluster, uri, __data__, self._method, *self.__args, **self.__kargs)
+    def handle_request (self, uri, data):
+        return self.__class (self.__cluster, uri, data, self._method, *self.__args, **self.__kargs)
 
 
 class TaskCreator:

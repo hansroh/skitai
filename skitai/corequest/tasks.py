@@ -11,19 +11,37 @@ import warnings
 class TaskBase (corequest):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None, keys = None):
         assert isinstance (reqs, (list, tuple))
+
+        self._meta = self.meta = meta or {}
+        if '__constants' not in self._meta and keys:
+            self._meta ['__constants'] = {}
+            idx = 0
+            for key in keys [:]:
+                if key is None:
+                    break
+                if not isinstance (reqs [idx], corequest):
+                    self._meta ['__constants'][keys.pop (idx)] = reqs.pop (idx)
+                else:
+                    idx += 1
+
         self._reqs = reqs
         self._req_count = len (reqs)
         self._finished = False
         self._timeout = timeout
-        self._meta = self.meta = meta or {}
         self._keys = keys
         self._was = was
+
         if "__was_id" not in self._meta:
             for req in reqs:
                 if req._meta:
                     self.meta ['__was_id'] = req._meta ['__was_id']
                     break
         self._init_time = time.time ()
+
+    def set_callback (self, func, reqid = None, timeout = None):
+        if reqid is not None:
+            self._meta ["__reqid"] = reqid
+        func (self)
 
     def _count (self):
         with self._was.cv:
@@ -41,23 +59,28 @@ class TaskBase (corequest):
         data = {}
         for idx, key in enumerate (keys):
             if key is None:
+                results [idx].commit ()
                 continue
             method, field = 'fetch', None
             option = key.split ('__')
             if len (option) == 3:
                 key, method, field = option
-                if method not in  ('dict', 'one'):
-                    raise RuntimeError ('must be `one` or `dict` for specifying field')
+                if method not in  ('dict', 'fetch', 'one'):
+                    raise RuntimeError ('method must be one of `one`, `fetch` or `dict` for specifying field')
+                if method == 'fetch':
+                    field = int (field)
             elif len (option) == 2:
                 key, method = option
                 if method not in ('one', 'fetch', 'dict'):
-                    field, method = method, 'one'
+                    field, method = method, 'fetch'
 
             result = results [idx]
             keydata = getattr (result, method) ()
             if field:
                 keydata = keydata [field]
             data [key] = keydata
+
+        data.update (self.meta.get ('__constants', {}))
         return AttrDict (data)
 
 
@@ -123,6 +146,8 @@ class Tasks (TaskBase):
 
     def fetch (self, cache = None, cache_if = (200,), timeout = None):
         self._wait_for_all (timeout)
+        if self._keys and [_ for _ in self._keys if _]:
+            return self.dict ()
         return [req.fetch (cache, cache_if, timeout) for req in self._reqs]
 
     def one (self, cache = None, cache_if = (200,), timeout = None):
@@ -147,11 +172,6 @@ class Mask (response, TaskBase):
         self._keys = keys
         self._was = was
 
-    def set_callback (self, func, reqid = None, timeout = None):
-        if reqid is not None:
-            self._meta ["__reqid"] = reqid
-        func (self)
-
     def _reraise (self):
         if self._expt:
             raise self._expt
@@ -171,11 +191,15 @@ class Mask (response, TaskBase):
 
     def one (self, *arg, **karg):
         self._reraise ()
-        if len (self._data) == 0:
-            raise HTTPError ("410 Partial Not Found")
-        if len (self._data) != 1:
-            raise HTTPError ("409 Conflict")
-        return self._data [0]
+        try:
+            if len (self._data) == 0:
+                raise HTTPError ("410 Partial Not Found")
+            if len (self._data) != 1:
+                raise HTTPError ("409 Conflict")
+            return self._data [0]
+        except TypeError:
+            return self._data
+
 
 # completed future(s) ----------------------------------------------------
 class CompletedTasks (response, Tasks):

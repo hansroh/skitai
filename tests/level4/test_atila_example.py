@@ -10,6 +10,13 @@ def test_launch (launch):
         return
 
     with launch (serve) as engine:
+
+        resp = engine.axios.get ("/apis/map")
+        assert resp.status_code == 200
+        assert len (resp.data) == 6
+        assert resp.data ['a'] == 123
+        assert resp.data ['b'] == '456'
+
         resp = engine.axios.get ("/apis/mixing_nested_taskmap")
         assert resp.status_code == 200
         assert 'a' in resp.data
