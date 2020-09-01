@@ -8,32 +8,15 @@ from rs4 import producers
 from rs4.termcolor import tc
 from aquests.protocols.http import http_date
 from aquests.protocols.http.http_util import *
-from hashlib import md5
 from ..corequest import tasks
 from aquests.athreads import trigger
-
-IF_MODIFIED_SINCE = re.compile (
-	'([^;]+)((; length=([0-9]+)$)|$)',
-	re.IGNORECASE
-	)
-
-IF_NONE_MATCH = re.compile (
-	'"?(.+?)(?:$|")',
-	re.IGNORECASE
-	)
-
+from .. import utility
 USER_AGENT = re.compile ('User-Agent: (.*)', re.IGNORECASE)
 
 CONTENT_TYPE = re.compile (
 	r"Content-Type: ([^;]+)((; boundary=([A-Za-z0-9'\(\)+_,./:=?-]+)$)|$)",
 	re.IGNORECASE
 	)
-
-def get_re_match (head_reg, value):
-	m = head_reg.match (value)
-	if m and m.end() == len (value):
-		return m
-	return ''
 
 class MemCache:
 	def __init__ (self):
@@ -102,42 +85,6 @@ class Handler:
 			return True
 		return False
 
-	def is_etag_matched (self, request, header_name, etag):
-		hval = request.get_header (header_name)
-		if not hval:
-			return
-		match = get_re_match (IF_NONE_MATCH, hval)
-		if not match:
-			return
-		return etag == match.group (1) and 'matched' or 'unmatched'
-
-	def is_modified (self, request, header_name, mtime, file_length):
-		ims_h = request.get_header (header_name)
-		if not ims_h:
-			return
-		match = get_re_match (IF_MODIFIED_SINCE, ims_h)
-		if not match:
-			return
-
-		length = match.group (4)
-		if length:
-			try:
-				length = int(length)
-				if length != file_length:
-					return 'modified'
-			except:
-				pass
-
-		try:
-			mtime2 = http_date.parse_http_date (match.group (1))
-		except:
-			return
-
-		if mtime > mtime2:
-			return 'modified'
-		else:
-			return 'unmodified'
-
 	def handle_request (self, request):
 		if request.command not in ('get', 'head'):
 			self.handle_alternative (request)
@@ -195,21 +142,9 @@ class Handler:
 			self.handle_alternative (request)
 			return
 
-		etag = self.make_etag (file_length, mtime)
-		if self.is_etag_matched (request, 'if-none-match', etag) == 'matched' or self.is_modified (request, "if-modified-since", mtime, file_length) == 'unmodified':
-			self.set_cache_control (request, path, mtime, etag)
-			request.response.start (304)
-			request.response.done()
-			return
-
-		if self.is_etag_matched (request, 'if-match', etag) == 'unmatched' or self.is_modified (request, "if-unmodified-since", mtime, file_length) == 'modified':
-			request.response.start (412)
-			request.response.done()
-			return
-
 		range_ = request.get_header ('range')
 		if range_:
-			if self.is_etag_matched (request, 'if-range', etag) == 'unmatched':
+			if utility.is_etag_matched (request, 'if-range', etag) == 'unmatched':
 				range_ = None # ignore range
 			else:
 				try:
@@ -219,7 +154,12 @@ class Handler:
 					request.response.done()
 					return
 
-		self.set_cache_control (request, path, mtime, etag)
+		etag = request.response.set_etag_mtime (
+			"%d:%d" % (file_length, int (mtime)),
+			mtime,
+			file_length,
+			self.max_ages and self.get_max_age (path) or 0
+		)
 		self.set_content_type (path, request)
 
 		if range_:
@@ -248,25 +188,11 @@ class Handler:
 		else:
 			request.response.done()
 
-	def set_cache_control (self, request, path, mtime, etag):
-		max_age = self.max_ages and self.get_max_age (path) or 0
-		if request.version == "1.0":
-			request.response ['Last-Modified'] = http_date.build_http_date (mtime)
-			if max_age:
-				request.response ['Expires'] = http_date.build_http_date (mtime + max_age)
-		else:
-			request.response ['Etag'] = '"' + etag + '"'
-			if max_age:
-				request.response ['Cache-Control'] = "max-age=%d" % max_age
-
 	def get_max_age (self, path):
 		path = not path and "/" or "/" + path
 		for prefix, value in self.max_ages:
 			if path.startswith (prefix):
 				return value
-
-	def make_etag (self, file_length, mtime):
-		return md5 (("%d:%d" % (file_length, int (mtime))).encode ("utf8")).hexdigest()
 
 	def set_content_type (self, path, request):
 		ext = get_extension (path).lower()

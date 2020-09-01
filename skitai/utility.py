@@ -1,8 +1,70 @@
-import re, sys, os
+import re
+import sys
+import os
 from rs4 import producers
 from collections import Iterator
 from aquests.athreads import trigger
+from hashlib import md5
+from aquests.protocols.http import http_date
 
+# etag and last-modified ------------------------------------------
+IF_MODIFIED_SINCE = re.compile (
+	'([^;]+)((; length=([0-9]+)$)|$)',
+	re.IGNORECASE
+	)
+
+IF_NONE_MATCH = re.compile (
+	'"?(.+?)(?:$|")',
+	re.IGNORECASE
+	)
+
+def get_re_match (head_reg, value):
+	m = head_reg.match (value)
+	if m and m.end() == len (value):
+		return m
+	return ''
+
+def make_etag (identifier):
+    return md5 (identifier.encode ("utf8")).hexdigest()
+
+def is_etag_matched (request, header_name, etag):
+    hval = request.get_header (header_name)
+    if not hval:
+        return
+    match = get_re_match (IF_NONE_MATCH, hval)
+    if not match:
+        return
+    return etag == match.group (1) and 'matched' or 'unmatched'
+
+def is_modified (request, header_name, mtime, file_length = None):
+    ims_h = request.get_header (header_name)
+    if not ims_h:
+        return
+    match = get_re_match (IF_MODIFIED_SINCE, ims_h)
+    if not match:
+        return
+
+    if file_length is not None:
+        length = match.group (4)
+        if length:
+            try:
+                length = int(length)
+                if length != file_length:
+                    return 'modified'
+            except:
+                pass
+
+    try:
+        mtime2 = http_date.parse_http_date (match.group (1))
+    except:
+        return
+
+    if mtime > mtime2:
+        return 'modified'
+    else:
+        return 'unmodified'
+
+# response context ------------------------------------------
 def make_pushables (response, content):
     from .corequest import tasks
     from .wastuff.api import API
@@ -88,6 +150,7 @@ def make_pushables (response, content):
     return will_be_push
 
 
+# traceback info ------------------------------------------------------
 def catch (format = 0, exc_info = None):
     if exc_info is None:
         exc_info = sys.exc_info()

@@ -16,6 +16,7 @@ import skitai
 from hashlib import md5
 from rs4.psutil import kill
 from rs4.psutil.processutil import set_process_name, drop_privileges
+from ..exceptions import HTTPError
 
 if os.name == "posix":
     import psutil
@@ -268,6 +269,9 @@ class http_channel (asynchat.async_chat):
                     try:
                         self.current_request = r
                         h.handle_request (r)
+
+                    except HTTPError as e:
+                        r.response.error (e.status)
 
                     except:
                         self.server.trace()

@@ -3,7 +3,7 @@ import confutil
 import pprint
 from skitai import was as the_was
 
-def test_futures (app, dbpath):
+def test_map (app, dbpath):
     @app.route ("/1")
     def index (was):
         return was.Map (

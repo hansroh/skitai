@@ -13,6 +13,7 @@ from rs4 import asyncore
 import json
 from skitai import exceptions
 from ..wastuff.api import API, catch
+from .. import utility
 
 try:
     from urllib.parse import urljoin
@@ -151,7 +152,8 @@ class http_response:
 
     def set_reply (self, status):
         # for atila.Atila App
-        self.reply_code, self.reply_message = self.parse_ststus (status)
+        self.reply_code, self.reply_message = self.parse_status (status)
+        return self.reply_code, self.reply_message
     set_status = set_reply
 
     def get_status (self):
@@ -170,7 +172,7 @@ class http_response:
     def response (self, code, status):
         return 'HTTP/%s %d %s' % (self.request.version, code, status)
 
-    def parse_ststus (self, status):
+    def parse_status  (self, status):
         try:
             code, status = status.split (" ", 1)
             code = int (code)
@@ -186,7 +188,7 @@ class http_response:
         # instance messaging
         if self.request.channel is None:
             return
-        code, msg = self.parse_ststus (status)
+        code, msg = self.parse_status  (status)
         reply = [self.response (code, msg)]
         if headers:
             for header in headers:
@@ -205,7 +207,7 @@ class http_response:
                 raise AssertionError ("Response already sent!")
             return
 
-        code, status = self.parse_ststus (status)
+        code, status = self.parse_status  (status)
         self.start (code, status, headers)
 
         if exc_info:
@@ -243,6 +245,8 @@ class http_response:
     def build_error_template (self, why = '', errno = 0, was = None):
         global DEFAULT_ERROR_MESSAGE
 
+        if self.reply_code in (304, 204):
+            return ''
         if not self.request or not self.request.channel:
             return ''
 
@@ -296,16 +300,18 @@ class http_response:
             )
 
     def error (self, code, status = "", why = "", force_close = False, push_only = False):
+        if isinstance (code, str):
+            code, status = self.parse_status (code)
         if not self.is_responsable (): return
         self.outgoing.clear ()
         self.reply_code = code
         if status: self.reply_message = status
-        else:    self.reply_message = self.get_status_msg (code)
+        else: self.reply_message = self.get_status_msg (code)
 
         body = self.build_error_template (why).encode ("utf8")
-        self.update ('Content-Length', len(body))
-        self.update ('Cache-Control', 'max-age=0')
-        self.push (body)
+        if body:
+            self.update ('Content-Length', len(body))
+            self.push (body)
         if not push_only:
             self.done (force_close)
 
@@ -614,3 +620,37 @@ class http_response:
 
     def MountedFile (self, uri):
         return self.request.env ["skitai.static_files"] (self.request, uri)
+
+    # only for WSGI ------------------------------------------------
+    def set_etag (self, identifier, max_age = 0, as_etag = False):
+        etag = as_etag and identifier or utility.make_etag (identifier)
+        if utility.is_etag_matched (self.request, 'if-none-match', etag) == 'matched':
+            self.set_cache_control (self.request, etag = etag, max_age = max_age)
+            raise exceptions.HTTPError ("304 Not Modified")
+        if utility.is_etag_matched (self.request, 'if-match', etag) == 'unmatched':
+            raise exceptions.HTTPError ("412 Precondition Failed")
+        self.set_cache_control (self.request, etag = etag, max_age = max_age)
+        return etag
+
+    def set_mtime (self, mtime, length = None, max_age = 0):
+        if utility.is_modified (self.request, "if-modified-since", mtime, length) == 'unmodified':
+            self.set_cache_control (self.request, mtime = mtime, max_age = max_age)
+            raise exceptions.HTTPError ("304 Not Modified")
+        if utility.is_modified (self.request, "if-unmodified-since", mtime, length) == 'modified':
+            raise exceptions.HTTPError ("412 Precondition Failed")
+        self.set_cache_control (self.request, mtime = mtime, max_age = max_age)
+
+    def set_etag_mtime (self, identifier, mtime, length = None, max_age = 0, as_etag = False):
+        self.set_mtime (mtime, length, max_age)
+        return self.set_etag (identifier, max_age, as_etag) # return etag
+
+    def set_cache_control (self, request, mtime = None, etag = None, max_age = 0):
+        if etag and request.version not in ('0.9', '1.0'):
+            self.set_header ('Etag', '"' + etag + '"')
+            if max_age:
+                self.set_header ('Cache-Control', "max-age=%d" % max_age)
+
+        elif mtime:
+            self.set_header ('Last-Modified', http_date.build_http_date (mtime))
+            if max_age:
+                self.set_header ('Expires', http_date.build_http_date (mtime + max_age))

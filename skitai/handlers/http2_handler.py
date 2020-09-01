@@ -12,6 +12,7 @@ from io import BytesIO
 import time
 import enum
 from rs4 import producers
+from ..exceptions import HTTPError
 
 # http3 compat error codes
 class ErrorCodes (enum.IntEnum):
@@ -582,6 +583,9 @@ class http2_request_handler (FlowControlWindow):
 
         try:
             h.handle_request (r)
+
+        except HTTPError as e:
+            r.response.error (e.status)
 
         except:
             self.channel.server.trace()
