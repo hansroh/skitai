@@ -14,7 +14,8 @@ import json
 from skitai import exceptions
 from ..wastuff.api import API, catch
 from .. import utility
-
+from datetime import datetime
+import time
 try:
     from urllib.parse import urljoin
 except ImportError:
@@ -393,7 +394,7 @@ class http_response:
                 self.update ('Connection', 'close')
                 close_it = True
 
-        if self.reply_code == 204:
+        if self.reply_code in (204, 304):
             # make sure empty body
             self.outgoing.clear ()
 
@@ -633,6 +634,8 @@ class http_response:
         return etag
 
     def set_mtime (self, mtime, length = None, max_age = 0):
+        if isinstance (mtime, datetime):
+            mtime = time.mktime (mtime.timetuple ())
         if utility.is_modified (self.request, "if-modified-since", mtime, length) == 'unmodified':
             self.set_cache_control (self.request, mtime = mtime, max_age = max_age)
             raise exceptions.HTTPError ("304 Not Modified")

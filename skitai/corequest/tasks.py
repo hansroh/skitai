@@ -11,7 +11,6 @@ import warnings
 class TaskBase (corequest):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None, keys = None):
         assert isinstance (reqs, (list, tuple))
-
         self._meta = self.meta = meta or {}
         if '__constants' not in self._meta and keys:
             self._meta ['__constants'] = {}
@@ -47,7 +46,20 @@ class TaskBase (corequest):
         with self._was.cv:
             return 0 if self._finished else len (self._reqs)
 
-    def dict (self):
+    def set_cache (self, data, current_was):
+        def find_key (data, keys):
+            d = data
+            for k in keys.split ('.'):
+                d = d [k]
+            return d
+
+        max_age = self._meta.get ('maxage', 0)
+        mtime = self._meta.get ('mtime')
+        etag = self._meta.get ('etag')
+        mtime and current_was.response.set_mtime (find_key (data, mtime), max_age = max_age)
+        etag  and current_was.response.set_etag (find_key (data, etag), max_age = max_age)
+
+    def dict (self, current_was = None):
         keys = self._keys
         if keys is None:
             raise AttributeError ('keys paramenter is not defined')
@@ -83,7 +95,8 @@ class TaskBase (corequest):
                 keydata = keydata [field]
             data [key] = keydata
 
-        data.update (self.meta.get ('__constants', {}))
+        current_was and self.set_cache (data, current_was)
+        data.update (self._meta.get ('__constants', {}))
         return AttrDict (data)
 
 
