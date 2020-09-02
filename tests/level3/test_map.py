@@ -54,6 +54,14 @@ def test_map (app, dbpath):
             ),
         )
 
+    @app.route ("/4")
+    def index2 (was):
+        return was.Map (
+            a = 1,
+            b = '2',
+            c = 123
+        )
+
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
     app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)
     with app.test_client ("/", confutil.getroot ()) as cli:
@@ -83,3 +91,9 @@ def test_map (app, dbpath):
         assert resp.data ['h']['a'] == 789
         assert resp.data ['h']['b'][0] == 789
         assert resp.data ['h']['b'][1] == 'hello'
+
+        resp = cli.get ("/4")
+        assert resp.status_code == 200
+        assert resp.data ['a'] == 1
+        assert resp.data ['b'] == '2'
+        assert resp.data ['c'] == 123

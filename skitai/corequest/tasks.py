@@ -174,6 +174,8 @@ class Tasks (TaskBase):
         [r.cache (cache, cache_if) for r in self.results]
 
     def then (self, func):
+        if not self._reqs:
+            return func (self._was, self)
         return Futures (self._reqs, self._timeout, self.meta, self._keys).then (func)
 
 
