@@ -24,6 +24,8 @@ except ImportError:
 
 UNCOMPRESS_MAX = 2048
 ONETIME_COMPRESS_MAX = 1048576
+NO_CONTENT_CODES = {304, 204, 412, 416}
+
 
 # Default error message
 DEFAULT_ERROR_MESSAGE = """<!DOCTYPE html>
@@ -246,7 +248,7 @@ class http_response:
     def build_error_template (self, why = '', errno = 0, was = None):
         global DEFAULT_ERROR_MESSAGE
 
-        if self.reply_code in (304, 204):
+        if self.reply_code in NO_CONTENT_CODES:
             return ''
         if not self.request or not self.request.channel:
             return ''
@@ -394,7 +396,7 @@ class http_response:
                 self.update ('Connection', 'close')
                 close_it = True
 
-        if self.reply_code in (204, 304):
+        if self.reply_code in NO_CONTENT_CODES:
             # make sure empty body
             self.outgoing.clear ()
 
