@@ -142,6 +142,7 @@ class Handler:
 			self.handle_alternative (request)
 			return
 
+		etag = utility.make_etag ("%d:%d" % (file_length, int (mtime)))
 		range_ = request.get_header ('range')
 		if range_:
 			if utility.is_etag_matched (request, 'if-range', etag) == 'unmatched':
@@ -154,11 +155,12 @@ class Handler:
 					request.response.done()
 					return
 
-		etag = request.response.set_etag_mtime (
-			"%d:%d" % (file_length, int (mtime)),
+		request.response.set_etag_mtime (
+			etag,
 			mtime,
 			file_length,
-			self.max_ages and self.get_max_age (path) or 0
+			self.max_ages and self.get_max_age (path) or 0,
+			as_etag = True
 		)
 		self.set_content_type (path, request)
 
