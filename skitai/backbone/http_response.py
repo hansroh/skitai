@@ -24,7 +24,7 @@ except ImportError:
 
 UNCOMPRESS_MAX = 2048
 ONETIME_COMPRESS_MAX = 1048576
-NO_CONTENT_CODES = {304, 204, 412, 416}
+NO_CONTENT_CODES = (304, 204)
 
 
 # Default error message
