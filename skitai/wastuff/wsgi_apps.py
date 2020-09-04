@@ -9,6 +9,7 @@ import inspect
 from rs4 import attrdict
 from importlib import reload
 from urllib.parse import unquote
+import skitai
 
 def set_default (cf):
     cf.MAX_UPLOAD_SIZE = 256 * 1024 * 1024
@@ -303,36 +304,35 @@ class ModuleManager:
             if route not in self.modules:
                 self.modules [route] = [module]
             else:
-                if hasattr (module.get_callable (), "ATILA_THE_HUN"):
-                    self.modules [route].insert (0, module)
-
-                not_atila = 0
-                for apph in self.modules [route]:
-                    if not hasattr (apph.get_callable (), "ATILA_THE_HUN"):
-                        not_atila += 1
-                        if not_atila > 1:
-                            self.wasc.logger ("app", "app route collision detected: %s to %s" % (route, apph.abspath), "error")
+                assert route == '/', "only root can mout multiple apps"
+                # first mount first priority, not-atila has last priority
+                if not hasattr (self.modules [route][-1].get_callable (), "ATILA_THE_HUN"):
+                    if not hasattr (module.get_callable (), "ATILA_THE_HUN"):
+                        raise RuntimeError ("app route collision detected: %s to %s" % (route, module.abspath))
+                    else:
+                        self.modules [route].insert (len (self.modules [route]) - 1, module)
+                else:
+                    self.modules [route].append (module)
 
             if type (dispname) is str:
                 # possibly direct app object
                 self.modnames [dispname.split (":", 1)[0]] = module
 
     def get_app (self, script_name):
-        if script_name in self.cache_apps:
-            return self.cache_apps [script_name]
-
         route = self.has_route (script_name)
         if route in (0, 1): # 404, 301
-            self.cache_apps [script_name] = None
             return None
 
         try:
             apphs = self.modules [route]
         except KeyError:
             return None
+
         if len (apphs) == 1:
-            self.cache_apps [script_name] = apphs [0]
             return apphs [0]
+
+        if script_name == '/' and '//' in self.modules:
+            return self.modules ['//']
 
         path = script_name
         while path and path [0] == '/':
@@ -343,17 +343,17 @@ class ModuleManager:
         for apph in apphs:
             path_info = apph.get_path_info (path)
             if not hasattr (apph.get_callable (), 'ATILA_THE_HUN') or apph.get_callable ().find_method (path_info, '__proto__') [-1] != 404:
-                self.cache_apps [script_name] = apph
+                if script_name == '/':
+                    self.modules ['//'] = apph
+                else:
+                    basepath = "/" + script_name [1:].split ('/') [0]
+                    self.modules [basepath] = [apph]
                 return apph
 
     def has_route (self, script_name):
         # 0: 404
         # 1: 301 => /skitai => /skitai/
-        if script_name in self.cache_route:
-            return self.cache_route [script_name]
-
         if script_name == "/" and "/" in self.modules:
-            self.cache_route [script_name] = '/'
             return "/"
 
         cands = []
@@ -361,7 +361,6 @@ class ModuleManager:
             if script_name == route:
                 cands.append (route)
             elif script_name + "/" == route:
-                self.cache_route [script_name] = 1
                 return 1
             elif script_name.startswith (route [-1] != "/" and route + "/" or route):
                 cands.append (route)
@@ -370,14 +369,11 @@ class ModuleManager:
             if len (cands) == 1:
                 return cands [0]
             cands.sort (key = lambda x: len (x))
-            self.cache_route [script_name] = cands [-1]
             return cands [-1]
 
         elif "/" in self.modules:
-            self.cache_route [script_name] = '/'
             return "/"
 
-        self.cache_route [script_name] = 0
         return 0
 
     def unload (self, route):
