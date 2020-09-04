@@ -88,8 +88,9 @@ class Loader:
 		for h in self.wasc.httpserver.handlers:
 			if isinstance (h, vhost_handler.Handler):
 				for vhost in h.sites.values ():
-					for apph in vhost.apps.modules.values ():
-						getattr (apph, func) ()
+					for apphs in vhost.apps.modules.values ():
+						for apph in apphs:
+							getattr (apph, func) ()
 
 	def WAS_finalize (self):
 		global the_was

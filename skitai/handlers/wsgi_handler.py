@@ -1,8 +1,4 @@
 import sys, os
-try:
-	from urllib.parse import unquote
-except ImportError:
-	from urllib import unquote
 import sys
 from rs4 import producers
 from ..backbone.http_response import catch
@@ -146,7 +142,7 @@ class Handler:
 			request.response ["Location"] = "%s/" % path
 			return self.handle_error_before_collecting (request, 308)
 
-		app = self.apps.get_app (has_route).get_callable()
+		app = self.apps.get_app (path).get_callable()
 		# for rendering error template
 		request.response.current_app = app
 

@@ -3334,6 +3334,7 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - multiple Atila apps and ONE Not-Atila app can be mounted to same path
   - add was.stub ()
   - drop supporing Python 3.5 officially
   - add was.flashfile with auto deletion file name
