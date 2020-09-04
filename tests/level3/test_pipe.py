@@ -1,0 +1,35 @@
+import skitai
+import confutil
+import pprint
+from skitai import was as the_was
+
+def test_map (app, dbpath):
+    @app.route ("/1")
+    @app.inspect (offset = int)
+    def index (was, offset = 1):
+        return was.API (result = offset)
+
+    @app.route ("/2")
+    def index2 (was):
+        return was.pipe (index)
+
+    @app.route ("/3")
+    def index3 (was):
+        return was.pipe (index, offset = 4)
+
+    @app.route ("/4")
+    def index4 (was):
+        return was.pipe ('index', offset = 't')
+
+    with app.test_client ("/", confutil.getroot ()) as cli:
+        resp = cli.get ("/2")
+        assert resp.status_code == 200
+        assert resp.data ['result'] == 1
+
+        resp = cli.get ("/3")
+        assert resp.status_code == 200
+        assert resp.data ['result'] == 4
+
+        resp = cli.get ("/4")
+        assert resp.status_code == 200
+        assert resp.data ['result'] == 't'
