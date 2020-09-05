@@ -48,8 +48,8 @@ class VHost:
 	def add_route (self, route, target):
 		self.default_handler.add_route (route, target)
 
-	def add_module (self, route, path, module, pref):
-		self.apps.add_module (route, path, module, pref)
+	def add_module (self, route, path, module, pref, name):
+		self.apps.add_module (route, path, module, pref, name)
 
 
 class Handler:
@@ -83,13 +83,13 @@ class Handler:
 			self.sites [rule] = VHost (self.wasc, *self.vhost_args)
 		return self.sites [rule]
 
-	def add_app (self, rule, route, app, root, config = None):
+	def add_app (self, rule, route, app, root, config = None, name = None):
 		# app object mount, maily used by unittest
 		vhost = self.get_vhost (rule)
-		vhost.add_module (route, root, app, config)
+		vhost.add_module (route, root, app, config, name)
 		return False
 
-	def add_route (self, rule, routepair, config = None):
+	def add_route (self, rule, routepair, config = None, name = None):
 		reverse_proxing = False
 		vhost = self.get_vhost (rule)
 
@@ -111,7 +111,7 @@ class Handler:
 
 		else:
 			fullpath = os.path.split (target.strip())
-			vhost.add_module (route, os.sep.join (fullpath[:-1]), fullpath [-1], config)
+			vhost.add_module (route, os.sep.join (fullpath[:-1]), fullpath [-1], config, name)
 
 		return reverse_proxing
 

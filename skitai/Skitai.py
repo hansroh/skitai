@@ -84,6 +84,13 @@ class Loader:
 	def set_model_keys (self, keys):
 		self.wasc._luwatcher.add (keys)
 
+	def get_app_by_name (self, name):
+		for h in self.wasc.httpserver.handlers:
+			if isinstance (h, vhost_handler.Handler):
+				for vhost in h.sites.values ():
+					if name in vhost.apps.modnames:
+						return vhost.apps.modnames [name].get_callable ()
+
 	def app_cycle (self, func):
 		for h in self.wasc.httpserver.handlers:
 			if isinstance (h, vhost_handler.Handler):
@@ -244,7 +251,7 @@ class Loader:
 		sroutes = []
 		for domain in sorted (routes.keys ()): # must sort for lueatcher reservation
 			sroutes.append ("@%s" % domain)
-			for route, entity, pref in routes [domain]:
+			for route, entity, pref, name in routes [domain]:
 				appname = None
 				if type (entity) is tuple:
 					entity, appname = entity
@@ -252,7 +259,7 @@ class Loader:
 					entity = os.path.join (os.getcwd (), entity) [:-3]
 					if entity [-1] == ".":
 						entity = entity [:-1]
-				sroutes.append (("%s=%s%s" % (route, entity, appname and ":" + appname or ""), pref))
+				sroutes.append (("%s=%s%s" % (route, entity, appname and ":" + appname or ""), pref, name))
 		return sroutes
 
 	def install_handler (self,
@@ -292,12 +299,12 @@ class Loader:
 		for line in routes:
 			config = None
 			if type (line) is tuple:
-				line, pref = line
+				line, pref, name = line
 			line = line.strip ()
 			if line.startswith (";") or line.startswith ("#"):
 				continue
 			elif line.startswith ("/"):
-				reverse_proxing = vh.add_route (current_rule, line, pref)
+				reverse_proxing = vh.add_route (current_rule, line, pref, name)
 			elif line:
 				if line [0] == "@":
 					line = line [1:].strip ()

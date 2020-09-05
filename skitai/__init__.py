@@ -29,6 +29,7 @@ from functools import wraps
 import copy
 import rs4
 from rs4.termcolor import tc
+from rs4 import annotations
 import getopt as libgetopt
 
 argopt.add_option ('-d', desc = "start as daemon, equivalant with `start` command") # lower version compatible
@@ -253,7 +254,8 @@ dconf = dict (
     models_keys = set (),
     wasc_options = {},
     backlog = 256,
-    max_upload_size = 256 * 1024 * 1024 # 256Mb
+    max_upload_size = 256 * 1024 * 1024, # 256Mb
+    subscriptions = set ()
 )
 
 def set_max_upload_size (size):
@@ -301,6 +303,7 @@ class Preference (AttrDict):
         pass
 
     def mount (self, *args, **kargs):
+        # mount module or func (app, options)
         self.__dict__ ["mountables"].append ((args, kargs))
 
     def copy (self):
@@ -448,7 +451,7 @@ def mount (point, target, __some = pref (True), *args, **kargs):
         return _mount (point, target, 'app', *args, **kargs)
     return _mount (point, target, __some, *args, **kargs)
 
-def _mount (point, target, appname = "app", pref = pref (True), host = "default", path = None):
+def _mount (point, target, appname = "app", pref = pref (True), host = "default", path = None, name = None, **kargs):
     global dconf
 
     if isinstance (appname, Preference):
@@ -475,7 +478,15 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
             sys.path.insert (0, abspath (each))
 
     if hasattr (target, "__file__"):
+        if name:
+            assert name == target.__name__, "invalid mount name, remove name or use '{}'".format (target.__name__)
+        else:
+            name = target.__name__
         target = (target, '__export__.py')
+
+    if 'subscribe' in kargs:
+        assert name, 'to subscribe, name must be specified'
+        dconf ['subscriptions'].add ((name, kargs ['subscribe']))
 
     if type (target) is tuple:
         module, appfile = target
@@ -497,7 +508,7 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
         dconf ['mount'][host] = []
 
     if os.path.isdir (target) or not appname:
-        dconf ['mount'][host].append ((point, target, None))
+        dconf ['mount'][host].append ((point, target, None, name))
     else:
         target_ = target
         if not target_.endswith ('.py'):
@@ -511,7 +522,7 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
                     except ImportError:
                         pass
         init_app (target, pref)
-        dconf ['mount'][host].append ((point,  (target, appname), pref))
+        dconf ['mount'][host].append ((point,  (target, appname), pref, name))
 
 mount_django = mount
 
@@ -848,6 +859,15 @@ def run (**conf):
                 conf.get ("gw_realm", "API Gateway"),
                 conf.get ("gw_secret_key", None)
             )
+
+            for p, s in dconf ['subscriptions']:
+                try:
+                    provider = self.get_app_by_name (p)
+                    provider.bus
+                    subbscriber = self.get_app_by_name (s).bus
+                except AttributeError:
+                    raise NameError ('app.bus not found')
+                provider.add_subscriber (subbscriber)
 
             lifetime.init (logger = self.wasc.logger.get ("server"))
             if os.name == "nt":

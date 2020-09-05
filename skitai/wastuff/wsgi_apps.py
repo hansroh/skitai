@@ -280,13 +280,15 @@ class ModuleManager:
         a, b = thing.split (":", 1)
         return self.modnames [a].get_callable ().build_url (b, *args, **kargs)
 
-    def add_module (self, route, directory, modname, pref):
-        dispname = modname
-        if type (modname) is str and  modname.startswith ("__export__"):
-            dispname = "{}:app".format (os.path.basename (os.path.dirname (os.path.dirname (directory))))
+    def add_module (self, route, directory, modname, pref, name):
+        if not name:
+            if isinstance (modname, str):
+                name = os.path.join (directory, modname)
+            else:
+                name = '<{}:{}>'.format (modname.app_name, str (id (modname)) [:6])
 
-        if dispname in self.modnames:
-            self.wasc.logger ("app", "app file name collision detected '%s'" % dispname, "error")
+        if name in self.modnames:
+            self.wasc.logger ("app", "app name collision detected: %s" % tc.error (name), "error")
             return
 
         if not route:
@@ -298,13 +300,14 @@ class ModuleManager:
             module = Module (self.wasc, self.handler, self.bus, route, directory, modname, pref)
         except:
             self.wasc.logger.trace ("app")
-            self.wasc.logger ("app", "[error] app load failed: %s" % dispname)
+            self.wasc.logger ("app", "[error] app load failed: %s" % tc.error (os.path.basename (name)))
         else:
-            self.wasc.logger ("app", "[info] app %s mounted to %s" % (dispname, tc.white (route)))
+            self.wasc.logger ("app", "[info] app %s mounted to %s" % (tc.yellow (os.path.basename (name)), tc.white (route)))
+            self.modnames [name] = module
             if route not in self.modules:
                 self.modules [route] = [module]
             else:
-                assert route == '/', "only root can mout multiple apps"
+                assert route == '/', "only root path can mount multiple apps"
                 # first mount first priority, not-atila has last priority
                 if not hasattr (self.modules [route][-1].get_callable (), "ATILA_THE_HUN"):
                     if not hasattr (module.get_callable (), "ATILA_THE_HUN"):
@@ -313,10 +316,6 @@ class ModuleManager:
                         self.modules [route].insert (len (self.modules [route]) - 1, module)
                 else:
                     self.modules [route].append (module)
-
-            if type (dispname) is str:
-                # possibly direct app object
-                self.modnames [dispname.split (":", 1)[0]] = module
 
     def get_app (self, script_name):
         route = self.has_route (script_name)
@@ -343,6 +342,7 @@ class ModuleManager:
         for apph in apphs:
             path_info = apph.get_path_info (path)
             if not hasattr (apph.get_callable (), 'ATILA_THE_HUN') or apph.get_callable ().find_method (path_info, '__proto__') [-1] != 404:
+                # auto mapping to top-level path
                 if script_name == '/':
                     self.modules ['//'] = apph
                 else:

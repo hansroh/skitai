@@ -17,7 +17,7 @@ class Handler (proxy_handler.Handler):
 		else:
 			cname, mapped_path = cname, "/" + mapped_path
 
-		self.wasc.logger ('server', 'upstream @{} mounted to {}'.format (cname, tc.white (route)), 'info')
+		self.wasc.logger ('server', 'upstream @{} mounted to {}'.format (tc.yellow (cname), tc.white (route)), 'info')
 		self.route_map [route] = (cname, len (route), mapped_path)
 		temp = list (self.route_map.items ())
 		temp.sort (key = lambda x: x [1][1], reverse = True)

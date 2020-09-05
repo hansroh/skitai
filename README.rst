@@ -1511,7 +1511,6 @@ If you want to specify filename like app_v1.py for version management,
 
   skitai.mount ("/v1", (unsub, "app_v1:app"), pref)
 
-
 If your app need bootstraping or capsulizing complicated initialize
 process from simple user settings, write code to
 unsub/export/skitai/__init__.py.
@@ -1520,7 +1519,7 @@ unsub/export/skitai/__init__.py.
 
   import skitai
 
-  def __bootstrap__ (pref):
+  def __setup__ (pref):
     with open (pref.config.urlfile, "r") as f:
       urllist = []
       while 1:
@@ -1528,6 +1527,10 @@ unsub/export/skitai/__init__.py.
         if not line: break
         urllist.append (line.split ("  ", 4))
       pref.config.urllist = urllist
+
+ *Important Note:* If you need export package directory, use
+ 'exports' instead 'services' for avoiding name space collitions
+ with your custom main app.
 
  *Important Note:* You should add zip_safe = False flag in your setup.py
  because Skitai could access your __export__ script and its sub modules.
@@ -1540,18 +1543,18 @@ unsub/export/skitai/__init__.py.
     zip_safe = False
   )
 
+
+
 Extending/Customizing Services
 -----------------------------------------------
 
 *New in version 0.28.15*
 
-If you want to customize/extend services, create 'extends'
-directory and mount it to pref.
+If you want to customize/extend services, mount function to pref.
 
 .. code:: python
 
-  # extends/apis.py
-  def __mount__ (app):
+  def mount_override (app, options):
     @app.permission_check_handler
     def permission_check_handler (was, perms):
       ...
@@ -1560,36 +1563,47 @@ directory and mount it to pref.
     def apis_index (was):
       return 'APIS'
 
-.. code:: python
-
   # serve.py
   import unsub
   from extends import apis
 
   with skitai.preference () as pref:
-    pref.mount ('/apis', apis)
+    pref.mount ('/apis', mount_override)
     pref.config.urlfile = skitai.abspath ('resources', 'urllist.txt')
     skitai.mount ("/v1", unsub, pref)
   skitai.run ()
 
-You can access it by /v1/apis.
 
-If you want to mount another services from unpathed, you can specify
-new path.
 
-*Note:* This will change sys.path order. You SHOULD do
-these on your last mount stage.
+Custom Event Handling On Your Own App
+-------------------------------------------
+
+Your app can communicate with Exported API  by event subscription.
+
+
+*New in version 0.35.3*
 
 .. code:: python
 
   # serve.py
   import unsub
 
-  with skitai.preference (path = '../my_service') as pref:
-    from services import apis
-    pref.mount ('/apis', apis)
-    skitai.mount ("/v1", unsub, "app", pref)
+  with skitai.preference () as pref:
+    pref.config.urlfile = skitai.abspath ('resources', 'urllist.txt')
+    skitai.mount ("/", unsub, pref)
+
+  with skitai.preference () as pref:
+    skitai.mount ("/", 'myapp:app', pref, subscribe = 'unsub', name = 'myapp')
+
   skitai.run ()
+
+If unsub emits 'unsub-file-updated' event, 'myapp' will be recieved this event.
+
+.. code:: python
+
+  @app.on ('unsub-file-updated')
+  def on_unsub_file_updated (was, *args):
+    ...
 
 
 

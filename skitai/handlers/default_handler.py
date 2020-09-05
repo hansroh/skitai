@@ -61,7 +61,7 @@ class Handler:
 		return 1
 
 	def add_route (self, alias, option):
-		self.wasc.logger ('server', 'directory {} mounted to {}'.format (option, tc.white (alias or '/')), 'info')
+		self.wasc.logger ('server', 'directory {} mounted to {}'.format (tc.yellow (option), tc.white (alias or '/')), 'info')
 		self.filesystem.add_map (alias, option)
 
 	def handle_alternative (self, request):
