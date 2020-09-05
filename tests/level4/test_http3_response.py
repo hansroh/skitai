@@ -4,8 +4,6 @@ import socket
 import time
 import sys
 
-
-
 def test_http3 (launch):
     if sys.version_info < (3, 6):
         return
