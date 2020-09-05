@@ -1544,17 +1544,19 @@ unsub/export/skitai/__init__.py.
   )
 
 
-
-Extending/Customizing Services
+Extending / Customizing Services
 -----------------------------------------------
 
 *New in version 0.28.15*
 
-If you want to customize/extend services, mount function to pref.
+If you want to customize/extend services, mount function or
+module which contains \_\_mount\_\_ and \_\_setup\_\_ to pref.
 
 .. code:: python
 
-  def mount_override (app, options):
+  import unsub
+
+  def mount_extensions (app, options):
     @app.permission_check_handler
     def permission_check_handler (was, perms):
       ...
@@ -1563,16 +1565,11 @@ If you want to customize/extend services, mount function to pref.
     def apis_index (was):
       return 'APIS'
 
-  # serve.py
-  import unsub
-  from extends import apis
-
   with skitai.preference () as pref:
-    pref.mount ('/apis', mount_override)
     pref.config.urlfile = skitai.abspath ('resources', 'urllist.txt')
-    skitai.mount ("/v1", unsub, pref)
+    pref.mount ('/', mount_extensions)
+    skitai.mount ('/', unsub, pref)
   skitai.run ()
-
 
 
 Custom Event Handling On Your Own App
@@ -1593,11 +1590,13 @@ Your app can communicate with Exported API  by event subscription.
     skitai.mount ("/", unsub, pref)
 
   with skitai.preference () as pref:
-    skitai.mount ("/", 'myapp:app', pref, subscribe = 'unsub', name = 'myapp')
+    skitai.mount ("/", 'myapp:app', pref, name = 'myapp', subscribe = 'unsub')
 
   skitai.run ()
 
-If unsub emits 'unsub-file-updated' event, 'myapp' will be recieved this event.
+If unsub emits events, 'myapp' can also recieve these events.
+
+*Note*: For subscribing, name parameter is also required.
 
 .. code:: python
 
@@ -1606,19 +1605,16 @@ If unsub emits 'unsub-file-updated' event, 'myapp' will be recieved this event.
     ...
 
 
-
 Examples
 ----------
 
 Here're some implementations I made.
 
 - `DeLune API Server`_
-- `Haiku API Server`_
 - `Tensorflow API Server`_
 
 .. _`DeLune API Server`: https://pypi.python.org/pypi/delune
 .. _`Tensorflow API Server`: https://pypi.python.org/pypi/tfserver
-.. _`Haiku API Server`: https://pypi.python.org/pypi/haiku-lst
 
 
 Protocols
