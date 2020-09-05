@@ -486,7 +486,7 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
 
     if 'subscribe' in kargs:
         assert name, 'to subscribe, name must be specified'
-        dconf ['subscriptions'].add ((name, kargs ['subscribe']))
+        dconf ['subscriptions'].add ((kargs ['subscribe'], name))
 
     if type (target) is tuple:
         module, appfile = target
