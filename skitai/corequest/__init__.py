@@ -5,6 +5,11 @@ from ..wastuff.api import API
 
 WAS_FACTORY = None
 
+
+class CorequestError (Exception):
+    pass
+
+
 def get_cloned_was (was_id):
     global WAS_FACTORY
 

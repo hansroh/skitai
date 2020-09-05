@@ -21,6 +21,7 @@ import inspect
 from skitai import exceptions
 from skitai import REQFAIL, UNSENT, TIMEOUT, NETERR, NORMAL
 from ...corequest import corequest, response
+from . import HTTPTaskError
 import sqlite3
 
 try:
@@ -33,10 +34,6 @@ else:
 
 DEFAULT_TIMEOUT = 10
 WAIT_POLL = False
-
-class OperationError (Exception):
-    pass
-
 
 class Result (response, rcache.Result):
     def __init__ (self, id, status, response, ident = None):
@@ -53,7 +50,7 @@ class Result (response, rcache.Result):
                 self._response.expt
             except AttributeError:
                 # redircting to HTTPError
-                raise exceptions.HTTPError ("%d %s" % (self.status_code, self.reason))
+                raise HTTPTaskError ("%d %s" % (self.status_code, self.reason))
             else:
                 self._response.raise_for_status ()
         return self
