@@ -9,6 +9,7 @@ from aquests.protocols.http import http_util, http_date
 from aquests.athreads import threadlib
 from skitai import lifetime
 from rs4 import producers, compressors
+from rs4.termcolor import tc
 from collections import deque
 import signal
 import ssl
@@ -480,13 +481,14 @@ class http_server (asyncore.dispatcher):
                 kill.child_processes_gracefully () # killing multiprocessing.semaphore_tracker
                 return EXITCODE
 
-        self.log_info ('%s%s(%s) started on %s:%d' % (
-            self.SERVER_IDENT, hasattr (self, 'ctx') and ' SSL' or ' ', self.worker_ident, self.server_name, self.port)
-        )
+        self.log_info ('%s%s started on %s:%s' % (
+            hasattr (self, 'ctx') and 'SSL ' or '',
+            tc.blue ('worker #' + self.worker_ident [1:]), self.server_name, tc.white (self.port)
+        ))
         if self.altsvc:
-            self.log_info ('%s QUIC(%s) started on %s:%d' % (
-                self.SERVER_IDENT, self.worker_ident, self.server_name, self.altsvc.port)
-            )
+            self.log_info ('QUIC %s started on %s:%s' % (
+                tc.blue ('worker #' + self.worker_ident [1:]), self.server_name, tc.white (self.altsvc.port)
+            ))
 
     usages = []
     cpu_stat = []

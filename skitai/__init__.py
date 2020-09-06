@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.35.3.19"
+__version__ = "0.35.3.20"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -762,14 +762,15 @@ def run (**conf):
         def master_jobs (self):
             skitaienv = os.environ.get ("SKITAIENV")
             if skitaienv == "DEVEL":
-                self.wasc.logger ("server", "[info] running in development mode")
+                mode = 'development'
             elif skitaienv == "PYTEST":
-                self.wasc.logger ("server", "[info] running in pytest mode")
+                mode = 'pytest'
             else:
-                self.wasc.logger ("server", "[info] running in production mode")
-            self.wasc.logger ("server", "[info] engine tmp path: %s" % self.varpath)
+                mode = 'production'
+            self.wasc.logger ("server", "[info] running in {} mode".format (tc.red (mode)))
+            self.wasc.logger ("server", "[info] engine tmp path: %s" % tc.white (self.varpath))
             if self.logpath:
-                self.wasc.logger ("server", "[info] engine log path: %s" % self.logpath)
+                self.wasc.logger ("server", "[info] engine log path: %s" % tc.white (self.logpath))
             self.set_model_keys (self.conf ["models_keys"])
 
         def maintern_shutdown_request (self, now):
@@ -860,14 +861,19 @@ def run (**conf):
                 conf.get ("gw_secret_key", None)
             )
 
-            for p, s in dconf ['subscriptions']:
-                try:
-                    provider = self.get_app_by_name (p)
-                    provider.bus
-                    subbscriber = self.get_app_by_name (s).bus
-                except AttributeError:
-                    raise NameError ('app.bus not found')
+            for p, _ in dconf ['subscriptions']:
+                if isinstance (_, str):
+                    _ = [_]
+                for s in _:
+                    try:
+                        provider = self.get_app_by_name (p)
+                        provider.bus
+                        subbscriber = self.get_app_by_name (s).bus
+                    except AttributeError:
+                        raise NameError ('app.bus not found')
+
                 provider.add_subscriber (subbscriber)
+                self.wasc.logger.get ("server").log ('app {} subscribes to {}'.format (tc.yellow (s), tc.cyan (p)))
 
             lifetime.init (logger = self.wasc.logger.get ("server"))
             if os.name == "nt":

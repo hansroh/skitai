@@ -139,9 +139,6 @@ def test_was (wasc, app, client):
     time.sleep (9)
     assert was.verify_otp (otp)
 
-    time.sleep (13)
-    assert not was.verify_otp (otp)
-
     t = was.encode_ott ([1, 2])
     assert was.decode_ott (t) == [1, 2]
 
