@@ -141,11 +141,13 @@ class Handler:
 		if has_route == 1:
 			request.response ["Location"] = "%s/" % path
 			return self.handle_error_before_collecting (request, 308)
+		apph = self.apps.get_app (path)
+		if apph is None:
+			return self.handle_error_before_collecting (request, 404)
 
 		app = self.apps.get_app (path).get_callable()
 		# for rendering error template
 		request.response.current_app = app
-
 		if request.command != "options" and skitai.HAS_ATILA and isinstance (app, skitai.HAS_ATILA):
 			# pass through options, because options want authentification info.
 			if not app.is_authorized (request, app.authenticate):

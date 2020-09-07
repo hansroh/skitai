@@ -269,9 +269,6 @@ class ModuleManager:
         self.modules = {}
         self.modnames = {}
         self.bus = evbus.EventBus ()
-        self.cc = 0
-        self.cache_apps = {}
-        self.cache_route = {}
 
     def __getitem__ (self, name):
         return self.modnames [name].get_callable ()
@@ -349,6 +346,7 @@ class ModuleManager:
                     basepath = "/" + script_name [1:].split ('/') [0]
                     self.modules [basepath] = [apph]
                 return apph
+        return None # 404
 
     def has_route (self, script_name):
         # 0: 404
