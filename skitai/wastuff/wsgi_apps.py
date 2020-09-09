@@ -99,7 +99,12 @@ class Module:
         if hasattr (app, "set_logger"):
             app.set_logger (self.wasc.logger.get ("app"))
 
-        self.django = str (app.__class__).find ("django.") != -1 and DjangoReloader (os.path.dirname (os.path.dirname (self.abspath)), self.wasc.logger)
+        if str (app.__class__).find ("django.") != -1:
+            django_base_dir = os.path.dirname (self.abspath)
+            if os.path.isfile (os.path.join (django_base_dir, 'settings.py')):
+                django_base_dir = os.path.dirname (django_base_dir)
+            self.django = DjangoReloader (django_base_dir, self.wasc.logger)
+
         self.has_life_cycle = hasattr (app, "life_cycle")
 
         if self.pref:
