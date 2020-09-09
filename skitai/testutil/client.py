@@ -98,6 +98,13 @@ class Client:
     def upload (self, uri, data, headers = [], auth = None, meta = {}, version = "1.1"):
         return self.make_request ("UPLOAD", uri, data, headers, auth, meta, version)
 
+    def ensure_directory (self, url):
+        if not url:
+            url = "/"
+        elif url [-1] != "/":
+            url += "/"
+        return url
+
     # api ----------------------------------------------------
     def api (self, endpoint = ""):
         return siesta.API (endpoint, callback = self.make_request)
@@ -107,30 +114,58 @@ class Client:
         return RPC (endpoint, callback = self.__continue_xmlrpc)
     xmlrpc = rpc
 
-    def __continue_xmlrpc (self, uri, method, data, headers = [], auth = None, meta = {}, version = "1.1"):
-        r = request.XMLRPCRequest (uri, method, data, self.override (headers), auth, None, meta, version)
+    def rpc_request (self, endpoint = ""):
+        return RPC (endpoint, callback = self.__get_rpc_request)
+    xmlrpc_request = rpc_request
+
+    def __get_rpc_request (self, uri, method, data, headers = [], auth = None, meta = {}, version = "2.0"):
+        r = request.XMLRPCRequest (self.ensure_directory (uri), method, data, self.override (headers), auth, None, meta, version)
         hr = self.__generate (r)
         hr.set_body (r.get_payload ())
         hr._xmlrpc_serialized = True
         return hr
 
+    def __continue_xmlrpc (self, *args, **kargs):
+        hr = self.__get_rpc_request (*args, **kargs)
+        resp = self.handle_request (hr)
+        return resp.data
+
+    # jsonrpc
     def jsonrpc (self, endpoint = ""):
         return RPC (endpoint, callback = self.__continue_jsonrpc)
 
-    def __continue_jsonrpc (self, uri, method, data, headers = [], auth = None, meta = {}, version = "1.1"):
-        r = request.JSONRPCRequest (uri, method, data, self.override (headers), auth, None, meta, version)
+    def jsonrpc_request (self, endpoint = ""):
+        return RPC (endpoint, callback = self.__get_jsonrpc_request)
+
+    def __get_jsonrpc_request (self, uri, method, data, headers = [], auth = None, meta = {}, version = "1.1"):
+        r = request.JSONRPCRequest (self.ensure_directory (uri), method, data, self.override (headers), auth, None, meta, version)
         hr = self.__generate (r)
         hr.set_body (r.get_payload ())
         return hr
 
+    def __continue_jsonrpc (self, *args, **kargs):
+        hr = self.__get_jsonrpc_request (*args, **kargs)
+        resp = self.handle_request (hr)
+        return resp.data
+
+    # grpc
     def grpc (self, endpoint = ""):
+        raise NotImplementedError
         return RPC (endpoint, callback = self.__continue_grpc)
 
-    def __continue_grpc (self, uri, method, data, headers = [], auth = None, meta = {}, version = "2.0"):
+    def __get_grpc_request (self, uri, method, data, headers = [], auth = None, meta = {}, version = "2.0"):
         r = grpc_request.GRPCRequest (uri, method, data, self.override (headers), auth, None, meta, version)
         hr = self.__generate (r)
         hr.set_body (self.__serialize (r.get_payload ()))
         return hr
+
+    def __continue_grpc (self, *args, **kargs):
+        hr = self.__get_grpc_request (*args, **kargs)
+        resp = self.handle_request (hr)
+        return resp.data
+
+    def grpc_request (self, endpoint = ""):
+        return RPC (endpoint, callback = self.__get_grpc_request)
 
     # db ----------------------------------------------------
     def __make_dbo (self, dbtype, server, dbname = None, auth = None, method = None, params = None, callback = None, meta = {}):

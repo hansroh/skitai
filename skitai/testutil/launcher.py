@@ -30,6 +30,19 @@ class Launcher (webtest.Target):
         self.__closed = True
         self.__start ()
 
+    def ensure_directory (self, url):
+        if not url:
+            url = "/"
+        elif url [-1] != "/":
+            url += "/"
+        return url
+
+    def rpc (self, url, proxy_class = None):
+        return super ().rpc (self.ensure_directory (url), proxy_class)
+
+    def jsonrpc (self, url, proxy_class = None):
+        return super ().jsonrpc (self.ensure_directory (url), proxy_class)
+
     def __start (self):
         if self.__dry:
             return

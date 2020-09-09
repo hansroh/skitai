@@ -5,6 +5,8 @@ from rs4 import asyncore
 import os
 from rs4.webkit import jwt as jwt_
 import time
+import route_guide_pb2
+import pytest
 
 def test_cli (app, dbpath, is_pypy):
     @app.route ("/hello")
@@ -93,12 +95,36 @@ def test_cli (app, dbpath, is_pypy):
         ret = str (app.store.get ("total-user2"))
         return ret
 
+    @app.route ("/rpc2/add_number")
+    def add_number (was, a, b):
+        return a + b
+
+    @app.route ("/routeguide.RouteGuide/GetFeature")
+    def GetFeature (was, point):
+        feature = get_feature(db, point)
+        if feature is None:
+            return route_guide_pb2.Feature(name="", location=point)
+        else:
+            return feature
+
 
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
     app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)
     app.alias ("@postgres", skitai.DB_POSTGRESQL, "postgres:password@192.168.0.80/coin_core")
 
     with app.test_client ("/", confutil.getroot ()) as cli:
+        with cli.jsonrpc ('/rpc2') as stub:
+            assert stub.add_number (1, 3) == 4
+            assert stub.add_number (2, 3) == 5
+
+        with cli.rpc ('/rpc2') as stub:
+            assert stub.add_number (1, 3) == 4
+
+        with pytest.raises (NotImplementedError):
+            with cli.grpc ('/routeguide.RouteGuide') as stub:
+                point = route_guide_pb2.Point (latitude=409146138, longitude=-746188906)
+                print (stub.GetFeature (point))
+
         resp = cli.get ("/")
         assert resp.text == "Hello, World"
 

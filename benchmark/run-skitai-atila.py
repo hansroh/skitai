@@ -33,6 +33,13 @@ def bench_mix (was):
             record_count__one__cnt = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
         )
 
+@app.route ("/bench/row", methods = ['GET'])
+def bench_row (was):
+    with was.db ('@mydb') as db:
+        return was.Map (
+            txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 1;''')
+        )
+
 
 # pilots ------------------------------------------------
 @app.route ("/bench/sp", methods = ['GET'])
