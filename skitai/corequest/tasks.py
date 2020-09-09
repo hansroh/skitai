@@ -174,8 +174,9 @@ class Tasks (TaskBase):
         [r.cache (cache, cache_if) for r in self.results]
 
     def then (self, func, was = None):
-        return func (was or self._get_was (), self)
-
+        if not self._reqs:
+            return func (self._was, self)
+        return Futures (self._reqs, self._timeout, self.meta, self._keys).then (func, was)
 
 
 class Mask (response, TaskBase):
@@ -218,7 +219,7 @@ class Mask (response, TaskBase):
             return self._data
 
     def then (self, func, was = None):
-        return func (self._was, self)
+        return func (was or self._get_was (), self)
 
 
 # completed future(s) ----------------------------------------------------

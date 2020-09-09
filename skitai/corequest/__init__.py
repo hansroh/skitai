@@ -6,13 +6,6 @@ import ctypes
 
 WAS_FACTORY = None
 
-def show_callers_locals ():
-
-    try:
-        print (frame.f_back.f_locals)
-    finally:
-        del frame
-
 class Coroutine:
     def __init__ (self, coro):
         self.coro = coro
@@ -20,14 +13,9 @@ class Coroutine:
 
     def on_completed (self, was, task):
         if self.was is None:
-            self.was = was
+            self.was = was # cloned was
             self.coro.gi_frame.f_locals ['was'] = was
             ctypes.pythonapi.PyFrame_LocalsToFast(ctypes.py_object (self.coro.gi_frame), ctypes.c_int (0))
-
-        try:
-            next (self.coro)
-        except StopIteration as e:
-            return e.value
 
         try:
             _task = self.coro.send (task)

@@ -86,30 +86,51 @@ def coroutine (was):
 @app.coroutine
 def coroutine2 (was):
     with was.stub ("http://example.com") as stub:
-        yield stub.get ("/")
-        task = yield
+        task = yield stub.get ("/")
     return task.fetch ()
 
 @app.route ("/coroutine/3")
 @app.coroutine
 def coroutine3 (was):
     with was.stub ("http://example.com") as stub:
-        yield stub.get ("/")
-        task = yield
+        task = yield stub.get ("/")
     with was.stub ("https://pypi.org/") as stub:
-        yield stub.get ("/")
-        task = yield
+        task = yield stub.get ("/")
     return task.fetch ()
 
 @app.route ("/coroutine/4")
 @app.coroutine
 def coroutine4 (was):
     with was.stub ("http://example.com") as stub:
-        yield stub.get ("/")
-        task1 = yield
-    yield was.Mask ('mask')
-    task2 = yield
+        task1 = yield stub.get ("/")
+    task2 = yield was.Mask ('mask')
     return was.API (a = task1.fetch (), b = task2.fetch ())
+
+@app.route ("/coroutine/5")
+@app.coroutine
+def coroutine5 (was):
+    with was.stub ("http://example.com") as stub:
+        task1 = stub.get ("/")
+    task2 = was.Mask ('mask')
+    tasks = yield was.Tasks (task1, task2)
+    a, b = tasks.fetch ()
+    return was.API (a = a, b = b)
+
+@app.route ("/coroutine/6")
+@app.coroutine
+def coroutine6 (was):
+    task1 = was.Mask ("Example Domain")
+    task2 = was.Mask ('mask')
+    tasks = yield was.Tasks (a = task1, b = task2)
+    return was.API (**tasks.dict ())
+
+@app.route ("/coroutine/7")
+@app.coroutine
+def coroutine7 (was):
+    task1 = was.Mask ("Example Domain")
+    task2 = was.Mask ('mask')
+    tasks = yield was.Tasks (a = task1, b = task2)
+    return was.API (**tasks.fetch ())
 
 
 def process_future_response (was, tasks):
