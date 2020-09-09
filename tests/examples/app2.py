@@ -116,16 +116,14 @@ def coroutine5 (was):
     a, b = tasks.fetch ()
     return was.API (a = a, b = b)
 
-@app.route ("/coroutine/6")
-@app.coroutine
+@app.route ("/coroutine/6", coroutine = True)
 def coroutine6 (was):
     task1 = was.Mask ("Example Domain")
     task2 = was.Mask ('mask')
     tasks = yield was.Tasks (a = task1, b = task2)
     return was.API (**tasks.dict ())
 
-@app.route ("/coroutine/7")
-@app.coroutine
+@app.route ("/coroutine/7", coroutine = True)
 def coroutine7 (was):
     task1 = was.Mask ("Example Domain")
     task2 = was.Mask ('mask')
