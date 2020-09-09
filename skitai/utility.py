@@ -66,7 +66,7 @@ def is_modified (request, header_name, mtime, file_length = None):
 
 # response context ------------------------------------------
 def make_pushables (response, content):
-    from .corequest import tasks
+    from .corequest import tasks, Coroutine
     from .wastuff.api import API
     from .corequest.pth import executors
 
@@ -83,6 +83,10 @@ def make_pushables (response, content):
 
     if type (content) not in (list, tuple):
         content = (content,) # make iterable
+
+    if isinstance (content [0], Coroutine):
+        content [0].start ()
+        return
 
     if isinstance (content [0], tasks.Revoke):
         return

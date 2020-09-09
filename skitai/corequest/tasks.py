@@ -173,10 +173,9 @@ class Tasks (TaskBase):
     def cache (self, cache = 60, cache_if = (200,)):
         [r.cache (cache, cache_if) for r in self.results]
 
-    def then (self, func):
-        if not self._reqs:
-            return func (self._was, self)
-        return Futures (self._reqs, self._timeout, self.meta, self._keys).then (func)
+    def then (self, func, was = None):
+        return func (was or self._get_was (), self)
+
 
 
 class Mask (response, TaskBase):
@@ -217,6 +216,9 @@ class Mask (response, TaskBase):
             return self._data [0]
         except TypeError:
             return self._data
+
+    def then (self, func, was = None):
+        return func (self._was, self)
 
 
 # completed future(s) ----------------------------------------------------
@@ -276,9 +278,9 @@ class Futures (TaskBase, Revoke):
         self._responded = 0
         self._single = False
 
-    def then (self, func):
+    def then (self, func, was = None):
         self._fulfilled = func
-        self._was = self._get_was ()
+        self._was = was or self._get_was ()
         for reqid, req in enumerate (self._reqs):
             req.set_callback (self._collect, reqid, self._timeout)
         return self

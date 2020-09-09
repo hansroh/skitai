@@ -20,9 +20,9 @@ class Task (task.Task):
         for line in iter (self.proc.stdout.readline, b''):
             yield line
 
-    def then (self, func):
+    def then (self, func, was = None):
         self._fulfilled = func
-        self._was = self._get_was ()
+        self._was = was or self._get_was ()
         return was.Thread (self._settle)
 
     def _settle (self, future = None):

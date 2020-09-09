@@ -599,9 +599,9 @@ class Task (corequest):
             raise exceptions.HTTPError ("409 Conflict")
         return res.one (cache or self._cache_timeout, cache_if)
 
-    def then (self, func):
+    def then (self, func, was = None):
         from ..tasks import Future
-        return Future (self, self._timeout, meta = self._meta).then (func)
+        return Future (self, self._timeout, meta = self._meta).then (func, was)
 
     def cache (self, cache = 60, cache_if = (200,)):
         cache = cache or self._cache_timeout

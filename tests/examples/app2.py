@@ -3,6 +3,7 @@ import time, math
 import json
 from services import route_guide_pb2
 import os
+import types
 
 app = Atila (__name__)
 app.securekey = '0123456789'
@@ -72,6 +73,44 @@ def stub (was):
 
     r = was.Tasks ([req1, req2, req3, req4, req5]).fetch ()
     return was.API (result = r)
+
+@app.route ("/coroutine")
+def coroutine (was):
+    def respond (was, task):
+        return task.fetch ()
+
+    with was.stub ("http://example.com") as stub:
+        return stub.get ("/").then (respond)
+
+@app.route ("/coroutine/2")
+@app.coroutine
+def coroutine2 (was):
+    with was.stub ("http://example.com") as stub:
+        yield stub.get ("/")
+        task = yield
+    return task.fetch ()
+
+@app.route ("/coroutine/3")
+@app.coroutine
+def coroutine3 (was):
+    with was.stub ("http://example.com") as stub:
+        yield stub.get ("/")
+        task = yield
+    with was.stub ("https://pypi.org/") as stub:
+        yield stub.get ("/")
+        task = yield
+    return task.fetch ()
+
+@app.route ("/coroutine/4")
+@app.coroutine
+def coroutine4 (was):
+    with was.stub ("http://example.com") as stub:
+        yield stub.get ("/")
+        task1 = yield
+    yield was.Mask ('mask')
+    task2 = yield
+    return was.API (a = task1.fetch (), b = task2.fetch ())
+
 
 def process_future_response (was, tasks):
     time.sleep (0.03)
