@@ -81,17 +81,14 @@ def make_pushables (response, content):
         trigger.wakeup (lambda p=response: (p.done(),))
         return
 
-    if type (content) not in (list, tuple):
+    if isinstance (content, Coroutine):
+        content.start ()
+        return
+
+    if not isinstance (content, (list, tuple)):
         content = (content,) # make iterable
 
-    if isinstance (content [0], Coroutine):
-        content [0].start ()
-        return
-
-    if isinstance (content [0], tasks.Revoke):
-        return
-
-    if isinstance (content [0], executors.Task):
+    if isinstance (content [0], (tasks.Revoke, executors.Task)):
         return
 
     will_be_push = []

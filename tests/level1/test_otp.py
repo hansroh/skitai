@@ -19,7 +19,7 @@ def test_otp ():
         if not v:
             fails += 1
     print (fails)
-    assert fails > 5000
+    assert fails > 4000
 
     fails = 0
     for i in range (10000):
@@ -28,7 +28,7 @@ def test_otp ():
         if not v:
             fails += 1
     print (fails)
-    assert fails > 5000
+    assert fails > 4000
 
     fails = 0
     for i in range (10000):
