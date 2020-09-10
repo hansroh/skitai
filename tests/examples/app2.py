@@ -4,6 +4,7 @@ import json
 from services import route_guide_pb2
 import os
 import types
+import threading
 
 app = Atila (__name__)
 app.securekey = '0123456789'
@@ -78,7 +79,6 @@ def stub (was):
 def coroutine (was):
     def respond (was, task):
         return task.fetch ()
-
     with was.stub ("http://example.com") as stub:
         return stub.get ("/").then (respond)
 
@@ -128,6 +128,7 @@ def coroutine7 (was):
     task1 = was.Mask ("Example Domain")
     task2 = was.Mask ('mask')
     tasks = yield was.Tasks (a = task1, b = task2)
+    print (4444444, threading.current_thread ())
     return was.API (**tasks.fetch ())
 
 @app.route ("/coroutine/8", coroutine = True)

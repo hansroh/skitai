@@ -52,6 +52,8 @@ async def bench_mix3 (request):
 
 @app.route ("/bench/row", methods = ['GET'])
 async def bench_row (request):
+    if request.query_args: # pref=1
+        await query ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 1;''')
     values = await query ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 1;''')
     return HTTPResponse (tojson ({"txn": [dict (v) for v in values]}))
 
