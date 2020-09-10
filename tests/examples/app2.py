@@ -130,6 +130,36 @@ def coroutine7 (was):
     tasks = yield was.Tasks (a = task1, b = task2)
     return was.API (**tasks.fetch ())
 
+@app.route ("/coroutine/8", coroutine = True)
+def coroutine8 (was):
+    task1 = was.Mask ("Example Domain")
+    task2 = was.Mask ('mask')
+    tasks = yield was.Tasks (a = task1, b = task2)
+
+    return was.Map (c = was.Mask (100), **tasks.fetch ())
+
+def wait_hello (timeout = 1.0):
+    time.sleep (timeout)
+    return 'mask'
+
+@app.route ("/coroutine/9", coroutine = True)
+def coroutine9 (was):
+    task1 = was.Mask ("Example Domain")
+    task2 = was.Thread (wait_hello, args = (1.0,))
+    tasks = yield was.Tasks (a = task1, b = task2)
+    task3 = yield was.Thread (wait_hello, args = (1.0,))
+    task4 = yield was.Subprocess ('ls')
+    return was.API (d = task4.fetch (), c = task3.fetch (), **tasks.fetch ())
+
+@app.route ("/coroutine/10", coroutine = True)
+def coroutine10 (was):
+    task1 = was.Mask ("Example Domain")
+    task2 = was.Thread (wait_hello, args = (1.0,))
+    tasks = yield was.Tasks (a = task1, b = task2)
+    task3 = yield was.Process (wait_hello, args = (1.0,))
+    task4 = yield was.Subprocess ('ls')
+    return was.Map (d = task4, c__fetch = task3, **tasks.fetch ())
+
 
 def process_future_response (was, tasks):
     time.sleep (0.03)

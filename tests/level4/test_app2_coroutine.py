@@ -35,3 +35,23 @@ def test_app (launch):
         assert resp.status_code == 200
         assert "Example Domain" in resp.text
         assert resp.data ['b'] == 'mask'
+
+        resp = engine.axios.get ('/coroutine/8')
+        assert resp.status_code == 200
+        assert "Example Domain" in resp.text
+        assert resp.data ['b'] == 'mask'
+        assert resp.data ['c'] == 100
+
+        resp = engine.axios.get ('/coroutine/9')
+        assert resp.status_code == 200
+        assert "Example Domain" in resp.text
+        assert resp.data ['b'] == 'mask'
+        assert resp.data ['c'] == 'mask'
+        assert '__pycache__' in resp.data ['d']
+
+        resp = engine.axios.get ('/coroutine/10')
+        assert resp.status_code == 200
+        assert "Example Domain" in resp.text
+        assert resp.data ['b'] == 'mask'
+        assert resp.data ['c'] == 'mask'
+        assert '__pycache__' in resp.data ['d']
