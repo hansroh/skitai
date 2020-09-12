@@ -82,14 +82,8 @@ def make_pushables (response, content):
         return
 
     if isinstance (content, Coroutine):
-        try:
-            content.start ()
-        except StopIteration as e:
-            content = [e.value]
-        else:
-            return
-
-    if not isinstance (content, (list, tuple)):
+        content = [content.start ()]
+    elif not isinstance (content, (list, tuple)):
         content = (content,) # make iterable
 
     if isinstance (content [0], (tasks.Revoke, executors.Task)):

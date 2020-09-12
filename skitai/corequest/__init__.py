@@ -25,7 +25,10 @@ class Coroutine:
         return _task.then (self.on_completed, was)
 
     def start (self):
-        task = next (self.coro)
+        try:
+            task = next (self.coro)
+        except StopIteration as e:
+            return e.value
         return task.then (self.on_completed)
 
 
