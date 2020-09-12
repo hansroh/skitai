@@ -667,6 +667,17 @@ value is matched with this value.
   skitai.mount ('/', app)
   skitai.run ()
 
+To set service unavailable timeout (default 10.0 seconds),
+
+.. code:: python
+
+  skitai.set_503_estimated_timeout (10.0)
+
+Response 503 error raised if estimated request processing
+time is over timeout. This don't include network latency.
+
+Estimated request processing time will be calculated by
+recent 32 requests average processing time of thread #0.
 
 
 Enabling HTTP/HTTPS Proxy
@@ -3344,6 +3355,7 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - add skitai.set_503_estimated_timeout (timeout)
   - multiple Atila apps and ONE Not-Atila app can be mounted to same path
   - add was.stub ()
   - drop supporing Python 3.5 officially

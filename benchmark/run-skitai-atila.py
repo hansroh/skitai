@@ -84,6 +84,11 @@ def bench_mix1 (was):
         txs, aggr = ts.fetch ()
     return was.ThreadPass (response, args = (txs, aggr))
 
+@app.route ("/bench/long", methods = ['GET'])
+@app.inspect (floats = ['t'])
+def bench_long (was, t = 1.0):
+    time.sleep (t)
+    return was.API ()
 
 @app.route ("/bench/one", methods = ['GET'])
 def bench_one (was):

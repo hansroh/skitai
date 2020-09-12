@@ -406,6 +406,12 @@ def set_proxy_keep_alive (channel = 60, tunnel = 600):
     proxy.PROXY_KEEP_ALIVE = channel
     proxy.PROXY_TUNNEL_KEEP_ALIVE = tunnel
 
+def set_503_estimated_timeout (timeout = 10.0):
+    # 503 error if estimated request processing time is over timeout
+    # this don't include network latency
+    from handlers import wsgi_handler
+    wsgi_handler.Handler.SERVICE_UNAVAILABLE_TIMEOUT = timeout
+
 def set_request_timeout (timeout):
     global dconf
     dconf ["network_timeout"] = timeout

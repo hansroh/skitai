@@ -21,7 +21,6 @@ class Coroutine:
             _task = self.coro.send (task)
         except StopIteration as e:
             return e.value
-
         return _task.then (self.on_completed, was)
 
     def start (self):
