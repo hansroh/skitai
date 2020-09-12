@@ -55,3 +55,9 @@ def test_app (launch):
         assert resp.data ['b'] == 'mask'
         assert resp.data ['c'] == 'mask'
         assert '__pycache__' in resp.data ['d']
+
+        resp = engine.axios.get ('/coroutine/11')
+        assert resp.status_code == 200
+        assert "Example Domain" in resp.text
+        assert resp.data ['b'] == 'mask'
+        assert resp.data ['c'] == 100

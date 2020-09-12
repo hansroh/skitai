@@ -136,7 +136,6 @@ def coroutine8 (was):
     task1 = was.Mask ("Example Domain")
     task2 = was.Mask ('mask')
     tasks = yield was.Tasks (a = task1, b = task2)
-
     return was.Map (c = was.Mask (100), **tasks.fetch ())
 
 def wait_hello (timeout = 1.0):
@@ -161,6 +160,13 @@ def coroutine10 (was):
     task4 = yield was.Subprocess ('ls')
     return was.Map (d = task4, c__fetch = task3, **tasks.fetch ())
 
+@app.route ("/coroutine/11", coroutine = True)
+def coroutine11 (was):
+    task1 = was.Mask ("Example Domain")
+    task2 = was.Mask ('mask')
+    if 0:
+        yield was.Tasks (a = task1, b = task2)
+    return was.Map (c = was.Mask (100), a = task1, b = task2)
 
 def process_future_response (was, tasks):
     time.sleep (0.03)
