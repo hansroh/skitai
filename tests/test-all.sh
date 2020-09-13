@@ -4,4 +4,4 @@
 # pytest level4
 # pytest level5
 
-pytest level4/test_launcher.py
+pytest -s level4/test_launcher.py
