@@ -398,11 +398,10 @@ def set_backend (timeout, object_timeout = DEFAULT_BACKEND_OBJECT_TIMEOUT, maint
     dconf ["backend_maintain_interval"] = maintain_interval
 
 def set_backend_keep_alive (timeout):
-    set_backend  (timeout)
+    set_backend (timeout)
 
 def set_proxy_keep_alive (channel = 60, tunnel = 600):
     from .handlers import proxy
-
     proxy.PROXY_KEEP_ALIVE = channel
     proxy.PROXY_TUNNEL_KEEP_ALIVE = tunnel
 

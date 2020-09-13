@@ -148,6 +148,7 @@ def lifetime_loop (timeout = 30.0, map = None):
 
 	map = map or asyncore.socket_map
 	while map and _shutdown_phase == 0:
+		print ('----------------')
 		lifetime.poll_fun_wrap (timeout, map)
 		tick_timer.tick ()
 		now = time.time()
