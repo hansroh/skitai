@@ -147,6 +147,7 @@ class Handler:
 					self.ENV ["skitai.thread"] * int (self.SERVICE_UNAVAILABLE_TIMEOUT / self.wasc.threads.get_avg_exc_times ())
 				)
 			if self.wasc.queue.qsize () > self.MAX_QUEUE:
+				request.response ["Retry-After"] = self.SERVICE_UNAVAILABLE_TIMEOUT * 8
 				return self.handle_error_before_collecting (request, 503)
 
 		path, params, query, fragment = request.split_uri ()
