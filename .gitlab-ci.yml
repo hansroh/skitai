@@ -10,7 +10,6 @@ variables:
   - python -c 'from aquests.protocols.grpc import discover'
   - pip install --pre --no-cache-dir atila
   - pip install -Ur tests/requirements.txt
-  - pip install -U --force pymongo
 
 .before_python_test: &before_python_test
     before_script:
@@ -30,12 +29,12 @@ variables:
 .test_template: &test
   script:
     - cd tests
-    # - pytest level1
-    # - pytest level2
-    # - pytest level3
-    # - pytest level4
-    # - pytest level5
-    - pytest -s level4/test_launcher.py
+    - pytest level1
+    - pytest level2
+    - pytest level3
+    - pytest level4
+    - pytest level5
+    # - pytest -s level4/test_launcher.py
   only:
     - master
 
