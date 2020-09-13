@@ -800,6 +800,8 @@ def run (**conf):
 
             workers = int (options.get ('--workers') or conf.get ('workers', 1))
             threads = int (options.get ('--threads') or conf.get ('threads', 4))
+            # assert threads, "threads should be more than zero"
+
             port = int (options.get ('--port') or conf.get ('port', 5000))
             quic = int (options.get ('--quic') or conf.get ('quic', 0))
 
