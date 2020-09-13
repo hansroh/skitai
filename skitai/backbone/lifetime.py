@@ -117,7 +117,6 @@ def shutdown (exit_code, shutdown_timeout = 30.0):
 		_shutdown_phase = 1
 
 	_shutdown_timeout = shutdown_timeout
-
 	trigger.wakeselect ()
 
 def loop (timeout = 30.0):
