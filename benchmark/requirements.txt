@@ -3,3 +3,4 @@ uvicorn
 gunicorn
 fastapi
 django
+aiohttp

@@ -108,7 +108,7 @@ def bench_one2 (was):
 @app.route ("/bench/http", methods = ['GET'])
 def bench_http (was):
     return was.Map (
-        t1 =  was.get ('@myweb/apis/settings'),
+        t1 = was.get ('@myweb/apis/settings/appDownloadUrl'),
     )
 
 @app.route ("/bench/http/2", methods = ['GET'])
@@ -123,6 +123,6 @@ if __name__ == '__main__':
     import skitai, os
 
     skitai.alias ('@mydb', skitai.DB_PGSQL, os.environ ['MYDB'], max_conns = 10)
-    skitai.alias ('@myweb', skitai.PROTO_HTTP, '192.168.0.154:9019', max_conns = 10)
+    skitai.alias ('@myweb', skitai.PROTO_HTTP, '192.168.0.154:9019', max_conns = 32)
     skitai.mount ('/', app)
     skitai.run (workers = 4, threads = 4, port = 9007)

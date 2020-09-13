@@ -8,21 +8,25 @@ import os
 import time
 from skitai.wastuff.api import tojson
 import concurrent
+import aiohttp
 
 app = Sanic(__name__)
 
 SLEEP = 0.3
 
 pool = None
+session = None
 executor = concurrent.futures.ThreadPoolExecutor(max_workers = 4)
 
 @app.listener('before_server_start')
 async def startup(app, loop):
-    global pool
+    global pool, session
     auth, netloc = os.environ ['MYDB'].split ("@")
     user, passwd = auth.split (":")
     host, database = netloc.split ("/")
-    pool = await asyncpg.create_pool (user=user, password=passwd, database=database, host=host)
+    pool = await asyncpg.create_pool (user=user, password=passwd, database=database, host=host, max_size = 10)
+    _connector = aiohttp.connector.TCPConnector(limit = 32, limit_per_host = 32)
+    session = await aiohttp.ClientSession(connector = _connector).__aenter__ ()
 
 async def query (q):
     async with pool.acquire() as conn:
@@ -56,6 +60,12 @@ async def bench_row (request):
         await query ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 1;''')
     values = await query ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 1;''')
     return HTTPResponse (tojson ({"txn": [dict (v) for v in values]}))
+
+@app.route ("/bench/http", methods = ['GET'])
+async def bench_http (request):
+    async with session.get ("http://192.168.0.154:9019/apis/settings/appDownloadUrl", headers={"Accept": "application/json"}) as resp:
+        text = await resp.read()
+    return HTTPResponse (tojson ({"t1": text.decode ()}))
 
 
 if __name__ == '__main__':
