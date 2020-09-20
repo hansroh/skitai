@@ -2533,7 +2533,7 @@ transaction object does not return to the pool automatically.
 
 .. code:: python
 
-  # models.py
+  # service.py
   from skitai import was
 
   def update (...):
@@ -2546,11 +2546,11 @@ transaction object does not return to the pool automatically.
           tx.fetch () # equivlant to fetchall () but list of dict type
 
   # app.py
-  import models
+  import service
 
   @app.route (...)
   def update (was):
-    tx = models.update (...)
+    tx = service.update (...)
     rows = tx.fetch ()
     tx.commit ()
 
@@ -3074,7 +3074,7 @@ utility methods.
 
 .. code:: python
 
-  # services/models.py
+  # services/service.py
 
   from skitai import was
   import skitai
@@ -3153,15 +3153,15 @@ utility methods.
                     .execute ())
 
 
-Using Models
+Using Service
 ```````````````````````````
 
-Finally, you can use this models.py.
+Finally, you can use this service.py.
 
 .. code:: python
 
   # services/blog.py
-  from . models import BlogPost
+  from .service import BlogPost
 
   @app.route ("/posts/", methods = ["GET", "POST"])
   def posts (was, offset = 0, limit = 10, **payload):
@@ -3196,7 +3196,7 @@ Finally, you can use this models.py.
 Conclusion
 `````````````````````````
 
-Above example pattern is just one of my implemetation with async models.
+Above example pattern is just one of my implemetation with async service.
 
 It can be extended and changed into NoSQL or even RESTful/RPC
 with any Skitai corequest object which has same 5 methods - dispatch,
