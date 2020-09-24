@@ -117,6 +117,7 @@ class Module:
                             app.config [k1] = v1
                 else:
                     setattr (app, k, v)
+        self.set_devel_env (app) # enforcing to override --devel
 
         if hasattr (app, "_aliases"):
             while app._aliases:
@@ -140,7 +141,6 @@ class Module:
         if hasattr (app, "commit_events_to"):
             app.commit_events_to (self.bus)
 
-        self.set_devel_env ()
         self.update_file_info ()
 
         try:
@@ -178,8 +178,7 @@ class Module:
             self.last_reloaded = time.time ()
             lifetime.shutdown (3, 0)
 
-    def set_devel_env (self):
-        app = self.app or getattr (self.module, self.appname)
+    def set_devel_env (self, app):
         skitai_env = os.environ.get ("SKITAIENV")
         if skitai_env == "DEVEL":
             self.debug = app.debug = True
