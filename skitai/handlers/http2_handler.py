@@ -13,6 +13,7 @@ import time
 import enum
 from rs4 import producers
 from ..exceptions import HTTPError
+from hyperframe.frame import Frame
 
 # http3 compat error codes
 class ErrorCodes (enum.IntEnum):
@@ -403,7 +404,7 @@ class http2_request_handler (FlowControlWindow):
             self.channel.set_terminator (9) # for frame header
 
         elif buf:
-            self._current_frame, self._data_length = self._frame_buf._parse_frame_header (buf)
+            self._current_frame, self._data_length = Frame.parse_frame_header (buf)
             self._frame_buf.max_frame_size = self._data_length
 
             if self._data_length == 0:
