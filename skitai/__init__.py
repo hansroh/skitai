@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.35.4.4"
+__version__ = "0.35.4.5"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -46,6 +46,7 @@ argopt.add_option (None, '--smtpda', desc = "run SMTPDA if not started")
 argopt.add_option (None, '--user=USER', desc = "if run as root, fallback workers owner to user")
 argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback workers owner to group")
 
+os.environ ["SKITAIENV"] = "PRODUCTION"
 if "--devel" in sys.argv:
     os.environ ["SKITAIENV"] = "DEVEL"
 elif "--silent" in sys.argv:
