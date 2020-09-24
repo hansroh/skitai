@@ -46,6 +46,7 @@ argopt.add_option (None, '--smtpda', desc = "run SMTPDA if not started")
 argopt.add_option (None, '--user=USER', desc = "if run as root, fallback workers owner to user")
 argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback workers owner to group")
 
+os.environ ["SKITAIENV"] = "PRODUCTION"
 if "--devel" in sys.argv:
     os.environ ["SKITAIENV"] = "DEVEL"
 elif "--silent" in sys.argv:
