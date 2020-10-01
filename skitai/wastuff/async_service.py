@@ -188,8 +188,9 @@ class AsyncService:
         cluster = self.__detect_cluster (clustername) [0]
         return cluster.open2 ()
 
-    def sdb (self, clustername):
-        # single connection / multi cursors
+    def cursor (self, clustername):
+        # emulating was.db with sync manner
+        # - single connection / multi cursors
         cluster = self.__detect_cluster (clustername) [0]
         return cluster.open3 ()
-
+    sdb = cursor

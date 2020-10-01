@@ -2073,6 +2073,9 @@ Database Call
 ~~~~~~~~~~~~~~~~~~
 
 - was.db (): PostgreSQL, SQLite3, MongoDB and Redis calls
+- was.cursor (): Only available in PostgreSQL and SQLite3,
+  fetchall () and fetchmany () is available, and this is
+  NOT ASYNC manner.
 - was.transaction (): for RDBMS (PostgreSQL and SQLite3)
 
 Task will be created like this,
@@ -3355,6 +3358,7 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - add was.cursor ()
   - add skitai.set_503_estimated_timeout (timeout)
   - multiple Atila apps and ONE Not-Atila app can be mounted to same path
   - add was.stub ()
