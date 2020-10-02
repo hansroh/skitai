@@ -32,7 +32,7 @@ def make_endpoints (dbtype, from_list):
         if password: kargs ["password"] = password
 
         if dbtype == DB_SQLITE3:
-            conn = sqlite3.connect (host)
+            conn = sqlite3.connect (host, check_same_thread = False)
 
         elif dbtype in (DB_PGSQL, DB_SYN_PGSQL):
             if user: kargs ["user"] = user

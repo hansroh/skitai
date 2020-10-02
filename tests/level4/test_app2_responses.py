@@ -3,6 +3,11 @@ import platform
 
 def test_app (launch):
     with launch ("./examples/app2.py") as engine:
+
+        resp = engine.get ('/threaproducer')
+        assert resp.status_code == 200
+        assert len (resp.data) == 20480
+
         resp = engine.get ('/map_in_thread')
         assert resp.status_code == 200
         assert resp.data == {'media': 'Hello'}
