@@ -90,7 +90,7 @@ def threaproducer (was):
                 q.put (str (rows))
         return produce
     cur = was.cursor ("@sqlite3").execute (GENSQL)
-    return was.ThreadProducer (producer (cur), 3)
+    return was.Queue (producer (cur), 3)
 
 @app.route ("/stub")
 def stub (was):

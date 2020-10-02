@@ -186,3 +186,14 @@ class Executors:
 
     def create_process (self, was_id, f, *a, **b):
         return self.executors [1] (was_id, f, *a, **b)
+
+    def _get_pool (self, executor):
+        if executor.executor is None:
+            executor.launch_executor ()
+        return executor.executor
+
+    def get_tpool (self):
+        return self._get_pool (self.executors [0])
+
+    def get_ppool (self):
+        return self._get_pool (self.executors [1])

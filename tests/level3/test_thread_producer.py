@@ -32,7 +32,7 @@ def test_map (app, dbpath):
             return produce
 
         cur = the_was.cursor ("@sqlite").execute (GENSQL)
-        return was.ThreadProducer (producer (cur))
+        return was.Queue (producer (cur))
 
     app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)
     with app.test_client ("/", confutil.getroot ()) as cli:
