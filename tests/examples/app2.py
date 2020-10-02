@@ -60,6 +60,38 @@ def stream (was):
             yield '<CHUNK>'
     return was.response ("210 Streaing", stream (), headers = [('Content-Type', 'text/plain')])
 
+
+GENSQL = '''SELECT 'a', 1
+   FROM (SELECT * FROM (
+         (SELECT 0 UNION ALL SELECT 1) t2,
+         (SELECT 0 UNION ALL SELECT 1) t4,
+         (SELECT 0 UNION ALL SELECT 1) t8,
+         (SELECT 0 UNION ALL SELECT 1) t16,
+         (SELECT 0 UNION ALL SELECT 1) t32,
+         (SELECT 0 UNION ALL SELECT 1) t64,
+         (SELECT 0 UNION ALL SELECT 1) t128,
+         (SELECT 0 UNION ALL SELECT 1) t256,
+         (SELECT 0 UNION ALL SELECT 1) t512,
+         (SELECT 0 UNION ALL SELECT 1) t1024,
+         (SELECT 0 UNION ALL SELECT 1) t2048
+         )
+    )
+'''
+@app.route ("/threaproducer")
+def threaproducer (was):
+    def producer (cur):
+        def produce (q):
+            while 1:
+                rows = cur.fetchmany (3)
+                if not rows:
+                    q.put (None)
+                    cur.close ()
+                    break
+                q.put (str (rows))
+        return produce
+    cur = was.cursor ("@sqlite3").execute (GENSQL)
+    return was.ThreadProducer (producer (cur), 3)
+
 @app.route ("/stub")
 def stub (was):
     with was.stub ("https://pypi.org", headers = [("Accept", "text/html")]) as stub:
@@ -176,6 +208,7 @@ def process_future_response (was, tasks):
 if __name__ == "__main__":
     import skitai
     skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
+    skitai.alias ("@sqlite3", skitai.DB_SQLITE3, "resources/sqlite3.db")
     skitai.mount ("/", app)
     skitai.mount ("/", 'statics')
     skitai.mount ("/lb", "@pypi")
