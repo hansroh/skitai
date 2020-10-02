@@ -148,7 +148,11 @@ class AsyncService:
             return self._bind_sqlphile (dbo, dbtype)
         return dbo
 
-    def _cddb (self, mapreduce = False, clustername = None, meta = None, use_cache = False, rm_cache = None, filter = None, callback = None, cache = None, timeout = task.DEFAULT_TIMEOUT, caller = None):
+    def _cddb (self, mapreduce = False, clustername = None, meta = None, use_cache = False, rm_cache = None, filter = None, callback = None, cache = None, timeout = task.DEFAULT_TIMEOUT, caller = None, transaction = False, cursor = False):
+        if transaction:
+            return self.transaction (clustername)
+        elif cursor:
+            return self.cursor (clustername)
         cluster = self.__detect_cluster (clustername) [0]
         dbo = self._create_dbo (cluster, None, None, None, None, self._set_was_id (meta), self._use_cache (use_cache, rm_cache), mapreduce, filter, callback, cache, timeout, caller)
         if cluster.cluster.dbtype in (DB_PGSQL, DB_SQLITE3, DB_SYN_PGSQL):
