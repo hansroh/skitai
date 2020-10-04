@@ -85,7 +85,6 @@ def threaproducer (was):
                 rows = cur.fetchmany (3)
                 if not rows:
                     q.put (None)
-                    cur.close ()
                     break
                 q.put (str (rows))
         return produce
