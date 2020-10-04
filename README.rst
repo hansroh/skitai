@@ -68,7 +68,6 @@ Installation
 **Requirements**
 
 Python 3.6+
-PyPy3
 
 **Installation**
 
