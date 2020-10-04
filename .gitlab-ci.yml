@@ -29,12 +29,12 @@ variables:
 .test_template: &test
   script:
     - cd tests
-    # - pytest level1
-    # - pytest level2
-    # - pytest level3
-    # - pytest level4-1
-    # - pytest level4-2
-    - pytest -s level3/test_thread_producer.py
+    - pytest level1
+    - pytest level2
+    - pytest level3
+    - pytest level4-1
+    - pytest level4-2
+    # - pytest -s level3/test_thread_producer.py
   only:
     - master
 
