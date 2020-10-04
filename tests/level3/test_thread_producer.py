@@ -28,7 +28,6 @@ def test_map (app, dbpath):
                 rows = cur.fetchmany (3)
                 q.put (str (rows))
                 q.put (None)
-                cur.close ()
             return produce
 
         cur = the_was.cursor ("@sqlite").execute (GENSQL)
