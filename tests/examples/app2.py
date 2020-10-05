@@ -78,18 +78,20 @@ GENSQL = '''SELECT 'a', 1
     )
 '''
 @app.route ("/threaproducer")
-def threaproducer (was):
+@app.inspect (ints = ['n', 'q'])
+def threaproducer (was, n = 3, q = 3):
     def producer (cur):
         def produce (q):
             while 1:
-                rows = cur.fetchmany (3)
+                rows = cur.fetchmany (n)
                 if not rows:
                     q.put (None)
                     break
+                # print (len (rows))
                 q.put (str (rows))
         return produce
     cur = was.cursor ("@sqlite3").execute (GENSQL)
-    return was.Queue (producer (cur), 3)
+    return was.Queue (producer (cur), q)
 
 @app.route ("/stub")
 def stub (was):
