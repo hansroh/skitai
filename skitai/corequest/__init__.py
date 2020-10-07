@@ -20,10 +20,11 @@ class Coroutine:
             try:
                 task = next (self.coro)
             except StopIteration as e:
-                if isinstance (e.value, corequest):
-                    return e.value
-                e.value and self.contents.append (e.value.encode () if isinstance (e.value, str) else e.value)
-                return
+                if e.value and isinstance (e.value, (str, bytes)):
+                    self.contents.append (e.value.encode () if isinstance (e.value, str) else e.value)
+                    return
+                return e.value
+
             if isinstance (task, corequest):
                 return task
             self.contents.append (task.encode () if isinstance (task, str) else task)
@@ -66,6 +67,8 @@ class Coroutine:
         task = self.collect_data ()
         if task is None:
             return b''.join (self.contents)
+        if not isinstance (task, corequest):
+            return task
         return task if hasattr (task, "_single") else task.then (self.on_completed)
 
 
