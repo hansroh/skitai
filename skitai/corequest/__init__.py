@@ -31,9 +31,8 @@ class Coroutine:
             if not isinstance (_task, corequest):
                 assert isinstance (_task, (str, bytes)), "str or bytes object required"
                 self.contents.append (_task.encode () if isinstance (_task, str) else _task)
-
+                _task = self.collect_data ()
                 if not self.producer:
-                    _task = self.collect_data ()
                     if _task is None:
                         return b''.join (self.contents)
 
@@ -54,6 +53,8 @@ class Coroutine:
             try:
                 task = next (self.coro)
             except StopIteration as e:
+                if isinstance (e.value, corequest):
+                    return e.value
                 e.value and self.contents.append (e.value.encode () if isinstance (e.value, str) else e.value)
                 return
             if isinstance (task, corequest):
