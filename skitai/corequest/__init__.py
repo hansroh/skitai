@@ -15,6 +15,19 @@ class Coroutine:
         self.producer = None
         self.contents = []
 
+    def collect_data (self):
+        while 1:
+            try:
+                task = next (self.coro)
+            except StopIteration as e:
+                if isinstance (e.value, corequest):
+                    return e.value
+                e.value and self.contents.append (e.value.encode () if isinstance (e.value, str) else e.value)
+                return
+            if isinstance (task, corequest):
+                return task
+            self.contents.append (task.encode () if isinstance (task, str) else task)
+
     def on_completed (self, was, task):
         if self.was is None:
             self.was = was # replacing to cloned was
@@ -37,7 +50,6 @@ class Coroutine:
                 if not self.producer:
                     if _task is None:
                         return b''.join (self.contents)
-
                     callback = lambda x = _task.then, y = (self.on_completed, was): x (*y)
                     self.producer = producers.sendable_producer (b''.join (self.contents), callback)
                     self.contents = []
@@ -49,19 +61,6 @@ class Coroutine:
                     continue
 
             return _task if hasattr (_task, "_single") else _task.then (self.on_completed, was)
-
-    def collect_data (self):
-        while 1:
-            try:
-                task = next (self.coro)
-            except StopIteration as e:
-                if isinstance (e.value, corequest):
-                    return e.value
-                e.value and self.contents.append (e.value.encode () if isinstance (e.value, str) else e.value)
-                return
-            if isinstance (task, corequest):
-                return task
-            self.contents.append (task.encode () if isinstance (task, str) else task)
 
     def start (self):
         task = self.collect_data ()
