@@ -3,6 +3,8 @@ from ..utility import make_pushables
 import sys
 from ..wastuff.api import API
 import ctypes
+import types
+from rs4 import producers
 
 WAS_FACTORY = None
 
@@ -10,6 +12,7 @@ class Coroutine:
     def __init__ (self, coro):
         self.coro = coro
         self.was = None
+        self.producer = None
 
     def on_completed (self, was, task):
         if self.was is None:
@@ -17,11 +20,27 @@ class Coroutine:
             self.coro.gi_frame.f_locals ['was'] = was
             ctypes.pythonapi.PyFrame_LocalsToFast(ctypes.py_object (self.coro.gi_frame), ctypes.c_int (0))
 
-        try:
-            _task = self.coro.send (task)
-        except StopIteration as e:
-            return e.value
-        return _task.then (self.on_completed, was)
+        while 1:
+            try:
+                _task = self.coro.send (task)
+            except StopIteration as e:
+                self.producer and self.producer.close ()
+                return e.value
+
+            if not isinstance (_task, corequest):
+                if not self.producer:
+                    try:
+                        content, _task = _task, next (self.coro)
+                    except StopIteration as e:
+                        return _task
+                    callback = lambda x = _task.then, y = (self.on_completed, was): x (*y)
+                    self.producer = producers.sendable_producer (content, callback)
+                    return self.producer
+                else:
+                    self.producer.send (_task)
+                    continue
+
+            return _task.then (self.on_completed, was) # Future
 
     def start (self):
         try:

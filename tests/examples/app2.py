@@ -161,7 +161,6 @@ def coroutine7 (was):
     task1 = was.Mask ("Example Domain")
     task2 = was.Mask ('mask')
     tasks = yield was.Tasks (a = task1, b = task2)
-    print (4444444, threading.current_thread ())
     return was.API (**tasks.fetch ())
 
 @app.route ("/coroutine/8", coroutine = True)
@@ -200,6 +199,13 @@ def coroutine11 (was):
     if 0:
         yield was.Tasks (a = task1, b = task2)
     return was.Map (c = was.Mask (100), a = task1, b = task2)
+
+@app.route ("/coroutine_generator", coroutine = True)
+@app.inspect (ints = ['n'])
+def coroutine_generator (was, n = 1):
+    for i in range (n):
+        task = yield was.Mask ("Example Domain")
+        yield task.fetch ()
 
 def process_future_response (was, tasks):
     time.sleep (0.03)
