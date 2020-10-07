@@ -25,6 +25,8 @@ class Coroutine:
             try:
                 _task = self.coro.send (task)
             except StopIteration as e:
+                if self.producer and isinstance (e.value, (str, bytes)):
+                    self.producer.send (e.value)
                 self.producer and self.producer.close ()
                 return e.value
 
@@ -46,7 +48,7 @@ class Coroutine:
                     self.contents = []
                     continue
 
-            return _task.then (self.on_completed, was) # Future
+            return _task if hasattr (_task, "_single") else _task.then (self.on_completed, was)
 
     def collect_data (self):
         while 1:
@@ -65,7 +67,7 @@ class Coroutine:
         task = self.collect_data ()
         if task is None:
             return b''.join (self.contents)
-        return task.then (self.on_completed)
+        return task if hasattr (task, "_single") else task.then (self.on_completed)
 
 
 class CorequestError (Exception):
