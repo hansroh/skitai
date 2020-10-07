@@ -29,12 +29,12 @@ variables:
 .test_template: &test
   script:
     - cd tests
-    - pytest level1
-    - pytest level2
-    - pytest level3
-    - pytest level4-1
-    - pytest level4-2
-    # - pytest -s level3/test_thread_producer.py
+    # - pytest level1
+    # - pytest level2
+    # - pytest level3
+    # - pytest level4-1
+    # - pytest level4-2
+    - pytest -s level4-1/test_benchmark_script.py
   only:
     - master
 
@@ -50,15 +50,15 @@ python 3.6stretch:
   <<: *before_python_test
   <<: *test
 
-python 3.7stretch:
-  image: python:3.7-stretch
-  <<: *before_python_test
-  <<: *test
+# python 3.7stretch:
+#   image: python:3.7-stretch
+#   <<: *before_python_test
+#   <<: *test
 
-python 3.8buster:
-  image: python:3.8-buster
-  <<: *before_python_test
-  <<: *test
+# python 3.8buster:
+#   image: python:3.8-buster
+#   <<: *before_python_test
+#   <<: *test
 
 # python pypy3:
 #   image: pypy:3

@@ -17,7 +17,7 @@ class Coroutine:
 
     def on_completed (self, was, task):
         if self.was is None:
-            self.was = was # cloned was
+            self.was = was # replacing to cloned was
             self.coro.gi_frame.f_locals ['was'] = was
             ctypes.pythonapi.PyFrame_LocalsToFast(ctypes.py_object (self.coro.gi_frame), ctypes.c_int (0))
 
