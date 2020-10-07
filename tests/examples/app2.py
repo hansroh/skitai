@@ -201,11 +201,15 @@ def coroutine11 (was):
     return was.Map (c = was.Mask (100), a = task1, b = task2)
 
 @app.route ("/coroutine_generator", coroutine = True)
-@app.inspect (ints = ['n'])
-def coroutine_generator (was, n = 1):
+@app.inspect (ints = ['n', 'h', 'f'])
+def coroutine_generator (was, n = 1, h = 0, f = 0):
+    if h:
+        yield "Header Line\n"
     for i in range (n):
-        task = yield was.Mask ("Example Domain")
+        task = yield (was.Mask ("Example Domain"))
         yield task.fetch ()
+        if f:
+            yield '\n'
 
 def process_future_response (was, tasks):
     time.sleep (0.03)

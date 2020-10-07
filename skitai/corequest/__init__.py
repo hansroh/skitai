@@ -13,6 +13,7 @@ class Coroutine:
         self.coro = coro
         self.was = None
         self.producer = None
+        self.contents = []
 
     def on_completed (self, was, task):
         if self.was is None:
@@ -28,25 +29,41 @@ class Coroutine:
                 return e.value
 
             if not isinstance (_task, corequest):
+                assert isinstance (_task, (str, bytes)), "str or bytes object required"
+                self.contents.append (_task.encode () if isinstance (_task, str) else _task)
+
                 if not self.producer:
-                    try:
-                        content, _task = _task, next (self.coro)
-                    except StopIteration as e:
-                        return _task
+                    _task = self.collect_data ()
+                    if _task is None:
+                        return b''.join (self.contents)
+
                     callback = lambda x = _task.then, y = (self.on_completed, was): x (*y)
-                    self.producer = producers.sendable_producer (content, callback)
+                    self.producer = producers.sendable_producer (b''.join (self.contents), callback)
+                    self.contents = []
                     return self.producer
+
                 else:
-                    self.producer.send (_task)
+                    self.producer.send (b''.join (self.contents))
+                    self.contents = []
                     continue
 
             return _task.then (self.on_completed, was) # Future
 
+    def collect_data (self):
+        while 1:
+            try:
+                task = next (self.coro)
+            except StopIteration as e:
+                e.value and self.contents.append (e.value.encode () if isinstance (e.value, str) else e.value)
+                return
+            if isinstance (task, corequest):
+                return task
+            self.contents.append (task.encode () if isinstance (task, str) else task)
+
     def start (self):
-        try:
-            task = next (self.coro)
-        except StopIteration as e:
-            return e.value
+        task = self.collect_data ()
+        if task is None:
+            return b''.join (self.contents)
         return task.then (self.on_completed)
 
 
