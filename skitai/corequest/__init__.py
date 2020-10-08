@@ -6,16 +6,10 @@ import ctypes
 import types
 from rs4 import producers
 from aquests.athreads import trigger
+from ..utility import deallocate_was, catch
 
 WAS_FACTORY = None
 
-def deallocate (was):
-    was.apps = None
-    was.env = None
-    try: del was.response
-    except AttributeError: pass
-    try: del was.request
-    except AttributeError: pass
 
 class Coroutine:
     def __init__ (self, coro):
@@ -38,6 +32,16 @@ class Coroutine:
                 return task
             self.contents.append (task.encode () if isinstance (task, str) else task)
 
+    def close (self, data = None):
+        if self.producer:
+            if isinstance (data, (str, bytes)):
+                self.producer.send (data)
+            self.producer.close ()
+            deallocate_was (self.was)
+            self.was = None
+            return
+        return data
+
     def on_completed (self, was, task):
         if self.was is None:
             self.was = was # replacing to cloned was
@@ -46,36 +50,37 @@ class Coroutine:
 
         while 1:
             try:
-                _task = self.coro.send (task)
-            except StopIteration as e:
-                if self.producer:
-                    if isinstance (e.value, (str, bytes)):
-                        self.producer.send (e.value)
-                    self.producer.close ()
-                    deallocate (self.was)
-                    self.was = None
-                    return
-                self.was = None
-                return e.value
+                try:
+                    _task = self.coro.send (task)
+                except StopIteration as e:
+                    return self.close (e.value)
 
-            if not isinstance (_task, corequest):
-                assert isinstance (_task, (str, bytes)), "str or bytes object required"
-                self.contents.append (_task.encode () if isinstance (_task, str) else _task)
-                _task = self.collect_data ()
-                if not self.producer:
-                    if _task is None:
-                        return b''.join (self.contents)
-                    callback = lambda x = _task.then, y = (self.on_completed, was): x (*y)
-                    self.producer = producers.sendable_producer (b''.join (self.contents), callback)
-                    self.contents = []
-                    return self.producer
+                if not isinstance (_task, corequest):
+                    assert isinstance (_task, (str, bytes)), "str or bytes object required"
+                    self.contents.append (_task.encode () if isinstance (_task, str) else _task)
+                    _task = self.collect_data ()
+                    if not self.producer:
+                        if _task is None:
+                            return b''.join (self.contents)
+                        callback = lambda x = _task.then, y = (self.on_completed, self.was): x (*y)
+                        self.producer = producers.sendable_producer (b''.join (self.contents), callback)
+                        self.contents = []
+                        return self.producer
 
-                else:
-                    self.producer.send (b''.join (self.contents))
-                    self.contents = []
-                    continue
+                    else:
+                        self.producer.send (b''.join (self.contents))
+                        self.contents = []
+                        continue
 
-            return _task if hasattr (_task, "_single") else _task.then (self.on_completed, was)
+            except:
+                dinfo = '\n\n>>>>>>\nserver error occurred while processing your request\n\n'
+                if self.was.app.debug:
+                    dinfo += catch ()
+                self.close (dinfo)
+                raise
+
+            else:
+                return _task if hasattr (_task, "_single") else _task.then (self.on_completed, self.was)
 
     def start (self):
         task = self.collect_data ()
@@ -131,7 +136,8 @@ class corequest:
         except:
             self._was.traceback ()
             response.start_response ("502 Bad Gateway")
-            content = response.build_error_template (self._was.app.debug and sys.exc_info () or None, 0, was = self._was)
+            dinfo = self._was.app.debug and sys.exc_info () or None
+            content = response.build_error_template (dinfo, 0, was = self._was)
 
         if isinstance (content, API) and self._was.env.get ('ATILA_SET_SEPC'):
             content.set_spec (self._was.app)
@@ -147,7 +153,7 @@ class corequest:
 
         finally:
             if not isinstance (content, producers.Sendable): # IMP: DO NOT release
-                deallocate (self._was)
+                deallocate_was (self._was)
                 self._was = None
 
     # basic methods --------------------------------------

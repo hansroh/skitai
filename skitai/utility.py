@@ -36,6 +36,15 @@ def is_etag_matched (request, header_name, etag):
         return
     return etag == match.group (1) and 'matched' or 'unmatched'
 
+def deallocate_was (was):
+    was.apps = None
+    was.app = None
+    was.env = None
+    try: del was.response
+    except AttributeError: pass
+    try: del was.request
+    except AttributeError: pass
+
 def is_modified (request, header_name, mtime, file_length = None):
     ims_h = request.get_header (header_name)
     if not ims_h:

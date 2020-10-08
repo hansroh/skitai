@@ -13,6 +13,7 @@ except ImportError:
 	from io import BytesIO
 import skitai
 from ..utility import make_pushables
+from ..utility import deallocate_was
 
 header2env = {
 	'content-length'	: 'CONTENT_LENGTH',
@@ -312,9 +313,4 @@ class Job:
 
 		was = env.get ("skitai.was")
 		if was is not None:
-			was.apps = None
-			was.env = None
-			try: del was.response
-			except AttributeError: pass
-			try: del was.request
-			except AttributeError: pass
+			deallocate_was (was)
