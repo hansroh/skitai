@@ -91,7 +91,7 @@ class http_channel (asynchat.async_chat):
 
     def writable (self):
         with self.__sendlock:
-            return self.producer_fifo or (not self.connected)
+            return len (self.producer_fifo) or (not self.connected)
 
     def handle_write (self):
         with self.__sendlock:

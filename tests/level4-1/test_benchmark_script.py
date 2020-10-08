@@ -34,6 +34,10 @@ def test_launch (launch):
         assert resp.status_code == 200
         assert 'txs' in resp.data
 
+        resp = engine.axios.get ('/bench/gen')
+        assert resp.status_code == 200
+        assert resp.text.count ("ReturnTx") == 1000
+
         if os.environ.get ("CI_COMMIT_TITLE"):
             return
 

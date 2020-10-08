@@ -526,7 +526,6 @@ class Task (corequest):
             # already finished or will use cache
             requests = self._requests
             self._callback = callback
-
         if not requests:
             return self._do_callback (callback)
         timeout and self.reset_timeout (timeout)

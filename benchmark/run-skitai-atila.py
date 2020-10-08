@@ -42,6 +42,13 @@ def bench_row (was, pre = None):
             txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 1;''')
         )
 
+@app.route ("/bench/gen", methods = ['GET'], coroutine = True)
+def bench_gen (was, pre = None):
+    with was.db ('@mydb') as db:
+        for _ in range (100):
+            task = yield db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''')
+            yield str (task.fetch ())
+
 # pilots ------------------------------------------------
 @app.route ("/bench/sp", methods = ['GET'])
 def bench_sp (was):

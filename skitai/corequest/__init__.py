@@ -5,6 +5,7 @@ from ..wastuff.api import API
 import ctypes
 import types
 from rs4 import producers
+from aquests.athreads import trigger
 
 WAS_FACTORY = None
 
@@ -101,6 +102,7 @@ class corequest:
         if not hasattr (self._was, 'response'):
             # already responsed: SEE app2.map_in_thread
             return
+
         response = self._was.response
         try:
             if self._fulfilled == 'self':
@@ -131,7 +133,8 @@ class corequest:
             response.done ()
 
         finally:
-            self.deallocate ()
+            if not isinstance (content, producers.Sendable): # IMP: DO NOT release
+                self.deallocate ()
 
     def deallocate (self):
         was = self._was
