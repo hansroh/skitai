@@ -9,6 +9,14 @@ from aquests.athreads import trigger
 
 WAS_FACTORY = None
 
+def deallocate (was):
+    was.apps = None
+    was.env = None
+    try: del was.response
+    except AttributeError: pass
+    try: del was.request
+    except AttributeError: pass
+
 class Coroutine:
     def __init__ (self, coro):
         self.coro = coro
@@ -40,9 +48,14 @@ class Coroutine:
             try:
                 _task = self.coro.send (task)
             except StopIteration as e:
-                if self.producer and isinstance (e.value, (str, bytes)):
-                    self.producer.send (e.value)
-                self.producer and self.producer.close ()
+                if self.producer:
+                    if isinstance (e.value, (str, bytes)):
+                        self.producer.send (e.value)
+                    self.producer.close ()
+                    deallocate (self.was)
+                    self.was = None
+                    return
+                self.was = None
                 return e.value
 
             if not isinstance (_task, corequest):
@@ -134,17 +147,8 @@ class corequest:
 
         finally:
             if not isinstance (content, producers.Sendable): # IMP: DO NOT release
-                self.deallocate ()
-
-    def deallocate (self):
-        was = self._was
-        was.apps = None
-        was.env = None
-        try: del was.response
-        except AttributeError: pass
-        try: del was.request
-        except AttributeError: pass
-        self._was = None
+                deallocate (self._was)
+                self._was = None
 
     # basic methods --------------------------------------
     def get_timeout (self):

@@ -48,7 +48,7 @@ def bench_gen (was, n = 100):
     with was.db ('@mydb') as db:
         last_id = random.randrange (100000, 101000)
         while 1:
-            task = yield db.execute ('''SELECT * FROM foo where detail = 'ReturnTx' and id > {} order by id desc limit 10;'''.format (last_id))
+            task = yield db.execute ('''SELECT * FROM foo where detail = 'ReturnTx' and id > {} order by id desc limit 100;'''.format (last_id))
             n -= 1
             if n == 0:
                 break
