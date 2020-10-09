@@ -35,6 +35,21 @@ else:
 DEFAULT_TIMEOUT = 10
 WAIT_POLL = False
 
+
+class FakeCondition:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        pass
+
+    def donothing (self):
+        pass
+    notify = notify_all = wait = release = acquire = donothing
+
+lurelock = FakeCondition ()
+
+
 class Result (response, rcache.Result):
     def __init__ (self, id, status, response, ident = None):
         rcache.Result.__init__ (self, status, ident)
@@ -200,18 +215,6 @@ class Dispatcher:
         handler.response = None
         self.set_status (status, result)
         tuple_cb (self, self.callback)
-
-
-class FakeCondition:
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, traceback):
-        pass
-
-    def acquire (self):
-        pass
-    wait = release = acquire
 
 
 class Task (corequest):
@@ -526,9 +529,13 @@ class Task (corequest):
             # already finished or will use cache
             requests = self._requests
             self._callback = callback
+
         if not requests:
             return self._do_callback (callback)
         timeout and self.reset_timeout (timeout)
+
+        # contorl will be transfered to MainThread or Coroutine
+        self._cv = lurelock
 
     # synchronous methods ----------------------------------------------
     def _wait (self, timeout = None):
