@@ -604,6 +604,21 @@ and your service.py:
   skitai.run ()
 
 
+Poller Setting
+------------------------------------
+
+.. code:: python
+
+  skitai.use_poll ('epoll')
+
+Availabel poller
+
+- poll
+- poll2
+- epoll
+- kqueue (experimental)
+
+
 Setting POST Body Size Limitation
 ------------------------------------
 

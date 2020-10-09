@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.35.4.16"
+__version__ = "0.35.4.17"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -8,6 +8,7 @@ assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major
 NAME = "Skitai/%s.%s" % version_info [:2]
 
 import aquests # should be first for psycopg2 compat
+from aquests import lifetime as lifetime_aq
 from rs4 import deco, importer
 from rs4.psutil import service
 from rs4.attrdict import AttrDict
@@ -259,6 +260,10 @@ dconf = dict (
     max_upload_size = 256 * 1024 * 1024, # 256Mb
     subscriptions = set ()
 )
+
+def use_poll (name):
+    from rs4 import asyncore
+    lifetime_aq.poll_fun = getattr (asyncore, name)
 
 def set_max_upload_size (size):
     global dconf
