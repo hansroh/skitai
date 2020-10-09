@@ -43,6 +43,7 @@ argopt.add_option (None, '--port=TCP_PORT_NUMBER', desc = "http/https port numbe
 argopt.add_option (None, '--quic=UDP_PORT_NUMBER', desc = "http3/quic port number")
 argopt.add_option (None, '--workers=WORKERS', desc = "number of workers")
 argopt.add_option (None, '--threads=THREADS', desc = "number of threads per worker")
+argopt.add_option (None, '--poll=POLLER', desc = "name of poller [select, poll, epoll and kqueue]")
 argopt.add_option (None, '--smtpda', desc = "run SMTPDA if not started")
 argopt.add_option (None, '--user=USER', desc = "if run as root, fallback workers owner to user")
 argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback workers owner to group")
@@ -263,7 +264,13 @@ dconf = dict (
 
 def use_poll (name):
     from rs4 import asyncore
-    lifetime_aq.poll_fun = getattr (asyncore, name)
+    polls = dict (
+        select = 'poll',
+        poll = 'poll2',
+        epoll = 'epoll',
+        kqueue = 'kqueue',
+    )
+    lifetime_aq.poll_fun = getattr (asyncore, polls [name])
 
 def set_max_upload_size (size):
     global dconf
@@ -805,6 +812,8 @@ def run (**conf):
             options = argopt.options ()
             conf = self.conf
 
+            if '--poll' in options:
+                use_poll (options.get ('--poll'))
             workers = int (options.get ('--workers') or conf.get ('workers', 1))
             threads = int (options.get ('--threads') or conf.get ('threads', 4))
             # assert threads, "threads should be more than zero"

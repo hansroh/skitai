@@ -613,8 +613,8 @@ Poller Setting
 
 Availabel poller
 
+- select
 - poll
-- poll2
 - epoll
 - kqueue (experimental)
 
