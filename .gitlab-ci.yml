@@ -49,14 +49,14 @@ python 3.6stretch:
   <<: *before_python_test
   <<: *test
   only:
-    - dev
+    - master
 
 python 3.7stretch:
   image: python:3.7-stretch
   <<: *before_python_test
   <<: *test
   only:
-    - master
+    - dev
 
 python 3.8buster:
   image: python:3.8-buster
