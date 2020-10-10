@@ -1,6 +1,7 @@
 import pytest
 from examples.services import route_guide_pb2
 
+# @pytest.mark.skip
 def test_grpc (launch):
     try: import grpc
     except ImportError: return
@@ -22,8 +23,7 @@ def test_grpc (launch):
                 assert hasattr (feature, 'name')
             assert idx > 80
 
-
-@pytest.mark.skip
+# @pytest.mark.skip
 def test_grpc_request_stream (launch):
     try: import grpc
     except ImportError: return
@@ -54,13 +54,13 @@ def test_grpc_request_stream (launch):
         with grpc.insecure_channel(server) as channel:
             stub = route_guide_pb2.RouteGuideStub (channel)
 
-            # request streaming
-            summary = stub.RecordRoute (point_iter ())
-            assert isinstance (summary, route_guide_pb2.RouteSummary)
-            assert summary.point_count == 10
-
             # bidirectional
             for idx, response in enumerate (stub.RouteChat(generate_messages())):
                 assert hasattr (response, 'message')
                 assert hasattr (response, 'location')
-            assert idx == 424
+            assert idx >= 400
+
+            # request streaming
+            summary = stub.RecordRoute (point_iter ())
+            assert isinstance (summary, route_guide_pb2.RouteSummary)
+            assert summary.point_count == 10

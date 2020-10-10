@@ -23,4 +23,4 @@ def test_streaming_request (launch, is_pypy):
                 data = stream (),
                 headers = {'Content-Type': 'application/octet-stream'}
             )
-            assert len (resp.text) > (4096 * 100)
+            assert len (resp.text) > (4096 * 90)

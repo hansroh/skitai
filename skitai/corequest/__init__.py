@@ -18,7 +18,6 @@ class Coroutine:
         self.was = get_cloned_was (was_id)
         self.producer = None
         self.contents = []
-        self.receiver = []
         self.coro.gi_frame.f_locals ['was'] = self.was
         ctypes.pythonapi.PyFrame_LocalsToFast(ctypes.py_object (self.coro.gi_frame), ctypes.c_int (0))
 
@@ -59,15 +58,22 @@ class Coroutine:
                 except StopIteration as e:
                     return self.close (e.value)
 
+                if hasattr (_task, 'set_proxy_coroutine'):
+                    return
+
                 if not isinstance (_task, corequest):
                     _task = self.serialize (_task)
                     assert isinstance (_task, (str, bytes)), "str or bytes object required"
                     self.contents.append (_task.encode () if isinstance (_task, str) else _task)
+
                     _task = self.collect_data ()
                     if not self.producer:
                         if _task is None:
                             return b''.join (self.contents)
-                        callback = lambda x = _task.then, y = (self.on_completed, self.was): x (*y)
+                        if not hasattr (_task, 'set_proxy_coroutine'):
+                            callback = lambda x = _task.then, y = (self.on_completed, self.was): x (*y)
+                        else:
+                            callback = None
                         self.producer = producers.sendable_producer (b''.join (self.contents), callback)
                         self.contents = []
                         return self.producer
@@ -84,14 +90,31 @@ class Coroutine:
                 raise
 
             if _task:
+                if hasattr (_task, 'set_proxy_coroutine'):
+                    return
                 return _task if hasattr (_task, "_single") else _task.then (self.on_completed, self.was)
 
+    def collector_proxy (self):
+        while 1:
+            task = yield
+            self.on_completed (self.was, task)
+
     def start (self):
+        from .tasks import Revoke
+
         task = self.collect_data ()
         if task is None:
             return b''.join (self.contents)
         if not isinstance (task, corequest):
             return task
+
+        if hasattr (task, 'set_proxy_coroutine'):
+            proxy = self.collector_proxy ()
+            next (proxy)
+            task.set_proxy_coroutine (proxy)
+            self.producer = producers.sendable_producer (b'')
+            return self.producer
+
         return task if hasattr (task, "_single") else task.then (self.on_completed, self.was)
 
 
