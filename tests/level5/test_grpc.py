@@ -23,6 +23,7 @@ def test_grpc (launch):
             assert idx > 80
 
 
+@pytest.mark.skip
 def test_grpc_request_stream (launch):
     try: import grpc
     except ImportError: return

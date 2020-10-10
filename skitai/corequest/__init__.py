@@ -58,6 +58,7 @@ class Coroutine:
                     _task = self.coro.send (task)
                 except StopIteration as e:
                     return self.close (e.value)
+
                 if not isinstance (_task, corequest):
                     _task = self.serialize (_task)
                     assert isinstance (_task, (str, bytes)), "str or bytes object required"
