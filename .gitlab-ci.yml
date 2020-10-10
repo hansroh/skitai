@@ -28,7 +28,7 @@ variables:
 
 .test_template: &test
   script:
-    # - cd tests
+    - cd tests
     # - pytest level1
     # - pytest level2
     # - pytest level3
