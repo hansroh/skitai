@@ -32,24 +32,32 @@ def get_distance(start, end):
 	R = 6371000; # metres
 	return R * c
 
-@app.route ("/RouteChat")
-def RouteChat (was, new_notes):
-	prev_notes = []	
-	for new_note in new_notes:
+@app.route ("/RouteChat", coroutine = True, input_stream = True)
+def RouteChat (was):
+	prev_notes = []
+	while 1:
+		task = yield was.Input ()
+		new_note = task.fetch ()
+		if not new_note:
+			break
 		for prev_note in prev_notes:
 			if prev_note.location == new_note.location:
 				yield prev_note
-		prev_notes.append(new_note)	
-		
-@app.route ("/RecordRoute")
-def RecordRoute (self, points):	
+		prev_notes.append(new_note)
+
+@app.route ("/RecordRoute", coroutine = True, input_stream = True)
+def RecordRoute (was):
 	point_count = 0
 	feature_count = 0
 	distance = 0.0
 	prev_point = None
 
 	start_time = time.time()
-	for point in points:
+	while 1:
+		task = yield was.Input ()
+		point = task.fetch ()
+		if not point:
+			break
 		point_count += 1
 		if get_feature(db, point):
 			feature_count += 1
@@ -58,13 +66,13 @@ def RecordRoute (self, points):
 		prev_point = point
 
 	elapsed_time = time.time() - start_time
-	return route_guide_pb2.RouteSummary(
+	return route_guide_pb2.RouteSummary (
 		point_count=point_count,
 		feature_count=feature_count,
 		distance=int(distance),
 		elapsed_time=int(elapsed_time)
 	)
-		
+
 @app.route ("/GetFeature")
 def GetFeature (was, point):
 	feature = get_feature(db, point)
@@ -82,21 +90,21 @@ def ListFeatures (was, rectangle):
 	for feature in db:
 		if (feature.location.longitude >= left and feature.location.longitude <= right and feature.location.latitude >= bottom and feature.location.latitude <= top):
 			yield feature
-	
+
 @app.route ("/test")
-def test (was):	
+def test (was):
 	stub = was.grpc ("http://127.0.0.1:5000/routeguide.RouteGuide")
 	point = route_guide_pb2.Point (latitude=409146138, longitude=-746188906)
 	feature = stub.GetFeature (point)
 	rs = feature.dispatch ()
 	return str (rs.data)
-	
+
 
 @app.route ("/")
-def index (was):	
+def index (was):
 	return "<h1>Route Guide<h1>"
-	
-_jsondb = """	
+
+_jsondb = """
 [{
 		"location": {
 				"latitude": 407838351,
@@ -700,7 +708,7 @@ _jsondb = """
 }]
 """
 
-def read_route_guide_database(): 
+def read_route_guide_database():
 	feature_list = []
 	for item in json.loads(_jsondb):
 		feature = route_guide_pb2.Feature(
@@ -711,7 +719,7 @@ def read_route_guide_database():
 		feature_list.append(feature)
 	return feature_list
 
-db = read_route_guide_database ()	
+db = read_route_guide_database ()
 
 
 if __name__ == "__main__":
@@ -719,6 +727,6 @@ if __name__ == "__main__":
 	skitai.mount = ("/routeguide.RouteGuide", app)
 	skitai.run (
 		address = "0.0.0.0",
-		port = 30371	
+		port = 30371
 	)
-	
+

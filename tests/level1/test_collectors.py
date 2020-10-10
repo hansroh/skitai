@@ -2,7 +2,7 @@ import confutil
 from skitai.handlers import collectors
 from atila import grpc_collector
 from examples.services import route_guide_pb2
-from atila import multipart_collector
+from atila import collectors as atila_collectors
 import pytest
 from skitai import testutil
 
@@ -33,7 +33,7 @@ def test_multipart_collector (handler, multipart):
 	c = collectors.MultipartCollector (handler, multipart, 1024, 2048, 512)
 
 def test_alita_multipart_collector (handler, multipart):
-	c = multipart_collector.MultipartCollector (handler, multipart, 1024, 2048, 512)
+	c = atila_collectors.MultipartCollector (handler, multipart, 1024, 2048, 512)
 
 def test_alita_grpc_collector (handler, grpc):
 	c = grpc_collector.grpc_collector (handler, grpc)

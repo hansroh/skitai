@@ -7,32 +7,41 @@ import types
 from rs4 import producers
 from aquests.athreads import trigger
 from ..utility import deallocate_was, catch
+from aquests.protocols.grpc.producers import serialize
 
 WAS_FACTORY = None
 
 
 class Coroutine:
-    def __init__ (self, coro):
+    def __init__ (self, coro, was_id):
         self.coro = coro
-        self.was = None
+        self.was = get_cloned_was (was_id)
         self.producer = None
         self.contents = []
+        self.receiver = []
+        self.coro.gi_frame.f_locals ['was'] = self.was
+        ctypes.pythonapi.PyFrame_LocalsToFast(ctypes.py_object (self.coro.gi_frame), ctypes.c_int (0))
+
+    def serialize (self, v):
+        return serialize (v, True) if hasattr (v, 'SerializeToString') else v
 
     def collect_data (self):
         while 1:
             try:
                 task = next (self.coro)
             except StopIteration as e:
-                if e.value and isinstance (e.value, (str, bytes)):
-                    self.contents.append (e.value.encode () if isinstance (e.value, str) else e.value)
+                value = self.serialize (e.value)
+                if value and isinstance (value, (str, bytes)):
+                    self.contents.append (value.encode () if isinstance (value, str) else value)
                     return
-                return e.value
-
+                return value
             if isinstance (task, corequest):
                 return task
+            task = self.serialize (task)
             self.contents.append (task.encode () if isinstance (task, str) else task)
 
     def close (self, data = None):
+        data = self.serialize (data)
         if self.producer:
             if isinstance (data, (str, bytes)):
                 self.producer.send (data)
@@ -43,19 +52,14 @@ class Coroutine:
         return data
 
     def on_completed (self, was, task):
-        if self.was is None:
-            self.was = was # replacing to cloned was
-            self.coro.gi_frame.f_locals ['was'] = was
-            ctypes.pythonapi.PyFrame_LocalsToFast(ctypes.py_object (self.coro.gi_frame), ctypes.c_int (0))
-
         while 1:
             try:
                 try:
                     _task = self.coro.send (task)
                 except StopIteration as e:
                     return self.close (e.value)
-
                 if not isinstance (_task, corequest):
+                    _task = self.serialize (_task)
                     assert isinstance (_task, (str, bytes)), "str or bytes object required"
                     self.contents.append (_task.encode () if isinstance (_task, str) else _task)
                     _task = self.collect_data ()
@@ -70,7 +74,6 @@ class Coroutine:
                     else:
                         self.producer.send (b''.join (self.contents))
                         self.contents = []
-                        continue
 
             except:
                 dinfo = '\n\n>>>>>>\nserver error occurred while processing your request\n\n'
@@ -79,7 +82,7 @@ class Coroutine:
                 self.close (dinfo)
                 raise
 
-            else:
+            if _task:
                 return _task if hasattr (_task, "_single") else _task.then (self.on_completed, self.was)
 
     def start (self):
@@ -88,7 +91,7 @@ class Coroutine:
             return b''.join (self.contents)
         if not isinstance (task, corequest):
             return task
-        return task if hasattr (task, "_single") else task.then (self.on_completed)
+        return task if hasattr (task, "_single") else task.then (self.on_completed, self.was)
 
 
 class CorequestError (Exception):

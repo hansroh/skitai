@@ -37,6 +37,14 @@ def is_etag_matched (request, header_name, etag):
     return etag == match.group (1) and 'matched' or 'unmatched'
 
 def deallocate_was (was):
+    _input = was.env.get ("wsgi.input")
+    if _input:
+        try: _input.close ()
+        except AttributeError: pass
+        if hasattr (_input, "name"):
+            try: os.remove (_input.name)
+            except: pass
+
     was.apps = None
     was.app = None
     was.env = None

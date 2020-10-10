@@ -9,7 +9,7 @@ from ..handlers import vhost_handler
 import skitai
 from .. import lifetime
 from rs4 import asyncore
-from atila.multipart_collector import MultipartCollector
+from atila.collectors import MultipartCollector
 from unittest.mock import MagicMock
 
 def find_handler (request):

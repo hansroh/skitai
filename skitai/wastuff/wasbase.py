@@ -83,6 +83,7 @@ class WASBase:
         new_env = {}
         if hasattr (self, 'env'):
             new_env = copy.copy (self.env)
+            self.env.pop ('wsgi.input') # depending closure
         new_was = the_was._get (True) # get clone was
         new_env ["skitai.was"] = new_was
         new_was.env = new_env

@@ -14,6 +14,7 @@ except ImportError:
 import skitai
 from ..utility import make_pushables
 from ..utility import deallocate_was
+from urllib.parse import unquote
 
 header2env = {
 	'content-length'	: 'CONTENT_LENGTH',
@@ -58,26 +59,29 @@ class Handler:
 	def set_static_files (self, obj):
 		self.STATIC_FILES = obj
 
-	def build_environ (self, request, apph):
-		(path, params, query, fragment) = request.split_uri()
+	def get_path_info (self, request, apph):
+		path, params = request.split_uri() [:2]
+		path = request.split_uri() [0]
 		if params: path = path + params
 		while path and path[0] == '/':
 			path = path[1:]
 		if '%' in path: path = unquote (path)
-		if query: query = query[1:]
+		return apph.get_path_info (path)
 
+	def build_environ (self, request, apph):
+		query = request.split_uri() [2]
 		env = self.ENV.copy ()
 		env ['REQUEST_METHOD'] = request.command.upper()
 		env ['REQUEST_URI'] = request.uri
 		env ['REQUEST_VERSION'] = request.version
 		env ['SERVER_PROTOCOL'] = "HTTP/" + request.version
 		env ['CHANNEL_CREATED'] = request.channel.creation_time
-		if query: env['QUERY_STRING'] = query
+		if query: env['QUERY_STRING'] = query [1:]
 		env ['REMOTE_ADDR'] = request.channel.addr [0]
 		env ['REMOTE_SERVER'] = request.channel.addr [0]
 		env ['SCRIPT_NAME'] = apph.route
 		env ['SCRPIT_PATH'] = apph.abspath
-		env ['PATH_INFO'] = apph.get_path_info (path)
+		env ['PATH_INFO'] = self.get_path_info (request, apph)
 
 		for header in request.header:
 			key, value = header.split(":", 1)
@@ -177,7 +181,7 @@ class Handler:
 		if request.command in ('post', 'put', 'patch'):
 			try:
 				# shoud have constructor __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size)
-				collector_class = app.get_collector (request)
+				collector_class = app.get_collector (request, self.get_path_info (request, apph))
 			except AttributeError:
 				collector_class = None
 			except NotImplementedError:
@@ -303,14 +307,6 @@ class Job:
 
 	def deallocate (self):
 		env = self.args [0]
-		_input = env ["wsgi.input"]
-		if _input:
-			try: _input.close ()
-			except AttributeError: pass
-			if hasattr (_input, "name"):
-				try: os.remove (_input.name)
-				except: pass
-
 		was = env.get ("skitai.was")
 		if was is not None:
 			deallocate_was (was)

@@ -211,6 +211,16 @@ def coroutine_generator (was, n = 1, h = 0, f = 0):
         if f:
             yield '\n'
 
+@app.route ("/coroutine_streaming", methods = ['POST'], coroutine = True, input_stream = True)
+def coroutine_streaming (was):
+    while 1:
+        task = yield was.Input (16184)
+        data = task.fetch ()
+        print ('chunk', len (data))
+        if not data:
+            break
+        yield b':' + data
+
 def process_future_response (was, tasks):
     time.sleep (0.03)
     return 'test'

@@ -34,9 +34,7 @@ class http_request:
 
     def __init__ (self, *args):
         self.request_number = self.request_count.inc()
-        (self.channel, self.request,
-         self.command, self.uri, self.version,
-         self.header) = args
+        self.channel, self.request, self.command, self.uri, self.version, self.header = args
         self.logger = self.channel.server.server_logger
         self.server_ident = self.channel.server.SERVER_IDENT
         self.body = None
