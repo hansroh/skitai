@@ -58,7 +58,7 @@ class Coroutine:
             self.deallocate ()
         return data
 
-    def on_completed (self, was, task, proxy = False):
+    def on_completed (self, was, task):
         while 1:
             try:
                 try:
@@ -69,6 +69,8 @@ class Coroutine:
 
                 if hasattr (_task, 'set_proxy_coroutine'):
                     self._current_task = _task
+                    # 2nd loop entry point
+                    self.ib and self.on_completed (self.was, self.ib.pop (0))
                     return
 
                 if not isinstance (_task, corequest):
@@ -102,7 +104,8 @@ class Coroutine:
             if _task:
                 if hasattr (_task, 'set_proxy_coroutine'):
                     self._current_task = _task
-                    not proxy and self.ib and self.on_completed (self.was, self.ib.pop (0), True)
+                    # 3rd loop entry point
+                    self.ib and self.on_completed (self.was, self.ib.pop (0))
                     return
 
                 return _task if hasattr (_task, "_single") else _task.then (self.on_completed, self.was)
@@ -111,8 +114,9 @@ class Coroutine:
         while 1:
             task = yield
             self.ib.append (task)
-            while self.ib and self._current_task and self.was:
-                self.on_completed (self.was, self.ib.pop (0), True)
+            if self._current_task and self.was:
+                # initial loop entry point
+                self.on_completed (self.was, self.ib.pop (0))
 
     def start (self):
         from .tasks import Revoke
