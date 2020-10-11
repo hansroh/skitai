@@ -18,6 +18,8 @@ class Coroutine:
         self.was = get_cloned_was (was_id)
         self.producer = None
         self.contents = []
+        self.ib = []
+        self._current_task = None
         self.coro.gi_frame.f_locals ['was'] = self.was
         ctypes.pythonapi.PyFrame_LocalsToFast(ctypes.py_object (self.coro.gi_frame), ctypes.c_int (0))
 
@@ -39,26 +41,34 @@ class Coroutine:
             task = self.serialize (task)
             self.contents.append (task.encode () if isinstance (task, str) else task)
 
+    def deallocate (self):
+        # clean home
+        self.was and deallocate_was (self.was)
+        self.was = None
+        self.ib = []
+        self._current_task = None
+
     def close (self, data = None):
         data = self.serialize (data)
         if self.producer:
             if isinstance (data, (str, bytes)):
                 self.producer.send (data)
+                data = None
             self.producer.close ()
-            deallocate_was (self.was)
-            self.was = None
-            return
+            self.deallocate ()
         return data
 
-    def on_completed (self, was, task):
+    def on_completed (self, was, task, proxy = False):
         while 1:
             try:
                 try:
-                    _task = self.coro.send (task)
+                    _task = self.coro.send (task.fetch () if hasattr (task, 'set_proxy_coroutine') else task)
                 except StopIteration as e:
                     return self.close (e.value)
+                self._current_task = None
 
                 if hasattr (_task, 'set_proxy_coroutine'):
+                    self._current_task = _task
                     return
 
                 if not isinstance (_task, corequest):
@@ -91,13 +101,18 @@ class Coroutine:
 
             if _task:
                 if hasattr (_task, 'set_proxy_coroutine'):
+                    self._current_task = _task
+                    not proxy and self.ib and self.on_completed (self.was, self.ib.pop (0), True)
                     return
+
                 return _task if hasattr (_task, "_single") else _task.then (self.on_completed, self.was)
 
     def collector_proxy (self):
         while 1:
             task = yield
-            self.on_completed (self.was, task)
+            self.ib.append (task)
+            while self.ib and self._current_task and self.was:
+                self.on_completed (self.was, self.ib.pop (0), True)
 
     def start (self):
         from .tasks import Revoke
@@ -112,9 +127,11 @@ class Coroutine:
             proxy = self.collector_proxy ()
             next (proxy)
             task.set_proxy_coroutine (proxy)
+            self._current_task = task # must next task.set_proxy_coroutine
             self.producer = producers.sendable_producer (b'')
             return self.producer
 
+        self._current_task = task
         return task if hasattr (task, "_single") else task.then (self.on_completed, self.was)
 
 

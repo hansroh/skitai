@@ -23,14 +23,11 @@ def test_grpc (launch):
                 assert hasattr (feature, 'name')
             assert idx > 80
 
+
 # @pytest.mark.skip
-def test_grpc_request_stream (launch):
+def test_grpc_request_bistream (launch):
     try: import grpc
     except ImportError: return
-
-    def point_iter ():
-        for i in range (10):
-            yield route_guide_pb2.Point (latitude=409146138, longitude=-746188906)
 
     def make_route_note(message, latitude, longitude):
         return route_guide_pb2.RouteNote(
@@ -44,10 +41,9 @@ def test_grpc_request_stream (launch):
             make_route_note("Third message", 1, 0),
             make_route_note("Fourth message", 0, 0),
             make_route_note("Fifth message", 1, 0),
-        ] * 10
+        ] * 3
         for msg in messages:
             yield msg
-
 
     server = "127.0.0.1:30371"
     with launch ("./examples/app.py") as engine:
@@ -58,7 +54,22 @@ def test_grpc_request_stream (launch):
             for idx, response in enumerate (stub.RouteChat(generate_messages())):
                 assert hasattr (response, 'message')
                 assert hasattr (response, 'location')
-            assert idx >= 400
+            assert idx == 32
+
+
+# @pytest.mark.skip
+def test_grpc_request_stream (launch):
+    try: import grpc
+    except ImportError: return
+
+    def point_iter ():
+        for i in range (10):
+            yield route_guide_pb2.Point (latitude=409146138, longitude=-746188906)
+
+    server = "127.0.0.1:30371"
+    with launch ("./examples/app.py") as engine:
+        with grpc.insecure_channel(server) as channel:
+            stub = route_guide_pb2.RouteGuideStub (channel)
 
             # request streaming
             summary = stub.RecordRoute (point_iter ())

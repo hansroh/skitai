@@ -17,10 +17,23 @@ def test_stream ():
 def test_streaming_request (launch, is_pypy):
     serve = './examples/app2.py'
     with launch (serve, port = 30371) as engine:
-        for i in range (1):
+        for i in range (2):
             resp = engine.http.post (
                 '/coroutine_streaming',
                 data = stream (),
                 headers = {'Content-Type': 'application/octet-stream'}
             )
-            assert len (resp.text) > (4096 * 90)
+            assert len (resp.text) == 409626
+
+
+def test_streaming_request2 (launch, is_pypy):
+    serve = './examples/app2.py'
+    with launch (serve, port = 30371) as engine:
+        for i in range (2):
+            resp = engine.http.post (
+                '/coroutine_streaming2',
+                data = stream (),
+                headers = {'Content-Type': 'application/octet-stream'}
+            )
+            assert len (resp.text) == 409626
+
