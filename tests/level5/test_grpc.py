@@ -1,5 +1,6 @@
 import pytest
 from examples.services import route_guide_pb2
+import os
 
 # @pytest.mark.skip
 def test_grpc (launch):
@@ -26,6 +27,8 @@ def test_grpc (launch):
 
 # @pytest.mark.skip
 def test_grpc_request_bistream (launch):
+    if os.getenv ("GITLAB_USER_NAME"):
+        return
     try: import grpc
     except ImportError: return
 
@@ -59,6 +62,8 @@ def test_grpc_request_bistream (launch):
 
 # @pytest.mark.skip
 def test_grpc_request_stream (launch):
+    if os.getenv ("GITLAB_USER_NAME"):
+        return
     try: import grpc
     except ImportError: return
 
