@@ -8,6 +8,7 @@ from rs4 import producers
 from aquests.athreads import trigger
 from ..utility import deallocate_was, catch
 from aquests.protocols.grpc.producers import serialize
+from ..wastuff import _WASType
 
 WAS_FACTORY = None
 
@@ -15,12 +16,20 @@ WAS_FACTORY = None
 class Coroutine:
     def __init__ (self, coro, was_id):
         self.coro = coro
-        self.was = get_cloned_was (was_id)
         self.producer = None
         self.contents = []
-        self.ib = []
-        self._current_task = None
-        self.coro.gi_frame.f_locals ['was'] = self.was
+        self.input_streams = []
+
+        self._was = None
+        self._waiting_input = False
+        self._clone_and_deceive_was (was_id)
+
+    def _clone_and_deceive_was (self, was_id):
+        self._was = get_cloned_was (was_id)
+        for n, v in self.coro.gi_frame.f_locals.items ():
+            if not isinstance (v, _WASType):
+                continue
+            self.coro.gi_frame.f_locals [n] = self._was
         ctypes.pythonapi.PyFrame_LocalsToFast(ctypes.py_object (self.coro.gi_frame), ctypes.c_int (0))
 
     def serialize (self, v):
@@ -43,10 +52,10 @@ class Coroutine:
 
     def deallocate (self):
         # clean home
-        self.was and deallocate_was (self.was)
-        self.was = None
-        self.ib = []
-        self._current_task = None
+        self._was and deallocate_was (self._was)
+        self._was = None
+        self.input_streams = []
+        self._waiting_input = False
 
     def close (self, data = None):
         data = self.serialize (data)
@@ -62,28 +71,28 @@ class Coroutine:
         while 1:
             try:
                 try:
-                    _task = self.coro.send (task.fetch () if hasattr (task, 'set_proxy_coroutine') else task)
+                    next_task = self.coro.send (task.fetch () if hasattr (task, 'set_proxy_coroutine') else task)
                 except StopIteration as e:
                     return self.close (e.value)
-                self._current_task = None
+                self._waiting_input = False
 
-                if hasattr (_task, 'set_proxy_coroutine'):
-                    self._current_task = _task
+                if hasattr (next_task, 'set_proxy_coroutine'):
+                    self._waiting_input = True
                     # 2nd loop entry point
-                    self.ib and self.on_completed (self.was, self.ib.pop (0))
+                    self.input_streams and self.on_completed (self._was, self.input_streams.pop (0))
                     return
 
-                if not isinstance (_task, corequest):
-                    _task = self.serialize (_task)
-                    assert isinstance (_task, (str, bytes)), "str or bytes object required"
-                    self.contents.append (_task.encode () if isinstance (_task, str) else _task)
+                if not isinstance (next_task, corequest):
+                    next_task = self.serialize (next_task)
+                    assert isinstance (next_task, (str, bytes)), "str or bytes object required"
+                    self.contents.append (next_task.encode () if isinstance (next_task, str) else next_task)
 
-                    _task = self.collect_data ()
+                    next_task = self.collect_data ()
                     if not self.producer:
-                        if _task is None:
+                        if next_task is None:
                             return b''.join (self.contents)
-                        if not hasattr (_task, 'set_proxy_coroutine'):
-                            callback = lambda x = _task.then, y = (self.on_completed, self.was): x (*y)
+                        if not hasattr (next_task, 'set_proxy_coroutine'):
+                            callback = lambda x = next_task.then, y = (self.on_completed, self._was): x (*y)
                         else:
                             callback = None
                         self.producer = producers.sendable_producer (b''.join (self.contents), callback)
@@ -96,27 +105,27 @@ class Coroutine:
 
             except:
                 dinfo = '\n\n>>>>>>\nserver error occurred while processing your request\n\n'
-                if self.was.app.debug:
+                if self._was.app.debug:
                     dinfo += catch ()
                 self.close (dinfo)
                 raise
 
-            if _task:
-                if hasattr (_task, 'set_proxy_coroutine'):
-                    self._current_task = _task
+            if next_task:
+                if hasattr (next_task, 'set_proxy_coroutine'):
+                    self._waiting_input = True
                     # 3rd loop entry point
-                    self.ib and self.on_completed (self.was, self.ib.pop (0))
+                    self.input_streams and self.on_completed (self._was, self.input_streams.pop (0))
                     return
 
-                return _task if hasattr (_task, "_single") else _task.then (self.on_completed, self.was)
+                return next_task if hasattr (next_task, "_single") else next_task.then (self.on_completed, self._was)
 
-    def collector_proxy (self):
+    def collect_incomming_stream (self):
         while 1:
-            task = yield
-            self.ib.append (task)
-            if self._current_task and self.was:
+            collector = yield
+            self.input_streams.append (collector)
+            if self._waiting_input and self._was:
                 # initial loop entry point
-                self.on_completed (self.was, self.ib.pop (0))
+                self.on_completed (self._was, self.input_streams.pop (0))
 
     def start (self):
         from .tasks import Revoke
@@ -128,15 +137,14 @@ class Coroutine:
             return task
 
         if hasattr (task, 'set_proxy_coroutine'):
-            proxy = self.collector_proxy ()
+            proxy = self.collect_incomming_stream ()
             next (proxy)
             task.set_proxy_coroutine (proxy)
-            self._current_task = task # must next task.set_proxy_coroutine
+            self._waiting_input = True # must next task.set_proxy_coroutine
             self.producer = producers.sendable_producer (b'')
             return self.producer
 
-        self._current_task = task
-        return task if hasattr (task, "_single") else task.then (self.on_completed, self.was)
+        return task if hasattr (task, "_single") else task.then (self.on_completed, self._was)
 
 
 class CorequestError (Exception):

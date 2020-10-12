@@ -35,6 +35,7 @@ if os.environ.get ("SKITAIENV") == "PYTEST":
     from .semaps import TestSemaps as Semaps
 else:
     from .semaps import Semaps
+from . import _WASType
 
 if os.name == "nt":
     TEMP_DIR =  os.path.join (tempfile.gettempdir(), "skitai-gentemp")
@@ -45,7 +46,7 @@ pathtool.mkdir (TEMP_DIR)
 composer.Composer.SAVE_PATH = os.path.join ("/var/tmp/skitai", "smtpda", "spool")
 pathtool.mkdir (composer.Composer.SAVE_PATH)
 
-class WASBase:
+class WASBase (_WASType):
     version = __version__
     ID = None # set by skitai.was
     objects = {}
