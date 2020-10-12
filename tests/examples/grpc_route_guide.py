@@ -36,8 +36,7 @@ def get_distance(start, end):
 def RouteChat (was):
 	prev_notes = []
 	while 1:
-		task = yield was.Input ()
-		new_note = task.fetch ()
+		new_note = yield was.Input ()
 		if not new_note:
 			break
 		for prev_note in prev_notes:
@@ -54,8 +53,7 @@ def RecordRoute (was):
 
 	start_time = time.time()
 	while 1:
-		task = yield was.Input ()
-		point = task.fetch ()
+		point = yield was.Input ()
 		if not point:
 			break
 		point_count += 1
