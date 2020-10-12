@@ -7,7 +7,7 @@ import sys
 def test_http3 (launch):
     if sys.version_info < (3, 6):
         return
-    if sys.version_info == (3, 7):
+    if sys.version_info [:2] == (3, 7):
         # freq error, why?
         return
     serve = './examples/http3.py'

@@ -60,8 +60,8 @@ package_dir = {'skitai': 'skitai'}
 package_data = {}
 
 install_requires = [
-	"rs4>=0.2.16",
-	"aquests>=0.29.6",
+	"rs4>=0.2.28",
+	"aquests>=0.29.7",
 	"sqlphile",
 	"jsonrpclib-pelix",
 ]

@@ -178,7 +178,7 @@ class http_channel (asynchat.async_chat):
         self.set_timeout (self.keep_alive)
 
     def send (self, data):
-        # print    ("SEND", repr (data [:300]))
+        # print ("SEND", len (data))
         self.event_time = int (time.time())
         result = asynchat.async_chat.send (self, data)
         self.server.bytes_out.inc (result)
@@ -192,7 +192,7 @@ class http_channel (asynchat.async_chat):
             if not result:
                 self.handle_close ()
                 return b""
-            #print    ("RECV", repr(result), self.get_terminator ())
+            # print ("RECV", len (result), self.get_terminator ())
             lr = len (result)
             self.server.bytes_in.inc (lr)
             self.bytes_in.inc (lr)

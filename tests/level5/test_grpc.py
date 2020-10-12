@@ -1,6 +1,9 @@
 import pytest
 from examples.services import route_guide_pb2
+import os
+import time
 
+# @pytest.mark.skip
 def test_grpc (launch):
     try: import grpc
     except ImportError: return
@@ -23,13 +26,35 @@ def test_grpc (launch):
             assert idx > 80
 
 
+# @pytest.mark.skip
 def test_grpc_request_stream (launch):
+    # if os.getenv ("GITLAB_USER_NAME"):
+    #     return
     try: import grpc
     except ImportError: return
 
     def point_iter ():
-        for i in range (10):
+        for i in range (30):
+            print ('send', i)
             yield route_guide_pb2.Point (latitude=409146138, longitude=-746188906)
+            time.sleep (0.2)
+
+    server = "127.0.0.1:30371"
+    with launch ("./examples/app.py") as engine:
+        with grpc.insecure_channel(server) as channel:
+            stub = route_guide_pb2.RouteGuideStub (channel)
+            # request streaming
+            summary = stub.RecordRoute (point_iter ())
+            assert isinstance (summary, route_guide_pb2.RouteSummary)
+            assert summary.point_count == 30
+
+
+# @pytest.mark.skip
+def test_grpc_request_bistream (launch):
+    # if os.getenv ("GITLAB_USER_NAME"):
+    #     return
+    try: import grpc
+    except ImportError: return
 
     def make_route_note(message, latitude, longitude):
         return route_guide_pb2.RouteNote(
@@ -43,23 +68,21 @@ def test_grpc_request_stream (launch):
             make_route_note("Third message", 1, 0),
             make_route_note("Fourth message", 0, 0),
             make_route_note("Fifth message", 1, 0),
-        ] * 10
-        for msg in messages:
+        ] * 3
+        for i, msg in enumerate (messages):
+            print ('send', i)
+            time.sleep (0.2)
             yield msg
-
 
     server = "127.0.0.1:30371"
     with launch ("./examples/app.py") as engine:
         with grpc.insecure_channel(server) as channel:
             stub = route_guide_pb2.RouteGuideStub (channel)
 
-            # request streaming
-            summary = stub.RecordRoute (point_iter ())
-            assert isinstance (summary, route_guide_pb2.RouteSummary)
-            assert summary.point_count == 10
-
             # bidirectional
             for idx, response in enumerate (stub.RouteChat(generate_messages())):
+                print ('  - recv', idx)
                 assert hasattr (response, 'message')
                 assert hasattr (response, 'location')
-            assert idx == 424
+            assert idx == 32
+
