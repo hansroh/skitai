@@ -52,7 +52,9 @@ class Coroutine:
 
     def deallocate (self):
         # clean home
-        self._was and deallocate_was (self._was)
+        if self._was is None:
+            return
+        deallocate_was (self._was)
         self._was = None
         self.input_streams = []
         self._waiting_input = False
