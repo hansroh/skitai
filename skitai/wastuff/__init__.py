@@ -1,0 +1,2 @@
+class _WASType:
+    pass
