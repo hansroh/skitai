@@ -34,8 +34,8 @@ variables:
     # - pytest level3
     # - pytest level4-1
     # - pytest level4-2
-    # - pytest level5
-    - pytest -s level5/test_grpc.py
+    - pytest -s level5
+    # - pytest -s level5/test_grpc.py
 
 .test_template_win32: &test-win32
   script:
