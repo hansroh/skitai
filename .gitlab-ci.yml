@@ -29,13 +29,13 @@ variables:
 .test_template: &test
   script:
     - cd tests
-    - pytest level1
-    - pytest level2
-    - pytest level3
-    - pytest level4-1
-    - pytest level4-2
-    - pytest level5
-    # - pytest -s level4-1/test_benchmark_script.py
+    # - pytest level1
+    # - pytest level2
+    # - pytest level3
+    # - pytest level4-1
+    # - pytest level4-2
+    # - pytest level5
+    - pytest -s level5/test_grpc.py
 
 .test_template_win32: &test-win32
   script:

@@ -27,9 +27,32 @@ def test_grpc (launch):
 
 
 # @pytest.mark.skip
+def test_grpc_request_stream (launch):
+    # if os.getenv ("GITLAB_USER_NAME"):
+    #     return
+    try: import grpc
+    except ImportError: return
+
+    def point_iter ():
+        for i in range (30):
+            print ('send', i)
+            yield route_guide_pb2.Point (latitude=409146138, longitude=-746188906)
+            time.sleep (0.2)
+
+    server = "127.0.0.1:30371"
+    with launch ("./examples/app.py") as engine:
+        with grpc.insecure_channel(server) as channel:
+            stub = route_guide_pb2.RouteGuideStub (channel)
+            # request streaming
+            summary = stub.RecordRoute (point_iter ())
+            assert isinstance (summary, route_guide_pb2.RouteSummary)
+            assert summary.point_count == 30
+
+
+# @pytest.mark.skip
 def test_grpc_request_bistream (launch):
-    if os.getenv ("GITLAB_USER_NAME"):
-        return
+    # if os.getenv ("GITLAB_USER_NAME"):
+    #     return
     try: import grpc
     except ImportError: return
 
@@ -63,25 +86,3 @@ def test_grpc_request_bistream (launch):
                 assert hasattr (response, 'location')
             assert idx == 32
 
-
-# @pytest.mark.skip
-def test_grpc_request_stream (launch):
-    if os.getenv ("GITLAB_USER_NAME"):
-        return
-    try: import grpc
-    except ImportError: return
-
-    def point_iter ():
-        for i in range (30):
-            print ('send', i)
-            yield route_guide_pb2.Point (latitude=409146138, longitude=-746188906)
-            time.sleep (0.2)
-
-    server = "127.0.0.1:30371"
-    with launch ("./examples/app.py") as engine:
-        with grpc.insecure_channel(server) as channel:
-            stub = route_guide_pb2.RouteGuideStub (channel)
-            # request streaming
-            summary = stub.RecordRoute (point_iter ())
-            assert isinstance (summary, route_guide_pb2.RouteSummary)
-            assert summary.point_count == 30
