@@ -61,7 +61,7 @@ package_data = {}
 
 install_requires = [
 	"rs4>=0.2.28",
-	"aquests>=0.29.7",
+	"aquests>=0.29.8",
 	"sqlphile",
 	"jsonrpclib-pelix",
 ]

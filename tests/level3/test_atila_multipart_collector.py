@@ -1,4 +1,4 @@
-from atila import collectors as mc
+from atila.collectors import multipart_collector as mc
 import pytest
 
 header = (

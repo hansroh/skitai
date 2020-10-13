@@ -9,6 +9,7 @@ from aquests.athreads import trigger
 from ..utility import deallocate_was, catch
 from aquests.protocols.grpc.producers import serialize
 from ..wastuff import _WASType
+from aquests.protocols.ws.collector import encode_message
 from aquests.protocols.ws import *
 
 WAS_FACTORY = None
@@ -43,7 +44,6 @@ class Coroutine:
             self._rtype = 'grpc'
 
     def serialize (self, v):
-        from ..handlers.websocket.specs import encode_message
         if v is None:
             return
         if self._rtype is None:

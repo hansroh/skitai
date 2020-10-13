@@ -1,81 +1,37 @@
-import sys
-import struct
 import threading
 import json
 import skitai
 from .. import wsgi_handler
-from ...backbone.http_response import catch
 from aquests.athreads import trigger
-from rs4 import strutil
 from aquests.protocols.grpc import discover
-from aquests.protocols.ws import *
 from aquests.protocols.http import http_util
 from skitai import version_info, was as the_was
-try: import xmlrpc.client as xmlrpclib
-except ImportError: import xmlrpclib
-try: from urllib.parse import quote_plus
-except ImportError: from urllib import quote_plus
+import xmlrpc.client as xmlrpclib
+from urllib.parse import quote_plus
 from io import BytesIO
 import copy
-from collections import Iterable
 from rs4.reraise import reraise
-from ...backbone.http_response import catch
 from collections.abc import Iterable
-
-ClosingIterator = None
+from aquests.protocols.ws.collector import Collector as BaseWebsocketCollector
+from aquests.protocols.ws.collector import encode_message
 try:
 	from werkzeug.wsgi import ClosingIterator
 except ImportError:
-	pass
+	ClosingIterator = None
+from aquests.protocols.ws import *
 
 
-def encode_message (message, op_code):
-    header  = bytearray()
-    if strutil.is_encodable (message):
-        payload = message.encode ("utf8")
-    else:
-        payload = message
-    payload_length = len(payload)
-
-    # Normal payload
-    if payload_length <= 125:
-        header.append(FIN | op_code)
-        header.append(payload_length)
-
-    # Extended payload
-    elif payload_length >= 126 and payload_length <= 65535:
-        header.append(FIN | op_code)
-        header.append(PAYLOAD_LEN_EXT16)
-        header.extend(struct.pack(">H", payload_length))
-
-    # Huge extended payload
-    elif payload_length < 18446744073709551616:
-        header.append(FIN | op_code)
-        header.append(PAYLOAD_LEN_EXT64)
-        header.extend(struct.pack(">Q", payload_length))
-
-    else:
-        raise AssertionError ("Message is too big. Consider breaking it into chunks.")
-    return header + payload
-
-
-class WebSocket:
+class WebSocket (BaseWebsocketCollector):
 	collector = None
 	producer = None
 
 	def __init__ (self, handler, request, message_encoding = None):
+		super ().__init__ (message_encoding)
 		self.handler = handler
 		self.wasc = handler.wasc
 		self.request = request
 		self.channel = request.channel
 		self.channel.set_terminator (2)
-		self.rfile = BytesIO ()
-		self.masks = b""
-		self.has_masks = True
-		self.buf = b""
-		self.payload_length = 0
-		self.opcode = None
-		self.default_op_code = OPCODE_TEXT
 		self._closed = False
 		self.encoder_config = None
 		self.message_encoding = self.setup_encoding (message_encoding)
@@ -115,100 +71,6 @@ class WebSocket:
 
 	def grpc_decode (self, msg):
 		return msg.SerializeToString ()
-
-	def _tobytes (self, b):
-		if sys.version_info[0] < 3:
-			return map(ord, b)
-		else:
-			return b
-
-	def collect_incoming_data (self, data):
-		#print (">>>>", data)
-		if not data:
-			# closed connection
-			self.close ()
-			return
-
-		if self.masks or (not self.has_masks and self.payload_length):
-			self.rfile.write (data)
-		else:
-			self.buf += data
-
-	def found_terminator (self):
-		buf, self.buf = self.buf, b""
-		if self.masks or (not self.has_masks and self.payload_length):
-			# end of message
-			masked_data = bytearray(self.rfile.getvalue ())
-			if self.masks:
-				masking_key = bytearray(self.masks)
-				data = bytearray ([masked_data[i] ^ masking_key [i%4] for i in range (len (masked_data))])
-			else:
-				data = masked_data
-
-			if self.opcode == OPCODE_TEXT:
-				# text
-				data = data.decode('utf-8')
-
-			self.payload_length = 0
-			self.opcode = None
-			self.masks = b""
-			self.has_masks = True
-			self.rfile.seek (0)
-			self.rfile.truncate ()
-			self.channel.set_terminator (2)
-			if self.opcode == OPCODE_PING:
-				self.send (data, OPCODE_PONG)
-			else:
-				self.handle_message (data)
-
-		elif self.payload_length:
-			self.masks = buf
-			self.channel.set_terminator (self.payload_length)
-
-		elif self.opcode:
-			if len (buf) == 2:
-				fmt = ">H"
-			else:
-				fmt = ">Q"
-			self.payload_length = struct.unpack(fmt, self._tobytes(buf))[0]
-			if self.has_masks:
-				self.channel.set_terminator (4) # mask
-			else:
-				self.channel.set_terminator (self.payload_length)
-
-		elif self.opcode is None:
-			b1, b2 = self._tobytes(buf)
-			fin    = b1 & FIN
-			self.opcode = b1 & OPCODE
-			#print (fin, self.opcode)
-			if self.opcode == OPCODE_CLOSE:
-				self.close ()
-				return
-
-			mask = b2 & MASKED
-			if not mask:
-				self.has_masks = False
-
-			payload_length = b2 & PAYLOAD_LEN
-			if payload_length == 0:
-				self.opcode = None
-				self.has_masks = True
-				self.channel.set_terminator (2)
-				return
-
-			if payload_length < 126:
-				self.payload_length = payload_length
-				if self.has_masks:
-					self.channel.set_terminator (4) # mask
-				else:
-					self.channel.set_terminator (self.payload_length)
-			elif payload_length == 126:
-				self.channel.set_terminator (2)	# short length
-			elif payload_length == 127:
-				self.channel.set_terminator (8) # long length
-
-		else:
-			raise AssertionError ("Web socket frame decode error")
 
 	def build_data (self, message, op_code):
 		message = self.message_encode (message)

@@ -76,7 +76,6 @@ class Handler (wsgi_handler.Handler):
                 collector = self.make_collector (collector_class, request, 0)
                 self.build_response_header (request, protocol, securekey, host, path)
                 request.collector = collector
-                request.channel.set_socket_timeout (60)
                 return collector.start_collect ()
 
         env = self.build_environ (request, apph)

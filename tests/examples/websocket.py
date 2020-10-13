@@ -121,6 +121,19 @@ def echo_coroutine (was):
 			yield 'double echo: ' + msg
 
 
+@app.route ("/echo_coroutine2")
+@app.websocket (skitai.WS_COROUTINE, 60)
+def echo_coroutine2 (was):
+	while 1:
+		msg = yield was.Input ()
+		if not msg:
+			break
+
+		with was.stub ('http://example.com') as stub:
+			task = yield stub.get ("/")
+			yield task.fetch ()
+
+
 if __name__ == "__main__":
 	import skitai
 
