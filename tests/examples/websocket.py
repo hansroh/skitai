@@ -120,7 +120,6 @@ def echo_coroutine (was):
 		if n % 3 == 0:
 			yield 'double echo: ' + msg
 
-
 @app.route ("/echo_coroutine2")
 @app.websocket (skitai.WS_COROUTINE, 60)
 def echo_coroutine2 (was):

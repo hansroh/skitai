@@ -410,9 +410,14 @@ class http_response:
             do_optimize = False
 
         elif len (self.outgoing) == 1 and hasattr (self.outgoing.first (), "ready"):
-            if self.request.get_header ('upgrade') == 'websocket':
-                wrap_in_chunking = False
-                upgrade_to = self.request, 2
+            if self.request.collector:
+                # request streaming, upgrade to self
+                if self.request.get_header ('upgrade') == 'websocket':
+                    wrap_in_chunking = False
+                    upgrade_to = self.request, 2
+                elif not upgrade_to: # IMP collector must be alive
+                    wrap_in_chunking = True
+                    upgrade_to = self.request, self.request.channel.get_terminator ()
 
             outgoing_producer = producers.composite_producer (self.outgoing)
             if wrap_in_chunking:
