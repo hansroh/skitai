@@ -107,6 +107,20 @@ def websocket (was, mode = "echo"):
 		mode += "?room_id=1"
 	return was.render ("websocket.html", path = mode)
 
+@app.route ("/echo_coroutine")
+@app.websocket (skitai.WS_COROUTINE, 60)
+def echo_coroutine (was):
+	n = 0
+	while 1:
+		msg = yield was.Input ()
+		if not msg:
+			break
+		yield 'echo: ' + msg
+		n += 1
+		if n % 3 == 0:
+			yield 'double echo: ' + msg
+
+
 if __name__ == "__main__":
 	import skitai
 

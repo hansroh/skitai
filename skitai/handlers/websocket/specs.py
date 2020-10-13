@@ -15,8 +15,7 @@ try: import xmlrpc.client as xmlrpclib
 except ImportError: import xmlrpclib
 try: from urllib.parse import quote_plus
 except ImportError: from urllib import quote_plus
-try: from cStringIO import StringIO as BytesIO
-except ImportError: from io import BytesIO
+from io import BytesIO
 import copy
 from collections import Iterable
 from rs4.reraise import reraise
@@ -28,6 +27,37 @@ try:
 	from werkzeug.wsgi import ClosingIterator
 except ImportError:
 	pass
+
+
+def encode_message (message, op_code):
+    header  = bytearray()
+    if strutil.is_encodable (message):
+        payload = message.encode ("utf8")
+    else:
+        payload = message
+    payload_length = len(payload)
+
+    # Normal payload
+    if payload_length <= 125:
+        header.append(FIN | op_code)
+        header.append(payload_length)
+
+    # Extended payload
+    elif payload_length >= 126 and payload_length <= 65535:
+        header.append(FIN | op_code)
+        header.append(PAYLOAD_LEN_EXT16)
+        header.extend(struct.pack(">H", payload_length))
+
+    # Huge extended payload
+    elif payload_length < 18446744073709551616:
+        header.append(FIN | op_code)
+        header.append(PAYLOAD_LEN_EXT64)
+        header.extend(struct.pack(">Q", payload_length))
+
+    else:
+        raise AssertionError ("Message is too big. Consider breaking it into chunks.")
+    return header + payload
+
 
 class WebSocket:
 	collector = None
@@ -202,33 +232,7 @@ class WebSocket:
 	def sendone (self, message, op_code = -1):
 		if not self.channel: return
 		message, op_code = self.build_data (message, op_code)
-		header  = bytearray()
-		if strutil.is_encodable (message):
-			payload = message.encode ("utf8")
-		else:
-			payload = message
-		payload_length = len(payload)
-
-		# Normal payload
-		if payload_length <= 125:
-			header.append(FIN | op_code)
-			header.append(payload_length)
-
-		# Extended payload
-		elif payload_length >= 126 and payload_length <= 65535:
-			header.append(FIN | op_code)
-			header.append(PAYLOAD_LEN_EXT16)
-			header.extend(struct.pack(">H", payload_length))
-
-		# Huge extended payload
-		elif payload_length < 18446744073709551616:
-			header.append(FIN | op_code)
-			header.append(PAYLOAD_LEN_EXT64)
-			header.extend(struct.pack(">Q", payload_length))
-
-		else:
-			raise AssertionError ("Message is too big. Consider breaking it into chunks.")
-		m = header + payload
+		m = encode_message (message, op_code)
 		self._send (m)
 
 	def _send (self, msg):

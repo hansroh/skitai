@@ -1,7 +1,7 @@
 At a Glance
 =============
 
-Skitai is a Python WSGI/HTTP Server for UNIX (Developing is possible on win32).
+Skitai is a Python WSGI/HTTP Server for UNIX.
 
 And simple to run:
 
@@ -1448,40 +1448,6 @@ Also Skitai create API Transaction ID for each API call, and this will be
 explained in Skitai 'was' Service chapter.
 
 
-Run as Win32 Service (Deprecated)
---------------------------------------------------
-
-*Available on win32 only, New in version 0.26.7*
-
-.. code:: python
-
-  from atila import Atila
-  from rs4.psutil.win32service import ServiceFramework
-
-  class ServiceConfig (ServiceFramework):
-    _svc_name_ = "SAE_EXAMPLE"
-    _svc_display_name_ = "Skitai Example Service"
-    _svc_app_ = __file__
-    _svc_python_ = r"c:\python34\python.exe"
-
-  app = Atila (__name__)
-
-  if __name__ == "__main__":
-    skitai.mount ('/', app)
-    skitai.set_service (ServiceConfig)
-    skitai.run ()
-
-Then at command line,
-
-.. code:: bash
-
-  app.py install # for installing windows service
-  app.py start
-  app.py stop
-  app.py update # when service class is updated
-  app.py remove # removing from windwos service
-
-
 Self-Descriptive App
 ---------------------------
 
@@ -2027,6 +1993,10 @@ Skitai provides some services related with corequests:
 These features are just optional, but these might help
 increase availability of your servers.
 
+**Note**: With *Atila_*, corequest can be used with
+*Generator Based Coroutine* (NOT native coroutine using
+async await keyword).
+
 For using 'corequest', you need to import 'was':
 
 .. code:: python
@@ -2177,21 +2147,6 @@ Or with starting thread task,
 .. code:: python
 
   return was.Thread (func, arg).returning (Response ('202 Accepted'))
-
-Future(s)
-`````````````````
-
-*Available on Atila only*
-
-On Atila_, you can hook the callback function with corequest objects.
-
-- Task can be transformed into Future
-- Tasks can be transformed into Futures
-
-Future/Futures object can be returnable and it has the benefit
-when your jobs are IO bound and long running time (but reasonably
-close enough to real time). It returns current thread qucikly,
-lazy respond when job is done.
 
 
 Calling API
@@ -2365,8 +2320,6 @@ for raising error if invalid.
 - Tasks.add (corequest): append corequest or Task object
 - Tasks.merge (corequest): append corequest or Task object,
   in case Tasks, it will be extracted from inner corequests
-- Tasks.then (callabck): convert Tasks to Futures, available only for Atila app
-
 - Tasks.dispatch (cache = None, cache_if = (200,), timeout = None)
 - Tasks.wait (timeout = None)
 
@@ -3372,6 +3325,8 @@ Change Log
 
 - 0.35 (Feb 2020)
 
+  - drop support win32 platform officially
+  - add coroutine with corequest
   - add was.cursor ()
   - add skitai.set_503_estimated_timeout (timeout)
   - multiple Atila apps and ONE Not-Atila app can be mounted to same path

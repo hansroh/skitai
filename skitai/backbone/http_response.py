@@ -410,6 +410,10 @@ class http_response:
             do_optimize = False
 
         elif len (self.outgoing) == 1 and hasattr (self.outgoing.first (), "ready"):
+            if self.request.get_header ('upgrade') == 'websocket':
+                wrap_in_chunking = False
+                upgrade_to = self.request, 2
+
             outgoing_producer = producers.composite_producer (self.outgoing)
             if wrap_in_chunking:
                 self.update ('Transfer-Encoding', 'chunked')
@@ -493,7 +497,6 @@ class http_response:
 
         # IMP: second testing after push_with_producer()->init_send ()
         if self.request.channel is None: return
-
         if upgrade_to:
             request, terminator = upgrade_to
             self.request.channel.current_request = request

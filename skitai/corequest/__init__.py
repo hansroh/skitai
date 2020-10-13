@@ -9,20 +9,23 @@ from aquests.athreads import trigger
 from ..utility import deallocate_was, catch
 from aquests.protocols.grpc.producers import serialize
 from ..wastuff import _WASType
+from aquests.protocols.ws import *
 
 WAS_FACTORY = None
 
 
 class Coroutine:
-    def __init__ (self, coro, was_id):
+    def __init__ (self, coro, was_id, resp_status = '200 OK'):
         self.coro = coro
+        self.resp_status = resp_status
         self.producer = None
         self.contents = []
         self.input_streams = []
-
         self._was = None
         self._waiting_input = False
+        self._rtype = None
         self._clone_and_deceive_was (was_id)
+        self._determine_response_type ()
 
     def _clone_and_deceive_was (self, was_id):
         self._was = get_cloned_was (was_id)
@@ -32,8 +35,23 @@ class Coroutine:
             self.coro.gi_frame.f_locals [n] = self._was
         ctypes.pythonapi.PyFrame_LocalsToFast(ctypes.py_object (self.coro.gi_frame), ctypes.c_int (0))
 
+    def _determine_response_type (self):
+        if self._was.request.get_header ("upgrade") == 'websocket':
+            self._rtype = 'websocket'
+            self.resp_status = "101 Web Socket Protocol Handshake"
+        elif self._was.request.get_header ("content-type", "").startswith ('application/grpc'):
+            self._rtype = 'grpc'
+
     def serialize (self, v):
-        return serialize (v, True) if hasattr (v, 'SerializeToString') else v
+        from ..handlers.websocket.specs import encode_message
+        if v is None:
+            return
+        if self._rtype is None:
+            return v
+        if self._rtype == 'grpc':
+            return serialize (v, True)
+        if self._rtype == 'websocket':
+            return encode_message (v, OPCODE_TEXT if isinstance (v, str) else OPCODE_BINARY)
 
     def collect_data (self):
         while 1:
@@ -86,7 +104,7 @@ class Coroutine:
 
                 if not isinstance (next_task, corequest):
                     next_task = self.serialize (next_task)
-                    assert isinstance (next_task, (str, bytes)), "str or bytes object required"
+                    assert isinstance (next_task, (str, bytes, bytearray)), "str or bytes object required"
                     self.contents.append (next_task.encode () if isinstance (next_task, str) else next_task)
 
                     next_task = self.collect_data ()
@@ -144,6 +162,7 @@ class Coroutine:
             task.set_proxy_coroutine (proxy)
             self._waiting_input = True # must next task.set_proxy_coroutine
             self.producer = producers.sendable_producer (b'')
+            self._was.response.set_status (self.resp_status)
             return self.producer
 
         return task if hasattr (task, "_single") else task.then (self.on_completed, self._was)
