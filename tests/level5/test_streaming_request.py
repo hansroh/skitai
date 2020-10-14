@@ -9,6 +9,7 @@ def stream (blocksize = 4096):
         data = b'a' * blocksize
         if not data:
             break
+        print ('send', blocksize)
         yield data
         chunks -= 1
 

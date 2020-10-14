@@ -11,6 +11,7 @@ from aquests.protocols.grpc.producers import serialize
 from ..wastuff import _WASType
 from aquests.protocols.ws.collector import encode_message
 from aquests.protocols.ws import *
+from ..backbone.lifetime import tick_timer
 
 WAS_FACTORY = None
 
@@ -99,7 +100,8 @@ class Coroutine:
                 if hasattr (next_task, 'set_proxy_coroutine'):
                     self._waiting_input = True
                     # 2nd loop entry point
-                    self.input_streams and self.on_completed (self._was, self.input_streams.pop (0))
+                    self.input_streams and tick_timer.next (self.on_completed, (self._was, self.input_streams.pop (0)))
+                    # self.input_streams and self.on_completed (self._was, self.input_streams.pop (0))
                     return
 
                 if not isinstance (next_task, corequest):
@@ -134,7 +136,8 @@ class Coroutine:
                 if hasattr (next_task, 'set_proxy_coroutine'):
                     self._waiting_input = True
                     # 3rd loop entry point
-                    self.input_streams and self.on_completed (self._was, self.input_streams.pop (0))
+                    self.input_streams and tick_timer.next (self.on_completed, (self._was, self.input_streams.pop (0)))
+                    # self.input_streams and self.on_completed (self._was, self.input_streams.pop (0))
                     return
 
                 return next_task if hasattr (next_task, "_single") else next_task.then (self.on_completed, self._was)
