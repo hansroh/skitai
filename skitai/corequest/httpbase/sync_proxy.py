@@ -16,17 +16,18 @@ class RPCResponse:
         self.data = val
 
 class XMLRPCServerProxy (xmlrpc.client.ServerProxy):
-     def _ServerProxy__request (self, methodname, params):
+    def _ServerProxy__request (self, methodname, params):
         response = xmlrpc.client.ServerProxy._ServerProxy__request (self, methodname, params)
         return Result (3, RPCResponse (response))
 
 try:
     import jsonrpclib
 except ImportError:
-    pass
+    from rs4.annotations import Uninstalled
+    JSONRPCServerProxy = Uninstalled ('jsonrpclib', 'jsonrpclib-pelix')
 else:
     class JSONRPCServerProxy (jsonrpclib.ServerProxy):
-         def _ServerProxy__request (self, methodname, params):
+        def _ServerProxy__request (self, methodname, params):
             response = xjsonrpclib.ServerProxy._ServerProxy__request (self, methodname, params)
             return Result (3, RPCResponse (response))
 

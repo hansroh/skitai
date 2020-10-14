@@ -63,7 +63,6 @@ install_requires = [
 	"rs4>=0.2.28",
 	"aquests>=0.29.9",
 	"sqlphile",
-	"jsonrpclib-pelix",
 ]
 if os.name == "nt":
 	install_requires.append ("pywin32")
