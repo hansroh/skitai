@@ -38,7 +38,8 @@ argopt.add_option (None, '---profile', desc = "log for performance profiling")
 argopt.add_option (None, '---memtrack', desc = "show memory status")
 argopt.add_option (None, '---gc', desc = "enable manual GC")
 
-argopt.add_option (None, '--devel', desc = "enable auto reloading and debug output")
+argopt.add_option (None, '--deploy=VALUE', desc = "DEPLOYMENT environment value [PRODUCTION, QA, TEST, ...]")
+argopt.add_option (None, '--devel', desc = "enable reloading and debug output")
 argopt.add_option (None, '--port=TCP_PORT_NUMBER', desc = "http/https port number")
 argopt.add_option (None, '--quic=UDP_PORT_NUMBER', desc = "http3/quic port number")
 argopt.add_option (None, '--workers=WORKERS', desc = "number of workers")
@@ -47,6 +48,9 @@ argopt.add_option (None, '--poll=POLLER', desc = "name of poller [select, poll, 
 argopt.add_option (None, '--smtpda', desc = "run SMTPDA if not started")
 argopt.add_option (None, '--user=USER', desc = "if run as root, fallback workers owner to user")
 argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback workers owner to group")
+
+if '--deploy' in argopt.options ():
+    os.environ ['DEPLOYMENT'] = argopt.options ().get ('--deploy')
 
 if os.getenv ("SKITAIENV") is None:
     os.environ ["SKITAIENV"] = "PRODUCTION"
