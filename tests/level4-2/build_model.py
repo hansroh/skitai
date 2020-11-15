@@ -71,11 +71,11 @@ def train ():
         epochs=EPOCHS,
         steps_per_epoch = dss.steps,
         callbacks = dnn.callbacks.compose (
-            './tmp', 0.001, dss,
-            metric_func = numpy_metric,
+            './tmp', dss,
+            custom_metric = numpy_metric,
             monitor = ('val_y1_accuracy', 'max'),
             early_stop = (20, "val_y1_accuracy", "max"),
-            decay_rate = 0.98,
+            decay_rate = (0.001, 0.98),
             enable_logging = False,
             reset_train_dir = True
         )

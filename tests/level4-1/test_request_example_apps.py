@@ -37,7 +37,9 @@ def test_app (launch):
 
 		for url in urls:
 			assert_request (200, url)
+			time.sleep (1)
 			assert_request (200, url)
+			time.sleep (1)
 
 		assert_post_request (200, "/post", {"username": "pytest"})
 		jpg = open (os.path.join (confutil.getroot (), "statics", "reindeer.jpg"), "rb")
