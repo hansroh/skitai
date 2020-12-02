@@ -37,7 +37,6 @@ def test_build_model ():
 X = [2622, 129, 1856, 2391, 230, 2562, 4028, 3199, 231, 1843, 3789, 905, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 Y = [0.0, 1.0]
 SEQLEN = 12
-
 def test_tfserver ():
     serve = "./examples/tfserve.py"
     with skitai.test_client (serve, port = 30371, silent = False) as engine:

@@ -22,8 +22,8 @@ train_ys = np.array ([
     (0, 1.0),
 ])
 
-dataset = tf.data.Dataset.from_tensor_slices ((train_xs, {"y1": train_ys, "y2": train_ys})).batch (2).repeat ()
-validation_data = tf.data.Dataset.from_tensor_slices ((train_xs, {"y1": train_ys, "y2": train_ys})).batch (1)
+dataset = tf.data.Dataset.from_tensor_slices ((train_xs, (train_ys, train_ys))).batch (2).repeat ()
+validation_data = tf.data.Dataset.from_tensor_slices ((train_xs, (train_ys, train_ys))).batch (1)
 labels = [label.Label (['true', 'false'], 'truth'), label.Label (['true', 'false'], 'faith')]
 
 dss = datasets.Datasets (2, dataset, validation_data, labels = labels)
@@ -56,11 +56,9 @@ def create_model (checkpoint = None):
     return model
 
 
-def numpy_metric (y_true, y_pred, logs):
-    y1_acc = np.mean (np.argmax (y_true ['y1'], axis = 1) == np.argmax (y_pred [0], axis = 1))
-    y2_acc = np.mean (np.argmax (y_true ['y2'], axis = 1) == np.argmax (y_pred [1], axis = 1))
-    logs ['val_avg_acc'] = np.mean ([y1_acc, y2_acc])
-    return 'my metric log line'
+def numpy_metric (y_true, y_pred, logs, name = None):
+    logs ['val_{}_acc'.format (name)] = np.mean (np.argmax (y_true, axis = 1) == np.argmax (y_pred, axis = 1))
+    return 'my {} log line'.format (name)
 
 
 def train ():
@@ -108,10 +106,10 @@ def deploy (model):
     x_test, y_true = dss.testset_as_numpy ()
 
     y1_pred = np.argmax (model.predict (x_test) [0], axis = 1)
-    f1_1 = f1_score (np.argmax (y_true ['y1'], axis = 1), y1_pred, average = 'weighted')
+    f1_1 = f1_score (np.argmax (y_true [0], axis = 1), y1_pred, average = 'weighted')
 
     y1_pred = np.argmax (model_s.ftest (x_test).y1, axis = 1)
-    f1_2 = f1_score (np.argmax (y_true ['y1'], axis = 1), y1_pred, average = 'weighted')
+    f1_2 = f1_score (np.argmax (y_true [0], axis = 1), y1_pred, average = 'weighted')
     assert f1_1 == f1_2
 
     resp = saved_model.deploy ('tmp/exported', 'http://127.0.0.1:30371/models/keras/versions/1', overwrite = True)
