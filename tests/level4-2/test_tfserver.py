@@ -118,16 +118,3 @@ def test_tfserver ():
         assert resp.status_code == 204
         resp = engine.get ("/models/ex2/version")
         assert resp.status_code == 404
-
-
-
-
-
-
-
-
-
-
-
-
-
