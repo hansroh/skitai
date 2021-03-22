@@ -14,7 +14,7 @@ variables:
 .before_python_test: &before_python_test
     before_script:
       - *base_install
-      - pip install -U grpcio dnn tensorflow==2.2.0
+      - pip install -U grpcio dnn tensorflow-cpu==2.2.0
 
 .before_python_notf_test: &before_python_notf_test
     before_script:
