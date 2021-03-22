@@ -49,7 +49,7 @@ argopt.add_option (None, '--smtpda', desc = "run SMTPDA if not started")
 argopt.add_option (None, '--user=USER', desc = "if run as root, fallback workers owner to user")
 argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback workers owner to group")
 
-if '--deploy' in argopt.options ():
+if '--deploy' in sys.argv:
     os.environ ['DEPLOYMENT'] = argopt.options ().get ('--deploy')
 
 if os.getenv ("SKITAIENV") is None:
