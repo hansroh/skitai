@@ -27,8 +27,6 @@ validation_data = tf.data.Dataset.from_tensor_slices ((train_xs, (train_ys, trai
 labels = [label.Label (['true', 'false'], 'truth'), label.Label (['true', 'false'], 'faith')]
 
 dss = datasets.Datasets (2, dataset, validation_data, labels = labels)
-dss.save ('tmp/assets')
-
 EPOCHS = 30
 INIT_LR = 1e-3
 BS = 32
@@ -80,6 +78,7 @@ def train ():
         )
     )
     model.evaluate (dss.validset)
+    dss.save ('tmp/assets')
 
 def restore ():
     from tfserver import saved_model
