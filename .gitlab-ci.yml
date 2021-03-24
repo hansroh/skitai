@@ -44,33 +44,36 @@ variables:
   only:
     - master
 
-python 3.6stretch:
-  image: python:3.6-stretch
-  <<: *before_python_test
-  <<: *test
-  only:
-    - master
+# python 3.6stretch:
+#   image: python:3.6-stretch
+#   <<: *before_python_test
+#   <<: *test
+#   only:
+#     - master
 
-python 3.7stretch:
-  image: python:3.7-stretch
+# python 3.7stretch:
+#   image: python:3.7-stretch
+#   <<: *before_python_test
+#   <<: *test
+#   only:
+#     - dev
+
+# python 3.8buster:
+#   image: python:3.8-buster
+#   <<: *before_python_test
+#   <<: *test
+#   only:
+#     - master
+
+python 3.9buster:
+  image: python:3.9-buster
   <<: *before_python_test
   <<: *test
   only:
     - dev
-
-python 3.8buster:
-  image: python:3.8-buster
-  <<: *before_python_test
-  <<: *test
-  only:
-    - master
 
 # python pypy3:
 #   image: pypy:3
 #   <<: *before_pypy_test
 #   <<: *test
 
-# python 3.9buster:
-#   image: python:3.9.0b1-buster
-#   <<: *before_python_notf_test
-#   <<: *test

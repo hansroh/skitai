@@ -8,7 +8,6 @@ import pickle
 import pytest
 import shutil
 
-@pytest.mark.skip
 def test_build_model ():
     pathtool.mkdir ('tmp/checkpoint')
     serve = "./examples/tfserve.py"
