@@ -19,8 +19,8 @@ def test_build_model ():
 
         import build_model
         build_model.train ()
-        model = build_model.restore ()
-        build_model.deploy (model)
+        build_model.restore ()
+        build_model.deploy ()
 
         stub = cli.Server ("http://127.0.0.1:30371")
         for i in range (len (build_model.train_xs)):
@@ -30,33 +30,50 @@ def test_build_model ():
             assert resp.y2_scores.shape == (1, 2)
             assert b'true' in resp.y1_classes.tolist () [0]
 
+        resp = stub.predict ('keras', 'predict', x = build_model.train_xs [:3])
+        assert resp.y1.shape  == (3, 2)
+        assert resp.y1_classes.shape == (3, 2)
+        assert resp.y2_scores.shape == (3, 2)
+
+        resp = stub.predict ('keras', 'reduce_mean', x = build_model.train_xs)
+        assert resp.y1.shape == (1, 2)
+        assert resp.y1_classes.shape == (1, 2)
+        assert resp.y2_scores.shape == (1, 2)
+        assert b'true' in resp.y1_classes.tolist () [0]
+
         shutil.rmtree ('tmp')
         shutil.rmtree ('examples/models/keras')
 
 
-X = [2622, 129, 1856, 2391, 230, 2562, 4028, 3199, 231, 1843, 3789, 905, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-Y = [0.0, 1.0]
-SEQLEN = 12
 def test_tfserver ():
     serve = "./examples/tfserve.py"
+    if os.path.isdir ('./examples/models/ex2'):
+        shutil.rmtree ('./examples/models/ex2')
+
     with skitai.test_client (serve, port = 30371, silent = False) as engine:
         try:
             from tfserver.loaders import TFServer
             from tfserver import cli
             import numpy as np
+            import build_model
         except ImportError:
             return
 
         s = TFServer ("http://127.0.0.1:30371", "ex1")
-        resp = s.predict (x = np.array ([X]), seq_length = np.array ([SEQLEN]))
-        assert resp.y.shape == (1, 2)
+        resp = s.predict (x = build_model.train_xs [:1])
+        assert resp.y1.shape == (1, 2)
 
-        params = {
-                "x": [X],
-                "seq_length": [SEQLEN]
-        }
+        params = {"x": build_model.train_xs [:1].tolist ()}
         resp = engine.post ("/models/ex1/predict", data = json.dumps (params), headers = {"Content-Type": "application/json"})
-        assert np.array (resp.data["result"]["y"]).shape == (1, 2)
+        assert np.array (resp.data["result"]["y1"]).shape == (1, 2)
+
+        params = {"x": build_model.train_xs [:3].tolist ()}
+        resp = engine.post ("/models/ex1/predict", data = json.dumps (params), headers = {"Content-Type": "application/json"})
+        assert np.array (resp.data["result"]["y1"]).shape == (3, 2)
+
+        params = {"x": build_model.train_xs [:3].tolist (), 'reducer': 'max'}
+        resp = engine.post ("/models/ex1/predict", data = json.dumps (params), headers = {"Content-Type": "application/json"})
+        assert np.array (resp.data["result"]["y1"]).shape == (1, 2)
 
         resp = engine.get ("/models/ex1/version")
         assert resp.data ['version'] == 1

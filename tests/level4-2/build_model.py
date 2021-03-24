@@ -7,6 +7,7 @@ import shutil
 from tfserver import label, datasets
 import os
 import glob
+from tfserver import service_models
 
 train_xs = np.array ([
     (0.1, 0.2, 0.6),
@@ -78,44 +79,36 @@ def train ():
         )
     )
     model.evaluate (dss.validset)
-    dss.save ('tmp/assets')
+    if os.path.exists ('tmp/exported'):
+        shutil.rmtree ('tmp/exported')
+    service_models.Model ().save ('tmp/exported', model, dss)
 
 def restore ():
-    from tfserver import saved_model
-
-    dss = datasets.load ('tmp/assets')
+    version = service_models.get_latest_version ('tmp/exported')
+    dss = datasets.load ('tmp/exported/{}/assets'.format (version), testset = True)
     best = sorted (glob.glob (os.path.join ('tmp/checkpoint', '*.ckpt.index'))) [-1]
     model = create_model (best [:-6])
     model.evaluate (dss.testset)
     model.predict (dss.testset_as_numpy () [0])
-
     return model
 
-def deploy (model):
-    from tfserver import saved_model, datasets
+def deploy ():
     from sklearn.metrics import f1_score
     import numpy as np
     import os, shutil
 
-    if os.path.exists ('tmp/exported'):
-        shutil.rmtree ('tmp/exported')
+    model = service_models.Model ()
+    model.load ('tmp/exported', testset = True)
 
-    saved_model.save ('tmp/exported', model, labels = labels, assets_dir = 'tmp/assets')
-    model_s = saved_model.load ('tmp/exported')
-    dss = datasets.load ( 'tmp/assets')
-    x_test, y_true = dss.testset_as_numpy ()
-
+    x_test, y_true = model.ds.testset_as_numpy ()
     y1_pred = np.argmax (model.predict (x_test) [0], axis = 1)
     f1_1 = f1_score (np.argmax (y_true [0], axis = 1), y1_pred, average = 'weighted')
 
-    y1_pred = np.argmax (model_s.ftest (x_test).y1, axis = 1)
-    f1_2 = f1_score (np.argmax (y_true [0], axis = 1), y1_pred, average = 'weighted')
-    assert f1_1 == f1_2
-
-    resp = saved_model.deploy ('tmp/exported', 'http://127.0.0.1:30371/models/keras/versions/1', overwrite = True)
+    resp = model.deploy ('http://127.0.0.1:30371/models/keras', overwrite = True)
     print (resp)
+
 
 if __name__ == '__main__':
     train ()
-    model = restore ()
-    deploy (model)
+    restore ()
+    deploy ()
