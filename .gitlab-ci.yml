@@ -63,14 +63,14 @@ python 3.8buster:
   <<: *before_python_test
   <<: *test
   only:
-    - master
+    - dev
 
 python 3.9buster:
   image: python:3.9-buster
   <<: *before_python_notf_test
   <<: *test
   only:
-    - dev
+    - master
 
 # python pypy3:
 #   image: pypy:3
