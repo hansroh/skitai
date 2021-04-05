@@ -73,7 +73,7 @@ def train ():
             custom_metric = numpy_metric,
             monitor = ('val_y1_accuracy', 'max'),
             early_stop = (20, "val_y1_accuracy", "max"),
-            decay_rate = (0.001, 0.98),
+            learning_rate = (0.001, 0.98),
             enable_logging = False,
             reset_train_dir = True
         )
