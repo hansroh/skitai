@@ -626,9 +626,16 @@ Process/Thread Pool Setting
 
   skitai.config_executors (workers = None, zombie_timeout = DEFAULT_BACKGROUND_TASK_TIMEOUT, process_start_method = None)
 
+  # For example, to multiprocess Pytorch with GPU,
+  skitai.config_executors (workers = 4, process_start_method = 'spawn')
+
 - workers: CPU count if None
 - zombie_timeout
 - process_start_method: See multiprocessing.set_start_method
+
+
+
+
 
 
 Setting POST Body Size Limitation
