@@ -142,7 +142,7 @@ class ThreadExecutor:
         future = self.create_task (f, a, b, timeout)
         wrap = Task (future, "{}.{}".format (f.__module__, f.__name__), meta = meta, filter = filter)
         timeout and wrap.set_timeout (timeout)
-        self.logger ("{} task started: {}".format (self.NAME, wrap))
+        # self.logger ("{} task started: {}".format (self.NAME, wrap))
         with self.lock:
             self.futures.append (wrap)
         return wrap

@@ -404,10 +404,14 @@ def set_keep_alive (timeout):
     global dconf
     dconf ["keep_alive"] = timeout
 
-def config_executors (workers = None, zombie_timeout = DEFAULT_BACKGROUND_TASK_TIMEOUT):
+def config_executors (workers = None, zombie_timeout = DEFAULT_BACKGROUND_TASK_TIMEOUT, process_start_method = None):
     global dconf
-    dconf ["executors_workers"] = workers
-    dconf ["executors_zombie_timeout"] = zombie_timeout
+    if workers:
+        dconf ["executors_workers"] = workers
+    if zombie_timeout:
+        dconf ["executors_zombie_timeout"] = zombie_timeout
+    if process_start_method:
+        dconf ["executors_process_start"] = process_start_method
 
 def set_backend (timeout, object_timeout = DEFAULT_BACKEND_OBJECT_TIMEOUT, maintain_interval = DEFAULT_BACKEND_MAINTAIN_INTERVAL):
     global dconf
@@ -860,12 +864,15 @@ def run (**conf):
                 max_upload_size = conf ['max_upload_size'],
                 thunks = [self.master_jobs]
             )
-
             if os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
                 # master does not serve
                 return
 
-            self.config_executors (conf.get ('executors_workers', threads), dconf.get ("executors_zombie_timeout", DEFAULT_BACKGROUND_TASK_TIMEOUT))
+            self.config_executors (
+                conf.get ('executors_workers', threads),
+                conf.get ("executors_zombie_timeout", DEFAULT_BACKGROUND_TASK_TIMEOUT),
+                conf.get ("executors_process_start")
+            )
             self.config_threads (threads)
             self.config_backends (
                 conf.get ('backend_keep_alive', DEFAULT_BACKEND_KEEP_ALIVE),

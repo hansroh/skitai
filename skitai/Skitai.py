@@ -118,7 +118,11 @@ class Loader:
 		adns.init (self.wasc.logger.get ("server"), prefer_protocol = prefer_protocol)
 		lifetime.maintern.sched (4.1, dns.pool.maintern)
 
-	def config_executors (self, workers, zombie_timeout):
+	def config_executors (self, workers, zombie_timeout, process_start = None):
+		if process_start:
+			from multiprocessing import set_start_method
+			try: set_start_method (process_start, force = True)
+			except RuntimeError: pass
 		self.wasc.register ("executors", executors.Executors (workers, zombie_timeout, self.wasc.logger.get ("server")))
 
 	def config_cachefs (self, cache_dir = None, memmax = 0, diskmax = 0):
