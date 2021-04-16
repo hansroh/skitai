@@ -8,14 +8,14 @@ variables:
   - pip install -U --pre --no-cache-dir aquests rs4 sqlphile
   - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
   - python -c 'from aquests.protocols.grpc import discover'
-  - pip install --pre --no-cache-dir atila
+  - pip install -U --pre --no-cache-dir atila
   - pip install -Ur tests/requirements.txt
 
 .before_python_test: &before_python_test
     before_script:
       - *base_install
       - pip install -U grpcio tensorflow-cpu==2.2.0
-      - pip install --pre --no-cache-dir tfserver dnn
+      - pip install -U --pre --no-cache-dir tfserver dnn
 
 .before_python_notf_test: &before_python_notf_test
     before_script:
