@@ -246,7 +246,6 @@ class Module:
                 self.wasc.logger ("app", "reloading app, %s" % self.abspath, "debug")
 
     def set_route (self, route):
-        route = route
         while route and route [-1] == "/":
             route = route [:-1]
         self.route = route + "/"
