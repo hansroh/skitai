@@ -59,6 +59,11 @@ def test_tfserver ():
         except ImportError:
             return
 
+        resp = engine.post ("/api", data = json.dumps ({'x': build_model.train_xs [:1].tolist ()}), headers = {"Content-Type": "application/json"})
+        assert np.array (resp.data ['y1']).shape == (1, 2)
+        assert np.array (resp.data ['y2']).shape == (1, 2)
+        return
+
         s = TFServer ("http://127.0.0.1:30371", "ex1")
         resp = s.predict (x = build_model.train_xs [:1])
         assert resp.y1.shape == (1, 2)

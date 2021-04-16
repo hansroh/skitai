@@ -8,6 +8,9 @@ import sys
 from rs4.psutil import kill
 from concurrent.futures import TimeoutError
 
+class ProcessExpired (Exception):
+    pass
+
 DEFAULT_TIMEOUT = 10
 N_CPU = multiprocessing.cpu_count()
 
