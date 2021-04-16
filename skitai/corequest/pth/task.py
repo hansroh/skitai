@@ -7,8 +7,6 @@ from aquests.athreads import trigger
 import sys
 from ..httpbase.task import DEFAULT_TIMEOUT
 
-PREFER_PEBBLE = False
-
 class Task (corequest):
     def __init__ (self, future, name, meta, filter, timeout = None):
         self.setup (name, meta, filter, timeout)
@@ -46,8 +44,6 @@ class Task (corequest):
         return self._mask is not None
 
     def result (self, timeout = None):
-        if PREFER_PEBBLE:
-            return self.future.result ()
         expt = self.future.exception ()
         if expt:
             raise expt

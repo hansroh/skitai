@@ -15,6 +15,7 @@ variables:
     before_script:
       - *base_install
       - pip install -U grpcio dnn tensorflow-cpu==2.2.0
+      - pip install -U --pre --no-cache-dir tfserver dnn
 
 .before_python_notf_test: &before_python_notf_test
     before_script:
