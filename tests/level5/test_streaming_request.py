@@ -39,4 +39,3 @@ def test_streaming_request2 (launch, is_pypy):
                 headers = {'Content-Type': 'application/octet-stream'}
             )
             assert len (resp.text) == 6554005
-
