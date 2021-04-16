@@ -3342,6 +3342,10 @@ Links
 Change Log
 ============
 
+- 0.36 (Apr, 2021)
+
+  - add Preference.set_static () and Preference.set_media ()
+
 - 0.35 (Feb 2020)
 
   - drop support win32 platform officially
