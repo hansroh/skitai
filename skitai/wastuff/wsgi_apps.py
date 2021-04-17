@@ -274,7 +274,16 @@ class ModuleManager:
         self.bus = evbus.EventBus ()
 
     def __getitem__ (self, name):
-        return self.modnames [name].get_callable ()
+        try:
+            return self.modnames [name].get_callable ()
+        except KeyError:
+            raise NameError ('app `{}` not found'.format (name))
+
+    def get (self, name, default = None):
+        try:
+            return self.modnames [name].get_callable ()
+        except KeyError:
+            return default
 
     def build_url (self, thing, *args, **kargs):
         a, b = thing.split (":", 1)
