@@ -3,11 +3,10 @@ from aquests.protocols.grpc import request as grpc_request
 from aquests.protocols.ws import request as ws_request
 from aquests.dbapi import request as dbo_request
 import skitai
-from ..backbone.http_request import http_request
+from ...backbone.http_request import http_request
 from base64 import b64encode
 import os
-from . import channel
-from .server import get_client_response
+from .server import Channel, get_client_response
 import json
 from rs4.webkit import siesta
 from urllib.parse import urlparse
@@ -56,7 +55,7 @@ class Client:
     def __generate (self, r):
         m, u, v = r.get_method (), r.path, r.http_version
         headers = ["%s: %s" % each for each in r.get_headers ()]
-        return http_request (channel.Channel (), "%s %s HTTP/%s" % (m, u, v), m.lower (), u, v, headers)
+        return http_request (Channel (), "%s %s HTTP/%s" % (m, u, v), m.lower (), u, v, headers)
 
     def make_request (self, method, uri, data, headers, auth = None, meta = {}, version = "1.1"):
         method = method.upper ()

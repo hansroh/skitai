@@ -7,7 +7,6 @@ import os
 from aquests.protocols.http2.producers import h2frame_producer, h2header_producer
 import threading
 from h2.connection import H2Connection
-from skitai.testutil import server
 from skitai.handlers.http2.response import response as http2_response
 from unittest.mock import MagicMock
 

@@ -139,7 +139,7 @@ class WASBase (_WASType):
             nheader ["X-Requested-With"] = NAME
         return nheader
 
-    # concurrencies ----------------------------------------------
+    # fundamental concurrencies ----------------------------------------------
     def Thread (self, target, *args, **kargs):
         # also can be Thread (target, args, kwargs, meta)
         return self.executors.create_thread (self.ID, target, *args, **kargs)
@@ -253,7 +253,7 @@ class WASBase (_WASType):
     def wsclient (self):
         return self.env.get ('websocket.client')
 
-    # will be deprecated --------------------------------------------------
+    # deprecated --------------------------------------------------
     @deprecated ()
     def togrpc (self, obj):
         return obj.SerializeToString ()

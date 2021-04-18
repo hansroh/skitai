@@ -3,8 +3,8 @@ import confutil
 import skitai
 from atila import Atila
 from rs4 import logger
-from skitai import testutil
-from skitai.testutil import server, channel as cha
+from skitai.testutil import offline
+from skitai.testutil.offline.server import Server, Conn, Channel
 from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS
 import sys
 import pytest
@@ -35,7 +35,7 @@ def is_pypy ():
 
 @pytest.fixture
 def log ():
-    logger = testutil.logger ()
+    logger = offline.logger ()
     yield logger
     logger.close ()
 
@@ -51,36 +51,36 @@ def client ():
 
 @pytest.fixture
 def conn ():
-    sock = cha.Conn ()
+    sock = Conn ()
     return sock
 
 @pytest.fixture
 def channel ():
-    c = cha.Channel ()
+    c = Channel ()
     yield c
     c.close ()
 
 @pytest.fixture
 def server ():
-    s = server.Server ()
+    s = Server ()
     yield s
     s.close ()
 
 @pytest.fixture (scope = "session")
 def wasc ():
-    testutil.activate (make_sync = True)
-    return testutil.wasc
+    offline.activate (make_sync = True)
+    return offline.wasc
 
 @pytest.fixture (scope = "session")
 def async_wasc ():
     from skitai.wsgiappservice import WAS
-    wasc = testutil.setup_was (WAS) # nned real WAS from this testing
+    wasc = offline.setup_was (WAS) # nned real WAS from this testing
 
     assert "example" in wasc.clusters
     assert "postgresql" in wasc.clusters
     return wasc
 
-DBPATH = testutil.SAMPLE_DBPATH
+DBPATH = offline.SAMPLE_DBPATH
 
 @pytest.fixture (scope = "session")
 def dbpath ():

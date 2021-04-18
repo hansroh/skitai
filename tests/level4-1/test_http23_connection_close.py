@@ -25,21 +25,20 @@ def test_http2 (launch):
             assert isinstance (e, (ConnectionResetError, socket.timeout))
 
 def test_http3 (launch):
-    if sys.version_info < (3, 7) or IS_PYPY:
+    if sys.version_info < (3, 6) or IS_PYPY:
         return
 
     from aioquic.quic.events import ConnectionTerminated
     from aquests.protocols.http3.events import ConnectionShutdownInitiated
-    from aquests.protocols.http3.client import ConnectionClosed
 
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
         for i in range (3):
             resp = engine.http3.get ('/hello?num=1')
-        resp = engine.http3.get ('/shutdown?stream_id=12')
+        resp = engine.http3.get ('/shutdown?stream_id=0')
         assert resp.text == 'CLOSED'
 
         try:
             resp = engine.http2.get ('/hello?num=1')
         except Exception as e:
-            assert isinstance (e, (ConnectionClosed, socket.timeout))
+            assert isinstance (e, socket.timeout)

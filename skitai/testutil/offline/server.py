@@ -1,16 +1,19 @@
 from aquests.protocols.http import request, response
 from aquests.protocols.ws import response as ws_response
-from ..wastuff import triple_logger
-from ..backbone.http_server import http_server
-from ..handlers import pingpong_handler
-from ..handlers.http2.response import response as http2_response
-from ..backbone.http_response import http_response
-from ..handlers import vhost_handler
+from ...wastuff import triple_logger
+from ...backbone.http_server import http_server
+from ...handlers import pingpong_handler
+from ...handlers.http2.response import response as http2_response
+from ...backbone.http_response import http_response
+from ...handlers import vhost_handler
 import skitai
-from .. import lifetime
+from ... import lifetime
 from rs4 import asyncore
 from atila.collectors.multipart_collector import MultipartCollector
 from unittest.mock import MagicMock
+from unittest.mock import MagicMock
+import socket
+from ...backbone.http_server import http_channel
 
 def find_handler (request):
     for h in skitai.was.httpserver.handlers:
@@ -55,4 +58,26 @@ def Server (log = None):
     s = http_server ('0.0.0.0', 3000, log.get ("server"), log.get ("request"))
     s.install_handler (pingpong_handler.Handler ())
     return s
+
+def Conn ():
+    class Socket (MagicMock):
+        def __init__ (self, *args, **karg):
+            MagicMock.__init__ (self, *args, **karg)
+            self.__buffer = []
+
+        def send (self, data):
+            self.__buffer.append (data)
+            return len (data)
+
+        def getvalue (self):
+            return b"".join (self.__buffer)
+
+    sock = Socket (name="socket", spec=socket.socket)
+    sock.fileno.return_value = 1
+    return sock
+
+def Channel ():
+    c = http_channel (Server (), Conn (), ('127.0.0.100', 65535))
+    c.connected = True
+    return c
 

@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.36.2"
+__version__ = "0.36.4.1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -321,13 +321,23 @@ class Preference (AttrDict):
     def __exit__ (self, *args):
         pass
 
-    def mount (self, *args, **kargs):
-        # mount module or func (app, options)
-        self.__dict__ ["mountables"].append ((args, kargs))
+    def set_static (self, url, path):
+        self.config.STATIC_ROOT = path
+        self.config.STATIC_URL = url
+        mount (url, path)
+
+    def set_media (self, url, path):
+        self.config.MEDIA_ROOT = path
+        self.config.MEDIA_URL = url
+        mount (url, path)
 
     def copy (self):
         return copy.deepcopy (self)
 
+    @annotations.deprecated ('for communicating another app, use subscribe parameter of skitai.mount()')
+    def mount (self, *args, **kargs):
+        # mount module or func (app, options)
+        self.__dict__ ["mountables"].append ((args, kargs))
 
 def preference (preset = False, path = None, **configs):
     from .wastuff.wsgi_apps import Config
@@ -337,6 +347,7 @@ def preference (preset = False, path = None, **configs):
         d.config [k] = v
     return d
 pref = preference # lower version compatible
+
 
 PROCESS_NAME = None
 

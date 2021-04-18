@@ -1,8 +1,7 @@
 import pytest
-from skitai import testutil
+from skitai.testutil import offline
 
 @pytest.fixture (scope = "session")
 def wasc ():
-    testutil.activate (make_sync = False)
-    return testutil.wasc
-    
+    offline.activate (make_sync = False)
+    return offline.wasc

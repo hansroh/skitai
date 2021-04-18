@@ -246,7 +246,6 @@ class Module:
                 self.wasc.logger ("app", "reloading app, %s" % self.abspath, "debug")
 
     def set_route (self, route):
-        route = route
         while route and route [-1] == "/":
             route = route [:-1]
         self.route = route + "/"
@@ -275,7 +274,16 @@ class ModuleManager:
         self.bus = evbus.EventBus ()
 
     def __getitem__ (self, name):
-        return self.modnames [name].get_callable ()
+        try:
+            return self.modnames [name].get_callable ()
+        except KeyError:
+            raise NameError ('app `{}` not found'.format (name))
+
+    def get (self, name, default = None):
+        try:
+            return self.modnames [name].get_callable ()
+        except KeyError:
+            return default
 
     def build_url (self, thing, *args, **kargs):
         a, b = thing.split (":", 1)

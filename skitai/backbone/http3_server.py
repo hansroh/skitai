@@ -31,6 +31,9 @@ class http3_channel (https_server.https_channel, http_server.http_channel):
     def writable (self):
         return self.writable_with_protocol ()
 
+    def readable (self):
+        return self.connected
+
     def handle_write (self):
         # https://github.com/aiortc/aioquic/blob/master/src/aioquic/asyncio/protocol.py
         # transmit (self)
@@ -56,9 +59,6 @@ class http3_channel (https_server.https_channel, http_server.http_channel):
         self.protocol.handle_timer (now = now)
         self.current_request.process_quic_events ()
         self.handle_write ()
-
-    def readable (self):
-        return self.connected
 
     def recv (self, buffer_size):
         try:

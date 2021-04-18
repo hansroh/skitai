@@ -53,7 +53,8 @@ packages = [
 	'skitai.corequest.pth',
 	'skitai.wastuff',
 	'skitai.mounted',
-	'skitai.testutil'
+	'skitai.testutil',
+	'skitai.testutil.offline',
 ]
 
 package_dir = {'skitai': 'skitai'}
