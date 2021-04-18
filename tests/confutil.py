@@ -1,13 +1,13 @@
 import os
-from skitai.testutil import server
-from skitai.testutil import server, client as cli 
+from skitai.testutil.offline import server
+from skitai.testutil.offline import client as cli
 from examples.services import route_guide_pb2
 
 client = cli.Client ()
 
 def getroot ():
-	return os.path.join (os.path.dirname (__file__), "examples")	
-	
+	return os.path.join (os.path.dirname (__file__), "examples")
+
 def rprint (*args):
 	print ('* PYTEST DEBUG:', *args)
 

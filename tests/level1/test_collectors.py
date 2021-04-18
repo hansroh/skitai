@@ -4,7 +4,7 @@ from atila.collectors import grpc_collector
 from examples.services import route_guide_pb2
 from atila.collectors import multipart_collector
 import pytest
-from skitai import testutil
+from skitai.testutil import offline as testutil
 
 @pytest.fixture
 def handler (wasc):
@@ -37,4 +37,3 @@ def test_alita_multipart_collector (handler, multipart):
 
 def test_alita_grpc_collector (handler, grpc):
 	c = grpc_collector.GRPCCollector (handler, grpc)
-

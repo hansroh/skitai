@@ -1,5 +1,5 @@
 
-def test_app_run (launch):
+def test_webtest (launch):
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
         resp = engine.get ('/')

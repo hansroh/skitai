@@ -3,7 +3,7 @@ import confutil
 import pytest
 import skitai
 import os, pytest
-from skitai import testutil
+from skitai.testutil import offline as testutil
 from atila.cookie import Cookie
 from atila.named_session import NamedSession
 from aquests.protocols.smtp import composer

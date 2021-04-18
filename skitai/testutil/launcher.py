@@ -84,5 +84,3 @@ class Launcher (webtest.Target):
             time.sleep (3)
         self.__closed = True
     stop = _close
-
-launch = Launcher
