@@ -175,7 +175,7 @@ def promise (was):
 
 @app.route ("/delay")
 def delay (was, wait = 3):
-    time.sleep (int (wait))
+    time.sleep (float (wait))
     return was.response.api (data = "JSON")
 
 @app.route ("/shutdown")
