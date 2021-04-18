@@ -1,18 +1,17 @@
 import pytest
 import sys, os
-from aquests.protocols.http2.hyper import HTTPConnection
+from aquests.protocols.http2.hyper import HTTPConnection, HTTP20Connection
 
-#@pytest.mark.skip
 def test_h2c (launch):
     with launch ("./examples/app.py") as engine:
-        conn = HTTPConnection('127.0.0.1:30371', enable_push=False, secure=False)
+        conn = HTTP20Connection('127.0.0.1:30371', enable_push=False, secure=False)
 
-        conn.request('GET', '/hello')
-        response = conn.get_response()
+        stream_id = conn.request('GET', '/hello')
+        response = conn.get_response(stream_id)
         assert response.read() == b'hello'
         assert response.status == 200
 
-        conn.request('GET', '/100.htm')
+        r = conn.request('GET', '/100.htm')
         response = conn.get_response()
         assert response.status == 200
 

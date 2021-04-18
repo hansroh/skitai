@@ -55,7 +55,8 @@ def test_http3_dup_push (launch):
 
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
-        pushes = {}
+        push_ids = {}
+        pushes = 0
         for j in range (3): # need a little lucky
             mc = []
             for i in range (3):
@@ -80,14 +81,17 @@ def test_http3_dup_push (launch):
             resps = engine.http3.get (mc)
             for resp in resps:
                 for prom in resp.get_pushes ():
+                    pushes += 1
                     if prom.push_id is not None:
                         try:
-                            pushes [prom.push_id] += 1
+                            push_ids [prom.push_id] += 1
                         except KeyError:
-                            pushes [prom.push_id] = 1
+                            push_ids [prom.push_id] = 1
 
-        assert IS_PYPY and len (pushes) > 2 or len (pushes) == 8
-        for k, v in pushes.items ():
+        assert pushes >= 20
+
+        assert IS_PYPY and len (push_ids) > 2 or len (push_ids) == 8
+        for k, v in push_ids.items ():
             if IS_PYPY: # why?
                 assert v
             else:
