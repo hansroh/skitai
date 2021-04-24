@@ -22,4 +22,4 @@ psycopg2cffi; python_version>="3.6"
 dnn
 matplotlib
 pillow
-opencv-python
+opencv-python-headless
