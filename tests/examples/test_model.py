@@ -1,7 +1,7 @@
 import pytest
 import skitai
-from dnn.tfserver import cli
-from dnn.predutil import TFServer
+from tfserver import cli
+from tfserver.predutil import TFServer
 import numpy as np
 import os
 import json

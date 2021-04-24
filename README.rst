@@ -792,7 +792,7 @@ for HTTP3/QUIC protocol on serving.
 
 .. code:: bash
 
-  python3 app.py --devel --user ubuntu install
+  sudo python3 app.py --devel --user root install
 
 
 Adding Backend Server Alias
