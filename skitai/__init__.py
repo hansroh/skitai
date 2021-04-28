@@ -133,6 +133,12 @@ WS_OPCODE_CLOSE = 0x8
 WS_OPCODE_PING = 0x9
 WS_OPCODE_PONG = 0xa
 
+STATUS = 'INIT'
+
+def status ():
+    global STATUS
+    return STATUS
+
 class _WASPool:
     MAX_CLONES_PER_THREAD = 256
 
@@ -256,6 +262,7 @@ def websocket (varname = 60, timeout = 60, onopen = None, onclose = None):
 #------------------------------------------------
 dconf = dict (
     mount = {"default": []},
+    mount_onfly = {"default": []},
     clusters = {},
     max_ages = {},
     log_off = [],
@@ -307,7 +314,36 @@ def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20
 def set_max_was_clones_per_thread (val):
     was.MAX_CLONES_PER_THREAD = val
 
-class Preference (AttrDict):
+
+class PreferenceUtils:
+    def extends (self, module, mount_point = '/'):
+        module.__config__ (self)
+        self.mount_later (mount_point, module)
+
+    def add_template_dir (self, d):
+        if "TEMPLATE_DIRS" not in self.config:
+            self.config.TEMPLATE_DIRS = []
+        exists = set (self.config.TEMPLATE_DIRS)
+        if d in exists:
+            return
+        self.config.TEMPLATE_DIRS.append (d)
+        exists.add (d)
+
+    def add_static (self, url, path):
+        mount (url, path)
+
+    def set_static (self, url, path):
+        self.config.STATIC_URL = url
+        self.config.STATIC_PATH = path
+        mount (url, path, first = True)
+
+    def set_media (self, url, path):
+        self.config.MEDIA_URL = url
+        self.config.MEDIA_PATH = path
+        mount (url, path, first = True)
+
+
+class Preference (AttrDict, PreferenceUtils):
     def __init__ (self, path = None):
         super ().__init__ ()
         self.__path = path
@@ -321,23 +357,13 @@ class Preference (AttrDict):
     def __exit__ (self, *args):
         pass
 
-    def set_static (self, url, path):
-        self.config.STATIC_ROOT = path
-        self.config.STATIC_URL = url
-        mount (url, path)
-
-    def set_media (self, url, path):
-        self.config.MEDIA_ROOT = path
-        self.config.MEDIA_URL = url
-        mount (url, path)
-
     def copy (self):
         return copy.deepcopy (self)
 
-    @annotations.deprecated ('for communicating another app, use subscribe parameter of skitai.mount()')
-    def mount (self, *args, **kargs):
+    def mount_later (self, *args, **kargs):
         # mount module or func (app, options)
         self.__dict__ ["mountables"].append ((args, kargs))
+
 
 def preference (preset = False, path = None, **configs):
     from .wastuff.wsgi_apps import Config
@@ -503,10 +529,13 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
         modinit = os.path.join (srvice_root, "__init__.py")
         if os.path.isfile (modinit):
             mod = importer.from_file ("temp", modinit)
-            if hasattr (mod, "bootstrap"):
-                mod.__setup__ = mod.bootstrap
+            if hasattr (mod, "bootstrap"): # lower version compat
+                mod.__config__ = mod.bootstrap
                 del mod.bootstrap
-            hasattr (mod, "__setup__") and mod.__setup__ (pref)
+            if hasattr (mod, "__setup__"): # lower version compat
+                mod.__config__ = mod.__setup__
+                del mod.__setup__
+            hasattr (mod, "__config__") and mod.__config__ (pref)
 
     maybe_django (target, appname)
     if path:
@@ -545,9 +574,14 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
 
     if host not in dconf ['mount']:
         dconf ['mount'][host] = []
+        dconf ['mount_onfly'][host] = []
 
     if os.path.isdir (target) or not appname:
-        dconf ['mount'][host].append ((point, target, None, name))
+        args = (point, target, kargs, name)
+        if status () == 'INIT':
+            dconf ['mount'][host].append (args)
+        elif args not in dconf ['mount'][host]:
+            dconf ['mount_onfly'][host].append (args)
     else:
         target_ = target
         if not target_.endswith ('.py'):
@@ -928,8 +962,9 @@ def run (**conf):
 
     #----------------------------------------------------------------------
 
-    global dconf, PROCESS_NAME, SERVICE_USER, SERVICE_GROUP, Win32Service
+    global dconf, PROCESS_NAME, SERVICE_USER, SERVICE_GROUP, Win32Service, STATUS
 
+    STATUS = 'STARTING'
     SERVICE_USER = argopt.options ().get ('--user')
     SERVICE_GROUP = argopt.options ().get ('--group')
 
@@ -962,12 +997,16 @@ def run (**conf):
         sys.stderr = open (os.path.join (conf.get ('varpath'), "stderr.engine"), "a")
 
     server = SkitaiServer (conf)
+    # IMP: mount additional directory on flying
+    conf.get ("mount_onfly") and server.update_routes (conf ["mount_onfly"])
+
     # timeout for fast keyboard interrupt on win32
     try:
         try:
             server.run (conf.get ('verbose') and 3.0 or 30.0)
         except KeyboardInterrupt:
             pass
+        STATUS = 'STARTED'
 
     finally:
         _exit_code = server.get_exit_code ()
@@ -977,3 +1016,4 @@ def run (**conf):
             # worker process
             # for avoiding multiprocessing.manager process's join error
             os._exit (lifetime._exit_code)
+        STATUS = 'STOPPED'

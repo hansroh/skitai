@@ -60,9 +60,9 @@ class Handler:
 	def match (self, request):
 		return 1
 
-	def add_route (self, alias, option):
-		self.wasc.logger ('server', 'directory {} mounted to {}'.format (tc.yellow (option), tc.white (alias or '/')), 'info')
-		self.filesystem.add_map (alias, option)
+	def add_route (self, alias, target, config):
+		self.wasc.logger ('server', 'directory {} mounted to {}'.format (tc.yellow (target), tc.white (alias or '/')), 'info')
+		self.filesystem.add_map (alias, target, config)
 
 	def handle_alternative (self, request):
 		for h in self.alt_handlers:

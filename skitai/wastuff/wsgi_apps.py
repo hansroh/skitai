@@ -115,6 +115,11 @@ class Module:
                     else:
                         for k1, v1 in copy.copy (self.pref.config).items ():
                             app.config [k1] = v1
+                elif k == 'mountables':
+                    if hasattr (app, 'mountables'):
+                        app.mountables.extend (v)
+                    else:
+                        setattr (app, k, v)
                 else:
                     setattr (app, k, v)
         self.set_devel_env (app) # enforcing to override --devel
@@ -126,14 +131,14 @@ class Module:
         if not hasattr (app, "config"):
             app.config = Config (False)
 
-        if hasattr (app, "mountables"):
-            for _args, _karg in app.mountables:
-                app.mount (*_args, **_karg)
-
         if hasattr (app, "max_client_body_size"):
             app.config.MAX_UPLOAD_SIZE = app.max_client_body_size
         elif "max_multipart_body_size" in app.config:
             app.config.MAX_UPLOAD_SIZE = app.config.max_multipart_body_size
+
+        if hasattr (app, "mount") and hasattr (app, "mountables"):
+            for _args, _karg in app.mountables:
+                app.mount (*_args, **_karg)
 
         if hasattr (app, "set_home"):
             app.set_home (os.path.dirname (self.abspath), self.module)

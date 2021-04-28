@@ -42,11 +42,11 @@ class VHost:
 		if self.access_handler:
 			self.access_handler.set_auth_handler (storage)
 
-	def add_proxypass (self, route, cname):
+	def add_proxypass (self, route, cname, config):
 		self.proxypass_handler.add_route (route, cname)
 
-	def add_route (self, route, target):
-		self.default_handler.add_route (route, target)
+	def add_route (self, route, target, config):
+		self.default_handler.add_route (route, target, config)
 
 	def add_module (self, route, path, module, pref, name):
 		self.apps.add_module (route, path, module, pref, name)
@@ -101,13 +101,13 @@ class Handler:
 		if target.startswith ("@"):
 			if route [-1] == "/":
 				route = route [:-1]
-			vhost.add_proxypass (route, target [1:].strip ())
+			vhost.add_proxypass (route, target [1:].strip (), config)
 			reverse_proxing = True
 
 		elif os.path.isdir (target):
 			if route [-1] == "/":
 				route = route [:-1]
-			vhost.add_route (route, target)
+			vhost.add_route (route, target, config)
 
 		else:
 			fullpath = os.path.split (target.strip())
