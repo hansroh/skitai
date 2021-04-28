@@ -24,6 +24,7 @@ def test_skitai (app):
     if os.name != "posix":
         return
 
+    skitai.dconf ['mount']["default"] = []
     assert skitai.joinpath ('a', 'b').endswith ("/bin/a/b")
     skitai.mount ("/k", app)
     assert skitai.dconf ['mount']["default"][0][1][0].endswith ('/bin/pytest')
