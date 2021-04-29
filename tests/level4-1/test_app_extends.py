@@ -17,6 +17,11 @@ def test_app_run (launch):
 
         resp = requests.get ('http://localhost:30371/examples')
         assert resp.status_code == 200
+        assert "/manifest.json" in resp.text
+
+        resp = requests.put ('http://localhost:30371/examples')
+        assert resp.status_code == 200
+        assert resp.text == "Examples"
 
         resp = requests.get ('http://localhost:30371/examples/tutorial')
         assert resp.status_code == 310

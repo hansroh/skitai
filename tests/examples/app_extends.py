@@ -15,6 +15,10 @@ app.unroute ('/examples/tutorial', 310)
 def index (was):
     return 'Hello Atila'
 
+@app.route ('/examples', methods = ['PUT'])
+def examples (was):
+    return 'Examples'
+
 if __name__ == '__main__':
     with atila.preference () as pref:
         skitai.mount ("/", app, pref)

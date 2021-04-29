@@ -586,6 +586,7 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
         target_ = target
         if not target_.endswith ('.py'):
             target_ += '.py'
+
         if 'PYTEST_CURRENT_TEST' not in os.environ:
             assert os.path.exists (target_),  'app not found: {}'.format (target_)
             with open (target_, encoding = 'utf8') as f:
