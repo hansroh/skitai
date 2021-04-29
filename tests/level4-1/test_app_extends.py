@@ -15,4 +15,9 @@ def test_app_run (launch):
         resp = requests.get ('http://localhost:30371/statics/vue2/_framework/supplement.css')
         assert resp.status_code == 200
 
+        resp = requests.get ('http://localhost:30371/examples')
+        assert resp.status_code == 200
+
+        resp = requests.get ('http://localhost:30371/examples/tutorial')
+        assert resp.status_code == 310
 

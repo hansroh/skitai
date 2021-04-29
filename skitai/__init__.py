@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.36.5"
+__version__ = "0.36.6"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -329,8 +329,8 @@ class PreferenceUtils:
         self.config.TEMPLATE_DIRS.append (d)
         exists.add (d)
 
-    def add_static (self, url, path):
-        mount (url, path)
+    def add_static (self, path):
+        mount (self.config.STATIC_URL, path)
 
     def set_static (self, url, path):
         self.config.STATIC_URL = url
