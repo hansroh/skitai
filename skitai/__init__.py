@@ -550,7 +550,13 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
             assert name == target.__name__, "invalid mount name, remove name or use '{}'".format (target.__name__)
         else:
             name = target.__name__
-        target = (target, '__export__.py')
+        
+        _target = os.path.join (os.path.dirname (module.__file__), "export", "skitai", "wsgi.py")
+        if os.path.isfile (_target):
+            _sctipt = "wsgi.py"
+        else:
+            _script = "__export__" # old version
+        target = (target, _script)
 
     if 'subscribe' in kargs:
         assert name, 'to subscribe, name must be specified'
