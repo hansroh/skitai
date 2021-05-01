@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.36.6"
+__version__ = "0.36.7"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -32,6 +32,7 @@ import rs4
 from rs4.termcolor import tc
 from rs4 import annotations
 import getopt as libgetopt
+import types
 
 argopt.add_option ('-d', desc = "start as daemon, equivalant with `start` command") # lower version compatible
 argopt.add_option (None, '---profile', desc = "log for performance profiling")
@@ -364,6 +365,11 @@ class Preference (AttrDict, PreferenceUtils):
         # mount module or func (app, options)
         self.__dict__ ["mountables"].append ((args, kargs))
 
+    def mount (self, point, func):
+        # mount on fly to add routes, decorator and hooks
+        # mount function or module which has __mount__ or __setup__ func
+        self.mount_later (point, func)
+
 
 def preference (preset = False, path = None, **configs):
     from .wastuff.wsgi_apps import Config
@@ -550,13 +556,13 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
             assert name == target.__name__, "invalid mount name, remove name or use '{}'".format (target.__name__)
         else:
             name = target.__name__
-        
-        _target = os.path.join (os.path.dirname (module.__file__), "export", "skitai", "wsgi.py")
-        if os.path.isfile (_target):
-            _sctipt = "wsgi.py"
-        else:
-            _script = "__export__" # old version
-        target = (target, _script)
+
+        for cand in ("wsgi", "__export__"):
+            _target = os.path.join (os.path.dirname (target.__file__), "export", "skitai", "{}.py".format (cand))
+            if os.path.isfile (_target):
+                target = (target, cand)
+                break
+            assert isinstance (target, tuple), 'cannot find {}'.format (os.path.join (os.path.dirname (target.__file__), "export", "skitai", "wsgi.py"))
 
     if 'subscribe' in kargs:
         assert name, 'to subscribe, name must be specified'

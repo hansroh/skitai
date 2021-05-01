@@ -1,12 +1,8 @@
 import skitai
 from skitai import was
 import os
-try:
-    import dnn
-except ImportError:
-    dnn = None
-
 import pytest
+
 try:
     import django
 except ImportError:
@@ -38,18 +34,6 @@ def test_skitai (app):
     skitai.mount ("/k2", 'path/app.py', 'app')
     assert skitai.dconf ['mount']["default"][0][1][0].endswith ('/bin/path/app.py')
     assert skitai.dconf ['mount']["default"][0][1][1] == 'app'
-
-    if dnn:
-        pref = skitai.pref ()
-        pref.config.tf_models = None
-        skitai.dconf ['mount']["default"] = []
-        skitai.mount ("/k2", dnn, pref = pref)
-        assert skitai.dconf ['mount']["default"][0][1][0].endswith ('dnn/export/skitai/__export__.py')
-
-        skitai.dconf ['mount']["default"] = []
-        skitai.mount ("/k2", (dnn, "dapp"), "dapp", pref = pref)
-        assert skitai.dconf ['mount']["default"][0][1][0].endswith ('dnn/export/skitai/dapp')
-        assert skitai.dconf ['mount']["default"][0][1][1] == "dapp"
 
     skitai.dconf ['mount']["default"] = []
     skitai.mount ("/k2", "X11")

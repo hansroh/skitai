@@ -1502,7 +1502,7 @@ include app in your module for Skitai App Engine.
 
 Let's assume your package name is 'unsub'.
 
-Your app should be located at unsub/export/skitai/__export__.py
+Your app should be located at unsub/export/skitai/wsgi.py
 
 Then users uses your module can mount on skitai by like this,
 
@@ -1538,12 +1538,8 @@ unsub/export/skitai/__init__.py.
         urllist.append (line.split ("  ", 4))
       pref.config.urllist = urllist
 
- *Important Note:* If you need export package directory, use
- 'exports' instead 'services' for avoiding name space collitions
- with your custom main app.
-
  *Important Note:* You should add zip_safe = False flag in your setup.py
- because Skitai could access your __export__ script and its sub modules.
+ because Skitai could access your wsgi.py script and its sub modules.
 
 .. code:: python
 
@@ -3345,6 +3341,7 @@ Change Log
 - 0.36 (Apr, 2021)
 
   - add Preference.set_static () and Preference.set_media ()
+  - change default export script from __export__.py to wsgi.py
 
 - 0.35 (Feb 2020)
 
