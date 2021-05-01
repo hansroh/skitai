@@ -334,12 +334,12 @@ class PreferenceUtils:
 
     def set_static (self, url, path):
         self.config.STATIC_URL = url
-        self.config.STATIC_PATH = path
+        self.config.STATIC_ROOT = path
         mount (url, path, first = True)
 
     def set_media (self, url, path):
         self.config.MEDIA_URL = url
-        self.config.MEDIA_PATH = path
+        self.config.MEDIA_ROOT = path
         mount (url, path, first = True)
 
 

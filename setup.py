@@ -76,7 +76,7 @@ setup (
 	version=version,
 	description='Skitai App Engine',
 	long_description=long_description,
-	url = 'https://gitlab.com/hansroh/skitai',
+	url = 'https://gitlab.com/skitai/skitai',
 	author='Hans Roh',
 	author_email='hansroh@gmail.com',
 	packages=packages,
