@@ -2,7 +2,6 @@ atila
 atila-vue
 dnn
 pytest
-delune
 pytest-ordering
 codecov
 pytest-cov

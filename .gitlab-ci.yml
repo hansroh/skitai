@@ -8,7 +8,7 @@ variables:
   - pip install -U --pre --no-cache-dir aquests rs4 sqlphile
   - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
   - python -c 'from aquests.protocols.grpc import discover'
-  - pip install -U --pre --no-cache-dir atila
+  - pip install -U --pre --no-cache-dir atila delune
   - pip install -Ur tests/requirements.txt
 
 .before_python_test: &before_python_test
