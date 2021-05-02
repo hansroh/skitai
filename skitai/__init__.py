@@ -134,7 +134,7 @@ WS_OPCODE_CLOSE = 0x8
 WS_OPCODE_PING = 0x9
 WS_OPCODE_PONG = 0xa
 
-STATUS = 'INIT'
+STATUS = 'CONFIGURING'
 
 def status ():
     global STATUS
@@ -317,26 +317,41 @@ def set_max_was_clones_per_thread (val):
 
 
 class PreferenceUtils:
-    def extends (self, module, mount_point = '/'):
-        module.__config__ (self)
-        self.mount_later (mount_point, module)
+    def add_resources (self, module, front = False):
+        base_dir = os.path.dirname (module.__file__)
+        t = os.path.join (base_dir, 'templates')
+        s = os.path.join (base_dir, 'static')
+        os.path.isdir (t) and self.add_template_dir (t, front = front)
+        os.path.isdir (s) and self.add_static (s, front = front)
 
-    def add_template_dir (self, d):
+    def extends (self, module):
+        hasattr (module, '__config__') and module.__config__ (self)
+        self.add_resources (module)
+        self.mount_later ('/', module, extends = True)
+
+    def overrides (self, module):
+        if hasattr (module, '__file__'):
+            hasattr (module, '__config__') and module.__config__ (self)
+            self.add_resources (module, True)
+        self.mount_later ('/', module, overrides = True)
+
+    def add_template_dir (self, d, front = False):
         if "TEMPLATE_DIRS" not in self.config:
             self.config.TEMPLATE_DIRS = []
         exists = set (self.config.TEMPLATE_DIRS)
         if d in exists:
             return
-        self.config.TEMPLATE_DIRS.append (d)
+        self.config.TEMPLATE_DIRS.insert (0, d) if front else self.config.TEMPLATE_DIRS.append (d)
         exists.add (d)
 
-    def add_static (self, path):
-        mount (self.config.STATIC_URL, path)
+    def add_static (self, path, front = False):
+        mount (self.config.STATIC_URL, path, first = front)
 
-    def set_static (self, url, path):
+    def set_static (self, url, path = None):
         self.config.STATIC_URL = url
-        self.config.STATIC_ROOT = path
-        mount (url, path, first = True)
+        if path:
+            self.config.STATIC_ROOT = path
+            mount (url, path, first = True)
 
     def set_media (self, url, path):
         self.config.MEDIA_URL = url
@@ -365,10 +380,11 @@ class Preference (AttrDict, PreferenceUtils):
         # mount module or func (app, options)
         self.__dict__ ["mountables"].append ((args, kargs))
 
-    def mount (self, point, func):
+    # def mount (self, point, func):
         # mount on fly to add routes, decorator and hooks
         # mount function or module which has __mount__ or __setup__ func
-        self.mount_later (point, func)
+        # you cannot use static and templates
+    #    self.mount_later (point, func)
 
 
 def preference (preset = False, path = None, **configs):
@@ -530,8 +546,6 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
 
     def init_app (modpath, pref):
         srvice_root = os.path.dirname (modpath)
-        # IMP: MUST pathing because reloading module
-        sys.path.append (srvice_root)
         modinit = os.path.join (srvice_root, "__init__.py")
         if os.path.isfile (modinit):
             mod = importer.from_file ("temp", modinit)
@@ -566,7 +580,11 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
 
     if 'subscribe' in kargs:
         assert name, 'to subscribe, name must be specified'
-        dconf ['subscriptions'].add ((kargs ['subscribe'], name))
+        subscribe = kargs ['subscribe']
+        if isinstance (subscribe, str):
+            subscribe = [subscribe]
+        for app in subscribe:
+            dconf ['subscriptions'].add ((app, name))
 
     if type (target) is tuple:
         module, appfile = target
@@ -590,10 +608,7 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
 
     if os.path.isdir (target) or not appname:
         args = (point, target, kargs, name)
-        if status () == 'INIT':
-            dconf ['mount'][host].append (args)
-        elif args not in dconf ['mount'][host]:
-            dconf ['mount_onfly'][host].append (args)
+
     else:
         target_ = target
         if not target_.endswith ('.py'):
@@ -607,8 +622,14 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
                         import atila # automatic patch skitai was
                     except ImportError:
                         pass
+
         init_app (target, pref)
-        dconf ['mount'][host].append ((point,  (target, appname), pref, name))
+        args = (point,  (target, appname), pref, name)
+
+    if status () == 'CONFIGURING':
+        dconf ['mount'][host].append (args)
+    elif args not in dconf ['mount'][host]:
+        dconf ['mount_onfly'][host].append (args)
 
 mount_django = mount
 
@@ -954,16 +975,13 @@ def run (**conf):
                 conf.get ("gw_secret_key", None)
             )
 
-            for p, _ in dconf ['subscriptions']:
-                if isinstance (_, str):
-                    _ = [_]
-                for s in _:
-                    try:
-                        provider = self.get_app_by_name (p)
-                        provider.bus
-                        subbscriber = self.get_app_by_name (s).bus
-                    except AttributeError:
-                        raise NameError ('app.bus not found')
+            for p, s in dconf ['subscriptions']:
+                try:
+                    provider = self.get_app_by_name (p)
+                    provider.bus
+                    subbscriber = self.get_app_by_name (s).bus
+                except AttributeError:
+                    raise NameError ('app.bus not found')
 
                 provider.add_subscriber (subbscriber)
                 self.wasc.logger.get ("server").log ('app {} subscribes to {}'.format (tc.yellow (s), tc.cyan (p)))
@@ -977,7 +995,7 @@ def run (**conf):
 
     global dconf, PROCESS_NAME, SERVICE_USER, SERVICE_GROUP, Win32Service, STATUS
 
-    STATUS = 'STARTING'
+    STATUS = 'CREATING'
     SERVICE_USER = argopt.options ().get ('--user')
     SERVICE_GROUP = argopt.options ().get ('--group')
 
@@ -1010,11 +1028,13 @@ def run (**conf):
         sys.stderr = open (os.path.join (conf.get ('varpath'), "stderr.engine"), "a")
 
     server = SkitaiServer (conf)
-    # IMP: mount additional directory on flying
+    # mount additionals while mounting apps
     conf.get ("mount_onfly") and server.update_routes (conf ["mount_onfly"])
+    STATUS = 'CREATED'
 
     # timeout for fast keyboard interrupt on win32
     try:
+        STATUS = 'STARTING'
         try:
             server.run (conf.get ('verbose') and 3.0 or 30.0)
         except KeyboardInterrupt:

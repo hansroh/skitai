@@ -50,6 +50,7 @@ class DjangoReloader:
                     return True
         return False
 
+
 class Module:
     def __init__ (self, wasc, handler, bus, route, directory, libpath, pref = None):
         self.wasc = wasc
@@ -73,6 +74,9 @@ class Module:
                 libpath, self.appname = libpath, "app"
             self.libpath = libpath
             self.script_name = "%s.py" % libpath
+
+            if 'services' in sys.modules:
+                sys.modules.pop ('services')
             self.module, self.abspath = importer.importer (directory, libpath)
             self.start_app ()
 
@@ -135,10 +139,6 @@ class Module:
             app.config.MAX_UPLOAD_SIZE = app.max_client_body_size
         elif "max_multipart_body_size" in app.config:
             app.config.MAX_UPLOAD_SIZE = app.config.max_multipart_body_size
-
-        if hasattr (app, "mount") and hasattr (app, "mountables"):
-            for _args, _karg in app.mountables:
-                app.mount (*_args, **_karg)
 
         if hasattr (app, "set_home"):
             app.set_home (os.path.dirname (self.abspath), self.module)

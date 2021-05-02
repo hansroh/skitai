@@ -216,6 +216,8 @@ class mapped_filesystem (os_filesystem):
 		os_filesystem.__init__ (self, None, "/")
 		self.maps = {}
 		self.permission_cache = {}
+		self.cache = os.getenv ("SKITAIENV") == "PRODUCTION"
+		self._cache = {}
 
 	def add_map (self, alias, path, options = None):
 		options = options or {}
@@ -246,15 +248,20 @@ class mapped_filesystem (os_filesystem):
 		if not self.maps:
 			return None
 
+		try:
+			return self._cache [path]
+		except KeyError:
+			pass
+
 		p = self.normalize (self.path_module.join (self.wd, path))
-		path = p.split (os.sep)
+		seppath = p.split (os.sep)
 
 		maybe_alias = ""
 		current_depth = 0
 		latest_alias = ""
-		latest_depth = ""
+		latest_depth = 0
 
-		for each in path [1:]:
+		for each in seppath [1:]:
 			current_depth += 1
 			maybe_alias += "/" + each
 
@@ -262,17 +269,19 @@ class mapped_filesystem (os_filesystem):
 				latest_alias = maybe_alias
 				latest_depth = current_depth
 
-		if latest_alias:
+		if latest_alias in self.maps:
 			if len (self.maps [latest_alias]) > 1:
 				for prior in self.maps [latest_alias]:
-					cand = self.normalize (self.path_module.join (prior ["path"], '/'.join (path [latest_depth + 1:])))
+					cand = self.normalize (self.path_module.join (prior ["path"], '/'.join (seppath [latest_depth + 1:])))
 					if os.path.exists (cand):
+						if self.cache:
+							self._cache [path] = cand
 						return cand
-			return self.normalize (self.path_module.join (self.maps [latest_alias][0]["path"], '/'.join (path [latest_depth + 1:])))
+			return self.normalize (self.path_module.join (self.maps [latest_alias][0]["path"], '/'.join (seppath [latest_depth + 1:])))
 
 		if self.root is None:
 			return None # no psysical root
-		return self.normalize (self.path_module.join (self.root, p[1:]))
+		return self.normalize (self.path_module.join (self.root, p [1:]))
 
 	def get_permission (self, path):
 		try:
