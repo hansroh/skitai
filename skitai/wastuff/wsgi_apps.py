@@ -79,6 +79,7 @@ class Module:
                 sys.modules.pop ('services')
             self.module, self.abspath = importer.importer (directory, libpath)
             self.start_app ()
+            sys.path.insert (0, directory)
 
         else:
             # libpath is app object, might be added by unittest
