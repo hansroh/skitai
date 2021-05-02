@@ -258,6 +258,9 @@ class Loader:
 			sroutes.append ("@%s" % domain)
 			for route, entity, pref, name in routes [domain]:
 				appname = None
+				if hasattr (entity, '__app__'):
+					sroutes.append ((route, entity, pref, name))
+					continue
 				if type (entity) is tuple:
 					entity, appname = entity
 				if entity.endswith (".py") or entity.endswith (".pyc"):
@@ -307,6 +310,11 @@ class Loader:
 		current_rule = "default"
 		for line in routes:
 			config = None
+			if type (line) is tuple and len (line) == 4:
+				route, module, pref, name = line
+				reverse_proxing = self.virtual_host.add_route (current_rule, (route, module, ''), pref, name)
+				continue
+
 			if type (line) is tuple:
 				line, pref, name = line
 			line = line.strip ()

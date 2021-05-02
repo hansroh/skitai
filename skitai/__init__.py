@@ -571,12 +571,16 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
         else:
             name = target.__name__
 
-        for cand in ("wsgi", "__export__"):
-            _target = os.path.join (os.path.dirname (target.__file__), "export", "skitai", "{}.py".format (cand))
-            if os.path.isfile (_target):
-                target = (target, cand)
-                break
-            assert isinstance (target, tuple), 'cannot find {}'.format (os.path.join (os.path.dirname (target.__file__), "export", "skitai", "wsgi.py"))
+        if not hasattr (target, '__app__'):
+            if hasattr (target, '__skitai__'):
+                target = target.__skitai__
+            else:
+                for cand in ("wsgi", "__export__"):
+                    _target = os.path.join (os.path.dirname (target.__file__), "export", "skitai", "{}.py".format (cand))
+                    if os.path.isfile (_target):
+                        target = (target, cand)
+                        break
+                    assert isinstance (target, tuple), 'cannot find {}'.format (os.path.join (os.path.dirname (target.__file__), "export", "skitai", "wsgi.py"))
 
     if 'subscribe' in kargs:
         assert name, 'to subscribe, name must be specified'
@@ -590,7 +594,9 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
         module, appfile = target
         target = os.path.join (os.path.dirname (module.__file__), "export", "skitai", appfile)
 
-    if type (target) is not str:
+    if hasattr (target, '__app__'):
+        pass
+    elif type (target) is not str:
         # app instance, find app location
         target = os.path.normpath (os.path.join (os.getcwd (), sys.argv [0]))
     else:
@@ -606,14 +612,15 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
         dconf ['mount'][host] = []
         dconf ['mount_onfly'][host] = []
 
-    if os.path.isdir (target) or not appname:
+    if hasattr (target, '__app__'):
+        args = (point,  target, pref, name)
+        hasattr (target, "__config__") and target.__config__ (pref)
+    elif os.path.isdir (target) or not appname:
         args = (point, target, kargs, name)
-
     else:
         target_ = target
         if not target_.endswith ('.py'):
             target_ += '.py'
-
         if 'PYTEST_CURRENT_TEST' not in os.environ:
             assert os.path.exists (target_),  'app not found: {}'.format (target_)
             with open (target_, encoding = 'utf8') as f:

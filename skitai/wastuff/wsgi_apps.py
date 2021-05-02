@@ -82,8 +82,16 @@ class Module:
 
         else:
             # libpath is app object, might be added by unittest
-            self.appname, self.module, self.abspath = "app", None, os.path.join (directory, 'dummy')
-            self.app = libpath
+            self.appname = 'app'
+            if hasattr (libpath, '__app__'):
+                self.module = libpath
+                self.abspath = os.path.abspath (libpath.__file__)
+                self.directory = os.path.dirname (self.abspath)
+                self.app = libpath.__app__ ()
+            else:
+                self.module = None
+                self.abspath = os.path.join (directory, 'dummy')
+                self.app = libpath
             self.app.use_reloader = False
             self.start_app ()
 
@@ -298,6 +306,8 @@ class ModuleManager:
         if not name:
             if isinstance (modname, str):
                 name = os.path.join (directory, modname)
+            elif hasattr (modname, '__app__'):
+                name = modname.__name__.split (".", 1) [0]
             else:
                 name = '<{}:{}>'.format (modname.app_name, str (id (modname)) [:6])
 
