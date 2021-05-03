@@ -28,7 +28,7 @@ variables:
 
 .test_template: &test
   script:
-    - pip install -U --pre --no-cache-dir atila
+    - pip install -U --pre --no-cache-dir atila atila-vue
     - pip install -U -e .
     - cd tests
     - pytest level1
