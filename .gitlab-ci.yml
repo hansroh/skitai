@@ -28,6 +28,7 @@ variables:
 
 .test_template: &test
   script:
+    - pip install -U -e .
     - cd tests
     - pytest level1
     - pytest level2
