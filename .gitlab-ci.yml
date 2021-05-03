@@ -37,8 +37,7 @@ variables:
     # - pytest level4-1
     # - pytest level4-2
     # - pytest level5
-    # - pytest -s level4/test_big_picture.py
-    - python level4/serve.py
+    - pytest -s level4/test_big_picture.py
 
 .test_template_win32: &test-win32
   script:
