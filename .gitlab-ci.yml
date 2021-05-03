@@ -4,7 +4,6 @@ variables:
 .base_install: &base_install
   - python -V
   - pip install -U setuptools pip
-  - pip install -e .
   - pip install -U --pre --no-cache-dir aquests rs4 sqlphile
   - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
   - python -c 'from aquests.protocols.grpc import discover'
@@ -29,6 +28,7 @@ variables:
 
 .test_template: &test
   script:
+    - pip install -U --pre --no-cache-dir atila
     - pip install -U -e .
     - cd tests
     - pytest level1
