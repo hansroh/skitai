@@ -7,16 +7,18 @@ from rs4 import pathtool
 import pickle
 import pytest
 import shutil
+import time
 
 def test_build_model ():
+    try:
+        from tfserver import cli
+    except ImportError:
+        return
+
+
     pathtool.mkdir ('tmp/checkpoint')
     serve = "./examples/tfserve.py"
     with skitai.test_client (serve, port = 30371, silent = False) as engine:
-        try:
-            from tfserver import cli
-        except ImportError:
-            return
-
         import build_model
         build_model.train ()
         build_model.restore ()
@@ -46,19 +48,19 @@ def test_build_model ():
 
 
 def test_tfserver ():
+    try:
+        from tfserver.loaders import TFServer
+        from tfserver import cli
+        import numpy as np
+        import build_model
+    except ImportError:
+        return
+
     serve = "./examples/tfserve.py"
     if os.path.isdir ('./examples/models/ex2'):
         shutil.rmtree ('./examples/models/ex2')
 
     with skitai.test_client (serve, port = 30371, silent = False) as engine:
-        try:
-            from tfserver.loaders import TFServer
-            from tfserver import cli
-            import numpy as np
-            import build_model
-        except ImportError:
-            return
-
         resp = engine.post ("/api", data = json.dumps ({'x': build_model.train_xs [:1].tolist ()}), headers = {"Content-Type": "application/json"})
         assert np.array (resp.data ['y1']).shape == (1, 2)
         assert np.array (resp.data ['y2']).shape == (1, 2)
@@ -144,3 +146,21 @@ def test_tfserver ():
         assert resp.status_code == 204
         resp = engine.get ("/models/ex2/version")
         assert resp.status_code == 404
+
+def test_retina_face_detector ():
+    try:
+        import cv2
+        from tfserver import cli
+    except ImportError:
+        return
+
+    serve = "./examples/tfserve.py"
+    with skitai.test_client (serve, port = 30371, silent = False) as engine:
+        time.sleep (20.)
+        img_path = os.path.join ("examples", 'resources', '0_Parade_marchingband_1_379.jpg')
+        stub = engine.grpc ()
+        for _ in range (3):
+            resp = stub.predict ('face-detector', 'predict', x = cv2.imread (img_path))
+            assert len (resp.confidence.shape) == 1
+            assert resp.box.shape [1] == 4
+            assert resp.keypoints.shape [1] == 10

@@ -521,7 +521,7 @@ class http_response:
         try:
             if outgoing_producer:
                 self.request.channel.push_with_producer (outgoing_producer)
-            if close_it:
+            if close_it and self.request:
                 self.request.channel.close_when_done ()
         except:
             logger.trace ()

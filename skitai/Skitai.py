@@ -48,6 +48,7 @@ class Loader:
 		self.logpath = logpath
 		self.varpath = varpath
 		self.debug = debug
+		self.virtual_host = None
 		self.num_worker = 1
 		self.wasc = wasc or wsgiappservice.WAS
 		self.ssl = False
@@ -257,6 +258,9 @@ class Loader:
 			sroutes.append ("@%s" % domain)
 			for route, entity, pref, name in routes [domain]:
 				appname = None
+				if hasattr (entity, '__app__'):
+					sroutes.append ((route, entity, pref, name))
+					continue
 				if type (entity) is tuple:
 					entity, appname = entity
 				if entity.endswith (".py") or entity.endswith (".pyc"):
@@ -278,37 +282,46 @@ class Loader:
 			apigateway_secret_key = None
 		):
 
-		if routes:
-			if type (routes) is dict:
-				routes = self.install_handler_with_tuple (routes)
-			else:
-				if type (routes) is not list:
-					routes = [routes]
-				if type (routes [0]) is tuple:
-					routes = self.install_handler_with_tuple (routes)
-
 		if blacklist_dir:
 			self.wasc.add_handler (0, ipbl_handler.Handler, blacklist_dir)
 		if proxy:
 			self.wasc.add_handler (1, proxy_handler.Handler, self.wasc.clusters, self.wasc.cachefs, unsecure_https)
 
-		vh = self.wasc.add_handler (
+		self.virtual_host = self.wasc.add_handler (
 			1, vhost_handler.Handler,
 			self.wasc.clusters, self.wasc.cachefs,
 			static_max_ages,
 			enable_apigateway, apigateway_authenticate, apigateway_realm, apigateway_secret_key
 		)
+		routes and self.update_routes (routes)
+
+	def update_routes (self, routes):
+		if self.virtual_host is None:
+			return
+
+		if type (routes) is dict:
+			routes = self.install_handler_with_tuple (routes)
+		else:
+			if type (routes) is not list:
+				routes = [routes]
+			if type (routes [0]) is tuple:
+				routes = self.install_handler_with_tuple (routes)
 
 		current_rule = "default"
 		for line in routes:
 			config = None
+			if type (line) is tuple and len (line) == 4:
+				route, module, pref, name = line
+				reverse_proxing = self.virtual_host.add_route (current_rule, (route, module, ''), pref, name)
+				continue
+
 			if type (line) is tuple:
 				line, pref, name = line
 			line = line.strip ()
 			if line.startswith (";") or line.startswith ("#"):
 				continue
 			elif line.startswith ("/"):
-				reverse_proxing = vh.add_route (current_rule, line, pref, name)
+				reverse_proxing = self.virtual_host.add_route (current_rule, line, pref, name)
 			elif line:
 				if line [0] == "@":
 					line = line [1:].strip ()

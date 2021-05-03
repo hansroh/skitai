@@ -37,7 +37,7 @@ def test_was (wasc, app, client):
 
     with pytest.raises (AssertionError):
         assert was.static ('/index.html')
-    assert was.static ('index.html') == '/index.html'
+    assert was.static ('index.html') == '/static/index.html'
     assert was.media ('index.html') == '/my/media/index.html'
 
     for each in ("index5", "index7"):

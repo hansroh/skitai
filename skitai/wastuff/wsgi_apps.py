@@ -50,6 +50,7 @@ class DjangoReloader:
                     return True
         return False
 
+
 class Module:
     def __init__ (self, wasc, handler, bus, route, directory, libpath, pref = None):
         self.wasc = wasc
@@ -62,6 +63,7 @@ class Module:
         self.has_life_cycle = False
 
         self.app = None
+        self.app_initer = None
         self.django = False
         self.debug = False
         self.use_reloader = False
@@ -73,14 +75,29 @@ class Module:
                 libpath, self.appname = libpath, "app"
             self.libpath = libpath
             self.script_name = "%s.py" % libpath
+
+            if 'services' in sys.modules:
+                sys.modules.pop ('services')
             self.module, self.abspath = importer.importer (directory, libpath)
             self.start_app ()
+            sys.path.insert (0, directory)
 
         else:
             # libpath is app object, might be added by unittest
-            self.appname, self.module, self.abspath = "app", None, os.path.join (directory, 'dummy')
-            self.app = libpath
-            self.app.use_reloader = False
+            self.appname = 'app'
+            if hasattr (libpath, '__app__'):
+                self.app_initer = libpath
+                self.module = libpath
+                self.abspath = os.path.abspath (libpath.__file__)
+                self.directory = os.path.dirname (self.abspath)
+                self.app = libpath.__app__ ()
+
+            else:
+                self.module = None
+                self.abspath = os.path.join (directory, 'dummy')
+                self.app = libpath
+
+            self.app.use_reloader = False # default
             self.start_app ()
 
         app = self.app or getattr (self.module, self.appname)
@@ -106,7 +123,6 @@ class Module:
             self.django = DjangoReloader (django_base_dir, self.wasc.logger)
 
         self.has_life_cycle = hasattr (app, "life_cycle")
-
         if self.pref:
             for k, v in copy.copy (self.pref).items ():
                 if k == "config":
@@ -115,6 +131,11 @@ class Module:
                     else:
                         for k1, v1 in copy.copy (self.pref.config).items ():
                             app.config [k1] = v1
+                elif k == 'mountables':
+                    if hasattr (app, 'mountables'):
+                        app.mountables.extend (v)
+                    else:
+                        setattr (app, k, v)
                 else:
                     setattr (app, k, v)
         self.set_devel_env (app) # enforcing to override --devel
@@ -126,20 +147,21 @@ class Module:
         if not hasattr (app, "config"):
             app.config = Config (False)
 
-        if hasattr (app, "mountables"):
-            for _args, _karg in app.mountables:
-                app.mount (*_args, **_karg)
-
         if hasattr (app, "max_client_body_size"):
             app.config.MAX_UPLOAD_SIZE = app.max_client_body_size
         elif "max_multipart_body_size" in app.config:
             app.config.MAX_UPLOAD_SIZE = app.config.max_multipart_body_size
 
-        if hasattr (app, "set_home"):
-            app.set_home (os.path.dirname (self.abspath), self.module)
-
-        if hasattr (app, "commit_events_to"):
-            app.commit_events_to (self.bus)
+        mntopt = {
+            'point': self.route,
+            'base_dir': self.directory,
+            'use_reloader': self.use_reloader,
+            'debug': self.debug
+        }
+        hasattr (self.app_initer, '__setup__') and self.app_initer.__setup__ (app, mntopt)
+        hasattr (self.app_initer, '__mount__') and self.app_initer.__mount__ (app, mntopt)
+        hasattr (app, "set_home") and app.set_home (os.path.dirname (self.abspath), self.module)
+        hasattr (app, "commit_events_to") and app.commit_events_to (self.bus)
 
         self.update_file_info ()
 
@@ -293,6 +315,8 @@ class ModuleManager:
         if not name:
             if isinstance (modname, str):
                 name = os.path.join (directory, modname)
+            elif hasattr (modname, '__app__'):
+                name = modname.__name__.split (".", 1) [0]
             else:
                 name = '<{}:{}>'.format (modname.app_name, str (id (modname)) [:6])
 

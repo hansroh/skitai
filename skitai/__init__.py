@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.36.4.1"
+__version__ = "0.36.9"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -32,6 +32,7 @@ import rs4
 from rs4.termcolor import tc
 from rs4 import annotations
 import getopt as libgetopt
+import types
 
 argopt.add_option ('-d', desc = "start as daemon, equivalant with `start` command") # lower version compatible
 argopt.add_option (None, '---profile', desc = "log for performance profiling")
@@ -132,6 +133,12 @@ WS_OPCODE_BINARY = 0x2
 WS_OPCODE_CLOSE = 0x8
 WS_OPCODE_PING = 0x9
 WS_OPCODE_PONG = 0xa
+
+STATUS = 'CONFIGURING'
+
+def status ():
+    global STATUS
+    return STATUS
 
 class _WASPool:
     MAX_CLONES_PER_THREAD = 256
@@ -256,6 +263,7 @@ def websocket (varname = 60, timeout = 60, onopen = None, onclose = None):
 #------------------------------------------------
 dconf = dict (
     mount = {"default": []},
+    mount_onfly = {"default": []},
     clusters = {},
     max_ages = {},
     log_off = [],
@@ -307,7 +315,51 @@ def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20
 def set_max_was_clones_per_thread (val):
     was.MAX_CLONES_PER_THREAD = val
 
-class Preference (AttrDict):
+
+class PreferenceUtils:
+    def add_resources (self, module, front = False):
+        base_dir = os.path.dirname (module.__file__)
+        t = os.path.join (base_dir, 'templates')
+        s = os.path.join (base_dir, 'static')
+        os.path.isdir (t) and self.add_template_dir (t, front = front)
+        os.path.isdir (s) and self.add_static (s, front = front)
+
+    def extends (self, module):
+        hasattr (module, '__config__') and module.__config__ (self)
+        self.add_resources (module)
+        self.mount_later ('/', module, extends = True)
+
+    def overrides (self, module):
+        if hasattr (module, '__file__'):
+            hasattr (module, '__config__') and module.__config__ (self)
+            self.add_resources (module, True)
+        self.mount_later ('/', module, overrides = True)
+
+    def add_template_dir (self, d, front = False):
+        if "TEMPLATE_DIRS" not in self.config:
+            self.config.TEMPLATE_DIRS = []
+        exists = set (self.config.TEMPLATE_DIRS)
+        if d in exists:
+            return
+        self.config.TEMPLATE_DIRS.insert (0, d) if front else self.config.TEMPLATE_DIRS.append (d)
+        exists.add (d)
+
+    def add_static (self, path, front = False):
+        mount (self.config.STATIC_URL, path, first = front)
+
+    def set_static (self, url, path = None):
+        self.config.STATIC_URL = url
+        if path:
+            self.config.STATIC_ROOT = path
+            mount (url, path, first = True)
+
+    def set_media (self, url, path):
+        self.config.MEDIA_URL = url
+        self.config.MEDIA_ROOT = path
+        mount (url, path, first = True)
+
+
+class Preference (AttrDict, PreferenceUtils):
     def __init__ (self, path = None):
         super ().__init__ ()
         self.__path = path
@@ -321,23 +373,19 @@ class Preference (AttrDict):
     def __exit__ (self, *args):
         pass
 
-    def set_static (self, url, path):
-        self.config.STATIC_ROOT = path
-        self.config.STATIC_URL = url
-        mount (url, path)
-
-    def set_media (self, url, path):
-        self.config.MEDIA_ROOT = path
-        self.config.MEDIA_URL = url
-        mount (url, path)
-
     def copy (self):
         return copy.deepcopy (self)
 
-    @annotations.deprecated ('for communicating another app, use subscribe parameter of skitai.mount()')
-    def mount (self, *args, **kargs):
+    def mount_later (self, *args, **kargs):
         # mount module or func (app, options)
         self.__dict__ ["mountables"].append ((args, kargs))
+
+    # def mount (self, point, func):
+        # mount on fly to add routes, decorator and hooks
+        # mount function or module which has __mount__ or __setup__ func
+        # you cannot use static and templates
+    #    self.mount_later (point, func)
+
 
 def preference (preset = False, path = None, **configs):
     from .wastuff.wsgi_apps import Config
@@ -498,15 +546,16 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
 
     def init_app (modpath, pref):
         srvice_root = os.path.dirname (modpath)
-        # IMP: MUST pathing because reloading module
-        sys.path.append (srvice_root)
         modinit = os.path.join (srvice_root, "__init__.py")
         if os.path.isfile (modinit):
             mod = importer.from_file ("temp", modinit)
-            if hasattr (mod, "bootstrap"):
-                mod.__setup__ = mod.bootstrap
+            if hasattr (mod, "bootstrap"): # lower version compat
+                mod.__config__ = mod.bootstrap
                 del mod.bootstrap
-            hasattr (mod, "__setup__") and mod.__setup__ (pref)
+            if hasattr (mod, "__setup__"): # lower version compat
+                mod.__config__ = mod.__setup__
+                del mod.__setup__
+            hasattr (mod, "__config__") and mod.__config__ (pref)
 
     maybe_django (target, appname)
     if path:
@@ -521,23 +570,33 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
             assert name == target.__name__, "invalid mount name, remove name or use '{}'".format (target.__name__)
         else:
             name = target.__name__
-        
-        _target = os.path.join (os.path.dirname (module.__file__), "export", "skitai", "wsgi.py")
-        if os.path.isfile (_target):
-            _sctipt = "wsgi.py"
-        else:
-            _script = "__export__" # old version
-        target = (target, _script)
+
+        if not hasattr (target, '__app__'):
+            if hasattr (target, '__skitai__'):
+                target = target.__skitai__
+            else:
+                for cand in ("wsgi", "__export__"):
+                    _target = os.path.join (os.path.dirname (target.__file__), "export", "skitai", "{}.py".format (cand))
+                    if os.path.isfile (_target):
+                        target = (target, cand)
+                        break
+                    assert isinstance (target, tuple), 'cannot find {}'.format (os.path.join (os.path.dirname (target.__file__), "export", "skitai", "wsgi.py"))
 
     if 'subscribe' in kargs:
         assert name, 'to subscribe, name must be specified'
-        dconf ['subscriptions'].add ((kargs ['subscribe'], name))
+        subscribe = kargs ['subscribe']
+        if isinstance (subscribe, str):
+            subscribe = [subscribe]
+        for app in subscribe:
+            dconf ['subscriptions'].add ((app, name))
 
     if type (target) is tuple:
         module, appfile = target
         target = os.path.join (os.path.dirname (module.__file__), "export", "skitai", appfile)
 
-    if type (target) is not str:
+    if hasattr (target, '__app__'):
+        pass
+    elif type (target) is not str:
         # app instance, find app location
         target = os.path.normpath (os.path.join (os.getcwd (), sys.argv [0]))
     else:
@@ -551,9 +610,13 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
 
     if host not in dconf ['mount']:
         dconf ['mount'][host] = []
+        dconf ['mount_onfly'][host] = []
 
-    if os.path.isdir (target) or not appname:
-        dconf ['mount'][host].append ((point, target, None, name))
+    if hasattr (target, '__app__'):
+        args = (point,  target, pref, name)
+        hasattr (target, "__config__") and target.__config__ (pref)
+    elif os.path.isdir (target) or not appname:
+        args = (point, target, kargs, name)
     else:
         target_ = target
         if not target_.endswith ('.py'):
@@ -566,8 +629,14 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
                         import atila # automatic patch skitai was
                     except ImportError:
                         pass
+
         init_app (target, pref)
-        dconf ['mount'][host].append ((point,  (target, appname), pref, name))
+        args = (point,  (target, appname), pref, name)
+
+    if status () == 'CONFIGURING':
+        dconf ['mount'][host].append (args)
+    elif args not in dconf ['mount'][host]:
+        dconf ['mount_onfly'][host].append (args)
 
 mount_django = mount
 
@@ -913,16 +982,13 @@ def run (**conf):
                 conf.get ("gw_secret_key", None)
             )
 
-            for p, _ in dconf ['subscriptions']:
-                if isinstance (_, str):
-                    _ = [_]
-                for s in _:
-                    try:
-                        provider = self.get_app_by_name (p)
-                        provider.bus
-                        subbscriber = self.get_app_by_name (s).bus
-                    except AttributeError:
-                        raise NameError ('app.bus not found')
+            for p, s in dconf ['subscriptions']:
+                try:
+                    provider = self.get_app_by_name (p)
+                    provider.bus
+                    subbscriber = self.get_app_by_name (s).bus
+                except AttributeError:
+                    raise NameError ('app.bus not found')
 
                 provider.add_subscriber (subbscriber)
                 self.wasc.logger.get ("server").log ('app {} subscribes to {}'.format (tc.yellow (s), tc.cyan (p)))
@@ -934,8 +1000,9 @@ def run (**conf):
 
     #----------------------------------------------------------------------
 
-    global dconf, PROCESS_NAME, SERVICE_USER, SERVICE_GROUP, Win32Service
+    global dconf, PROCESS_NAME, SERVICE_USER, SERVICE_GROUP, Win32Service, STATUS
 
+    STATUS = 'CREATING'
     SERVICE_USER = argopt.options ().get ('--user')
     SERVICE_GROUP = argopt.options ().get ('--group')
 
@@ -968,12 +1035,18 @@ def run (**conf):
         sys.stderr = open (os.path.join (conf.get ('varpath'), "stderr.engine"), "a")
 
     server = SkitaiServer (conf)
+    # mount additionals while mounting apps
+    conf.get ("mount_onfly") and server.update_routes (conf ["mount_onfly"])
+    STATUS = 'CREATED'
+
     # timeout for fast keyboard interrupt on win32
     try:
+        STATUS = 'STARTING'
         try:
             server.run (conf.get ('verbose') and 3.0 or 30.0)
         except KeyboardInterrupt:
             pass
+        STATUS = 'STARTED'
 
     finally:
         _exit_code = server.get_exit_code ()
@@ -983,3 +1056,4 @@ def run (**conf):
             # worker process
             # for avoiding multiprocessing.manager process's join error
             os._exit (lifetime._exit_code)
+        STATUS = 'STOPPED'

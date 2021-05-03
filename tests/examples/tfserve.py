@@ -11,7 +11,7 @@ def load_model (model_name, model_path):
     model_path = os.path.normpath (model_path)
     if not os.path.isdir (model_path) or not os.listdir (model_path):
         return
-    tfserver.add_model (model_name, model_path)
+    tfserver.load_model (model_name, model_path)
 
 
 app = atila.Atila (__name__)
@@ -25,15 +25,23 @@ def api (was, x):
     pred = tfserver.get_model ('ex1').predict (np.array (x))
     return was.API (y1 = (pred [0].tolist ()), y2 = (pred [0].tolist ()))
 
+@app.before_mount
+def before_mount (wasc):
+    from dnn.processing.image import face
+    face.register_to_tfserver ('RETINAFACE')
+
+    base_path = os.path.join (os.path.dirname (__file__), 'models')
+    load_model ("ex1", os.path.join (base_path, "ex1"))
+    keras_model = os.path.join (base_path, "keras")
+    if os.path.isdir (keras_model):
+        load_model ("keras", keras_model)
+
 
 if __name__ == "__main__":
     dnn.setup_gpus ()
     with skitai.pref () as pref:
         pref.max_client_body_size = 100 * 1024 * 1024 # 100 MB
         pref.access_control_allow_origin = ["*"]
-        load_model ("ex1", skitai.joinpath ("models/ex1"))
-        if os.path.isdir (skitai.joinpath ("models/keras")):
-            load_model ("keras", skitai.joinpath ("models/keras"))
 
         skitai.mount ("/", tfserver, pref = pref)
         skitai.mount ("/", app, pref = pref, name = 'myserver', subscribe = 'tfserver')

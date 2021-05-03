@@ -94,16 +94,16 @@ class os_filesystem:
 		self.root = root
 		self.wd = wd
 		self.stat_cache = {}
-		
+
 	def current_directory (self):
 		return self.wd
 
 	def isfile (self, path):
-		p = self.normalize (self.path_module.join (self.wd, path))				
+		p = self.normalize (self.path_module.join (self.wd, path))
 		try:
 			return self.path_module.isfile (self.translate(p))
 		except TypeError:
-			return False	
+			return False
 
 	def isdir (self, path):
 		p = self.normalize (self.path_module.join (self.wd, path))
@@ -111,7 +111,7 @@ class os_filesystem:
 			return self.path_module.isdir (self.translate(p))
 		except TypeError:
 			return False
-				
+
 	def cwd (self, path):
 		p = self.normalize (self.path_module.join (self.wd, path))
 		translated_path = self.translate(p)
@@ -157,15 +157,15 @@ class os_filesystem:
 	# TODO: implement a cache w/timeout for stat()
 	def stat (self, path):
 		ctime = time.time ()
-		cached = self.stat_cache.get (path)		
-		p = self.translate (path)		
+		cached = self.stat_cache.get (path)
+		p = self.translate (path)
 		if cached is None or ctime - cached [0] > 1:
 			stat = os.stat (p)
-			self.stat_cache [path] = (ctime, stat)		
+			self.stat_cache [path] = (ctime, stat)
 		return self.stat_cache [path][1]
 
 	def open (self, path, mode):
-		p = self.translate (path)		
+		p = self.translate (path)
 		return open (p, mode)
 
 	def unlink (self, path):
@@ -184,7 +184,7 @@ class os_filesystem:
 	def normalize (self, path):
 		# watch for the ever-sneaky '/+' path element
 		path = re.sub ('/+', '/', path)
-		p = self.path_module.normpath (path)		
+		p = self.path_module.normpath (path)
 		# remove 'dangling' cdup's.
 		if len(p) > 2 and p[:3] == '/..':
 			p = '/'
@@ -216,84 +216,99 @@ class mapped_filesystem (os_filesystem):
 		os_filesystem.__init__ (self, None, "/")
 		self.maps = {}
 		self.permission_cache = {}
-	
-	def add_map (self, alias, optstr):
-		options = optstr.split("|")		
-		
-		path = options [0]
+		self.cache = os.getenv ("SKITAIENV") == "PRODUCTION"
+		self._cache = {}
+
+	def add_map (self, alias, path, options = None):
+		options = options or {}
+		if len (options) > 1 and alias in self.maps:
+			raise ValueError ('Cannot give explicit directory mount options for alternate search directory')
+
 		if alias == "":
 			os_filesystem.__init__ (self, path)
 		elif alias [-1] == "/":
 			alias = alias [:-1]
 
 		conf = {"path": path}
-		for opt in options [1:]:
-			maybe_pair = opt.split ("=", 1)
-			if len (maybe_pair) == 1:
-				conf [opt.strip ()] = None
-			else:
-				optk, optv = maybe_pair[0].strip (), maybe_pair[1].strip ()
-				if optv [:5] == "list:":
-					conf [optk] = [x.strip () for x in optv [5:].split(",")]
-				else:	
-					conf [optk] = optv		
-		self.maps [alias] = conf
-		
+		for opt, v in options.items ():
+			conf [opt] = v
+
+		if alias not in self.maps:
+			self.maps [alias] = []
+
+		if options.get ('first'):
+			self.maps [alias].insert (0, conf)
+		else:
+			self.maps [alias].append (conf)
+
 		if self.root is None:
 			os_filesystem.__init__ (self, None) # init forcely
-			
+
 	def translate (self, path):
-		if not self.maps: 
+		if not self.maps:
 			return None
-		
+
+		try:
+			return self._cache [path]
+		except KeyError:
+			pass
+
 		p = self.normalize (self.path_module.join (self.wd, path))
-		path = p.split (os.sep)
-		
+		seppath = p.split (os.sep)
+
 		maybe_alias = ""
 		current_depth = 0
 		latest_alias = ""
-		latest_depth = ""
-		
-		for each in path [1:]:
+		latest_depth = 0
+
+		for each in seppath [1:]:
 			current_depth += 1
-			maybe_alias += "/" + each			
-			
+			maybe_alias += "/" + each
+
 			if maybe_alias in self.maps:
 				latest_alias = maybe_alias
 				latest_depth = current_depth
-								
-		if latest_alias:			
-			return self.normalize (self.path_module.join (self.maps [latest_alias]["path"], '/'.join (path [latest_depth + 1:])))
+
+		if latest_alias in self.maps:
+			if len (self.maps [latest_alias]) > 1:
+				for prior in self.maps [latest_alias]:
+					cand = self.normalize (self.path_module.join (prior ["path"], '/'.join (seppath [latest_depth + 1:])))
+					if os.path.exists (cand):
+						if self.cache:
+							self._cache [path] = cand
+						return cand
+			return self.normalize (self.path_module.join (self.maps [latest_alias][0]["path"], '/'.join (seppath [latest_depth + 1:])))
+
 		if self.root is None:
 			return None # no psysical root
-		return self.normalize (self.path_module.join (self.root, p[1:]))
-			
+		return self.normalize (self.path_module.join (self.root, p [1:]))
+
 	def get_permission (self, path):
 		try:
 			return self.permission_cache [path]
 		except KeyError:
 			pass
-				
+
 		p = self.normalize (self.path_module.join (self.wd, path))
-		patheach = p.split (os.sep)				
+		patheach = p.split (os.sep)
 		maybe_alias = ""
 		collected_permissions = []
-		
+
 		for each in patheach [1:]:
-			maybe_alias += "/" + each			
+			maybe_alias += "/" + each
 			if maybe_alias in self.maps:
-				collected_permissions.append (self.maps [maybe_alias].get ("permission", []))
-		
-		collected_permissions = [_f for _f in collected_permissions if _f]		
+				collected_permissions.append (self.maps [maybe_alias][0].get ("permission", []))
+
+		collected_permissions = [_f for _f in collected_permissions if _f]
 		if not collected_permissions:
 			permission = []
 		else:
 			permission = collected_permissions [-1]
-		
+
 		self.permission_cache [path] = permission
 		return permission
-	
-			
+
+
 if os.name == 'posix':
 
 	class unix_filesystem (os_filesystem):
@@ -502,7 +517,7 @@ def unix_longify (file, stat_info):
 		date,
 		file
 		)
-		
+
 # Emulate the unix 'ls' command's date field.
 # it has two formats - if the date is more than 180
 # days in the past, then it's like this:

@@ -4,12 +4,11 @@ variables:
 .base_install: &base_install
   - python -V
   - pip install -U setuptools pip
-  - pip install -e .
   - pip install -U --pre --no-cache-dir aquests rs4 sqlphile
   - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
   - python -c 'from aquests.protocols.grpc import discover'
-  - pip install -U --pre --no-cache-dir atila
   - pip install -Ur tests/requirements.txt
+  - pip install -U --pre --no-cache-dir atila delune
 
 .before_python_test: &before_python_test
     before_script:
@@ -29,6 +28,7 @@ variables:
 
 .test_template: &test
   script:
+    - pip install -U -e .
     - cd tests
     - pytest level1
     - pytest level2
@@ -37,7 +37,7 @@ variables:
     - pytest level4-1
     - pytest level4-2
     - pytest level5
-    # - pytest -s level4-2/test_tfserver.py
+    # - pytest level4/test_big_picture.py
 
 .test_template_win32: &test-win32
   script:
