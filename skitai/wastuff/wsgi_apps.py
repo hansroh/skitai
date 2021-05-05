@@ -128,8 +128,8 @@ class Module:
                     else:
                         for k1, v1 in copy.copy (self.pref.config).items ():
                             app.config [k1] = v1
-                elif k == 'mountables':
-                    if hasattr (app, 'mountables'):
+                elif k in ('mountables',):
+                    if hasattr (app, k):
                         app.mountables.extend (v)
                     else:
                         setattr (app, k, v)

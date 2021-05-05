@@ -177,3 +177,5 @@ class API (APIResponse):
 		props ["doc"] = self.request.routed.__doc__
 		props ["id"] = resource_id
 		self.data ["__spec__"] = props
+
+		app.emit ('spec:exposed', props)

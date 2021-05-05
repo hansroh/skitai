@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.37"
+__version__ = "0.37.1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -316,7 +316,7 @@ def set_max_was_clones_per_thread (val):
     was.MAX_CLONES_PER_THREAD = val
 
 
-class PreferenceUtils:
+class PreferenceBase:
     def add_resources (self, module, front = False):
         base_dir = os.path.dirname (module.__file__)
         t = os.path.join (base_dir, 'templates')
@@ -361,7 +361,7 @@ class PreferenceUtils:
         mount (url, path, first = True)
 
 
-class Preference (AttrDict, PreferenceUtils):
+class Preference (AttrDict, PreferenceBase):
     def __init__ (self, path = None):
         super ().__init__ ()
         self.__path = path
