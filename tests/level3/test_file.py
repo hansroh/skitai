@@ -6,10 +6,10 @@ from io import BytesIO
 def test_futures (app, dbpath):
     @app.route ("/")
     def index (was):
-        return was.File ('level3/test_file.py', 'application/python', 'test.py')
+        return was.File (__file__, 'application/python', 'test.py')
 
     @app.route ("/1")
-    def index (was):
+    def index2 (was):
         f = BytesIO ()
         f.write (b'Be cool')
         return was.File (f, 'application/python', 'test.py')

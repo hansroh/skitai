@@ -95,7 +95,10 @@ class Handler:
 
 		if type (routepair) is tuple:
 			route, module, path = routepair
-			return self.add_app (rule, route, module, path, config)
+			if isinstance (module, tuple):
+				module, path = module
+			return self.add_app (rule, route, module, path, config, name)
+
 		route, target = [x.strip () for x in routepair.split ("=", 1)]
 
 		if target.startswith ("@"):

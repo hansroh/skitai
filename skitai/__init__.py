@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.36.9.1"
+__version__ = "0.37"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -345,16 +345,18 @@ class PreferenceUtils:
         exists.add (d)
 
     def add_static (self, path, front = False):
-        mount (self.config.STATIC_URL, path, first = front)
+        mount (self.config.STATIC_URL, joinpath (path), first = front)
 
     def set_static (self, url, path = None):
         self.config.STATIC_URL = url
         if path:
+            path = joinpath (path)
             self.config.STATIC_ROOT = path
             mount (url, path, first = True)
 
     def set_media (self, url, path):
         self.config.MEDIA_URL = url
+        path = joinpath (path)
         self.config.MEDIA_ROOT = path
         mount (url, path, first = True)
 
@@ -598,7 +600,7 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
         pass
     elif type (target) is not str:
         # app instance, find app location
-        target = os.path.normpath (os.path.join (os.getcwd (), sys.argv [0]))
+        target = (target, os.path.dirname (os.path.normpath (os.path.join (os.getcwd (), sys.argv [0]))))
     else:
         if target [0] == "@":
             appname = None
@@ -615,7 +617,11 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
     if hasattr (target, '__app__'):
         args = (point,  target, pref, name)
         hasattr (target, "__config__") and target.__config__ (pref)
-    elif os.path.isdir (target) or not appname:
+    elif isinstance (target, tuple):
+        args = (point,  target, pref, name)
+    elif os.path.isdir (target):
+        args = (point, joinpath (target), kargs, name)
+    elif not appname: # alias
         args = (point, target, kargs, name)
     else:
         target_ = target
@@ -629,7 +635,6 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
                         import atila # automatic patch skitai was
                     except ImportError:
                         pass
-
         init_app (target, pref)
         args = (point,  (target, appname), pref, name)
 
@@ -1035,8 +1040,8 @@ def run (**conf):
         sys.stderr = open (os.path.join (conf.get ('varpath'), "stderr.engine"), "a")
 
     server = SkitaiServer (conf)
-    # mount additionals while mounting apps
-    conf.get ("mount_onfly") and server.update_routes (conf ["mount_onfly"])
+    # mount additionals while mounting apps and mount apps
+    server.just_before_run (conf.get ("mount_onfly"))
     STATUS = 'CREATED'
 
     # timeout for fast keyboard interrupt on win32

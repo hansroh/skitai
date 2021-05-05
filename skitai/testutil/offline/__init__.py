@@ -134,7 +134,6 @@ def setup_was (wasc):
     except ImportError: pass
     try: add_cluster (wasc, *skitai.alias ("@redis", DB_REDIS, "127.0.0.1:6379"))
     except ImportError: pass
-
     return wasc
 
 wasc = None
@@ -148,7 +147,7 @@ def activate (make_sync = True):
 
     global wasc
     if wasc is not None:
-        return
+        return wasc
 
     # convert async to sync
     if make_sync:
@@ -163,4 +162,5 @@ def activate (make_sync = True):
     skitai.start_was (wasc, enable_requests = True)
     wasc._luwatcher.add (skitai.dconf ["models_keys"])
     lifetime.init (10.0, wasc.logger.get ("server"))
+    return wasc
 

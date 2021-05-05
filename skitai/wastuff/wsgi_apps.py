@@ -10,6 +10,7 @@ from rs4 import attrdict
 from importlib import reload
 from urllib.parse import unquote
 import skitai
+import time
 
 def set_default (cf):
     cf.MAX_UPLOAD_SIZE = 256 * 1024 * 1024
@@ -94,14 +95,11 @@ class Module:
 
             else:
                 self.module = None
-                self.abspath = os.path.join (directory, 'dummy')
+                self.abspath = os.path.join (directory, '__nonextist__')
+                self.directory = directory
                 self.app = libpath
-
-            self.app.use_reloader = False # default
+                self.app.use_reloader = False
             self.start_app ()
-
-        app = self.app or getattr (self.module, self.appname)
-        self.has_life_cycle and app.life_cycle ("before_mount", self.wasc)
 
     def __repr__ (self):
         return "<Module routing to %s at %x>" % (self.route, id(self))
@@ -112,7 +110,7 @@ class Module:
     def start_app (self, reloded = False):
         func = None
         app = self.app or getattr (self.module, self.appname)
-
+        self.has_life_cycle = hasattr (app, "life_cycle")
         if hasattr (app, "set_logger"):
             app.set_logger (self.wasc.logger.get ("app"))
 
@@ -122,7 +120,6 @@ class Module:
                 django_base_dir = os.path.dirname (django_base_dir)
             self.django = DjangoReloader (django_base_dir, self.wasc.logger)
 
-        self.has_life_cycle = hasattr (app, "life_cycle")
         if self.pref:
             for k, v in copy.copy (self.pref).items ():
                 if k == "config":
@@ -179,10 +176,18 @@ class Module:
             func (self.wasc, self.route)
             self.wasc.handler = None
 
+    def before_mount (self):
+        app = self.app or getattr (self.module, self.appname)
+        self.has_life_cycle and app.life_cycle ("before_mount", self.wasc)
+
     def mounted (self):
         app = self.app or getattr (self.module, self.appname)
         self.has_life_cycle and app.life_cycle ("mounted", self.wasc ())
         self.has_life_cycle and app.life_cycle ("mounted_or_reloaded", self.wasc ())
+
+    def before_umount (self):
+        app = self.app or getattr (self.module, self.appname)
+        self.has_life_cycle and app.life_cycle ("before_umount", self.wasc ())
 
     def umounted (self):
         app = self.app or getattr (self.module, self.appname)
@@ -190,9 +195,9 @@ class Module:
 
     def cleanup (self):
         app = self.app or getattr (self.module, self.appname)
-        self.has_life_cycle and app.life_cycle ("before_umount", self.wasc ())
         try: app.cleanup ()
         except AttributeError: pass
+        hasattr (self.app_initer, '__umount__') and self.app_initer.__umount__ (app)
 
     def check_django_reloader (self, now):
         if self.django.reloaded ():
@@ -220,7 +225,7 @@ class Module:
 
     def update_file_info (self):
         if self.module is None:
-            # app directly mounted
+            # app directly mounted, cannot reload app
             return
         stat = os.stat (self.abspath)
         self.file_info = (stat.st_mtime, stat.st_size)
@@ -238,34 +243,44 @@ class Module:
 
         stat = os.stat (self.abspath)
         if self.file_info != (stat.st_mtime, stat.st_size):
-            oldapp = getattr (self.module, self.appname)
+            oldapp = self.app or getattr (self.module, self.appname)
             self.has_life_cycle and oldapp.life_cycle ("before_reload", self.wasc ())
 
             try:
-                reloaded = importer.reimporter (self.module, self.directory, self.libpath)
+                if self.app_initer:
+                    reload (self.app_initer)
+                else:
+                    reloaded = importer.reimporter (self.module, self.directory, self.libpath)
+                    if not reloaded:
+                        return
+                    self.module, self.abspath = reloaded
+
             except:
-                self.module.app = oldapp
+                if self.app:
+                    self.app = oldapp
+                else:
+                    setattr (self.module, self.appname, oldapp)
                 raise
+
+            if hasattr (oldapp, "remove_events"):
+                oldapp.remove_events (self.bus)
+            PRESERVED = []
+            if hasattr (oldapp, "PRESERVES_ON_RELOAD"):
+                PRESERVED = [(attr, getattr (oldapp, attr)) for attr in oldapp.PRESERVES_ON_RELOAD]
+
+            self.start_app (reloded = True)
+            if hasattr (self.module, '__app__'):
+                newapp = self.module.__app__ ()
             else:
-                if not reloaded:
-                    return
-                self.module, self.abspath = reloaded
-                if hasattr (oldapp, "remove_events"):
-                    oldapp.remove_events (self.bus)
-                PRESERVED = []
-                if hasattr (oldapp, "PRESERVES_ON_RELOAD"):
-                    PRESERVED = [(attr, getattr (oldapp, attr)) for attr in oldapp.PRESERVES_ON_RELOAD]
-
-                self.start_app (reloded = True)
                 newapp = getattr (self.module, self.appname)
-                for attr, value in PRESERVED:
-                    setattr (newapp, attr, value)
+            for attr, value in PRESERVED:
+                setattr (newapp, attr, value)
 
-                # reloaded
-                self.has_life_cycle and newapp.life_cycle ("reloaded", self.wasc ())
-                self.has_life_cycle and newapp.life_cycle ("mounted_or_reloaded", self.wasc ())
-                self.last_reloaded = time.time ()
-                self.wasc.logger ("app", "reloading app, %s" % self.abspath, "debug")
+            # reloaded
+            self.has_life_cycle and newapp.life_cycle ("reloaded", self.wasc ())
+            self.has_life_cycle and newapp.life_cycle ("mounted_or_reloaded", self.wasc ())
+            self.last_reloaded = time.time ()
+            self.wasc.logger ("app", "reloading app, %s" % self.abspath, "debug")
 
     def set_route (self, route):
         while route and route [-1] == "/":
@@ -312,13 +327,22 @@ class ModuleManager:
         return self.modnames [a].get_callable ().build_url (b, *args, **kargs)
 
     def add_module (self, route, directory, modname, pref, name):
+        if isinstance (modname, tuple):
+            if not name:
+                name = '{}'.format (os.path.basename (modname [1][:-3]))
+            modname, _path = modname
+            directory = _path
+
         if not name:
             if isinstance (modname, str):
                 name = os.path.join (directory, modname)
             elif hasattr (modname, '__app__'):
                 name = modname.__name__.split (".", 1) [0]
             else:
-                name = '<{}:{}>'.format (modname.app_name, str (id (modname)) [:6])
+                try:
+                    name = '{}:{}'.format (modname.name.split (".", 1) [0], str (id (modname)) [:6])
+                except AttributeError:
+                    name = 'app:{}'.format (str (id (modname)) [:6])
 
         if name in self.modnames:
             self.wasc.logger ("app", "app name collision detected: %s" % tc.error (name), "error")

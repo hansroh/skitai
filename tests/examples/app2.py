@@ -50,7 +50,7 @@ def static (was):
 
 @app.route ("/file")
 def file (was):
-    return was.File (os.path.join (os.path.dirname (__file__), 'statics/img/reindeer.jpg'))
+    return was.File ('statics/img/reindeer.jpg')
 
 @app.route ("/stream")
 def stream (was):

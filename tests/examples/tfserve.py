@@ -6,12 +6,13 @@ import sys
 import tfserver
 import dnn
 import numpy as np
+from rs4 import tc
 
-def load_model (model_name, model_path):
+def add_model (model_name, model_path):
     model_path = os.path.normpath (model_path)
     if not os.path.isdir (model_path) or not os.listdir (model_path):
         return
-    tfserver.load_model (model_name, model_path)
+    tfserver.add_model (model_name, model_path)
 
 
 app = atila.Atila (__name__)
@@ -30,11 +31,12 @@ def before_mount (wasc):
     from dnn.processing.image import face
     face.register_to_tfserver ('RETINAFACE')
 
-    base_path = os.path.join (os.path.dirname (__file__), 'models')
-    load_model ("ex1", os.path.join (base_path, "ex1"))
+    base_path = skitai.joinpath ('models')
+    add_model ("ex1", os.path.join (base_path, "ex1"))
+
     keras_model = os.path.join (base_path, "keras")
     if os.path.isdir (keras_model):
-        load_model ("keras", keras_model)
+        add_model ("keras", keras_model)
 
 
 if __name__ == "__main__":
@@ -42,9 +44,7 @@ if __name__ == "__main__":
     with skitai.pref () as pref:
         pref.max_client_body_size = 100 * 1024 * 1024 # 100 MB
         pref.access_control_allow_origin = ["*"]
-
-        skitai.mount ("/", tfserver, pref = pref)
-        skitai.mount ("/", app, pref = pref, name = 'myserver', subscribe = 'tfserver')
-
+        skitai.mount ("/", app, pref, name = 'myserver', subscribe = 'tfserver')
+        skitai.mount ("/", tfserver, pref)
     skitai.config_executors (workers = 4, process_start_method = 'spawn')
     skitai.run (port = 5000, name = "tfserver")

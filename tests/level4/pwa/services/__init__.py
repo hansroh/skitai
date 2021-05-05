@@ -11,3 +11,6 @@ def __mount__ (app, mntopt):
     @app.route ('/')
     def index (was):
         return 'pwa'
+
+def __umount__ (app):
+    pass

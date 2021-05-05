@@ -621,6 +621,8 @@ class http_response:
             self.set_header ('Content-Disposition', 'attachment; filename="{}"'.format (filename))
 
         if isinstance (path, str):
+            if not path.startswith ('/'):
+                path = skitai.joinpath (path)
             self.set_header ('Content-Length', str (os.path.getsize (path)))
             fp = open (path, "rb")
         else:
