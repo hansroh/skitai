@@ -73,7 +73,7 @@ def wasc ():
 
 @pytest.fixture (scope = "session")
 def async_wasc ():
-    from skitai.wsgiappservice import WAS
+    from atila.was import WAS
     wasc = offline.setup_was (WAS) # nned real WAS from this testing
 
     assert "example" in wasc.clusters

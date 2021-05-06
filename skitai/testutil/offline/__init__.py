@@ -141,7 +141,7 @@ def activate (make_sync = True):
     from ...wsgiappservice import WAS
     from atila import was as atila_was
 
-    class WAS (atila_was.WAS, WAS):
+    class WAS (atila_was.WAS):
         numthreads = 1
         _luwatcher = semaps.TestSemaps ()
 

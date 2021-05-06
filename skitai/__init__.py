@@ -279,17 +279,20 @@ def register_states (*names):
     return decorator
 register_cache_keys = register_states
 
-def setgs (k, v):
-    return was.setgs (k, v)
+def set_state (k, v):
+    return was.set_state (k, v)
 
-def getgs (k):
-    return was.getgs (k)
+def get_state (k, v = 0):
+    return was.get_state (k, v = None)
 
-def setlu (k):
-    return was.setlu (k)
+def delta_state (k, delta = 1):
+    return was.delta_state (k, delta)
 
-def getlu (k, v):
-    return was.getlu (k)
+def set_timestamp (k):
+    return was.set_timestamp (k)
+
+def get_timestamp (*k):
+    return was.get_timestamp (*k)
 
 def push (*args, **kargs):
     return was.push (*args, **kargs)
