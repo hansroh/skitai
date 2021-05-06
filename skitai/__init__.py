@@ -236,6 +236,10 @@ def detect_atila ():
         global HAS_ATILA
         HAS_ATILA = atila.Atila
 
+
+#-------------------------------------------------
+# aliases for WSGI apps
+#-------------------------------------------------
 def websocket (varname = 60, timeout = 60, onopen = None, onclose = None):
     global was
     if isinstance (varname, int):
@@ -257,6 +261,39 @@ def websocket (varname = 60, timeout = 60, onopen = None, onclose = None):
                 return onclose and onclose () or ''
         return wrapper
     return decorator
+
+def _reserve_states (*names):
+    global dconf
+    if isinstance (names [0], (list, tuple)):
+        names = list (names [0])
+    if was._started ():
+        was._luwatcher.add (names)
+    else:
+        for k in names:
+            dconf ["models_keys"].add (k)
+addlu = trackers = lukeys = deflu = _reserve_states
+
+def register_states (*names):
+    _reserve_states (names)
+    def decorator (cls):
+        return cls
+    return decorator
+register_cache_keys = register_states
+
+def setgs (k, v):
+    return was.setgs (k, v)
+
+def getgs (k):
+    return was.getgs (k)
+
+def setlu (k):
+    return was.setlu (k)
+
+def getlu (k, v):
+    return was.getlu (k)
+
+def push (*args, **kargs):
+    return was.push (*args, **kargs)
 
 #------------------------------------------------
 # Configure
@@ -503,24 +540,6 @@ set_network_timeout = set_request_timeout
 def set_was_class (was_class):
     global dconf
     dconf ["wasc"] = was_class
-
-def _reserve_states (*names):
-    global dconf
-    if isinstance (names [0], (list, tuple)):
-        names = list (names [0])
-    if was._started ():
-        was._luwatcher.add (names)
-    else:
-        for k in names:
-            dconf ["models_keys"].add (k)
-addlu = trackers = lukeys = deflu = _reserve_states
-
-def register_states (*names):
-    _reserve_states (names)
-    def decorator (cls):
-        return cls
-    return decorator
-register_cache_keys = register_states
 
 def maybe_django (wsgi_path, appname):
     if not isinstance (wsgi_path, str):
