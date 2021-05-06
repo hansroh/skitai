@@ -24,6 +24,9 @@ def index2 ():
     ]
     return was.Tasks (reqs, a = 100).then (respond)
 
+@app.route ("/3")
+def index3 ():
+    return 'hello, flask'
 
 if __name__ == "__main__":
     import skitai

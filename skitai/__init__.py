@@ -25,7 +25,6 @@ import tempfile
 from rs4 import argopt
 from .backbone import lifetime
 from . import mounted
-from .corequest import corequest
 from functools import wraps
 import copy
 import rs4
@@ -478,7 +477,7 @@ def log_off (*path):
 
 def add_http_rpc_proto (name, class_):
     assert name.endswith ("rpc"), "protocol name must be end with 'rpc'"
-    from corequest.httpbase import task
+    from .corequest.httpbase import task
     task.Task.add_proto (name, class_)
 
 def add_database_interface (name, class_):

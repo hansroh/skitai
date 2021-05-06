@@ -1,6 +1,6 @@
 import sys
 from ..exceptions import HTTPError
-from . import corequest, response
+from .proto import corequest, response
 from .httpbase.task import DEFAULT_TIMEOUT, Task
 from skitai import was
 from rs4.attrdict import AttrDict

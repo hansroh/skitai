@@ -51,6 +51,7 @@ packages = [
     'skitai.corequest.dbi',
     'skitai.corequest.httpbase',
     'skitai.corequest.pth',
+    'skitai.wsgiappservice',
     'skitai.wastuff',
     'skitai.mounted',
     'skitai.testutil',

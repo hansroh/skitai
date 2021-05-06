@@ -1,7 +1,7 @@
 # testing purpose WAS sync service
 
 from . import task
-from .. import corequest
+from ..__init__ import corequest
 from rs4.webkit import webtest
 from rs4.cbutil import tuple_cb
 import random

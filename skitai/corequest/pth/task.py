@@ -1,7 +1,7 @@
 from concurrent.futures import TimeoutError, CancelledError
 import time
 from ..tasks import Mask
-from .. import corequest
+from ..proto import corequest
 from skitai import was
 from aquests.athreads import trigger
 import sys

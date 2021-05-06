@@ -6,3 +6,8 @@ class HTTPError (Exception):
         self.explain = explain
         self.errno = errno
         self.exc_info = traceback and sys.exc_info () or None
+
+
+class CorequestError (Exception):
+    pass
+

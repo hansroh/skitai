@@ -20,7 +20,7 @@ import sys
 import inspect
 from skitai import exceptions
 from skitai import REQFAIL, UNSENT, TIMEOUT, NETERR, NORMAL
-from ...corequest import corequest, response
+from ..proto import corequest, response
 from . import HTTPTaskError
 import sqlite3
 
