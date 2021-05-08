@@ -29,16 +29,21 @@ if os.environ.get ("SKITAIENV") == "PYTEST":
 else:
     from ..wastuff.semaps import Semaps
 from .wastype import _WASType
+from rs4.attrdict import AttrDictTS
+
+workers_shared_mmap = Semaps ([], "d", 256)
 
 class WASBase (_WASType):
+    _luwatcher = workers_shared_mmap
+    _process_locks = [RLock () for i in range (8)]
+
     version = __version__
     ID = None # set by skitai.was
+    g = AttrDictTS ()
     objects = {}
-    _luwatcher = Semaps ([], "d", 256)
     lock = plock = RLock ()
     init_time = time.time ()
     cloned = False
-    _process_locks = [RLock () for i in range (8)]
 
     @classmethod
     def get_lock (cls, name = "__main__"):
@@ -132,7 +137,7 @@ class WASBase (_WASType):
             id = self.txnid ()
         self.logger.trace (at, id)
 
-    # -- only allpy to current worker process
+    # server management, only allpy to current worker process
     def status (self, flt = None, fancy = True):
         return server_info.make (self, flt, fancy)
 
@@ -142,41 +147,23 @@ class WASBase (_WASType):
     def shutdown (self, timeout = 0):
         lifetime.shutdown (0, timeout)
 
-    # inter-processes communication ------------------------------
-    def set_timestamp (self, name, *args, **karg):
+    # process scoped caching utils --------------------------
+    def setlu (self, name, *args, **karg):
         self._luwatcher.set (name, time.time (), karg.get ("x_ignore", False))
         self.broadcast (name, *args, **karg)
-    setlu = set_timestamp
 
-    def get_timestamp (self, *names):
+    def getlu (self, *names):
         mtimes = []
         for name in names:
             mtime = self._luwatcher.get (name, self.init_time)
             mtimes.append (mtime)
         return max (mtimes)
-    getlu = get_timestamp
 
-    def set_state (self, name, val):
-        assert isinstance (val, int), "global state must be integer"
-        self._luwatcher.set (name, val)
-        self.broadcast (name, val)
-    setgs = set_state
-
-    def get_state (self, name, default = 0):
-        assert isinstance (default, int), "global state must be integer"
-        val = self._luwatcher.get (name, default)
-        return int (val)
-    getgs = get_state
-
-    def delta_state (self, name, delta = 1):
-        val = self.getgs (name) + delta
-        self.setgs (name, val)
-    incgs = delta_state
-
-    # websokcet / http2 ------------------------------------------
+    # http23 --------------------------------------------------
     def push (self, uri):
         self.request.response.push_promise (uri)
 
+    # websocket ----------------------------------------------
     def wsconfig (self, spec, timeout = 60, encoding = "text", session = None):
         # other than atila, encoding became varname
         self.env ["websocket.config"] = (spec, timeout, encoding, session)
