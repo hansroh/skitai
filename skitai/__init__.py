@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.37.1"
+__version__ = "0.38.0b1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -34,20 +34,23 @@ import getopt as libgetopt
 import types
 
 argopt.add_option ('-d', desc = "start as daemon, equivalant with `start` command") # lower version compatible
+
 argopt.add_option (None, '---profile', desc = "log for performance profiling")
 argopt.add_option (None, '---memtrack', desc = "show memory status")
 argopt.add_option (None, '---gc', desc = "enable manual GC")
 
-argopt.add_option (None, '--devel', desc = "enable reloading and debug output")
+argopt.add_option (None, '--devel', desc = "set SKITAIENV environ env to DEVEL")
+argopt.add_option (None, '--deploy=VALUE', desc = "set DEPLOYMENT env to VALUE like PRODUCTION, QA, ...")
+
 argopt.add_option (None, '--port=TCP_PORT_NUMBER', desc = "http/https port number")
 argopt.add_option (None, '--quic=UDP_PORT_NUMBER', desc = "http3/quic port number")
 argopt.add_option (None, '--workers=WORKERS', desc = "number of workers")
 argopt.add_option (None, '--threads=THREADS', desc = "number of threads per worker")
-argopt.add_option (None, '--deploy=VALUE', desc = "DEPLOYMENT environment value [PRODUCTION, QA, TEST, ...]")
 argopt.add_option (None, '--poll=POLLER', desc = "name of poller [select, poll, epoll and kqueue]")
-argopt.add_option (None, '--smtpda', desc = "run SMTPDA if not started")
+
 argopt.add_option (None, '--user=USER', desc = "if run as root, fallback workers owner to user")
 argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback workers owner to group")
+argopt.add_option (None, '--smtpda', desc = "start SMTP Delivery Agent")
 
 if '--deploy' in sys.argv:
     os.environ ['DEPLOYMENT'] = argopt.options ().get ('--deploy')
@@ -217,11 +220,13 @@ class _WASPool:
     def _get_by_id (self, _id):
         return self.__p [_id]
 
-
+g = None
 was = _WASPool ()
 def start_was (wasc, **kargs):
-    global was
+    from .wsgiappservice.wasbase import workers_shared_mmap
+    global was, g
 
+    g = workers_shared_mmap
     detect_atila ()
     was._start (wasc, **kargs)
 
@@ -239,6 +244,9 @@ def detect_atila ():
 #-------------------------------------------------
 # aliases for WSGI apps
 #-------------------------------------------------
+def push (*args, **kargs):
+    return was.push (*args, **kargs)
+
 def websocket (varname = 60, timeout = 60, onopen = None, onclose = None):
     global was
     if isinstance (varname, int):
@@ -272,30 +280,12 @@ def _reserve_states (*names):
             dconf ["models_keys"].add (k)
 addlu = trackers = lukeys = deflu = _reserve_states
 
-def register_states (*names):
+def register_g (*names):
     _reserve_states (names)
     def decorator (cls):
         return cls
     return decorator
-register_cache_keys = register_states
-
-def set_state (k, v):
-    return was.set_state (k, v)
-
-def get_state (k, v = 0):
-    return was.get_state (k, v = None)
-
-def delta_state (k, delta = 1):
-    return was.delta_state (k, delta)
-
-def set_timestamp (k):
-    return was.set_timestamp (k)
-
-def get_timestamp (*k):
-    return was.get_timestamp (*k)
-
-def push (*args, **kargs):
-    return was.push (*args, **kargs)
+register_cache_keys = register_states = register_g
 
 #------------------------------------------------
 # Configure
@@ -542,6 +532,10 @@ set_network_timeout = set_request_timeout
 def set_was_class (was_class):
     global dconf
     dconf ["wasc"] = was_class
+
+def enable_async_services ():
+    from .wsgiappservice import AsyncServicableWAS
+    set_was_class (AsyncServicableWAS)
 
 def maybe_django (wsgi_path, appname):
     if not isinstance (wsgi_path, str):
