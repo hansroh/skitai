@@ -20,7 +20,8 @@ import sys
 import inspect
 from skitai import exceptions
 from skitai import REQFAIL, UNSENT, TIMEOUT, NETERR, NORMAL
-from ..proto import corequest, response
+from ..proto import response
+from .. import proto
 from . import HTTPTaskError
 import sqlite3
 
@@ -217,7 +218,7 @@ class Dispatcher:
         tuple_cb (self, self.callback)
 
 
-class Task (corequest):
+class Task (proto.Task):
     DEFAULT_CACHE_TIMEOUT = 42
     proto_map = dict (
        rpc = http_request.XMLRPCRequest,

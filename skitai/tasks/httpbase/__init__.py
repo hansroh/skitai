@@ -1,4 +1,4 @@
-from ...exceptions import CorequestError
+from ...exceptions import TaskError
 
-class HTTPTaskError (CorequestError):
+class HTTPTaskError (TaskError):
     pass

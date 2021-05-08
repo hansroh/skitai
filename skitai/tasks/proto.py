@@ -65,7 +65,7 @@ class Coroutine:
                     self.contents.append (value.encode () if isinstance (value, str) else value)
                     return
                 return value
-            if isinstance (task, corequest):
+            if isinstance (task, Task):
                 return task
             task = self.serialize (task)
             self.contents.append (task.encode () if isinstance (task, str) else task)
@@ -105,7 +105,7 @@ class Coroutine:
                     # self.input_streams and self.on_completed (self._was, self.input_streams.pop (0))
                     return
 
-                if not isinstance (next_task, corequest):
+                if not isinstance (next_task, Task):
                     next_task = self.serialize (next_task)
                     assert isinstance (next_task, (str, bytes, bytearray)), "str or bytes object required"
                     self.contents.append (next_task.encode () if isinstance (next_task, str) else next_task)
@@ -157,7 +157,7 @@ class Coroutine:
         task = self.collect_data ()
         if task is None:
             return b''.join (self.contents)
-        if not isinstance (task, corequest):
+        if not isinstance (task, Task):
             return task
 
         if hasattr (task, 'set_proxy_coroutine'):
@@ -181,7 +181,7 @@ def get_cloned_was (was_id):
         WAS_FACTORY = was
 
     _was = WAS_FACTORY._get_by_id (was_id)
-    assert hasattr (_was, 'app'), 'corequest future is available on only Atila'
+    assert hasattr (_was, 'app'), 'Task future is available on only Atila'
 
     if isinstance (was_id, int): # origin
         return _was._clone ()

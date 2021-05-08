@@ -1,7 +1,7 @@
 # testing purpose WAS sync service
 
 from . import task
-from ..__init__ import corequest
+from .. import proto
 from rs4.webkit import webtest
 from rs4.cbutil import tuple_cb
 import random
@@ -40,7 +40,7 @@ class Stub (webtest.Stub):
         return Result (3, super ().handle_request (uri, data), None, self._meta, self._filter, self._callback)
 
 
-class Result (corequest):
+class Result (proto.Task):
     def __init__ (self, status, response = None, expt = None, meta = {}, filter = None, callback = None):
         self.status = status
         self.__response = response

@@ -1,13 +1,13 @@
 from concurrent.futures import TimeoutError, CancelledError
 import time
 from ..tasks import Mask
-from ..proto import corequest
+from .. import proto
 from skitai import was
 from aquests.athreads import trigger
 import sys
 from ..httpbase.task import DEFAULT_TIMEOUT
 
-class Task (corequest):
+class Task (proto.Task):
     def __init__ (self, future, name, meta, filter, timeout = None):
         self.setup (name, meta, filter, timeout)
         self.future = future
@@ -70,7 +70,7 @@ class Task (corequest):
         self.future.add_done_callback (self._settle)
         return self
 
-    # common corequest methods ----------------------------------
+    # common Task methods ----------------------------------
     def _create_mask (self, timeout):
         self._timeout = timeout
         if self._mask:

@@ -1,14 +1,15 @@
 import sys
 from ..exceptions import HTTPError
-from .proto import corequest, response
-from .httpbase.task import DEFAULT_TIMEOUT, Task
+from .proto import response
+from . import proto
+from .httpbase.task import DEFAULT_TIMEOUT
 from skitai import was
 from rs4.attrdict import AttrDict
 import time
 from skitai import NORMAL
 import warnings
 
-class TaskBase (corequest):
+class TaskBase (proto.Task):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None, keys = None):
         assert isinstance (reqs, (list, tuple))
         self._meta = self.meta = meta or {}
@@ -18,7 +19,7 @@ class TaskBase (corequest):
             for key in keys [:]:
                 if key is None:
                     break
-                if not isinstance (reqs [idx], corequest):
+                if not isinstance (reqs [idx], proto.Task):
                     self._meta ['__constants'][keys.pop (idx)] = reqs.pop (idx)
                 else:
                     idx += 1
