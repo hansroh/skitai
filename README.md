@@ -366,6 +366,11 @@ def test_myservice ():
         assert resp.status_code == 200
         assert "something" in resp.text
 
+        with cli.stub ('/api') as stub:
+            resp = stub.get ('/profiles')
+            assert resp.status_code == 200
+
+
         # test RPCs
         with cli.jsonrpc ("/rpc2") as stub:
             assert stub.add (4, 10) == 14

@@ -150,7 +150,7 @@ class WASBase (_WASType):
     # process scoped caching utils --------------------------
     def setlu (self, name, *args, **karg):
         self._luwatcher.set (name, time.time (), karg.get ("x_ignore", False))
-        self.broadcast (name, *args, **karg)
+        hasattr (self, 'app') and self.app and self.app.emit ('setlu:' + name, *args, **karg)
 
     def getlu (self, *names):
         mtimes = []
