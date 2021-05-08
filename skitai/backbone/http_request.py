@@ -9,6 +9,7 @@ except ImportError:
 from rs4.attrdict import CaseInsensitiveDict
 from aquests.protocols.http import http_util
 from rs4.webkit import jwt
+from rs4.attrdict import AttrDict
 
 class JWTUser:
     def __init__ (self, claims):
@@ -55,6 +56,7 @@ class http_request:
         self._is_promise = False
         self._xmlrpc_serialized = False # used by testuitl.client
         self._jwt = None
+        self._g = None
         self.args = {}
 
         self.PARAMS = {}
@@ -65,6 +67,13 @@ class http_request:
         self.make_response ()
 
     # arguments and parameters -------------------------
+    @property
+    def g (self):
+        if seld._g:
+            return self._g
+        self._g = AttrDict ()
+        return self._g
+
     @property
     def JWT (self):
         return self._jwt or self.dejwt ()
