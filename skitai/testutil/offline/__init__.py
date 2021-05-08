@@ -9,15 +9,15 @@ import skitai
 from skitai import was as the_was
 from ...wastuff import triple_logger
 from ... import wsgiappservice
-from ...corequest import cachefs
+from ...tasks import cachefs
 from ...handlers.websocket import servers as websocekts
 from . import server
 from ...handlers import vhost_handler
 from ...handlers import proxy_handler
 import inspect
 import os
-from ...corequest.dbi import task as dtask
-from ...corequest.httpbase import task, cluster_manager
+from ...tasks.dbi import task as dtask
+from ...tasks.httpbase import task, cluster_manager
 from aquests.client import socketpool
 from aquests.dbapi import dbpool
 from aquests import lifetime
@@ -27,7 +27,7 @@ from aquests.dbapi.dbconnect import DBConnect
 from rs4 import asyncore
 from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS, DB_SYN_PGSQL, DB_SYN_MONGODB, DB_SYN_REDIS
 from ...wastuff import semaps
-from ...corequest.pth import executors
+from ...tasks.pth import executors
 
 def logger ():
     return triple_logger.Logger ("screen", None)

@@ -4,10 +4,10 @@ from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB, DB_SYN_PGSQL, PRO
 from sqlphile import Template
 from sqlphile import pg2, db3
 from skitai import __version__, DEFAULT_BACKGROUND_TASK_TIMEOUT
-from ..corequest import tasks
-from ..corequest.pth import sp_task
-from ..corequest.httpbase import cluster_manager, task, sync_proxy
-from ..corequest.dbi import cluster_manager as dcluster_manager, task as dtask
+from ..tasks import tasks
+from ..tasks.pth import sp_task
+from ..tasks.httpbase import cluster_manager, task, sync_proxy
+from ..tasks.dbi import cluster_manager as dcluster_manager, task as dtask
 
 def is_main_thread ():
     return isinstance (threading.currentThread (), threading._MainThread)
@@ -43,10 +43,10 @@ class AsyncService:
         DB_SQLITE3: Template (DB_SQLITE3),
     }
     def __init__ (self, enable_requests = True, **options):
-        enable_requests and self.make_corequest_methods ()
+        enable_requests and self.make_tasks_methods ()
         self.cv = threading.Condition ()
 
-    def make_corequest_methods (self):
+    def make_tasks_methods (self):
         for method in self.METHODS:
             setattr (self, method, Command (method, self._call))
 

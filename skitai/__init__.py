@@ -470,12 +470,12 @@ def log_off (*path):
 
 def add_http_rpc_proto (name, class_):
     assert name.endswith ("rpc"), "protocol name must be end with 'rpc'"
-    from .corequest.httpbase import task
+    from .tasks.httpbase import task
     task.Task.add_proto (name, class_)
 
 def add_database_interface (name, class_):
     assert name.startswith ("*"), "database interface name must be start with '*'"
-    from .corequest.dbi import cluster_manager
+    from .tasks.dbi import cluster_manager
     cluster_manager.ClusterManager.add_class (name, class_)
 
 def set_dns_protocol (protocol = 'tcp'):
@@ -708,7 +708,7 @@ def _alias_django (name, settings_path):
 
 def alias (name, ctype, members, role = "", source = "", ssl = False, max_conns = 32):
     # not max_conns, unlimited
-    from .corequest.httpbase.cluster_manager import AccessPolicy
+    from .tasks.httpbase.cluster_manager import AccessPolicy
     global dconf
 
     if name [0] == "@":

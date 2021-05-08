@@ -8,7 +8,7 @@ from rs4 import producers
 from rs4.termcolor import tc
 from aquests.protocols.http import http_date
 from aquests.protocols.http.http_util import *
-from ..corequest import tasks
+from ..tasks import tasks
 from aquests.athreads import trigger
 from .. import utility
 USER_AGENT = re.compile ('User-Agent: (.*)', re.IGNORECASE)

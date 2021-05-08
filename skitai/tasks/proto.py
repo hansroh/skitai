@@ -188,7 +188,7 @@ def get_cloned_was (was_id):
     return _was
 
 
-class corequest:
+class Task:
     def _get_was (self):
         return get_cloned_was (self.meta ['__was_id'])
 
@@ -273,5 +273,5 @@ class corequest:
         raise NotImplementedError
 
 
-class response (corequest):
+class response (Task):
     pass

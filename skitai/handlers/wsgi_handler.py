@@ -268,7 +268,7 @@ class Job:
 
     def exec_app (self):
         # this is not just for atila,
-        # Corequest need request and response
+        # Task need request and response
         was = the_was._get ()
         was.apps = self.apps
         was.request = self.request

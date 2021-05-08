@@ -1,6 +1,6 @@
 from rs4.annotations import deprecated
 from ..wastuff.api import tojson
-from ..corequest import tasks
+from ..tasks import tasks
 import xmlrpc.client as xmlrpclib
 from rs4.producers import file_producer
 
@@ -61,17 +61,17 @@ class Deprecated:
         self.response.set_header ("Content-Type", "application/grpc")
         return self.togrpc (obj)
 
-    @deprecated ('use corequest.then ()')
+    @deprecated ('use tasks.then ()')
     def Future (self, req, timeout = 10, **args):
-        # deprecated, use corequest.then ()
+        # deprecated, use tasks.then ()
         if isinstance (req, (list, tuple)):
-            raise ValueError ('Future should be single corequest')
+            raise ValueError ('Future should be single Task')
         return tasks.Future (req, timeout, **args)
 
     @deprecated ('use was.Tasks.then ()')
     def Futures (self, reqs, timeout = 10, **args):
         if not isinstance (reqs, (list, tuple)):
-            raise ValueError ('Futures should be multiple corequests')
+            raise ValueError ('Futures should be multiple Tasks')
         return tasks.Futures (reqs, timeout, **args)
     future = Future
     futures = Futures

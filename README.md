@@ -427,6 +427,7 @@ with skitai.test_client (port = 6000) as cli:
   - add Preference.set_static () and Preference.set_media ()
   - change default export script from __export__.py to wsgi.py
   - rewrite this documentation
+  - rename coreauest to Task
 
 - 0.35 (Feb 2020)
 

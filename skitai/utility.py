@@ -84,9 +84,9 @@ def is_modified (request, header_name, mtime, file_length = None):
 
 # response context ------------------------------------------
 def make_pushables (response, content):
-    from .corequest import tasks, Coroutine
+    from .tasks import tasks, Coroutine
     from .wastuff.api import API
-    from .corequest.pth import executors
+    from .tasks.pth import executors
 
     if not response.is_responsable ():
         # already called response.done () or diconnected channel

@@ -31,15 +31,15 @@ import signal
 import multiprocessing
 from . import wsgiappservice
 from .backbone import http_response
-from .corequest import cachefs
-from .corequest.httpbase import task, rcache
-from .corequest.httpbase import cluster_manager as rcluster_manager
-from .corequest.dbi import cluster_manager as dcluster_manager
-from .corequest.dbi import task as dtask
+from .tasks import cachefs
+from .tasks.httpbase import task, rcache
+from .tasks.httpbase import cluster_manager as rcluster_manager
+from .tasks.dbi import cluster_manager as dcluster_manager
+from .tasks.dbi import task as dtask
 import types
 from .handlers.websocket import servers as websocekts
 from .wastuff import selective_logger, triple_logger
-from .corequest.pth import executors
+from .tasks.pth import executors
 
 class Loader:
     def __init__ (self, config = None, logpath = None, varpath = None, wasc = None, debug = 0):

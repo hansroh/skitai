@@ -8,6 +8,6 @@ class HTTPError (Exception):
         self.exc_info = traceback and sys.exc_info () or None
 
 
-class CorequestError (Exception):
+class TaskError (Exception):
     pass
 
