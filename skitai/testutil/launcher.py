@@ -9,22 +9,29 @@ import os
 import xmlrpc.client
 
 class Launcher (webtest.Target):
-    def __init__ (self, script, port, ssl = False, silent = True, dry = False, temp_dir = None, **kargs):
-        argv = script.split ()
-        self.__script = argv [0]
-        self.__start_opts = argv[1:]
-        self.__port = port
-        self.__start_opts.extend (["--port", str (port)])
-        for k, v in kargs.items ():
-            self.__start_opts.append ("--{}".format (k))
-            if v:
-                self.__start_opts.append (str (v))
+    def __init__ (self, script = None, port = 5000, ssl = False, silent = True, dry = False, temp_dir = None, **kargs):
+        if not script and not dry:
+            raise TypeError ('script is not given while not dry-run')
+        if not script:
+            dry = True
+            self.__script, self.__start_opts = None, []
+        else:
+            argv = script.split ()
+            self.__script = argv [0]
+            self.__start_opts = argv[1:]
+            self.__start_opts.extend (["--port", str (port)])
+            for k, v in kargs.items ():
+                self.__start_opts.append ("--{}".format (k))
+                if v:
+                    self.__start_opts.append (str (v))
 
         endpoint = "http{}://127.0.0.1".format (ssl and "s" or "")
         endpoint += ":{}".format (port)
         webtest.Target.__init__ (self, endpoint, temp_dir = temp_dir)
-        self.__silent = silent
+
         self.__dry = dry
+        self.__port = port
+        self.__silent = silent
         self.__servicing = False
         self.__p = Puppet (communicate = False)
         self.__closed = True
@@ -74,6 +81,9 @@ class Launcher (webtest.Target):
             time.sleep (1)
 
     def _close (self):
+        if self.__dry:
+            self.__closed = True
+            return
         if self.__closed:
             return
         if self.__silent and not self.__servicing:
