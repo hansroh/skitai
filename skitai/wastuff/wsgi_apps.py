@@ -308,7 +308,7 @@ class ModuleManager:
         self.handler = handler
         self.modules = {}
         self.modnames = {}
-        self.bus = evbus.EventBus ()
+        self.bus = evbus.EventBus (self.wasc.logger.get ('app'))
 
     def __getitem__ (self, name):
         try:
