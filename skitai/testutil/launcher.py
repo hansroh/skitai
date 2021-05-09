@@ -9,7 +9,7 @@ import os
 import xmlrpc.client
 
 class Launcher (webtest.Target):
-    def __init__ (self, script = None, port = 5000, ssl = False, silent = True, dry = False, temp_dir = None, **kargs):
+    def __init__ (self, script = None, port = 5000, devel = False, ssl = False, silent = True, dry = False, temp_dir = None, **kargs):
         if not script and not dry:
             raise TypeError ('script is not given while not dry-run')
         if not script:
@@ -20,9 +20,11 @@ class Launcher (webtest.Target):
             self.__script = argv [0]
             self.__start_opts = argv[1:]
             self.__start_opts.extend (["--port", str (port)])
+            if devel:
+                self.__start_opts.append ('--devel')
             for k, v in kargs.items ():
                 self.__start_opts.append ("--{}".format (k))
-                if v:
+                if v and isinstance (v, (str, int, float)):
                     self.__start_opts.append (str (v))
 
         endpoint = "http{}://127.0.0.1".format (ssl and "s" or "")

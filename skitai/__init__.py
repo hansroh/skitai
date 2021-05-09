@@ -39,8 +39,8 @@ argopt.add_option (None, '---profile', desc = "log for performance profiling")
 argopt.add_option (None, '---memtrack', desc = "show memory status")
 argopt.add_option (None, '---gc', desc = "enable manual GC")
 
+argopt.add_option (None, '--deploy=VALUE', desc = "set SKITAIENV env to VALUE like QA, TEST, ...")
 argopt.add_option (None, '--devel', desc = "set SKITAIENV environ env to DEVEL")
-argopt.add_option (None, '--deploy=VALUE', desc = "set DEPLOYMENT env to VALUE like PRODUCTION, QA, ...")
 
 argopt.add_option (None, '--port=TCP_PORT_NUMBER', desc = "http/https port number")
 argopt.add_option (None, '--quic=UDP_PORT_NUMBER', desc = "http3/quic port number")
@@ -51,17 +51,17 @@ argopt.add_option (None, '--poll=POLLER', desc = "name of poller [select, poll, 
 argopt.add_option (None, '--user=USER', desc = "if run as root, fallback workers owner to user")
 argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback workers owner to group")
 argopt.add_option (None, '--smtpda', desc = "start SMTP Delivery Agent")
+argopt.add_option (None, '--nginx-conf=DOMAIN', desc = "generate Nginx configuration")
 
 if '--deploy' in sys.argv:
-    os.environ ['DEPLOYMENT'] = argopt.options ().get ('--deploy')
-
-if os.getenv ("SKITAIENV") is None:
-    os.environ ["SKITAIENV"] = "PRODUCTION"
+    assert '--devel' not in argopt.options (), "--devel is not allowed if --deploy is given"
+    os.environ ['SKITAIENV'] = argopt.options ().get ('--deploy')
 if "--devel" in sys.argv:
     os.environ ["SKITAIENV"] = "DEVEL"
-elif "--silent" in sys.argv:
-    os.environ ["SKITAIENV"] = "SILENT"
+if os.getenv ("SKITAIENV") is None:
+    os.environ ["SKITAIENV"] = "PRODUCTION"
 
+START_SERVER = '--nginx-conf' not in argopt.options ()
 SMTP_STARTED = False
 if "--smtpda" in sys.argv and os.name != 'nt':
     os.system ("{} -m skitai.scripts.skitai smtpda -d".format (sys.executable))
@@ -450,8 +450,14 @@ def getswd ():
         SWD = os.path.dirname (os.path.join (os.getcwd (), sys.argv [0]))
     return SWD
 
+def getenv ():
+    return os.environ.get ('SKITAIENV')
+
+def isproduction ():
+    return getenv () == "PRODUCTION"
+
 def isdevel ():
-    return os.environ.get ('SKITAIENV') == "DEVEL"
+    return getenv () == "DEVEL"
 is_devel = isdevel
 
 def abspath (*pathes):
@@ -968,9 +974,10 @@ def run (**conf):
                 backlog = conf.get ('backlog', 100),
                 multi_threaded = threads > 0,
                 max_upload_size = conf ['max_upload_size'],
-                thunks = [self.master_jobs]
+                thunks = [self.master_jobs],
+                start = START_SERVER
             )
-            if os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
+            if START_SERVER and os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
                 # master does not serve
                 return
 
@@ -1058,6 +1065,15 @@ def run (**conf):
     # mount additionals while mounting apps and mount apps
     server.just_before_run (conf.get ("mount_onfly"))
     STATUS = 'CREATED'
+
+    if '--nginx-conf' in argopt.options ():
+        from .wastuff import nginx
+        if not os.getenv ('STATIC_ROOT'):
+            os.environ ['STATIC_ROOT'] = abspath ('.static_root')
+        vhost = server.virtual_host.sites [None]
+        conf ['domain'] = get_option ('--nginx-conf')
+        nginx.generate (abspath ('conf', 'nginx'), vhost, conf)
+        sys.exit ()
 
     # timeout for fast keyboard interrupt on win32
     try:

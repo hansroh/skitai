@@ -206,14 +206,21 @@ class Module:
             lifetime.shutdown (3, 0)
 
     def set_devel_env (self, app):
-        skitai_env = os.environ.get ("SKITAIENV")
-        if skitai_env == "DEVEL":
-            self.debug = app.debug = True
-            self.use_reloader = app.use_reloader = True
-        elif skitai_env == "SILENT":
-            self.debug = app.debug = False
-            self.use_reloader = app.use_reloader = False
-        else:
+        has_policy = False
+        if hasattr (app, "ATILA_THE_HUN"):
+            skitai_env = os.environ.get ("SKITAIENV")
+            if skitai_env == "DEVEL":
+                self.debug = app.debug = True
+                self.use_reloader = app.use_reloader = True
+                app.expose_spec = True
+                has_policy = True
+            elif skitai_env == "PRODUCTION":
+                self.debug = app.debug = False
+                self.use_reloader = app.use_reloader = False
+                app.expose_spec = False
+                has_policy = True
+
+        if not has_policy:
             # inherit
             try: self.debug = app.debug
             except AttributeError: pass

@@ -84,7 +84,9 @@ class ClusterManager:
         self._last_maintern = time.time ()
         self._close_desires = []
         self._basepath = ''
+        self.members = []
         if cluster:
+            self.members = cluster
             self.create_pool (cluster)
 
     def __len__ (self):
@@ -229,7 +231,6 @@ class ClusterManager:
             weight = 1
 
         node, asyncon = self.create_asyncon (member)
-
         self.lock.acquire ()
         exists = node in self._cluster
         self.lock.release ()

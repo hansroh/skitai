@@ -160,7 +160,7 @@ class Loader:
         forward_server.install_handler (forward_handler.Handler (self.wasc, forward_to))
         self.wasc.register ("forwardserver", forward_server)
 
-    def config_webserver (self, port, ip = "", name = "", ssl = False, keep_alive = 10, network_timeout = 10, single_domain = None, thunks = [], quic = None, backlog = 100, multi_threaded = False, max_upload_size = 256000000):
+    def config_webserver (self, port, ip = "", name = "", ssl = False, keep_alive = 10, network_timeout = 10, single_domain = None, thunks = [], quic = None, backlog = 100, multi_threaded = False, max_upload_size = 256000000, start = True):
         # maybe be configured    at first.
         if ssl and not HTTPS:
             raise SystemError("Can't start SSL Web Server")
@@ -186,8 +186,9 @@ class Loader:
         for thunk in thunks:
             thunk ()
 
-        self.wasc.httpserver.serve (hasattr (self.wasc, "forwardserver") and self.wasc.forwardserver or None, backlog)
-        self.fork ()
+        if start:
+            self.wasc.httpserver.serve (hasattr (self.wasc, "forwardserver") and self.wasc.forwardserver or None, backlog)
+            self.fork ()
 
     def fork (self):
         #fork here
@@ -283,7 +284,6 @@ class Loader:
             apigateway_realm = "API Gateway",
             apigateway_secret_key = None
         ):
-
         if blacklist_dir:
             self.wasc.add_handler (0, ipbl_handler.Handler, blacklist_dir)
         if proxy:
@@ -314,7 +314,7 @@ class Loader:
             config = None
             if type (line) is tuple and len (line) == 4:
                 route, module, pref, name = line
-                reverse_proxing = self.virtual_host.add_route (current_rule, (route, module, ''), pref, name)
+                self.virtual_host.add_route (current_rule, (route, module, ''), pref, name)
                 continue
 
             if type (line) is tuple:
@@ -323,7 +323,7 @@ class Loader:
             if line.startswith (";") or line.startswith ("#"):
                 continue
             elif line.startswith ("/"):
-                reverse_proxing = self.virtual_host.add_route (current_rule, line, pref, name)
+                rtype = self.virtual_host.add_route (current_rule, line, pref, name)
             elif line:
                 if line [0] == "@":
                     line = line [1:].strip ()

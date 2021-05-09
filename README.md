@@ -420,6 +420,36 @@ with skitai.test_client (port = 6000) as cli:
 
 
 
+# Create Base Nginx Configuration
+Mount app and directories and give a service `name`.
+```python
+import skitai
+
+if __name__ == "__main__":
+    skitai.mount ('/', 'my_flask/myapp:app')
+    skitai.mount ('/static', 'my_flask/static')
+    skitai.mount ('/admin', 'my_flask/static/admin/static')
+    skitai.run (ip = '0.0.0.0', port = 5000, name = 'myapp')
+```
+
+```bash
+sudo apt install nginx
+python3 serve.py --nginx-conf="myapp.com www.myapp.org"
+```
+- collect all mounted static files to {CWD}/.static_root.
+- create nginx configuration files at {CWD}/conf/nginx.
+
+```bash
+sudo ln -s {CWD}/conf/nginx/nginx.conf /etc/nginx/sites-enabled/{SERVICE_NAME}.conf
+sudo systemctl reload nginx
+```
+
+
+
+
+
+
+
 # Change Log
 
 - 0.36 (Apr, 2021)

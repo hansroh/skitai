@@ -87,36 +87,33 @@ class Handler:
 		# app object mount, maily used by unittest
 		vhost = self.get_vhost (rule)
 		vhost.add_module (route, root, app, config, name)
-		return False
 
 	def add_route (self, rule, routepair, config = None, name = None):
-		reverse_proxing = False
 		vhost = self.get_vhost (rule)
 
 		if type (routepair) is tuple:
 			route, module, path = routepair
 			if isinstance (module, tuple):
 				module, path = module
-			return self.add_app (rule, route, module, path, config, name)
+			self.add_app (rule, route, module, path, config, name)
+			return 'A'
 
 		route, target = [x.strip () for x in routepair.split ("=", 1)]
-
 		if target.startswith ("@"):
 			if route [-1] == "/":
 				route = route [:-1]
 			vhost.add_proxypass (route, target [1:].strip (), config)
-			reverse_proxing = True
+			return 'R'
 
-		elif os.path.isdir (target):
+		if os.path.isdir (target):
 			if route [-1] == "/":
 				route = route [:-1]
 			vhost.add_route (route, target, config)
+			return 'D'
 
-		else:
-			fullpath = os.path.split (target.strip())
-			vhost.add_module (route, os.sep.join (fullpath[:-1]), fullpath [-1], config, name)
-
-		return reverse_proxing
+		fullpath = os.path.split (target.strip())
+		vhost.add_module (route, os.sep.join (fullpath[:-1]), fullpath [-1], config, name)
+		return 'A'
 
 	def find (self, host):
 		if host:

@@ -9,7 +9,7 @@ def test_reload (launch):
     with open ("./examples/services/sub.py", "w") as f:
         f.write (data)
 
-    with launch ("./examples/apps_multiple.py") as engine:
+    with launch ("./examples/apps_multiple.py", devel = True) as engine:
         resp = requests.get ("http://127.0.0.1:30371/sub")
         assert resp.status_code == 200
         assert "i am sub" in resp.text
