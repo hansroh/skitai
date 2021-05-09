@@ -452,6 +452,11 @@ sudo systemctl reload nginx
 
 # Change Log
 
+- 0.38 (May, 2021)
+  - refactoring package structure
+  - update README
+  - generating Nginx base configurations
+
 - 0.36 (Apr, 2021)
 
   - add Preference.set_static () and Preference.set_media ()
