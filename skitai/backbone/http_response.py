@@ -673,7 +673,7 @@ class http_response:
     def reason (self):
         return self.reply_message
 
-    add_header = set # CAUTION
+    add_header = set # CAUTION, added 2021. 5. 10
     set_header = update
     get_header = get
     del_header = delete

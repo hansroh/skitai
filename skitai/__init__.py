@@ -53,6 +53,7 @@ argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback worke
 argopt.add_option (None, '--smtpda', desc = "start SMTP Delivery Agent")
 argopt.add_option (None, '--nginx-conf=DOMAIN', desc = "generate Nginx configuration")
 
+# IMP: DO NOT USE argopt.options ()
 if '--deploy' in sys.argv:
     assert '--devel' not in argopt.options (), "--devel is not allowed if --deploy is given"
     os.environ ['SKITAIENV'] = argopt.options ().get ('--deploy')
@@ -61,7 +62,7 @@ if "--devel" in sys.argv:
 if os.getenv ("SKITAIENV") is None:
     os.environ ["SKITAIENV"] = "PRODUCTION"
 
-START_SERVER = len ([each.startswith ('--nginx-conf') for each in sys.argv ]) == 0
+START_SERVER = sum ([1 for each in sys.argv if each.startswith ('--nginx-conf')]) == 0
 SMTP_STARTED = False
 if "--smtpda" in sys.argv and os.name != 'nt':
     os.system ("{} -m skitai.scripts.skitai smtpda -d".format (sys.executable))
