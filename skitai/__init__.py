@@ -61,7 +61,7 @@ if "--devel" in sys.argv:
 if os.getenv ("SKITAIENV") is None:
     os.environ ["SKITAIENV"] = "PRODUCTION"
 
-START_SERVER = '--nginx-conf' not in argopt.options ()
+START_SERVER = len ([each.startswith ('--nginx-conf') for each in sys.argv ]) == 0
 SMTP_STARTED = False
 if "--smtpda" in sys.argv and os.name != 'nt':
     os.system ("{} -m skitai.scripts.skitai smtpda -d".format (sys.executable))
