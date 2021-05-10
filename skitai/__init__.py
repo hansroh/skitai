@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.38.0"
+__version__ = "0.38.0.2"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -47,6 +47,7 @@ argopt.add_option (None, '--quic=UDP_PORT_NUMBER', desc = "http3/quic port numbe
 argopt.add_option (None, '--workers=WORKERS', desc = "number of workers")
 argopt.add_option (None, '--threads=THREADS', desc = "number of threads per worker")
 argopt.add_option (None, '--poll=POLLER', desc = "name of poller [select, poll, epoll and kqueue]")
+argopt.add_option (None, '--disable-static', desc = "disable static file service")
 
 argopt.add_option (None, '--user=USER', desc = "if run as root, fallback workers owner to user")
 argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback workers owner to group")
@@ -642,7 +643,10 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
     elif isinstance (target, tuple):
         args = (point,  target, pref, name)
     elif os.path.isdir (target):
+        if '--disable-static' in sys.argv:
+            return
         args = (point, joinpath (target), kargs, name)
+
     elif not appname: # alias
         args = (point, target, kargs, name)
     else:
