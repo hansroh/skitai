@@ -363,7 +363,6 @@ class ModuleManager:
         try:
             module = Module (self.wasc, self.handler, self.bus, route, directory, modname, pref)
         except:
-            self.wasc.logger.trace ("app")
             self.wasc.logger ("app", "[error] app load failed: %s" % tc.error (os.path.basename (name)))
             raise
         else:

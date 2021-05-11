@@ -18,6 +18,27 @@ def test_webtest_unsecure (launch):
         assert resp.status_code == 200
         assert resp.text == 'sub3'
 
+        resp = engine.get ('/sub2/sub4')
+        assert resp.status_code == 200
+        assert resp.text == 'sub4'
+
+        resp = engine.get ('/sub10')
+        assert resp.status_code == 200
+        assert resp.text == 'sub10'
+
+        resp = engine.get ('/sub10/sub3')
+        assert resp.status_code == 200
+        assert resp.text == 'sub3'
+
+        resp = engine.get ('/sub10/sub4')
+        assert resp.status_code == 200
+        assert resp.text == 'sub4'
+
+        resp = engine.get ('/sub10/sub4/sub5')
+        assert resp.status_code == 200
+        assert resp.text == 'sub5'
+
+
         resp = engine.get ('/examples')
         assert resp.status_code == 200
         assert 'FranckFreiburger' in resp.text

@@ -667,6 +667,7 @@ def hCHLD (signum, frame):
         pass
     else:
         if status == EXCD_STARTUP_ERROR << 8:
+            # mostly app startup failed
             terminate_master ()
         else:
             PID [pid] = None

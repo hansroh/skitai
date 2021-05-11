@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.38.0.2"
+__version__ = "0.38.1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -1004,6 +1004,11 @@ def run (**conf):
                     ctype, members, policy, ssl, max_conns = args
                     self.add_cluster (ctype, name, members, ssl, policy, max_conns or default_max_conns)
 
+            except:
+                self.wasc.logger.get ("server").traceback ()
+                os._exit (2)
+
+            try:
                 self.install_handler (
                     conf.get ("mount"),
                     conf.get ("proxy", False),
@@ -1028,7 +1033,7 @@ def run (**conf):
                     self.wasc.logger.get ("server").log ('app {} subscribes to {}'.format (tc.yellow (s), tc.cyan (p)))
 
             except:
-                self.wasc.logger.get ("server").traceback ()
+                self.wasc.logger.trace ("app")
                 os._exit (2)
 
             lifetime.init (logger = self.wasc.logger.get ("server"))
