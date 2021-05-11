@@ -1,5 +1,3 @@
-from dnn.processing.image import retinaface, img_util
-import cv2
 import os
 import numpy as np
 import time
@@ -24,9 +22,12 @@ def draw_bbox_landm(img, r):
 
 def test_retinaface ():
     try:
+        from dnn.processing.image import retinaface, img_util
+        import cv2
         f = retinaface.RetinaFace ()
     except:
         return # local test only
+
     img_path = os.path.join ("examples", 'resources', '0_Parade_marchingband_1_379.jpg')
     img = cv2.cvtColor (cv2.imread(img_path), cv2.COLOR_BGR2RGB)
     results = f.detect (img)
