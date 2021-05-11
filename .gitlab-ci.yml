@@ -75,7 +75,7 @@ python 3.9buster:
   <<: *test
   only:
     # - master
-    py36
+    - py36
 
 # python pypy3:
 #   image: pypy:3
