@@ -480,6 +480,7 @@ sudo systemctl reload nginx
   - update README
   - generating Nginx base configurations
   - add `-disable-static` option
+  - fix infinite retry loop when app loading failed
 
 - 0.36 (Apr, 2021)
   - add Preference.set_static () and Preference.set_media ()
