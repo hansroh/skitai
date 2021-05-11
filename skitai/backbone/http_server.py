@@ -442,7 +442,7 @@ class http_server (asyncore.dispatcher):
                 try:
                     if ACTIVE_WORKERS < numworker:
                         pid = os.fork ()
-                        if pid == 0:
+                        if pid == 0: # master
                             if os.name != 'nt' and not self.KEEP_PRIVILEGES:
                                 drop_privileges (skitai.SERVICE_USER, skitai.SERVICE_GROUP)
                             self.worker_ident = "w%d" % len (PID)
@@ -645,6 +645,18 @@ class http_server (asyncore.dispatcher):
             "cpu_percent":    self.cpu_stat
         }
 
+
+EXCD_SHUTDOWN = 0
+EXCD_UNEXPECTED = 1 # python exception
+EXCD_STARTUP_ERROR = 2
+EXCD_RESTART = 3
+
+def terminate_master ():
+    global EXITCODE, SURVAIL
+    SURVAIL = False
+    EXITCODE = 0
+    DO_SHUTDOWN (signal.SIGTERM)
+
 def hCHLD (signum, frame):
     global ACTIVE_WORKERS, PID
 
@@ -654,16 +666,20 @@ def hCHLD (signum, frame):
     except ChildProcessError:
         pass
     else:
-        PID [pid] = None
+        if status == EXCD_STARTUP_ERROR << 8:
+            # mostly app startup failed
+            terminate_master ()
+        else:
+            PID [pid] = None
 
 def hTERMWORKER (signum, frame):
-    lifetime.shutdown (0, 1.0)
+    lifetime.shutdown (EXCD_SHUTDOWN, 1.0)
 
 def hHUPWORKER (signum, frame):
-    lifetime.shutdown (3, 1.0)
+    lifetime.shutdown (EXCD_RESTART, 1.0)
 
 def hQUITWORKER (signum, frame):
-    lifetime.shutdown (0, 30.0)
+    lifetime.shutdown (EXCD_SHUTDOWN, 30.0)
 
 def DO_SHUTDOWN (sig):
     global PID
@@ -676,10 +692,7 @@ def DO_SHUTDOWN (sig):
         except OSError: pass
 
 def hTERMMASTER (signum, frame):
-    global EXITCODE, SURVAIL
-    SURVAIL = False
-    EXITCODE = 0
-    DO_SHUTDOWN (signal.SIGTERM)
+    terminate_master ()
 
 def hQUITMASTER (signum, frame):
     global EXITCODE

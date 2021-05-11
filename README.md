@@ -45,6 +45,9 @@ Your app will work for your thousands or miliions of customers.
 
 
 
+
+
+
 # Installation
 ## Requirements
 
@@ -69,6 +72,18 @@ git clone https://gitlab.com/hansroh/skitai.git
 cd skitai
 pip3 install -e .
 ```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Usage
@@ -108,11 +123,10 @@ if __name__ == "__main__":
 with skitai.preference () as pref:
     pref.debug = True
     pref.use_reloader = True
-    skitai.mount ('/', app, pref)
+    skitai.mount ('/', 'my_flask/myapp:app', pref)
 skitai.run ()
 ```
 All attributes of pref will overwrite your app attrubutes.
-
 
 
 
@@ -175,7 +189,7 @@ skitai.run parameters,
 skitai.run (ip = '0.0.0.0', port = 5000, thread = 1, workers = 4)
 ```
 
-But command line options have more high pripority.
+But command line options have more high priority.
 ```bash
 python3 serve.py --threads=4 --workers=2 --port 38000
 ```
@@ -206,6 +220,8 @@ To update systemd service,
 sudo python3 serve.py --user skitai --qtran --temp-dir=/path/to update
 sudo systemctl restart myservice
 ```
+
+
 
 
 
@@ -339,6 +355,8 @@ Blank seperated items of log line are,
 
 
 
+
+
 # Test Client
 
 To test full mounted resources with many protocols.
@@ -420,6 +438,9 @@ with skitai.test_client (port = 6000) as cli:
 
 
 
+
+
+
 # Create Base Nginx Configuration
 Mount app and directories and give a service `name`.
 ```python
@@ -441,6 +462,8 @@ python3 serve.py --nginx-conf="myapp.com www.myapp.org"
 
 ```bash
 sudo ln -s {CWD}/conf/nginx/nginx.conf /etc/nginx/sites-enabled/{SERVICE_NAME}.conf
+python3 serve.py --disable-static update
+sudo systemctl myapp restart
 sudo systemctl reload nginx
 ```
 
@@ -456,16 +479,16 @@ sudo systemctl reload nginx
   - refactoring package structure
   - update README
   - generating Nginx base configurations
+  - add `-disable-static` option
+  - fix infinite retry loop when app loading failed
 
 - 0.36 (Apr, 2021)
-
   - add Preference.set_static () and Preference.set_media ()
   - change default export script from __export__.py to wsgi.py
   - rewrite this documentation
   - rename coreauest to Task
 
 - 0.35 (Feb 2020)
-
   - drop support win32 platform officially
   - add coroutine with corequest
   - add was.cursor ()
@@ -501,7 +524,6 @@ sudo systemctl reload nginx
   - enable Range header to WSGI content
 
 - 0.34 (Jan 2020)
-
   - fix proxy and proxypass for PATCH method
   - add `--devel` and `--silent` runtime options
   - remove `--production` runtime options
@@ -509,11 +531,9 @@ sudo systemctl reload nginx
     function name: bootstrap -> \_\_setup\_\_
 
 - 0.32 (Oct 2019)
-
   - initiate HTTP3+QUIC, you can test HTTP/3 with Chrome Canary
 
 - 0.31 (Sep 2019)
-
   - change handling command line options, required rs4>=0.2.5.0
   - add skitai.set_smtp ()
   - remove protobuf, redis, pymongo and psycopg2 from requirements,
@@ -528,11 +548,9 @@ sudo systemctl reload nginx
   - confirmed to work on PyPy3
 
 - 0.30 (Sep 2019)
-
   - skitai.websocket spec changed, lower version compatable
 
 - 0.29 (Aug 2019)
-
   - add was.Subprocess
   - add handlers for Range, If-Range, If-Unmodified-Since, If-Match headers
   - asyncore and asynchat are vendored as rs4.asyncore and chat,
@@ -544,7 +562,6 @@ sudo systemctl reload nginx
   - over 100 unit tests
 
 - 0.28 (Feb 2019)
-
   - fix auto reloading bug in case multiple apps are mounted
   - add was.Thread () and was.Process ()
   - add @skitai.states () decorator
@@ -572,29 +589,24 @@ sudo systemctl reload nginx
   - seperate skitai.saddle into atila
 
 - 0.27.6 (Jan 2019)
-
   - rename directory decorative to services
   - change from skital.saddle.contrib.decorative to
     skital.saddle.contrib.services
 
 - 0.27.3 (May 2018)
-
   - remove -v option from skitai and smtpda
   - add script: skitai
   - remove scripts: skitai-smtpda and skitai-cron
   - remove skitai.enable_smtpda (), skitai.cron ()
 
 - 0.27.2 (May 2018)
-
   - add was.request.get_real_ip () and was.request.is_private_ip ()
   - fix CORS preflight
 
 - 0.27.1 (May 2018)
-
   - sqlphile bug fixed and change requirements
 
 - 0.27 (Apr 2018)
-
   - add app.setup_sqlphile ()
   - add @app.mounted_or_reloaded decorator
   - removed @app.auth_required, added @app.authorization_required (auth_type)
@@ -615,9 +627,7 @@ sudo systemctl reload nginx
   - add skitai.launch and saddle.make_client for unittest
 
 0.26 (May 2017)
-
 - 0.26.18 (Jan 2018)
-
   - fix HTTP2 trailers
   - fix HTTP2 flow control window
   - remove was.response.traceback(), use was.response.for_ap (traceback = True)
@@ -625,19 +635,14 @@ sudo systemctl reload nginx
   - add @app.auth_required and  @app.auth_not_required decorator
   - change default export script to __export__.py
   - remove app reloading progress:
-
     - before:
-
       - before_umount (was)
       - umounted (wac)
       - before_remount (wac): deprecated
       - remounted (was): deprecated
-
     - now:
-
       - before_reload (was)
       - reloaded (was)
-
   - change app.model_signal () to app.redirect_signal (), add @app.on_signal ()
   - change skitai.addlu to skitai.deflu (args, ...)
   - add @app.if_file_modified
@@ -653,14 +658,12 @@ sudo systemctl reload nginx
     value if exists
   - add param keep param to was.csrf_verify()
   - add and changed app life cycle decorators:
-
     - before_mount (wac)
     - mounted (was)
     - before_remount (wac)
     - remounted (was)
     - before_umount (was)
     - umounted (wac)
-
   - add skitai.saddle.contrib.django,auth for integrating Django authorization
   - change was.token(),was.detoken(), was.rmtoken()
   - add jsonrpc executor
@@ -670,7 +673,6 @@ sudo systemctl reload nginx
   - add decorative concept
 
 - 0.26.17 (Dec 2017)
-
   - can run SMTP Delivery Agent and Task Scheduler with config file
   - add error_handler (prev errorhandler) decorator
   - add default_error_handler (prev defaulterrorhandler) decorator
@@ -685,7 +687,6 @@ sudo systemctl reload nginx
     dbalias = None, host = "default")
 
 - 0.26.16 (Oct 2017)
-
   - add app.sqlmaps
   - add use_django_models (settings_path), skitai.mount_django
     (point, wsgi_path, pref = pref (True), host = "default")
@@ -699,7 +700,6 @@ sudo systemctl reload nginx
   - JSON as arguments
 
 - 0.26.15
-
   - added request.form () and request.dict ()
   - support Django auto reload by restarting workers
   - change DNS query default protocol from TCP to UDP (posix only)
@@ -723,19 +723,16 @@ sudo systemctl reload nginx
   - add app.model_signal (), was.setlu () and was.getlu ()
 
 - 0.26.14
-
   - add app.storage and was.storage
   - removed wac._backend and wac._upstream, use @app.mounted and @app.umount
   - replaced app.listen by app.on_broadcast
 
 - 0.26.13
-
   - add skitai.log_off (path,...)
   - add reply content-type to request log, and change log format
   - change posix process display name
 
 - 0.26.12
-
   - change event decorator: @app.listen -> @app.on_broadcast
   - adaptation to h2 3.0.1
   - fix http2 flow controling
@@ -752,7 +749,6 @@ sudo systemctl reload nginx
   - HTTP response optimized
 
 - 0.26.10
-
   - start making pytest scripts
   - add was-wide broadcast event bus: @app.listen (event),
     was.broadcast (event, args...) and @was.broadcast_after (event)
@@ -761,17 +757,14 @@ sudo systemctl reload nginx
   - remove @app.listento (event) and was.emit (event, args...)
 
 - 0.26.9
-
   - add event bus: @app.listento (event) and was.emit (event, args...)
 
 - 0.26.8
-
   - fix websocket GROUPCHAT
   - add was.apps
   - was.ab works between apps are mounted seperatly
 
 - 0.26.7
-
   - add custom error template on Saddle
   - add win32 service tools
   - change class method name from make_request () to backend ()
@@ -779,7 +772,6 @@ sudo systemctl reload nginx
   - drop wac.make_dbo () and wac.make_stub ()
 
 - 0.26.6
-
   - add wac.make_dbo (), wac.make_stub () and wac.make_request ()
   - wac.ajob () has been removed
   - change repr name from wasc to wac
@@ -817,7 +809,6 @@ sudo systemctl reload nginx
 - fix sqlite3 closing
 
 0.25 (Feb 2017)
-
 - 0.25.7: fix fancy url, non content-type header post/put request
 - 0.25.6: add Chameleon_ template engine
 - 0.25.5: app.jinja_overlay ()'s default args become jinja2 default
@@ -831,7 +822,6 @@ sudo systemctl reload nginx
 - project name chnaged: Skitai Library => Skitai App Engine
 
 0.24 (Jan 2017)
-
 - 0.24.9 bearer token handler spec changed
 - 0.24.8 add async response, fix await_fifo bug
 - 0.24.7 fix websocket shutdown
@@ -844,7 +834,6 @@ sudo systemctl reload nginx
   does not create new thread any more
 
 0.23 (Jan 2017)
-
 - ready_producer_fifo only activated when proxy or reverse
   proxy is enabled, default deque will be used
 - encoding argument was eliminated from REST call
@@ -854,25 +843,20 @@ sudo systemctl reload nginx
 - fix POST method on reverse proxying
 
 0.22 (Jan 2017)
-
 - 0.22.7 fix was.upload(), was.post*()
 - 0.22.5 fix xml-rpc service
 - 0.22.4 fix proxy
 - 0.22.3
-
   - fix https REST, XML-RPC call
   - fix DB pool
 
 - 0.22
-
   - Skitai REST/RPC call now uses HTTP2 if possible
   - Fix HTTP2 opening with POST method
   - Add logging on disconnecting of Websocket, HTTP2, Proxy Tunnel channels
-
   - See News
 
 0.21 (Dec 2016)
-
 - 0.21.17 - fix JWT base64 padding problem
 - 0.21.8 - connected with MongoDB asynchronously
 - 0.21.3 - add JWT (JSON Web Token) handler, see
@@ -883,32 +867,26 @@ sudo systemctl reload nginx
   to log file for backtrace
 
 0.20 (Dec 2016)
-
 - 0.20.15 - minor optimize asynconnect, I wish
 - 0.20.14 - fix Redis connector's threading related error
 - 0.20.4 - add Redis connector
 - 0.20 - add API Gateway access handler
 
 0.19 (Dec 2016)
-
 - Reengineering was.request methods, fix disk caching
 
 0.18 (Dec 2016)
-
 - 0.18.11 - default content-type of was.post(), was.put() has
   been changed from 'application/x-www-form-urlencoded' to 'application/json'.
   if you use this method currently, you SHOULD change method name
   to was.postform()
-
 - 0.18.7 - response contents caching has been applied to all
   was.request services (except websocket requests).
 
 0.17 (Oct 2016)
-
 - `Skitai WSGI App Engine Daemon`_ is seperated
 
 0.16 (Sep 2016)
-
 - 0.16.20 fix SSL proxy and divide into package for proxy & websocket_handler
 - 0.16.19 fix HTTP2 cookie
 - 0.16.18 fix handle large request body
@@ -924,7 +902,6 @@ sudo systemctl reload nginx
 - 0.16 HTTP/2.0 implemented with hyper-h2_
 
 0.15 (Mar 2016)
-
 - fixed fancy URL <path> routing
 - add Websocket design spec: WEBSOCKET_DEDICATE_THREADSAFE
 - fixed Websocket keep-alive timeout
@@ -944,7 +921,6 @@ sudo systemctl reload nginx
 - @app.startup, @app.onreload, @app.shutdown arguments has been changed
 
 0.14 (Feb 2016)
-
 - fix proxy occupies CPU on POST method failing
 - was.log(), was.traceback() added
 - fix valid time in message box
@@ -957,7 +933,6 @@ sudo systemctl reload nginx
 - SQLite3 DB connection added
 
 0.13 (Feb 2016)
-
 - was.mbox, was.g, was.redirect, was.render added
 - SQLite3 DB connection added
 
@@ -966,9 +941,3 @@ sudo systemctl reload nginx
 0.11 (Jan 2016) - Websocket implemeted
 
 0.10 (Dec 2015) - WSGI support
-
-.. _Chameleon: https://chameleon.readthedocs.io/en/latest/index.html
-.. _hyper-h2: https://pypi.python.org/pypi/h2
-.. _pebble: https://pypi.python.org/pypi/pebble
-
-

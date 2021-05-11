@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.38.0"
+__version__ = "0.38.1.1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -47,12 +47,14 @@ argopt.add_option (None, '--quic=UDP_PORT_NUMBER', desc = "http3/quic port numbe
 argopt.add_option (None, '--workers=WORKERS', desc = "number of workers")
 argopt.add_option (None, '--threads=THREADS', desc = "number of threads per worker")
 argopt.add_option (None, '--poll=POLLER', desc = "name of poller [select, poll, epoll and kqueue]")
+argopt.add_option (None, '--disable-static', desc = "disable static file service")
 
 argopt.add_option (None, '--user=USER', desc = "if run as root, fallback workers owner to user")
 argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback workers owner to group")
 argopt.add_option (None, '--smtpda', desc = "start SMTP Delivery Agent")
 argopt.add_option (None, '--nginx-conf=DOMAIN', desc = "generate Nginx configuration")
 
+# IMP: DO NOT USE argopt.options ()
 if '--deploy' in sys.argv:
     assert '--devel' not in argopt.options (), "--devel is not allowed if --deploy is given"
     os.environ ['SKITAIENV'] = argopt.options ().get ('--deploy')
@@ -61,7 +63,7 @@ if "--devel" in sys.argv:
 if os.getenv ("SKITAIENV") is None:
     os.environ ["SKITAIENV"] = "PRODUCTION"
 
-START_SERVER = '--nginx-conf' not in argopt.options ()
+START_SERVER = sum ([1 for each in sys.argv if each.startswith ('--nginx-conf')]) == 0
 SMTP_STARTED = False
 if "--smtpda" in sys.argv and os.name != 'nt':
     os.system ("{} -m skitai.scripts.skitai smtpda -d".format (sys.executable))
@@ -641,7 +643,10 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
     elif isinstance (target, tuple):
         args = (point,  target, pref, name)
     elif os.path.isdir (target):
+        if '--disable-static' in sys.argv:
+            return
         args = (point, joinpath (target), kargs, name)
+
     elif not appname: # alias
         args = (point, target, kargs, name)
     else:
@@ -992,33 +997,45 @@ def run (**conf):
                 conf.get ('backend_object_timeout', DEFAULT_BACKEND_OBJECT_TIMEOUT),
                 conf.get ('backend_maintain_interval', DEFAULT_BACKEND_MAINTAIN_INTERVAL)
             )
-            default_max_conns = threads * 3
-            for name, args in conf.get ("clusters", {}).items ():
-                ctype, members, policy, ssl, max_conns = args
-                self.add_cluster (ctype, name, members, ssl, policy, max_conns or default_max_conns)
 
-            self.install_handler (
-                conf.get ("mount"),
-                conf.get ("proxy", False),
-                conf.get ("max_ages", {}),
-                conf.get ("blacklist_dir"), # blacklist_dir
-                conf.get ("proxy_unsecure_https", False), # disable unsecure https
-                conf.get ("enable_gw", False), # API gateway
-                conf.get ("gw_auth", False),
-                conf.get ("gw_realm", "API Gateway"),
-                conf.get ("gw_secret_key", None)
-            )
+            try:
+                default_max_conns = threads * 3
+                for name, args in conf.get ("clusters", {}).items ():
+                    ctype, members, policy, ssl, max_conns = args
+                    self.add_cluster (ctype, name, members, ssl, policy, max_conns or default_max_conns)
 
-            for p, s in dconf ['subscriptions']:
-                try:
-                    provider = self.get_app_by_name (p)
-                    provider.bus
-                    subbscriber = self.get_app_by_name (s).bus
-                except AttributeError:
-                    raise NameError ('app.bus not found')
+            except:
+                self.wasc.logger.get ("server").traceback ()
+                os._exit (2)
 
-                provider.add_subscriber (subbscriber)
-                self.wasc.logger.get ("server").log ('app {} subscribes to {}'.format (tc.yellow (s), tc.cyan (p)))
+            # mount resources ----------------------------
+            try:
+                self.install_handler (
+                    conf.get ("mount"),
+                    conf.get ("proxy", False),
+                    conf.get ("max_ages", {}),
+                    conf.get ("blacklist_dir"), # blacklist_dir
+                    conf.get ("proxy_unsecure_https", False), # disable unsecure https
+                    conf.get ("enable_gw", False), # API gateway
+                    conf.get ("gw_auth", False),
+                    conf.get ("gw_realm", "API Gateway"),
+                    conf.get ("gw_secret_key", None)
+                )
+
+                for p, s in dconf ['subscriptions']:
+                    try:
+                        provider = self.get_app_by_name (p)
+                        provider.bus
+                        subbscriber = self.get_app_by_name (s).bus
+                    except AttributeError:
+                        raise NameError ('app.bus not found')
+
+                    provider.add_subscriber (subbscriber)
+                    self.wasc.logger.get ("server").log ('app {} subscribes to {}'.format (tc.yellow (s), tc.cyan (p)))
+
+            except:
+                self.wasc.logger.trace ("app")
+                os._exit (2)
 
             lifetime.init (logger = self.wasc.logger.get ("server"))
             if os.name == "nt":

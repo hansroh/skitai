@@ -132,10 +132,6 @@ class http_response:
         else:
             self.set (key, val + ", " + value)
 
-    set_header = set
-    get_header = get
-    del_header = delete
-
     def set_cache (self, max_age = 0):
         if self.request.version == "1.0":
             self.set_header ('Expires', http_date.build_http_date (time.time() + max_age))
@@ -157,7 +153,6 @@ class http_response:
         # for atila.Atila App
         self.reply_code, self.reply_message = self.parse_status (status)
         return self.reply_code, self.reply_message
-    set_status = set_reply
 
     def get_status (self):
         return "%d %s" % self.get_reply ()
@@ -669,3 +664,18 @@ class http_response:
             self.set_header ('Last-Modified', http_date.build_http_date (mtime))
             if max_age:
                 self.set_header ('Expires', http_date.build_http_date (mtime + max_age))
+
+    @property
+    def status_code (self):
+        return self.reply_code
+
+    @property
+    def reason (self):
+        return self.reply_message
+
+    add_header = set # CAUTION, added 2021. 5. 10
+    set_header = update
+    get_header = get
+    del_header = delete
+    set_max_age = set_cache
+    set_status = set_reply

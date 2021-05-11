@@ -2,6 +2,7 @@
 from rs4 import pathtool
 from rs4.termcolor import tc
 import os
+import sys
 from distutils.dir_util import copy_tree
 
 NAMES = set ("Shawn April Derek Kathryn Kristin Chad Jenna Tara Maria Krystal Jared Anna Edward Julie Peter Holly Marcus Kristina Natalie Jordan Victoria Jacqueline Corey Keith Monica Juan Donald Cassandra Meghan Joel Shane Phillip Patricia Brett Ronald Catherine George Antonio Cynthia Stacy Kathleen Raymond Carlos Brandi Douglas Nathaniel Ian Craig Brandy Alex Valerie Veronica Cory Whitney Gary Derrick Philip Luis Diana Chelsea Leslie Caitlin Leah Natasha Erika Casey Latoya Erik Dana Victor Brent Dominique Frank Brittney Evan Gabriel Julia Candice Karen Melanie Adrian Stacey Margaret Sheena Wesley Vincent Alexandra Katrina Bethany Nichole Larry Jeffery Curtis Carrie Todd Blake Christian Randy Dennis Alison Michael Christopher Jessica Matthew Ashley Jennifer Joshua Amanda Daniel David James Robert John Joseph Andrew Ryan Brandon Jason Justin Sarah William Jonathan Stephanie Brian Nicole Nicholas Anthony Heather Eric Elizabeth Adam Megan Melissa Kevin Steven Thomas Timothy Christina Kyle Rachel Laura Lauren Amber Brittany Danielle Richard Kimberly Jeffrey Amy Crystal Michelle Tiffany Jeremy Benjamin Mark Emily Aaron Charles Rebecca Jacob Stephen Patrick Sean Erin Zachary Jamie Kelly Samantha Nathan Sara Dustin Paul Angela Tyler Scott Katherine Andrea Gregory Erica Mary Travis Lisa Kenneth Bryan Lindsey Kristen Jose Alexander Jesse Katie Lindsay Shannon Vanessa Courtney Christine Alicia Cody Allison Bradley Samuel".split ())
@@ -139,7 +140,7 @@ def generate (outdir, vhost, conf):
     upstreams = []
     with open (os.path.join (outdir, 'include', 'upstreams.conf'), 'w') as f:
         f.write (UPSTREAMS)
-        f.write (UPSTREAM % ('backend', "    server 127.0.0.1:{};".format (conf ['port'])))
+        f.write (UPSTREAM % ('backend', "    server 127.0.0.1:{};".format (conf.get ('port', 5000))))
         for path, rscs in sorted (B.items (), key = lambda x: len (x [0])):
             if not path:
                 path = '/'
@@ -168,5 +169,7 @@ def generate (outdir, vhost, conf):
     print ("- total {} static files copied to {}.".format (tc.warn ('{:,}'.format (copied)), tc.blue (root)))
     print ("- {} files created at {}.".format (tc.warn ('nginx configuration'), tc.blue (outdir)))
     print ("- please, run below commands if need:")
-    print ("  sudo ln -s {}/nginx.conf /etc/nginx/sites-enabled/{}.conf".format (outdir, conf ['name']))
-    print ("  sudo systemctl reload nginx")
+    print ("  * sudo ln -s {}/nginx.conf /etc/nginx/sites-enabled/{}.conf".format (outdir, conf ['name']))
+    print ("  * {} {} --disable-static update".format (sys.executable, sys.argv [0]))
+    print ("  * sudo systemctl restart {}".format (conf ['name']))
+    print ("  * sudo systemctl reload nginx")
