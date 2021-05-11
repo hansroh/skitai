@@ -31,14 +31,15 @@ variables:
   script:
     - pip install -U -e .
     - cd tests
-    - pytest level1
-    - pytest level2
-    - pytest level3
-    - pytest level4
-    - pytest level4-1
-    - pytest level4-2
-    - pytest level5
+    # - pytest level1
+    # - pytest level2
+    # - pytest level3
+    # - pytest level4
+    # - pytest level4-1
+    # - pytest level4-2
+    # - pytest level5
     # - pytest -s level4/test_big_picture.py
+    - python level4/serve.py
 
 .test_template_win32: &test-win32
   script:
@@ -74,8 +75,8 @@ python 3.9buster:
   <<: *before_python_notf_test
   <<: *test
   only:
-    # - master
-    - py36
+    - master
+
 
 # python pypy3:
 #   image: pypy:3
