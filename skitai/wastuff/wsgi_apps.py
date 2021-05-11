@@ -365,6 +365,7 @@ class ModuleManager:
         except:
             self.wasc.logger.trace ("app")
             self.wasc.logger ("app", "[error] app load failed: %s" % tc.error (os.path.basename (name)))
+            raise
         else:
             self.wasc.logger ("app", "[info] app %s mounted to %s" % (tc.yellow (os.path.basename (name)), tc.white (route)))
             self.modnames [name] = module

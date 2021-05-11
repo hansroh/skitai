@@ -10,6 +10,14 @@ def test_webtest_unsecure (launch):
         assert resp.status_code == 200
         assert resp.text == 'pwa'
 
+        resp = engine.get ('/sub2')
+        assert resp.status_code == 200
+        assert resp.text == 'sub2'
+
+        resp = engine.get ('/sub2/sub3')
+        assert resp.status_code == 200
+        assert resp.text == 'sub3'
+
         resp = engine.get ('/examples')
         assert resp.status_code == 200
         assert 'FranckFreiburger' in resp.text

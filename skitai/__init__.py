@@ -997,33 +997,39 @@ def run (**conf):
                 conf.get ('backend_object_timeout', DEFAULT_BACKEND_OBJECT_TIMEOUT),
                 conf.get ('backend_maintain_interval', DEFAULT_BACKEND_MAINTAIN_INTERVAL)
             )
-            default_max_conns = threads * 3
-            for name, args in conf.get ("clusters", {}).items ():
-                ctype, members, policy, ssl, max_conns = args
-                self.add_cluster (ctype, name, members, ssl, policy, max_conns or default_max_conns)
 
-            self.install_handler (
-                conf.get ("mount"),
-                conf.get ("proxy", False),
-                conf.get ("max_ages", {}),
-                conf.get ("blacklist_dir"), # blacklist_dir
-                conf.get ("proxy_unsecure_https", False), # disable unsecure https
-                conf.get ("enable_gw", False), # API gateway
-                conf.get ("gw_auth", False),
-                conf.get ("gw_realm", "API Gateway"),
-                conf.get ("gw_secret_key", None)
-            )
+            try:
+                default_max_conns = threads * 3
+                for name, args in conf.get ("clusters", {}).items ():
+                    ctype, members, policy, ssl, max_conns = args
+                    self.add_cluster (ctype, name, members, ssl, policy, max_conns or default_max_conns)
 
-            for p, s in dconf ['subscriptions']:
-                try:
-                    provider = self.get_app_by_name (p)
-                    provider.bus
-                    subbscriber = self.get_app_by_name (s).bus
-                except AttributeError:
-                    raise NameError ('app.bus not found')
+                self.install_handler (
+                    conf.get ("mount"),
+                    conf.get ("proxy", False),
+                    conf.get ("max_ages", {}),
+                    conf.get ("blacklist_dir"), # blacklist_dir
+                    conf.get ("proxy_unsecure_https", False), # disable unsecure https
+                    conf.get ("enable_gw", False), # API gateway
+                    conf.get ("gw_auth", False),
+                    conf.get ("gw_realm", "API Gateway"),
+                    conf.get ("gw_secret_key", None)
+                )
 
-                provider.add_subscriber (subbscriber)
-                self.wasc.logger.get ("server").log ('app {} subscribes to {}'.format (tc.yellow (s), tc.cyan (p)))
+                for p, s in dconf ['subscriptions']:
+                    try:
+                        provider = self.get_app_by_name (p)
+                        provider.bus
+                        subbscriber = self.get_app_by_name (s).bus
+                    except AttributeError:
+                        raise NameError ('app.bus not found')
+
+                    provider.add_subscriber (subbscriber)
+                    self.wasc.logger.get ("server").log ('app {} subscribes to {}'.format (tc.yellow (s), tc.cyan (p)))
+
+            except:
+                self.wasc.logger.get ("server").traceback ()
+                os._exit (2)
 
             lifetime.init (logger = self.wasc.logger.get ("server"))
             if os.name == "nt":

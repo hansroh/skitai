@@ -13,3 +13,5 @@ i.cache/
 tests/.webtest_log
 i.cache
 http3-session-ticket.pik
+.static_root/
+tests/level4/conf/
