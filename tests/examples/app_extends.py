@@ -21,5 +21,6 @@ def examples (was):
 
 if __name__ == '__main__':
     with atila.preference () as pref:
+        pref.config.FRONTEND = {}
         skitai.mount ("/", app, pref)
         skitai.run (port = 30371)
