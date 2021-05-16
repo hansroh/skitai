@@ -418,7 +418,7 @@ def test_myservice ():
         with cli.driver as driver:
             driver.navigate ('/apis/auth/login?return_url=%2Farticles%3Fcategory%3D3')
             email_input = driver.one ("input[type=text]", 'visible')
-            assert email_input, "cnnot find username input"
+            assert email_input, "cannot find username input"
             email_input.send_keys ("{}\t{}\n".format (user, pw))
             driver.one ('img[src="/assets/image/icon_home.png"]', 'visible')
             e = driver.one ('header')
@@ -455,7 +455,7 @@ if __name__ == "__main__":
 
 ```bash
 sudo apt install nginx
-python3 serve.py --nginx-conf="myapp.com www.myapp.org"
+python3 serve.py --nginx-conf="myapp.com"
 ```
 - collect all mounted static files to {CWD}/.static_root.
 - create nginx configuration files at {CWD}/conf/nginx.
@@ -463,7 +463,7 @@ python3 serve.py --nginx-conf="myapp.com www.myapp.org"
 ```bash
 sudo ln -s {CWD}/conf/nginx/nginx.conf /etc/nginx/sites-enabled/{SERVICE_NAME}.conf
 python3 serve.py --disable-static update
-sudo systemctl myapp restart
+sudo systemctl restart myapp
 sudo systemctl reload nginx
 ```
 
