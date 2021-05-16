@@ -324,26 +324,21 @@ Blank seperated items of log line are,
 - log date
 - log time
 - client ip or proxy ip
-
 - request host: default '-' if not available
 - request methods
 - request uri
 - request version
 - request body size
-
 - reply code
 - reply body size
-
 - global transaction ID: for backtracing request if multiple backends related
 - local transaction ID: for backtracing request if multiple backends related
 - username when HTTP auth: default '-', wrapped by double quotations
   if value available
 - bearer token when HTTP bearer auth
-
 - referer: default '-', wrapped by double quotations if value available
 - user agent: default '-', wrapped by double quotations if value available
 - x-forwared-for, real client ip before through proxy
-
 - Skitai engine's worker ID like W0, W1 (Worker #0, #1,...)
 - number of active connections
   include not only clients but your backend/upstream servers

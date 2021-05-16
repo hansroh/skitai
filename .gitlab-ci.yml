@@ -52,8 +52,7 @@ python 3.6stretch:
   <<: *before_python_test
   <<: *test
   only:
-    # - master
-    - py36
+    - master
 
 python 3.7stretch:
   image: python:3.7-stretch
