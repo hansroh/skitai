@@ -178,6 +178,16 @@ sudo systemctl stop myservice
 sudo systemctl restart myservice
 ```
 
+### Run as Docker Daemon
+```bash
+docker run -d --gpus all \
+    --name mayservice
+    --user ubuntu
+    -v /home/ubuntu/myhome:/home/ubuntu
+    -p 5000:5000
+    hansroh/myservice:latest ~/myapis/serve.py
+```
+
 ### Command Line Parameters
 ```bash
 python3 serve.py --help
