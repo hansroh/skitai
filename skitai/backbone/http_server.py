@@ -193,6 +193,7 @@ class http_channel (asynchat.async_chat):
                 self.handle_close ()
                 return b""
             # print ("RECV", len (result), result [:30], self.get_terminator ())
+            # print ("RECV", len (result), result, self.get_terminator ())
             lr = len (result)
             self.server.bytes_in.inc (lr)
             self.bytes_in.inc (lr)

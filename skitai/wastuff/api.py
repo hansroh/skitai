@@ -172,10 +172,15 @@ class API (APIResponse):
 		props ["current_request"]["version"] = self.request.version
 		props ["current_request"]["uri"] = self.request.uri
 		props ['routeopt'] = routable
-		props ["parameter_requirements"] = app.get_parameter_requirements (resource_id)
 		props ['auth_requirements'] = app.get_auth_flags (resource_id)
 		props ["doc"] = self.request.routed.__doc__
 		props ["id"] = resource_id
+		parameter_requirements = copy.deepcopy (app.get_parameter_requirements (resource_id))
+		for scope, ps in parameter_requirements.items ():
+			for k, v in ps.items ():
+				if type (v) is type:
+					ps [k] = str (v)
+		props ["parameter_requirements"] = parameter_requirements
 		self.data ["__spec__"] = props
-
 		app.emit ('spec:exposed', props)
+
