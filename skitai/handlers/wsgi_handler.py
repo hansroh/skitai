@@ -270,8 +270,11 @@ class Job:
         # this is not just for atila,
         # Task need request and response
         was = the_was._get ()
-        was.apps = self.apps
         was.request = self.request
+        if was.request.channel is None:
+            return was.log ('client had been disconnected', 'warn', 'server')
+
+        was.apps = self.apps
         was.response = self.request.response
         was.env = self.args [0]
         was.env ["skitai.was"] = was
@@ -310,7 +313,7 @@ class Job:
             try:
                 self.exec_app ()
             finally:
-                self.deallocate    ()
+                self.deallocate ()
         except:
             # no response, alredy done. just log
             self.logger.trace ("server", self.request.uri)

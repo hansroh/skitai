@@ -9,7 +9,7 @@ def test_futures (app, dbpath):
         with was.xmlrpc ("@pypi/pypi") as stub:
             req = stub.package_releases ('roundup')
             print (req.fetch ())
-            assert req.fetch () == ['2.0.0']
+            assert req.fetch () == ['2.1.0']
 
         with was.asyncon ("@sqlite") as db:
             req = db.execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
