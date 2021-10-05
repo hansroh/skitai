@@ -272,7 +272,7 @@ class Job:
         was = the_was._get ()
         was.request = self.request
         if was.request.channel is None:
-            return was.log ('client had been disconnected', 'warn', 'server')
+            return was.log ('connection lost', 'warn', 'server')
 
         was.apps = self.apps
         was.response = self.request.response
