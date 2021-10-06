@@ -69,7 +69,7 @@ class http_request:
     # arguments and parameters -------------------------
     @property
     def g (self):
-        if seld._g:
+        if self._g:
             return self._g
         self._g = AttrDict ()
         return self._g
