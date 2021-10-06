@@ -125,14 +125,14 @@ def bench_one2 (was):
 @app.route ("/bench/http", methods = ['GET'])
 def bench_http (was):
     return was.Map (
-        t1 = was.get ('@myweb/apis/settings/appDownloadUrl'),
+        t1 = was.get ('@myweb/', headers = {'Accept': 'text/html'}),
     )
 
 @app.route ("/bench/http/2", methods = ['GET'])
 def bench_http2 (was):
     return was.Map (
-        t1 =  was.get ('@myweb/status?f=ENVIRON', headers = {'Accept': 'text/html'}),
-        t2 =  was.get ('@myweb/status?f=THREADS', headers = {'Accept': 'text/html'}),
+        t1 =  was.get ('@myweb/', headers = {'Accept': 'text/html'}),
+        t2 =  was.get ('@myweb/', headers = {'Accept': 'text/html'}),
     )
 
 
@@ -140,7 +140,7 @@ if __name__ == '__main__':
     import skitai, os
 
     skitai.alias ('@mydb', skitai.DB_PGSQL, os.environ ['MYDB'], max_conns = 10)
-    skitai.alias ('@myweb', skitai.PROTO_HTTP, '192.168.0.154:9020', max_conns = 32)
+    skitai.alias ('@myweb', skitai.PROTO_HTTPS, 'example.com', max_conns = 32)
     skitai.mount ('/', app)
     skitai.use_poll ('epoll')
     skitai.run (workers = 4, threads = 4, port = 9007)

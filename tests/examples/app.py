@@ -126,7 +126,7 @@ def dblb (was):
 def xmlrpc (was):
     with was.xmlrpc ("@pypi/pypi") as stub:
         req = stub.package_releases ('roundup')
-        assert req.fetch () == ['2.0.0']
+        assert req.fetch () == ['2.1.0']
         return was.API (result = "ok")
 
 @app.route ("/hello")

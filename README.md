@@ -481,6 +481,7 @@ sudo systemctl reload nginx
 # Change Log
 
 - 0.38 (May, 2021)
+  - revoke disconnected requests before passing app
   - refactoring package structure
   - update README
   - generating Nginx base configurations
