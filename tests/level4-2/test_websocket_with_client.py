@@ -91,3 +91,15 @@ def test_websocket_flask (launch):
         result =  ws.recv()
         assert result == "2nd: Hello, World"
         ws.close()
+
+
+def test_websocket_coroutine (launch):
+    with launch ("./examples/websocket.py") as engine:
+        # test THREADSAFE ----------------------------------
+        ws = create_connection("ws://127.0.0.1:30371/websocket/echo_coroutine")
+        ws.send("Hello, World")
+        result =  ws.recv()
+        assert result == "echo: Hello, World"
+        ws.close()
+
+
