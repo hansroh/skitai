@@ -27,16 +27,18 @@ def test_websocket (launch):
         ws = create_connection("ws://127.0.0.1:30371/websocket/chat2?room_id=1")
         ws.send("Hello, World")
         result =  ws.recv()
-        assert result =="Client 2 has entered"
+        assert result =="Client 1 has entered"
         result =  ws.recv()
-        assert result == "Client 2 Said: Hello, World"
+        assert result == "Client 1 Said: Hello, World"
 
         ws2 = create_connection("ws://127.0.0.1:30371/websocket/chat2?room_id=1")
         ws2.send("Absolutely")
-        result =  ws2.recv()
-        assert result == "Client 3 Said: Absolutely"
         result =  ws.recv()
-        assert result == "Client 3 Said: Absolutely"
+        assert result =="Client 2 has entered"
+        result =  ws.recv()
+        assert result == "Client 2 Said: Absolutely"
+        result =  ws2.recv()
+        assert result == "Client 2 Said: Absolutely"
         ws.close()
         ws2.close()
 
