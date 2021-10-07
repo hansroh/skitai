@@ -41,7 +41,7 @@ def test_websocket (launch):
         ws2.close()
 
 
-def test_websocket (launch):
+def test_websocket1 (launch):
     if IS_PYPY:
         # CANNOT FIND BUG, this work fine on local pypy:3 container
         return
