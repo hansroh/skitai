@@ -302,6 +302,9 @@ class http_channel (asynchat.async_chat):
             if not ignore_die_partner:
                 self.producers_attend_to.append (closable)
 
+        if self.request_counter.as_long () > 1:
+            self.journal ('channel-{}'.format (self.channel_number))
+
         if self.current_request is not None:
             self.producers_attend_to.append (self.current_request.collector)
             self.producers_attend_to.append (self.current_request.producer)
@@ -332,10 +335,11 @@ class http_channel (asynchat.async_chat):
 
     def journal (self, reporter):
         self.log (
-            "%s closed, client %s:%s, bytes in: %s, bytes out: %s for %d seconds " % (
+            "%s closed, client %s:%s, requests: %s, bytes in: %s, bytes out: %s for %d seconds " % (
                 reporter,
                 self.addr [0],
                 self.addr [1],
+                self.request_counter.as_long (),
                 self.bytes_in,
                 self.bytes_out,
                 time.time () - self.creation_time
