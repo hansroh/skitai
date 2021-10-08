@@ -102,4 +102,17 @@ def test_websocket_coroutine (launch):
         assert result == "echo: Hello, World"
         ws.close()
 
+        ws = create_connection("ws://127.0.0.1:30371/websocket/echo_coroutine")
+        for i in range (50):
+            ws.send("Hello, World")
+            result = ws.recv()
+            assert result == "echo: Hello, World"
+            if (i + 1) % 3 == 0:
+                result =  ws.recv()
+                assert result == "double echo: Hello, World"
+                ws.ping("ping")
+                ws.pong("pong")
+            time.sleep (0.1)
+        ws.close()
+
 
