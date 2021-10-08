@@ -52,7 +52,7 @@ class Logger:
 
 		_logger = logger.multi_logger ()
 		if self.path and 'file' in self.media and (not self.file_loggings or prefix in self.file_loggings):
-			_logger.add_logger (logger.rotate_logger (self.path, prefix, freq, flushnow = self.file_loggings and True or False))
+			_logger.add_logger (logger.rotate_logger (self.path, prefix, freq, flushnow = True))
 		if 'screen' in self.media and prefix not in self.file_loggings:
 			if prefix == "request" and sys.stdout.isatty():
 				_logger.add_logger (screen_request_logger ())
