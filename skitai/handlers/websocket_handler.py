@@ -189,10 +189,12 @@ class Handler (wsgi_handler.Handler):
                 server = servers.websocket_servers.create (gid, self, request, apph, env, message_encoding)
                 if server is None:
                     return request.response.error (503)
-                env ["websocket"] = server
-                if is_atila: env ["websocket.handler"] = (current_app, wsfunc)
+            else:
+                server = servers.websocket_servers.get (gid)
 
-            server = servers.websocket_servers.get (gid)
+            env ["websocket"] = server
+            if is_atila:
+                env ["websocket.handler"] = (current_app, wsfunc)
             ws = specs.WebSocket5 (self, request, server, env, varnames)
             self.channel_config (request, ws, keep_alive)
             server.add_client (ws)
