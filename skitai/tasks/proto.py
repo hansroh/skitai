@@ -53,7 +53,11 @@ class Coroutine:
         if self._rtype == 'grpc':
             return serialize (v, True)
         if self._rtype == 'websocket':
-            return encode_message (v, OPCODE_TEXT if isinstance (v, str) else OPCODE_BINARY)
+            if isinstance (v, tuple):
+                opcode, v =  v
+            else:
+                opcode = OPCODE_TEXT if isinstance (v, str) else OPCODE_BINARY
+            return encode_message (v, opcode)
 
     def collect_data (self):
         while 1:
