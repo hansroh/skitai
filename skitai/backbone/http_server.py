@@ -446,6 +446,7 @@ class http_server (asyncore.dispatcher):
             while SURVAIL:
                 try:
                     if ACTIVE_WORKERS < numworker:
+                        os.environ ['SKITAI_WORKER_ID'] = str (ACTIVE_WORKERS)
                         pid = os.fork ()
                         if pid == 0: # master
                             if os.name != 'nt' and not self.KEEP_PRIVILEGES:
