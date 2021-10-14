@@ -24,6 +24,7 @@ if os.name == "posix":
     CPUs = psutil.cpu_count()
 
 PID = {}
+WORKER_IDS = []
 ACTIVE_WORKERS = 0
 SURVAIL = True
 EXITCODE = 0
@@ -436,17 +437,23 @@ class http_server (asyncore.dispatcher):
         self._serve (backlog = 100)
 
     def fork (self, numworker = 1):
-        global ACTIVE_WORKERS, SURVAIL, PID, EXITCODE
-
+        global ACTIVE_WORKERS, SURVAIL, PID, EXITCODE, WORKER_IDS
         if os.name == "nt":
             set_process_name (skitai.get_proc_title ())
             signal.signal(signal.SIGTERM, hTERMWORKER)
 
         else:
+            WORKER_IDS = [None] * numworker
             while SURVAIL:
                 try:
                     if ACTIVE_WORKERS < numworker:
-                        os.environ ['SKITAI_WORKER_ID'] = str (ACTIVE_WORKERS)
+                        try:
+                            worker_id = WORKER_IDS.index (None)
+                        except ValueError:
+                            time.sleep (1)
+                            continue
+
+                        os.environ ['SKITAI_WORKER_ID'] = str (worker_id)
                         pid = os.fork ()
                         if pid == 0: # master
                             if os.name != 'nt' and not self.KEEP_PRIVILEGES:
@@ -454,6 +461,7 @@ class http_server (asyncore.dispatcher):
                             self.worker_ident = "w%d" % len (PID)
                             set_process_name ("%s:%s" % (skitai.get_proc_title (), self.worker_ident))
                             PID = {}
+                            WORKER_IDS = []
                             signal.signal(signal.SIGTERM, hTERMWORKER)
                             signal.signal(signal.SIGQUIT, hQUITWORKER)
                             signal.signal(signal.SIGHUP, hHUPWORKER)
@@ -466,11 +474,12 @@ class http_server (asyncore.dispatcher):
                                 signal.signal(signal.SIGTERM, hTERMMASTER)
                                 signal.signal(signal.SIGINT, hTERMMASTER)
                                 signal.signal(signal.SIGQUIT, hQUITMASTER)
-                                signal.signal (signal.SIGCHLD, hCHLD)
+                                signal.signal(signal.SIGCHLD, hCHLD)
 
                             ps = psutil.Process (pid)
                             ps.x_overloads = 0
                             PID [pid] = ps
+                            WORKER_IDS [worker_id] = pid
                             ACTIVE_WORKERS += 1
 
                     now = time.time ()
@@ -506,6 +515,7 @@ class http_server (asyncore.dispatcher):
         for pid, ps in PID.items ():
             if ps is None:
                 continue
+
             try:
                 usage = ps.cpu_percent ()
             except (psutil.NoSuchProcess, AttributeError):
@@ -664,7 +674,10 @@ def terminate_master ():
     DO_SHUTDOWN (signal.SIGTERM)
 
 def hCHLD (signum, frame):
-    global ACTIVE_WORKERS, PID
+    global ACTIVE_WORKERS, PID, WORKER_IDS
+
+    if not WORKER_IDS:
+        return
 
     ACTIVE_WORKERS -= 1
     try:
@@ -677,6 +690,12 @@ def hCHLD (signum, frame):
             terminate_master ()
         else:
             PID [pid] = None
+            try:
+                worker_id = WORKER_IDS.index (pid)
+            except ValueError:
+                pass
+            else:
+                WORKER_IDS [worker_id] = None
 
 def hTERMWORKER (signum, frame):
     lifetime.shutdown (EXCD_SHUTDOWN, 1.0)
