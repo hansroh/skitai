@@ -320,14 +320,27 @@ skitai.log_off ('*.css', '/static/images/', '/static/js/')
 
 ### Enable File Logging
 ```python
-skitai.enalbe_file_logging ()
+skitai.enalbe_file_logging (path = '/var/log/skitai')
 ```
 
-Log files will be created at /var/log/skitai/{SERVICE_NAME},
-- request.log
-- server.log
+*Note:* `/var/log/skitai` should have writable permission.
 
-### Log Format
+Request log file will be created at /var/log/skitai/{SERVICE_NAME},
+- request.log
+
+By default server/app log messages are displayed on stdout because for `syslog`.
+
+But if you want to log to files for these,
+```python
+skitai.enalbe_file_logging (path = '/var/log/skitai', ['request', 'app', 'server'])
+```
+
+Also log files will be created at /var/log/skitai/{SERVICE_NAME},
+- server.log
+- app.log
+
+
+### Request Log Format
 
 Blank seperated items of log line are,
 
@@ -350,8 +363,7 @@ Blank seperated items of log line are,
 - user agent: default '-', wrapped by double quotations if value available
 - x-forwared-for, real client ip before through proxy
 - Skitai engine's worker ID like W0, W1 (Worker #0, #1,...)
-- number of active connections
-  include not only clients but your backend/upstream servers
+- current number of active connections include not only clients but your backend/upstream servers
 - duration ms for request handling
 - duration ms for transfering response data
 

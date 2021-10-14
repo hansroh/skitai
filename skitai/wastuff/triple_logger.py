@@ -35,7 +35,7 @@ class Logger:
 		self.path = path
 		if self.path:
 			pathtool.mkdir (path)
-		self.file_loggings = file_loggings or []
+		self.file_loggings = file_loggings or (['request'] if 'file' in self.media else [])
 		self.logger_factory = {}
 		self.lock = Lock ()
 
@@ -44,23 +44,23 @@ class Logger:
 		self.make_logger ("request", "daily")
 
 	def make_logger (self, prefix, freq = "daily"):
-		self.lock.acquire ()
-		has_prefix = prefix in self.logger_factory
-		if has_prefix:
-			self.lock.release ()
-			raise TypeError("%s is already used" % prefix)
+		with self.lock:
+			has_prefix = prefix in self.logger_factory
+			if has_prefix:
+				self.lock.release ()
+				raise TypeError("%s is already used" % prefix)
 
-		_logger = logger.multi_logger ()
-		if self.path and 'file' in self.media and (not self.file_loggings or prefix in self.file_loggings):
-			_logger.add_logger (logger.rotate_logger (self.path, prefix, freq, flushnow = True))
-		if 'screen' in self.media and prefix not in self.file_loggings:
-			if prefix == "request" and sys.stdout.isatty():
-				_logger.add_logger (screen_request_logger ())
-			else:
-				_logger.add_logger (logger.screen_logger ())
+			_logger = logger.multi_logger ()
+			if self.path and 'file' in self.media and prefix in self.file_loggings:
+				_logger.add_logger (logger.rotate_logger (self.path, prefix, freq, flushnow = True))
 
-		self.logger_factory [prefix] = _logger
-		self.lock.release ()
+			if ('screen' in self.media and prefix not in self.file_loggings) or sys.stdout.isatty ():
+				if prefix == "request" and sys.stdout.isatty ():
+					_logger.add_logger (screen_request_logger ())
+				else:
+					_logger.add_logger (logger.screen_logger ())
+
+			self.logger_factory [prefix] = _logger
 
 	def add_screen_logger (self):
 		for prefix, _logger in list(self.logger_factory.items ()):
