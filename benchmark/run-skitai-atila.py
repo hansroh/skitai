@@ -143,4 +143,4 @@ if __name__ == '__main__':
     skitai.alias ('@myweb', skitai.PROTO_HTTPS, 'example.com', max_conns = 32)
     skitai.mount ('/', app)
     skitai.use_poll ('epoll')
-    skitai.run (workers = 4, threads = 4, port = 9007)
+    skitai.run (workers = 4, threads = 4, port = 5000)

@@ -1,3 +1,3 @@
 cd bench
-python3 manage.py runserver 0.0.0.0:9007
+python3 manage.py runserver 0.0.0.0:5000
 
