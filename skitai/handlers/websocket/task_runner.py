@@ -5,12 +5,10 @@ from rs4.psutil import Puppet
 import sys
 
 class Task (Puppet):
-  def __init__ (self, userid, websocket, executive, id, clips = 10):
+  def __init__ (self, userid, websocket, cmd):
     self.userid = userid
     self.websocket = websocket
-    self.executive = executive
-    self.id = id
-    self.clips = clips
+    self.cmd = cmd # ex. [sys.excutable, 'task.py', '--id', 4, '--clips', 10]
     super ().__init__ ()
 
   def log (self, line, *args):
@@ -19,8 +17,7 @@ class Task (Puppet):
     self.websocket.send (line)
 
   def start (self):
-    cmd = [sys.executable, self.executive, "--id", self.id, "--clips", self.clips]
-    super ().start (cmd)
+    super ().start (self.cmd)
 
 
 USERS = {}
