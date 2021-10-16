@@ -69,6 +69,7 @@ class Loader:
             num = 1
         self.num_worker = num
         self.wasc.workers = num
+        os.environ ["SKITAI_WORKERS"] = str (num)
 
     def WAS_initialize (self):
         self.wasc.log_base_path = self.logpath

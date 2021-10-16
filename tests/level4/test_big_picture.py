@@ -38,15 +38,6 @@ def test_webtest_unsecure (launch):
         assert resp.status_code == 200
         assert resp.text == 'sub5'
 
-
-        resp = engine.get ('/examples')
-        assert resp.status_code == 200
-        assert 'FranckFreiburger' in resp.text
-
-        resp = engine.get ('/admin')
-        assert resp.status_code == 200
-        assert '/admin/static' in resp.text
-
         resp = engine.get ('/reindeer.jpg')
         assert resp.status_code == 200
 
