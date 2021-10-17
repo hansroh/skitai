@@ -274,23 +274,23 @@ class http_request:
                 return self._jwt
             token_ = self.get_header ("authorization")
             if not token_ or token_ [:7].lower () != "bearer ":
-                self._jwt = {"err": "no bearer token"}
+                self._jwt = {"err": "no bearer token", "ecd": 1}
                 return self._jwt
             token = token_ [7:]
 
         try:
             claims = jwt.get_claim (salt or self.salt, token)
         except (TypeError, ValueError):
-            claims = {"err": "invalid token"}
+            claims = {"err": "invalid token", "ecd": 1}
         else:
             if claims is None:
-                claims = {"err": "invalid signature"}
+                claims = {"err": "invalid signature", "ecd": 1}
             else:
                 now = time.time ()
                 if claims ["exp"] < now:
-                    claims = {"err": "token expired"}
+                    claims = {"err": "token expired", "ecd": 0}
                 elif "nbf" in claims and claims ["nbf"] > now:
-                    claims = {"err": "token not activated yet"}
+                    claims = {"err": "token not activated yet", "ecd": 1}
 
         self._jwt = claims
         if "username" in claims:

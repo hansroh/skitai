@@ -176,6 +176,8 @@ class Module:
             func (self.wasc, self.route)
             self.wasc.handler = None
 
+        hasattr (self.app_initer, '__mounted__') and self.app_initer.__mounted__ (app, mntopt)
+
     def before_mount (self):
         app = self.app or getattr (self.module, self.appname)
         self.has_life_cycle and app.life_cycle ("before_mount", self.wasc)
@@ -188,16 +190,17 @@ class Module:
     def before_umount (self):
         app = self.app or getattr (self.module, self.appname)
         self.has_life_cycle and app.life_cycle ("before_umount", self.wasc ())
+        hasattr (self.app_initer, '__umount__') and self.app_initer.__umount__ (app)
 
     def umounted (self):
         app = self.app or getattr (self.module, self.appname)
         self.has_life_cycle and app.life_cycle ("umounted", self.wasc)
+        hasattr (self.app_initer, '__umounted__') and self.app_initer.__umounted__ (app)
 
     def cleanup (self):
         app = self.app or getattr (self.module, self.appname)
         try: app.cleanup ()
         except AttributeError: pass
-        hasattr (self.app_initer, '__umount__') and self.app_initer.__umount__ (app)
 
     def check_django_reloader (self, now):
         if self.django.reloaded ():

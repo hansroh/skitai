@@ -12,17 +12,9 @@ def test_app_run (launch):
         resp = requests.get ('http://localhost:30371/statics/manifest.json')
         assert resp.status_code == 200
 
-        resp = requests.get ('http://localhost:30371/statics/vue2/_framework/supplement.css')
+        resp = requests.get ('http://localhost:30371/statics/components/dev/vuex-state.vue')
         assert resp.status_code == 200
 
-        resp = requests.get ('http://localhost:30371/examples')
+        resp = requests.get ('http://localhost:30371/base-template')
         assert resp.status_code == 200
-        assert "/manifest.json" in resp.text
-
-        resp = requests.put ('http://localhost:30371/examples')
-        assert resp.status_code == 200
-        assert resp.text == "Examples"
-
-        resp = requests.get ('http://localhost:30371/examples/tutorial')
-        assert resp.status_code == 310
-
+        assert "<h1>Atila Vue Template" in resp.text
