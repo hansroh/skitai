@@ -109,7 +109,7 @@ def test_was (wasc, app, client):
 
     # tokens ------------------------------------------
     assert was.decode_jwt (was.encode_jwt ({"a": 1, "exp": 3000000000})) == {"a": 1, "exp": 3000000000}
-    assert was.decode_jwt (was.encode_jwt ({"a": 1, "exp": 1})) == {'err': 'token expired'}
+    assert was.decode_jwt (was.encode_jwt ({"a": 1, "exp": 1})) == {'ecd': 0, 'err': 'token expired'}
 
     t = was.encode_ott ({"a": 1})
     assert was.decode_ott (t) == {"a": 1}

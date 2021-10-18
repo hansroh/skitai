@@ -11,3 +11,7 @@ def __app__ ():
     app.mount ('/', services)
     return app
 
+def __mount__ (app, mntopt):
+    @app.route ('/urlspecs')
+    def urlspecs (was):
+        return was.API (urlspecs = was.app.get_urlspecs ())
