@@ -116,8 +116,6 @@ class Module:
 
         if str (app.__class__).find ("django.") != -1:
             django_base_dir = os.path.dirname (self.abspath)
-            if os.path.isfile (os.path.join (django_base_dir, 'settings.py')):
-                django_base_dir = os.path.dirname (django_base_dir)
             self.django = DjangoReloader (django_base_dir, self.wasc.logger)
 
         if self.pref:
