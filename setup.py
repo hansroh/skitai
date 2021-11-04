@@ -63,8 +63,8 @@ package_data = {}
 
 install_requires = [
     "rs4",
-    "aquests",
-    "sqlphile",
+    "aquests>=0.30",
+    "sqlphile>=0.9",
 ]
 if os.name == "nt":
     install_requires.append ("pywin32")

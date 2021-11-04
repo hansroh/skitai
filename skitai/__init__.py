@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.38.3"
+__version__ = "0.38.4"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -17,7 +17,8 @@ import sys, os
 import h2
 from aquests.dbapi import (
     DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB,
-    DB_SYN_PGSQL, DB_SYN_REDIS, DB_SYN_MONGODB
+    DB_SYN_PGSQL, DB_SYN_REDIS, DB_SYN_MONGODB,
+    DB_SYN_ORACLE, DB_ORACLE
 )
 import warnings
 from aquests.protocols.smtp import composer
