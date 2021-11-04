@@ -9,6 +9,7 @@ variables:
   - python -c 'from aquests.protocols.grpc import discover'
   - pip install -Ur tests/requirements.txt
   - pip install -U --pre --no-cache-dir atila delune
+  - pip install -U --pre --no-cache-dir atila-vue
   - pip install -U --no-cache-dir rs4 aquests
 
 .before_python_test: &before_python_test
