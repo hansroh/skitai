@@ -1087,7 +1087,7 @@ def run (**conf):
     if '--nginx-conf' in argopt.options ():
         from .wastuff import nginx
         if not os.getenv ('STATIC_ROOT'):
-            os.environ ['STATIC_ROOT'] = abspath ('.static_root')
+            os.environ ['STATIC_ROOT'] = abspath ('conf/nginx/.static_root')
         vhost = server.virtual_host.sites [None]
         conf ['domain'] = get_option ('--nginx-conf')
         nginx.generate (abspath ('conf', 'nginx'), vhost, conf)
