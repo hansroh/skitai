@@ -1,12 +1,12 @@
 import threading
 import time
-from .implements import asynpsycopg2, asynredis, synsqlite3, asynmongo, syndbi
+from .implements import asynpsycopg2, asynredis, asynmongo, syndbi
 from ..sock import socketpool
 from . import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB, DB_SYN_PGSQL, DB_SYN_MONGODB, DB_SYN_REDIS, DB_SYN_ORACLE, DB_ORACLE
 
 class DBPool (socketpool.SocketPool):
 	class_map = {
-        DB_SQLITE3: synsqlite3.SynConnect,
+        DB_SQLITE3: syndbi.SynConnect,
         DB_PGSQL: asynpsycopg2.AsynConnect,
         DB_REDIS: asynredis.AsynConnect,
         DB_MONGODB: asynmongo.AsynConnect,
@@ -23,7 +23,7 @@ class DBPool (socketpool.SocketPool):
 	def create_asyncon (self, server, params, dbtype):
 		if DB_SQLITE3 in (params [0], dbtype) or server.find ('://') != -1:
 			params = ("",) + params [1:]
-			return synsqlite3.SynConnect (server, params, self.lock, self.logger)
+			return syndbi.SynConnect (server, params, self.lock, self.logger)
 
 		try:
 			host, port = server.split (":", 1)

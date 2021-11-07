@@ -1,7 +1,7 @@
 import skitai
 import conftest
 import sqlite3
-from skitai.concurrent.dbi.synsqlite3 import SynConnect
+from skitai.concurrent.dbi.implements.syndbi import SynConnect
 from skitai.concurrent.sock.asynconnect import AsynConnect
 from skitai.tasks.httpbase import task
 

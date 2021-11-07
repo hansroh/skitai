@@ -1,4 +1,4 @@
-from skitai.concurrent.dbi.implements import synsqlite3, asynpsycopg2
+from skitai.concurrent.dbi.implements import syndbi, asynpsycopg2
 from rs4.protocols.dbi import request
 from skitai import DB_SQLITE3, DB_PGSQL
 from skitai.concurrent.dbi.dbconnect import SQLError
@@ -20,7 +20,7 @@ def callback5 (resp):
     assert resp.code == 500
 
 def test_str (dbpath, log):
-    f = synsqlite3.SynConnect (dbpath, logger = log.get ("app"))
+    f = syndbi.SynConnect (dbpath, logger = log.get ("app"))
 
     statement = "SELECT * from stocks where id = 1"
     r = request.Request (DB_SQLITE3, dbpath, None, None, None, (statement,), callback = callback1)
