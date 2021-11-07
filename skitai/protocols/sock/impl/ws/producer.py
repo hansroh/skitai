@@ -1,6 +1,6 @@
 from collections import Iterable
 from ..grpc.producers import grpc_producer
-from ...misc import strutil
+from rs4.misc import strutil
 from . import OPCODE_TEXT, OPCODE_BINARY
 import struct
 import os

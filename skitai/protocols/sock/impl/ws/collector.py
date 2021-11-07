@@ -1,6 +1,6 @@
 import sys
 import struct
-from ...misc import strutil
+from rs4.misc import strutil
 from io import BytesIO
 from ..ws import *
 

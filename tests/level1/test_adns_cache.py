@@ -1,5 +1,5 @@
 from rs4 import logger
-from skitai.protocols.sock import adns
+from skitai.protocols.sock.impl.dns import adns
 from rs4 import asyncore
 
 from test_adns import loop

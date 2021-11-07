@@ -1,5 +1,5 @@
 from skitai.protocols import aquests
-from skitai.protocols.sock.impl import dns
+from skitai.protocols.sock.impl.dns import dns
 from rs4 import asyncore
 from rs4 import logger
 

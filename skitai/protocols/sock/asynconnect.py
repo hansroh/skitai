@@ -10,7 +10,7 @@ if os.name == "nt":
     from errno import WSAENOTCONN
 import select
 import threading
-from . import adns
+from .impl.dns import adns
 from .impl.http2 import H2_PROTOCOLS
 from ..threaded.fifo import await_fifo
 from rs4.misc.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_context

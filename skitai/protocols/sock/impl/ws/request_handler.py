@@ -1,8 +1,8 @@
 from . import response, request
 from ..http import request_handler, http_auth
 from ..http.response import FailedResponse
-from ...sock import asynconnect
-from ...misc import strutil
+from ... import asynconnect
+from rs4.misc import strutil
 
 try:
 	from urllib.parse import urlparse

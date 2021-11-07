@@ -1,5 +1,5 @@
 from ..http import request
-from ...misc import strutil
+from rs4.misc import strutil
 from .producer import ws_producer
 import struct
 import os

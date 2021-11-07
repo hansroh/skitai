@@ -1,8 +1,8 @@
 from . import response as http_response
 from ..http2 import request_handler as http2_request_handler
 from . import base_request_handler, http_auth, respcodes
-from ..sock import asynconnect
-from ..sock import socketpool
+from ... import asynconnect
+from ... import socketpool
 import base64
 from hashlib import md5
 import os

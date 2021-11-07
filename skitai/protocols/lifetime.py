@@ -7,7 +7,7 @@ import bisect
 import socket
 import time
 import types
-from .sock.impl import dns
+from .sock.impl.dns import dns
 from collections import deque
 import threading
 

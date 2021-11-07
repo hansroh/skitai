@@ -16,12 +16,11 @@ from .protocols.threaded.fifo import await_fifo
 from .protocols.sock import asynconnect
 from .protocols.sock import socketpool
 from .protocols.threaded import threadlib, trigger
-from .protocols.sock import adns
+from .protocols.sock.impl.dns import adns, dns
 from .protocols.dbi import dbpool
 from rs4 import logger, confparse, pathtool
 from .protocols.sock.impl.http import request_handler
 from .protocols.sock.impl import http2
-from .protocols.sock.impl import dns
 if os.name == "nt":
     from rs4.psutil import schedule # cron like scheduler
 from rs4.psutil import kill

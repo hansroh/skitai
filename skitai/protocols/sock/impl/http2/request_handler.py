@@ -1,4 +1,4 @@
-from ...http import base_request_handler
+from ..http import base_request_handler
 from h2.connection import H2Connection, GoAwayFrame
 from h2.exceptions import ProtocolError, NoSuchStreamError, StreamClosedError, FlowControlError
 from h2.events import TrailersReceived, DataReceived, ResponseReceived, StreamEnded, ConnectionTerminated, StreamReset, WindowUpdated, RemoteSettingsChanged
@@ -9,8 +9,7 @@ from .producers import h2frame_producer, h2header_producer
 from ..http import respcodes
 from ..http import response as http_response
 from hyperframe.frame import Frame
-
-from ..sock import asynconnect
+from ... import asynconnect
 import threading
 try:
 	from cStringIO import StringIO as BytesIO

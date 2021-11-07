@@ -78,11 +78,18 @@ packages = [
 	'skitai.protocols.sock.impl.smtp',
 	'skitai.protocols.sock.impl.grpc',
 	'skitai.protocols.sock.impl.proxy',
-	'skitai.protocols.sock.impl.dbi',
 ]
 
 package_dir = {'skitai': 'skitai'}
-package_data = {}
+package_data = {
+    "skitai": [
+        "protocols/sock/impl/dns/*.txt",
+		"protocols/sock/impl/dns/pydns/*.txt",
+		"protocols/sock/impl/http2/hyper/*.txt",
+		"protocols/sock/impl/http2/hyper/*.pem",
+        "protocols/sock/impl/http3/*.pem",
+    ]
+}
 
 install_requires = [
     "rs4>=0.3",

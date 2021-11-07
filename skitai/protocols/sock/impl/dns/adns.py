@@ -1,4 +1,4 @@
-from .impl import dns
+from . import dns
 import time
 import threading
 import os

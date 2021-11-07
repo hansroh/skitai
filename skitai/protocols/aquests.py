@@ -6,14 +6,14 @@ import timeit
 import time, math, random
 from rs4 import logger as logger_f, tc
 from .sock import socketpool
-from .sock import adns, asynconnect
+from .sock.impl.dns import adns, dns
+from .sock import asynconnect
 from .threaded.fifo import await_fifo
 from .threaded import queue
 from . import sock
 from . import dbi
 from .dbi import dbpool
 from .dbi.impl import request as dbo_request
-from .sock.impl import dns
 from .sock.impl.http import localstorage as ls
 from .sock.impl.http import request_handler, response as http_response
 from .sock.impl import http2

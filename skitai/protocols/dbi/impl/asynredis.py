@@ -1,5 +1,5 @@
 from rs4 import asynchat
-from..dbi import dbconnect
+from .. import dbconnect
 import socket
 
 DEBUG = True

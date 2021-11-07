@@ -20,7 +20,7 @@ from ...tasks.dbi import task as dtask
 from ...tasks.httpbase import task, cluster_manager
 from ...protocols.sock import socketpool
 from ...protocols import lifetime
-from ...protocols.sock import adns
+from ...protocols.sock.impl.dns import adns
 from ...protocols.sock.asynconnect import AsynConnect
 from ...protocols.dbi import dbpool
 from ...protocols.dbi.dbconnect import DBConnect
