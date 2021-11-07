@@ -11,7 +11,7 @@ import threading
 from io import BytesIO
 import time
 import enum
-from rs4 import producers
+from rs4.misc import producers
 from ..exceptions import HTTPError
 from hyperframe.frame import Frame
 

@@ -1,7 +1,7 @@
 import re
 import sys
 import os
-from rs4 import producers
+from rs4.misc import producers
 from collections import Iterator
 from .concurrent.threaded import trigger
 from hashlib import md5

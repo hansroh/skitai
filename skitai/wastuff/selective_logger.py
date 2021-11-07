@@ -1,4 +1,4 @@
-from rs4 import producers
+from rs4.misc import producers
 import threading
 import os
 

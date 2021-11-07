@@ -12,14 +12,14 @@ from .threaded import queue
 from . import sock
 from . import dbi
 from .dbi import dbpool
-from .dbi import request as dbo_request
+from rs4.protocols.dbi import request as dbo_request
 from rs4.protocols import dns
 from rs4.protocols.http import localstorage as ls
 from rs4.protocols.http import request_handler, response as http_response
 from rs4.protocols import http2
 from rs4.protocols.http2 import H2_PROTOCOLS
 import copy
-from . import lifetime, builder, stubproxy
+from . import lifetime, builder
 
 DEBUG = 0
 
@@ -528,13 +528,13 @@ def _addrpc (method, rpcmethod, params, url, auth = None, headers = {}, callback
 	_add (method, url, (rpcmethod, params), auth, headers, callback, meta, proxy)
 
 def rpc	(*args, **karg):
-	return stubproxy.Proxy ('rpc', _addrpc, *args, **karg)
+	return builder.Proxy ('rpc', _addrpc, *args, **karg)
 
 def jsonrpc	(*args, **karg):
-	return stubproxy.Proxy ('jsonrpc', _addrpc, *args, **karg)
+	return builder.Proxy ('jsonrpc', _addrpc, *args, **karg)
 
 def grpc	(*args, **karg):
-	return stubproxy.Proxy ('grpc', _addrpc, *args, **karg)
+	return builder.Proxy ('grpc', _addrpc, *args, **karg)
 
 #----------------------------------------------------
 # DBO QEURY
@@ -552,14 +552,14 @@ def _adddbo (method, dbmethod, params, server, dbname = None, auth = None, callb
 	_que.add ((method, server, (dbmethod, params), dbname, auth, meta))
 
 def postgresql (*args, **karg):
-	return stubproxy.Proxy ('postgresql', _adddbo, *args, **karg)
+	return builder.Proxy ('postgresql', _adddbo, *args, **karg)
 pgsql = pg = postgresql
 
 def redis (*args, **karg):
-	return stubproxy.Proxy ('redis', _adddbo, *args, **karg)
+	return builder.Proxy ('redis', _adddbo, *args, **karg)
 
 def mongodb (*args, **karg):
-	return stubproxy.Proxy ('mongodb', _adddbo, *args, **karg)
+	return builder.Proxy ('mongodb', _adddbo, *args, **karg)
 
 def sqlite3 (*args, **karg):
-	return stubproxy.Proxy ('sqlite3', _adddbo, *args, **karg)
+	return builder.Proxy ('sqlite3', _adddbo, *args, **karg)

@@ -1,10 +1,36 @@
-from .http import request as http_request, request_handler as http_request_handler
-from .ws import request_handler as ws_request_handler, request as ws_request
-from .grpc import request as grpc_request
-from .dbi import request as dbo_request
-from .proxy import tunnel_handler
-from .http import localstorage as ls, util
-from ..attrdict import AttrDict
+from rs4.protocols.http import request as http_request, request_handler as http_request_handler
+from rs4.protocols.ws import request_handler as ws_request_handler, request as ws_request
+from rs4.protocols.grpc import request as grpc_request
+from rs4.protocols.proxy import tunnel_handler
+from rs4.protocols.http import localstorage as ls, util
+from rs4.attrdict import AttrDict
+from rs4.protocols.dbi import request as dbo_request
+
+class _Method:
+	def __init__(self, send, name):
+		self.__send = send
+		self.__name = name
+
+	def __getattr__(self, name):
+		return _Method(self.__send, "%s.%s" % (self.__name, name))
+
+	def __call__(self, *args):
+		return self.__send(self.__name, args)
+
+
+class Proxy:
+	def __init__ (self, command, executor, *args, **kargs):
+		self.__command = command
+		self.__executor = executor
+		self.__args = args
+		self.__kargs = kargs
+
+	def __getattr__ (self, name):
+		return _Method(self.__request, name)
+
+	def __request (self, method, params):
+		self.__executor (self.__command, method, params, *self.__args, **self.__kargs)
+
 
 class HTTPResponse:
 	def __init__ (self, response):

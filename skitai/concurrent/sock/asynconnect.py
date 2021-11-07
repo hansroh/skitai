@@ -13,7 +13,7 @@ import threading
 from . import adns
 from rs4.protocols.http2 import H2_PROTOCOLS
 from ..threaded.fifo import await_fifo
-from rs4.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_context
+from rs4.misc.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_context
 from collections import deque
 from rs4.protocols.http import respcodes
 from .baseconnect import ConnectProxy, BaseConnect, DEFAULT_ZOMBIE_TIMEOUT, DEFAULT_KEEP_ALIVE

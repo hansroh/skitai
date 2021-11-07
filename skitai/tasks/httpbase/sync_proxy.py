@@ -3,7 +3,7 @@
 from . import task
 from .. import proto
 from rs4.webkit import webtest
-from rs4.cbutil import tuple_cb
+from rs4.misc.cbutil import tuple_cb
 import random
 from urllib.parse import urlparse, urlunparse
 from skitai import exceptions

@@ -6,8 +6,8 @@ try:
 except ImportError:
 	from urlparse import urlparse
 import copy
-from ..protocols.http2 import H2_PROTOCOLS
-from ..protocols import http2
+from rs4.protocols.http2 import H2_PROTOCOLS
+from rs4.protocols import http2
 
 PROTO_CONCURRENT_STREAMS = H2_PROTOCOLS
 

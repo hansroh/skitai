@@ -2,7 +2,7 @@ from rs4.annotations import deprecated
 from ..wastuff.api import tojson
 from ..tasks import tasks
 import xmlrpc.client as xmlrpclib
-from rs4.producers import file_producer
+from rs4.misc.producers import file_producer
 
 class Deprecated:
     @deprecated ()

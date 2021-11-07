@@ -1,6 +1,6 @@
 import sys, os
 import sys
-from rs4 import producers
+from rs4.misc import producers
 from ..backbone.http_response import catch
 from ..concurrent.threaded import trigger
 from rs4.protocols.http.http_util import *

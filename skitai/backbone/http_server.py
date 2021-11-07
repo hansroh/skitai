@@ -8,7 +8,7 @@ from .. import counter
 from rs4.protocols.http import http_util, http_date
 from ..concurrent.threaded import threadlib
 from skitai import lifetime
-from rs4 import producers, compressors
+from rs4.misc import producers, compressors
 from rs4.termcolor import tc
 from collections import deque
 import signal

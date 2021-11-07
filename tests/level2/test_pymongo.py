@@ -2,7 +2,7 @@ from pymongo import auth, message, helpers
 import pytest
 from bson.son import SON
 from bson.codec_options import CodecOptions
-from rs4.protocols.dbi import asynmongo
+from skitai.concurrent.dbi import asynmongo
 import struct
 import bson
 import sys

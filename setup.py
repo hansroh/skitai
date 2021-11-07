@@ -66,7 +66,7 @@ package_dir = {'skitai': 'skitai'}
 package_data = {}
 
 install_requires = [
-    "rs4",
+    "rs4>=0.3",
     "sqlphile>=0.9",
 ]
 if os.name == "nt":

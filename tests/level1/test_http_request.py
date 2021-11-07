@@ -48,8 +48,8 @@ def test_request_generation (client):
 	request = client.upload (url, payload)
 	print (request.body)
 	assert request.get_header ('content-type').startswith ("multipart/form-data;")
-	assert request.body.startswith (b"-----") and len (request.body) == 445
-	assert request.get_header ('content-length') == "445"
+	assert request.body.startswith (b"-----") and len (request.body) == 433
+	assert request.get_header ('content-length') == "433"
 
 	# XMLRPC
 	request = client.xmlrpc_request (url).calucator.add ("A", 1)

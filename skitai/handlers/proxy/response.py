@@ -1,5 +1,5 @@
 from rs4.protocols.http import response as http_response, buffers
-from rs4 import compressors
+from rs4.misc import compressors
 from ...concurrent.threaded import trigger
 import time
 

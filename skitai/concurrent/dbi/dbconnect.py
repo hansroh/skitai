@@ -3,7 +3,7 @@ import re
 import time
 import sys
 import threading
-from ..scok import baseconnect
+from ..sock import baseconnect
 
 DEBUG = False
 

@@ -4,7 +4,7 @@ import sys
 from ..wastuff.api import API
 import ctypes
 import types
-from rs4 import producers
+from rs4.misc import producers
 from ..concurrent.threaded import trigger
 from ..utility import deallocate_was, catch
 from rs4.protocols.grpc.producers import serialize

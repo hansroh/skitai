@@ -1,7 +1,7 @@
 import pytest
 import sys, os
 import time
-import aquests
+from skitai.concurrent import aquests
 from test_aquests_example_apps import assert_status, makeset
 
 def test_https (launch):

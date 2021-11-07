@@ -1,5 +1,5 @@
 from skitai import counter
-from rs4 import compressors
+from rs4.misc import compressors
 from hashlib import md5
 from rs4 import pathtool
 import os

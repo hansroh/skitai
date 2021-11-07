@@ -3,8 +3,8 @@ import time
 import os
 import sys
 from rs4.protocols.http import http_date, http_util
-from rs4.reraise import reraise
-from rs4 import producers, compressors
+from rs4.misc.reraise import reraise
+from rs4.misc import producers, compressors
 from rs4.protocols.http import respcodes
 from ..wastuff import selective_logger
 from ..utility import catch

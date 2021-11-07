@@ -19,11 +19,11 @@ import os
 from ...tasks.dbi import task as dtask
 from ...tasks.httpbase import task, cluster_manager
 from ...concurrent.sock import socketpool
-from rs4.protocols.dbi import dbpool
-from ...concurrent.sock import lifetime
+from ...concurrent import lifetime
 from ...concurrent.sock import adns
 from ...concurrent.sock.asynconnect import AsynConnect
-from rs4.protocols.dbi.dbconnect import DBConnect
+from ...concurrent.dbi import dbpool
+from ...concurrent.dbi.dbconnect import DBConnect
 from rs4 import asyncore
 from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS, DB_SYN_PGSQL, DB_SYN_MONGODB, DB_SYN_REDIS
 from ...wastuff import semaps

@@ -1,5 +1,5 @@
 from ...backbone import http_response
-from rs4 import producers
+from rs4.misc import producers
 import time
 
 class response (http_response.http_response):

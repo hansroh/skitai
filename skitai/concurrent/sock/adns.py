@@ -1,4 +1,4 @@
-from ..protocols import dns
+from rs4.protocols import dns
 import time
 import threading
 import os

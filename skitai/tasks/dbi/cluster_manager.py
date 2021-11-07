@@ -1,9 +1,9 @@
 from ..httpbase import cluster_manager
-from rs4.protocols.dbi import asynpsycopg2, synsqlite3, asynredis, asynmongo, syndbi, dbpool
+from ...concurrent.dbi import asynpsycopg2, synsqlite3, asynredis, asynmongo, syndbi, dbpool
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB, DB_SYN_PGSQL, DB_SYN_REDIS, DB_SYN_MONGODB
 from . import endpoints
 from sqlphile import pg2, db3
-from rs4.protocols.dbi.dbconnect import ConnectProxy
+from ...concurrent.dbi.dbconnect import ConnectProxy
 
 class ClusterManager (cluster_manager.ClusterManager):
     backend_keep_alive = 10

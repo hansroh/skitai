@@ -2,7 +2,7 @@ import confutil
 from confutil import rprint
 import pytest
 from skitai.backbone.http_response import http_response, UNCOMPRESS_MAX, ONETIME_COMPRESS_MAX
-from rs4 import producers
+from rs4.misc import producers
 import os
 from rs4.protocols.http2.producers import h2frame_producer, h2header_producer
 import threading

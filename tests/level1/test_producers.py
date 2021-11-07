@@ -1,4 +1,4 @@
-from rs4 import producers
+from rs4.misc import producers
 from rs4.protocols.grpc.producers import grpc_producer
 from rs4.protocols.http2.producers import h2frame_producer, h2header_producer
 from skitai.handlers.proxy.response import ProxyResponse

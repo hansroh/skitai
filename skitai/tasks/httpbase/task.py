@@ -1,10 +1,10 @@
 import time
 from ...concurrent.threaded import socket_map
 from ...concurrent.threaded import trigger
-from rs4.cbutil import tuple_cb
+from rs4.misc.cbutil import tuple_cb
 from rs4.webkit import webtest
 from ...concurrent.sock.asynconnect import AsynSSLConnect, AsynConnect
-from rs4.protocols.dbi.dbconnect import DBConnect
+from ...concurrent.dbi.dbconnect import DBConnect
 import threading
 from rs4.protocols.http import request as http_request
 from rs4.protocols.http import request_handler as http_request_handler
