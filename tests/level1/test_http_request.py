@@ -1,4 +1,4 @@
-from rs4.protocols.http import http_util
+from skitai.protocols.sock.impl.http import http_util
 from confutil import rprint
 from examples.services import route_guide_pb2
 

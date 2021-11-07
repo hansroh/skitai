@@ -8,7 +8,7 @@ from . import wsgi_handler
 from hashlib import sha1
 from base64 import b64encode
 from ..backbone.http_response import catch
-from rs4.protocols.http import http_util
+from .protocols.sock.impl.http import http_util
 from skitai import version_info, was as the_was
 import threading
 from .websocket import specs

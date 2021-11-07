@@ -1,5 +1,5 @@
-from skitai.concurrent import aquests
-from rs4.protocols import dns
+from skitai.protocols import aquests
+from skitai.protocols.sock.impl import dns
 from rs4 import asyncore
 from rs4 import logger
 

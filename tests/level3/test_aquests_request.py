@@ -1,7 +1,7 @@
-from rs4.protocols.http import request
-from rs4.protocols.grpc import request as grpc_request
-from rs4.protocols.ws import request as ws_request
-from rs4.protocols.dbi import request as dbo_request
+from skitai.protocols.sock.impl.http import request
+from skitai.protocols.sock.impl.grpc import request as grpc_request
+from skitai.protocols.sock.impl.ws import request as ws_request
+from skitai.protocols.dbi.impl import request as dbo_request
 from examples.services import route_guide_pb2
 
 def test_request_attrs ():

@@ -3,9 +3,9 @@ import sys
 import os
 from rs4.misc import producers
 from collections import Iterator
-from .concurrent.threaded import trigger
+from .protocols.threaded import trigger
 from hashlib import md5
-from rs4.protocols.http import http_date
+from .protocols.sock.impl.http import http_date
 
 # etag and last-modified ------------------------------------------
 IF_MODIFIED_SINCE = re.compile (

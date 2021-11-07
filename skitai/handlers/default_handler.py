@@ -6,10 +6,10 @@ import os
 from . import filesys
 from rs4.misc import producers
 from rs4.termcolor import tc
-from rs4.protocols.http import http_date
-from rs4.protocols.http.http_util import *
+from ..protocols.sock.impl.http import http_date
+from ..protocols.sock.impl.http.http_util import *
 from ..tasks import tasks
-from ..concurrent.threaded import trigger
+from ..protocols.threaded import trigger
 from .. import utility
 USER_AGENT = re.compile ('User-Agent: (.*)', re.IGNORECASE)
 

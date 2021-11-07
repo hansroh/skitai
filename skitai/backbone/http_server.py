@@ -5,8 +5,8 @@ from rs4 import asyncore, asynchat
 import re, socket, time, threading, os
 from . import http_request
 from .. import counter
-from rs4.protocols.http import http_util, http_date
-from ..concurrent.threaded import threadlib
+from ..protocols.sock.impl.http import http_util, http_date
+from ..protocols.threaded import threadlib
 from skitai import lifetime
 from rs4.misc import producers, compressors
 from rs4.termcolor import tc

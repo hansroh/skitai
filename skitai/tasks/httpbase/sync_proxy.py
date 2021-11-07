@@ -9,7 +9,7 @@ from urllib.parse import urlparse, urlunparse
 from skitai import exceptions
 import xmlrpc.client
 import sys
-from ...concurrent.sock import synconnect
+from ...protocols.sock import synconnect
 
 class RPCResponse:
     def __init__ (self, val):

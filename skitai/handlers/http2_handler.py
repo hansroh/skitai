@@ -6,7 +6,7 @@ from h2.events import TrailersReceived, DataReceived, RequestReceived, StreamEnd
 from h2.settings import SettingCodes
 from .http2.request import request as http2_request
 from .http2.vchannel import fake_channel, data_channel
-from rs4.protocols.http2.request_handler import FlowControlWindow
+from ..protocols.sock.impl.http2.request_handler import FlowControlWindow
 import threading
 from io import BytesIO
 import time

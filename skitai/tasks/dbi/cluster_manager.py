@@ -1,9 +1,9 @@
 from ..httpbase import cluster_manager
-from ...concurrent.dbi import dbpool
+from ...protocols.dbi import dbpool
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB, DB_SYN_PGSQL, DB_SYN_REDIS, DB_SYN_MONGODB
 from . import endpoints
 from sqlphile import pg2, db3
-from ...concurrent.dbi.dbconnect import ConnectProxy
+from ...protocols.dbi.dbconnect import ConnectProxy
 
 class ClusterManager (cluster_manager.ClusterManager):
     backend_keep_alive = 10

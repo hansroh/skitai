@@ -1,5 +1,5 @@
-from skitai.concurrent.threaded import fifo
-from rs4.protocols.http2 import fifo as fifo2
+from skitai.protocols.threaded import fifo
+from skitai.protocols.sock.impl.http2 import fifo as fifo2
 
 from confutil import rprint
 import time

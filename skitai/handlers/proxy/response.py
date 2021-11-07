@@ -1,6 +1,6 @@
-from rs4.protocols.http import response as http_response, buffers
+from ..protocols.sock.impl.http import response as http_response, buffers
 from rs4.misc import compressors
-from ...concurrent.threaded import trigger
+from ...protocols.threaded import trigger
 import time
 
 class ProxyResponse (http_response.Response):

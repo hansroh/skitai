@@ -1,5 +1,5 @@
-from rs4.protocols.http import request, response
-from rs4.protocols.ws import response as ws_response
+from ...protocols.sock.impl.http import request, response
+from ...protocols.sock.impl.ws import response as ws_response
 from ...wastuff import triple_logger
 from ...backbone.http_server import http_server
 from ...handlers import pingpong_handler

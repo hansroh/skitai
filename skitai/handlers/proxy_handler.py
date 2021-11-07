@@ -1,7 +1,7 @@
 from . import wsgi_handler
 import skitai
-from rs4.protocols.http import request as http_request
-from rs4.protocols.http import request_handler as http_request_handler
+from ..protocols.sock.impl.http import request as http_request
+from ..protocols.sock.impl.http import request_handler as http_request_handler
 from .proxy import POST_MAX_SIZE, UPLOAD_MAX_SIZE
 from .proxy.collector import Collector
 from .proxy.tunnel import TunnelHandler

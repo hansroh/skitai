@@ -11,7 +11,7 @@ import random
 import threading
 from rs4 import logger
 from rs4.webkit import jwt
-from rs4.protocols.http import http_date, util
+from ..protocols.sock.impl.http import http_date, util
 from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT, NAME, DEFAULT_BACKGROUND_TASK_TIMEOUT
 from skitai import lifetime
 from ..wastuff import server_info

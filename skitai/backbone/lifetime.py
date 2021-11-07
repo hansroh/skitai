@@ -1,5 +1,5 @@
-from ..concurrent.threaded import trigger
-from ..concurrent import lifetime
+from ..protocols.threaded import trigger
+from ..protocols import lifetime
 import sys, time
 from rs4 import asyncore
 import gc

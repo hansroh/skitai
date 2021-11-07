@@ -1,10 +1,10 @@
 import time
-from ...concurrent.threaded import socket_map
-from ...concurrent.threaded import trigger
+from ...protocols.threaded import socket_map
+from ...protocols.threaded import trigger
 import threading
 from ..httpbase import task, rcache
 from rs4.attrdict import AttrDict
-from rs4.protocols.dbi import request
+from ...protocols.dbi.impl import request
 from rs4 import asyncore
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from skitai import REQFAIL, UNSENT, TIMEOUT, NETERR, NORMAL

@@ -4,7 +4,7 @@ from skitai.threads import trigger
 import sys
 from rs4 import asyncore
 import time
-from skitai.concurrent.sock import socketpool
+from skitai.protocols.sock import socketpool
 import threading
 
 def __reduce (asyncall):

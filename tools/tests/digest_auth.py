@@ -1,5 +1,5 @@
 from __future__ import print_function
-from rs4.protocols.http import requests
+from skitai.protocols.sock.impl.http import requests
 from rs4 import logger
 import time
 

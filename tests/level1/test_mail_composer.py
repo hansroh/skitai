@@ -1,4 +1,4 @@
-from rs4.protocols.smtp import composer
+from skitai.protocols.sock.impl.smtp import composer
 import os
 import pytest
 

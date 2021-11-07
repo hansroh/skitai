@@ -4,7 +4,7 @@ import pytest
 import sys, os
 import threading
 import time
-from skitai.concurrent import aquests
+from skitai.protocols import aquests
 
 def assert_status (resp):
     rprint (resp.status_code)

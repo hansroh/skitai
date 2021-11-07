@@ -2475,7 +2475,7 @@ You can override existing classes - RDBMS, NoSQL (Redis, MongoDB) styles.
 
 .. code:: python
 
-  from rs4.protocols.dbi import asynredis
+  from skitai.protocols.dbi.impl.dbi import asynredis
 
   class MyDBI (asynredis.AsynConnect):
     def __init__ (self):

@@ -1,6 +1,6 @@
 import pytest
 import sys, os
-from rs4.protocols.http2.hyper import HTTPConnection, HTTP20Connection
+from skitai.protocols.sock.impl.http2.hyper import HTTPConnection, HTTP20Connection
 
 def test_h2c (launch):
     with launch ("./examples/app.py") as engine:

@@ -7,20 +7,20 @@ assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major
 
 NAME = "Skitai/%s.%s" % version_info [:2]
 
-from .concurrent import lifetime as lifetime_aq
+from .protocols import lifetime as lifetime_aq
 from rs4 import deco, importer
 from rs4.psutil import service
 from rs4.attrdict import AttrDict
 import threading
 import sys, os
 import h2
-from .concurrent.dbi import (
+from .protocols.dbi import (
     DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB,
     DB_SYN_PGSQL, DB_SYN_REDIS, DB_SYN_MONGODB,
     DB_SYN_ORACLE, DB_ORACLE
 )
 import warnings
-from rs4.protocols.smtp import composer
+from .protocols.sock.impl.smtp import composer
 import tempfile
 from rs4 import argopt
 from .backbone import lifetime

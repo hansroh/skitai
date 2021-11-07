@@ -2,8 +2,8 @@ import sys, os
 import sys
 from rs4.misc import producers
 from ..backbone.http_response import catch
-from ..concurrent.threaded import trigger
-from rs4.protocols.http.http_util import *
+from ..protocols.threaded import trigger
+from ..protocols.sock.impl.http.http_util import *
 from . import collectors
 from skitai import version_info, was as the_was
 import threading

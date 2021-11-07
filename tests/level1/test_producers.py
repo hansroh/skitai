@@ -1,6 +1,6 @@
 from rs4.misc import producers
-from rs4.protocols.grpc.producers import grpc_producer
-from rs4.protocols.http2.producers import h2frame_producer, h2header_producer
+from skitai.protocols.sock.impl.grpc.producers import grpc_producer
+from skitai.protocols.sock.impl.http2.producers import h2frame_producer, h2header_producer
 from skitai.handlers.proxy.response import ProxyResponse
 from confutil import rprint
 

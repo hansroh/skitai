@@ -1,4 +1,4 @@
-from skitai.concurrent.builder import make_http
+from skitai.protocols.builder import make_http
 
 def test_make_http ():
     # method, url, params, auth, headers, meta, proxy, logger

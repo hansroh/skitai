@@ -7,7 +7,7 @@ try:
 except ImportError:
     import json
 from rs4.attrdict import CaseInsensitiveDict
-from rs4.protocols.http import http_util
+from ..protocols.sock.impl.http import http_util
 from rs4.webkit import jwt
 from rs4.attrdict import AttrDict
 
