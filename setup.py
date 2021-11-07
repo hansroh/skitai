@@ -68,6 +68,7 @@ package_data = {}
 install_requires = [
     "rs4>=0.3",
     "sqlphile>=0.9",
+    "h2>=4.0.0"
 ]
 if os.name == "nt":
     install_requires.append ("pywin32")
