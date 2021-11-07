@@ -62,12 +62,12 @@ highly possible to meet some errors.
 With pip
 
 ```bash
-pip3 install -U skitai rs4 aquests
+pip3 install -U skitai rs4
 ```
 
 With git
 ```bash
-pip3 install -U rs4 aquests
+pip3 install -U rs4
 git clone https://gitlab.com/hansroh/skitai.git
 cd skitai
 pip3 install -e .

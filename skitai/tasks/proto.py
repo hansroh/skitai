@@ -5,11 +5,11 @@ from ..wastuff.api import API
 import ctypes
 import types
 from rs4 import producers
-from aquests.athreads import trigger
+from ..concurrent.threaded import trigger
 from ..utility import deallocate_was, catch
-from aquests.protocols.grpc.producers import serialize
-from aquests.protocols.ws.collector import encode_message
-from aquests.protocols.ws import *
+from rs4.protocols.grpc.producers import serialize
+from rs4.protocols.ws.collector import encode_message
+from rs4.protocols.ws import *
 from ..backbone.lifetime import tick_timer
 
 WAS_FACTORY = None

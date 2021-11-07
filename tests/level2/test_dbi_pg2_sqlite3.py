@@ -1,11 +1,11 @@
-from aquests.dbapi import synsqlite3, request, asynpsycopg2   
+from rs4.protocols.dbi import synsqlite3, request, asynpsycopg2
 from skitai import DB_SQLITE3, DB_PGSQL
-from aquests.dbapi.dbconnect import SQLError
+from rs4.protocols.dbi.dbconnect import SQLError
 import pytest
 
 def callback1 (resp):
     assert resp.data [0].id == 1.0
- 
+
 def callback2 (resp):
     assert not resp.data
 
@@ -17,17 +17,16 @@ def callback4 (resp):
 
 def callback5 (resp):
     assert resp.code == 500
-        
+
 def test_str (dbpath, log):
     f = synsqlite3.SynConnect (dbpath, logger = log.get ("app"))
-    
+
     statement = "SELECT * from stocks where id = 1"
     r = request.Request (DB_SQLITE3, dbpath, None, None, None, (statement,), callback = callback1)
     f.execute (r)
-    
+
     statement = 1
     r = request.Request (DB_SQLITE3, dbpath, None, None, None, (statement,), callback = callback5)
     with pytest.raises (SQLError):
         f.execute (r)
 
-    

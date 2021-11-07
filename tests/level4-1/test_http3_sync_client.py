@@ -8,7 +8,7 @@ def test_http3_client (launch):
     if sys.version_info < (3, 6):
         return
 
-    from aquests.protocols.http3 import client
+    from rs4.protocols.http3 import client
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
         s = client.Session ('https://127.0.0.1:30371')

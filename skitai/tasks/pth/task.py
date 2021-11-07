@@ -3,7 +3,7 @@ import time
 from ..tasks import Mask
 from .. import proto
 from skitai import was
-from aquests.athreads import trigger
+from ...concurrent.threaded import trigger
 import sys
 from ..httpbase.task import DEFAULT_TIMEOUT
 

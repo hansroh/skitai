@@ -1,4 +1,4 @@
-from aquests.protocols.http import http_util
+from rs4.protocols.http import http_util
 from confutil import rprint
 from examples.services import route_guide_pb2
 

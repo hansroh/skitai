@@ -1,10 +1,10 @@
 import time
-from aquests.athreads import socket_map
-from aquests.athreads import trigger
+from ...concurrent.threaded import socket_map
+from ...concurrent.threaded import trigger
 import threading
 from ..httpbase import task, rcache
 from rs4.attrdict import AttrDict
-from aquests.dbapi import request
+from rs4.protocols.dbi import request
 from rs4 import asyncore
 from skitai import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 from skitai import REQFAIL, UNSENT, TIMEOUT, NETERR, NORMAL

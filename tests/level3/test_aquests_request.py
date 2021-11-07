@@ -1,7 +1,7 @@
-from aquests.protocols.http import request
-from aquests.protocols.grpc import request as grpc_request
-from aquests.protocols.ws import request as ws_request
-from aquests.dbapi import request as dbo_request
+from rs4.protocols.http import request
+from rs4.protocols.grpc import request as grpc_request
+from rs4.protocols.ws import request as ws_request
+from rs4.protocols.dbi import request as dbo_request
 from examples.services import route_guide_pb2
 
 def test_request_attrs ():
@@ -17,9 +17,9 @@ def test_request_attrs ():
 		grpc_request.GRPCRequest,
 		ws_request.Request,
 		dbo_request.Request
-	]	
-	
+	]
+
 	for attr in ('reauth_count', 'retry_count'):
 		for r in rs:
 			assert hasattr (r, attr)
-		
+

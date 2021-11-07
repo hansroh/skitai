@@ -5,7 +5,7 @@ import sys, os
 import threading
 import time
 from examples.services import route_guide_pb2
-import aquests
+from skitai.concurrent import aquests
 
 GRPC = 1
 try:

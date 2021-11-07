@@ -1,6 +1,6 @@
 import threading
-from aquests.client import asynconnect, synconnect
-from aquests.client.socketpool import PROTO_CONCURRENT_STREAMS, select_channel
+from ...concurrent.sock import asynconnect, synconnect
+from ...concurrent.sock.socketpool import PROTO_CONCURRENT_STREAMS, select_channel
 import time
 import re
 import copy
@@ -10,7 +10,7 @@ from operator import itemgetter
 import math
 from urllib.parse import unquote
 from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_SYN_HTTP, PROTO_SYN_HTTPS
-from aquests.client.asynconnect import ConnectProxy
+from ...concurrent.sock.asynconnect import ConnectProxy
 
 class TooManyConnections (Exception):
     pass

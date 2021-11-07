@@ -7,21 +7,20 @@ assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major
 
 NAME = "Skitai/%s.%s" % version_info [:2]
 
-import aquests # should be first for psycopg2 compat
-from aquests import lifetime as lifetime_aq
+from .concurrent import lifetime as lifetime_aq
 from rs4 import deco, importer
 from rs4.psutil import service
 from rs4.attrdict import AttrDict
 import threading
 import sys, os
 import h2
-from aquests.dbapi import (
+from .concurrent.dbi import (
     DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB,
     DB_SYN_PGSQL, DB_SYN_REDIS, DB_SYN_MONGODB,
     DB_SYN_ORACLE, DB_ORACLE
 )
 import warnings
-from aquests.protocols.smtp import composer
+from rs4.protocols.smtp import composer
 import tempfile
 from rs4 import argopt
 from .backbone import lifetime
@@ -330,7 +329,7 @@ def add_wasc_option (k, v):
     global dconf
     dconf ['wasc_options'][k] = v
 
-def disable_aquests ():
+def disable_async ():
     global dconf
     dconf ['wasc_options']['use_syn_conn'] = True
 

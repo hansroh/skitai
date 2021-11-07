@@ -1,4 +1,4 @@
-from aquests.protocols.smtp import composer
+from rs4.protocols.smtp import composer
 import os
 import pytest
 

@@ -2252,7 +2252,6 @@ something with tensorflow model.
     resp = req.dispatch ()
     return cli.Response (resp.data).y
 
-.. _aquests: https://pypi.python.org/pypi/aquests
 .. _tfserver: https://pypi.python.org/pypi/tfserver
 
 
@@ -2261,9 +2260,6 @@ RDBMS Querying
 
 *Important Note:* Async mode you cannot use transaction,
 and auto commit will be applied.
-
-PostgreSQL query at aquests, First uou alias your database
-before running Skitai.
 
 .. code:: python
 
@@ -2479,7 +2475,7 @@ You can override existing classes - RDBMS, NoSQL (Redis, MongoDB) styles.
 
 .. code:: python
 
-  from aquests.dbi import asynredis
+  from skitai.concurrent.dbi import asynredis
 
   class MyDBI (asynredis.AsynConnect):
     def __init__ (self):

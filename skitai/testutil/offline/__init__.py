@@ -4,7 +4,7 @@
 
 import threading
 import multiprocessing
-from aquests.athreads import threadlib, trigger
+from ...concurrent.threaded import threadlib, trigger
 import skitai
 from skitai import was as the_was
 from ...wastuff import triple_logger
@@ -18,12 +18,12 @@ import inspect
 import os
 from ...tasks.dbi import task as dtask
 from ...tasks.httpbase import task, cluster_manager
-from aquests.client import socketpool
-from aquests.dbapi import dbpool
-from aquests import lifetime
-from aquests.client import adns
-from aquests.client.asynconnect import AsynConnect
-from aquests.dbapi.dbconnect import DBConnect
+from ...concurrent.sock import socketpool
+from rs4.protocols.dbi import dbpool
+from ...concurrent.sock import lifetime
+from ...concurrent.sock import adns
+from ...concurrent.sock.asynconnect import AsynConnect
+from rs4.protocols.dbi.dbconnect import DBConnect
 from rs4 import asyncore
 from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS, DB_SYN_PGSQL, DB_SYN_MONGODB, DB_SYN_REDIS
 from ...wastuff import semaps

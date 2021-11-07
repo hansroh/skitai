@@ -4,7 +4,6 @@ import pytest
 import sys, os
 import threading
 import time
-import aquests
 from websocket import create_connection
 import platform
 

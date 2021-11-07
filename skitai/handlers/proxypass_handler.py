@@ -1,5 +1,5 @@
 from . import wsgi_handler, proxy_handler
-from aquests.protocols.http import request as http_request
+from rs4.protocols.http import request as http_request
 import re
 from rs4.termcolor import tc
 

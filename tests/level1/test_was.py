@@ -6,7 +6,7 @@ import os, pytest
 from skitai.testutil import offline as testutil
 from atila.cookie import Cookie
 from atila.named_session import NamedSession
-from aquests.protocols.smtp import composer
+from rs4.protocols.smtp import composer
 import shutil
 from rs4 import pathtool
 from sqlphile.sqlmap import SQLMap

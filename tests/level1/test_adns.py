@@ -1,5 +1,5 @@
-import aquests
-from aquests.protocols import dns
+from skitai.concurrent import aquests
+from rs4.protocols import dns
 from rs4 import asyncore
 from rs4 import logger
 
@@ -7,11 +7,11 @@ def assert_status (resp):
     global ERRS
     if resp.status_code != resp.meta.get ("expect", 200):
         rprint (resp.status_code)
-        ERRS += 1        
-        
+        ERRS += 1
+
 def test_dns_error ():
     ERRS = 0
-    aquests.configure (1, callback = assert_status, force_http1 = 1)    
+    aquests.configure (1, callback = assert_status, force_http1 = 1)
     [ aquests.get ("http://sdfiusdoiksdflsdkfjslfjlsf.com", meta = {"expect": 704}) for i in range (2) ]
     aquests.fetchall ()
 
@@ -25,15 +25,15 @@ def _print (ans):
         assert ans[-1]['data']
         print (ans[0]['name'], ans[-1]['data'])
 
-def loop ():    
+def loop ():
     dns.pop_all ()
     while asyncore.socket_map:
-        dns.pop_all ()        
+        dns.pop_all ()
         asyncore.loop (timeout = 1, count = 1)
         if not sum ([isinstance (r, dns.TCPClient) for r in asyncore.socket_map.values ()]):
             break
-                
-def test_adns ():        
+
+def test_adns ():
     dns.create_pool ([], logger.screen_logger ())
     for p in ("udp", "tcp"):
         dns.query ("www.microsoft.com", protocol = p, callback = _print, qtype="a")
@@ -49,6 +49,5 @@ def test_adns ():
         dns.query ("www.alphaworld.com", protocol = p, callback = _print, qtype="a")
         dns.query ("www.allrightsales.com", protocol = p, callback = _print, qtype="a")
         dns.query ("www.glasteel.com", protocol = p, callback = _print, qtype="a")
-    
+
     loop ()
-        

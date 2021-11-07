@@ -4,9 +4,9 @@
 import sys, os, getopt
 from skitai import lifetime
 from rs4 import pathtool, logger, confparse
-from aquests.athreads import select_trigger
+from skitai.concurrent.threaded import select_trigger
 from rs4.psutil import daemon as demonizer, service, daemon_class
-from aquests.protocols.smtp import async_smtp, composer
+from rs4.protocols.smtp import async_smtp, composer
 import signal
 import time
 import glob

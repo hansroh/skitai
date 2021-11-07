@@ -12,16 +12,16 @@ from warnings import warn
 from .backbone import https_server
 from skitai import start_was
 from collections import deque
-from aquests.athreads.fifo import await_fifo
-from aquests.client import asynconnect
-from aquests.client import socketpool
-from aquests.athreads import threadlib, trigger
+from .concurrent.threaded.fifo import await_fifo
+from .concurrent.sock import asynconnect
+from .concurrent.sock import socketpool
+from .concurrent.threaded import threadlib, trigger
+from .concurrent.sock import adns
+from .concurrent.dbi import dbpool
 from rs4 import logger, confparse, pathtool
-from aquests.dbapi import dbpool
-from aquests.protocols.http import request_handler
-from aquests.protocols import http2
-from aquests.client import adns
-from aquests.protocols import dns
+from rs4.protocols.http import request_handler
+from rs4.protocols import http2
+from rs4.protocols import dns
 if os.name == "nt":
     from rs4.psutil import schedule # cron like scheduler
 from rs4.psutil import kill

@@ -8,8 +8,8 @@ from aioquic.quic.packet import PACKET_TYPE_INITIAL, encode_quic_retry, encode_q
 from aioquic.quic.retry import QuicRetryTokenHandler
 from aioquic.quic.connection import QuicConnection
 import enum
-from aquests.protocols.http3.events import PushCanceled, MaxPushIdReceived, DataReceived, HeadersReceived
-from aquests.protocols.http3.connection import H3Connection
+from rs4.protocols.http3.events import PushCanceled, MaxPushIdReceived, DataReceived, HeadersReceived
+from rs4.protocols.http3.connection import H3Connection
 
 # http2 compat error codes
 class ErrorCode (enum.IntEnum):

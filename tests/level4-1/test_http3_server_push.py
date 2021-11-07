@@ -4,7 +4,6 @@ import pytest
 import sys, os
 import threading
 import time
-import aquests
 
 def test_http3_server_push (launch):
     if sys.version_info < (3, 6):

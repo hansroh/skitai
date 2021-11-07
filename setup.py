@@ -56,6 +56,10 @@ packages = [
     'skitai.mounted',
     'skitai.testutil',
     'skitai.testutil.offline',
+    'skitai.concurrent',
+    'skitai.concurrent.dbi',
+    'skitai.concurrent.sock',
+    'skitai.concurrent.threaded',
 ]
 
 package_dir = {'skitai': 'skitai'}
@@ -63,7 +67,6 @@ package_data = {}
 
 install_requires = [
     "rs4",
-    "aquests>=0.30",
     "sqlphile>=0.9",
 ]
 if os.name == "nt":

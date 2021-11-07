@@ -1,8 +1,8 @@
 import skitai
 import conftest
 import sqlite3
-from aquests.dbapi.synsqlite3 import SynConnect
-from aquests.client.asynconnect import AsynConnect
+from rs4.protocols.dbi.synsqlite3 import SynConnect
+from skitai.concurrent.sock.asynconnect import AsynConnect
 from skitai.tasks.httpbase import task
 
 def test_cluster_manager (wasc):

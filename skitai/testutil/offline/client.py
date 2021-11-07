@@ -1,7 +1,7 @@
-from aquests.protocols.http import request, response
-from aquests.protocols.grpc import request as grpc_request
-from aquests.protocols.ws import request as ws_request
-from aquests.dbapi import request as dbo_request
+from rs4.protocols.http import request, response
+from rs4.protocols.grpc import request as grpc_request
+from rs4.protocols.ws import request as ws_request
+from rs4.protocols.dbi import request as dbo_request
 import skitai
 from ...backbone.http_request import http_request
 from base64 import b64encode

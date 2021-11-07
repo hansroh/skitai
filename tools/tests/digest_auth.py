@@ -1,5 +1,5 @@
 from __future__ import print_function
-from aquests.protocols.http import requests
+from rs4.protocols.http import requests
 from rs4 import logger
 import time
 
@@ -7,11 +7,11 @@ import time
 def handle_response (rc):
 	global total_sessions, clients, req, total_errors, resp_codes
 	print (rc.response.code)
-	
+
 requests.configure (
-	logger.screen_logger (), 
-	2, 
-	10, 
+	logger.screen_logger (),
+	2,
+	10,
 	default_option = "--http-connection keep-alive"
 )
 

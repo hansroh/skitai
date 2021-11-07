@@ -1,21 +1,20 @@
 import time
-from aquests.athreads import socket_map
-from aquests.athreads import trigger
+from ...concurrent.threaded import socket_map
+from ...concurrent.threaded import trigger
 from rs4.cbutil import tuple_cb
 from rs4.webkit import webtest
-from aquests.client.asynconnect import AsynSSLConnect, AsynConnect
-from aquests.dbapi.dbconnect import DBConnect
+from ...concurrent.sock.asynconnect import AsynSSLConnect, AsynConnect
+from rs4.protocols.dbi.dbconnect import DBConnect
 import threading
-from aquests.protocols.http import request as http_request
-from aquests.protocols.http import request_handler as http_request_handler
-from aquests.protocols.http2 import request_handler as http2_request_handler
-from aquests.protocols.grpc.request import GRPCRequest
-from aquests.protocols.http import response as http_response
-from aquests.protocols.ws import request_handler as ws_request_handler
-from aquests.protocols.ws import request as ws_request
+from rs4.protocols.http import request as http_request
+from rs4.protocols.http import request_handler as http_request_handler
+from rs4.protocols.http2 import request_handler as http2_request_handler
+from rs4.protocols.grpc.request import GRPCRequest
+from rs4.protocols.http import response as http_response
+from rs4.protocols.ws import request_handler as ws_request_handler
+from rs4.protocols.ws import request as ws_request
 from . import rcache
 from skitai import lifetime
-from aquests import asyncore
 import sys
 import inspect
 from skitai import exceptions

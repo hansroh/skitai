@@ -1,4 +1,3 @@
-rm -rf /usr/local/lib/python3.6/dist-packages/aquests*
 rm -rf /usr/local/lib/python3.6/dist-packages/atila*
 rm -rf /usr/local/lib/python3.6/dist-packages/delune
 rm -rf /usr/local/lib/python3.6/dist-packages/dnn*
@@ -7,7 +6,6 @@ rm -rf /usr/local/lib/python3.6/dist-packages/skitai*
 rm -rf /usr/local/lib/python3.6/dist-packages/sqlphile*
 rm -rf /usr/local/lib/python3.6/dist-packages/tfserver*
 
-ln -s /home/ubuntu/libpub/aquests/aquests /usr/local/lib/python3.6/dist-packages/aquests
 ln -s /home/ubuntu/libpub/atila/atila /usr/local/lib/python3.6/dist-packages/atila
 ln -s /home/ubuntu/libpub/atila-vue/atila_vue /usr/local/lib/python3.6/dist-packages/atila_vue
 ln -s /home/ubuntu/libpub/delune/delune /usr/local/lib/python3.6/dist-packages/delune

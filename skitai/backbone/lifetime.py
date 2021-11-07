@@ -1,5 +1,5 @@
-from aquests.athreads import trigger
-from aquests import lifetime
+from ..concurrent.threaded import trigger
+from ..concurrent import lifetime
 import sys, time
 from rs4 import asyncore
 import gc

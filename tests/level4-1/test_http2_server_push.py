@@ -4,8 +4,7 @@ import pytest
 import sys, os
 import threading
 import time
-import aquests
-from aquests.protocols.http2.hyper import HTTPConnection
+from rs4.protocols.http2.hyper import HTTPConnection
 
 def test_http2_server_push (launch):
     with launch ("./examples/app.py") as engine:
