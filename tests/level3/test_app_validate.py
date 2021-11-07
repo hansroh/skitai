@@ -103,9 +103,17 @@ def test_app_validator (wasc, app):
     assert not app.validate (R ({'a': {"c": "c"}}), required = ["a.c"])
     with pytest.raises (HTTPError):
         app.validate (R ({'a': {"c": "c"}}), required = ["a.b"])
+    with pytest.raises (HTTPError):
+        app.validate (R ({'a': None}), required = ["a.b"])
+    with pytest.raises (HTTPError):
+        app.validate (R ({'a': {"b": None}}), required = ["a.b"])
 
     assert not app.validate (R ({'b': {"c": "c"}}), protected = ["a.c"])
     assert not app.validate (R ({'a': {"b": "c"}}), protected = ["a.c"])
+    assert not app.validate (R ({'a': None}), protected = ["a.c"])
+
     with pytest.raises (HTTPError):
         app.validate (R ({'a': {"c": "c"}}), protected = ["a.c"])
 
+    with pytest.raises (HTTPError):
+        app.validate (R ({'a': {"c": None}}), protected = ["a.c"])
