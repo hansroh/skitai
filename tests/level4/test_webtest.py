@@ -48,4 +48,4 @@ def test_webtest_secure (launch):
 def test_webtest_h3 (launch):
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
-        visit_pages (engine, True)
+        visit_pages (engine, engine.http3 is not None)
