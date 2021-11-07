@@ -4,13 +4,13 @@ variables:
 .base_install: &base_install
   - python -V
   - pip install -U setuptools pip
-  - pip install -U --pre --no-cache-dir aquests rs4 sqlphile
-  - python -c 'from aquests.dbapi import syndbi, asynpsycopg2, asynmongo, asynredis'
-  - python -c 'from aquests.protocols.grpc import discover'
+  - pip install -U --pre --no-cache-dir rs4 sqlphile
+  - python -c 'from skitai.concurrent.dbi import syndbi, asynpsycopg2, asynmongo, asynredis'
+  - python -c 'from rs4.protocols.grpc import discover'
   - pip install -Ur tests/requirements.txt
   - pip install -U --pre --no-cache-dir atila delune
   - pip install -U --pre --no-cache-dir atila-vue
-  - pip install -U --no-cache-dir rs4 aquests
+  - pip install -U --no-cache-dir rs4
 
 .before_python_test: &before_python_test
     before_script:
