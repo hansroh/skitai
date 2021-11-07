@@ -1,4 +1,4 @@
-from skitai.concurrent.dbi.implements import syndbi, asynpsycopg2
+from rs4.protocols.dbi import syndbi, asynpsycopg2
 from rs4.protocols.dbi import request
 from skitai import DB_SQLITE3, DB_PGSQL
 from skitai.concurrent.dbi.dbconnect import SQLError

@@ -1,8 +1,8 @@
 import threading
 import time
-from .implements import asynpsycopg2, asynredis, asynmongo, syndbi
 from ..sock import socketpool
 from . import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB, DB_SYN_PGSQL, DB_SYN_MONGODB, DB_SYN_REDIS, DB_SYN_ORACLE, DB_ORACLE
+from .rs4.protocols.dbi import asynpsycopg2, asynredis, asynmongo, syndbi
 
 class DBPool (socketpool.SocketPool):
 	class_map = {
