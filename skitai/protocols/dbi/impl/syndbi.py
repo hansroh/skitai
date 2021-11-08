@@ -8,6 +8,7 @@ DEBUG = False
 class OperationalError (Exception):
     pass
 
+
 class SynConnect (asynpsycopg2._AsynConnect):
     def __init__ (self, address, params = None, lock = None, logger = None):
         DBConnect.__init__ (self, address, params, lock, logger)
