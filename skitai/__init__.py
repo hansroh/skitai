@@ -756,7 +756,13 @@ def enable_file_logging (path = None, file_loggings = None):
     # loggings : request, server and app
     global dconf
     dconf ['logpath'] = path
-    dconf ['file_loggings'] = file_loggings
+    dconf ['file_loggings'] = ['request', 'server', 'app'] if file_loggings == 'all' else None
+
+def mount_variable (path = None, enable_logging = False):
+    global dconf
+    dconf ['varpath'] = path
+    if enable_logging:
+        enable_file_logging (os.path.join (path, 'log'), None if enable_logging is True else enable_logging)
 
 def set_access_log_path (path = None):
     enable_file_logging (path, ['request'])
@@ -772,10 +778,16 @@ def enable_ssl (certfile, keyfile = None, passphrase = None):
     dconf ["passphrase"] = passphrase
 
 def get_varpath (name):
+    global dconf
+    if 'varpath' in dconf:
+        return dconf ['varpath']
     name = name.split ("/", 1)[-1].replace (":", "-").replace (" ", "-")
     return os.name == "posix" and '/var/tmp/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
 
 def get_logpath (name):
+    global dconf
+    if 'logpath' in dconf:
+        return dconf ['logpath']
     name = name.split ("/", 1)[-1].replace (":", "-").replace (" ", "-")
     return os.name == "posix" and '/var/log/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
 
@@ -1071,13 +1083,14 @@ def run (**conf):
 
     if cmd and not servicer.execute (cmd, SERVICE_USER, SERVICE_GROUP):
         return
-
     if not cmd:
         if servicer.status (False):
             raise SystemError ("daemon is running")
         conf ['verbose'] = 'yes'
     elif cmd in ("start", "restart"):
-        sys.stderr = open (os.path.join (conf.get ('varpath'), "stderr.engine"), "a")
+        if conf.get ('logpath'): # not systemd, enable app, server logging
+            conf ['file_loggings'] = ['request', 'server', 'app']
+        sys.stderr = open (os.path.join (conf.get ('varpath'), "{}.stderr".format (conf ["name"])), "a")
 
     server = SkitaiServer (conf)
     # mount additionals while mounting apps and mount apps
