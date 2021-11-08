@@ -25,3 +25,5 @@ matplotlib
 pillow
 opencv-python-headless
 scikit-image
+django-admin-numeric-filter
+django-admin-rangefilter
