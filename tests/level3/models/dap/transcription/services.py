@@ -15,6 +15,10 @@ class TranscriptionService:
         return Transcription.get (task_id = task_id).execute ()
 
     @classmethod
+    def get_logs (cls, task_id):
+        return TranscriptionLog.get (transcription_id = cls.get_transcription_id (task_id)).execute ()
+
+    @classmethod
     def add (cls, task_id, payload):
         payload ['task_id'] = task_id
         return Transcription.add (payload).execute ()
@@ -27,9 +31,10 @@ class TranscriptionService:
             return db.commit ()
 
     @classmethod
-    def update (cls, task_id, pyload):
+    def update (cls, task_id, payload):
         with Transcription.transaction () as db:
-            Transcription.set (dict (last_status = pyload ['status'])).filter (task_id = task_id).execute ()
-            pyload ['transcription_id'] = cls.get_transcription_id (task_id)
+            Transcription.set (dict (last_status = payload ['status'])).filter (task_id = task_id).execute ()
+            payload ['transcription_id'] = cls.get_transcription_id (task_id)
             TranscriptionLog.add (payload).execute ()
             return db.commit ()
+

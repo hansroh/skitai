@@ -7,7 +7,6 @@ import os
 
 def add_cluster (wasc, name, args):
     ctype, members, policy, ssl, max_conns = args
-    print (ctype, name, members, ssl, policy, max_conns or 10)
     wasc.add_cluster (ctype, name, members, ssl, policy, max_conns or 10)
 
 @pytest.fixture
@@ -23,3 +22,5 @@ def service_layer (wasc):
     from django.core import management
     management.call_command ("migrate", no_input=True)
     add_cluster (wasc, *skitai.alias ("@rdb", skitai.DB_SQLITE3, '/tmp/.temp.db3'))
+    yield settings
+    os.remove ('/tmp/.temp.db3')
