@@ -9,6 +9,7 @@ variables:
   - python -c 'from skitai.protocols.dbi.impl import syndbi, asynpsycopg2, asynmongo, asynredis'
   - python -c 'from skitai.protocols.sock.impl.grpc import discover'
   - pip install -Ur tests/requirements.txt
+  - pip install -U "django>=3.0,<4.0"
   - pip install -U --pre --no-cache-dir atila delune
   - pip install -U --pre --no-cache-dir atila-vue
   - pip install -U --no-cache-dir rs4
