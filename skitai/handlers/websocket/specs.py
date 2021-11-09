@@ -117,11 +117,16 @@ class Job (wsgi_handler.Job):
 
 		was.websocket = self.args [0]["websocket"]
 		self.args [0]["skitai.was"] = was
-		content = self.apph (*self.args)
-		if content:
-			if type (content) is not tuple:
-				content = (content,)
-			was.websocket.send (*content)
+		try:
+			content = self.apph (*self.args)
+		except:
+			was.traceback ()
+			was.websocket.channel and was.websocket.channel.close ()
+		else:
+			if content:
+				if type (content) is not tuple:
+					content = (content,)
+				was.websocket.send (*content)
 
 		was.request = None
 		was.env = None

@@ -6,6 +6,7 @@ import threading
 import time
 from websocket import create_connection
 import platform
+from websocket._exceptions import WebSocketBadStatusException
 
 IS_PYPY = platform.python_implementation() == 'PyPy'
 
@@ -40,6 +41,13 @@ def test_websocket (launch):
         assert result == "Client 2 Said: Absolutely"
         ws.close()
         ws2.close()
+
+        with pytest.raises (WebSocketBadStatusException):
+            create_connection("ws://127.0.0.1:30371/websocket/chat2")
+        with pytest.raises (WebSocketBadStatusException):
+            create_connection("ws://127.0.0.1:30371/websocket/chat2?room_idx=1")
+        with pytest.raises (WebSocketBadStatusException):
+            create_connection("ws://127.0.0.1:30371/websocket/chat2?room_id=1&extra=2")
 
 
 def test_websocket1 (launch):
