@@ -49,6 +49,16 @@ def test_websocket (launch):
         with pytest.raises (WebSocketBadStatusException):
             create_connection("ws://127.0.0.1:30371/websocket/chat2?room_id=1&extra=2")
 
+        with pytest.raises (WebSocketBadStatusException):
+            create_connection("ws://127.0.0.1:30371/websocket/param")
+
+        ws = create_connection("ws://127.0.0.1:30371/websocket/param?a=1")
+        ws.close ()
+        ws = create_connection("ws://127.0.0.1:30371/websocket/param?a=1&b=2")
+        ws.close ()
+        ws = create_connection("ws://127.0.0.1:30371/websocket/param?a=1&b=2&c=3")
+        ws.close ()
+
 
 def test_websocket1 (launch):
     if IS_PYPY:
