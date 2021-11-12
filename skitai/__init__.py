@@ -385,13 +385,14 @@ class PreferenceBase:
             path = joinpath (path)
             self.config.STATIC_ROOT = path
             mount (url, path, first = True)
+    mount_static = set_static
 
     def set_media (self, url, path):
         self.config.MEDIA_URL = url
         path = joinpath (path)
         self.config.MEDIA_ROOT = path
         mount (url, path, first = True)
-
+    mount_media = set_media
 
 class Preference (AttrDict, PreferenceBase):
     def __init__ (self, path = None):
@@ -926,9 +927,9 @@ def run (**conf):
             else:
                 mode = 'production'
             self.wasc.logger ("server", "[info] running in {} mode".format (tc.red (mode)))
-            self.wasc.logger ("server", "[info] engine tmp path: %s" % tc.white (self.varpath))
+            self.wasc.logger ("server", "[info] various path: %s" % tc.white (self.varpath))
             if self.logpath:
-                self.wasc.logger ("server", "[info] engine log path: %s" % tc.white (self.logpath))
+                self.wasc.logger ("server", "[info] log path: %s" % tc.white (self.logpath))
             self.set_model_keys (self.conf ["models_keys"])
 
         def maintern_shutdown_request (self, now):
