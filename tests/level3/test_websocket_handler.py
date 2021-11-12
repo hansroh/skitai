@@ -39,7 +39,7 @@ def test_websocket_handler (wasc, app, client):
 	assert resp.status_code == 101
 
 	resp = client.ws ("http://www.skitai.com/ws/chat", "Hello")
-	assert resp.status_code == 500
+	assert resp.status_code == 400
 	resp = client.ws ("http://www.skitai.com/ws/chat?roomid=1", "Hello")
 	assert resp.status_code == 101
 
