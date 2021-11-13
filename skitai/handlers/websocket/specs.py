@@ -90,6 +90,7 @@ class WebSocket (BaseWebsocketCollector):
 			messages = [ messages ]
 		for msg in messages:
 			self.sendone (msg, op_code)
+	write = send
 
 	def sendone (self, message, op_code = -1):
 		if not self.channel: return
