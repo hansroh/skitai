@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.39.1.2"
+__version__ = "0.39.1.4"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -845,6 +845,11 @@ def getopt (sopt = "", lopt = []):
             continue
         aopt_.append (arg)
     return opts_, aopt_
+
+def get_options ():
+    global options
+    options = argopt.options ()
+    return options
 
 def get_option (*names):
     global options
