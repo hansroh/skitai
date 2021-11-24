@@ -458,8 +458,8 @@ class http_server (asyncore.dispatcher):
                         if pid == 0:
                             if os.name != 'nt' and not self.KEEP_PRIVILEGES:
                                 drop_privileges (skitai.SERVICE_USER, skitai.SERVICE_GROUP)
-                            self.worker_ident = "w%d" % len (PID)
-                            set_process_name ("%s:%s" % (skitai.get_proc_title (), self.worker_ident))
+                            self.worker_ident = "%d" % len (PID)
+                            set_process_name ("%s/%s" % (skitai.get_proc_title (), self.worker_ident))
                             PID = {}
                             WORKER_IDS = []
                             signal.signal(signal.SIGTERM, hTERMWORKER)
@@ -468,7 +468,7 @@ class http_server (asyncore.dispatcher):
                             break
 
                         else:
-                            set_process_name ("%s:m" % skitai.get_proc_title ())
+                            set_process_name ("%s/m" % skitai.get_proc_title ())
                             if not PID:
                                 signal.signal(signal.SIGHUP, hHUPMASTER)
                                 signal.signal(signal.SIGTERM, hTERMMASTER)
