@@ -441,7 +441,7 @@ def get_proc_title ():
         a, b = os.path.split (os.path.join (os.getcwd (), sys.argv [0]))
         script = b.split(".")[0]
 
-        PROCESS_NAME =  "skitai:%s%s" % (
+        PROCESS_NAME =  "sktd:%s%s" % (
             os.path.basename (a),
             script != "app" and "-" + script or ''
         )
@@ -1074,7 +1074,7 @@ def run (**conf):
             conf [k] = v
 
     if conf.get ("name"):
-        PROCESS_NAME = 'skitai:{}'.format (conf ["name"])
+        PROCESS_NAME = 'sktd:{}'.format (conf ["name"])
     if not conf.get ('mount'):
         raise systemError ('No mount point')
     conf ["varpath"] = get_varpath (get_proc_title ())
