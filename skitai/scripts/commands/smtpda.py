@@ -223,7 +223,7 @@ def main ():
 	if cmd:
 		_consol = False
 
-	working_dir = os.path.expanduser ('~/.sktd/smtpda')
+	working_dir = os.path.expanduser (f'~/.sktd/{SMTPDeliverAgent.NAME}')
 	servicer = service.Service ("sktd:{}".format (SMTPDeliverAgent.NAME), working_dir)
 	if cmd and not servicer.execute (cmd):
 		return

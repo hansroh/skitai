@@ -787,7 +787,7 @@ def get_varpath (name):
 
 def get_logpath (name):
     global dconf
-    if 'logpath' in dconf:
+    if dconf.get ('logpath'):
         return dconf ['logpath']
     name = name.split (":", 1)[-1].replace ("/", "-").replace (" ", "-")
     return os.name == "posix" and os.path.expanduser ('~/.sktd/%s/log' % name) or os.path.join (tempfile.gettempdir(), name)
