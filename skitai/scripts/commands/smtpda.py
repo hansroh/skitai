@@ -233,8 +233,10 @@ def main ():
 			_cf ['ssl'] = 1
 	if cmd:
 		_consol = False
-	_logpath = os.path.join ("/var/log/skitai", SMTPDeliverAgent.NAME)
-	_varpath = os.path.join ("/var/tmp/skitai", SMTPDeliverAgent.NAME)
+
+	_varpath = os.path.expanduser('~/.sktd-smtpda')
+	_logpath = os.path.join (_varpath, "log")
+
 	servicer = service.Service ("sktd:{}".format (SMTPDeliverAgent.NAME), _varpath)
 	if cmd and not servicer.execute (cmd):
 		return
