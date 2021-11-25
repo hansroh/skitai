@@ -4,9 +4,9 @@
 import sys, os, getopt
 from skitai import lifetime
 from rs4 import pathtool, logger, confparse
-from ..protocols.threaded import select_trigger
+from ...protocols.threaded import select_trigger
 from rs4.psutil import daemon as demonizer, service, daemon_class
-from ..protocols.sock.impl.smtp import async_smtp, composer
+from ...protocols.sock.impl.smtp import async_smtp, composer
 import signal
 import time
 import glob
@@ -235,7 +235,7 @@ def main ():
 		_consol = False
 	_logpath = os.path.join ("/var/log/skitai", SMTPDeliverAgent.NAME)
 	_varpath = os.path.join ("/var/tmp/skitai", SMTPDeliverAgent.NAME)
-	servicer = service.Service ("skitai/{}".format (SMTPDeliverAgent.NAME), _varpath)
+	servicer = service.Service ("sktd:{}".format (SMTPDeliverAgent.NAME), _varpath)
 	if cmd and not servicer.execute (cmd):
 		return
 	if not cmd and servicer.status (False):
