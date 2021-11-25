@@ -66,7 +66,7 @@ if os.getenv ("SKITAIENV") is None:
 START_SERVER = sum ([1 for each in sys.argv if each.startswith ('--nginx-conf')]) == 0
 SMTP_STARTED = False
 if "--smtpda" in sys.argv and os.name != 'nt':
-    os.system ("{} -m skitai.scripts.skitai smtpda -d".format (sys.executable))
+    os.system ("{} -m skitai.scripts.skitai smtpda start".format (sys.executable))
     SMTP_STARTED = True
 
 def set_smtp (server, user = None, password = None, ssl = False, start_service = False):
@@ -782,15 +782,15 @@ def get_varpath (name):
     global dconf
     if 'varpath' in dconf:
         return dconf ['varpath']
-    name = name.split ("/", 1)[-1].replace (":", "-").replace (" ", "-")
-    return os.name == "posix" and '/var/tmp/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
+    name = name.split (":", 1)[-1].replace ("/", "-").replace (" ", "-")
+    return os.name == "posix" and os.path.expanduser ('~/.sktd/%s' % name) or os.path.join (tempfile.gettempdir(), name)
 
 def get_logpath (name):
     global dconf
     if 'logpath' in dconf:
         return dconf ['logpath']
-    name = name.split ("/", 1)[-1].replace (":", "-").replace (" ", "-")
-    return os.name == "posix" and '/var/log/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
+    name = name.split (":", 1)[-1].replace ("/", "-").replace (" ", "-")
+    return os.name == "posix" and os.path.expanduser ('~/.sktd/%s/log' % name) or os.path.join (tempfile.gettempdir(), name)
 
 options = None
 def add_option (sopt, lopt = None, desc = None, default = None):
