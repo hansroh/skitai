@@ -1,6 +1,4 @@
-atila
-atila-vue
-dnn
+psycopg2-binary
 pytest
 pytest-ordering
 codecov
@@ -19,11 +17,26 @@ starlette
 wsproto
 jsonrpclib-pelix
 markupsafe
-aioquic>=0.9; python_version>="3.6"
-psycopg2cffi; python_version>="3.6"
+aioquic==0.9.11; python_version>="3.6"
 matplotlib
 pillow
 opencv-python-headless
 scikit-image
 django-admin-numeric-filter
 django-admin-rangefilter
+numpy
+scikit-learn
+future
+networkx
+hyperopt
+protobuf
+dill
+webrtcvad
+exif
+fdet
+torchvision
+torch
+tensorflow-cpu==2.3.0
+keras==2.3.0
+twine
+keyrings.alt

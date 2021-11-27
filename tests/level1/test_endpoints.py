@@ -6,9 +6,13 @@ from sqlphile.db3 import open
 import os
 import warnings
 
+auth, netloc = os.environ ['MYDB'].split ("@")
+user, passwd = auth.split (":")
+host, database = netloc.split ("/")
+
 def test_endpoints (dbpath):
     try:
-        conn = endpoints.make_endpoints (DB_PGSQL, [("192.168.0.80", "aw1", ("postgres", os.environ.get ("PGPASSWORD", "")))]) [0]
+        conn = endpoints.make_endpoints (DB_PGSQL, [("localhost", "skitai", ("skitai", passwd))]) [0]
     except psycopg2.OperationalError:
         warnings.warn ("Please set PGPASSWORD", Warning)
         return
@@ -25,12 +29,12 @@ def test_cluster_manager (dbpath):
     if not os.environ.get ("PGPASSWORD", ""):
         return
 
-    m = cluster_manager.ClusterManager ("pg", ["postgres:{}@192.168.0.80/aw1".format (os.environ.get ("PGPASSWORD", ""))])
+    m = cluster_manager.ClusterManager ("pg", [os.environ ['MYDB']])
     try:
         conn = m.open2 ()
     except psycopg2.OperationalError:
         return
     with conn as db:
         assert db.closed == False
-        db.select ("auth_user").execute ()
+        db.select ("foo").limit (10).execute ()
         assert "id" in db.fetchall (True)[0]
