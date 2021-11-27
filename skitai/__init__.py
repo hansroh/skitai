@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.39.1.1"
+__version__ = "0.39.1.4"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -385,13 +385,14 @@ class PreferenceBase:
             path = joinpath (path)
             self.config.STATIC_ROOT = path
             mount (url, path, first = True)
+    mount_static = set_static
 
     def set_media (self, url, path):
         self.config.MEDIA_URL = url
         path = joinpath (path)
         self.config.MEDIA_ROOT = path
         mount (url, path, first = True)
-
+    mount_media = set_media
 
 class Preference (AttrDict, PreferenceBase):
     def __init__ (self, path = None):
@@ -440,7 +441,7 @@ def get_proc_title ():
         a, b = os.path.split (os.path.join (os.getcwd (), sys.argv [0]))
         script = b.split(".")[0]
 
-        PROCESS_NAME =  "skitai/%s%s" % (
+        PROCESS_NAME =  "skitai:%s%s" % (
             os.path.basename (a),
             script != "app" and "-" + script or ''
         )
@@ -845,6 +846,11 @@ def getopt (sopt = "", lopt = []):
         aopt_.append (arg)
     return opts_, aopt_
 
+def get_options ():
+    global options
+    options = argopt.options ()
+    return options
+
 def get_option (*names):
     global options
     options = argopt.options ()
@@ -926,9 +932,9 @@ def run (**conf):
             else:
                 mode = 'production'
             self.wasc.logger ("server", "[info] running in {} mode".format (tc.red (mode)))
-            self.wasc.logger ("server", "[info] engine tmp path: %s" % tc.white (self.varpath))
+            self.wasc.logger ("server", "[info] various path: %s" % tc.white (self.varpath))
             if self.logpath:
-                self.wasc.logger ("server", "[info] engine log path: %s" % tc.white (self.logpath))
+                self.wasc.logger ("server", "[info] log path: %s" % tc.white (self.logpath))
             self.set_model_keys (self.conf ["models_keys"])
 
         def maintern_shutdown_request (self, now):
@@ -1068,7 +1074,7 @@ def run (**conf):
             conf [k] = v
 
     if conf.get ("name"):
-        PROCESS_NAME = 'skitai/{}'.format (conf ["name"])
+        PROCESS_NAME = 'skitai:{}'.format (conf ["name"])
     if not conf.get ('mount'):
         raise systemError ('No mount point')
     conf ["varpath"] = get_varpath (get_proc_title ())
