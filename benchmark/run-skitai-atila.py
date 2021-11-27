@@ -46,7 +46,7 @@ def bench_row (was, pre = None):
 @app.inspect (ints = ['n'])
 def bench_gen (was, n = 100):
     with was.db ('@mydb') as db:
-        last_id = random.randrange (100000, 101000)
+        last_id = 0
         while 1:
             task = yield db.execute ('''SELECT * FROM foo where detail = 'ReturnTx' and id > {} order by id desc limit 100;'''.format (last_id))
             n -= 1
@@ -58,6 +58,7 @@ def bench_gen (was, n = 100):
                 continue
             last_id = rows [-1].id
             yield str (rows)
+    return ''
 
 # pilots ------------------------------------------------
 @app.route ("/bench/sp", methods = ['GET'])
