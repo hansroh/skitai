@@ -32,6 +32,7 @@ from rs4.termcolor import tc
 from rs4 import annotations
 import getopt as libgetopt
 import types
+from rs4 import pathtool
 
 argopt.add_option ('-d', desc = "start as daemon, equivalant with `start` command") # lower version compatible
 
@@ -761,7 +762,8 @@ def enable_file_logging (path = None, file_loggings = None):
 
 def mount_variable (path = None, enable_logging = False):
     global dconf
-    dconf ['varpath'] = path
+    if path:
+        dconf ['varpath'] = path
     if enable_logging:
         enable_file_logging (os.path.join (path, 'log'), None if enable_logging is True else enable_logging)
 
@@ -780,17 +782,22 @@ def enable_ssl (certfile, keyfile = None, passphrase = None):
 
 def get_varpath (name):
     global dconf
-    if 'varpath' in dconf:
-        return dconf ['varpath']
     name = name.split (":", 1)[-1].replace ("/", "-").replace (" ", "-")
-    return os.name == "posix" and os.path.expanduser ('~/.sktd/%s' % name) or os.path.join (tempfile.gettempdir(), name)
+    default_path = os.name == "posix" and os.path.expanduser ('~/.skitai/%s' % name) or os.path.join (tempfile.gettempdir(), name)
+    if 'varpath' in dconf:
+        if dconf ['varpath'].find ('/.skitai/') == -1:
+            if not os.path.exists (default_path):
+                pathtool.mkdir (os.path.expanduser ('~/.skitai'))
+                os.symlink (dconf ['varpath'], default_path)
+        return dconf ['varpath']
+    return default_path
 
 def get_logpath (name):
     global dconf
     if dconf.get ('logpath'):
         return dconf ['logpath']
     name = name.split (":", 1)[-1].replace ("/", "-").replace (" ", "-")
-    return os.name == "posix" and os.path.expanduser ('~/.sktd/%s/log' % name) or os.path.join (tempfile.gettempdir(), name)
+    return os.name == "posix" and os.path.expanduser ('~/.skitai/%s/log' % name) or os.path.join (tempfile.gettempdir(), name)
 
 options = None
 def add_option (sopt, lopt = None, desc = None, default = None):
@@ -896,7 +903,6 @@ def run (**conf):
     import os, sys, time
     from . import Skitai
     from rs4.psutil import flock
-    from rs4 import pathtool
 
     class SkitaiServer (Skitai.Loader):
         NAME = 'instance'
