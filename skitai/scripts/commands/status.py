@@ -56,7 +56,7 @@ def main ():
         names = sorted (os.listdir (default_var))
 
     for name in names:
-        if name.startswith ('_'):
+        if name.startswith ('.'):
             continue
         status (name, detail)
 
