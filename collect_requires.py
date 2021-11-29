@@ -27,6 +27,21 @@ def collect ():
         except AttrubuteError:
             continue
 
+    os.chdir (os.path.join (libs, 'skitai'))
+    with open ('benchmark/requirements.txt') as f:
+        for line in f:
+            line = line.strip ()
+            if not line:
+                continue
+            requires_all.append (line)
+
+    with open ('tests/requirements.txt') as f:
+        for line in f:
+            line = line.strip ()
+            if not line:
+                continue
+            requires_all.append (line)
+
     requires_wanted = set ()
     for lib in requires_all:
         name = re.split ('[=<>]', lib)[0]
@@ -38,7 +53,6 @@ def collect ():
         if not matched:
             requires_wanted.add (lib)
 
-    os.chdir (os.path.join (libs, 'skitai'))
     print ('found dependencies:')
     with open ('tools/docker/requirements.txt', 'w') as f:
         for r in requires_wanted:

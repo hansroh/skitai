@@ -13,12 +13,6 @@ RUN apt install -y libjpeg-dev libssl-dev
 COPY tools/docker/requirements.txt /requirements.txt
 RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
 
-COPY benchmark/requirements.txt /requirements.txt
-RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
-
-COPY tests/requirements.txt /requirements.txt
-RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
-
 ENV MYDB="skitai:12345678@localhost/skitai"
 
 EXPOSE 5000
