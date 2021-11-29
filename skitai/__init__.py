@@ -72,7 +72,7 @@ if "--smtpda" in sys.argv and os.name != 'nt':
 
 def set_smtp (server, user = None, password = None, ssl = False, start_service = False):
     composer.set_default_smtp (server, user, password, ssl)
-    start_service and not SMTP_STARTED and os.system ("{} -m skitai.scripts.skitai smtpda -d".format (sys.executable))
+    start_service and not SMTP_STARTED and os.system ("{} -m skitai.scripts.skitai smtpda start".format (sys.executable))
 
 def test_client (*args, **kargs):
     from .testutil.launcher import Launcher

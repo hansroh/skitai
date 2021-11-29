@@ -4,3 +4,4 @@ gunicorn
 fastapi
 django
 aiohttp
+psycopg2-binary

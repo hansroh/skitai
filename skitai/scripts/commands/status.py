@@ -31,6 +31,7 @@ def status (name, detail):
     else:
         inst = tc.primary (name)
         status = "stopped"
+
     print ("{} {}".format (inst, status))
     log_path = os.path.join (default_var, name, 'log')
     if os.path.isdir (log_path):

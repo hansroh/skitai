@@ -102,26 +102,28 @@ if os.name == "nt":
 with codecs.open ('README.md', 'r', encoding='utf-8') as f:
     long_description = f.read()
 
-setup (
-    name='skitai',
-    version=version,
-    description='Skitai App Engine',
-    long_description=long_description,
-    long_description_content_type = 'text/markdown',
-    url = 'https://gitlab.com/skitai/skitai',
-    author='Hans Roh',
-    author_email='hansroh@gmail.com',
-    packages=packages,
-    package_dir=package_dir,
-    package_data = package_data,
-    entry_points = {
-      'console_scripts': [
-        'skitai=skitai.scripts.skitai:main',
-       ],
-    },
-    license='MIT',
-    platforms = ["posix", "nt"],
-    download_url = "https://pypi.python.org/pypi/skitai",
-    install_requires = install_requires,
-    classifiers=classifiers
-)
+
+if __name__ == "__main__":
+    setup (
+        name='skitai',
+        version=version,
+        description='Skitai App Engine',
+        long_description=long_description,
+        long_description_content_type = 'text/markdown',
+        url = 'https://gitlab.com/skitai/skitai',
+        author='Hans Roh',
+        author_email='hansroh@gmail.com',
+        packages=packages,
+        package_dir=package_dir,
+        package_data = package_data,
+        entry_points = {
+        'console_scripts': [
+            'skitai=skitai.scripts.skitai:main',
+        ],
+        },
+        license='MIT',
+        platforms = ["posix", "nt"],
+        download_url = "https://pypi.python.org/pypi/skitai",
+        install_requires = install_requires,
+        classifiers=classifiers
+    )
