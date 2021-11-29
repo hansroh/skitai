@@ -10,7 +10,9 @@ def collect ():
     requires_all= []
     devlibs = []
     libs = os.path.abspath (os.path.join (os.path.dirname (__file__), '../'))
+    print ('collecting dependencies:')
     for lib in os.listdir (libs):
+        print ('-', lib)
         path = os.path.join (libs, lib)
         if not os.path.isdir (path):
             continue
