@@ -236,7 +236,6 @@ sudo systemctl restart myservice
 
 
 
-
 ## HTTP/2.0 Push
 
 It will works only if HTTP/2.0 h2c requests. Otherwise ignored.
