@@ -23,3 +23,5 @@ ENV MYDB="skitai:12345678@localhost/skitai"
 
 EXPOSE 5000
 CMD [ "/bin/bash" ]
+
+# see tools/docker/README.md
