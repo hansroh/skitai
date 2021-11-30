@@ -64,7 +64,6 @@ if "--devel" in sys.argv:
 if os.getenv ("SKITAIENV") is None:
     os.environ ["SKITAIENV"] = "PRODUCTION"
 
-START_SERVER = sum ([1 for each in sys.argv if each.startswith ('--nginx-conf')]) == 0
 SMTP_STARTED = False
 if "--smtpda" in sys.argv and os.name != 'nt':
     os.system ("{} -m skitai.scripts.skitai smtpda start".format (sys.executable))
@@ -961,6 +960,7 @@ def run (**conf):
 
         def configure (self):
             options = argopt.options ()
+            start_server = '--nginx-conf' not in argopt.options ()
             conf = self.conf
 
             if '--poll' in options:
@@ -1005,9 +1005,10 @@ def run (**conf):
                 multi_threaded = threads > 0,
                 max_upload_size = conf ['max_upload_size'],
                 thunks = [self.master_jobs],
-                start = START_SERVER
+                start = start_server
             )
-            if START_SERVER and os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
+
+            if start_server and os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
                 # master does not serve
                 return
 
@@ -1111,6 +1112,8 @@ def run (**conf):
 
     if '--nginx-conf' in argopt.options ():
         from .wastuff import nginx
+        from .backbone.http_server import http_server
+
         if not os.getenv ('STATIC_ROOT'):
             os.environ ['STATIC_ROOT'] = abspath ('conf/nginx/.static_root')
         vhost = server.virtual_host.sites [None]
