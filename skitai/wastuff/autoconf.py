@@ -28,28 +28,13 @@ def _collect_routes (vhost):
     return vhost.default_handler.filesystem.maps, proxies, vhost.apps.modules
 
 NGINX = """
-include %s/include/upstreams.conf;
+include conf.d/include/upstreams.conf;
 server {
     listen 80;
     listen [::]:80;
-    server_name %s;
-    include %s/include/header.conf;
-    include %s/include/routes.conf;
-}
-"""
-
-NGINX_QA = """
-include %s/include/upstreams.conf;
-server {
-    listen 80;
-    listen [::]:80;
-    server_name qa.%s;
-    include %s/include/header.conf;
-    location = /robots.txt {
-        alias %s/robots.qa.txt;
-        expires 1200;
-    }
-    include %s/include/routes.conf;
+    server_name _;
+    include conf.d/include/header.conf;
+    include conf.d/include/routes.conf;
 }
 """
 
@@ -57,7 +42,7 @@ HEADER = """
 proxy_http_version 1.1;
 proxy_set_header Connection "";
 
-root %s;
+root /var/www/html;
 index index.html index.htm;
 access_log /var/log/nginx/access.log;
 
@@ -119,28 +104,137 @@ location %s {
 }
 """
 
-def generate (outdir, vhost, conf):
+DOCKER_FILE_NGINX = """
+FROM nginx
+
+COPY ./dep/nginx/conf.d /etc/nginx/conf.d
+COPY ./dep/nginx/.static_root /var/www/html
+"""
+
+DOCKER_COMPOSE = """
+version: '2'
+services:
+  %s:
+    build:
+      context: ../
+      dockerfile: dep/Dockerfile
+    user: ubuntu
+    ports:
+      - "%s:%s"
+    entrypoint:
+      - ./skitaid.py
+      %s
+
+  nginx:
+    build:
+      context: ../
+      dockerfile: dep/Dockerfile.Nginx
+    ports:
+      - "80:80"
+"""
+
+DOCKER_COMPOSE_DEV = """
+version: '2'
+services:
+  %s:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    user: ubuntu
+    ports:
+      - "%s:%s"
+    volumes:
+      - ${HOME}:${HOME}
+    stdin_open: true
+    tty: true
+    entrypoint:
+      - /bin/bash
+"""
+
+DOCKER_FILE_DEV = """
+FROM hansroh/ubuntu:aws
+
+EXPOSE %s
+ENV PYTHONUNBUFFERED=0
+
+COPY requirements.txt /requirements.txt
+RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
+
+WORKDIR %s
+
+CMD [ "/bin/bash" ]
+"""
+
+DOCKER_FILE = """
+FROM hansroh/ubuntu:aws
+
+EXPOSE %s
+ENV PYTHONUNBUFFERED=0
+
+COPY requirements.txt /requirements.txt
+RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
+RUN pip3 install -U atila-vue
+
+WORKDIR /home/ubuntu
+COPY ./skitaid.py ./skitaid.py
+COPY ./pwa ./pwa
+
+CMD [ "/bin/bash" ]
+"""
+
+def generate (basedir, vhost, conf):
+    nginxdir = os.path.join (basedir, 'nginx', 'conf.d')
+    project_root = os.path.dirname (basedir)
     assert os.getenv ('STATIC_ROOT'), "missing STATIC_ROOT environment variable"
     assert conf ['name'], 'service name required, add skitai.run (name=NAME)'
-    assert not os.path.exists (outdir), 'config path already exists, remove it'
-    domain = conf ['domain']
+    assert not os.path.exists (nginxdir), 'config path already exists, remove it'
+
+    pathtool.mkdir (nginxdir)
+    name = conf ['name']
+    print ("configuring app {}".format (tc.info (name)))
+    print ("bulding deployment docker files...")
+
+    if not os.path.isfile (os.path.join (basedir, 'Dockerfile')):
+        with open (os.path.join (basedir, 'Dockerfile'), 'w') as f:
+            f.write (DOCKER_FILE % (conf.get ('port', 5000)))
+    if not os.path.isfile (os.path.join (basedir, 'Dockerfile.Nginx')):
+        with open (os.path.join (basedir, 'Dockerfile.Nginx'), 'w') as f:
+            f.write (DOCKER_FILE_NGINX)
+    if not os.path.isfile (os.path.join (basedir, 'docker-compose.yml')):
+        with open (os.path.join (basedir, 'docker-compose.yml'), 'w') as f:
+            f.write (DOCKER_COMPOSE % (
+                name,
+                conf.get ('port', 5000), conf.get ('port', 5000),
+                "" if conf.get ('media_url') else '- --disable-static'
+            ))
+
+    print ("bulding development docker files...")
+    if not os.path.isfile (os.path.join (project_root, 'Dockerfile')):
+        with open (os.path.join (project_root, 'Dockerfile'), 'w') as f:
+            f.write (DOCKER_FILE_DEV % (conf.get ('port', 5000), project_root))
+    if not os.path.isfile (os.path.join (project_root, 'docker-compose.yml')):
+        with open (os.path.join (project_root, 'docker-compose.yml'), 'w') as f:
+            f.write (DOCKER_COMPOSE_DEV % (
+                name,
+                conf.get ('port', 5000), conf.get ('port', 5000)
+            ))
+
+    print ("bulding nginx configuration...")
     A, B, C = _collect_routes (vhost)
+    pathtool.mkdir (os.path.join (nginxdir, 'include'))
+    with open (os.path.join (nginxdir, 'default.conf'), 'w') as f:
+        f.write (NGINX)
 
-    pathtool.mkdir (os.path.join (outdir, 'include'))
-    with open (os.path.join (outdir, 'nginx.conf'), 'w') as f:
-        f.write (NGINX % (outdir, domain, outdir, outdir))
-
+    print ("- setup document root...")
     root = os.getenv ('STATIC_ROOT')
-    with open (os.path.join (outdir, 'nginx.qa.conf'), 'w') as f:
-        f.write (NGINX_QA % (outdir, domain, outdir, root, outdir))
+    with open (os.path.join (nginxdir, 'include', 'header.conf'), 'w') as f:
+        f.write (HEADER)
 
-    with open (os.path.join (outdir, 'include', 'header.conf'), 'w') as f:
-        f.write (HEADER % (root))
-
+    print ("- setup upstreams...")
     upstreams = []
-    with open (os.path.join (outdir, 'include', 'upstreams.conf'), 'w') as f:
+    with open (os.path.join (nginxdir, 'include', 'upstreams.conf'), 'w') as f:
         f.write (UPSTREAMS)
-        f.write (UPSTREAM % ('backend', "    server 127.0.0.1:{};".format (conf.get ('port', 5000))))
+        f.write (UPSTREAM % ('backend', "    server {}:{};".format (name, conf.get ('port', 5000))))
         for path, rscs in sorted (B.items (), key = lambda x: len (x [0])):
             if not path:
                 path = '/'
@@ -151,11 +245,13 @@ def generate (outdir, vhost, conf):
             f.write (UPSTREAM % (cname, '\n'.join (servers)))
             upstreams.append ((path, cname))
 
-    with open (os.path.join (outdir, 'include', 'routes.conf'), 'w') as f:
+    with open (os.path.join (nginxdir, 'include', 'routes.conf'), 'w') as f:
         for path, cname in upstreams:
             f.write (LOCATION_PROXY % (path, cname))
+
         f.write (LOCATIONS)
 
+    print ("- collecting static files...")
     copied = 0
     for path, rscs in sorted (A.items (), key = lambda x: len (x [0]), reverse = True):
         if not path:
@@ -165,11 +261,5 @@ def generate (outdir, vhost, conf):
             pathtool.mkdir (target)
             r = copy_tree (rsc ['path'], target, update = 1, verbose = 1)
             copied += len (r)
-
-    print ("- total {} static files copied to {}.".format (tc.warn ('{:,}'.format (copied)), tc.blue (root)))
-    print ("- {} files created at {}.".format (tc.warn ('nginx configuration'), tc.blue (outdir)))
-    print ("- please, run below commands if need:")
-    print ("  * sudo ln -s {}/nginx.conf /etc/nginx/sites-enabled/{}.conf".format (outdir, conf ['name']))
-    print ("  * {} {} --disable-static update".format (sys.executable, sys.argv [0]))
-    print ("  * sudo systemctl restart {}".format (conf ['name']))
-    print ("  * sudo systemctl reload nginx")
+    print ("- total {} static files collected".format (tc.warn ('{:,}'.format (copied))))
+    print ("configurations are generate at {}.".format (tc.blue (basedir)))
