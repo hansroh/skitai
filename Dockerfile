@@ -10,11 +10,12 @@ RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-k
 RUN apt update && apt install -y postgresql-12
 RUN apt install -y libjpeg-dev libssl-dev
 
-COPY requirements.txt /requirements.txt
-RUN pip3 install -Ur /requirements.txt
-RUN rm /requirements.txt
+COPY tools/docker/requirements.txt /requirements.txt
+RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
 
 ENV MYDB="skitai:12345678@localhost/skitai"
 
 EXPOSE 5000
 CMD [ "/bin/bash" ]
+
+# see tools/docker/README.md

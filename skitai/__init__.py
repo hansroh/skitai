@@ -53,7 +53,7 @@ argopt.add_option (None, '--disable-static', desc = "disable static file service
 argopt.add_option (None, '--user=USER', desc = "if run as root, fallback workers owner to user")
 argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback workers owner to group")
 argopt.add_option (None, '--smtpda', desc = "start SMTP Delivery Agent")
-argopt.add_option (None, '--nginx-conf=DOMAIN', desc = "generate Nginx configuration")
+argopt.add_option (None, '--autoconf', desc = "generate basic configuration")
 
 # IMP: DO NOT USE argopt.options ()
 if '--deploy' in sys.argv:
@@ -64,7 +64,6 @@ if "--devel" in sys.argv:
 if os.getenv ("SKITAIENV") is None:
     os.environ ["SKITAIENV"] = "PRODUCTION"
 
-START_SERVER = sum ([1 for each in sys.argv if each.startswith ('--nginx-conf')]) == 0
 SMTP_STARTED = False
 if "--smtpda" in sys.argv and os.name != 'nt':
     os.system ("{} -m skitai.scripts.skitai smtpda start".format (sys.executable))
@@ -348,7 +347,7 @@ def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20
 def set_max_was_clones_per_thread (val):
     was.MAX_CLONES_PER_THREAD = val
 
-
+MEDIA_PATH = None
 class PreferenceBase:
     def add_resources (self, module, front = False):
         base_dir = os.path.dirname (module.__file__)
@@ -389,10 +388,13 @@ class PreferenceBase:
     mount_static = set_static
 
     def set_media (self, url, path):
+        global MEDIA_PATH
+
         self.config.MEDIA_URL = url
         path = joinpath (path)
         self.config.MEDIA_ROOT = path
         mount (url, path, first = True)
+        MEDIA_PATH = (url, path)
     mount_media = set_media
 
 class Preference (AttrDict, PreferenceBase):
@@ -961,6 +963,7 @@ def run (**conf):
 
         def configure (self):
             options = argopt.options ()
+            start_server = '--autoconf' not in argopt.options ()
             conf = self.conf
 
             if '--poll' in options:
@@ -1005,9 +1008,10 @@ def run (**conf):
                 multi_threaded = threads > 0,
                 max_upload_size = conf ['max_upload_size'],
                 thunks = [self.master_jobs],
-                start = START_SERVER
+                start = start_server
             )
-            if START_SERVER and os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
+
+            if start_server and os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
                 # master does not serve
                 return
 
@@ -1109,13 +1113,16 @@ def run (**conf):
     server.just_before_run (conf.get ("mount_onfly"))
     STATUS = 'CREATED'
 
-    if '--nginx-conf' in argopt.options ():
-        from .wastuff import nginx
+    if '--autoconf' in argopt.options ():
+        global MEDIA_PATH
+        from .wastuff import autoconf
+
         if not os.getenv ('STATIC_ROOT'):
-            os.environ ['STATIC_ROOT'] = abspath ('conf/nginx/.static_root')
+            os.environ ['STATIC_ROOT'] = abspath ('dep/nginx/.static_root')
         vhost = server.virtual_host.sites [None]
-        conf ['domain'] = get_option ('--nginx-conf')
-        nginx.generate (abspath ('conf', 'nginx'), vhost, conf)
+        if MEDIA_PATH:
+            conf ['media_url'], conf ['media_path'] = MEDIA_PATH
+        autoconf.generate (abspath ('dep'), vhost, conf)
         sys.exit ()
 
     # timeout for fast keyboard interrupt on win32

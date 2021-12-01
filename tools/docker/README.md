@@ -7,7 +7,7 @@ git clone git@gitlab.com:skitai/skitai.git
 
 # Creating Docker Image
 ```shell
-cd skitai/docker
+cd skitai
 docker build --tag hansroh/skitai:latest .
 ```
 
@@ -22,8 +22,8 @@ docker run -it --name skitai \
 
 # Initializing Docker
 ```shell
-cd ~/libs/skitai/docker
-./init_docker.sh
+cd ~/libs/skitai
+./tools/docker/init-docker.sh
 ```
 
 # Tests

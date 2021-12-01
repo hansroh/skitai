@@ -7,12 +7,9 @@ sudo su - postgres -c "psql -c \"grant all privileges on database skitai to skit
 
 cd ~/libs/skitai
 cd benchmark
-sudo pip3 install -Ur requirements.txt
+python3 bench/manage.py makemigrations
 python3 bench/manage.py migrate
 python3 bench/init_db.py
-
-cd ../tests
-sudo pip3 install -Ur requirements.txt
 
 cd "${HOME}/libs"
 if [ ! -d "${HOME}/libs/atila" ]
