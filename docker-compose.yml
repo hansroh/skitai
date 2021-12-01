@@ -1,0 +1,19 @@
+
+version: '2'
+services:
+  skitai:
+    image: skitai
+    container_name: skitai
+    build:
+      context: .
+      dockerfile: Dockerfile
+    user: ubuntu
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    volumes:
+      - ${HOME}/hansroh:${HOME}
+    stdin_open: true
+    tty: true
+    entrypoint:
+      - /bin/bash
