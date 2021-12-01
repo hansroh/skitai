@@ -10,11 +10,24 @@ RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-k
 RUN apt update && apt install -y postgresql-12
 RUN apt install -y libjpeg-dev libssl-dev
 
+ENV MYDB="skitai:12345678@localhost/skitai"
+RUN pip3 install -U django sqlphile psycopg2-binary
+COPY benchmark benchmark
+
+RUN pg_ctlcluster 12 main start; \
+    su - postgres -c "psql -c \"drop database if exists skitai;\""; \
+    su - postgres -c "psql -c \"create database skitai;\""; \
+    su - postgres -c "psql -c \"create user skitai with encrypted password '12345678';\""; \
+    su - postgres -c "psql -c \"grant all privileges on database skitai to skitai;\""; \
+    cd benchmark; \
+    python3 bench/manage.py migrate; \
+    python3 bench/init_db.py; \
+    rm -rf benchmark;
+
 COPY tools/docker/requirements.txt /requirements.txt
 RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
 
-ENV MYDB="skitai:12345678@localhost/skitai"
-
+WORKDIR /home/ubuntu/libs/skitai
 EXPOSE 5000
 CMD [ "/bin/bash" ]
 

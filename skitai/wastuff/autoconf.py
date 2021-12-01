@@ -115,6 +115,7 @@ DOCKER_COMPOSE = """
 version: '2'
 services:
   %s:
+    imasge: %s
     build:
       context: ../
       dockerfile: dep/Dockerfile
@@ -126,6 +127,7 @@ services:
       %s
 
   nginx:
+    imasge: %s-nginx
     build:
       context: ../
       dockerfile: dep/Dockerfile.Nginx
@@ -136,7 +138,9 @@ services:
 DOCKER_COMPOSE_DEV = """
 version: '2'
 services:
-  %s:
+  %s-dev:
+    imasge: %s-dev
+    container_name: %s-dev
     build:
       context: .
       dockerfile: Dockerfile
@@ -203,9 +207,10 @@ def generate (basedir, vhost, conf):
     if not os.path.isfile (os.path.join (basedir, 'docker-compose.yml')):
         with open (os.path.join (basedir, 'docker-compose.yml'), 'w') as f:
             f.write (DOCKER_COMPOSE % (
-                name,
+                name, name,
                 conf.get ('port', 5000), conf.get ('port', 5000),
-                "" if conf.get ('media_url') else '- --disable-static'
+                "" if conf.get ('media_url') else '- --disable-static',
+                name,
             ))
 
     print ("bulding development docker files...")
@@ -215,7 +220,7 @@ def generate (basedir, vhost, conf):
     if not os.path.isfile (os.path.join (project_root, 'docker-compose.yml')):
         with open (os.path.join (project_root, 'docker-compose.yml'), 'w') as f:
             f.write (DOCKER_COMPOSE_DEV % (
-                name,
+                name, name, name,
                 conf.get ('port', 5000), conf.get ('port', 5000)
             ))
 

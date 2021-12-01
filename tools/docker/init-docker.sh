@@ -1,15 +1,14 @@
-sudo pg_ctlcluster 12 main start
+# sudo pg_ctlcluster 12 main start
 
-sudo su - postgres -c "psql -c \"drop database if exists skitai;\""
-sudo su - postgres -c "psql -c \"create database skitai;\""
-sudo su - postgres -c "psql -c \"create user skitai with encrypted password '12345678';\""
-sudo su - postgres -c "psql -c \"grant all privileges on database skitai to skitai;\""
+# sudo su - postgres -c "psql -c \"drop database if exists skitai;\""
+# sudo su - postgres -c "psql -c \"create database skitai;\""
+# sudo su - postgres -c "psql -c \"create user skitai with encrypted password '12345678';\""
+# sudo su - postgres -c "psql -c \"grant all privileges on database skitai to skitai;\""
 
-cd ~/libs/skitai
-cd benchmark
-python3 bench/manage.py makemigrations
-python3 bench/manage.py migrate
-python3 bench/init_db.py
+# cd ~/libs/skitai
+# cd benchmark
+# python3 bench/manage.py makemigrations
+# python3 bench/init_db.py
 
 cd "${HOME}/libs"
 if [ ! -d "${HOME}/libs/atila" ]
