@@ -38,7 +38,6 @@ for lib in requires_all:
     if not matched:
         requires_wanted.add (lib)
 
-print (requires_wanted)
 os.chdir (os.path.join (libs, 'skitai'))
 with open ('docker/requirements.txt', 'w') as f:
     for r in requires_wanted:
