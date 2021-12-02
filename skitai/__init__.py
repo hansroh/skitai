@@ -307,6 +307,8 @@ dconf = dict (
     max_upload_size = 256 * 1024 * 1024, # 256Mb
     subscriptions = set (),
     background_jobs = [],
+    media_url = None,
+    media_path = None
 )
 
 def background_task (procname, cmd):
@@ -393,14 +395,8 @@ class PreferenceBase:
             mount (url, path, first = True)
     mount_static = set_static
 
-    def set_media (self, url, path, check_exist = True):
-        global MEDIA_PATH
-
-        self.config.MEDIA_URL = url
-        path = joinpath (path)
-        self.config.MEDIA_ROOT = path
-        mount (url, path, first = True)
-        MEDIA_PATH = (url, path)
+    def set_media (self, url = '/media', path = None):
+        set_media (url, path)
     mount_media = set_media
 
 class Preference (AttrDict, PreferenceBase):
@@ -475,6 +471,19 @@ Win32Service = None
 def set_service (service_class):
     global Win32Service
     Win32Service = service_class
+
+def set_media (url = '/media', path = None):
+    global dconf
+    assert url, "URL cannot be empty"
+    if not url.endswith ('/'):
+        url = url + '/'
+    assert dconf ['media_path'] is None, "media already specified to {media_url}:{media_path}".format (**dconf)
+    if path:
+        assert path.startswith ('/'), 'media path should be absolute path'
+        path = joinpath (path)
+        pathtool.mkdir (path)
+        mount (url, path, first = True)
+    dconf ['media_url'], dconf ['media_path'] = url, path
 
 def log_off (*path):
     global dconf
@@ -1008,6 +1017,10 @@ def run (**conf):
                         self.wasc.logger.get ("server").log ('background job {}: {}'.format (tc.yellow (procname), tc.white (cmd)))
                         os.system (cmd + '&')
 
+            if conf ['media_path'] is None:
+                conf ['media_path'] = os.path.expanduser (os.path.join ('~/.skitai', conf ['name'], 'pub'))
+                pathtool.mkdir (conf ['media_path'])
+                mount (conf ['media_url'], conf ['media_path'], first = True)
 
             self.config_webserver (
                 port, conf.get ('address', '0.0.0.0'),
@@ -1063,6 +1076,14 @@ def run (**conf):
                     conf.get ("gw_secret_key", None)
                 )
 
+                for app in self.get_apps ().values ():
+                    if not hasattr (app, 'config'):
+                        continue
+                    try:
+                        app.config.MEDIA_URL, app.config.MEDIA_ROOT = conf ['media_url'], conf ['media_path']
+                    except AttributeError:
+                        pass
+
                 for p, s in dconf ['subscriptions']:
                     try:
                         provider = self.get_app_by_name (p)
@@ -1085,7 +1106,7 @@ def run (**conf):
 
     #----------------------------------------------------------------------
 
-    global dconf, PROCESS_NAME, SERVICE_USER, SERVICE_GROUP, Win32Service, STATUS, MEDIA_PATH
+    global dconf, PROCESS_NAME, SERVICE_USER, SERVICE_GROUP, Win32Service, STATUS
 
     STATUS = 'CREATING'
     SERVICE_USER = argopt.options ().get ('--user')
@@ -1132,9 +1153,6 @@ def run (**conf):
         if not os.getenv ('STATIC_ROOT'):
             os.environ ['STATIC_ROOT'] = abspath ('dep/nginx/.static_root')
         vhost = server.virtual_host.sites [None]
-
-        if MEDIA_PATH:
-            conf ['media_url'], conf ['media_path'] = MEDIA_PATH
         autoconf.generate (abspath ('.'), vhost, conf)
         sys.exit ()
 

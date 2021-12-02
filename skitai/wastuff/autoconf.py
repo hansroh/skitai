@@ -104,19 +104,17 @@ location %s {
 }
 """
 
-DOCKER_FILE_NGINX = """
-FROM nginx
+DOCKER_FILE_NGINX = """FROM nginx
 
 COPY ./dep/nginx/conf.d /etc/nginx/conf.d
 COPY ./dep/nginx/.static_root /var/www/html
 """
 
-DOCKER_COMPOSE = """
-version: '2'
+DOCKER_COMPOSE = """version: '2'
 
 services:
   {name}:
-    imasge: {name}
+    image: {name}
     build:
       context: ../
       dockerfile: dep/Dockerfile
@@ -124,27 +122,26 @@ services:
     ports:
       - "{port}:{port}"
     volumes:
-      - /home/ubuntu/.skitai/{name}/pub:{media_path}
+      - {media_path}:{media_path}
     entrypoint:
       - /bin/bash
       - ./startup.sh
 
   nginx:
-    imasge: {name}-nginx
+    image: {name}-nginx
     build:
       context: ../
       dockerfile: dep/Dockerfile.Nginx
     ports:
       - "80:80"
     volumes:
-      - /home/ubuntu/.skitai/{name}/pub:/var/www/pub
+      - {media_path}:/var/www/pub
 """
 
-DOCKER_COMPOSE_DEV = """
-version: '2'
+DOCKER_COMPOSE_DEV = """version: '2'
 services:
   {name}-dev:
-    imasge: {name}-dev
+    image: {name}-dev
     container_name: {name}-dev
     build:
       context: .
@@ -160,8 +157,7 @@ services:
       - /bin/bash
 """
 
-DOCKER_FILE_DEV = """
-FROM hansroh/ubuntu:aws
+DOCKER_FILE_DEV = """FROM hansroh/ubuntu:aws
 
 ENV PYTHONUNBUFFERED=0
 COPY requirements.txt /requirements.txt
@@ -171,8 +167,7 @@ WORKDIR %s
 EXPOSE %s
 """
 
-DOCKER_FILE = """
-FROM hansroh/ubuntu:aws
+DOCKER_FILE = """FROM hansroh/ubuntu:aws
 
 ENV PYTHONUNBUFFERED=0
 
@@ -181,14 +176,15 @@ COPY requirements.txt /requirements.txt
 RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
 RUN pip3 install -U atila-vue
 
+COPY ./dep/startup.sh ./startup.sh
 COPY ./skitaid.py ./skitaid.py
 COPY ./pwa ./pwa
-COPY ./startup.sh ./startup.sh
 
 EXPOSE %s
 """
 
 STARTUP = """#! /bin/bash
+
 sudo chown -R ubuntu:ubuntu /home/ubuntu
 ./skitaid.py --disable-static
 """
@@ -212,11 +208,17 @@ def generate (project_root, vhost, conf):
 
     if not conf.get ('media_path'):
         conf ['media_url'] = None
-        conf ['media_path'] = conf.get ('media_path')
+        conf ['media_path'] = f'/home/ubuntu/.skitai/{name}/pub'
+
+    conf ['media_volume_path'] = os.path.join (f'/home/ubuntu/.skitai')
     conf ['port'] = conf.get ('port', 5000)
     if not os.path.isfile (os.path.join (depdir, 'docker-compose.yml')):
         with open (os.path.join (depdir, 'docker-compose.yml'), 'w') as f:
             f.write (DOCKER_COMPOSE.format (**conf))
+
+    if not os.path.isfile (os.path.join (depdir, 'startup.sh')):
+        with open (os.path.join (depdir, 'startup.sh'), 'w') as f:
+            f.write (STARTUP)
 
     print ("bulding development docker files...")
     if not os.path.isfile (os.path.join (project_root, 'Dockerfile')):
@@ -225,9 +227,6 @@ def generate (project_root, vhost, conf):
     if not os.path.isfile (os.path.join (project_root, 'docker-compose.yml')):
         with open (os.path.join (project_root, 'docker-compose.yml'), 'w') as f:
             f.write (DOCKER_COMPOSE_DEV.format (**conf))
-    if not os.path.isfile (os.path.join (project_root, 'startup.sh')):
-        with open (os.path.join (project_root, 'startup.sh'), 'w') as f:
-            f.write (STARTUP)
 
     A, B, C = _collect_routes (vhost)
     root = os.getenv ('STATIC_ROOT')
@@ -275,5 +274,6 @@ def generate (project_root, vhost, conf):
             pathtool.mkdir (target)
             r = copy_tree (rsc ['path'], target, update = 1, verbose = 1)
             copied += len (r)
+
     print ("- total {} static files collected".format (tc.warn ('{:,}'.format (copied))))
     print ("configurations are generate at {}.".format (tc.blue (depdir)))
