@@ -14,8 +14,8 @@ def test_preference ():
         pref.set_static ('/staticx', 'examples/staticd')
         assert pref.config.STATIC_URL == '/staticx'
 
-        pref.set_media ('/mediax', 'examples/staticd')
-        assert pref.config.MEDIA_URL == '/mediax'
+        pref.set_media ('/mediax', '/tmp/examples/staticd')
+        assert skitai.dconf ['media_url'] == '/mediax/'
 
 
     f = sys.path [0]
