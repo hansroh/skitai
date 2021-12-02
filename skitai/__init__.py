@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.39.1.4"
+__version__ = "0.39.1.5"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -388,12 +388,11 @@ class PreferenceBase:
             mount (url, path, first = True)
     mount_static = set_static
 
-    def set_media (self, url, path):
+    def set_media (self, url, path, check_exist = True):
         global MEDIA_PATH
 
         self.config.MEDIA_URL = url
         path = joinpath (path)
-        pathtool.mkdir (path)
         self.config.MEDIA_ROOT = path
         mount (url, path, first = True)
         MEDIA_PATH = (url, path)
