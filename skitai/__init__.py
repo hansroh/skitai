@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.39.1.5"
+__version__ = "0.39.1.6"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -1135,7 +1135,7 @@ def run (**conf):
 
         if MEDIA_PATH:
             conf ['media_url'], conf ['media_path'] = MEDIA_PATH
-        autoconf.generate (abspath ('dep'), vhost, conf)
+        autoconf.generate (abspath ('.'), vhost, conf)
         sys.exit ()
 
     # timeout for fast keyboard interrupt on win32
