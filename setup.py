@@ -100,11 +100,12 @@ install_requires = [
 if os.name == "nt":
     install_requires.append ("pywin32")
 
-with codecs.open ('README.md', 'r', encoding='utf-8') as f:
-    long_description = f.read()
-
 
 if __name__ == "__main__":
+    with codecs.open ('README.md', 'r', encoding='utf-8') as f:
+        long_description = f.read()
+    long_description = "[Documentation](https://gitlab.com/skitai/skitai/-/blob/master/README.md)"
+
     setup (
         name='skitai',
         version=version,
