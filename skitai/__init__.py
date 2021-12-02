@@ -140,6 +140,7 @@ WS_OPCODE_PING = 0x9
 WS_OPCODE_PONG = 0xa
 
 STATUS = 'CONFIGURING'
+MEDIA_PATH = None
 
 def status ():
     global STATUS
@@ -347,7 +348,7 @@ def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20
 def set_max_was_clones_per_thread (val):
     was.MAX_CLONES_PER_THREAD = val
 
-MEDIA_PATH = None
+
 class PreferenceBase:
     def add_resources (self, module, front = False):
         base_dir = os.path.dirname (module.__file__)
@@ -392,6 +393,7 @@ class PreferenceBase:
 
         self.config.MEDIA_URL = url
         path = joinpath (path)
+        pathtool.mkdir (path)
         self.config.MEDIA_ROOT = path
         mount (url, path, first = True)
         MEDIA_PATH = (url, path)
@@ -417,12 +419,6 @@ class Preference (AttrDict, PreferenceBase):
     def mount_later (self, *args, **kargs):
         # mount module or func (app, options)
         self.__dict__ ["mountables"].append ((args, kargs))
-
-    # def mount (self, point, func):
-        # mount on fly to add routes, decorator and hooks
-        # mount function or module which has __mount__ or __setup__ func
-        # you cannot use static and templates
-    #    self.mount_later (point, func)
 
 
 def preference (preset = False, path = None, **configs):
@@ -966,6 +962,7 @@ def run (**conf):
             start_server = '--autoconf' not in argopt.options ()
             conf = self.conf
 
+            self.wasc.register ('varpath', conf ['varpath'])
             if '--poll' in options:
                 use_poll (options.get ('--poll'))
             workers = int (options.get ('--workers') or conf.get ('workers', 1))
@@ -1073,7 +1070,7 @@ def run (**conf):
 
     #----------------------------------------------------------------------
 
-    global dconf, PROCESS_NAME, SERVICE_USER, SERVICE_GROUP, Win32Service, STATUS
+    global dconf, PROCESS_NAME, SERVICE_USER, SERVICE_GROUP, Win32Service, STATUS, MEDIA_PATH
 
     STATUS = 'CREATING'
     SERVICE_USER = argopt.options ().get ('--user')
@@ -1087,6 +1084,7 @@ def run (**conf):
         PROCESS_NAME = 'sktd:{}'.format (conf ["name"])
     if not conf.get ('mount'):
         raise systemError ('No mount point')
+
     conf ["varpath"] = get_varpath (get_proc_title ())
     pathtool.mkdir (conf ["varpath"])
     if "logpath" in conf and not conf ["logpath"]:
@@ -1114,12 +1112,12 @@ def run (**conf):
     STATUS = 'CREATED'
 
     if '--autoconf' in argopt.options ():
-        global MEDIA_PATH
         from .wastuff import autoconf
 
         if not os.getenv ('STATIC_ROOT'):
             os.environ ['STATIC_ROOT'] = abspath ('dep/nginx/.static_root')
         vhost = server.virtual_host.sites [None]
+
         if MEDIA_PATH:
             conf ['media_url'], conf ['media_path'] = MEDIA_PATH
         autoconf.generate (abspath ('dep'), vhost, conf)

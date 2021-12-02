@@ -113,6 +113,10 @@ COPY ./dep/nginx/.static_root /var/www/html
 
 DOCKER_COMPOSE = """
 version: '2'
+
+volumes:
+    media_volume: {}
+
 services:
   %s:
     imasge: %s
@@ -122,9 +126,11 @@ services:
     user: ubuntu
     ports:
       - "%s:%s"
+    volumes:
+      - media_volume:%s
     entrypoint:
       - ./skitaid.py
-      %s
+      - --disable-static
 
   nginx:
     imasge: %s-nginx
@@ -133,6 +139,8 @@ services:
       dockerfile: dep/Dockerfile.Nginx
     ports:
       - "80:80"
+    volumes:
+      - media_volume:/var/www/pub
 """
 
 DOCKER_COMPOSE_DEV = """
@@ -204,13 +212,18 @@ def generate (basedir, vhost, conf):
     if not os.path.isfile (os.path.join (basedir, 'Dockerfile.Nginx')):
         with open (os.path.join (basedir, 'Dockerfile.Nginx'), 'w') as f:
             f.write (DOCKER_FILE_NGINX)
+
+    if not conf.get ('media_path'):
+        conf ['media_url'] = None
+        conf ['media_path'] = conf.get ('media_path')
+
     if not os.path.isfile (os.path.join (basedir, 'docker-compose.yml')):
         with open (os.path.join (basedir, 'docker-compose.yml'), 'w') as f:
             f.write (DOCKER_COMPOSE % (
                 name, name,
                 conf.get ('port', 5000), conf.get ('port', 5000),
-                "" if conf.get ('media_url') else '- --disable-static',
-                name,
+                conf ['media_path'],
+                name
             ))
 
     print ("bulding development docker files...")
@@ -253,7 +266,8 @@ def generate (basedir, vhost, conf):
     with open (os.path.join (nginxdir, 'include', 'routes.conf'), 'w') as f:
         for path, cname in upstreams:
             f.write (LOCATION_PROXY % (path, cname))
-
+        if conf.get ("media_url"):
+            f.write ("location %s {\n    alias /var/www/pub;\n}\n" % conf ["media_url"])
         f.write (LOCATIONS)
 
     print ("- collecting static files...")
