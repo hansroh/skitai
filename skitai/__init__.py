@@ -756,6 +756,8 @@ def enable_file_logging (path = None, file_loggings = None):
     # loggings : request, server and app
     global dconf
     dconf ['logpath'] = path
+    if not sys.stdout.isatty ():
+        file_loggings = "all"
     dconf ['file_loggings'] = ['request', 'server', 'app'] if file_loggings == 'all' else None
 
 def mount_variable (path = None, enable_logging = False):

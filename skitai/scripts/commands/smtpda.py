@@ -200,7 +200,6 @@ def main ():
 		]
 	)
 	_cf = {"max-retry": 5, "keep-days": 1, "ssl": 0}
-	_consol = True
 	try: cmd = argopt [1][0]
 	except: cmd = None
 	for k, v in argopt [0]:
@@ -220,8 +219,6 @@ def main ():
 			_cf ['password'] = v
 		elif k == "--ssl":
 			_cf ['ssl'] = 1
-	if cmd:
-		_consol = False
 
 	working_dir = os.path.expanduser (f'~/.skitai/{SMTPDeliverAgent.NAME}')
 	servicer = service.Service ("sktd:{}".format (SMTPDeliverAgent.NAME), working_dir)
