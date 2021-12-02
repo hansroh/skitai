@@ -305,8 +305,13 @@ dconf = dict (
     wasc_options = {},
     backlog = 256,
     max_upload_size = 256 * 1024 * 1024, # 256Mb
-    subscriptions = set ()
+    subscriptions = set (),
+    background_jobs = [],
 )
+
+def background_task (procname, cmd):
+    global dconf
+    dconf ['background_jobs'].append ((procname, cmd))
 
 def use_poll (name):
     from rs4 import asyncore
@@ -994,6 +999,15 @@ def run (**conf):
                     conf.get ('fws_address', '0.0.0.0'),
                     conf.get ('fws_port', 80), conf.get ('fws_to', 443)
                 )
+
+            if dconf ['background_jobs']:
+                import psutil
+                procnames = [ proc.name () for proc in psutil.process_iter() ]
+                for procname, cmd in dconf ['background_jobs']:
+                    if procname not in procnames:
+                        self.wasc.logger.get ("server").log ('background job {}: {}'.format (tc.yellow (procname), tc.white (cmd)))
+                        os.system (cmd + '&')
+
 
             self.config_webserver (
                 port, conf.get ('address', '0.0.0.0'),
