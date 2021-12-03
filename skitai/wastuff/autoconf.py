@@ -261,7 +261,7 @@ def generate (project_root, vhost, conf):
             for path, cname in upstreams:
                 f.write (LOCATION_PROXY % (path, cname))
             if conf.get ("media_url"):
-                f.write ("location %s {\n    alias /var/www/pub;\n}\n" % conf ["media_url"])
+                f.write ("location %s {\n    alias /var/www/pub;\n}\n" % conf ["media_url"][:-1])
             f.write (LOCATIONS)
 
     print ("- collecting static files...")

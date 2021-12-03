@@ -396,6 +396,8 @@ class PreferenceBase:
     mount_static = set_static
 
     def set_media (self, url = '/media', path = None):
+        self.config.MEDIA_URL = url
+        self.config.MEDIA_ROOT = path
         set_media (url, path)
     mount_media = set_media
 
