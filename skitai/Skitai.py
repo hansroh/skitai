@@ -86,7 +86,7 @@ class Loader:
         self.wasc._luwatcher.add (keys)
 
     def get_app_by_name (self, name):
-        return self.get_apps (),get (name)
+        return self.get_apps ().get (name)
 
     def get_apps (self):
         apps = {}

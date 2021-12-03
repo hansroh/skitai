@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.39.1.6"
+__version__ = "0.39.1.9"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -1020,7 +1020,7 @@ def run (**conf):
                         os.system (cmd + '&')
 
             if conf ['media_path'] is None:
-                conf ['media_path'] = os.path.expanduser (os.path.join ('~/.skitai', conf ['name'], 'pub'))
+                conf ['media_path'] = os.path.expanduser (os.path.join ('~/.skitai', conf.get ('name', '.unnamed'), 'pub'))
                 pathtool.mkdir (conf ['media_path'])
                 mount (conf ['media_url'], conf ['media_path'], first = True)
 
