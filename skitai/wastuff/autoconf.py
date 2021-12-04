@@ -125,7 +125,7 @@ services:
       - {media_path}:{media_path}
     entrypoint:
       - /bin/bash
-      - ./startup.sh
+      - ./app/dep/startup.sh
 
   nginx:
     image: {name}-nginx
@@ -150,11 +150,12 @@ services:
     ports:
       - "{port}:{port}"
     volumes:
-      - ${{HOME}}:${{HOME}}
-    stdin_open: true
+      - ${{PWD}}:${{HOME}}/app
+      - ${HOME}/.ssh:/home/ubuntu/.ssh
     tty: true
     entrypoint:
       - /bin/bash
+      - ./app/skitaid.py
 """
 
 DOCKER_FILE_DEV = """FROM hansroh/ubuntu:aws
@@ -163,30 +164,39 @@ ENV PYTHONUNBUFFERED=0
 COPY requirements.txt /requirements.txt
 RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
 
-WORKDIR %s
-EXPOSE %s
+WORKDIR /home/ubuntu
+EXPOSE {port}
 """
 
 DOCKER_FILE = """FROM hansroh/ubuntu:aws
 
 ENV PYTHONUNBUFFERED=0
 
-WORKDIR /home/ubuntu
+WORKDIR /home/ubuntu/app
 COPY requirements.txt /requirements.txt
 RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
 RUN pip3 install -U atila-vue
 
-COPY ./dep/startup.sh ./startup.sh
-COPY ./skitaid.py ./skitaid.py
+COPY ./dep ./dep
 COPY ./pwa ./pwa
+COPY ./skitaid.py ./skitaid.py
 
-EXPOSE %s
+WORKDIR /home/ubuntu
+EXPOSE {port}
+"""
+
+DEVEL = """#! /bin/bash
+./skitaid.py --devel
 """
 
 STARTUP = """#! /bin/bash
-
 sudo chown -R ubuntu:ubuntu /home/ubuntu
 ./skitaid.py --disable-static
+"""
+
+CITESTS = """#! /bin/bash
+sudo chown -R ubuntu:ubuntu /home/ubuntu
+./skitaid.py --devel
 """
 
 def generate (project_root, vhost, conf):
@@ -201,7 +211,7 @@ def generate (project_root, vhost, conf):
     pathtool.mkdir (depdir)
     if not os.path.isfile (os.path.join (depdir, 'Dockerfile')):
         with open (os.path.join (depdir, 'Dockerfile'), 'w') as f:
-            f.write (DOCKER_FILE % (conf.get ('port', 5000)))
+            f.write (DOCKER_FILE.format (**conf))
     if not os.path.isfile (os.path.join (depdir, 'Dockerfile.Nginx')):
         with open (os.path.join (depdir, 'Dockerfile.Nginx'), 'w') as f:
             f.write (DOCKER_FILE_NGINX)
@@ -216,14 +226,17 @@ def generate (project_root, vhost, conf):
         with open (os.path.join (depdir, 'docker-compose.yml'), 'w') as f:
             f.write (DOCKER_COMPOSE.format (**conf))
 
-    if not os.path.isfile (os.path.join (depdir, 'startup.sh')):
-        with open (os.path.join (depdir, 'startup.sh'), 'w') as f:
-            f.write (STARTUP)
+    for fn, content in (('startup.sh', STARTUP), ('devel.sh', DEVEL), ('ci-tests.sh', CITESTS)):
+        script = os.path.join (depdir, fn)
+        if not os.path.isfile (script):
+            with open (script, 'w') as f:
+                f.write (content)
+        os.chmod (to, 0o744)
 
     print ("bulding development docker files...")
     if not os.path.isfile (os.path.join (project_root, 'Dockerfile')):
         with open (os.path.join (project_root, 'Dockerfile'), 'w') as f:
-            f.write (DOCKER_FILE_DEV % (project_root, conf.get ('port', 5000)))
+            f.write (DOCKER_FILE_DEV.format (**conf))
     if not os.path.isfile (os.path.join (project_root, 'docker-compose.yml')):
         with open (os.path.join (project_root, 'docker-compose.yml'), 'w') as f:
             f.write (DOCKER_COMPOSE_DEV.format (**conf))
