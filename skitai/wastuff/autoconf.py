@@ -126,7 +126,7 @@ services:
     tty: true
     entrypoint:
       - /bin/bash
-      - ./app/dep/startup.sh
+      - ./dep/startup.sh
 
   nginx:
     image: {name}-nginx
@@ -149,14 +149,14 @@ services:
       dockerfile: devel.Dockerfile
     user: ubuntu
     ports:
-      - "{port}:{port}"
+      - "{port}:{port}"[]
     volumes:
       - ${{PWD}}:${{HOME}}/app
       - ${{HOME}}/.ssh:/home/ubuntu/.ssh
     tty: true
     entrypoint:
       - /bin/bash
-      - ./app/dep/devel.sh
+      - ./dep/devel.sh
 """
 
 DOCKER_FILE_DEV = """FROM hansroh/ubuntu:aws
@@ -165,7 +165,7 @@ ENV PYTHONUNBUFFERED=0
 COPY requirements.txt /requirements.txt
 RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
 
-WORKDIR /home/ubuntu
+WORKDIR /home/ubuntu/app
 EXPOSE {port}
 """
 
@@ -182,7 +182,6 @@ COPY ./dep ./dep
 COPY ./pwa ./pwa
 COPY ./skitaid.py ./skitaid.py
 
-WORKDIR /home/ubuntu
 EXPOSE {port}
 """
 
@@ -206,11 +205,18 @@ then
     sudo rm -f /usr/bin/docker-compose && sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
 fi
 
-if [ "$1" == "attach" ]
+SERVICE="stt-api-dev"
+if [ "$1" == "bash" ]""
 then
-    docker exec -it {name}-dev /bin/bash
+    docker exec -it $SERVICE /bin/bash
+elif [ "$1" == "test" ]
+then
+    docker exec -it $SERVICE /bin/bash -c "cd tests && ./test-all.sh"
+elif [ "$1" == "exec" ]
+then
+    docker exec -it $SERVICE $2 $3 $4 $5 $6 $7 $8 $9
 else
-    docker-compose -f dep/devel.yml $1 $2 $3 $4 $5
+    docker-compose -f dep/devel.yml $1 $2 $3 $4 $5 $6 $7 $8 $9
 fi
 """
 
