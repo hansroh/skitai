@@ -457,7 +457,7 @@ with skitai.test_client (port = 6000) as cli:
 
 
 
-# Create Base Nginx Configuration
+# Create Base Configuration
 Mount app and directories and give a service `name`.
 ```python
 import skitai
@@ -468,20 +468,20 @@ if __name__ == "__main__":
     skitai.mount ('/admin', 'my_flask/static/admin/static')
     skitai.run (ip = '0.0.0.0', port = 5000, name = 'myapp')
 ```
+This make some shell scripts, nginx configrations and docker files.
 
 ```bash
 sudo apt install nginx
-python3 serve.py --nginx-conf="myapp.com"
+python3 serve.py --autoconf
 ```
-- collect all mounted static files to {CWD}/.static_root.
-- create nginx configuration files at {CWD}/conf/nginx.
+See generating logs.
 
-```bash
-sudo ln -s {CWD}/conf/nginx/nginx.conf /etc/nginx/sites-enabled/{SERVICE_NAME}.conf
-python3 serve.py --disable-static update
-sudo systemctl restart myapp
-sudo systemctl reload nginx
-```
+
+
+
+
+
+
 
 
 

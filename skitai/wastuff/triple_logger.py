@@ -35,7 +35,7 @@ class Logger:
 		self.path = path
 		if self.path:
 			pathtool.mkdir (path)
-		self.file_loggings = file_loggings or (['request'] if 'file' in self.media else [])
+		self.file_loggings = file_loggings or []
 		self.logger_factory = {}
 		self.lock = Lock ()
 
@@ -54,12 +54,11 @@ class Logger:
 			if self.path and 'file' in self.media and prefix in self.file_loggings:
 				_logger.add_logger (logger.rotate_logger (self.path, prefix, freq, flushnow = True))
 
-			if ('screen' in self.media and prefix not in self.file_loggings) or sys.stdout.isatty ():
+			if 'screen' in self.media:
 				if prefix == "request" and sys.stdout.isatty ():
 					_logger.add_logger (screen_request_logger ())
 				else:
 					_logger.add_logger (logger.screen_logger ())
-
 			self.logger_factory [prefix] = _logger
 
 	def add_screen_logger (self):

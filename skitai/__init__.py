@@ -767,20 +767,18 @@ def enable_proxy (unsecure_https = False):
     if os.name == "posix":
         dconf ['dns_protocol'] = 'udp'
 
-def enable_file_logging (path = None, file_loggings = None):
+def enable_file_logging (path = None, file_loggings = ['request']):
     # loggings : request, server and app
     global dconf
     dconf ['logpath'] = path
-    if not sys.stdout.isatty ():
-        file_loggings = "all"
-    dconf ['file_loggings'] = ['request', 'server', 'app'] if file_loggings == 'all' else None
+    dconf ['file_loggings'] = ['request', 'server', 'app'] if file_loggings == 'all' else file_loggings
 
 def mount_variable (path = None, enable_logging = False):
     global dconf
     if path:
         dconf ['varpath'] = path
     if enable_logging:
-        enable_file_logging (os.path.join (path, 'log'), None if enable_logging is True else enable_logging)
+        enable_file_logging (os.path.join (path, 'log'), "all" if enable_logging is True else enable_logging)
 
 def set_access_log_path (path = None):
     enable_file_logging (path, ['request'])

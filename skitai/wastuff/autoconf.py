@@ -116,13 +116,14 @@ services:
   {name}:
     image: {name}
     build:
-      context: ../
-      dockerfile: dep/Dockerfile
+      context: ..
+      dockerfile: dep/production.Dockerfile
     user: ubuntu
     ports:
       - "{port}:{port}"
     volumes:
       - {media_path}:{media_path}
+    tty: true
     entrypoint:
       - /bin/bash
       - ./app/dep/startup.sh
@@ -130,8 +131,8 @@ services:
   nginx:
     image: {name}-nginx
     build:
-      context: ../
-      dockerfile: dep/Dockerfile.Nginx
+      context: ..
+      dockerfile: dep/production.nginx.Dockerfile
     ports:
       - "80:80"
     volumes:
@@ -144,18 +145,18 @@ services:
     image: {name}-dev
     container_name: {name}-dev
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: devel.Dockerfile
     user: ubuntu
     ports:
       - "{port}:{port}"
     volumes:
       - ${{PWD}}:${{HOME}}/app
-      - ${HOME}/.ssh:/home/ubuntu/.ssh
+      - ${{HOME}}/.ssh:/home/ubuntu/.ssh
     tty: true
     entrypoint:
       - /bin/bash
-      - ./app/skitaid.py
+      - ./app/dep/devel.sh
 """
 
 DOCKER_FILE_DEV = """FROM hansroh/ubuntu:aws
@@ -189,14 +190,28 @@ DEVEL = """#! /bin/bash
 ./skitaid.py --devel
 """
 
-STARTUP = """#! /bin/bash
+PRODUCTION = """#! /bin/bash
 sudo chown -R ubuntu:ubuntu /home/ubuntu
 ./skitaid.py --disable-static
 """
 
-CITESTS = """#! /bin/bash
-sudo chown -R ubuntu:ubuntu /home/ubuntu
-./skitaid.py --devel
+STARTUP = """#! /bin/bash
+
+req=$(which "docker-compose")
+if [ "$req" == "" ]
+then
+    echo "installing docker-compose..."
+    sudo curl -L "https://github.com/docker/compose/releases/download/1.28.5/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    sudo chmod +x /usr/local/bin/docker-compose
+    sudo rm -f /usr/bin/docker-compose && sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+fi
+
+if [ "$1" == "attach" ]
+then
+    docker exec -it {name}-dev /bin/bash
+else
+    docker-compose -f dep/devel.yml $1 $2 $3 $4 $5
+fi
 """
 
 def generate (project_root, vhost, conf):
@@ -205,57 +220,74 @@ def generate (project_root, vhost, conf):
     assert conf ['name'], 'service name required, add skitai.run (name=NAME)'
 
     name = conf ['name']
-    print ("configuring app {}".format (tc.info (name)))
-    print ("bulding deployment docker files...")
-
-    pathtool.mkdir (depdir)
-    if not os.path.isfile (os.path.join (depdir, 'Dockerfile')):
-        with open (os.path.join (depdir, 'Dockerfile'), 'w') as f:
-            f.write (DOCKER_FILE.format (**conf))
-    if not os.path.isfile (os.path.join (depdir, 'Dockerfile.Nginx')):
-        with open (os.path.join (depdir, 'Dockerfile.Nginx'), 'w') as f:
-            f.write (DOCKER_FILE_NGINX)
-
     if not conf.get ('media_path'):
         conf ['media_url'] = None
         conf ['media_path'] = f'/home/ubuntu/.skitai/{name}/pub'
-
     conf ['media_volume_path'] = os.path.join (f'/home/ubuntu/.skitai')
     conf ['port'] = conf.get ('port', 5000)
-    if not os.path.isfile (os.path.join (depdir, 'docker-compose.yml')):
-        with open (os.path.join (depdir, 'docker-compose.yml'), 'w') as f:
+
+    print ("configuring app {}".format (tc.info (name)))
+    print ("generating deployment docker files...")
+    pathtool.mkdir (depdir)
+    if not os.path.isfile (os.path.join (depdir, 'production.Dockerfile')):
+        print ("- production.Dockerfile")
+        with open (os.path.join (depdir, 'production.Dockerfile'), 'w') as f:
+            f.write (DOCKER_FILE.format (**conf))
+    if not os.path.isfile (os.path.join (depdir, 'production.nginx.Dockerfile')):
+        print ("- production.nginx.Dockerfile")
+        with open (os.path.join (depdir, 'production.nginx.Dockerfile'), 'w') as f:
+            f.write (DOCKER_FILE_NGINX)
+
+    if not os.path.isfile (os.path.join (depdir, 'production.yml')):
+        print ("- production.yml")
+        with open (os.path.join (depdir, 'production.yml'), 'w') as f:
             f.write (DOCKER_COMPOSE.format (**conf))
 
-    for fn, content in (('startup.sh', STARTUP), ('devel.sh', DEVEL), ('ci-tests.sh', CITESTS)):
-        script = os.path.join (depdir, fn)
-        if not os.path.isfile (script):
-            with open (script, 'w') as f:
-                f.write (content)
-        os.chmod (to, 0o744)
-
-    print ("bulding development docker files...")
-    if not os.path.isfile (os.path.join (project_root, 'Dockerfile')):
-        with open (os.path.join (project_root, 'Dockerfile'), 'w') as f:
+    print ("generating development docker files...")
+    if not os.path.isfile (os.path.join (depdir, 'devel.Dockerfile')):
+        print ("- devel.Dockerfile")
+        with open (os.path.join (depdir, 'devel.Dockerfile'), 'w') as f:
             f.write (DOCKER_FILE_DEV.format (**conf))
-    if not os.path.isfile (os.path.join (project_root, 'docker-compose.yml')):
-        with open (os.path.join (project_root, 'docker-compose.yml'), 'w') as f:
+    if not os.path.isfile (os.path.join (depdir, 'devel.yml')):
+        print ("- devel.yml")
+        with open (os.path.join (depdir, 'devel.yml'), 'w') as f:
             f.write (DOCKER_COMPOSE_DEV.format (**conf))
 
+    print ("generating shell scripts...")
+    for fn, content in (('production.sh', PRODUCTION), ('devel.sh', DEVEL)):
+        script = os.path.join (depdir, fn)
+        if not os.path.isfile (script):
+            print (f"- {fn}")
+            with open (script, 'w') as f:
+                f.write (content)
+        os.chmod (script, 0o744)
+
+    script = os.path.join (project_root, 'container.sh')
+    if not os.path.isfile (script):
+        print ("- container.sh")
+        with open (script, 'w') as f:
+            f.write (STARTUP.format (**conf))
+    os.chmod (script, 0o744)
+
+    print ("collecting routes to serve with Nginx...")
     A, B, C = _collect_routes (vhost)
     root = os.getenv ('STATIC_ROOT')
     nginxdir = os.path.join (depdir, 'nginx', 'conf.d')
     if not os.path.exists (nginxdir):
         pathtool.mkdir (nginxdir)
-        print ("bulding nginx configuration...")
+        print ("generating nginx configuration...")
+        print ("- nginx/conf.d/default.conf")
         pathtool.mkdir (os.path.join (nginxdir, 'include'))
         with open (os.path.join (nginxdir, 'default.conf'), 'w') as f:
             f.write (NGINX)
 
-        print ("- setup document root...")
+        print ("- nginx/conf.d/include/header.conf")
         with open (os.path.join (nginxdir, 'include', 'header.conf'), 'w') as f:
+            print ('  - / mounted to /var/www/html')
             f.write (HEADER)
 
         print ("- setup upstreams...")
+        print ("- nginx/conf.d/include/upstream.conf")
         upstreams = []
         with open (os.path.join (nginxdir, 'include', 'upstreams.conf'), 'w') as f:
             f.write (UPSTREAMS)
@@ -264,20 +296,25 @@ def generate (project_root, vhost, conf):
                 if not path:
                     path = '/'
                 for cname, rsc in rscs:
+                    print (f'  - {cname} {rsc}')
                     servers = []
                     for member, weight in rsc:
                         servers.append ("    server {} weight={};".format (member, weight))
                 f.write (UPSTREAM % (cname, '\n'.join (servers)))
                 upstreams.append ((path, cname))
 
+        print ("- setup routes...")
+        print ("- nginx/conf.d/include/routes.conf")
         with open (os.path.join (nginxdir, 'include', 'routes.conf'), 'w') as f:
             for path, cname in upstreams:
+                print (f'  - {path} mounted to {cname}')
                 f.write (LOCATION_PROXY % (path, cname))
             if conf.get ("media_url"):
+                print ('  - /var/www/pub mounted to {media_url}'.format (**conf))
                 f.write ("location %s {\n    alias /var/www/pub;\n}\n" % conf ["media_url"][:-1])
             f.write (LOCATIONS)
 
-    print ("- collecting static files...")
+    print ("collecting static files...")
     copied = 0
     for path, rscs in sorted (A.items (), key = lambda x: len (x [0]), reverse = True):
         if not path:
@@ -286,7 +323,8 @@ def generate (project_root, vhost, conf):
             target = root + path
             pathtool.mkdir (target)
             r = copy_tree (rsc ['path'], target, update = 1, verbose = 1)
+            print (f"- copying static: {rsc ['path'].replace ('/home/ubuntu', '~')}")
             copied += len (r)
+    print ("total {} static files collected".format (tc.warn ('{:,}'.format (copied))))
 
-    print ("- total {} static files collected".format (tc.warn ('{:,}'.format (copied))))
-    print ("configurations are generate at {}.".format (tc.blue (depdir)))
+    print ("configurations generated at {}.".format (tc.blue (depdir)))
