@@ -25,7 +25,7 @@ scikit-image
 redis
 jsonrpclib-pelix
 setproctitle
-pymongo
+pymongo<4.0
 keras==2.3.0
 flask
 protobuf
