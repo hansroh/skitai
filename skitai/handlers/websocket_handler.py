@@ -109,7 +109,6 @@ class Handler (wsgi_handler.Handler):
             env ["wsgi.routed"] = wsfunc = current_app.get_routed (method)
             env ["wsgi.route_options"] = options
             fspec = app.get_function_spec (wsfunc, options.get ('mntopt')) or inspect.getfullargspec (wsfunc)
-
             savedqs = env.get ('QUERY_STRING', '')
             current_args = {}
             defaults = 0
@@ -118,8 +117,21 @@ class Handler (wsgi_handler.Handler):
             if fspec.defaults:
                 defaults = len (fspec.defaults)
             varnames = fspec.args [1:]
-            temporary_args = "&".join ([arg + "=" for arg in varnames [:len (varnames) - defaults] if current_args.get (arg) is None])
+            if defaults:
+                required = varnames [1:-defaults]
+            else:
+                required = varnames [1:]
 
+            for r in required:
+                if r not in current_args:
+                    return self.handle_error_before_collecting (request, 400)
+
+            if not fspec.varkw:
+                for p in current_args:
+                    if p not in varnames:
+                        return self.handle_error_before_collecting (request, 400)
+
+            temporary_args = "&".join ([arg + "=" for arg in varnames [:len (varnames) - defaults] if current_args.get (arg) is None])
             if temporary_args:
                 if savedqs:
                     env ['QUERY_STRING'] = savedqs + "&" + temporary_args

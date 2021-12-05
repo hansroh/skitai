@@ -17,6 +17,7 @@ with open('skitai/__init__.py', 'r') as fd:
     version = re.search(r'^__version__\s*=\s*"(.*?)"',fd.read(), re.M).group(1)
 
 if 'publish' in sys.argv:
+    os.system ('./collect_requires.py')
     os.system ('{} setup.py bdist_wheel'.format (sys.executable))
     whl = glob.glob ('dist/skitai-{}-*.whl'.format (version))[0]
     os.system ('twine upload {}'.format (whl))
@@ -99,29 +100,32 @@ install_requires = [
 if os.name == "nt":
     install_requires.append ("pywin32")
 
-with codecs.open ('README.md', 'r', encoding='utf-8') as f:
-    long_description = f.read()
 
-setup (
-    name='skitai',
-    version=version,
-    description='Skitai App Engine',
-    long_description=long_description,
-    long_description_content_type = 'text/markdown',
-    url = 'https://gitlab.com/skitai/skitai',
-    author='Hans Roh',
-    author_email='hansroh@gmail.com',
-    packages=packages,
-    package_dir=package_dir,
-    package_data = package_data,
-    entry_points = {
-      'console_scripts': [
-        'skitai=skitai.scripts.skitai:main',
-       ],
-    },
-    license='MIT',
-    platforms = ["posix", "nt"],
-    download_url = "https://pypi.python.org/pypi/skitai",
-    install_requires = install_requires,
-    classifiers=classifiers
-)
+if __name__ == "__main__":
+    with codecs.open ('README.md', 'r', encoding='utf-8') as f:
+        long_description = f.read()
+    long_description = "[Documentation](https://gitlab.com/skitai/skitai/-/blob/master/README.md)"
+
+    setup (
+        name='skitai',
+        version=version,
+        description='Skitai App Engine',
+        long_description=long_description,
+        long_description_content_type = 'text/markdown',
+        url = 'https://gitlab.com/skitai/skitai',
+        author='Hans Roh',
+        author_email='hansroh@gmail.com',
+        packages=packages,
+        package_dir=package_dir,
+        package_data = package_data,
+        entry_points = {
+        'console_scripts': [
+            'skitai=skitai.scripts.skitai:main',
+        ],
+        },
+        license='MIT',
+        platforms = ["posix", "nt"],
+        download_url = "https://pypi.python.org/pypi/skitai",
+        install_requires = install_requires,
+        classifiers=classifiers
+    )

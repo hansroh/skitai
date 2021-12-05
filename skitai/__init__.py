@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.39.1.1"
+__version__ = "0.39.1.11"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -32,6 +32,7 @@ from rs4.termcolor import tc
 from rs4 import annotations
 import getopt as libgetopt
 import types
+from rs4 import pathtool
 
 argopt.add_option ('-d', desc = "start as daemon, equivalant with `start` command") # lower version compatible
 
@@ -52,7 +53,7 @@ argopt.add_option (None, '--disable-static', desc = "disable static file service
 argopt.add_option (None, '--user=USER', desc = "if run as root, fallback workers owner to user")
 argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback workers owner to group")
 argopt.add_option (None, '--smtpda', desc = "start SMTP Delivery Agent")
-argopt.add_option (None, '--nginx-conf=DOMAIN', desc = "generate Nginx configuration")
+argopt.add_option (None, '--autoconf', desc = "generate basic configuration")
 
 # IMP: DO NOT USE argopt.options ()
 if '--deploy' in sys.argv:
@@ -63,15 +64,14 @@ if "--devel" in sys.argv:
 if os.getenv ("SKITAIENV") is None:
     os.environ ["SKITAIENV"] = "PRODUCTION"
 
-START_SERVER = sum ([1 for each in sys.argv if each.startswith ('--nginx-conf')]) == 0
 SMTP_STARTED = False
 if "--smtpda" in sys.argv and os.name != 'nt':
-    os.system ("{} -m skitai.scripts.skitai smtpda -d".format (sys.executable))
+    os.system ("{} -m skitai.scripts.skitai smtpda start".format (sys.executable))
     SMTP_STARTED = True
 
 def set_smtp (server, user = None, password = None, ssl = False, start_service = False):
     composer.set_default_smtp (server, user, password, ssl)
-    start_service and not SMTP_STARTED and os.system ("{} -m skitai.scripts.skitai smtpda -d".format (sys.executable))
+    start_service and not SMTP_STARTED and os.system ("{} -m skitai.scripts.skitai smtpda start".format (sys.executable))
 
 def test_client (*args, **kargs):
     from .testutil.launcher import Launcher
@@ -140,6 +140,7 @@ WS_OPCODE_PING = 0x9
 WS_OPCODE_PONG = 0xa
 
 STATUS = 'CONFIGURING'
+MEDIA_PATH = None
 
 def status ():
     global STATUS
@@ -304,8 +305,15 @@ dconf = dict (
     wasc_options = {},
     backlog = 256,
     max_upload_size = 256 * 1024 * 1024, # 256Mb
-    subscriptions = set ()
+    subscriptions = set (),
+    background_jobs = [],
+    media_url = None,
+    media_path = None
 )
+
+def background_task (procname, cmd):
+    global dconf
+    dconf ['background_jobs'].append ((procname, cmd))
 
 def use_poll (name):
     from rs4 import asyncore
@@ -385,13 +393,13 @@ class PreferenceBase:
             path = joinpath (path)
             self.config.STATIC_ROOT = path
             mount (url, path, first = True)
+    mount_static = set_static
 
-    def set_media (self, url, path):
+    def set_media (self, url = '/media', path = None):
         self.config.MEDIA_URL = url
-        path = joinpath (path)
         self.config.MEDIA_ROOT = path
-        mount (url, path, first = True)
-
+        set_media (url, path)
+    mount_media = set_media
 
 class Preference (AttrDict, PreferenceBase):
     def __init__ (self, path = None):
@@ -414,12 +422,6 @@ class Preference (AttrDict, PreferenceBase):
         # mount module or func (app, options)
         self.__dict__ ["mountables"].append ((args, kargs))
 
-    # def mount (self, point, func):
-        # mount on fly to add routes, decorator and hooks
-        # mount function or module which has __mount__ or __setup__ func
-        # you cannot use static and templates
-    #    self.mount_later (point, func)
-
 
 def preference (preset = False, path = None, **configs):
     from .wastuff.wsgi_apps import Config
@@ -440,7 +442,7 @@ def get_proc_title ():
         a, b = os.path.split (os.path.join (os.getcwd (), sys.argv [0]))
         script = b.split(".")[0]
 
-        PROCESS_NAME =  "skitai/%s%s" % (
+        PROCESS_NAME =  "sktd:%s%s" % (
             os.path.basename (a),
             script != "app" and "-" + script or ''
         )
@@ -471,6 +473,19 @@ Win32Service = None
 def set_service (service_class):
     global Win32Service
     Win32Service = service_class
+
+def set_media (url = '/media', path = None):
+    global dconf
+    assert url, "URL cannot be empty"
+    if not url.endswith ('/'):
+        url = url + '/'
+    assert dconf ['media_path'] is None, "media already specified to {media_url}:{media_path}".format (**dconf)
+    if path:
+        assert path.startswith ('/'), 'media path should be absolute path'
+        path = joinpath (path)
+        pathtool.mkdir (path)
+        mount (url, path, first = True)
+    dconf ['media_url'], dconf ['media_path'] = url, path
 
 def log_off (*path):
     global dconf
@@ -752,17 +767,18 @@ def enable_proxy (unsecure_https = False):
     if os.name == "posix":
         dconf ['dns_protocol'] = 'udp'
 
-def enable_file_logging (path = None, file_loggings = None):
+def enable_file_logging (path = None, file_loggings = ['request']):
     # loggings : request, server and app
     global dconf
     dconf ['logpath'] = path
-    dconf ['file_loggings'] = ['request', 'server', 'app'] if file_loggings == 'all' else None
+    dconf ['file_loggings'] = ['request', 'server', 'app'] if file_loggings == 'all' else file_loggings
 
 def mount_variable (path = None, enable_logging = False):
     global dconf
-    dconf ['varpath'] = path
+    if path:
+        dconf ['varpath'] = path
     if enable_logging:
-        enable_file_logging (os.path.join (path, 'log'), None if enable_logging is True else enable_logging)
+        enable_file_logging (os.path.join (path, 'log'), "all" if enable_logging is True else enable_logging)
 
 def set_access_log_path (path = None):
     enable_file_logging (path, ['request'])
@@ -779,17 +795,22 @@ def enable_ssl (certfile, keyfile = None, passphrase = None):
 
 def get_varpath (name):
     global dconf
+    name = name.split (":", 1)[-1].replace ("/", "-").replace (" ", "-")
+    default_path = os.name == "posix" and os.path.expanduser ('~/.skitai/%s' % name) or os.path.join (tempfile.gettempdir(), name)
     if 'varpath' in dconf:
+        if dconf ['varpath'].find ('/.skitai/') == -1:
+            if not os.path.exists (default_path):
+                pathtool.mkdir (os.path.expanduser ('~/.skitai'))
+                os.symlink (dconf ['varpath'], default_path)
         return dconf ['varpath']
-    name = name.split ("/", 1)[-1].replace (":", "-").replace (" ", "-")
-    return os.name == "posix" and '/var/tmp/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
+    return default_path
 
 def get_logpath (name):
     global dconf
-    if 'logpath' in dconf:
+    if dconf.get ('logpath'):
         return dconf ['logpath']
-    name = name.split ("/", 1)[-1].replace (":", "-").replace (" ", "-")
-    return os.name == "posix" and '/var/log/skitai/%s' % name or os.path.join (tempfile.gettempdir(), name)
+    name = name.split (":", 1)[-1].replace ("/", "-").replace (" ", "-")
+    return os.name == "posix" and os.path.expanduser ('~/.skitai/%s/log' % name) or os.path.join (tempfile.gettempdir(), name)
 
 options = None
 def add_option (sopt, lopt = None, desc = None, default = None):
@@ -845,6 +866,11 @@ def getopt (sopt = "", lopt = []):
         aopt_.append (arg)
     return opts_, aopt_
 
+def get_options ():
+    global options
+    options = argopt.options ()
+    return options
+
 def get_option (*names):
     global options
     options = argopt.options ()
@@ -890,7 +916,6 @@ def run (**conf):
     import os, sys, time
     from . import Skitai
     from rs4.psutil import flock
-    from rs4 import pathtool
 
     class SkitaiServer (Skitai.Loader):
         NAME = 'instance'
@@ -926,9 +951,9 @@ def run (**conf):
             else:
                 mode = 'production'
             self.wasc.logger ("server", "[info] running in {} mode".format (tc.red (mode)))
-            self.wasc.logger ("server", "[info] engine tmp path: %s" % tc.white (self.varpath))
+            self.wasc.logger ("server", "[info] various path: %s" % tc.white (self.varpath))
             if self.logpath:
-                self.wasc.logger ("server", "[info] engine log path: %s" % tc.white (self.logpath))
+                self.wasc.logger ("server", "[info] log path: %s" % tc.white (self.logpath))
             self.set_model_keys (self.conf ["models_keys"])
 
         def maintern_shutdown_request (self, now):
@@ -949,8 +974,10 @@ def run (**conf):
 
         def configure (self):
             options = argopt.options ()
+            start_server = '--autoconf' not in argopt.options ()
             conf = self.conf
 
+            self.wasc.register ('varpath', conf ['varpath'])
             if '--poll' in options:
                 use_poll (options.get ('--poll'))
             workers = int (options.get ('--workers') or conf.get ('workers', 1))
@@ -982,6 +1009,19 @@ def run (**conf):
                     conf.get ('fws_port', 80), conf.get ('fws_to', 443)
                 )
 
+            if dconf ['background_jobs']:
+                import psutil
+                procnames = [ proc.name () for proc in psutil.process_iter() ]
+                for procname, cmd in dconf ['background_jobs']:
+                    if procname not in procnames:
+                        self.wasc.logger.get ("server").log ('background job {}: {}'.format (tc.yellow (procname), tc.white (cmd)))
+                        os.system (cmd + '&')
+
+            if conf ['media_path'] is None:
+                conf ['media_path'] = os.path.expanduser (os.path.join ('~/.skitai', conf.get ('name', '.unnamed'), 'pub'))
+                pathtool.mkdir (conf ['media_path'])
+                mount (conf ['media_url'], conf ['media_path'], first = True)
+
             self.config_webserver (
                 port, conf.get ('address', '0.0.0.0'),
                 NAME, conf.get ("certfile") is not None,
@@ -993,9 +1033,10 @@ def run (**conf):
                 multi_threaded = threads > 0,
                 max_upload_size = conf ['max_upload_size'],
                 thunks = [self.master_jobs],
-                start = START_SERVER
+                start = start_server
             )
-            if START_SERVER and os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
+
+            if start_server and os.name == "posix" and self.wasc.httpserver.worker_ident == "master":
                 # master does not serve
                 return
 
@@ -1035,6 +1076,14 @@ def run (**conf):
                     conf.get ("gw_secret_key", None)
                 )
 
+                for app in self.get_apps ().values ():
+                    if not hasattr (app, 'config'):
+                        continue
+                    try:
+                        app.config.MEDIA_URL, app.config.MEDIA_ROOT = conf ['media_url'], conf ['media_path']
+                    except AttributeError:
+                        pass
+
                 for p, s in dconf ['subscriptions']:
                     try:
                         provider = self.get_app_by_name (p)
@@ -1068,9 +1117,10 @@ def run (**conf):
             conf [k] = v
 
     if conf.get ("name"):
-        PROCESS_NAME = 'skitai/{}'.format (conf ["name"])
+        PROCESS_NAME = 'sktd:{}'.format (conf ["name"])
     if not conf.get ('mount'):
         raise systemError ('No mount point')
+
     conf ["varpath"] = get_varpath (get_proc_title ())
     pathtool.mkdir (conf ["varpath"])
     if "logpath" in conf and not conf ["logpath"]:
@@ -1097,13 +1147,13 @@ def run (**conf):
     server.just_before_run (conf.get ("mount_onfly"))
     STATUS = 'CREATED'
 
-    if '--nginx-conf' in argopt.options ():
-        from .wastuff import nginx
+    if '--autoconf' in argopt.options ():
+        from .wastuff import autoconf
+
         if not os.getenv ('STATIC_ROOT'):
-            os.environ ['STATIC_ROOT'] = abspath ('conf/nginx/.static_root')
+            os.environ ['STATIC_ROOT'] = abspath ('dep/nginx/.static_root')
         vhost = server.virtual_host.sites [None]
-        conf ['domain'] = get_option ('--nginx-conf')
-        nginx.generate (abspath ('conf', 'nginx'), vhost, conf)
+        autoconf.generate (abspath ('.'), vhost, conf)
         sys.exit ()
 
     # timeout for fast keyboard interrupt on win32

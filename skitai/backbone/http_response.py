@@ -529,7 +529,7 @@ class http_response:
         server = self.request.channel.server
         referer = self.request.get_header ('referer')
         real_ip = self.request.get_real_ip ()
-        worker = server.worker_ident [0] == "m" and "M" or ("W" + server.worker_ident [1:])
+        worker = server.worker_ident [0] == "m" and "M" or ("W" + server.worker_ident)
         host = self.request.host
         server.log_request (
             '%s %s %s %s %d %d %d %s %d %s %s %s %s %s %s %s %s %d %d'

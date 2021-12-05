@@ -133,6 +133,13 @@ def echo_coroutine2 (was):
 			yield task.fetch ()
 
 
+@app.route ("/param")
+@app.websocket (skitai.WS_CHANNEL, 1200, onopenp, onclosep)
+def param (was, message, a, b = '2', **payload):
+  return 'you said: ' + message
+
+
+
 if __name__ == "__main__":
 	import skitai
 

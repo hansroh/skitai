@@ -86,11 +86,16 @@ class Loader:
         self.wasc._luwatcher.add (keys)
 
     def get_app_by_name (self, name):
+        return self.get_apps ().get (name)
+
+    def get_apps (self):
+        apps = {}
         for h in self.wasc.httpserver.handlers:
             if isinstance (h, vhost_handler.Handler):
                 for vhost in h.sites.values ():
-                    if name in vhost.apps.modnames:
-                        return vhost.apps.modnames [name].get_callable ()
+                    for name in vhost.apps.modnames:
+                        apps [name] = vhost.apps.modnames [name].get_callable ()
+        return apps
 
     def app_cycle (self, func):
         for h in self.wasc.httpserver.handlers:

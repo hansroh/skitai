@@ -8,7 +8,7 @@ MAXINT = 2 ** (struct.Struct('i').size * 8 - 1) - 1
 class MongoDBError (Exception):
     pass
 
-def _unpack_response(data, op_code, request_id = None):
+def _unpack_response (data, op_code, request_id = None):
     # this function had been removed from pymong 3.4
     if op_code == 1:
         response_flag, cursor_id, starting_from, number_returned = struct.Struct("<iqii").unpack_from (data)
@@ -271,7 +271,7 @@ try:
 
 except ImportError:
     from rs4.annotations import Uninstalled
-    AsynConnect = Uninstalled ('pymongo')
+    AsynConnect = Uninstalled ('pymongo<4.0')
 
 else:
     from pymongo import auth, message

@@ -2,7 +2,7 @@ from django.db import models
 
 class Foo(models.Model):
     id = models.AutoField(primary_key=True)
-    tx_id = models.CharField(unique=True, max_length=1024, blank=True, null=True)
+    tx_id = models.CharField(max_length=1024, blank=True, null=True)
     from_left = models.BigIntegerField()
     to_left = models.BigIntegerField()
     amount = models.BigIntegerField()

@@ -4,9 +4,9 @@
 import sys, os, getopt
 from skitai import lifetime
 from rs4 import pathtool, logger, confparse
-from ..protocols.threaded import select_trigger
+from ...protocols.threaded import select_trigger
 from rs4.psutil import daemon as demonizer, service, daemon_class
-from ..protocols.sock.impl.smtp import async_smtp, composer
+from ...protocols.sock.impl.smtp import async_smtp, composer
 import signal
 import time
 import glob
@@ -28,15 +28,15 @@ def hTERM (signum, frame):
 def hHUP (signum, frame):
 	lifetime.shutdown (3, 30.0)
 
-class	SMTPDeliverAgent (daemon_class.DaemonClass):
+class SMTPDeliverAgent (daemon_class.SimpleDaemonClass):
 	CONCURRENTS = 2
 	MAX_RETRY = 3
 	UNDELIVERS_KEEP_MAX = 3600
 	NAME = "smtpda"
 
-	def __init__ (self, logpath, varpath, consol, config):
+	def __init__ (self, working_dir, config):
 		self.config = config
-		daemon_class.DaemonClass.__init__ (self, logpath, varpath, consol)
+		super ().__init__ (working_dir)
 		self.que = {}
 		self.actives = {}
 		self.last_maintern = time.time ()
@@ -190,17 +190,6 @@ examples:
 
 
 def main ():
-	_fileopt = []
-	home_dir = os.environ.get ("HOME", os.environ.get ("USERPROFILE"))
-	if home_dir:
-		_default_conf = os.path.join (home_dir, ".skitai.conf")
-		if os.path.isfile (_default_conf):
-			cf = confparse.ConfParse (_default_conf)
-			_fileopt.extend (list ([("--" + k, v) for k, v in cf.getopt ("smtpda").items () if v not in ("", "false", "no")]))
-		else:
-			with open (_default_conf, "w") as f:
-				f.write (DEFAULT)
-
 	argopt = getopt.getopt (
 		sys.argv[1:],
 		"ds:u:p:",
@@ -211,10 +200,9 @@ def main ():
 		]
 	)
 	_cf = {"max-retry": 5, "keep-days": 1, "ssl": 0}
-	_consol = True
 	try: cmd = argopt [1][0]
 	except: cmd = None
-	for k, v in (_fileopt + argopt [0]):
+	for k, v in argopt [0]:
 		if k == "--help":
 			usage ()
 		elif k == "-d":
@@ -231,17 +219,15 @@ def main ():
 			_cf ['password'] = v
 		elif k == "--ssl":
 			_cf ['ssl'] = 1
-	if cmd:
-		_consol = False
-	_logpath = os.path.join ("/var/log/skitai", SMTPDeliverAgent.NAME)
-	_varpath = os.path.join ("/var/tmp/skitai", SMTPDeliverAgent.NAME)
-	servicer = service.Service ("skitai/{}".format (SMTPDeliverAgent.NAME), _varpath)
+
+	working_dir = os.path.expanduser (f'~/.skitai/{SMTPDeliverAgent.NAME}')
+	servicer = service.Service ("sktd:{}".format (SMTPDeliverAgent.NAME), working_dir)
 	if cmd and not servicer.execute (cmd):
 		return
 	if not cmd and servicer.status (False):
 		raise SystemError ("daemon is running")
 
-	s = SMTPDeliverAgent (_logpath, _varpath, _consol, _cf)
+	s = SMTPDeliverAgent (working_dir, _cf)
 	s.start ()
 	sys.exit (lifetime._exit_code)
 

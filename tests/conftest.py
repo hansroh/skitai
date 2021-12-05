@@ -9,6 +9,8 @@ from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_M
 import sys
 import pytest
 
+os.system ("sudo pg_ctlcluster 12 main start")
+
 def pytest_addoption (parser):
     parser.addoption (
         "--slow", action="store_true", default=False, help="run slow tests"
