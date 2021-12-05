@@ -11,7 +11,10 @@ def test_tirple_logger ():
 		shutil.rmtree (logpath)
 	logger = triple_logger.Logger ("screen", None)
 	assert len (logger.logger_factory) == 3
-	logger = triple_logger.Logger (["file", "screen"], logpath)
+	with pytest.raises (AssertionError):
+		logger = triple_logger.Logger (["file", "screen"], logpath, ["xx"])
+
+	logger = triple_logger.Logger (["file", "screen"], logpath, ["request"])
 	assert os.path.isfile (os.path.join (logpath, 'request.log'))
 	logger.rotate ()
 	logger.rotate ()

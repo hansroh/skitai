@@ -30,12 +30,15 @@ class screen_request_logger (logger.screen_logger):
 
 
 class Logger:
+	LOG_TYPES = ('app', 'server', 'request')
 	def __init__ (self, media, path, file_loggings = None):
 		self.media = type (media) is list and media  or [media]
 		self.path = path
 		if self.path:
 			pathtool.mkdir (path)
 		self.file_loggings = file_loggings or []
+		for lt in self.file_loggings:
+			assert lt in self.LOG_TYPES, f'unknown log type: {lt}'
 		self.logger_factory = {}
 		self.lock = Lock ()
 
