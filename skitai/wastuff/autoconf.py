@@ -4,6 +4,7 @@ from rs4.termcolor import tc
 import os
 import sys
 from distutils.dir_util import copy_tree
+import requests
 
 NAMES = set ("Shawn April Derek Kathryn Kristin Chad Jenna Tara Maria Krystal Jared Anna Edward Julie Peter Holly Marcus Kristina Natalie Jordan Victoria Jacqueline Corey Keith Monica Juan Donald Cassandra Meghan Joel Shane Phillip Patricia Brett Ronald Catherine George Antonio Cynthia Stacy Kathleen Raymond Carlos Brandi Douglas Nathaniel Ian Craig Brandy Alex Valerie Veronica Cory Whitney Gary Derrick Philip Luis Diana Chelsea Leslie Caitlin Leah Natasha Erika Casey Latoya Erik Dana Victor Brent Dominique Frank Brittney Evan Gabriel Julia Candice Karen Melanie Adrian Stacey Margaret Sheena Wesley Vincent Alexandra Katrina Bethany Nichole Larry Jeffery Curtis Carrie Todd Blake Christian Randy Dennis Alison Michael Christopher Jessica Matthew Ashley Jennifer Joshua Amanda Daniel David James Robert John Joseph Andrew Ryan Brandon Jason Justin Sarah William Jonathan Stephanie Brian Nicole Nicholas Anthony Heather Eric Elizabeth Adam Megan Melissa Kevin Steven Thomas Timothy Christina Kyle Rachel Laura Lauren Amber Brittany Danielle Richard Kimberly Jeffrey Amy Crystal Michelle Tiffany Jeremy Benjamin Mark Emily Aaron Charles Rebecca Jacob Stephen Patrick Sean Erin Zachary Jamie Kelly Samantha Nathan Sara Dustin Paul Angela Tyler Scott Katherine Andrea Gregory Erica Mary Travis Lisa Kenneth Bryan Lindsey Kristen Jose Alexander Jesse Katie Lindsay Shannon Vanessa Courtney Christine Alicia Cody Allison Bradley Samuel".split ())
 NAMES = [name.lower () for name in NAMES]
@@ -108,6 +109,8 @@ DOCKER_FILE_NGINX = """FROM nginx
 
 COPY ./dep/nginx/conf.d /etc/nginx/conf.d
 COPY ./dep/nginx/.static_root /var/www/html
+
+EXPOSE 80
 """
 
 DOCKER_COMPOSE = """version: '2'
@@ -119,24 +122,12 @@ services:
       context: ..
       dockerfile: dep/production.Dockerfile
     user: ubuntu
-    ports:
-      - "{port}:{port}"
-    volumes:
-      - {media_path}:{media_path}
-    tty: true
-    entrypoint:
-      - /bin/bash
-      - ./dep/startup.sh
 
   nginx:
     image: {name}-nginx
     build:
       context: ..
       dockerfile: dep/production.nginx.Dockerfile
-    ports:
-      - "80:80"
-    volumes:
-      - {media_path}:/var/www/pub
 """
 
 DOCKER_COMPOSE_DEV = """version: '2'
@@ -167,6 +158,7 @@ RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
 
 WORKDIR /home/ubuntu/app
 EXPOSE {port}
+ENTRYPOINT ["./dep/devel.sh"]
 """
 
 DOCKER_FILE = """FROM hansroh/ubuntu:aws
@@ -183,14 +175,23 @@ COPY ./pwa ./pwa
 COPY ./skitaid.py ./skitaid.py
 
 EXPOSE {port}
+ENTRYPOINT ["./dep/production.sh"]
 """
 
 DEVEL = """#! /bin/bash
+if ! echo $(pip3 list) | grep -q "skitai"
+then
+    echo "updating base libraries..."
+    echo pip3 install -U skitai
+fi
 ./skitaid.py --devel
 """
 
 PRODUCTION = """#! /bin/bash
 sudo chown -R ubuntu:ubuntu /home/ubuntu
+sudo chown -R ubuntu:ubuntu /var/www/pub
+mkdir -p ~/.skitai/stt-api
+ln -s /var/www/pub {media_path}
 ./skitaid.py --disable-static
 """
 
@@ -206,9 +207,16 @@ then
 fi
 
 SERVICE="stt-api-dev"
-if [ "$1" == "bash" ]""
+if [ "$1" == "bash" ]
 then
     docker exec -it $SERVICE /bin/bash
+elif [ "$1" == "boot" ]
+then
+    docker-compose -f dep/devel.yml up -d
+    docker attach $SERVICE
+elif [ "$1" == "attach" ]
+then
+    docker attach $SERVICE
 elif [ "$1" == "test" ]
 then
     docker exec -it $SERVICE /bin/bash -c "cd tests && ./test-all.sh"
@@ -219,6 +227,7 @@ else
     docker-compose -f dep/devel.yml $1 $2 $3 $4 $5 $6 $7 $8 $9
 fi
 """
+
 
 def generate (project_root, vhost, conf):
     depdir = os.path.join (project_root, 'dep')
@@ -260,13 +269,20 @@ def generate (project_root, vhost, conf):
             f.write (DOCKER_COMPOSE_DEV.format (**conf))
 
     print ("generating shell scripts...")
-    for fn, content in (('production.sh', PRODUCTION), ('devel.sh', DEVEL)):
+    for fn, content in (('production.sh', PRODUCTION.format (**conf)), ('devel.sh', DEVEL)):
         script = os.path.join (depdir, fn)
         if not os.path.isfile (script):
             print (f"- {fn}")
             with open (script, 'w') as f:
                 f.write (content)
         os.chmod (script, 0o744)
+
+    script = os.path.join (depdir, 'wait-for-it.sh')
+    if not os.path.isfile (script):
+        with requests.get ('https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh') as r:
+            with open (script, 'w') as f:
+                f.write (r.text)
+    os.chmod (script, 0o744)
 
     script = os.path.join (project_root, 'container.sh')
     if not os.path.isfile (script):
@@ -334,3 +350,11 @@ def generate (project_root, vhost, conf):
     print ("total {} static files collected".format (tc.warn ('{:,}'.format (copied))))
 
     print ("configurations generated at {}.".format (tc.blue (depdir)))
+    print ()
+    print ("this configurations are for AWS ECS")
+    print (f"- make skitai container name as same as {name}")
+    print (f"- link {name} to nginx continer for upstream")
+
+    if conf.get ("media_url"):
+        print ("- create volume `/var/www/pub` as `Bind Mount` type")
+        print ("- then mount to same path at each containers")
