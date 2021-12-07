@@ -11,20 +11,21 @@ NAMES = [name.lower () for name in NAMES]
 
 def _collect_routes (vhost):
     proxies = {}
-    for path, cname in vhost.proxypass_handler.sorted_route_map:
-        cluster = vhost.proxypass_handler.clusters [cname [0]]
-        targets = []
-        for member in cluster.members:
-            try:
-                target, weight = member.split ()
-            except ValueError:
-                target, weight = member, 1
-            weight = int (weight)
-            targets.append ((target, weight))
+    if hasattr (vhost, "proxypass_handler"):
+        for path, cname in vhost.proxypass_handler.sorted_route_map:
+            cluster = vhost.proxypass_handler.clusters [cname [0]]
+            targets = []
+            for member in cluster.members:
+                try:
+                    target, weight = member.split ()
+                except ValueError:
+                    target, weight = member, 1
+                weight = int (weight)
+                targets.append ((target, weight))
 
-        if path not in proxies:
-            proxies [path] = []
-        proxies [path].append ((cname [0], targets))
+            if path not in proxies:
+                proxies [path] = []
+            proxies [path].append ((cname [0], targets))
 
     return vhost.default_handler.filesystem.maps, proxies, vhost.apps.modules
 
@@ -310,7 +311,8 @@ deploy:
 
 def generate (project_root, vhost, conf):
     depdir = os.path.join (project_root, 'dep')
-    assert os.getenv ('STATIC_ROOT'), "missing STATIC_ROOT environment variable"
+    if not os.getenv ('STATIC_ROOT'):
+        os.environ ['STATIC_ROOT'] = os.path.join (project_root, 'dep/nginx/.static_root')
     assert conf ['name'], 'service name required, add skitai.run (name=NAME)'
 
     name = conf ['name']
@@ -356,8 +358,8 @@ def generate (project_root, vhost, conf):
                 f.write (content)
         os.chmod (script, 0o744)
 
-    print ("generating .gitlab-ci...")
-    script = os.path.join (project_root, '.gitlab.ci')
+    print ("generating .gitlab-ci.yml...")
+    script = os.path.join (project_root, '.gitlab-ci.yml')
     if not os.path.isfile (script):
         with open (script, 'w') as f:
             f.write (GITLAB_CI.format (**conf))
