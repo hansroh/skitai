@@ -1150,8 +1150,6 @@ def run (**conf):
     if '--autoconf' in argopt.options ():
         from .wastuff import autoconf
 
-        if not os.getenv ('STATIC_ROOT'):
-            os.environ ['STATIC_ROOT'] = abspath ('dep/nginx/.static_root')
         vhost = server.virtual_host.sites [None]
         autoconf.generate (abspath ('.'), vhost, conf)
         sys.exit ()
