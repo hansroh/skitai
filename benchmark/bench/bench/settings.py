@@ -26,10 +26,9 @@ SECRET_KEY = '204s35ufq(u#t3*7#k4$&r%q6e_=hh*mvp4r@cs=s*ts*bhe=q'
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    "192.168.0.154",
+    "192.168.0.231",
     "127.0.0.1",
-    "localhost",
-    "154.sns.co.kr"
+    "localhost"
 ]
 
 
