@@ -24,6 +24,7 @@ variables:
 test:
   stage: test
   script:
+    - *tag_name
     - $TELEGRAM "start test - $COMMIT_REPR"
     - adduser --disabled-password --shell /bin/bash --gecos "ubuntu" ubuntu
     - chown -R ubuntu:ubuntu .
@@ -62,9 +63,8 @@ build:
 
 deploy:
   stage: deploy
-  before_script:
-    - *tag_name
   script:
+    - *tag_name
     - $TELEGRAM "start deploy - $COMMIT_REPR"
     - echo "IMAGE_TAG $IMAGE_TAG"
     - TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition "$TASK_DEFINITION_NAME")

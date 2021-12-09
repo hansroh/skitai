@@ -9,7 +9,7 @@ then
     sudo rm -f /usr/bin/docker-compose && sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
 fi
 
-SERVICE="stt-api-dev"
+SERVICE="testapp-dev"
 if [ "$1" == "bash" ]
 then
     docker exec -it $SERVICE /bin/bash
