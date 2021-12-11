@@ -46,7 +46,6 @@ def test_request_generation (client):
 	payload.pop ("a")
 	payload ['file'] = open ('./examples/statics/100.htm', "rb")
 	request = client.upload (url, payload)
-	print (request.body)
 	assert request.get_header ('content-type').startswith ("multipart/form-data;")
 	assert request.body.startswith (b"-----") and len (request.body) == 433
 	assert request.get_header ('content-length') == "433"
@@ -60,9 +59,9 @@ def test_request_generation (client):
 
 	# JSONRPC
 	request = client.jsonrpc_request (url).calucator.add ("A", 1)
-	assert request.body.startswith (b"{\"") and len (request.body) == 111
+	assert request.body.startswith (b"{\"") and len (request.body) == 103
 	assert request.get_header ('content-type') == "application/json-rpc; charset=utf-8"
-	assert request.get_header ('content-length') == "111"
+	assert request.get_header ('content-length') == "103"
 
 	# GRPC
 	url = "http://www.skitai.com/routeguide.RouteGuide"
