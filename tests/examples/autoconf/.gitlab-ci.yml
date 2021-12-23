@@ -23,16 +23,18 @@ variables:
 
 test:
   stage: test
+  variables:
+    CONTAINER_NAME: "testapp-dev"
   script:
     - *tag_name
     - $TELEGRAM "start test - $COMMIT_REPR"
     - adduser --disabled-password --shell /bin/bash --gecos "ubuntu" ubuntu
     - chown -R ubuntu:ubuntu .
     - docker-compose -f ./dep/devel.yml up -d
-    - docker exec -t -u root testapp-dev pip3 install skitai
-    - docker exec -d testapp-dev ./skitaid.py --devel --port 5000
-    - docker exec -t testapp-dev wait-for-it.sh localhost:5000 -t 30
-    - docker exec -t testapp-dev /bin/bash -c "cd tests && ./test-all.sh"
+    - docker exec -t -u root $CONTAINER_NAME pip3 install skitai
+    - docker exec -d $CONTAINER_NAME ./skitaid.py --devel --port 5000
+    - docker exec -t $CONTAINER_NAME wait-for-it.sh localhost:5000 -t 30
+    - docker exec -t $CONTAINER_NAME /bin/bash -c "cd tests && ./test-all.sh"
     - (test $? -ne 0) && RESULT="test failed" || RESULT="test success"
     - $TELEGRAM "$RESULT - $COMMIT_REPR"
   only:
