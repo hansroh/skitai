@@ -215,6 +215,10 @@ class http_request:
         accept = self.get_header ('accept', '')
         return http_util.parse_multi_params (accept) if accept else {}
 
+    @property
+    def secured (self):
+        return True if self.get_scheme () == 'https' else False
+
     def get_real_ip (self):
         sock_ip = self.get_remote_addr ()
         origin_ips = self.get_header ("X-Forwarded-For")
