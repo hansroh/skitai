@@ -10,6 +10,10 @@ RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-k
 RUN apt update && apt install -y postgresql-12
 RUN apt install -y libjpeg-dev libssl-dev
 
+RUN wget --quiet -O - https://apt.releases.hashicorp.com/gpg | apt-key add -
+RUN apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+RUN apt update && apt install -y terraform
+
 ENV MYDB="skitai:12345678@localhost/skitai"
 RUN pip3 install -U django sqlphile psycopg2-binary
 COPY benchmark benchmark
