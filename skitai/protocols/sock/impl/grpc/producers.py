@@ -1,5 +1,5 @@
 from rs4.misc import compressors
-from collections import Iterable
+from collections.abc import Iterable
 import struct
 
 def serialize (msg, use_compress = True):
