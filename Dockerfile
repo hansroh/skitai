@@ -1,24 +1,21 @@
 FROM hansroh/ubuntu:aws
+
 ARG DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
 
 LABEL title="Skitai Package Group Development"
 LABEL author="hansroh"
 LABEL version="1.0"
 
-RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ bionic-pgdg main" | tee /etc/apt/sources.list.d/pgdg.list
-RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-RUN apt update && apt install -y postgresql-12
-RUN apt install -y libjpeg-dev libssl-dev
+RUN apt update
+RUN apt install -y postgresql postgresql-contrib
 
-RUN wget --quiet -O - https://apt.releases.hashicorp.com/gpg | apt-key add -
-RUN apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-RUN apt update && apt install -y terraform
-
-ENV MYDB="skitai:12345678@localhost/skitai"
+RUN pip3 install -U pip
 RUN pip3 install -U django sqlphile psycopg2-binary
 COPY benchmark benchmark
 
-RUN pg_ctlcluster 12 main start; \
+ENV MYDB="skitai:12345678@localhost/skitai"
+RUN pg_ctlcluster 13 main start; \
     su - postgres -c "psql -c \"drop database if exists skitai;\""; \
     su - postgres -c "psql -c \"create database skitai;\""; \
     su - postgres -c "psql -c \"create user skitai with encrypted password '12345678';\""; \
@@ -34,5 +31,3 @@ RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
 WORKDIR /home/ubuntu/libs/skitai
 EXPOSE 5000
 CMD [ "/bin/bash" ]
-
-# see tools/docker/README.md

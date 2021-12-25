@@ -9,7 +9,7 @@ from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_M
 import sys
 import pytest
 
-os.system ("sudo pg_ctlcluster 12 main start")
+os.system ("sudo pg_ctlcluster 13 main start")
 
 def pytest_addoption (parser):
     parser.addoption (
