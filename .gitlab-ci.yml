@@ -38,7 +38,7 @@ variables:
     before_script:
       - *base_install
       - *postgres_install
-      - pip install -U grpcio tensorflow-cpu==2.5.0 keras==2.5.0
+      - pip install -U grpcio tensorflow-cpu keras
       - pip install -U --pre --no-cache-dir tfserver dnn
 
 .before_python_notf_test: &before_python_notf_test
