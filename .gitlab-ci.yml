@@ -12,6 +12,7 @@ variables:
   - cd benchmark
   - python3 bench/manage.py migrate
   - python3 bench/init_db.py
+  - cd ..
 
 .base_install: &base_install
   - python -V
@@ -64,28 +65,28 @@ variables:
   only:
     - master
 
-python 3.6stretch:
-  image: python:3.6-stretch
+python 3.6:
+  image: python:3.6-buster
   <<: *before_python_test
   <<: *test
   only:
     - master
 
-python 3.7stretch:
-  image: python:3.7-stretch
+python 3.7:
+  image: python:3.7-buster
   <<: *before_python_test
   <<: *test
   only:
     - master
 
-python 3.8buster:
-  image: python:3.8-slim
+python 3.8:
+  image: python:3.8-buster
   <<: *before_python_test
   <<: *test
   only:
     - test
 
-python 3.9buster:
+python 3.9:
   image: python:3.9-buster
   <<: *before_python_notf_test
   <<: *test
