@@ -87,10 +87,17 @@ python 3.8:
 
 python 3.9:
   image: python:3.9-buster
-  <<: *before_python39_test
+  <<: *before_python_notf_test
   <<: *test
   only:
     - py39
+
+python 3.10:
+  image: python:3.10-buster
+  <<: *before_python_notf_test
+  <<: *test
+  only:
+    - py310
 
 python pypy3:
   image: pypy:3
