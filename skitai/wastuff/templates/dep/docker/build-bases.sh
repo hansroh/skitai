@@ -1,8 +1,8 @@
-docker build -t hansroh/ubuntu:dep -f build/dep.docker .
-docker build -t hansroh/ubuntu:ecs -f build/ecs.docker .
-docker build -t hansroh/ubuntu:aws -f build/aws.docker .
-docker build -t hansroh/ubuntu:tf2.3 -f build/tf2.3.docker .
-docker build -t hansroh/ubuntu:tf2.6 -f build/tf2.6.docker .
+docker build -t hansroh/ubuntu:dep -f Dockerfiles/dep.Dockerfile .
+docker build -t hansroh/ubuntu:ecs -f Dockerfiles/ecs.Dockerfile .
+docker build -t hansroh/ubuntu:aws -f Dockerfiles/aws.Dockerfile .
+docker build -t hansroh/ubuntu:tf2.3 -f Dockerfiles/tf2.3.Dockerfile .
+docker build -t hansroh/ubuntu:tf2.6 -f Dockerfiles/tf2.6.Dockerfile .
 
 docker push hansroh/ubuntu:dep
 docker push hansroh/ubuntu:ecs

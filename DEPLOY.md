@@ -1,4 +1,4 @@
-Pipelining template with Gitlab nd AWS.
+Pipelining template with Gitlab and AWS.
 
 # Preparation
 ## Secret Key Name for Gitlab Registry
@@ -78,6 +78,12 @@ Then create base deploy scripts.
 ./skitaid.py --autoconf
 ```
 
+This generates bunch of deploy related scripts including:
+- Nginx configuration files
+- Terraform AWS scripts
+- Gitlab CI/CD yml
+- Dockerfiles and docker-compose files
+
 Now you get `dep` directory and `.gitlab-ci.yml` and `ctn.sh`.
 
 
@@ -87,6 +93,7 @@ Please review all `.tf` files before applying especially terraform backend setti
 
 ## Creating VPC, DNS Records, Certification and Load Balancer For ECS Cluster
 ```shell
+cd dep/terraform
 cd cloud_infra
 terraform init
 terraform apply
@@ -101,37 +108,38 @@ terraform apply
 ```
 
 
-## Creating ECS Task Definition and Service
-```shell
-cd ..
-terraform init
-
-terraform workspace new qa
-terraform apply
-terraform workspace new production
-terraform apply
-```
-
-
-# Gitlab CI/CD Ppipeline
-
+# Deploy Your App
 ## Test Stage
-
 You need `tests/test-all.sh` script.
 ```shell
 git checkout -b test
 git push origin test
 ```
-## QA Deploy
+Gitlab CI/CD script build containers and unit test.
 
+## QA Deploy
 ```shell
+cd dep/terraform
+terraform init
+terraform workspace new qa
+terraform apply
+
 git checkout -b qa
 git merge test
 git push origin qa
 ```
 
+Gitlab CI/CD pipeline,
+- build containers
+- push to gitlab registry
+- deploy containers to ECS
+
 ## Production Deploy
 ```shell
+cd dep/terraform
+terraform workspace new production
+terraform apply
+
 git checkout -b master
 git merge qa
 git push origin master
