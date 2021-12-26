@@ -34,6 +34,13 @@ variables:
       - pip install -U grpcio tensorflow-cpu==2.3.0 keras==2.3.0
       - pip install -U --pre --no-cache-dir tfserver dnn
 
+.before_python_test: &before_python39_test
+    before_script:
+      - *base_install
+      - *postgres_install
+      - pip install -U grpcio tensorflow-cpu==2.5.0 keras==2.5.0
+      - pip install -U --pre --no-cache-dir tfserver dnn
+
 .before_python_notf_test: &before_python_notf_test
     before_script:
       - *base_install
@@ -81,10 +88,10 @@ python 3.8:
 
 python 3.9:
   image: python:3.9-buster
-  <<: *before_python_notf_test
+  <<: *before_python39_test
   <<: *test
   only:
-    - master
+    - py39
 
 python pypy3:
   image: pypy:3
