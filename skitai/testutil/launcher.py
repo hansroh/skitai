@@ -64,7 +64,7 @@ class Launcher (webtest.Target):
                 self.__wait_until ("running")
         else:
             self.__p.start ([sys.executable, self.__script]  + self.__start_opts)
-            time.sleep (3)
+            time.sleep (8)
         self.__closed = False
 
     def __is_running (self):
