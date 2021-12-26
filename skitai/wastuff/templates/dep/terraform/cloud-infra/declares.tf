@@ -12,7 +12,7 @@ terraform {
 provider "aws" {}
 
 variable "cluster_name" {
-    default = "skitai"
+    default = "skitai-cluster"
 }
 
 variable "availability_zone" {

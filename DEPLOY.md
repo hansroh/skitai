@@ -1,3 +1,5 @@
+Pipelining template with Gitlab nd AWS.
+
 # Preparation
 ## Secret Key Name for Gitlab Registry
 
@@ -47,14 +49,14 @@ Required Permissions
 - TELEGRAM_TOKEN (optional)
 - TELEGRAM_CHAT_ID (optional)
 
-
-# Install Terraform and Configuring AWS
+## Install Terraform and Configuring AWS
 ```shell
 RUN wget --quiet -O - https://apt.releases.hashicorp.com/gpg | apt-key add -
 RUN apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
 RUN apt update && apt install -y terraform
 ```
 
+Then set AWS crednetial.
 ```shell
 export AWS_ACCESS_KEY_ID=<value>
 export AWS_SECRET_ACCESS_KEY=<value>
@@ -62,23 +64,42 @@ export AWS_DEFAULT_REGION=<value>
 ```
 
 
+# Make Skitai App
+
+## Edit Start Script
+```python
+# skitaid.py
+# service name must be specified
+skitai.run (ip = "0.0.0.0", port = 5000, name = "myservice")
+```
+
+Then create base deploy scripts.
+```
+./skitaid.py --autoconf
+```
+
+Now you get `dep` directory and `.gitlab-ci.yml` and `ctn.sh`.
+
+
 # Terra Forming
 
-Please review all `.tf` files before applying.
+Please review all `.tf` files before applying especially terraform backend setting.
 
-## Creating VPC, Certification and Load Balancer
+## Creating VPC, DNS Records, Certification and Load Balancer For ECS Cluster
 ```shell
 cd cloud_infra
 terraform init
 terraform apply
 ```
 
-## Creating ECS Cluster
+
+## Creating ECS Cluster and Service Roles
 ```shell
 cd ../ecs_cluster
 terraform init
 terraform apply
 ```
+
 
 ## Creating ECS Task Definition and Service
 ```shell
@@ -89,4 +110,29 @@ terraform workspace new qa
 terraform apply
 terraform workspace new production
 terraform apply
+```
+
+
+# Gitlab CI/CD Ppipeline
+
+## Test Stage
+
+You need `tests/test-all.sh` script.
+```shell
+git checkout -b test
+git push origin test
+```
+## QA Deploy
+
+```shell
+git checkout -b qa
+git merge test
+git push origin qa
+```
+
+## Production Deploy
+```shell
+git checkout -b master
+git merge qa
+git push origin master
 ```

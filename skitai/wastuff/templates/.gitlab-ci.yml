@@ -1,4 +1,4 @@
-image: hansroh/ubuntu:dep
+image: ubuntu:dep
 services:
   - name: docker:dind
     alias: dind-service

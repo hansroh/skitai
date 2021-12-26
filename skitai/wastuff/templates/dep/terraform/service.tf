@@ -96,7 +96,7 @@ resource "aws_ecs_service" "skitai-dep" {
 
 # alb target gorup and routing rule -----------------------
 resource "aws_alb_target_group" "skitai-dep" {
-  name     = "${var.cluster_name}-skitai-dep-${terraform.workspace}"
+  name     = "${var.cluster_name}-${var.service_name [terraform.workspace]}"
   port     = 80
   protocol = "HTTP"
   vpc_id   = data.aws_vpc.main.id

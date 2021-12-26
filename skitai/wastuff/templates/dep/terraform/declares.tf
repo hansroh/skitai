@@ -13,7 +13,7 @@ provider "aws" {}
 
 # variables -----------------------------------------------
 variable "cluster_name" {
-  default = "skitai"
+  default = "skitai-cluster"
 }
 
 variable "path_patterns" {
