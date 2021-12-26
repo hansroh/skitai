@@ -17,3 +17,4 @@ services:
     tty: true
     entrypoint:
       - /bin/bash
+      - ./docker-init.sh

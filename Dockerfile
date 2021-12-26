@@ -15,7 +15,7 @@ RUN pip3 install -U django sqlphile psycopg2-binary
 COPY benchmark benchmark
 
 ENV MYDB="skitai:12345678@localhost/skitai"
-RUN pg_ctlcluster 13 main start; \
+RUN service postgresql start; \
     su - postgres -c "psql -c \"drop database if exists skitai;\""; \
     su - postgres -c "psql -c \"create database skitai;\""; \
     su - postgres -c "psql -c \"create user skitai with encrypted password '12345678';\""; \
