@@ -1,5 +1,17 @@
 variables:
-    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+.postgres_install: &postgres_install
+  - apt install -y postgresql postgresql-contrib
+  - export MYDB="skitai:12345678@localhost/skitai"
+  - pg_ctlcluster 13 main start
+  - su - postgres -c "psql -c \"drop database if exists skitai;\""
+  - su - postgres -c "psql -c \"create database skitai;\""
+  - su - postgres -c "psql -c \"create user skitai with encrypted password '12345678';\""
+  - su - postgres -c "psql -c \"grant all privileges on database skitai to skitai;\""
+  - cd benchmark
+  - python3 bench/manage.py migrate
+  - python3 bench/init_db.py
 
 .base_install: &base_install
   - python -V
@@ -17,12 +29,14 @@ variables:
 .before_python_test: &before_python_test
     before_script:
       - *base_install
+      - *postgres_install
       - pip install -U grpcio tensorflow-cpu==2.3.0 keras==2.3.0
       - pip install -U --pre --no-cache-dir tfserver dnn
 
 .before_python_notf_test: &before_python_notf_test
     before_script:
       - *base_install
+      - *postgres_install
       - pip install -U grpcio
 
 .before_pypy_test: &before_pypy_test
@@ -65,7 +79,7 @@ python 3.7stretch:
     - master
 
 python 3.8buster:
-  image: python:3.8-buster
+  image: python:3.8-slim
   <<: *before_python_test
   <<: *test
   only:
