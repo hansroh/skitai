@@ -4,7 +4,7 @@ variables:
 .postgres_install: &postgres_install
   - apt update && apt install -y postgresql postgresql-contrib
   - export MYDB="skitai:12345678@localhost/skitai"
-  - pg_ctlcluster 13 main start
+  - service postgresql start
   - su - postgres -c "psql -c \"drop database if exists skitai;\""
   - su - postgres -c "psql -c \"create database skitai;\""
   - su - postgres -c "psql -c \"create user skitai with encrypted password '12345678';\""
