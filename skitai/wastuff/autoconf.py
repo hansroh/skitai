@@ -185,7 +185,7 @@ def from_template (conf, depdir, project_root):
     for f in docker_files:
         get_template (conf, f"dep/docker/{f}", os.path.join (depdir, f"docker/{f}"))
 
-    terraform_files = [".gitignore", "README.md"]
+    terraform_files = [".gitignore"]
     terraform_files += [ f'cloud-infra/{f}' for f in os.listdir (os.path.join (LOCAL_REPO, "dep/terraform/cloud-infra")) if f.endswith ('.tf') ]
     terraform_files += [ f'ecs-cluster/{f}' for f in os.listdir (os.path.join (LOCAL_REPO, "dep/terraform/ecs-cluster")) if f.endswith ('.tf') ]
     terraform_files += [ f'ecs-cluster/policies/{f}' for f in os.listdir (os.path.join (LOCAL_REPO, "dep/terraform/ecs-cluster/policies")) if f.endswith ('.json') ]
