@@ -1,4 +1,4 @@
-FROM hansroh/ubuntu:aws
+FROM hansroh/aws
 
 ARG DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1

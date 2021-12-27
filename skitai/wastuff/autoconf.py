@@ -36,7 +36,7 @@ def _collect_routes (vhost):
 
 def repl (d, conf):
     d = d.replace ("skitai-dep", conf ["name"])
-    d = d.replace ("hansroh/", '')
+    d = d.replace ("/hansroh/", '/')
     return d
 
 def get_template_remote (conf, remote, local):
