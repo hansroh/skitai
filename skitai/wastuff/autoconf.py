@@ -179,7 +179,7 @@ def from_template (conf, depdir, project_root):
 
     docker_files = [
         "include/telegram.py", "include/wait-for-it.sh",
-        "build-bases.sh", "README.md"
+        "build.sh", "README.md"
     ]
     docker_files += [ f'Dockerfiles/{f}' for f in os.listdir (os.path.join (LOCAL_REPO, "dep/docker/Dockerfiles")) ]
     for f in docker_files:
