@@ -200,13 +200,13 @@ class Handler:
 		ext = get_extension (path).lower()
 		request.response['Content-Type'] = types_map.get ("." + ext, 'application/octet-stream')
 
-	def get_static_files (self):
-		return StaticFiles (self.wasc, self.filesystem, self.max_ages, self.memcache)
+	def get_static_file_translator (self):
+		return StaticFileTranslator (self.wasc, self.filesystem, self.max_ages, self.memcache)
 
 
-class StaticFiles (Handler):
+class StaticFileTranslator (Handler):
 	_in_thread = True
-	__name__ = 'StaticFiles' # django make error, why?
+	__name__ = 'StaticFileTranslator' # django make error, why?
 	def __init__ (self, wasc, filesystem, max_ages, memcache):
 		self.wasc = wasc
 		self.filesystem = filesystem
@@ -216,8 +216,7 @@ class StaticFiles (Handler):
 	def handle_alternative (self, request):
 		request.response.error (404)
 
-	def __call__ (self, request, uri):
+	def translate (self, request, uri):
 		request._split_uri = (uri,) + request._split_uri [1:]
 		self.handle_request (request)
 		return tasks.Revoke ()
-
