@@ -7,10 +7,7 @@ from ..protocols.sock.impl.http.http_util import *
 from . import collectors
 from skitai import version_info, was as the_was
 import threading
-try:
-    from cStringIO import StringIO as BytesIO
-except ImportError:
-    from io import BytesIO
+from io import BytesIO
 import skitai
 from ..utility import make_pushables
 from ..utility import deallocate_was
@@ -231,7 +228,7 @@ class Handler:
 
         except:
             self.wasc.logger.trace ("server",  request.uri)
-            return request.response.error (500, why = apph.debug and sys.exc_info () or None)
+            return request.response.error (500)
 
         try:
             env = self.build_environ (request, apph)
