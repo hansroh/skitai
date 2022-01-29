@@ -1,20 +1,26 @@
 import threading
 import time
 from ..sock import socketpool
-from . import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB, DB_SYN_PGSQL, DB_SYN_MONGODB, DB_SYN_REDIS, DB_SYN_ORACLE, DB_ORACLE
+from . import (
+	DB_PGSQL, DB_SYN_PGSQL,
+	DB_REDIS, DB_SYN_REDIS,
+	DB_MONGODB, DB_SYN_MONGODB,
+	DB_SQLITE3,
+	DB_ORACLE
+)
+
 from .impl import asynpsycopg2, asynredis, asynmongo, syndbi
 
 class DBPool (socketpool.SocketPool):
 	class_map = {
-        DB_SQLITE3: syndbi.SynConnect,
         DB_PGSQL: asynpsycopg2.AsynConnect,
-        DB_REDIS: asynredis.AsynConnect,
-        DB_MONGODB: asynmongo.AsynConnect,
         DB_SYN_PGSQL: syndbi.Postgres,
-		DB_SYN_REDIS: syndbi.Redis,
+		DB_REDIS: asynredis.AsynConnect,
+        DB_SYN_REDIS: syndbi.Redis,
+		DB_MONGODB: asynmongo.AsynConnect,
         DB_SYN_MONGODB: syndbi.MongoDB,
-		DB_SYN_ORACLE: syndbi.Oracle,
-		DB_ORACLE: syndbi.Oracle,
+		DB_SQLITE3: syndbi.SynConnect,
+		DB_ORACLE: syndbi.Oracle
     }
 
 	def get_name (self):
