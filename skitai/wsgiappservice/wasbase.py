@@ -98,7 +98,10 @@ class WASBase (_WASType):
         return "{}{}".format (self.timestamp, self.gentemp () [-7:])
 
     def __dir__ (self):
-        return self.objects.keys ()
+        objs = list (self.objects.keys ()) + ["env", "app", "apps"]
+        hasattr (self, "request") and objs.append ("request")
+        hasattr (self, "response") and objs.append ("response")
+        return objs
 
     def __str__ (self):
         return "skitai was for {}".format (threading.currentThread ())
