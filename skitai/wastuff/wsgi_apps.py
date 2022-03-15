@@ -469,7 +469,10 @@ class ModuleManager:
     def status (self):
         d = {}
         for path, module in list(self.modules.items ()):
-            d ['<a href="%s">%s</a>' % (path, path)] = module.abspath
+            if not isinstance (module, list):
+                module = [module]
+            for m in module:
+                d ['<a href="%s">%s</a>' % (path, path)] = m.abspath
         return d
 
 
