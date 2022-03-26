@@ -1073,16 +1073,10 @@ def run (**conf):
                     conf.get ("enable_gw", False), # API gateway
                     conf.get ("gw_auth", False),
                     conf.get ("gw_realm", "API Gateway"),
-                    conf.get ("gw_secret_key", None)
+                    conf.get ("gw_secret_key", None),
+                    conf ['media_url'],
+                    conf ['media_path']
                 )
-
-                for app in self.get_apps ().values ():
-                    if not hasattr (app, 'config'):
-                        continue
-                    try:
-                        app.config.MEDIA_URL, app.config.MEDIA_ROOT = conf ['media_url'], conf ['media_path']
-                    except AttributeError:
-                        pass
 
                 for p, s in dconf ['subscriptions']:
                     try:

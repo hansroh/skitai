@@ -287,7 +287,9 @@ class Loader:
             enable_apigateway = False,
             apigateway_authenticate = False,
             apigateway_realm = "API Gateway",
-            apigateway_secret_key = None
+            apigateway_secret_key = None,
+            media_url = None,
+            media_path = None
         ):
         if blacklist_dir:
             self.wasc.add_handler (0, ipbl_handler.Handler, blacklist_dir)
@@ -300,9 +302,9 @@ class Loader:
             static_max_ages,
             enable_apigateway, apigateway_authenticate, apigateway_realm, apigateway_secret_key
         )
-        routes and self.update_routes (routes)
+        routes and self.update_routes (routes, media_url, media_path)
 
-    def update_routes (self, routes):
+    def update_routes (self, routes, media_url = None, media_path = None):
         if self.virtual_host is None:
             return
 
@@ -319,15 +321,26 @@ class Loader:
             config = None
             if type (line) is tuple and len (line) == 4:
                 route, module, pref, name = line
+                if media_url:
+                    try:
+                        pref.config.MEDIA_URL, pref.config.MEDIA_ROOT = media_url, media_path
+                    except AttributeError:
+                        pass
                 self.virtual_host.add_route (current_rule, (route, module, ''), pref, name)
                 continue
 
             if type (line) is tuple:
                 line, pref, name = line
+
             line = line.strip ()
             if line.startswith (";") or line.startswith ("#"):
                 continue
             elif line.startswith ("/"):
+                if media_url:
+                    try:
+                        pref.config.MEDIA_URL, pref.config.MEDIA_ROOT = media_url, media_path
+                    except AttributeError:
+                        pass
                 rtype = self.virtual_host.add_route (current_rule, line, pref, name)
             elif line:
                 if line [0] == "@":
