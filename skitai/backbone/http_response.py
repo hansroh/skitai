@@ -626,9 +626,6 @@ class http_response:
         return producers.file_producer (fp)
     file = File
 
-    def MountedFile (self, uri):
-        return self.request.env ["skitai.static_files"] (self.request, uri)
-
     # only for WSGI ------------------------------------------------
     def set_etag (self, identifier, max_age = 0, as_etag = False):
         etag = as_etag and identifier or utility.make_etag (identifier)

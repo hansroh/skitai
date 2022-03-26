@@ -7,10 +7,7 @@ from ..protocols.sock.impl.http.http_util import *
 from . import collectors
 from skitai import version_info, was as the_was
 import threading
-try:
-    from cStringIO import StringIO as BytesIO
-except ImportError:
-    from io import BytesIO
+from io import BytesIO
 import skitai
 from ..utility import make_pushables
 from ..utility import deallocate_was
@@ -35,13 +32,13 @@ class Handler:
             "wsgi.run_once": False,
             "wsgi.input": None
     }
-    STATIC_FILES = None
     SERVICE_UNAVAILABLE_TIMEOUT = 10 # sec.
 
     def __init__(self, wasc, apps = None):
         self.wasc = wasc
         self.apps = apps
         self.__cycle = 0
+        self.__static_file_translator = None
         self.ENV ["skitai.process"] = self.wasc.workers
         self.ENV ["skitai.thread"] = 0
         if hasattr (self.wasc, "threads") and self.wasc.threads:
@@ -56,8 +53,8 @@ class Handler:
     def match (self, request):
         return 1
 
-    def set_static_files (self, obj):
-        self.STATIC_FILES = obj
+    def set_static_file_translator (self, obj):
+        self.__static_file_translator = obj
 
     def get_path_info (self, request, apph):
         path, params = request.split_uri() [:2]
@@ -231,15 +228,14 @@ class Handler:
 
         except:
             self.wasc.logger.trace ("server",  request.uri)
-            return request.response.error (500, why = apph.debug and sys.exc_info () or None)
+            return request.response.error (500)
 
         try:
             env = self.build_environ (request, apph)
             if data:
                 env ["wsgi.input"] = data
-            elif request.command in ('get', 'head'):
-                env ["skitai.static_files"] = self.STATIC_FILES
             args = (env, request.response.start_response)
+            request.static_file_translator = self.__static_file_translator
 
         except:
             self.wasc.logger.trace ("server",  request.uri)

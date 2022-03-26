@@ -1,0 +1,33 @@
+version: '2'
+
+services:
+  skitai-dep:
+    image: registry.gitlab.com/skitai/skitai-dep
+    container_name: skitai-dep
+    build:
+      context: ..
+      dockerfile: dep/production.Dockerfile
+    user: ubuntu
+    tty: true
+    stdin_open: true
+    ports:
+      - "5000:5000"
+    volumes:
+      - /var/www/pub:/var/www/pub
+      - ${PWD}/tests:/home/ubuntu/app/tests
+      - ${PWD}/docs:/home/ubuntu/app/docs
+
+  skitai-nginx:
+    image: registry.gitlab.com/skitai/skitai-dep/nginx
+    container_name: skitai-nginx
+    build:
+      context: ../
+      dockerfile: dep/production.nginx.Dockerfile
+    depends_on:
+      - skitai-dep
+    tty: true
+    stdin_open: true
+    ports:
+      - "80:80"
+    volumes:
+      - /var/www/pub:/var/www/pub

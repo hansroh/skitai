@@ -2,8 +2,8 @@
 version: '3.3'
 services:
   skitai:
-    image: skitai
-    container_name: skitai
+    image: skitai-dev
+    container_name: skitai-dev
     build:
       context: .
       dockerfile: Dockerfile
@@ -17,3 +17,4 @@ services:
     tty: true
     entrypoint:
       - /bin/bash
+      - ./docker-init.sh

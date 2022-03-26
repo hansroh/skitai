@@ -2,7 +2,7 @@ import re
 import sys
 import os
 from rs4.misc import producers
-from collections import Iterator
+from collections.abc import Iterator
 from .protocols.threaded import trigger
 from hashlib import md5
 from .protocols.sock.impl.http import http_date

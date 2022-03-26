@@ -25,7 +25,7 @@ class VHost:
 		self.wsgi_handler = wsgi_handler.Handler (self.wasc, self.apps)
 		alternative_handlers.append (self.wsgi_handler)
 		self.default_handler = default_handler.Handler (self.wasc, {}, static_max_ages, alternative_handlers)
-		self.wsgi_handler.set_static_files (self.default_handler.get_static_files ())
+		self.wsgi_handler.set_static_file_translator (self.default_handler.get_static_file_translator ())
 
 		if self.wasc.httpserver.altsvc:
 			from . import http3_handler
