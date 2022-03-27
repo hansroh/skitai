@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.39.3"
+__version__ = "0.40"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -142,6 +142,7 @@ WS_OPCODE_PONG = 0xa
 
 STATUS = 'CONFIGURING'
 MEDIA_PATH = None
+WASC = None
 
 def status ():
     global STATUS
@@ -194,6 +195,10 @@ class _WASPool:
             except KeyError: break
 
     def _get (self, clone = False):
+        if not self._started ():
+            global WASC
+            return WASC ()
+
         _id = self.__get_id ()
         for i in range (self.MAX_CLONES_PER_THREAD):
             if clone:
@@ -220,7 +225,7 @@ class _WASPool:
                 self.__p [id] = _was
                 return _was
 
-        raise SystemError ("Too many cloned skitai.was")
+        raise SystemError ("Too many skitai.was clones")
 
     def _get_by_id (self, _id):
         return self.__p [_id]
@@ -925,9 +930,12 @@ def run (**conf):
         NAME = 'instance'
 
         def __init__ (self, conf):
+            global WASC
+
             self.conf = conf
             self.flock = None
             Skitai.Loader.__init__ (self, 'config', conf.get ('logpath'), conf.get ('varpath'), conf.get ("wasc"))
+            WASC = self.wasc
 
         def close (self):
             if self.wasc.httpserver.worker_ident == "master":
@@ -1117,7 +1125,7 @@ def run (**conf):
     if conf.get ("name"):
         PROCESS_NAME = 'sktd:{}'.format (conf ["name"])
     if not conf.get ('mount'):
-        raise systemError ('No mount point')
+        raise SystemError ('No mount point')
 
     conf ["varpath"] = get_varpath (get_proc_title ())
     pathtool.mkdir (conf ["varpath"])

@@ -151,8 +151,11 @@ class Module:
             'point': self.route,
             'base_dir': self.directory,
             'use_reloader': self.use_reloader,
-            'debug': self.debug
+            'debug': self.debug,
+            'wasc': self.wasc
         }
+
+        hasattr (app, "set_wasc") and app.set_wasc (self.wasc)
         hasattr (self.app_initer, '__setup__') and self.app_initer.__setup__ (app, mntopt)
         hasattr (self.app_initer, '__mount__') and self.app_initer.__mount__ (app, mntopt)
         hasattr (app, "set_home") and app.set_home (os.path.dirname (self.abspath), self.module)
