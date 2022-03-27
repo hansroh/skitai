@@ -252,6 +252,7 @@ class Module:
         stat = os.stat (self.abspath)
         if self.file_info != (stat.st_mtime, stat.st_size):
             oldapp = self.app or getattr (self.module, self.appname)
+            hasattr (self.app_initer, '__reload__') and self.app_initer.__reload__ (oldapp)
             self.has_life_cycle and oldapp.life_cycle ("before_reload", self.wasc ())
 
             try:
@@ -285,6 +286,7 @@ class Module:
                 setattr (newapp, attr, value)
 
             # reloaded
+            hasattr (self.app_initer, '__reloaded__') and self.app_initer.__reloaded__ (newapp)
             self.has_life_cycle and newapp.life_cycle ("reloaded", self.wasc ())
             self.has_life_cycle and newapp.life_cycle ("mounted_or_reloaded", self.wasc ())
             self.last_reloaded = time.time ()
