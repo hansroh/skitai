@@ -297,18 +297,28 @@ def register_g (*names):
     return decorator
 register_cache_keys = register_states = register_g
 
+# GPU allocator -----------------------------------------
 def get_gpu_memory ():
     import subprocess as sp
-
     _output_to_list = lambda x: x.decode ('ascii').split('\n')[:-1]
     COMMAND = "nvidia-smi --query-gpu=memory.used --format=csv"
     memory_free_info = _output_to_list(sp.check_output(COMMAND.split()))[1:]
     memory_free_values = [int(x.split()[0]) for i, x in enumerate(memory_free_info)]
     return memory_free_values
 
-#------------------------------------------------
-# Configure
-#------------------------------------------------
+def get_gpu_count ():
+    ngpu = len (get_gpu_memory ())
+    os.environ ["GPU_COUNT"] = str (ngpu)
+    return ngpu
+
+def allocate_gpu ():
+    assert os.getenv ("GPU_COUNT"), "call skitai.get_gpu_memory () first"
+    assert os.getenv ("SKITAI_WORKER_ID"), "skitai worker not started"
+    os.environ ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    current_gpu = os.getenv ('SKITAI_WORKER_ID') if int (os.getenv ("GPU_COUNT")) > 1 else "0"
+    os.environ ["NVIDIA_VISIBLE_DEVICES"] = os.environ ["CUDA_VISIBLE_DEVICES"] = current_gpu
+
+# Configure --------------------------------------------
 dconf = dict (
     mount = {"default": []},
     mount_onfly = {"default": []},
