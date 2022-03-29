@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.40.1"
+__version__ = "0.41.0a"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -14,11 +14,6 @@ from rs4.attrdict import AttrDict
 import threading
 import sys, os
 import h2
-from .protocols.dbi import (
-    DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB,
-    DB_SYN_PGSQL, DB_SYN_REDIS, DB_SYN_MONGODB,
-    DB_SYN_ORACLE, DB_ORACLE
-)
 import warnings
 from .protocols.sock.impl.smtp import composer
 import tempfile
@@ -100,7 +95,6 @@ PROTO_SYN_HTTP = "http_syn"
 PROTO_SYN_HTTPS = "https_syn"
 PROTO_WS = "ws"
 PROTO_WSS = "wss"
-DJANGO = "django"
 
 STA_REQFAIL = REQFAIL = -1
 STA_UNSENT = UNSENT = 0
@@ -524,7 +518,7 @@ def add_http_rpc_proto (name, class_):
 
 def add_database_interface (name, class_):
     assert name.startswith ("*"), "database interface name must be start with '*'"
-    from .tasks.dbi import cluster_manager
+    from .tasks._dbi import cluster_manager
     cluster_manager.ClusterManager.add_class (name, class_)
 
 def set_dns_protocol (protocol = 'tcp'):
@@ -726,38 +720,6 @@ def enable_gateway (enable_auth = False, secure_key = None, realm = "Skitai API 
     dconf ["gw_realm"] = realm,
     dconf ["gw_secret_key"] = secure_key
 
-def _get_django_settings (settings_path):
-    import importlib
-    import django
-
-    ap = abspath (settings_path)
-    django_main, settings_file = os.path.split (ap)
-    django_root, django_main_dir = os.path.split (django_main)
-    settings_mod = "{}.{}".format (django_main_dir, settings_file.split (".")[0])
-
-    if not os.environ.get ("DJANGO_SETTINGS_MODULE"):
-        sys.path.insert (0, django_root)
-        os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings_mod)
-
-    return importlib.import_module(settings_mod).DATABASES
-
-def _alias_django (name, settings_path):
-    dbsettings = _get_django_settings (settings_path)
-    default = dbsettings ['default']
-    if default ['ENGINE'].endswith ('sqlite3'):
-        return alias (name, DB_SQLITE3, default ['NAME'])
-
-    if default ['ENGINE'].find ("postgresql") != -1:
-        if not default.get ("PORT"):
-            default ["PORT"] = 5432
-        if not default.get ("HOST"):
-            default ["HOST"] = "127.0.0.1"
-        if not default.get ("USER"):
-            default ["USER"] = ""
-        if not default.get ("PASSWORD"):
-            default ["PASSWORD"] = ""
-        return alias (name, DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)
-
 def alias (name, ctype, members, role = "", source = "", ssl = False, max_conns = 32):
     # not max_conns, unlimited
     from .tasks.httpbase.cluster_manager import AccessPolicy
@@ -767,12 +729,6 @@ def alias (name, ctype, members, role = "", source = "", ssl = False, max_conns 
         name = name [1:]
     if dconf ["clusters"].get (name):
         return name, dconf ["clusters"][name]
-
-    if ctype == DJANGO:
-        alias_ = _alias_django (name, members)
-        if alias_ is None:
-            raise SystemError ("Database engine is not compatible")
-        return alias_
 
     policy = AccessPolicy (role, source)
     args = (ctype, members, policy, ssl, max_conns)

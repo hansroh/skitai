@@ -8,7 +8,7 @@ def test_map (app, dbpath):
     def index (was):
         return was.Map (
             a = was.stub ('@pypi/project').get ("/rs4/"),
-            b = the_was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',)),
+            b = was.Mask ([{'id': 1, 'symbol': 'RHAT'}, {'id': 2, 'symbol': 'RHAT'}]),
             c = 123
         )
 
@@ -17,7 +17,7 @@ def test_map (app, dbpath):
         return was.Map (
             was.Mask (456),
             a = was.stub ('@pypi/project').get ("/rs4/"),
-            b = was.db ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',)),
+            b = was.Mask ([{'id': 2, 'symbol': 'RHAT'}, {'id': 2, 'symbol': 'RHAT'}]),
             c = 123
         )
 
@@ -28,7 +28,7 @@ def test_map (app, dbpath):
             was.Mask (456),
             a = 123,
             b = '456',
-            c = was.db ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',)),
+            c = was.Mask ([{'id': 2, 'symbol': 'RHAT'}, {'id': 2, 'symbol': 'RHAT'}]),
             d = was.Tasks ([
                 was.Mask (789),
                 was.Mask ('hello')
@@ -63,7 +63,7 @@ def test_map (app, dbpath):
         )
 
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
-    app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)
+
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/1")
         assert resp.status_code == 200

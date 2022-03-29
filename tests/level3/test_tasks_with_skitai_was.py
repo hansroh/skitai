@@ -12,7 +12,7 @@ def test_futures (app, dbpath):
         reqs = [
             the_was.get ("@pypi/project/skitai/"),
             the_was.get ("@pypi/project/rs4/"),
-            the_was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
+            the_was.Mask ("@sqlite")
         ]
         return the_was.Tasks (reqs, meta = {'a': 100}).then (respond)
 
@@ -24,7 +24,7 @@ def test_futures (app, dbpath):
 
         reqs = [
             the_was.get ("@pypi/project/rs4/"),
-            the_was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
+            the_was.Mask (['RHAT'])
         ]
         return the_was.Tasks (reqs).then (respond)
 
@@ -34,14 +34,14 @@ def test_futures (app, dbpath):
             return str (rss [0].one ())
 
         reqs = [
-            the_was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('---',))
+            the_was.Mask ([])
         ]
         return the_was.Tasks (reqs).then (respond)
 
     @app.route ("/12")
     def index12 (was):
-        a = the_was.Tasks ([was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))])
-        b = the_was.Tasks ([was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))])
+        a = the_was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
+        b = the_was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
         a.add (b)
         return str (a.one ())
 
@@ -49,13 +49,13 @@ def test_futures (app, dbpath):
     def index13 (was):
         def respond (was, rss):
             return str (rss.one ())
-        a = was.Tasks ([the_was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))])
-        b = was.Tasks ([the_was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))])
+        a = the_was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
+        b = the_was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
         a.merge (b)
         return a.then (respond)
 
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
-    app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)
+
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
         assert resp.data ['status_code'] == [200, 200, 200]

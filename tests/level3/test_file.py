@@ -14,7 +14,6 @@ def test_futures (app, dbpath):
         f.write (b'Be cool')
         return was.File (f, 'application/python', 'test.py')
 
-    app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
         assert resp.status_code == 200

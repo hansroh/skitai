@@ -3,7 +3,6 @@ from .sock.impl.ws import request_handler as ws_request_handler, request as ws_r
 from .sock.impl.grpc import request as grpc_request
 from .sock.impl.proxy import tunnel_handler
 from .sock.impl.http import localstorage as ls, util
-from .dbi.impl import request as dbo_request
 from rs4.attrdict import AttrDict
 
 class _Method:
@@ -91,6 +90,3 @@ def make_http (_method, url, params, auth, headers, meta, proxy, logger):
 
     req.handler = handler_class
     return req
-
-def make_dbo (_method, server, dbmethod, params, dbname, auth, meta, logger):
-    return dbo_request.Request (_method [1:], server, dbname, auth, dbmethod, params, None, meta)

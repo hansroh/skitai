@@ -1,22 +1,14 @@
 import time
-from ...protocols.threaded import socket_map
 from ...protocols.threaded import trigger
 from rs4.misc.cbutil import tuple_cb
 from rs4.webkit import webtest
-from ...protocols.sock.asynconnect import AsynSSLConnect, AsynConnect
-from ...protocols.dbi.dbconnect import DBConnect
-import threading
 from ...protocols.sock.impl.http import request as http_request
 from ...protocols.sock.impl.http import request_handler as http_request_handler
-from ...protocols.sock.impl.http2 import request_handler as http2_request_handler
 from ...protocols.sock.impl.grpc.request import GRPCRequest
 from ...protocols.sock.impl.http import response as http_response
 from ...protocols.sock.impl.ws import request_handler as ws_request_handler
 from ...protocols.sock.impl.ws import request as ws_request
 from . import rcache
-from skitai import lifetime
-import sys
-import inspect
 from skitai import exceptions
 from skitai import REQFAIL, UNSENT, TIMEOUT, NETERR, NORMAL
 from ..proto import response

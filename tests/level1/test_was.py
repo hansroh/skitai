@@ -9,7 +9,6 @@ from atila.named_session import NamedSession
 from skitai.protocols.sock.impl.smtp import composer
 import shutil
 from rs4 import pathtool
-from sqlphile.sqlmap import SQLMap
 import time
 
 def test_was (wasc, app, client):

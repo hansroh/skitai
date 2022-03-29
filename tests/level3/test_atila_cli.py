@@ -56,24 +56,10 @@ def test_cli (app, dbpath, is_pypy):
         res = req.dispatch ()
         return was.response.api (data = res.text)
 
-    @app.route ("/db")
-    def db (was):
-        stub = was.backend ("@sqlite")
-        req = stub.execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
-        res = req.dispatch ()
-        return was.response.api (data = res.data)
-
     @app.route ('/jwt')
     @app.authorization_required ("bearer")
     def jwt (was):
         return was.response.api (was.request.JWT)
-
-    @app.route ("/db2")
-    def db2 (was):
-        stub = was.db ("@sqlite")
-        req = stub.select ("stocks").filter (symbol = 'RHAT').execute ()
-        res = req.dispatch ()
-        return was.response.api (data = res.data)
 
     @app.maintain
     def increase (was, now, count):
@@ -109,8 +95,6 @@ def test_cli (app, dbpath, is_pypy):
 
 
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
-    app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)
-    app.alias ("@postgres", skitai.DB_POSTGRESQL, "postgres:password@192.168.0.80/coin_core")
 
     with app.test_client ("/", confutil.getroot ()) as cli:
         with cli.jsonrpc ('/rpc2') as stub:

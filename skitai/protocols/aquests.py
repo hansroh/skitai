@@ -11,41 +11,27 @@ from .sock import asynconnect
 from .threaded.fifo import await_fifo
 from .threaded import queue
 from . import sock
-from . import dbi
-from .dbi import dbpool
-from .dbi.impl import request as dbo_request
 from .sock.impl.http import localstorage as ls
 from .sock.impl.http import request_handler, response as http_response
 from .sock.impl import http2
 from .sock.impl.http2 import H2_PROTOCOLS
 import copy
 from . import lifetime, builder
+from urllib.parse import urlparse
 
 DEBUG = 0
-
-try:
-	from urllib.parse import urlparse
-except ImportError:
-	from urlparse import urlparse
 
 def cb_gateway_demo (response):
 	global _logger
 
 	try: cl = len (response.content)
 	except: cl = 0
-	if isinstance (response, dbo_request.Request):
-		status = "DBO %s %s %d records/documents received"	% (
-			response.code,
-			response.msg,
-			cl
-		)
-	else:
-		status = "HTTP/%s %s %s %d bytes received" % (
-			response.version,
-			response.code,
-			response.msg,
-			cl
-		)
+	status = "HTTP/%s %s %s %d bytes received" % (
+		response.version,
+		response.code,
+		response.msg,
+		cl
+	)
 
 	_logger.log (
 		"REQ %s-%d. %s" % (
@@ -131,10 +117,8 @@ def configure (
 		ls.create (_logger)
 	_timeout = timeout
 	sock.set_timeout (timeout)
-	dbi.set_timeout (timeout)
 
 	socketpool.create (_logger, backend = backend, use_pool = use_pool)
-	dbpool.create (_logger, backend = backend)
 	adns.init (_logger, dns)
 	lifetime.init (_timeout / 2., logger) # maintern interval
 	if tracking:
@@ -192,20 +176,16 @@ def _request_finished (handler):
 	except KeyError:
 		pass
 
-	if isinstance (handler, dbo_request.Request):
-		response = handler
+	response = builder.HTTPResponse (handler.response)
 
-	else:
-		response = builder.HTTPResponse (handler.response)
-
-		try:
-			for handle_func in (handle_status_401, handle_status_3xx):
-				response = handle_func (response)
-				if not response:
-					# re-requested
-					return req_if_queue (req_id)
-		except:
-			_logger.trace ()
+	try:
+		for handle_func in (handle_status_401, handle_status_3xx):
+			response = handle_func (response)
+			if not response:
+				# re-requested
+				return req_if_queue (req_id)
+	except:
+		_logger.trace ()
 
 	_finished_total += 1
 	response.logger = _logger
@@ -258,36 +238,23 @@ def _req ():
 		_is_request = False
 		_method = args [0].lower ()
 
-	if _is_db or _method in ("postgresql", "redis", "mongodb", "sqlite3"):
-		if not _is_request:
-			method, server, (dbmethod, params), dbname, auth, meta = args
-			asyncon = dbpool.get (server, dbname, auth, "*" + _method)
-			req = builder.make_dbo (_method, server, dbmethod, params, dbname, auth, meta, _logger)
+	if not _is_request:
+		method, url, params, auth, headers, meta, proxy = args
+		asyncon = socketpool.get (url)
+		if _method in ("ws", "wss"):
+			req = builder.make_ws (_method, url, params, auth, headers, meta, proxy, _logger)
 		else:
-			asyncon = dbpool.get (req.server, req.dbname, req.auth, "*" + req.dbtype)
-
-		_currents [meta ['req_id']] = [0, req.server]
-		req.set_callback (_request_finished)
-		asyncon.execute (req)
+			req = builder.make_http (_method, url, params, auth, headers, meta, proxy, _logger)
 
 	else:
-		if not _is_request:
-			method, url, params, auth, headers, meta, proxy = args
-			asyncon = socketpool.get (url)
-			if _method in ("ws", "wss"):
-				req = builder.make_ws (_method, url, params, auth, headers, meta, proxy, _logger)
-			else:
-				req = builder.make_http (_method, url, params, auth, headers, meta, proxy, _logger)
+		asyncon = socketpool.get (req.uri)
 
-		else:
-			asyncon = socketpool.get (req.uri)
-
-		_currents [meta ['req_id']] = [0, req.uri]
-		handler = req.handler (asyncon, req, _request_finished)
-		if asyncon.get_proto () and asyncon.isconnected ():
-			asyncon.handler.handle_request (handler)
-		else:
-			handler.handle_request ()
+	_currents [meta ['req_id']] = [0, req.uri]
+	handler = req.handler (asyncon, req, _request_finished)
+	if asyncon.get_proto () and asyncon.isconnected ():
+		asyncon.handler.handle_request (handler)
+	else:
+		handler.handle_request ()
 
 def workings ():
 	global _currents
@@ -365,7 +332,6 @@ def fetchall ():
 	lifetime._polling = 0
 	_duration = timeit.default_timer () - _fetch_started
 	socketpool.cleanup ()
-	dbpool.cleanup ()
 	result = Result (_finished_total, _duration, _bytesrecv, _max_conns, copy.copy (_http_status), copy.copy (_http_version))
 
 	# reinit for next session

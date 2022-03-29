@@ -140,7 +140,6 @@ def bench_http2 (was):
 if __name__ == '__main__':
     import skitai, os
 
-    skitai.alias ('@mydb', skitai.DB_PGSQL, os.environ ['MYDB'], max_conns = 10)
     skitai.alias ('@myweb', skitai.PROTO_HTTPS, 'example.com', max_conns = 32)
     skitai.mount ('/', app)
     skitai.use_poll ('epoll')

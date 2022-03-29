@@ -60,38 +60,22 @@ def stream (was):
             yield '<CHUNK>'
     return was.response ("210 Streaing", stream (), headers = [('Content-Type', 'text/plain')])
 
-
-GENSQL = '''SELECT 'a', 1
-   FROM (SELECT * FROM (
-         (SELECT 0 UNION ALL SELECT 1) t2,
-         (SELECT 0 UNION ALL SELECT 1) t4,
-         (SELECT 0 UNION ALL SELECT 1) t8,
-         (SELECT 0 UNION ALL SELECT 1) t16,
-         (SELECT 0 UNION ALL SELECT 1) t32,
-         (SELECT 0 UNION ALL SELECT 1) t64,
-         (SELECT 0 UNION ALL SELECT 1) t128,
-         (SELECT 0 UNION ALL SELECT 1) t256,
-         (SELECT 0 UNION ALL SELECT 1) t512,
-         (SELECT 0 UNION ALL SELECT 1) t1024,
-         (SELECT 0 UNION ALL SELECT 1) t2048
-         )
-    )
-'''
 @app.route ("/threaproducer")
-@app.inspect (ints = ['n', 'q'])
-def threaproducer (was, n = 3, q = 3):
+@app.inspect (ints = ['n', 'max_size'])
+def threaproducer (was, n = 3, max_size = 3):
     def producer (cur):
         def produce (q):
+            nonlocal cur
             while 1:
-                rows = cur.fetchmany (n)
+                rows, cur = cur [:n], cur [n:]
                 if not rows:
                     q.put (None)
                     break
                 # print (len (rows))
                 q.put (str (rows))
         return produce
-    cur = was.cursor ("@sqlite3").execute (GENSQL)
-    return was.Queue (producer (cur), q)
+    cur = [('a', 1)] * 10000
+    return was.Queue (producer (cur), max_size)
 
 @app.route ("/stub")
 def stub (was):
@@ -237,7 +221,6 @@ def process_future_response (was, tasks):
 if __name__ == "__main__":
     import skitai
     skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
-    skitai.alias ("@sqlite3", skitai.DB_SQLITE3, "resources/sqlite3.db")
     skitai.mount ("/", app)
     skitai.mount ("/", 'statics')
     skitai.mount ("/lb", "@pypi")

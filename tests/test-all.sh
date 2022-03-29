@@ -1,7 +1,7 @@
-pytest level1 && \
-pytest level2 && \
-pytest level3 && \
-pytest level4 && \
-pytest level4-1 && \
-pytest level4-2 && \
-pytest level5
+pytest -x --ff level1 && \
+pytest -x --ff level2 && \
+pytest -x --ff level3 && \
+pytest -x --ff level4 && \
+pytest -x --ff level4-1 && \
+pytest -x --ff level4-2 && \
+pytest -x --ff level5

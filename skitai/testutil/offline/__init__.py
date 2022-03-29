@@ -16,16 +16,13 @@ from ...handlers import vhost_handler
 from ...handlers import proxy_handler
 import inspect
 import os
-from ...tasks.dbi import task as dtask
 from ...tasks.httpbase import task, cluster_manager
 from ...protocols.sock import socketpool
 from ...protocols import lifetime
 from ...protocols.sock.impl.dns import adns
 from ...protocols.sock.asynconnect import AsynConnect
-from ...protocols.dbi import dbpool
-from ...protocols.dbi.dbconnect import DBConnect
 from rs4 import asyncore
-from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS, DB_SYN_PGSQL, DB_SYN_MONGODB, DB_SYN_REDIS
+from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS
 from ...wastuff import semaps
 from ...tasks.pth import executors
 
@@ -126,14 +123,7 @@ def setup_was (wasc):
 
     add_cluster (wasc, *skitai.alias ("@example", PROTO_HTTP, "www.example.com"))
     add_cluster (wasc, *skitai.alias ("@examples", PROTO_HTTPS, "www.example.com"))
-    add_cluster (wasc, *skitai.alias ("@sqlite3", DB_SQLITE3, SAMPLE_DBPATH))
 
-    try: add_cluster (wasc, *skitai.alias ("@postgresql", DB_PGSQL, "user:pass@127.0.0.1/mydb"))
-    except ImportError: pass
-    try: add_cluster (wasc, *skitai.alias ("@mongodb", DB_MONGODB, "127.0.0.1:27017/mydb"))
-    except ImportError: pass
-    try: add_cluster (wasc, *skitai.alias ("@redis", DB_REDIS, "127.0.0.1:6379"))
-    except ImportError: pass
     return wasc
 
 wasc = None
@@ -153,10 +143,6 @@ def activate (make_sync = True):
     if make_sync:
         cluster_manager.ClusterManager.use_syn_connection = True
         socketpool.SocketPool.use_syn_connection = True
-        class_map = dbpool.DBPool.class_map
-        class_map [DB_PGSQL] = class_map [DB_SYN_PGSQL]
-        class_map [DB_REDIS] = class_map [DB_SYN_REDIS]
-        class_map [DB_MONGODB] = class_map [DB_SYN_MONGODB]
 
     wasc = setup_was (WAS)
     skitai.start_was (wasc, enable_requests = True)

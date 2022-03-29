@@ -31,9 +31,7 @@ def test_app (launch):
 		assert_request (401, "/members/")
 		assert_request (200, "/members/", auth = HTTPDigestAuth ("admin", "1111"))
 
-		urls = ["/", "/documentation", "/documentation2", "/documentation3", "/hello", "/redirect1", "/redirect2", "/dbtx", "/xmlrpc"]
-		if not is_pypy:
-			urls.extend (["/db", '/dbmap'])
+		urls = ["/", "/documentation", "/documentation2", "/documentation3", "/hello", "/redirect1", "/redirect2", "/xmlrpc"]
 
 		for url in urls:
 			assert_request (200, url)

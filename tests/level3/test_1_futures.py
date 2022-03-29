@@ -18,7 +18,7 @@ def test_futures (app, dbpath):
         reqs = [
             was.get ("@pypi/project/skitai/"),
             was.get ("@pypi/project/rs4/"),
-            was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
+            was.Mask ([{'symbol': 'RHAT'}, {'symbol': 'RHAT'}])
         ]
         return was.Tasks (reqs, meta = {'a': 100}).then (respond)
 
@@ -42,7 +42,7 @@ def test_futures (app, dbpath):
             return was.response.API (status_code_db = [rs.status_code for rs in rss.dispatch ()], b = rss.meta ['b'], status_code = rss.meta ['status_code'])
 
         def checkdb (was, rss):
-            reqs = [was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))]
+            reqs = [was.Mask ([{'symbol': 'RHAT'}, {'symbol': 'RHAT'}])]
             rss.meta ['b'] = rss.meta ["a"] + 100
             rss.meta ['status_code'] = [rs.status_code for rs in rss.dispatch ()]
             return was.Tasks (reqs, meta = rss.meta).then (repond)
@@ -63,7 +63,7 @@ def test_futures (app, dbpath):
 
         reqs = [
             was.get ("@pypi/project/rs4/"),
-            was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
+            was.Mask ([{'symbol': 'RHAT'}])
         ]
         return was.Tasks (reqs).then (respond)
 
@@ -73,7 +73,7 @@ def test_futures (app, dbpath):
             return str (rss [0].one ())
 
         reqs = [
-            was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('---',))
+            was.Mask ([])
         ]
         return was.Tasks (reqs).then (respond)
 
@@ -81,14 +81,14 @@ def test_futures (app, dbpath):
     def index4_1 (was):
         def respond (was, rs):
             return str (rs.fetch ())
-        req = was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('---',))
+        req = was.Mask ([])
         return req.then (respond)
 
     @app.route ("/5")
     def index5 (was):
         reqs = [
             was.get ("@pypi/project/rs4/"),
-            was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
+            was.Mask ([{'symbol': 'RHAT'}, {'symbol': 'RHAT'}])
         ]
         return str ([rs.fetch () for rs in was.Tasks (reqs)])
 
@@ -96,52 +96,38 @@ def test_futures (app, dbpath):
     def index6 (was):
         reqs = [
             was.get ("@pypi/project/rs4/"),
-            was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
+            was.Mask ([{'symbol': 'RHAT'}, {'symbol': 'RHAT'}])
         ]
         return str (was.Tasks (reqs).fetch ())
 
     @app.route ("/7")
     def index7 (was):
         reqs = [
-            was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=? limit 1', ('RHAT',)),
-            was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=? limit 1', ('RHAT',))
+            was.Mask ([{'symbol': 'RHAT'}]),
+            was.Mask ([{'symbol': 'RHAT'}])
         ]
         return str (was.Tasks (reqs).one ())
 
     @app.route ("/8")
     def index8 (was):
         reqs = [
-            was.backend ("@sqlite").execute ('SELECT * FROM ghost WHERE symbol=? limit 1', ('RHAT',)),
-            was.backend ("@sqlite").execute ('SELECT * FROM ghost WHERE symbol=? limit 1', ('RHAT',))
+            was.Mask ([]),
+            was.Mask ([{'symbol': 'RHAT'}])
         ]
         return str (was.Tasks (reqs).one ())
-
-    @app.route ("/9")
-    def index9 (was):
-        reqs = [
-            was.backend ("@sqlite").execute ("INSERT INTO ghost (id) values (1)")
-        ]
-        return str (was.Tasks (reqs).wait ())
-
-    @app.route ("/10")
-    def index10 (was):
-        reqs = [
-            was.backend ("@sqlite").execute ("INSERT INTO ghost (id) values (1)")
-        ]
-        return str (was.Tasks (reqs).commit ())
 
     @app.route ("/11")
     def index11 (was):
         reqs = [
-            was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=? limit 0', ('RHAT',)),
-            was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=? limit 1', ('RHAT',))
+            was.Mask ([]),
+            was.Mask ([{'symbol': 'RHAT'}])
         ]
         return str (was.Tasks (reqs).one ())
 
     @app.route ("/12")
     def index12 (was):
-        a = was.Tasks ([was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))])
-        b = was.Tasks ([was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))])
+        a = was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
+        b = was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
         a.add (b)
         return str (a.one ())
 
@@ -149,30 +135,30 @@ def test_futures (app, dbpath):
     def index13 (was):
         def respond (was, rss):
             return str (rss.one ())
-        a = was.Tasks ([was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))])
-        b = was.Tasks ([was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))])
+        a = was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
+        b = was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
         a.merge (b)
         return a.then (respond)
 
     @app.route ("/14")
     def index14 (was):
         reqs = [
-            was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 0', ('RHAT',)),
-            was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))
+            was.Mask ([]),
+            was.Mask ([{'symbol': 'RHAT'}])
         ]
         tasks = was.Tasks (reqs)
-        req = was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))
+        req = was.Mask ([{'symbol': 'RHAT'}])
         (a, b), c = was.Tasks ([tasks, req]).fetch ()
         return str ([a,b,c])
 
     @app.route ("/15")
     def index15 (was):
         reqs = [
-            was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 0', ('RHAT',)),
-            was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))
+            was.Mask ([]),
+            was.Mask ([{'symbol': 'RHAT'}])
         ]
         tasks = was.Tasks (reqs)
-        req = was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))
+        req = was.Mask ([{'symbol': 'RHAT'}])
         mask = was.Mask (['mask'])
         (a, b), c, d = was.Tasks ([tasks, req, mask]).fetch ()
         return str ([a, b, c, d])
@@ -180,11 +166,11 @@ def test_futures (app, dbpath):
     @app.route ("/16")
     def index16 (was):
         reqs = [
-            was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 0', ('RHAT',)),
-            was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))
+            was.Mask ([]),
+            was.Mask ([{'symbol': 'RHAT'}])
         ]
         tasks = was.Tasks (reqs)
-        req = was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))
+        req = was.Mask ([{'symbol': 'RHAT'}])
         mask = was.Mask (['mask'])
         th = was.Thread (func1)
         ps = was.Process (func2)
@@ -194,7 +180,7 @@ def test_futures (app, dbpath):
     @app.route ("/17")
     def index17 (was):
         reqs = [
-            was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 0', ('RHAT',)),
+            was.Mask ([]),
             was.Thread (func1) or was.Mask ('thread')
         ]
         reqs = [
@@ -204,14 +190,14 @@ def test_futures (app, dbpath):
             was.Process (func2)
         ]
         tasks = was.Tasks (reqs)
-        req = was.backend ("@sqlite").execute ('SELECT symbol FROM stocks WHERE symbol=? limit 1', ('RHAT',))
+        req = was.Mask ([{'symbol': 'RHAT'}])
         mask = was.Mask (['mask'])
 
         ((a, b), c, d, e), e, f = was.Tasks ([tasks, req, mask]).fetch ()
         return str ([a, b, c, d, e, f])
 
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
-    app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)
+
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
         assert resp.data ['status_code'] == [200, 200, 200]
@@ -252,13 +238,7 @@ def test_futures (app, dbpath):
         assert "RHAT" in resp.text
 
         resp = cli.get ("/8")
-        assert resp.status_code == 502
-
-        resp = cli.get ("/9")
-        assert resp.status_code == 200
-
-        resp = cli.get ("/10")
-        assert resp.status_code == 502
+        assert resp.status_code == 410
 
         resp = cli.get ("/11")
         assert resp.status_code == 410

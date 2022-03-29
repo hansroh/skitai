@@ -1,6 +1,5 @@
 import skitai
 import sys
 
-def test_getopt ():    
-    opts, args = skitai.getopt ("shf:x", ["ssl", "debug", "origin="])
-        
+def test_getopt ():
+    opts, args = skitai.getopt ("shf:x", ["ssl", "debug", "origin=", "ff", "lf"])

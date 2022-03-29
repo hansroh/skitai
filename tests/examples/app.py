@@ -88,40 +88,6 @@ def documentation3 (was):
     ]
     return was.futures (reqs).then (response)
 
-@app.route ("/db")
-def db (was):
-    with was.db ("@sqlite3") as db:
-        # db.execute('CREATE TABLE IF NOT EXISTS people (id real, name text)').commit ()
-        # db.execute("INSERT INTO people (id, name) VALUES (2, 'Hans Roh')").commit ()
-        req = db.execute ("select * from people")
-    return was.API (data = req.fetch (cache = 40, timeout = 2))
-
-@app.route ("/dbtx")
-def dbtx (was):
-    with was.transaction ("@sqlite3") as db:
-        req = db.execute ("select * from people")
-        return was.API (data = req.fetch ())
-
-@app.route ("/dbmap")
-def dbmap (was):
-    with was.db.map ("@sqlite3m") as db:
-        # db.execute('CREATE TABLE IF NOT EXISTS people (id real, name text)').commit ()
-        # db.execute("INSERT INTO people VALUES (1, 'Hans Roh')").commit ()
-        req = db.execute ("select * from people")
-        results = req.dispatch ()
-        data = req.fetch (cache = 60)
-        assert data == results.data
-    if sys.version_info <= (3, 7) and not is_pypy: # why?
-        with was.db.map ("@sqlite3m") as db:
-            db.execute ("delete from people where id=3").commit ()
-    return was.API (data = data)
-
-@app.route ("/dblb")
-def dblb (was):
-    with was.db.lb ("@sqlite3m") as db:
-        req = db.execute ("select * from people")
-    return was.API (req.fetch (cache = 40, timeout = 2))
-
 @app.route ("/xmlrpc")
 def xmlrpc (was):
     with was.xmlrpc ("@pypi/pypi") as stub:
@@ -194,7 +160,7 @@ def mixing (was):
         a, b, c, d, e, f = tasks.fetch ()
         return was.API (a =a, b = b, c = c, d = d, e = e, f = f)
     return was.Tasks (
-        was.db ("@sqlite3").execute ("select * from people"),
+        was.Mask ([]),
         was.get ("@pypi/project/rs4/", headers = [("Accept", "text/html")]),
         was.Thread (time.sleep, args = (0.3,)),
         was.Process (time.sleep, args = (0.3,)),
@@ -210,9 +176,6 @@ if __name__ == "__main__":
         skitai.set_service (ServiceConfig)
 
     skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
-    skitai.alias ("@sqlite3", skitai.DB_SQLITE3, "resources/sqlite3.db")
-    skitai.alias ("@sqlite3m", skitai.DB_SQLITE3, ["resources/sqlite3-1.db", "resources/sqlite3-2.db"])
-
     skitai.mount ("/", 'statics')
 
     with skitai.preference () as pref:

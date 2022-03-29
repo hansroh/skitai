@@ -17,7 +17,6 @@ from .protocols.sock import asynconnect
 from .protocols.sock import socketpool
 from .protocols.threaded import threadlib, trigger
 from .protocols.sock.impl.dns import adns, dns
-from .protocols.dbi import dbpool
 from rs4 import logger, confparse, pathtool
 from .protocols.sock.impl.http import request_handler
 from .protocols.sock.impl import http2
@@ -33,8 +32,6 @@ from .backbone import http_response
 from .tasks import cachefs
 from .tasks.httpbase import task, rcache
 from .tasks.httpbase import cluster_manager as rcluster_manager
-from .tasks.dbi import cluster_manager as dcluster_manager
-from .tasks.dbi import task as dtask
 import types
 from .handlers.websocket import servers as websocekts
 from .wastuff import selective_logger, triple_logger
@@ -136,10 +133,6 @@ class Loader:
         socketfarm = socketpool.SocketPool (self.wasc.logger.get ("server"))
         self.wasc.clusters ["__socketpool__"] = socketfarm
         self.wasc.clusters_for_distcall ["__socketpool__"] = task.TaskCreator (socketfarm, self.wasc.logger.get ("server"), self.wasc.cachefs)
-
-        dp = dbpool.DBPool (self.wasc.logger.get ("server"))
-        self.wasc.clusters ["__dbpool__"] = dp
-        self.wasc.clusters_for_distcall ["__dbpool__"] = dtask.TaskCreator (dp, self.wasc.logger.get ("server"))
 
     def switch_to_await_fifo (self):
         if self._fifo_switched: return
@@ -244,10 +237,6 @@ class Loader:
         rcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive
         rcluster_manager.ClusterManager.object_timeout = object_timeout
         rcluster_manager.ClusterManager.maintern_interval = maintern_interval
-
-        dcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive
-        dcluster_manager.ClusterManager.object_timeout = object_timeout
-        dcluster_manager.ClusterManager.maintern_interval = maintern_interval
 
     def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0, access = None, max_conns = 100):
         try:

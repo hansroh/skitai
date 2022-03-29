@@ -19,7 +19,6 @@ variables:
   - pip install -U setuptools pip
   - pip install -U --pre --no-cache-dir rs4 sqlphile
   - pip install -U "h2>=4.0.0"
-  - python -c 'from skitai.protocols.dbi.impl import syndbi, asynpsycopg2, asynmongo, asynredis'
   - python -c 'from skitai.protocols.sock.impl.grpc import discover'
   - pip install -Ur tests/requirements.txt
   - pip install -U "django>=3.0,<4.0"

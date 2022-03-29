@@ -65,7 +65,7 @@ def test_launch (launch):
         assert resp.status_code == 404
 
         resp = engine.get ("/apis/urlfor")
-        assert resp.data == {'urls': ['/apis?message=urlfor', '/apis', '/apis/db', '/templates', '/templates?message=urlfor', '/templates/api-examples']}
+        assert resp.data == {'urls': ['/apis?message=urlfor', '/apis', '/apis/subprocess', '/templates', '/templates?message=urlfor', '/templates/api-examples']}
 
         resp = engine.get ("/templates")
         assert resp.text.find ("Example") > 0
@@ -108,7 +108,7 @@ def test_launch (launch):
 
         if not is_pypy:
             for i in range (4):
-                resp = engine.axios.get ('/apis/db{}'.format (i % 2 == 1 and 2 or ''))
+                resp = engine.axios.get ('/apis/db2')
                 assert resp.status_code == 200
                 assert 'rows' in resp.data
                 assert len (resp.data ['rows']) > 1

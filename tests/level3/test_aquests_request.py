@@ -1,7 +1,6 @@
 from skitai.protocols.sock.impl.http import request
 from skitai.protocols.sock.impl.grpc import request as grpc_request
 from skitai.protocols.sock.impl.ws import request as ws_request
-from skitai.protocols.dbi.impl import request as dbo_request
 from examples.services import route_guide_pb2
 
 def test_request_attrs ():
@@ -15,8 +14,7 @@ def test_request_attrs ():
 		request.HTTPMultipartRequest,
 		request.XMLRPCRequest,
 		grpc_request.GRPCRequest,
-		ws_request.Request,
-		dbo_request.Request
+		ws_request.Request
 	]
 
 	for attr in ('reauth_count', 'retry_count'):

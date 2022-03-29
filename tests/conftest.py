@@ -5,7 +5,7 @@ from atila import Atila
 from rs4 import logger
 from skitai.testutil import offline
 from skitai.testutil.offline.server import Server, Conn, Channel
-from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS
+from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS
 import sys
 import pytest
 
@@ -77,7 +77,6 @@ def async_wasc ():
     wasc = offline.setup_was (WAS) # nned real WAS from this testing
 
     assert "example" in wasc.clusters
-    assert "postgresql" in wasc.clusters
     return wasc
 
 DBPATH = offline.SAMPLE_DBPATH

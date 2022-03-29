@@ -22,7 +22,7 @@ def test_etag (app, dbpath):
         return "1"
 
     app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
-    app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)
+
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/1")
         assert resp.status_code == 200

@@ -41,17 +41,3 @@ def test_skitai (app):
     skitai.dconf ['mount']["default"] = []
     skitai.mount ("/k2", "@X11")
     assert skitai.dconf ['mount']["default"][0][1] == "@X11"
-
-    if django:
-        skitai.dconf ['mount']["default"] = []
-        t = os.path.join (os.path.dirname (__file__), "django_")
-        skitai.mount ("/k2", t)
-        assert skitai.dconf ['mount']["default"][0][1] == t
-
-        skitai.dconf ['mount']["default"] = []
-        t = os.path.join (os.path.dirname (__file__), "django_", "wsgi.py")
-        skitai.mount ("/k2", t, "application")
-
-        t = os.path.join (os.path.dirname (__file__), "django_", "settings.py")
-        skitai.alias ("@django", skitai.DJANGO, t)
-        assert skitai.dconf ["clusters"]["django"]

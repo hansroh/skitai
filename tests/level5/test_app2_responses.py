@@ -6,7 +6,7 @@ def test_app (launch):
 
         resp = engine.get ('/threaproducer')
         assert resp.status_code == 200
-        assert len (resp.data) == 20480
+        assert len (resp.data) == 100000
 
         resp = engine.get ('/map_in_thread')
         assert resp.status_code == 200
