@@ -122,6 +122,7 @@ def maintern_zombie_channel (now, map = None):
 	if map is None:
 		map = asyncore.socket_map
 
+	zombies = []
 	for channel in map.values():
 		if hasattr (channel, "handle_timeout"):
 			try:
@@ -130,11 +131,14 @@ def maintern_zombie_channel (now, map = None):
 			except AttributeError:
 				continue
 			if iszombie:
-				_killed_zombies += 1
-				try:
-					channel.handle_timeout ()
-				except:
-					channel.handle_error ()
+				zombies.append (channel)
+
+	for channel in zombies:
+		_killed_zombies += 1
+		try:
+			channel.handle_timeout ()
+		except:
+			channel.handle_error ()
 
 maintern = None
 tick_timer = None

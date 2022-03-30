@@ -164,7 +164,7 @@ def graceful_shutdown_loop ():
 	while map and _shutdown_phase < 4:
 		time_in_this_phase = time.time() - timestamp
 		veto = 0
-		for fd,obj in map.items():
+		for fd, obj in list (map.items()):
 			try:
 				fn = getattr (obj,'clean_shutdown_control')
 			except AttributeError:
