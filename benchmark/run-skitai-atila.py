@@ -7,6 +7,8 @@ from skitai import was
 from sqlphile import pg2
 import json
 import random
+import os
+
 app = Atila (__name__)
 
 SLEEP = 0.3
@@ -66,10 +68,22 @@ def bench_one (was):
             txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''').fetch ()
         )
 
+
+from rs4.webkit.pools import RequestsPool
+rpool = RequestsPool (200)
+
+TARGET = "example.com" if os.getenv ("GITLAB_CI") else "192.168.0.154:6001"
+
 @app.route ("/bench/http", methods = ['GET'])
 def bench_http (was):
     return was.Map (
         t1 = was.get ('@myweb/', headers = {'Accept': 'text/html'}),
+    )
+
+@app.route ("/bench/http/requests", methods = ['GET'])
+def bench_http_requests (was):
+    return was.API (
+        t1 = rpool.get (f'http://{TARGET}', headers = {'Accept': 'text/html'}).text
     )
 
 @app.route ("/bench/http/2", methods = ['GET'])
@@ -83,7 +97,7 @@ def bench_http2 (was):
 if __name__ == '__main__':
     import skitai, os
 
-    skitai.alias ('@myweb', skitai.PROTO_HTTPS, 'example.com', max_conns = 32)
+    skitai.alias ('@myweb', skitai.PROTO_HTTP, TARGET, max_conns = 32)
     skitai.mount ('/', app)
     skitai.use_poll ('epoll')
     skitai.run (workers = 4, threads = 4, port = 5000)

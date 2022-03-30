@@ -31,3 +31,6 @@ def test_launch (launch):
 
         resp = engine.axios.get ('/bench/http')
         assert resp.status_code == 200
+
+        resp = engine.axios.get ('/bench/http/requests')
+        assert resp.status_code == 200
