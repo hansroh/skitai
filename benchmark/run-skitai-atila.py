@@ -79,6 +79,7 @@ def bench_http2 (was):
         t2 =  was.get ('@myweb/', headers = {'Accept': 'text/html'}),
     )
 
+
 if __name__ == '__main__':
     import skitai, os
 
