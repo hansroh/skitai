@@ -118,6 +118,10 @@ class Loader:
         lifetime.maintern.sched (4.1, dns.pool.maintern)
 
     def config_executors (self, workers, zombie_timeout, process_start = None, enable_async = False):
+        def start_event_loop (loop):
+            asyncio.set_event_loop (loop)
+            loop.run_forever ()
+
         if process_start:
             from multiprocessing import set_start_method
             try: set_start_method (process_start, force = True)
@@ -127,8 +131,7 @@ class Loader:
         if enable_async:
             self._async_enabled = True
             _loop = asyncio.new_event_loop ()
-            asyncio.set_event_loop (_loop)
-            threading.Thread (target = _loop.run_forever).start ()
+            threading.Thread (target = start_event_loop, args = (_loop,)).start ()
             self.wasc.register ("event_loop", _loop)
 
     def config_cachefs (self, cache_dir = None, memmax = 0, diskmax = 0):
