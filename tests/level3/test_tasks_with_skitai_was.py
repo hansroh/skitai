@@ -1,20 +1,19 @@
 import skitai
 import confutil
 import pprint
-from skitai import was as the_was
 
 def test_futures (app, dbpath):
     @app.route ("/")
     def index (was):
         def respond (was, rss):
-            return the_was.response.API (status_code = [rs.status_code for rs in rss.dispatch ()], a = rss.meta ['a'])
+            return skitai.was.response.API (status_code = [rs.status_code for rs in rss.dispatch ()], a = rss.meta ['a'])
 
         reqs = [
-            the_was.get ("@pypi/project/skitai/"),
-            the_was.get ("@pypi/project/rs4/"),
-            the_was.Mask ("@sqlite")
+            skitai.was.get ("@pypi/project/skitai/"),
+            skitai.was.get ("@pypi/project/rs4/"),
+            skitai.was.Mask ("@sqlite")
         ]
-        return the_was.Tasks (reqs, meta = {'a': 100}).then (respond)
+        return skitai.was.Tasks (reqs, meta = {'a': 100}).then (respond)
 
     @app.route ("/3")
     def index3 (was):
@@ -23,10 +22,10 @@ def test_futures (app, dbpath):
             return datas
 
         reqs = [
-            the_was.get ("@pypi/project/rs4/"),
-            the_was.Mask (['RHAT'])
+            skitai.was.get ("@pypi/project/rs4/"),
+            skitai.was.Mask (['RHAT'])
         ]
-        return the_was.Tasks (reqs).then (respond)
+        return skitai.was.Tasks (reqs).then (respond)
 
     @app.route ("/4")
     def index4 (was):
@@ -34,14 +33,14 @@ def test_futures (app, dbpath):
             return str (rss [0].one ())
 
         reqs = [
-            the_was.Mask ([])
+            skitai.was.Mask ([])
         ]
-        return the_was.Tasks (reqs).then (respond)
+        return skitai.was.Tasks (reqs).then (respond)
 
     @app.route ("/12")
     def index12 (was):
-        a = the_was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
-        b = the_was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
+        a = skitai.was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
+        b = skitai.was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
         a.add (b)
         return str (a.one ())
 
@@ -49,8 +48,8 @@ def test_futures (app, dbpath):
     def index13 (was):
         def respond (was, rss):
             return str (rss.one ())
-        a = the_was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
-        b = the_was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
+        a = skitai.was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
+        b = skitai.was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
         a.merge (b)
         return a.then (respond)
 

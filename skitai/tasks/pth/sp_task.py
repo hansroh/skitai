@@ -5,7 +5,7 @@ import subprocess
 from concurrent.futures import TimeoutError
 from ..tasks import Mask
 import time
-from skitai import was
+import skitai
 
 class Task (task.Task):
     def __init__ (self, cmd, meta, filter = None, timeout = None):
@@ -23,7 +23,7 @@ class Task (task.Task):
     def then (self, func, was = None):
         self._fulfilled = func
         self._was = was or self._get_was ()
-        return was.Thread (self._settle)
+        return skitai.was.Thread (self._settle)
 
     def _settle (self, future = None):
         if self._fulfilled:
@@ -39,7 +39,7 @@ class Task (task.Task):
             self._meta ["__reqid"] = reqid
         self._timeout = timeout
         self._fulfilled = func
-        was.Thread (self._settle)
+        skitai.was.Thread (self._settle)
 
     def kill (self):
         self.proc.kill ()

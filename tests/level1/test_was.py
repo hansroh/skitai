@@ -1,4 +1,3 @@
-from confutil import rprint, assert_request
 import confutil
 import pytest
 import skitai

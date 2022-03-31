@@ -1,4 +1,4 @@
-from confutil import rprint, assert_request
+from confutil import rprint
 import confutil
 from skitai.testutil import offline as testutil
 from skitai.handlers import vhost_handler

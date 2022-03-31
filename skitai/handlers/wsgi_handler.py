@@ -5,7 +5,7 @@ from ..backbone.http_response import catch
 from ..protocols.threaded import trigger
 from ..protocols.sock.impl.http.http_util import *
 from . import collectors
-from skitai import version_info, was as the_was
+from skitai import version_info
 import threading
 from io import BytesIO
 import skitai
@@ -265,7 +265,7 @@ class Job:
     def exec_app (self):
         # this is not just for atila,
         # Task need request and response
-        was = the_was._get ()
+        was = skitai.was._get ()
         was.request = self.request
         if was.request.channel is None:
             return was.log ('connection lost', 'warn', 'server')

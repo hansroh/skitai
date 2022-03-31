@@ -1,4 +1,3 @@
-from confutil import rprint, assert_request
 import confutil
 from skitai.handlers import vhost_handler
 import skitai

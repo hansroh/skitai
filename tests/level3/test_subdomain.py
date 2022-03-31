@@ -1,7 +1,6 @@
 import skitai
 import confutil
 import pprint
-from skitai import was as the_was
 
 def test_map (app, dbpath):
     @app.route ("/1", subdomain = 'k')

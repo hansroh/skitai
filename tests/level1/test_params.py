@@ -1,9 +1,17 @@
-from confutil import rprint, assert_request
+from confutil import rprint
 import confutil
 import skitai
 import os, pytest
 from skitai.testutil import offline as testutil
+from skitai.testutil.offline import client as cli
 
+CLIENT = None
+
+def assert_request (handler, request, expect_code):
+	global CLIENT
+	resp = CLIENT.handle_request (request, handler)
+	assert resp.status_code == expect_code, rprint ("STATUS CODE:", resp.status_code)
+	return resp
 
 def mount (app):
 	def z (was):
@@ -36,7 +44,10 @@ def mount (app):
 		return z (was)
 
 
-def test_params (wasc, app, client):
+def test_params (app, client):
+	global CLIENT
+	CLIENT = client
+
 	mount (app)
 	app.restrict_parameter_count = False
 
@@ -123,7 +134,10 @@ def test_params (wasc, app, client):
 	assert resp.text == "a b u"
 
 
-def test_params_restrict (wasc, app, client):
+def test_params_restrict (app, client):
+	global CLIENT
+	CLIENT = client
+
 	mount (app)
 	app.restrict_parameter_count = True
 

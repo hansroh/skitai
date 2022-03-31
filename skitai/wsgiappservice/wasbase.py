@@ -21,7 +21,7 @@ if os.environ.get ("SKITAIENV") == "PYTEST":
     from threading import RLock
 else:
     from multiprocessing import RLock
-from skitai import was as the_was
+import skitai
 import xmlrpc.client as xmlrpclib
 from ..wastuff.api import API
 if os.environ.get ("SKITAIENV") == "PYTEST":
@@ -75,6 +75,10 @@ class WASBase (_WASType):
             if attr == "logger":
                 continue
 
+            if attr == "event_loop":
+                obj.call_soon_threadsafe (obj.stop)
+                continue
+
             if attr == "clusters":
                 cls.logger ("server", "[info] cleanup %s" % attr)
                 for name, cluster in obj.items ():
@@ -94,7 +98,7 @@ class WASBase (_WASType):
         if hasattr (self, 'env'):
             new_env = copy.copy (self.env)
             self.env.pop ('wsgi.input') # depending closure
-        new_was = the_was._get (True) # get clone was
+        new_was = skitai.was._get (True) # get clone was
         new_env ["skitai.was"] = new_was
         new_was.env = new_env
 

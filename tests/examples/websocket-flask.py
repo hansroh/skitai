@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request
 import skitai
-from skitai import was
 
 app = Flask(__name__)
 app.debug = True

@@ -1,7 +1,6 @@
 import skitai
 import confutil
 import pprint
-from skitai import was as the_was
 import time
 
 # headers = {"If-None-Match": etag}

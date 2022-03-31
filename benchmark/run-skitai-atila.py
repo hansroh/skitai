@@ -3,7 +3,6 @@
 from atila import Atila
 from sqlphile import Q
 import time
-from skitai import was
 from sqlphile import pg2
 import json
 import random

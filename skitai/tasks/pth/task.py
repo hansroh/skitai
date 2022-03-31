@@ -2,9 +2,9 @@ from concurrent.futures import TimeoutError, CancelledError
 import time
 from ..tasks import Mask
 from .. import proto
-from skitai import was
 from ...protocols.threaded import trigger
 import sys
+import ctypes
 from ..httpbase.task import DEFAULT_TIMEOUT
 
 class Task (proto.Task):

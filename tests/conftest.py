@@ -3,6 +3,7 @@ import confutil
 import skitai
 from atila import Atila
 from rs4 import logger
+from skitai.testutil.offline import client as cli
 from skitai.testutil import offline
 from skitai.testutil.offline.server import Server, Conn, Channel
 from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS
@@ -39,15 +40,15 @@ def log ():
     yield logger
     logger.close ()
 
-@pytest.fixture (scope = "module")
+@pytest.fixture
 def app ():
     app_ = Atila (__name__)
     app_.logger = logger.screen_logger ()
     return app_
 
 @pytest.fixture
-def client ():
-    return confutil.client
+def client (wasc):
+    return cli.Client ()
 
 @pytest.fixture
 def conn ():
@@ -66,11 +67,12 @@ def server ():
     yield s
     s.close ()
 
-@pytest.fixture (scope = "session")
+@pytest.fixture
 def wasc ():
     offline.activate (make_sync = True)
-    yield offline.wasc
-    offline.wasc.close ()
+    wasc = offline.wasc
+    yield wasc
+    wasc.close ()
 
 @pytest.fixture (scope = "session")
 def async_wasc ():

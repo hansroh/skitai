@@ -1,31 +1,24 @@
-from confutil import rprint, assert_request
+from confutil import rprint
 import confutil
 import skitai
 import os, pytest
 from skitai.testutil import offline as testutil
+from skitai.testutil.offline import client as cli
 
-@pytest.mark.run (order = 1)
-def test_default_handler (wasc, client):
-	vh = testutil.install_vhost_handler ()
-	testutil.mount ("/", "./examples/statics")
+CLIENT = None
 
-	request = client.get ("http://www.skitai.com/1001.htm")
-	assert_request (vh, request, 404)
+def assert_request (handler, request, expect_code):
+	global CLIENT
 
-	request = client.get ("http://www.skitai.com/100.htm")
-	resp = assert_request (vh, request, 200)
-	assert resp.get_header ('cache-control') is None
-
-	request = client.get ("http://www.skitai.com/img/reindeer.jpg")
-	resp = assert_request (vh, request, 200)
-	assert resp.get_header ('cache-control')
-
-	request = client.get ("http://www.skitai.com/img/reindeer.jpg", version = "2.0")
-	resp = assert_request (vh, request, 200)
-	assert resp.get_header ('cache-control')
+	resp = CLIENT.handle_request (request, handler)
+	assert resp.status_code == expect_code, rprint ("STATUS CODE:", resp.status_code)
+	return resp
 
 @pytest.mark.run (order = 2)
-def test_wsgi_handler (wasc, app, client):
+def test_wsgi_handler (app, client, wasc):
+	global CLIENT
+	CLIENT = client
+
 	@app.route ("/")
 	def index (was, a = 0):
 		return "Hello"

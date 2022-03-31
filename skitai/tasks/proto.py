@@ -14,7 +14,6 @@ from ..backbone.lifetime import tick_timer
 
 WAS_FACTORY = None
 
-
 class Coroutine:
     def __init__ (self, coro, was_id, resp_status = '200 OK'):
         self.coro = coro
@@ -181,8 +180,8 @@ def get_cloned_was (was_id):
 
     assert was_id, 'was.ID should be non-zero'
     if WAS_FACTORY is None:
-        from skitai import was
-        WAS_FACTORY = was
+        import skitai
+        WAS_FACTORY = skitai.was
 
     _was = WAS_FACTORY._get_by_id (was_id)
     assert hasattr (_was, 'app'), 'Task future is available on only Atila'
@@ -194,7 +193,16 @@ def get_cloned_was (was_id):
 
 class Task:
     def _get_was (self):
-        return get_cloned_was (self.meta ['__was_id'])
+        _was = get_cloned_was (self.meta ['__was_id'])
+        if "coro" in self.meta: # deciving `was` object
+            from ..wsgiappservice.wastype import _WASType
+            coro = self.meta ["coro"]
+            for n, v in coro.cr_frame.f_locals.items ():
+                if not isinstance (v, _WASType):
+                    continue
+                coro.cr_frame.f_locals [n] = _was
+            ctypes.pythonapi.PyFrame_LocalsToFast(ctypes.py_object (coro.cr_frame), ctypes.c_int (0))
+        return _was
 
     def _late_respond (self, tasks_or_content):
         # NEED self._fulfilled and self._was

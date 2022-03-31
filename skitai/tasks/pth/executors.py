@@ -7,8 +7,6 @@ from . import task
 import sys
 from rs4.psutil import kill
 from concurrent.futures import TimeoutError
-import threading
-import asyncio
 
 class ProcessExpired (Exception):
     pass
@@ -145,6 +143,7 @@ class ProcessExecutor (ThreadExecutor):
 
 
 # ------------------------------------------------------------------------
+
 class Executors:
     def __init__ (self, workers = N_CPU, default_timeout = DEFAULT_TIMEOUT, logger = None):
         self.logger = logger or screen_logger ()

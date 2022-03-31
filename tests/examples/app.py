@@ -2,7 +2,6 @@ import os
 from atila import Atila
 import skitai
 from services import sub
-from skitai import was as cwas
 import time
 import sys
 is_pypy = '__pypy__' in sys.builtin_module_names

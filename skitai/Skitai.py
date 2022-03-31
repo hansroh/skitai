@@ -5,39 +5,33 @@
 #-------------------------------------------------------
 
 HTTPS = True
-import sys, time, os, threading
+import sys, os, threading
 from .backbone import http_server
 from skitai import lifetime
 from warnings import warn
 from .backbone import https_server
 from skitai import start_was
-from collections import deque
 from .protocols.threaded.fifo import await_fifo
 from .protocols.sock import asynconnect
 from .protocols.sock import socketpool
 from .protocols.threaded import threadlib, trigger
 from .protocols.sock.impl.dns import adns, dns
-from rs4 import logger, confparse, pathtool
 from .protocols.sock.impl.http import request_handler
 from .protocols.sock.impl import http2
-if os.name == "nt":
-    from rs4.psutil import schedule # cron like scheduler
 from rs4.psutil import kill
 from .handlers import proxy_handler, ipbl_handler, vhost_handler, forward_handler
-import socket
 import signal
-import multiprocessing
 from . import wsgiappservice
 from .backbone import http_response
 from .tasks import cachefs
 from .tasks.httpbase import task, rcache
 from .tasks.httpbase import cluster_manager as rcluster_manager
-import types
 from .handlers.websocket import servers as websocekts
 from .wastuff import selective_logger, triple_logger
 from .tasks.pth import executors
-from .tasks.pth import coroutine_executor
-import queue
+import asyncio
+if os.name == "nt":
+    from rs4.psutil import schedule # cron like scheduler
 
 class Loader:
     def __init__ (self, config = None, logpath = None, varpath = None, wasc = None, debug = 0):
@@ -132,11 +126,10 @@ class Loader:
 
         if enable_async:
             self._async_enabled = True
-            q = queue.Queue ()
-            executor = coroutine_executor.CoroutineExecutor (q)
-            executor.start ()
-            self.wasc.register ("async_queue", q)
-            self.wasc.register ("async_executor", executor)
+            _loop = asyncio.new_event_loop ()
+            asyncio.set_event_loop (_loop)
+            threading.Thread (target = _loop.run_forever).start ()
+            self.wasc.register ("event_loop", _loop)
 
     def config_cachefs (self, cache_dir = None, memmax = 0, diskmax = 0):
         self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir, memmax, diskmax)

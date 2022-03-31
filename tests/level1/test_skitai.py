@@ -1,5 +1,4 @@
 import skitai
-from skitai import was
 import os
 import pytest
 
@@ -12,8 +11,8 @@ def test_skitai (app):
     skitai.set_worker_critical_point ()
 
     skitai.register_states ("a", "b")
-    if was._started ():
-        assert was._luwatcher._keys == ['a', 'b']
+    if skitai.was._started ():
+        assert skitai.was._luwatcher._keys == ['a', 'b']
     else:
         assert skitai.dconf ["models_keys"] == {"a", "b"}
 

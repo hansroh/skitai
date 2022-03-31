@@ -3,11 +3,11 @@ from ..exceptions import HTTPError
 from .proto import response
 from . import proto
 from .httpbase.task import DEFAULT_TIMEOUT
-from skitai import was
 from rs4.attrdict import AttrDict
 import time
 from skitai import NORMAL
 import warnings
+import skitai
 
 class TaskBase (proto.Task):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None, keys = None):
@@ -29,7 +29,7 @@ class TaskBase (proto.Task):
         self._finished = False
         self._timeout = timeout
         self._keys = keys
-        self._was = was
+        self._was = skitai.was
 
         if "__was_id" not in self._meta:
             for req in reqs:
@@ -189,7 +189,7 @@ class Mask (response, TaskBase):
         self.status_code = _status_code or (_expt and 500 or 200)
         self._timeout = DEFAULT_TIMEOUT
         self._keys = keys
-        self._was = was
+        self._was = skitai.was
 
     def _reraise (self):
         if self._expt:

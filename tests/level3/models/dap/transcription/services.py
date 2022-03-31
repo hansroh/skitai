@@ -1,4 +1,3 @@
-from skitai import was
 from .models import Transcription, TranscriptionLog
 
 class TranscriptionService:
