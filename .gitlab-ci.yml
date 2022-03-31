@@ -17,14 +17,11 @@ variables:
 .base_install: &base_install
   - python -V
   - pip install -U setuptools pip
-  - pip install -U --pre --no-cache-dir rs4 sqlphile
   - pip install -U "h2>=4.0.0"
-  - python -c 'from skitai.protocols.sock.impl.grpc import discover'
   - pip install -Ur tests/requirements.txt
-  - pip install -U "django>=3.0,<4.0"
-  - pip install -U --pre --no-cache-dir atila-vue delune
-  - pip install -U --pre --no-cache-dir "atila>=0.15"
-  - pip install -U --no-cache-dir rs4
+  - pip install -U "django>=3.0,<4.0" atila-vue delune
+  - pip install -U --pre --no-cache-dir "atila>=0.15" rs4 sqlphile
+  - python -c 'from skitai.protocols.sock.impl.grpc import discover'
 
 .before_python_test: &before_python_test
     before_script:
