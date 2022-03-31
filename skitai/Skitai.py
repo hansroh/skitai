@@ -36,6 +36,8 @@ import types
 from .handlers.websocket import servers as websocekts
 from .wastuff import selective_logger, triple_logger
 from .tasks.pth import executors
+from .tasks.pth import coroutine_executor
+import queue
 
 class Loader:
     def __init__ (self, config = None, logpath = None, varpath = None, wasc = None, debug = 0):
@@ -50,6 +52,7 @@ class Loader:
         self.ssl = False
         self.ctx = None
         self._exit_code = None
+        self._async_enabled = False
         self.wasc_kargs = {}
         self._fifo_switched = False
         self.config_logger (self.logpath)
@@ -120,12 +123,20 @@ class Loader:
         adns.init (self.wasc.logger.get ("server"), prefer_protocol = prefer_protocol)
         lifetime.maintern.sched (4.1, dns.pool.maintern)
 
-    def config_executors (self, workers, zombie_timeout, process_start = None):
+    def config_executors (self, workers, zombie_timeout, process_start = None, enable_async = False):
         if process_start:
             from multiprocessing import set_start_method
             try: set_start_method (process_start, force = True)
             except RuntimeError: pass
         self.wasc.register ("executors", executors.Executors (workers, zombie_timeout, self.wasc.logger.get ("server")))
+
+        if enable_async:
+            self._async_enabled = True
+            q = queue.Queue ()
+            executor = coroutine_executor.CoroutineExecutor (q)
+            executor.start ()
+            self.wasc.register ("async_queue", q)
+            self.wasc.register ("async_executor", executor)
 
     def config_cachefs (self, cache_dir = None, memmax = 0, diskmax = 0):
         self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir, memmax, diskmax)
@@ -367,23 +378,7 @@ class Loader:
 
     def close (self):
         self.app_cycle ('before_umount')
-        for attr, obj in list(self.wasc.objects.items ()):
-            if attr == "logger":
-                continue
-
-            if attr == "clusters":
-                self.wasc.logger ("server", "[info] cleanup %s" % attr)
-                for name, cluster in obj.items ():
-                    cluster.cleanup ()
-                continue
-
-            if hasattr (obj, "cleanup"):
-                try:
-                    self.wasc.logger ("server", "[info] cleanup %s" % attr)
-                    obj.cleanup ()
-                    del obj
-                except:
-                    self.wasc.logger.trace ("server")
+        self.wasc.close ()
         self.app_cycle ('umounted')
 
         if os.name == "nt" or self.wasc.httpserver.worker_ident == "master":

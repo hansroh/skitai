@@ -23,7 +23,7 @@ def test_cli (app, dbpath, is_pypy):
         return "Pets{}".format (id)
 
     @app.route ("/pets2/<int:id>", methods = ["POST"])
-    def pets2 (was, id = None):
+    def pets2 (was, id = None, a = 0):
         return "Pets{}".format (id)
 
     @app.route ("/pets3/<int:id>")
@@ -100,7 +100,7 @@ def test_cli (app, dbpath, is_pypy):
         with cli.jsonrpc ('/rpc2') as stub:
             assert stub.add_number (1, 3) == 4
             assert stub.add_number (2, 3) == 5
-        return
+
         with cli.rpc ('/rpc2') as stub:
             assert stub.add_number (1, 3) == 4
 
@@ -123,8 +123,7 @@ def test_cli (app, dbpath, is_pypy):
         assert resp.text == "Pets1"
 
         resp = cli.post ("/pets", {"a": 1})
-        assert resp.status_code == 200
-        assert resp.text == "PetsNone"
+        assert resp.status_code == 400
 
         resp = cli.get ("/pets")
         assert resp.status_code == 200
@@ -160,12 +159,6 @@ def test_cli (app, dbpath, is_pypy):
         assert '"data":' in resp.text
         assert '"POST"' in resp.text
 
-        resp = cli.get ("/db2")
-        assert resp.data ["data"][0]['symbol'] == 'RHAT'
-
-        resp = cli.get ("/db")
-        assert resp.data ["data"][0]['symbol'] == 'RHAT'
-
         resp = cli.get ("/pypi3")
         assert resp.status_code == 502
 
@@ -181,20 +174,19 @@ def test_cli (app, dbpath, is_pypy):
 
         resp = cli.get ("/jwt", headers = {"Authorization": "Bearer {}".format (jwt_.gen_token (app.salt, {"exp": 1, "username": "hansroh"}))})
         assert resp.code == 401
-        assert resp.get_header ("WWW-Authenticate") == 'Bearer realm="App", error="token expired"'
         app.securekey = None
 
         if is_pypy:
             return
 
         app.config.MAINTAIN_INTERVAL = 1
-        app.store.set ("total-user", 100)
+        app.g.set ("total-user", 100)
         for i in range (4):
             time.sleep (1)
             resp = cli.get ("/getval")
         assert int (resp.text) >= 200
 
-        app.store.set ("total-user2", 100)
+        app.g.set ("total-user2", 100)
         resp = cli.get ("/getval2")
         assert int (resp.text) <= 200
 

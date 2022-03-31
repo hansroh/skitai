@@ -327,8 +327,13 @@ dconf = dict (
     subscriptions = set (),
     background_jobs = [],
     media_url = None,
-    media_path = None
+    media_path = None,
+    enable_async = False,
 )
+
+def enable_async (flag):
+    global dconf
+    dconf ['enable_async'] = flag
 
 def background_task (procname, cmd):
     global dconf
@@ -1030,7 +1035,8 @@ def run (**conf):
             self.config_executors (
                 conf.get ('executors_workers', threads),
                 conf.get ("executors_zombie_timeout", DEFAULT_BACKGROUND_TASK_TIMEOUT),
-                conf.get ("executors_process_start")
+                conf.get ("executors_process_start"),
+                conf.get ("enable_async")
             )
             self.config_threads (threads)
             self.config_backends (

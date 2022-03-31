@@ -25,6 +25,8 @@ from rs4 import asyncore
 from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS
 from ...wastuff import semaps
 from ...tasks.pth import executors
+from ...tasks.pth import coroutine_executor
+import queue
 
 def logger ():
     return triple_logger.Logger ("screen", None)
@@ -98,7 +100,7 @@ def install_proxy_handler ():
 
 SAMPLE_DBPATH = '/tmp/example.sqlite'
 
-def setup_was (wasc):
+def setup_was (wasc, enable_async = False):
     def add_cluster (wasc, name, args):
         ctype, members, policy, ssl, max_conns = args
         wasc.add_cluster (ctype, name, members, ssl, policy, max_conns or 10)
@@ -118,6 +120,13 @@ def setup_was (wasc):
     wasc.register ("cachefs", cachefs.CacheFileSystem (None, 0, 0))
     wasc.register ("executors", executors.Executors ())
 
+    if enable_async:
+        q = queue.Queue ()
+        executor = coroutine_executor.CoroutineExecutor (q)
+        executor.start ()
+        wasc.register ("async_queue", q)
+        wasc.register ("async_executor", executor)
+
     websocekts.start_websocket (wasc)
     wasc.register ("websockets", websocekts.websocket_servers)
 
@@ -127,7 +136,7 @@ def setup_was (wasc):
     return wasc
 
 wasc = None
-def activate (make_sync = True):
+def activate (make_sync = True, enable_async = False):
     from ...wsgiappservice import WAS
     from atila import was as atila_was
 
@@ -144,9 +153,8 @@ def activate (make_sync = True):
         cluster_manager.ClusterManager.use_syn_connection = True
         socketpool.SocketPool.use_syn_connection = True
 
-    wasc = setup_was (WAS)
+    wasc = setup_was (WAS, enable_async)
     skitai.start_was (wasc, enable_requests = True)
     wasc._luwatcher.add (skitai.dconf ["models_keys"])
     lifetime.init (10.0, wasc.logger.get ("server"))
     return wasc
-

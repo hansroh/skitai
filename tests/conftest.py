@@ -69,15 +69,16 @@ def server ():
 @pytest.fixture (scope = "session")
 def wasc ():
     offline.activate (make_sync = True)
-    return offline.wasc
+    yield offline.wasc
+    offline.wasc.close ()
 
 @pytest.fixture (scope = "session")
 def async_wasc ():
     from atila.was import WAS
     wasc = offline.setup_was (WAS) # nned real WAS from this testing
-
     assert "example" in wasc.clusters
-    return wasc
+    yield wasc
+    wasc.close ()
 
 DBPATH = offline.SAMPLE_DBPATH
 

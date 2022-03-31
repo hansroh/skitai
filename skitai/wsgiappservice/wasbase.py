@@ -69,6 +69,26 @@ class WASBase (_WASType):
             cls.httpserver.install_handler (h, back)
         return h
 
+    @classmethod
+    def close (cls):
+        for attr, obj in list(cls.objects.items ()):
+            if attr == "logger":
+                continue
+
+            if attr == "clusters":
+                cls.logger ("server", "[info] cleanup %s" % attr)
+                for name, cluster in obj.items ():
+                    cluster.cleanup ()
+                continue
+
+            if hasattr (obj, "cleanup"):
+                try:
+                    cls.logger ("server", "[info] cleanup %s" % attr)
+                    obj.cleanup ()
+                    del obj
+                except:
+                    cls.logger.trace ("server")
+
     def _clone (self):
         new_env = {}
         if hasattr (self, 'env'):
