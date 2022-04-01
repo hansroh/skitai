@@ -22,5 +22,5 @@ def test_autoconf ():
         )
         autoconf.generate (project_root, vhost, conf)
     finally:
-        offline.wasc.close ()
+        offline.wasc.cleanup ()
 

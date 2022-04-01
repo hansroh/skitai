@@ -7,15 +7,22 @@ from sqlphile import pg2
 import asyncpg
 import asyncio
 import os
+from rs4.webkit.pools import RequestsPool
+
+TARGET = "example.com" if os.getenv ("GITLAB_CI") else "192.168.0.154:6001"
 
 app = Atila (__name__, __file__)
 
-SLEEP = 0.3
-
 async def __setup__ (app, mntopt):
+    app.rpool = RequestsPool (200)
     app.spool = pg2.Pool (200, "skitai", "skitai", "12345678")
     if not os.getenv ("GITLAB_CI"): # Permission denied: '/root/.postgresql/postgresql.key
         app.apool = await asyncpg.create_pool (user='skitai', password='12345678', database='skitai', host='127.0.0.1', min_size=1, max_size=20)
+
+async def __umounted__ (app):
+    app.spool.close ()
+    if not os.getenv ("GITLAB_CI"):
+        await app.apool.close ()
 
 
 @app.route ("/status")
@@ -33,23 +40,10 @@ def bench (was):
             record_count = record_count
         )
 
-# pilots ------------------------------------------------
-@app.route ("/bench/mix", methods = ['GET'])
-def bench_mix (was):
-    task = was.Thread (time.sleep, args = (SLEEP,))
-    with app.spool.acquire () as db:
-        txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''').fetch ()
-        record_count = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''').one () ["cnt"]
-        task.fetch ()
-        return was.API (
-            txs = txs,
-            record_count = record_count
-        )
-
-@app.route ("/bench/async")
+@app.route ("/bench/async", methods = ['GET'])
 async def query_async (was):
     async def query (q):
-        async with app.apool.acquire() as conn:
+        async with app.apool.acquire () as conn:
             return await conn.fetch (q)
 
     if os.getenv ("GITLAB_CI"):
@@ -60,7 +54,7 @@ async def query_async (was):
     )
     return was.API (txs = [dict(r.items()) for r in values], record_count = record_count [0]['cnt'])
 
-@app.route ("/bench/sp", methods = ['GET'])
+@app.route ("/bench/sqlphile", methods = ['GET'])
 def bench_sp (was):
     with app.spool.acquire () as db:
         q = (db.select ("foo")
@@ -73,24 +67,18 @@ def bench_sp (was):
             record_count = q.aggregate ('count (id) as cnt').execute ().one () ["cnt"]
         )
 
-@app.route ("/bench/long", methods = ['GET'])
+@app.route ("/bench/delay", methods = ['GET'])
 @app.inspect (floats = ['t'])
-def bench_long (was, t = 1.0):
-    time.sleep (t)
-    return was.API ()
-
-@app.route ("/bench/one", methods = ['GET'])
-def bench_one (was):
+def bench_delay (was, t = 0.3):
+    task = was.Thread (time.sleep, args = (t,))
     with app.spool.acquire () as db:
+        txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''').fetch ()
+        record_count = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''').one () ["cnt"]
         return was.API (
-            txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''').fetch ()
+            tasl = task.fetch (),
+            txs = txs,
+            record_count = record_count
         )
-
-
-from rs4.webkit.pools import RequestsPool
-rpool = RequestsPool (200)
-
-TARGET = "example.com" if os.getenv ("GITLAB_CI") else "192.168.0.154:6001"
 
 @app.route ("/bench/http", methods = ['GET'])
 def bench_http (was):
@@ -98,17 +86,17 @@ def bench_http (was):
         t1 = was.get ('@myweb/', headers = {'Accept': 'text/html'}),
     )
 
-@app.route ("/bench/http/requests", methods = ['GET'])
-def bench_http_requests (was):
-    return was.API (
-        t1 = rpool.get (f'http://{TARGET}', headers = {'Accept': 'text/html'}).text
-    )
-
-@app.route ("/bench/http/2", methods = ['GET'])
-def bench_http2 (was):
+@app.route ("/bench/http/dual", methods = ['GET'])
+def bench_http_dual (was):
     return was.Map (
         t1 =  was.get ('@myweb/', headers = {'Accept': 'text/html'}),
         t2 =  was.get ('@myweb/', headers = {'Accept': 'text/html'}),
+    )
+
+@app.route ("/bench/http/requests", methods = ['GET'])
+def bench_http_requests (was):
+    return was.API (
+        t1 = app.rpool.get (f'http://{TARGET}', headers = {'Accept': 'text/html'}).text
     )
 
 
@@ -118,5 +106,5 @@ if __name__ == '__main__':
     skitai.alias ('@myweb', skitai.PROTO_HTTP, TARGET, max_conns = 32)
     skitai.mount ('/', app)
     skitai.use_poll ('epoll')
-    skitai.enable_async (10)
+    skitai.enable_async (20)
     skitai.run (workers = 4, threads = 4, port = 5000)

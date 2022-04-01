@@ -17,24 +17,20 @@ def test_launch (launch):
         assert 'txs' in resp.data
         assert 'record_count' in resp.data
 
-        resp = engine.axios.get ('/bench/sp')
+        resp = engine.axios.get ('/bench/sqlphile')
         assert resp.status_code == 200
         assert 'txs' in resp.data
         assert 'record_count' in resp.data
 
-        resp = engine.axios.get ('/bench/mix')
+        resp = engine.axios.get ('/bench/delay?t=1.0')
         assert resp.status_code == 200
         assert 'txs' in resp.data
         assert 'record_count' in resp.data
-
-        resp = engine.axios.get ('/bench/one')
-        assert resp.status_code == 200
-        assert 'txs' in resp.data
-
-        if os.environ.get ("CI_COMMIT_TITLE"):
-            return
 
         resp = engine.axios.get ('/bench/http')
+        assert resp.status_code == 200
+
+        resp = engine.axios.get ('/bench/http/dual')
         assert resp.status_code == 200
 
         resp = engine.axios.get ('/bench/http/requests')
