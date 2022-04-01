@@ -72,7 +72,7 @@ def wasc ():
     offline.activate (make_sync = True)
     wasc = offline.wasc
     yield wasc
-    wasc.close ()
+    wasc.cleanup ()
 
 @pytest.fixture (scope = "session")
 def async_wasc ():
@@ -80,7 +80,7 @@ def async_wasc ():
     wasc = offline.setup_was (WAS) # nned real WAS from this testing
     assert "example" in wasc.clusters
     yield wasc
-    wasc.close ()
+    wasc.cleanup ()
 
 DBPATH = offline.SAMPLE_DBPATH
 
