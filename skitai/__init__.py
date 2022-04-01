@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.43.0a1"
+__version__ = "0.43.1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -331,9 +331,10 @@ dconf = dict (
     enable_async = False,
 )
 
-def enable_async (flag = True):
+def enable_async (max_pool = 10):
     global dconf
-    dconf ['enable_async'] = flag
+    assert isinstance (max_pool, int)
+    dconf ['enable_async'] = max_pool
 
 def background_task (procname, cmd):
     global dconf

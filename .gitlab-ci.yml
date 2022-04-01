@@ -54,14 +54,13 @@ variables:
   script:
     - pip install -U -e .
     - cd tests
-    - pytest level1
-    - pytest level2
-    - pytest level3
-    - pytest level4
-    - pytest level4-1
-    - pytest level4-2
-    - pytest level5
-    # - pytest -s level4/test_big_picture.py
+    - pytest -x level1
+    - pytest -x level2
+    - pytest -x level3
+    - pytest -x level4
+    - pytest -x level4-1
+    - pytest -x level4-2
+    - pytest -x level5
 
 python 3.6:
   image: python:3.6-buster

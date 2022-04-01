@@ -491,6 +491,15 @@ See generating logs.
 
 # Change Log
 
+- 0.43 (Apr, 2022)
+  - move coroutine code to Atila
+
+- 0.42 (Mar, 2022)
+  - add async/await routing feature
+
+- 0.41 (Mar, 2022)
+  - deprecate was.db (...)
+
 - 0.38 (May, 2021)
   - revoke disconnected requests before passing app
   - refactoring package structure

@@ -30,6 +30,7 @@ else:
     from ..wastuff.semaps import Semaps
 from .wastype import _WASType
 from rs4.attrdict import AttrDictTS
+import asyncio
 
 workers_shared_mmap = Semaps ([], "d", 256)
 
@@ -75,10 +76,6 @@ class WASBase (_WASType):
             if attr == "logger":
                 continue
 
-            if attr == "event_loop":
-                obj.call_soon_threadsafe (obj.stop)
-                continue
-
             if attr == "clusters":
                 cls.logger ("server", "[info] cleanup %s" % attr)
                 for name, cluster in obj.items ():
@@ -92,6 +89,16 @@ class WASBase (_WASType):
                     del obj
                 except:
                     cls.logger.trace ("server")
+
+    @classmethod
+    def execute_function (cls, func, args = (), kargs = {}):
+        r = func (*args, **kargs)
+        if not asyncio.iscoroutine (r):
+            return r
+        future = asyncio.run_coroutine_threadsafe (r, cls.async_executor.loop)
+        if future.exception ():
+            raise future.exception ()
+        return future.result ()
 
     def _clone (self):
         new_env = {}

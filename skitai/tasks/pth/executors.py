@@ -7,6 +7,9 @@ from . import task
 import sys
 from rs4.psutil import kill
 from concurrent.futures import TimeoutError
+import threading
+import queue
+import asyncio
 
 class ProcessExpired (Exception):
     pass
@@ -178,3 +181,56 @@ class Executors:
 
     def get_ppool (self):
         return self._get_pool (self.executors [1])
+
+
+class AsyncExecutor (threading.Thread):
+    def __init__ (self, max_task = 10):
+        super ().__init__ ()
+        self.loop = asyncio.new_event_loop ()
+        self.max_task = max_task
+        self.queue = queue.Queue ()
+        self.lock = threading.Condition ()
+        self.futures = {}
+        self.current_tasks = 0
+        threading.Thread (target = self.start_event_loop).start ()
+
+    def start_event_loop (self):
+        asyncio.set_event_loop (self.loop)
+        self.loop.run_forever ()
+
+    def run (self):
+        while 1:
+            with self.lock:
+                while self.current_tasks > self.max_task:
+                    self.lock.wait ()
+
+            item = self.queue.get ()
+            if item is None:
+                self.loop.call_soon_threadsafe (self.loop.stop)
+                break
+
+            tid, was, coro, callback = item
+            meta  = {'__was_id': was.ID, 'coro': coro}
+            future = asyncio.run_coroutine_threadsafe (coro, self.loop)
+            task = [ Task (future, coro.__qualname__, meta = meta, filter = None).then (callback, was) ]
+            with self.lock:
+                self.current_tasks += 1
+                self.futures [tid] = task
+                self.lock.notify ()
+
+    def put (self, item):
+        self.queue.put (item)
+
+    def get (self, tid):
+        with self.lock:
+            while tid not in self.futures:
+                self.lock.wait ()
+            return self.futures.pop (tid)
+
+    def done (self):
+        with self.lock:
+            self.current_tasks -= 1
+            self.lock.notify ()
+
+    def cleanup (self):
+        self.queue.put (None)

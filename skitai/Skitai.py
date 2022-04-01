@@ -117,11 +117,7 @@ class Loader:
         adns.init (self.wasc.logger.get ("server"), prefer_protocol = prefer_protocol)
         lifetime.maintern.sched (4.1, dns.pool.maintern)
 
-    def config_executors (self, workers, zombie_timeout, process_start = None, enable_async = False):
-        def start_event_loop (loop):
-            asyncio.set_event_loop (loop)
-            loop.run_forever ()
-
+    def config_executors (self, workers, zombie_timeout, process_start = None, enable_async = 0):
         if process_start:
             from multiprocessing import set_start_method
             try: set_start_method (process_start, force = True)
@@ -130,9 +126,9 @@ class Loader:
 
         if enable_async:
             self._async_enabled = True
-            _loop = asyncio.new_event_loop ()
-            threading.Thread (target = start_event_loop, args = (_loop,)).start ()
-            self.wasc.register ("event_loop", _loop)
+            async_executor = executors.AsyncExecutor (enable_async)
+            async_executor.start ()
+            self.wasc.register ("async_executor", async_executor)
 
     def config_cachefs (self, cache_dir = None, memmax = 0, diskmax = 0):
         self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir, memmax, diskmax)

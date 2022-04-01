@@ -112,10 +112,9 @@ def setup_was (wasc, enable_async = False):
 
     if enable_async:
         import asyncio
-        _loop = asyncio.new_event_loop ()
-        asyncio.set_event_loop (_loop)
-        threading.Thread (target = _loop.run_forever).start ()
-        wasc.register ("event_loop", _loop)
+        async_executor = executors.AsyncExecutor (100)
+        async_executor.start ()
+        wasc.register ("async_executor", async_executor)
 
     websocekts.start_websocket (wasc)
     wasc.register ("websockets", websocekts.websocket_servers)

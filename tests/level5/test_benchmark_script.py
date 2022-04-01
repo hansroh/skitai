@@ -12,6 +12,11 @@ def test_launch (launch):
         assert 'txs' in resp.data
         assert 'record_count' in resp.data
 
+        resp = engine.axios.get ('/bench/async')
+        assert resp.status_code == 200
+        assert 'txs' in resp.data
+        assert 'record_count' in resp.data
+
         resp = engine.axios.get ('/bench/sp')
         assert resp.status_code == 200
         assert 'txs' in resp.data

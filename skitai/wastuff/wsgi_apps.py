@@ -1,3 +1,5 @@
+import inspect
+import asyncio
 import os, sys, re, types, time
 from rs4  import pathtool, importer, evbus
 from rs4.termcolor import tc
@@ -6,7 +8,7 @@ from types import FunctionType as function
 import copy
 from .. import lifetime
 import inspect
-from rs4 import attrdict
+from rs4 import attrdict, importer
 from importlib import reload
 from urllib.parse import unquote
 import skitai
@@ -99,6 +101,9 @@ class Module:
                 self.directory = directory
                 self.app = libpath
                 self.app.use_reloader = False
+                if hasattr (self.app, "meta") and "path" in self.app.meta:
+                    self.app_initer = importer.from_file ("__temp", os.path.normpath (os.path.abspath (self.app.meta ["path"])))
+
             self.start_app ()
 
     def __repr__ (self):
@@ -156,8 +161,8 @@ class Module:
         }
 
         hasattr (app, "set_wasc") and app.set_wasc (self.wasc)
-        hasattr (self.app_initer, '__setup__') and self.app_initer.__setup__ (app, mntopt)
-        hasattr (self.app_initer, '__mount__') and self.app_initer.__mount__ (app, mntopt)
+        hasattr (self.app_initer, '__setup__') and self.wasc.execute_function (self.app_initer.__setup__, (app, mntopt))
+        hasattr (self.app_initer, '__mount__') and self.wasc.execute_function (self.app_initer.__mount__, (app, mntopt))
         hasattr (app, "set_home") and app.set_home (os.path.dirname (self.abspath), self.module)
         hasattr (app, "commit_events_to") and app.commit_events_to (self.bus)
 
@@ -177,7 +182,7 @@ class Module:
             func (self.wasc, self.route)
             self.wasc.handler = None
 
-        hasattr (self.app_initer, '__mounted__') and self.app_initer.__mounted__ (app, mntopt)
+        hasattr (self.app_initer, '__mounted__') and self.wasc.execute_function (self.app_initer.__mounted__, (app, mntopt))
 
     def before_mount (self):
         app = self.app or getattr (self.module, self.appname)
@@ -191,12 +196,12 @@ class Module:
     def before_umount (self):
         app = self.app or getattr (self.module, self.appname)
         self.has_life_cycle and app.life_cycle ("before_umount", self.wasc ())
-        hasattr (self.app_initer, '__umount__') and self.app_initer.__umount__ (app)
+        hasattr (self.app_initer, '__umount__') and self.wasc.execute_function (self.app_initer.__umount__, (app,))
 
     def umounted (self):
         app = self.app or getattr (self.module, self.appname)
         self.has_life_cycle and app.life_cycle ("umounted", self.wasc)
-        hasattr (self.app_initer, '__umounted__') and self.app_initer.__umounted__ (app)
+        hasattr (self.app_initer, '__umounted__') and self.wasc.execute_function (self.app_initer.__umounted__, (app,))
 
     def cleanup (self):
         app = self.app or getattr (self.module, self.appname)
@@ -255,7 +260,7 @@ class Module:
         stat = os.stat (self.abspath)
         if self.file_info != (stat.st_mtime, stat.st_size):
             oldapp = self.app or getattr (self.module, self.appname)
-            hasattr (self.app_initer, '__reload__') and self.app_initer.__reload__ (oldapp)
+            hasattr (self.app_initer, '__reload__') and self.wasc.execute_function (self.app_initer.__reload__, (oldapp,))
             self.has_life_cycle and oldapp.life_cycle ("before_reload", self.wasc ())
 
             try:
@@ -289,7 +294,7 @@ class Module:
                 setattr (newapp, attr, value)
 
             # reloaded
-            hasattr (self.app_initer, '__reloaded__') and self.app_initer.__reloaded__ (newapp)
+            hasattr (self.app_initer, '__reloaded__') and self.wasc.execute_function (self.app_initer.__reloaded__, (newapp,))
             self.has_life_cycle and newapp.life_cycle ("reloaded", self.wasc ())
             self.has_life_cycle and newapp.life_cycle ("mounted_or_reloaded", self.wasc ())
             self.last_reloaded = time.time ()
@@ -322,6 +327,8 @@ class ModuleManager:
         self.modules = {}
         self.modnames = {}
         self.bus = evbus.EventBus (self.wasc.logger.get ('app'))
+        if hasattr (wasc, "async_executor"):
+            self.bus.set_event_loop (wasc.async_executor.loop)
 
     def __getitem__ (self, name):
         try:
