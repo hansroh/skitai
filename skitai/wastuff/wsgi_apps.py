@@ -101,8 +101,8 @@ class Module:
                 self.directory = directory
                 self.app = libpath
                 self.app.use_reloader = False
-                if hasattr (self.app, "meta") and "path" in self.app.meta:
-                    self.app_initer = importer.from_file ("__temp", os.path.normpath (os.path.abspath (self.app.meta ["path"])))
+                if hasattr (self.app, "path") and self.app.path:
+                    self.app_initer = importer.from_file ("__temp", os.path.normpath (os.path.abspath (self.app.path)))
 
             self.start_app ()
 

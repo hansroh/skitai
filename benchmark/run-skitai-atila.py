@@ -8,14 +8,15 @@ import asyncpg
 import asyncio
 import os
 
-app = Atila (__name__, path = __file__)
+app = Atila (__name__, __file__)
 
 SLEEP = 0.3
-pool = pg2.Pool (200, "skitai", "skitai", "12345678")
-
 
 async def __setup__ (app, mntopt):
-    app.apool = await asyncpg.create_pool (user='skitai', password='12345678', database='skitai', host='127.0.0.1', min_size=1, max_size=20)
+    app.spool = pg2.Pool (200, "skitai", "skitai", "12345678")
+    if not os.getenv ("GITLAB_CI"): # Permission denied: '/root/.postgresql/postgresql.key
+        app.apool = await asyncpg.create_pool (user='skitai', password='12345678', database='skitai', host='127.0.0.1', min_size=1, max_size=20)
+
 
 @app.route ("/status")
 def status (was, f = None):
@@ -24,18 +25,7 @@ def status (was, f = None):
 # official ---------------------------------------------
 @app.route ("/bench", methods = ['GET'])
 def bench (was):
-    with pool.acquire () as db:
-        txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''').fetch ()
-        record_count = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''').one () ["cnt"]
-        return was.API (
-            txs = txs,
-            record_count = record_count
-        )
-
-@app.route ("/bench/mix", methods = ['GET'])
-def bench_mix (was):
-    was.Thread (time.sleep, args = (SLEEP,))
-    with pool.acquire () as db:
+    with app.spool.acquire () as db:
         txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''').fetch ()
         record_count = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''').one () ["cnt"]
         return was.API (
@@ -44,12 +34,26 @@ def bench_mix (was):
         )
 
 # pilots ------------------------------------------------
+@app.route ("/bench/mix", methods = ['GET'])
+def bench_mix (was):
+    task = was.Thread (time.sleep, args = (SLEEP,))
+    with app.spool.acquire () as db:
+        txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''').fetch ()
+        record_count = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''').one () ["cnt"]
+        task.fetch ()
+        return was.API (
+            txs = txs,
+            record_count = record_count
+        )
+
 @app.route ("/bench/async")
 async def query_async (was):
     async def query (q):
         async with app.apool.acquire() as conn:
             return await conn.fetch (q)
 
+    if os.getenv ("GITLAB_CI"):
+        return was.API (txs = [], record_count = 1000)
     values, record_count = await asyncio.gather (
         query ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
         query ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
@@ -58,7 +62,7 @@ async def query_async (was):
 
 @app.route ("/bench/sp", methods = ['GET'])
 def bench_sp (was):
-    with pool.acquire () as db:
+    with app.spool.acquire () as db:
         q = (db.select ("foo")
                     .filter (Q (from_wallet_id = 8) | Q (detail = 'ReturnTx'))
                     .order_by ("-created_at")
@@ -77,7 +81,7 @@ def bench_long (was, t = 1.0):
 
 @app.route ("/bench/one", methods = ['GET'])
 def bench_one (was):
-    with pool.acquire () as db:
+    with app.spool.acquire () as db:
         return was.API (
             txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''').fetch ()
         )

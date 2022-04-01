@@ -22,7 +22,7 @@ def test_skitai (app):
     skitai.dconf ['mount']["default"] = []
     assert skitai.joinpath ('a', 'b').endswith ("/bin/a/b")
     skitai.mount ("/k", app)
-    assert hasattr (skitai.dconf ['mount']["default"][0][1][0], 'app_name')
+    assert hasattr (skitai.dconf ['mount']["default"][0][1][0], 'name')
 
     skitai.dconf ['mount']["default"] = []
     skitai.mount ("/k2", '/path/app.py', 'app')
