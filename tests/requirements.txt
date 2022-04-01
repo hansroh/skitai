@@ -38,3 +38,4 @@ torchvision
 torch
 twine
 keyrings.alt
+asyncpg
