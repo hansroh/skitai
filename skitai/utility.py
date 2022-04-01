@@ -84,7 +84,8 @@ def is_modified (request, header_name, mtime, file_length = None):
 
 # response context ------------------------------------------
 def make_pushables (response, content):
-    from .tasks import tasks, Coroutine
+    from .tasks import tasks
+    from .tasks.proto import Coroutine
     from .wastuff.api import API
     from .tasks.pth import executors
 

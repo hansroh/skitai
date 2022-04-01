@@ -1,3 +1,4 @@
+import atila
 import skitai
 import confutil
 import pprint
@@ -72,9 +73,7 @@ def test_futures (app, dbpath):
         def respond (was, rss):
             return str (rss [0].one ())
 
-        reqs = [
-            was.Mask ([])
-        ]
+        reqs = [was.Mask ([])]
         return was.Tasks (reqs).then (respond)
 
     @app.route ("/4-1")

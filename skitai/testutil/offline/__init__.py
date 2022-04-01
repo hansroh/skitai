@@ -130,6 +130,7 @@ def activate (make_sync = True, enable_async = False):
     from ...wsgiappservice import WAS
     from atila import was as atila_was
     from ...tasks import proto
+    from atila.coroutine import utils
 
     class WAS (atila_was.WAS):
         numthreads = 1
@@ -149,7 +150,7 @@ def activate (make_sync = True, enable_async = False):
     skitai.WASC = wasc
 
     skitai.start_was (wasc, enable_requests = True)
-    proto.WAS_FACTORY = skitai.was # refresh
+    utils.WAS_FACTORY = skitai.was # refresh
     wasc._luwatcher.add (skitai.dconf ["models_keys"])
     lifetime.init (10.0, wasc.logger.get ("server"))
     return wasc
