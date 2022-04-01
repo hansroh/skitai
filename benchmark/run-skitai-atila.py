@@ -4,19 +4,22 @@ from atila import Atila
 from sqlphile import Q
 import time
 from sqlphile import pg2
-import json
-import random
+import asyncpg
+import asyncio
 import os
 
-app = Atila (__name__)
+app = Atila (__name__, path = __file__)
 
 SLEEP = 0.3
 pool = pg2.Pool (200, "skitai", "skitai", "12345678")
 
+
+async def __setup__ (app, mntopt):
+    app.apool = await asyncpg.create_pool (user='skitai', password='12345678', database='skitai', host='127.0.0.1', min_size=1, max_size=20)
+
 @app.route ("/status")
 def status (was, f = None):
     return was.status (f)
-
 
 # official ---------------------------------------------
 @app.route ("/bench", methods = ['GET'])
@@ -41,6 +44,18 @@ def bench_mix (was):
         )
 
 # pilots ------------------------------------------------
+@app.route ("/bench/async")
+async def query_async (was):
+    async def query (q):
+        async with app.apool.acquire() as conn:
+            return await conn.fetch (q)
+
+    values, record_count = await asyncio.gather (
+        query ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
+        query ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
+    )
+    return was.API (txs = [dict(r.items()) for r in values], record_count = record_count [0]['cnt'])
+
 @app.route ("/bench/sp", methods = ['GET'])
 def bench_sp (was):
     with pool.acquire () as db:
@@ -99,4 +114,5 @@ if __name__ == '__main__':
     skitai.alias ('@myweb', skitai.PROTO_HTTP, TARGET, max_conns = 32)
     skitai.mount ('/', app)
     skitai.use_poll ('epoll')
+    skitai.enable_async (10)
     skitai.run (workers = 4, threads = 4, port = 5000)
