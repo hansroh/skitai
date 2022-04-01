@@ -62,7 +62,7 @@ class AsyncService:
             clustername = clustername [1:]
 
         try:
-            return self.clusters_for_distcall ["{}:{}".format (clustername, self.app.app_name)], "/" + uri
+            return self.clusters_for_distcall ["{}:{}".format (clustername, self.app.name)], "/" + uri
         except (KeyError, AttributeError):
             return self.clusters_for_distcall [clustername], "/" + uri
 
