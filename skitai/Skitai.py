@@ -97,7 +97,10 @@ class Loader:
                 for vhost in h.sites.values ():
                     for apphs in vhost.apps.modules.values ():
                         for apph in apphs:
-                            getattr (apph, func) ()
+                            try:
+                                getattr (apph, func) ()
+                            except:
+                                self.wasc.logger.trace ("server")
 
     def WAS_finalize (self):
         global the_was
@@ -370,8 +373,9 @@ class Loader:
 
     def close (self):
         self.app_cycle ('before_umount')
-        self.wasc.close ()
+        self.wasc.cleanup (phase = 1)
         self.app_cycle ('umounted')
+        self.wasc.cleanup (phase = 2)
 
         if os.name == "nt" or self.wasc.httpserver.worker_ident == "master":
             self.wasc.logger ("server", "[info] cleanup done, closing logger... bye")

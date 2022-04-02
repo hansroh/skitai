@@ -5,4 +5,4 @@ from skitai.testutil import offline
 def wasc ():
     offline.activate (make_sync = False)
     yield offline.wasc
-    offline.wasc.close ()
+    offline.wasc.cleanup ()

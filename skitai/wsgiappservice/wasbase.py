@@ -71,10 +71,11 @@ class WASBase (_WASType):
         return h
 
     @classmethod
-    def close (cls):
-        for attr, obj in list(cls.objects.items ()):
-            if attr == "logger":
-                continue
+    def cleanup (cls, phase = 0):
+        for attr, obj in list (cls.objects.items ()):
+            if attr in ("logger", "async_executor"):
+                if phase == 1:
+                    continue
 
             if attr == "clusters":
                 cls.logger ("server", "[info] cleanup %s" % attr)
@@ -86,9 +87,11 @@ class WASBase (_WASType):
                 try:
                     cls.logger ("server", "[info] cleanup %s" % attr)
                     obj.cleanup ()
-                    del obj
                 except:
                     cls.logger.trace ("server")
+
+            del cls.objects [attr]
+            del obj
 
     @classmethod
     def execute_function (cls, func, args = (), kargs = {}):
