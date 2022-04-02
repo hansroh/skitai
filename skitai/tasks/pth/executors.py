@@ -186,6 +186,12 @@ class Executors:
 class AsyncExecutor (threading.Thread):
     def __init__ (self, max_task = 10):
         super ().__init__ ()
+        try:
+            import uvloop
+        except ImportError:
+            pass
+        else:
+            asyncio.set_event_loop_policy (uvloop.EventLoopPolicy ())
         self.loop = asyncio.new_event_loop ()
         self.max_task = max_task
         self.queue = queue.Queue ()
