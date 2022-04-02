@@ -193,6 +193,7 @@ class AsyncExecutor (threading.Thread):
         else:
             asyncio.set_event_loop_policy (uvloop.EventLoopPolicy ())
         self.loop = asyncio.new_event_loop ()
+        asyncio.set_event_loop (self.loop)
         self.max_task = max_task
         self.queue = queue.Queue ()
         self.lock = threading.Condition ()
