@@ -68,7 +68,7 @@ def bench_sp (was):
         )
 
 @app.route ("/bench/delay", methods = ['GET'])
-@app.inspect (floats = ['t'])
+@app.spec (floats = ['t'])
 def bench_delay (was, t = 0.3):
     task = was.Thread (time.sleep, args = (t,))
     with app.spool.acquire () as db:

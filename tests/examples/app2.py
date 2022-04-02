@@ -61,7 +61,7 @@ def stream (was):
     return was.response ("210 Streaing", stream (), headers = [('Content-Type', 'text/plain')])
 
 @app.route ("/threaproducer")
-@app.inspect (ints = ['n', 'max_size'])
+@app.spec (ints = ['n', 'max_size'])
 def threaproducer (was, n = 3, max_size = 3):
     def producer (cur):
         def produce (q):
@@ -185,7 +185,7 @@ def coroutine11 (was):
     return was.Map (c = was.Mask (100), a = task1, b = task2)
 
 @app.route ("/coroutine_generator", coroutine = True)
-@app.inspect (ints = ['n', 'h', 'f'])
+@app.spec (ints = ['n', 'h', 'f'])
 def coroutine_generator (was, n = 1, h = 0, f = 0):
     if h:
         yield "Header Line\n"
