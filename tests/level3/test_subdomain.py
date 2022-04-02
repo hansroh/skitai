@@ -4,7 +4,7 @@ import pprint
 
 def test_map (app, dbpath):
     @app.route ("/1", subdomain = 'k')
-    @app.inspect (offset = int)
+    @app.spec (offset = int)
     def index (was, offset = 1):
         return was.API (result = offset)
 
