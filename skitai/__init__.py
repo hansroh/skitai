@@ -503,10 +503,6 @@ def set_was_class (was_class):
     global dconf
     dconf ["wasc"] = was_class
 
-def enable_async_services ():
-    from .wsgiappservice import AsyncServicableWAS
-    set_was_class (AsyncServicableWAS)
-
 def maybe_django (wsgi_path, appname):
     if not isinstance (wsgi_path, str):
         return
