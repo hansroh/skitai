@@ -129,20 +129,6 @@ class AsyncService:
         else:
             return cluster.Server (*args, **kargs)
 
-    def _create_dbo (self, cluster, *args, **kargs):
-        return cluster.Server (*args, **kargs)
-
-    # fundamental concurrencies ----------------------------------------------
-    def Thread (self, target, *args, **kargs):
-        # also can be Thread (target, args, kwargs, meta)
-        return self.executors.create_thread (self.ID, target, *args, **kargs)
-
-    def Process (self, target, *args, **kargs):
-        return self.executors.create_process (self.ID, target, *args, **kargs)
-
-    def Subprocess (self, cmd, meta = None, filter = None, timeout = DEFAULT_BACKGROUND_TASK_TIMEOUT):
-        return sp_task.Task (cmd, self._set_was_id (meta), filter, timeout)
-
     def Tasks (self, *reqs, timeout = 10, meta = None, **kreqs):
         keys = []
         reqs_ = []

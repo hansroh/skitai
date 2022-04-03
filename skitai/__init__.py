@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.43.3"
+__version__ = "0.45"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -10,24 +10,17 @@ NAME = "Skitai/%s.%s" % version_info [:2]
 from .protocols import lifetime as lifetime_aq
 from rs4 import deco, importer
 from rs4.psutil import service
-from rs4.attrdict import AttrDict
 import threading
 import sys, os
-import h2
-import warnings
 from .protocols.sock.impl.smtp import composer
 import tempfile
 from rs4 import argopt
 from .backbone import lifetime
-from . import mounted
 from functools import wraps
-import copy
-import rs4
 from rs4.termcolor import tc
-from rs4 import annotations
 import getopt as libgetopt
-import types
 from rs4 import pathtool
+from .wastuff.preference import Preference
 
 argopt.add_option ('-d', desc = "start as daemon, equivalant with `start` command") # lower version compatible
 
@@ -331,123 +324,6 @@ dconf = dict (
     enable_async = False,
 )
 
-def enable_async (max_pool = 10):
-    global dconf
-    assert isinstance (max_pool, int)
-    dconf ['enable_async'] = max_pool
-
-def background_task (procname, cmd):
-    global dconf
-    dconf ['background_jobs'].append ((procname, cmd))
-
-def use_poll (name):
-    from rs4 import asyncore
-    polls = dict (
-        select = 'poll',
-        poll = 'poll2',
-        epoll = 'epoll',
-        kqueue = 'kqueue',
-    )
-    lifetime_aq.poll_fun = getattr (asyncore, polls [name])
-
-def set_max_upload_size (size):
-    global dconf
-    dconf ['max_upload_size'] = size
-
-def set_backlog (backlog):
-    global dconf
-    dconf ['backlog'] = backlog
-
-def add_wasc_option (k, v):
-    global dconf
-    dconf ['wasc_options'][k] = v
-
-def disable_async ():
-    global dconf
-    dconf ['wasc_options']['use_syn_conn'] = True
-
-def manual_gc (interval = 60.0):
-    lifetime.manual_gc (interval)
-
-def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20):
-    from .backbone.http_server import http_server
-    from .backbone.https_server import https_server
-
-    http_server.critical_point_cpu_overload = https_server.critical_point_cpu_overload = cpu_percent
-    http_server.critical_point_continuous = https_server.critical_point_continuous = continuous
-    http_server.maintern_interval = https_server.maintern_interval = interval
-
-def set_max_was_clones_per_thread (val):
-    was.MAX_CLONES_PER_THREAD = val
-
-
-class PreferenceBase:
-    def add_resources (self, module, front = False):
-        base_dir = os.path.dirname (module.__file__)
-        t = os.path.join (base_dir, 'templates')
-        s = os.path.join (base_dir, 'static')
-        os.path.isdir (t) and self.add_template_dir (t, front = front)
-        os.path.isdir (s) and self.add_static (s, front = front)
-
-    def extends (self, module):
-        hasattr (module, '__config__') and module.__config__ (self)
-        self.add_resources (module)
-        self.mount_later ('/', module, extends = True)
-
-    def overrides (self, module):
-        if hasattr (module, '__file__'):
-            hasattr (module, '__config__') and module.__config__ (self)
-            self.add_resources (module, True)
-        self.mount_later ('/', module, overrides = True)
-
-    def add_template_dir (self, d, front = False):
-        if "TEMPLATE_DIRS" not in self.config:
-            self.config.TEMPLATE_DIRS = []
-        exists = set (self.config.TEMPLATE_DIRS)
-        if d in exists:
-            return
-        self.config.TEMPLATE_DIRS.insert (0, d) if front else self.config.TEMPLATE_DIRS.append (d)
-        exists.add (d)
-
-    def add_static (self, path, front = False):
-        mount (self.config.STATIC_URL, joinpath (path), first = front)
-
-    def set_static (self, url, path = None):
-        self.config.STATIC_URL = url
-        if path:
-            path = joinpath (path)
-            self.config.STATIC_ROOT = path
-            mount (url, path, first = True)
-    mount_static = set_static
-
-    def set_media (self, url = '/media', path = None):
-        self.config.MEDIA_URL = url
-        self.config.MEDIA_ROOT = path
-        set_media (url, path)
-    mount_media = set_media
-
-class Preference (AttrDict, PreferenceBase):
-    def __init__ (self, path = None):
-        super ().__init__ ()
-        self.__path = path
-        if self.__path:
-            sys.path.insert (0, abspath (self.__path))
-        self.__dict__ ["mountables"] = []
-
-    def __enter__ (self):
-        return self
-
-    def __exit__ (self, *args):
-        pass
-
-    def copy (self):
-        return copy.deepcopy (self)
-
-    def mount_later (self, *args, **kargs):
-        # mount module or func (app, options)
-        self.__dict__ ["mountables"].append ((args, kargs))
-
-
 def preference (preset = False, path = None, **configs):
     from .wastuff.wsgi_apps import Config
     d = Preference (path and abspath (path) or None)
@@ -498,6 +374,51 @@ Win32Service = None
 def set_service (service_class):
     global Win32Service
     Win32Service = service_class
+
+def enable_async (pool = 10):
+    global dconf
+    assert isinstance (pool, int)
+    dconf ['enable_async'] = pool
+
+def background_task (procname, cmd):
+    global dconf
+    dconf ['background_jobs'].append ((procname, cmd))
+
+def use_poll (name):
+    from rs4 import asyncore
+    polls = dict (
+        select = 'poll',
+        poll = 'poll2',
+        epoll = 'epoll',
+        kqueue = 'kqueue',
+    )
+    lifetime_aq.poll_fun = getattr (asyncore, polls [name])
+
+def set_max_upload_size (size):
+    global dconf
+    dconf ['max_upload_size'] = size
+
+def set_backlog (backlog):
+    global dconf
+    dconf ['backlog'] = backlog
+
+def add_wasc_option (k, v):
+    global dconf
+    dconf ['wasc_options'][k] = v
+
+def manual_gc (interval = 60.0):
+    lifetime.manual_gc (interval)
+
+def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20):
+    from .backbone.http_server import http_server
+    from .backbone.https_server import https_server
+
+    http_server.critical_point_cpu_overload = https_server.critical_point_cpu_overload = cpu_percent
+    http_server.critical_point_continuous = https_server.critical_point_continuous = continuous
+    http_server.maintern_interval = https_server.maintern_interval = interval
+
+def set_max_was_clones_per_thread (val):
+    was.MAX_CLONES_PER_THREAD = val
 
 def set_media (url = '/media', path = None):
     global dconf
@@ -570,7 +491,7 @@ def set_proxy_keep_alive (channel = 60, tunnel = 600):
 def set_503_estimated_timeout (timeout = 10.0):
     # 503 error if estimated request processing time is over timeout
     # this don't include network latency
-    from handlers import wsgi_handler
+    from .handlers import wsgi_handler
     wsgi_handler.Handler.SERVICE_UNAVAILABLE_TIMEOUT = timeout
 
 def set_request_timeout (timeout):
@@ -581,10 +502,6 @@ set_network_timeout = set_request_timeout
 def set_was_class (was_class):
     global dconf
     dconf ["wasc"] = was_class
-
-def enable_async_services ():
-    from .wsgiappservice import AsyncServicableWAS
-    set_was_class (AsyncServicableWAS)
 
 def maybe_django (wsgi_path, appname):
     if not isinstance (wsgi_path, str):
@@ -699,7 +616,7 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
             with open (target_, encoding = 'utf8') as f:
                 if f.read ().find ("atila") != -1:
                     try:
-                        import atila # automatic patch skitai was
+                        import atila # mongkey patch skitai was and Loader
                     except ImportError:
                         pass
         init_app (target, pref)
@@ -987,20 +904,21 @@ def run (**conf):
             self.config_wasc (**dconf ['wasc_options'])
             self.config_dns (dconf ['dns_protocol'])
 
-            if conf.get ("cachefs_diskmax", 0) and not conf.get ("cachefs_dir"):
-                conf ["cachefs_dir"] = os.path.join (self.varpath, "cachefs")
+            if 'atila' in sys.modules:
+                if conf.get ("cachefs_diskmax", 0) and not conf.get ("cachefs_dir"):
+                    conf ["cachefs_dir"] = os.path.join (self.varpath, "cachefs")
 
-            self.config_cachefs (
-                conf.get ("cachefs_dir", None),
-                conf.get ("cachefs_memmax", 0),
-                conf.get ("cachefs_diskmax", 0)
-            )
-            self.config_rcache (conf.get ("rcache_objmax", 100))
-            if conf.get ('fws_to'):
-                self.config_forward_server (
-                    conf.get ('fws_address', '0.0.0.0'),
-                    conf.get ('fws_port', 80), conf.get ('fws_to', 443)
+                self.config_cachefs (
+                    conf.get ("cachefs_dir", None),
+                    conf.get ("cachefs_memmax", 0),
+                    conf.get ("cachefs_diskmax", 0)
                 )
+                self.config_rcache (conf.get ("rcache_objmax", 100))
+                if conf.get ('fws_to'):
+                    self.config_forward_server (
+                        conf.get ('fws_address', '0.0.0.0'),
+                        conf.get ('fws_port', 80), conf.get ('fws_to', 443)
+                    )
 
             if dconf ['background_jobs']:
                 import psutil
@@ -1033,28 +951,35 @@ def run (**conf):
                 # master does not serve
                 return
 
-            self.config_executors (
-                conf.get ('executors_workers', threads),
-                conf.get ("executors_zombie_timeout", DEFAULT_BACKGROUND_TASK_TIMEOUT),
-                conf.get ("executors_process_start"),
-                conf.get ("enable_async")
-            )
+            if 'atila' in sys.modules:
+                self.config_executors (
+                    conf.get ('executors_workers', threads),
+                    conf.get ("executors_zombie_timeout", DEFAULT_BACKGROUND_TASK_TIMEOUT),
+                    conf.get ("executors_process_start"),
+                    conf.get ("enable_async")
+                )
+
             self.config_threads (threads)
-            self.config_backends (
-                conf.get ('backend_keep_alive', DEFAULT_BACKEND_KEEP_ALIVE),
-                conf.get ('backend_object_timeout', DEFAULT_BACKEND_OBJECT_TIMEOUT),
-                conf.get ('backend_maintain_interval', DEFAULT_BACKEND_MAINTAIN_INTERVAL)
-            )
+            if 'atila' in sys.modules:
+                self.config_backends (
+                    conf.get ('backend_keep_alive', DEFAULT_BACKEND_KEEP_ALIVE),
+                    conf.get ('backend_object_timeout', DEFAULT_BACKEND_OBJECT_TIMEOUT),
+                    conf.get ('backend_maintain_interval', DEFAULT_BACKEND_MAINTAIN_INTERVAL)
+                )
 
-            try:
-                default_max_conns = threads * 3
-                for name, args in conf.get ("clusters", {}).items ():
-                    ctype, members, policy, ssl, max_conns = args
-                    self.add_cluster (ctype, name, members, ssl, policy, max_conns or default_max_conns)
+            if 'atila' in sys.modules:
+                try:
+                    default_max_conns = threads * 3
+                    for name, args in conf.get ("clusters", {}).items ():
+                        ctype, members, policy, ssl, max_conns = args
+                        self.add_cluster (ctype, name, members, ssl, policy, max_conns or default_max_conns)
 
-            except:
-                self.wasc.logger.get ("server").traceback ()
-                os._exit (2)
+                except:
+                    self.wasc.logger.get ("server").traceback ()
+                    os._exit (2)
+
+            else:
+                assert len (conf.get ("clusters", {})) == 0, "cluster aliasing is available to Atila only"
 
             # mount resources ----------------------------
             try:
