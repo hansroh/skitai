@@ -30,6 +30,5 @@ def index3 ():
 if __name__ == "__main__":
     import skitai
 
-    skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
     skitai.mount ("/", app)
     skitai.run (port = 30371)

@@ -108,7 +108,11 @@ def setup_was (wasc, enable_async = False):
     wasc.register ("clusters_for_distcall",  {"__socketpool__": None, "__dbpool__": None})
     wasc.register ("workers", 1)
     wasc.register ("cachefs", cachefs.CacheFileSystem (None, 0, 0))
-    wasc.register ("executors", executors.Executors ())
+
+    _executors = executors.Executors ()
+    wasc.register ("executors", _executors)
+    wasc.register ("thread_executor", _executors.get_tpool ())
+    wasc.register ("process_executor", _executors.get_ppool ())
 
     if enable_async:
         import asyncio

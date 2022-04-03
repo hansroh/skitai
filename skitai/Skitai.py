@@ -116,6 +116,17 @@ class Loader:
     def config_wasc (self, **kargs):
         self.wasc_kargs = kargs
 
+    def config_backends (self, backend_keep_alive, object_timeout, maintern_interval):
+        rcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive
+        rcluster_manager.ClusterManager.object_timeout = object_timeout
+        rcluster_manager.ClusterManager.maintern_interval = maintern_interval
+
+    def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0, access = None, max_conns = 100):
+        try:
+            self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl, access = access, max_conns = max_conns)
+        except:
+            self.wasc.logger.trace ("server")
+
     def config_dns (self, prefer_protocol = "tcp"):
         adns.init (self.wasc.logger.get ("server"), prefer_protocol = prefer_protocol)
         lifetime.maintern.sched (4.1, dns.pool.maintern)
@@ -125,7 +136,10 @@ class Loader:
             from multiprocessing import set_start_method
             try: set_start_method (process_start, force = True)
             except RuntimeError: pass
-        self.wasc.register ("executors", executors.Executors (workers, zombie_timeout, self.wasc.logger.get ("server")))
+        _executors = executors.Executors (workers, zombie_timeout, self.wasc.logger.get ("server"))
+        self.wasc.register ("executors", _executors)
+        self.wasc.register ("thread_executor", _executors.get_tpool ())
+        self.wasc.register ("process_executor", _executors.get_ppool ())
 
         if enable_async:
             self._async_enabled = True
@@ -140,6 +154,10 @@ class Loader:
         self.wasc.clusters ["__socketpool__"] = socketfarm
         self.wasc.clusters_for_distcall ["__socketpool__"] = task.TaskCreator (socketfarm, self.wasc.logger.get ("server"), self.wasc.cachefs)
 
+    def config_rcache (self, maxobj = 1000):
+        rcache.start_rcache (maxobj)
+        self.wasc.register ("rcache", rcache.the_rcache)
+
     def switch_to_await_fifo (self):
         if self._fifo_switched: return
         asynconnect.AsynConnect.fifo_class = await_fifo
@@ -147,10 +165,6 @@ class Loader:
         http_server.http_channel.fifo_class = await_fifo
         https_server.https_channel.fifo_class = await_fifo
         self._fifo_switched = True
-
-    def config_rcache (self, maxobj = 1000):
-        rcache.start_rcache (maxobj)
-        self.wasc.register ("rcache", rcache.the_rcache)
 
     def config_certification (self, certfile, keyfile = None, pass_phrase = None):
         if not HTTPS:
@@ -238,17 +252,6 @@ class Loader:
             self.wasc.register ("queue",  queue)
             self.wasc.register ("threads", tpool)
             self.wasc.numthreads = numthreads
-
-    def config_backends (self, backend_keep_alive, object_timeout, maintern_interval):
-        rcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive
-        rcluster_manager.ClusterManager.object_timeout = object_timeout
-        rcluster_manager.ClusterManager.maintern_interval = maintern_interval
-
-    def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0, access = None, max_conns = 100):
-        try:
-            self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl, access = access, max_conns = max_conns)
-        except:
-            self.wasc.logger.trace ("server")
 
     def install_handler_with_tuple (self, routes):
         if type (routes) is list:
