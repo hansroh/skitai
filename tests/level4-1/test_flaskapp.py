@@ -16,8 +16,7 @@ def test_flask (launch):
 def test_flask_async_enabled (launch):
     with launch ("./examples/flaskapp_async.py") as engine:
         resp = engine.get ("/")
-        assert resp.status_code == 200
-        assert "Project description" in resp.text
+        assert resp.status_code == 500
 
         resp = engine.get ("/2")
         assert resp.status_code == 500
