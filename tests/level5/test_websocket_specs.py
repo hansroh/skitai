@@ -65,7 +65,7 @@ def test_websocket_reporty (launch):
 
 def test_websocket_reporty_async (launch):
     with launch ("./examples/websocket-spec.py") as engine:
-        ws = create_connection("ws://127.0.0.1:30371/websocket/reporty?a=AMBER")
+        ws = create_connection("ws://127.0.0.1:30371/websocket/reporty/async?a=AMBER")
         ws.send("Hello, World")
 
         result =  ws.recv()

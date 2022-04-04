@@ -65,5 +65,6 @@ async def reporty_async (was, message, a, b = '2', **payload):
 if __name__ == "__main__":
 	import skitai
 
+	skitai.enable_async ()
 	skitai.mount ("/websocket", app)
 	skitai.run (port = 30371)
