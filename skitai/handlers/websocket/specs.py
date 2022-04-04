@@ -199,6 +199,9 @@ class WebSocket1 (WebSocket):
 	def handle_session (self, msg, event):
 		if event:
 			if event == skitai.WS_EVT_CLOSE:
+				was = self.env ["skitai.was"]
+				if hasattr (was, "websocket"):
+					del was.websocket
 				try:
 					next (self.session)
 					resp = self.session.send (None)
@@ -206,9 +209,13 @@ class WebSocket1 (WebSocket):
 					return
 			else:
 				return
+
 		next (self.session)
 		resp = self.session.send (msg)
-		resp and self.send (resp)
+		if resp:
+			if isinstance (resp, str):
+				resp = [resp]
+			[ self.send (m) for m in resp ]
 
 	def handle_thread (self, msg, event = None):
 		querystring, params = self.make_params (msg, event)
