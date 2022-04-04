@@ -42,7 +42,7 @@ def test_success (app):
             raise was.Error ("600 Error")
         return was.API (x = 100)
 
-    @app.route ("/coro", coroutine = True)
+    @app.route ("/coro", output_stream = True)
     def c (was, err = "no"):
         app.emit ("FIRE")
         task = yield was.Mask (200)

@@ -32,7 +32,7 @@ def get_distance(start, end):
 	R = 6371000; # metres
 	return R * c
 
-@app.route ("/RouteChat", coroutine = True, input_stream = True)
+@app.route ("/RouteChat", output_stream = True, input_stream = True)
 def RouteChat (was):
 	prev_notes = []
 	while 1:
@@ -44,7 +44,7 @@ def RouteChat (was):
 				yield prev_note
 		prev_notes.append(new_note)
 
-@app.route ("/RecordRoute", coroutine = True, input_stream = True)
+@app.route ("/RecordRoute", output_stream = True, input_stream = True)
 def RecordRoute (was):
 	point_count = 0
 	feature_count = 0
