@@ -181,7 +181,7 @@ class Handler (wsgi_handler.Handler):
                 ws_class = specs.WebSocket6
             ws = ws_class (self, request, apph, env, varnames, message_encoding)
             self.channel_config (request, ws, keep_alive)
-            env ["websocket"] = ws
+            was.websocket = env ["websocket"] = ws
             if is_atila:
                 env ["websocket.handler"] = (current_app, wsfunc)
             ws.open ()
