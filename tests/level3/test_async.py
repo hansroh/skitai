@@ -30,6 +30,8 @@ def test_success (app):
     @app.route ("/")
     async def a (was):
         app.emit ("FIRE")
+        await was.Threaded (time.sleep, 1)
+        await was.Processed (time.sleep, 1)
         await asyncio.sleep (1)
         return "100"
 
