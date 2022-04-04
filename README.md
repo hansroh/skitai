@@ -264,7 +264,7 @@ Flask app example,
 # flask app example
 from flask import request
 
-@app.route ("/echo3")
+@app.route ("/echo")
 @skitai.websocket (timeout = 60)
 def echo ():
     ws = request.environ ["websocket"]
@@ -274,6 +274,23 @@ def echo ():
         if not message:
             return #strop iterating
         yield "ECHO:" + message
+```
+**CAUTION**: DO NOT use any blocking tasks in this function.
+
+
+If you use blocking task like databaase query, use like this.
+```python
+from flask import request
+
+def onopen ():
+	return  'Welcome Client 0'
+
+@app.route ("/echo")
+@skitai.websocket ("message", 60, onopen = onopen)
+def echo ():
+	ws = request.environ ["websocket"]
+  ws.send ('1st: ' + request.args.get ("message", ""))
+	return "2nd: " + request.args.get ("message", "")
 ```
 
 Some browsers do not support WWW-Authenticate on websocket
