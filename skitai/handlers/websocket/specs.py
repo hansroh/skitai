@@ -45,9 +45,9 @@ class WebSocket (BaseWebsocketCollector):
 
 	def setup_encoding (self, message_encoding):
 		if message_encoding == skitai.WS_MSG_GRPC:
-			i, o = discover.find_type (request.uri [1:])
+			i, o = discover.find_type (self.request.uri [1:])
 			self.encoder_config = (i [0], 0 [0])
-			self.default_op_code = OP_BINARY
+			self.default_op_code = OPCODE_BINARY
 			self.message_encode = self.grpc_encode
 			self.message_decode = self.grpc_decode
 		elif message_encoding == skitai.WS_MSG_JSON:
