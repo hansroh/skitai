@@ -8,8 +8,8 @@ import sys
 from rs4.psutil import kill
 from concurrent.futures import TimeoutError
 import threading
-import queue
 import asyncio
+from collections import deque
 
 class ProcessExpired (Exception):
     pass
@@ -195,8 +195,9 @@ class AsyncExecutor (threading.Thread):
         self.loop = asyncio.new_event_loop ()
         asyncio.set_event_loop (self.loop)
         self.max_task = max_task
-        self.queue = queue.Queue ()
+        self.queue = deque ()
         self.lock = threading.Condition ()
+        self.cv = threading.Condition ()
         self.futures = {}
         self.current_tasks = 0
         threading.Thread (target = self.start_event_loop).start ()
@@ -208,10 +209,10 @@ class AsyncExecutor (threading.Thread):
     def run (self):
         while 1:
             with self.lock:
-                while self.current_tasks > self.max_task:
+                while len (self.queue) == 0 or self.current_tasks > self.max_task:
                     self.lock.wait ()
+                item = self.queue.popleft ()
 
-            item = self.queue.get ()
             if item is None:
                 self.loop.call_soon_threadsafe (self.loop.stop)
                 break
@@ -220,19 +221,24 @@ class AsyncExecutor (threading.Thread):
             meta  = {'__was_id': was.ID, 'coro': coro}
             future = asyncio.run_coroutine_threadsafe (coro, self.loop)
             task = [ Task (future, coro.__qualname__, meta = meta, filter = None).then (callback, was) ]
+
             with self.lock:
                 self.current_tasks += 1
-                self.futures [tid] = task
-                self.lock.notify ()
 
-    def put (self, item):
-        self.queue.put (item)
+            with self.cv:
+                self.futures [tid] = task
+                self.cv.notify ()
 
     def get (self, tid):
-        with self.lock:
+        with self.cv:
             while tid not in self.futures:
-                self.lock.wait ()
+                self.cv.wait ()
             return self.futures.pop (tid)
+
+    def put (self, item):
+        with self.lock:
+            self.queue.append (item)
+            self.lock.notify ()
 
     def done (self):
         with self.lock:
@@ -240,4 +246,4 @@ class AsyncExecutor (threading.Thread):
             self.lock.notify ()
 
     def cleanup (self):
-        self.queue.put (None)
+        self.put (None)
