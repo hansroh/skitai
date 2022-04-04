@@ -50,7 +50,14 @@ def onclosep (was):
 
 @app.route ("/reporty")
 @app.websocket (atila.WS_SESSION, 1200, onopenp, onclosep)
-def param (was, message, a, b = '2', **payload):
+def reporty (was, message, a, b = '2', **payload):
+	was.websocket.send ("first message")
+	return f'{a}: {message}'
+
+
+@app.route ("/reporty/async")
+@app.websocket (atila.WS_SESSION, 1200, onopenp, onclosep)
+async def reporty_async (was, message, a, b = '2', **payload):
 	was.websocket.send ("first message")
 	return f'{a}: {message}'
 
