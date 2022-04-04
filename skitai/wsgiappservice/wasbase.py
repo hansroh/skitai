@@ -107,13 +107,16 @@ class WASBase (_WASType):
         new_env = {}
         if hasattr (self, 'env'):
             new_env = copy.copy (self.env)
-            self.env.pop ('wsgi.input') # depending closure
+            try:
+                self.env.pop ('wsgi.input') # depending closure
+            except KeyError:
+                pass
         new_was = skitai.was._get (True) # get clone was
         new_env ["skitai.was"] = new_was
         new_was.env = new_env
 
         # cloning
-        for attr in ('request', 'app', 'apps', 'subapp', 'response'):
+        for attr in ('request', 'app', 'apps', 'subapp', 'response', 'websocket'):
             try:
                 val = getattr (self, attr)
             except AttributeError:
