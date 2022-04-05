@@ -120,6 +120,11 @@ async def bench4 (was, message):
 	N += 1; print (f"============== got messages: {N}")
 	return f'echo: {message}'
 
+@app.route ("/bench/N")
+def bench_result (was):
+	global N
+	return str (N)
+
 
 if __name__ == "__main__":
 	import skitai

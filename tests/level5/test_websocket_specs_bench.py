@@ -12,6 +12,8 @@ def bench (launch, ep):
             result = ws.recv()
             assert result == "echo: Hello, World"
         ws.close()
+
+        assert int (engine.get ("/websocket/bench/N").text) in (N, N + 1)
         print ('*********** Bench result: {} {:2.3f}'.format (ep, time.time () - s))
 
 def test_bench1 (launch):
