@@ -85,4 +85,3 @@ def test_grpc_request_bistream (launch):
                 assert hasattr (response, 'message')
                 assert hasattr (response, 'location')
             assert idx == 32
-

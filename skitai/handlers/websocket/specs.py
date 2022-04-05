@@ -19,7 +19,7 @@ try:
 except ImportError:
     ClosingIterator = None
 from ...protocols.sock.impl.ws import *
-import asyncio
+import time
 
 class WebSocket (BaseWebsocketCollector):
     collector = None
@@ -112,12 +112,11 @@ class WebSocket (BaseWebsocketCollector):
 
 class Job (wsgi_handler.Job):
     def exec_app (self):
-        was = the_was._get ()
-        was.request = self.request
-        was.env = self.args [0]
+        env = self.args [0]
+        was = env ["skitai.was"]
+        if not hasattr (was, "websocket"):
+            was.websocket = env ["websocket"]
 
-        was.websocket = self.args [0]["websocket"]
-        self.args [0]["skitai.was"] = was
         try:
             content = self.apph (*self.args)
         except:
@@ -129,9 +128,8 @@ class Job (wsgi_handler.Job):
                     content = (content,)
                 was.websocket.send (*content)
 
-        was.request = None
-        was.websocket = None
-        was.env = None
+    def deallocate (self):
+        pass
 
 
 #---------------------------------------------------------
@@ -142,10 +140,10 @@ class WebSocket1 (WebSocket):
         WebSocket.__init__ (self, handler, request, message_encoding)
         self.client_id = request.channel.channel_number
         self.apph = apph
-        self.env = env
         self.param_names = param_names
+        self.env = env
+        self.session = env.get ("websocket.session")
         self.set_query_string ()
-        self.session = self.env.get ("websocket.session")
 
     def start_response (self, message, headers = None, exc_info = None):
         if exc_info:
@@ -169,6 +167,13 @@ class WebSocket1 (WebSocket):
         if "websocket.handler" in self.env:
             app = self.apph.get_callable ()
             app.register_websocket (self.client_id, self.send)
+
+        # create session was which is disposable
+        websocket = self.env.get ("websocket")
+        _was = self.env ["skitai.was"]._clone (disposable = True)
+        self.env = _was.env
+        self.session = self.env.get ("websocket.session")
+        _was.websocket = websocket
 
     def close (self):
         if "websocket.handler" in self.env:
@@ -200,9 +205,6 @@ class WebSocket1 (WebSocket):
     def handle_session (self, msg, event):
         if event:
             if event == skitai.WS_EVT_CLOSE:
-                was = self.env ["skitai.was"]
-                if hasattr (was, "websocket"):
-                    del was.websocket
                 try:
                     next (self.session)
                     resp = self.session.send (None)

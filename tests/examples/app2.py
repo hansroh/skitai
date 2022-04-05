@@ -133,21 +133,21 @@ def coroutine5 (was):
     a, b = tasks.fetch ()
     return was.API (a = a, b = b)
 
-@app.route ("/coroutine/6", output_stream = True)
+@app.route ("/coroutine/6", coroutine = True)
 def coroutine6 (was):
     task1 = was.Mask ("Example Domain")
     task2 = was.Mask ('mask')
     tasks = yield was.Tasks (a = task1, b = task2)
     return was.API (**tasks.dict ())
 
-@app.route ("/coroutine/7", output_stream = True)
+@app.route ("/coroutine/7", coroutine = True)
 def coroutine7 (was):
     task1 = was.Mask ("Example Domain")
     task2 = was.Mask ('mask')
     tasks = yield was.Tasks (a = task1, b = task2)
     return was.API (**tasks.fetch ())
 
-@app.route ("/coroutine/8", output_stream = True)
+@app.route ("/coroutine/8", coroutine = True)
 def coroutine8 (was):
     task1 = was.Mask ("Example Domain")
     task2 = was.Mask ('mask')
@@ -158,7 +158,7 @@ def wait_hello (timeout = 1.0):
     time.sleep (timeout)
     return 'mask'
 
-@app.route ("/coroutine/9", output_stream = True)
+@app.route ("/coroutine/9", coroutine = True)
 def coroutine9 (was):
     task1 = was.Mask ("Example Domain")
     task2 = was.Thread (wait_hello, args = (1.0,))
@@ -167,7 +167,7 @@ def coroutine9 (was):
     task4 = yield was.Subprocess ('ls')
     return was.API (d = task4.fetch (), c = task3.fetch (), **tasks.fetch ())
 
-@app.route ("/coroutine/10", output_stream = True)
+@app.route ("/coroutine/10", coroutine = True)
 def coroutine10 (was):
     task1 = was.Mask ("Example Domain")
     task2 = was.Thread (wait_hello, args = (1.0,))
@@ -176,7 +176,7 @@ def coroutine10 (was):
     task4 = yield was.Subprocess ('ls')
     return was.Map (d = task4, c__fetch = task3, **tasks.fetch ())
 
-@app.route ("/coroutine/11", output_stream = True)
+@app.route ("/coroutine/11", coroutine = True)
 def coroutine11 (was):
     task1 = was.Mask ("Example Domain")
     task2 = was.Mask ('mask')
@@ -184,7 +184,7 @@ def coroutine11 (was):
         yield was.Tasks (a = task1, b = task2)
     return was.Map (c = was.Mask (100), a = task1, b = task2)
 
-@app.route ("/coroutine_generator", output_stream = True)
+@app.route ("/coroutine_generator", coroutine = True)
 @app.spec (ints = ['n', 'h', 'f'])
 def coroutine_generator (was, n = 1, h = 0, f = 0):
     if h:
@@ -195,7 +195,7 @@ def coroutine_generator (was, n = 1, h = 0, f = 0):
         if f:
             yield '\n'
 
-@app.route ("/coroutine_streaming", methods = ['POST'], output_stream = True, input_stream = True)
+@app.route ("/coroutine_streaming", methods = ['POST'], coroutine = True, input_stream = True)
 def coroutine_streaming (was):
     while 1:
         data = yield was.Input (16184)
@@ -204,7 +204,7 @@ def coroutine_streaming (was):
             break
         yield b':' + data
 
-@app.route ("/coroutine_streaming2", methods = ['POST'], output_stream = True, input_stream = True)
+@app.route ("/coroutine_streaming2", methods = ['POST'], coroutine = True, input_stream = True)
 def coroutine_streaming2 (was):
     while 1:
         data = yield was.Input (16184)
