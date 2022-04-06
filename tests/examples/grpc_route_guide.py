@@ -2,6 +2,7 @@ from atila import Atila
 import time, math
 import json
 from services import route_guide_pb2
+import threading
 
 app = Atila (__name__)
 app.debug = True
@@ -32,7 +33,7 @@ def get_distance(start, end):
 	R = 6371000; # metres
 	return R * c
 
-@app.route ("/RouteChat", output_stream = True, input_stream = True)
+@app.route ("/RouteChat", input_stream = True)
 def RouteChat (was):
 	prev_notes = []
 	while 1:
@@ -44,7 +45,7 @@ def RouteChat (was):
 				yield prev_note
 		prev_notes.append(new_note)
 
-@app.route ("/RecordRoute", output_stream = True, input_stream = True)
+@app.route ("/RecordRoute", input_stream = True)
 def RecordRoute (was):
 	point_count = 0
 	feature_count = 0
