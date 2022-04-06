@@ -63,19 +63,16 @@ def stream (was):
 @app.route ("/threaproducer")
 @app.spec (ints = ['n', 'max_size'])
 def threaproducer (was, n = 3, max_size = 3):
-    def producer (cur):
-        def produce (q):
-            nonlocal cur
-            while 1:
-                rows, cur = cur [:n], cur [n:]
-                if not rows:
-                    q.put (None)
-                    break
-                # print (len (rows))
-                q.put (str (rows))
-        return produce
-    cur = [('a', 1)] * 10000
-    return was.Queue (producer (cur), max_size)
+    def produce (queue):
+        cur = [('a', 1)] * 10000
+        while 1:
+            rows, cur = cur [:n], cur [n:]
+            if not rows:
+                queue.put (None)
+                break
+            # print (len (rows))
+            queue.put (str (rows))
+    return was.Queue (produce, max_size)
 
 @app.route ("/stub")
 def stub (was):
