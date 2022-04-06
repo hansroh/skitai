@@ -3,6 +3,8 @@ pytest
 pytest-ordering
 codecov
 pytest-cov
+pytest-asyncio
+websockets
 flask
 websocket_client
 jinja2

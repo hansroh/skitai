@@ -181,6 +181,9 @@ class _WASPool:
             try: del self.__p ['{}x{:02d}'.format (_id, i + 1)]
             except KeyError: break
 
+    def _new (self):
+        return self.__wasc (**self.__kargs)
+
     def _get (self, clone = False):
         if not self._started ():
             global WASC

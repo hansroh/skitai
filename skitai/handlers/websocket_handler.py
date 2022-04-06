@@ -47,12 +47,10 @@ class Handler (wsgi_handler.Handler):
                 raise AssertionError ("Websocket can't use start_response ()")
             return push
 
-        origin = request.get_header ("origin")
         host = request.get_header ("host")
         protocol = request.get_header ("sec-websocket-protocol", 'unknown')
         securekey = request.get_header ("sec-websocket-key")
-
-        if not origin or not host or not securekey:
+        if not host or not securekey:
             return self.handle_error_before_collecting (request, 400)
 
         path, params, query, fragment = request.split_uri ()

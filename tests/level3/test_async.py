@@ -30,6 +30,8 @@ def test_success (app):
     @app.route ("/")
     async def a (was):
         app.emit ("FIRE")
+        await was.to_thread (time.sleep, 1)
+        await was.to_process (time.sleep, 1)
         await asyncio.sleep (1)
         return "100"
 
@@ -42,7 +44,7 @@ def test_success (app):
             raise was.Error ("600 Error")
         return was.API (x = 100)
 
-    @app.route ("/coro", output_stream = True)
+    @app.route ("/coro", coroutine = True)
     def c (was, err = "no"):
         app.emit ("FIRE")
         task = yield was.Mask (200)

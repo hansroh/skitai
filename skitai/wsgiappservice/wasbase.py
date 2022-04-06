@@ -103,7 +103,7 @@ class WASBase (_WASType):
             raise future.exception ()
         return future.result ()
 
-    def _clone (self):
+    def _clone (self, disposable = False):
         new_env = {}
         if hasattr (self, 'env'):
             new_env = copy.copy (self.env)
@@ -111,7 +111,8 @@ class WASBase (_WASType):
                 self.env.pop ('wsgi.input') # depending closure
             except KeyError:
                 pass
-        new_was = skitai.was._get (True) # get clone was
+
+        new_was = skitai.was._new () if disposable else skitai.was._get (True) # get clone was
         new_env ["skitai.was"] = new_was
         new_was.env = new_env
 

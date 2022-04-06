@@ -1,13 +1,14 @@
 import skitai
 import confutil
 import pprint
+import atila
 
 def test_websocket (app):
     def onopen (was):
         return  'Welcome'
 
     @app.route ("/echo")
-    @app.websocket (skitai.WS_CHANNEL, 60, onopen = onopen)
+    @app.websocket (atila.WS_SESSION, 60, onopen = onopen)
     def echo (was, message):
         was.websocket.send ('1st: ' + message)
         return "2nd: " + message

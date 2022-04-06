@@ -1,5 +1,6 @@
 from atila import Atila
 import skitai
+import atila
 
 app = Atila (__name__)
 
@@ -108,7 +109,7 @@ def websocket (was, mode = "echo"):
 	return was.render ("websocket.html", path = mode)
 
 @app.route ("/echo_coroutine")
-@app.websocket (skitai.WS_COROUTINE, 60)
+@app.websocket (atila.WS_CHANNEL, 60)
 def echo_coroutine (was):
 	n = 0
 	while 1:
@@ -121,7 +122,7 @@ def echo_coroutine (was):
 			yield 'double echo: ' + msg
 
 @app.route ("/echo_coroutine2")
-@app.websocket (skitai.WS_COROUTINE, 60)
+@app.websocket (atila.WS_CHANNEL, 60)
 def echo_coroutine2 (was):
 	while 1:
 		msg = yield was.Input ()
