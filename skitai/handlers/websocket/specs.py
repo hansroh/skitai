@@ -113,9 +113,11 @@ class WebSocket (BaseWebsocketCollector):
 class Job (wsgi_handler.Job):
     def exec_app (self):
         env = self.args [0]
-        was = env ["skitai.was"]
-        if not hasattr (was, "websocket"):
-            was.websocket = env ["websocket"]
+        was = the_was._get () # get from current thread
+        env ["skitai.was"] = was
+        was.request = self.request
+        was.env = env
+        was.websocket = env ["websocket"]
 
         try:
             content = self.apph (*self.args)
@@ -127,10 +129,6 @@ class Job (wsgi_handler.Job):
                 if type (content) is not tuple:
                     content = (content,)
                 was.websocket.send (*content)
-
-    def deallocate (self):
-        pass
-
 
 #---------------------------------------------------------
 
@@ -167,13 +165,6 @@ class WebSocket1 (WebSocket):
         if "websocket.handler" in self.env:
             app = self.apph.get_callable ()
             app.register_websocket (self.client_id, self.send)
-
-        # create session was which is disposable
-        websocket = self.env.get ("websocket")
-        _was = self.env ["skitai.was"]._clone (disposable = True)
-        self.env = _was.env
-        self.session = self.env.get ("websocket.session")
-        _was.websocket = websocket
 
     def close (self):
         if "websocket.handler" in self.env:
