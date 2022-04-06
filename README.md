@@ -508,6 +508,10 @@ See generating logs.
 
 # Change Log
 
+
+- 0.45 (Apr, 2022)
+  - refactor websocket and gRPC bistreaming
+
 - 0.43 (Apr, 2022)
   - move coroutine code to Atila
 
