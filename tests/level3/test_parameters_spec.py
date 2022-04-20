@@ -5,89 +5,104 @@ import re
 
 def test_error_handler (app):
     @app.route ("/")
-    @app.require ("URL", ["limit"])
+    @app.spec ("URL", ["limit"])
     def index (was, limit):
         return ""
 
     @app.route ("/2")
-    @app.require ("FORM", ["limit"])
+    @app.spec ("FORM", ["limit"])
     def index2 (was, limit):
         return ""
 
     @app.route ("/3")
-    @app.require ("JSON", ["limit"])
+    @app.spec ("JSON", ["limit"])
     def index3 (was, limit):
         return ""
 
     @app.route ("/4")
-    @app.require ("ARGS", ["limit"])
+    @app.spec ("ARGS", ["limit"])
     def index4 (was, limit):
         return ""
 
     @app.route ("/5")
-    @app.require ("ARGS", emails = ["email"], uuids = ["uuid"])
+    @app.spec ("ARGS", emails = ["email"], uuids = ["uuid"])
     def index5 (was, email = None, uuid = None):
         return ""
 
     @app.route ("/6")
-    @app.require ("ARGS", a__gte = 5, b__between = (-4, -1), c__in = (1, 2))
+    @app.spec ("ARGS", a__gte = 5, b__between = (-4, -1), c__in = (1, 2))
     def index6 (was, **url):
         return ""
 
     @app.route ("/7")
-    @app.require ("ARGS", a = re.compile ("^hans"), b__len__between = (4, 8))
+    @app.spec ("ARGS", a = re.compile ("^hans"), b__len__between = (4, 8))
     def index7 (was, a = None, b = None):
         return ""
 
     @app.route ("/8")
-    @app.require ("DATA", ["limit"])
+    @app.spec ("DATA", ["limit"])
     def index8 (was, limit):
         return ""
 
     @app.route ("/9")
-    @app.require ("DATA", lists = ['a'])
+    @app.spec ("DATA", lists = ['a'])
     def index9 (was, a):
         return ""
 
     @app.route ("/10")
-    @app.require ("DATA", booleans = ['a'])
+    @app.spec ("DATA", booleans = ['a'])
     def index10 (was, a):
         return ""
 
     @app.route ("/11")
-    @app.require ("DATA", dicts = ['a'])
+    @app.spec ("DATA", dicts = ['a'])
     def index11 (was, a):
         return ""
 
     @app.route ("/12")
-    @app.require ("DATA", strings = ['a'])
+    @app.spec ("DATA", strings = ['a'])
     def index12 (was, a):
         return ""
 
     @app.route ("/13")
-    @app.require (a = str, b = [int, float])
+    @app.spec (a = str, b = [int, float])
     def index13 (was, a, b = None):
         return ""
 
     @app.route ("/14")
-    @app.require (a__startswith = 'a_', b__notstartwith = 'a_', c__endswith = '_z', d__notendwith = '_z', e__contains = '_x' , f__notcontain = '_x')
+    @app.spec (a__startswith = 'a_', b__notstartwith = 'a_', c__endswith = '_z', d__notendwith = '_z', e__contains = '_x' , f__notcontain = '_x')
     def index14 (was, a, b, c, d, e, f):
         return ""
 
     @app.route ("/15")
-    @app.require (d___k__1__gte = 10)
+    @app.spec (d___k__1__gte = 10)
     def index15 (was, d):
         return ""
 
     @app.route ("/16")
-    @app.require (d___k__1__len__gte = 3)
+    @app.spec (d___k__1__len__gte = 3)
     def index16 (was, d):
         return ""
 
     @app.route ("/17")
-    @app.require (d___k__len__gte = 3)
+    @app.spec (d___k__len__gte = 3)
     def index17 (was, d):
         return ""
+
+    def verify (was, d):
+        if d == True:
+            return 777
+        raise was.Error ("444 Bad Request")
+
+    @app.route ("/18")
+    @app.spec (d = verify)
+    def index18 (was, d):
+        return was.API (r = d)
+
+    @app.route ("/19")
+    @app.spec (d = int)
+    def index19 (was, d):
+        return was.API (r = d)
 
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
@@ -284,26 +299,36 @@ def test_error_handler (app):
         resp = cli.api () ("17").post ({"d": {"k": 'a'}})
         assert resp.status_code == 400
 
+        resp = cli.api () ("18").post ({"d": True})
+        assert resp.status_code == 200
+        assert resp.data ['r'] == 777
+
+        resp = cli.api () ("18").post ({"d": False})
+        assert resp.status_code == 444
+
+        resp = cli.get ("19?d=777")
+        assert resp.status_code == 200
+        assert resp.data ['r'] == 777
 
 def test_error_handler_2 (app):
     @app.route ("/20")
-    @app.require ("GET", ["limit"], ints = ['limit'])
-    @app.require ("POST", ["id"])
+    @app.spec ("GET", ["limit"], ints = ['limit'])
+    @app.spec ("POST", ["id"])
     def index20 (was, limit = 10, **DATA):
         if was.request.method == "POST":
             assert DATA ['id']
         return 'OK'
 
     @app.route ("/21")
-    @app.require ("URL", ["limit"], ints = ['limit'])
-    @app.require ("POST", ["id"])
+    @app.spec ("URL", ["limit"], ints = ['limit'])
+    @app.spec ("POST", ["id"])
     def index21 (was, limit, **DATA):
         if was.request.method == "POST":
             assert DATA ['id']
         return 'OK'
 
     @app.route ("/22")
-    @app.require ("POST", ["id"])
+    @app.spec ("POST", ["id"])
     def index21 (was, limit, **DATA):
         if was.request.method == "POST":
             assert DATA ['id']
