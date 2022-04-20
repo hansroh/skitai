@@ -151,24 +151,6 @@ class WASBase (_WASType):
     def txnid (self):
         return "%s/%s" % (self.request.gtxid, self.request.ltxid)
 
-    def rebuild_header (self, header, method, data = None, internal = True):
-        nheader = util.normheader (header)
-        if method in {"get", "delete", "post", "put", "patch", "upload"}:
-            try:
-                default_request_type = self.app.config.get ("default_request_type")
-            except AttributeError:
-                default_request_type = None
-            if not default_request_type:
-                default_request_type = self.DEFAULT_REQUEST_TYPE
-            util.set_content_types (nheader, data, default_request_type)
-
-        if internal:
-            nheader ["X-Gtxn-Id"] = self.request.get_gtxid ()
-            nheader ["X-Ltxn-Id"] = self.request.get_ltxid (1)
-        else:
-            nheader ["X-Requested-With"] = NAME
-        return nheader
-
     # system functions ----------------------------------------------
     def log (self, msg, category = "info", at = "app"):
         self.logger (at, msg, "%s:%s" % (category, self.txnid ()))

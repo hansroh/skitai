@@ -9,11 +9,11 @@ def foo (a):
 def foo2 (a):
     xx
 
-def test_was_async_requests (async_wasc):
+def test_was_requests (wasc):
     def callback (was, task):
         assert not task.fetch ()
 
-    was = async_wasc ()
+    was = wasc ()
     future = was.Thread (foo, 'hello')
     assert future.result () == "echo:hello"
     data = was.Thread (foo, 'hello').returning ("then")
@@ -23,9 +23,9 @@ def test_was_async_requests (async_wasc):
     data = was.Process (foo, 'hello').returning ("then")
     assert data == "then"
 
-def test_was_async_requests2 (async_wasc):
+def test_was_requests2 (wasc):
 
-    was = async_wasc ()
+    was = wasc ()
     for i in range (10):
         future = was.Thread (foo, 'hello')
     assert future.result () == "echo:hello"
@@ -39,7 +39,3 @@ def test_was_async_requests2 (async_wasc):
 
     time.sleep (15)
     assert was.executors.cleanup () == [0, 0]
-
-
-
-

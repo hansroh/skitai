@@ -3,24 +3,17 @@ from ..wastuff import wsgi_apps
 import os
 
 class VHost:
-	def __init__ (self, wasc, clusters, cachefs, static_max_ages, enable_apigateway = False, apigateway_authenticate = False, apigateway_realm = "API Gateway", apigateway_secret_key = None):
-		from . import default_handler, wsgi_handler, proxypass_handler, websocket_handler, api_access_handler
+	def __init__ (self, wasc, static_max_ages):
+		from . import default_handler, wsgi_handler, websocket_handler
 		from . import http2_handler
 
 		self.wasc = wasc
-		self.clusters = clusters
-		self.cachefs = cachefs
 
 		self.apps = wsgi_apps.ModuleManager(self.wasc, self)
 		self.handlers = []
 
-		self.proxypass_handler = proxypass_handler.Handler (self.wasc, clusters, cachefs)
-		if enable_apigateway:
-			self.access_handler = api_access_handler.Handler (self.wasc, apigateway_authenticate, apigateway_realm, self.proxypass_handler, apigateway_secret_key)
-			alternative_handlers = [self.access_handler]
-		else:
-			self.access_handler = None
-			alternative_handlers = [self.proxypass_handler]
+		self.access_handler = None
+		alternative_handlers = []
 		alternative_handlers.append (websocket_handler.Handler (self.wasc, self.apps))
 		self.wsgi_handler = wsgi_handler.Handler (self.wasc, self.apps)
 		alternative_handlers.append (self.wsgi_handler)
@@ -37,13 +30,6 @@ class VHost:
 			try: h.close ()
 			except AttributeError: pass
 		self.apps.cleanup ()
-
-	def set_auth_handler (self, storage):
-		if self.access_handler:
-			self.access_handler.set_auth_handler (storage)
-
-	def add_proxypass (self, route, cname, config):
-		self.proxypass_handler.add_route (route, cname)
 
 	def add_route (self, route, target, config):
 		self.default_handler.add_route (route, target, config)
@@ -99,12 +85,6 @@ class Handler:
 			return 'A'
 
 		route, target = [x.strip () for x in routepair.split ("=", 1)]
-		if target.startswith ("@"):
-			if route [-1] == "/":
-				route = route [:-1]
-			vhost.add_proxypass (route, target [1:].strip (), config)
-			return 'R'
-
 		if os.path.isdir (target):
 			if route [-1] == "/":
 				route = route [:-1]

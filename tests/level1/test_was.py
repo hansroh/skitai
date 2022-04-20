@@ -62,15 +62,6 @@ def test_was (wasc, app, client):
 
     assert was.gentemp ().startswith ("/var/tmp")
 
-    was.add_cluster (skitai.PROTO_HTTP, "@test", "127.0.0.1:5000")
-    assert "@test" in was.clusters_for_distcall
-
-    was.add_cluster (skitai.PROTO_HTTP, "@test-1", "127.0.0.1:5000 10")
-    assert "@test-1" in was.clusters_for_distcall
-
-    was.add_cluster (skitai.PROTO_HTTP, "@test-1", ["127.0.0.1:5000 10"])
-    assert "@test-1" in was.clusters_for_distcall
-
     assert len (str (was.timestamp)) == 13
     assert len (was.uniqid) == 20
 
@@ -84,13 +75,6 @@ def test_was (wasc, app, client):
     assert isinstance (was.mbox, NamedSession)
 
     assert was.txnid ().endswith ("/1000")
-    assert was.rebuild_header ({}, "get") ["X-Ltxn-Id"] == "1001"
-    x = was.rebuild_header ({"a": "b"}, "get")
-    assert "a" in x
-    assert x ["X-Ltxn-Id"] == "1002"
-    x = was.rebuild_header ([("a", "b")], "get")
-    assert "a" in x
-    assert x ["X-Ltxn-Id"] == "1003"
     assert was.tempfile.find ("skitai/__gentemp") > 0
 
     class Response:

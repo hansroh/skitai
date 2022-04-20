@@ -6,7 +6,7 @@ def test_map (app, dbpath):
     @app.route ("/1")
     def index (was):
         return was.Map (
-            a = was.stub ('@pypi/project').get ("/rs4/"),
+            a = was.Mask ("/rs4/"),
             b = was.Mask ([{'id': 1, 'symbol': 'RHAT'}, {'id': 2, 'symbol': 'RHAT'}]),
             c = 123
         )
@@ -15,7 +15,7 @@ def test_map (app, dbpath):
     def index2 (was):
         return was.Map (
             was.Mask (456),
-            a = was.stub ('@pypi/project').get ("/rs4/"),
+            a = was.Mask ("/rs4/"),
             b = was.Mask ([{'id': 2, 'symbol': 'RHAT'}, {'id': 2, 'symbol': 'RHAT'}]),
             c = 123
         )
@@ -60,8 +60,6 @@ def test_map (app, dbpath):
             b = '2',
             c = 123
         )
-
-    app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
 
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/1")

@@ -6,7 +6,6 @@ from rs4 import logger
 from skitai.testutil.offline import client as cli
 from skitai.testutil import offline
 from skitai.testutil.offline.server import Server, Conn, Channel
-from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS
 import sys
 import pytest
 
@@ -71,14 +70,6 @@ def server ():
 def wasc ():
     offline.activate (make_sync = True)
     wasc = offline.wasc
-    yield wasc
-    wasc.cleanup ()
-
-@pytest.fixture (scope = "session")
-def async_wasc ():
-    from atila.was import WAS
-    wasc = offline.setup_was (WAS) # nned real WAS from this testing
-    assert "example" in wasc.clusters
     yield wasc
     wasc.cleanup ()
 

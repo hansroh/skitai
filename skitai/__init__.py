@@ -75,19 +75,9 @@ def setenv (name, value):
 
 HAS_ATILA = None
 
-DEFAULT_BACKEND_KEEP_ALIVE = 300
-DEFAULT_BACKEND_OBJECT_TIMEOUT = 600
-DEFAULT_BACKEND_MAINTAIN_INTERVAL = 30
 DEFAULT_KEEP_ALIVE = 2
 DEFAULT_NETWORK_TIMEOUT = 30
 DEFAULT_BACKGROUND_TASK_TIMEOUT = 300
-
-PROTO_HTTP = "http"
-PROTO_HTTPS = "https"
-PROTO_SYN_HTTP = "http_syn"
-PROTO_SYN_HTTPS = "https_syn"
-PROTO_WS = "ws"
-PROTO_WSS = "wss"
 
 STA_REQFAIL = REQFAIL = -1
 STA_UNSENT = UNSENT = 0
@@ -441,20 +431,6 @@ def log_off (*path):
     for each in path:
         dconf ['log_off'].append (each)
 
-def add_http_rpc_proto (name, class_):
-    assert name.endswith ("rpc"), "protocol name must be end with 'rpc'"
-    from .tasks.httpbase import task
-    task.Task.add_proto (name, class_)
-
-def add_database_interface (name, class_):
-    assert name.startswith ("*"), "database interface name must be start with '*'"
-    from .tasks._dbi import cluster_manager
-    cluster_manager.ClusterManager.add_class (name, class_)
-
-def set_dns_protocol (protocol = 'tcp'):
-    global dconf
-    dconf ['dns_protocol'] = protocol
-
 def set_max_age (path, max_age):
     global dconf
     dconf ["max_ages"][path] = max_age
@@ -475,21 +451,6 @@ def config_executors (workers = None, zombie_timeout = DEFAULT_BACKGROUND_TASK_T
         dconf ["executors_zombie_timeout"] = zombie_timeout
     if process_start_method:
         dconf ["executors_process_start"] = process_start_method
-
-def set_backend (timeout, object_timeout = DEFAULT_BACKEND_OBJECT_TIMEOUT, maintain_interval = DEFAULT_BACKEND_MAINTAIN_INTERVAL):
-    global dconf
-
-    dconf ["backend_keep_alive"] = timeout
-    dconf ["backend_object_timeout"] = object_timeout
-    dconf ["backend_maintain_interval"] = maintain_interval
-
-def set_backend_keep_alive (timeout):
-    set_backend (timeout)
-
-def set_proxy_keep_alive (channel = 60, tunnel = 600):
-    from .handlers import proxy
-    proxy.PROXY_KEEP_ALIVE = channel
-    proxy.PROXY_TUNNEL_KEEP_ALIVE = tunnel
 
 def set_503_estimated_timeout (timeout = 10.0):
     # 503 error if estimated request processing time is over timeout
@@ -638,41 +599,6 @@ def enable_forward (port = 80, forward_port = 443, forward_domain = None, ip = "
     dconf ['fws_port'] = port
     dconf ['fws_to'] = forward_port
     dconf ['fws_domain'] = forward_domain
-
-def enable_gateway (enable_auth = False, secure_key = None, realm = "Skitai API Gateway"):
-    global dconf
-    dconf ["enable_gw"] = True
-    dconf ["gw_auth"] = enable_auth,
-    dconf ["gw_realm"] = realm,
-    dconf ["gw_secret_key"] = secure_key
-
-def alias (name, ctype, members, role = "", source = "", ssl = False, max_conns = 32):
-    # not max_conns, unlimited
-    from .tasks.httpbase.cluster_manager import AccessPolicy
-    global dconf
-
-    if name [0] == "@":
-        name = name [1:]
-    if dconf ["clusters"].get (name):
-        return name, dconf ["clusters"][name]
-
-    policy = AccessPolicy (role, source)
-    args = (ctype, members, policy, ssl, max_conns)
-    dconf ["clusters"][name] = args
-    return name, args
-
-def enable_cachefs (memmax = 0, diskmax = 0, path = None):
-    global dconf
-    dconf ["cachefs_memmax"] = memmax
-    dconf ["cachefs_dir"] = path
-    dconf ["cachefs_diskmax"] = diskmax
-
-def enable_proxy (unsecure_https = False):
-    global dconf
-    dconf ["proxy"] = True
-    dconf ["proxy_unsecure_https"] = unsecure_https
-    if os.name == "posix":
-        dconf ['dns_protocol'] = 'udp'
 
 def enable_file_logging (path = None, file_loggings = ['request']):
     # loggings : request, server and app
@@ -905,18 +831,8 @@ def run (**conf):
                 self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
 
             self.config_wasc (**dconf ['wasc_options'])
-            self.config_dns (dconf ['dns_protocol'])
 
             if 'atila' in sys.modules:
-                if conf.get ("cachefs_diskmax", 0) and not conf.get ("cachefs_dir"):
-                    conf ["cachefs_dir"] = os.path.join (self.varpath, "cachefs")
-
-                self.config_cachefs (
-                    conf.get ("cachefs_dir", None),
-                    conf.get ("cachefs_memmax", 0),
-                    conf.get ("cachefs_diskmax", 0)
-                )
-                self.config_rcache (conf.get ("rcache_objmax", 100))
                 if conf.get ('fws_to'):
                     self.config_forward_server (
                         conf.get ('fws_address', '0.0.0.0'),
@@ -963,39 +879,12 @@ def run (**conf):
                 )
 
             self.config_threads (threads)
-            if 'atila' in sys.modules:
-                self.config_backends (
-                    conf.get ('backend_keep_alive', DEFAULT_BACKEND_KEEP_ALIVE),
-                    conf.get ('backend_object_timeout', DEFAULT_BACKEND_OBJECT_TIMEOUT),
-                    conf.get ('backend_maintain_interval', DEFAULT_BACKEND_MAINTAIN_INTERVAL)
-                )
-
-            if 'atila' in sys.modules:
-                try:
-                    default_max_conns = threads * 3
-                    for name, args in conf.get ("clusters", {}).items ():
-                        ctype, members, policy, ssl, max_conns = args
-                        self.add_cluster (ctype, name, members, ssl, policy, max_conns or default_max_conns)
-
-                except:
-                    self.wasc.logger.get ("server").traceback ()
-                    os._exit (2)
-
-            else:
-                assert len (conf.get ("clusters", {})) == 0, "cluster aliasing is available to Atila only"
 
             # mount resources ----------------------------
             try:
                 self.install_handler (
                     conf.get ("mount"),
-                    conf.get ("proxy", False),
                     conf.get ("max_ages", {}),
-                    conf.get ("blacklist_dir"), # blacklist_dir
-                    conf.get ("proxy_unsecure_https", False), # disable unsecure https
-                    conf.get ("enable_gw", False), # API gateway
-                    conf.get ("gw_auth", False),
-                    conf.get ("gw_realm", "API Gateway"),
-                    conf.get ("gw_secret_key", None),
                     conf ['media_url'],
                     conf ['media_path']
                 )

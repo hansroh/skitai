@@ -174,9 +174,7 @@ if __name__ == "__main__":
     if os.name == "nt":
         skitai.set_service (ServiceConfig)
 
-    skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
     skitai.mount ("/", 'statics')
-
     with skitai.preference () as pref:
         pref.config.MAX_UPLOAD_SIZE = 20 * 1024 * 1024
         skitai.mount ("/", app, pref)
@@ -184,8 +182,6 @@ if __name__ == "__main__":
         skitai.mount ("/rpc2", 'rpc2.py')
         skitai.mount ("/routeguide.RouteGuide", 'grpc_route_guide.py')
         skitai.mount ("/members", 'auth.py')
-    skitai.mount ("/lb", "@pypi")
-    skitai.enable_proxy ()
 
     skitai.run (
         port = 30371,
