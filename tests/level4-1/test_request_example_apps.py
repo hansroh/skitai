@@ -31,7 +31,7 @@ def test_app (launch):
 		assert_request (401, "/members/")
 		assert_request (200, "/members/", auth = HTTPDigestAuth ("admin", "1111"))
 
-		urls = ["/", "/documentation", "/documentation2", "/documentation3", "/hello", "/redirect1", "/redirect2", "/xmlrpc"]
+		urls = ["/", "/hello", "/redirect1", "/redirect2", "/xmlrpc"]
 
 		for url in urls:
 			assert_request (200, url)
@@ -48,16 +48,15 @@ def test_app (launch):
 
 def test_app_single_thread (launch):
 	with launch ("./examples/app_single_thread.py") as engine:
-		for url in ("/", "/documentation2", "/documentation3", "/hello", "/redirect1", "/redirect2"):
+		for url in ("/", "/hello", "/redirect1", "/redirect2"):
 			assert_request (200, url)
-		assert_request (200, "/documentation")
 		assert_post_request (200, "/post", {"username": "pytest"})
 		jpg = open (os.path.join (confutil.getroot (), "statics", "reindeer.jpg"), "rb")
 		assert_post_request (200, "/upload", {"username": "pytest"}, files = {"file1": jpg})
 
 def test_https (launch):
 	with launch ("./examples/https.py", ssl = True) as engine:
-		for url in ("/", "/documentation", "/documentation2", "/documentation3", "/hello", "/redirect1", "/redirect2"):
+		for url in ("/",  "/hello", "/redirect1", "/redirect2"):
 			assert_requests (200, url)
 			assert_requests (200, url)
 		assert_post_requests (200, "/post", {"username": "pytest"})

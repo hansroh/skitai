@@ -76,15 +76,11 @@ def threaproducer (was, n = 3, max_size = 3):
 
 @app.route ("/stub")
 def stub (was):
-    with was.stub ("https://pypi.org", headers = [("Accept", "text/html")]) as stub:
-        req1 = stub.get ("/{}/rs4/", 'project')
-    with was.stub ("https://pypi.org/project", headers = [("Accept", "text/html")]) as stub:
-        req2 = stub.get ("/rs4/")
-    with was.stub ("@pypi", headers = [("Accept", "text/html")]) as stub:
-        req3 = stub.get ("/project/rs4/")
-    with was.stub ("@pypi/project", headers = [("Accept", "text/html")]) as stub:
-        req4 = stub.get ("/{}/", 'rs4')
-    req5 = was.get ("https://pypi.org/project/rs4/", headers = [("Accept", "text/html")])
+    req1 = was.Mask ("pypi/skitai/hansroh/rs4")
+    req2 = was.Mask ("pypi/skitai/hansroh/rs4")
+    req3 = was.Mask ("pypi/skitai/hansroh/rs4")
+    req4 = was.Mask ("pypi/skitai/hansroh/rs4")
+    req5 = was.Mask ("pypi/skitai/hansroh/rs4")
 
     r = was.Tasks ([req1, req2, req3, req4, req5]).fetch ()
     return was.API (result = r)
@@ -93,38 +89,33 @@ def stub (was):
 def coroutine (was):
     def respond (was, task):
         return task.fetch ()
-    with was.stub ("http://example.com") as stub:
-        return stub.get ("/").then (respond)
+    return was.Mask ("pypi/skitai/hansroh/rs4").then (respond)
 
 @app.route ("/coroutine/2")
 @app.coroutine
 def coroutine2 (was):
-    with was.stub ("http://example.com") as stub:
-        task = yield stub.get ("/")
+    task = yield was.Mask ("pypi/skitai/hansroh/rs4")
     return task.fetch ()
 
 @app.route ("/coroutine/3")
 @app.coroutine
 def coroutine3 (was):
-    with was.stub ("http://example.com") as stub:
-        task = yield stub.get ("/")
-    with was.stub ("https://pypi.org/") as stub:
-        task = yield stub.get ("/")
+    task = yield was.Mask ("pypi/skitai/hansroh/rs4")
+    task.fetch ()
+    task = yield was.Mask ("pypi/skitai/hansroh/rs4")
     return task.fetch ()
 
 @app.route ("/coroutine/4")
 @app.coroutine
 def coroutine4 (was):
-    with was.stub ("http://example.com") as stub:
-        task1 = yield stub.get ("/")
+    task1 = yield was.Mask ("pypi/skitai/hansroh/rs4")
     task2 = yield was.Mask ('mask')
     return was.API (a = task1.fetch (), b = task2.fetch ())
 
 @app.route ("/coroutine/5")
 @app.coroutine
 def coroutine5 (was):
-    with was.stub ("http://example.com") as stub:
-        task1 = stub.get ("/")
+    task1 = was.Mask ("pypi/skitai/hansroh/rs4")
     task2 = was.Mask ('mask')
     tasks = yield was.Tasks (task1, task2)
     a, b = tasks.fetch ()
@@ -132,21 +123,21 @@ def coroutine5 (was):
 
 @app.route ("/coroutine/6", coroutine = True)
 def coroutine6 (was):
-    task1 = was.Mask ("Example Domain")
+    task1 = was.Mask ("pypi/skitai/hansroh/rs4")
     task2 = was.Mask ('mask')
     tasks = yield was.Tasks (a = task1, b = task2)
     return was.API (**tasks.dict ())
 
 @app.route ("/coroutine/7", coroutine = True)
 def coroutine7 (was):
-    task1 = was.Mask ("Example Domain")
+    task1 = was.Mask ("pypi/skitai/hansroh/rs4")
     task2 = was.Mask ('mask')
     tasks = yield was.Tasks (a = task1, b = task2)
     return was.API (**tasks.fetch ())
 
 @app.route ("/coroutine/8", coroutine = True)
 def coroutine8 (was):
-    task1 = was.Mask ("Example Domain")
+    task1 = was.Mask ("pypi/skitai/hansroh/rs4")
     task2 = was.Mask ('mask')
     tasks = yield was.Tasks (a = task1, b = task2)
     return was.Map (c = was.Mask (100), **tasks.fetch ())
@@ -157,7 +148,7 @@ def wait_hello (timeout = 1.0):
 
 @app.route ("/coroutine/9", coroutine = True)
 def coroutine9 (was):
-    task1 = was.Mask ("Example Domain")
+    task1 = was.Mask ("pypi/skitai/hansroh/rs4")
     task2 = was.Thread (wait_hello, args = (1.0,))
     tasks = yield was.Tasks (a = task1, b = task2)
     task3 = yield was.Thread (wait_hello, args = (1.0,))
@@ -166,7 +157,7 @@ def coroutine9 (was):
 
 @app.route ("/coroutine/10", coroutine = True)
 def coroutine10 (was):
-    task1 = was.Mask ("Example Domain")
+    task1 = was.Mask ("pypi/skitai/hansroh/rs4")
     task2 = was.Thread (wait_hello, args = (1.0,))
     tasks = yield was.Tasks (a = task1, b = task2)
     task3 = yield was.Process (wait_hello, args = (1.0,))
@@ -175,7 +166,7 @@ def coroutine10 (was):
 
 @app.route ("/coroutine/11", coroutine = True)
 def coroutine11 (was):
-    task1 = was.Mask ("Example Domain")
+    task1 = was.Mask ("pypi/skitai/hansroh/rs4")
     task2 = was.Mask ('mask')
     if 0:
         yield was.Tasks (a = task1, b = task2)
@@ -187,7 +178,7 @@ def coroutine_generator (was, n = 1, h = 0, f = 0):
     if h:
         yield "Header Line\n"
     for i in range (n):
-        task = yield (was.Mask ("Example Domain"))
+        task = yield (was.Mask ("pypi/skitai/hansroh/rs4"))
         yield task.fetch ()
         if f:
             yield '\n'
@@ -217,9 +208,6 @@ def process_future_response (was, tasks):
 
 if __name__ == "__main__":
     import skitai
-    skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
     skitai.mount ("/", app)
     skitai.mount ("/", 'statics')
-    skitai.mount ("/lb", "@pypi")
-    skitai.mount ("/lb2", "@pypi/project")
     skitai.run (port = 30371)

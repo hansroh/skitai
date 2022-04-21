@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.45.5"
+__version__ = "0.46.0"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -302,7 +302,6 @@ def allocate_gpu ():
 dconf = dict (
     mount = {"default": []},
     mount_onfly = {"default": []},
-    clusters = {},
     max_ages = {},
     log_off = [],
     dns_protocol = 'tcp',
@@ -615,10 +614,6 @@ def mount_variable (path = None, enable_logging = False):
 
 def set_access_log_path (path = None):
     enable_file_logging (path, ['request'])
-
-def enable_blacklist (path):
-    global dconf
-    dconf ["blacklist_dir"] = path
 
 def enable_ssl (certfile, keyfile = None, passphrase = None):
     global dconf

@@ -129,9 +129,8 @@ def echo_coroutine2 (was):
 		if not msg:
 			break
 
-		with was.stub ('http://example.com') as stub:
-			task = yield stub.get ("/")
-			yield task.fetch ()
+		task = yield was.Mask ('http://example.com')
+		yield task.fetch ()
 
 
 @app.route ("/param")

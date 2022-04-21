@@ -21,6 +21,5 @@ def service_layer (wasc):
     from django.conf import settings
     from django.core import management
     management.call_command ("migrate", no_input=True)
-    add_cluster (wasc, *skitai.alias ("@rdb", skitai.DB_SQLITE3, '/tmp/.temp.db3'))
     yield settings
     os.remove ('/tmp/.temp.db3')
