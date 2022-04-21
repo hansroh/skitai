@@ -17,8 +17,8 @@ def test_futures (app, dbpath):
             return was.response.API (status_code = [rs.status_code for rs in rss.dispatch ()], a = rss.meta ["a"])
 
         reqs = [
-            was.get ("@pypi/project/skitai/"),
-            was.get ("@pypi/project/rs4/"),
+            was.Mask ("@pypi/project/skitai/"),
+            was.Mask ("@pypi/project/rs4/"),
             was.Mask ([{'symbol': 'RHAT'}, {'symbol': 'RHAT'}])
         ]
         return was.Tasks (reqs, meta = {'a': 100}).then (respond)
@@ -27,15 +27,15 @@ def test_futures (app, dbpath):
     def index1 (was):
         def respond (was, task):
             return was.response.API (status_code = task.dispatch ().status_code, a = task.meta ["a"])
-        return was.get ("@pypi/project/skitai/", meta = {'a': 100}).then (respond)
+        return was.Mask ("@pypi/project/skitai/", meta = {'a': 100}).then (respond)
 
     @app.route ("/1-1")
     def index1_1 (was):
         def respond2 (was, task):
             return was.API (status_code = task.dispatch ().status_code)
         def respond (was, task):
-            return was.get ("@pypi/project/rs4/").then (respond2)
-        return was.get ("@pypi/project/skitai/").then (respond)
+            return was.Mask ("@pypi/project/rs4/").then (respond2)
+        return was.Mask ("@pypi/project/skitai/").then (respond)
 
     @app.route ("/2")
     def index2 (was):
@@ -50,8 +50,8 @@ def test_futures (app, dbpath):
 
         def begin ():
             reqs = [
-                was.get ("@pypi/project/skitai/"),
-                was.get ("@pypi/project/rs4/")
+                was.Mask ("@pypi/project/skitai/"),
+                was.Mask ("@pypi/project/rs4/")
             ]
             return was.Tasks (reqs, meta = {'a': 100}).then (checkdb)
         begin ()
@@ -63,7 +63,7 @@ def test_futures (app, dbpath):
             return datas
 
         reqs = [
-            was.get ("@pypi/project/rs4/"),
+            was.Mask ("@pypi/project/rs4/"),
             was.Mask ([{'symbol': 'RHAT'}])
         ]
         return was.Tasks (reqs).then (respond)
@@ -86,7 +86,7 @@ def test_futures (app, dbpath):
     @app.route ("/5")
     def index5 (was):
         reqs = [
-            was.get ("@pypi/project/rs4/"),
+            was.Mask ("@pypi/project/rs4/"),
             was.Mask ([{'symbol': 'RHAT'}, {'symbol': 'RHAT'}])
         ]
         return str ([rs.fetch () for rs in was.Tasks (reqs)])
@@ -94,7 +94,7 @@ def test_futures (app, dbpath):
     @app.route ("/6")
     def index6 (was):
         reqs = [
-            was.get ("@pypi/project/rs4/"),
+            was.Mask ("@pypi/project/rs4/"),
             was.Mask ([{'symbol': 'RHAT'}, {'symbol': 'RHAT'}])
         ]
         return str (was.Tasks (reqs).fetch ())
@@ -195,8 +195,6 @@ def test_futures (app, dbpath):
         ((a, b), c, d, e), e, f = was.Tasks ([tasks, req, mask]).fetch ()
         return str ([a, b, c, d, e, f])
 
-    app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
-
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
         assert resp.data ['status_code'] == [200, 200, 200]
@@ -215,7 +213,7 @@ def test_futures (app, dbpath):
         assert resp.data ['b'] == 200
 
         resp = cli.get ("/3")
-        assert "hansroh" in resp.text
+        assert "@pypi" in resp.text
         assert "RHAT" in resp.text
 
         resp = cli.get ("/4")
@@ -226,11 +224,11 @@ def test_futures (app, dbpath):
         assert resp.data == '[]'
 
         resp = cli.get ("/5")
-        assert "hansroh" in resp.text
+        assert "@pypi" in resp.text
         assert "RHAT" in resp.text
 
         resp = cli.get ("/6")
-        assert "hansroh" in resp.text
+        assert "@pypi" in resp.text
         assert "RHAT" in resp.text
 
         resp = cli.get ("/7")

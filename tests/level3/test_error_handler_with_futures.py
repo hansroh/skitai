@@ -14,14 +14,13 @@ def test_default_error_handler (app):
     def f1 (was):
         def respond (was, rss):
             raise was.Error ("414 Not Found")
-        reqs = [was.get ("@pypi/project/rs4/")]
+        reqs = [was.Mask ("@pypi/project/rs4/")]
         return was.Tasks (reqs).then (respond)
 
     @app.route ("/f2")
     def f2 (was):
         raise was.Error ("414 Not Found")
 
-    app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
     with app.test_client ("/", confutil.getroot ()) as cli:
         api = cli.api ("/")
         resp = api.f1.get ()

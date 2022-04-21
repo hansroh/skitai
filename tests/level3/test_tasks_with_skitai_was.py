@@ -9,8 +9,8 @@ def test_futures (app, dbpath):
             return skitai.was.response.API (status_code = [rs.status_code for rs in rss.dispatch ()], a = rss.meta ['a'])
 
         reqs = [
-            skitai.was.get ("@pypi/project/skitai/"),
-            skitai.was.get ("@pypi/project/rs4/"),
+            skitai.was.Mask ("@pypi/project/skitai/"),
+            skitai.was.Mask ("@pypi/project/rs4/"),
             skitai.was.Mask ("@sqlite")
         ]
         return skitai.was.Tasks (reqs, meta = {'a': 100}).then (respond)
@@ -22,7 +22,7 @@ def test_futures (app, dbpath):
             return datas
 
         reqs = [
-            skitai.was.get ("@pypi/project/rs4/"),
+            skitai.was.Mask ("@pypi/project/rs4/"),
             skitai.was.Mask (['RHAT'])
         ]
         return skitai.was.Tasks (reqs).then (respond)
@@ -53,15 +53,13 @@ def test_futures (app, dbpath):
         a.merge (b)
         return a.then (respond)
 
-    app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
-
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
         assert resp.data ['status_code'] == [200, 200, 200]
         assert resp.data ['a'] == 100
 
         resp = cli.get ("/3")
-        assert "hansroh" in resp.text
+        assert "@pypi" in resp.text
         assert "RHAT" in resp.text
 
         resp = cli.get ("/4")

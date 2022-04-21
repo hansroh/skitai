@@ -81,19 +81,6 @@ def bench_delay (was, t = 0.3):
         )
 
 @app.route ("/bench/http", methods = ['GET'])
-def bench_http (was):
-    return was.Map (
-        t1 = was.get ('@myweb/', headers = {'Accept': 'text/html'}),
-    )
-
-@app.route ("/bench/http/dual", methods = ['GET'])
-def bench_http_dual (was):
-    return was.Map (
-        t1 =  was.get ('@myweb/', headers = {'Accept': 'text/html'}),
-        t2 =  was.get ('@myweb/', headers = {'Accept': 'text/html'}),
-    )
-
-@app.route ("/bench/http/requests", methods = ['GET'])
 def bench_http_requests (was):
     return was.API (
         t1 = app.rpool.get (f'http://{TARGET}', headers = {'Accept': 'text/html'}).text
@@ -103,7 +90,6 @@ def bench_http_requests (was):
 if __name__ == '__main__':
     import skitai, os
 
-    skitai.alias ('@myweb', skitai.PROTO_HTTP, TARGET, max_conns = 32)
     skitai.mount ('/', app)
     skitai.use_poll ('epoll')
     skitai.enable_async (20)

@@ -11,25 +11,21 @@ from skitai import lifetime
 from warnings import warn
 from .backbone import https_server
 from skitai import start_was
-from .protocols.threaded.fifo import await_fifo
-from .protocols.sock import asynconnect
-from .protocols.sock import socketpool
-from .protocols.threaded import threadlib, trigger
-from .protocols.sock.impl.dns import adns, dns
-from .protocols.sock.impl.http import request_handler
-from .protocols.sock.impl import http2
+from rs4.protocols.fifo import await_fifo
+from rs4.protocols.sock import asynconnect
+from rs4.protocols.sock import socketpool
+from .backbone.threaded import threadlib, trigger
+from rs4.protocols.sock.impl.dns import adns, dns
+from rs4.protocols.sock.impl.http import request_handler
+from rs4.protocols.sock.impl import http2
 from rs4.psutil import kill
-from .handlers import proxy_handler, ipbl_handler, vhost_handler, forward_handler
+from .handlers import vhost_handler, forward_handler
 import signal
 from . import wsgiappservice
 from .backbone import http_response
-from .tasks import cachefs
-from .tasks.httpbase import task, rcache
-from .tasks.httpbase import cluster_manager as rcluster_manager
 from .handlers.websocket import servers as websocekts
 from .wastuff import selective_logger, triple_logger
 from .tasks.pth import executors
-import asyncio
 if os.name == "nt":
     from rs4.psutil import schedule # cron like scheduler
 
@@ -116,21 +112,6 @@ class Loader:
     def config_wasc (self, **kargs):
         self.wasc_kargs = kargs
 
-    def config_backends (self, backend_keep_alive, object_timeout, maintern_interval):
-        rcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive
-        rcluster_manager.ClusterManager.object_timeout = object_timeout
-        rcluster_manager.ClusterManager.maintern_interval = maintern_interval
-
-    def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0, access = None, max_conns = 100):
-        try:
-            self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl, access = access, max_conns = max_conns)
-        except:
-            self.wasc.logger.trace ("server")
-
-    def config_dns (self, prefer_protocol = "tcp"):
-        adns.init (self.wasc.logger.get ("server"), prefer_protocol = prefer_protocol)
-        lifetime.maintern.sched (4.1, dns.pool.maintern)
-
     def config_executors (self, workers, zombie_timeout, process_start = None, enable_async = 0):
         if process_start:
             from multiprocessing import set_start_method
@@ -153,10 +134,6 @@ class Loader:
         socketfarm = socketpool.SocketPool (self.wasc.logger.get ("server"))
         self.wasc.clusters ["__socketpool__"] = socketfarm
         self.wasc.clusters_for_distcall ["__socketpool__"] = task.TaskCreator (socketfarm, self.wasc.logger.get ("server"), self.wasc.cachefs)
-
-    def config_rcache (self, maxobj = 1000):
-        rcache.start_rcache (maxobj)
-        self.wasc.register ("rcache", rcache.the_rcache)
 
     def switch_to_await_fifo (self):
         if self._fifo_switched: return
@@ -278,27 +255,14 @@ class Loader:
 
     def install_handler (self,
             routes = [],
-            proxy = False,
             static_max_ages = None,
-            blacklist_dir = None,
-            unsecure_https = False,
-            enable_apigateway = False,
-            apigateway_authenticate = False,
-            apigateway_realm = "API Gateway",
-            apigateway_secret_key = None,
             media_url = None,
             media_path = None
         ):
-        if blacklist_dir:
-            self.wasc.add_handler (0, ipbl_handler.Handler, blacklist_dir)
-        if proxy:
-            self.wasc.add_handler (1, proxy_handler.Handler, self.wasc.clusters, self.wasc.cachefs, unsecure_https)
 
         self.virtual_host = self.wasc.add_handler (
             1, vhost_handler.Handler,
-            self.wasc.clusters, self.wasc.cachefs,
-            static_max_ages,
-            enable_apigateway, apigateway_authenticate, apigateway_realm, apigateway_secret_key
+            static_max_ages
         )
         routes and self.update_routes (routes, media_url, media_path)
 

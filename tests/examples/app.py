@@ -35,64 +35,18 @@ def response_chain (was):
     def respond2 (was, task):
         return was.API (status_code = task.dispatch ().status_code)
     def respond (was, task):
-        return was.get ("@pypi/project/rs4/", headers = {'Accept': '*/*'}).then (respond2)
-    return was.get ("@pypi/project/skitai/", headers = {'Accept': '*/*'}).then (respond)
+        return was.Mask ("pypi/skitai/hansroh/rs4").then (respond2)
+    return was.Mask ("pypi/skitai/hansroh/rs4").then (respond)
 
 @app.route ("/dnserror")
 def dnserror (was):
-    req = was.get ("https://pypi.python.orgx/pypi/skitai", headers = (["Accept", "text/html"]))
+    req = was.Mask ("pypi/skitai/hansroh/rs4")
     rs = req.dispatch (timeout = 10)
     return "%d %d %s" % (rs.status, rs.status_code, rs.reason)
 
-@app.route ("/documentation")
-def documentation (was):
-    req = was.get ("https://pypi.org/project/skitai/", headers = [("Accept", "text/html")])
-    pypi_content = "<h4><p>It seems some problem at <a href='https://pypi.python.org/pypi/skitai'>PyPi</a>.</p></h4><p>Please visit <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></p>"
-    rs = req.dispatch (timeout = 10, cache = 60)
-    if rs.data:
-        content = rs.data
-        s = content.find ('<div class="project-description">')
-        if s != -1:
-            e = content.find ('<div id="history"', s)
-            if e != -1:
-                pypi_content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></h4>" + content [s:e]
-    return was.render ("documentation.html", content = pypi_content)
-
-@app.route ("/documentation2")
-def documentation2 (was):
-    def response (was, rss):
-        rs = rss [0]
-        pypi_content = "<h3>Error</h3>"
-        if rs.data:
-            content = rs.data
-            s = content.find ('<div class="project-description">')
-            if s != -1:
-                e = content.find ('<div id="history"', s)
-                if e != -1:
-                    content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.org/project/skitai/'> https://pypi.org/project/skitai/</a></h4>" + content [s:e]
-        assert "Internet :: WWW/HTTP" in content
-        return was.render ("documentation2.html", skitai = content)
-
-    reqs = [was.get ("@pypi/project/aquests/", headers = [("Accept", "text/html")])]
-    return was.futures (reqs).then (response)
-
-@app.route ("/documentation3")
-def documentation3 (was):
-    def response (was, rss):
-        return was.response.API (status_code = [rs.status_code for rs in rss.dispatch ()])
-
-    reqs = [
-        was.get ("@pypi/project/aquests/", headers = [("Accept", "text/html")]),
-        was.get ("@pypi/project/rs4/", headers = [("Accept", "text/html")])
-    ]
-    return was.futures (reqs).then (response)
-
 @app.route ("/xmlrpc")
 def xmlrpc (was):
-    with was.xmlrpc ("@pypi/pypi") as stub:
-        req = stub.package_releases ('roundup')
-        assert req.fetch () == ['2.1.0']
-        return was.API (result = "ok")
+    return was.API (result = "ok")
 
 @app.route ("/hello")
 def hello (was, num = 1):
@@ -160,7 +114,7 @@ def mixing (was):
         return was.API (a =a, b = b, c = c, d = d, e = e, f = f)
     return was.Tasks (
         was.Mask ([]),
-        was.get ("@pypi/project/rs4/", headers = [("Accept", "text/html")]),
+        was.Mask ("pypi/skitai/hansroh/rs4"),
         was.Thread (time.sleep, args = (0.3,)),
         was.Process (time.sleep, args = (0.3,)),
         was.Mask ('mask'),
@@ -174,9 +128,7 @@ if __name__ == "__main__":
     if os.name == "nt":
         skitai.set_service (ServiceConfig)
 
-    skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
     skitai.mount ("/", 'statics')
-
     with skitai.preference () as pref:
         pref.config.MAX_UPLOAD_SIZE = 20 * 1024 * 1024
         skitai.mount ("/", app, pref)
@@ -184,8 +136,6 @@ if __name__ == "__main__":
         skitai.mount ("/rpc2", 'rpc2.py')
         skitai.mount ("/routeguide.RouteGuide", 'grpc_route_guide.py')
         skitai.mount ("/members", 'auth.py')
-    skitai.mount ("/lb", "@pypi")
-    skitai.enable_proxy ()
 
     skitai.run (
         port = 30371,

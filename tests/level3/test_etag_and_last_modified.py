@@ -20,7 +20,6 @@ def test_etag (app, dbpath):
         was.response.set_mtime (1599003756, max_age = 120)
         return "1"
 
-    app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
 
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/1")

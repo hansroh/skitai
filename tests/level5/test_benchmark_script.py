@@ -30,12 +30,6 @@ def test_atila (launch):
         resp = engine.axios.get ('/bench/http')
         assert resp.status_code == 200
 
-        resp = engine.axios.get ('/bench/http/dual')
-        assert resp.status_code == 200
-
-        resp = engine.axios.get ('/bench/http/requests')
-        assert resp.status_code == 200
-
 
 def test_django (launch):
     if is_pypy:

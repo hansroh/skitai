@@ -2,10 +2,10 @@ import zlib
 import time
 import os
 import sys
-from ..protocols.sock.impl.http import http_date, http_util
+from rs4.protocols.sock.impl.http import http_date, http_util
 from rs4.misc.reraise import reraise
 from rs4.misc import producers, compressors
-from ..protocols.sock.impl.http import respcodes
+from rs4.protocols.sock.impl.http import respcodes
 from ..wastuff import selective_logger
 from ..utility import catch
 import skitai

@@ -9,7 +9,7 @@ from skitai import lifetime
 import os, sys, errno
 import skitai
 from errno import EWOULDBLOCK
-from ..protocols.sock.impl.http2 import H2_PROTOCOLS
+from rs4.protocols.sock.impl.http2 import H2_PROTOCOLS
 from ..handlers import vhost_handler
 
 class https_channel (http_server.http_channel):
