@@ -4,7 +4,7 @@ import pytest
 from skitai.backbone.http_response import http_response, UNCOMPRESS_MAX, ONETIME_COMPRESS_MAX
 from rs4.misc import producers
 import os
-from skitai.protocols.sock.impl.http2.producers import h2frame_producer, h2header_producer
+from rs4.protocols.sock.impl.http2.producers import h2frame_producer, h2header_producer
 import threading
 from h2.connection import H2Connection
 from skitai.handlers.http2.response import response as http2_response

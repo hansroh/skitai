@@ -44,10 +44,14 @@ def test_success (app):
             raise was.Error ("600 Error")
         return was.API (x = 100)
 
+    def sleep ():
+        time.sleep (1)
+        return 200
+
     @app.route ("/coro", coroutine = True)
     def c (was, err = "no"):
         app.emit ("FIRE")
-        task = yield was.Mask (200)
+        task = yield was.Thread (sleep)
         err == "var" and xx
         if err == "http":
             raise was.Error ("600 Error")
@@ -92,5 +96,7 @@ def test_success (app):
             assert resp.status_code == 600
             assert "code" in resp.json ()
 
-    assert app.hooks_called == 27 * N
-    assert app.fired == 9 * N
+
+    REQS = 9
+    assert app.hooks_called == REQS * 3 * N
+    assert app.fired == REQS * N

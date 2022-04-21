@@ -77,10 +77,6 @@ def test_launch (launch):
         assert resp.status_code == 200
         assert 'your_message' in resp.data
 
-        resp = engine.axios.get ('/apis/xmlrpc')
-        assert resp.status_code == 200
-        assert 'method_name' in resp.data
-
         resp = engine.axios.get ('/apis/process')
         assert resp.status_code == 200
         assert 'result' in resp.data
@@ -104,7 +100,7 @@ def test_launch (launch):
             resp1 = engine.axios.get ('/apis/rest-api{}'.format (i % 2 == 1 and 2 or ''))
             assert resp1.status_code == 200
             assert 'result' in resp1.data
-            assert 'info' in resp1.data ['result']
+            assert 'pypi' in resp1.data ['result']
 
         if not is_pypy:
             for i in range (4):

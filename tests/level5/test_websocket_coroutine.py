@@ -25,16 +25,13 @@ def test_websocket_coroutine (launch):
         assert result == "double echo: Hello, World"
         ws.close()
 
-
         ws = create_connection("ws://127.0.0.1:30371/websocket/echo_coroutine2")
         ws.send("Hello, World")
         result =  ws.recv()
-        assert "<title>Example Domain</title>" in result
+        assert "example.com" in result
 
         ws.send("Hello, World")
         result =  ws.recv()
-        assert "<title>Example Domain</title>" in result
+        assert "example.com" in result
 
         ws.close()
-
-

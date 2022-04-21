@@ -2,10 +2,10 @@ from concurrent.futures import TimeoutError, CancelledError
 import time
 from ..tasks import Mask
 from .. import proto
-from ...protocols.threaded import trigger
+from ...backbone.threaded import trigger
 import sys
 import ctypes
-from ..httpbase.task import DEFAULT_TIMEOUT
+from ..tasks import DEFAULT_TIMEOUT
 
 class Task (proto.Task):
     def __init__ (self, future, name, meta, filter, timeout = None):

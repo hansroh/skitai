@@ -1,6 +1,6 @@
-from ...protocols.sock.impl.http import request, response
-from ...protocols.sock.impl.grpc import request as grpc_request
-from ...protocols.sock.impl.ws import request as ws_request
+from rs4.protocols.sock.impl.http import request, response
+from rs4.protocols.sock.impl.grpc import request as grpc_request
+from rs4.protocols.sock.impl.ws import request as ws_request
 import skitai
 from ...backbone.http_request import http_request
 from base64 import b64encode

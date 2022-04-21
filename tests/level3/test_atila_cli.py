@@ -38,24 +38,6 @@ def test_cli (app, dbpath, is_pypy):
     def json (was, m):
         return was.response.api (data = m)
 
-    @app.route ("/pypi")
-    def pypi (was):
-        req = was.get ("@pypi/project/skitai/")
-        res = req.dispatch ()
-        return was.response.api (data = res.text)
-
-    @app.route ("/pypi3")
-    def pypi3 (was):
-        req = was.getjson ("https://pypi.org/project/skitai/")
-        res = req.dispatch ()
-        return was.response.api (data = res.text)
-
-    @app.route ("/pypi2")
-    def pypi2 (was):
-        req = was.get ("https://pypi.org/project/skitai/")
-        res = req.dispatch ()
-        return was.response.api (data = res.text)
-
     @app.route ('/jwt')
     @app.authorization_required ("bearer")
     def jwt (was):
@@ -92,9 +74,6 @@ def test_cli (app, dbpath, is_pypy):
             return route_guide_pb2.Feature(name="", location=point)
         else:
             return feature
-
-
-    app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
 
     with app.test_client ("/", confutil.getroot ()) as cli:
         with cli.jsonrpc ('/rpc2') as stub:
@@ -158,15 +137,6 @@ def test_cli (app, dbpath, is_pypy):
         resp = cli.post ("/json", {"m": "POST"})
         assert '"data":' in resp.text
         assert '"POST"' in resp.text
-
-        resp = cli.get ("/pypi3")
-        assert resp.status_code == 502
-
-        resp = cli.get ("/pypi2")
-        assert "skitai" in resp.text
-
-        resp = cli.get ("/pypi")
-        assert "skitai" in resp.text
 
         app.securekey = "securekey"
         resp = cli.get ("/jwt", headers = {"Authorization": "Bearer {}".format (jwt_.gen_token (app.salt, {"exp": 3000000000, "username": "hansroh"}))})

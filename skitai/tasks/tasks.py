@@ -2,12 +2,13 @@ import sys
 from ..exceptions import HTTPError
 from .proto import response
 from . import proto
-from .httpbase.task import DEFAULT_TIMEOUT
 from rs4.attrdict import AttrDict
 import time
 from skitai import NORMAL
 import warnings
 import skitai
+
+DEFAULT_TIMEOUT = 30
 
 class TaskBase (proto.Task):
     def __init__ (self, reqs, timeout = DEFAULT_TIMEOUT, meta = None, keys = None):

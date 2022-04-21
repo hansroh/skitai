@@ -108,16 +108,6 @@ if __name__ == "__main__":
     skitai.mount ('/media', 'my_proejct/media')
 ```
 
-### Mount HTTP Services
-```python
-    # HTTP
-    # load-balancing if multiple  members
-    skitai.alias ('@external', skitai.PROTO_HTTPS, ["www1.server.com", "www2.server.com"])
-    skitai.mount ('/external', '@external/api')
-```
-- PROTO_HTTP
-- PROTO_HTTPS
-
 ### Runtime App Preference
 ```python
 with skitai.preference () as pref:
@@ -507,6 +497,12 @@ See generating logs.
 
 
 # Change Log
+
+- 0.46 (Apr, 2022)
+  - remove features: async services, api gateway, proxypass, proxy, cluster, cachefs
+
+- 0.45 (Apr, 2022)
+  - refactor websocket and gRPC bistreaming
 
 - 0.43 (Apr, 2022)
   - move coroutine code to Atila
