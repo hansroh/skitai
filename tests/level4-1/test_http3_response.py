@@ -7,9 +7,6 @@ import sys
 def test_http3 (launch):
     if sys.version_info < (3, 6):
         return
-    if sys.version_info [:2] == (3, 7):
-        # freq error, why?
-        return
 
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
@@ -18,10 +15,6 @@ def test_http3 (launch):
 
         resp = engine.http3.get ('/hello?num=2')
         assert resp.text == 'hello\nhello'
-
-        resp = engine.http3.get ('/lb/project/rs4/')
-        assert 'pip install rs4' in resp.text
-
 
 def test_http3_post (launch):
     if sys.version_info < (3, 6):
