@@ -1,4 +1,4 @@
-from ..protocols.sock.impl.ws import *
+from rs4.protocols.sock.impl.ws import *
 
 class Coroutine:
     pass

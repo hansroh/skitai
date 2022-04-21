@@ -22,7 +22,7 @@ variables:
   - pip install -U "django>=3.0,<4.0"
   - pip install -U --pre --no-cache-dir atila-vue delune
   - pip install -U --pre --no-cache-dir "atila>0.15" rs4 sqlphile
-  - python -c 'from skitai.protocols.sock.impl.grpc import discover'
+  - python -c 'from rs4.protocols.sock.impl.grpc import discover'
 
 .before_python_test: &before_python_test
     before_script:

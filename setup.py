@@ -44,6 +44,7 @@ packages = [
     'skitai.scripts',
     'skitai.scripts.commands',
     'skitai.backbone',
+    'skitai.backbone.threaded',
     'skitai.handlers',
     'skitai.handlers.http2',
     'skitai.handlers.websocket',
@@ -56,36 +57,11 @@ packages = [
     'skitai.mounted',
     'skitai.testutil',
     'skitai.testutil.offline',
-    'skitai.protocols',
-    'skitai.protocols.threaded',
-    'skitai.protocols.sock',
-    'skitai.protocols.sock.impl',
-	'skitai.protocols.sock.impl.dns',
-	'skitai.protocols.sock.impl.dns.pydns',
-	'skitai.protocols.sock.impl.http',
-	'skitai.protocols.sock.impl.http2',
-	'skitai.protocols.sock.impl.http2.hyper',
-	'skitai.protocols.sock.impl.http2.hyper.common',
-	'skitai.protocols.sock.impl.http2.hyper.http11',
-	'skitai.protocols.sock.impl.http2.hyper.http20',
-	'skitai.protocols.sock.impl.http2.hyper.http20.h2',
-	'skitai.protocols.sock.impl.http2.hyper.packages',
-	'skitai.protocols.sock.impl.http2.hyper.packages.rfc3986',
-    'skitai.protocols.sock.impl.http3',
-	'skitai.protocols.sock.impl.ws',
-	'skitai.protocols.sock.impl.smtp',
-	'skitai.protocols.sock.impl.grpc',
-	'skitai.protocols.sock.impl.proxy',
 ]
 
 package_dir = {'skitai': 'skitai'}
 package_data = {
     "skitai": [
-        "protocols/sock/impl/dns/*.txt",
-		"protocols/sock/impl/dns/pydns/*.txt",
-		"protocols/sock/impl/http2/hyper/*.txt",
-		"protocols/sock/impl/http2/hyper/*.pem",
-        "protocols/sock/impl/http3/*.pem",
         "wastuff/templates/.gitlab-ci.yml",
         "wastuff/templates/ctn.sh",
         "wastuff/templates/dep/*.*",
@@ -103,7 +79,7 @@ package_data = {
 }
 
 install_requires = [
-    "rs4>=0.3.5",
+    "rs4>=0.3.6",
     "sqlphile>=0.9",
     "h2>=4.0.0"
 ]

@@ -2,9 +2,9 @@ import threading
 import json
 import skitai
 from .. import wsgi_handler
-from ...protocols.threaded import trigger
-from ...protocols.sock.impl.grpc import discover
-from ...protocols.sock.impl.http import http_util
+from ...backbone.threaded import trigger
+from rs4.protocols.sock.impl.grpc import discover
+from rs4.protocols.sock.impl.http import http_util
 from skitai import version_info, was as the_was
 import xmlrpc.client as xmlrpclib
 from urllib.parse import quote_plus
@@ -12,13 +12,13 @@ from io import BytesIO
 import copy
 from rs4.misc.reraise import reraise
 from collections.abc import Iterable
-from ...protocols.sock.impl.ws.collector import Collector as BaseWebsocketCollector
-from ...protocols.sock.impl.ws.collector import encode_message
+from rs4.protocols.sock.impl.ws.collector import Collector as BaseWebsocketCollector
+from rs4.protocols.sock.impl.ws.collector import encode_message
 try:
     from werkzeug.wsgi import ClosingIterator
 except ImportError:
     ClosingIterator = None
-from ...protocols.sock.impl.ws import *
+from rs4.protocols.sock.impl.ws import *
 import time
 
 class WebSocket (BaseWebsocketCollector):

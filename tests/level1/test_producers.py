@@ -1,6 +1,6 @@
 from rs4.misc import producers
-from skitai.protocols.sock.impl.grpc.producers import grpc_producer
-from skitai.protocols.sock.impl.http2.producers import h2frame_producer, h2header_producer
+from rs4.protocols.sock.impl.grpc.producers import grpc_producer
+from rs4.protocols.sock.impl.http2.producers import h2frame_producer, h2header_producer
 from confutil import rprint
 
 def test_get_size ():

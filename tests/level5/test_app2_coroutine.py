@@ -3,17 +3,17 @@ import platform
 
 def test_app (launch):
     with launch ("./examples/app2.py") as engine:
-        resp = engine.get ('/coroutine')
-        assert resp.status_code == 200
-        assert "pypi" in resp.text
+        # resp = engine.get ('/coroutine')
+        # assert resp.status_code == 200
+        # assert "pypi" in resp.text
 
-        resp = engine.get ('/coroutine/2')
-        assert resp.status_code == 200
-        assert "pypi" in resp.text
+        # resp = engine.get ('/coroutine/2')
+        # assert resp.status_code == 200
+        # assert "pypi" in resp.text
 
-        resp = engine.get ('/coroutine/3')
-        assert resp.status_code == 200
-        assert "pypi" in resp.text
+        # resp = engine.get ('/coroutine/3')
+        # assert resp.status_code == 200
+        # assert "pypi" in resp.text
 
         resp = engine.axios.get ('/coroutine/4')
         assert resp.status_code == 200

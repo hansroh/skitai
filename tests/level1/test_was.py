@@ -5,7 +5,7 @@ import os, pytest
 from skitai.testutil import offline as testutil
 from atila.cookie import Cookie
 from atila.named_session import NamedSession
-from skitai.protocols.sock.impl.smtp import composer
+from rs4.protocols.sock.impl.smtp import composer
 import shutil
 from rs4 import pathtool
 import time

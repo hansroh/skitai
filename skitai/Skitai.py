@@ -11,13 +11,13 @@ from skitai import lifetime
 from warnings import warn
 from .backbone import https_server
 from skitai import start_was
-from .protocols.threaded.fifo import await_fifo
-from .protocols.sock import asynconnect
-from .protocols.sock import socketpool
-from .protocols.threaded import threadlib, trigger
-from .protocols.sock.impl.dns import adns, dns
-from .protocols.sock.impl.http import request_handler
-from .protocols.sock.impl import http2
+from rs4.protocols.fifo import await_fifo
+from rs4.protocols.sock import asynconnect
+from rs4.protocols.sock import socketpool
+from .backbone.threaded import threadlib, trigger
+from rs4.protocols.sock.impl.dns import adns, dns
+from rs4.protocols.sock.impl.http import request_handler
+from rs4.protocols.sock.impl import http2
 from rs4.psutil import kill
 from .handlers import vhost_handler, forward_handler
 import signal

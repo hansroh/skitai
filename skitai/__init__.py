@@ -7,12 +7,12 @@ assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major
 
 NAME = "Skitai/%s.%s" % version_info [:2]
 
-from .protocols import lifetime as lifetime_aq
+from rs4.protocols import lifetime as lifetime_aq
 from rs4 import deco, importer
 from rs4.psutil import service
 import threading
 import sys, os
-from .protocols.sock.impl.smtp import composer
+from rs4.protocols.sock.impl.smtp import composer
 import tempfile
 from rs4 import argopt
 from .backbone import lifetime

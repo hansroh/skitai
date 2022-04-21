@@ -91,25 +91,33 @@ def coroutine (was):
         return task.fetch ()
     return was.Mask ("pypi/skitai/hansroh/rs4").then (respond)
 
+def fake ():
+    time.sleep (1)
+    return "pypi/skitai/hansroh/rs4"
+
+def mask ():
+    time.sleep (1)
+    return "mask"
+
 @app.route ("/coroutine/2")
 @app.coroutine
 def coroutine2 (was):
-    task = yield was.Mask ("pypi/skitai/hansroh/rs4")
+    task = yield was.Thread (fake)
     return task.fetch ()
 
 @app.route ("/coroutine/3")
 @app.coroutine
 def coroutine3 (was):
-    task = yield was.Mask ("pypi/skitai/hansroh/rs4")
+    task = yield was.Thread (fake)
     task.fetch ()
-    task = yield was.Mask ("pypi/skitai/hansroh/rs4")
+    task = yield was.Thread (fake)
     return task.fetch ()
 
 @app.route ("/coroutine/4")
 @app.coroutine
 def coroutine4 (was):
-    task1 = yield was.Mask ("pypi/skitai/hansroh/rs4")
-    task2 = yield was.Mask ('mask')
+    task1 = yield was.Thread (fake)
+    task2 = yield was.Thread (mask)
     return was.API (a = task1.fetch (), b = task2.fetch ())
 
 @app.route ("/coroutine/5")
@@ -148,7 +156,7 @@ def wait_hello (timeout = 1.0):
 
 @app.route ("/coroutine/9", coroutine = True)
 def coroutine9 (was):
-    task1 = was.Mask ("pypi/skitai/hansroh/rs4")
+    task1 = was.Thread (fake)
     task2 = was.Thread (wait_hello, args = (1.0,))
     tasks = yield was.Tasks (a = task1, b = task2)
     task3 = yield was.Thread (wait_hello, args = (1.0,))

@@ -2,7 +2,7 @@ from concurrent.futures import TimeoutError, CancelledError
 import time
 from ..tasks import Mask
 from .. import proto
-from ...protocols.threaded import trigger
+from ...backbone.threaded import trigger
 import sys
 import ctypes
 from ..tasks import DEFAULT_TIMEOUT
