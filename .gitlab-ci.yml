@@ -61,7 +61,7 @@ variables:
     # - pytest -x level4-1
     # - pytest -x level4-2
     # - pytest -x level5
-    - pytest -s test_django_collabo.py
+    - pytest -s level5/test_django_collabo.py
 
 python 3.6:
   image: python:3.6-buster
