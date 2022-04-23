@@ -499,6 +499,7 @@ See generating logs.
 # Change Log
 
 - 0.46 (Apr, 2022)
+  - fix django reloading bug
   - remove features: async services, api gateway, proxypass, proxy, cluster, cachefs
 
 - 0.45 (Apr, 2022)

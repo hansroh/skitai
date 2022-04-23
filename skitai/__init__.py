@@ -897,7 +897,12 @@ def run (**conf):
 
             except:
                 self.wasc.logger.trace ("app")
-                os._exit (2)
+                if is_devel ():
+                    self.wasc.logger.get ("server") ("reboot worker after 10 seconds...", "error")
+                    [ time.sleep (1) for _ in range (10) ]
+                    os._exit (3)
+                else:
+                    os._exit (2)
 
             lifetime.init (logger = self.wasc.logger.get ("server"))
             if os.name == "nt":
