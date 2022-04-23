@@ -9,11 +9,11 @@ from django.contrib.admin import DateFieldListFilter, SimpleListFilter
 from django.utils.html import format_html
 from rangefilter.filter import DateRangeFilter, DateTimeRangeFilter
 from admin_numeric_filter.admin import NumericFilterModelAdmin, SingleNumericFilter, RangeNumericFilter, SliderNumericFilter
-from rs4.webkit.djadmin import set_title, ModelAdmin, StackedInline, CountFilter, NullFilter
+from atila.collabo.django.admin import set_title, ModelAdmin, StackedInline, CountFilter, NullFilter
 from django.template.defaultfilters import truncatechars
 
 import os
-set_title ('{} Management'.format (os.getenv ('ADMIN_TITLE', 'Django')))
+set_title ('Atila-Vue Management')
 
 # firebase user model -----------------------------------
 from .models import User, UserLog

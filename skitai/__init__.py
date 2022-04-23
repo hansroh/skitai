@@ -292,7 +292,7 @@ def get_gpu_count ():
     return ngpu
 
 def allocate_gpu ():
-    assert os.getenv ("GPU_COUNT"), "call skitai.get_gpu_memory () first"
+    assert os.getenv ("GPU_COUNT"), "call skitai.get_gpu_count () first"
     assert os.getenv ("SKITAI_WORKER_ID"), "skitai worker not started"
     os.environ ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     current_gpu = os.getenv ('SKITAI_WORKER_ID') if int (os.getenv ("GPU_COUNT")) > 1 else "0"
