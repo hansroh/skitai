@@ -15,19 +15,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from django.db.models import Q, F, Count
-from django.http import JsonResponse
-from foo.models import Foo
-
-def bench (request):
-    q = (Foo.objects
-        .filter (Q (from_wallet_id = 8) | Q (to_wallet_id = 8)))
-    record_count = q.aggregate (Count ('id'))['id__count']
-    rows = q.order_by ("-created_at")[:10]
-    data = list(rows.values())
-    return JsonResponse ({'txs': data, 'record_count': record_count})
+from . import views
 
 urlpatterns = [
-    path('bench', bench),
+    path('bench', views.bench),
+    path('bench/async', views.bench_async),
     path('admin/', admin.site.urls),
 ]
