@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.46.0"
+__version__ = "0.46.0.1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -451,7 +451,7 @@ def config_executors (workers = None, zombie_timeout = DEFAULT_BACKGROUND_TASK_T
     if process_start_method:
         dconf ["executors_process_start"] = process_start_method
 
-def set_503_estimated_timeout (timeout = 10.0):
+def set_503_estimated_timeout (timeout = DEFAULT_NETWORK_TIMEOUT):
     # 503 error if estimated request processing time is over timeout
     # this don't include network latency
     from .handlers import wsgi_handler
