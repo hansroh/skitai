@@ -290,6 +290,17 @@ messages.
 
 
 
+## Event Bus
+```python
+@skitai.on ("event")
+def on_event (k):
+    assert k == 100
+```
+
+```python
+skitai.emit ("event", 100)
+```
+
 
 
 ## Inter Workers Shared States
@@ -306,7 +317,6 @@ skitai.g ['DB_STATUS'] = 4
 ```
 
 This object will be shared by all workers.
-
 
 
 
@@ -499,6 +509,8 @@ See generating logs.
 # Change Log
 
 - 0.46 (Apr, 2022)
+  - integrate wsgi_apps.bus and skitai.EVBUS
+  - add skitai.emit () and @skitai.on ()
   - fix django reloading bug
   - remove features: async services, api gateway, proxypass, proxy, cluster, cachefs
 
