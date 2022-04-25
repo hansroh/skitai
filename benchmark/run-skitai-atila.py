@@ -94,4 +94,5 @@ if __name__ == '__main__':
     skitai.mount ('/', app)
     skitai.use_poll ('epoll')
     skitai.enable_async (20)
+    skitai.set_503_estimated_timeout (0)
     skitai.run (workers = 4, threads = 4, port = 5000)

@@ -327,7 +327,7 @@ def test_spec2 (app):
         return was.API (r = d)
 
     def check (was):
-        assert isinstance (was.request.ARGS ["limit"], int)
+        assert isinstance (was.request.args ["limit"], int)
 
     @app.route ("/23")
     @app.spec (url = ["id", "limit"], limit = int)

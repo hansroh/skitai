@@ -148,4 +148,7 @@ def test_was (wasc, app, client):
     assert len (was.make_uid ()) == 22
     assert len (was.make_uid ('234234')) == 22
 
-
+    @skitai.on ("event")
+    def on_event (k):
+        assert k == 100
+    skitai.emit ("event", 100)

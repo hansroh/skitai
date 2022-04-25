@@ -32,7 +32,7 @@ class Handler:
             "wsgi.run_once": False,
             "wsgi.input": None
     }
-    SERVICE_UNAVAILABLE_TIMEOUT = 10 # sec.
+    SERVICE_UNAVAILABLE_TIMEOUT = skitai.DEFAULT_NETWORK_TIMEOUT # sec.
 
     def __init__(self, wasc, apps = None):
         self.wasc = wasc
@@ -159,7 +159,7 @@ class Handler:
             return self.handle_error_before_collecting (request, 401)
 
     def handle_request (self, request):
-        if self.ENV ["skitai.thread"]:
+        if self.SERVICE_UNAVAILABLE_TIMEOUT and self.ENV ["skitai.thread"]:
             self.__cycle += 1
             if self.__cycle == 100:
                 # update MAX_QUEUE

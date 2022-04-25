@@ -9,36 +9,49 @@ import time
 from skitai.wastuff.api import tojson
 import concurrent
 import aiohttp
+from sqlphile import pg2
 
 app = Sanic(__name__)
 
 SLEEP = 0.3
 
 pool = None
+spool = None
 session = None
 executor = concurrent.futures.ThreadPoolExecutor(max_workers = 4)
 
 @app.listener('before_server_start')
 async def startup(app, loop):
-    global pool, session
+    global pool, session, spool
     auth, netloc = os.environ ['MYDB'].split ("@")
     user, passwd = auth.split (":")
     host, database = netloc.split ("/")
     pool = await asyncpg.create_pool (user=user, password=passwd, database=database, host=host, max_size = 10)
     _connector = aiohttp.connector.TCPConnector(limit = 32, limit_per_host = 32)
     session = await aiohttp.ClientSession(connector = _connector).__aenter__ ()
+    spool = pg2.Pool (200, "skitai", "skitai", "12345678")
 
 async def query (q):
     async with pool.acquire() as conn:
         return await conn.fetch (q)
 
-@app.route("/bench")
+@app.route("/bench/async")
 async def bench(request):
     values, record_count = await asyncio.gather (
         query ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
         query ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
     )
     return HTTPResponse (tojson ({"txn": [dict (v) for v in values], 'record_count': record_count [0]['cnt']}))
+
+@app.route("/bench")
+def bench(request):
+    with spool.acquire () as db:
+        txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''').fetch ()
+        record_count = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''').one () ["cnt"]
+        return HTTPResponse (tojson (dict (
+            txs = txs,
+            record_count = record_count
+        )))
 
 @app.route("/bench/mix")
 async def bench_mix(request):
