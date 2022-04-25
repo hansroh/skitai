@@ -155,7 +155,7 @@ class _WASPool:
     def __delattr__ (self, attr):
         delattr (self.__wasc, attr)
         for _id in self.__p:
-            delattr (self.__p [_id], attr, value)
+            delattr (self.__p [_id], attr)
 
     def _start (self, wasc, **kargs):
         self.__wasc = wasc
