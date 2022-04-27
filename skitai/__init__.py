@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.46.0.1"
+__version__ = "0.46.0.2"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -611,11 +611,11 @@ def enable_forward (port = 80, forward_port = 443, forward_domain = None, ip = "
     dconf ['fws_to'] = forward_port
     dconf ['fws_domain'] = forward_domain
 
-def enable_file_logging (path = None, file_loggings = ['request']):
+def enable_file_logging (path = None, kinds = None):
     # loggings : request, server and app
     global dconf
     dconf ['logpath'] = path
-    dconf ['file_loggings'] = ['request', 'server', 'app'] if file_loggings == 'all' else file_loggings
+    dconf ['file_loggings'] = ['request', 'server', 'app'] if kinds is None else kinds
 
 def mount_variable (path = None, enable_logging = False):
     global dconf
