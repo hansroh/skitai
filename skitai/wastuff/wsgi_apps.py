@@ -13,6 +13,7 @@ from importlib import reload
 from urllib.parse import unquote
 import skitai
 import time
+from .django_reloader import DjangoReloader
 
 def set_default (cf):
     cf.MAX_UPLOAD_SIZE = 256 * 1024 * 1024
@@ -22,36 +23,6 @@ def Config (preset = False):
     if preset:
         set_default (cf)
     return cf
-
-
-class DjangoReloader:
-    def __init__ (self, mounted, logger):
-        from django.utils import autoreload
-
-        self.mounted = mounted
-        self.logger = logger
-        self.mtimes = {}
-        self.version = 1
-        if hasattr (autoreload, "code_changed"):
-            self.reloader = autoreload
-        else:
-            self.version = 2
-            self.reloader = autoreload.get_reloader ()
-
-    def reloaded (self):
-        if self.version == 1:
-            return self.reloader.code_changed ()
-        else:
-            for filepath, mtime in self.reloader.snapshot_files ():
-                if not str (filepath).startswith (self.mounted):
-                    continue
-                old_time = self.mtimes.get (filepath)
-                self.mtimes [filepath] = mtime
-                if old_time is None:
-                    continue
-                elif mtime > old_time:
-                    return True
-        return False
 
 
 class Module:
@@ -326,7 +297,7 @@ class ModuleManager:
         self.handler = handler
         self.modules = {}
         self.modnames = {}
-        self.bus = evbus.EventBus (self.wasc.logger.get ('app'))
+        self.bus = skitai.EVBUS
         if hasattr (wasc, "async_executor"):
             self.bus.set_event_loop (wasc.async_executor.loop)
 

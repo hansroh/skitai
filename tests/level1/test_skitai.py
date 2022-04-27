@@ -10,7 +10,7 @@ except ImportError:
 def test_skitai (app):
     skitai.set_worker_critical_point ()
 
-    skitai.register_states ("a", "b")
+    skitai.register_g ("a", "b")
     if skitai.was._started ():
         assert skitai.was._luwatcher._keys == ['a', 'b']
     else:

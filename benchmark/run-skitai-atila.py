@@ -7,14 +7,14 @@ from sqlphile import pg2
 import asyncpg
 import asyncio
 import os
-from rs4.webkit.pools import RequestsPool
+from atila.collabo import requests
 
 TARGET = "example.com" if os.getenv ("GITLAB_CI") else "192.168.0.154:6001"
 
 app = Atila (__name__, __file__)
 
 async def __setup__ (app, mntopt):
-    app.rpool = RequestsPool (200)
+    app.rpool = requests.Pool (200)
     app.spool = pg2.Pool (200, "skitai", "skitai", "12345678")
     if not os.getenv ("GITLAB_CI"): # Permission denied: '/root/.postgresql/postgresql.key
         app.apool = await asyncpg.create_pool (user='skitai', password='12345678', database='skitai', host='127.0.0.1', min_size=1, max_size=20)
@@ -82,9 +82,10 @@ def bench_delay (was, t = 0.3):
 
 @app.route ("/bench/http", methods = ['GET'])
 def bench_http_requests (was):
-    return was.API (
-        t1 = app.rpool.get (f'http://{TARGET}', headers = {'Accept': 'text/html'}).text
-    )
+    with app.rpool.acquire () as s:
+        return was.API (
+            t1 = s.get (f'http://{TARGET}', headers = {'Accept': 'text/html'}).text
+        )
 
 
 if __name__ == '__main__':
@@ -93,4 +94,5 @@ if __name__ == '__main__':
     skitai.mount ('/', app)
     skitai.use_poll ('epoll')
     skitai.enable_async (20)
+    skitai.set_503_estimated_timeout (0)
     skitai.run (workers = 4, threads = 4, port = 5000)

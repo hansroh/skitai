@@ -3,7 +3,7 @@ import confutil
 import pprint
 import re
 
-def test_error_handler (app):
+def test_spec1 (app):
     @app.route ("/")
     @app.spec ("URL", ["limit"])
     def index (was, limit):
@@ -50,7 +50,7 @@ def test_error_handler (app):
         return ""
 
     @app.route ("/10")
-    @app.spec ("DATA", booleans = ['a'])
+    @app.spec ("DATA", bools = ['a'])
     def index10 (was, a):
         return ""
 
@@ -310,57 +310,70 @@ def test_error_handler (app):
         assert resp.status_code == 200
         assert resp.data ['r'] == 777
 
-def test_error_handler_2 (app):
-    @app.route ("/20")
-    @app.spec ("GET", ["limit"], ints = ['limit'])
-    @app.spec ("POST", ["id"])
-    def index20 (was, limit = 10, **DATA):
-        if was.request.method == "POST":
-            assert DATA ['id']
-        return 'OK'
 
-    @app.route ("/21")
-    @app.spec ("URL", ["limit"], ints = ['limit'])
-    @app.spec ("POST", ["id"])
-    def index21 (was, limit, **DATA):
-        if was.request.method == "POST":
-            assert DATA ['id']
-        return 'OK'
+def test_spec2 (app):
+    @app.route ("/20", methods = ["GET", "POST"])
+    def index20 (was, d, k = 1):
+        return was.API (r = d)
 
-    @app.route ("/22")
-    @app.spec ("POST", ["id"])
-    def index21 (was, limit, **DATA):
-        if was.request.method == "POST":
-            assert DATA ['id']
+    @app.route ("/21", methods = ["GET", "POST"])
+    @app.spec (url = ["d"])
+    def index21 (was, d, k = 1):
+        return was.API (r = d)
+
+    @app.route ("/22", methods = ["GET", "POST"])
+    @app.spec ()
+    def index22 (was, d, k = 1):
+        return was.API (r = d)
+
+    def check (was):
+        assert isinstance (was.request.args ["limit"], int)
+
+    @app.route ("/23")
+    @app.spec (url = ["id", "limit"], limit = int)
+    @app.depends (check)
+    def index23 (was, id, limit, **DATA):
         return 'OK'
 
     with app.test_client ("/", confutil.getroot ()) as cli:
-        resp = cli.get ("/20")
-        assert resp.status_code == 400
-
-        resp = cli.get ("/20?limit=4")
+        resp = cli.get ("20?d=777")
         assert resp.status_code == 200
 
-        resp = cli.post ("/20?limit=4", {})
-        assert resp.status_code == 400
-
-        resp = cli.post ("/20?limit=4", {'id': 'ttt'})
+        resp = cli.post ("20?d=777", {"k": 3})
         assert resp.status_code == 200
 
-        resp = cli.post ("/20", {'id': 'ttt'})
+        resp = cli.post ("22?d=777", {"k": 3})
+        assert resp.status_code == 400
+
+        resp = cli.post ("20", {"d": 777})
         assert resp.status_code == 200
 
-        resp = cli.get ("/21")
+        resp = cli.post ("21?k=1", {"d": 777})
         assert resp.status_code == 400
 
-        resp = cli.get ("/21?limit=4")
+        resp = cli.post ("21", {"d": 777, "k": 2})
         assert resp.status_code == 200
 
-        resp = cli.post ("/21?limit=4", {})
+        resp = cli.post ("22", {"d": 777, "k": 2})
+        assert resp.status_code == 200
+
+        resp = cli.post ("22?d=777", {"k": 2})
         assert resp.status_code == 400
 
-        resp = cli.post ("/21", {'id': 'ttt'})
+        resp = cli.post ("22?d=777", {"k": 2})
         assert resp.status_code == 400
 
-        resp = cli.get ("/22")
+        resp = cli.get ("23?id=777&limit=10")
+        assert resp.status_code == 200
+
+        resp = cli.get ("23?id=777&limit=10&x=4")
+        assert resp.status_code == 400
+
+        resp = cli.post ("23?id=777&limit=10&x=4", {})
+        assert resp.status_code == 400
+
+        resp = cli.post ("23?id=777&limit=10", dict (x = 4))
+        assert resp.status_code == 200
+
+        resp = cli.post ("23?id=777", dict (x = 4, limit = 10))
         assert resp.status_code == 400

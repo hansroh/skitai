@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.46.0"
+__version__ = "0.46.0.2"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -21,6 +21,7 @@ from rs4.termcolor import tc
 import getopt as libgetopt
 from rs4 import pathtool
 from .wastuff.preference import Preference
+from rs4  import evbus
 
 argopt.add_option ('-d', desc = "start as daemon, equivalant with `start` command") # lower version compatible
 
@@ -120,6 +121,7 @@ WS_OPCODE_PONG = 0xa
 STATUS = 'CONFIGURING'
 MEDIA_PATH = None
 WASC = None
+EVBUS = evbus.EventBus ()
 
 def status ():
     global STATUS
@@ -153,7 +155,7 @@ class _WASPool:
     def __delattr__ (self, attr):
         delattr (self.__wasc, attr)
         for _id in self.__p:
-            delattr (self.__p [_id], attr, value)
+            delattr (self.__p [_id], attr)
 
     def _start (self, wasc, **kargs):
         self.__wasc = wasc
@@ -259,7 +261,7 @@ def websocket (varname = 60, timeout = 60, onopen = None, onclose = None):
         return wrapper
     return decorator
 
-def _reserve_states (*names):
+def register_g (*names):
     global dconf
     if isinstance (names [0], (list, tuple)):
         names = list (names [0])
@@ -268,14 +270,24 @@ def _reserve_states (*names):
     else:
         for k in names:
             dconf ["models_keys"].add (k)
-addlu = trackers = lukeys = deflu = _reserve_states
 
-def register_g (*names):
-    _reserve_states (names)
     def decorator (cls):
         return cls
     return decorator
-register_cache_keys = register_states = register_g
+
+def emit (event, *args, **kargs):
+    EVBUS.emit (event, *args, **kargs)
+
+def on (self, *events):
+    def decorator(f):
+        for e in events:
+            EVBUS.add_event (f, e)
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            return f (*args, **kwargs)
+        return wrapper
+    return decorator
+
 
 # GPU allocator -----------------------------------------
 def get_gpu_memory ():
@@ -292,7 +304,7 @@ def get_gpu_count ():
     return ngpu
 
 def allocate_gpu ():
-    assert os.getenv ("GPU_COUNT"), "call skitai.get_gpu_memory () first"
+    assert os.getenv ("GPU_COUNT"), "call skitai.get_gpu_count () first"
     assert os.getenv ("SKITAI_WORKER_ID"), "skitai worker not started"
     os.environ ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     current_gpu = os.getenv ('SKITAI_WORKER_ID') if int (os.getenv ("GPU_COUNT")) > 1 else "0"
@@ -451,7 +463,7 @@ def config_executors (workers = None, zombie_timeout = DEFAULT_BACKGROUND_TASK_T
     if process_start_method:
         dconf ["executors_process_start"] = process_start_method
 
-def set_503_estimated_timeout (timeout = 10.0):
+def set_503_estimated_timeout (timeout = DEFAULT_NETWORK_TIMEOUT):
     # 503 error if estimated request processing time is over timeout
     # this don't include network latency
     from .handlers import wsgi_handler
@@ -599,11 +611,11 @@ def enable_forward (port = 80, forward_port = 443, forward_domain = None, ip = "
     dconf ['fws_to'] = forward_port
     dconf ['fws_domain'] = forward_domain
 
-def enable_file_logging (path = None, file_loggings = ['request']):
+def enable_file_logging (path = None, kinds = None):
     # loggings : request, server and app
     global dconf
     dconf ['logpath'] = path
-    dconf ['file_loggings'] = ['request', 'server', 'app'] if file_loggings == 'all' else file_loggings
+    dconf ['file_loggings'] = ['request', 'server', 'app'] if kinds is None else kinds
 
 def mount_variable (path = None, enable_logging = False):
     global dconf
@@ -752,12 +764,13 @@ def run (**conf):
         NAME = 'instance'
 
         def __init__ (self, conf):
-            global WASC
+            global WASC, EVBUS
 
             self.conf = conf
             self.flock = None
             Skitai.Loader.__init__ (self, 'config', conf.get ('logpath'), conf.get ('varpath'), conf.get ("wasc"))
             WASC = self.wasc
+            EVBUS.set_logger (self.wasc.logger.get ('app'))
 
         def close (self):
             if self.wasc.httpserver.worker_ident == "master":
@@ -897,7 +910,12 @@ def run (**conf):
 
             except:
                 self.wasc.logger.trace ("app")
-                os._exit (2)
+                if is_devel ():
+                    self.wasc.logger.get ("server") ("reboot worker after 10 seconds...", "error")
+                    [ time.sleep (1) for _ in range (10) ]
+                    os._exit (3)
+                else:
+                    os._exit (2)
 
             lifetime.init (logger = self.wasc.logger.get ("server"))
             if os.name == "nt":
