@@ -297,7 +297,7 @@ class ModuleManager:
         self.handler = handler
         self.modules = {}
         self.modnames = {}
-        self.bus = evbus.EventBus (self.wasc.logger.get ('app'))
+        self.bus = skitai.EVBUS
         if hasattr (wasc, "async_executor"):
             self.bus.set_event_loop (wasc.async_executor.loop)
 

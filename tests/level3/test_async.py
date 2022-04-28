@@ -15,12 +15,12 @@ def test_success (app):
     async def before_request (was):
         app.hooks_called += 1
 
-    @app.failed_request
-    async def failed_request (was, expt):
+    @app.request_failed
+    async def request_failed (was, expt):
         app.hooks_called += 1
 
-    @app.finish_request
-    async def finish_request (was):
+    @app.request_success
+    async def request_success (was, content):
         app.hooks_called += 1
 
     @app.teardown_request
