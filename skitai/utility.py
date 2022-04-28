@@ -96,10 +96,6 @@ def make_pushables (response, content):
     if content is None: # Possibly no return mistake
         raise AssertionError ("Content or part should not be None")
 
-    if not content: # explicit empty not content
-        trigger.wakeup (lambda p=response: (p.done(),))
-        return
-
     if isinstance (content, Coroutine):
         content = [content.start ()]
     elif not isinstance (content, (list, tuple)):
