@@ -223,7 +223,7 @@ class http_request:
         sock_ip = self.get_remote_addr ()
         origin_ips = self.get_header ("X-Forwarded-For")
         if not origin_ips:
-            return socke_ip
+            return sock_ip
         return origin_ips.split (",", 1)[0].strip ()
 
     def get_scheme (self):

@@ -55,6 +55,7 @@ class http_response:
 
     def __init__ (self, request):
         self.request = request
+        self.logger = self.request.logger
         self.reply_headers = [
             ('Server', skitai.NAME),
             ('Date', http_date.build_http_date (time.time()))
@@ -202,7 +203,7 @@ class http_response:
                 finally:
                     exc_info = None
             else:
-                raise AssertionError ("Response already sent!")
+                self.logger.log ("response had been already sent, abort responsing", "warn")
             return
 
         code, status = self.parse_status  (status)
@@ -276,7 +277,7 @@ class http_response:
             try:
                 content = self.current_app.render_error (error, was)
             except:
-                self.request.logger.trace ()
+                self.logger.trace ()
                 if self.current_app.debug:
                     error ["traceback"] = error ["traceback"] or ''
                     if is_html_response:
@@ -512,14 +513,13 @@ class http_response:
         self.die_with (self.request.collector)
         self.die_with (self.request.producer)
 
-        logger = self.request.logger #IMP: for  disconnect with request
         try:
             if outgoing_producer:
                 self.request.channel.push_with_producer (outgoing_producer)
             if close_it and self.request:
                 self.request.channel.close_when_done ()
         except:
-            logger.trace ()
+            self.logger.trace ()
 
     def maybe_log (self, bytes):
         if self.log_or_not.loggable (self.request.uri):
@@ -532,7 +532,7 @@ class http_response:
         worker = server.worker_ident [0] == "m" and "M" or ("W" + server.worker_ident)
         host = self.request.host
         server.log_request (
-            '%s %s %s %s %d %d %d %s %d %s %s %s %s %s %s %s %s %d %d'
+            '%s %s %s %s %d %d %d %s %.2f %s %s %s %s %s %s %s %s %d %d'
             % (
             self.request.channel.addr [0],
             self.request.is_promise () and "PUSH" or self.request.method,
@@ -568,6 +568,8 @@ class http_response:
         self.request.channel.set_timeout (timeout)
 
     def adaptive_error (self, status, message, code, more_info):
+        if not self.request:
+            return ""
         ac = self.request.get_header ('accept', '')
         if ac.find ("text/html") != -1:
             return self.with_explain (status, "{} (code: {}): {}".format (message, code, more_info))
@@ -592,6 +594,8 @@ class http_response:
         return self.build_error_template (why, errcode)
 
     def API (self, __status__ = None, __data_dict__ = None, **kargs):
+        if not self.request:
+            return ""
         if isinstance (__status__, str):
             self.set_status (__status__)
         elif isinstance (__status__, dict):
