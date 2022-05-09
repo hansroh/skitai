@@ -156,8 +156,12 @@ class http_channel (asynchat.async_chat):
         return self.connected
 
     def handle_timeout (self):
-        IS_TTY and self.log ("killing zombie channel %s" % ":".join (map (str, self.addr)))
-        self.close ()
+        if self.current_request:
+            response = self.current_request.response
+            response.error (503, force_close = True)
+        else:
+            IS_TTY and self.log ("killing zombie channel %s" % ":".join (map (str, self.addr)))
+            self.close ()
 
     def set_timeout (self, timeout):
         self.zombie_timeout = timeout

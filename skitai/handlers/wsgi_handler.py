@@ -311,7 +311,7 @@ class Job:
             finally:
                 self.deallocate ()
         except:
-            # no response, alredy done. just log
+            # no response, already done. just log
             self.logger.trace ("server", self.request.uri)
 
     def deallocate (self):
