@@ -509,6 +509,7 @@ See generating logs.
 # Change Log
 
 - 0.46 (Apr, 2022)
+  - response 503 on request timeout
   - integrate wsgi_apps.bus and skitai.EVBUS
   - add skitai.emit () and @skitai.on ()
   - fix django reloading bug
