@@ -532,7 +532,7 @@ class http_response:
         worker = server.worker_ident [0] == "m" and "M" or ("W" + server.worker_ident)
         host = self.request.host
         server.log_request (
-            '%s %s %s %s %d %d %d %s %.2f %s %s %s %s %s %s %s %s %d %d'
+            '%s %s %s %s %d %d %d %s %d %s %s %s %s %s %s %s %s %d %d'
             % (
             self.request.channel.addr [0],
             self.request.is_promise () and "PUSH" or self.request.method,
