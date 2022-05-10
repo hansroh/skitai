@@ -2,7 +2,7 @@ variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
 .postgres_install: &postgres_install
-  - apt update && apt install -y postgresql postgresql-contrib
+  - apt install -y postgresql postgresql-contrib
   - export MYDB="skitai:12345678@localhost/skitai"
   - service postgresql start
   - su - postgres -c "psql -c \"drop database if exists skitai;\""
@@ -15,6 +15,7 @@ variables:
   - cd ..
 
 .base_install: &base_install
+  - apt update
   - python -V
   - pip install -U setuptools pip
   - pip install -U "h2>=4.0.0"
@@ -23,6 +24,7 @@ variables:
   - pip install -U --pre --no-cache-dir atila-vue delune
   - pip install -U --pre --no-cache-dir "atila>=0.17.4" rs4 sqlphile
   - python -c 'from rs4.protocols.sock.impl.grpc import discover'
+  - adduser --disabled-password --shell /bin/bash --gecos "ubuntu" ubuntu
 
 .before_python_test: &before_python_test
     before_script:
@@ -54,6 +56,7 @@ variables:
   script:
     - pip install -U -e .
     - cd tests
+    - chown -R ubuntu:ubuntu . && CWD=$PWD && su - ubuntu && cd $CWD
     - pytest -x --disable-pytest-warnings level1
     - pytest -x --disable-pytest-warnings level2
     - pytest -x --disable-pytest-warnings level3
