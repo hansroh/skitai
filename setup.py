@@ -24,9 +24,8 @@ if 'publish' in sys.argv:
     sys.exit ()
 
 classifiers = [
-  'License :: OSI Approved :: MIT License',
-  'Development Status :: 4 - Beta',
-  'Topic :: Internet :: WWW/HTTP :: HTTP Servers',
+    'License :: OSI Approved :: MIT License',
+    'Development Status :: 4 - Beta',
     'Topic :: Internet :: WWW/HTTP :: WSGI',
     'Environment :: Console',
     'Environment :: No Input/Output (Daemon)',
@@ -36,6 +35,8 @@ classifiers = [
     'Programming Language :: Python :: 3.6',
     'Programming Language :: Python :: 3.7',
     'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: Implementation :: CPython'
 ]
 
