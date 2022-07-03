@@ -17,6 +17,7 @@ class Foo(models.Model):
     push_token = models.CharField(max_length=256, blank=True, null=True)
     errcode = models.IntegerField(blank=True, null=True)
     errmsg = models.CharField(max_length=1024, blank=True, null=True)
+    test = models.BigIntegerField(null=True)
 
     class Meta:
         managed = True
