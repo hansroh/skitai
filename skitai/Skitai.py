@@ -25,7 +25,6 @@ from . import wsgiappservice
 from .backbone import http_response
 from .handlers.websocket import servers as websocekts
 from .wastuff import selective_logger, triple_logger
-from .tasks import executors
 if os.name == "nt":
     from rs4.psutil import schedule # cron like scheduler
 
@@ -67,7 +66,6 @@ class Loader:
         self.wasc.register ("clusters",  {})
         self.wasc.register ("clusters_for_distcall",  {})
         self.wasc.register ("workers", 1)
-        self.wasc.register ("cachefs", None)
         websocekts.start_websocket (self.wasc)
         self.wasc.register ("websockets", websocekts.websocket_servers)
         self.switch_to_await_fifo ()
@@ -113,6 +111,8 @@ class Loader:
         self.wasc_kargs = kargs
 
     def config_executors (self, workers, zombie_timeout, process_start = None, enable_async = 0):
+        from .tasks import executors
+
         if process_start:
             from multiprocessing import set_start_method
             try: set_start_method (process_start, force = True)
@@ -127,13 +127,6 @@ class Loader:
             async_executor = executors.AsyncExecutor (enable_async)
             async_executor.start ()
             self.wasc.register ("async_executor", async_executor)
-
-    def config_cachefs (self, cache_dir = None, memmax = 0, diskmax = 0):
-        self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir, memmax, diskmax)
-
-        socketfarm = socketpool.SocketPool (self.wasc.logger.get ("server"))
-        self.wasc.clusters ["__socketpool__"] = socketfarm
-        self.wasc.clusters_for_distcall ["__socketpool__"] = task.TaskCreator (socketfarm, self.wasc.logger.get ("server"), self.wasc.cachefs)
 
     def switch_to_await_fifo (self):
         if self._fifo_switched: return
