@@ -11,7 +11,7 @@ from . import server
 from ...handlers import vhost_handler
 from rs4.protocols import lifetime
 from ...wastuff import semaps
-from ...tasks.pth import executors
+from ...tasks import executors
 
 def logger ():
     return triple_logger.Logger ("screen", None)
@@ -99,7 +99,6 @@ wasc = None
 def activate (make_sync = True, enable_async = False):
     from ...wsgiappservice import WAS
     from atila import was as atila_was
-    from ...tasks import proto
     from atila.coroutine import utils
 
     class WAS (atila_was.WAS):

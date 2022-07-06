@@ -2,10 +2,7 @@ import multiprocessing
 import rs4
 from rs4.logger import screen_logger
 import time
-from .task import Task
-from . import task
 import sys
-from rs4.psutil import kill
 from concurrent.futures import TimeoutError
 import threading
 import asyncio
@@ -114,7 +111,7 @@ class ThreadExecutor:
 
         meta = {}
         timeout, filter = None, None
-        if not a:
+        if b:
             try:
                 timeout = b.pop ('timeout')
             except KeyError:
@@ -127,9 +124,9 @@ class ThreadExecutor:
             except KeyError: pass
             b = b.get ('kwargs', b)
 
-        task_class = meta.get ("task_class", Task)
         meta ['__was_id'] = was_id
         future = self.create_task (f, a, b, timeout)
+        task_class = meta ["task_class"]
         wrap = task_class (future, "{}.{}".format (f.__module__, f.__name__), meta = meta, filter = filter)
         timeout and wrap.set_timeout (timeout)
         # self.logger ("{} task started: {}".format (self.NAME, wrap))
@@ -217,10 +214,10 @@ class AsyncExecutor (threading.Thread):
                 self.loop.call_soon_threadsafe (self.loop.stop)
                 break
 
-            tid, was, coro, callback = item
+            tid, was, task_class, coro, callback = item
             meta  = {'__was_id': was.ID, 'coro': coro}
             future = asyncio.run_coroutine_threadsafe (coro, self.loop)
-            task = [ Task (future, coro.__qualname__, meta = meta, filter = None).then (callback, was) ]
+            task = [ task_class (future, coro.__qualname__, meta = meta, filter = None).then (callback, was) ]
 
             with self.lock:
                 self.current_tasks += 1
