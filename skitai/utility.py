@@ -84,10 +84,8 @@ def is_modified (request, header_name, mtime, file_length = None):
 
 # response context ------------------------------------------
 def make_pushables (response, content):
-    from .tasks import tasks
-    from .tasks.proto import Coroutine
+    from .tasks import Coroutine, Revoke
     from .wastuff.api import API
-    from .tasks.pth import executors
 
     if not response.is_responsable ():
         # already called response.done () or diconnected channel
@@ -101,7 +99,7 @@ def make_pushables (response, content):
     elif not isinstance (content, (list, tuple)):
         content = (content,) # make iterable
 
-    if isinstance (content [0], (tasks.Revoke, executors.Task)):
+    if isinstance (content [0], Revoke): # Future thing
         return
 
     will_be_push = []

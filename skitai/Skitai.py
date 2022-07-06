@@ -25,7 +25,7 @@ from . import wsgiappservice
 from .backbone import http_response
 from .handlers.websocket import servers as websocekts
 from .wastuff import selective_logger, triple_logger
-from .tasks.pth import executors
+from .tasks import executors
 if os.name == "nt":
     from rs4.psutil import schedule # cron like scheduler
 
