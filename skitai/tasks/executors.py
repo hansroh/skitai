@@ -124,9 +124,9 @@ class ThreadExecutor:
             except KeyError: pass
             b = b.get ('kwargs', b)
 
+        task_class = meta ["task_class"]
         meta ['__was_id'] = was_id
         future = self.create_task (f, a, b, timeout)
-        task_class = meta ["task_class"]
         wrap = task_class (future, "{}.{}".format (f.__module__, f.__name__), meta = meta, filter = filter)
         timeout and wrap.set_timeout (timeout)
         # self.logger ("{} task started: {}".format (self.NAME, wrap))
