@@ -58,13 +58,6 @@ variables:
     - pytest -x --disable-pytest-warnings level4-2
     - pytest -x --disable-pytest-warnings level5
 
-python 3.8:
-  image: python:3.8-buster
-  <<: *before_python_test
-  <<: *test
-  only:
-    - test
-
 python 3.6:
   image: python:3.6-buster
   <<: *before_python_test
@@ -79,6 +72,13 @@ python 3.7:
   only:
     - master
 
+python 3.8:
+  image: python:3.8-buster
+  <<: *before_python_test
+  <<: *test
+  only:
+    - master
+
 python 3.9:
   image: python:3.9-buster
   variables:
@@ -86,7 +86,7 @@ python 3.9:
   <<: *before_python_notf_test
   <<: *test
   only:
-    - master
+    - test
 
 python 3.10:
   image: python:3.10-buster
