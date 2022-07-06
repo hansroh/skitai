@@ -50,7 +50,6 @@ packages = [
     'skitai.handlers.http2',
     'skitai.handlers.websocket',
     'skitai.tasks',
-    'skitai.tasks.pth',
     'skitai.wsgiappservice',
     'skitai.wastuff',
     'skitai.mounted',
