@@ -8,10 +8,8 @@ from rs4.protocols.sock.impl.grpc.producers import serialize
 from rs4.protocols.sock.impl.ws.collector import encode_message
 from rs4.protocols.sock.impl.ws import *
 from skitai.backbone.lifetime import tick_timer
-from .tasks import Coroutine
-from . import utils
-from .tasks import Task
-from .tasks import Future
+from .. import Coroutine, Task
+from .. import utils
 
 class Coroutine (Coroutine):
     def __init__ (self, was, coro, request_postprocessing, resp_status = '200 OK'):
@@ -163,8 +161,6 @@ class Coroutine (Coroutine):
                 self.on_completed (self._was, self.input_streams.pop (0))
 
     def start (self):
-        from .tasks import Revoke
-
         task = self.collect_data ()
         if task is None:
             return self.close (b''.join (self.contents))

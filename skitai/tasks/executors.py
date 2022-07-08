@@ -7,7 +7,7 @@ from concurrent.futures import TimeoutError
 import threading
 import asyncio
 from collections import deque
-from .coroutine import utils
+from . import utils
 from .coroutine.tasks.pth.task import Task
 
 class ProcessExpired (Exception):

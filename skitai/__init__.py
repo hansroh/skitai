@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.48.1"
+__version__ = "0.48.2"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -22,6 +22,10 @@ import getopt as libgetopt
 from rs4 import pathtool
 from .wastuff.preference import Preference
 from rs4  import evbus
+from .tasks.coroutine import Coroutine
+from .utility import deallocate_was, make_pushables
+from .backbone.threaded import trigger
+from rs4.misc import producers
 
 argopt.add_option ('-d', desc = "start as daemon, equivalant with `start` command") # lower version compatible
 
@@ -298,8 +302,23 @@ def add_async_task (coro, after_request_callback = None, response_callback = Non
     return was.async_executor.put ((was._get (), coro, response_callback or _respond_async, after_request_callback))
 
 def add_coroutine_task (coro, after_request_callback = None):
-    from skitai.tasks.coroutine import Coroutine
     return Coroutine (was._get (), coro, after_request_callback)
+
+def send_content (was, content, waking = False):
+    if isinstance (content, producers.Sendable): # IMP: already sent producer
+        return deallocate_was (was)
+
+    will_be_push = make_pushables (was.response, content)
+    if will_be_push is not None:
+        for part in will_be_push:
+            was.response.push (part)
+
+    if waking:
+        trigger.wakeup (lambda p = was.response, x = was: (p.done (), deallocate_was (x)))
+    else:
+        was.response.done ()
+        deallocate_was (was)
+
 
 # GPU allocator -----------------------------------------
 def get_gpu_memory ():
