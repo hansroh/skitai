@@ -509,12 +509,15 @@ See generating logs.
 
 ## Using Async Router
 - skitai.add_async_task (coro, after_request_callback = None)
-
+- skitai.send_content (was, content, waking = False)
 
 `after_request_callback` spec is:
 ```python
 def after_request_callback (was, content, exc_info = None):
   ...
+  if not has_hooks and not depends:
+    return skitai.send_content (was, content)
+  was.thread_executor.submit (postprocess, was, content, exc_info, depends, hooks)
 ```
 
 
