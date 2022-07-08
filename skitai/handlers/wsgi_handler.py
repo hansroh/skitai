@@ -157,11 +157,11 @@ class Handler:
         return True, apph
 
     def check_authentification (self, app, request, if_available = False):
-        if not app.is_allowed_origin (request, app.access_control_allow_origin):
+        if not app.is_allowed_origin (request):
             return self.handle_error_before_collecting (request, 403)
         if if_available and not request.get_header ("authorization"):
             return
-        if not app.is_authorized (request, app.authenticate):
+        if not app.is_authorized (request):
             return self.handle_error_before_collecting (request, 401)
 
     def handle_request (self, request):

@@ -323,6 +323,8 @@ This object will be shared by all workers.
 
 
 
+
+
 ## Logging
 ### Filter Request Logging
 ```python
@@ -503,6 +505,33 @@ See generating logs.
 
 
 
+# APIs For WSGI Container Developers
+
+## Using Async Router
+- skitai.add_async_task (coro, after_request_callback = None)
+
+
+`after_request_callback` spec is:
+```python
+def after_request_callback (was, content, exc_info = None):
+  ...
+```
+
+
+Refer [usage](https://gitlab.com/skitai/atila/-/blob/master/atila/executors/wsgi_executor.py) for APIs.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -510,7 +539,7 @@ See generating logs.
 
 - 0.48 (Jul, 2022)
   - add `skitai.add_async_task (coro, after_request_callback = None, response_callback = None)`
-  - add `add_coroutine_task (coro, after_request_callback)`
+  - add `skitai.add_coroutine_task (coro, after_request_callback = None)`
 
 - 0.47 (Jul, 2022)
   - refactor `skitai.tasks`, it keeps core task objects and executor and
