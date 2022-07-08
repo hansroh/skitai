@@ -508,6 +508,10 @@ See generating logs.
 
 # Change Log
 
+- 0.48 (Jul, 2022)
+  - add `skitai.add_async_task (coro, after_request_callback = None, response_callback = None)`
+  - add `add_coroutine_task (coro, after_request_callback)`
+
 - 0.47 (Jul, 2022)
   - refactor `skitai.tasks`, it keeps core task objects and executor and
     remains has been moved to `atila.coroutine.tasks`
