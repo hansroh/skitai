@@ -44,8 +44,9 @@ class Handler:
         if hasattr (self.wasc, "threads") and self.wasc.threads:
             self.ENV ["skitai.thread"] = len (self.wasc.threads)
             self.MAX_QUEUE = self.ENV ["skitai.thread"] * 8
-        self.ENV ["wsgi.multithread"] = hasattr (self.wasc, "threads") and self.wasc.threads
+        self.ENV ["wsgi.multithread"] = True if hasattr (self.wasc, "threads") and self.wasc.threads else False
         self.ENV ["wsgi.url_scheme"] = hasattr (self.wasc.httpserver, "ctx") and "https" or "http"
+        self.ENV ["wsgi.version"] = "1.0.1"
         self.ENV ["wsgi.multiprocess"] = self.wasc.workers > 1 and os.name != "nt"
         self.ENV ['SERVER_PORT'] = str (self.wasc.httpserver.port)
         self.ENV ['SERVER_NAME'] = self.wasc.httpserver.server_name
@@ -90,6 +91,11 @@ class Handler:
                 key = 'HTTP_%s' % ("_".join (key.split ( "-"))).upper()
                 if value and key not in env:
                     env [key] = value
+
+        try: env ["CONTENT_TYPE"] = env ["HTTP_CONTENT_TYPE"]
+        except KeyError: pass
+        try: env ["CONTENT_LENGTH"] = env ["HTTP_CONTENT_LENGTH"]
+        except KeyError: pass
 
         for k, v in list(os.environ.items ()):
             if k not in env:

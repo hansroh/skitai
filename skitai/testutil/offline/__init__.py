@@ -99,7 +99,7 @@ wasc = None
 def activate (make_sync = True, enable_async = False):
     from ...wsgiappservice import WAS
     from atila import was as atila_was
-    from atila.coroutine import utils
+    from skitai.tasks.coroutine import utils
 
     class WAS (atila_was.WAS):
         numthreads = 1

@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.47.0"
+__version__ = "0.48.0"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -288,6 +288,18 @@ def on (self, *events):
         return wrapper
     return decorator
 
+def add_async_task (coro, after_request_callback = None, response_callback = None):
+    def _respond_async (was, task):
+        try:
+            content = task.fetch ()
+        finally:
+            was.async_executor.done ()
+        return content
+    return was.async_executor.put ((was._get (), coro, response_callback or _respond_async, after_request_callback))
+
+def add_coroutine_task (coro, after_request_callback):
+    from skitai.tasks.coroutine import Coroutine
+    return Coroutine (was._get (), coro, after_request_callback)
 
 # GPU allocator -----------------------------------------
 def get_gpu_memory ():
@@ -840,12 +852,11 @@ def run (**conf):
 
             self.config_wasc (**dconf ['wasc_options'])
 
-            if 'atila' in sys.modules:
-                if conf.get ('fws_to'):
-                    self.config_forward_server (
-                        conf.get ('fws_address', '0.0.0.0'),
-                        conf.get ('fws_port', 80), conf.get ('fws_to', 443)
-                    )
+            if conf.get ('fws_to'):
+                self.config_forward_server (
+                    conf.get ('fws_address', '0.0.0.0'),
+                    conf.get ('fws_port', 80), conf.get ('fws_to', 443)
+                )
 
             if dconf ['background_jobs']:
                 import psutil
@@ -878,14 +889,12 @@ def run (**conf):
                 # master does not serve
                 return
 
-            if 'atila' in sys.modules:
-                self.config_executors (
-                    conf.get ('executors_workers', threads),
-                    conf.get ("executors_zombie_timeout", DEFAULT_BACKGROUND_TASK_TIMEOUT),
-                    conf.get ("executors_process_start"),
-                    conf.get ("enable_async")
-                )
-
+            self.config_executors (
+                conf.get ('executors_workers', threads),
+                conf.get ("executors_zombie_timeout", DEFAULT_BACKGROUND_TASK_TIMEOUT),
+                conf.get ("executors_process_start"),
+                conf.get ("enable_async")
+            )
             self.config_threads (threads)
 
             # mount resources ----------------------------
