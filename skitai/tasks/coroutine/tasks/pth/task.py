@@ -1,7 +1,8 @@
 import time
 from ..tasks import Mask
-from .. import Task, Revoke
-from .. import DEFAULT_TIMEOUT
+from .... import Revoke
+from ... import Task
+from .... import DEFAULT_TIMEOUT
 
 class Task (Task, Revoke):
     def __init__ (self, future, name, meta, filter, timeout = None):
