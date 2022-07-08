@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.48.0"
+__version__ = "0.48.1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -297,7 +297,7 @@ def add_async_task (coro, after_request_callback = None, response_callback = Non
         return content
     return was.async_executor.put ((was._get (), coro, response_callback or _respond_async, after_request_callback))
 
-def add_coroutine_task (coro, after_request_callback):
+def add_coroutine_task (coro, after_request_callback = None):
     from skitai.tasks.coroutine import Coroutine
     return Coroutine (was._get (), coro, after_request_callback)
 

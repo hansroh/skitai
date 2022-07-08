@@ -63,7 +63,7 @@ class ResponsibleTask:
         except AttributeError:
             pass
         else:
-            f (self._was, content, expt)
+            f and f (self._was, content, expt)
 
 
 # add late response methods --------------------------
