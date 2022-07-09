@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.48.3.1"
+__version__ = "0.48.4"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -311,7 +311,7 @@ def add_process_task (target, *args, **kargs):
     return _was.executors.create_process (_was.ID, target, *args, **kargs)
 
 def add_subprocess_task (cmd):
-    from .tasks.coroutine.tasks.pth import sp_task
+    from .tasks.pth import sp_task
     meta = {'__was_id': was._get ().ID}
     return sp_task.Task (cmd, meta)
 
