@@ -8,7 +8,7 @@ import threading
 import asyncio
 from collections import deque
 from . import utils
-from .coroutine.tasks.pth.task import Task
+from .pth.task import Task
 
 class ProcessExpired (Exception):
     pass
