@@ -4,7 +4,7 @@ from rs4.attrdict import AttrDict
 import time
 from skitai import NORMAL
 import skitai
-from ... import Task, Revoke, response, DEFAULT_TIMEOUT
+from . import Task, Revoke, response, DEFAULT_TIMEOUT
 
 
 class TaskBase (Task):
