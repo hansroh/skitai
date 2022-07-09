@@ -320,7 +320,12 @@ This object will be shared by all workers.
 
 
 
-## Using Thread/Process Executors
+## Using Thread/Process Pool Executors
+`skitai.add_thread_task ()` returns `Future` like object. It also has
+`fetch ()`,  `one ()` and `wait ()` methods. If exception has been occured,
+it raised immedately.
+
+
 ```python
 import skitai
 import time
@@ -330,15 +335,16 @@ def hello (name):
     return f'hello, {name}'
 
 @app.route ("/")
-def index (was):
+def index ():
     task1 = skitai.add_thread_task (hello, 'hans')
     task2 = skitai.add_process_task (hello, 'roh')
     task3 = skitai.add_subprocess_task ('ls -al')
-    return was.API (
-        a = task1.fetch (),
-        b = task2.fetch (),
-        c = task3.fetch (),
-    )
+
+    return "\n.join ([
+        task1.fetch (),
+        task2.fetch (),
+        task3.fetch ()
+    ])
 ```
 
 
