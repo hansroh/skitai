@@ -117,6 +117,7 @@ class Job (wsgi_handler.Job):
         env ["skitai.was"] = was
         was.request = self.request
         was.env = env
+        was.app = self.apph.get_callable ()
         was.websocket = env ["websocket"]
 
         try:

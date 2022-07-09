@@ -80,6 +80,7 @@ class Handler (wsgi_handler.Handler):
         was = the_was._get ()
         was.request = request
         was.env = env
+        was.app = app
 
         env ["skitai.was"] = was
         env ["websocket.event"] = skitai.WS_EVT_INIT

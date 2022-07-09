@@ -277,6 +277,7 @@ class Job:
             return was.log ('connection lost', 'warn', 'server')
 
         was.apps = self.apps
+        was.app = self.apph.get_callable ()
         was.response = self.request.response
         was.env = self.args [0]
         was.env ["skitai.was"] = was
