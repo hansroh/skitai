@@ -302,6 +302,19 @@ def add_async_task (coro, after_request_callback = None, response_callback = Non
 def add_coroutine_task (coro, after_request_callback = None):
     return Coroutine (was._get (), coro, after_request_callback)
 
+def add_thread_task (target, *args, **kargs):
+    _was = was._get ()
+    return _was.executors.create_thread (_was.ID, target, *args, **kargs)
+
+def add_process_task (target, *args, **kargs):
+    _was = was._get ()
+    return _was.executors.create_process (_was.ID, target, *args, **kargs)
+
+def add_subprocess_task (cmd):
+    from .tasks.coroutine.tasks.pth import sp_task
+    meta = {'__was_id': was._get ().ID}
+    return sp_task.Task (cmd, meta)
+
 
 # GPU allocator -----------------------------------------
 def get_gpu_memory ():
