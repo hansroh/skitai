@@ -320,7 +320,32 @@ This object will be shared by all workers.
 
 
 
+## Using Thread/Process Pool Executors
+`skitai.add_thread_task ()` returns `Future` like object. It also has
+`fetch ()`,  `one ()` and `wait ()` methods. If exception has been occured,
+it raised immedately.
 
+
+```python
+import skitai
+import time
+
+def hello (name):
+    time.sleep (1)
+    return f'hello, {name}'
+
+@app.route ("/")
+def index ():
+    task1 = skitai.add_thread_task (hello, 'hans')
+    task2 = skitai.add_process_task (hello, 'roh')
+    task3 = skitai.add_subprocess_task ('ls -al')
+
+    return "\n.join ([
+        task1.fetch (),
+        task2.fetch (),
+        task3.fetch ()
+    ])
+```
 
 
 
@@ -542,6 +567,9 @@ Refer [usage](https://gitlab.com/skitai/atila/-/blob/master/atila/executors/wsgi
 - 0.48 (Jul, 2022)
   - add `skitai.add_async_task (coro, after_request_callback = None, response_callback = None)`
   - add `was.send_content_async (content, threading = False)`
+  - add `skitai.add_thread_task (func, *args, **kargs)`
+  - add `skitai.add_process_task (func, *args, **kargs)`
+  - add `skitai.add_subprocess_task (shell_command)`
 
 - 0.47 (Jul, 2022)
   - refactor `skitai.tasks`, it keeps core task objects and executor and
