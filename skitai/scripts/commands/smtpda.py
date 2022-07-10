@@ -3,11 +3,10 @@
 
 import sys, os, getopt
 from skitai import lifetime
-from rs4 import pathtool, logger, confparse
+from rs4 import pathtool
 from ...backbone.threaded import select_trigger
-from rs4.psutil import daemon as demonizer, service, daemon_class
+from rs4.psutil import service, daemon_class
 from rs4.protocols.sock.impl.smtp import async_smtp, composer
-import signal
 import time
 import glob
 
