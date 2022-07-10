@@ -1,9 +1,6 @@
 import tempfile
 import os
-try:
-	from StringIO import StringIO as BytesIO
-except ImportError:
-	from io import BytesIO
+from io import BytesIO
 
 class FormCollector:
 	def __init__ (self, handler, request, *args):

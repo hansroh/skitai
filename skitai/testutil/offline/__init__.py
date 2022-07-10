@@ -2,7 +2,6 @@
 # Skitai Unit Test Libaray
 #---------------------------------------------------------------
 
-import threading
 from ...backbone.threaded import threadlib
 import skitai
 from ...wastuff import triple_logger
