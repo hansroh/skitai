@@ -50,6 +50,7 @@ variables:
     - pip install -U -e .
     - cd tests
     - chown -R ubuntu:ubuntu . && CWD=$PWD && su - ubuntu && cd $CWD
+    - pytest -x --disable-pytest-warnings level0
     - pytest -x --disable-pytest-warnings level1
     - pytest -x --disable-pytest-warnings level2
     - pytest -x --disable-pytest-warnings level3
