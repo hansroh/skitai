@@ -1,3 +1,4 @@
+pytest -x --ff level0 && \
 pytest -x --ff level1 && \
 pytest -x --ff level2 && \
 pytest -x --ff level3 && \

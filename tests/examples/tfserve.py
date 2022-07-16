@@ -6,7 +6,7 @@ import sys
 import tfserver
 import dnn
 import numpy as np
-from rs4 import tc
+from rs4.termcolor import tc
 
 def add_model (model_name, model_path):
     model_path = os.path.normpath (model_path)
