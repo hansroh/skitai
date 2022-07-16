@@ -38,13 +38,15 @@ argopt.add_option (None, '--port=TCP_PORT_NUMBER', desc = "http/https port numbe
 argopt.add_option (None, '--quic=UDP_PORT_NUMBER', desc = "http3/quic port number")
 argopt.add_option (None, '--workers=WORKERS', desc = "number of workers")
 argopt.add_option (None, '--threads=THREADS', desc = "number of threads per worker")
+argopt.add_option (None, '--tasks=TASKS', desc = "number of concurrent async tasks")
+
 argopt.add_option (None, '--poll=POLLER', desc = "name of poller [select, poll, epoll and kqueue]")
 argopt.add_option (None, '--disable-static', desc = "disable static file service")
 argopt.add_option (None, '--collect-static', desc = "collect static files")
 
 argopt.add_option (None, '--user=USER', desc = "if run as root, fallback workers owner to user")
 argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback workers owner to group")
-argopt.add_option (None, '--smtpda', desc = "start SMTP Delivery Agent")
+argopt.add_option (None, '--smtpda', desc = "start SMTP delivery agent")
 argopt.add_option (None, '--autoconf', desc = "generate basic configuration")
 
 # IMP: DO NOT USE argopt.options ()
@@ -406,7 +408,7 @@ def set_service (service_class):
     global Win32Service
     Win32Service = service_class
 
-def enable_async (pool = 10):
+def enable_async (pool = 8):
     global dconf
     assert isinstance (pool, int)
     dconf ['enable_async'] = pool
@@ -854,6 +856,8 @@ def run (**conf):
             self.wasc.register ('varpath', conf ['varpath'])
             if '--poll' in options:
                 use_poll (options.get ('--poll'))
+            if '--tasks' in options:
+                enable_async (int (options ["--tasks"]))
             workers = int (options.get ('--workers') or conf.get ('workers', 1))
             threads = int (options.get ('--threads') or conf.get ('threads', 4))
             # assert threads, "threads should be more than zero"
