@@ -120,6 +120,14 @@ async def bench4 (was, message):
 	N += 1; print (f"============== got messages: {N}")
 	return f'echo: {message}'
 
+@app.route ("/bench/session_nopool")
+@app.websocket (atila.WS_SESSION | atila.WS_OP_NOPOOL, 60)
+def bench6 (was, message):
+	global N
+	print (message)
+	N += 1; print (f"============== got messages: {N}")
+	return f'echo: {message}'
+
 @app.route ("/bench/N")
 def bench_result (was):
 	global N
