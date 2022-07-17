@@ -854,10 +854,13 @@ def run (**conf):
             conf = self.conf
 
             self.wasc.register ('varpath', conf ['varpath'])
-            if '--poll' in options:
-                use_poll (options.get ('--poll'))
-            if '--tasks' in options:
-                enable_async (int (options ["--tasks"]))
+
+            _poll = options.get ('--poll') or conf.get ('poll')
+            _poll and use_poll (_poll)
+
+            _tasks = int (options.get ('--tasks') or conf.get ('tasks', 0))
+            _tasks and enable_async (_tasks)
+
             workers = int (options.get ('--workers') or conf.get ('workers', 1))
             threads = int (options.get ('--threads') or conf.get ('threads', 4))
             # assert threads, "threads should be more than zero"
@@ -869,7 +872,7 @@ def run (**conf):
             if conf.get ("certfile"):
                 self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
 
-            self.config_wasc (**dconf ['wasc_options'])
+            self.config_wasc (**conf ['wasc_options'])
 
             if conf.get ('fws_to'):
                 self.config_forward_server (
@@ -877,10 +880,10 @@ def run (**conf):
                     conf.get ('fws_port', 80), conf.get ('fws_to', 443)
                 )
 
-            if dconf ['background_jobs']:
+            if conf ['background_jobs']:
                 import psutil
                 procnames = [ proc.name () for proc in psutil.process_iter() ]
-                for procname, cmd in dconf ['background_jobs']:
+                for procname, cmd in conf ['background_jobs']:
                     if procname not in procnames:
                         self.wasc.logger.get ("server").log ('background job {}: {}'.format (tc.yellow (procname), tc.white (cmd)))
                         os.system (cmd + '&')
@@ -925,7 +928,7 @@ def run (**conf):
                     conf ['media_path']
                 )
 
-                for p, s in dconf ['subscriptions']:
+                for p, s in conf ['subscriptions']:
                     try:
                         provider = self.get_app_by_name (p)
                         provider.bus

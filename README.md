@@ -120,6 +120,17 @@ All attributes of pref will overwrite your app attrubutes.
 
 
 
+## Running Parameters
+
+- address
+- port
+- quic
+- threads
+- workers
+- tasks
+- backlog
+
+
 
 
 ## Launching Service
@@ -186,12 +197,12 @@ python3 serve.py --help
 skitai.run parameters,
 
 ```python
-skitai.run (ip = '0.0.0.0', port = 5000, thread = 1, workers = 4)
+skitai.run (ip = '0.0.0.0', port = 5000, thread = 1, workers = 4, tasks = 8)
 ```
 
 But command line options have more high priority.
 ```bash
-python3 serve.py --threads=4 --workers=2 --port 38000
+python3 serve.py --workers=2 --threads=4 --tasks=16 --port=3800
 ```
 
 To adding custom options,
@@ -492,7 +503,6 @@ To test already running server on port 6000, remove script path,
 with skitai.test_client (port = 6000) as cli:
     resp = cli.get ("/")
 ```
-
 
 
 
