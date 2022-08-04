@@ -21,8 +21,8 @@ variables:
   - pip install -U "h2>=4.0.0"
   - pip install -Ur tests/requirements.txt
   - pip install -U "django>=3.0,<4.0"
-  - pip install -U --pre --no-cache-dir atila-vue delune
-  - pip install -U --pre --no-cache-dir "atila>=0.19" rs4 sqlphile
+  - pip install -U --pre --no-cache-dir delune
+  - pip install -U --pre --no-cache-dir "atila>=0.20.0.1" rs4 sqlphile
   - python -c 'from rs4.protocols.sock.impl.grpc import discover'
   - adduser --disabled-password --shell /bin/bash --gecos "ubuntu" ubuntu
 
