@@ -50,3 +50,4 @@ codecov
 h2>=4.0.0
 requests
 dill
+atila-vue
