@@ -7,5 +7,5 @@ def __setup__ (app, mntopt):
 
 def __mount__ (app, mntopt):
     @app.route ("")
-    def index (was):
+    def index (context):
         return "sub2"

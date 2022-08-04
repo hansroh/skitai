@@ -13,5 +13,5 @@ def __app__ ():
 
 def __mount__ (app, mntopt):
     @app.route ('/urlspecs')
-    def urlspecs (was):
-        return was.API (urlspecs = was.app.get_urlspecs ())
+    def urlspecs (context):
+        return context.API (urlspecs = context.app.get_urlspecs ())

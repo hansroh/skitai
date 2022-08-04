@@ -6,103 +6,103 @@ import re
 def test_spec1 (app):
     @app.route ("/")
     @app.spec ("URL", ["limit"])
-    def index (was, limit):
+    def index (context, limit):
         return ""
 
     @app.route ("/2")
     @app.spec ("FORM", ["limit"])
-    def index2 (was, limit):
+    def index2 (context, limit):
         return ""
 
     @app.route ("/3")
     @app.spec ("JSON", ["limit"])
-    def index3 (was, limit):
+    def index3 (context, limit):
         return ""
 
     @app.route ("/4")
     @app.spec ("ARGS", ["limit"])
-    def index4 (was, limit):
+    def index4 (context, limit):
         return ""
 
     @app.route ("/5")
     @app.spec ("ARGS", emails = ["email"], uuids = ["uuid"])
-    def index5 (was, email = None, uuid = None):
+    def index5 (context, email = None, uuid = None):
         return ""
 
     @app.route ("/6")
     @app.spec ("ARGS", a__gte = 5, b__between = (-4, -1), c__in = (1, 2))
-    def index6 (was, **url):
+    def index6 (context, **url):
         return ""
 
     @app.route ("/7")
     @app.spec ("ARGS", a = re.compile ("^hans"), b__len__between = (4, 8))
-    def index7 (was, a = None, b = None):
+    def index7 (context, a = None, b = None):
         return ""
 
     @app.route ("/8")
     @app.spec ("DATA", ["limit"])
-    def index8 (was, limit):
+    def index8 (context, limit):
         return ""
 
     @app.route ("/9")
     @app.spec ("DATA", lists = ['a'])
-    def index9 (was, a):
+    def index9 (context, a):
         return ""
 
     @app.route ("/10")
     @app.spec ("DATA", bools = ['a'])
-    def index10 (was, a):
+    def index10 (context, a):
         return ""
 
     @app.route ("/11")
     @app.spec ("DATA", dicts = ['a'])
-    def index11 (was, a):
+    def index11 (context, a):
         return ""
 
     @app.route ("/12")
     @app.spec ("DATA", strings = ['a'])
-    def index12 (was, a):
+    def index12 (context, a):
         return ""
 
     @app.route ("/13")
     @app.spec (a = str, b = [int, float])
-    def index13 (was, a, b = None):
+    def index13 (context, a, b = None):
         return ""
 
     @app.route ("/14")
     @app.spec (a__startswith = 'a_', b__notstartwith = 'a_', c__endswith = '_z', d__notendwith = '_z', e__contains = '_x' , f__notcontain = '_x')
-    def index14 (was, a, b, c, d, e, f):
+    def index14 (context, a, b, c, d, e, f):
         return ""
 
     @app.route ("/15")
     @app.spec (d___k__1__gte = 10)
-    def index15 (was, d):
+    def index15 (context, d):
         return ""
 
     @app.route ("/16")
     @app.spec (d___k__1__len__gte = 3)
-    def index16 (was, d):
+    def index16 (context, d):
         return ""
 
     @app.route ("/17")
     @app.spec (d___k__len__gte = 3)
-    def index17 (was, d):
+    def index17 (context, d):
         return ""
 
-    def verify (was, d):
+    def verify (context, d):
         if d == True:
             return 777
-        raise was.Error ("444 Bad Request")
+        raise context.Error ("444 Bad Request")
 
     @app.route ("/18")
     @app.spec (d = verify)
-    def index18 (was, d):
-        return was.API (r = d)
+    def index18 (context, d):
+        return context.API (r = d)
 
     @app.route ("/19")
     @app.spec (d = int)
-    def index19 (was, d):
-        return was.API (r = d)
+    def index19 (context, d):
+        return context.API (r = d)
 
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
@@ -313,26 +313,26 @@ def test_spec1 (app):
 
 def test_spec2 (app):
     @app.route ("/20", methods = ["GET", "POST"])
-    def index20 (was, d, k = 1):
-        return was.API (r = d)
+    def index20 (context, d, k = 1):
+        return context.API (r = d)
 
     @app.route ("/21", methods = ["GET", "POST"])
     @app.spec (url = ["d"])
-    def index21 (was, d, k = 1):
-        return was.API (r = d)
+    def index21 (context, d, k = 1):
+        return context.API (r = d)
 
     @app.route ("/22", methods = ["GET", "POST"])
     @app.spec ()
-    def index22 (was, d, k = 1):
-        return was.API (r = d)
+    def index22 (context, d, k = 1):
+        return context.API (r = d)
 
-    def check (was):
-        assert isinstance (was.request.args ["limit"], int)
+    def check (context):
+        assert isinstance (context.request.args ["limit"], int)
 
     @app.route ("/23")
     @app.spec (url = ["id", "limit"], limit = int)
     @app.depends (check)
-    def index23 (was, id, limit, **DATA):
+    def index23 (context, id, limit, **DATA):
         return 'OK'
 
     with app.test_client ("/", confutil.getroot ()) as cli:

@@ -11,10 +11,10 @@ app.securekey = 'asdadada'
 
 @app.route ("/coroutine")
 @app.websocket (atila.WS_CHANNEL, 60)
-def echo_coroutine (was):
+def echo_coroutine (context):
 	n = 0
 	while 1:
-		msg = yield was.Input ()
+		msg = yield context.Input ()
 		if not msg:
 			break
 		yield 'echo: ' + msg
@@ -25,7 +25,7 @@ def echo_coroutine (was):
 
 @app.route ("/chatty")
 @app.websocket (atila.WS_CHATTY, 60)
-def echo4 (was):
+def echo4 (context):
 	n = 0
 	while 1:
 		n += 1
@@ -33,7 +33,7 @@ def echo4 (was):
 		if n == 1:
 			yield '1st: ' + msg
 		elif n == 2:
-			was.websocket.send ('pre2nd: ' + msg)
+			context.websocket.send ('pre2nd: ' + msg)
 			yield (
 				'2nd: ' + msg,
 				'post2nd: ' + msg
@@ -41,24 +41,24 @@ def echo4 (was):
 		else:
 			yield 'many: ' + msg
 
-def onopenp (was):
-  was.session.set ("WS_ID", was.websocket.client_id)
-  was.websocket.send ("hi")
+def onopenp (context):
+  context.session.set ("WS_ID", context.websocket.client_id)
+  context.websocket.send ("hi")
 
-def onclosep (was):
-  was.session.remove ("WS_ID")
+def onclosep (context):
+  context.session.remove ("WS_ID")
 
 @app.route ("/reporty")
 @app.websocket (atila.WS_SESSION, 1200, onopenp, onclosep)
-def reporty (was, message, a, b = '2', **payload):
-	was.websocket.send ("first message")
+def reporty (context, message, a, b = '2', **payload):
+	context.websocket.send ("first message")
 	return f'{a}: {message}'
 
 
 @app.route ("/reporty/async")
 @app.websocket (atila.WS_SESSION, 1200, onopenp, onclosep)
-async def reporty_async (was, message, a, b = '2', **payload):
-	was.websocket.send ("first message")
+async def reporty_async (context, message, a, b = '2', **payload):
+	context.websocket.send ("first message")
 	return f'{a}: {message}'
 
 
@@ -70,10 +70,10 @@ N = 0
 
 @app.route ("/bench/channel")
 @app.websocket (atila.WS_CHANNEL, 60)
-def bench1 (was):
+def bench1 (context):
 	global N
 	while 1:
-		msg = yield was.read_input_stream ()
+		msg = yield context.read_input_stream ()
 		if not msg:
 			break
 		print (msg)
@@ -82,21 +82,21 @@ def bench1 (was):
 
 @app.route ("/bench/channelt")
 @app.websocket (atila.WS_CHANNEL, 60)
-def bench1_1 (was):
-	def on_input (was, m):
+def bench1_1 (context):
+	def on_input (context, m):
 		global N
 		print (m)
 		N += 1; print (f"============== got messages: {N}")
 		yield f'echo: {m}'
 
-	outstrm = was.create_output_stream (on_input)
+	outstrm = context.create_output_stream (on_input)
 	while 1:
-		msg = yield was.read_input_stream ()
+		msg = yield context.read_input_stream ()
 		yield outstrm.emit (msg)
 
 @app.route ("/bench/chatty")
 @app.websocket (atila.WS_CHATTY, 60)
-def bench2 (was):
+def bench2 (context):
 	global N
 	while 1:
 		msg = yield
@@ -106,7 +106,7 @@ def bench2 (was):
 
 @app.route ("/bench/session")
 @app.websocket (atila.WS_SESSION, 60)
-def bench3 (was, message):
+def bench3 (context, message):
 	global N
 	print (message)
 	N += 1; print (f"============== got messages: {N}")
@@ -114,14 +114,22 @@ def bench3 (was, message):
 
 @app.route ("/bench/async")
 @app.websocket (atila.WS_SESSION, 60)
-async def bench4 (was, message):
+async def bench4 (context, message):
+	global N
+	print (message)
+	N += 1; print (f"============== got messages: {N}")
+	return f'echo: {message}'
+
+@app.route ("/bench/session_nopool")
+@app.websocket (atila.WS_SESSION | atila.WS_OP_NOPOOL, 60)
+def bench6 (context, message):
 	global N
 	print (message)
 	N += 1; print (f"============== got messages: {N}")
 	return f'echo: {message}'
 
 @app.route ("/bench/N")
-def bench_result (was):
+def bench_result (context):
 	global N
 	return str (N)
 

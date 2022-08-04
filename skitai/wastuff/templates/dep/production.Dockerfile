@@ -13,7 +13,7 @@ RUN apt update; \
     # apt autoremove -y;
 
 COPY ./dep/production.sh ./dep/production.sh
-COPY ./pwa ./pwa
+COPY ./app ./app
 COPY ./skitaid.py ./skitaid.py
 RUN chown -R ubuntu:ubuntu /home/ubuntu
 

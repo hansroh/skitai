@@ -21,13 +21,13 @@ class Coroutine (Coroutine):
         self._was = None
         self._waiting_input = False
         self._rtype = None
-        self._clone_and_deceive_was (was.ID, request_postprocessing)
+        self._clone_and_deceive_context (was.ID, request_postprocessing)
         self._determine_response_type ()
 
-    def _clone_and_deceive_was (self, was_id, request_postprocessing):
+    def _clone_and_deceive_context (self, was_id, request_postprocessing):
         from skitai.wsgiappservice.wastype import _WASType
 
-        self._was = utils.get_cloned_was (was_id)
+        self._was = utils.get_cloned_context (was_id)
         self._was.request.postprocessing = request_postprocessing
 
         for n, v in self.coro.gi_frame.f_locals.items ():

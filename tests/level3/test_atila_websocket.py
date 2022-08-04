@@ -4,24 +4,24 @@ import pprint
 import atila
 
 def test_websocket (app):
-    def onopen (was):
+    def onopen (context):
         return  'Welcome'
 
     @app.route ("/echo")
     @app.websocket (atila.WS_SESSION, 60, onopen = onopen)
-    def echo (was, message):
-        was.websocket.send ('1st: ' + message)
+    def echo (context, message):
+        context.websocket.send ('1st: ' + message)
         return "2nd: " + message
 
     @app.route ("/echo2")
     @app.websocket (skitai.WS_CHANNEL | skitai.WS_NOTHREAD, 60, onopen = onopen)
-    def echo2 (was, message):
-        was.websocket.send ('1st: ' + message)
+    def echo2 (context, message):
+        context.websocket.send ('1st: ' + message)
         return "2nd: " + message
 
     @app.route ("/echo3")
     @app.websocket (skitai.WS_CHANNEL | skitai.WS_SESSION, 60)
-    def echo3 (was):
+    def echo3 (context):
         yield '111'
 
     app.access_control_allow_origin = ["http://sada.com"]

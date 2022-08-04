@@ -11,11 +11,11 @@ def hello (name):
 
 def test_error_handler (app):
     @app.route ("/")
-    def indexa (was):
+    def indexa (context):
         task1 = skitai.add_thread_task (hello, 'hans')
         task2 = skitai.add_process_task (hello, 'roh')
         task3 = skitai.add_subprocess_task ('ls -al')
-        return was.API (
+        return context.API (
             a = task1.fetch (),
             b = task2.fetch (),
             c = task3.fetch (),

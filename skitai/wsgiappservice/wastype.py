@@ -1,3 +1,4 @@
 
 class _WASType:
-    pass
+    def __repr__ (self):
+        return "<class skitai.Context at %x>" % (id (self),)

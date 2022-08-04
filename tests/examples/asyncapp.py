@@ -3,7 +3,7 @@ import asyncio
 
 app = atila.Atila (__name__)
 @app.route ('/')
-async def index (was):
+async def index (context):
     await asyncio.sleep ()
     return 'Hello Atila'
 
