@@ -120,6 +120,17 @@ All attributes of pref will overwrite your app attrubutes.
 
 
 
+## Running Parameters
+
+- address
+- port
+- quic
+- threads
+- workers
+- tasks
+- backlog
+
+
 
 
 ## Launching Service
@@ -186,12 +197,12 @@ python3 serve.py --help
 skitai.run parameters,
 
 ```python
-skitai.run (ip = '0.0.0.0', port = 5000, thread = 1, workers = 4)
+skitai.run (ip = '0.0.0.0', port = 5000, thread = 1, workers = 4, tasks = 8)
 ```
 
 But command line options have more high priority.
 ```bash
-python3 serve.py --threads=4 --workers=2 --port 38000
+python3 serve.py --workers=2 --threads=4 --tasks=16 --port=3800
 ```
 
 To adding custom options,
@@ -319,6 +330,33 @@ skitai.g ['DB_STATUS'] = 4
 This object will be shared by all workers.
 
 
+
+## Using Thread/Process Pool Executors
+`skitai.add_thread_task ()` returns `Future` like object. It also has
+`fetch ()`,  `one ()` and `wait ()` methods. If exception has been occured,
+it raised immedately.
+
+
+```python
+import skitai
+import time
+
+def hello (name):
+    time.sleep (1)
+    return f'hello, {name}'
+
+@app.route ("/")
+def index ():
+    task1 = skitai.add_thread_task (hello, 'hans')
+    task2 = skitai.add_process_task (hello, 'roh')
+    task3 = skitai.add_subprocess_task ('ls -al')
+
+    return "\n.join ([
+        task1.fetch (),
+        task2.fetch (),
+        task3.fetch ()
+    ])
+```
 
 
 
@@ -473,7 +511,6 @@ with skitai.test_client (port = 6000) as cli:
 
 
 
-
 # Create Base Configuration
 Mount app and directories and give a service `name`.
 ```python
@@ -503,14 +540,48 @@ See generating logs.
 
 
 
+# APIs For WSGI Container Developers
+
+## Using Async Router
+- skitai.add_async_task (coro, after_request_callback = None)
+
+`after_request_callback` spec is:
+```python
+def after_request_callback (context, content, exc_info = None):
+  ...
+  if not has_hooks and not depends:
+    return context.send_content_async (content)
+  context.thread_executor.submit (postprocess, context, content, exc_info, depends, hooks)
+```
+
+
+Refer [usage](https://gitlab.com/skitai/atila/-/blob/master/atila/executors/wsgi_executor.py) for APIs.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 # Change Log
+- 0.49 (Aug, 2022)
+  - change `was` conventional argument into `context`
 
 - 0.48 (Jul, 2022)
   - add `skitai.add_async_task (coro, after_request_callback = None, response_callback = None)`
-  - add `add_coroutine_task (coro, after_request_callback)`
+  - add `was.send_content_async (content, threading = False)`
+  - add `skitai.add_thread_task (func, *args, **kargs)`
+  - add `skitai.add_process_task (func, *args, **kargs)`
+  - add `skitai.add_subprocess_task (shell_command)`
 
 - 0.47 (Jul, 2022)
   - refactor `skitai.tasks`, it keeps core task objects and executor and

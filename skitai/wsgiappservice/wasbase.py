@@ -31,6 +31,9 @@ else:
 from .wastype import _WASType
 from rs4.attrdict import AttrDictTS
 import asyncio
+from rs4.misc import producers
+from ..utility import deallocate_was, make_pushables
+from ..backbone.threaded import trigger
 
 workers_shared_mmap = Semaps ([], "d", 256)
 
@@ -150,6 +153,21 @@ class WASBase (_WASType):
     # utils -----------------------------------------------
     def txnid (self):
         return "%s/%s" % (self.request.gtxid, self.request.ltxid)
+
+    def send_content_async (self, content, waking = False):
+        if isinstance (content, producers.Sendable): # IMP: already sent producer
+            return deallocate_was (self)
+
+        will_be_push = make_pushables (self.response, content)
+        if will_be_push is not None:
+            for part in will_be_push:
+                self.response.push (part)
+
+        if waking:
+            trigger.wakeup (lambda p = self.response, x = self: (p.done (), deallocate_was (x)))
+        else:
+            self.response.done ()
+            deallocate_was (self)
 
     # system functions ----------------------------------------------
     def log (self, msg, category = "info", at = "app"):

@@ -5,13 +5,13 @@ import re
 import sys
 
 def test_error_handler (app, capsys):
-    @app.route ("/")    
-    def index (was, limit):
-        return ""
-   
     @app.route ("/")
-    def index (was, limit, **DATA):
-        if was.request.method == "POST":
+    def index (context, limit):
+        return ""
+
+    @app.route ("/")
+    def index (context, limit, **DATA):
+        if context.request.method == "POST":
             assert DATA ['id']
         return 'OK'
 

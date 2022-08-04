@@ -1,12 +1,9 @@
 # pytest framework ---------------------------------------------
-import requests
-from rs4.webkit import siesta, webtest
-from rs4.psutil import Puppet, processutil
+from rs4.webkit import webtest
+from rs4.psutil import Puppet
 import subprocess
 import time
 import sys
-import os
-import xmlrpc.client
 
 class Launcher (webtest.Target):
     def __init__ (self, script = None, port = 5000, devel = False, ssl = False, silent = True, dry = False, temp_dir = None, **kargs):

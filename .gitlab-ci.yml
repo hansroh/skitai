@@ -21,8 +21,8 @@ variables:
   - pip install -U "h2>=4.0.0"
   - pip install -Ur tests/requirements.txt
   - pip install -U "django>=3.0,<4.0"
-  - pip install -U --pre --no-cache-dir atila-vue delune
-  - pip install -U --pre --no-cache-dir "atila>=0.19" rs4 sqlphile
+  - pip install -U --pre --no-cache-dir delune atila-vue
+  - pip install -U --pre --no-cache-dir "atila>=0.20.0.1" rs4 sqlphile
   - python -c 'from rs4.protocols.sock.impl.grpc import discover'
   - adduser --disabled-password --shell /bin/bash --gecos "ubuntu" ubuntu
 
@@ -50,13 +50,7 @@ variables:
     - pip install -U -e .
     - cd tests
     - chown -R ubuntu:ubuntu . && CWD=$PWD && su - ubuntu && cd $CWD
-    - pytest -x --disable-pytest-warnings level1
-    - pytest -x --disable-pytest-warnings level2
-    - pytest -x --disable-pytest-warnings level3
-    - pytest -x --disable-pytest-warnings level4
-    - pytest -x --disable-pytest-warnings level4-1
-    - pytest -x --disable-pytest-warnings level4-2
-    - pytest -x --disable-pytest-warnings level5
+    - ./test-all.sh --disable-pytest-warnings
 
 python 3.6:
   image: python:3.6-buster

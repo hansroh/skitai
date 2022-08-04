@@ -12,11 +12,11 @@ app.extends (atila_vue)
 app.unroute ('/examples/tutorial', 310)
 
 @app.route ('/')
-def index (was):
+def index (context):
     return 'Hello Atila'
 
 @app.route ('/examples', methods = ['PUT'])
-def examples (was):
+def examples (context):
     return 'Examples'
 
 if __name__ == '__main__':

@@ -5,18 +5,18 @@ import skitai
 app = atila.Atila (__name__)
 
 @app.route ('/')
-def index (was):
+def index (context):
     return 'Hello Atila'
 
 @app.route ("/str")
-async def a (was):
+async def a (context):
     await asyncio.sleep (1)
     return "100"
 
 @app.route ("/api")
-async def b (was):
+async def b (context):
     await asyncio.sleep (1)
-    return was.API (x = 100)
+    return context.API (x = 100)
 
 if __name__ == '__main__':
     skitai.mount ('/statics', 'statics')

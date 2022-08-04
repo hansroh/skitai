@@ -3,7 +3,7 @@
 from . import task
 import subprocess
 from concurrent.futures import TimeoutError
-from ..tasks import Mask
+from ..derivations import Mask
 import skitai
 
 class Task (task.Task):

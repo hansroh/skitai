@@ -1,12 +1,10 @@
 import re
 import stat
-import time
 from mimetypes import types_map
 import os
 from . import filesys
 from rs4.misc import producers
 from rs4.termcolor import tc
-from rs4.protocols.sock.impl.http import http_date
 from rs4.protocols.sock.impl.http.http_util import *
 from .. import tasks
 from ..backbone.threaded import trigger

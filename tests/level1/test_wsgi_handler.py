@@ -15,20 +15,20 @@ def assert_request (handler, request, expect_code):
 	return resp
 
 @pytest.mark.run (order = 2)
-def test_wsgi_handler (app, client, wasc):
+def test_wsgi_handler (app, client, Context):
 	global CLIENT
 	CLIENT = client
 
 	@app.route ("/")
-	def index (was, a = 0):
+	def index (context, a = 0):
 		return "Hello"
 
 	@app.route ("/json")
-	def json (was, a):
+	def json (context, a):
 		return "Hello"
 
 	@app.route ("/rpc2/add")
-	def add (was, a, b):
+	def add (context, a, b):
 		return a + b
 
 	# WSGI
@@ -59,8 +59,8 @@ def test_wsgi_handler (app, client, wasc):
 	resp = assert_request (vh, request, 200)
 
 	testutil.enable_threads ()
-	assert wasc.numthreads == 1
-	assert wasc.threads
+	assert Context.numthreads == 1
+	assert Context.threads
 
 	request = client.postjson ("http://www.skitai.com/json", {'a': 1})
 	resp = assert_request (vh, request, 200)
@@ -69,8 +69,8 @@ def test_wsgi_handler (app, client, wasc):
 	resp = assert_request (vh, request, 200)
 
 	testutil.disable_threads ()
-	assert wasc.numthreads == 0
-	assert wasc.threads is None
+	assert Context.numthreads == 0
+	assert Context.threads is None
 
 	request = client.postjson ("http://www.skitai.com/json", {'a': 1})
 	resp = assert_request (vh, request, 200)

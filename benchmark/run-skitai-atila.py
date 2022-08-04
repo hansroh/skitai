@@ -26,64 +26,64 @@ async def __umounted__ (app):
 
 
 @app.route ("/status")
-def status (was, f = None):
-    return was.status (f)
+def status (context, f = None):
+    return context.status (f)
 
 # official ---------------------------------------------
 @app.route ("/bench", methods = ['GET'])
-def bench (was):
+def bench (context):
     with app.spool.acquire () as db:
         txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''').fetch ()
         record_count = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''').one () ["cnt"]
-        return was.API (
+        return context.API (
             txs = txs,
             record_count = record_count
         )
 
 @app.route ("/bench/async", methods = ['GET'])
-async def query_async (was):
+async def query_async (context):
     async def query (q):
         async with app.apool.acquire () as conn:
             return await conn.fetch (q)
 
     if os.getenv ("GITLAB_CI"):
-        return was.API (txs = [], record_count = 1000)
+        return context.API (txs = [], record_count = 1000)
     values, record_count = await asyncio.gather (
         query ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
         query ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
     )
-    return was.API (txs = [dict(r.items()) for r in values], record_count = record_count [0]['cnt'])
+    return context.API (txs = [dict(r.items()) for r in values], record_count = record_count [0]['cnt'])
 
 @app.route ("/bench/sqlphile", methods = ['GET'])
-def bench_sp (was):
+def bench_sp (context):
     with app.spool.acquire () as db:
         q = (db.select ("foo")
                     .filter (Q (from_wallet_id = 8) | Q (detail = 'ReturnTx'))
                     .order_by ("-created_at")
                     .limit (10)
         )
-        return was.API (
+        return context.API (
             txs = q.execute ().fetch (),
             record_count = q.aggregate ('count (id) as cnt').execute ().one () ["cnt"]
         )
 
 @app.route ("/bench/delay", methods = ['GET'])
 @app.spec (floats = ['t'])
-def bench_delay (was, t = 0.3):
-    task = was.Thread (time.sleep, args = (t,))
+def bench_delay (context, t = 0.3):
+    task = context.Thread (time.sleep, args = (t,))
     with app.spool.acquire () as db:
         txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''').fetch ()
         record_count = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''').one () ["cnt"]
-        return was.API (
+        return context.API (
             tasl = task.fetch (),
             txs = txs,
             record_count = record_count
         )
 
 @app.route ("/bench/http", methods = ['GET'])
-def bench_http_requests (was):
+def bench_http_requests (context):
     with app.rpool.acquire () as s:
-        return was.API (
+        return context.API (
             t1 = s.get (f'http://{TARGET}', headers = {'Accept': 'text/html'}).text
         )
 

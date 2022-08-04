@@ -8,7 +8,7 @@ app.debug = True
 app.use_reloader = True
 
 @app.route ("/routeguide.RouteGuide/RouteChat", input_stream = True)
-def RouteChat (was):
+def RouteChat (context):
 	class InputHandler:
 		def __init__ (self):
 			self.prev_notes = []
@@ -20,18 +20,18 @@ def RouteChat (was):
 					yield prev_note
 			self.prev_notes.append (new_note)
 
-	outstrm = was.create_output_stream (InputHandler ())
+	outstrm = context.create_output_stream (InputHandler ())
 	while 1:
-		new_note = yield was.read_input_stream ()
+		new_note = yield context.read_input_stream ()
 		yield outstrm.emit (new_note)
 
 
 @app.route ("/websocket", input_stream = True)
 @app.websocket (atila.WS_CHANNEL, 60)
-def echo_coroutine (was):
+def echo_coroutine (context):
 	n = 0
 	while 1:
-		msg = yield was.read_input_stream ()
+		msg = yield context.read_input_stream ()
 		if not msg:
 			break
 		yield 'echo: ' + msg
@@ -41,7 +41,7 @@ def echo_coroutine (was):
 
 @app.route ("/websocket/thread", input_stream = True)
 @app.websocket (atila.WS_CHANNEL, 60)
-def echo_coroutine_thread (was):
+def echo_coroutine_thread (context):
 	class InputHandler:
 		def __init__ (self):
 			self.n = 0
@@ -53,10 +53,10 @@ def echo_coroutine_thread (was):
 				yield 'double echo: ' + msg
 
 	import threading
-	outstrm = was.create_output_stream (InputHandler ())
+	outstrm = context.create_output_stream (InputHandler ())
 	n = 0
 	while 1:
-		msg = yield was.read_input_stream ()
+		msg = yield context.read_input_stream ()
 		yield outstrm.emit (msg)
 
 

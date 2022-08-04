@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.48.0"
+__version__ = "0.50.0"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -22,6 +22,8 @@ import getopt as libgetopt
 from rs4 import pathtool
 from .wastuff.preference import Preference
 from rs4  import evbus
+from .tasks.coroutine import Coroutine
+
 
 argopt.add_option ('-d', desc = "start as daemon, equivalant with `start` command") # lower version compatible
 
@@ -36,13 +38,15 @@ argopt.add_option (None, '--port=TCP_PORT_NUMBER', desc = "http/https port numbe
 argopt.add_option (None, '--quic=UDP_PORT_NUMBER', desc = "http3/quic port number")
 argopt.add_option (None, '--workers=WORKERS', desc = "number of workers")
 argopt.add_option (None, '--threads=THREADS', desc = "number of threads per worker")
+argopt.add_option (None, '--tasks=TASKS', desc = "number of concurrent async tasks")
+
 argopt.add_option (None, '--poll=POLLER', desc = "name of poller [select, poll, epoll and kqueue]")
 argopt.add_option (None, '--disable-static', desc = "disable static file service")
 argopt.add_option (None, '--collect-static', desc = "collect static files")
 
 argopt.add_option (None, '--user=USER', desc = "if run as root, fallback workers owner to user")
 argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback workers owner to group")
-argopt.add_option (None, '--smtpda', desc = "start SMTP Delivery Agent")
+argopt.add_option (None, '--smtpda', desc = "start SMTP delivery agent")
 argopt.add_option (None, '--autoconf', desc = "generate basic configuration")
 
 # IMP: DO NOT USE argopt.options ()
@@ -139,7 +143,7 @@ class _WASPool:
         return id (threading.currentThread ())
 
     def __repr__ (self):
-        return "<class skitai.WASPool at %x, was class: %s>" % (id (self), self.__wasc)
+        return "<class skitai.ContextPool at %x, was class: %s>" % (id (self), self.__wasc)
 
     def __getattr__ (self, attr):
         return getattr (self._get (), attr)
@@ -297,9 +301,22 @@ def add_async_task (coro, after_request_callback = None, response_callback = Non
         return content
     return was.async_executor.put ((was._get (), coro, response_callback or _respond_async, after_request_callback))
 
-def add_coroutine_task (coro, after_request_callback):
-    from skitai.tasks.coroutine import Coroutine
+def add_coroutine_task (coro, after_request_callback = None):
     return Coroutine (was._get (), coro, after_request_callback)
+
+def add_thread_task (target, *args, **kargs):
+    _was = was._get ()
+    return _was.executors.create_thread (_was.ID, target, *args, **kargs)
+
+def add_process_task (target, *args, **kargs):
+    _was = was._get ()
+    return _was.executors.create_process (_was.ID, target, *args, **kargs)
+
+def add_subprocess_task (cmd):
+    from .tasks.pth import sp_task
+    meta = {'__was_id': was._get ().ID}
+    return sp_task.Task (cmd, meta)
+
 
 # GPU allocator -----------------------------------------
 def get_gpu_memory ():
@@ -391,7 +408,7 @@ def set_service (service_class):
     global Win32Service
     Win32Service = service_class
 
-def enable_async (pool = 10):
+def enable_async (pool = 8):
     global dconf
     assert isinstance (pool, int)
     dconf ['enable_async'] = pool
@@ -837,8 +854,13 @@ def run (**conf):
             conf = self.conf
 
             self.wasc.register ('varpath', conf ['varpath'])
-            if '--poll' in options:
-                use_poll (options.get ('--poll'))
+
+            _poll = options.get ('--poll') or conf.get ('poll')
+            _poll and use_poll (_poll)
+
+            _tasks = int (options.get ('--tasks') or conf.get ('tasks', 0))
+            _tasks and enable_async (_tasks)
+
             workers = int (options.get ('--workers') or conf.get ('workers', 1))
             threads = int (options.get ('--threads') or conf.get ('threads', 4))
             # assert threads, "threads should be more than zero"
@@ -850,7 +872,7 @@ def run (**conf):
             if conf.get ("certfile"):
                 self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
 
-            self.config_wasc (**dconf ['wasc_options'])
+            self.config_wasc (**conf ['wasc_options'])
 
             if conf.get ('fws_to'):
                 self.config_forward_server (
@@ -858,10 +880,10 @@ def run (**conf):
                     conf.get ('fws_port', 80), conf.get ('fws_to', 443)
                 )
 
-            if dconf ['background_jobs']:
+            if conf ['background_jobs']:
                 import psutil
                 procnames = [ proc.name () for proc in psutil.process_iter() ]
-                for procname, cmd in dconf ['background_jobs']:
+                for procname, cmd in conf ['background_jobs']:
                     if procname not in procnames:
                         self.wasc.logger.get ("server").log ('background job {}: {}'.format (tc.yellow (procname), tc.white (cmd)))
                         os.system (cmd + '&')
@@ -906,7 +928,7 @@ def run (**conf):
                     conf ['media_path']
                 )
 
-                for p, s in dconf ['subscriptions']:
+                for p, s in conf ['subscriptions']:
                     try:
                         provider = self.get_app_by_name (p)
                         provider.bus

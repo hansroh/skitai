@@ -7,8 +7,8 @@ from concurrent.futures import TimeoutError
 import threading
 import asyncio
 from collections import deque
-from .coroutine import utils
-from .coroutine.tasks.pth.task import Task
+from . import utils
+from .pth.task import Task
 
 class ProcessExpired (Exception):
     pass
@@ -126,10 +126,9 @@ class ThreadExecutor:
             except KeyError: pass
             b = b.get ('kwargs', b)
 
-        task_class = meta ["__task_class"]
         meta ['__was_id'] = was_id
         future = self.create_task (f, a, b, timeout)
-        wrap = task_class (future, "{}.{}".format (f.__module__, f.__name__), meta = meta, filter = filter)
+        wrap = Task (future, "{}.{}".format (f.__module__, f.__name__), meta = meta, filter = filter)
         timeout and wrap.set_timeout (timeout)
         # self.logger ("{} task started: {}".format (self.NAME, wrap))
         with self.lock:
@@ -238,9 +237,9 @@ class AsyncExecutor (threading.Thread):
         tid = None
         if item:
             was, coro, response_callback, after_request_callback = item
-            _was = utils.get_cloned_was (was.ID)
+            _was = utils.get_cloned_context (was.ID)
             _was.request.postprocessing = after_request_callback
-            utils.deceive_was (_was, coro)
+            utils.deceive_context (_was, coro)
             tid = _was.txnid ()
             item = (tid, _was, Task, coro, response_callback)
 

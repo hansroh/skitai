@@ -8,54 +8,54 @@ def test_success (app):
     app.fired = 0
 
     @app.on ("FIRE")
-    async def on_FIRE (was):
+    async def on_FIRE (context):
         app.fired += 1
 
     @app.before_request
-    async def before_request (was):
+    async def before_request (context):
         app.hooks_called += 1
 
     @app.request_failed
-    async def request_failed (was, expt):
+    async def request_failed (context, expt):
         app.hooks_called += 1
 
     @app.request_success
-    async def request_success (was, content):
+    async def request_success (context, content):
         app.hooks_called += 1
 
     @app.teardown_request
-    async def teardown_request (was):
+    async def teardown_request (context):
         app.hooks_called += 1
 
     @app.route ("/")
-    async def a (was):
+    async def a (context):
         app.emit ("FIRE")
-        await was.to_thread (time.sleep, 1)
-        await was.to_process (time.sleep, 1)
+        await context.to_thread (time.sleep, 1)
+        await context.to_process (time.sleep, 1)
         await asyncio.sleep (1)
         return "100"
 
     @app.route ("/api")
-    async def b (was, err = "no"):
+    async def b (context, err = "no"):
         app.emit ("FIRE")
         await asyncio.sleep (1)
         err == "var" and xx
         if err == "http":
-            raise was.Error ("600 Error")
-        return was.API (x = 100)
+            raise context.Error ("600 Error")
+        return context.API (x = 100)
 
     def sleep ():
         time.sleep (1)
         return 200
 
     @app.route ("/coro", coroutine = True)
-    def c (was, err = "no"):
+    def c (context, err = "no"):
         app.emit ("FIRE")
-        task = yield was.Thread (sleep)
+        task = yield context.Thread (sleep)
         err == "var" and xx
         if err == "http":
-            raise was.Error ("600 Error")
-        return was.API (x = task.fetch ())
+            raise context.Error ("600 Error")
+        return context.API (x = task.fetch ())
 
     N = 3
     with app.test_client ("/", confutil.getroot (), enable_async = True) as cli:

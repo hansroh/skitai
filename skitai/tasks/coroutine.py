@@ -8,10 +8,8 @@ from rs4.protocols.sock.impl.grpc.producers import serialize
 from rs4.protocols.sock.impl.ws.collector import encode_message
 from rs4.protocols.sock.impl.ws import *
 from skitai.backbone.lifetime import tick_timer
-from .tasks import Coroutine
+from . import Coroutine, Task
 from . import utils
-from .tasks import Task
-from .tasks import Future
 
 class Coroutine (Coroutine):
     def __init__ (self, was, coro, request_postprocessing, resp_status = '200 OK'):
@@ -23,13 +21,13 @@ class Coroutine (Coroutine):
         self._was = None
         self._waiting_input = False
         self._rtype = None
-        self._clone_and_deceive_was (was.ID, request_postprocessing)
+        self._clone_and_deceive_context (was.ID, request_postprocessing)
         self._determine_response_type ()
 
-    def _clone_and_deceive_was (self, was_id, request_postprocessing):
+    def _clone_and_deceive_context (self, was_id, request_postprocessing):
         from skitai.wsgiappservice.wastype import _WASType
 
-        self._was = utils.get_cloned_was (was_id)
+        self._was = utils.get_cloned_context (was_id)
         self._was.request.postprocessing = request_postprocessing
 
         for n, v in self.coro.gi_frame.f_locals.items ():
@@ -163,8 +161,6 @@ class Coroutine (Coroutine):
                 self.on_completed (self._was, self.input_streams.pop (0))
 
     def start (self):
-        from .tasks import Revoke
-
         task = self.collect_data ()
         if task is None:
             return self.close (b''.join (self.contents))

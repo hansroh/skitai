@@ -2,7 +2,6 @@
 # Skitai Unit Test Libaray
 #---------------------------------------------------------------
 
-import threading
 from ...backbone.threaded import threadlib
 import skitai
 from ...wastuff import triple_logger
@@ -99,7 +98,7 @@ wasc = None
 def activate (make_sync = True, enable_async = False):
     from ...wsgiappservice import WAS
     from atila import was as atila_was
-    from skitai.tasks.coroutine import utils
+    from skitai.tasks import utils
 
     class WAS (atila_was.WAS):
         numthreads = 1

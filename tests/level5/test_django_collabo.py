@@ -15,9 +15,9 @@ def test_django_collabo (launch):
         os.system ("./manage.py startproject")
         assert os.path.isfile ("skitaid.py")
         os.system ("./manage.py migrate")
-        assert os.path.isfile ("pwa/models/db.sqlite3")
+        assert os.path.isfile ("app/models/db.sqlite3")
         os.system ("./manage.py collectstatic")
-        assert os.path.isdir ("pwa/models/static/admin")
+        assert os.path.isdir ("app/models/static/admin")
 
         with launch ("./skitaid.py") as engine:
             r = engine.get ("/admin")

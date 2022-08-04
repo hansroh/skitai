@@ -1,6 +1,7 @@
 import time
-from ..tasks import Mask
-from .. import Task, Revoke
+from ..derivations import Mask
+from .. import Revoke
+from .. import Task
 from .. import DEFAULT_TIMEOUT
 
 class Task (Task, Revoke):

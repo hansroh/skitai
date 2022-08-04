@@ -4,8 +4,8 @@ import pprint
 
 def test_futures (app, dbpath):
     @app.route ("/")
-    def index (was):
-        def respond (was, rss):
+    def index (context):
+        def respond (context, rss):
             return skitai.was.response.API (status_code = [rs.status_code for rs in rss.dispatch ()], a = rss.meta ['a'])
 
         reqs = [
@@ -16,8 +16,8 @@ def test_futures (app, dbpath):
         return skitai.was.Tasks (reqs, meta = {'a': 100}).then (respond)
 
     @app.route ("/3")
-    def index3 (was):
-        def respond (was, rss):
+    def index3 (context):
+        def respond (context, rss):
             datas = str (rss [0].fetch ()) + str (rss [1].one ())
             return datas
 
@@ -28,8 +28,8 @@ def test_futures (app, dbpath):
         return skitai.was.Tasks (reqs).then (respond)
 
     @app.route ("/4")
-    def index4 (was):
-        def respond (was, rss):
+    def index4 (context):
+        def respond (context, rss):
             return str (rss [0].one ())
 
         reqs = [
@@ -38,18 +38,18 @@ def test_futures (app, dbpath):
         return skitai.was.Tasks (reqs).then (respond)
 
     @app.route ("/12")
-    def index12 (was):
-        a = skitai.was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
-        b = skitai.was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
+    def index12 (context):
+        a = skitai.was.Tasks ([context.Mask ([{'symbol': 'RHAT'}])])
+        b = skitai.was.Tasks ([context.Mask ([{'symbol': 'RHAT'}])])
         a.add (b)
         return str (a.one ())
 
     @app.route ("/13")
-    def index13 (was):
-        def respond (was, rss):
+    def index13 (context):
+        def respond (context, rss):
             return str (rss.one ())
-        a = skitai.was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
-        b = skitai.was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
+        a = skitai.was.Tasks ([context.Mask ([{'symbol': 'RHAT'}])])
+        b = skitai.was.Tasks ([context.Mask ([{'symbol': 'RHAT'}])])
         a.merge (b)
         return a.then (respond)
 

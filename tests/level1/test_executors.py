@@ -9,33 +9,33 @@ def foo (a):
 def foo2 (a):
     xx
 
-def test_was_requests (wasc):
-    def callback (was, task):
+def test_was_requests (Context):
+    def callback (context, task):
         assert not task.fetch ()
 
-    was = wasc ()
-    future = was.Thread (foo, 'hello')
+    context = Context ()
+    future = context.Thread (foo, 'hello')
     assert future.result () == "echo:hello"
-    data = was.Thread (foo, 'hello').returning ("then")
+    data = context.Thread (foo, 'hello').returning ("then")
     assert data == "then"
-    future = was.Process (foo, 'hello')
+    future = context.Process (foo, 'hello')
     assert future.result () == "echo:hello"
-    data = was.Process (foo, 'hello').returning ("then")
+    data = context.Process (foo, 'hello').returning ("then")
     assert data == "then"
 
-def test_was_requests2 (wasc):
+def test_was_requests2 (Context):
 
-    was = wasc ()
+    context = Context ()
     for i in range (10):
-        future = was.Thread (foo, 'hello')
+        future = context.Thread (foo, 'hello')
     assert future.result () == "echo:hello"
 
     for i in range (10):
-        future = was.Process (foo, 'hello')
+        future = context.Process (foo, 'hello')
     assert future.result () == "echo:hello"
 
-    future = was.Thread (foo2, 'hello')
-    future = was.Process (foo2, 'hello')
+    future = context.Thread (foo2, 'hello')
+    future = context.Process (foo2, 'hello')
 
     time.sleep (15)
-    assert was.executors.cleanup () == [0, 0]
+    assert context.executors.cleanup () == [0, 0]
