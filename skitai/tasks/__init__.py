@@ -59,10 +59,10 @@ class Task:
         raise NotImplementedError
 
     def _get_was (self):
-        _was = utils.get_cloned_was (self.meta ['__was_id'])
+        _was = utils.get_cloned_context (self.meta ['__was_id'])
         _was.request.postprocessing = self.meta ['__after_request_async']
         if "coro" in self.meta: # deciving `was` object
-            utils.deceive_was (_was, self.meta ["coro"])
+            utils.deceive_context (_was, self.meta ["coro"])
         return _was
 
     def _late_respond (self, tasks_or_content):

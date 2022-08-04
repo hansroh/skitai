@@ -6,35 +6,35 @@ import re
 
 
 def test_parameters (app):
-    @app.route ("/1/<int:id>")    
-    def index1 (was):
+    @app.route ("/1/<int:id>")
+    def index1 (context):
         return "Hello"
 
-    @app.route ("/2/<int:id>")    
-    def index2 (was, id, a1 = 2):
+    @app.route ("/2/<int:id>")
+    def index2 (context, id, a1 = 2):
         return "Hello"
 
-    @app.route ("/3/<int:id>")    
-    def index3 (was, id, a1):
+    @app.route ("/3/<int:id>")
+    def index3 (context, id, a1):
         return "Hello"
-    
-    @app.route ("/4/<int:id>")    
-    def index4 (was, id, **P):
+
+    @app.route ("/4/<int:id>")
+    def index4 (context, id, **P):
         return "Hello"
 
     @app.route ("/5")
-    def index5 (was, a = None):
+    def index5 (context, a = None):
         return "Hello"
 
-    @app.route ("/6/<int:id>")    
-    def index6 (was, xd):
+    @app.route ("/6/<int:id>")
+    def index6 (context, xd):
         return "Hello"
 
     @app.route ("/7")
-    def index7 (was, a):
+    def index7 (context, a):
         return "Hello"
 
-    with app.test_client ("/", confutil.getroot ()) as cli:     
+    with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/7?a=1&b=2")
         assert resp.status_code == 400
 

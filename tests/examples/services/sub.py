@@ -1,5 +1,5 @@
 
 def __mount__ (app):
     @app.route ("")
-    def sub (was):
+    def sub (context):
         return "i am sub"

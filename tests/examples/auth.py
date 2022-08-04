@@ -10,14 +10,13 @@ app.realm = "Secured Area"
 app.users = {"admin": ("1111", 0, {'role': 'root'})}
 
 @app.route ("/", authenticate = "digest")
-def index (was):	
-	return was.render ("index.html")
+def index (context):
+	return context.render ("index.html")
 
 if __name__ == "__main__":
 	import skitai
 	skitai.mount ("/", app)
 	skitai.run (
 		address = "0.0.0.0",
-		port = 30371	
+		port = 30371
 	)
-	

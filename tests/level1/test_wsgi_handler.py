@@ -20,15 +20,15 @@ def test_wsgi_handler (app, client, Context):
 	CLIENT = client
 
 	@app.route ("/")
-	def index (was, a = 0):
+	def index (context, a = 0):
 		return "Hello"
 
 	@app.route ("/json")
-	def json (was, a):
+	def json (context, a):
 		return "Hello"
 
 	@app.route ("/rpc2/add")
-	def add (was, a, b):
+	def add (context, a, b):
 		return a + b
 
 	# WSGI

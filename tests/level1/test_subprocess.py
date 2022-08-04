@@ -8,14 +8,14 @@ def foo (task):
     assert b'total' in task.fetch ()
 
 def test_subprocess (Context):
-    def callback (was, task):
+    def callback (context, task):
         assert not task.fetch ()
 
-    was = Context ()
-    task = was.Subprocess ('ls -al')
+    context = Context ()
+    task = context.Subprocess ('ls -al')
     assert 'total' in task.fetch ()
 
-    task = was.Subprocess ('ls --fff')
+    task = context.Subprocess ('ls --fff')
     with pytest.raises (SystemError):
         task.fetch ()
     try:
@@ -23,6 +23,6 @@ def test_subprocess (Context):
     except:
         assert '--fff' in logger.trace ()
 
-    task = was.Subprocess ("{} -c 'import time;time.sleep (3)'".format (sys.executable))
+    task = context.Subprocess ("{} -c 'import time;time.sleep (3)'".format (sys.executable))
     with pytest.raises (TimeoutError):
         task.fetch (timeout = 1)

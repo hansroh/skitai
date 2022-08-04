@@ -5,40 +5,40 @@ import re
 import time
 
 def test_error_handler (app):
-    def inspect (was):
-        if int (was.request.args ["limit"]) != 100:
-            raise was.Error ("400 Bad Request")
+    def inspect (context):
+        if int (context.request.args ["limit"]) != 100:
+            raise context.Error ("400 Bad Request")
 
-    def alter1 (was, response):
+    def alter1 (context, response):
         response ["b"] = 200
         return response
 
-    def alter2 (was, response):
+    def alter2 (context, response):
         response ["c"] = 300
         return response
 
     @app.route ("/")
     @app.spec (limit = int)
     @app.depends (inspect, [alter1, alter2])
-    def index (was, limit):
-        return was.API (a = 100)
+    def index (context, limit):
+        return context.API (a = 100)
 
-    async def inspecta (was):
-        if int (was.request.args ["limit"]) != 100:
-            raise was.Error ("400 Bad Request")
+    async def inspecta (context):
+        if int (context.request.args ["limit"]) != 100:
+            raise context.Error ("400 Bad Request")
 
-    async def alter1a (was):
+    async def alter1a (context):
         app.g.K = 600
 
     @app.route ("/async")
     @app.spec (limit = int)
     @app.depends (inspecta, alter1a)
-    async def index2 (was, limit):
-        return was.API (a = 100)
+    async def index2 (context, limit):
+        return context.API (a = 100)
 
     @app.route ("/K")
-    def index3 (was):
-        return was.API (K = app.g.K)
+    def index3 (context):
+        return context.API (K = app.g.K)
 
     with app.test_client ("/", confutil.getroot (), enable_async = True) as cli:
         resp = cli.get ("/?limit=100")

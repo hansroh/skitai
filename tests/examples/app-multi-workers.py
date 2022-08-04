@@ -9,28 +9,28 @@ app.use_reloader = True
 app.jinja_overlay ()
 
 @app.route ("/")
-def index (was):
-	return was.render ("index.html")
+def index (context):
+	return context.render ("index.html")
 
 @app.route ("/hello")
-def hello (was, num = 1):
-	was.response ["Content-Type"] = "text/plain"
+def hello (context, num = 1):
+	context.response ["Content-Type"] = "text/plain"
 	return "\n".join (["hello" for i in range (int(num))])
 
 @app.route ("/redirect1")
-def redirect1 (was):
-	return was.response ("301 Object Moved", "", headers = [("Location", "/redirect2")])
+def redirect1 (context):
+	return context.response ("301 Object Moved", "", headers = [("Location", "/redirect2")])
 
 @app.route ("/redirect2")
-def redirect2 (was):
-	return was.response ("301 Object Moved", "", headers = [("Location", "/")])
+def redirect2 (context):
+	return context.response ("301 Object Moved", "", headers = [("Location", "/")])
 
 @app.route ("/upload")
-def upload (was, **karg):
-	return was.response ("200 OK", str (karg), headers = [("Content-Type", "text/plain")])
+def upload (context, **karg):
+	return context.response ("200 OK", str (karg), headers = [("Content-Type", "text/plain")])
 
 @app.route ("/post")
-def post (was, username):
+def post (context, username):
 		return 'USER: %s' % username
 
 if __name__ == "__main__":

@@ -27,98 +27,98 @@ app.authenticate = None
 app.mount ("/sub", sub)
 
 @app.route ("/")
-def index (was):
-    return was.render ("index.html")
+def index (context):
+    return context.render ("index.html")
 
 @app.route ("/response_chain")
-def response_chain (was):
-    def respond2 (was, task):
-        return was.API (status_code = task.dispatch ().status_code)
-    def respond (was, task):
-        return was.Mask ("pypi/skitai/hansroh/rs4").then (respond2)
-    return was.Mask ("pypi/skitai/hansroh/rs4").then (respond)
+def response_chain (context):
+    def respond2 (context, task):
+        return context.API (status_code = task.dispatch ().status_code)
+    def respond (context, task):
+        return context.Mask ("pypi/skitai/hansroh/rs4").then (respond2)
+    return context.Mask ("pypi/skitai/hansroh/rs4").then (respond)
 
 @app.route ("/dnserror")
-def dnserror (was):
-    req = was.Mask ("pypi/skitai/hansroh/rs4")
+def dnserror (context):
+    req = context.Mask ("pypi/skitai/hansroh/rs4")
     rs = req.dispatch (timeout = 10)
     return "%d %d %s" % (rs.status, rs.status_code, rs.reason)
 
 @app.route ("/xmlrpc")
-def xmlrpc (was):
-    return was.API (result = "ok")
+def xmlrpc (context):
+    return context.API (result = "ok")
 
 @app.route ("/hello")
-def hello (was, num = 1):
-    was.response ["Content-Type"] = "text/plain"
+def hello (context, num = 1):
+    context.response ["Content-Type"] = "text/plain"
     return "\n".join (["hello" for i in range (int(num))])
 
 @app.route ("/redirect0")
-def redirect0 (was):
+def redirect0 (context):
     return ""
 
 @app.route ("/redirect1")
-def redirect1 (was):
-    return was.response ("301 Object Moved", "", headers = [("Location", "/redirect2")])
+def redirect1 (context):
+    return context.response ("301 Object Moved", "", headers = [("Location", "/redirect2")])
 
 @app.route ("/redirect2")
-def redirect2 (was):
-    return was.response ("301 Object Moved", "", headers = [("Location", "/")])
+def redirect2 (context):
+    return context.response ("301 Object Moved", "", headers = [("Location", "/")])
 
 @app.route ("/upload")
-def upload (was, **karg):
-    return was.response ("200 OK", str (karg), headers = [("Content-Type", "text/plain")])
+def upload (context, **karg):
+    return context.response ("200 OK", str (karg), headers = [("Content-Type", "text/plain")])
 
 @app.route ("/upload2")
-def upload2 (was, **form):
+def upload2 (context, **form):
     return str (list (form.keys ()))
 
 @app.route ("/post")
-def post (was, username):
+def post (context, username):
     return 'USER: %s' % username
 
 @app.route ("/test")
-def test (was):
-    was.response ["Content-Type"] = "text/plain"
-    return str (was.request.args)
+def test (context):
+    context.response ["Content-Type"] = "text/plain"
+    return str (context.request.args)
 
 @app.route ("/json")
-def json (was):
-    return was.response.api (data = "JSON")
+def json (context):
+    return context.response.api (data = "JSON")
 
 @app.route ("/promise")
-def promise (was):
-    was.push (was.ab (hello))
-    was.push (was.ab (test))
-    return was.response.api (data = "JSON")
+def promise (context):
+    context.push (context.ab (hello))
+    context.push (context.ab (test))
+    return context.response.api (data = "JSON")
 
 @app.route ("/delay")
-def delay (was, wait = 3):
+def delay (context, wait = 3):
     time.sleep (float (wait))
-    return was.response.api (data = "JSON")
+    return context.response.api (data = "JSON")
 
 @app.route ("/shutdown")
-def shutdown (was, stream_id = 1):
-    was.request.protocol.close (last_stream_id = int (stream_id))
+def shutdown (context, stream_id = 1):
+    context.request.protocol.close (last_stream_id = int (stream_id))
     return 'CLOSED'
 
 @app.route ("/nchar")
 @app.require (ints = ['n'])
-def nchar (was, n = 167357):
+def nchar (context, n = 167357):
     return 'a' * n
 
 @app.route ("/mixing")
-def mixing (was):
-    def respond (was, tasks):
+def mixing (context):
+    def respond (context, tasks):
         a, b, c, d, e, f = tasks.fetch ()
-        return was.API (a =a, b = b, c = c, d = d, e = e, f = f)
-    return was.Tasks (
-        was.Mask ([]),
-        was.Mask ("pypi/skitai/hansroh/rs4"),
-        was.Thread (time.sleep, args = (0.3,)),
-        was.Process (time.sleep, args = (0.3,)),
-        was.Mask ('mask'),
-        was.Subprocess ("ls"),
+        return context.API (a =a, b = b, c = c, d = d, e = e, f = f)
+    return context.Tasks (
+        context.Mask ([]),
+        context.Mask ("pypi/skitai/hansroh/rs4"),
+        context.Thread (time.sleep, args = (0.3,)),
+        context.Process (time.sleep, args = (0.3,)),
+        context.Mask ('mask'),
+        context.Subprocess ("ls"),
     ).then (respond)
 
 

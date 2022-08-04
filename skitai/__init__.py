@@ -143,7 +143,7 @@ class _WASPool:
         return id (threading.currentThread ())
 
     def __repr__ (self):
-        return "<class skitai.WASPool at %x, was class: %s>" % (id (self), self.__wasc)
+        return "<class skitai.ContextPool at %x, was class: %s>" % (id (self), self.__wasc)
 
     def __getattr__ (self, attr):
         return getattr (self._get (), attr)

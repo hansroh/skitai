@@ -18,13 +18,13 @@ def add_model (model_name, model_path):
 app = atila.Atila (__name__)
 
 @app.on ('tfserver:model-reloaded')
-def on_model_loaded (was, alias):
+def on_model_loaded (context, alias):
     app.log ('model {} reloaded and refreshing config'.format (alias))
 
 @app.route ('/api')
-def api (was, x):
+def api (context, x):
     pred = tfserver.get_model ('ex1').predict (np.array (x))
-    return was.API (y1 = (pred [0].tolist ()), y2 = (pred [0].tolist ()))
+    return context.API (y1 = (pred [0].tolist ()), y2 = (pred [0].tolist ()))
 
 @app.before_mount
 def before_mount (Context):

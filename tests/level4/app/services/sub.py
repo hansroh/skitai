@@ -1,5 +1,5 @@
 
 def __mount__ (app, mntopt):
     @app.mounted
-    def mounted (was):
+    def mounted (context):
         pass

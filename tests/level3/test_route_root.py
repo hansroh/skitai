@@ -8,7 +8,7 @@ import time
 def test_route_root (app, dbpath):
     @app.route ("/<path:path>")
     @app.route ("/")
-    def index (was, path = None):
+    def index (context, path = None):
         return "Hello, World"
 
     with app.test_client ("/", confutil.getroot ()) as cli:

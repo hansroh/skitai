@@ -11,64 +11,64 @@ import pytest
 def test_cli (app, dbpath, is_pypy):
     @app.route ("/hello")
     @app.route ("/")
-    def index (was):
+    def index (context):
         return "Hello, World"
 
     @app.route ("/petse/<int:id>")
-    def pets_error (was):
+    def pets_error (context):
         return "Pets"
 
     @app.route ("/pets/<int:id>", methods = ["GET", "POST"])
-    def pets (was, id = None):
+    def pets (context, id = None):
         return "Pets{}".format (id)
 
     @app.route ("/pets2/<int:id>", methods = ["POST"])
-    def pets2 (was, id = None, a = 0):
+    def pets2 (context, id = None, a = 0):
         return "Pets{}".format (id)
 
     @app.route ("/pets3/<int:id>")
-    def pets3 (was, id = None):
+    def pets3 (context, id = None):
         return "Pets{}".format (id)
 
     @app.route ("/echo")
-    def echo (was, m):
+    def echo (context, m):
         return m
 
     @app.route ("/json")
-    def json (was, m):
-        return was.response.api (data = m)
+    def json (context, m):
+        return context.response.api (data = m)
 
     @app.route ('/jwt')
     @app.authorization_required ("bearer")
-    def jwt (was):
-        return was.response.api (was.request.JWT)
+    def jwt (context):
+        return context.response.api (context.request.JWT)
 
     @app.maintain
-    def increase (was, now, count):
+    def increase (context, now, count):
         if "total-user" in app.store:
             app.store.set ("total-user", app.store.get ("total-user") + 100)
 
     @app.route ("/getval")
-    def getval (was):
+    def getval (context):
         ret = str (app.store.get ("total-user"))
         return ret
 
     @app.maintain (2)
-    def increase2 (was, now, count):
+    def increase2 (context, now, count):
         if "total-user2" in app.store:
             app.store.set ("total-user2", app.store.get ("total-user2") + 100)
 
     @app.route ("/getval2")
-    def getval2 (was):
+    def getval2 (context):
         ret = str (app.store.get ("total-user2"))
         return ret
 
     @app.route ("/rpc2/add_number")
-    def add_number (was, a, b):
+    def add_number (context, a, b):
         return a + b
 
     @app.route ("/routeguide.RouteGuide/GetFeature")
-    def GetFeature (was, point):
+    def GetFeature (context, point):
         feature = get_feature(db, point)
         if feature is None:
             return route_guide_pb2.Feature(name="", location=point)
