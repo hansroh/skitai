@@ -237,9 +237,9 @@ class AsyncExecutor (threading.Thread):
         tid = None
         if item:
             was, coro, response_callback, after_request_callback = item
-            _was = utils.get_cloned_was (was.ID)
+            _was = utils.get_cloned_context (was.ID)
             _was.request.postprocessing = after_request_callback
-            utils.deceive_was (_was, coro)
+            utils.deceive_context (_was, coro)
             tid = _was.txnid ()
             item = (tid, _was, Task, coro, response_callback)
 

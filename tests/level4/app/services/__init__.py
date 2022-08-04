@@ -7,11 +7,11 @@ def __setup__ (app, mntopt):
 
 def __mount__ (app, mntopt):
     @app.mounted
-    def mounted (was):
+    def mounted (context):
         pass
 
     @app.route ('/')
-    def index (was):
+    def index (context):
         return 'pwa'
 
 def __umount__ (app):

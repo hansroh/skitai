@@ -6,7 +6,7 @@ import re
 
 def test_wsgi_range_header (app):
     @app.route ("/")
-    def index (was):
+    def index (context):
         return "Hello"
 
     with app.test_client ("/", confutil.getroot ()) as cli:

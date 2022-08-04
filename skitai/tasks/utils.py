@@ -25,7 +25,7 @@ def serialize (rtype, v):
             opcode = OPCODE_TEXT if isinstance (v, str) else OPCODE_BINARY
         return encode_message (v, opcode)
 
-def deceive_was (was, coro):
+def deceive_context (was, coro):
     from skitai.wsgiappservice.wastype import _WASType
 
     for n, v in coro.cr_frame.f_locals.items ():
@@ -34,7 +34,7 @@ def deceive_was (was, coro):
         coro.cr_frame.f_locals [n] = was
     ctypes.pythonapi.PyFrame_LocalsToFast (ctypes.py_object (coro.cr_frame), ctypes.c_int (0))
 
-def get_cloned_was (was_id):
+def get_cloned_context (was_id):
     global WAS_FACTORY
 
     assert was_id, 'was.ID should be non-zero'

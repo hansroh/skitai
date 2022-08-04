@@ -46,7 +46,7 @@ def app ():
     return app_
 
 @pytest.fixture
-def client (wasc):
+def client (Context):
     return cli.Client ()
 
 @pytest.fixture
@@ -67,11 +67,11 @@ def server ():
     s.close ()
 
 @pytest.fixture
-def wasc ():
+def Context ():
     offline.activate (make_sync = True)
-    wasc = offline.wasc
-    yield wasc
-    wasc.cleanup ()
+    Context = offline.wasc
+    yield Context
+    Context.cleanup ()
 
 DBPATH = offline.SAMPLE_DBPATH
 

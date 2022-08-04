@@ -30,3 +30,7 @@ def test_bench4 (launch):
 
 def test_bench5 (launch):
     bench (launch, 'channelt')
+
+def test_bench6 (launch):
+    bench (launch, 'session_nopool')
+

@@ -7,7 +7,7 @@ class R:
     def __init__ (self, args):
         self.ARGS = args
 
-def test_app_validator (wasc, app):
+def test_app_validator (Context, app):
     assert not app.validate (R ({'a': 1}), required = ["a"])
     assert not app.validate (R ({'a': 1}), protected = ["b"])
     with pytest.raises (HTTPError):

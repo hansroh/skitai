@@ -6,18 +6,18 @@ import time
 # headers = {"If-None-Match": etag}
 def test_etag (app, dbpath):
     @app.route ("/1")
-    def index (was):
-        was.response.set_etag ('1')
+    def index (context):
+        context.response.set_etag ('1')
         return "1"
 
     @app.route ("/1-1")
-    def index (was):
-        was.response.set_etag ('1', 60)
+    def index (context):
+        context.response.set_etag ('1', 60)
         return "1"
 
     @app.route ("/2")
-    def index2 (was):
-        was.response.set_mtime (1599003756, max_age = 120)
+    def index2 (context):
+        context.response.set_mtime (1599003756, max_age = 120)
         return "1"
 
 

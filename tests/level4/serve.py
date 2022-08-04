@@ -6,7 +6,7 @@ import delune
 import exts.tfserver
 import exts.delune
 import os
-import pwa
+import app
 
 os.environ ['SECRET_KEY'] = 'SECRET_KEY'
 
@@ -22,8 +22,8 @@ if __name__ == '__main__':
         skitai.mount ('/delune', delune, pref)
 
     with skitai.preference () as pref:
-        pref.set_static ('/', 'pwa/static')
+        pref.set_static ('/', 'app/static')
         pref.extends (atila_vue)
-        skitai.mount ('/', pwa, pref, subscribe = ['delune', 'tfserver'])
+        skitai.mount ('/', app, pref, subscribe = ['delune', 'tfserver'])
 
     skitai.run (ip = '0.0.0.0', name = 'big-picture')

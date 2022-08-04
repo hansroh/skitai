@@ -2,7 +2,7 @@ import atila
 
 app = atila.Atila (__name__)
 @app.route ('/')
-def index (was):
+def index (context):
     return 'Hello Atila'
 
 if __name__ == '__main__':

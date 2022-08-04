@@ -11,7 +11,7 @@ I promise your request is processed with very high priority.
 Thanks.
     """
     m.add_content (data, "text/html", "utf8")
-    m.add_attachment (os.path.join (os.path.dirname (__file__), "test_was.py"), cid="AAA")
+    m.add_attachment (os.path.join (os.path.dirname (__file__), "test_context.py"), cid="AAA")
     m.save ("./")
 
     assert m.H ["From"] == '"Tester"<hansroh@xxx.com>'
@@ -28,7 +28,7 @@ Thanks.
     composer.load (m.get_FILENAME ())
     assert m.get_DATA ().endswith ("--\r\n")
     assert "Content-ID: <AAA>" in m.get_DATA ()
-    assert 'filename="test_was.py"' in m.get_DATA ()
+    assert 'filename="test_context.py"' in m.get_DATA ()
     m.remove ()
 
 def test_composer ():

@@ -8,22 +8,22 @@ import time
 def test_route_root (app, dbpath):
     @app.route ("/index")
     @app.require ("URL", ints = ["t"])
-    def index (was, t = 0):
+    def index (context, t = 0):
         t = int (t)
         if t == 0:
-            return was.API ("200 OK")
+            return context.API ("200 OK")
         if t == 1:
-            return was.API ("205 No Content")
+            return context.API ("205 No Content")
         if t == 2:
-            return was.API ("201 Created", {"data": 1})
+            return context.API ("201 Created", {"data": 1})
         if t == 3:
-            return was.API ("201 Created", data = 1)
+            return context.API ("201 Created", data = 1)
         if t == 4:
-            return was.API (data = 1)
+            return context.API (data = 1)
         if t == 5:
-            return was.API ({"data": 1})
+            return context.API ({"data": 1})
         if t == 9:
-            return was.API ("201 Created", {"data": 1}, data = 2)
+            return context.API ("201 Created", {"data": 1}, data = 2)
 
     with app.test_client ("/", confutil.getroot ()) as cli:
         api = cli.api ()

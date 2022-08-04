@@ -1,5 +1,4 @@
-
 def __mount__ (app, mntopt):
     @app.route ("")
-    def index (was):
-        return "sub5"
+    def index (context):
+        return "sub3"

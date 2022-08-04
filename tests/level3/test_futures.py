@@ -12,187 +12,187 @@ def func2 ():
 def test_futures (app, dbpath):
     # IMP: becasue of executor shutdown, run test first
     @app.route ("/")
-    def index (was):
-        def respond (was, rss):
-            return was.response.API (status_code = [rs.status_code for rs in rss.dispatch ()], a = rss.meta ["a"])
+    def index (context):
+        def respond (context, rss):
+            return context.response.API (status_code = [rs.status_code for rs in rss.dispatch ()], a = rss.meta ["a"])
 
         reqs = [
-            was.Mask ("@pypi/project/skitai/"),
-            was.Mask ("@pypi/project/rs4/"),
-            was.Mask ([{'symbol': 'RHAT'}, {'symbol': 'RHAT'}])
+            context.Mask ("@pypi/project/skitai/"),
+            context.Mask ("@pypi/project/rs4/"),
+            context.Mask ([{'symbol': 'RHAT'}, {'symbol': 'RHAT'}])
         ]
-        return was.Tasks (reqs, meta = {'a': 100}).then (respond)
+        return context.Tasks (reqs, meta = {'a': 100}).then (respond)
 
     @app.route ("/1")
-    def index1 (was):
-        def respond (was, task):
-            return was.response.API (status_code = task.dispatch ().status_code, a = task.meta ["a"])
-        return was.Mask ("@pypi/project/skitai/", meta = {'a': 100}).then (respond)
+    def index1 (context):
+        def respond (context, task):
+            return context.response.API (status_code = task.dispatch ().status_code, a = task.meta ["a"])
+        return context.Mask ("@pypi/project/skitai/", meta = {'a': 100}).then (respond)
 
     @app.route ("/1-1")
-    def index1_1 (was):
-        def respond2 (was, task):
-            return was.API (status_code = task.dispatch ().status_code)
-        def respond (was, task):
-            return was.Mask ("@pypi/project/rs4/").then (respond2)
-        return was.Mask ("@pypi/project/skitai/").then (respond)
+    def index1_1 (context):
+        def respond2 (context, task):
+            return context.API (status_code = task.dispatch ().status_code)
+        def respond (context, task):
+            return context.Mask ("@pypi/project/rs4/").then (respond2)
+        return context.Mask ("@pypi/project/skitai/").then (respond)
 
     @app.route ("/2")
-    def index2 (was):
-        def repond (was, rss):
-            return was.response.API (status_code_db = [rs.status_code for rs in rss.dispatch ()], b = rss.meta ['b'], status_code = rss.meta ['status_code'])
+    def index2 (context):
+        def repond (context, rss):
+            return context.response.API (status_code_db = [rs.status_code for rs in rss.dispatch ()], b = rss.meta ['b'], status_code = rss.meta ['status_code'])
 
-        def checkdb (was, rss):
-            reqs = [was.Mask ([{'symbol': 'RHAT'}, {'symbol': 'RHAT'}])]
+        def checkdb (context, rss):
+            reqs = [context.Mask ([{'symbol': 'RHAT'}, {'symbol': 'RHAT'}])]
             rss.meta ['b'] = rss.meta ["a"] + 100
             rss.meta ['status_code'] = [rs.status_code for rs in rss.dispatch ()]
-            return was.Tasks (reqs, meta = rss.meta).then (repond)
+            return context.Tasks (reqs, meta = rss.meta).then (repond)
 
         def begin ():
             reqs = [
-                was.Mask ("@pypi/project/skitai/"),
-                was.Mask ("@pypi/project/rs4/")
+                context.Mask ("@pypi/project/skitai/"),
+                context.Mask ("@pypi/project/rs4/")
             ]
-            return was.Tasks (reqs, meta = {'a': 100}).then (checkdb)
+            return context.Tasks (reqs, meta = {'a': 100}).then (checkdb)
         begin ()
 
     @app.route ("/3")
-    def index3 (was):
-        def respond (was, rss):
+    def index3 (context):
+        def respond (context, rss):
             datas = str (rss [0].fetch ()) + str (rss [1].one ())
             return datas
 
         reqs = [
-            was.Mask ("@pypi/project/rs4/"),
-            was.Mask ([{'symbol': 'RHAT'}])
+            context.Mask ("@pypi/project/rs4/"),
+            context.Mask ([{'symbol': 'RHAT'}])
         ]
-        return was.Tasks (reqs).then (respond)
+        return context.Tasks (reqs).then (respond)
 
     @app.route ("/4")
-    def index4 (was):
-        def respond (was, rss):
+    def index4 (context):
+        def respond (context, rss):
             return str (rss [0].one ())
 
-        reqs = [was.Mask ([])]
-        return was.Tasks (reqs).then (respond)
+        reqs = [context.Mask ([])]
+        return context.Tasks (reqs).then (respond)
 
     @app.route ("/4-1")
-    def index4_1 (was):
-        def respond (was, rs):
+    def index4_1 (context):
+        def respond (context, rs):
             return str (rs.fetch ())
-        req = was.Mask ([])
+        req = context.Mask ([])
         return req.then (respond)
 
     @app.route ("/5")
-    def index5 (was):
+    def index5 (context):
         reqs = [
-            was.Mask ("@pypi/project/rs4/"),
-            was.Mask ([{'symbol': 'RHAT'}, {'symbol': 'RHAT'}])
+            context.Mask ("@pypi/project/rs4/"),
+            context.Mask ([{'symbol': 'RHAT'}, {'symbol': 'RHAT'}])
         ]
-        return str ([rs.fetch () for rs in was.Tasks (reqs)])
+        return str ([rs.fetch () for rs in context.Tasks (reqs)])
 
     @app.route ("/6")
-    def index6 (was):
+    def index6 (context):
         reqs = [
-            was.Mask ("@pypi/project/rs4/"),
-            was.Mask ([{'symbol': 'RHAT'}, {'symbol': 'RHAT'}])
+            context.Mask ("@pypi/project/rs4/"),
+            context.Mask ([{'symbol': 'RHAT'}, {'symbol': 'RHAT'}])
         ]
-        return str (was.Tasks (reqs).fetch ())
+        return str (context.Tasks (reqs).fetch ())
 
     @app.route ("/7")
-    def index7 (was):
+    def index7 (context):
         reqs = [
-            was.Mask ([{'symbol': 'RHAT'}]),
-            was.Mask ([{'symbol': 'RHAT'}])
+            context.Mask ([{'symbol': 'RHAT'}]),
+            context.Mask ([{'symbol': 'RHAT'}])
         ]
-        return str (was.Tasks (reqs).one ())
+        return str (context.Tasks (reqs).one ())
 
     @app.route ("/8")
-    def index8 (was):
+    def index8 (context):
         reqs = [
-            was.Mask ([]),
-            was.Mask ([{'symbol': 'RHAT'}])
+            context.Mask ([]),
+            context.Mask ([{'symbol': 'RHAT'}])
         ]
-        return str (was.Tasks (reqs).one ())
+        return str (context.Tasks (reqs).one ())
 
     @app.route ("/11")
-    def index11 (was):
+    def index11 (context):
         reqs = [
-            was.Mask ([]),
-            was.Mask ([{'symbol': 'RHAT'}])
+            context.Mask ([]),
+            context.Mask ([{'symbol': 'RHAT'}])
         ]
-        return str (was.Tasks (reqs).one ())
+        return str (context.Tasks (reqs).one ())
 
     @app.route ("/12")
-    def index12 (was):
-        a = was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
-        b = was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
+    def index12 (context):
+        a = context.Tasks ([context.Mask ([{'symbol': 'RHAT'}])])
+        b = context.Tasks ([context.Mask ([{'symbol': 'RHAT'}])])
         a.add (b)
         return str (a.one ())
 
     @app.route ("/13")
-    def index13 (was):
-        def respond (was, rss):
+    def index13 (context):
+        def respond (context, rss):
             return str (rss.one ())
-        a = was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
-        b = was.Tasks ([was.Mask ([{'symbol': 'RHAT'}])])
+        a = context.Tasks ([context.Mask ([{'symbol': 'RHAT'}])])
+        b = context.Tasks ([context.Mask ([{'symbol': 'RHAT'}])])
         a.merge (b)
         return a.then (respond)
 
     @app.route ("/14")
-    def index14 (was):
+    def index14 (context):
         reqs = [
-            was.Mask ([]),
-            was.Mask ([{'symbol': 'RHAT'}])
+            context.Mask ([]),
+            context.Mask ([{'symbol': 'RHAT'}])
         ]
-        tasks = was.Tasks (reqs)
-        req = was.Mask ([{'symbol': 'RHAT'}])
-        (a, b), c = was.Tasks ([tasks, req]).fetch ()
+        tasks = context.Tasks (reqs)
+        req = context.Mask ([{'symbol': 'RHAT'}])
+        (a, b), c = context.Tasks ([tasks, req]).fetch ()
         return str ([a,b,c])
 
     @app.route ("/15")
-    def index15 (was):
+    def index15 (context):
         reqs = [
-            was.Mask ([]),
-            was.Mask ([{'symbol': 'RHAT'}])
+            context.Mask ([]),
+            context.Mask ([{'symbol': 'RHAT'}])
         ]
-        tasks = was.Tasks (reqs)
-        req = was.Mask ([{'symbol': 'RHAT'}])
-        mask = was.Mask (['mask'])
-        (a, b), c, d = was.Tasks ([tasks, req, mask]).fetch ()
+        tasks = context.Tasks (reqs)
+        req = context.Mask ([{'symbol': 'RHAT'}])
+        mask = context.Mask (['mask'])
+        (a, b), c, d = context.Tasks ([tasks, req, mask]).fetch ()
         return str ([a, b, c, d])
 
     @app.route ("/16")
-    def index16 (was):
+    def index16 (context):
         reqs = [
-            was.Mask ([]),
-            was.Mask ([{'symbol': 'RHAT'}])
+            context.Mask ([]),
+            context.Mask ([{'symbol': 'RHAT'}])
         ]
-        tasks = was.Tasks (reqs)
-        req = was.Mask ([{'symbol': 'RHAT'}])
-        mask = was.Mask (['mask'])
-        th = was.Thread (func1)
-        ps = was.Process (func2)
-        (a, b), c, d, e, f = was.Tasks ([tasks, req, mask, th, ps]).fetch ()
+        tasks = context.Tasks (reqs)
+        req = context.Mask ([{'symbol': 'RHAT'}])
+        mask = context.Mask (['mask'])
+        th = context.Thread (func1)
+        ps = context.Process (func2)
+        (a, b), c, d, e, f = context.Tasks ([tasks, req, mask, th, ps]).fetch ()
         return str ([a, b, c, d, e, f])
 
     @app.route ("/17")
-    def index17 (was):
+    def index17 (context):
         reqs = [
-            was.Mask ([]),
-            was.Thread (func1) or was.Mask ('thread')
+            context.Mask ([]),
+            context.Thread (func1) or context.Mask ('thread')
         ]
         reqs = [
-            was.Tasks (reqs),
-            was.Mask (['mask']),
-            was.Thread (func1),
-            was.Process (func2)
+            context.Tasks (reqs),
+            context.Mask (['mask']),
+            context.Thread (func1),
+            context.Process (func2)
         ]
-        tasks = was.Tasks (reqs)
-        req = was.Mask ([{'symbol': 'RHAT'}])
-        mask = was.Mask (['mask'])
+        tasks = context.Tasks (reqs)
+        req = context.Mask ([{'symbol': 'RHAT'}])
+        mask = context.Mask (['mask'])
 
-        ((a, b), c, d, e), e, f = was.Tasks ([tasks, req, mask]).fetch ()
+        ((a, b), c, d, e), e, f = context.Tasks ([tasks, req, mask]).fetch ()
         return str ([a, b, c, d, e, f])
 
     with app.test_client ("/", confutil.getroot ()) as cli:
