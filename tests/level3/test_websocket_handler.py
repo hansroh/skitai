@@ -5,7 +5,7 @@ from skitai.handlers import vhost_handler
 import skitai
 import os
 
-def test_websocket_handler (wasc, app, client):
+def test_websocket_handler (Context, app, client):
 	@app.route ("/echo")
 	def echo (was, message):
 		if was.wsinit ():

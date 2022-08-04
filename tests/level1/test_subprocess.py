@@ -7,11 +7,11 @@ from rs4 import logger
 def foo (task):
     assert b'total' in task.fetch ()
 
-def test_subprocess (wasc):
+def test_subprocess (Context):
     def callback (was, task):
         assert not task.fetch ()
 
-    was = wasc ()
+    was = Context ()
     task = was.Subprocess ('ls -al')
     assert 'total' in task.fetch ()
 

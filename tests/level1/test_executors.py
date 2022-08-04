@@ -9,11 +9,11 @@ def foo (a):
 def foo2 (a):
     xx
 
-def test_was_requests (wasc):
+def test_was_requests (Context):
     def callback (was, task):
         assert not task.fetch ()
 
-    was = wasc ()
+    was = Context ()
     future = was.Thread (foo, 'hello')
     assert future.result () == "echo:hello"
     data = was.Thread (foo, 'hello').returning ("then")
@@ -23,9 +23,9 @@ def test_was_requests (wasc):
     data = was.Process (foo, 'hello').returning ("then")
     assert data == "then"
 
-def test_was_requests2 (wasc):
+def test_was_requests2 (Context):
 
-    was = wasc ()
+    was = Context ()
     for i in range (10):
         future = was.Thread (foo, 'hello')
     assert future.result () == "echo:hello"

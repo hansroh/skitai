@@ -547,11 +547,11 @@ See generating logs.
 
 `after_request_callback` spec is:
 ```python
-def after_request_callback (was, content, exc_info = None):
+def after_request_callback (context, content, exc_info = None):
   ...
   if not has_hooks and not depends:
-    return was.send_content_async (content)
-  was.thread_executor.submit (postprocess, was, content, exc_info, depends, hooks)
+    return context.send_content_async (content)
+  context.thread_executor.submit (postprocess, context, content, exc_info, depends, hooks)
 ```
 
 
@@ -573,6 +573,8 @@ Refer [usage](https://gitlab.com/skitai/atila/-/blob/master/atila/executors/wsgi
 
 
 # Change Log
+- 0.49 (Aug, 2022)
+  - change `was` conventional argument into `context`
 
 - 0.48 (Jul, 2022)
   - add `skitai.add_async_task (coro, after_request_callback = None, response_callback = None)`

@@ -27,7 +27,7 @@ def api (was, x):
     return was.API (y1 = (pred [0].tolist ()), y2 = (pred [0].tolist ()))
 
 @app.before_mount
-def before_mount (wasc):
+def before_mount (Context):
     from dnn.processing.image import face
     face.register_to_tfserver ('RETINAFACE')
 

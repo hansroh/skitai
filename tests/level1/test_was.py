@@ -10,7 +10,7 @@ import shutil
 from rs4 import pathtool
 import time
 
-def test_was (wasc, app, client):
+def test_was (Context, app, client):
     @app.route ("/do6/<u>")
     def index6 (was, u = "hansroh"):
         return z (was)
@@ -30,7 +30,7 @@ def test_was (wasc, app, client):
     pref = skitai.pref ()
     pref.config.MEDIA_URL = '/my/media/'
     vh.add_route ("default", ("/", app, root), pref)
-    was = wasc ()
+    was = Context ()
     was.app = app
 
     with pytest.raises (AssertionError):

@@ -7,7 +7,7 @@ import pytest
 from skitai.testutil import offline as testutil
 
 @pytest.fixture
-def handler (wasc):
+def handler (Context):
 	return testutil.install_vhost_handler ()
 
 @pytest.fixture
