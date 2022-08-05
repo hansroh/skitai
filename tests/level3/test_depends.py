@@ -7,7 +7,7 @@ import time
 def test_error_handler (app):
     def inspect (context):
         if int (context.request.args ["limit"]) != 100:
-            raise context.Error ("400 Bad Request")
+            raise context.HttpError ("400 Bad Request")
 
     def alter1 (context, response):
         response ["b"] = 200
@@ -25,7 +25,7 @@ def test_error_handler (app):
 
     async def inspecta (context):
         if int (context.request.args ["limit"]) != 100:
-            raise context.Error ("400 Bad Request")
+            raise context.HttpError ("400 Bad Request")
 
     async def alter1a (context):
         app.g.K = 600

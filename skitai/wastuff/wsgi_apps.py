@@ -148,7 +148,7 @@ class Module:
     def run_hook (self, fn, app):
         # IMP: sync atila.app.services.run_hook ()
         def display_warning ():
-            warn (f'use {fn.__name__} (context, app, mntopt)', DeprecationWarning)
+            warn (f'use {fn.__name__} (context, app, opts)', DeprecationWarning)
 
         nargs = len (inspect.getfullargspec (fn).args)
         as_proto = fn.__name__ in ("__setup__", "__umounted__")
@@ -157,13 +157,13 @@ class Module:
             args = (app,)
         elif nargs == 2:
             display_warning ()
-            args = (app, self.build_mntopt (as_proto))
+            args = (app, self.build_opts (as_proto))
         elif nargs == 3:
-            options = self.build_mntopt (as_proto)
+            options = self.build_opts (as_proto)
             args = (options ["Context"] if as_proto else options ["context"], app, options)
         self.wasc.execute_function (fn, args)
 
-    def build_mntopt (self, as_proto):
+    def build_opts (self, as_proto):
         d = dict (
             point = self.route,
             base_dir = self.directory,
@@ -462,13 +462,12 @@ class ModuleManager:
     def cleanup (self):
         self.wasc.logger ("app", "[info] cleanup apps")
         for route, module in list(self.modules.items ()):
-            try:
-                self.wasc.logger ("app", "[info] ..cleanup app: %s" % route)
-                module.cleanup ()
-            except AttributeError:
-                pass
-            except:
-                self.wasc.logger.trace ("app")
+            self.wasc.logger ("app", "[info] ..cleanup app: %s" % route)
+            for each in module:
+                try:
+                    each.cleanup ()
+                except:
+                    self.wasc.logger.trace ("app")
 
     def status (self):
         d = {}

@@ -41,7 +41,7 @@ def test_success (app):
         await asyncio.sleep (1)
         err == "var" and xx
         if err == "http":
-            raise context.Error ("600 Error")
+            raise context.HttpError ("600 Error")
         return context.API (x = 100)
 
     def sleep ():
@@ -54,7 +54,7 @@ def test_success (app):
         task = yield context.Thread (sleep)
         err == "var" and xx
         if err == "http":
-            raise context.Error ("600 Error")
+            raise context.HttpError ("600 Error")
         return context.API (x = task.fetch ())
 
     N = 3

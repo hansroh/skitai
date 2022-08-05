@@ -539,9 +539,6 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
             if hasattr (mod, "bootstrap"): # lower version compat
                 mod.__config__ = mod.bootstrap
                 del mod.bootstrap
-            if hasattr (mod, "__setup__"): # lower version compat
-                mod.__config__ = mod.__setup__
-                del mod.__setup__
             hasattr (mod, "__config__") and mod.__config__ (pref)
 
     maybe_django (target, appname)
