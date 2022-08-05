@@ -13,13 +13,13 @@ TARGET = "example.com" if os.getenv ("GITLAB_CI") else "192.168.0.154:6001"
 
 app = Atila (__name__, __file__)
 
-async def __setup__ (app, mntopt):
+async def __setup__ (context, app, mntopt):
     app.rpool = requests.Pool (200)
     app.spool = pg2.Pool (200, "skitai", "skitai", "12345678")
     if not os.getenv ("GITLAB_CI"): # Permission denied: '/root/.postgresql/postgresql.key
         app.apool = await asyncpg.create_pool (user='skitai', password='12345678', database='skitai', host='127.0.0.1', min_size=1, max_size=20)
 
-async def __umounted__ (app):
+async def __umounted__ (context, app, mntopt):
     app.spool.close ()
     if not os.getenv ("GITLAB_CI"):
         await app.apool.close ()
