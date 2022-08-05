@@ -9,8 +9,8 @@ def test_error_handler (app):
         if not perms:
             return
         if "admin" in perms:
-            raise context.Error ("402 Permission Denied")
-        raise context.Error ("403 Permission Denied")
+            raise context.HttpError ("402 Permission Denied")
+        raise context.HttpError ("403 Permission Denied")
 
     @app.route ("/")
     @app.permission_required ()

@@ -12,7 +12,7 @@ def test_error_handler (app):
     @app.route ("/b")
     @app.require ("URL", ["limit"])
     def indexb (context, limit):
-        raise context.Error ("422 Bad Request")
+        raise context.HttpError ("422 Bad Request")
 
     with app.test_client ("/", confutil.getroot ()) as cli:
         app.expose_spec = True

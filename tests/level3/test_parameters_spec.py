@@ -92,7 +92,7 @@ def test_spec1 (app):
     def verify (context, d):
         if d == True:
             return 777
-        raise context.Error ("444 Bad Request")
+        raise context.HttpError ("444 Bad Request")
 
     @app.route ("/18")
     @app.spec (d = verify)

@@ -13,13 +13,13 @@ def test_default_error_handler (app):
     @app.route ("/f1")
     def f1 (context):
         def respond (context, rss):
-            raise context.Error ("414 Not Found")
+            raise context.HttpError ("414 Not Found")
         reqs = [context.Mask ("@pypi/project/rs4/")]
         return context.Tasks (reqs).then (respond)
 
     @app.route ("/f2")
     def f2 (context):
-        raise context.Error ("414 Not Found")
+        raise context.HttpError ("414 Not Found")
 
     with app.test_client ("/", confutil.getroot ()) as cli:
         api = cli.api ("/")
