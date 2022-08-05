@@ -16,11 +16,11 @@ def test_route_empty (app):
 
     @app.route ("/3")
     def index3 (context):
-        assert 1 == 0, context.Error ('488 Error', 'asdada')
+        assert 1 == 0, context.HttpError ('488 Error', 'asdada')
 
     @app.route ("/4")
     def index3 (context):
-        assert False, context.Error ('488 Not My Fault', 'asdada')
+        assert False, context.HttpError ('488 Not My Fault', 'asdada')
 
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
