@@ -326,6 +326,11 @@ def test_spec2 (app):
     def index22 (context, d, k = 1):
         return context.API (r = d)
 
+    @app.route ("/22-1", methods = ["GET", "POST"])
+    @app.spec
+    def index22_1 (context, d, k = 1):
+        return context.API (r = d)
+
     def check (context):
         assert isinstance (context.request.args ["limit"], int)
 
@@ -360,7 +365,10 @@ def test_spec2 (app):
         resp = cli.post ("22?d=777", {"k": 2})
         assert resp.status_code == 400
 
-        resp = cli.post ("22?d=777", {"k": 2})
+        resp = cli.post ("22-1", {"d": 777, "k": 2})
+        assert resp.status_code == 200
+
+        resp = cli.post ("22-1?d=777", {"k": 2})
         assert resp.status_code == 400
 
         resp = cli.get ("23?id=777&limit=10")
