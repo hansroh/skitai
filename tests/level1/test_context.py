@@ -81,10 +81,17 @@ def test_was (Context, app, client):
         def __init__ (self, *args):
             self.args = args
     context.response = Response
+
     r = context.redirect ("/to")
     assert r.args [0].startswith ("302 ")
     assert r.args [1].startswith ("<html>")
     assert ('Location', '/to') in r.args [2]
+
+    r = context.redirect ("301 Redirect", "/to")
+    assert r.args [0].startswith ("301 ")
+    assert r.args [1].startswith ("<html>")
+    assert ('Location', '/to') in r.args [2]
+
     context.render ("index.html").startswith ('<!DOCTYPE html>')
 
     assert isinstance (context.email ("test", "a@anv.com", "b@anv.com"), composer.Composer)
