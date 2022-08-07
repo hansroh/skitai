@@ -11,7 +11,7 @@ def memory_usage ():
     return mem
 
 def test_app (launch):
-    if not os.path.isdir ('../../atila'):
+    if os.getenv ('GITLAB_CI'):
         return
     with launch ("./examples/app2.py") as engine:
         beginwith = memory_usage ()
