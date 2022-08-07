@@ -151,7 +151,7 @@ class Module:
             warn (f'use {fn.__name__} (context, app, opts)', DeprecationWarning)
 
         nargs = len (inspect.getfullargspec (fn).args)
-        as_proto = fn.__name__ in ("__setup__", "__umounted__")
+        as_proto = fn.__name__ in ('__setup__', '__umounted__')
         if nargs == 1:
             display_warning ()
             args = (app,)
