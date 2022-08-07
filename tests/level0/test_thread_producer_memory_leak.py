@@ -11,6 +11,8 @@ def memory_usage ():
     return mem
 
 def test_app (launch):
+    if not os.path.isdir ('../../atila'):
+        return
     with launch ("./examples/app2.py") as engine:
         beginwith = memory_usage ()
         for i in range (REPEAT):
