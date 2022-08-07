@@ -95,7 +95,7 @@ def setup_was (wasc, enable_async = False):
     return wasc
 
 wasc = None
-def activate (make_sync = True, enable_async = False):
+def activate (enable_async = False):
     from ...wsgiappservice import WAS
     from atila import was as atila_was
     from skitai.tasks import utils

@@ -68,7 +68,7 @@ def server ():
 
 @pytest.fixture
 def Context ():
-    offline.activate (make_sync = True)
+    offline.activate ()
     Context = offline.wasc
     yield Context
     Context.cleanup ()
