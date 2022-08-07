@@ -17,5 +17,5 @@ def test_app (launch):
             resp = engine.get ('/threaproducer?n=200&max_size=20')
             assert resp.status_code == 200
             assert len (resp.data) == 100000
-            assert memory_usage () - beginwith < 135168
-        assert memory_usage () - beginwith < 135168
+            assert memory_usage () - beginwith < 20000
+        assert memory_usage () - beginwith < 20000
