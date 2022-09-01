@@ -3,7 +3,7 @@ from . import sub, sub2, sub10
 def __request__ (context, app, opts):
     context.request.g.K = [1]
 
-def __ok__ (context, app, opts, content):
+def __wrapup__ (context, app, opts, content):
     pass
 
 def __error__ (context, app, opts, exception):

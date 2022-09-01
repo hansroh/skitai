@@ -3,7 +3,7 @@ from . import sub3, sub4
 def __request__ (context, app, opts):
     context.request.g.K.append (2)
 
-def __ok__ (context, app, opts, content):
+def __wrapup__ (context, app, opts, content):
     content += "-trailer"
     return content
 
