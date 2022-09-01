@@ -26,4 +26,4 @@ if __name__ == '__main__':
         pref.extends (atila_vue)
         skitai.mount ('/', app, pref, subscribe = ['delune', 'tfserver'])
 
-    skitai.run (ip = '0.0.0.0', name = 'big-picture')
+    skitai.run (ip = '0.0.0.0', name = 'big-picture', tasks = 4)

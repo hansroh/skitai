@@ -16,15 +16,15 @@ def test_webtest_unsecure (launch):
 
         resp = engine.get ('/sub2')
         assert resp.status_code == 200
-        assert resp.text == 'sub2'
+        assert resp.text == 'sub2-trailer'
 
         resp = engine.get ('/sub2/sub3')
         assert resp.status_code == 200
-        assert resp.text == 'sub3'
+        assert resp.text == 'sub3-trailer'
 
         resp = engine.get ('/sub2/sub4')
         assert resp.status_code == 200
-        assert resp.text == 'sub4'
+        assert resp.text == 'sub4-async-trailer'
 
         resp = engine.get ('/sub10')
         assert resp.status_code == 200
