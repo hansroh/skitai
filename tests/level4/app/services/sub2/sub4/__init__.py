@@ -1,7 +1,7 @@
 async def __request__ (context, app, opts):
     context.request.g.K.append (4)
 
-async def __ok__ (context, app, opts, content):
+async def __wrapup__ (context, app, opts, content):
     content += "-async"
     return content
 
