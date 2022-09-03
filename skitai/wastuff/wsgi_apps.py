@@ -463,6 +463,8 @@ class ModuleManager:
         self.wasc.logger ("app", "[info] cleanup apps")
         for route, module in list(self.modules.items ()):
             self.wasc.logger ("app", "[info] ..cleanup app: %s" % route)
+            if not isinstance (module, (list, tuple)):
+                module = [module]
             for each in module:
                 try:
                     each.cleanup ()

@@ -856,7 +856,8 @@ def run (**conf):
             _poll and use_poll (_poll)
 
             _tasks = int (options.get ('--tasks') or conf.get ('tasks', 0))
-            _tasks and enable_async (_tasks)
+            if _tasks:
+                conf ['enable_async'] = _tasks
 
             workers = int (options.get ('--workers') or conf.get ('workers', 1))
             threads = int (options.get ('--threads') or conf.get ('threads', 4))
