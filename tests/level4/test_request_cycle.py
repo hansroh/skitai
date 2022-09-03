@@ -1,4 +1,9 @@
 def test_request_cycle (launch):
+    try:
+        import tfserver
+    except ImportError:
+        return
+
     serve = './level4/serve.py'
     with launch (serve, port = 30371) as engine:
         resp = engine.get ('/')
