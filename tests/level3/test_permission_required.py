@@ -9,12 +9,17 @@ def test_error_handler (app):
         if not perms:
             return
         if "admin" in perms:
-            raise context.Error ("402 Permission Denied")
-        raise context.Error ("403 Permission Denied")
+            raise context.HttpError ("402 Permission Denied")
+        raise context.HttpError ("403 Permission Denied")
 
     @app.route ("/")
     @app.permission_required ()
     def index (context):
+        return ""
+
+    @app.route ("/0")
+    @app.permission_required
+    def index0 (context):
         return ""
 
     @app.route ("/1")
@@ -34,6 +39,9 @@ def test_error_handler (app):
 
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
+        assert resp.status_code == 200
+
+        resp = cli.get ("/0")
         assert resp.status_code == 200
 
         resp = cli.get ("/1")

@@ -107,7 +107,7 @@ class Handler (wsgi_handler.Handler):
             request.env = env # IMP
             env ["wsgi.routed"] = wsfunc = current_app.get_routed (method)
             env ["wsgi.route_options"] = options
-            fspec = app.get_function_spec (wsfunc, options.get ('mntopt')) or inspect.getfullargspec (wsfunc)
+            fspec = app.get_function_spec (wsfunc, options.get ('opts')) or inspect.getfullargspec (wsfunc)
             savedqs = env.get ('QUERY_STRING', '')
             current_args = {}
             defaults = 0

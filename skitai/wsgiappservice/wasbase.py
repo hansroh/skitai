@@ -49,11 +49,12 @@ class WASBase (_WASType):
     init_time = time.time ()
     cloned = False
 
-    @classmethod
-    def get_lock (cls, name = "__main__"):
-        return cls._process_locks [hash (name) % 8]
+    def __init__ (self):
+        delattr (self, 'register')
+        delattr (self, 'unregister')
+        delattr (self, 'cleanup')
 
-    # application friendly methods -----------------------------------------
+    # class only methods ---------------------------------
     @classmethod
     def register (cls, name, obj):
         if hasattr (cls, name):
@@ -65,13 +66,6 @@ class WASBase (_WASType):
     def unregister (cls, name):
         del cls.objects [name]
         return delattr (cls, name)
-
-    @classmethod
-    def add_handler (cls, back, handler, *args, **karg):
-        h = handler (cls, *args, **karg)
-        if hasattr (cls, "httpserver"):
-            cls.httpserver.install_handler (h, back)
-        return h
 
     @classmethod
     def cleanup (cls, phase = 0):
@@ -95,6 +89,18 @@ class WASBase (_WASType):
 
             del cls.objects [attr]
             del obj
+
+    # class methods -----------------------------------------
+    @classmethod
+    def get_lock (cls, name = "__main__"):
+        return cls._process_locks [hash (name) % 8]
+
+    @classmethod
+    def add_handler (cls, back, handler, *args, **karg):
+        h = handler (cls, *args, **karg)
+        if hasattr (cls, "httpserver"):
+            cls.httpserver.install_handler (h, back)
+        return h
 
     @classmethod
     def execute_function (cls, func, args = (), kargs = {}):

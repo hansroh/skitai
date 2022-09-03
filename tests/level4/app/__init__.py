@@ -11,7 +11,7 @@ def __app__ ():
     app.mount ('/', services)
     return app
 
-def __mount__ (app, mntopt):
+def __mount__ (context, app, opts):
     @app.route ('/urlspecs')
     def urlspecs (context):
         return context.API (urlspecs = context.app.get_urlspecs ())

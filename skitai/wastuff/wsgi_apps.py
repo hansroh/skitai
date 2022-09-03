@@ -1,10 +1,7 @@
 import inspect
-import asyncio
-import os, sys, re, types, time
-from rs4  import pathtool, importer, evbus
+import os, sys, time
+from rs4  import importer
 from rs4.termcolor import tc
-import threading
-from types import FunctionType as function
 import copy
 from .. import lifetime
 import inspect
@@ -14,6 +11,7 @@ from urllib.parse import unquote
 import skitai
 import time
 from .django_reloader import DjangoReloader
+from warnings import warn
 
 def set_default (cf):
     cf.MAX_UPLOAD_SIZE = 256 * 1024 * 1024
@@ -123,17 +121,9 @@ class Module:
         elif "max_multipart_body_size" in app.config:
             app.config.MAX_UPLOAD_SIZE = app.config.max_multipart_body_size
 
-        mntopt = {
-            'point': self.route,
-            'base_dir': self.directory,
-            'use_reloader': self.use_reloader,
-            'debug': self.debug,
-            'wasc': self.wasc
-        }
-
         hasattr (app, "set_wasc") and app.set_wasc (self.wasc)
-        hasattr (self.app_initer, '__setup__') and self.wasc.execute_function (self.app_initer.__setup__, (app, mntopt))
-        hasattr (self.app_initer, '__mount__') and self.wasc.execute_function (self.app_initer.__mount__, (app, mntopt))
+        hasattr (self.app_initer, '__setup__') and self.run_hook (self.app_initer.__setup__, (app))
+        hasattr (self.app_initer, '__mount__') and self.run_hook (self.app_initer.__mount__, (app))
         hasattr (app, "set_home") and app.set_home (os.path.dirname (self.abspath), self.module)
         hasattr (app, "commit_events_to") and app.commit_events_to (self.bus)
 
@@ -153,7 +143,38 @@ class Module:
             func (self.wasc, self.route)
             self.wasc.handler = None
 
-        hasattr (self.app_initer, '__mounted__') and self.wasc.execute_function (self.app_initer.__mounted__, (app, mntopt))
+        hasattr (self.app_initer, '__mounted__') and self.run_hook (self.app_initer.__mounted__, (app))
+
+    def run_hook (self, fn, app):
+        # IMP: sync atila.app.services.run_hook ()
+        def display_warning ():
+            warn (f'use {fn.__name__} (context, app, opts)', DeprecationWarning)
+
+        nargs = len (inspect.getfullargspec (fn).args)
+        as_proto = fn.__name__ in ('__setup__', '__umounted__')
+        if nargs == 1:
+            display_warning ()
+            args = (app,)
+        elif nargs == 2:
+            display_warning ()
+            args = (app, self.build_opts (as_proto))
+        elif nargs == 3:
+            options = self.build_opts (as_proto)
+            args = (options ["Context"] if as_proto else options ["context"], app, options)
+        self.wasc.execute_function (fn, args)
+
+    def build_opts (self, as_proto):
+        d = dict (
+            point = self.route,
+            base_dir = self.directory,
+            use_reloader = self.use_reloader,
+            debug = self.debug
+        )
+        if as_proto:
+            d ["Context"] = self.wasc
+        else:
+            d ["context"] = self.wasc ()
+        return d
 
     def before_mount (self):
         app = self.app or getattr (self.module, self.appname)
@@ -167,12 +188,12 @@ class Module:
     def before_umount (self):
         app = self.app or getattr (self.module, self.appname)
         self.has_life_cycle and app.life_cycle ("before_umount", self.wasc ())
-        hasattr (self.app_initer, '__umount__') and self.wasc.execute_function (self.app_initer.__umount__, (app,))
+        hasattr (self.app_initer, '__umount__') and self.run_hook (self.app_initer.__umount__, (app))
 
     def umounted (self):
         app = self.app or getattr (self.module, self.appname)
         self.has_life_cycle and app.life_cycle ("umounted", self.wasc)
-        hasattr (self.app_initer, '__umounted__') and self.wasc.execute_function (self.app_initer.__umounted__, (app,))
+        hasattr (self.app_initer, '__umounted__') and self.run_hook (self.app_initer.__umounted__, (app))
 
     def cleanup (self):
         app = self.app or getattr (self.module, self.appname)
@@ -231,7 +252,7 @@ class Module:
         stat = os.stat (self.abspath)
         if self.file_info != (stat.st_mtime, stat.st_size):
             oldapp = self.app or getattr (self.module, self.appname)
-            hasattr (self.app_initer, '__reload__') and self.wasc.execute_function (self.app_initer.__reload__, (oldapp,))
+            hasattr (self.app_initer, '__reload__') and self.run_hook (self.app_initer.__reload__, (oldapp))
             self.has_life_cycle and oldapp.life_cycle ("before_reload", self.wasc ())
 
             try:
@@ -265,7 +286,7 @@ class Module:
                 setattr (newapp, attr, value)
 
             # reloaded
-            hasattr (self.app_initer, '__reloaded__') and self.wasc.execute_function (self.app_initer.__reloaded__, (newapp,))
+            hasattr (self.app_initer, '__reloaded__') and self.run_hook (self.app_initer.__reloaded__, (newapp))
             self.has_life_cycle and newapp.life_cycle ("reloaded", self.wasc ())
             self.has_life_cycle and newapp.life_cycle ("mounted_or_reloaded", self.wasc ())
             self.last_reloaded = time.time ()
@@ -441,13 +462,14 @@ class ModuleManager:
     def cleanup (self):
         self.wasc.logger ("app", "[info] cleanup apps")
         for route, module in list(self.modules.items ()):
-            try:
-                self.wasc.logger ("app", "[info] ..cleanup app: %s" % route)
-                module.cleanup ()
-            except AttributeError:
-                pass
-            except:
-                self.wasc.logger.trace ("app")
+            self.wasc.logger ("app", "[info] ..cleanup app: %s" % route)
+            if not isinstance (module, (list, tuple)):
+                module = [module]
+            for each in module:
+                try:
+                    each.cleanup ()
+                except:
+                    self.wasc.logger.trace ("app")
 
     def status (self):
         d = {}
