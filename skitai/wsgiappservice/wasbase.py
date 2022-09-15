@@ -177,6 +177,8 @@ class WASBase (_WASType):
 
     # system functions ----------------------------------------------
     def log (self, msg, category = "info", at = "app"):
+        if category == "debug" and not skitai.isdevel ():
+            return
         self.logger (at, msg, "%s:%s" % (category, self.txnid ()))
 
     def traceback (self, id = "", at = "app"):
