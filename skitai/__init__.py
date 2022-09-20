@@ -641,14 +641,14 @@ def enable_file_logging (path = None, kinds = None):
     # loggings : request, server and app
     global dconf
     dconf ['logpath'] = path
-    dconf ['file_loggings'] = ['request', 'server', 'app'] if kinds is None else kinds
+    dconf ['file_loggings'] = ['request', 'server', 'app'] if (kinds is None or kinds == 'all') else kinds
 
 def mount_variable (path = None, enable_logging = False):
     global dconf
     if path:
         dconf ['varpath'] = path
     if enable_logging:
-        enable_file_logging (os.path.join (path, 'log'), "all" if enable_logging is True else enable_logging)
+        enable_file_logging (os.path.join (path, 'log'), None if enable_logging is True else enable_logging)
 
 def set_access_log_path (path = None):
     enable_file_logging (path, ['request'])
