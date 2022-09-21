@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.50.4"
+__version__ = "0.50.5"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -49,6 +49,27 @@ argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback worke
 argopt.add_option (None, '--smtpda', desc = "start SMTP delivery agent")
 argopt.add_option (None, '--autoconf', desc = "generate basic configuration")
 
+dconf = dict (
+    mount = {"default": []},
+    mount_onfly = {"default": []},
+    max_ages = {},
+    log_off = [],
+    dns_protocol = 'tcp',
+    models_keys = set (),
+    wasc_options = {},
+    backlog = 256,
+    max_upload_size = 256 * 1024 * 1024, # 256Mb
+    subscriptions = set (),
+    background_jobs = [],
+    media_url = None,
+    media_path = None,
+    enable_async = False,
+)
+
+def background_task (procname, cmd):
+    global dconf
+    dconf ['background_jobs'].append ((procname, cmd))
+
 # IMP: DO NOT USE argopt.options ()
 if '--deploy' in sys.argv:
     assert '--devel' not in argopt.options (), "--devel is not allowed if --deploy is given"
@@ -59,13 +80,19 @@ if os.getenv ("SKITAIENV") is None:
     os.environ ["SKITAIENV"] = "PRODUCTION"
 
 SMTP_STARTED = False
-if "--smtpda" in sys.argv and os.name != 'nt':
-    os.system ("{} -m skitai.scripts.skitai smtpda start".format (sys.executable))
+def run_smtpda ():
+    global SMTP_STARTED
+    if SMTP_STARTED:
+        return
+    background_task ("smtpda", "{} -m skitai.scripts.skitai smtpda".format (sys.executable))
     SMTP_STARTED = True
+
+if "--smtpda" in sys.argv and os.name != 'nt':
+    run_smtpda ()
 
 def set_smtp (server, user = None, password = None, ssl = False, start_service = False):
     composer.set_default_smtp (server, user, password, ssl)
-    start_service and not SMTP_STARTED and os.system ("{} -m skitai.scripts.skitai smtpda start".format (sys.executable))
+    run_smtpda ()
 
 def test_client (*args, **kargs):
     from .testutil.launcher import Launcher
@@ -340,23 +367,6 @@ def allocate_gpu ():
     os.environ ["NVIDIA_VISIBLE_DEVICES"] = os.environ ["CUDA_VISIBLE_DEVICES"] = current_gpu
 
 # Configure --------------------------------------------
-dconf = dict (
-    mount = {"default": []},
-    mount_onfly = {"default": []},
-    max_ages = {},
-    log_off = [],
-    dns_protocol = 'tcp',
-    models_keys = set (),
-    wasc_options = {},
-    backlog = 256,
-    max_upload_size = 256 * 1024 * 1024, # 256Mb
-    subscriptions = set (),
-    background_jobs = [],
-    media_url = None,
-    media_path = None,
-    enable_async = False,
-)
-
 def preference (preset = False, path = None, **configs):
     from .wastuff.wsgi_apps import Config
     d = Preference (path and abspath (path) or None)
@@ -412,10 +422,6 @@ def enable_async (pool = 8):
     global dconf
     assert isinstance (pool, int)
     dconf ['enable_async'] = pool
-
-def background_task (procname, cmd):
-    global dconf
-    dconf ['background_jobs'].append ((procname, cmd))
 
 def use_poll (name):
     from rs4 import asyncore
@@ -641,14 +647,14 @@ def enable_file_logging (path = None, kinds = None):
     # loggings : request, server and app
     global dconf
     dconf ['logpath'] = path
-    dconf ['file_loggings'] = ['request', 'server', 'app'] if kinds is None else kinds
+    dconf ['file_loggings'] = ['request', 'server', 'app'] if (kinds is None or kinds == 'all') else kinds
 
 def mount_variable (path = None, enable_logging = False):
     global dconf
     if path:
         dconf ['varpath'] = path
     if enable_logging:
-        enable_file_logging (os.path.join (path, 'log'), "all" if enable_logging is True else enable_logging)
+        enable_file_logging (os.path.join (path, 'log'), None if enable_logging is True else enable_logging)
 
 def set_access_log_path (path = None):
     enable_file_logging (path, ['request'])
@@ -977,7 +983,6 @@ def run (**conf):
     working_dir = getswd ()
     lockpath = conf ["varpath"]
     servicer = service.Service (get_proc_title(), working_dir, lockpath, Win32Service)
-
     if cmd and not servicer.execute (cmd, SERVICE_USER, SERVICE_GROUP):
         return
     if not cmd:
@@ -987,7 +992,6 @@ def run (**conf):
     elif cmd in ("start", "restart"):
         if conf.get ('logpath'): # not systemd, enable app, server logging
             conf ['file_loggings'] = ['request', 'server', 'app']
-        sys.stderr = open (os.path.join (conf.get ('varpath'), "{}.stderr".format (conf ["name"])), "a")
 
     server = SkitaiServer (conf)
     # mount additionals while mounting apps and mount apps
