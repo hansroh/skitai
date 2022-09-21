@@ -9,7 +9,7 @@ import asyncio
 import os
 from atila.collabo import requests
 
-TARGET = "example.com" if os.getenv ("GITLAB_CI") else "192.168.0.154:6001"
+TARGET = "example.com" if os.getenv ("GITLAB_CI") else "192.168.0.154:5500"
 
 app = Atila (__name__, __file__)
 
