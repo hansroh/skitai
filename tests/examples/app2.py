@@ -1,7 +1,10 @@
 from atila import Atila
 import time, math
 import json
-from services import route_guide_pb2
+try:
+    from services import route_guide_pb2
+except ImportError:
+    from services import route_guide_pb2_v3 as route_guide_pb2
 import os
 import types
 import threading

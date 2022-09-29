@@ -1,7 +1,10 @@
 from rs4.protocols.sock.impl.http import request
 from rs4.protocols.sock.impl.grpc import request as grpc_request
 from rs4.protocols.sock.impl.ws import request as ws_request
-from examples.services import route_guide_pb2
+try:
+	from examples.services import route_guide_pb2
+except ImportError:
+	from examples.services import route_guide_pb2_v3 as route_guide_pb2
 
 def test_request_attrs ():
 	point = route_guide_pb2.Point (latitude=409146138, longitude=-746188906)
