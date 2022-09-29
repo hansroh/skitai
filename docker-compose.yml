@@ -9,6 +9,7 @@ services:
       dockerfile: Dockerfile
     environment:
       MYDB: "skitai:12345678@postgres/skitai"
+      PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: python
     user: ubuntu
     ports:
       - "5000:5000"

@@ -1,5 +1,6 @@
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: python
 
 .postgres_install: &postgres_install
   - apt install -y postgresql postgresql-contrib
@@ -75,8 +76,6 @@ python 3.8:
 
 python 3.9:
   image: python:3.9-buster
-  variables:
-    PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: python
   <<: *before_python_notf_test
   <<: *test
   only:
@@ -84,8 +83,6 @@ python 3.9:
 
 python 3.10:
   image: python:3.10-buster
-  variables:
-    PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: python
   <<: *before_python_notf_test
   <<: *test
   only:
