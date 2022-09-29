@@ -1,5 +1,8 @@
 from atila import Atila
-from services import route_guide_pb2
+try:
+    from services import route_guide_pb2
+except ImportError:
+    from services import route_guide_pb2_v3 as route_guide_pb2
 import time
 import atila
 
