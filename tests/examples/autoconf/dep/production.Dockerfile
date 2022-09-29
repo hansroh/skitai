@@ -12,4 +12,4 @@ COPY ./pwa ./pwa
 COPY ./skitaid.py ./skitaid.py
 
 EXPOSE 5000
-ENTRYPOINT ["./dep/production.sh"]
+CMD ["./dep/production.sh"]

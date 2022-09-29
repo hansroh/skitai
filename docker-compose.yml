@@ -3,10 +3,12 @@ version: '3.3'
 services:
   skitai:
     image: skitai
-    container_name: skitai
+    container_name: skitai-dev
     build:
       context: .
       dockerfile: Dockerfile
+    environment:
+      MYDB: "skitai@postgres/skitai"
     user: ubuntu
     ports:
       - "5000:5000"
@@ -17,3 +19,40 @@ services:
     tty: true
     entrypoint:
       - /bin/bash
+
+  postgres:
+    image: postgres:13-alpine
+    container_name: skitai-postgres
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: "skitai"
+      POSTGRES_USER: "skitai"
+      POSTGRES_PASSWORD: "12345678"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  h2load:
+    image: hansroh/h2load
+    container_name: skitai-h2load
+    stdin_open: true
+    tty: true
+    entrypoint:
+      - /bin/bash
+
+networks:
+  skitai:
+
+volumes:
+  pgdata:
+
+# AFTER CONTAINER CREATED
+# -----------------------------------------------------
+# docker attach skitai-dev
+# cd libs/skitai/benchmark/bench
+# ./manage.py migrate
+# python3 init_db.py
+# cd libs/skitai/tools/docker
+# ./install-libs.sh
+# -----------------------------------------------------
