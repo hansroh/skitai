@@ -1,11 +1,10 @@
+import os
 import pytest
 import skitai
-import os
 import json
 import requests
 from rs4 import pathtool
 import pickle
-import pytest
 import shutil
 import time
 import sys

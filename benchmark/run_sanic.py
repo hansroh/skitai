@@ -29,7 +29,7 @@ async def startup(app, loop):
     pool = await asyncpg.create_pool (user=user, password=passwd, database=database, host=host, max_size = 10)
     _connector = aiohttp.connector.TCPConnector(limit = 32, limit_per_host = 32)
     session = await aiohttp.ClientSession(connector = _connector).__aenter__ ()
-    spool = pg2.Pool (200, "skitai", "skitai", "12345678")
+    spool = pg2.Pool (200, database, user, passwd)
 
 async def query (q):
     async with pool.acquire() as conn:

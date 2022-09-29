@@ -7,6 +7,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    environment:
+      MYDB: "skitai:12345678@postgres/skitai"
+      PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: python
     user: ubuntu
     ports:
       - "5000:5000"
@@ -17,4 +20,37 @@ services:
     tty: true
     entrypoint:
       - /bin/bash
-      - ./docker-init.sh
+
+  postgres:
+    image: postgres:13-alpine
+    container_name: skitai-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: "skitai"
+      POSTGRES_USER: "skitai"
+      POSTGRES_PASSWORD: "12345678"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  h2load:
+    image: hansroh/h2load
+    container_name: skitai-h2load
+    stdin_open: true
+    tty: true
+    entrypoint:
+      - /bin/bash
+
+networks:
+  skitai:
+
+volumes:
+  pgdata:
+
+# AFTER CONTAINER CREATED
+# -----------------------------------------------------
+# docker attach skitai-dev
+# ./docker-init.sh
+
+# docker attach skitai-h2load
+# h2load --h1 -n 10000 -t 20 -c 1024 http://skitai:5000/bench/async
+# h2load --h1 -n 10000 -t 20 -c 1024 http://skitai:5000/bench

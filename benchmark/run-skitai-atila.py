@@ -9,15 +9,19 @@ import asyncio
 import os
 from atila.collabo import requests
 
-TARGET = "example.com" if os.getenv ("GITLAB_CI") else "192.168.0.154:6001"
+TARGET = "example.com" if os.getenv ("GITLAB_CI") else "192.168.0.154:5500"
 
 app = Atila (__name__, __file__)
 
 async def __setup__ (context, app, opts):
+    auth, netloc = os.environ ['MYDB'].split ("@")
+    user, passwd = auth.split (":")
+    host, database = netloc.split ("/")
+
     app.rpool = requests.Pool (200)
-    app.spool = pg2.Pool (200, "skitai", "skitai", "12345678")
+    app.spool = pg2.Pool (200, user, database, passwd, host)
     if not os.getenv ("GITLAB_CI"): # Permission denied: '/root/.postgresql/postgresql.key
-        app.apool = await asyncpg.create_pool (user='skitai', password='12345678', database='skitai', host='127.0.0.1', min_size=1, max_size=20)
+        app.apool = await asyncpg.create_pool (user=user, password=passwd, database=database, host=host, min_size=1, max_size=20)
 
 async def __umounted__ (context, app, opts):
     app.spool.close ()
