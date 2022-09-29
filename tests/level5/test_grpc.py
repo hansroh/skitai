@@ -1,5 +1,5 @@
 import pytest
-from examples.services import route_guide_pb2
+from examples.services import route_guide_pb2, route_guide_pb2_grpc
 import os
 import time
 
@@ -11,7 +11,7 @@ def test_grpc (launch):
     server = "127.0.0.1:30371"
     with launch ("./examples/app.py") as engine:
         with grpc.insecure_channel(server) as channel:
-            stub = route_guide_pb2.RouteGuideStub (channel)
+            stub = route_guide_pb2_grpc.RouteGuideStub (channel)
 
             point = route_guide_pb2.Point (latitude=409146138, longitude=-746188906)
             feature = stub.GetFeature (point)
@@ -42,7 +42,7 @@ def test_grpc_request_stream (launch):
     server = "127.0.0.1:30371"
     with launch ("./examples/app.py") as engine:
         with grpc.insecure_channel(server) as channel:
-            stub = route_guide_pb2.RouteGuideStub (channel)
+            stub = route_guide_pb2_grpc.RouteGuideStub (channel)
             # request streaming
             summary = stub.RecordRoute (point_iter ())
             assert isinstance (summary, route_guide_pb2.RouteSummary)
@@ -77,7 +77,7 @@ def test_grpc_request_bistream (launch):
     server = "127.0.0.1:30371"
     with launch ("./examples/app.py") as engine:
         with grpc.insecure_channel(server) as channel:
-            stub = route_guide_pb2.RouteGuideStub (channel)
+            stub = route_guide_pb2_grpc.RouteGuideStub (channel)
 
             # bidirectional
             for idx, response in enumerate (stub.RouteChat(generate_messages())):

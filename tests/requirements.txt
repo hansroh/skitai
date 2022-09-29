@@ -31,7 +31,6 @@ scikit-learn
 future
 networkx
 hyperopt
-protobuf
 dill
 webrtcvad
 exif
