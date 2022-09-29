@@ -19,7 +19,7 @@ async def startup():
     user, passwd = auth.split (":")
     host, database = netloc.split ("/")
     pool = await asyncpg.create_pool (user=user, password=passwd, database=database, host=host)
-    spool = pg2.Pool (200, "skitai", "skitai", "12345678")
+    spool = pg2.Pool (200, user, database, passwd, host)
     RunVar("_default_thread_limiter").set(CapacityLimiter(8))
 
 @app.get("/bench")

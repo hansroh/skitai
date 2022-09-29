@@ -8,7 +8,7 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      MYDB: "skitai@postgres/skitai"
+      MYDB: "skitai:12345678@postgres/skitai"
     user: ubuntu
     ports:
       - "5000:5000"
@@ -24,8 +24,6 @@ services:
     image: postgres:13-alpine
     container_name: skitai-postgres
     restart: always
-    ports:
-      - 5432:5432
     environment:
       POSTGRES_DB: "skitai"
       POSTGRES_USER: "skitai"
@@ -51,3 +49,7 @@ volumes:
 # -----------------------------------------------------
 # docker attach skitai-dev
 # ./docker-init.sh
+
+# docker attach skitai-h2load
+# h2load --h1 -n 10000 -t 20 -c 1024 http://skitai:5000/bench/async
+# h2load --h1 -n 10000 -t 20 -c 1024 http://skitai:5000/bench
