@@ -7,7 +7,10 @@ import threading
 import time
 from requests.auth import HTTPDigestAuth
 import xmlrpc.client
-from examples.services import route_guide_pb2
+try:
+	from examples.services import route_guide_pb2
+except ImportError:
+	from examples.services import route_guide_pb2_v3 as route_guide_pb2
 is_pypy = '__pypy__' in sys.builtin_module_names
 
 def assert_request (expect, url, *args, **karg):
