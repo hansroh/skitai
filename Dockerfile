@@ -7,14 +7,16 @@ LABEL title="Skitai Package Group Development"
 LABEL author="hansroh"
 LABEL version="1.0"
 
-# install postgresql and initial data ---------
 RUN apt update
-RUN apt install -y postgresql postgresql-contrib
+RUN apt install -y python3-pip
 
 RUN pip3 install -U pip
-RUN pip3 install -U django sqlphile psycopg2-binary
+RUN pip3 install -U django psycopg2-binary
 
 COPY tools/docker/requirements.txt /requirements.txt
+RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
+
+COPY tests/requirements.txt /requirements.txt
 RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
 
 # install selenium --------------------
