@@ -5,7 +5,7 @@ try:
     from examples.services.route_guide_pb2 import RouteGuideStub
 except ImportError:
     from examples.services import route_guide_pb2_v3 as route_guide_pb2
-    from examples.services.route_guide_pb2_grpc import RouteGuideStub
+    from examples.services.route_guide_pb2_v3 import RouteGuideStub
 
 import os
 import time
