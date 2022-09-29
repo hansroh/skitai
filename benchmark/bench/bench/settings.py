@@ -78,6 +78,7 @@ WSGI_APPLICATION = 'bench.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
+print (os.environ ['MYDB'])
 auth, netloc = os.environ ['MYDB'].split ("@")
 user, passwd = auth.split (":")
 host, database = netloc.split ("/")
