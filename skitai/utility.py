@@ -3,9 +3,9 @@ import sys
 import os
 from rs4.misc import producers
 from collections.abc import Iterator
-from .protocols.threaded import trigger
+from .backbone.threaded import trigger
 from hashlib import md5
-from .protocols.sock.impl.http import http_date
+from rs4.protocols.sock.impl.http import http_date
 
 # etag and last-modified ------------------------------------------
 IF_MODIFIED_SINCE = re.compile (
@@ -84,9 +84,8 @@ def is_modified (request, header_name, mtime, file_length = None):
 
 # response context ------------------------------------------
 def make_pushables (response, content):
-    from .tasks import tasks, Coroutine
+    from .tasks import Coroutine, Revoke
     from .wastuff.api import API
-    from .tasks.pth import executors
 
     if not response.is_responsable ():
         # already called response.done () or diconnected channel
@@ -95,16 +94,12 @@ def make_pushables (response, content):
     if content is None: # Possibly no return mistake
         raise AssertionError ("Content or part should not be None")
 
-    if not content: # explicit empty not content
-        trigger.wakeup (lambda p=response: (p.done(),))
-        return
-
     if isinstance (content, Coroutine):
         content = [content.start ()]
     elif not isinstance (content, (list, tuple)):
         content = (content,) # make iterable
 
-    if isinstance (content [0], (tasks.Revoke, executors.Task)):
+    if isinstance (content [0], Revoke): # Future thing
         return
 
     will_be_push = []

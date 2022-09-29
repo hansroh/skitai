@@ -7,20 +7,20 @@ import time
 
 def test_route_empty (app):
     @app.route ("/")
-    def index (was):
+    def index (context):
         assert 1 == 0
 
     @app.route ("/2")
-    def index2 (was):
+    def index2 (context):
         assert 1 == 0, 'mismatch'
 
     @app.route ("/3")
-    def index3 (was):
-        assert 1 == 0, was.Error ('488 Error', 'asdada')
+    def index3 (context):
+        assert 1 == 0, context.HttpError ('488 Error', 'asdada')
 
     @app.route ("/4")
-    def index3 (was):
-        assert False, was.Error ('488 Not My Fault', 'asdada')
+    def index3 (context):
+        assert False, context.HttpError ('488 Not My Fault', 'asdada')
 
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")

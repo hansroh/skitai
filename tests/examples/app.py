@@ -2,7 +2,6 @@ import os
 from atila import Atila
 import skitai
 from services import sub
-from skitai import was as cwas
 import time
 import sys
 is_pypy = '__pypy__' in sys.builtin_module_names
@@ -28,178 +27,98 @@ app.authenticate = None
 app.mount ("/sub", sub)
 
 @app.route ("/")
-def index (was):
-    return was.render ("index.html")
+def index (context):
+    return context.render ("index.html")
 
 @app.route ("/response_chain")
-def response_chain (was):
-    def respond2 (was, task):
-        return was.API (status_code = task.dispatch ().status_code)
-    def respond (was, task):
-        return was.get ("@pypi/project/rs4/", headers = {'Accept': '*/*'}).then (respond2)
-    return was.get ("@pypi/project/skitai/", headers = {'Accept': '*/*'}).then (respond)
+def response_chain (context):
+    def respond2 (context, task):
+        return context.API (status_code = task.dispatch ().status_code)
+    def respond (context, task):
+        return context.Mask ("pypi/skitai/hansroh/rs4").then (respond2)
+    return context.Mask ("pypi/skitai/hansroh/rs4").then (respond)
 
 @app.route ("/dnserror")
-def dnserror (was):
-    req = was.get ("https://pypi.python.orgx/pypi/skitai", headers = (["Accept", "text/html"]))
+def dnserror (context):
+    req = context.Mask ("pypi/skitai/hansroh/rs4")
     rs = req.dispatch (timeout = 10)
     return "%d %d %s" % (rs.status, rs.status_code, rs.reason)
 
-@app.route ("/documentation")
-def documentation (was):
-    req = was.get ("https://pypi.org/project/skitai/", headers = [("Accept", "text/html")])
-    pypi_content = "<h4><p>It seems some problem at <a href='https://pypi.python.org/pypi/skitai'>PyPi</a>.</p></h4><p>Please visit <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></p>"
-    rs = req.dispatch (timeout = 10, cache = 60)
-    if rs.data:
-        content = rs.data
-        s = content.find ('<div class="project-description">')
-        if s != -1:
-            e = content.find ('<div id="history"', s)
-            if e != -1:
-                pypi_content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.python.org/pypi/skitai'> https://pypi.python.org/pypi/skitai</a></h4>" + content [s:e]
-    return was.render ("documentation.html", content = pypi_content)
-
-@app.route ("/documentation2")
-def documentation2 (was):
-    def response (was, rss):
-        rs = rss [0]
-        pypi_content = "<h3>Error</h3>"
-        if rs.data:
-            content = rs.data
-            s = content.find ('<div class="project-description">')
-            if s != -1:
-                e = content.find ('<div id="history"', s)
-                if e != -1:
-                    content = "<h4>This contents retrieved right now using skitai was service from <a href='https://pypi.org/project/skitai/'> https://pypi.org/project/skitai/</a></h4>" + content [s:e]
-        assert "Internet :: WWW/HTTP" in content
-        return was.render ("documentation2.html", skitai = content)
-
-    reqs = [was.get ("@pypi/project/aquests/", headers = [("Accept", "text/html")])]
-    return was.futures (reqs).then (response)
-
-@app.route ("/documentation3")
-def documentation3 (was):
-    def response (was, rss):
-        return was.response.API (status_code = [rs.status_code for rs in rss.dispatch ()])
-
-    reqs = [
-        was.get ("@pypi/project/aquests/", headers = [("Accept", "text/html")]),
-        was.get ("@pypi/project/rs4/", headers = [("Accept", "text/html")])
-    ]
-    return was.futures (reqs).then (response)
-
-@app.route ("/db")
-def db (was):
-    with was.db ("@sqlite3") as db:
-        # db.execute('CREATE TABLE IF NOT EXISTS people (id real, name text)').commit ()
-        # db.execute("INSERT INTO people (id, name) VALUES (2, 'Hans Roh')").commit ()
-        req = db.execute ("select * from people")
-    return was.API (data = req.fetch (cache = 40, timeout = 2))
-
-@app.route ("/dbtx")
-def dbtx (was):
-    with was.transaction ("@sqlite3") as db:
-        req = db.execute ("select * from people")
-        return was.API (data = req.fetch ())
-
-@app.route ("/dbmap")
-def dbmap (was):
-    with was.db.map ("@sqlite3m") as db:
-        # db.execute('CREATE TABLE IF NOT EXISTS people (id real, name text)').commit ()
-        # db.execute("INSERT INTO people VALUES (1, 'Hans Roh')").commit ()
-        req = db.execute ("select * from people")
-        results = req.dispatch ()
-        data = req.fetch (cache = 60)
-        assert data == results.data
-    if sys.version_info <= (3, 7) and not is_pypy: # why?
-        with was.db.map ("@sqlite3m") as db:
-            db.execute ("delete from people where id=3").commit ()
-    return was.API (data = data)
-
-@app.route ("/dblb")
-def dblb (was):
-    with was.db.lb ("@sqlite3m") as db:
-        req = db.execute ("select * from people")
-    return was.API (req.fetch (cache = 40, timeout = 2))
-
 @app.route ("/xmlrpc")
-def xmlrpc (was):
-    with was.xmlrpc ("@pypi/pypi") as stub:
-        req = stub.package_releases ('roundup')
-        assert req.fetch () == ['2.1.0']
-        return was.API (result = "ok")
+def xmlrpc (context):
+    return context.API (result = "ok")
 
 @app.route ("/hello")
-def hello (was, num = 1):
-    was.response ["Content-Type"] = "text/plain"
+def hello (context, num = 1):
+    context.response ["Content-Type"] = "text/plain"
     return "\n".join (["hello" for i in range (int(num))])
 
 @app.route ("/redirect0")
-def redirect0 (was):
+def redirect0 (context):
     return ""
 
 @app.route ("/redirect1")
-def redirect1 (was):
-    return was.response ("301 Object Moved", "", headers = [("Location", "/redirect2")])
+def redirect1 (context):
+    return context.response ("301 Object Moved", "", headers = [("Location", "/redirect2")])
 
 @app.route ("/redirect2")
-def redirect2 (was):
-    return was.response ("301 Object Moved", "", headers = [("Location", "/")])
+def redirect2 (context):
+    return context.response ("301 Object Moved", "", headers = [("Location", "/")])
 
 @app.route ("/upload")
-def upload (was, **karg):
-    return was.response ("200 OK", str (karg), headers = [("Content-Type", "text/plain")])
+def upload (context, **karg):
+    return context.response ("200 OK", str (karg), headers = [("Content-Type", "text/plain")])
 
 @app.route ("/upload2")
-def upload2 (was, **form):
+def upload2 (context, **form):
     return str (list (form.keys ()))
 
 @app.route ("/post")
-def post (was, username):
+def post (context, username):
     return 'USER: %s' % username
 
 @app.route ("/test")
-def test (was):
-    was.response ["Content-Type"] = "text/plain"
-    return str (was.request.args)
+def test (context):
+    context.response ["Content-Type"] = "text/plain"
+    return str (context.request.args)
 
 @app.route ("/json")
-def json (was):
-    return was.response.api (data = "JSON")
+def json (context):
+    return context.response.api (data = "JSON")
 
 @app.route ("/promise")
-def promise (was):
-    was.push (was.ab (hello))
-    was.push (was.ab (test))
-    return was.response.api (data = "JSON")
+def promise (context):
+    context.push (context.ab (hello))
+    context.push (context.ab (test))
+    return context.response.api (data = "JSON")
 
 @app.route ("/delay")
-def delay (was, wait = 3):
+def delay (context, wait = 3):
     time.sleep (float (wait))
-    return was.response.api (data = "JSON")
+    return context.response.api (data = "JSON")
 
 @app.route ("/shutdown")
-def shutdown (was, stream_id = 1):
-    was.request.protocol.close (last_stream_id = int (stream_id))
+def shutdown (context, stream_id = 1):
+    context.request.protocol.close (last_stream_id = int (stream_id))
     return 'CLOSED'
 
 @app.route ("/nchar")
 @app.require (ints = ['n'])
-def nchar (was, n = 167357):
+def nchar (context, n = 167357):
     return 'a' * n
 
 @app.route ("/mixing")
-def mixing (was):
-    def respond (was, tasks):
+def mixing (context):
+    def respond (context, tasks):
         a, b, c, d, e, f = tasks.fetch ()
-        return was.API (a =a, b = b, c = c, d = d, e = e, f = f)
-    return was.Tasks (
-        was.db ("@sqlite3").execute ("select * from people"),
-        was.get ("@pypi/project/rs4/", headers = [("Accept", "text/html")]),
-        was.Thread (time.sleep, args = (0.3,)),
-        was.Process (time.sleep, args = (0.3,)),
-        was.Mask ('mask'),
-        was.Subprocess ("ls"),
+        return context.API (a =a, b = b, c = c, d = d, e = e, f = f)
+    return context.Tasks (
+        context.Mask ([]),
+        context.Mask ("pypi/skitai/hansroh/rs4"),
+        context.Thread (time.sleep, args = (0.3,)),
+        context.Process (time.sleep, args = (0.3,)),
+        context.Mask ('mask'),
+        context.Subprocess ("ls"),
     ).then (respond)
 
 
@@ -209,12 +128,7 @@ if __name__ == "__main__":
     if os.name == "nt":
         skitai.set_service (ServiceConfig)
 
-    skitai.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
-    skitai.alias ("@sqlite3", skitai.DB_SQLITE3, "resources/sqlite3.db")
-    skitai.alias ("@sqlite3m", skitai.DB_SQLITE3, ["resources/sqlite3-1.db", "resources/sqlite3-2.db"])
-
     skitai.mount ("/", 'statics')
-
     with skitai.preference () as pref:
         pref.config.MAX_UPLOAD_SIZE = 20 * 1024 * 1024
         skitai.mount ("/", app, pref)
@@ -222,8 +136,6 @@ if __name__ == "__main__":
         skitai.mount ("/rpc2", 'rpc2.py')
         skitai.mount ("/routeguide.RouteGuide", 'grpc_route_guide.py')
         skitai.mount ("/members", 'auth.py')
-    skitai.mount ("/lb", "@pypi")
-    skitai.enable_proxy ()
 
     skitai.run (
         port = 30371,

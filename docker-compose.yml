@@ -2,7 +2,7 @@
 version: '3.3'
 services:
   skitai:
-    image: skitai
+    image: skitai-dev
     container_name: skitai-dev
     build:
       context: .
@@ -50,9 +50,4 @@ volumes:
 # AFTER CONTAINER CREATED
 # -----------------------------------------------------
 # docker attach skitai-dev
-# cd libs/skitai/benchmark/bench
-# ./manage.py migrate
-# python3 init_db.py
-# cd libs/skitai/tools/docker
-# ./install-libs.sh
-# -----------------------------------------------------
+# ./docker-init.sh

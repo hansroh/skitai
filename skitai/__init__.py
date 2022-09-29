@@ -1,38 +1,29 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.39.1.11"
+__version__ = "0.50.6"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
 
 NAME = "Skitai/%s.%s" % version_info [:2]
 
-from .protocols import lifetime as lifetime_aq
+from rs4.protocols import lifetime as lifetime_aq
 from rs4 import deco, importer
 from rs4.psutil import service
-from rs4.attrdict import AttrDict
 import threading
 import sys, os
-import h2
-from .protocols.dbi import (
-    DB_PGSQL, DB_POSTGRESQL, DB_SQLITE3, DB_REDIS, DB_MONGODB,
-    DB_SYN_PGSQL, DB_SYN_REDIS, DB_SYN_MONGODB,
-    DB_SYN_ORACLE, DB_ORACLE
-)
-import warnings
-from .protocols.sock.impl.smtp import composer
+from rs4.protocols.sock.impl.smtp import composer
 import tempfile
 from rs4 import argopt
 from .backbone import lifetime
-from . import mounted
 from functools import wraps
-import copy
-import rs4
 from rs4.termcolor import tc
-from rs4 import annotations
 import getopt as libgetopt
-import types
 from rs4 import pathtool
+from .wastuff.preference import Preference
+from rs4  import evbus
+from .tasks.coroutine import Coroutine
+
 
 argopt.add_option ('-d', desc = "start as daemon, equivalant with `start` command") # lower version compatible
 
@@ -47,13 +38,37 @@ argopt.add_option (None, '--port=TCP_PORT_NUMBER', desc = "http/https port numbe
 argopt.add_option (None, '--quic=UDP_PORT_NUMBER', desc = "http3/quic port number")
 argopt.add_option (None, '--workers=WORKERS', desc = "number of workers")
 argopt.add_option (None, '--threads=THREADS', desc = "number of threads per worker")
+argopt.add_option (None, '--tasks=TASKS', desc = "number of concurrent async tasks")
+
 argopt.add_option (None, '--poll=POLLER', desc = "name of poller [select, poll, epoll and kqueue]")
 argopt.add_option (None, '--disable-static', desc = "disable static file service")
+argopt.add_option (None, '--collect-static', desc = "collect static files")
 
 argopt.add_option (None, '--user=USER', desc = "if run as root, fallback workers owner to user")
 argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback workers owner to group")
-argopt.add_option (None, '--smtpda', desc = "start SMTP Delivery Agent")
+argopt.add_option (None, '--smtpda', desc = "start SMTP delivery agent")
 argopt.add_option (None, '--autoconf', desc = "generate basic configuration")
+
+dconf = dict (
+    mount = {"default": []},
+    mount_onfly = {"default": []},
+    max_ages = {},
+    log_off = [],
+    dns_protocol = 'tcp',
+    models_keys = set (),
+    wasc_options = {},
+    backlog = 256,
+    max_upload_size = 256 * 1024 * 1024, # 256Mb
+    subscriptions = set (),
+    background_jobs = [],
+    media_url = None,
+    media_path = None,
+    enable_async = False,
+)
+
+def background_task (procname, cmd):
+    global dconf
+    dconf ['background_jobs'].append ((procname, cmd))
 
 # IMP: DO NOT USE argopt.options ()
 if '--deploy' in sys.argv:
@@ -65,13 +80,19 @@ if os.getenv ("SKITAIENV") is None:
     os.environ ["SKITAIENV"] = "PRODUCTION"
 
 SMTP_STARTED = False
-if "--smtpda" in sys.argv and os.name != 'nt':
-    os.system ("{} -m skitai.scripts.skitai smtpda start".format (sys.executable))
+def run_smtpda ():
+    global SMTP_STARTED
+    if SMTP_STARTED:
+        return
+    background_task ("smtpda", "{} -m skitai.scripts.skitai smtpda".format (sys.executable))
     SMTP_STARTED = True
+
+if "--smtpda" in sys.argv and os.name != 'nt':
+    run_smtpda ()
 
 def set_smtp (server, user = None, password = None, ssl = False, start_service = False):
     composer.set_default_smtp (server, user, password, ssl)
-    start_service and not SMTP_STARTED and os.system ("{} -m skitai.scripts.skitai smtpda start".format (sys.executable))
+    run_smtpda ()
 
 def test_client (*args, **kargs):
     from .testutil.launcher import Launcher
@@ -86,20 +107,9 @@ def setenv (name, value):
 
 HAS_ATILA = None
 
-DEFAULT_BACKEND_KEEP_ALIVE = 300
-DEFAULT_BACKEND_OBJECT_TIMEOUT = 600
-DEFAULT_BACKEND_MAINTAIN_INTERVAL = 30
 DEFAULT_KEEP_ALIVE = 2
 DEFAULT_NETWORK_TIMEOUT = 30
 DEFAULT_BACKGROUND_TASK_TIMEOUT = 300
-
-PROTO_HTTP = "http"
-PROTO_HTTPS = "https"
-PROTO_SYN_HTTP = "http_syn"
-PROTO_SYN_HTTPS = "https_syn"
-PROTO_WS = "ws"
-PROTO_WSS = "wss"
-DJANGO = "django"
 
 STA_REQFAIL = REQFAIL = -1
 STA_UNSENT = UNSENT = 0
@@ -141,6 +151,8 @@ WS_OPCODE_PONG = 0xa
 
 STATUS = 'CONFIGURING'
 MEDIA_PATH = None
+WASC = None
+EVBUS = evbus.EventBus ()
 
 def status ():
     global STATUS
@@ -158,7 +170,7 @@ class _WASPool:
         return id (threading.currentThread ())
 
     def __repr__ (self):
-        return "<class skitai.WASPool at %x, was class: %s>" % (id (self), self.__wasc)
+        return "<class skitai.ContextPool at %x, was class: %s>" % (id (self), self.__wasc)
 
     def __getattr__ (self, attr):
         return getattr (self._get (), attr)
@@ -174,7 +186,7 @@ class _WASPool:
     def __delattr__ (self, attr):
         delattr (self.__wasc, attr)
         for _id in self.__p:
-            delattr (self.__p [_id], attr, value)
+            delattr (self.__p [_id], attr)
 
     def _start (self, wasc, **kargs):
         self.__wasc = wasc
@@ -192,7 +204,14 @@ class _WASPool:
             try: del self.__p ['{}x{:02d}'.format (_id, i + 1)]
             except KeyError: break
 
+    def _new (self):
+        return self.__wasc (**self.__kargs)
+
     def _get (self, clone = False):
+        if not self._started ():
+            global WASC
+            return WASC ()
+
         _id = self.__get_id ()
         for i in range (self.MAX_CLONES_PER_THREAD):
             if clone:
@@ -219,7 +238,7 @@ class _WASPool:
                 self.__p [id] = _was
                 return _was
 
-        raise SystemError ("Too many cloned skitai.was")
+        raise SystemError ("Too many skitai.was clones")
 
     def _get_by_id (self, _id):
         return self.__p [_id]
@@ -273,7 +292,7 @@ def websocket (varname = 60, timeout = 60, onopen = None, onclose = None):
         return wrapper
     return decorator
 
-def _reserve_states (*names):
+def register_g (*names):
     global dconf
     if isinstance (names [0], (list, tuple)):
         names = list (names [0])
@@ -282,147 +301,72 @@ def _reserve_states (*names):
     else:
         for k in names:
             dconf ["models_keys"].add (k)
-addlu = trackers = lukeys = deflu = _reserve_states
 
-def register_g (*names):
-    _reserve_states (names)
     def decorator (cls):
         return cls
     return decorator
-register_cache_keys = register_states = register_g
 
-#------------------------------------------------
-# Configure
-#------------------------------------------------
-dconf = dict (
-    mount = {"default": []},
-    mount_onfly = {"default": []},
-    clusters = {},
-    max_ages = {},
-    log_off = [],
-    dns_protocol = 'tcp',
-    models_keys = set (),
-    wasc_options = {},
-    backlog = 256,
-    max_upload_size = 256 * 1024 * 1024, # 256Mb
-    subscriptions = set (),
-    background_jobs = [],
-    media_url = None,
-    media_path = None
-)
+def emit (event, *args, **kargs):
+    EVBUS.emit (event, *args, **kargs)
 
-def background_task (procname, cmd):
-    global dconf
-    dconf ['background_jobs'].append ((procname, cmd))
+def on (self, *events):
+    def decorator(f):
+        for e in events:
+            EVBUS.add_event (f, e)
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            return f (*args, **kwargs)
+        return wrapper
+    return decorator
 
-def use_poll (name):
-    from rs4 import asyncore
-    polls = dict (
-        select = 'poll',
-        poll = 'poll2',
-        epoll = 'epoll',
-        kqueue = 'kqueue',
-    )
-    lifetime_aq.poll_fun = getattr (asyncore, polls [name])
+def add_async_task (coro, after_request_callback = None, response_callback = None):
+    def _respond_async (was, task):
+        try:
+            content = task.fetch ()
+        finally:
+            was.async_executor.done ()
+        return content
+    return was.async_executor.put ((was._get (), coro, response_callback or _respond_async, after_request_callback))
 
-def set_max_upload_size (size):
-    global dconf
-    dconf ['max_upload_size'] = size
+def add_coroutine_task (coro, after_request_callback = None):
+    return Coroutine (was._get (), coro, after_request_callback)
 
-def set_backlog (backlog):
-    global dconf
-    dconf ['backlog'] = backlog
+def add_thread_task (target, *args, **kargs):
+    _was = was._get ()
+    return _was.executors.create_thread (_was.ID, target, *args, **kargs)
 
-def add_wasc_option (k, v):
-    global dconf
-    dconf ['wasc_options'][k] = v
+def add_process_task (target, *args, **kargs):
+    _was = was._get ()
+    return _was.executors.create_process (_was.ID, target, *args, **kargs)
 
-def disable_async ():
-    global dconf
-    dconf ['wasc_options']['use_syn_conn'] = True
-
-def manual_gc (interval = 60.0):
-    lifetime.manual_gc (interval)
-
-def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20):
-    from .backbone.http_server import http_server
-    from .backbone.https_server import https_server
-
-    http_server.critical_point_cpu_overload = https_server.critical_point_cpu_overload = cpu_percent
-    http_server.critical_point_continuous = https_server.critical_point_continuous = continuous
-    http_server.maintern_interval = https_server.maintern_interval = interval
-
-def set_max_was_clones_per_thread (val):
-    was.MAX_CLONES_PER_THREAD = val
+def add_subprocess_task (cmd):
+    from .tasks.pth import sp_task
+    meta = {'__was_id': was._get ().ID}
+    return sp_task.Task (cmd, meta)
 
 
-class PreferenceBase:
-    def add_resources (self, module, front = False):
-        base_dir = os.path.dirname (module.__file__)
-        t = os.path.join (base_dir, 'templates')
-        s = os.path.join (base_dir, 'static')
-        os.path.isdir (t) and self.add_template_dir (t, front = front)
-        os.path.isdir (s) and self.add_static (s, front = front)
+# GPU allocator -----------------------------------------
+def get_gpu_memory ():
+    import subprocess as sp
+    _output_to_list = lambda x: x.decode ('ascii').split('\n')[:-1]
+    COMMAND = "nvidia-smi --query-gpu=memory.used --format=csv"
+    memory_free_info = _output_to_list(sp.check_output(COMMAND.split()))[1:]
+    memory_free_values = [int(x.split()[0]) for i, x in enumerate(memory_free_info)]
+    return memory_free_values
 
-    def extends (self, module):
-        hasattr (module, '__config__') and module.__config__ (self)
-        self.add_resources (module)
-        self.mount_later ('/', module, extends = True)
+def get_gpu_count ():
+    ngpu = len (get_gpu_memory ())
+    os.environ ["GPU_COUNT"] = str (ngpu)
+    return ngpu
 
-    def overrides (self, module):
-        if hasattr (module, '__file__'):
-            hasattr (module, '__config__') and module.__config__ (self)
-            self.add_resources (module, True)
-        self.mount_later ('/', module, overrides = True)
+def allocate_gpu ():
+    assert os.getenv ("GPU_COUNT"), "call skitai.get_gpu_count () first"
+    assert os.getenv ("SKITAI_WORKER_ID"), "skitai worker not started"
+    os.environ ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    current_gpu = os.getenv ('SKITAI_WORKER_ID') if int (os.getenv ("GPU_COUNT")) > 1 else "0"
+    os.environ ["NVIDIA_VISIBLE_DEVICES"] = os.environ ["CUDA_VISIBLE_DEVICES"] = current_gpu
 
-    def add_template_dir (self, d, front = False):
-        if "TEMPLATE_DIRS" not in self.config:
-            self.config.TEMPLATE_DIRS = []
-        exists = set (self.config.TEMPLATE_DIRS)
-        if d in exists:
-            return
-        self.config.TEMPLATE_DIRS.insert (0, d) if front else self.config.TEMPLATE_DIRS.append (d)
-        exists.add (d)
-
-    def add_static (self, path, front = False):
-        mount (self.config.STATIC_URL, joinpath (path), first = front)
-
-    def set_static (self, url, path = None):
-        self.config.STATIC_URL = url
-        if path:
-            path = joinpath (path)
-            self.config.STATIC_ROOT = path
-            mount (url, path, first = True)
-    mount_static = set_static
-
-    def set_media (self, url = '/media', path = None):
-        self.config.MEDIA_URL = url
-        self.config.MEDIA_ROOT = path
-        set_media (url, path)
-    mount_media = set_media
-
-class Preference (AttrDict, PreferenceBase):
-    def __init__ (self, path = None):
-        super ().__init__ ()
-        self.__path = path
-        if self.__path:
-            sys.path.insert (0, abspath (self.__path))
-        self.__dict__ ["mountables"] = []
-
-    def __enter__ (self):
-        return self
-
-    def __exit__ (self, *args):
-        pass
-
-    def copy (self):
-        return copy.deepcopy (self)
-
-    def mount_later (self, *args, **kargs):
-        # mount module or func (app, options)
-        self.__dict__ ["mountables"].append ((args, kargs))
-
-
+# Configure --------------------------------------------
 def preference (preset = False, path = None, **configs):
     from .wastuff.wsgi_apps import Config
     d = Preference (path and abspath (path) or None)
@@ -474,6 +418,47 @@ def set_service (service_class):
     global Win32Service
     Win32Service = service_class
 
+def enable_async (pool = 8):
+    global dconf
+    assert isinstance (pool, int)
+    dconf ['enable_async'] = pool
+
+def use_poll (name):
+    from rs4 import asyncore
+    polls = dict (
+        select = 'poll',
+        poll = 'poll2',
+        epoll = 'epoll',
+        kqueue = 'kqueue',
+    )
+    lifetime_aq.poll_fun = getattr (asyncore, polls [name])
+
+def set_max_upload_size (size):
+    global dconf
+    dconf ['max_upload_size'] = size
+
+def set_backlog (backlog):
+    global dconf
+    dconf ['backlog'] = backlog
+
+def add_wasc_option (k, v):
+    global dconf
+    dconf ['wasc_options'][k] = v
+
+def manual_gc (interval = 60.0):
+    lifetime.manual_gc (interval)
+
+def set_worker_critical_point (cpu_percent = 90.0, continuous = 3, interval = 20):
+    from .backbone.http_server import http_server
+    from .backbone.https_server import https_server
+
+    http_server.critical_point_cpu_overload = https_server.critical_point_cpu_overload = cpu_percent
+    http_server.critical_point_continuous = https_server.critical_point_continuous = continuous
+    http_server.maintern_interval = https_server.maintern_interval = interval
+
+def set_max_was_clones_per_thread (val):
+    was.MAX_CLONES_PER_THREAD = val
+
 def set_media (url = '/media', path = None):
     global dconf
     assert url, "URL cannot be empty"
@@ -491,20 +476,6 @@ def log_off (*path):
     global dconf
     for each in path:
         dconf ['log_off'].append (each)
-
-def add_http_rpc_proto (name, class_):
-    assert name.endswith ("rpc"), "protocol name must be end with 'rpc'"
-    from .tasks.httpbase import task
-    task.Task.add_proto (name, class_)
-
-def add_database_interface (name, class_):
-    assert name.startswith ("*"), "database interface name must be start with '*'"
-    from .tasks.dbi import cluster_manager
-    cluster_manager.ClusterManager.add_class (name, class_)
-
-def set_dns_protocol (protocol = 'tcp'):
-    global dconf
-    dconf ['dns_protocol'] = protocol
 
 def set_max_age (path, max_age):
     global dconf
@@ -527,25 +498,10 @@ def config_executors (workers = None, zombie_timeout = DEFAULT_BACKGROUND_TASK_T
     if process_start_method:
         dconf ["executors_process_start"] = process_start_method
 
-def set_backend (timeout, object_timeout = DEFAULT_BACKEND_OBJECT_TIMEOUT, maintain_interval = DEFAULT_BACKEND_MAINTAIN_INTERVAL):
-    global dconf
-
-    dconf ["backend_keep_alive"] = timeout
-    dconf ["backend_object_timeout"] = object_timeout
-    dconf ["backend_maintain_interval"] = maintain_interval
-
-def set_backend_keep_alive (timeout):
-    set_backend (timeout)
-
-def set_proxy_keep_alive (channel = 60, tunnel = 600):
-    from .handlers import proxy
-    proxy.PROXY_KEEP_ALIVE = channel
-    proxy.PROXY_TUNNEL_KEEP_ALIVE = tunnel
-
-def set_503_estimated_timeout (timeout = 10.0):
+def set_503_estimated_timeout (timeout = DEFAULT_NETWORK_TIMEOUT):
     # 503 error if estimated request processing time is over timeout
     # this don't include network latency
-    from handlers import wsgi_handler
+    from .handlers import wsgi_handler
     wsgi_handler.Handler.SERVICE_UNAVAILABLE_TIMEOUT = timeout
 
 def set_request_timeout (timeout):
@@ -556,10 +512,6 @@ set_network_timeout = set_request_timeout
 def set_was_class (was_class):
     global dconf
     dconf ["wasc"] = was_class
-
-def enable_async_services ():
-    from .wsgiappservice import AsyncServicableWAS
-    set_was_class (AsyncServicableWAS)
 
 def maybe_django (wsgi_path, appname):
     if not isinstance (wsgi_path, str):
@@ -593,9 +545,6 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
             if hasattr (mod, "bootstrap"): # lower version compat
                 mod.__config__ = mod.bootstrap
                 del mod.bootstrap
-            if hasattr (mod, "__setup__"): # lower version compat
-                mod.__config__ = mod.__setup__
-                del mod.__setup__
             hasattr (mod, "__config__") and mod.__config__ (pref)
 
     maybe_django (target, appname)
@@ -674,7 +623,7 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
             with open (target_, encoding = 'utf8') as f:
                 if f.read ().find ("atila") != -1:
                     try:
-                        import atila # automatic patch skitai was
+                        import atila # mongkey patch skitai was and Loader
                     except ImportError:
                         pass
         init_app (target, pref)
@@ -694,98 +643,21 @@ def enable_forward (port = 80, forward_port = 443, forward_domain = None, ip = "
     dconf ['fws_to'] = forward_port
     dconf ['fws_domain'] = forward_domain
 
-def enable_gateway (enable_auth = False, secure_key = None, realm = "Skitai API Gateway"):
-    global dconf
-    dconf ["enable_gw"] = True
-    dconf ["gw_auth"] = enable_auth,
-    dconf ["gw_realm"] = realm,
-    dconf ["gw_secret_key"] = secure_key
-
-def _get_django_settings (settings_path):
-    import importlib
-    import django
-
-    ap = abspath (settings_path)
-    django_main, settings_file = os.path.split (ap)
-    django_root, django_main_dir = os.path.split (django_main)
-    settings_mod = "{}.{}".format (django_main_dir, settings_file.split (".")[0])
-
-    if not os.environ.get ("DJANGO_SETTINGS_MODULE"):
-        sys.path.insert (0, django_root)
-        os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings_mod)
-
-    return importlib.import_module(settings_mod).DATABASES
-
-def _alias_django (name, settings_path):
-    dbsettings = _get_django_settings (settings_path)
-    default = dbsettings ['default']
-    if default ['ENGINE'].endswith ('sqlite3'):
-        return alias (name, DB_SQLITE3, default ['NAME'])
-
-    if default ['ENGINE'].find ("postgresql") != -1:
-        if not default.get ("PORT"):
-            default ["PORT"] = 5432
-        if not default.get ("HOST"):
-            default ["HOST"] = "127.0.0.1"
-        if not default.get ("USER"):
-            default ["USER"] = ""
-        if not default.get ("PASSWORD"):
-            default ["PASSWORD"] = ""
-        return alias (name, DB_PGSQL, "%(HOST)s:%(PORT)s/%(NAME)s/%(USER)s/%(PASSWORD)s" % default)
-
-def alias (name, ctype, members, role = "", source = "", ssl = False, max_conns = 32):
-    # not max_conns, unlimited
-    from .tasks.httpbase.cluster_manager import AccessPolicy
-    global dconf
-
-    if name [0] == "@":
-        name = name [1:]
-    if dconf ["clusters"].get (name):
-        return name, dconf ["clusters"][name]
-
-    if ctype == DJANGO:
-        alias_ = _alias_django (name, members)
-        if alias_ is None:
-            raise SystemError ("Database engine is not compatible")
-        return alias_
-
-    policy = AccessPolicy (role, source)
-    args = (ctype, members, policy, ssl, max_conns)
-    dconf ["clusters"][name] = args
-    return name, args
-
-def enable_cachefs (memmax = 0, diskmax = 0, path = None):
-    global dconf
-    dconf ["cachefs_memmax"] = memmax
-    dconf ["cachefs_dir"] = path
-    dconf ["cachefs_diskmax"] = diskmax
-
-def enable_proxy (unsecure_https = False):
-    global dconf
-    dconf ["proxy"] = True
-    dconf ["proxy_unsecure_https"] = unsecure_https
-    if os.name == "posix":
-        dconf ['dns_protocol'] = 'udp'
-
-def enable_file_logging (path = None, file_loggings = ['request']):
+def enable_file_logging (path = None, kinds = None):
     # loggings : request, server and app
     global dconf
     dconf ['logpath'] = path
-    dconf ['file_loggings'] = ['request', 'server', 'app'] if file_loggings == 'all' else file_loggings
+    dconf ['file_loggings'] = ['request', 'server', 'app'] if (kinds is None or kinds == 'all') else kinds
 
 def mount_variable (path = None, enable_logging = False):
     global dconf
     if path:
         dconf ['varpath'] = path
     if enable_logging:
-        enable_file_logging (os.path.join (path, 'log'), "all" if enable_logging is True else enable_logging)
+        enable_file_logging (os.path.join (path, 'log'), None if enable_logging is True else enable_logging)
 
 def set_access_log_path (path = None):
     enable_file_logging (path, ['request'])
-
-def enable_blacklist (path):
-    global dconf
-    dconf ["blacklist_dir"] = path
 
 def enable_ssl (certfile, keyfile = None, passphrase = None):
     global dconf
@@ -801,7 +673,10 @@ def get_varpath (name):
         if dconf ['varpath'].find ('/.skitai/') == -1:
             if not os.path.exists (default_path):
                 pathtool.mkdir (os.path.expanduser ('~/.skitai'))
-                os.symlink (dconf ['varpath'], default_path)
+                try:
+                    os.symlink (dconf ['varpath'], default_path)
+                except FileExistsError:
+                    pass
         return dconf ['varpath']
     return default_path
 
@@ -921,9 +796,13 @@ def run (**conf):
         NAME = 'instance'
 
         def __init__ (self, conf):
+            global WASC, EVBUS
+
             self.conf = conf
             self.flock = None
             Skitai.Loader.__init__ (self, 'config', conf.get ('logpath'), conf.get ('varpath'), conf.get ("wasc"))
+            WASC = self.wasc
+            EVBUS.set_logger (self.wasc.logger.get ('app'))
 
         def close (self):
             if self.wasc.httpserver.worker_ident == "master":
@@ -974,12 +853,18 @@ def run (**conf):
 
         def configure (self):
             options = argopt.options ()
-            start_server = '--autoconf' not in argopt.options ()
+            start_server = '--autoconf' not in argopt.options () and '--collect-static' not in argopt.options ()
             conf = self.conf
 
             self.wasc.register ('varpath', conf ['varpath'])
-            if '--poll' in options:
-                use_poll (options.get ('--poll'))
+
+            _poll = options.get ('--poll') or conf.get ('poll')
+            _poll and use_poll (_poll)
+
+            _tasks = int (options.get ('--tasks') or conf.get ('tasks', 0))
+            if _tasks:
+                conf ['enable_async'] = _tasks
+
             workers = int (options.get ('--workers') or conf.get ('workers', 1))
             threads = int (options.get ('--threads') or conf.get ('threads', 4))
             # assert threads, "threads should be more than zero"
@@ -991,28 +876,18 @@ def run (**conf):
             if conf.get ("certfile"):
                 self.config_certification (conf.get ("certfile"), conf.get ("keyfile"), conf.get ("passphrase"))
 
-            self.config_wasc (**dconf ['wasc_options'])
-            self.config_dns (dconf ['dns_protocol'])
+            self.config_wasc (**conf ['wasc_options'])
 
-            if conf.get ("cachefs_diskmax", 0) and not conf.get ("cachefs_dir"):
-                conf ["cachefs_dir"] = os.path.join (self.varpath, "cachefs")
-
-            self.config_cachefs (
-                conf.get ("cachefs_dir", None),
-                conf.get ("cachefs_memmax", 0),
-                conf.get ("cachefs_diskmax", 0)
-            )
-            self.config_rcache (conf.get ("rcache_objmax", 100))
             if conf.get ('fws_to'):
                 self.config_forward_server (
                     conf.get ('fws_address', '0.0.0.0'),
                     conf.get ('fws_port', 80), conf.get ('fws_to', 443)
                 )
 
-            if dconf ['background_jobs']:
+            if conf ['background_jobs']:
                 import psutil
                 procnames = [ proc.name () for proc in psutil.process_iter() ]
-                for procname, cmd in dconf ['background_jobs']:
+                for procname, cmd in conf ['background_jobs']:
                     if procname not in procnames:
                         self.wasc.logger.get ("server").log ('background job {}: {}'.format (tc.yellow (procname), tc.white (cmd)))
                         os.system (cmd + '&')
@@ -1043,48 +918,21 @@ def run (**conf):
             self.config_executors (
                 conf.get ('executors_workers', threads),
                 conf.get ("executors_zombie_timeout", DEFAULT_BACKGROUND_TASK_TIMEOUT),
-                conf.get ("executors_process_start")
+                conf.get ("executors_process_start"),
+                conf.get ("enable_async")
             )
             self.config_threads (threads)
-            self.config_backends (
-                conf.get ('backend_keep_alive', DEFAULT_BACKEND_KEEP_ALIVE),
-                conf.get ('backend_object_timeout', DEFAULT_BACKEND_OBJECT_TIMEOUT),
-                conf.get ('backend_maintain_interval', DEFAULT_BACKEND_MAINTAIN_INTERVAL)
-            )
-
-            try:
-                default_max_conns = threads * 3
-                for name, args in conf.get ("clusters", {}).items ():
-                    ctype, members, policy, ssl, max_conns = args
-                    self.add_cluster (ctype, name, members, ssl, policy, max_conns or default_max_conns)
-
-            except:
-                self.wasc.logger.get ("server").traceback ()
-                os._exit (2)
 
             # mount resources ----------------------------
             try:
                 self.install_handler (
                     conf.get ("mount"),
-                    conf.get ("proxy", False),
                     conf.get ("max_ages", {}),
-                    conf.get ("blacklist_dir"), # blacklist_dir
-                    conf.get ("proxy_unsecure_https", False), # disable unsecure https
-                    conf.get ("enable_gw", False), # API gateway
-                    conf.get ("gw_auth", False),
-                    conf.get ("gw_realm", "API Gateway"),
-                    conf.get ("gw_secret_key", None)
+                    conf ['media_url'],
+                    conf ['media_path']
                 )
 
-                for app in self.get_apps ().values ():
-                    if not hasattr (app, 'config'):
-                        continue
-                    try:
-                        app.config.MEDIA_URL, app.config.MEDIA_ROOT = conf ['media_url'], conf ['media_path']
-                    except AttributeError:
-                        pass
-
-                for p, s in dconf ['subscriptions']:
+                for p, s in conf ['subscriptions']:
                     try:
                         provider = self.get_app_by_name (p)
                         provider.bus
@@ -1097,7 +945,12 @@ def run (**conf):
 
             except:
                 self.wasc.logger.trace ("app")
-                os._exit (2)
+                if is_devel ():
+                    self.wasc.logger.get ("server") ("reboot worker after 10 seconds...", "error")
+                    [ time.sleep (1) for _ in range (10) ]
+                    os._exit (3)
+                else:
+                    os._exit (2)
 
             lifetime.init (logger = self.wasc.logger.get ("server"))
             if os.name == "nt":
@@ -1119,7 +972,7 @@ def run (**conf):
     if conf.get ("name"):
         PROCESS_NAME = 'sktd:{}'.format (conf ["name"])
     if not conf.get ('mount'):
-        raise systemError ('No mount point')
+        raise SystemError ('No mount point')
 
     conf ["varpath"] = get_varpath (get_proc_title ())
     pathtool.mkdir (conf ["varpath"])
@@ -1130,7 +983,6 @@ def run (**conf):
     working_dir = getswd ()
     lockpath = conf ["varpath"]
     servicer = service.Service (get_proc_title(), working_dir, lockpath, Win32Service)
-
     if cmd and not servicer.execute (cmd, SERVICE_USER, SERVICE_GROUP):
         return
     if not cmd:
@@ -1140,18 +992,17 @@ def run (**conf):
     elif cmd in ("start", "restart"):
         if conf.get ('logpath'): # not systemd, enable app, server logging
             conf ['file_loggings'] = ['request', 'server', 'app']
-        sys.stderr = open (os.path.join (conf.get ('varpath'), "{}.stderr".format (conf ["name"])), "a")
 
     server = SkitaiServer (conf)
     # mount additionals while mounting apps and mount apps
     server.just_before_run (conf.get ("mount_onfly"))
     STATUS = 'CREATED'
 
-    if '--autoconf' in argopt.options ():
+    if '--autoconf' in argopt.options () or '--collect-static' in argopt.options ():
         from .wastuff import autoconf
 
         vhost = server.virtual_host.sites [None]
-        autoconf.generate (abspath ('.'), vhost, conf)
+        autoconf.generate (abspath ('.'), vhost, conf, static_only = '--collect-static' in argopt.options ())
         sys.exit ()
 
     # timeout for fast keyboard interrupt on win32

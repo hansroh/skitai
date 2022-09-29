@@ -1,12 +1,9 @@
 # pytest framework ---------------------------------------------
-import requests
-from rs4.webkit import siesta, webtest
-from rs4.psutil import Puppet, processutil
+from rs4.webkit import webtest
+from rs4.psutil import Puppet
 import subprocess
 import time
 import sys
-import os
-import xmlrpc.client
 
 class Launcher (webtest.Target):
     def __init__ (self, script = None, port = 5000, devel = False, ssl = False, silent = True, dry = False, temp_dir = None, **kargs):
@@ -64,7 +61,7 @@ class Launcher (webtest.Target):
                 self.__wait_until ("running")
         else:
             self.__p.start ([sys.executable, self.__script]  + self.__start_opts)
-            time.sleep (3)
+            time.sleep (8)
         self.__closed = False
 
     def __is_running (self):

@@ -3,145 +3,96 @@
 from atila import Atila
 from sqlphile import Q
 import time
-from skitai import was
-import json
-import random
-app = Atila (__name__)
+from sqlphile import pg2
+import asyncpg
+import asyncio
+import os
+from atila.collabo import requests
 
-SLEEP = 0.3
+TARGET = "example.com" if os.getenv ("GITLAB_CI") else "192.168.0.154:5500"
+
+app = Atila (__name__, __file__)
+
+async def __setup__ (context, app, opts):
+    app.rpool = requests.Pool (200)
+    app.spool = pg2.Pool (200, "skitai", "skitai", "12345678")
+    if not os.getenv ("GITLAB_CI"): # Permission denied: '/root/.postgresql/postgresql.key
+        app.apool = await asyncpg.create_pool (user='skitai', password='12345678', database='skitai', host='127.0.0.1', min_size=1, max_size=20)
+
+async def __umounted__ (context, app, opts):
+    app.spool.close ()
+    if not os.getenv ("GITLAB_CI"):
+        await app.apool.close ()
+
 
 @app.route ("/status")
-def status (was, f = None):
-    return was.status (f)
-
+def status (context, f = None):
+    return context.status (f)
 
 # official ---------------------------------------------
 @app.route ("/bench", methods = ['GET'])
-def bench (was):
-    with was.db ('@mydb') as db:
-        return was.Map (
-            txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
-            record_count__one__cnt = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
+def bench (context):
+    with app.spool.acquire () as db:
+        txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''').fetch ()
+        record_count = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''').one () ["cnt"]
+        return context.API (
+            txs = txs,
+            record_count = record_count
         )
 
-@app.route ("/bench/mix", methods = ['GET'])
-def bench_mix (was):
-    with was.db ('@mydb') as db:
-        return was.Map (
-            was.Thread (time.sleep, args = (SLEEP,)),
-            txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
-            record_count__one__cnt = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
-        )
+@app.route ("/bench/async", methods = ['GET'])
+async def query_async (context):
+    async def query (q):
+        async with app.apool.acquire () as conn:
+            return await conn.fetch (q)
 
-@app.route ("/bench/row", methods = ['GET'], coroutine = True)
-def bench_row (was, pre = None):
-    with was.db ('@mydb') as db:
-        if pre:
-            yield db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''')
-        return was.Map (
-            txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 1;''')
-        )
+    if os.getenv ("GITLAB_CI"):
+        return context.API (txs = [], record_count = 1000)
+    values, record_count = await asyncio.gather (
+        query ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
+        query ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
+    )
+    return context.API (txs = [dict(r.items()) for r in values], record_count = record_count [0]['cnt'])
 
-@app.route ("/bench/gen", methods = ['GET'], coroutine = True)
-@app.inspect (ints = ['n'])
-def bench_gen (was, n = 100):
-    with was.db ('@mydb') as db:
-        last_id = 0
-        while 1:
-            task = yield db.execute ('''SELECT * FROM foo where detail = 'ReturnTx' and id > {} order by id desc limit 100;'''.format (last_id))
-            n -= 1
-            if n == 0:
-                break
-            rows = task.fetch ()
-            if not rows:
-                last_id = random.randrange (100000, 101000)
-                continue
-            last_id = rows [-1].id
-            yield str (rows)
-    return ''
-
-# pilots ------------------------------------------------
-@app.route ("/bench/sp", methods = ['GET'])
-def bench_sp (was):
-    with was.db ('@mydb') as db:
+@app.route ("/bench/sqlphile", methods = ['GET'])
+def bench_sp (context):
+    with app.spool.acquire () as db:
         q = (db.select ("foo")
                     .filter (Q (from_wallet_id = 8) | Q (detail = 'ReturnTx'))
                     .order_by ("-created_at")
                     .limit (10)
         )
-        return was.Map (
-            txs = q.execute (),
-            record_count__one__cnt = q.aggregate ('count (id) as cnt').execute ()
+        return context.API (
+            txs = q.execute ().fetch (),
+            record_count = q.aggregate ('count (id) as cnt').execute ().one () ["cnt"]
         )
 
-
-@app.route ("/bench/2", methods = ['GET'])
-def bench2 (was):
-    with was.db ('@mydb') as db:
-        ts = was.Tasks (
-            db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
-            db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
+@app.route ("/bench/delay", methods = ['GET'])
+@app.spec (floats = ['t'])
+def bench_delay (context, t = 0.3):
+    task = context.Thread (time.sleep, args = (t,))
+    with app.spool.acquire () as db:
+        txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''').fetch ()
+        record_count = db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''').one () ["cnt"]
+        return context.API (
+            tasl = task.fetch (),
+            txs = txs,
+            record_count = record_count
         )
-    txs, aggr = ts.fetch ()
-    return was.API (
-        txs =  txs,
-        record_count = aggr [0].cnt
-    )
-
-@app.route ("/bench/mix/2", methods = ['GET'])
-def bench_mix1 (was):
-    def response (was, txs, aggr):
-        time.sleep (SLEEP)
-        return was.API (txs = txs, record_count = aggr [0].cnt)
-
-    with was.db ('@mydb') as db:
-        ts = was.Tasks (
-            db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
-            db.execute ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
-        )
-        txs, aggr = ts.fetch ()
-    return was.ThreadPass (response, args = (txs, aggr))
-
-@app.route ("/bench/long", methods = ['GET'])
-@app.inspect (floats = ['t'])
-def bench_long (was, t = 1.0):
-    time.sleep (t)
-    return was.API ()
-
-@app.route ("/bench/one", methods = ['GET'])
-def bench_one (was):
-    with was.db ('@mydb') as db:
-        return was.Map (
-            txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''')
-        )
-
-@app.route ("/bench/one/2", methods = ['GET'])
-def bench_one2 (was):
-    with was.db ('@mydb') as db:
-        return was.API (
-            txs = db.execute ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;''').fetch ()
-        )
-
 
 @app.route ("/bench/http", methods = ['GET'])
-def bench_http (was):
-    return was.Map (
-        t1 = was.get ('@myweb/', headers = {'Accept': 'text/html'}),
-    )
-
-@app.route ("/bench/http/2", methods = ['GET'])
-def bench_http2 (was):
-    return was.Map (
-        t1 =  was.get ('@myweb/', headers = {'Accept': 'text/html'}),
-        t2 =  was.get ('@myweb/', headers = {'Accept': 'text/html'}),
-    )
+def bench_http_requests (context):
+    with app.rpool.acquire () as s:
+        return context.API (
+            t1 = s.get (f'http://{TARGET}', headers = {'Accept': 'text/html'}).text
+        )
 
 
 if __name__ == '__main__':
     import skitai, os
 
-    skitai.alias ('@mydb', skitai.DB_PGSQL, os.environ ['MYDB'], max_conns = 10)
-    skitai.alias ('@myweb', skitai.PROTO_HTTPS, 'example.com', max_conns = 32)
     skitai.mount ('/', app)
     skitai.use_poll ('epoll')
+    skitai.enable_async (20)
+    skitai.set_503_estimated_timeout (0)
     skitai.run (workers = 4, threads = 4, port = 5000)

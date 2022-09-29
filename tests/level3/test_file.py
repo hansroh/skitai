@@ -5,16 +5,15 @@ from io import BytesIO
 
 def test_futures (app, dbpath):
     @app.route ("/")
-    def index (was):
-        return was.File (__file__, 'application/python', 'test.py')
+    def index (context):
+        return context.File (__file__, 'application/python', 'test.py')
 
     @app.route ("/1")
-    def index2 (was):
+    def index2 (context):
         f = BytesIO ()
         f.write (b'Be cool')
-        return was.File (f, 'application/python', 'test.py')
+        return context.File (f, 'application/python', 'test.py')
 
-    app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")
         assert resp.status_code == 200

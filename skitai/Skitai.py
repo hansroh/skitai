@@ -5,40 +5,28 @@
 #-------------------------------------------------------
 
 HTTPS = True
-import sys, time, os, threading
+import sys, os, threading
 from .backbone import http_server
 from skitai import lifetime
 from warnings import warn
 from .backbone import https_server
 from skitai import start_was
-from collections import deque
-from .protocols.threaded.fifo import await_fifo
-from .protocols.sock import asynconnect
-from .protocols.sock import socketpool
-from .protocols.threaded import threadlib, trigger
-from .protocols.sock.impl.dns import adns, dns
-from .protocols.dbi import dbpool
-from rs4 import logger, confparse, pathtool
-from .protocols.sock.impl.http import request_handler
-from .protocols.sock.impl import http2
-if os.name == "nt":
-    from rs4.psutil import schedule # cron like scheduler
+from rs4.protocols.fifo import await_fifo
+from rs4.protocols.sock import asynconnect
+from rs4.protocols.sock import socketpool
+from .backbone.threaded import threadlib, trigger
+from rs4.protocols.sock.impl.dns import adns, dns
+from rs4.protocols.sock.impl.http import request_handler
+from rs4.protocols.sock.impl import http2
 from rs4.psutil import kill
-from .handlers import proxy_handler, ipbl_handler, vhost_handler, forward_handler
-import socket
+from .handlers import vhost_handler, forward_handler
 import signal
-import multiprocessing
 from . import wsgiappservice
 from .backbone import http_response
-from .tasks import cachefs
-from .tasks.httpbase import task, rcache
-from .tasks.httpbase import cluster_manager as rcluster_manager
-from .tasks.dbi import cluster_manager as dcluster_manager
-from .tasks.dbi import task as dtask
-import types
 from .handlers.websocket import servers as websocekts
 from .wastuff import selective_logger, triple_logger
-from .tasks.pth import executors
+if os.name == "nt":
+    from rs4.psutil import schedule # cron like scheduler
 
 class Loader:
     def __init__ (self, config = None, logpath = None, varpath = None, wasc = None, debug = 0):
@@ -53,6 +41,7 @@ class Loader:
         self.ssl = False
         self.ctx = None
         self._exit_code = None
+        self._async_enabled = False
         self.wasc_kargs = {}
         self._fifo_switched = False
         self.config_logger (self.logpath)
@@ -77,7 +66,6 @@ class Loader:
         self.wasc.register ("clusters",  {})
         self.wasc.register ("clusters_for_distcall",  {})
         self.wasc.register ("workers", 1)
-        self.wasc.register ("cachefs", None)
         websocekts.start_websocket (self.wasc)
         self.wasc.register ("websockets", websocekts.websocket_servers)
         self.switch_to_await_fifo ()
@@ -103,7 +91,10 @@ class Loader:
                 for vhost in h.sites.values ():
                     for apphs in vhost.apps.modules.values ():
                         for apph in apphs:
-                            getattr (apph, func) ()
+                            try:
+                                getattr (apph, func) ()
+                            except:
+                                self.wasc.logger.trace ("server")
 
     def WAS_finalize (self):
         global the_was
@@ -119,27 +110,23 @@ class Loader:
     def config_wasc (self, **kargs):
         self.wasc_kargs = kargs
 
-    def config_dns (self, prefer_protocol = "tcp"):
-        adns.init (self.wasc.logger.get ("server"), prefer_protocol = prefer_protocol)
-        lifetime.maintern.sched (4.1, dns.pool.maintern)
+    def config_executors (self, workers, zombie_timeout, process_start = None, enable_async = 0):
+        from .tasks import executors
 
-    def config_executors (self, workers, zombie_timeout, process_start = None):
         if process_start:
             from multiprocessing import set_start_method
             try: set_start_method (process_start, force = True)
             except RuntimeError: pass
-        self.wasc.register ("executors", executors.Executors (workers, zombie_timeout, self.wasc.logger.get ("server")))
+        _executors = executors.Executors (workers, zombie_timeout, self.wasc.logger.get ("server"))
+        self.wasc.register ("executors", _executors)
+        self.wasc.register ("thread_executor", _executors.get_tpool ())
+        self.wasc.register ("process_executor", _executors.get_ppool ())
 
-    def config_cachefs (self, cache_dir = None, memmax = 0, diskmax = 0):
-        self.wasc.cachefs = cachefs.CacheFileSystem (cache_dir, memmax, diskmax)
-
-        socketfarm = socketpool.SocketPool (self.wasc.logger.get ("server"))
-        self.wasc.clusters ["__socketpool__"] = socketfarm
-        self.wasc.clusters_for_distcall ["__socketpool__"] = task.TaskCreator (socketfarm, self.wasc.logger.get ("server"), self.wasc.cachefs)
-
-        dp = dbpool.DBPool (self.wasc.logger.get ("server"))
-        self.wasc.clusters ["__dbpool__"] = dp
-        self.wasc.clusters_for_distcall ["__dbpool__"] = dtask.TaskCreator (dp, self.wasc.logger.get ("server"))
+        if enable_async:
+            self._async_enabled = True
+            async_executor = executors.AsyncExecutor (enable_async)
+            async_executor.start ()
+            self.wasc.register ("async_executor", async_executor)
 
     def switch_to_await_fifo (self):
         if self._fifo_switched: return
@@ -148,10 +135,6 @@ class Loader:
         http_server.http_channel.fifo_class = await_fifo
         https_server.https_channel.fifo_class = await_fifo
         self._fifo_switched = True
-
-    def config_rcache (self, maxobj = 1000):
-        rcache.start_rcache (maxobj)
-        self.wasc.register ("rcache", rcache.the_rcache)
 
     def config_certification (self, certfile, keyfile = None, pass_phrase = None):
         if not HTTPS:
@@ -165,7 +148,7 @@ class Loader:
         forward_server.install_handler (forward_handler.Handler (self.wasc, forward_to))
         self.wasc.register ("forwardserver", forward_server)
 
-    def config_webserver (self, port, ip = "", name = "", ssl = False, keep_alive = 10, network_timeout = 10, single_domain = None, thunks = [], quic = None, backlog = 100, multi_threaded = False, max_upload_size = 256000000, start = True):
+    def config_webserver (self, port, ip = "", name = "", ssl = False, keep_alive = 10, network_timeout = 60, single_domain = None, thunks = [], quic = None, backlog = 100, multi_threaded = False, max_upload_size = 256000000, start = True):
         # maybe be configured    at first.
         if ssl and not HTTPS:
             raise SystemError("Can't start SSL Web Server")
@@ -240,21 +223,6 @@ class Loader:
             self.wasc.register ("threads", tpool)
             self.wasc.numthreads = numthreads
 
-    def config_backends (self, backend_keep_alive, object_timeout, maintern_interval):
-        rcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive
-        rcluster_manager.ClusterManager.object_timeout = object_timeout
-        rcluster_manager.ClusterManager.maintern_interval = maintern_interval
-
-        dcluster_manager.ClusterManager.backend_keep_alive = backend_keep_alive
-        dcluster_manager.ClusterManager.object_timeout = object_timeout
-        dcluster_manager.ClusterManager.maintern_interval = maintern_interval
-
-    def add_cluster (self, clustertype, clustername, clusterlist, ssl = 0, access = None, max_conns = 100):
-        try:
-            self.wasc.add_cluster (clustertype, clustername, clusterlist, ssl = ssl, access = access, max_conns = max_conns)
-        except:
-            self.wasc.logger.trace ("server")
-
     def install_handler_with_tuple (self, routes):
         if type (routes) is list:
             routes = {'default': routes}
@@ -280,29 +248,18 @@ class Loader:
 
     def install_handler (self,
             routes = [],
-            proxy = False,
             static_max_ages = None,
-            blacklist_dir = None,
-            unsecure_https = False,
-            enable_apigateway = False,
-            apigateway_authenticate = False,
-            apigateway_realm = "API Gateway",
-            apigateway_secret_key = None
+            media_url = None,
+            media_path = None
         ):
-        if blacklist_dir:
-            self.wasc.add_handler (0, ipbl_handler.Handler, blacklist_dir)
-        if proxy:
-            self.wasc.add_handler (1, proxy_handler.Handler, self.wasc.clusters, self.wasc.cachefs, unsecure_https)
 
         self.virtual_host = self.wasc.add_handler (
             1, vhost_handler.Handler,
-            self.wasc.clusters, self.wasc.cachefs,
-            static_max_ages,
-            enable_apigateway, apigateway_authenticate, apigateway_realm, apigateway_secret_key
+            static_max_ages
         )
-        routes and self.update_routes (routes)
+        routes and self.update_routes (routes, media_url, media_path)
 
-    def update_routes (self, routes):
+    def update_routes (self, routes, media_url = None, media_path = None):
         if self.virtual_host is None:
             return
 
@@ -319,15 +276,26 @@ class Loader:
             config = None
             if type (line) is tuple and len (line) == 4:
                 route, module, pref, name = line
+                if media_url:
+                    try:
+                        pref.config.MEDIA_URL, pref.config.MEDIA_ROOT = media_url, media_path
+                    except AttributeError:
+                        pass
                 self.virtual_host.add_route (current_rule, (route, module, ''), pref, name)
                 continue
 
             if type (line) is tuple:
                 line, pref, name = line
+
             line = line.strip ()
             if line.startswith (";") or line.startswith ("#"):
                 continue
             elif line.startswith ("/"):
+                if media_url:
+                    try:
+                        pref.config.MEDIA_URL, pref.config.MEDIA_ROOT = media_url, media_path
+                    except AttributeError:
+                        pass
                 rtype = self.virtual_host.add_route (current_rule, line, pref, name)
             elif line:
                 if line [0] == "@":
@@ -365,24 +333,9 @@ class Loader:
 
     def close (self):
         self.app_cycle ('before_umount')
-        for attr, obj in list(self.wasc.objects.items ()):
-            if attr == "logger":
-                continue
-
-            if attr == "clusters":
-                self.wasc.logger ("server", "[info] cleanup %s" % attr)
-                for name, cluster in obj.items ():
-                    cluster.cleanup ()
-                continue
-
-            if hasattr (obj, "cleanup"):
-                try:
-                    self.wasc.logger ("server", "[info] cleanup %s" % attr)
-                    obj.cleanup ()
-                    del obj
-                except:
-                    self.wasc.logger.trace ("server")
+        self.wasc.cleanup (phase = 1)
         self.app_cycle ('umounted')
+        self.wasc.cleanup (phase = 2)
 
         if os.name == "nt" or self.wasc.httpserver.worker_ident == "master":
             self.wasc.logger ("server", "[info] cleanup done, closing logger... bye")

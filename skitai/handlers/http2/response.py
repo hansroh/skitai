@@ -114,7 +114,6 @@ class response (http_response.http_response):
 			self.request.channel.current_request = request
 			self.request.channel.set_terminator (terminator)
 
-		logger = self.request.logger #IMP: for disconnect with request
 		try:
 			self.request.protocol.handle_response (
 				self.request.stream_id,
@@ -125,4 +124,4 @@ class response (http_response.http_response):
 				force_close = force_close
 			)
 		except:
-			logger.trace ()
+			self.logger.trace ()

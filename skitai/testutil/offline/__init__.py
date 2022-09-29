@@ -2,48 +2,31 @@
 # Skitai Unit Test Libaray
 #---------------------------------------------------------------
 
-import threading
-import multiprocessing
-from ...protocols.threaded import threadlib, trigger
+from ...backbone.threaded import threadlib
 import skitai
-from skitai import was as the_was
 from ...wastuff import triple_logger
-from ... import wsgiappservice
-from ...tasks import cachefs
 from ...handlers.websocket import servers as websocekts
 from . import server
 from ...handlers import vhost_handler
-from ...handlers import proxy_handler
-import inspect
-import os
-from ...tasks.dbi import task as dtask
-from ...tasks.httpbase import task, cluster_manager
-from ...protocols.sock import socketpool
-from ...protocols import lifetime
-from ...protocols.sock.impl.dns import adns
-from ...protocols.sock.asynconnect import AsynConnect
-from ...protocols.dbi import dbpool
-from ...protocols.dbi.dbconnect import DBConnect
-from rs4 import asyncore
-from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS, DB_SYN_PGSQL, DB_SYN_MONGODB, DB_SYN_REDIS
+from rs4.protocols import lifetime
 from ...wastuff import semaps
-from ...tasks.pth import executors
+from ...tasks import executors
 
 def logger ():
     return triple_logger.Logger ("screen", None)
 
 #----------------------------------------------------------
 def disable_threads ():
-    [the_was.queue.put (None) for each in range (the_was.numthreads)]
-    the_was.queue = None
-    the_was.threads = None
-    the_was.numthreads = 0
+    [ skitai.was.queue.put (None) for each in range (skitai.was.numthreads) ]
+    skitai.was.queue = None
+    skitai.was.threads = None
+    skitai.was.numthreads = 0
 
 def enable_threads (numthreads = 1):
     queue = threadlib.request_queue2 ()
-    the_was.queue =  queue
-    the_was.threads = threadlib.thread_pool (queue, numthreads, the_was.logger.get ("server"))
-    the_was.numthreads = numthreads
+    skitai.was.queue =  queue
+    skitai.was.threads = threadlib.thread_pool (queue, numthreads, skitai.was.logger.get ("server"))
+    skitai.was.numthreads = numthreads
 
 #----------------------------------------------------------
 
@@ -74,38 +57,16 @@ def install_vhost_handler (apigateway = 0, apigateway_authenticate = 0):
     vh = wasc.add_handler (
         1,
         vhost_handler.Handler,
-        wasc.clusters,
-        wasc.cachefs,
-        static_max_ages,
-        enable_apigateway,
-        apigateway_authenticate,
-        apigateway_realm,
-        apigateway_secret_key
+        static_max_ages
     )
     return vh
 
-def install_proxy_handler ():
-    global wasc
-
-    wasc.httpserver.handlers = []
-    h = wasc.add_handler (
-        1,
-        proxy_handler.Handler,
-        wasc.clusters,
-        wasc.cachefs,
-        False
-    )
-    return h
 
 #----------------------------------------------------------
 
 SAMPLE_DBPATH = '/tmp/example.sqlite'
 
-def setup_was (wasc):
-    def add_cluster (wasc, name, args):
-        ctype, members, policy, ssl, max_conns = args
-        wasc.add_cluster (ctype, name, members, ssl, policy, max_conns or 10)
-
+def setup_was (wasc, enable_async = False):
     # was and testutil was share objects
     try:
         wasc.register ("logger", logger ())
@@ -115,31 +76,29 @@ def setup_was (wasc):
     wasc.register ("httpserver", server.Server (wasc.logger))
     wasc.register ("debug", False)
 
-    wasc.register ("clusters",  {})
-    wasc.register ("clusters_for_distcall",  {"__socketpool__": None, "__dbpool__": None})
     wasc.register ("workers", 1)
-    wasc.register ("cachefs", cachefs.CacheFileSystem (None, 0, 0))
-    wasc.register ("executors", executors.Executors ())
+
+    _executors = executors.Executors ()
+    wasc.register ("executors", _executors)
+    wasc.register ("thread_executor", _executors.get_tpool ())
+    wasc.register ("process_executor", _executors.get_ppool ())
+
+    if enable_async:
+        import asyncio
+        async_executor = executors.AsyncExecutor (100)
+        async_executor.start ()
+        wasc.register ("async_executor", async_executor)
 
     websocekts.start_websocket (wasc)
     wasc.register ("websockets", websocekts.websocket_servers)
 
-    add_cluster (wasc, *skitai.alias ("@example", PROTO_HTTP, "www.example.com"))
-    add_cluster (wasc, *skitai.alias ("@examples", PROTO_HTTPS, "www.example.com"))
-    add_cluster (wasc, *skitai.alias ("@sqlite3", DB_SQLITE3, SAMPLE_DBPATH))
-
-    try: add_cluster (wasc, *skitai.alias ("@postgresql", DB_PGSQL, "user:pass@127.0.0.1/mydb"))
-    except ImportError: pass
-    try: add_cluster (wasc, *skitai.alias ("@mongodb", DB_MONGODB, "127.0.0.1:27017/mydb"))
-    except ImportError: pass
-    try: add_cluster (wasc, *skitai.alias ("@redis", DB_REDIS, "127.0.0.1:6379"))
-    except ImportError: pass
     return wasc
 
 wasc = None
-def activate (make_sync = True):
+def activate (enable_async = False):
     from ...wsgiappservice import WAS
     from atila import was as atila_was
+    from skitai.tasks import utils
 
     class WAS (atila_was.WAS):
         numthreads = 1
@@ -149,18 +108,12 @@ def activate (make_sync = True):
     if wasc is not None:
         return wasc
 
-    # convert async to sync
-    if make_sync:
-        cluster_manager.ClusterManager.use_syn_connection = True
-        socketpool.SocketPool.use_syn_connection = True
-        class_map = dbpool.DBPool.class_map
-        class_map [DB_PGSQL] = class_map [DB_SYN_PGSQL]
-        class_map [DB_REDIS] = class_map [DB_SYN_REDIS]
-        class_map [DB_MONGODB] = class_map [DB_SYN_MONGODB]
+    wasc = setup_was (WAS, enable_async)
+    skitai.was = skitai._WASPool ()
+    skitai.WASC = wasc
 
-    wasc = setup_was (WAS)
     skitai.start_was (wasc, enable_requests = True)
+    utils.WAS_FACTORY = skitai.was # refresh
     wasc._luwatcher.add (skitai.dconf ["models_keys"])
     lifetime.init (10.0, wasc.logger.get ("server"))
     return wasc
-

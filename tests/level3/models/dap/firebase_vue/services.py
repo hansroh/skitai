@@ -1,5 +1,5 @@
 from datetime import datetime
-from skitai import was
+import skitai
 import hashlib
 import base64
 from .models import User, UserLog
@@ -52,7 +52,7 @@ class UserService:
     def handle_password (payload):
         if 'password' not in payload:
             return
-        payload ['salt'], payload ['signature'] = was.encrypt_password (payload.pop ('password'))
+        payload ['salt'], payload ['signature'] = skitai.was.encrypt_password (payload.pop ('password'))
 
     @classmethod
     def _get_id (cls, uid):

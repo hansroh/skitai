@@ -1,28 +1,43 @@
 variables:
-    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+.postgres_install: &postgres_install
+  - apt install -y postgresql postgresql-contrib
+  - export MYDB="skitai:12345678@localhost/skitai"
+  - service postgresql start
+  - su - postgres -c "psql -c \"drop database if exists skitai;\""
+  - su - postgres -c "psql -c \"create database skitai;\""
+  - su - postgres -c "psql -c \"create user skitai with encrypted password '12345678';\""
+  - su - postgres -c "psql -c \"grant all privileges on database skitai to skitai;\""
+  - cd benchmark
+  - python3 bench/manage.py migrate
+  - python3 bench/init_db.py
+  - cd ..
 
 .base_install: &base_install
+  - apt update
   - python -V
   - pip install -U setuptools pip
-  - pip install -U --pre --no-cache-dir rs4 sqlphile
   - pip install -U "h2>=4.0.0"
-  - python -c 'from skitai.protocols.dbi.impl import syndbi, asynpsycopg2, asynmongo, asynredis'
-  - python -c 'from skitai.protocols.sock.impl.grpc import discover'
   - pip install -Ur tests/requirements.txt
   - pip install -U "django>=3.0,<4.0"
-  - pip install -U --pre --no-cache-dir atila delune
-  - pip install -U --pre --no-cache-dir atila-vue
-  - pip install -U --no-cache-dir rs4
+  - pip install -U --pre --no-cache-dir delune atila-vue
+  - pip install -U --pre --no-cache-dir "atila>=0.20.0.1" rs4 sqlphile
+  - python -c 'from rs4.protocols.sock.impl.grpc import discover'
+  - adduser --disabled-password --shell /bin/bash --gecos "ubuntu" ubuntu
 
 .before_python_test: &before_python_test
     before_script:
       - *base_install
+      - *postgres_install
+      - apt install -y libgl1-mesa-glx
       - pip install -U grpcio tensorflow-cpu==2.3.0 keras==2.3.0
       - pip install -U --pre --no-cache-dir tfserver dnn
 
 .before_python_notf_test: &before_python_notf_test
     before_script:
       - *base_install
+      - *postgres_install
       - pip install -U grpcio
 
 .before_pypy_test: &before_pypy_test
@@ -34,53 +49,51 @@ variables:
   script:
     - pip install -U -e .
     - cd tests
-    - pytest level1
-    - pytest level2
-    - pytest level3
-    - pytest level4
-    - pytest level4-1
-    - pytest level4-2
-    - pytest level5
-    # - pytest -s level4/test_big_picture.py
+    - chown -R ubuntu:ubuntu . && CWD=$PWD && su - ubuntu && cd $CWD
+    - ./test-all.sh --disable-pytest-warnings
 
-.test_template_win32: &test-win32
-  script:
-    - cd tests
-    - pytest level3/test_app.py
-  only:
-    - master
-
-python 3.6stretch:
-  image: python:3.6-stretch
+python 3.6:
+  image: python:3.6-buster
   <<: *before_python_test
   <<: *test
   only:
     - master
 
-python 3.7stretch:
-  image: python:3.7-stretch
+python 3.7:
+  image: python:3.7-buster
   <<: *before_python_test
   <<: *test
   only:
     - master
 
-python 3.8buster:
+python 3.8:
   image: python:3.8-buster
   <<: *before_python_test
   <<: *test
   only:
+    - master
+
+python 3.9:
+  image: python:3.9-buster
+  variables:
+    PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: python
+  <<: *before_python_notf_test
+  <<: *test
+  only:
     - test
 
-python 3.9buster:
-  image: python:3.9-buster
+python 3.10:
+  image: python:3.10-buster
+  variables:
+    PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: python
   <<: *before_python_notf_test
   <<: *test
   only:
     - master
 
-
-# python pypy3:
-#   image: pypy:3
-#   <<: *before_pypy_test
-#   <<: *test
-
+python pypy3:
+  image: pypy:3
+  <<: *before_pypy_test
+  <<: *test
+  only:
+    - pypy

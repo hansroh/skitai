@@ -1,4 +1,3 @@
-from skitai.protocols.sock.impl.http import http_util
 from confutil import rprint
 from examples.services import route_guide_pb2
 
@@ -59,9 +58,9 @@ def test_request_generation (client):
 
 	# JSONRPC
 	request = client.jsonrpc_request (url).calucator.add ("A", 1)
-	assert request.body.startswith (b"{\"") and len (request.body) == 103
+	assert request.body.startswith (b"{\"") and len (request.body) in (103, 111)
 	assert request.get_header ('content-type') == "application/json-rpc; charset=utf-8"
-	assert request.get_header ('content-length') == "103"
+	assert request.get_header ('content-length') in ("103", "111")
 
 	# GRPC
 	url = "http://www.skitai.com/routeguide.RouteGuide"

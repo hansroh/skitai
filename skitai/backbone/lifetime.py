@@ -1,13 +1,9 @@
-from ..protocols.threaded import trigger
-from ..protocols import lifetime
+from ..backbone.threaded import trigger
+from rs4.protocols import lifetime
 import sys, time
 from rs4 import asyncore
 import gc
-import select
 import os
-import bisect
-import socket
-import time
 
 if os.name == "nt":
 	from errno import WSAENOTSOCK
@@ -164,7 +160,7 @@ def graceful_shutdown_loop ():
 	while map and _shutdown_phase < 4:
 		time_in_this_phase = time.time() - timestamp
 		veto = 0
-		for fd,obj in map.items():
+		for fd, obj in list (map.items()):
 			try:
 				fn = getattr (obj,'clean_shutdown_control')
 			except AttributeError:

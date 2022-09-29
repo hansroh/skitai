@@ -9,13 +9,13 @@ import route_guide_pb2
 import pytest
 
 def test_cli (app, dbpath, is_pypy):
-    def test (was):
-        was.request.g.target = 'World'
+    def test (context):
+        context.request.g.target = 'World'
 
     @app.route ("/")
     @app.testpass_required (test)
-    def index (was):
-        return "Hello, {}".format (was.request.g.target)
+    def index (context):
+        return "Hello, {}".format (context.request.g.target)
 
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/")

@@ -5,23 +5,22 @@ import json
 
 def test_default_error_handler (app):
     @app.default_error_handler
-    def default_error_handler (was, error):
-        was.response.update ("Content-Type", "application/json; charset: utf8")
+    def default_error_handler (context, error):
+        context.response.update ("Content-Type", "application/json; charset: utf8")
         error ["say"] = "hello"
         return json.dumps (error, ensure_ascii = False, indent = 2)
 
     @app.route ("/f1")
-    def f1 (was):
-        def respond (was, rss):
-            raise was.Error ("414 Not Found")
-        reqs = [was.get ("@pypi/project/rs4/")]
-        return was.Tasks (reqs).then (respond)
+    def f1 (context):
+        def respond (context, rss):
+            raise context.HttpError ("414 Not Found")
+        reqs = [context.Mask ("@pypi/project/rs4/")]
+        return context.Tasks (reqs).then (respond)
 
     @app.route ("/f2")
-    def f2 (was):
-        raise was.Error ("414 Not Found")
+    def f2 (context):
+        raise context.HttpError ("414 Not Found")
 
-    app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
     with app.test_client ("/", confutil.getroot ()) as cli:
         api = cli.api ("/")
         resp = api.f1.get ()

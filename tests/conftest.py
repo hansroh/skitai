@@ -3,13 +3,11 @@ import confutil
 import skitai
 from atila import Atila
 from rs4 import logger
+from skitai.testutil.offline import client as cli
 from skitai.testutil import offline
 from skitai.testutil.offline.server import Server, Conn, Channel
-from skitai import PROTO_HTTP, PROTO_HTTPS, PROTO_WS, DB_PGSQL, DB_SQLITE3, DB_MONGODB, DB_REDIS
 import sys
 import pytest
-
-os.system ("sudo pg_ctlcluster 12 main start")
 
 def pytest_addoption (parser):
     parser.addoption (
@@ -41,15 +39,15 @@ def log ():
     yield logger
     logger.close ()
 
-@pytest.fixture (scope = "module")
+@pytest.fixture
 def app ():
     app_ = Atila (__name__)
     app_.logger = logger.screen_logger ()
     return app_
 
 @pytest.fixture
-def client ():
-    return confutil.client
+def client (Context):
+    return cli.Client ()
 
 @pytest.fixture
 def conn ():
@@ -68,19 +66,12 @@ def server ():
     yield s
     s.close ()
 
-@pytest.fixture (scope = "session")
-def wasc ():
-    offline.activate (make_sync = True)
-    return offline.wasc
-
-@pytest.fixture (scope = "session")
-def async_wasc ():
-    from atila.was import WAS
-    wasc = offline.setup_was (WAS) # nned real WAS from this testing
-
-    assert "example" in wasc.clusters
-    assert "postgresql" in wasc.clusters
-    return wasc
+@pytest.fixture
+def Context ():
+    offline.activate ()
+    Context = offline.wasc
+    yield Context
+    Context.cleanup ()
 
 DBPATH = offline.SAMPLE_DBPATH
 

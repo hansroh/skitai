@@ -1,13 +1,10 @@
-from concurrent.futures import TimeoutError, CancelledError
 import time
-from ..tasks import Mask
-from .. import proto
-from skitai import was
-from ...protocols.threaded import trigger
-import sys
-from ..httpbase.task import DEFAULT_TIMEOUT
+from ..derivations import Mask
+from .. import Revoke
+from .. import Task
+from .. import DEFAULT_TIMEOUT
 
-class Task (proto.Task):
+class Task (Task, Revoke):
     def __init__ (self, future, name, meta, filter, timeout = None):
         self.setup (name, meta, filter, timeout)
         self.future = future

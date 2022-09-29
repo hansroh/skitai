@@ -1,0 +1,110 @@
+image: hansroh/dep:latest
+services:
+  - name: docker:dind
+    alias: dind-service
+
+stages:
+  - test
+  - deploy
+
+variables:
+  CLUSTER_NAME: "skitai-cluster"
+  SERVICE_NAME: "skitai-dep"
+  TASK_DEFINITION_NAME: "skitai-dep"
+  CONTAINER_NAME: "skitai-dep"
+  COMMIT_REPR: "$CI_COMMIT_TITLE <$GITLAB_USER_NAME> $CI_PIPELINE_URL"
+  REPO: "$CI_REGISTRY_IMAGE"
+  REPO_NGINX: "$CI_REGISTRY_IMAGE/nginx"
+
+
+.configure_aws: &configure_aws
+  - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+  - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+  - aws configure set region $AWS_DEFAULT_REGION
+
+.set_image_tag_name: &set_image_tag_name
+  - IMAGE_TAG="$(echo $CI_COMMIT_SHA | head -c 8)"
+  - IMAGE0="$REPO_NGINX:$IMAGE_TAG"
+  - IMAGE1="$REPO:$IMAGE_TAG"
+
+.detect_notifier: &detect_notifier
+  - (test -z $TELEGRAM_TOKEN) && NOTIFY="echo" || NOTIFY="telegram"
+
+.login_docker: &login_docker
+  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
+.build_images: &build_images
+  - echo "build images..."
+  - adduser --disabled-password --shell /bin/bash --gecos "ubuntu" ubuntu
+  - chown -R ubuntu:ubuntu .
+  - docker-compose -f ./dep/production.yml up -d --build
+  - docker images
+  - echo "build finished"
+
+.push_images: &push_images
+  - echo "pushing latests ..."
+  - docker-compose -f dep/production.yml push
+  - echo "pushing $IMAGE0 ..."
+  - docker image tag $REPO_NGINX:latest $IMAGE0
+  - docker push $IMAGE0
+  - echo "pushing $IMAGE1 ..."
+  - docker image tag $REPO:latest $IMAGE1
+  - docker push $IMAGE1
+
+
+test:
+  stage: test
+  before_script:
+    - *detect_notifier
+  script:
+    - $NOTIFY "start test - $COMMIT_REPR"
+    - *build_images
+    - docker ps
+    - echo "waiting services..."
+    - docker exec -t $CONTAINER_NAME wait-for-it.sh localhost:5000 -t 30
+    - docker exec -t $CONTAINER_NAME wait-for-it.sh skitai-nginx:80 -t 30
+    - echo "testing nginx..."
+    - wget -O/dev/null -q http://dind-service/
+    - wget -O/dev/null -q http://dind-service/img/logo.jpg
+    - echo "testing app..."
+    - docker exec -t $CONTAINER_NAME /bin/bash -c "cd tests && sudo ./install.sh && ./test-all.sh"
+    - echo "test passed, push built images"
+    - $NOTIFY "test success - $COMMIT_REPR"
+    - touch ~/.success
+  after_script:
+    - *detect_notifier
+    - (! test -e ~/.success) && $NOTIFY "test failed - $COMMIT_REPR"
+  only:
+    - test
+
+deploy:
+  stage: deploy
+  before_script:
+    - *detect_notifier
+    - *set_image_tag_name
+    - *login_docker
+    - *configure_aws
+    - (test "$CI_COMMIT_BRANCH" == "qa") && STAGE="-qa" || STAGE=""
+    - DEP_SERVICE_NAME="${SERVICE_NAME}${STAGE}"
+    - DEP_TASK_DEFINITION_NAME="${TASK_DEFINITION_NAME}${STAGE}"
+  script:
+    - $NOTIFY "start deploy - $COMMIT_REPR"
+    - *build_images
+    - *push_images
+    - echo "IMAGE_TAG $IMAGE_TAG"
+    - export AWS_DEFAULT_REGION=ap-northeast-1
+    - TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition "$DEP_TASK_DEFINITION_NAME")
+    - NEW_TASK_DEFINITION=$(echo "$TASK_DEFINITION" | jq --arg IMAGE0 "$IMAGE0" --arg IMAGE1 "$IMAGE1" '.taskDefinition | .containerDefinitions[0].image = $IMAGE0 | .containerDefinitions[1].image = $IMAGE1 | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy)')
+    - echo "$NEW_TASK_DEFINITION" > ./task.json
+    - NEW_TASK_INFO=$(cat ./task.json | xargs -0 aws ecs register-task-definition --cli-input-json)
+    - NEW_REVISION=$(echo $NEW_TASK_INFO | jq '.taskDefinition.revision')
+    - echo "SERVICE_NAME $DEP_SERVICE_NAME"
+    - aws ecs update-service --cluster "$CLUSTER_NAME" --service "$DEP_SERVICE_NAME" --task-definition "$DEP_TASK_DEFINITION_NAME:$NEW_REVISION"
+    - $NOTIFY "deploy success - $COMMIT_REPR"
+    - touch ~/.success
+  after_script:
+    - *detect_notifier
+    - (! test -e ~/.success) && $NOTIFY "deploy failed - $COMMIT_REPR"
+  only:
+    - master
+    - qa

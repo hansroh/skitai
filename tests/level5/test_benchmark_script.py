@@ -2,7 +2,7 @@ import pytest
 import os, sys
 is_pypy = '__pypy__' in sys.builtin_module_names
 
-def test_launch (launch):
+def test_atila (launch):
     if is_pypy:
         return
     serve = '../benchmark/run-skitai-atila.py'
@@ -12,34 +12,31 @@ def test_launch (launch):
         assert 'txs' in resp.data
         assert 'record_count' in resp.data
 
-        resp = engine.axios.get ('/bench/sp')
+        resp = engine.axios.get ('/bench/async')
         assert resp.status_code == 200
         assert 'txs' in resp.data
         assert 'record_count' in resp.data
 
-        resp = engine.axios.get ('/bench/mix')
+        resp = engine.axios.get ('/bench/sqlphile')
         assert resp.status_code == 200
         assert 'txs' in resp.data
         assert 'record_count' in resp.data
 
-        resp = engine.axios.get ('/bench/one')
+        resp = engine.axios.get ('/bench/delay?t=1.0')
         assert resp.status_code == 200
         assert 'txs' in resp.data
-
-        resp = engine.axios.get ('/bench/row')
-        assert resp.status_code == 200
-        assert 'txs' in resp.data
-
-        resp = engine.axios.get ('/bench/row?pre=1')
-        assert resp.status_code == 200
-        assert 'txs' in resp.data
-
-        resp = engine.axios.get ('/bench/gen')
-        assert resp.status_code == 200
-        assert resp.text.count ("ReturnTx") > 800
-
-        if os.environ.get ("CI_COMMIT_TITLE"):
-            return
+        assert 'record_count' in resp.data
 
         resp = engine.axios.get ('/bench/http')
         assert resp.status_code == 200
+
+
+def test_django (launch):
+    if is_pypy:
+        return
+    serve = '../benchmark/run-skitai-django.py'
+    with launch (serve) as engine:
+        resp = engine.axios.get ('/bench')
+        assert resp.status_code == 200
+        assert 'txs' in resp.data
+        assert 'record_count' in resp.data

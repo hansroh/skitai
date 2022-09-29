@@ -11,7 +11,7 @@ import random
 import threading
 from rs4 import logger
 from rs4.webkit import jwt
-from ..protocols.sock.impl.http import http_date, util
+from rs4.protocols.sock.impl.http import http_date, util
 from skitai import __version__, WS_EVT_OPEN, WS_EVT_CLOSE, WS_EVT_INIT, NAME, DEFAULT_BACKGROUND_TASK_TIMEOUT
 from skitai import lifetime
 from ..wastuff import server_info
@@ -21,7 +21,7 @@ if os.environ.get ("SKITAIENV") == "PYTEST":
     from threading import RLock
 else:
     from multiprocessing import RLock
-from skitai import was as the_was
+import skitai
 import xmlrpc.client as xmlrpclib
 from ..wastuff.api import API
 if os.environ.get ("SKITAIENV") == "PYTEST":
@@ -30,6 +30,10 @@ else:
     from ..wastuff.semaps import Semaps
 from .wastype import _WASType
 from rs4.attrdict import AttrDictTS
+import asyncio
+from rs4.misc import producers
+from ..utility import deallocate_was, make_pushables
+from ..backbone.threaded import trigger
 
 workers_shared_mmap = Semaps ([], "d", 256)
 
@@ -45,11 +49,12 @@ class WASBase (_WASType):
     init_time = time.time ()
     cloned = False
 
-    @classmethod
-    def get_lock (cls, name = "__main__"):
-        return cls._process_locks [hash (name) % 8]
+    def __init__ (self):
+        delattr (self, 'register')
+        delattr (self, 'unregister')
+        delattr (self, 'cleanup')
 
-    # application friendly methods -----------------------------------------
+    # class only methods ---------------------------------
     @classmethod
     def register (cls, name, obj):
         if hasattr (cls, name):
@@ -63,23 +68,65 @@ class WASBase (_WASType):
         return delattr (cls, name)
 
     @classmethod
+    def cleanup (cls, phase = 0):
+        for attr, obj in list (cls.objects.items ()):
+            if attr in ("logger", "async_executor"):
+                if phase == 1:
+                    continue
+
+            if attr == "clusters":
+                cls.logger ("server", "[info] cleanup %s" % attr)
+                for name, cluster in obj.items ():
+                    cluster.cleanup ()
+                continue
+
+            if hasattr (obj, "cleanup"):
+                try:
+                    cls.logger ("server", "[info] cleanup %s" % attr)
+                    obj.cleanup ()
+                except:
+                    cls.logger.trace ("server")
+
+            del cls.objects [attr]
+            del obj
+
+    # class methods -----------------------------------------
+    @classmethod
+    def get_lock (cls, name = "__main__"):
+        return cls._process_locks [hash (name) % 8]
+
+    @classmethod
     def add_handler (cls, back, handler, *args, **karg):
         h = handler (cls, *args, **karg)
         if hasattr (cls, "httpserver"):
             cls.httpserver.install_handler (h, back)
         return h
 
-    def _clone (self):
+    @classmethod
+    def execute_function (cls, func, args = (), kargs = {}):
+        r = func (*args, **kargs)
+        if not asyncio.iscoroutine (r):
+            return r
+        future = asyncio.run_coroutine_threadsafe (r, cls.async_executor.loop)
+        if future.exception ():
+            raise future.exception ()
+        return future.result ()
+
+    def _clone (self, disposable = False):
         new_env = {}
         if hasattr (self, 'env'):
             new_env = copy.copy (self.env)
-            self.env.pop ('wsgi.input') # depending closure
-        new_was = the_was._get (True) # get clone was
+            try:
+                self.env.pop ('wsgi.input') # depending closure
+            except KeyError:
+                pass
+
+        new_was = skitai.was._new () if disposable else skitai.was._get (True) # get clone was
         new_env ["skitai.was"] = new_was
         new_was.env = new_env
 
         # cloning
-        for attr in ('request', 'app', 'apps', 'subapp', 'response'):
+        for attr in ('request', 'app', 'apps', 'subapp', 'response', 'websocket'):
             try:
                 val = getattr (self, attr)
             except AttributeError:
@@ -98,7 +145,10 @@ class WASBase (_WASType):
         return "{}{}".format (self.timestamp, self.gentemp () [-7:])
 
     def __dir__ (self):
-        return self.objects.keys ()
+        objs = list (self.objects.keys ()) + ["env", "app", "apps"]
+        hasattr (self, "request") and objs.append ("request")
+        hasattr (self, "response") and objs.append ("response")
+        return objs
 
     def __str__ (self):
         return "skitai was for {}".format (threading.currentThread ())
@@ -110,26 +160,25 @@ class WASBase (_WASType):
     def txnid (self):
         return "%s/%s" % (self.request.gtxid, self.request.ltxid)
 
-    def rebuild_header (self, header, method, data = None, internal = True):
-        nheader = util.normheader (header)
-        if method in {"get", "delete", "post", "put", "patch", "upload"}:
-            try:
-                default_request_type = self.app.config.get ("default_request_type")
-            except AttributeError:
-                default_request_type = None
-            if not default_request_type:
-                default_request_type = self.DEFAULT_REQUEST_TYPE
-            util.set_content_types (nheader, data, default_request_type)
+    def send_content_async (self, content, waking = False):
+        if isinstance (content, producers.Sendable): # IMP: already sent producer
+            return deallocate_was (self)
 
-        if internal:
-            nheader ["X-Gtxn-Id"] = self.request.get_gtxid ()
-            nheader ["X-Ltxn-Id"] = self.request.get_ltxid (1)
+        will_be_push = make_pushables (self.response, content)
+        if will_be_push is not None:
+            for part in will_be_push:
+                self.response.push (part)
+
+        if waking:
+            trigger.wakeup (lambda p = self.response, x = self: (p.done (), deallocate_was (x)))
         else:
-            nheader ["X-Requested-With"] = NAME
-        return nheader
+            self.response.done ()
+            deallocate_was (self)
 
     # system functions ----------------------------------------------
     def log (self, msg, category = "info", at = "app"):
+        if category == "debug" and not skitai.isdevel ():
+            return
         self.logger (at, msg, "%s:%s" % (category, self.txnid ()))
 
     def traceback (self, id = "", at = "app"):

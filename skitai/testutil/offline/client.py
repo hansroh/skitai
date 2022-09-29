@@ -1,13 +1,10 @@
-from ...protocols.sock.impl.http import request, response
-from ...protocols.sock.impl.grpc import request as grpc_request
-from ...protocols.sock.impl.ws import request as ws_request
-from ...protocols.dbi.impl import request as dbo_request
-import skitai
+from rs4.protocols.sock.impl.http import request
+from rs4.protocols.sock.impl.grpc import request as grpc_request
+from rs4.protocols.sock.impl.ws import request as ws_request
 from ...backbone.http_request import http_request
 from base64 import b64encode
 import os
 from .server import Channel, get_client_response
-import json
 from rs4.webkit import siesta
 from urllib.parse import urlparse
 
@@ -165,22 +162,6 @@ class Client:
 
     def grpc_request (self, endpoint = ""):
         return RPC (endpoint, callback = self.__get_grpc_request)
-
-    # db ----------------------------------------------------
-    def __make_dbo (self, dbtype, server, dbname = None, auth = None, method = None, params = None, callback = None, meta = {}):
-        return dbo_request.Request (dbtype, server, dbname, auth, method, params, callback, meta)
-
-    def postgresql (self, server, dbname, *args, **kargs):
-        return self.__make_dbo ('postgresql', server, dbname, *args, **kargs)
-
-    def mongdb (self, serverr, dbname, *args, **kargs):
-        return self.__make_dbo ('mongodb', serverr, dbname, *args, **kargs)
-
-    def sqlite3 (self, server, *args, **kargs):
-        return self.__make_dbo ('sqlite3', server, *args, **kargs)
-
-    def redis (self, server, *args, **kargs):
-        return self.__make_dbo ('redis', server, *args, **kargs)
 
     # websokcet --------------------------------------------
     def ws (self, uri, message, headers = [], auth = None, meta = {}, version = "1.1"):

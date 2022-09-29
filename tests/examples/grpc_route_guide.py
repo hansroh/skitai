@@ -2,6 +2,7 @@ from atila import Atila
 import time, math
 import json
 from services import route_guide_pb2
+import threading
 
 app = Atila (__name__)
 app.debug = True
@@ -32,11 +33,11 @@ def get_distance(start, end):
 	R = 6371000; # metres
 	return R * c
 
-@app.route ("/RouteChat", coroutine = True, input_stream = True)
-def RouteChat (was):
+@app.route ("/RouteChat", input_stream = True)
+def RouteChat (context):
 	prev_notes = []
 	while 1:
-		new_note = yield was.Input ()
+		new_note = yield context.Input ()
 		if not new_note:
 			break
 		for prev_note in prev_notes:
@@ -44,8 +45,8 @@ def RouteChat (was):
 				yield prev_note
 		prev_notes.append(new_note)
 
-@app.route ("/RecordRoute", coroutine = True, input_stream = True)
-def RecordRoute (was):
+@app.route ("/RecordRoute", input_stream = True)
+def RecordRoute (context):
 	point_count = 0
 	feature_count = 0
 	distance = 0.0
@@ -53,7 +54,7 @@ def RecordRoute (was):
 
 	start_time = time.time()
 	while 1:
-		point = yield was.Input ()
+		point = yield context.Input ()
 		if not point:
 			break
 		point_count += 1
@@ -72,7 +73,7 @@ def RecordRoute (was):
 	)
 
 @app.route ("/GetFeature")
-def GetFeature (was, point):
+def GetFeature (context, point):
 	feature = get_feature(db, point)
 	if feature is None:
 		return route_guide_pb2.Feature(name="", location=point)
@@ -80,7 +81,7 @@ def GetFeature (was, point):
 		return feature
 
 @app.route ("/ListFeatures")
-def ListFeatures (was, rectangle):
+def ListFeatures (context, rectangle):
 	left = min(rectangle.lo.longitude, rectangle.hi.longitude)
 	right = max(rectangle.lo.longitude, rectangle.hi.longitude)
 	top = max(rectangle.lo.latitude, rectangle.hi.latitude)
@@ -90,8 +91,8 @@ def ListFeatures (was, rectangle):
 			yield feature
 
 @app.route ("/test")
-def test (was):
-	stub = was.grpc ("http://127.0.0.1:5000/routeguide.RouteGuide")
+def test (context):
+	stub = context.grpc ("http://127.0.0.1:5000/routeguide.RouteGuide")
 	point = route_guide_pb2.Point (latitude=409146138, longitude=-746188906)
 	feature = stub.GetFeature (point)
 	rs = feature.dispatch ()
@@ -99,7 +100,7 @@ def test (was):
 
 
 @app.route ("/")
-def index (was):
+def index (context):
 	return "<h1>Route Guide<h1>"
 
 _jsondb = """

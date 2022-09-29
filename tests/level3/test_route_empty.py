@@ -9,7 +9,7 @@ def test_route_empty (app):
     app._mount_option ["point"] = "/beta"
 
     @app.route ("/")
-    def index2 (was, path = None):
+    def index2 (context, path = None):
         return "Hello, World"
 
     with app.test_client ("/", confutil.getroot ()) as cli:
@@ -24,7 +24,7 @@ def test_route_empty (app):
 
 
     @app.route ("")
-    def index (was, path = None):
+    def index (context, path = None):
         return "Hello, World"
 
     with app.test_client ("/", confutil.getroot ()) as cli:

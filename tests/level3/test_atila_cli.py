@@ -11,112 +11,75 @@ import pytest
 def test_cli (app, dbpath, is_pypy):
     @app.route ("/hello")
     @app.route ("/")
-    def index (was):
+    def index (context):
         return "Hello, World"
 
     @app.route ("/petse/<int:id>")
-    def pets_error (was):
+    def pets_error (context):
         return "Pets"
 
     @app.route ("/pets/<int:id>", methods = ["GET", "POST"])
-    def pets (was, id = None):
+    def pets (context, id = None):
         return "Pets{}".format (id)
 
     @app.route ("/pets2/<int:id>", methods = ["POST"])
-    def pets2 (was, id = None):
+    def pets2 (context, id = None, a = 0):
         return "Pets{}".format (id)
 
     @app.route ("/pets3/<int:id>")
-    def pets3 (was, id = None):
+    def pets3 (context, id = None):
         return "Pets{}".format (id)
 
     @app.route ("/echo")
-    def echo (was, m):
+    def echo (context, m):
         return m
 
     @app.route ("/json")
-    def json (was, m):
-        return was.response.api (data = m)
-
-    @app.route ("/pypi")
-    def pypi (was):
-        req = was.get ("@pypi/project/skitai/")
-        res = req.dispatch ()
-        return was.response.api (data = res.text)
-
-    @app.route ("/pypi3")
-    def pypi3 (was):
-        req = was.getjson ("https://pypi.org/project/skitai/")
-        res = req.dispatch ()
-        return was.response.api (data = res.text)
-
-    @app.route ("/pypi2")
-    def pypi2 (was):
-        req = was.get ("https://pypi.org/project/skitai/")
-        res = req.dispatch ()
-        return was.response.api (data = res.text)
-
-    @app.route ("/db")
-    def db (was):
-        stub = was.backend ("@sqlite")
-        req = stub.execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',))
-        res = req.dispatch ()
-        return was.response.api (data = res.data)
+    def json (context, m):
+        return context.response.api (data = m)
 
     @app.route ('/jwt')
     @app.authorization_required ("bearer")
-    def jwt (was):
-        return was.response.api (was.request.JWT)
-
-    @app.route ("/db2")
-    def db2 (was):
-        stub = was.db ("@sqlite")
-        req = stub.select ("stocks").filter (symbol = 'RHAT').execute ()
-        res = req.dispatch ()
-        return was.response.api (data = res.data)
+    def jwt (context):
+        return context.response.api (context.request.JWT)
 
     @app.maintain
-    def increase (was, now, count):
+    def increase (context, now, count):
         if "total-user" in app.store:
             app.store.set ("total-user", app.store.get ("total-user") + 100)
 
     @app.route ("/getval")
-    def getval (was):
+    def getval (context):
         ret = str (app.store.get ("total-user"))
         return ret
 
     @app.maintain (2)
-    def increase2 (was, now, count):
+    def increase2 (context, now, count):
         if "total-user2" in app.store:
             app.store.set ("total-user2", app.store.get ("total-user2") + 100)
 
     @app.route ("/getval2")
-    def getval2 (was):
+    def getval2 (context):
         ret = str (app.store.get ("total-user2"))
         return ret
 
     @app.route ("/rpc2/add_number")
-    def add_number (was, a, b):
+    def add_number (context, a, b):
         return a + b
 
     @app.route ("/routeguide.RouteGuide/GetFeature")
-    def GetFeature (was, point):
+    def GetFeature (context, point):
         feature = get_feature(db, point)
         if feature is None:
             return route_guide_pb2.Feature(name="", location=point)
         else:
             return feature
 
-
-    app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
-    app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)
-    app.alias ("@postgres", skitai.DB_POSTGRESQL, "postgres:password@192.168.0.80/coin_core")
-
     with app.test_client ("/", confutil.getroot ()) as cli:
         with cli.jsonrpc ('/rpc2') as stub:
             assert stub.add_number (1, 3) == 4
             assert stub.add_number (2, 3) == 5
-        return
+
         with cli.rpc ('/rpc2') as stub:
             assert stub.add_number (1, 3) == 4
 
@@ -139,8 +102,7 @@ def test_cli (app, dbpath, is_pypy):
         assert resp.text == "Pets1"
 
         resp = cli.post ("/pets", {"a": 1})
-        assert resp.status_code == 200
-        assert resp.text == "PetsNone"
+        assert resp.status_code == 400
 
         resp = cli.get ("/pets")
         assert resp.status_code == 200
@@ -176,41 +138,25 @@ def test_cli (app, dbpath, is_pypy):
         assert '"data":' in resp.text
         assert '"POST"' in resp.text
 
-        resp = cli.get ("/db2")
-        assert resp.data ["data"][0]['symbol'] == 'RHAT'
-
-        resp = cli.get ("/db")
-        assert resp.data ["data"][0]['symbol'] == 'RHAT'
-
-        resp = cli.get ("/pypi3")
-        assert resp.status_code == 502
-
-        resp = cli.get ("/pypi2")
-        assert "skitai" in resp.text
-
-        resp = cli.get ("/pypi")
-        assert "skitai" in resp.text
-
         app.securekey = "securekey"
         resp = cli.get ("/jwt", headers = {"Authorization": "Bearer {}".format (jwt_.gen_token (app.salt, {"exp": 3000000000, "username": "hansroh"}))})
         assert resp.data == {'exp': 3000000000, 'username': 'hansroh'}
 
         resp = cli.get ("/jwt", headers = {"Authorization": "Bearer {}".format (jwt_.gen_token (app.salt, {"exp": 1, "username": "hansroh"}))})
         assert resp.code == 401
-        assert resp.get_header ("WWW-Authenticate") == 'Bearer realm="App", error="token expired"'
         app.securekey = None
 
         if is_pypy:
             return
 
         app.config.MAINTAIN_INTERVAL = 1
-        app.store.set ("total-user", 100)
+        app.g.set ("total-user", 100)
         for i in range (4):
             time.sleep (1)
             resp = cli.get ("/getval")
         assert int (resp.text) >= 200
 
-        app.store.set ("total-user2", 100)
+        app.g.set ("total-user2", 100)
         resp = cli.get ("/getval2")
         assert int (resp.text) <= 200
 

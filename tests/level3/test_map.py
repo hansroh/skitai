@@ -1,69 +1,66 @@
 import skitai
 import confutil
 import pprint
-from skitai import was as the_was
 
 def test_map (app, dbpath):
     @app.route ("/1")
-    def index (was):
-        return was.Map (
-            a = was.stub ('@pypi/project').get ("/rs4/"),
-            b = the_was.backend ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',)),
+    def index (context):
+        return context.Map (
+            a = context.Mask ("/rs4/"),
+            b = context.Mask ([{'id': 1, 'symbol': 'RHAT'}, {'id': 2, 'symbol': 'RHAT'}]),
             c = 123
         )
 
     @app.route ("/2")
-    def index2 (was):
-        return was.Map (
-            was.Mask (456),
-            a = was.stub ('@pypi/project').get ("/rs4/"),
-            b = was.db ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',)),
+    def index2 (context):
+        return context.Map (
+            context.Mask (456),
+            a = context.Mask ("/rs4/"),
+            b = context.Mask ([{'id': 2, 'symbol': 'RHAT'}, {'id': 2, 'symbol': 'RHAT'}]),
             c = 123
         )
 
     @app.route ("/3")
-    def index3 (was):
-        return was.Map (
+    def index3 (context):
+        return context.Map (
             "408 OK",
-            was.Mask (456),
+            context.Mask (456),
             a = 123,
             b = '456',
-            c = was.db ("@sqlite").execute ('SELECT * FROM stocks WHERE symbol=?', ('RHAT',)),
-            d = was.Tasks ([
-                was.Mask (789),
-                was.Mask ('hello')
+            c = context.Mask ([{'id': 2, 'symbol': 'RHAT'}, {'id': 2, 'symbol': 'RHAT'}]),
+            d = context.Tasks ([
+                context.Mask (789),
+                context.Mask ('hello')
             ]),
-            e = was.Tasks (
-                x = was.Mask (789),
-                y = was.Mask ('hello')
+            e = context.Tasks (
+                x = context.Mask (789),
+                y = context.Mask ('hello')
             ),
-            f__y = was.Tasks (
-                was.Mask (789),
-                y = was.Mask ('hello')
+            f__y = context.Tasks (
+                context.Mask (789),
+                y = context.Mask ('hello')
             ),
-            g__fetch__1 = was.Tasks (
-                was.Mask (789),
-                was.Mask ('hello')
+            g__fetch__1 = context.Tasks (
+                context.Mask (789),
+                context.Mask ('hello')
             ),
-            h = was.Tasks (
-                a = was.Mask (789),
-                b = was.Tasks (
-                    was.Mask (789),
-                    was.Mask ('hello')
+            h = context.Tasks (
+                a = context.Mask (789),
+                b = context.Tasks (
+                    context.Mask (789),
+                    context.Mask ('hello')
                 )
             ),
         )
 
     @app.route ("/4")
-    def index2 (was):
-        return was.Map (
+    def index2 (context):
+        return context.Map (
             a = 1,
             b = '2',
             c = 123
         )
 
-    app.alias ("@pypi", skitai.PROTO_HTTPS, "pypi.org")
-    app.alias ("@sqlite", skitai.DB_SQLITE3, dbpath)
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/1")
         assert resp.status_code == 200

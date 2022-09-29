@@ -1,13 +1,12 @@
 import skitai
 import confutil
 import pprint
-from skitai import was as the_was
 
 def test_map (app, dbpath):
     @app.route ("/1", subdomain = 'k')
-    @app.inspect (offset = int)
-    def index (was, offset = 1):
-        return was.API (result = offset)
+    @app.spec (offset = int)
+    def index (context, offset = 1):
+        return context.API (result = offset)
 
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/1")

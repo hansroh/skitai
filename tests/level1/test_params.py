@@ -1,42 +1,53 @@
-from confutil import rprint, assert_request
+from confutil import rprint
 import confutil
 import skitai
 import os, pytest
 from skitai.testutil import offline as testutil
+from skitai.testutil.offline import client as cli
 
+CLIENT = None
+
+def assert_request (handler, request, expect_code):
+	global CLIENT
+	resp = CLIENT.handle_request (request, handler)
+	assert resp.status_code == expect_code, rprint ("STATUS CODE:", resp.status_code)
+	return resp
 
 def mount (app):
-	def z (was):
-		k = list (was.request.args.keys ())
+	def z (context):
+		k = list (context.request.args.keys ())
 		k.sort ()
 		return " ".join (k)
 
 	@app.route ("/do", methods = ["GET", "POST"])
-	def index (was):
-		return z (was)
+	def index (context):
+		return z (context)
 
 	@app.route ("/do2", methods = ["GET", "POST"])
-	def index2 (was, a):
-		return z (was)
+	def index2 (context, a):
+		return z (context)
 
 	@app.route ("/do3/<u>", methods = ["GET", "POST"])
-	def index3 (was, **args):
-		return z (was)
+	def index3 (context, **args):
+		return z (context)
 
 	@app.route ("/do4/<u>", methods = ["GET", "POST"])
-	def index4 (was, u, a, b):
-		return z (was)
+	def index4 (context, u, a, b):
+		return z (context)
 
 	@app.route ("/do5/<u>", methods = ["GET", "POST"])
-	def index5 (was, u, a):
-		return z (was)
+	def index5 (context, u, a):
+		return z (context)
 
 	@app.route ("/do6", methods = ["GET", "POST"])
-	def index6 (was, a):
-		return z (was)
+	def index6 (context, a):
+		return z (context)
 
 
-def test_params (wasc, app, client):
+def test_params (app, client):
+	global CLIENT
+	CLIENT = client
+
 	mount (app)
 	app.restrict_parameter_count = False
 
@@ -123,7 +134,10 @@ def test_params (wasc, app, client):
 	assert resp.text == "a b u"
 
 
-def test_params_restrict (wasc, app, client):
+def test_params_restrict (app, client):
+	global CLIENT
+	CLIENT = client
+
 	mount (app)
 	app.restrict_parameter_count = True
 

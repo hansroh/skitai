@@ -4,13 +4,13 @@ import socket
 import time
 import sys
 import threading
-from skitai.protocols.sock.impl.http2.hyper.common.exceptions import ConnectionResetError
+from rs4.protocols.sock.impl.http2.hyper.common.exceptions import ConnectionResetError
 import platform
 IS_PYPY = platform.python_implementation() == 'PyPy'
 
 def test_http2 (launch):
     if IS_PYPY:
-        # skitai.protocols.sock.impl.http2.hyper has secure connection problem
+        # rs4.protocols.sock.impl.http2.hyper has secure connection problem
         return
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
@@ -29,7 +29,7 @@ def test_http3 (launch):
         return
 
     from aioquic.quic.events import ConnectionTerminated
-    from skitai.protocols.sock.impl.http3.events import ConnectionShutdownInitiated
+    from rs4.protocols.sock.impl.http3.events import ConnectionShutdownInitiated
 
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:

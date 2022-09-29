@@ -5,8 +5,8 @@ from rs4 import asyncore, asynchat
 import re, socket, time, threading, os
 from . import http_request
 from .. import counter
-from ..protocols.sock.impl.http import http_util, http_date
-from ..protocols.threaded import threadlib
+from rs4.protocols.sock.impl.http import http_util, http_date
+from ..backbone.threaded import threadlib
 from skitai import lifetime
 from rs4.misc import producers, compressors
 from rs4.termcolor import tc
@@ -156,8 +156,12 @@ class http_channel (asynchat.async_chat):
         return self.connected
 
     def handle_timeout (self):
-        IS_TTY and self.log ("killing zombie channel %s" % ":".join (map (str, self.addr)))
-        self.close ()
+        if self.current_request:
+            response = self.current_request.response
+            response.error (503, force_close = True)
+        else:
+            IS_TTY and self.log ("killing zombie channel %s" % ":".join (map (str, self.addr)))
+            self.close ()
 
     def set_timeout (self, timeout):
         self.zombie_timeout = timeout

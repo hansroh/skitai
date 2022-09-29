@@ -24,9 +24,8 @@ if 'publish' in sys.argv:
     sys.exit ()
 
 classifiers = [
-  'License :: OSI Approved :: MIT License',
-  'Development Status :: 4 - Beta',
-  'Topic :: Internet :: WWW/HTTP :: HTTP Servers',
+    'License :: OSI Approved :: MIT License',
+    'Development Status :: 4 - Beta',
     'Topic :: Internet :: WWW/HTTP :: WSGI',
     'Environment :: Console',
     'Environment :: No Input/Output (Daemon)',
@@ -36,6 +35,8 @@ classifiers = [
     'Programming Language :: Python :: 3.6',
     'Programming Language :: Python :: 3.7',
     'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: Implementation :: CPython'
 ]
 
@@ -44,56 +45,40 @@ packages = [
     'skitai.scripts',
     'skitai.scripts.commands',
     'skitai.backbone',
+    'skitai.backbone.threaded',
     'skitai.handlers',
     'skitai.handlers.http2',
     'skitai.handlers.websocket',
-    'skitai.handlers.proxy',
     'skitai.tasks',
-    'skitai.tasks.dbi',
-    'skitai.tasks.httpbase',
     'skitai.tasks.pth',
     'skitai.wsgiappservice',
     'skitai.wastuff',
     'skitai.mounted',
     'skitai.testutil',
     'skitai.testutil.offline',
-    'skitai.protocols',
-    'skitai.protocols.threaded',
-    'skitai.protocols.dbi',
-    'skitai.protocols.dbi.impl',
-    'skitai.protocols.sock',
-    'skitai.protocols.sock.impl',
-	'skitai.protocols.sock.impl.dns',
-	'skitai.protocols.sock.impl.dns.pydns',
-	'skitai.protocols.sock.impl.http',
-	'skitai.protocols.sock.impl.http2',
-	'skitai.protocols.sock.impl.http2.hyper',
-	'skitai.protocols.sock.impl.http2.hyper.common',
-	'skitai.protocols.sock.impl.http2.hyper.http11',
-	'skitai.protocols.sock.impl.http2.hyper.http20',
-	'skitai.protocols.sock.impl.http2.hyper.http20.h2',
-	'skitai.protocols.sock.impl.http2.hyper.packages',
-	'skitai.protocols.sock.impl.http2.hyper.packages.rfc3986',
-    'skitai.protocols.sock.impl.http3',
-	'skitai.protocols.sock.impl.ws',
-	'skitai.protocols.sock.impl.smtp',
-	'skitai.protocols.sock.impl.grpc',
-	'skitai.protocols.sock.impl.proxy',
 ]
 
 package_dir = {'skitai': 'skitai'}
 package_data = {
     "skitai": [
-        "protocols/sock/impl/dns/*.txt",
-		"protocols/sock/impl/dns/pydns/*.txt",
-		"protocols/sock/impl/http2/hyper/*.txt",
-		"protocols/sock/impl/http2/hyper/*.pem",
-        "protocols/sock/impl/http3/*.pem",
+        "wastuff/templates/.gitlab-ci.yml",
+        "wastuff/templates/ctn.sh",
+        "wastuff/templates/dep/*.*",
+        "wastuff/templates/dep/nginx/*.conf",
+        "wastuff/templates/dep/nginx/include/*.conf",
+        "wastuff/templates/dep/docker/*.*",
+        "wastuff/templates/dep/docker/Dockerfiles/*.*",
+        "wastuff/templates/dep/docker/include/*.*",
+        "wastuff/templates/dep/terraform/*.tf",
+        "wastuff/templates/dep/terraform/*.md",
+        "wastuff/templates/dep/terraform/.gitignore",
+        "wastuff/templates/dep/terraform/cloud-infra/*.tf",
+        "wastuff/templates/dep/terraform/ecs-cluster/*.tf",
     ]
 }
 
 install_requires = [
-    "rs4>=0.3",
+    "rs4>=0.3.6",
     "sqlphile>=0.9",
     "h2>=4.0.0"
 ]

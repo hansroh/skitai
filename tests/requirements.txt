@@ -3,6 +3,8 @@ pytest
 pytest-ordering
 codecov
 pytest-cov
+pytest-asyncio
+websockets
 flask
 websocket_client
 jinja2
@@ -36,7 +38,6 @@ exif
 fdet
 torchvision
 torch
-tensorflow-cpu==2.3.0
-keras==2.3.0
 twine
 keyrings.alt
+asyncpg

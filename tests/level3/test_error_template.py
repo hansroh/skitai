@@ -5,11 +5,11 @@ import os
 
 def test_error_handler (app):
     @app.default_error_handler
-    def default_error_handler (was, error):
+    def default_error_handler (context, error):
         return str (error)
 
     @app.route ("/")
-    def index (was):
+    def index (context):
         raise ValueError
 
     os.environ ['SKITAIENV'] = 'DEVEL'

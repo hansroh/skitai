@@ -8,7 +8,7 @@ from . import wsgi_handler
 from hashlib import sha1
 from base64 import b64encode
 from ..backbone.http_response import catch
-from ..protocols.sock.impl.http import http_util
+from rs4.protocols.sock.impl.http import http_util
 from skitai import version_info, was as the_was
 import threading
 from .websocket import specs
@@ -47,12 +47,10 @@ class Handler (wsgi_handler.Handler):
                 raise AssertionError ("Websocket can't use start_response ()")
             return push
 
-        origin = request.get_header ("origin")
         host = request.get_header ("host")
         protocol = request.get_header ("sec-websocket-protocol", 'unknown')
         securekey = request.get_header ("sec-websocket-key")
-
-        if not origin or not host or not securekey:
+        if not host or not securekey:
             return self.handle_error_before_collecting (request, 400)
 
         path, params, query, fragment = request.split_uri ()
@@ -82,6 +80,7 @@ class Handler (wsgi_handler.Handler):
         was = the_was._get ()
         was.request = request
         was.env = env
+        was.app = app
 
         env ["skitai.was"] = was
         env ["websocket.event"] = skitai.WS_EVT_INIT
@@ -108,7 +107,7 @@ class Handler (wsgi_handler.Handler):
             request.env = env # IMP
             env ["wsgi.routed"] = wsfunc = current_app.get_routed (method)
             env ["wsgi.route_options"] = options
-            fspec = app.get_function_spec (wsfunc, options.get ('mntopt')) or inspect.getfullargspec (wsfunc)
+            fspec = app.get_function_spec (wsfunc, options.get ('opts')) or inspect.getfullargspec (wsfunc)
             savedqs = env.get ('QUERY_STRING', '')
             current_args = {}
             defaults = 0
@@ -181,7 +180,7 @@ class Handler (wsgi_handler.Handler):
                 ws_class = specs.WebSocket6
             ws = ws_class (self, request, apph, env, varnames, message_encoding)
             self.channel_config (request, ws, keep_alive)
-            env ["websocket"] = ws
+            was.websocket = env ["websocket"] = ws
             if is_atila:
                 env ["websocket.handler"] = (current_app, wsfunc)
             ws.open ()
