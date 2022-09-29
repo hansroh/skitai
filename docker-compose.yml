@@ -49,7 +49,8 @@ volumes:
 # AFTER CONTAINER CREATED
 # -----------------------------------------------------
 # docker attach skitai-dev
-# ./docker-init.sh
+# ./docker-init-db.sh      # if pgdata volumes is newly created
+# ./docker-init-libs.sh    # if .local/lib/pythonx has problem
 
 # docker attach skitai-h2load
 # h2load --h1 -n 10000 -t 20 -c 1024 http://skitai:5000/bench/async

@@ -1,5 +1,12 @@
 import pytest
-from examples.services import route_guide_pb2, route_guide_pb2_grpc
+
+try:
+    from examples.services import route_guide_pb2
+    from examples.services.route_guide_pb2 import RouteGuideStub
+except ImportError:
+    from examples.services import route_guide_pb2
+    from examples.services.route_guide_pb2_grpc import RouteGuideStub
+
 import os
 import time
 from websocket import create_connection
@@ -32,7 +39,7 @@ def test_grpc_request_bistream (launch):
     server = "127.0.0.1:30371"
     with launch ("./examples/bidirectional.py") as engine:
         with grpc.insecure_channel(server) as channel:
-            stub = route_guide_pb2_grpc.RouteGuideStub (channel)
+            stub = RouteGuideStub (channel)
 
             # bidirectional
             for idx, response in enumerate (stub.RouteChat(generate_messages())):
