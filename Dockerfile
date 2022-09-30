@@ -13,9 +13,6 @@ RUN apt install -y python3-pip
 RUN pip3 install -U pip
 RUN pip3 install -U django psycopg2-binary
 
-COPY tools/docker/requirements.txt /requirements.txt
-RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
-
 COPY benchmark/requirements.txt /requirements.txt
 RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
 
