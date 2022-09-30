@@ -9,7 +9,7 @@ git clone git@gitlab.com:skitai/skitai.git
 ```shell
 cd skitai
 docker-compose up -d --build
-docker attach skitai
+docker attach skitai-dev
 ```
 
 # Install Libraries as Development Mode
