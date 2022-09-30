@@ -1,21 +1,17 @@
+# pytest
 pytest
 pytest-ordering
 codecov
 pytest-cov
 pytest-asyncio
-psycopg2-binary
+
+# test deps
 websockets
-flask
-fastapi
-gunicorn
-uvicorn
 websocket_client
 jinja2
-psycopg2-binary
 aiofiles
 asgiref
 httpbin
-starlette
 wsproto
 jsonrpclib-pelix
 markupsafe
@@ -28,8 +24,5 @@ django-admin-numeric-filter
 django-admin-rangefilter
 torchvision
 torch
-asyncpg
-aiohttp
 aioquic==0.9.11; python_version>="3.6"
-django>=3.0,<4.0
 protobuf>=3.20

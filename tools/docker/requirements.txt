@@ -1,25 +1,17 @@
-# skitai libs deps
-jinja2
-numpy
 scikit-learn
-future
-networkx
-hyperopt
-protobuf>=3.20
-dill
 webrtcvad
-exif
-fdet
+future
+jinja2
+networkx
 psutil
+fdet
+dill
 requests
+numpy
 colorama
 tqdm
+exif
+hyperopt
+protobuf>=3.20
 setproctitle
 h2>=4.0.0
-
-tensorflow-cpu==2.3.0
-keras==2.3.0
-
-# dist tools
-twine
-keyrings.alt

@@ -1,8 +1,13 @@
+aiohttp
+aiofiles
+psycopg2-binary
 asyncpg
 uvicorn
 gunicorn
 fastapi
-django
+django>=3.0,<4.0
 aiohttp
 psycopg2-binary
 sanic
+starlette
+flask

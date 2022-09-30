@@ -1,9 +1,0 @@
-version: '3.3'
-services:
-  h2load:
-    image: hansroh/app:h2load
-    container_name: h2load
-    tty: true
-    stdin_open: true
-    command:
-      - /bin/bash

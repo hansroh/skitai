@@ -9,7 +9,8 @@ import re
 def collect ():
     requires_all= []
     devlibs = []
-    libs = os.path.abspath (os.path.join (os.path.dirname (__file__), '../'))
+    cwd = os.path.abspath (os.path.join (os.path.dirname (__file__)))
+    libs = os.path.join (cwd, '../')
     print ('collecting dependencies:')
     for lib in os.listdir (libs):
         print ('-', lib)
@@ -29,21 +30,6 @@ def collect ():
         except AttrubuteError:
             continue
 
-    os.chdir (os.path.join (libs, 'skitai'))
-    with open ('benchmark/requirements.txt') as f:
-        for line in f:
-            line = line.strip ()
-            if not line:
-                continue
-            requires_all.append (line)
-
-    with open ('tests/requirements.txt') as f:
-        for line in f:
-            line = line.strip ()
-            if not line:
-                continue
-            requires_all.append (line)
-
     requires_wanted = set ()
     for lib in requires_all:
         name = re.split ('[=<>]', lib)[0]
@@ -56,7 +42,7 @@ def collect ():
             requires_wanted.add (lib)
 
     print ('found dependencies:')
-    with open ('tools/docker/requirements.txt', 'w') as f:
+    with open (os.path.join (cwd, 'tools/docker/requirements.txt'), 'w') as f:
         for r in requires_wanted:
             print ('-', r)
             f.write (r + '\n')
