@@ -23,7 +23,7 @@ variables:
   - pip install -Ur tests/requirements.txt
   - pip install -U --pre --no-cache-dir delune atila-vue
   - pip install -U --pre --no-cache-dir "atila>=0.20.0.1" rs4 sqlphile
-  - pip install -U "django>=3.0,<4.0" "protobuf>=3.20"
+  - pip install -U "django>=3.0,<4.0"
   - python -c 'from rs4.protocols.sock.impl.grpc import discover'
   - adduser --disabled-password --shell /bin/bash --gecos "ubuntu" ubuntu
 
@@ -34,6 +34,7 @@ variables:
       - apt install -y libgl1-mesa-glx
       - pip install -U grpcio tensorflow-cpu==2.3.0 keras==2.3.0
       - pip install -U --pre --no-cache-dir tfserver dnn
+      - pip install -U "protobuf>=3.20"
 
 .before_python_notf_test: &before_python_notf_test
     before_script:
