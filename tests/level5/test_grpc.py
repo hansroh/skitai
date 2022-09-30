@@ -1,15 +1,17 @@
 import pytest
+skip_grpc = False
 try:
     from examples.services import route_guide_pb2
     from examples.services.route_guide_pb2_grpc import RouteGuideStub
 except ImportError:
-    from examples.services import route_guide_pb2_v3 as route_guide_pb2
-    from examples.services.route_guide_pb2_v3 import RouteGuideStub
+    skip_grpc = True
 import os
 import time
 
 # @pytest.mark.skip
 def test_grpc (launch):
+    if skip_grpc:
+        return
     try: import grpc
     except ImportError: return
 
@@ -33,8 +35,8 @@ def test_grpc (launch):
 
 # @pytest.mark.skip
 def test_grpc_request_stream (launch):
-    # if os.getenv ("GITLAB_USER_NAME"):
-    #     return
+    if skip_grpc:
+        return
     try: import grpc
     except ImportError: return
 
@@ -56,8 +58,8 @@ def test_grpc_request_stream (launch):
 
 # @pytest.mark.skip
 def test_grpc_request_bistream (launch):
-    # if os.getenv ("GITLAB_USER_NAME"):
-    #     return
+    if skip_grpc:
+        return
     try: import grpc
     except ImportError: return
 
