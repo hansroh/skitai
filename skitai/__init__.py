@@ -565,12 +565,7 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
             if hasattr (target, '__skitai__'):
                 target = target.__skitai__
             else:
-                for cand in ("wsgi", "__export__"):
-                    _target = os.path.join (os.path.dirname (target.__file__), "export", "skitai", "{}.py".format (cand))
-                    if os.path.isfile (_target):
-                        target = (target, cand)
-                        break
-                    assert isinstance (target, tuple), 'cannot find {}'.format (os.path.join (os.path.dirname (target.__file__), "export", "skitai", "wsgi.py"))
+                raise AttributeError ("__app__ or __skitai__ not defined")
 
     if 'subscribe' in kargs:
         assert name, 'to subscribe, name must be specified'
