@@ -1,15 +1,13 @@
-psycopg2-binary
 pytest
 pytest-ordering
 codecov
 pytest-cov
 pytest-asyncio
+psycopg2-binary
 websockets
 flask
 websocket_client
 jinja2
-redis
-pymongo<4.0
 psycopg2-binary
 aiofiles
 asgiref
@@ -18,7 +16,6 @@ starlette
 wsproto
 jsonrpclib-pelix
 markupsafe
-aioquic==0.9.11; python_version>="3.6"
 matplotlib
 pillow
 opencv-python-headless
@@ -39,4 +36,6 @@ torch
 twine
 keyrings.alt
 asyncpg
+aioquic==0.9.11; python_version>="3.6"
+django>=3.0,<4.0
 protobuf>=3.20
