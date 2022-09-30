@@ -6,6 +6,9 @@ pytest-asyncio
 psycopg2-binary
 websockets
 flask
+fastapi
+gunicorn
+uvicorn
 websocket_client
 jinja2
 psycopg2-binary
@@ -17,25 +20,16 @@ wsproto
 jsonrpclib-pelix
 markupsafe
 matplotlib
+scikit-learn
 pillow
 opencv-python-headless
 scikit-image
 django-admin-numeric-filter
 django-admin-rangefilter
-numpy
-scikit-learn
-future
-networkx
-hyperopt
-dill
-webrtcvad
-exif
-fdet
 torchvision
 torch
-twine
-keyrings.alt
 asyncpg
+aiohttp
 aioquic==0.9.11; python_version>="3.6"
 django>=3.0,<4.0
 protobuf>=3.20
