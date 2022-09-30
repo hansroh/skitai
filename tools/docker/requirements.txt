@@ -22,3 +22,4 @@ keras==2.3.0
 
 # dist tools
 twine
+keyrings.alt
