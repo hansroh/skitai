@@ -5,7 +5,7 @@ is_pypy = '__pypy__' in sys.builtin_module_names
 def test_atila (launch):
     if is_pypy:
         return
-    serve = '../benchmark/run-skitai-atila.py'
+    serve = os.path.abspath ('../tools/benchmark/run-skitai-atila.py')
     with launch (serve) as engine:
         resp = engine.axios.get ('/bench')
         assert resp.status_code == 200
@@ -34,7 +34,7 @@ def test_atila (launch):
 def test_django (launch):
     if is_pypy:
         return
-    serve = '../benchmark/run-skitai-django.py'
+    serve = os.path.abspath ('../tools/benchmark/run-skitai-django.py')
     with launch (serve) as engine:
         resp = engine.axios.get ('/bench')
         assert resp.status_code == 200
