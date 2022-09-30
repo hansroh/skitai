@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.50.7"
+__version__ = "0.51.0"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -547,6 +547,11 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
                 del mod.bootstrap
             hasattr (mod, "__config__") and mod.__config__ (pref)
 
+    if hasattr (target, "_ATILA_COMPOSIT"):
+        target, extends, overrides = target.unpack ()
+        [ pref.extends (e) for e in extends ]
+        [ pref.overrides (e) for e in overrides ]
+
     maybe_django (target, appname)
     if path:
         if isinstance (path, str):
@@ -574,10 +579,6 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
             subscribe = [subscribe]
         for app in subscribe:
             dconf ['subscriptions'].add ((app, name))
-
-    if type (target) is tuple:
-        module, appfile = target
-        target = os.path.join (os.path.dirname (module.__file__), "export", "skitai", appfile)
 
     if hasattr (target, '__app__'):
         pass
