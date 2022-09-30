@@ -28,11 +28,11 @@ then
     git clone git@gitlab.com:tfserver/dnn.git
 fi
 
-cd ~/libs/rs4 && pip3 install --no-deps -e .
-cd ~/libs/sqlphile && pip3 install --no-deps -e .
-cd ~/libs/skitai && pip3 install --no-deps -e .
-cd ~/libs/atila && pip3 install --no-deps -e .
-cd ~/libs/atila-vue && pip3 install --no-deps -e .
-cd ~/libs/delune && pip3 install --no-deps -e .
-cd ~/libs/dnn && pip3 install --no-deps -e .
-cd ~/libs/tfserver && pip3 install --no-deps -e .
+cd ~/libs/rs4 && pip3 install -e .
+cd ~/libs/sqlphile && pip3 install -e .
+cd ~/libs/skitai && pip3 install -e .
+cd ~/libs/atila && pip3 install -e .
+cd ~/libs/atila-vue && pip3 install -e .
+cd ~/libs/delune && pip3 install -e .
+cd ~/libs/dnn && pip3 install -e .
+cd ~/libs/tfserver && pip3 install -e .
