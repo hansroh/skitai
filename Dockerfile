@@ -16,8 +16,14 @@ RUN pip3 install -U django psycopg2-binary
 COPY tools/docker/requirements.txt /requirements.txt
 RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
 
+COPY benchmark/requirements.txt /requirements.txt
+RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
+
 COPY tests/requirements.txt /requirements.txt
 RUN pip3 install -Ur /requirements.txt && rm -f /requirements.txt
+
+RUN pip3 install -U grpcio tensorflow-cpu==2.3.0 keras==2.3.0
+RUN pip3 install -U twine keyrings.alt
 
 # install selenium --------------------
 RUN apt update && apt install -y wget gnupg unzip curl
