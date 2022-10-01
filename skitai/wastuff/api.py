@@ -166,6 +166,7 @@ class API (APIResponse):
 		resource_id = self.request.routable ["func_id"]
 		routable = copy.deepcopy (self.request.routable)
 		del routable ["func_id"]
+		del routable ["wrapper"]
 		routable ["methods"] = list (routable ["methods"])
 		props = {"current_request": {}}
 		props ["current_request"]["method"] = self.request.method
