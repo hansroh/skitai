@@ -16,3 +16,9 @@ def __mount__ (context, app, opts):
     @app.route ("/cols/<alias>/documents/<_id>", methods = ["GET"])
     def get (context, alias, _id, nthdoc = 0):
         return ""
+
+    @app.route ('/multi_route-3')
+    @app.route ('/multi_route-2')
+    @app.route ('/multi_route-1')
+    def multi_route (context):
+        return 'delune-ext'
