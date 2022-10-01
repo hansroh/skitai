@@ -10,16 +10,16 @@ variables:
   - su - postgres -c "psql -c \"create database skitai;\""
   - su - postgres -c "psql -c \"create user skitai with encrypted password '12345678';\""
   - su - postgres -c "psql -c \"grant all privileges on database skitai to skitai;\""
-  - cd benchmark
+  - cd tools/benchmark
   - python3 bench/manage.py migrate
   - python3 bench/init_db.py
-  - cd ..
+  - cd ../..
 
 .base_install: &base_install
   - apt update
   - python -V
   - pip install -U setuptools pip
-  - pip install -Ur benchmark/requirements.txt
+  - pip install -Ur tools/benchmark/requirements.txt
   - pip install -Ur tests/requirements.txt
   - pip install -U --pre --no-cache-dir delune atila-vue
   - pip install -U --pre --no-cache-dir "atila>=0.20.0.1" rs4 sqlphile

@@ -66,13 +66,13 @@ class Module:
 
             else:
                 self.module = None
-                self.abspath = os.path.join (directory, '__nonextist__')
+                self.abspath = os.path.join (directory, '__notexists__')
                 self.directory = directory
                 self.app = libpath
                 self.app.use_reloader = False
                 if hasattr (self.app, "path") and self.app.path:
+                    self.abspath = self.app.path
                     self.app_initer = importer.from_file ("__temp", os.path.normpath (os.path.abspath (self.app.path)))
-
             self.start_app ()
 
     def __repr__ (self):
@@ -143,8 +143,6 @@ class Module:
             func (self.wasc, self.route)
             self.wasc.handler = None
 
-        hasattr (self.app_initer, '__mounted__') and self.run_hook (self.app_initer.__mounted__, (app))
-
     def run_hook (self, fn, app):
         # IMP: sync atila.app.services.run_hook ()
         def display_warning ():
@@ -177,11 +175,14 @@ class Module:
         return d
 
     def before_mount (self):
+        # lower ver compat.
         app = self.app or getattr (self.module, self.appname)
         self.has_life_cycle and app.life_cycle ("before_mount", self.wasc)
 
     def mounted (self):
         app = self.app or getattr (self.module, self.appname)
+        hasattr (self.app_initer, '__mounted__') and self.run_hook (self.app_initer.__mounted__, (app))
+        hasattr (app, "have_mounted") and app.have_mounted ()
         self.has_life_cycle and app.life_cycle ("mounted", self.wasc ())
         self.has_life_cycle and app.life_cycle ("mounted_or_reloaded", self.wasc ())
 

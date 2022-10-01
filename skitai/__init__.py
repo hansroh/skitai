@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.51.0"
+__version__ = "0.51.1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -583,8 +583,10 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
     if hasattr (target, '__app__'):
         pass
     elif type (target) is not str:
-        # app instance, find app location
-        target = (target, os.path.dirname (os.path.normpath (os.path.join (os.getcwd (), sys.argv [0]))))
+        path = os.path.normpath (os.path.join (os.getcwd (), sys.argv [0]))
+        if hasattr (target, "ATILA_THE_HUN") and not target.path:
+            target.path = path
+        target = (target, os.path.dirname (path))
     else:
         if target [0] == "@":
             appname = None
@@ -607,7 +609,6 @@ def _mount (point, target, appname = "app", pref = pref (True), host = "default"
         if '--disable-static' in sys.argv:
             return
         args = (point, joinpath (target), kargs, name)
-
     elif not appname: # alias
         args = (point, target, kargs, name)
     else:
