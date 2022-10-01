@@ -14,8 +14,7 @@ def add_model (model_name, model_path):
         return
     tfserver.add_model (model_name, model_path)
 
-
-app = atila.Atila (__name__)
+app = atila.Atila (__name__, os.path.abspath (__file__))
 
 @app.on ('tfserver:model-reloaded')
 def on_model_loaded (context, alias):
@@ -26,11 +25,10 @@ def api (context, x):
     pred = tfserver.get_model ('ex1').predict (np.array (x))
     return context.API (y1 = (pred [0].tolist ()), y2 = (pred [0].tolist ()))
 
-@app.before_mount
-def before_mount (Context):
+def __mounted__ (context, app, opts):
     from dnn.processing.image import face
-    face.register_to_tfserver ('RETINAFACE')
 
+    face.register_to_tfserver ('RETINAFACE')
     base_path = skitai.joinpath ('models')
     add_model ("ex1", os.path.join (base_path, "ex1"))
 
