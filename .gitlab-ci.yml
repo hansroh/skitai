@@ -19,7 +19,7 @@ variables:
   - apt update
   - python -V
   - pip install -U setuptools pip
-  - pip install -Ur benchmark/requirements.txt
+  - pip install -Ur tools/benchmark/requirements.txt
   - pip install -Ur tests/requirements.txt
   - pip install -U --pre --no-cache-dir delune atila-vue
   - pip install -U --pre --no-cache-dir "atila>=0.20.0.1" rs4 sqlphile
