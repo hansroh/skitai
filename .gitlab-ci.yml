@@ -10,10 +10,10 @@ variables:
   - su - postgres -c "psql -c \"create database skitai;\""
   - su - postgres -c "psql -c \"create user skitai with encrypted password '12345678';\""
   - su - postgres -c "psql -c \"grant all privileges on database skitai to skitai;\""
-  - cd benchmark
+  - cd tools/benchmark
   - python3 bench/manage.py migrate
   - python3 bench/init_db.py
-  - cd ..
+  - cd ../..
 
 .base_install: &base_install
   - apt update
