@@ -7,6 +7,7 @@ import exts.tfserver
 import exts.delune
 import os
 import my_vuejs_app
+from rs4 import pathtool
 
 os.environ ['SECRET_KEY'] = 'SECRET_KEY'
 
@@ -24,4 +25,5 @@ if __name__ == '__main__':
         app = Composited (atila_vue, my_vuejs_app).create_app (my_vuejs_app)
         skitai.mount ('/', app, pref, subscribe = ['delune', 'tfserver'])
 
+    skitai.enable_file_logging ("/tmp")
     skitai.run (ip = '0.0.0.0', name = 'big-picture', tasks = 4)

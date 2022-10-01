@@ -54,7 +54,7 @@ def test_webtest_unsecure (launch):
         assert resp.status_code == 200
 
         resp = engine.get ('/delune')
-        assert resp.text == '<h1>Delune</h1>'
+        assert resp.text == '<h1>Custom Delune</h1>'
         assert resp.status_code == 200
 
         resp = engine.get ('/delune/delune-ext')
