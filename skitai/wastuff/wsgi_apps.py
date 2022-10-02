@@ -24,10 +24,11 @@ def Config (preset = False):
 
 
 class Module:
-    def __init__ (self, wasc, handler, bus, route, directory, libpath, pref = None):
+    def __init__ (self, wasc, handler, bus, route, directory, libpath, name, pref = None):
         self.wasc = wasc
         self.bus = bus
         self.handler = handler
+        self.name = name
         self.pref = pref
         self.last_reloaded = time.time ()
         self.set_route (route)
@@ -76,7 +77,7 @@ class Module:
             self.start_app ()
 
     def __repr__ (self):
-        return "<Module routing to %s at %x>" % (self.route, id(self))
+        return "<Module routing to %s at %x>" % (self.route, id (self))
 
     def get_callable (self):
         return self.app or getattr (self.module, self.appname)
@@ -352,10 +353,13 @@ class ModuleManager:
             elif hasattr (modname, '__app__'):
                 name = modname.__name__.split (".", 1) [0]
             else:
-                try:
-                    name = '{}:{}'.format (modname.name.split (".", 1) [0], str (id (modname)) [:6])
-                except AttributeError:
-                    name = 'app:{}'.format (str (id (modname)) [:6])
+                if hasattr (modname, "path") and modname.path:
+                    name = ".".join (modname.path.split (".") [:-1])
+                else:
+                    try:
+                        name = '{}:{}'.format (modname.name.split (".", 1) [0], str (id (modname)) [:6])
+                    except AttributeError:
+                        name = 'app:{}'.format (str (id (modname)) [:6])
 
         if name in self.modnames:
             self.wasc.logger ("app", "app name collision detected: %s" % tc.error (name), "error")
@@ -367,12 +371,12 @@ class ModuleManager:
             route = route + "/"
 
         try:
-            module = Module (self.wasc, self.handler, self.bus, route, directory, modname, pref)
+            module = Module (self.wasc, self.handler, self.bus, route, directory, modname, os.path.basename (name), pref)
         except:
             self.wasc.logger ("app", "[error] app load failed: %s" % tc.error (os.path.basename (name)))
             raise
         else:
-            self.wasc.logger ("app", "[info] app %s mounted to %s" % (tc.yellow (os.path.basename (name)), tc.white (route)))
+            self.wasc.logger ("app", "[info] app %s mounted to %s" % (tc.info (os.path.basename (name)), tc.white (route)))
             self.modnames [name] = module
             if route not in self.modules:
                 self.modules [route] = [module]
@@ -441,36 +445,30 @@ class ModuleManager:
                 return cands [0]
             cands.sort (key = lambda x: len (x))
             return cands [-1]
-
         elif "/" in self.modules:
             return "/"
-
         return 0
 
     def unload (self, route):
         module = self.modules [route]
-        self.wasc.logger ("app", "[info] unloading app: %s" % route)
-        try:
-            self.wasc.logger ("app", "[info] ..cleanup app: %s" % route)
-            module.cleanup ()
-        except AttributeError:
-            pass
-        except:
-            self.wasc.logger.trace ("app")
+        if not isinstance (module, (list, tuple)):
+            module = [module]
+        for each in module:
+            self.wasc.logger ("app", "[info] unmounting app %s on %s" % (tc.info (each.name), tc.grey (route)))
+            try:
+                each.cleanup ()
+            except AttributeError:
+                pass
+            except:
+                self.wasc.logger.trace ("app")
+            else:
+                self.wasc.logger ("app", "[info] app %s on %s unmounted" % (tc.info (each.name), tc.grey (route)))
         del module
         del self.modules [route]
 
     def cleanup (self):
-        self.wasc.logger ("app", "[info] cleanup apps")
         for route, module in list(self.modules.items ()):
-            self.wasc.logger ("app", "[info] ..cleanup app: %s" % route)
-            if not isinstance (module, (list, tuple)):
-                module = [module]
-            for each in module:
-                try:
-                    each.cleanup ()
-                except:
-                    self.wasc.logger.trace ("app")
+            self.unload (route)
 
     def status (self):
         d = {}
