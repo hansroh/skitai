@@ -5,7 +5,7 @@ import time
 import sys
 
 def test_http3_client (launch):
-    if sys.version_info < (3, 6):
+    if sys.version_info < (3, 7):
         return
 
     from rs4.protocols.sock.impl.http3 import client
@@ -20,7 +20,7 @@ def test_http3_client (launch):
         assert resp.headers [':status'] == '200'
 
 def test_http3_webtest (launch):
-    if sys.version_info < (3, 6):
+    if sys.version_info < (3, 7):
         return
 
     serve = './examples/http3.py'

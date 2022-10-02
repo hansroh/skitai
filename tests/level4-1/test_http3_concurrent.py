@@ -9,7 +9,7 @@ import platform
 IS_PYPY = platform.python_implementation() == 'PyPy'
 
 def test_http3_close (launch):
-    if sys.version_info < (3, 6):
+    if sys.version_info < (3, 7):
         return
 
     serve = './examples/http3.py'
@@ -24,7 +24,7 @@ def test_http3_close (launch):
 def test_http3_shutdown (launch):
     # 2021.4.17, after client is replaced with official aioquic
     # shutdown does not work properly
-    if sys.version_info < (3, 6):
+    if sys.version_info < (3, 7):
         return
 
     from aioquic.quic.events import ConnectionTerminated
@@ -47,7 +47,7 @@ def test_http3_shutdown (launch):
         # assert wanted == [1, 1]
 
 def test_http3_dup_push (launch):
-    if sys.version_info < (3, 6):
+    if sys.version_info < (3, 7):
         return
 
     from aioquic.quic.events import ConnectionTerminated

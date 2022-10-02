@@ -84,7 +84,7 @@ class https_server (http_server.http_server):
         self.ctx = ctx
         self.socket = self.ctx.wrap_socket (self.socket, server_side = True)
         if quic:
-            if os.name == 'nt' or sys.version_info < (3, 6):
+            if os.name == 'nt' or sys.version_info < (3, 7):
                 self.log ('unsupported Python version or system for QUIC, DISABLED', 'error')
             else:
                 from . import http3_server

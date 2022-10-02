@@ -5,7 +5,7 @@ import time
 import sys
 
 def test_http3 (launch):
-    if sys.version_info < (3, 6):
+    if sys.version_info < (3, 7):
         return
 
     serve = './examples/http3.py'
@@ -17,7 +17,7 @@ def test_http3 (launch):
         assert resp.text == 'hello\nhello'
 
 def test_http3_post (launch):
-    if sys.version_info < (3, 6):
+    if sys.version_info < (3, 7):
         return
     if sys.version_info [:2] == (3, 7):
         # freq error, why?
