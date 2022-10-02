@@ -18,6 +18,7 @@ from hashlib import md5
 from rs4.psutil import kill
 from rs4.psutil.processutil import set_process_name, drop_privileges
 from ..exceptions import HTTPError
+from rs4.termcolor import tc
 
 if os.name == "posix":
     import psutil
@@ -571,7 +572,7 @@ class http_server (asyncore.dispatcher):
 
     def clean_shutdown_control (self, phase, time_in_this_phase):
         if phase == self.shutdown_phase:
-            self.log_info ('shutting down web server: %s' % self.server_name)
+            self.log_info (f'{tc.red ("shutting down")} web server: {self.server_name}')
             self.close ()
 
     def close (self):

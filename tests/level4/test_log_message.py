@@ -21,5 +21,5 @@ def test_debug_log (launch):
         d = f.read ()
     assert d.count ("is overridden") == 5
     assert d.count ("is replaced") == 2
-    assert d.count ("umount") == 20
+    assert d.count ("unmounted") == 23
 
