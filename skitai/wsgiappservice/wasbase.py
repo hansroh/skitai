@@ -34,6 +34,7 @@ import asyncio
 from rs4.misc import producers
 from ..utility import deallocate_was, make_pushables
 from ..backbone.threaded import trigger
+from rs4.termcolor import tc
 
 workers_shared_mmap = Semaps ([], "d", 256)
 
@@ -61,6 +62,7 @@ class WASBase (_WASType):
             raise AttributeError ("server object `%s` is already exists" % name)
         cls.objects [name] = obj
         setattr (cls, name, obj)
+        # cls.logger ("server", "%s context.%s is available" % (tc.info ('[info]'), tc.grey (name)))
 
     @classmethod
     def unregister (cls, name):
@@ -75,14 +77,14 @@ class WASBase (_WASType):
                     continue
 
             if attr == "clusters":
-                cls.logger ("server", "[info] cleanup %s" % attr)
+                # cls.logger ("server", "[info] cleanup context.%s" % tc.grey (attr))
                 for name, cluster in obj.items ():
                     cluster.cleanup ()
                 continue
 
             if hasattr (obj, "cleanup"):
                 try:
-                    cls.logger ("server", "[info] cleanup %s" % attr)
+                    # cls.logger ("server", "[info] cleanup context.%s" % tc.grey (attr))
                     obj.cleanup ()
                 except:
                     cls.logger.trace ("server")

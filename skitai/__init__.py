@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.51.1"
+__version__ = "0.51.2"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -826,10 +826,10 @@ def run (**conf):
                 mode = 'pytest'
             else:
                 mode = 'production'
-            self.wasc.logger ("server", "[info] running in {} mode".format (tc.red (mode)))
-            self.wasc.logger ("server", "[info] various path: %s" % tc.white (self.varpath))
+            self.wasc.logger ("server", "[info] engine is running in {} mode".format (tc.red (mode)))
+            self.wasc.logger ("server", "[info] data path is %s" % tc.white (self.varpath))
             if self.logpath:
-                self.wasc.logger ("server", "[info] log path: %s" % tc.white (self.logpath))
+                self.wasc.logger ("server", "[info] log file path is %s" % tc.white (self.logpath))
             self.set_model_keys (self.conf ["models_keys"])
 
         def maintern_shutdown_request (self, now):
@@ -938,7 +938,7 @@ def run (**conf):
                         raise NameError ('app.bus not found')
 
                     provider.add_subscriber (subbscriber)
-                    self.wasc.logger.get ("server").log ('app {} subscribes to {}'.format (tc.yellow (s), tc.cyan (p)))
+                    self.wasc.logger.get ("server").log ('app {} subscribes to {}'.format (tc.info (s), tc.cyan (p)))
 
             except:
                 self.wasc.logger.trace ("app")

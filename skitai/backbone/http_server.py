@@ -18,6 +18,7 @@ from hashlib import md5
 from rs4.psutil import kill
 from rs4.psutil.processutil import set_process_name, drop_privileges
 from ..exceptions import HTTPError
+from rs4.termcolor import tc
 
 if os.name == "posix":
     import psutil
@@ -502,11 +503,11 @@ class http_server (asyncore.dispatcher):
 
         self.log_info ('%s%s started on %s:%s' % (
             hasattr (self, 'ctx') and 'SSL ' or '',
-            tc.blue ('worker #' + self.worker_ident [1:]), self.server_name, tc.white (self.port)
+            tc.blue ('worker #' + self.worker_ident), self.ip, tc.white (self.port)
         ))
         if self.altsvc:
             self.log_info ('QUIC %s started on %s:%s' % (
-                tc.blue ('worker #' + self.worker_ident [1:]), self.server_name, tc.white (self.altsvc.port)
+                tc.blue ('worker #' + self.worker_ident), tc.white (self.ip), tc.white (self.altsvc.port)
             ))
 
     usages = []
@@ -571,7 +572,7 @@ class http_server (asyncore.dispatcher):
 
     def clean_shutdown_control (self, phase, time_in_this_phase):
         if phase == self.shutdown_phase:
-            self.log_info ('shutting down web server: %s' % self.server_name)
+            self.log_info (f'{tc.red ("shutting down")} engine...')
             self.close ()
 
     def close (self):
