@@ -353,10 +353,13 @@ class ModuleManager:
             elif hasattr (modname, '__app__'):
                 name = modname.__name__.split (".", 1) [0]
             else:
-                try:
-                    name = '{}:{}'.format (modname.name.split (".", 1) [0], str (id (modname)) [:6])
-                except AttributeError:
-                    name = 'app:{}'.format (str (id (modname)) [:6])
+                if hasattr (modname, "path") and modname.path:
+                    name = ".".join (modname.path.split (".") [:-1])
+                else:
+                    try:
+                        name = '{}:{}'.format (modname.name.split (".", 1) [0], str (id (modname)) [:6])
+                    except AttributeError:
+                        name = 'app:{}'.format (str (id (modname)) [:6])
 
         if name in self.modnames:
             self.wasc.logger ("app", "app name collision detected: %s" % tc.error (name), "error")
