@@ -1,0 +1,22 @@
+
+version: '3.3'
+services:
+  skitai-dep-dev:
+    image: skitai-dep-dev
+    container_name: skitai-dep-dev
+    build:
+      context: ..
+      dockerfile: dep/devel.Dockerfile
+    user: ubuntu
+    ports:
+      - "6003:5000"
+    volumes:
+      - ${PWD}:/home/ubuntu/app
+      - ${HOME}/hansroh:/home/ubuntu
+      - ${HOME}/.ssh:/home/ubuntu/.ssh
+      - ${HOME}/hansroh/libs:/home/ubuntu/libs
+      - ${HOME}/hansroh/.local:/home/ubuntu/.local
+    tty: true
+    stdin_open: true
+    command:
+      - /bin/bash

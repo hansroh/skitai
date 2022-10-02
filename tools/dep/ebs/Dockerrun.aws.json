@@ -1,0 +1,7 @@
+{
+  "AWSEBDockerrunVersion": "3",
+  "Authentication": {
+    "bucket": "elasticbeanstalk-us-east-1-689724919193",
+    "key": "config.json"
+  }
+}

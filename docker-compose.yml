@@ -57,7 +57,7 @@ volumes:
 # AFTER CONTAINER CREATED
 # -----------------------------------------------------
 # docker attach skitai-dev
-# cd tools/docker
+# cd tools/dev-docker
 # ./init-db.sh      # if pgdata volumes is newly created
 # ./install-libs.sh    # if .local/lib/pythonx has problem
 

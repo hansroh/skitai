@@ -1,0 +1,9 @@
+version: '3.3'
+services:
+  test:
+    image: registry.gitlab.com/semiconnetworks/myapp:latest
+    container_name: test
+    ports:
+      - "80:80"
+    environment:
+      - SERVICE_STAGE=PRODUCTION
