@@ -29,14 +29,14 @@ async def startup(app, loop):
     pool = await asyncpg.create_pool (user=user, password=passwd, database=database, host=host, max_size = 10)
     _connector = aiohttp.connector.TCPConnector(limit = 32, limit_per_host = 32)
     session = await aiohttp.ClientSession(connector = _connector).__aenter__ ()
-    spool = pg2.Pool (200, database, user, passwd)
+    spool = pg2.Pool (200, database, user, passwd, host)
 
 async def query (q):
     async with pool.acquire() as conn:
         return await conn.fetch (q)
 
 @app.route("/bench/async")
-async def bench(request):
+async def bench_async(request):
     values, record_count = await asyncio.gather (
         query ('''SELECT * FROM foo where from_wallet_id=8 or detail = 'ReturnTx' order by created_at desc limit 10;'''),
         query ('''SELECT count (*) as cnt FROM foo where from_wallet_id=8 or detail = 'ReturnTx';''')
