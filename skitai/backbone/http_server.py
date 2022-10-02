@@ -503,11 +503,11 @@ class http_server (asyncore.dispatcher):
 
         self.log_info ('%s%s started on %s:%s' % (
             hasattr (self, 'ctx') and 'SSL ' or '',
-            tc.blue ('worker #' + self.worker_ident [1:]), self.server_name, tc.white (self.port)
+            tc.blue ('worker #' + self.worker_ident), self.ip, tc.white (self.port)
         ))
         if self.altsvc:
             self.log_info ('QUIC %s started on %s:%s' % (
-                tc.blue ('worker #' + self.worker_ident [1:]), self.server_name, tc.white (self.altsvc.port)
+                tc.blue ('worker #' + self.worker_ident), tc.white (self.ip), tc.white (self.altsvc.port)
             ))
 
     usages = []
@@ -572,7 +572,7 @@ class http_server (asyncore.dispatcher):
 
     def clean_shutdown_control (self, phase, time_in_this_phase):
         if phase == self.shutdown_phase:
-            self.log_info (f'{tc.red ("shutting down")} web server: {self.server_name}')
+            self.log_info (f'{tc.red ("shutting down")} engine...')
             self.close ()
 
     def close (self):
