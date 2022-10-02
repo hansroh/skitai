@@ -1,9 +1,10 @@
 import sys
 
 def test_http2 (launch, is_pypy):
+    if sys.version_info < (3, 7):
+        return
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
-
         resp = engine.http2.get ('/nchar?n=167363')
         assert len (resp.text) == 167363
 

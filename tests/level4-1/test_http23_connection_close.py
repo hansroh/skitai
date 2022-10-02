@@ -25,7 +25,7 @@ def test_http2 (launch):
             assert isinstance (e, (ConnectionResetError, socket.timeout))
 
 def test_http3 (launch):
-    if sys.version_info < (3, 6) or IS_PYPY:
+    if sys.version_info < (3, 7) or IS_PYPY:
         return
 
     from aioquic.quic.events import ConnectionTerminated
