@@ -461,7 +461,7 @@ class http_server (asyncore.dispatcher):
                         os.environ ['SKITAI_WORKER_ID'] = str (worker_id)
                         pid = os.fork ()
                         if pid == 0:
-                            if os.name != 'nt' and not self.KEEP_PRIVILEGES:
+                            if os.name != 'nt' and skitai.SERVICE_USER and not self.KEEP_PRIVILEGES:
                                 drop_privileges (skitai.SERVICE_USER, skitai.SERVICE_GROUP)
                             self.worker_ident = "%d" % len (PID)
                             set_process_name ("%s/%s" % (skitai.get_proc_title (), self.worker_ident))
