@@ -16,6 +16,7 @@ RUN wget https://github.com/docker/compose-cli/releases/download/v1.0.29/docker-
         mv docker /usr/local/bin/docker;
 
 RUN apk add --update --no-cache python3 curl jq zip
+RUN apk add terraform --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community
 RUN python3 -m ensurepip
 
 RUN apk add --no-cache --virtual .build-deps gcc musl-dev python3-dev; \
