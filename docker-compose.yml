@@ -40,14 +40,6 @@ services:
     entrypoint:
       - /bin/bash
 
-  dep:
-    image: hansroh/dep:dind
-    container_name: dep
-    privileged: true
-    working_dir: /app
-    volumes:
-      - ${HOME}/hansroh:/app
-
 networks:
   skitai:
 
