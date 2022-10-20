@@ -544,6 +544,9 @@ Refer [usage](https://gitlab.com/skitai/atila/-/blob/master/atila/executors/wsgi
 
 
 # Change Log
+- 0.52 (Sep, 2022)
+  - remove `--autoconf` option
+
 - 0.49 (Aug, 2022)
   - change `was` conventional argument into `context`
 
