@@ -34,11 +34,11 @@ services:
 
   h2load:
     image: hansroh/h2load
-    container_name: skitai-h2load
+    container_name: h2load
     stdin_open: true
     tty: true
     entrypoint:
-      - /bin/bash
+      - /bin/sh
 
 networks:
   skitai:
@@ -49,7 +49,7 @@ volumes:
 # AFTER CONTAINER CREATED
 # -----------------------------------------------------
 # docker attach skitai-dev
-# cd tools/docker
+# cd tools/dev-docker
 # ./init-db.sh      # if pgdata volumes is newly created
 # ./install-libs.sh    # if .local/lib/pythonx has problem
 

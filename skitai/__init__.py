@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.51.2"
+__version__ = "0.52.0"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -47,7 +47,6 @@ argopt.add_option (None, '--collect-static', desc = "collect static files")
 argopt.add_option (None, '--user=USER', desc = "if run as root, fallback workers owner to user")
 argopt.add_option (None, '--group=GROUP', desc = "if run as root, fallback workers owner to group")
 argopt.add_option (None, '--smtpda', desc = "start SMTP delivery agent")
-argopt.add_option (None, '--autoconf', desc = "generate basic configuration")
 
 dconf = dict (
     mount = {"default": []},
@@ -850,7 +849,7 @@ def run (**conf):
 
         def configure (self):
             options = argopt.options ()
-            start_server = '--autoconf' not in argopt.options () and '--collect-static' not in argopt.options ()
+            start_server = '--collect-static' not in argopt.options ()
             conf = self.conf
 
             self.wasc.register ('varpath', conf ['varpath'])
@@ -995,11 +994,11 @@ def run (**conf):
     server.just_before_run (conf.get ("mount_onfly"))
     STATUS = 'CREATED'
 
-    if '--autoconf' in argopt.options () or '--collect-static' in argopt.options ():
+    if '--collect-static' in argopt.options ():
         from .wastuff import autoconf
 
         vhost = server.virtual_host.sites [None]
-        autoconf.generate (abspath ('.'), vhost, conf, static_only = '--collect-static' in argopt.options ())
+        autoconf.generate (abspath ('.'), vhost, conf)
         sys.exit ()
 
     # timeout for fast keyboard interrupt on win32

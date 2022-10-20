@@ -13,6 +13,6 @@ i.cache/
 tests/.webtest_log
 i.cache
 http3-session-ticket.pik
-.static_root/
+.static_files/
 tests/level4/conf/
 autoconf/
