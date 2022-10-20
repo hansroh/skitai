@@ -1,14 +1,32 @@
 # Benchmarking
-```
+
+*Updated at Oct 20, 2022*
+
+## S/W Versions
+### Tools
+- h2load: nghttp2/1.12.0
+
+### Python Libraries
+- uvicorn==0.18.3
+- fastapi==0.85.0
+- atila==0.23.0
+- skitai==0.53.0
+
+## Command
+```shell
 h2load -n 10000 -c 1024 -t 20 --h1 http://skitai-dev:5000/bench
 h2load -n 10000 -c 1024 -t 20 --h1 http://skitai-dev:5000/bench/async
 ```
 
 Each result taken from 2nd run.
 
-# Result
 
-At Oct 20, 2022
+
+
+
+
+
+# Result
 
 ## Atila + Skitai
 ```shell
