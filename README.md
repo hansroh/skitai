@@ -511,35 +511,6 @@ with skitai.test_client (port = 6000) as cli:
 
 
 
-# Create Base Configuration
-Mount app and directories and give a service `name`.
-```python
-import skitai
-
-if __name__ == "__main__":
-    skitai.mount ('/', 'my_flask/myapp:app')
-    skitai.mount ('/static', 'my_flask/static')
-    skitai.mount ('/admin', 'my_flask/static/admin/static')
-    skitai.run (ip = '0.0.0.0', port = 5000, name = 'myapp')
-```
-This make some shell scripts, nginx configrations and docker files.
-
-```bash
-sudo apt install nginx
-python3 serve.py --autoconf
-```
-See generating logs.
-
-
-
-
-
-
-
-
-
-
-
 # APIs For WSGI Container Developers
 
 ## Using Async Router

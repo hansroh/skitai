@@ -34,11 +34,11 @@ services:
 
   h2load:
     image: hansroh/h2load
-    container_name: skitai-h2load
+    container_name: h2load
     stdin_open: true
     tty: true
     entrypoint:
-      - /bin/bash
+      - /bin/sh
 
 networks:
   skitai:
