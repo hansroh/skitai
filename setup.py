@@ -60,21 +60,7 @@ packages = [
 
 package_dir = {'skitai': 'skitai'}
 package_data = {
-    "skitai": [
-        "wastuff/templates/.gitlab-ci.yml",
-        "wastuff/templates/ctn.sh",
-        "wastuff/templates/dep/*.*",
-        "wastuff/templates/dep/nginx/*.conf",
-        "wastuff/templates/dep/nginx/include/*.conf",
-        "wastuff/templates/dep/docker/*.*",
-        "wastuff/templates/dep/docker/Dockerfiles/*.*",
-        "wastuff/templates/dep/docker/include/*.*",
-        "wastuff/templates/dep/terraform/*.tf",
-        "wastuff/templates/dep/terraform/*.md",
-        "wastuff/templates/dep/terraform/.gitignore",
-        "wastuff/templates/dep/terraform/cloud-infra/*.tf",
-        "wastuff/templates/dep/terraform/ecs-cluster/*.tf",
-    ]
+    "skitai": []
 }
 
 install_requires = [
