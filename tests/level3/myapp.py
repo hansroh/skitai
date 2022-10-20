@@ -10,8 +10,8 @@ def index (context):
 def pets (context, id):
   return context.response.API ({"id": id, "kind": "dog", "name": "Monk"})
 
-def __mount__ (context, app, opts):
-    @app.route ("/apis/owners/<int:id>")
+def __mount__ (context):
+    @context.app.route ("/apis/owners/<int:id>")
     def owners (context, id):
         return context.response.API ({"id": id, "name": "Monk"})
 

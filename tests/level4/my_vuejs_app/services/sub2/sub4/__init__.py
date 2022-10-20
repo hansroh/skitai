@@ -1,11 +1,12 @@
-async def __request__ (context, app, opts):
+async def __request__ (context):
     context.request.g.K.append (4)
 
-async def __wrapup__ (context, app, opts, content):
+async def __wrapup__ (context, content):
     content += "-async"
     return content
 
-def __mount__ (context, app, opts):
+def __mount__ (context):
+    app = context.app
     @app.route ("")
     def index (context):
         assert context.request.g.A == ['a']

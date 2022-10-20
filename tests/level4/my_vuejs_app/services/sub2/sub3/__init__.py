@@ -1,4 +1,4 @@
-def __mount__ (context, app, opts):
-    @app.route ("")
+def __mount__ (context):
+    @context.app.route ("")
     def index (context):
         return "sub3"

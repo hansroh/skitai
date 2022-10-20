@@ -1,4 +1,4 @@
 from . import services
 
-def __setup__ (context, app, opts):
-    app.mount ('/', services)
+def __setup__ (context):
+    context.app.mount ('/', services)

@@ -128,7 +128,7 @@ class WASBase (_WASType):
         new_was.env = new_env
 
         # cloning
-        for attr in ('request', 'app', 'apps', 'subapp', 'response', 'websocket'):
+        for attr in ('request', 'app', 'apps', 'subapp', 'response', 'websocket', 'mount_options'):
             try:
                 val = getattr (self, attr)
             except AttributeError:
