@@ -147,20 +147,29 @@ class Module:
     def run_hook (self, fn, app):
         # IMP: sync atila.app.services.run_hook ()
         def display_warning ():
-            warn (f'use {fn.__name__} (context, app, opts)', DeprecationWarning)
+            warn (f'use {fn.__name__} (context)', DeprecationWarning)
 
         nargs = len (inspect.getfullargspec (fn).args)
         as_proto = fn.__name__ in ('__setup__', '__umounted__')
+
+        options = self.build_opts (as_proto)
+        context = options ["Context"] if as_proto else options ["context"]
+        context.app = app
+        context.mount_options = options
+
         if nargs == 1:
-            display_warning ()
-            args = (app,)
+            args = (context,)
         elif nargs == 2:
             display_warning ()
-            args = (app, self.build_opts (as_proto))
+            args = (app, options)
         elif nargs == 3:
-            options = self.build_opts (as_proto)
-            args = (options ["Context"] if as_proto else options ["context"], app, options)
+            args = (context, app, options)
+
         self.wasc.execute_function (fn, args)
+        try:
+            args [0].mount_options
+        except AttributeError:
+            pass
 
     def build_opts (self, as_proto):
         d = dict (

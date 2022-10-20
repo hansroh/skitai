@@ -1,5 +1,6 @@
 
-def __mount__ (context, app, opts):
+def __mount__ (context):
+    app = context.app
     @app.route ("/")
     def index (context):
         return '<h1>Custom Delune</h1>'

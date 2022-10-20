@@ -25,7 +25,7 @@ def api (context, x):
     pred = tfserver.get_model ('ex1').predict (np.array (x))
     return context.API (y1 = (pred [0].tolist ()), y2 = (pred [0].tolist ()))
 
-def __mounted__ (context, app, opts):
+def __mounted__ (context):
     from dnn.processing.image import face
 
     face.register_to_tfserver ('RETINAFACE')

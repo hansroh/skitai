@@ -1,7 +1,7 @@
 
-def __mounted__ (context, app, opts):
+def __mounted__ (context):
     pass
 
-def __mount__ (context, app, opts):
+def __mount__ (context):
     pass
 
