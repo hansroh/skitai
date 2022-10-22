@@ -163,8 +163,7 @@ class Module:
         if nargs == 1:
             args = (context,)
         elif nargs == 2:
-            display_warning ()
-            args = (app, options)
+            args = (context, app)
         elif nargs == 3:
             args = (context, app, options)
 
