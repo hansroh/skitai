@@ -26,6 +26,7 @@ def Config (preset = False):
 class Module:
     def __init__ (self, wasc, handler, bus, route, directory, libpath, name, pref = None):
         self.wasc = wasc
+        self.was_in_main_thread = None
         self.bus = bus
         self.handler = handler
         self.name = name
@@ -124,6 +125,8 @@ class Module:
 
         hasattr (app, "set_wasc") and app.set_wasc (self.wasc)
         hasattr (self.app_initer, '__setup__') and self.run_hook (self.app_initer.__setup__, (app))
+        self.was_in_main_thread = self.wasc ()
+        hasattr (app, "set_was_in_main_thread") and app.set_was_in_main_thread (self.was_in_main_thread)
         hasattr (self.app_initer, '__mount__') and self.run_hook (self.app_initer.__mount__, (app))
         hasattr (app, "set_home") and app.set_home (os.path.dirname (self.abspath), self.module)
         hasattr (app, "commit_events_to") and app.commit_events_to (self.bus)
@@ -153,7 +156,7 @@ class Module:
         as_proto = fn.__name__ in ('__setup__', '__umounted__')
 
         options = self.build_opts (as_proto)
-        context = options ["Context"] if as_proto else options ["context"]
+        context = options ["Context" if as_proto else "context"]
         context.app = app
         context.mount_options = options
 
@@ -181,7 +184,7 @@ class Module:
         if as_proto:
             d ["Context"] = self.wasc
         else:
-            d ["context"] = self.wasc ()
+            d ["context"] = self.was_in_main_thread
         return d
 
     def before_mount (self):
@@ -200,6 +203,7 @@ class Module:
         app = self.app or getattr (self.module, self.appname)
         self.has_life_cycle and app.life_cycle ("before_umount", self.wasc ())
         hasattr (self.app_initer, '__umount__') and self.run_hook (self.app_initer.__umount__, (app))
+        self.was_in_main_thread = None
 
     def umounted (self):
         app = self.app or getattr (self.module, self.appname)
