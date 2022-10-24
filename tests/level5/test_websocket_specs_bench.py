@@ -22,14 +22,14 @@ def test_bench1 (launch):
 def test_bench2 (launch):
     bench (launch, 'chatty')
 
-def test_bench3 (launch):
-    bench (launch, 'session')
-
 def test_bench4 (launch):
     bench (launch, 'async')
 
 def test_bench5 (launch):
     bench (launch, 'channelt')
+
+def test_bench3 (launch):
+    bench (launch, 'session')
 
 def test_bench6 (launch):
     bench (launch, 'session_nopool')
