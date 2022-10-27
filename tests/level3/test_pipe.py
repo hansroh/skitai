@@ -10,15 +10,15 @@ def test_map (app, dbpath):
 
     @app.route ("/2")
     def index2 (context):
-        return context.call (index)
+        return context.route (index)
 
     @app.route ("/3")
     def index3 (context):
-        return context.call (index, offset = 4)
+        return context.route (index, offset = 4)
 
     @app.route ("/4")
     def index4 (context):
-        return context.call ('index', offset = 't')
+        return context.route ('index', offset = 't')
 
     @app.route ("/5")
     @app.spec (offset = int)
