@@ -10,4 +10,4 @@ def test_namespaced_mount (app):
     with app.test_client ("/", confutil.getroot ()) as cli:
         resp = cli.get ("/v1/apis/owners/1")
         assert resp.status_code == 200
-        assert app.urlfor ("v1.owners", 2) == "/v1/apis/owners/2"
+        assert app.urlfor ("v1:owners", 2) == "/v1/apis/owners/2"
