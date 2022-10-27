@@ -13,3 +13,11 @@ def test_app_async (launch):
         resp = engine.get ("/api")
         assert resp.status_code == 200
         assert resp.json ()["x"] == 100
+
+        resp = engine.get ("/api2")
+        assert resp.status_code == 200
+        assert resp.json ()["x"] == 100
+
+        resp = engine.get ("/api3")
+        assert resp.status_code == 200
+        assert resp.json ()["x"] == 100

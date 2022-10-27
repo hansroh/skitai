@@ -18,6 +18,15 @@ async def b (context):
     await asyncio.sleep (1)
     return context.API (x = 100)
 
+@app.route ("/api2")
+async def c (context):
+    return await context.route (b)
+
+@app.route ("/api3")
+async def d (context):
+    return await b (context)
+
+
 if __name__ == '__main__':
     skitai.mount ('/statics', 'statics')
     skitai.mount ("/", app)
