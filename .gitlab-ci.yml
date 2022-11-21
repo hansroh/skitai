@@ -26,19 +26,35 @@ variables:
   - python -c 'from rs4.protocols.sock.impl.grpc import discover'
   - adduser --disabled-password --shell /bin/bash --gecos "ubuntu" ubuntu
 
-.before_python_test: &before_python_test
-    before_script:
-      - *base_install
-      - *postgres_install
-      - apt install -y libgl1-mesa-glx
-      - pip install -U grpcio tensorflow-cpu==2.3.0 keras==2.3.0
-      - pip install -U --pre --no-cache-dir tfserver dnn
-
 .before_python_notf_test: &before_python_notf_test
     before_script:
       - *base_install
       - *postgres_install
       - pip install -U grpcio
+
+.before_python_tf23_test: &before_python_tf23_test
+    before_script:
+      - *base_install
+      - *postgres_install
+      - apt install -y libgl1-mesa-glx
+      - pip install -U grpcio tensorflow-cpu==2.3.4 keras==2.3.1
+      - pip install -U --pre --no-cache-dir tfserver dnn
+
+.before_python_tf25_test: &before_python_tf25_test
+    before_script:
+      - *base_install
+      - *postgres_install
+      - apt install -y libgl1-mesa-glx
+      - pip install -U grpcio tensorflow-cpu==2.5.3 keras==2.4.3
+      - pip install -U --pre --no-cache-dir tfserver dnn
+
+.before_python_tf28_test: &before_python_tf28_test
+    before_script:
+      - *base_install
+      - *postgres_install
+      - apt install -y libgl1-mesa-glx
+      - pip install -U grpcio tensorflow-cpu==2.8.4 keras==2.8.0
+      - pip install -U --pre --no-cache-dir tfserver dnn
 
 .before_pypy_test: &before_pypy_test
     before_script:
@@ -54,34 +70,41 @@ variables:
 
 python 3.6:
   image: python:3.6-buster
-  <<: *before_python_test
+  <<: *before_python_tf23_test
   <<: *test
   only:
     - master
 
 python 3.7:
   image: python:3.7-buster
-  <<: *before_python_test
+  <<: *before_python_tf23_test
   <<: *test
   only:
     - master
 
 python 3.8:
   image: python:3.8-buster
-  <<: *before_python_test
+  <<: *before_python_tf23_test
   <<: *test
   only:
     - master
 
 python 3.9:
   image: python:3.9-buster
-  <<: *before_python_notf_test
+  <<: *before_python_tf25_test
   <<: *test
   only:
     - test
 
 python 3.10:
   image: python:3.10-buster
+  <<: *before_python_tf28_test
+  <<: *test
+  only:
+    - master
+
+python 3.11:
+  image: python:3.11-buster
   <<: *before_python_notf_test
   <<: *test
   only:
@@ -93,3 +116,4 @@ python pypy3:
   <<: *test
   only:
     - pypy
+
