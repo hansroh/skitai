@@ -87,6 +87,13 @@ python 3.10:
   only:
     - master
 
+python 3.11:
+  image: python:3.11-buster
+  <<: *before_python_notf_test
+  <<: *test
+  only:
+    - 311
+
 python pypy3:
   image: pypy:3
   <<: *before_pypy_test
