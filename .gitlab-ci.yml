@@ -94,14 +94,14 @@ python 3.9:
   <<: *before_python_tf25_test
   <<: *test
   only:
-    - "39"
+    - test
 
 python 3.10:
   image: python:3.10-buster
   <<: *before_python_tf28_test
   <<: *test
   only:
-    - "39"
+    - master
 
 python 3.11:
   image: python:3.11-buster
