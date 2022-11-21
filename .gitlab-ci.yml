@@ -92,7 +92,7 @@ python 3.11:
   <<: *before_python_notf_test
   <<: *test
   only:
-    - 311
+    - "311"
 
 python pypy3:
   image: pypy:3
