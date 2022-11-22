@@ -19,7 +19,7 @@ async def bench (ep):
 
 async def clients (launch, ep):
     with launch ("./examples/websocket-spec.py") as engine:
-        await asyncio.wait ([bench (ep) for _ in range (CLIENTS)])
+        await asyncio.wait ([asyncio.create_task (bench (ep)) for _ in range (CLIENTS)])
         assert int (engine.get ("/websocket/bench/N").text) in (N * CLIENTS, N * CLIENTS + CLIENTS)
         print ('*********** Bench result: {} {:2.3f}'.format (ep, sum (DUE)))
 
