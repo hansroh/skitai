@@ -1,4 +1,4 @@
-pytest -s -x --ff $1 $2 $3 level5/test_websocket_specs_bench_async.py::test_bench1
+# pytest -s -x --ff $1 $2 $3 level5/test_websocket_specs_bench_async.py::test_bench1
 
 pytest -x --ff $1 $2 $3 level0 && \
 pytest -x --ff $1 $2 $3 level1 && \
