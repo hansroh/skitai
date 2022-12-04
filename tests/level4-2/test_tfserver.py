@@ -10,8 +10,8 @@ import time
 import sys
 
 def test_build_model ():
-    # if sys.version_info > (3, 8):
-    #     return
+    if sys.version_info > (3, 8):
+        return
     try:
         from tfserver import cli
     except ImportError:
@@ -49,8 +49,8 @@ def test_build_model ():
 
 
 def test_tfserver ():
-    # if sys.version_info > (3, 8):
-    #     return
+    if sys.version_info > (3, 8):
+        return
     try:
         from tfserver.loaders import TFServer
         from tfserver import cli
@@ -150,8 +150,8 @@ def test_tfserver ():
         assert resp.status_code == 404
 
 def test_retina_face_detector ():
-    # if sys.version_info > (3, 8):
-    #     return
+    if sys.version_info > (3, 8):
+        return
     try:
         import cv2
         from tfserver import cli
