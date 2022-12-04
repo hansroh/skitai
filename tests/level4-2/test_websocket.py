@@ -19,14 +19,14 @@ def assert_status3 (resp):
     assert resp.content == (1, "2nd: I'm a Websocket")
 
 def test_websocket (launch):
-    with launch ("./examples/websocket.py") as engine:
+    with launch ("./examples/websocket-atila.py") as engine:
         aquests.configure (1, callback = assert_status)
         websocket = "ws://127.0.0.1:30371"
         aquests.ws (websocket + "/websocket/echo", "I'm a Websocket", callback = assert_status)
         aquests.fetchall ()
 
 def test_websocket_nonthread (launch):
-    with launch ("./examples/websocket.py") as engine:
+    with launch ("./examples/websocket-atila.py") as engine:
         aquests.configure (1, callback = assert_status)
         websocket = "ws://127.0.0.1:30371"
         aquests.ws (websocket + "/websocket/echo2", "I'm a Websocket", callback = assert_status)
@@ -35,7 +35,7 @@ def test_websocket_nonthread (launch):
         aquests.fetchall ()
 
 def test_websocket_session (launch):
-    with launch ("./examples/websocket.py") as engine:
+    with launch ("./examples/websocket-atila.py") as engine:
         aquests.configure (1, callback = assert_status)
         websocket = "ws://127.0.0.1:30371"
         aquests.ws (websocket + "/websocket/echo4", "I'm a Websocket", callback = assert_status2)

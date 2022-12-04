@@ -132,7 +132,7 @@ if __name__ == "__main__":
     with skitai.preference () as pref:
         pref.config.MAX_UPLOAD_SIZE = 20 * 1024 * 1024
         skitai.mount ("/", app, pref)
-        skitai.mount ("/websocket", 'websocket.py')
+        skitai.mount ("/websocket", 'websocket-atila.py')
         skitai.mount ("/rpc2", 'rpc2.py')
         skitai.mount ("/routeguide.RouteGuide", 'grpc_route_guide.py')
         skitai.mount ("/members", 'auth.py')
