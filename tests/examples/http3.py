@@ -5,7 +5,7 @@ if __name__ == "__main__":
 
 	skitai.mount ("/", 'statics')
 	skitai.mount ("/", "app.py")
-	skitai.mount ("/websocket", 'websocket.py')
+	skitai.mount ("/websocket", 'websocket-atila.py')
 	skitai.mount ("/rpc2", 'rpc2.py')
 	skitai.mount ("/routeguide.RouteGuide", 'grpc_route_guide.py')
 	skitai.mount ("/members", 'auth.py')

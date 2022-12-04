@@ -1,17 +1,17 @@
-import confutil
-from confutil import rprint
+from websocket import create_connection
+from websocket._exceptions import WebSocketBadStatusException
 import pytest
 import sys, os
 import threading
 import time
-from websocket import create_connection
 import platform
-from websocket._exceptions import WebSocketBadStatusException
+import confutil
+from confutil import rprint
 
 IS_PYPY = platform.python_implementation() == 'PyPy'
 
 def test_websocket (launch):
-    with launch ("./examples/websocket.py") as engine:
+    with launch ("./examples/websocket-atila.py") as engine:
         # test THREADSAFE ----------------------------------
         ws = create_connection("ws://127.0.0.1:30371/websocket/echo3")
         ws.send("Hello, World")
@@ -65,7 +65,7 @@ def test_websocket1 (launch):
         # CANNOT FIND BUG, this work fine on local pypy:3 container
         return
 
-    with launch ("./examples/websocket.py") as engine:
+    with launch ("./examples/websocket-atila.py") as engine:
         ws = create_connection("ws://127.0.0.1:30371/websocket/push")
         ws.send("Hello, World")
         result =  ws.recv()
@@ -81,7 +81,7 @@ def test_websocket2 (launch):
         # CANNOT FIND BUG, this work fine on local pypy:3 container
         return
 
-    with launch ("./examples/websocket.py") as engine:
+    with launch ("./examples/websocket-atila.py") as engine:
         # test NOTHREAD ----------------------------------
         ws = create_connection("ws://127.0.0.1:30371/websocket/echo2")
         ws.send("Hello, World")
@@ -111,7 +111,7 @@ def test_websocket2 (launch):
 
 
 def test_websocket_coroutine (launch):
-    with launch ("./examples/websocket.py") as engine:
+    with launch ("./examples/websocket-atila.py") as engine:
         # test THREADSAFE ----------------------------------
         ws = create_connection("ws://127.0.0.1:30371/websocket/echo_coroutine")
         ws.send("Hello, World")

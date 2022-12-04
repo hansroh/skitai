@@ -8,7 +8,7 @@ from websocket import create_connection
 import platform
 
 def test_websocket_coroutine (launch):
-    with launch ("./examples/websocket.py") as engine:
+    with launch ("./examples/websocket-atila.py") as engine:
         # test NOTHREAD ----------------------------------
         ws = create_connection("ws://127.0.0.1:30371/websocket/echo_coroutine")
         ws.send("Hello, World")
