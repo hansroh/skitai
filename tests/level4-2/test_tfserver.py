@@ -76,7 +76,6 @@ def test_tfserver ():
         params = {"media": open ('test-all.sh', 'rb')}
         resp = engine.upload ("/models/ex1/media/predict", data = params)
         assert np.array (resp.data["result"]["y1"]).shape == (1, 2)
-        return
 
         params = {"x": build_model.train_xs [:1].tolist ()}
         resp = engine.post ("/models/ex1/predict", data = json.dumps (params), headers = {"Content-Type": "application/json"})
@@ -142,7 +141,7 @@ def test_tfserver ():
         assert resp.data ['version'] == 3
 
         resp = engine.patch ("/models/ex2")
-        assert resp.status_code == 200
+        assert resp.status_code == 204
         resp = engine.get ("/models/ex2/version")
         assert resp.data ['version'] == 3
 
