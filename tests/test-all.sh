@@ -1,4 +1,4 @@
-pytest -s -x --ff $1 $2 $3 level4-2/test_tfserver.py
+# pytest -s -x --ff $1 $2 $3 level4-2/test_tfserver.py
 
 pytest -x --ff $1 $2 $3 level0 && \
 pytest -x --ff $1 $2 $3 level1 && \
