@@ -1,6 +1,7 @@
 from atila import Atila
 import skitai
 import atila
+import asyncio
 
 app = Atila (__name__)
 
@@ -139,9 +140,16 @@ def param (context, message, a, b = '2', **payload):
   return 'you said: ' + message
 
 
+@app.route ("/echo_async")
+@app.websocket (atila.WS_ASYNC, 60)
+async def echo_async (context):
+	while 1:
+		m = await context.websocket.receive_text ()
+		await context.websocket.send ('echo: ' + m)
+
 
 if __name__ == "__main__":
 	import skitai
 
 	skitai.mount ("/websocket", app)
-	skitai.run (port = 30371)
+	skitai.run (port = 30371, tasks = 4)

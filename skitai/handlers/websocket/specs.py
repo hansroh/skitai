@@ -247,3 +247,91 @@ class WebSocket5 (WebSocket1):
         self.server.handle_client (self.client_id, event)
         WebSocket1.handle_message (self, msg, event)
 
+
+from wsproto import WSConnection, ConnectionType
+from wsproto.events import (
+    AcceptConnection, Event, RejectConnection, RejectData, Request, CloseConnection,
+    RejectData, Ping, Pong, Message, TextMessage, BytesMessage
+)
+import asyncio
+
+class WebSocket9 (asyncio.Protocol):
+    def __init__ (self, handler, wsfunc, request, apph, env, message_encoding):
+        self.handler = handler
+        self.wasc = handler.wasc
+        self.request = request
+        self.channel = request.channel
+        self.apph = apph
+        self.env = env
+        self.message_encoding = message_encoding
+        self._closed = False
+        self.data_to_send = []
+        self.text = ''
+
+    async def open (self):
+        self.channel.del_channel ()
+        self.reader, self.writer = await asyncio.open_connection (sock = self.channel.conn)
+        self.conn = WSConnection (ConnectionType.SERVER)
+        req = self.request.request + '\r\n' + "\r\n".join (self.request.header) + '\r\n\r\n'
+        self.conn.receive_data (req.encode ())
+        self.handle_events ()
+        await self._send ()
+
+    async def _send (self):
+        if not self.data_to_send:
+            return
+        data_to_send, self.data_to_send = self.data_to_send, []
+        data = b''.join (data_to_send)
+        lr = len (data)
+        self.writer.write (data)
+        self.channel.server.bytes_out.inc (lr)
+        self.channel.bytes_out.inc (lr)
+        await self.writer.drain ()
+
+    def handle_close (self, event):
+        pass
+
+    def handle_connect (self, event):
+        data = self.conn.send (AcceptConnection ())
+        self.data_to_send.append (data)
+
+    async def receive (self):
+        data = await self.reader.read (65535)
+        lr = len (data)
+        self.channel.server.bytes_in.inc (lr)
+        self.channel.bytes_in.inc (lr)
+        self.conn.receive_data (data)
+        self.handle_events ()
+
+    async def receive_text (self):
+        await self.receive ()
+        text, self.text = self.text, ''
+        return text
+
+    async def send (self, data, end_data = True):
+        data = self.conn.send (TextMessage (data))
+        self.data_to_send.append (data)
+        await self._send ()
+
+    def handle_text (self, event):
+        self.text += event.data
+
+    def handle_events (self):
+        for event in self.conn.events ():
+            if isinstance(event, Request):
+                self.handle_connect (event)
+            elif isinstance (event, TextMessage):
+                self.handle_text (event)
+            elif isinstance (event, BytesMessage):
+                self.handle_bytes (event)
+            elif isinstance (event, CloseConnection):
+                self.handle_close (event)
+            elif isinstance (event, Ping):
+                self.handle_ping (event)
+
+    def close (self):
+        if self._closed: return
+        self._closed = True
+
+    def closed (self):
+        return self._closed
