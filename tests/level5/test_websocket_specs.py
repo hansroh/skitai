@@ -1,6 +1,6 @@
 from websocket import create_connection
 
-def test_websocket_chatty (launch):
+def test_websocket_coroutine (launch):
     with launch ("./examples/websocket-spec.py") as engine:
         ws = create_connection("ws://127.0.0.1:30371/websocket/coroutine")
         ws.send("Hello, World")
@@ -64,7 +64,7 @@ def test_websocket_reporty (launch):
         ws.close()
 
 def test_websocket_reporty_async (launch, launch_dry):
-    with launch_dry ("./examples/websocket-spec.py") as engine:
+    with launch ("./examples/websocket-spec.py") as engine:
         ws = create_connection("ws://127.0.0.1:30371/websocket/reporty/async?a=AMBER")
         ws.send("Hello, World")
 
