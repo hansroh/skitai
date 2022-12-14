@@ -215,13 +215,14 @@ class AsyncExecutor (threading.Thread):
                 self.loop.call_soon_threadsafe (self.loop.stop)
                 break
 
-            tid, was, task_class, coro, callback = item
+            tid, was, task_class, coro, callback, pooling = item
             meta  = {'__was_id': was.ID, 'coro': coro}
             future = asyncio.run_coroutine_threadsafe (coro, self.loop)
             task = [ task_class (future, coro.__qualname__, meta = meta, filter = None).then (callback, was) ]
 
-            with self.lock:
-                self.current_tasks += 1
+            if pooling:
+                with self.lock:
+                    self.current_tasks += 1
 
             with self.cv:
                 self.futures [tid] = task
@@ -236,12 +237,12 @@ class AsyncExecutor (threading.Thread):
     def put (self, item):
         tid = None
         if item:
-            was, coro, response_callback, after_request_callback = item
+            was, coro, response_callback, after_request_callback, pooling = item
             _was = utils.get_cloned_context (was.ID)
             _was.request.postprocessing = after_request_callback
             utils.deceive_context (_was, coro)
             tid = _was.txnid ()
-            item = (tid, _was, Task, coro, response_callback)
+            item = (tid, _was, Task, coro, response_callback, pooling)
 
         with self.lock:
             self.queue.append (item)

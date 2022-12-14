@@ -33,7 +33,7 @@ def echo4 (context):
 		if n == 1:
 			yield '1st: ' + msg
 		elif n == 2:
-			context.websocket.send ('pre2nd: ' + msg)
+			context.stream.send ('pre2nd: ' + msg)
 			yield (
 				'2nd: ' + msg,
 				'post2nd: ' + msg
@@ -42,8 +42,8 @@ def echo4 (context):
 			yield 'many: ' + msg
 
 def onopenp (context):
-  context.session.set ("WS_ID", context.websocket.client_id)
-  context.websocket.send ("hi")
+  context.session.set ("WS_ID", context.stream.client_id)
+  context.stream.send ("hi")
 
 def onclosep (context):
   context.session.remove ("WS_ID")
@@ -51,14 +51,14 @@ def onclosep (context):
 @app.route ("/reporty")
 @app.websocket (atila.WS_SESSION, 1200, onopenp, onclosep)
 def reporty (context, message, a, b = '2', **payload):
-	context.websocket.send ("first message")
+	context.stream.send ("first message")
 	return f'{a}: {message}'
 
 
 @app.route ("/reporty/async")
 @app.websocket (atila.WS_SESSION, 1200, onopenp, onclosep)
 async def reporty_async (context, message, a, b = '2', **payload):
-	context.websocket.send ("first message")
+	context.stream.send ("first message")
 	return f'{a}: {message}'
 
 
@@ -127,6 +127,17 @@ def bench6 (context, message):
 	print (message)
 	N += 1; print (f"============== got messages: {N}")
 	return f'echo: {message}'
+
+@app.route ("/bench/async_channel")
+@app.websocket (atila.WS_ASYNC, 60)
+async def bench7 (context):
+	global N
+	while 1:
+		m = await context.stream.receive_text ()
+		if not m:
+			break
+		N += 1; print (f"============== got messages: {N}")
+		await context.stream.send ('echo: ' + m)
 
 @app.route ("/bench/N")
 def bench_result (context):

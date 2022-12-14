@@ -20,6 +20,8 @@ except ImportError:
     ClosingIterator = None
 from rs4.protocols.sock.impl.ws import *
 import time
+from .aiows_protocol import WebSocketProtocol
+
 
 class WebSocket (BaseWebsocketCollector):
     collector = None
@@ -118,18 +120,18 @@ class Job (wsgi_handler.Job):
         was.request = self.request
         was.env = env
         was.app = self.apph.get_callable ()
-        was.websocket = env ["websocket"]
+        was.stream = env ["websocket"]
 
         try:
             content = self.apph (*self.args)
         except:
             was.traceback ()
-            was.websocket.channel and was.websocket.channel.close ()
+            was.stream.channel and was.stream.channel.close ()
         else:
             if content:
                 if type (content) is not tuple:
                     content = (content,)
-                was.websocket.send (*content)
+                was.stream.send (*content)
 
 #---------------------------------------------------------
 
@@ -248,90 +250,19 @@ class WebSocket5 (WebSocket1):
         WebSocket1.handle_message (self, msg, event)
 
 
-from wsproto import WSConnection, ConnectionType
-from wsproto.events import (
-    AcceptConnection, Event, RejectConnection, RejectData, Request, CloseConnection,
-    RejectData, Ping, Pong, Message, TextMessage, BytesMessage
-)
-import asyncio
-
-class WebSocket9 (asyncio.Protocol):
-    def __init__ (self, handler, wsfunc, request, apph, env, message_encoding):
-        self.handler = handler
-        self.wasc = handler.wasc
-        self.request = request
-        self.channel = request.channel
-        self.apph = apph
-        self.env = env
-        self.message_encoding = message_encoding
-        self._closed = False
-        self.data_to_send = []
-        self.text = ''
+class WebSocket9 (WebSocket1):
+    def __init__ (self, handler, request, apph, env, param_names, message_encoding = None, keep_alive = 60):
+        super ().__init__ (handler, request, apph, env, param_names, message_encoding)
+        self.keep_alive = keep_alive
 
     async def open (self):
-        self.channel.del_channel ()
-        self.reader, self.writer = await asyncio.open_connection (sock = self.channel.conn)
-        self.conn = WSConnection (ConnectionType.SERVER)
-        req = self.request.request + '\r\n' + "\r\n".join (self.request.header) + '\r\n\r\n'
-        self.conn.receive_data (req.encode ())
-        self.handle_events ()
-        await self._send ()
-
-    async def _send (self):
-        if not self.data_to_send:
-            return
-        data_to_send, self.data_to_send = self.data_to_send, []
-        data = b''.join (data_to_send)
-        lr = len (data)
-        self.writer.write (data)
-        self.channel.server.bytes_out.inc (lr)
-        self.channel.bytes_out.inc (lr)
-        await self.writer.drain ()
-
-    def handle_close (self, event):
-        pass
-
-    def handle_connect (self, event):
-        data = self.conn.send (AcceptConnection ())
-        self.data_to_send.append (data)
-
-    async def receive (self):
-        data = await self.reader.read (65535)
-        lr = len (data)
-        self.channel.server.bytes_in.inc (lr)
-        self.channel.bytes_in.inc (lr)
-        self.conn.receive_data (data)
-        self.handle_events ()
-
-    async def receive_text (self):
-        await self.receive ()
-        text, self.text = self.text, ''
-        return text
-
-    async def send (self, data, end_data = True):
-        data = self.conn.send (TextMessage (data))
-        self.data_to_send.append (data)
-        await self._send ()
-
-    def handle_text (self, event):
-        self.text += event.data
-
-    def handle_events (self):
-        for event in self.conn.events ():
-            if isinstance(event, Request):
-                self.handle_connect (event)
-            elif isinstance (event, TextMessage):
-                self.handle_text (event)
-            elif isinstance (event, BytesMessage):
-                self.handle_bytes (event)
-            elif isinstance (event, CloseConnection):
-                self.handle_close (event)
-            elif isinstance (event, Ping):
-                self.handle_ping (event)
+        self.request.channel.del_channel ()
+        transport, protocol = await self.wasc.async_executor.loop.create_connection (
+            lambda: WebSocketProtocol (self.request, self.keep_alive),
+            sock = self.channel.conn
+        )
+        self.env ["websocket.params"] = http_util.crack_query (self.env.get ("QUERY_STRING", ""))
+        return protocol
 
     def close (self):
-        if self._closed: return
-        self._closed = True
-
-    def closed (self):
-        return self._closed
+        WebSocket.close (self)

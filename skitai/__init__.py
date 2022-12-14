@@ -319,14 +319,14 @@ def on (self, *events):
         return wrapper
     return decorator
 
-def add_async_task (coro, after_request_callback = None, response_callback = None):
+def add_async_task (coro, after_request_callback = None, response_callback = None, pooling = True):
     def _respond_async (was, task):
         try:
             content = task.fetch ()
         finally:
             was.async_executor.done ()
         return content
-    return was.async_executor.put ((was._get (), coro, response_callback or _respond_async, after_request_callback))
+    return was.async_executor.put ((was._get (), coro, response_callback or _respond_async, after_request_callback, pooling))
 
 def add_coroutine_task (coro, after_request_callback = None):
     return Coroutine (was._get (), coro, after_request_callback)
