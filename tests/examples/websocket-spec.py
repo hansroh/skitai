@@ -133,7 +133,7 @@ def bench6 (context, message):
 async def bench7 (context):
 	global N
 	while 1:
-		m = await context.stream.receive_text ()
+		m = await context.stream.receive ()
 		if not m:
 			break
 		N += 1; print (f"============== got messages: {N}")
