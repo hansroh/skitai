@@ -20,7 +20,7 @@ except ImportError:
     ClosingIterator = None
 from rs4.protocols.sock.impl.ws import *
 import time
-from .aiows_protocol import WebSocketProtocol
+from .protocol import WebSocketProtocol
 
 
 class WebSocket (BaseWebsocketCollector):
