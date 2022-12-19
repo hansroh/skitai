@@ -8,20 +8,78 @@ from rs4.protocols.sock.impl.grpc.producers import serialize
 from rs4.misc import compressors
 import time
 
-class GRPCProtocol (aiochat.aiochat):
+class GRPCProtocol:
+    def __init__ (self, request, aiochannel):
+        self.request = request
+        self.aiochannel = aiochannel
+        self.stream_id = request.stream_id
+        self.conn = self.request.protocol.conn
+        self.collector = self.request.collector
+        self.out_bytes = 0
+        self.closed = False
+
+        headers = self.request.response.build_reply_header ()
+        self.conn.send_headers (self.stream_id, headers, end_stream = False)
+
+    async def send (self, msg):
+        sent = await self.aiochannel.send (msg, self.stream_id)
+        self.out_bytes += sent
+
+    def __aiter__ (self):
+        return self
+
+    async def __anext__ (self):
+        item = await self.receive ()
+        if item is None:
+            raise StopAsyncIteration
+        return item
+
+    async def receive (self):
+        return await self.collector.get ()
+
+    def close (self):
+        if self.closed:
+            return
+        self.conn.send_headers (self.stream_id, self.request.response.get_trailers (), end_stream = True)
+        self.aiochannel.commit ()
+        self.request.response.log (self.out_bytes)
+        self.collector.close ()
+        self.aiochannel.del_stream (self.stream_id)
+        self.closed = True
+
+
+class GRPCAsyncChannel (aiochat.aiochat):
     def __init__ (self, request, keep_alive = 60):
         super ().__init__ (request)
-        self.collector = self.request.collector
         self.keep_alive = keep_alive
         self.channel = request.channel
         self.protocol = self.request.protocol
         self.conn = self.protocol.conn
         self.compressor = compressors.GZipCompressor ()
-        self.out_bytes = 0
+        self.streams = {}
+
+    def del_stream (self, stream_id):
+        try:
+            stream = self.streams.pop (stream_id)
+        except KeyError:
+            pass
+        else:
+            stream.aiochannel = None
+
+        if not self.streams:
+            self.close ()
+
+    def close_when_done (self):
+        for stream_id in list (self.streams.keys ()):
+            self.del_stream (stream_id)
+
+    def handle_close (self):
+        pass
 
     def close (self):
         if self._closed:
             return
+        self.commit ()
         self.channel._channel and self.channel._channel.close ()
         self.transport.close ()
         self._closed = True
@@ -49,42 +107,46 @@ class GRPCProtocol (aiochat.aiochat):
     def handle_connect (self):
         self.ac_in_buffer, self.channel._channel.ac_in_buffer = self.channel._channel.ac_in_buffer, b''
         self.set_terminator (self.channel._channel.get_terminator ())
-
         self.protocol.set_channel (self)
-        headers = self.request.response.build_reply_header ()
-        self.conn.send_headers (self.request.stream_id, headers, end_stream = False)
-        self.commit ()
+        self.create_stream (self.request)
+        del self.request
 
-    async def send (self, msg):
+    def create_stream (self, request):
+        stream = GRPCProtocol (self.request, self)
+        self.streams [self.request.stream_id] = stream
+        return stream
+
+    async def send (self, msg, stream_id):
         data = serialize (msg, True, self.compressor)
-        self.out_bytes += len (data)
-        self.conn.send_data (self.request.stream_id, data, end_stream = False)
+        self.conn.send_data (stream_id, data, end_stream = False)
         self.commit ()
+        return len (data)
 
     def close (self):
         if self._closed:
             return
-        self.conn.send_headers (self.request.stream_id, self.request.response.get_trailers (), end_stream = True)
         self.commit ()
-        self.request.response.log (self.out_bytes)
         self.channel._channel and self.channel._channel.close ()
         self.transport.close ()
         self.protocol.channel = None
         self._closed = True
 
 
-class StreamBuilder:
+class GRPCAsyncChannelBuilder:
     def __init__ (self, handler, request):
         self.handler = handler
         self.wasc = handler.wasc
         self.request = request
 
     async def open (self):
+        if isinstance (self.request.protocol.channel, GRPCAsyncChannel):
+            return self.request.protocol.channel.create_stream (self.request)
+
         transport, protocol = await self.wasc.async_executor.loop.create_connection (
-            lambda: GRPCProtocol (self.request),
+            lambda: GRPCAsyncChannel (self.request),
             sock = self.request.channel.conn
         )
-        return protocol
+        return protocol.streams [self.request.stream_id]
 
 
 class Handler (websocket_handler.Handler):
@@ -136,6 +198,6 @@ class Handler (websocket_handler.Handler):
         env ["stream.handler"] = (current_app, wsfunc)
 
         request.channel._channel.del_channel ()
-        ws = StreamBuilder (self, request)
+        ws = GRPCAsyncChannelBuilder (self, request)
         was.stream = ws
         apph (env, donot_response)
