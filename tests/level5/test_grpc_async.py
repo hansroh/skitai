@@ -1,14 +1,13 @@
 import pytest
-skip_grpc = False
+import time
 try:
     from examples.services import route_guide_pb2
     from examples.services.route_guide_pb2_grpc import RouteGuideStub
 except ImportError:
     skip_grpc = True
-import os
-import time
+else:
+    skip_grpc = False
 
-# @pytest.mark.skip
 def test_grpc (launch):
     if skip_grpc:
         return
@@ -16,7 +15,7 @@ def test_grpc (launch):
     except ImportError: return
 
     server = "127.0.0.1:30371"
-    with launch ("./examples/app.py") as engine:
+    with launch ("./examples/grpc_route_guide_async.py") as engine:
         with grpc.insecure_channel(server) as channel:
             stub = RouteGuideStub (channel)
 
@@ -24,16 +23,24 @@ def test_grpc (launch):
             feature = stub.GetFeature (point)
             assert isinstance (feature, route_guide_pb2.Feature)
 
-            # response streaming
+def test_grpc_response_stream (launch):
+    if skip_grpc:
+        return
+    try: import grpc
+    except ImportError: return
+
+    server = "127.0.0.1:30371"
+    with launch ("./examples/grpc_route_guide_async.py") as engine:
+        with grpc.insecure_channel(server) as channel:
+            stub = RouteGuideStub (channel)
             rectangle = route_guide_pb2.Rectangle(
                 lo=route_guide_pb2.Point(latitude=400000000, longitude=-750000000),
                 hi=route_guide_pb2.Point(latitude=420000000, longitude=-730000000))
+
             for idx, feature in enumerate (stub.ListFeatures(rectangle)):
                 assert hasattr (feature, 'name')
             assert idx > 80
 
-
-# @pytest.mark.skip
 def test_grpc_request_stream (launch):
     if skip_grpc:
         return
@@ -47,7 +54,7 @@ def test_grpc_request_stream (launch):
             time.sleep (0.2)
 
     server = "127.0.0.1:30371"
-    with launch ("./examples/app.py") as engine:
+    with launch ("./examples/grpc_route_guide_async.py") as engine:
         with grpc.insecure_channel(server) as channel:
             stub = RouteGuideStub (channel)
             # request streaming
@@ -55,9 +62,7 @@ def test_grpc_request_stream (launch):
             assert isinstance (summary, route_guide_pb2.RouteSummary)
             assert summary.point_count == 30
 
-
-# @pytest.mark.skip
-def test_grpc_request_bistream (launch):
+def test_grpc_bistream (launch):
     if skip_grpc:
         return
     try: import grpc
@@ -82,7 +87,7 @@ def test_grpc_request_bistream (launch):
             yield msg
 
     server = "127.0.0.1:30371"
-    with launch ("./examples/app.py") as engine:
+    with launch ("./examples/grpc_route_guide_async.py") as engine:
         with grpc.insecure_channel(server) as channel:
             stub = RouteGuideStub (channel)
 

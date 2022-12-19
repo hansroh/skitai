@@ -7,7 +7,7 @@ import time
 from websocket import create_connection
 import platform
 
-def test_websocket_coroutine (launch, launch_dry):
+def test_websocket_coroutine (launch):
     with launch ("./examples/websocket-atila.py") as engine:
         # test NOTHREAD ----------------------------------
         ws = create_connection("ws://127.0.0.1:30371/websocket/echo_coroutine")
