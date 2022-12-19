@@ -10,13 +10,13 @@ def test_websocket (app):
     @app.route ("/echo")
     @app.websocket (atila.WS_SESSION, 60, onopen = onopen)
     def echo (context, message):
-        context.websocket.send ('1st: ' + message)
+        context.stream.send ('1st: ' + message)
         return "2nd: " + message
 
     @app.route ("/echo2")
     @app.websocket (skitai.WS_CHANNEL | skitai.WS_NOTHREAD, 60, onopen = onopen)
     def echo2 (context, message):
-        context.websocket.send ('1st: ' + message)
+        context.stream.send ('1st: ' + message)
         return "2nd: " + message
 
     @app.route ("/echo3")

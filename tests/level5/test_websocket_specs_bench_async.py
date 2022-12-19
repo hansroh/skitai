@@ -51,3 +51,7 @@ async def test_bench5 (launch):
 @pytest.mark.asyncio
 async def test_bench6 (launch):
     await clients (launch, 'session_nopool')
+
+@pytest.mark.asyncio
+async def test_bench7 (launch):
+    await clients (launch, 'async_channel')

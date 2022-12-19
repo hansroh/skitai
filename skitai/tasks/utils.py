@@ -27,7 +27,8 @@ def serialize (rtype, v):
 
 def deceive_context (was, coro):
     from skitai.wsgiappservice.wastype import _WASType
-
+    if coro.cr_frame is None:
+        return
     for n, v in coro.cr_frame.f_locals.items ():
         if not isinstance (v, _WASType):
             continue

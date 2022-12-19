@@ -34,3 +34,6 @@ def test_bench3 (launch):
 def test_bench6 (launch):
     bench (launch, 'session_nopool')
 
+def test_bench7 (launch):
+    bench (launch, 'async_channel')
+

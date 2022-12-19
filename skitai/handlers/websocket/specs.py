@@ -20,6 +20,8 @@ except ImportError:
     ClosingIterator = None
 from rs4.protocols.sock.impl.ws import *
 import time
+from .protocol import WebSocketProtocol
+
 
 class WebSocket (BaseWebsocketCollector):
     collector = None
@@ -118,18 +120,18 @@ class Job (wsgi_handler.Job):
         was.request = self.request
         was.env = env
         was.app = self.apph.get_callable ()
-        was.websocket = env ["websocket"]
+        was.stream = env ["websocket"]
 
         try:
             content = self.apph (*self.args)
         except:
             was.traceback ()
-            was.websocket.channel and was.websocket.channel.close ()
+            was.stream.channel and was.stream.channel.close ()
         else:
             if content:
                 if type (content) is not tuple:
                     content = (content,)
-                was.websocket.send (*content)
+                was.stream.send (*content)
 
 #---------------------------------------------------------
 
@@ -163,12 +165,12 @@ class WebSocket1 (WebSocket):
 
     def open (self):
         self.handle_message (-1, skitai.WS_EVT_OPEN)
-        if "websocket.handler" in self.env:
+        if "stream.handler" in self.env:
             app = self.apph.get_callable ()
             app.register_websocket (self.client_id, self.send)
 
     def close (self):
-        if "websocket.handler" in self.env:
+        if "stream.handler" in self.env:
             app = self.apph.get_callable ()
             app.remove_websocket (self.client_id)
         if not self.closed ():
@@ -215,7 +217,7 @@ class WebSocket1 (WebSocket):
     def handle_thread (self, msg, event = None):
         querystring, params = self.make_params (msg, event)
         self.env ["QUERY_STRING"] = querystring
-        self.env ["websocket.params"] = params
+        self.env ["stream.params"] = params
         self.env ["websocket.client"] = self.client_id
         self.execute ()
 
@@ -247,3 +249,20 @@ class WebSocket5 (WebSocket1):
         self.server.handle_client (self.client_id, event)
         WebSocket1.handle_message (self, msg, event)
 
+
+class WebSocket9 (WebSocket1):
+    def __init__ (self, handler, request, apph, env, param_names, message_encoding = None, keep_alive = 60):
+        super ().__init__ (handler, request, apph, env, param_names, message_encoding)
+        self.keep_alive = keep_alive
+
+    async def open (self):
+        self.request.channel.del_channel ()
+        transport, protocol = await self.wasc.async_executor.loop.create_connection (
+            lambda: WebSocketProtocol (self.request, self.keep_alive),
+            sock = self.channel.conn
+        )
+        self.env ["stream.params"] = http_util.crack_query (self.env.get ("QUERY_STRING", ""))
+        return protocol
+
+    def close (self):
+        WebSocket.close (self)
