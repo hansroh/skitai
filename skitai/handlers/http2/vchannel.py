@@ -3,6 +3,7 @@ from rs4 import asynchat
 class fake_channel:
 	def __init__ (self, stream_id, channel):
 		# override members
+		self.stream_id = stream_id
 		self._channel = channel # real channel
 		self.addr = channel.addr
 		self.connected = channel.connected
