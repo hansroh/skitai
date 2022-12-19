@@ -156,6 +156,9 @@ class http2_request_handler (FlowControlWindow):
         self._plock = threading.Lock () # for self.conn
         self._clock = threading.Lock () # for self.x
 
+    def set_channel (self, channel):
+        self.channel = channel
+
     def close (self, errcode = 0x0, msg = None, last_stream_id = None):
         with self._clock:
             if self._closed or self._close_pending:
