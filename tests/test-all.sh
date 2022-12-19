@@ -1,6 +1,6 @@
 set -xe
 
-# pytest -s -x --ff $1 $2 $3 level4-2/test_tfserver.py
+pytest -s -x --ff $1 $2 $3 level5/test_grpc_async.py
 
 pytest -x $1 $2 $3 level0
 pytest -x $1 $2 $3 level1

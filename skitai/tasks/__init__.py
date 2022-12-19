@@ -66,7 +66,7 @@ class Task:
         return _was
 
     def _late_respond (self, tasks_or_content):
-        if hasattr (self._was, 'websocket'):
+        if hasattr (self._was, 'stream'):
             self._fulfilled (self._was, tasks_or_content)
             return
 

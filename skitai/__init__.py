@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.53.1"
+__version__ = "0.54.1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -122,6 +122,7 @@ WEBSOCKET_GROUPCHAT = 5
 WS_COROUTINE = 8
 WS_REPORTY = WS_CHANNEL = WS_SIMPLE = 1
 WS_GROUPCHAT = 5
+WS_ASYNC = 9
 WS_THREADSAFE_DEPRECATED = 7
 
 # optional executing ways
@@ -318,14 +319,14 @@ def on (self, *events):
         return wrapper
     return decorator
 
-def add_async_task (coro, after_request_callback = None, response_callback = None):
+def add_async_task (coro, after_request_callback = None, response_callback = None, pooling = True):
     def _respond_async (was, task):
         try:
             content = task.fetch ()
         finally:
             was.async_executor.done ()
         return content
-    return was.async_executor.put ((was._get (), coro, response_callback or _respond_async, after_request_callback))
+    return was.async_executor.put ((was._get (), coro, response_callback or _respond_async, after_request_callback, pooling))
 
 def add_coroutine_task (coro, after_request_callback = None):
     return Coroutine (was._get (), coro, after_request_callback)

@@ -16,6 +16,7 @@ from .websocket import servers
 import time
 import skitai
 import inspect
+import sys
 
 class Handler (wsgi_handler.Handler):
     def match (self, request):
@@ -74,7 +75,9 @@ class Handler (wsgi_handler.Handler):
                 collector = self.make_collector (collector_class, request, 0)
                 self.build_response_header (request, protocol, securekey, host, path)
                 request.collector = collector
-                return collector.start_collect ()
+                collector.start_collect ()
+                if collector.is_continue_request:
+                    return
 
         env = self.build_environ (request, apph)
         was = the_was._get ()
@@ -115,11 +118,13 @@ class Handler (wsgi_handler.Handler):
                 current_args = http_util.crack_query (env ['QUERY_STRING'])
             if fspec.defaults:
                 defaults = len (fspec.defaults)
+
             varnames = fspec.args [1:]
+            valid_param_begin = 0 if options.get ('async_stream') else 1
             if defaults:
-                required = varnames [1:-defaults]
+                required = varnames [valid_param_begin:-defaults]
             else:
-                required = varnames [1:]
+                required = varnames [valid_param_begin:]
 
             for r in required:
                 if r not in current_args:
@@ -137,7 +142,8 @@ class Handler (wsgi_handler.Handler):
                 else:
                     env ['QUERY_STRING'] = temporary_args
 
-            apph (env, donot_response)
+            apph (env, donot_response) # for setting websocket.config
+
             wsconfig = env.get ("websocket.config")
             if not wsconfig:
                 raise AssertionError ("You should config (design_spec, keep_alive, [data_encoding]) where env has key 'was.wsconfig ()'")
@@ -160,12 +166,21 @@ class Handler (wsgi_handler.Handler):
         del env ["websocket.event"]
         del env ["websocket.config"]
 
-        assert (design_spec_ & 31) in (skitai.WS_CHANNEL, skitai.WS_GROUPCHAT, skitai.WS_THREADSAFE_DEPRECATED), "design_spec  should be one of (WS_CHANNEL, WS_GROUPCHAT, WS_THREADSAFE)"
+        assert (design_spec_ & 31) in (skitai.WS_ASYNC, skitai.WS_CHANNEL, skitai.WS_GROUPCHAT, skitai.WS_THREADSAFE_DEPRECATED), "design_spec  should be one of (WS_CHANNEL, WS_GROUPCHAT, WS_THREADSAFE)"
+
+        design_spec = design_spec_ & 31
+        if is_atila and design_spec in (skitai.WS_ASYNC,):
+            env ["wsgi.multithread"] = 0
+            env ["stream.handler"] = (current_app, wsfunc)
+            ws = specs.WebSocket9 (self, request, apph, env, varnames, message_encoding, keep_alive)
+            was.stream = env ["websocket"] = ws
+            request.channel.die_with (ws, "websocket spec.%d" % design_spec)
+            apph (env, donot_response) # call ws_executor
+            return
+
         self.build_response_header (request, protocol, securekey, host, path)
         request.response ("101 Web Socket Protocol Handshake")
-
         env ["wsgi.noenv"] = False
-        design_spec = design_spec_ & 31
         if design_spec_ & skitai.WS_NOTHREAD == skitai.WS_NOTHREAD:
             env ["wsgi.multithread"] = 0
         elif design_spec_ & skitai.WS_SESSION == skitai.WS_SESSION:
@@ -180,9 +195,9 @@ class Handler (wsgi_handler.Handler):
                 ws_class = specs.WebSocket6
             ws = ws_class (self, request, apph, env, varnames, message_encoding)
             self.channel_config (request, ws, keep_alive)
-            was.websocket = env ["websocket"] = ws
+            was.stream = env ["websocket"] = ws
             if is_atila:
-                env ["websocket.handler"] = (current_app, wsfunc)
+                env ["stream.handler"] = (current_app, wsfunc)
             ws.open ()
 
         elif design_spec == skitai.WS_GROUPCHAT:
@@ -205,7 +220,7 @@ class Handler (wsgi_handler.Handler):
 
             env ["websocket"] = server
             if is_atila:
-                env ["websocket.handler"] = (current_app, wsfunc)
+                env ["stream.handler"] = (current_app, wsfunc)
             ws = specs.WebSocket5 (self, request, server, env, varnames)
             self.channel_config (request, ws, keep_alive)
             server.add_client (ws)

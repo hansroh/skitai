@@ -14,8 +14,8 @@ def test_websocket_handler (Context, app, client):
 			return "Welcome Client %s" % context.wsclient ()
 		elif context.wshasevent (): # ignore the other events
 			return
-		context.websocket.send ("You said," + message)
-		context.websocket.send ("acknowledge")
+		context.stream.send ("You said," + message)
+		context.stream.send ("acknowledge")
 
 	@app.route ("/chat")
 	def chat (context, message, roomid):
