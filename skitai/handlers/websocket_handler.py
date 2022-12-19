@@ -75,7 +75,9 @@ class Handler (wsgi_handler.Handler):
                 collector = self.make_collector (collector_class, request, 0)
                 self.build_response_header (request, protocol, securekey, host, path)
                 request.collector = collector
-                return collector.start_collect ()
+                collector.start_collect ()
+                if collector.is_continue_request:
+                    return
 
         env = self.build_environ (request, apph)
         was = the_was._get ()
@@ -169,7 +171,7 @@ class Handler (wsgi_handler.Handler):
         design_spec = design_spec_ & 31
         if is_atila and design_spec in (skitai.WS_ASYNC,):
             env ["wsgi.multithread"] = 0
-            env ["websocket.handler"] = (current_app, wsfunc)
+            env ["stream.handler"] = (current_app, wsfunc)
             ws = specs.WebSocket9 (self, request, apph, env, varnames, message_encoding, keep_alive)
             was.stream = env ["websocket"] = ws
             request.channel.die_with (ws, "websocket spec.%d" % design_spec)
@@ -195,7 +197,7 @@ class Handler (wsgi_handler.Handler):
             self.channel_config (request, ws, keep_alive)
             was.stream = env ["websocket"] = ws
             if is_atila:
-                env ["websocket.handler"] = (current_app, wsfunc)
+                env ["stream.handler"] = (current_app, wsfunc)
             ws.open ()
 
         elif design_spec == skitai.WS_GROUPCHAT:
@@ -218,7 +220,7 @@ class Handler (wsgi_handler.Handler):
 
             env ["websocket"] = server
             if is_atila:
-                env ["websocket.handler"] = (current_app, wsfunc)
+                env ["stream.handler"] = (current_app, wsfunc)
             ws = specs.WebSocket5 (self, request, server, env, varnames)
             self.channel_config (request, ws, keep_alive)
             server.add_client (ws)
