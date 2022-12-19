@@ -8,7 +8,7 @@ from websocket import create_connection
 from websocket._exceptions import WebSocketBadStatusException
 import platform
 
-def test_websocket_async (launch, launch_dry):
+def test_websocket_async (launch):
     with launch ("./examples/websocket-atila.py") as engine:
         # test NOTHREAD ----------------------------------
         with pytest.raises (WebSocketBadStatusException):

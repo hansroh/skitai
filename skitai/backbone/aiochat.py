@@ -22,7 +22,10 @@ class aiochat (asyncio.Protocol, asynchat.async_chat):
         return self
 
     async def __anext__ (self):
-        return await self.receive ()
+        item = await self.receive ()
+        if item is None:
+            raise StopAsyncIteration
+        return item
 
     async def receive (self):
         return await self.request.collector.get ()
