@@ -7,6 +7,7 @@ class WebSocketProtocol (aiochat.aiochat):
         self.keep_alive = keep_alive
         self.channel = request.channel
         self.collector = request.collector
+        self.out_bytes = 0
 
     def handle_connect (self):
         self.collector.set_channel (self)
@@ -15,4 +16,5 @@ class WebSocketProtocol (aiochat.aiochat):
 
     async def send (self, data):
         data = collector.encode_message (data, OPCODE_TEXT if isinstance (data, str) else OPCODE_BINARY)
+        self.out_bytes += len (data)
         self.push (data)

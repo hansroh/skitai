@@ -17,6 +17,7 @@ class GRPCProtocol (aiochat.aiochat):
         self.protocol = self.request.protocol
         self.conn = self.protocol.conn
         self.compressor = compressors.GZipCompressor ()
+        self.out_bytes = 0
 
     def close (self):
         if self._closed:
@@ -47,6 +48,8 @@ class GRPCProtocol (aiochat.aiochat):
 
     def handle_connect (self):
         self.ac_in_buffer, self.channel._channel.ac_in_buffer = self.channel._channel.ac_in_buffer, b''
+        self.set_terminator (self.channel._channel.get_terminator ())
+
         self.protocol.set_channel (self)
         headers = self.request.response.build_reply_header ()
         self.conn.send_headers (self.request.stream_id, headers, end_stream = False)
@@ -54,6 +57,7 @@ class GRPCProtocol (aiochat.aiochat):
 
     async def send (self, msg):
         data = serialize (msg, True, self.compressor)
+        self.out_bytes += len (data)
         self.conn.send_data (self.request.stream_id, data, end_stream = False)
         self.commit ()
 
@@ -62,6 +66,7 @@ class GRPCProtocol (aiochat.aiochat):
             return
         self.conn.send_headers (self.request.stream_id, self.request.response.get_trailers (), end_stream = True)
         self.commit ()
+        self.request.response.log (self.out_bytes)
         self.channel._channel and self.channel._channel.close ()
         self.transport.close ()
         self.protocol.channel = None
