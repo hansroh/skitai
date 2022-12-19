@@ -39,6 +39,7 @@ class Handler:
         self.apps = apps
         self.__cycle = 0
         self.__static_file_translator = None
+        self.__grpc_stream_handler = None
         self.ENV ["skitai.process"] = self.wasc.workers
         self.ENV ["skitai.thread"] = 0
         if hasattr (self.wasc, "threads") and self.wasc.threads:
@@ -50,6 +51,10 @@ class Handler:
         self.ENV ["wsgi.multiprocess"] = self.wasc.workers > 1 and os.name != "nt"
         self.ENV ['SERVER_PORT'] = str (self.wasc.httpserver.port)
         self.ENV ['SERVER_NAME'] = self.wasc.httpserver.server_name
+
+    def create_grpc_stream_handler (self):
+        from . import grpc_stream_handler
+        self.__grpc_stream_handler = grpc_stream_handler.Handler (self.wasc, self.apps)
 
     def match (self, request):
         return 1
@@ -191,10 +196,22 @@ class Handler:
             if self.check_authentification (app, request):
                 return
 
+        path_info = self.get_path_info (request, apph)
+
+        if request.get_header ("content-type") == 'application/grpc':
+            options = app.get_method (path_info, request) [3]
+            if options is None:
+                return self.handle_error_before_collecting (request, 404)
+
+            if options.get ('async_stream'):
+                if self.__grpc_stream_handler is None:
+                    self.create_grpc_stream_handler ()
+                return self.__grpc_stream_handler.handle_request (request)
+
         if request.command in ('post', 'put', 'patch'):
             try:
                 # shoud have constructor __init__ (self, handler, request, upload_max_size, file_max_size, cache_max_size)
-                collector_class = app.get_collector (request, self.get_path_info (request, apph))
+                collector_class = app.get_collector (request, path_info)
             except AttributeError:
                 collector_class = None
             except NotImplementedError:

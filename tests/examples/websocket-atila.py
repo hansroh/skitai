@@ -154,8 +154,6 @@ async def echo_async (context, a):
 @app.websocket (atila.WS_ASYNC, 60)
 async def echo_async_iter (context, a):
 	async for m in context.stream:
-		if not m:
-			break
 		yield 'echo: ' + m
 
 

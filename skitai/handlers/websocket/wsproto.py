@@ -1,8 +1,9 @@
 from wsproto import WSConnection, ConnectionType
 from wsproto.events import AcceptConnection, Request, CloseConnection, Ping, TextMessage, BytesMessage
+from wsproto.utilities import RemoteProtocolError
 import asyncio
 
-class WebSocketProtocol (asyncio.Protocol):
+class WebSocketProtocolWSProto (asyncio.Protocol):
     def __init__ (self, request, keep_alive):
         self.request = request
         self.keep_alive = keep_alive
@@ -30,8 +31,13 @@ class WebSocketProtocol (asyncio.Protocol):
         lr = len (data)
         self.channel.server.bytes_in.inc (lr)
         self.channel.bytes_in.inc (lr)
-        self.conn.receive_data (data)
-        self.handle_events ()
+        try:
+            self.conn.receive_data (data)
+        except RemoteProtocolError as err:
+            self._send (self.conn.send (err.event_hint))
+            self.close ()
+        else:
+            self.handle_events ()
 
     def connection_lost (self, exc):
         self.mq.put_nowait (None)
@@ -54,6 +60,10 @@ class WebSocketProtocol (asyncio.Protocol):
 
     async def receive (self):
         return await self.mq.get ()
+
+    def close (self):
+        self.transport.close ()
+        self.request.channel and self.request.channel.close ()
 
     def handle_events (self):
         for event in self.conn.events ():
@@ -78,13 +88,13 @@ class WebSocketProtocol (asyncio.Protocol):
     def handle_bytes (self, event):
         self.bytes += event.data
         if event.message_finished:
-            _, self.bytes = self.bytes, ''
+            _, self.bytes = self.bytes, b''
             self.mq.put_nowait (_)
 
     def handle_close (self, event):
         data = self.conn.send (event.response ())
         self.data_to_send.append (data)
-        self.request.channel and self.request.channel.close ()
+        self.close ()
 
     def handle_connect (self, event):
         data = self.conn.send (AcceptConnection ())
