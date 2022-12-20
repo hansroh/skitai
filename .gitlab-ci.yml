@@ -31,7 +31,10 @@ cache:
   - pip install -U --pre --no-cache-dir delune atila-vue
 
 .post_install: &post_install
-  - pip install -U --pre --no-cache-dir "atila>=0.24.1" "rs4>=0.3.12" sqlphile
+  # - pip install -U --pre --no-cache-dir "atila>=0.24.1" "rs4>=0.3.12" sqlphile
+  - git clone https://gitlab.com/skitai/rs4.git && cd rs4 && pip install -e . && cd ..
+  - pip install -e .
+  - git clone https://gitlab.com/skitai/atila.git && cd atila && pip install -e . && cd ..
   - python -c 'from rs4.protocols.sock.impl.grpc import discover'
 
 .before_python_notf_test: &before_python_notf_test
@@ -76,9 +79,6 @@ cache:
 
 .test_template: &test_template
   script:
-    - git clone https://gitlab.com/skitai/rs4.git && cd rs4 && pip install -e . && cd ..
-    - pip install -e .
-    - git clone https://gitlab.com/skitai/atila.git && cd atila && pip install -e . && cd ..
     - cd tests
     - chown -R ubuntu:ubuntu . && su ubuntu
     - ./test-all.sh --disable-pytest-warnings
