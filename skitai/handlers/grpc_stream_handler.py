@@ -106,6 +106,7 @@ class GRPCAsyncChannel (aiochat.aiochat):
 
     def handle_connect (self):
         self.ac_in_buffer, self.channel._channel.ac_in_buffer = self.channel._channel.ac_in_buffer, b''
+        print ("GRPCAsyncChannel", self.ac_in_buffer)
         self.set_terminator (self.channel._channel.get_terminator ())
         self.protocol.set_channel (self)
         self.create_stream (self.request)
