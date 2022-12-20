@@ -1,6 +1,7 @@
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: python
+  PYTHONUNBUFFERED: "1"
 
 .postgres_install: &postgres_install
   - apt install -y postgresql postgresql-contrib
