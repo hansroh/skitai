@@ -4,7 +4,6 @@ variables:
   PYTHONUNBUFFERED: "1"
 
 cache:
-  key: $CI_COMMIT_REF_SLUG
   paths:
     - $PIP_CACHE_DIR
 

@@ -139,6 +139,7 @@ class GRPCAsyncChannelBuilder:
         self.request = request
 
     async def open (self):
+        print ("===================self.request.protocol.channel", self.request.protocol.channel)
         if isinstance (self.request.protocol.channel, GRPCAsyncChannel):
             return self.request.protocol.channel.create_stream (self.request)
 
@@ -146,6 +147,7 @@ class GRPCAsyncChannelBuilder:
             lambda: GRPCAsyncChannel (self.request),
             sock = self.request.channel.conn
         )
+        print ("===================protocol.streamsl", protocol.streams)
         return protocol.streams [self.request.stream_id]
 
 
@@ -166,7 +168,6 @@ class Handler (websocket_handler.Handler):
             return push
 
         path, params, query, fragment = request.split_uri ()
-        print ('=============== KKKKKK', path)
         _valid, apph = self.get_apph (request, path)
         if not _valid:
             return apph
@@ -191,7 +192,6 @@ class Handler (websocket_handler.Handler):
         if resp_code:
             return request.response.error (resp_code)
 
-        print ('=============== INPUT_TYPE', request.uri, input_type)
         options ['grpc.input_stream'] = input_type [1]
         request.env = env # IMP
         env ["wsgi.routed"] = wsfunc = current_app.get_routed (method)
@@ -203,3 +203,5 @@ class Handler (websocket_handler.Handler):
         ws = GRPCAsyncChannelBuilder (self, request)
         was.stream = ws
         apph (env, donot_response)
+
+        print ("===================INPUT_TYPE", input_type)
