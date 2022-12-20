@@ -23,7 +23,7 @@ def test_grpc_response_stream (launch):
                 lo=route_guide_pb2.Point(latitude=400000000, longitude=-750000000),
                 hi=route_guide_pb2.Point(latitude=420000000, longitude=-730000000))
 
-            for _ in range (2):
+            for _ in range (3):
                 for idx, feature in enumerate (stub.ListFeatures(rectangle)):
                     assert hasattr (feature, 'name')
                 assert idx > 80

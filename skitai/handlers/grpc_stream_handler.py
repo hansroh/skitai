@@ -64,12 +64,9 @@ class GRPCAsyncChannel (aiochat.aiochat):
         return getattr (self.channel._channel, name)
 
     def del_stream (self, stream_id):
-        try:
-            stream = self.streams.pop (stream_id)
-        except KeyError:
-            pass
-        else:
-            stream.aiochannel = None
+        try:    stream = self.streams.pop (stream_id)
+        except  KeyError: pass
+        else:   stream.aiochannel = None
 
     def close_when_done (self):
         self.handle_close ()
