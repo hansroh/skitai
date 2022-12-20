@@ -3,6 +3,11 @@ variables:
   PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: python
   PYTHONUNBUFFERED: "1"
 
+cache:
+  key: $CI_COMMIT_REF_SLUG
+  paths:
+    - $PIP_CACHE_DIR
+
 .postgres_install: &postgres_install
   - apt install -y postgresql postgresql-contrib
   - export MYDB="skitai:12345678@localhost/skitai"

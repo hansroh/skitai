@@ -206,6 +206,7 @@ class Handler:
                 return self.handle_error_before_collecting (request, 404)
 
             if options.get ('async_stream'):
+                print ("================================= creating self.__grpc_stream_handler")
                 if self.__grpc_stream_handler is None:
                     self.create_grpc_stream_handler ()
                 print ("================================= self.__grpc_stream_handler")
