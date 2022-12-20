@@ -31,7 +31,7 @@ cache:
   - pip install -U --pre --no-cache-dir delune atila-vue
 
 .post_install: &post_install
-  # - pip install -U --pre --no-cache-dir "atila>=0.24.1" "rs4>=0.3.12" sqlphile
+  - pip install -U --pre --no-cache-dir sqlphile
   - git clone https://gitlab.com/skitai/rs4.git && cd rs4 && pip install -e . && cd ..
   - pip install -e .
   - git clone https://gitlab.com/skitai/atila.git && cd atila && pip install -e . && cd ..
@@ -67,7 +67,7 @@ cache:
       - *base_install
       - *postgres_install
       - apt install -y libgl1-mesa-glx
-      - pip install -U grpcio tensorflow-cpu==2.8.4 keras==2.8.0
+      - pip install -U grpcio tensorflow-cpu==2.8.4 keras==2.8.0 "numpy<1.24"
       - pip install -U --pre --no-cache-dir tfserver dnn
       - *post_install
 
@@ -123,7 +123,7 @@ python 3.11:
   <<: *before_python_notf_test
   <<: *test_template
   only:
-    - master
+    - py311
 
 python pypy3:
   image: pypy:3
