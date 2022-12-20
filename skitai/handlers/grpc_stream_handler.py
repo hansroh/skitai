@@ -166,6 +166,7 @@ class Handler (websocket_handler.Handler):
             return push
 
         path, params, query, fragment = request.split_uri ()
+        print ('=============== KKKKKK', path)
         _valid, apph = self.get_apph (request, path)
         if not _valid:
             return apph

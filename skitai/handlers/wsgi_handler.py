@@ -198,7 +198,8 @@ class Handler:
 
         path_info = self.get_path_info (request, apph)
 
-        if request.get_header ("content-type") == 'application/grpc':
+        print ("=================================", request.get_header ("content-type", ""))
+        if request.get_header ("content-type", "").startswith ('application/grpc'):
             options = app.get_method (path_info, request) [3]
             if options is None:
                 return self.handle_error_before_collecting (request, 404)
@@ -206,6 +207,7 @@ class Handler:
             if options.get ('async_stream'):
                 if self.__grpc_stream_handler is None:
                     self.create_grpc_stream_handler ()
+                print ("================================= self.__grpc_stream_handler")
                 return self.__grpc_stream_handler.handle_request (request)
 
         if request.command in ('post', 'put', 'patch'):
