@@ -109,10 +109,9 @@ class GRPCAsyncChannel (aiochat.aiochat):
         data, self.channel._channel.ac_in_buffer = self.channel._channel.ac_in_buffer, b''
         current_terminator = self.channel._channel.get_terminator ()
         self.set_terminator (9 if current_terminator == 0 else current_terminator)
+        self.protocol.set_channel (self) # IMP: must first than find_terminator
         if data:
             self.find_terminator (data)
-        print ("~~~~~~~~~~GRPCAsyncChannel<", data, self.get_terminator (), '>~~~~~~~~~~~~~')
-        self.protocol.set_channel (self)
 
     def handle_connect (self):
         self.move_buffered_data ()
