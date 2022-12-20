@@ -67,7 +67,7 @@ cache:
       - *base_install
       - *postgres_install
       - apt install -y libgl1-mesa-glx
-      - pip install -U grpcio tensorflow-cpu==2.8.4 keras==2.8.0
+      - pip install -U grpcio tensorflow-cpu==2.8.4 keras==2.8.0 numpy<1.24
       - pip install -U --pre --no-cache-dir tfserver dnn
       - *post_install
 
