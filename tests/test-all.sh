@@ -1,6 +1,6 @@
 set -xe
 
-# pytest -s -x --ff $1 $2 $3 level5/test_grpc_async.py::test_grpc_response_stream
+pytest -s -x --ff $1 $2 $3 level5/test_grpc_async_gen.py
 
 pytest -x $1 $2 $3 level0
 pytest -x $1 $2 $3 level1
