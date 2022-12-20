@@ -198,7 +198,7 @@ class Handler:
 
         path_info = self.get_path_info (request, apph)
 
-        if request.get_header ("content-type") == 'application/grpc':
+        if request.get_header ("content-type", "").startswith ('application/grpc'):
             options = app.get_method (path_info, request) [3]
             if options is None:
                 return self.handle_error_before_collecting (request, 404)

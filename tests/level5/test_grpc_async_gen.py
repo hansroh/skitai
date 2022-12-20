@@ -27,10 +27,6 @@ def test_grpc_response_stream (launch):
                 assert hasattr (feature, 'name')
             assert idx > 80
 
-            for idx, feature in enumerate (stub.ListFeatures(rectangle)):
-                assert hasattr (feature, 'name')
-            assert idx > 80
-
 def test_grpc_request_stream (launch):
     if skip_grpc:
         return
