@@ -139,7 +139,6 @@ class GRPCAsyncChannelBuilder:
         self.request = request
 
     async def open (self):
-        print ("===================self.request.protocol.channel", self.request.protocol.channel)
         if isinstance (self.request.protocol.channel, GRPCAsyncChannel):
             return self.request.protocol.channel.create_stream (self.request)
 
@@ -147,7 +146,6 @@ class GRPCAsyncChannelBuilder:
             lambda: GRPCAsyncChannel (self.request),
             sock = self.request.channel.conn
         )
-        print ("===================protocol.streamsl", protocol.streams)
         return protocol.streams [self.request.stream_id]
 
 

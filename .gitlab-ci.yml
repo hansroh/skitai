@@ -32,7 +32,7 @@ cache:
 .post_install: &post_install
   - pip install -U --pre --no-cache-dir "atila>=0.24.1" "rs4>=0.3.12" sqlphile
   - python -c 'from rs4.protocols.sock.impl.grpc import discover'
-
+  - git clone https://gitlab.com/skitai/atila.git && cd atila && pip install -e . & cd ..
 
 .before_python_notf_test: &before_python_notf_test
     before_script:
