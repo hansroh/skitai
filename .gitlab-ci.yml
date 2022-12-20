@@ -16,21 +16,25 @@ variables:
   - cd ../..
 
 .base_install: &base_install
+  - adduser --disabled-password --shell /bin/bash --gecos "ubuntu" ubuntu
   - apt update
   - python -V
   - pip install -U setuptools pip
   - pip install -Ur tools/benchmark/requirements.txt
   - pip install -Ur tests/requirements.txt
   - pip install -U --pre --no-cache-dir delune atila-vue
+
+.post_install: &post_install
   - pip install -U --pre --no-cache-dir "atila>=0.24.1" "rs4>=0.3.12" sqlphile
   - python -c 'from rs4.protocols.sock.impl.grpc import discover'
-  - adduser --disabled-password --shell /bin/bash --gecos "ubuntu" ubuntu
+
 
 .before_python_notf_test: &before_python_notf_test
     before_script:
       - *base_install
       - *postgres_install
       - pip install -U grpcio
+      - *post_install
 
 .before_python_tf23_test: &before_python_tf23_test
     before_script:
@@ -39,6 +43,7 @@ variables:
       - apt install -y libgl1-mesa-glx
       - pip install -U grpcio tensorflow-cpu==2.3.4 keras==2.3.1
       - pip install -U --pre --no-cache-dir tfserver dnn
+      - *post_install
 
 .before_python_tf25_test: &before_python_tf25_test
     before_script:
@@ -47,6 +52,7 @@ variables:
       - apt install -y libgl1-mesa-glx
       - pip install -U grpcio tensorflow-cpu==2.5.3 keras==2.4.3
       - pip install -U --pre --no-cache-dir tfserver dnn
+      - *post_install
 
 .before_python_tf28_test: &before_python_tf28_test
     before_script:
@@ -55,11 +61,13 @@ variables:
       - apt install -y libgl1-mesa-glx
       - pip install -U grpcio tensorflow-cpu==2.8.4 keras==2.8.0
       - pip install -U --pre --no-cache-dir tfserver dnn
+      - *post_install
 
 .before_pypy_test: &before_pypy_test
     before_script:
       - rm /usr/bin/python && ln -s /usr/local/bin/pypy3 /usr/bin/python
       - *base_install
+      - *post_install
 
 .test_template: &test
   script:
