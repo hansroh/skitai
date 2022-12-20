@@ -57,7 +57,11 @@ class GRPCAsyncChannel (aiochat.aiochat):
         self.protocol = self.request.protocol
         self.conn = self.protocol.conn
         self.compressor = compressors.GZipCompressor ()
+        self.addr = self.channel._channel.addr
         self.streams = {}
+
+    def __getattr__ (self, name):
+        return getattr (self.channel._channel, name)
 
     def del_stream (self, stream_id):
         try:
@@ -67,15 +71,13 @@ class GRPCAsyncChannel (aiochat.aiochat):
         else:
             stream.aiochannel = None
 
-        if not self.streams:
-            self.close ()
-
     def close_when_done (self):
-        for stream_id in list (self.streams.keys ()):
-            self.del_stream (stream_id)
+        self.handle_close ()
+        self.close ()
 
     def handle_close (self):
-        pass
+        for stream_id in list (self.streams.keys ()):
+            self.del_stream (stream_id)
 
     def close (self):
         if self._closed:
@@ -83,6 +85,7 @@ class GRPCAsyncChannel (aiochat.aiochat):
         self.commit ()
         self.channel._channel and self.channel._channel.close ()
         self.transport.close ()
+        self.protocol.channel = None
         self._closed = True
 
     def log_bytes_out (self, data):
@@ -119,8 +122,8 @@ class GRPCAsyncChannel (aiochat.aiochat):
         del self.request
 
     def create_stream (self, request):
-        stream = GRPCProtocol (self.request, self)
-        self.streams [self.request.stream_id] = stream
+        stream = GRPCProtocol (request, self)
+        self.streams [request.stream_id] = stream
         return stream
 
     async def send (self, msg, stream_id):
@@ -128,15 +131,6 @@ class GRPCAsyncChannel (aiochat.aiochat):
         self.conn.send_data (stream_id, data, end_stream = False)
         self.commit ()
         return len (data)
-
-    def close (self):
-        if self._closed:
-            return
-        self.commit ()
-        self.channel._channel and self.channel._channel.close ()
-        self.transport.close ()
-        self.protocol.channel = None
-        self._closed = True
 
 
 class GRPCAsyncChannelBuilder:
