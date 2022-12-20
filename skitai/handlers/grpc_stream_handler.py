@@ -201,5 +201,3 @@ class Handler (websocket_handler.Handler):
         ws = GRPCAsyncChannelBuilder (self, request)
         was.stream = ws
         apph (env, donot_response)
-
-        print ("===================INPUT_TYPE", input_type)

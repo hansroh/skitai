@@ -76,8 +76,9 @@ cache:
 
 .test_template: &test_template
   script:
-    - git clone https://gitlab.com/skitai/atila.git && cd atila && pip install -e . && cd ..
+    - git clone https://gitlab.com/skitai/rs4.git && cd rs4 && pip install -e . && cd ..
     - pip install -e .
+    - git clone https://gitlab.com/skitai/atila.git && cd atila && pip install -e . && cd ..
     - cd tests
     - chown -R ubuntu:ubuntu . && su ubuntu
     - ./test-all.sh --disable-pytest-warnings

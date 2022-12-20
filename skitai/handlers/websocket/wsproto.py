@@ -13,6 +13,7 @@ class WebSocketProtocolWSProto (asyncio.Protocol):
         self.mq = asyncio.Queue ()
         self.data_to_send = []
         self.conn = None
+        self.loop = asyncio.get_event_loop ()
 
     def __aiter__ (self):
         return self
@@ -40,7 +41,7 @@ class WebSocketProtocolWSProto (asyncio.Protocol):
             self.handle_events ()
 
     def connection_lost (self, exc):
-        self.mq.put_nowait (None)
+        self.loop.call_soon_threadsafe (self.mq.put_nowait, None)
 
     def _send (self):
         if not self.data_to_send:
@@ -83,13 +84,13 @@ class WebSocketProtocolWSProto (asyncio.Protocol):
         self.text += event.data
         if event.message_finished:
             _, self.text = self.text, ''
-            self.mq.put_nowait (_)
+            self.loop.call_soon_threadsafe (self.mq.put_nowait, _)
 
     def handle_bytes (self, event):
         self.bytes += event.data
         if event.message_finished:
             _, self.bytes = self.bytes, b''
-            self.mq.put_nowait (_)
+            self.loop.call_soon_threadsafe (self.mq.put_nowait, _)
 
     def handle_close (self, event):
         data = self.conn.send (event.response ())
