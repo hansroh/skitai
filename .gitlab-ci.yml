@@ -69,59 +69,59 @@ variables:
       - *base_install
       - *post_install
 
-.test_template: &test
+.test_template: &test_template
   script:
-    - pip install -U -e .
+    - pip install -e .
     - cd tests
-    - chown -R ubuntu:ubuntu . && CWD=$PWD && su - ubuntu && cd $CWD
+    - chown -R ubuntu:ubuntu . && su ubuntu
     - ./test-all.sh --disable-pytest-warnings
 
 python 3.6:
   image: python:3.6-buster
   <<: *before_python_tf23_test
-  <<: *test
+  <<: *test_template
   only:
     - master
 
 python 3.7:
   image: python:3.7-buster
   <<: *before_python_tf23_test
-  <<: *test
+  <<: *test_template
   only:
     - master
 
 python 3.8:
   image: python:3.8-buster
   <<: *before_python_tf23_test
-  <<: *test
+  <<: *test_template
   only:
     - master
 
 python 3.9:
   image: python:3.9-buster
   <<: *before_python_tf25_test
-  <<: *test
+  <<: *test_template
   only:
     - test
 
 python 3.10:
   image: python:3.10-buster
   <<: *before_python_tf28_test
-  <<: *test
+  <<: *test_template
   only:
     - master
 
 python 3.11:
   image: python:3.11-buster
   <<: *before_python_notf_test
-  <<: *test
+  <<: *test_template
   only:
     - master
 
 python pypy3:
   image: pypy:3
   <<: *before_pypy_test
-  <<: *test
+  <<: *test_template
   only:
     - pypy
 

@@ -190,6 +190,7 @@ class Handler (websocket_handler.Handler):
         if resp_code:
             return request.response.error (resp_code)
 
+        print ('=============== INPUT_TYPE', request.uri, input_type)
         options ['grpc.input_stream'] = input_type [1]
         request.env = env # IMP
         env ["wsgi.routed"] = wsfunc = current_app.get_routed (method)
