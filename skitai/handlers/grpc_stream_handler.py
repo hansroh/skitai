@@ -7,6 +7,7 @@ from rs4.protocols.sock.impl.grpc.discover import find_input
 from rs4.protocols.sock.impl.grpc.producers import serialize
 from rs4.misc import compressors
 import time
+import asyncio
 
 class GRPCProtocol:
     def __init__ (self, request, aiochannel):
@@ -104,13 +105,16 @@ class GRPCAsyncChannel (aiochat.aiochat):
         data = self.conn.data_to_send ()
         data and self.push (data)
 
-    def handle_connect (self):
+    def move_buffered_data (self):
         data, self.channel._channel.ac_in_buffer = self.channel._channel.ac_in_buffer, b''
         self.set_terminator (self.channel._channel.get_terminator ())
-        print ("~~~~~~~~~~GRPCAsyncChannel<", data, self.get_terminator (), '>~~~~~~~~~~~~~')
         if data:
             self.find_terminator (data)
+        print ("~~~~~~~~~~GRPCAsyncChannel<", data, self.get_terminator (), '>~~~~~~~~~~~~~')
         self.protocol.set_channel (self)
+
+    def handle_connect (self):
+        self.move_buffered_data ()
         self.create_stream (self.request)
         del self.request
 
