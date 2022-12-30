@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.54.2"
+__version__ = "0.55.0"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -110,14 +110,11 @@ DEFAULT_KEEP_ALIVE = 2
 DEFAULT_NETWORK_TIMEOUT = 30
 DEFAULT_BACKGROUND_TASK_TIMEOUT = 300
 
-STA_REQFAIL = REQFAIL = -1
-STA_UNSENT = UNSENT = 0
-STA_TIMEOUT = TIMEOUT = 1
-STA_NETERR = NETERR = 2
-STA_NORMAL = NORMAL = 3
-
-WEBSOCKET_SIMPLE = 1
-WEBSOCKET_GROUPCHAT = 5
+STA_REQFAIL = -1
+STA_UNSENT = 0
+STA_TIMEOUT = 1
+STA_NETERR = 2
+STA_NORMAL = 3
 
 WS_COROUTINE = 8
 WS_REPORTY = WS_CHANNEL = WS_SIMPLE = 1
