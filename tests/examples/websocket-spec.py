@@ -129,7 +129,7 @@ def bench6 (context, message):
 	return f'echo: {message}'
 
 @app.route ("/bench/async_channel")
-@app.websocket (atila.WS_ASYNC, 60)
+@app.websocket (atila.WS_STREAM, 60)
 async def bench7 (context):
 	global N
 	while 1:
