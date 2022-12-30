@@ -165,7 +165,7 @@ class Handler (wsgi_handler.Handler):
         del env ["websocket.event"]
         del env ["websocket.config"]
 
-        assert (design_spec_ & 31) in (skitai.WS_STREAM, skitai.WS_CHANNEL, skitai.WS_THREADSAFE_DEPRECATED), "design_spec  should be one of (WS_STREAM, WS_THREADSAFE)"
+        assert (design_spec_ & 31) in (skitai.WS_STREAM, skitai.WS_CHANNEL), "design_spec  should be one of (WS_STREAM, WS_CHANNEL)"
 
         design_spec = design_spec_ & 31
         if is_atila and design_spec in (skitai.WS_STREAM,):
@@ -185,12 +185,12 @@ class Handler (wsgi_handler.Handler):
         elif design_spec_ & skitai.WS_SESSION == skitai.WS_SESSION:
             env ["wsgi.multithread"] = 0
 
-        if design_spec in (skitai.WS_CHANNEL, skitai.WS_THREADSAFE_DEPRECATED):
+        if design_spec in (skitai.WS_CHANNEL,):
             varnames = varnames [:1]
             # Like AJAX, simple request of client, simple response data
             # the simplest version of stateless HTTP protocol using basic skitai thread pool
             ws_class = specs.WebSocket1
-            if (design_spec_ & skitai.WS_THREADSAFE == skitai.WS_THREADSAFE) or design_spec == skitai.WS_THREADSAFE_DEPRECATED:
+            if design_spec_ & skitai.WS_THREADSAFE == skitai.WS_THREADSAFE:
                 ws_class = specs.WebSocket6
             ws = ws_class (self, request, apph, env, varnames, message_encoding)
             self.channel_config (request, ws, keep_alive)
