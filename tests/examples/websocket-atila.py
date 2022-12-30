@@ -81,27 +81,11 @@ def ws_push (context):
 	)
 	return "Sent"
 
-@app.route ("/chat")
-def chat (context, message, room_id):
-	if context.wsinit ():
-		return context.wsconfig (skitai.WS_GROUPCHAT, 60)
-	elif context.wsopened ():
-		return "Client %s has entered" % context.wsclient ()
-	elif context.wsclosed ():
-		return "Client %s has leaved" % context.wsclient ()
-	return "Client %s Said: %s" % (context.wsclient (), message)
-
 def onchatopen (context):
 	return "Client %s has entered" % context.wsclient ()
 
 def onchatclose (context):
 	return "Client %s has leaved" % context.wsclient ()
-
-@app.route ("/chat2")
-@app.websocket (skitai.WS_GROUPCHAT, 60, onopen = onchatopen, onclose = onchatclose)
-def chat2 (context, message, room_id):
-	if message:
-		return "Client %s Said: %s" % (context.wsclient (), message)
 
 @app.route ("/")
 def websocket (context, mode = "echo"):
@@ -141,7 +125,7 @@ def param (context, message, a, b = '2', **payload):
 
 
 @app.route ("/echo_async")
-@app.websocket (atila.WS_ASYNC, 60)
+@app.websocket (atila.WS_STREAM, 60)
 async def echo_async (context, a):
 	while 1:
 		m = await context.stream.receive ()
@@ -151,7 +135,7 @@ async def echo_async (context, a):
 
 
 @app.route ("/echo_async_iter")
-@app.websocket (atila.WS_ASYNC, 60)
+@app.websocket (atila.WS_STREAM, 60)
 async def echo_async_iter (context, a):
 	async for m in context.stream:
 		yield 'echo: ' + m

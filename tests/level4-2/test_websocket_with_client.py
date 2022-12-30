@@ -23,32 +23,6 @@ def test_websocket (launch):
         assert result == "2nd: Hello, World"
         ws.close()
 
-        # # test GROUPCHAT ---------------------------------- ----------------------------------
-        # ws = create_connection("ws://127.0.0.1:30371/websocket/chat2?room_id=1")
-        # ws.send("Hello, World")
-        # result =  ws.recv()
-        # assert result =="Client 1 has entered"
-        # result =  ws.recv()
-        # assert result == "Client 1 Said: Hello, World"
-
-        # ws2 = create_connection("ws://127.0.0.1:30371/websocket/chat2?room_id=1")
-        # ws2.send("Absolutely")
-        # result =  ws.recv()
-        # assert result =="Client 2 has entered"
-        # result =  ws.recv()
-        # assert result == "Client 2 Said: Absolutely"
-        # result =  ws2.recv()
-        # assert result == "Client 2 Said: Absolutely"
-        # ws.close()
-        # ws2.close()
-
-        with pytest.raises (WebSocketBadStatusException):
-            create_connection("ws://127.0.0.1:30371/websocket/chat2")
-        # with pytest.raises (WebSocketBadStatusException):
-        #     create_connection("ws://127.0.0.1:30371/websocket/chat2?room_idx=1")
-        # with pytest.raises (WebSocketBadStatusException):
-        #     create_connection("ws://127.0.0.1:30371/websocket/chat2?room_id=1&extra=2")
-
         with pytest.raises (WebSocketBadStatusException):
             create_connection("ws://127.0.0.1:30371/websocket/param")
 

@@ -12,7 +12,6 @@ from rs4.protocols.sock.impl.http import http_util
 from skitai import version_info, was as the_was
 import threading
 from .websocket import specs
-from .websocket import servers
 import time
 import skitai
 import inspect
@@ -23,7 +22,7 @@ class Handler (wsgi_handler.Handler):
         return request.get_header ("upgrade") == 'websocket' and request.command == "get"
 
     def close (self):
-        servers.websocket_servers.close ()
+        pass
 
     GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'.encode ()
     def calculate_response_key (self, key):
@@ -166,10 +165,10 @@ class Handler (wsgi_handler.Handler):
         del env ["websocket.event"]
         del env ["websocket.config"]
 
-        assert (design_spec_ & 31) in (skitai.WS_ASYNC, skitai.WS_CHANNEL, skitai.WS_GROUPCHAT, skitai.WS_THREADSAFE_DEPRECATED), "design_spec  should be one of (WS_CHANNEL, WS_GROUPCHAT, WS_THREADSAFE)"
+        assert (design_spec_ & 31) in (skitai.WS_STREAM, skitai.WS_CHANNEL, skitai.WS_THREADSAFE_DEPRECATED), "design_spec  should be one of (WS_STREAM, WS_THREADSAFE)"
 
         design_spec = design_spec_ & 31
-        if is_atila and design_spec in (skitai.WS_ASYNC,):
+        if is_atila and design_spec in (skitai.WS_STREAM,):
             env ["wsgi.multithread"] = 0
             env ["stream.handler"] = (current_app, wsfunc)
             ws = specs.WebSocket9 (self, request, apph, env, varnames, message_encoding, keep_alive)
@@ -199,31 +198,6 @@ class Handler (wsgi_handler.Handler):
             if is_atila:
                 env ["stream.handler"] = (current_app, wsfunc)
             ws.open ()
-
-        elif design_spec == skitai.WS_GROUPCHAT:
-            varnames = varnames [:2]
-            param_name = varnames [1]
-            gid = http_util.crack_query (query).get (param_name, None)
-            try:
-                assert gid, "%s value can't find" % param_name
-            except:
-                self.wasc.logger.trace ("server",  request.uri)
-                return request.response.error (500, why = apph.debug and sys.exc_info () or None)
-            gid = "%s/%s" % (path, gid)
-
-            if not servers.websocket_servers.has_key (gid):
-                server = servers.websocket_servers.create (gid, self, request, apph, env, message_encoding)
-                if server is None:
-                    return request.response.error (503)
-            else:
-                server = servers.websocket_servers.get (gid)
-
-            env ["websocket"] = server
-            if is_atila:
-                env ["stream.handler"] = (current_app, wsfunc)
-            ws = specs.WebSocket5 (self, request, server, env, varnames)
-            self.channel_config (request, ws, keep_alive)
-            server.add_client (ws)
 
         request.channel.die_with (ws, "websocket spec.%d" % design_spec)
 
