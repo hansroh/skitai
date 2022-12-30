@@ -116,17 +116,20 @@ STA_TIMEOUT = 1
 STA_NETERR = 2
 STA_NORMAL = 3
 
+# optional executing ways (N-1) x 2
+WS_NOPOOL = WS_NOTHREAD = WS_NQ = 128
+WS_SESSION = 256
+WS_THREADSAFE = 512
+
 # < 31
 WS_REPORTY = WS_CHANNEL = WS_SIMPLE = 1
 WS_COROUTINE = 8
 WS_STREAM = 9
 
-# optional executing ways (N-1) x 2
-WS_NOPOOL = WS_NOTHREAD = WS_NQ = 128
-WS_SESSION = 256
-WS_THREADSAFE = 512
+# ws compositions
 WS_CHATTY = WS_CHANNEL | WS_SESSION
 
+# ws events
 WS_EVT_INIT = "init"
 WS_EVT_OPEN = "open"
 WS_EVT_CLOSE = "close"
