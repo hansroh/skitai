@@ -2,7 +2,7 @@ import sys
 from skitai.exceptions import HTTPError
 from rs4.attrdict import AttrDict
 import time
-from skitai import NORMAL
+from skitai import STA_NORMAL
 import skitai
 from . import Task, Revoke, response, DEFAULT_TIMEOUT
 
@@ -183,7 +183,7 @@ class Mask (response, TaskBase):
         self._expt = _expt
         self._data = data
         self._meta = self.meta = meta or {}
-        self.status = NORMAL
+        self.status = STA_NORMAL
         self.status_code = _status_code or (_expt and 500 or 200)
         self._timeout = DEFAULT_TIMEOUT
         self._keys = keys
