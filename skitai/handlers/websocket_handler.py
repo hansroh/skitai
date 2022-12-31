@@ -76,6 +76,7 @@ class Handler (wsgi_handler.Handler):
                 request.collector = collector
                 collector.start_collect ()
                 if collector.is_continue_request:
+                    # skitai.WS_COROUTIN
                     return
 
         env = self.build_environ (request, apph)
@@ -168,6 +169,8 @@ class Handler (wsgi_handler.Handler):
         assert (design_spec_ & 31) in (skitai.WS_STREAM, skitai.WS_SIMPLE), "design_spec  should be one of (WS_STREAM, WS_SIMPLE)"
 
         design_spec = design_spec_ & 31
+
+        # skitai.WS_SIMPLE
         if is_atila and design_spec in (skitai.WS_STREAM,):
             env ["wsgi.multithread"] = 0
             env ["stream.handler"] = (current_app, wsfunc)
@@ -177,6 +180,7 @@ class Handler (wsgi_handler.Handler):
             apph (env, donot_response) # call ws_executor
             return
 
+        # skitai.WS_SIMPLE
         self.build_response_header (request, protocol, securekey, host, path)
         request.response ("101 Web Socket Protocol Handshake")
         env ["wsgi.noenv"] = False
@@ -185,19 +189,18 @@ class Handler (wsgi_handler.Handler):
         elif design_spec_ & skitai.WS_SESSION == skitai.WS_SESSION:
             env ["wsgi.multithread"] = 0
 
-        if design_spec in (skitai.WS_SIMPLE,):
-            varnames = varnames [:1]
-            # Like AJAX, simple request of client, simple response data
-            # the simplest version of stateless HTTP protocol using basic skitai thread pool
-            ws_class = specs.WebSocket1
-            if design_spec_ & skitai.WS_SEND_THREADSAFE == skitai.WS_SEND_THREADSAFE:
-                ws_class = specs.WebSocket6
-            ws = ws_class (self, request, apph, env, varnames, message_encoding)
-            self.channel_config (request, ws, keep_alive)
-            was.stream = env ["websocket"] = ws
-            if is_atila:
-                env ["stream.handler"] = (current_app, wsfunc)
-            ws.open ()
+        varnames = varnames [:1]
+        # Like AJAX, simple request of client, simple response data
+        # the simplest version of stateless HTTP protocol using basic skitai thread pool
+        ws_class = specs.WebSocket1
+        if design_spec_ & skitai.WS_SEND_THREADSAFE == skitai.WS_SEND_THREADSAFE:
+            ws_class = specs.WebSocket6
+        ws = ws_class (self, request, apph, env, varnames, message_encoding)
+        self.channel_config (request, ws, keep_alive)
+        was.stream = env ["websocket"] = ws
+        if is_atila:
+            env ["stream.handler"] = (current_app, wsfunc)
+        ws.open ()
 
         request.channel.die_with (ws, "websocket spec.%d" % design_spec)
 
