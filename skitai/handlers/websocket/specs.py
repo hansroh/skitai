@@ -238,18 +238,6 @@ class WebSocket6 (WebSocket1):
         with self.lock:
             WebSocket1._send (self, msg)
 
-
-class WebSocket5 (WebSocket1):
-    # WEBSOCKET_MULTICAST CLIENT
-    def __init__ (self, handler, request, server, env, param_names):
-        self.server = server
-        WebSocket1.__init__ (self, handler, request, server.apph, env, param_names)
-
-    def handle_message (self, msg, event = None):
-        self.server.handle_client (self.client_id, event)
-        WebSocket1.handle_message (self, msg, event)
-
-
 class WebSocket9 (WebSocket1):
     def __init__ (self, handler, request, apph, env, param_names, message_encoding = None, keep_alive = 60):
         super ().__init__ (handler, request, apph, env, param_names, message_encoding)

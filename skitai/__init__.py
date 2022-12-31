@@ -1,6 +1,6 @@
 # 2014. 12. 9 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.54.2"
+__version__ = "0.55.0"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 assert len ([x for  x in version_info [:2] if isinstance (x, int)]) == 2, 'major and minor version should be integer'
@@ -110,28 +110,24 @@ DEFAULT_KEEP_ALIVE = 2
 DEFAULT_NETWORK_TIMEOUT = 30
 DEFAULT_BACKGROUND_TASK_TIMEOUT = 300
 
-STA_REQFAIL = REQFAIL = -1
-STA_UNSENT = UNSENT = 0
-STA_TIMEOUT = TIMEOUT = 1
-STA_NETERR = NETERR = 2
-STA_NORMAL = NORMAL = 3
+STA_REQFAIL = -1
+STA_UNSENT = 0
+STA_TIMEOUT = 1
+STA_NETERR = 2
+STA_NORMAL = 3
 
-WEBSOCKET_SIMPLE = 1
-WEBSOCKET_GROUPCHAT = 5
-
-WS_COROUTINE = 8
-WS_REPORTY = WS_CHANNEL = WS_SIMPLE = 1
-WS_GROUPCHAT = 5
-WS_ASYNC = 9
-WS_THREADSAFE_DEPRECATED = 7
-
-# optional executing ways
-WS_THREAD = 0
-WS_NOPOOL = WS_NOTHREAD = WS_NQ = 128
-WS_THREADSAFE = 134
+# optional executing ways (n-1) x 2
+WS_NOPOOL = WS_NOTHREAD = 128
 WS_SESSION = 256
-WS_CHATTY = WS_CHANNEL | WS_SESSION
+WS_SEND_THREADSAFE = WS_THREADSAFE = 512
 
+# < 31
+WS_SIMPLE = WS_REPORTY = WS_CHANNEL = 1
+WS_COROUTINE = 8
+WS_STREAM = 9
+WS_CHATTY = WS_SIMPLE | WS_SESSION # ws shortcut
+
+# ws events
 WS_EVT_INIT = "init"
 WS_EVT_OPEN = "open"
 WS_EVT_CLOSE = "close"

@@ -544,6 +544,9 @@ Refer [usage](https://gitlab.com/skitai/atila/-/blob/master/atila/executors/wsgi
 
 
 # Change Log
+- 0.55 (Dec, 2022)
+  - remove websocket spec. WS_GROUPCHAT
+
 - 0.52 (Sep, 2022)
   - remove `--autoconf` option
 

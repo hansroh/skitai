@@ -42,22 +42,6 @@ def echo3 ():
 		else:
 			yield 'many: ' + msg
 
-@app.route ("/chat")
-def chat ():
-	event = request.environ.get ("websocket.event")
-	if event == skitai.WS_EVT_INIT:
-		request.environ ["websocket.config"] = (skitai.WS_GROUPCHAT, 60, ("message", "room_id"))
-		return ""
-
-	client_id = request.environ.get ("websocket.client")
-	message = request.args.get ("message", "")
-
-	if event == skitai.WS_EVT_OPEN:
-		return "Client %s has entered" % client_id
-	elif event == skitai.WS_EVT_CLOSE:
-		return "Client %s has leaved" % client_id
-	return "Client %s Said: %s" % (client_id, message)
-
 @app.route ("/")
 def websocket ():
 	mode = request.args.get('mode', '')

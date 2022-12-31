@@ -14,13 +14,13 @@ def test_websocket (app):
         return "2nd: " + message
 
     @app.route ("/echo2")
-    @app.websocket (skitai.WS_CHANNEL | skitai.WS_NOTHREAD, 60, onopen = onopen)
+    @app.websocket (skitai.WS_SIMPLE | skitai.WS_NOPOOL, 60, onopen = onopen)
     def echo2 (context, message):
         context.stream.send ('1st: ' + message)
         return "2nd: " + message
 
     @app.route ("/echo3")
-    @app.websocket (skitai.WS_CHANNEL | skitai.WS_SESSION, 60)
+    @app.websocket (skitai.WS_SIMPLE | skitai.WS_SESSION, 60)
     def echo3 (context):
         yield '111'
 
