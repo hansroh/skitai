@@ -30,7 +30,7 @@ def RouteChat (context):
 
 
 @app.route ("/websocket", input_stream = True)
-@app.websocket (atila.WS_CHANNEL, 60)
+@app.websocket (atila.WS_COROUTINE, 60)
 def echo_coroutine (context):
 	n = 0
 	while 1:
@@ -43,7 +43,7 @@ def echo_coroutine (context):
 			yield 'double echo: ' + msg
 
 @app.route ("/websocket/thread", input_stream = True)
-@app.websocket (atila.WS_CHANNEL, 60)
+@app.websocket (atila.WS_COROUTINE, 60)
 def echo_coroutine_thread (context):
 	class InputHandler:
 		def __init__ (self):

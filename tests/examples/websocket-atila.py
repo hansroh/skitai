@@ -15,7 +15,7 @@ app.securekey = 'asdadada'
 def echo_single (context, message):
 	# return a single message, use aquests.ws (DO NOT USE /echo)
 	if context.wsinit ():
-		return context.wsconfig (skitai.WS_CHANNEL, 60)
+		return context.wsconfig (skitai.WS_SIMPLE, 60)
 	elif context.wshasevent (): # ignore the other events
 		return
 	return "You said," + message
@@ -23,7 +23,7 @@ def echo_single (context, message):
 @app.route ("/echo")
 def echo (context, message):
 	if context.wsinit ():
-		return context.wsconfig (skitai.WS_CHANNEL, 60)
+		return context.wsconfig (skitai.WS_SIMPLE, 60)
 	elif context.wsopened ():
 		return "Welcome Client %s" % context.wsclient ()
 	elif context.wshasevent (): # ignore the other events
@@ -36,19 +36,19 @@ def onopen (context):
 	return  'Welcome Client 0'
 
 @app.route ("/echo2")
-@app.websocket (skitai.WS_CHANNEL | skitai.WS_NOTHREAD, 60, onopen = onopen)
+@app.websocket (skitai.WS_SIMPLE | skitai.WS_NOPOOL, 60, onopen = onopen)
 def echo2 (context, message):
 	context.stream.send ('1st: ' + message)
 	return "2nd: " + message
 
 @app.route ("/echo3")
-@app.websocket (skitai.WS_CHANNEL | skitai.WS_THREADSAFE, 60, onopen = onopen)
+@app.websocket (skitai.WS_SIMPLE | skitai.WS_SEND_THREADSAFE, 60, onopen = onopen)
 def echo3 (context, message):
 	context.stream.send ('1st: ' + message)
 	return "2nd: " + message
 
 @app.route ("/echo4")
-@app.websocket (skitai.WS_CHANNEL | skitai.WS_SESSION, 60)
+@app.websocket (skitai.WS_SIMPLE | skitai.WS_SESSION, 60)
 def echo4 (context):
 	n = 0
 	while 1:
@@ -68,7 +68,7 @@ def onclosep (context):
   context.session.remove ("WS_ID")
 
 @app.route ("/push")
-@app.websocket (skitai.WS_CHANNEL, 1200, onopenp, onclosep)
+@app.websocket (skitai.WS_SIMPLE, 1200, onopenp, onclosep)
 def push (context, message):
   return 'you said: ' + message
 
@@ -94,7 +94,7 @@ def websocket (context, mode = "echo"):
 	return context.render ("websocket.html", path = mode)
 
 @app.route ("/echo_coroutine")
-@app.websocket (atila.WS_CHANNEL, 60)
+@app.websocket (atila.WS_COROUTINE, 60)
 def echo_coroutine (context):
 	n = 0
 	while 1:
@@ -107,7 +107,7 @@ def echo_coroutine (context):
 			yield 'double echo: ' + msg
 
 @app.route ("/echo_coroutine2")
-@app.websocket (atila.WS_CHANNEL, 60)
+@app.websocket (atila.WS_COROUTINE, 60)
 def echo_coroutine2 (context):
 	while 1:
 		msg = yield context.Input ()
@@ -119,7 +119,7 @@ def echo_coroutine2 (context):
 
 
 @app.route ("/param")
-@app.websocket (skitai.WS_CHANNEL, 1200, onopenp, onclosep)
+@app.websocket (skitai.WS_SIMPLE, 1200, onopenp, onclosep)
 def param (context, message, a, b = '2', **payload):
   return 'you said: ' + message
 
