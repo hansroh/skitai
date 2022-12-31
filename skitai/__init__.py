@@ -116,7 +116,7 @@ STA_TIMEOUT = 1
 STA_NETERR = 2
 STA_NORMAL = 3
 
-# optional executing ways (N-1) x 2
+# optional executing ways (n-1) x 2
 WS_NOPOOL = WS_NOTHREAD = 128
 WS_SESSION = 256
 WS_SEND_THREADSAFE = WS_THREADSAFE = 512
