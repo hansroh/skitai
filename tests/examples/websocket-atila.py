@@ -15,7 +15,7 @@ app.securekey = 'asdadada'
 def echo_single (context, message):
 	# return a single message, use aquests.ws (DO NOT USE /echo)
 	if context.wsinit ():
-		return context.wsconfig (skitai.WS_CHANNEL, 60)
+		return context.wsconfig (skitai.WS_SIMPLE, 60)
 	elif context.wshasevent (): # ignore the other events
 		return
 	return "You said," + message
@@ -23,7 +23,7 @@ def echo_single (context, message):
 @app.route ("/echo")
 def echo (context, message):
 	if context.wsinit ():
-		return context.wsconfig (skitai.WS_CHANNEL, 60)
+		return context.wsconfig (skitai.WS_SIMPLE, 60)
 	elif context.wsopened ():
 		return "Welcome Client %s" % context.wsclient ()
 	elif context.wshasevent (): # ignore the other events
@@ -36,19 +36,19 @@ def onopen (context):
 	return  'Welcome Client 0'
 
 @app.route ("/echo2")
-@app.websocket (skitai.WS_CHANNEL | skitai.WS_NOTHREAD, 60, onopen = onopen)
+@app.websocket (skitai.WS_SIMPLE | skitai.WS_NOPOOL, 60, onopen = onopen)
 def echo2 (context, message):
 	context.stream.send ('1st: ' + message)
 	return "2nd: " + message
 
 @app.route ("/echo3")
-@app.websocket (skitai.WS_CHANNEL | skitai.WS_THREADSAFE, 60, onopen = onopen)
+@app.websocket (skitai.WS_SIMPLE | skitai.WS_SEND_THREADSAFE, 60, onopen = onopen)
 def echo3 (context, message):
 	context.stream.send ('1st: ' + message)
 	return "2nd: " + message
 
 @app.route ("/echo4")
-@app.websocket (skitai.WS_CHANNEL | skitai.WS_SESSION, 60)
+@app.websocket (skitai.WS_SIMPLE | skitai.WS_SESSION, 60)
 def echo4 (context):
 	n = 0
 	while 1:
@@ -68,7 +68,7 @@ def onclosep (context):
   context.session.remove ("WS_ID")
 
 @app.route ("/push")
-@app.websocket (skitai.WS_CHANNEL, 1200, onopenp, onclosep)
+@app.websocket (skitai.WS_SIMPLE, 1200, onopenp, onclosep)
 def push (context, message):
   return 'you said: ' + message
 
@@ -81,27 +81,11 @@ def ws_push (context):
 	)
 	return "Sent"
 
-@app.route ("/chat")
-def chat (context, message, room_id):
-	if context.wsinit ():
-		return context.wsconfig (skitai.WS_GROUPCHAT, 60)
-	elif context.wsopened ():
-		return "Client %s has entered" % context.wsclient ()
-	elif context.wsclosed ():
-		return "Client %s has leaved" % context.wsclient ()
-	return "Client %s Said: %s" % (context.wsclient (), message)
-
 def onchatopen (context):
 	return "Client %s has entered" % context.wsclient ()
 
 def onchatclose (context):
 	return "Client %s has leaved" % context.wsclient ()
-
-@app.route ("/chat2")
-@app.websocket (skitai.WS_GROUPCHAT, 60, onopen = onchatopen, onclose = onchatclose)
-def chat2 (context, message, room_id):
-	if message:
-		return "Client %s Said: %s" % (context.wsclient (), message)
 
 @app.route ("/")
 def websocket (context, mode = "echo"):
@@ -110,7 +94,7 @@ def websocket (context, mode = "echo"):
 	return context.render ("websocket.html", path = mode)
 
 @app.route ("/echo_coroutine")
-@app.websocket (atila.WS_CHANNEL, 60)
+@app.websocket (atila.WS_COROUTINE, 60)
 def echo_coroutine (context):
 	n = 0
 	while 1:
@@ -123,7 +107,7 @@ def echo_coroutine (context):
 			yield 'double echo: ' + msg
 
 @app.route ("/echo_coroutine2")
-@app.websocket (atila.WS_CHANNEL, 60)
+@app.websocket (atila.WS_COROUTINE, 60)
 def echo_coroutine2 (context):
 	while 1:
 		msg = yield context.Input ()
@@ -135,13 +119,13 @@ def echo_coroutine2 (context):
 
 
 @app.route ("/param")
-@app.websocket (skitai.WS_CHANNEL, 1200, onopenp, onclosep)
+@app.websocket (skitai.WS_SIMPLE, 1200, onopenp, onclosep)
 def param (context, message, a, b = '2', **payload):
   return 'you said: ' + message
 
 
 @app.route ("/echo_async")
-@app.websocket (atila.WS_ASYNC, 60)
+@app.websocket (atila.WS_STREAM, 60)
 async def echo_async (context, a):
 	while 1:
 		m = await context.stream.receive ()
@@ -151,7 +135,7 @@ async def echo_async (context, a):
 
 
 @app.route ("/echo_async_iter")
-@app.websocket (atila.WS_ASYNC, 60)
+@app.websocket (atila.WS_STREAM, 60)
 async def echo_async_iter (context, a):
 	async for m in context.stream:
 		yield 'echo: ' + m

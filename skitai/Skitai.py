@@ -23,7 +23,6 @@ from .handlers import vhost_handler, forward_handler
 import signal
 from . import wsgiappservice
 from .backbone import http_response
-from .handlers.websocket import servers as websocekts
 from .wastuff import selective_logger, triple_logger
 if os.name == "nt":
     from rs4.psutil import schedule # cron like scheduler
@@ -66,8 +65,6 @@ class Loader:
         self.wasc.register ("clusters",  {})
         self.wasc.register ("clusters_for_distcall",  {})
         self.wasc.register ("workers", 1)
-        websocekts.start_websocket (self.wasc)
-        self.wasc.register ("websockets", websocekts.websocket_servers)
         self.switch_to_await_fifo ()
 
     def set_model_keys (self, keys):

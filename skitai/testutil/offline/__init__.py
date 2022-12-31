@@ -5,7 +5,6 @@
 from ...backbone.threaded import threadlib
 import skitai
 from ...wastuff import triple_logger
-from ...handlers.websocket import servers as websocekts
 from . import server
 from ...handlers import vhost_handler
 from rs4.protocols import lifetime
@@ -88,9 +87,6 @@ def setup_was (wasc, enable_async = False):
         async_executor = executors.AsyncExecutor (100)
         async_executor.start ()
         wasc.register ("async_executor", async_executor)
-
-    websocekts.start_websocket (wasc)
-    wasc.register ("websockets", websocekts.websocket_servers)
 
     return wasc
 

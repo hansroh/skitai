@@ -10,7 +10,7 @@ app.use_reloader = True
 app.securekey = 'asdadada'
 
 @app.route ("/coroutine")
-@app.websocket (atila.WS_CHANNEL, 60)
+@app.websocket (atila.WS_COROUTINE, 60)
 def echo_coroutine (context):
 	n = 0
 	while 1:
@@ -69,7 +69,7 @@ import time
 N = 0
 
 @app.route ("/bench/channel")
-@app.websocket (atila.WS_CHANNEL, 60)
+@app.websocket (atila.WS_COROUTINE, 60)
 def bench1 (context):
 	global N
 	while 1:
@@ -81,7 +81,7 @@ def bench1 (context):
 		yield f'echo: {msg}'
 
 @app.route ("/bench/channelt")
-@app.websocket (atila.WS_CHANNEL, 60)
+@app.websocket (atila.WS_COROUTINE, 60)
 def bench1_1 (context):
 	def on_input (context, m):
 		global N
@@ -129,7 +129,7 @@ def bench6 (context, message):
 	return f'echo: {message}'
 
 @app.route ("/bench/async_channel")
-@app.websocket (atila.WS_ASYNC, 60)
+@app.websocket (atila.WS_STREAM, 60)
 async def bench7 (context):
 	global N
 	while 1:
