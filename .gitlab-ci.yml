@@ -25,7 +25,7 @@ cache:
   - adduser --disabled-password --shell /bin/bash --gecos "ubuntu" ubuntu
   - apt update
   - python -V
-  - pip install -U setuptools pip
+  - pip install -U setuptools pip wheel
   - pip install -Ur tools/benchmark/requirements.txt
   - pip install -Ur tests/requirements.txt
   - pip install -U --pre --no-cache-dir delune atila-vue
