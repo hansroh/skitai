@@ -93,31 +93,6 @@ def websocket (context, mode = "echo"):
 		mode += "?room_id=1"
 	return context.render ("websocket.html", path = mode)
 
-@app.route ("/echo_coroutine")
-@app.websocket (atila.WS_COROUTINE, 60)
-def echo_coroutine (context):
-	n = 0
-	while 1:
-		msg = yield context.Input ()
-		if not msg:
-			break
-		yield 'echo: ' + msg
-		n += 1
-		if n % 3 == 0:
-			yield 'double echo: ' + msg
-
-@app.route ("/echo_coroutine2")
-@app.websocket (atila.WS_COROUTINE, 60)
-def echo_coroutine2 (context):
-	while 1:
-		msg = yield context.Input ()
-		if not msg:
-			break
-
-		task = yield context.Mask ('http://example.com')
-		yield task.fetch ()
-
-
 @app.route ("/param")
 @app.websocket (skitai.WS_SIMPLE, 1200, onopenp, onclosep)
 def param (context, message, a, b = '2', **payload):

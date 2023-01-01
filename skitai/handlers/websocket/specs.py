@@ -19,8 +19,6 @@ try:
 except ImportError:
     ClosingIterator = None
 from rs4.protocols.sock.impl.ws import *
-import time
-from .protocol import WebSocketProtocol
 
 
 class WebSocket (BaseWebsocketCollector):
@@ -135,7 +133,7 @@ class Job (wsgi_handler.Job):
 
 #---------------------------------------------------------
 
-class WebSocket1 (WebSocket):
+class SessionWebSocket (WebSocket):
     # WEBSOCKET_REQDATA
     def __init__ (self, handler, request, apph, env, param_names, message_encoding = None):
         WebSocket.__init__ (self, handler, request, message_encoding)
@@ -229,28 +227,36 @@ class WebSocket1 (WebSocket):
             self.wasc.queue.put (Job (*args))
 
 
-class WebSocket6 (WebSocket1):
+class SessionWebSocketSendThreadsafe (SessionWebSocket):
     def __init__ (self, handler, request, apph, env, param_names, message_encoding = None):
-        WebSocket1.__init__ (self, handler, request, apph, env, param_names, message_encoding)
+        SessionWebSocket.__init__ (self, handler, request, apph, env, param_names, message_encoding)
         self.lock = threading.Lock ()
 
     def _send (self, msg):
         with self.lock:
-            WebSocket1._send (self, msg)
+            SessionWebSocket._send (self, msg)
 
-class WebSocket9 (WebSocket1):
-    def __init__ (self, handler, request, apph, env, param_names, message_encoding = None, keep_alive = 60):
-        super ().__init__ (handler, request, apph, env, param_names, message_encoding)
-        self.keep_alive = keep_alive
 
-    async def open (self):
-        self.request.channel.del_channel ()
-        transport, protocol = await self.wasc.async_executor.loop.create_connection (
-            lambda: WebSocketProtocol (self.request, self.keep_alive),
-            sock = self.channel.conn
-        )
+class StreamWebSocket (SessionWebSocket):
+    STREAM_TYPE = 'websocket'
+    def __init__ (self, handler, request, apph, env, param_names, message_encoding = None):
+        SessionWebSocket.__init__ (self, handler, request, apph, env, param_names, message_encoding)
         self.env ["stream.params"] = http_util.crack_query (self.env.get ("QUERY_STRING", ""))
-        return protocol
+
+    def __aiter__ (self):
+        return self
+
+    async def __anext__ (self):
+        item = await self.receive ()
+        if item is None:
+            raise StopAsyncIteration
+        return item
+
+    async def receive (self):
+        return await self.request.collector.get ()
+
+    async def send (self, messages, op_code = -1):
+        super ().send (messages, op_code)
 
     def close (self):
         WebSocket.close (self)

@@ -9,19 +9,6 @@ app.debug = True
 app.use_reloader = True
 app.securekey = 'asdadada'
 
-@app.route ("/coroutine")
-@app.websocket (atila.WS_COROUTINE, 60)
-def echo_coroutine (context):
-	n = 0
-	while 1:
-		msg = yield context.Input ()
-		if not msg:
-			break
-		yield 'echo: ' + msg
-		n += 1
-		if n % 3 == 0:
-			yield 'double echo: ' + msg
-
 
 @app.route ("/chatty")
 @app.websocket (atila.WS_CHATTY, 60)
@@ -67,32 +54,6 @@ import time
 
 
 N = 0
-
-@app.route ("/bench/channel")
-@app.websocket (atila.WS_COROUTINE, 60)
-def bench1 (context):
-	global N
-	while 1:
-		msg = yield context.read_input_stream ()
-		if not msg:
-			break
-		print (msg)
-		N += 1; print (f"============== got messages: {N}")
-		yield f'echo: {msg}'
-
-@app.route ("/bench/channelt")
-@app.websocket (atila.WS_COROUTINE, 60)
-def bench1_1 (context):
-	def on_input (context, m):
-		global N
-		print (m)
-		N += 1; print (f"============== got messages: {N}")
-		yield f'echo: {m}'
-
-	outstrm = context.create_output_stream (on_input)
-	while 1:
-		msg = yield context.read_input_stream ()
-		yield outstrm.emit (msg)
 
 @app.route ("/bench/chatty")
 @app.websocket (atila.WS_CHATTY, 60)
