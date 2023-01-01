@@ -19,8 +19,6 @@ try:
 except ImportError:
     ClosingIterator = None
 from rs4.protocols.sock.impl.ws import *
-import time
-from .protocol import WebSocketProtocol
 
 
 class WebSocket (BaseWebsocketCollector):
@@ -238,6 +236,7 @@ class WebSocket6 (WebSocket1):
         with self.lock:
             WebSocket1._send (self, msg)
 
+
 class WebSocket9 (WebSocket1):
     def __init__ (self, handler, request, apph, env, param_names, message_encoding = None, keep_alive = 60):
         super ().__init__ (handler, request, apph, env, param_names, message_encoding)
@@ -251,6 +250,31 @@ class WebSocket9 (WebSocket1):
         )
         self.env ["stream.params"] = http_util.crack_query (self.env.get ("QUERY_STRING", ""))
         return protocol
+
+    def close (self):
+        WebSocket.close (self)
+
+
+class WebSocket10 (WebSocket1):
+    STREAM_TYPE = 'websocket'
+    def __init__ (self, handler, request, apph, env, param_names, message_encoding = None):
+        WebSocket1.__init__ (self, handler, request, apph, env, param_names, message_encoding)
+        self.env ["stream.params"] = http_util.crack_query (self.env.get ("QUERY_STRING", ""))
+
+    def __aiter__ (self):
+        return self
+
+    async def __anext__ (self):
+        item = await self.receive ()
+        if item is None:
+            raise StopAsyncIteration
+        return item
+
+    async def receive (self):
+        return await self.request.collector.get ()
+
+    async def send (self, messages, op_code = -1):
+        super ().send (messages, op_code)
 
     def close (self):
         WebSocket.close (self)

@@ -14,6 +14,7 @@ import enum
 from rs4.misc import producers
 from ..exceptions import HTTPError
 from hyperframe.frame import Frame
+from skitai.backbone.threaded import trigger
 
 # http3 compat error codes
 class ErrorCodes (enum.IntEnum):

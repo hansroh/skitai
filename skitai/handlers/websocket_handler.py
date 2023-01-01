@@ -10,12 +10,9 @@ from base64 import b64encode
 from ..backbone.http_response import catch
 from rs4.protocols.sock.impl.http import http_util
 from skitai import version_info, was as the_was
-import threading
 from .websocket import specs
-import time
 import skitai
 import inspect
-import sys
 
 class Handler (wsgi_handler.Handler):
     def match (self, request):
@@ -171,9 +168,12 @@ class Handler (wsgi_handler.Handler):
 
         # skitai.WS_STREAM
         if is_atila and design_spec in (skitai.WS_STREAM,):
+            request.response.set_reply ("101 Web Socket Protocol Handshake")
+            request.channel.push (request.response.build_reply_header ().encode ())
             env ["wsgi.multithread"] = 0
             env ["stream.handler"] = (current_app, wsfunc)
-            ws = specs.WebSocket9 (self, request, apph, env, varnames, message_encoding, keep_alive)
+            ws = specs.WebSocket10 (self, request, apph, env, varnames, message_encoding)
+            request.channel.set_socket_timeout (keep_alive)
             was.stream = env ["websocket"] = ws
             request.channel.die_with (ws, "websocket spec.%d" % design_spec)
             apph (env, donot_response) # call ws_executor

@@ -1,4 +1,3 @@
-from ..backbone import aiochat
 from rs4.protocols.sock.impl import grpc
 from . import websocket_handler
 from skitai import was as the_was
@@ -9,22 +8,21 @@ from rs4.misc import compressors
 import time
 import asyncio
 
-class GRPCProtocol:
-    def __init__ (self, request, aiochannel):
+class GRPCAsyncStream:
+    STREAM_TYPE = 'grpc'
+    def __init__ (self, request):
         self.request = request
-        self.aiochannel = aiochannel
         self.stream_id = request.stream_id
-        self.conn = self.request.protocol.conn
+        self.protocol = request.protocol
+        self.conn = self.protocol.conn
+        self.lock = self.protocol._plock
         self.collector = self.request.collector
-        self.out_bytes = 0
         self.closed = False
-
+        self.compressor = compressors.GZipCompressor ()
         headers = self.request.response.build_reply_header ()
-        self.conn.send_headers (self.stream_id, headers, end_stream = False)
-
-    async def send (self, msg):
-        sent = await self.aiochannel.send (msg, self.stream_id)
-        self.out_bytes += sent
+        with self.lock:
+            self.conn.send_headers (self.stream_id, headers, end_stream = False)
+            self.protocol.send_data ()
 
     def __aiter__ (self):
         return self
@@ -38,113 +36,20 @@ class GRPCProtocol:
     async def receive (self):
         return await self.collector.get ()
 
+    async def send (self, msg):
+        data = serialize (msg, True, self.compressor)
+        with self.lock:
+            self.conn.send_data (self.stream_id, data, end_stream = False)
+            self.protocol.send_data ()
+
     def close (self):
         if self.closed:
             return
-        self.conn.send_headers (self.stream_id, self.request.response.get_trailers (), end_stream = True)
-        self.aiochannel.commit ()
-        self.request.response.log (self.out_bytes)
+        with self.lock:
+            self.conn.send_headers (self.stream_id, self.request.response.get_trailers (), end_stream = True)
+            self.protocol.send_data ()
         self.collector.close ()
-        self.aiochannel.del_stream (self.stream_id)
         self.closed = True
-
-
-class GRPCAsyncChannel (aiochat.aiochat):
-    def __init__ (self, request, keep_alive = 60):
-        super ().__init__ (request)
-        self.keep_alive = keep_alive
-        self.channel = request.channel
-        self.protocol = self.request.protocol
-        self.conn = self.protocol.conn
-        self.compressor = compressors.GZipCompressor ()
-        self.addr = self.channel._channel.addr
-        self.streams = {}
-
-    def __getattr__ (self, name):
-        return getattr (self.channel._channel, name)
-
-    def del_stream (self, stream_id):
-        try:    stream = self.streams.pop (stream_id)
-        except  KeyError: pass
-        else:   stream.aiochannel = None
-
-    def close_when_done (self):
-        self.handle_close ()
-        self.close ()
-
-    def handle_close (self):
-        for stream_id in list (self.streams.keys ()):
-            self.del_stream (stream_id)
-
-    def close (self):
-        if self._closed:
-            return
-        self.commit ()
-        self.channel._channel and self.channel._channel.close ()
-        self.transport.close ()
-        self.protocol.channel = None
-        self._closed = True
-
-    def log_bytes_out (self, data):
-        lr = len (data)
-        self.channel._channel.server.bytes_out.inc (lr)
-        self.channel._channel.bytes_out.inc (lr)
-
-    def log_bytes_in (self, data):
-        lr = len (data)
-        self.channel._channel.server.bytes_in.inc (lr)
-        self.channel._channel.bytes_in.inc (lr)
-
-    def found_terminator (self):
-        self.protocol.found_terminator()
-
-    def collect_incoming_data (self, data):
-        self.protocol.collect_incoming_data (data)
-
-    def commit (self):
-        data = self.conn.data_to_send ()
-        data and self.push (data)
-
-    def move_buffered_data (self):
-        data, self.channel._channel.ac_in_buffer = self.channel._channel.ac_in_buffer, b''
-        current_terminator = self.channel._channel.get_terminator ()
-        self.set_terminator (current_terminator)
-        self.protocol.set_channel (self) # IMP: must first than find_terminator
-        if data:
-            self.find_terminator (data)
-
-    def handle_connect (self):
-        self.move_buffered_data ()
-        self.create_stream (self.request)
-        del self.request
-
-    def create_stream (self, request):
-        stream = GRPCProtocol (request, self)
-        self.streams [request.stream_id] = stream
-        return stream
-
-    async def send (self, msg, stream_id):
-        data = serialize (msg, True, self.compressor)
-        self.conn.send_data (stream_id, data, end_stream = False)
-        self.commit ()
-        return len (data)
-
-
-class GRPCAsyncChannelBuilder:
-    def __init__ (self, handler, request):
-        self.handler = handler
-        self.wasc = handler.wasc
-        self.request = request
-
-    async def open (self):
-        if isinstance (self.request.protocol.channel, GRPCAsyncChannel):
-            return self.request.protocol.channel.create_stream (self.request)
-
-        transport, protocol = await self.wasc.async_executor.loop.create_connection (
-            lambda: GRPCAsyncChannel (self.request),
-            sock = self.request.channel.conn
-        )
-        return protocol.streams [self.request.stream_id]
 
 
 class Handler (websocket_handler.Handler):
@@ -195,7 +100,7 @@ class Handler (websocket_handler.Handler):
         env ["wsgi.multithread"] = 0
         env ["stream.handler"] = (current_app, wsfunc)
 
-        request.channel._channel.del_channel ()
-        ws = GRPCAsyncChannelBuilder (self, request)
-        was.stream = ws
+        stream = GRPCAsyncStream (request)
+        request.channel.die_with (stream, "grpc stream")
+        was.stream = stream
         apph (env, donot_response)
