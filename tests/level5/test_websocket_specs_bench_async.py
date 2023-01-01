@@ -29,10 +29,6 @@ async def clients (launch, ep):
         print ('*********** Bench result: {} {:2.3f}'.format (ep, sum (DUE)))
 
 @pytest.mark.asyncio
-async def test_bench1 (launch):
-    await clients (launch, 'channel')
-
-@pytest.mark.asyncio
 async def test_bench2 (launch):
     await clients (launch, 'chatty')
 
@@ -43,10 +39,6 @@ async def test_bench3 (launch):
 @pytest.mark.asyncio
 async def test_bench4 (launch):
     await clients (launch, 'async')
-
-@pytest.mark.asyncio
-async def test_bench5 (launch):
-    await clients (launch, 'channelt')
 
 @pytest.mark.asyncio
 async def test_bench6 (launch):

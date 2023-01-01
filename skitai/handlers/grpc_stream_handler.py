@@ -1,5 +1,5 @@
 from rs4.protocols.sock.impl import grpc
-from . import websocket_handler
+from . import wsgi_handler
 from skitai import was as the_was
 from rs4.protocols.sock.impl.http import http_util
 from rs4.protocols.sock.impl.grpc.discover import find_input
@@ -52,10 +52,14 @@ class GRPCAsyncStream:
         self.closed = True
 
 
-class Handler (websocket_handler.Handler):
+class Handler (wsgi_handler.Handler):
     def __init__(self, wasc, apps = None):
         self.wasc = wasc
         self.apps = apps
+        self.set_default_env ()
+
+    def match (self, request):
+        return request.get_header ("content-type", "").startswith ('application/grpc')
 
     def build_response_header (self, request):
         request.response.set ("grpc-accept-encoding", 'identity,gzip')

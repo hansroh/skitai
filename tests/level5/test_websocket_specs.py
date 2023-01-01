@@ -1,23 +1,5 @@
 from websocket import create_connection
 
-def test_websocket_coroutine (launch):
-    with launch ("./examples/websocket-spec.py") as engine:
-        ws = create_connection("ws://127.0.0.1:30371/websocket/coroutine")
-        ws.send("Hello, World")
-        result =  ws.recv()
-        assert result == "echo: Hello, World"
-
-        ws.send("Hello, World")
-        ws.send("Hello, World")
-        result =  ws.recv()
-        assert result == "echo: Hello, World"
-        result =  ws.recv()
-        assert result == "echo: Hello, World"
-        result =  ws.recv()
-        assert result == "double echo: Hello, World"
-        ws.close()
-
-
 def test_websocket_chatty (launch):
     with launch ("./examples/websocket-spec.py") as engine:
         ws = create_connection("ws://127.0.0.1:30371/websocket/chatty")

@@ -39,12 +39,17 @@ class Handler:
         self.apps = apps
         self.__cycle = 0
         self.__static_file_translator = None
-        self.__grpc_stream_handler = None
+        self.__stream_handlers = []
+
+        self.set_default_env ()
+        self.create_stream_handlers ()
+
+    def set_default_env (self):
         self.ENV ["skitai.process"] = self.wasc.workers
         self.ENV ["skitai.thread"] = 0
         if hasattr (self.wasc, "threads") and self.wasc.threads:
             self.ENV ["skitai.thread"] = len (self.wasc.threads)
-            self.MAX_QUEUE = self.ENV ["skitai.thread"] * 8
+            self.max_queue = self.ENV ["skitai.thread"] * 8
         self.ENV ["wsgi.multithread"] = True if hasattr (self.wasc, "threads") and self.wasc.threads else False
         self.ENV ["wsgi.url_scheme"] = hasattr (self.wasc.httpserver, "ctx") and "https" or "http"
         self.ENV ["wsgi.version"] = "1.0.1"
@@ -52,9 +57,9 @@ class Handler:
         self.ENV ['SERVER_PORT'] = str (self.wasc.httpserver.port)
         self.ENV ['SERVER_NAME'] = self.wasc.httpserver.server_name
 
-    def create_grpc_stream_handler (self):
+    def create_stream_handlers (self):
         from . import grpc_stream_handler
-        self.__grpc_stream_handler = grpc_stream_handler.Handler (self.wasc, self.apps)
+        self.__stream_handlers.append (grpc_stream_handler.Handler (self.wasc, self.apps))
 
     def match (self, request):
         return 1
@@ -175,11 +180,11 @@ class Handler:
             if self.__cycle == 100:
                 # update MAX_QUEUE
                 self.__cycle = 0
-                self.MAX_QUEUE = max (
+                self.max_queue = max (
                     self.ENV ["skitai.thread"] * 8,
                     self.ENV ["skitai.thread"] * int (self.SERVICE_UNAVAILABLE_TIMEOUT / self.wasc.threads.get_avg_exc_times ())
                 )
-            if self.wasc.queue.qsize () > self.MAX_QUEUE:
+            if self.wasc.queue.qsize () > self.max_queue:
                 request.response ["Retry-After"] = self.SERVICE_UNAVAILABLE_TIMEOUT * 8
                 return self.handle_error_before_collecting (request, 503)
 
@@ -197,16 +202,14 @@ class Handler:
                 return
 
         path_info = self.get_path_info (request, apph)
-
-        if request.get_header ("content-type", "").startswith ('application/grpc'):
+        for h in self.__stream_handlers:
+            if not h.match (request):
+                continue
             options = app.get_method (path_info, request) [3]
             if options is None:
                 return self.handle_error_before_collecting (request, 404)
-
             if options.get ('async_stream'):
-                if self.__grpc_stream_handler is None:
-                    self.create_grpc_stream_handler ()
-                return self.__grpc_stream_handler.handle_request (request)
+                return h.handle_request (request)
 
         if request.command in ('post', 'put', 'patch'):
             try:

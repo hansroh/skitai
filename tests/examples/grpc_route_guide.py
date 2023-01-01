@@ -36,45 +36,6 @@ def get_distance(start, end):
 	R = 6371000; # metres
 	return R * c
 
-@app.route ("/RouteChat", input_stream = True)
-def RouteChat (context):
-	prev_notes = []
-	while 1:
-		new_note = yield context.Input ()
-		if not new_note:
-			break
-		for prev_note in prev_notes:
-			if prev_note.location == new_note.location:
-				yield prev_note
-		prev_notes.append(new_note)
-
-@app.route ("/RecordRoute", input_stream = True)
-def RecordRoute (context):
-	point_count = 0
-	feature_count = 0
-	distance = 0.0
-	prev_point = None
-
-	start_time = time.time()
-	while 1:
-		point = yield context.Input ()
-		if not point:
-			break
-		point_count += 1
-		if get_feature(db, point):
-			feature_count += 1
-		if prev_point:
-			distance += get_distance(prev_point, point)
-		prev_point = point
-
-	elapsed_time = time.time() - start_time
-	return route_guide_pb2.RouteSummary (
-		point_count=point_count,
-		feature_count=feature_count,
-		distance=int(distance),
-		elapsed_time=int(elapsed_time)
-	)
-
 @app.route ("/GetFeature")
 def GetFeature (context, point):
 	feature = get_feature(db, point)

@@ -15,6 +15,11 @@ import skitai
 import inspect
 
 class Handler (wsgi_handler.Handler):
+    def __init__(self, wasc, apps = None):
+        self.wasc = wasc
+        self.apps = apps
+        self.set_default_env ()
+
     def match (self, request):
         return request.get_header ("upgrade") == 'websocket' and request.command == "get"
 
@@ -72,9 +77,6 @@ class Handler (wsgi_handler.Handler):
                 self.build_response_header (request, protocol, securekey, host, path)
                 request.collector = collector
                 collector.start_collect ()
-                if collector.is_continue_request:
-                    # skitai.WS_COROUTIN
-                    return
 
         env = self.build_environ (request, apph)
         was = the_was._get ()
@@ -172,7 +174,7 @@ class Handler (wsgi_handler.Handler):
             request.channel.push (request.response.build_reply_header ().encode ())
             env ["wsgi.multithread"] = 0
             env ["stream.handler"] = (current_app, wsfunc)
-            ws = specs.WebSocket10 (self, request, apph, env, varnames, message_encoding)
+            ws = specs.StreamWebSocket (self, request, apph, env, varnames, message_encoding)
             request.channel.set_socket_timeout (keep_alive)
             was.stream = env ["websocket"] = ws
             request.channel.die_with (ws, "websocket spec.%d" % design_spec)
@@ -191,9 +193,9 @@ class Handler (wsgi_handler.Handler):
         varnames = varnames [:1]
         # Like AJAX, simple request of client, simple response data
         # the simplest version of stateless HTTP protocol using basic skitai thread pool
-        ws_class = specs.WebSocket1
+        ws_class = specs.SessionWebSocket
         if design_spec_ & skitai.WS_SEND_THREADSAFE == skitai.WS_SEND_THREADSAFE:
-            ws_class = specs.WebSocket6
+            ws_class = specs.SessionWebSocketSendThreadsafe
         ws = ws_class (self, request, apph, env, varnames, message_encoding)
         self.channel_config (request, ws, keep_alive)
         was.stream = env ["websocket"] = ws
