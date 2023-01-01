@@ -166,11 +166,10 @@ class Handler (wsgi_handler.Handler):
         del env ["websocket.event"]
         del env ["websocket.config"]
 
-        assert (design_spec_ & 31) in (skitai.WS_STREAM, skitai.WS_SIMPLE), "design_spec  should be one of (WS_STREAM, WS_SIMPLE)"
-
         design_spec = design_spec_ & 31
+        assert design_spec in (skitai.WS_STREAM, skitai.WS_SIMPLE), "design_spec  should be one of (WS_STREAM, WS_SIMPLE)"
 
-        # skitai.WS_SIMPLE
+        # skitai.WS_STREAM
         if is_atila and design_spec in (skitai.WS_STREAM,):
             env ["wsgi.multithread"] = 0
             env ["stream.handler"] = (current_app, wsfunc)
@@ -201,7 +200,6 @@ class Handler (wsgi_handler.Handler):
         if is_atila:
             env ["stream.handler"] = (current_app, wsfunc)
         ws.open ()
-
         request.channel.die_with (ws, "websocket spec.%d" % design_spec)
 
     def channel_config (self, request, ws, keep_alive):
