@@ -98,7 +98,7 @@ async def bench7 (context):
 		if not m:
 			break
 		N += 1; print (f"============== got messages: {N}")
-		await context.stream.send ('echo: ' + m)
+		context.stream.send ('echo: ' + m)
 
 @app.route ("/bench/N")
 def bench_result (context):

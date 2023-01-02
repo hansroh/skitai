@@ -28,7 +28,7 @@ async def ListFeatures (context, rectangle):
 	bottom = min(rectangle.lo.latitude, rectangle.hi.latitude)
 	for feature in db:
 		if (feature.location.longitude >= left and feature.location.longitude <= right and feature.location.latitude >= bottom and feature.location.latitude <= top):
-			await context.stream.send (feature)
+			context.stream.send (feature)
 
 @app.route ("/RecordRoute", stream = True)
 async def RecordRoute (context, point_iter):
@@ -67,7 +67,7 @@ async def RouteChat (context, note_iter):
 			break
 		for prev_note in prev_notes:
 			if prev_note.location == new_note.location:
-				await context.stream.send (prev_note)
+				context.stream.send (prev_note)
 		prev_notes.append(new_note)
 
 @app.route ("/test")
