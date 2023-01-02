@@ -3,7 +3,7 @@ import time
 import pytest
 import asyncio
 
-N = 100
+N = 1000
 CLIENTS = 3
 DUE = []
 

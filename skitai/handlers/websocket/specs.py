@@ -226,6 +226,13 @@ class SessionWebSocket (WebSocket):
         else:
             self.wasc.queue.put (Job (*args))
 
+    def _send (self, msg):
+        if self.channel:
+            if self.env ["wsgi.multithread"]:
+                trigger.wakeup (lambda p=self.channel, d=msg: (p.push (d),))
+            else:
+                self.channel.push (msg)
+
 
 class SessionWebSocketSendThreadsafe (SessionWebSocket):
     def __init__ (self, handler, request, apph, env, param_names, message_encoding = None):
