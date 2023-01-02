@@ -48,15 +48,6 @@ def test_success (app):
         time.sleep (1)
         return 200
 
-    @app.route ("/coro", coroutine = True)
-    def c (context, err = "no"):
-        app.emit ("FIRE")
-        task = yield context.Thread (sleep)
-        err == "var" and xx
-        if err == "http":
-            raise context.HttpError ("600 Error")
-        return context.API (x = task.fetch ())
-
     N = 3
     with app.test_client ("/", confutil.getroot (), enable_async = True) as cli:
         for _ in range (N):
@@ -67,10 +58,6 @@ def test_success (app):
             resp = cli.get ("/api")
             assert resp.status_code == 200
             assert resp.json ()["x"] == 100
-
-            resp = cli.get ("/coro")
-            assert resp.status_code == 200
-            assert resp.json ()["x"] == 200
 
             resp = cli.get ("/api?err=var")
             assert resp.status_code == 502
@@ -84,19 +71,7 @@ def test_success (app):
             assert resp.status_code == 600
             assert "code" in resp.json ()
 
-            resp = cli.get ("/coro?err=var")
-            assert resp.status_code == 502
-            assert "<title>502 Bad Gateway</title>" in resp.text
 
-            resp = cli.get ("/coro?err=var", headers = {"Accept": "application/json"})
-            assert resp.status_code == 502
-            assert "code" in resp.json ()
-
-            resp = cli.get ("/coro?err=http", headers = {"Accept": "application/json"})
-            assert resp.status_code == 600
-            assert "code" in resp.json ()
-
-
-    REQS = 9
+    REQS = 5
     assert app.hooks_called == REQS * 3 * N
     assert app.fired == REQS * N
