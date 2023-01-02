@@ -11,7 +11,7 @@ import string
 import threading
 
 class base_trigger:
-	WAIT_TRIGGER = 0.02 # 20ms
+	WAIT_TRIGGER = 0.01 # 10ms
 
 	def __init__ (self, logger = None):
 		self.logger = logger
@@ -51,6 +51,7 @@ class base_trigger:
 				return
 			self.waiting = True
 
+		self.WAIT_TRIGGER and time.sleep (self.WAIT_TRIGGER)
 		with self.lock:
 			self.waiting = False
 		self.shut () # KEEP this order, release and shut!
