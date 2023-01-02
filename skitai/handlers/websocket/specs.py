@@ -255,8 +255,13 @@ class StreamWebSocket (SessionWebSocket):
     async def receive (self):
         return await self.request.collector.get ()
 
-    async def send (self, messages, op_code = -1):
+    def send (self, messages, op_code = -1):
         super ().send (messages, op_code)
+
+    def _send (self, msg):
+        if self.channel:
+            # always wakeup
+            trigger.wakeup (lambda p=self.channel, d=msg: (p.push (d),))
 
     def close (self):
         WebSocket.close (self)

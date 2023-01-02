@@ -5,8 +5,7 @@ from rs4.protocols.sock.impl.http import http_util
 from rs4.protocols.sock.impl.grpc.discover import find_input
 from rs4.protocols.sock.impl.grpc.producers import serialize
 from rs4.misc import compressors
-import time
-import asyncio
+from ..backbone.threaded import trigger
 
 class GRPCAsyncStream:
     STREAM_TYPE = 'grpc'
@@ -36,11 +35,11 @@ class GRPCAsyncStream:
     async def receive (self):
         return await self.collector.get ()
 
-    async def send (self, msg):
+    def send (self, msg):
         data = serialize (msg, True, self.compressor)
         with self.lock:
             self.conn.send_data (self.stream_id, data, end_stream = False)
-            self.protocol.send_data ()
+            trigger.wakeup (lambda: (self.protocol.send_data (),))
 
     def close (self):
         if self.closed:
