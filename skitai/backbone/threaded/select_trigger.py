@@ -51,10 +51,6 @@ class base_trigger:
 				return
 			self.waiting = True
 
-		# this is not for improving performance
-		# it reduces response time when low load but also reduces server CPU load if high network load
-		# Sep 13, 2020, Roh
-		# time.sleep (self.WAIT_TRIGGER)
 		with self.lock:
 			self.waiting = False
 		self.shut () # KEEP this order, release and shut!
