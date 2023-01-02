@@ -106,7 +106,7 @@ async def echo_async (context, a):
 		m = await context.stream.receive ()
 		if not m:
 			break
-		await context.stream.send ('echo: ' + m)
+		context.stream.send ('echo: ' + m)
 
 
 @app.route ("/echo_async_iter")

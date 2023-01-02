@@ -1,7 +1,7 @@
 from websocket import create_connection
 import time
 
-N = 1000
+N = 100
 
 def bench (launch, ep):
     with launch ("./examples/websocket-spec.py") as engine:
