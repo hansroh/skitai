@@ -18,7 +18,7 @@ markupsafe
 matplotlib
 scikit-learn
 pillow
-opencv-python-headless
+opencv-python-headless<4.7.0
 scikit-image
 django-admin-numeric-filter
 django-admin-rangefilter
