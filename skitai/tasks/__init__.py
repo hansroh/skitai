@@ -10,10 +10,6 @@ from . import utils
 
 DEFAULT_TIMEOUT = 30
 
-class Coroutine:
-    pass
-
-
 class Revoke:
     pass
 

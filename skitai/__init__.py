@@ -22,8 +22,6 @@ import getopt as libgetopt
 from rs4 import pathtool
 from .wastuff.preference import Preference
 from rs4  import evbus
-from .tasks.coroutine import Coroutine
-
 
 argopt.add_option ('-d', desc = "start as daemon, equivalant with `start` command") # lower version compatible
 
@@ -322,9 +320,6 @@ def add_async_task (coro, after_request_callback = None, response_callback = Non
             was.async_executor.done ()
         return content
     return was.async_executor.put ((was._get (), coro, response_callback or _respond_async, after_request_callback, pooling))
-
-def add_coroutine_task (coro, after_request_callback = None):
-    return Coroutine (was._get (), coro, after_request_callback)
 
 def add_thread_task (target, *args, **kargs):
     _was = was._get ()

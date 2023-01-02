@@ -84,7 +84,7 @@ def is_modified (request, header_name, mtime, file_length = None):
 
 # response context ------------------------------------------
 def make_pushables (response, content):
-    from .tasks import Coroutine, Revoke
+    from .tasks import Revoke
     from .wastuff.api import API
 
     if not response.is_responsable ():
@@ -94,9 +94,7 @@ def make_pushables (response, content):
     if content is None: # Possibly no return mistake
         raise AssertionError ("Content or part should not be None")
 
-    if isinstance (content, Coroutine):
-        content = [content.start ()]
-    elif not isinstance (content, (list, tuple)):
+    if not isinstance (content, (list, tuple)):
         content = (content,) # make iterable
 
     if isinstance (content [0], Revoke): # Future thing

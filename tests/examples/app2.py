@@ -88,12 +88,6 @@ def stub (context):
     r = context.Tasks ([req1, req2, req3, req4, req5]).fetch ()
     return context.API (result = r)
 
-@app.route ("/coroutine")
-def coroutine (context):
-    def respond (context, task):
-        return task.fetch ()
-    return context.Mask ("pypi/skitai/hansroh/rs4").then (respond)
-
 def fake ():
     time.sleep (1)
     return "pypi/skitai/hansroh/rs4"
@@ -101,98 +95,6 @@ def fake ():
 def mask ():
     time.sleep (1)
     return "mask"
-
-@app.route ("/coroutine/2")
-@app.coroutine
-def coroutine2 (context):
-    task = yield context.Thread (fake)
-    return task.fetch ()
-
-@app.route ("/coroutine/3")
-@app.coroutine
-def coroutine3 (context):
-    task = yield context.Thread (fake)
-    task.fetch ()
-    task = yield context.Thread (fake)
-    return task.fetch ()
-
-@app.route ("/coroutine/4")
-@app.coroutine
-def coroutine4 (context):
-    task1 = yield context.Thread (fake)
-    task2 = yield context.Thread (mask)
-    return context.API (a = task1.fetch (), b = task2.fetch ())
-
-@app.route ("/coroutine/5")
-@app.coroutine
-def coroutine5 (context):
-    task1 = context.Mask ("pypi/skitai/hansroh/rs4")
-    task2 = context.Mask ('mask')
-    tasks = yield context.Tasks (task1, task2)
-    a, b = tasks.fetch ()
-    return context.API (a = a, b = b)
-
-@app.route ("/coroutine/6", coroutine = True)
-def coroutine6 (context):
-    task1 = context.Mask ("pypi/skitai/hansroh/rs4")
-    task2 = context.Mask ('mask')
-    tasks = yield context.Tasks (a = task1, b = task2)
-    return context.API (**tasks.dict ())
-
-@app.route ("/coroutine/7", coroutine = True)
-def coroutine7 (context):
-    task1 = context.Mask ("pypi/skitai/hansroh/rs4")
-    task2 = context.Mask ('mask')
-    tasks = yield context.Tasks (a = task1, b = task2)
-    return context.API (**tasks.fetch ())
-
-@app.route ("/coroutine/8", coroutine = True)
-def coroutine8 (context):
-    task1 = context.Mask ("pypi/skitai/hansroh/rs4")
-    task2 = context.Mask ('mask')
-    tasks = yield context.Tasks (a = task1, b = task2)
-    return context.Map (c = context.Mask (100), **tasks.fetch ())
-
-def wait_hello (timeout = 1.0):
-    time.sleep (timeout)
-    return 'mask'
-
-@app.route ("/coroutine/9", coroutine = True)
-def coroutine9 (context):
-    task1 = context.Thread (fake)
-    task2 = context.Thread (wait_hello, args = (1.0,))
-    tasks = yield context.Tasks (a = task1, b = task2)
-    task3 = yield context.Thread (wait_hello, args = (1.0,))
-    task4 = yield context.Subprocess ('ls')
-    return context.API (d = task4.fetch (), c = task3.fetch (), **tasks.fetch ())
-
-@app.route ("/coroutine/10", coroutine = True)
-def coroutine10 (context):
-    task1 = context.Mask ("pypi/skitai/hansroh/rs4")
-    task2 = context.Thread (wait_hello, args = (1.0,))
-    tasks = yield context.Tasks (a = task1, b = task2)
-    task3 = yield context.Process (wait_hello, args = (1.0,))
-    task4 = yield context.Subprocess ('ls')
-    return context.Map (d = task4, c__fetch = task3, **tasks.fetch ())
-
-@app.route ("/coroutine/11", coroutine = True)
-def coroutine11 (context):
-    task1 = context.Mask ("pypi/skitai/hansroh/rs4")
-    task2 = context.Mask ('mask')
-    if 0:
-        yield context.Tasks (a = task1, b = task2)
-    return context.Map (c = context.Mask (100), a = task1, b = task2)
-
-@app.route ("/coroutine_generator", coroutine = True)
-@app.spec (ints = ['n', 'h', 'f'])
-def coroutine_generator (context, n = 1, h = 0, f = 0):
-    if h:
-        yield "Header Line\n"
-    for i in range (n):
-        task = yield (context.Mask ("pypi/skitai/hansroh/rs4"))
-        yield task.fetch ()
-        if f:
-            yield '\n'
 
 def process_future_response (context, tasks):
     time.sleep (0.03)
