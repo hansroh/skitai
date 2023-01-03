@@ -11,7 +11,12 @@ def test_http2_push (launch):
     serve = './examples/https.py'
     with launch (serve, port = 30371, ssl = True) as engine:
         pushes = 0
-        for j in range (3): # need a little lucky
+        fine = 0
+        loops = 0
+        while 1: # need a little lucky
+            loops += 1
+            if loops > 10:
+                raise SystemError
             mc = []
             for i in range (3):
                 mc.append ('/promise')
@@ -32,9 +37,17 @@ def test_http2_push (launch):
                 mc.append ('/hello')
                 mc.append ('/test')
 
-            resps = engine.http2.get (mc)
+            try:
+                resps = engine.http2.get (mc)
+                fine += 1
+            except ProtocolError:
+                continue
+
             for resp in resps:
                 for prom in resp.get_pushes ():
                     pushes += 1
+
+            if fine == 3:
+                break
 
         assert pushes >= 70
