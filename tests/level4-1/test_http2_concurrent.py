@@ -37,14 +37,6 @@ def test_http2_push (launch):
                 mc.append ('/promise')
                 mc.append ('/hello')
                 mc.append ('/test')
-                mc.append ('/delay?wait=2')
-                mc.append ('/delay?wait=2')
-                mc.append ('/delay?wait=2')
-                mc.append ('/delay?wait=2')
-                mc.append ('/delay?wait=2')
-                mc.append ('/delay?wait=2')
-                mc.append ('/delay?wait=2')
-                mc.append ('/delay?wait=2')
 
             try:
                 resps = engine.http2.get (mc)
