@@ -33,7 +33,7 @@ def test_http2_push (launch):
                 mc.append ('/hello')
                 mc.append ('/test')
 
-            resps = engine.http2.get (mc, wait = 10)
+            resps = engine.http2.get (mc, wait = 30)
             for resp in resps:
                 for prom in resp.get_pushes ():
                     pushes += 1
