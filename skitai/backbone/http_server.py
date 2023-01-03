@@ -93,34 +93,18 @@ class http_channel (asynchat.async_chat):
 
     def writable (self):
         with self.__sendlock:
-            return len (self.producer_fifo) or (not self.connected)
+            _writable = len (self.producer_fifo) or (not self.connected)
+        if not _writable and self.connected:
+            try:
+                if self.current_request.has_sendables ():
+                    _writable = self.current_request.flush ()
+            except AttributeError:
+                return False
+        return _writable
 
     def handle_write (self):
         with self.__sendlock:
             self.initiate_send ()
-
-    def link_protocol_writer (self):
-        self.writable = self.writable_with_protocol
-        self.handle_write = self.handle_write_with_protocol
-
-    def writable_with_protocol (self):
-        with self.__sendlock:
-            has_fifo = len (self.producer_fifo)
-        return has_fifo or (self.current_request and self.current_request.has_sendables ())
-
-    def handle_write_with_protocol (self):
-        try:
-            data_to_send = self.current_request.data_to_send ()
-        except AttributeError:
-            # self.current_request is None
-            return False
-        [self.push (data) for data in data_to_send]
-        if not data_to_send:
-            # anyway call eventually
-            with self.__sendlock:
-                self.initiate_send ()
-            return False
-        return True
 
     def push (self, data):
         with self.__sendlock:
@@ -157,10 +141,9 @@ class http_channel (asynchat.async_chat):
         return self.connected
 
     def handle_timeout (self):
-        if self.current_request:
-            response = self.current_request.response
-            response.error (503, force_close = True)
-        else:
+        try:
+            self.current_request.response.error (503, force_close = True)
+        except AttributeError:
             IS_TTY and self.log ("killing zombie channel %s" % ":".join (map (str, self.addr)))
             self.close ()
 

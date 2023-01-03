@@ -14,4 +14,4 @@ if __name__ == "__main__":
 		"resources/certifications/server.key",
 		"fatalbug"
 	)
-	skitai.run (port = 30371, quic = 4433)
+	skitai.run (port = 30371, quic = 30371)
