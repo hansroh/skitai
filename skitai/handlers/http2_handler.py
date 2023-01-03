@@ -285,7 +285,6 @@ class http2_connection_handler (FlowControlWindow):
                         # DO NOT REMOVE before responsing:
                         # this is for async streaming request like proxy request
                         self.remove_request (event.stream_id)
-
         self.flush ()
 
     def _data_from_producers (self):
@@ -426,6 +425,8 @@ class http2_connection_handler (FlowControlWindow):
             self._handle_events (events)
 
     def request_acceptable (self):
+        if not self.channel:
+            return False
         with self._clock:
             if self._close_pending or self._closed:
                 return False
