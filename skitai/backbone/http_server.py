@@ -99,16 +99,12 @@ class http_channel (asynchat.async_chat):
         with self.__sendlock:
             if len (self.producer_fifo):
                 return True
-
         if self.__conn_manager:
-            return self.current_request.has_sendables ()
-
+            if self.current_request.has_sendables ():
+                return self.current_request.flush ()
         return True if not self.connected else False # for http/1
 
     def handle_write (self):
-        if self.__conn_manager and self.current_request.flush ():
-            return
-
         with self.__sendlock:
             self.initiate_send ()
 
