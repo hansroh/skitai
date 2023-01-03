@@ -1,5 +1,6 @@
 
 from rs4.protocols.sock.impl.http2.hyper.http20.h2.exceptions import ProtocolError
+from rs4.protocols.sock.impl.http2.hyper.common.exceptions import ConnectionResetError
 
 def test_http2 (launch):
     serve = './examples/https.py'
@@ -40,7 +41,7 @@ def test_http2_push (launch):
             try:
                 resps = engine.http2.get (mc)
                 fine += 1
-            except ProtocolError:
+            except ConnectionResetError:
                 continue
 
             for resp in resps:

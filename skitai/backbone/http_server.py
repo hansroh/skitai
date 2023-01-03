@@ -93,16 +93,23 @@ class http_channel (asynchat.async_chat):
 
     def writable (self):
         with self.__sendlock:
-            _writable = len (self.producer_fifo) or (not self.connected)
-        if not _writable:
-            try:
-                if self.current_request.has_sendables ():
-                    return self.current_request.flush ()
-            except AttributeError:
-                return False
-        return _writable
+            if len (self.producer_fifo):
+                return True
+
+        try: # IMP: for http2/3
+            return self.current_request.has_sendables ()
+        except AttributeError:
+            pass
+
+        return True if not self.connected else False # for http/1
 
     def handle_write (self):
+        try: # IMP: for http2/3
+            if self.current_request.flush (): # already call `self.initiate_send ()`
+                return
+        except AttributeError:
+            pass
+
         with self.__sendlock:
             self.initiate_send ()
 
