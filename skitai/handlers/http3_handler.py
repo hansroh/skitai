@@ -291,4 +291,4 @@ class Handler (http2_handler.Handler):
         http3 = http3_connection_handler (self, request)
         request.channel.die_with (http3, "http3 connection")
         request.channel.set_socket_timeout (self.keep_alive)
-        request.channel.current_request = http3
+        request.channel.set_connection_handler (http3)

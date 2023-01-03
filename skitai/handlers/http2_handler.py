@@ -655,6 +655,6 @@ class Handler (wsgi_handler.Handler):
             )
             request.response.done (upgrade_to = (http2, http2.http11_terminator))
         else:
-            request.channel.current_request = http2
+            request.channel.set_connection_handler (http2)
 
         http2.initiate_connection ()
