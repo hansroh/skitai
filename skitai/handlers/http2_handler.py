@@ -443,12 +443,12 @@ class http2_connection_handler (FlowControlWindow):
 
     def push_promise (self, stream_id, request_headers, addtional_request_headers):
         headers = request_headers + addtional_request_headers
+        event = RequestReceived ()
         with self._plock:
             promise_stream_id = self.conn.get_next_available_stream_id ()
             self.conn.push_stream (stream_id, promise_stream_id, headers)
-        event = RequestReceived ()
-        event.stream_id = promise_stream_id
-        event.headers = headers
+            event.stream_id = promise_stream_id
+            event.headers = headers
         self._handle_events ([event])
 
     def get_request (self, stream_id):
