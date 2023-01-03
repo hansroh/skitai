@@ -154,6 +154,7 @@ class http2_connection_handler (FlowControlWindow):
         self._closed = False
         self._pushed_pathes = {}
         self._close_pending = False
+        self._shutdown_pending = False
         self._plock = threading.Lock () # for self.conn
         self._clock = threading.Lock () # for self.x
 
@@ -200,6 +201,8 @@ class http2_connection_handler (FlowControlWindow):
         errcode, msg, last_stream_id = self._shutdown_reason
         with self._plock:
             self.conn.close_connection (errcode, msg, max (0, last_stream_id)) # -1 used by http3
+            self._shutdown_pending = True
+        self.flush ()
 
     def _terminate_connection (self):
         # phase III: close channel
@@ -309,7 +312,10 @@ class http2_connection_handler (FlowControlWindow):
                     # end of a request session
                     self._pushed_pathes = {}
             remains = len (self._requests)
-        close_pending and not remains and self._proceed_shutdown ()
+        with self._plock:
+            shutdown_pending = self._shutdown_pending
+        if not shutdown_pending and close_pending and not remains:
+            self._proceed_shutdown ()
         return [] # MUST return
 
     def has_sendables (self):
