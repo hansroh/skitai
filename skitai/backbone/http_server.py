@@ -72,13 +72,13 @@ class http_channel (asynchat.async_chat):
         self.event_time = int (time.time())
         self.producers_attend_to = []
         self.things_die_with = []
-        self.__conn_manager = False
+        self.is_flushable = False
         self.__sendlock  = threading.Lock ()
         self.__history = []
 
     def set_connection_handler (self, handler):
         self.current_request = handler
-        self.__conn_manager = True
+        self.is_flushable = True
 
     def get_history (self):
         return self.__history
@@ -99,7 +99,7 @@ class http_channel (asynchat.async_chat):
         with self.__sendlock:
             if len (self.producer_fifo):
                 return True
-        if self.__conn_manager and self.current_request.has_sendables ():
+        if self.is_flushable and self.current_request.has_sendables (): # for http/23
             return self.current_request.flush ()
         return True if not self.connected else False # for http/1
 
