@@ -35,6 +35,8 @@ def test_http2_push (launch):
 
             resps = engine.http2.get (mc)
             for resp in resps:
+                if resp.traceback:
+                    print (resp.traceback)
                 for prom in resp.get_pushes ():
                     pushes += 1
 
