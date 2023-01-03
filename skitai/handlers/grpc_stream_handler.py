@@ -20,7 +20,7 @@ class GRPCAsyncStream:
         headers = self.request.response.build_reply_header ()
         with self.lock:
             self.conn.send_headers (self.stream_id, headers, end_stream = False)
-            self.protocol.flush ()
+        self.protocol.flush ()
 
     def __aiter__ (self):
         return self
@@ -38,14 +38,14 @@ class GRPCAsyncStream:
         data = serialize (msg, True, self.compressor)
         with self.lock:
             self.conn.send_data (self.stream_id, data, end_stream = False)
-            self.protocol.flush ()
+        self.protocol.flush ()
 
     def close (self):
         if self.closed:
             return
         with self.lock:
             self.conn.send_headers (self.stream_id, self.request.response.get_trailers (), end_stream = True)
-            self.protocol.flush ()
+        self.protocol.flush ()
         self.collector.close ()
         self.closed = True
 
