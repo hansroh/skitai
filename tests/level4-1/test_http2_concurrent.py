@@ -41,7 +41,7 @@ def test_http2_push (launch):
             try:
                 resps = engine.http2.get (mc)
                 fine += 1
-            except ConnectionResetError:
+            except (ConnectionResetError, ProtocolError):
                 continue
 
             for resp in resps:
