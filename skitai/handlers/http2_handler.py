@@ -64,7 +64,8 @@ class http2_producer:
         self.log ()
 
     def local_flow_control_window (self):
-        lfcw = self.conn.local_flow_control_window (self.stream_id)
+        with self.lock:
+            lfcw = self.conn.local_flow_control_window (self.stream_id)
         if lfcw == 0:
             # flow control error, graceful close
             if time.time () - self._last_sent > 10:
@@ -200,6 +201,7 @@ class http2_connection_handler (FlowControlWindow):
         last_stream_id = max (0, last_stream_id) if last_stream_id else None
         with self._plock:
             self.conn.close_connection (errcode, msg, last_stream_id) # -1 used by http3
+        with self._clock:
             self._shutdowned = True
         self.flush ()
 
@@ -225,17 +227,15 @@ class http2_connection_handler (FlowControlWindow):
         return events
 
     def _adjust_flow_control_window (self, stream_id):
-        if self.conn.inbound_flow_control_window < self.MIN_IBFCW:
-            with self._plock:
+        with self._plock:
+            if self.conn.inbound_flow_control_window < self.MIN_IBFCW:
                 self.conn.increment_flow_control_window (1048576)
-
-        rfcw = self.conn.remote_flow_control_window (stream_id)
-        if rfcw < self.MIN_RFCW:
-            try:
-                with self._plock:
+            rfcw = self.conn.remote_flow_control_window (stream_id)
+            if rfcw < self.MIN_RFCW:
+                try:
                     self.conn.increment_flow_control_window (1048576, stream_id)
-            except StreamClosedError:
-                pass
+                except StreamClosedError:
+                    pass
 
     def _handle_events (self, events):
         for event in events:
@@ -311,7 +311,7 @@ class http2_connection_handler (FlowControlWindow):
                     # end of a request session
                     self._pushed_pathes = {}
             remains = len (self._requests)
-        with self._plock:
+        with self._clock:
             shutdowned = self._shutdowned
         if self.channel and not shutdowned and close_pending and not remains:
             self._proceed_shutdown ()
@@ -442,9 +442,9 @@ class http2_connection_handler (FlowControlWindow):
         return self.request_acceptable () and self.conn.remote_settings [SettingCodes.ENABLE_PUSH]
 
     def push_promise (self, stream_id, request_headers, addtional_request_headers):
-        promise_stream_id = self.conn.get_next_available_stream_id ()
         headers = request_headers + addtional_request_headers
         with self._plock:
+            promise_stream_id = self.conn.get_next_available_stream_id ()
             self.conn.push_stream (stream_id, promise_stream_id, headers)
         event = RequestReceived ()
         event.stream_id = promise_stream_id

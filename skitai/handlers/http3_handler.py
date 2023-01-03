@@ -11,6 +11,7 @@ import enum
 from rs4.protocols.sock.impl.http3.events import PushCanceled, MaxPushIdReceived, DataReceived, HeadersReceived
 from rs4.protocols.sock.impl.http3.connection import H3Connection
 from ..backbone.lifetime import tick_timer
+import threading
 
 # http2 compat error codes
 class ErrorCode (enum.IntEnum):
@@ -29,6 +30,7 @@ class http3_connection_handler (http2_handler.http2_connection_handler):
     stateless_retry = True
     conns = {}
     errno = ErrorCode
+    _glock = threading.Lock ()
 
     def __init__ (self, handler, request):
         self._default_varialbes (handler, request)
@@ -72,7 +74,9 @@ class http3_connection_handler (http2_handler.http2_connection_handler):
             )
             return
 
-        conn = self.conns.get (header.destination_cid)
+        with self._glock:
+            conn = self.conns.get (header.destination_cid)
+
         if conn:
             conn._linked_channel.close ()
             conn._linked_channel = channel
@@ -122,7 +126,8 @@ class http3_connection_handler (http2_handler.http2_connection_handler):
     def set_timer (self):
         if not self.quic:
             return
-        timer_at = self.quic.get_timer()
+        with self._plock:
+            timer_at = self.quic.get_timer()
         if self._timer_id is not None and self._timer_at != timer_at:
             tick_timer.cancel (self._timer_id)
             self._timer_id = None
@@ -138,7 +143,8 @@ class http3_connection_handler (http2_handler.http2_connection_handler):
         now = max (self._timer_at, time.monotonic ())
         self._timer_id = None
         self._timer_at = None
-        self.quic.handle_timer (now = now)
+        with self._plock:
+            self.quic.handle_timer (now = now)
         self.process_quic_events ()
         self.flush ()
 
@@ -182,23 +188,28 @@ class http3_connection_handler (http2_handler.http2_connection_handler):
                 event = self.quic.next_event ()
             if event is None:
                 break
+
             if isinstance (event, events.StreamDataReceived):
-                h3_events = self.conn.handle_event (event)
+                with self._plock:
+                    h3_events = self.conn.handle_event (event)
                 h3_events and self._handle_events (h3_events)
 
             elif isinstance (event, events.ConnectionIdIssued):
-                self.conns [event.connection_id] = self.conn
+                with self._glock:
+                    self.conns [event.connection_id] = self.conn
 
             elif isinstance (event, events.ConnectionIdRetired):
-                assert self.conns [event.connection_id] == self.conn
-                conn = self.conns.pop (event.connection_id)
+                with self._glock:
+                    assert self.conns [event.connection_id] == self.conn
+                    conn = self.conns.pop (event.connection_id)
                 conn._linked_channel = None
 
             elif isinstance (event, events.ConnectionTerminated):
-                for cid, conn in list (self.conns.items()):
-                    if conn == self.conn:
-                        conn._linked_channel = None
-                        del self.conns [cid]
+                with self._glock:
+                    for cid, conn in list (self.conns.items()):
+                        if conn == self.conn:
+                            conn._linked_channel = None
+                            del self.conns [cid]
                 self._terminate_connection ()
 
             elif isinstance (event, events.HandshakeCompleted):
@@ -260,19 +271,20 @@ class http3_connection_handler (http2_handler.http2_connection_handler):
         name_, path = request_headers [0]
         assert name_ == ':path', ':path header missing'
         headers = [(k.encode (), v.encode ()) for k, v in request_headers + addtional_request_headers]
-        try:
-            promise_stream_id = self.conn.send_push_promise (stream_id = stream_id, headers = headers)
-        except NoAvailablePushIDError:
-            return
-
+        with self._plock:
+            try:
+                promise_stream_id = self.conn.send_push_promise (stream_id = stream_id, headers = headers)
+            except NoAvailablePushIDError:
+                return
         with self._clock:
             push_id = self._pushed_pathes.get (path)
 
         if push_id is None:
-            try:
-                push_id = self.conn.get_push_id (promise_stream_id)
-            except AttributeError:
-                push_id = self.conn._next_push_id - 1
+            with self._plock:
+                try:
+                    push_id = self.conn.get_push_id (promise_stream_id)
+                except AttributeError:
+                    push_id = self.conn._next_push_id - 1
 
             with self._clock:
                 self._push_map [push_id] = promise_stream_id
