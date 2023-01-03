@@ -328,13 +328,13 @@ class http2_connection_handler (FlowControlWindow):
         return data_to_send and [data_to_send] or self._data_exhausted ()
 
     def flush (self):
+        with self._clock:
+            if self._producers:
+                self._has_sendables = True
         data_to_send = self.data_to_send ()
         if not data_to_send:
             return False
         [self.channel.push (data) for data in data_to_send]
-        with self._clock:
-            if self._producers:
-                self._has_sendables = True
         return True
 
     def handle_preamble (self):
