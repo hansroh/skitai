@@ -154,7 +154,7 @@ class http2_connection_handler (FlowControlWindow):
         self._closed = False
         self._pushed_pathes = {}
         self._close_pending = False
-        self._shutdown_pending = False
+        self._shutdowned = False
         self._plock = threading.Lock () # for self.conn
         self._clock = threading.Lock () # for self.x
 
@@ -177,10 +177,8 @@ class http2_connection_handler (FlowControlWindow):
         [self.remove_request (stream_id) for stream_id in deletable_requests]
         [self.remove_response (stream_id) for stream_id in deletable_responses]
 
-        if self.conn:
-            self._initiate_shutdown ()
-
         if self.channel:
+            self._initiate_shutdown ()
             self.flush ()
         else:
            self._terminate_connection ()
@@ -197,11 +195,12 @@ class http2_connection_handler (FlowControlWindow):
         pass
 
     def _proceed_shutdown (self):
-        # phase II: proceed pending shutdown close protocol
+        # phase II: proceed pending shutdown close protocol if self._data_exhausted ()
         errcode, msg, last_stream_id = self._shutdown_reason
+        last_stream_id = max (0, last_stream_id) if last_stream_id else None
         with self._plock:
-            self.conn.close_connection (errcode, msg, max (0, last_stream_id)) # -1 used by http3
-            self._shutdown_pending = True
+            self.conn.close_connection (errcode, msg, last_stream_id) # -1 used by http3
+            self._shutdowned = True
         self.flush ()
 
     def _terminate_connection (self):
@@ -313,8 +312,8 @@ class http2_connection_handler (FlowControlWindow):
                     self._pushed_pathes = {}
             remains = len (self._requests)
         with self._plock:
-            shutdown_pending = self._shutdown_pending
-        if not shutdown_pending and close_pending and not remains:
+            shutdowned = self._shutdowned
+        if self.channel and not shutdowned and close_pending and not remains:
             self._proceed_shutdown ()
         return [] # MUST return
 

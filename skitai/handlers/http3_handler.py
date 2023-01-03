@@ -50,7 +50,7 @@ class http3_connection_handler (http2_handler.http2_connection_handler):
             errcode, msg, _ = self._shutdown_reason
             with self._plock:
                 self.quic.close (errcode, reason_phrase = msg or '')
-                self._shutdown_pending = True
+                self._shutdowned = True
             self.flush ()
 
     def _make_connection (self, channel, data):
