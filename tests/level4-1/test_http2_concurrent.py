@@ -40,4 +40,4 @@ def test_http2_push (launch):
                 for prom in resp.get_pushes ():
                     pushes += 1
 
-        assert pushes >= 10
+        assert pushes >= 70
