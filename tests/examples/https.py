@@ -14,4 +14,5 @@ if __name__ == "__main__":
 		"resources/certifications/server.key",
 		"fatalbug"
 	)
+	skitai.set_503_estimated_timeout (0)
 	skitai.run (port = 30371)

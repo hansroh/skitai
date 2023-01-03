@@ -10,6 +10,8 @@ from aioquic.quic.connection import QuicConnection
 import enum
 from rs4.protocols.sock.impl.http3.events import PushCanceled, MaxPushIdReceived, DataReceived, HeadersReceived
 from rs4.protocols.sock.impl.http3.connection import H3Connection
+from ..backbone.lifetime import tick_timer
+import threading
 
 # http2 compat error codes
 class ErrorCode (enum.IntEnum):
@@ -23,17 +25,19 @@ class http3_producer (http2_handler.http2_producer):
     def local_flow_control_window (self):
         return self.SIZE_BUFFER
 
-class http3_request_handler (http2_handler.http2_request_handler):
+class http3_connection_handler (http2_handler.http2_connection_handler):
     producer_class = http3_producer
     stateless_retry = True
     conns = {}
     errno = ErrorCode
+    _glock = threading.Lock ()
 
     def __init__ (self, handler, request):
         self._default_varialbes (handler, request)
         self.quic = None # QUIC protocol
         self.conn = None # HTTP3 Protocol
-
+        self._timer_at = None
+        self._timer_id = None
         self._push_map = {}
         self._retry = QuicRetryTokenHandler() if self.stateless_retry else None
 
@@ -48,7 +52,8 @@ class http3_request_handler (http2_handler.http2_request_handler):
             errcode, msg, _ = self._shutdown_reason
             with self._plock:
                 self.quic.close (errcode, reason_phrase = msg or '')
-            self.send_data ()
+                self._shutdowned = True
+            self.flush ()
 
     def _make_connection (self, channel, data):
         # https://github.com/aiortc/aioquic/commits/master/src/aioquic/asyncio/server.py
@@ -69,7 +74,9 @@ class http3_request_handler (http2_handler.http2_request_handler):
             )
             return
 
-        conn = self.conns.get (header.destination_cid)
+        with self._glock:
+            conn = self.conns.get (header.destination_cid)
+
         if conn:
             conn._linked_channel.close ()
             conn._linked_channel = channel
@@ -112,6 +119,35 @@ class http3_request_handler (http2_handler.http2_request_handler):
         self.conn = H3Connection (self.quic)
         self.conn._linked_channel = channel
 
+    def flush (self):
+        if super ().flush ():
+            self.set_timer ()
+
+    def set_timer (self):
+        if not self.quic:
+            return
+        with self._plock:
+            timer_at = self.quic.get_timer()
+        if self._timer_id is not None and self._timer_at != timer_at:
+            tick_timer.cancel (self._timer_id)
+            self._timer_id = None
+        if self._timer_id is None and timer_at is not None:
+            self._timer_id = tick_timer.at (timer_at, self.handle_timer)
+        self._timer_at = timer_at
+
+    def handle_timer (self):
+        # https://github.com/aiortc/aioquic/blob/master/src/aioquic/asyncio/protocol.py
+        # _handle_timer (self)
+        if not self.quic:
+            return
+        now = max (self._timer_at, time.monotonic ())
+        self._timer_id = None
+        self._timer_at = None
+        with self._plock:
+            self.quic.handle_timer (now = now)
+        self.process_quic_events ()
+        self.flush ()
+
     def _handle_events (self, events):
         for event in events:
             if isinstance (event, HeadersReceived):
@@ -144,8 +180,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
                     try: del self._push_map [event.push_id]
                     except KeyError: pass
                 self.remove_push_stream (event.push_id)
-
-        self.send_data ()
+        self.flush ()
 
     def process_quic_events (self):
         while 1:
@@ -155,22 +190,26 @@ class http3_request_handler (http2_handler.http2_request_handler):
                 break
 
             if isinstance (event, events.StreamDataReceived):
-                h3_events = self.conn.handle_event (event)
+                with self._plock:
+                    h3_events = self.conn.handle_event (event)
                 h3_events and self._handle_events (h3_events)
 
             elif isinstance (event, events.ConnectionIdIssued):
-                self.conns [event.connection_id] = self.conn
+                with self._glock:
+                    self.conns [event.connection_id] = self.conn
 
             elif isinstance (event, events.ConnectionIdRetired):
-                assert self.conns [event.connection_id] == self.conn
-                conn = self.conns.pop (event.connection_id)
+                with self._glock:
+                    assert self.conns [event.connection_id] == self.conn
+                    conn = self.conns.pop (event.connection_id)
                 conn._linked_channel = None
 
             elif isinstance (event, events.ConnectionTerminated):
-                for cid, conn in list (self.conns.items()):
-                    if conn == self.conn:
-                        conn._linked_channel = None
-                        del self.conns [cid]
+                with self._glock:
+                    for cid, conn in list (self.conns.items()):
+                        if conn == self.conn:
+                            conn._linked_channel = None
+                            del self.conns [cid]
                 self._terminate_connection ()
 
             elif isinstance (event, events.HandshakeCompleted):
@@ -189,7 +228,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
         with self._plock:
             self.quic.receive_datagram (data, self.channel.addr, time.monotonic ())
         self.process_quic_events ()
-        self.send_data ()
+        self.flush ()
 
     def reset_stream (self, stream_id):
         raise AttributeError ('HTTP/3 can cancel for only push stream, use cancel_push (push_id)')
@@ -212,7 +251,7 @@ class http3_request_handler (http2_handler.http2_request_handler):
         with self._plock:
             self.conn.cancel_push (push_id)
         super ().remove_stream (steram_id)
-        self.send_data ()
+        self.flush ()
 
     def data_to_send (self):
         with self._clock:
@@ -232,19 +271,21 @@ class http3_request_handler (http2_handler.http2_request_handler):
         name_, path = request_headers [0]
         assert name_ == ':path', ':path header missing'
         headers = [(k.encode (), v.encode ()) for k, v in request_headers + addtional_request_headers]
-        try:
-            promise_stream_id = self.conn.send_push_promise (stream_id = stream_id, headers = headers)
-        except NoAvailablePushIDError:
-            return
+        with self._plock:
+            try:
+                promise_stream_id = self.conn.send_push_promise (stream_id = stream_id, headers = headers)
+            except NoAvailablePushIDError:
+                return
 
         with self._clock:
             push_id = self._pushed_pathes.get (path)
 
         if push_id is None:
-            try:
-                push_id = self.conn.get_push_id (promise_stream_id)
-            except AttributeError:
-                push_id = self.conn._next_push_id - 1
+            with self._plock:
+                try:
+                    push_id = self.conn.get_push_id (promise_stream_id)
+                except AttributeError:
+                    push_id = self.conn._next_push_id - 1
 
             with self._clock:
                 self._push_map [push_id] = promise_stream_id
@@ -260,7 +301,7 @@ class Handler (http2_handler.Handler):
         return request.version.startswith ("3.")
 
     def handle_request (self, request):
-        http3 = http3_request_handler (self, request)
+        http3 = http3_connection_handler (self, request)
         request.channel.die_with (http3, "http3 connection")
         request.channel.set_socket_timeout (self.keep_alive)
-        request.channel.current_request = http3
+        request.channel.set_connection_handler (http3)

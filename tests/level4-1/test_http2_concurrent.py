@@ -1,4 +1,7 @@
 
+from rs4.protocols.sock.impl.http2.hyper.http20.h2.exceptions import ProtocolError
+from rs4.protocols.sock.impl.http2.hyper.common.exceptions import ConnectionResetError
+
 def test_http2 (launch):
     serve = './examples/https.py'
     with launch (serve, port = 30371,ssl = True) as engine:
@@ -9,9 +12,9 @@ def test_http2_push (launch):
     serve = './examples/https.py'
     with launch (serve, port = 30371, ssl = True) as engine:
         pushes = 0
-        for j in range (3): # need a little lucky
+        for _ in range (3): # need a little lucky
             mc = []
-            for i in range (3):
+            for _ in range (3):
                 mc.append ('/promise')
                 mc.append ('/promise')
                 mc.append ('/hello')
@@ -32,6 +35,8 @@ def test_http2_push (launch):
 
             resps = engine.http2.get (mc)
             for resp in resps:
+                if resp.traceback:
+                    print (resp.traceback)
                 for prom in resp.get_pushes ():
                     pushes += 1
 

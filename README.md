@@ -544,6 +544,10 @@ Refer [usage](https://gitlab.com/skitai/atila/-/blob/master/atila/executors/wsgi
 
 
 # Change Log
+- 0.56 (Jan, 2023)
+  - improving sync router performance
+  - improving http2/3 request processing performance
+
 - 0.55 (Dec, 2022)
   - remove websocket spec. WS_GROUPCHAT
 

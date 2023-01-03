@@ -72,9 +72,13 @@ class http_channel (asynchat.async_chat):
         self.event_time = int (time.time())
         self.producers_attend_to = []
         self.things_die_with = []
-
+        self.is_flushable = False
         self.__sendlock  = threading.Lock ()
         self.__history = []
+
+    def set_connection_handler (self, handler):
+        self.current_request = handler
+        self.is_flushable = True
 
     def get_history (self):
         return self.__history
@@ -93,34 +97,15 @@ class http_channel (asynchat.async_chat):
 
     def writable (self):
         with self.__sendlock:
-            return len (self.producer_fifo) or (not self.connected)
+            if len (self.producer_fifo):
+                return True
+        if self.is_flushable and self.current_request.has_sendables (): # for http/23
+            return self.current_request.flush ()
+        return True if not self.connected else False # for http/1
 
     def handle_write (self):
         with self.__sendlock:
             self.initiate_send ()
-
-    def link_protocol_writer (self):
-        self.writable = self.writable_with_protocol
-        self.handle_write = self.handle_write_with_protocol
-
-    def writable_with_protocol (self):
-        with self.__sendlock:
-            has_fifo = len (self.producer_fifo)
-        return has_fifo or (self.current_request and self.current_request.has_sendables ())
-
-    def handle_write_with_protocol (self):
-        try:
-            data_to_send = self.current_request.data_to_send ()
-        except AttributeError:
-            # self.current_request is None
-            return False
-        [self.push (data) for data in data_to_send]
-        if not data_to_send:
-            # anyway call eventually
-            with self.__sendlock:
-                self.initiate_send ()
-            return False
-        return True
 
     def push (self, data):
         with self.__sendlock:
@@ -157,10 +142,9 @@ class http_channel (asynchat.async_chat):
         return self.connected
 
     def handle_timeout (self):
-        if self.current_request:
-            response = self.current_request.response
-            response.error (503, force_close = True)
-        else:
+        try:
+            self.current_request.response.error (503, force_close = True)
+        except AttributeError:
             IS_TTY and self.log ("killing zombie channel %s" % ":".join (map (str, self.addr)))
             self.close ()
 

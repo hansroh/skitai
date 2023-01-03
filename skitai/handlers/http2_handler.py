@@ -64,7 +64,8 @@ class http2_producer:
         self.log ()
 
     def local_flow_control_window (self):
-        lfcw = self.conn.local_flow_control_window (self.stream_id)
+        with self.lock:
+            lfcw = self.conn.local_flow_control_window (self.stream_id)
         if lfcw == 0:
             # flow control error, graceful close
             if time.time () - self._last_sent > 10:
@@ -120,7 +121,7 @@ class http2_producer:
         return 1
 
 
-class http2_request_handler (FlowControlWindow):
+class http2_connection_handler (FlowControlWindow):
     collector = None
     producer = None
     http11_terminator = 24
@@ -154,6 +155,7 @@ class http2_request_handler (FlowControlWindow):
         self._closed = False
         self._pushed_pathes = {}
         self._close_pending = False
+        self._shutdowned = False
         self._plock = threading.Lock () # for self.conn
         self._clock = threading.Lock () # for self.x
 
@@ -176,11 +178,9 @@ class http2_request_handler (FlowControlWindow):
         [self.remove_request (stream_id) for stream_id in deletable_requests]
         [self.remove_response (stream_id) for stream_id in deletable_responses]
 
-        if self.conn:
-            self._initiate_shutdown ()
-
         if self.channel:
-            self.send_data ()
+            self._initiate_shutdown ()
+            self.flush ()
         else:
            self._terminate_connection ()
 
@@ -196,10 +196,14 @@ class http2_request_handler (FlowControlWindow):
         pass
 
     def _proceed_shutdown (self):
-        # phase II: proceed pending shutdown close protocol
+        # phase II: proceed pending shutdown close protocol if self._data_exhausted ()
         errcode, msg, last_stream_id = self._shutdown_reason
+        last_stream_id = max (0, last_stream_id) if last_stream_id else None
         with self._plock:
-            self.conn.close_connection (errcode, msg, max (0, last_stream_id)) # -1 used by http3
+            self.conn.close_connection (errcode, msg, last_stream_id) # -1 used by http3
+        with self._clock:
+            self._shutdowned = True
+        self.flush ()
 
     def _terminate_connection (self):
         # phase III: close channel
@@ -223,17 +227,15 @@ class http2_request_handler (FlowControlWindow):
         return events
 
     def _adjust_flow_control_window (self, stream_id):
-        if self.conn.inbound_flow_control_window < self.MIN_IBFCW:
-            with self._plock:
+        with self._plock:
+            if self.conn.inbound_flow_control_window < self.MIN_IBFCW:
                 self.conn.increment_flow_control_window (1048576)
-
-        rfcw = self.conn.remote_flow_control_window (stream_id)
-        if rfcw < self.MIN_RFCW:
-            try:
-                with self._plock:
+            rfcw = self.conn.remote_flow_control_window (stream_id)
+            if rfcw < self.MIN_RFCW:
+                try:
                     self.conn.increment_flow_control_window (1048576, stream_id)
-            except StreamClosedError:
-                pass
+                except StreamClosedError:
+                    pass
 
     def _handle_events (self, events):
         for event in events:
@@ -285,8 +287,7 @@ class http2_request_handler (FlowControlWindow):
                         # DO NOT REMOVE before responsing:
                         # this is for async streaming request like proxy request
                         self.remove_request (event.stream_id)
-
-        self.send_data ()
+        self.flush ()
 
     def _data_from_producers (self):
         finished = []
@@ -305,17 +306,16 @@ class http2_request_handler (FlowControlWindow):
         close_pending = False
         with self._clock:
             if not self._producers:
-                self._has_sendables, close_pending = False, self._close_pending
+                close_pending = self._close_pending
                 if self._pushed_pathes and not self._requests:
                     # end of a request session
                     self._pushed_pathes = {}
             remains = len (self._requests)
-        close_pending and not remains and self._proceed_shutdown ()
-        return [] # MUST return
-
-    def send_data (self):
         with self._clock:
-            self._has_sendables = True
+            shutdowned = self._shutdowned
+        if self.channel and not shutdowned and close_pending and not remains:
+            self._proceed_shutdown ()
+        return [] # MUST return
 
     def has_sendables (self):
         with self._clock:
@@ -332,6 +332,15 @@ class http2_request_handler (FlowControlWindow):
             data_to_send = self.conn.data_to_send ()
         return data_to_send and [data_to_send] or self._data_exhausted ()
 
+    def flush (self):
+        data_to_send = self.data_to_send ()
+        with self._clock:
+            self._has_sendables = True if self._producers else False
+        if not data_to_send:
+            return False
+        [self.channel.push (data) for data in data_to_send]
+        return True
+
     def handle_preamble (self):
         if self.request.version.startswith ("2."):
             self.channel.set_terminator (6) # SM\r\n\r\n
@@ -343,7 +352,7 @@ class http2_request_handler (FlowControlWindow):
             self.conn.initiate_upgrade_connection (h2settings)
         else:
             self.conn.initiate_connection()
-        self.send_data ()
+        self.flush ()
         if self.request.version == "1.1":
             self.handle_request (1, self.upgrade_header ())
 
@@ -422,6 +431,8 @@ class http2_request_handler (FlowControlWindow):
             self._handle_events (events)
 
     def request_acceptable (self):
+        if not self.channel:
+            return False
         with self._clock:
             if self._close_pending or self._closed:
                 return False
@@ -431,13 +442,11 @@ class http2_request_handler (FlowControlWindow):
         return self.request_acceptable () and self.conn.remote_settings [SettingCodes.ENABLE_PUSH]
 
     def push_promise (self, stream_id, request_headers, addtional_request_headers):
-        promise_stream_id = self.conn.get_next_available_stream_id ()
-        headers = request_headers + addtional_request_headers
-        with self._plock:
-            self.conn.push_stream (stream_id, promise_stream_id, headers)
         event = RequestReceived ()
-        event.stream_id = promise_stream_id
-        event.headers = headers
+        event.headers = request_headers + addtional_request_headers
+        with self._plock:
+            event.stream_id = self.conn.get_next_available_stream_id ()
+            self.conn.push_stream (stream_id, event.stream_id, event.headers)
         self._handle_events ([event])
 
     def get_request (self, stream_id):
@@ -481,7 +490,7 @@ class http2_request_handler (FlowControlWindow):
 
         if not closed:
             self.remove_stream (stream_id)
-        self.send_data ()
+        self.flush ()
 
     def handle_trailers (self, stream_id, headers):
         r = self.get_request (stream_id)
@@ -511,8 +520,7 @@ class http2_request_handler (FlowControlWindow):
         with self._clock:
             self._producers.append (self.producer_class (self.conn, self._plock, stream_id, headers, producer, trailers, depends_on, weight, request.response.maybe_log))
             self._producers.sort ()
-        self.send_data ()
-
+        self.flush ()
         force_close and self.close (self.errno.FLOW_CONTROL_ERROR)
 
     def handle_request (self, stream_id, headers, has_data_frame = False):
@@ -634,7 +642,7 @@ class Handler (wsgi_handler.Handler):
         if not is_http2:
             return self.default_handler.handle_request (request)
 
-        http2 = http2_request_handler (self, request)
+        http2 = http2_connection_handler (self, request)
         request.channel.die_with (http2, "http2 connection")
         request.channel.set_socket_timeout (self.keep_alive)
 
@@ -645,7 +653,6 @@ class Handler (wsgi_handler.Handler):
             )
             request.response.done (upgrade_to = (http2, http2.http11_terminator))
         else:
-            request.channel.current_request = http2
+            request.channel.set_connection_handler (http2)
 
-        request.channel.link_protocol_writer ()
         http2.initiate_connection ()
