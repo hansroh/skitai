@@ -140,6 +140,7 @@ class http2_connection_handler (FlowControlWindow):
         self._rfile = BytesIO ()
         self._buf = b""
         self._got_preamble = False
+        self._latest_push_stream_id = -1
 
     def _default_varialbes (self, handler, request):
         self.handler = handler
@@ -445,9 +446,12 @@ class http2_connection_handler (FlowControlWindow):
         event = RequestReceived ()
         event.headers = request_headers + addtional_request_headers
         with self._plock:
-            event.stream_id = self.conn.get_next_available_stream_id ()
+            push_stream_id = self.conn.get_next_available_stream_id ()
+            if self._latest_push_stream_id == push_stream_id:
+                print ('$$$$$$$$$$$$$$$$$$$$$$$$$$',  self._latest_push_stream_id, push_stream_id)
+            self._latest_push_stream_id = push_stream_id
+            event.stream_id = push_stream_id
             self.conn.push_stream (stream_id, event.stream_id, event.headers)
-        self.flush ()
         self._handle_events ([event])
 
     def get_request (self, stream_id):
