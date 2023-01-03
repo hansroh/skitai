@@ -306,9 +306,8 @@ class http2_connection_handler (FlowControlWindow):
         close_pending = False
         with self._clock:
             if not self._producers:
-                self._has_sendables, close_pending = False, self._close_pending
+                close_pending = self._close_pending
                 if self._pushed_pathes and not self._requests:
-                    print ('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&', self._pushed_pathes)
                     # end of a request session
                     self._pushed_pathes = {}
             remains = len (self._requests)
@@ -334,9 +333,9 @@ class http2_connection_handler (FlowControlWindow):
         return data_to_send and [data_to_send] or self._data_exhausted ()
 
     def flush (self):
-        with self._clock:
-            self._has_sendables = True
         data_to_send = self.data_to_send ()
+        with self._clock:
+            self._has_sendables = True if self._producers else False
         if not data_to_send:
             return False
         [self.channel.push (data) for data in data_to_send]
@@ -524,7 +523,6 @@ class http2_connection_handler (FlowControlWindow):
             self._producers.append (self.producer_class (self.conn, self._plock, stream_id, headers, producer, trailers, depends_on, weight, request.response.maybe_log))
             self._producers.sort ()
         self.flush ()
-
         force_close and self.close (self.errno.FLOW_CONTROL_ERROR)
 
     def handle_request (self, stream_id, headers, has_data_frame = False):
