@@ -162,6 +162,7 @@ class http2_connection_handler (FlowControlWindow):
         self.channel = channel
 
     def close (self, errcode = 0x0, msg = None, last_stream_id = None):
+        print ('CLOSEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE')
         with self._clock:
             if self._closed or self._close_pending:
                 return
@@ -239,6 +240,7 @@ class http2_connection_handler (FlowControlWindow):
 
     def _handle_events (self, events):
         for event in events:
+            print ('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&', event)
             if isinstance(event, RequestReceived):
                 self.handle_request (event.stream_id, event.headers, has_data_frame = not event.stream_ended)
 
