@@ -329,7 +329,7 @@ class http2_connection_handler (FlowControlWindow):
 
     def flush (self):
         with self._clock:
-            if self._producers:
+            if self._producers: # context.stream has no producer
                 self._has_sendables = True
         data_to_send = self.data_to_send ()
         if not data_to_send:
