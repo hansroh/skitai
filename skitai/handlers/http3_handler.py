@@ -276,6 +276,7 @@ class http3_connection_handler (http2_handler.http2_connection_handler):
                 promise_stream_id = self.conn.send_push_promise (stream_id = stream_id, headers = headers)
             except NoAvailablePushIDError:
                 return
+
         with self._clock:
             push_id = self._pushed_pathes.get (path)
 
