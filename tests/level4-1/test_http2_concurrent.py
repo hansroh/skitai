@@ -12,7 +12,7 @@ def test_http2_push (launch):
     serve = './examples/https.py'
     with launch (serve, port = 30371, ssl = True) as engine:
         pushes = 0
-        for i in range (3): # need a little lucky
+        for i in range (10): # need a little lucky
             mc = []
             for i in range (3):
                 mc.append ('/promise')
