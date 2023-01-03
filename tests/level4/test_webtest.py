@@ -1,3 +1,4 @@
+import sys
 
 def visit_pages (engine, http3 = False):
     cli = engine.http3 if http3 else engine.http2
@@ -42,4 +43,5 @@ def test_webtest_h3 (launch):
     serve = './examples/http3.py'
     with launch (serve, port = 30371, quic = 30371, ssl = True) as engine:
         visit_pages (engine, False)
-        visit_pages (engine, True)
+        if sys.version_info [:2] >= (3, 7):
+            visit_pages (engine, True)

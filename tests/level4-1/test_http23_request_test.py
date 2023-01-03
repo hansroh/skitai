@@ -33,4 +33,5 @@ def test_http23 (launch, is_pypy):
         visit (engine, False)
         if is_pypy:
             return
-        visit (engine, True)
+        if sys.version_info [:2] >= (3, 7):
+            visit (engine, True)
