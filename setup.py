@@ -64,7 +64,7 @@ package_data = {
 }
 
 install_requires = [
-    "rs4>=0.3.12",
+    "rs4>=0.3.13",
     "sqlphile>=0.9",
     "h2>=4.0.0"
 ]

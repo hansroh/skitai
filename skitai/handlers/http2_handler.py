@@ -120,7 +120,7 @@ class http2_producer:
         return 1
 
 
-class http2_request_handler (FlowControlWindow):
+class http2_connection_handler (FlowControlWindow):
     collector = None
     producer = None
     http11_terminator = 24
@@ -180,7 +180,7 @@ class http2_request_handler (FlowControlWindow):
             self._initiate_shutdown ()
 
         if self.channel:
-            self.send_data ()
+            self.flush ()
         else:
            self._terminate_connection ()
 
@@ -286,7 +286,7 @@ class http2_request_handler (FlowControlWindow):
                         # this is for async streaming request like proxy request
                         self.remove_request (event.stream_id)
 
-        self.send_data ()
+        self.flush ()
 
     def _data_from_producers (self):
         finished = []
@@ -313,10 +313,6 @@ class http2_request_handler (FlowControlWindow):
         close_pending and not remains and self._proceed_shutdown ()
         return [] # MUST return
 
-    def send_data (self):
-        with self._clock:
-            self._has_sendables = True
-
     def has_sendables (self):
         with self._clock:
             return self._has_sendables
@@ -332,6 +328,14 @@ class http2_request_handler (FlowControlWindow):
             data_to_send = self.conn.data_to_send ()
         return data_to_send and [data_to_send] or self._data_exhausted ()
 
+    def flush (self):
+        self._has_sendables = True
+        data_to_send = self.data_to_send ()
+        if not data_to_send:
+            return False
+        [self.channel.push (data) for data in data_to_send]
+        return True
+
     def handle_preamble (self):
         if self.request.version.startswith ("2."):
             self.channel.set_terminator (6) # SM\r\n\r\n
@@ -343,7 +347,7 @@ class http2_request_handler (FlowControlWindow):
             self.conn.initiate_upgrade_connection (h2settings)
         else:
             self.conn.initiate_connection()
-        self.send_data ()
+        self.flush ()
         if self.request.version == "1.1":
             self.handle_request (1, self.upgrade_header ())
 
@@ -481,7 +485,7 @@ class http2_request_handler (FlowControlWindow):
 
         if not closed:
             self.remove_stream (stream_id)
-        self.send_data ()
+        self.flush ()
 
     def handle_trailers (self, stream_id, headers):
         r = self.get_request (stream_id)
@@ -511,7 +515,7 @@ class http2_request_handler (FlowControlWindow):
         with self._clock:
             self._producers.append (self.producer_class (self.conn, self._plock, stream_id, headers, producer, trailers, depends_on, weight, request.response.maybe_log))
             self._producers.sort ()
-        self.send_data ()
+        self.flush ()
 
         force_close and self.close (self.errno.FLOW_CONTROL_ERROR)
 
@@ -634,7 +638,7 @@ class Handler (wsgi_handler.Handler):
         if not is_http2:
             return self.default_handler.handle_request (request)
 
-        http2 = http2_request_handler (self, request)
+        http2 = http2_connection_handler (self, request)
         request.channel.die_with (http2, "http2 connection")
         request.channel.set_socket_timeout (self.keep_alive)
 
@@ -647,5 +651,4 @@ class Handler (wsgi_handler.Handler):
         else:
             request.channel.current_request = http2
 
-        request.channel.link_protocol_writer ()
         http2.initiate_connection ()

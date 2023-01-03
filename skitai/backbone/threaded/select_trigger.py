@@ -11,8 +11,6 @@ import string
 import threading
 
 class base_trigger:
-	WAIT_TRIGGER = 0.02 # 20ms
-
 	def __init__ (self, logger = None):
 		self.logger = logger
 		self.lock = threading.RLock ()
@@ -44,28 +42,17 @@ class base_trigger:
 					self.logger.trace ('the_trigger')
 
 	def pull_trigger (self, thunk = None):
-		with self.lock:
-			if thunk:
+		if thunk:
+			with self.lock:
 				self.thunks.append (thunk)
-			if self.waiting:
-				return
-			self.waiting = True
-
-		# this is not for improving performance
-		# it reduces response time when low load but also reduces server CPU load if high network load
-		# Sep 13, 2020, Roh
-		# time.sleep (self.WAIT_TRIGGER)
-		with self.lock:
-			self.waiting = False
-		self.shut () # KEEP this order, release and shut!
-
+		self.shut ()
 
 if os.name == 'posix':
 	# Wake up a call to select() running in the main thread
 	class trigger (base_trigger, asyncore.file_dispatcher):
 		def __init__ (self, logger = None):
 			base_trigger.__init__ (self, logger)
-			r, w = os.pipe()
+			r, w = os.pipe ()
 			self.trigger = w
 			asyncore.file_dispatcher.__init__ (self, r)
 
