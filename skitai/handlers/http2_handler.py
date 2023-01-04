@@ -521,7 +521,7 @@ class http2_connection_handler (FlowControlWindow):
 
         with self._clock:
             self._producers.append (self.producer_class (self.conn, self._plock, stream_id, headers, producer, trailers, depends_on, weight, request.response.maybe_log))
-            self._producers.sort ()
+            self._producers.sort () # reprioritization
         self.flush ()
         force_close and self.close (self.errno.FLOW_CONTROL_ERROR)
 
