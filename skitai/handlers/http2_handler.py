@@ -43,9 +43,9 @@ class http2_producer:
         self._last_sent = time.time ()
 
     def __lt__ (self, other):
-        if self.depends_on == other.depends_on and self.priority == other.priority:
-            return self.stream_id < other.stream_id # descending
         if self.depends_on == other.depends_on:
+            if self.priority == other.priority:
+                return self.stream_id < other.stream_id # ascending
             return self.priority > other.priority # descending
         return self.depends_on < other.depends_on # ascending
 
