@@ -32,9 +32,9 @@ cache:
 
 .post_install: &post_install
   - pip install -U --pre --no-cache-dir sqlphile
-  - git clone https://gitlab.com/skitai/rs4.git && cd rs4 && pip install -e . && cd ..
+  - git clone https://gitlab.com/skitai/rs4.git && cd rs4 && pip install --force -e . && cd ..
   - pip install -e .
-  - git clone https://gitlab.com/skitai/atila.git && cd atila && pip install -e . && cd ..
+  - git clone https://gitlab.com/skitai/atila.git && cd atila && pip install --force -e . && cd ..
   - python -c 'from rs4.protocols.sock.impl.grpc import discover'
 
 .before_python_notf_test: &before_python_notf_test
