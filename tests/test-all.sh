@@ -1,6 +1,6 @@
 set -xe
 
-# for i in {1..10}; do pytest -s -x --ff $1 $2 $3 level4-1/test_http2_concurrent.py; done
+for i in {1..10}; do pytest -s -x --ff $1 $2 $3 level4-1/test_http2_concurrent.py; done
 
 pytest -x $1 $2 $3 level0
 pytest -x $1 $2 $3 level1
