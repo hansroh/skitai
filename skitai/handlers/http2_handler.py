@@ -513,7 +513,7 @@ class http2_connection_handler (FlowControlWindow):
                 del self._priorities [stream_id]
 
         if trailers:
-            assert producer, "http/2 or 3's trailser requires body"
+            assert producer, "http/2 or 3's trailer requires body"
         if producer and do_optimize:
             producer = producers.globbing_producer (producer)
 
