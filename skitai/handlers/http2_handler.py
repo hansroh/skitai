@@ -44,6 +44,8 @@ class http2_producer:
 
     def __lt__ (self, other):
         if self.depends_on == other.depends_on:
+            if self.priority == other.priority:
+                return self.stream_id < other.stream_id # ascending
             return self.priority > other.priority # descending
         return self.depends_on < other.depends_on # ascending
 
@@ -513,13 +515,13 @@ class http2_connection_handler (FlowControlWindow):
                 del self._priorities [stream_id]
 
         if trailers:
-            assert producer, "http/2 or 3's trailser requires body"
+            assert producer, "http/2 or 3's trailer requires body"
         if producer and do_optimize:
             producer = producers.globbing_producer (producer)
 
         with self._clock:
             self._producers.append (self.producer_class (self.conn, self._plock, stream_id, headers, producer, trailers, depends_on, weight, request.response.maybe_log))
-            self._producers.sort ()
+            self._producers.sort () # reprioritization
         self.flush ()
         force_close and self.close (self.errno.FLOW_CONTROL_ERROR)
 
